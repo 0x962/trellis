@@ -14,7 +14,6 @@ const summaryOf = (status: StatusSummary): StatusSummary => ({
 	slug: status.slug,
 	name: status.name,
 	category: status.category,
-	reviewer: status.reviewer,
 	color: status.color,
 });
 

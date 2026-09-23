@@ -91,7 +91,6 @@ export const toSummary = (status: Status): StatusSummary => ({
 	slug: status.slug,
 	name: status.name,
 	category: status.category,
-	reviewer: status.reviewer,
 	color: status.color,
 });
 

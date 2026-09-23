@@ -136,8 +136,8 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${rootId}, 'CHK', 'chk', 'Checks', ${t0}, ${t0})`);
 	await db.execute(sql`INSERT INTO statuses
-		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
-		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${t0}, ${t0})`);
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${t0}, ${t0})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	core = {

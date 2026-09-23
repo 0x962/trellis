@@ -68,7 +68,7 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 					</span>
 				)}
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
-				{ticket.status.reviewer === "human" && ticket.pr !== null && (
+				{ticket.status.category === "review" && ticket.pr !== null && (
 					<ReviewStatusSummary reviews={ticket.pr.reviews} />
 				)}
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 empty:hidden">

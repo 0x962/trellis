@@ -75,11 +75,7 @@ export function StatusRow({
 	const summary = (
 		<>
 			<span className="status-row-icon">
-				<StatusIcon
-					category={status.category}
-					reviewer={status.reviewer ?? undefined}
-					className={iconColors[status.color]}
-				/>
+				<StatusIcon category={status.category} className={iconColors[status.color]} />
 			</span>
 			<span className="status-row-copy">
 				<span className="status-row-name-line">

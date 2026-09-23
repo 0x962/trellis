@@ -23,9 +23,9 @@ let cache: ProjectCache;
 const tst = ulid();
 const human: ActorRef = { name: "Test", kind: "human" };
 
-const insertStatus = (name: string, slug: string, category: string, reviewer: string | null, position: number) =>
-	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
-		VALUES (${ulid()}, ${tst}, ${name}, ${slug}, ${category}, ${reviewer}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+const insertStatus = (name: string, slug: string, category: string, position: number) =>
+	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${ulid()}, ${tst}, ${name}, ${slug}, ${category}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
 const ctxAt = (now: string, actor: ActorRef = human): ServiceCtx => ({
 	actor,
@@ -106,11 +106,11 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${tst}, 'TST', 'tst', 'TST', '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
-	await insertStatus("Todo", "todo", "todo", null, 0);
-	await insertStatus("In Progress", "in-progress", "started", null, 1);
-	await insertStatus("Human Review", "human-review", "review", "human", 2);
-	await insertStatus("Done", "done", "done", null, 3);
-	await insertStatus("Canceled", "canceled", "canceled", null, 4);
+	await insertStatus("Todo", "todo", "todo", 0);
+	await insertStatus("In Progress", "in-progress", "started", 1);
+	await insertStatus("Human Review", "human-review", "review", 2);
+	await insertStatus("Done", "done", "done", 3);
+	await insertStatus("Canceled", "canceled", "canceled", 4);
 	cache = createCache();
 	await db.transaction((tx) => cache.rebuild(tx));
 	const ctx = ctxAt("2026-09-18T10:00:30.000Z");

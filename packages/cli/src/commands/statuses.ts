@@ -1,4 +1,4 @@
-import type { ColorToken, Reviewer, Status, StatusCategory } from "@trellis/api";
+import type { ColorToken, Status, StatusCategory } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { type CliContext, compact, contextOf, readText, toNumber } from "../context.ts";
@@ -10,7 +10,6 @@ const statusList: ListSpec<Status> = {
 		{ name: "slug", value: (row) => row.slug },
 		{ name: "name", value: (row) => cell(row.name) },
 		{ name: "category", value: (row) => row.category },
-		{ name: "reviewer", value: (row) => cell(row.reviewer) },
 		{ name: "color", value: (row) => row.color },
 		{ name: "default", value: (row) => (row.isDefault ? "yes" : "-") },
 	],
@@ -23,7 +22,6 @@ const statusRecord: RecordSpec<Status> = {
 		{ name: "id", value: (row) => row.id },
 		{ name: "name", value: (row) => cell(row.name) },
 		{ name: "category", value: (row) => row.category },
-		{ name: "reviewer", value: (row) => cell(row.reviewer) },
 		{ name: "color", value: (row) => row.color },
 		{ name: "position", value: (row) => String(row.position) },
 		{ name: "default", value: (row) => (row.isDefault ? "yes" : "no") },
@@ -62,7 +60,6 @@ const add = defineCommand({
 		project: { type: "positional", required: true, description: "Project ref" },
 		name: { type: "positional", required: true, description: "Name" },
 		category: { type: "enum", options: ["todo", "started", "review", "done", "canceled"], required: true },
-		reviewer: { type: "enum", options: ["human", "agent"], description: "Who reviews, for a review status" },
 		description: descriptionFlag,
 		color: { type: "string", description: "Color token" },
 		position: { type: "string", description: "Position in the column order" },
@@ -76,7 +73,6 @@ const add = defineCommand({
 				project: args.project,
 				name: args.name,
 				category: args.category as StatusCategory,
-				reviewer: args.reviewer as Reviewer | undefined,
 				description: await descriptionOf(ctx, args.description),
 				color: args.color as ColorToken | undefined,
 				position: toNumber(args.position),
@@ -107,7 +103,6 @@ const edit = defineCommand({
 		name: { type: "string", description: "New name" },
 		description: descriptionFlag,
 		color: { type: "string", description: "New color token" },
-		reviewer: { type: "enum", options: ["human", "agent"], description: "New reviewer" },
 		position: { type: "string", description: "New position in the column order" },
 		default: { type: "boolean", description: "Make it the default status" },
 		category: { type: "string", description: "Refused: the category is immutable" },
@@ -124,7 +119,6 @@ const edit = defineCommand({
 			name: args.name,
 			description: await descriptionOf(ctx, args.description),
 			color: args.color as ColorToken | undefined,
-			reviewer: args.reviewer as Reviewer | undefined,
 			isDefault: args.default === true ? true : undefined,
 		});
 		const updated =

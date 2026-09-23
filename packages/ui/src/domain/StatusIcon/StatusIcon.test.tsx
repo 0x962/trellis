@@ -2,21 +2,16 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StatusIcon } from "./StatusIcon";
 
-test("review statuses can draw as human, agent, and queue marks", () => {
-	const human = renderToStaticMarkup(
-		<StatusIcon category="review" reviewer="human" color="warning" reviewShape="human" label="Human Review" />,
-	);
-	const agent = renderToStaticMarkup(
-		<StatusIcon category="review" reviewer="agent" color="agent" reviewShape="agent" label="Agent Review" />,
+test("review statuses can draw as dashed ring and queue marks", () => {
+	const ring = renderToStaticMarkup(
+		<StatusIcon category="review" color="warning" reviewShape="human" label="Human Review" />,
 	);
 	const queue = renderToStaticMarkup(
-		<StatusIcon category="review" reviewer="agent" color="fg" reviewShape="queue" label="Deploy Queue" />,
+		<StatusIcon category="review" color="fg" reviewShape="queue" label="Deploy Queue" />,
 	);
 
-	expect(human).toContain('data-review-shape="human"');
-	expect(human).toContain("text-warning");
-	expect(agent).toContain('data-review-shape="agent"');
-	expect(agent).toContain("text-agent");
+	expect(ring).toContain('data-review-shape="human"');
+	expect(ring).toContain("text-warning");
 	expect(queue).toContain('data-review-shape="queue"');
 	expect(queue).toContain("text-fg");
 });

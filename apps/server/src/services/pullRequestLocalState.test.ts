@@ -51,8 +51,8 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${root}, 'LOC', 'loc', 'Local', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
-		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
-		VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'accent', 0, true, ${at}, ${at})`);
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', 'accent', 0, true, ${at}, ${at})`);
 }, 60_000);
 
 beforeEach(() => {

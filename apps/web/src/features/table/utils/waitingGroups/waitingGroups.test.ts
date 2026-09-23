@@ -21,7 +21,6 @@ const ticket = (
 	id: string,
 	fields: {
 		category?: TicketSummary["status"]["category"];
-		reviewer?: TicketSummary["status"]["reviewer"];
 		waitsOn?: TicketSummary["waitsOn"];
 		prRows?: TicketPr[];
 		ready?: boolean;
@@ -29,13 +28,13 @@ const ticket = (
 ): TicketSummary =>
 	({
 		id,
-		status: { category: fields.category ?? "started", reviewer: fields.reviewer ?? null },
+		status: { category: fields.category ?? "started" },
 		waitsOn: fields.waitsOn ?? [],
 		prRows: fields.prRows ?? [],
 		ready: fields.ready ?? false,
 	}) as TicketSummary;
 
-const humanReview = ticket("human-review", { reviewer: "human" });
+const humanReview = ticket("human-review", { category: "review" });
 const review = ticket("review", { prRows: [pullRequest()] });
 const start = ticket("start", { category: "todo", ready: true });
 const draft = ticket("draft", {

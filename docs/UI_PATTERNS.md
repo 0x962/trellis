@@ -88,7 +88,7 @@ The product keeps two shapes. What the control changes picks the shape, not the 
 | Label group name | `InlineEdit` in the heading band of the group | `apps/web/src/features/project-settings/LabelGroupRow/LabelGroupRow.tsx` |
 | Session name, attachment name | `InlineEdit` in the row | `apps/web/src/features/sessions/SessionName/SessionName.tsx` |
 | Label: name, color, description | Row editor under the label row | `apps/web/src/features/project-settings/LabelEditor/LabelEditor.tsx` |
-| Status: name, color, reviewer, description, default | Row editor under the status row | `apps/web/src/features/project-settings/StatusRow/components/StatusEditor/StatusEditor.tsx` |
+| Status: name, color, description, default | Row editor under the status row | `apps/web/src/features/project-settings/StatusRow/components/StatusEditor/StatusEditor.tsx` |
 | Epic: name and plan | Sheet | `apps/web/src/features/epics/EpicSheet/EpicSheet.tsx` |
 | A new label, label group or status | Form with Cancel and Save | `apps/web/src/features/project-settings/StatusCreateForm/StatusCreateForm.tsx` |
 

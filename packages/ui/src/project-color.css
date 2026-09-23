@@ -133,3 +133,13 @@
 	background: var(--project-soft);
 	color: var(--project-solid);
 }
+
+/*
+ * One cell of the color grid in `ProjectColorField`: the ground is the solid
+ * color of the name, and the check mark on it is drawn in the strand color,
+ * the ink `projectColors.test.ts` measures against every solid.
+ */
+.project-swatch {
+	background: var(--project-solid);
+	color: var(--project-strand);
+}

@@ -15,6 +15,5 @@ export const approveTarget = (statuses: readonly Status[], current: Pick<StatusS
 // The status Send back moves a ticket to: the started status with the lowest position.
 export const sendBackTarget = (statuses: readonly Status[]): Status => lowestOf(statuses, "started");
 
-// Approve and Send back show only while a person is the reviewer.
-export const showsReviewActions = (status: Pick<StatusSummary, "category" | "reviewer">): boolean =>
-	status.category === "review" && status.reviewer === "human";
+// Approve and Send back show only on a status of the review category.
+export const showsReviewActions = (status: Pick<StatusSummary, "category">): boolean => status.category === "review";

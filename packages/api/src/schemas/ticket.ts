@@ -9,14 +9,7 @@ import {
 } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
-import {
-	CiStateSchema,
-	PrioritySchema,
-	PrStateSchema,
-	ReviewerSchema,
-	ReviewStateSchema,
-	StatusCategorySchema,
-} from "./enums.ts";
+import { CiStateSchema, PrioritySchema, PrStateSchema, ReviewStateSchema, StatusCategorySchema } from "./enums.ts";
 import { EpicLinkSchema } from "./epicLink.ts";
 import { TicketLabelSchema } from "./label.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
@@ -182,7 +175,6 @@ export const ListQuerySchema = z.strictObject({
 	project: ProjectRefStringSchema.optional(),
 	status: commaList(StatusRefStringSchema).optional(),
 	category: commaList(StatusCategorySchema).optional(),
-	reviewer: ReviewerSchema.optional(),
 	priority: commaList(PrioritySchema).optional(),
 	// `label` keeps a ticket that holds one or more of these labels. The value
 	// `none` in it keeps a ticket that holds no label. `labelNot` keeps a

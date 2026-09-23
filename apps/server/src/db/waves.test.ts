@@ -27,8 +27,8 @@ const insertProject = (id: string, key: string) =>
 		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
 const insertStatus = (root: string, name: string, slug: string, category: string, position: number) =>
-	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
-		VALUES (${ulid()}, ${root}, ${name}, ${slug}, ${category}, NULL, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${ulid()}, ${root}, ${name}, ${slug}, ${category}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
 // A core service context at `now`. `emit` collects the events of the call.
 const ctxAt = (now: string, actor: ActorRef = human): ServiceCtx => ({

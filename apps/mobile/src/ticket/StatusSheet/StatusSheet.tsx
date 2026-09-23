@@ -44,7 +44,7 @@ export function StatusSheet({ open, statuses, currentId, onChoose, onClose }: St
 							key={status.id}
 							label={status.name}
 							checked={status.id === currentId}
-							icon={<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />}
+							icon={<StatusIcon category={status.category} />}
 							onPress={() => onChoose(status)}
 						/>
 					))}

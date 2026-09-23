@@ -22,7 +22,6 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 
 const ticket = (fields: {
 	category?: TicketSummary["status"]["category"];
-	reviewer?: TicketSummary["status"]["reviewer"];
 	waitsOn?: TicketSummary["waitsOn"];
 	prRows?: TicketPr[];
 	ready?: boolean;
@@ -30,7 +29,6 @@ const ticket = (fields: {
 	({
 		status: {
 			category: fields.category ?? "started",
-			reviewer: fields.reviewer ?? null,
 		},
 		waitsOn: fields.waitsOn ?? [],
 		prRows: fields.prRows ?? [],
@@ -90,6 +88,6 @@ test("returns done for a done ticket", () => {
 	expect(waitingFor(ticket({ category: "done" }), false)).toBe("done");
 });
 
-test("a human-review ticket waits for you while a run works", () => {
-	expect(waitingFor(ticket({ category: "review", reviewer: "human" }), true)).toBe("you");
+test("a review ticket waits for you while a run works", () => {
+	expect(waitingFor(ticket({ category: "review" }), true)).toBe("you");
 });

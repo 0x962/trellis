@@ -10,7 +10,7 @@ import { pullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.t
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
 
 const nameFor = (ticket: TicketSummary, waiting: Waiting, hasWorkingRun: boolean): string => {
-	if (hasWorkingRun || ticket.status.reviewer === "human") return ticket.identifier;
+	if (hasWorkingRun || ticket.status.category === "review") return ticket.identifier;
 	const pullRequest = ticket.prRows.find((row) => waitingFor(row, false) === waiting);
 	return pullRequest === undefined ? ticket.identifier : `#${pullRequest.number}`;
 };

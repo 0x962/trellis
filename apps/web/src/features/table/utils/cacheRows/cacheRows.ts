@@ -76,7 +76,6 @@ const accepts = (input: ListQueryInput, row: TicketSummary) => {
 	}
 	if (input.category !== undefined && !input.category.includes(status.category)) return false;
 	if (input.priority !== undefined && !input.priority.includes(row.priority)) return false;
-	if (input.reviewer !== undefined && status.reviewer !== input.reviewer) return false;
 	if (input.parent === "none" && row.parent !== null) return false;
 	if (input.parent !== undefined && input.parent !== "none" && row.parent?.identifier !== input.parent.toUpperCase()) {
 		return false;

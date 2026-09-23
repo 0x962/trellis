@@ -161,7 +161,7 @@ before another agent can take the ticket.
 - Every project stands on its own. It has a key (`^[A-Z][A-Z0-9]{1,9}$`), a slug, and a ticket counter. Tickets are `KEY-n`.
 - Ticket numbers are never reused. A delete leaves a gap. A key is immutable once the counter is above zero (`KEY_LOCKED`).
 - A parent ticket, an epic, and a wave belong to the project of the ticket (`CROSS_PROJECT_LINK`). A ticket cannot be its own ancestor (`PARENT_CYCLE`).
-- Statuses belong to a project. A new project starts with Todo (todo, default), In Progress (started), Agent Review (review, agent reviewer), Human Review (review, human reviewer), Done (done), and Canceled (canceled).
+- Statuses belong to a project. A new project starts with Todo (todo, default), In Progress (started), Agent Review (review), Human Review (review), Done (done), and Canceled (canceled).
 - Invariant: `tickets.status_id` belongs to `tickets.project_id`.
 - Every status-to-status move is legal.
   The `category` of a status is immutable after creation.
@@ -849,7 +849,7 @@ project. The second segment is a view only when it is a reserved slug:
 The board uses the bare project URL. An older link
 that ends in `/board` redirects to the same path with the segment dropped.
 
-A card in a status with the human reviewer shows up to five linked PR approval marks.
+A card in a status of the review category shows up to five linked PR approval marks.
 An overflow pill opens a tooltip that lists every linked PR and its approval state.
 
 The URL carries the whole view state in the shared filter grammar, with no
@@ -943,7 +943,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 |---|---|
 | projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
-| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
+| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
@@ -1079,7 +1079,6 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | project | a ProjectRef |
 | status | a list of StatusRef |
 | category | a list of todo, started, review, done, canceled |
-| reviewer | human or agent |
 | priority | a list |
 | parent | a TicketRef or `none` |
 | waitsOn | a TicketRef; keeps tickets with that dependency edge |

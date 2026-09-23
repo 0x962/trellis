@@ -52,7 +52,7 @@ const iconOf = (
 	switch (field) {
 		case "status": {
 			const status = statuses.find((entry) => entry.slug === values[0] || entry.id === values[0]);
-			return <StatusIcon category={status?.category ?? "todo"} reviewer={status?.reviewer ?? undefined} />;
+			return <StatusIcon category={status?.category ?? "todo"} />;
 		}
 		case "category":
 			return <StatusIcon category={(values[0] as StatusSummary["category"]) ?? "todo"} />;

@@ -1,4 +1,4 @@
-import type { CiState, PrFilter, Priority, Reviewer, StatusCategory } from "@trellis/api";
+import type { CiState, PrFilter, Priority, StatusCategory } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { tsquery } from "./fts.ts";
 import { notReadyForReviewSql } from "./reviewReady.ts";
@@ -16,7 +16,6 @@ export type TicketFilter = {
 	projectIds?: readonly string[];
 	statusIds?: readonly string[];
 	categories?: readonly StatusCategory[];
-	reviewer?: Reviewer;
 	priority?: readonly Priority[];
 	labelIds?: readonly string[];
 	labelNotIds?: readonly string[];
@@ -104,7 +103,7 @@ const actorClause = (actor: string) => {
 const projectClause = (projectIds: readonly string[]) =>
 	projectIds.length === 1 ? sql`t.project_id = ${projectIds[0]}` : sql`t.project_id = ANY(${textArray(projectIds)})`;
 
-// The ticket's status, for the category and reviewer clauses.
+// The ticket's status, for the category clause.
 const statusWhere = (test: SQL) => sql`EXISTS (SELECT 1 FROM statuses fs WHERE fs.id = t.status_id AND ${test})`;
 
 // The categories whose tickets have no completed_at: a ticket gets
@@ -126,7 +125,6 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 			clauses.push(sql`t.completed_at IS NULL`);
 		}
 	}
-	if (filter.reviewer) clauses.push(statusWhere(sql`fs.reviewer = ${filter.reviewer}`));
 	if (filter.priority) clauses.push(sql`t.priority = ANY(${textArray(filter.priority)})`);
 	if (filter.labelIds || filter.noLabel) clauses.push(labelClause(filter.labelIds, filter.noLabel));
 	if (filter.labelNotIds) clauses.push(sql`NOT ${holdsAny(filter.labelNotIds)}`);
@@ -154,7 +152,6 @@ export const filterKey = (filter: TicketFilter) => [
 	filter.projectIds ?? null,
 	filter.statusIds ?? null,
 	filter.categories ?? null,
-	filter.reviewer ?? null,
 	filter.priority ?? null,
 	filter.labelIds ?? null,
 	filter.labelNotIds ?? null,

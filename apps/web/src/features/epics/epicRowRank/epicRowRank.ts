@@ -9,15 +9,15 @@ export const assignedTicketIds = (runs: readonly Pick<AgentRun, "kind" | "ticket
 
 // The rank of a ticket inside a wave group of the epic page, by what
 // the person does next. A lower rank comes first:
-// 0, the ticket waits for the person: its status names the human reviewer.
+// 0, the ticket waits for the person: its status is in the review category.
 // 1, the ticket can start: the todo category with no assigned agent run.
 // 2, an agent runs the ticket: it holds an assigned agent run.
 // 3, every other open ticket.
 // 4, a Done or Canceled ticket.
 export const epicRowRank = (assigned: ReadonlySet<string>) => (ticket: TicketSummary) => {
-	const { category, reviewer } = ticket.status;
+	const { category } = ticket.status;
 	if (category === "done" || category === "canceled") return 4;
-	if (reviewer === "human") return 0;
+	if (category === "review") return 0;
 	if (assigned.has(ticket.id)) return 2;
 	return category === "todo" ? 1 : 3;
 };

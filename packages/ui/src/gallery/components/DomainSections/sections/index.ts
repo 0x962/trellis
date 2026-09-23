@@ -13,6 +13,7 @@ export { LineChangesSection } from "./LineChangesSection";
 export { MergeConflictMarkSection } from "./MergeConflictMarkSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
+export { ProjectColorFieldSection } from "./ProjectColorFieldSection";
 export { ProjectColorSection } from "./ProjectColorSection";
 export { ResourceListSection } from "./ResourceListSection";
 export { ReviewDiffSection } from "./ReviewDiffSection";

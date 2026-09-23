@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
-import { checkIn, PROJECT_COLORS, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
+import { checkIn, PROJECT_COLORS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
 
 // Every project stands on its own. `key` is the prefix of every ticket
@@ -58,9 +58,8 @@ export const repos = pgTable(
 	],
 );
 
-// A review status names who reviews; every other category carries no
-// reviewer. One status per project is the default for a new ticket.
-// `description` is markdown that describes the status.
+// One status per project is the default for a new ticket. `description` is
+// markdown that describes the status.
 export const statuses = pgTable(
 	"statuses",
 	{
@@ -72,7 +71,6 @@ export const statuses = pgTable(
 		description: text().notNull().default(""),
 		slug: text().notNull(),
 		category: text().notNull(),
-		reviewer: text(),
 		color: text().notNull(),
 		position: integer().notNull(),
 		isDefault: boolean("is_default").notNull().default(false),
@@ -84,8 +82,6 @@ export const statuses = pgTable(
 		unique("statuses_project_id_slug_unique").on(t.projectId, t.slug),
 		uniqueIndex("statuses_default_idx").on(t.projectId).where(sql`${t.isDefault}`),
 		checkIn(t.category, STATUS_CATEGORIES),
-		checkIn(t.reviewer, REVIEWERS),
-		check("statuses_reviewer_for_review", sql`(${t.category} = 'review') = (${t.reviewer} IS NOT NULL)`),
 		check("statuses_name_check", sql`length(${t.name}) BETWEEN 1 AND 40`),
 		check("statuses_description_check", sql`char_length(${t.description}) <= 2000`),
 	],

@@ -17,7 +17,6 @@ const ticket = (category: TicketSummary["status"]["category"], slug: string): Ti
 			name: slug === "done" ? "Done" : "In Progress",
 			slug,
 			category,
-			reviewer: null,
 			color: "gray",
 		},
 	}) as unknown as TicketSummary;

@@ -1,7 +1,21 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { freeProjectColors, projectColors } from "../projectColors";
+import { freeProjectColors, type ProjectColor, projectColors } from "../projectColors";
 import { ProjectColorField } from "./ProjectColorField";
+
+const field = (value: ProjectColor | null, taken: readonly ProjectColor[]) =>
+	renderToStaticMarkup(<ProjectColorField value={value} taken={taken} onValueChange={() => {}} />);
+
+// The names in the order the grid draws them.
+const drawnOrder = (html: string) => [...html.matchAll(/data-project-color="([a-z]+)"/g)].map((match) => match[1]);
+
+// The opening tag of the cell that carries `mark`.
+const tagAt = (html: string, mark: string) => {
+	const start = html.indexOf(mark);
+	return html.slice(html.lastIndexOf("<span", start), html.indexOf(">", start) + 1);
+};
+
+const cellOf = (html: string, color: ProjectColor) => tagAt(html, `data-project-color="${color}"`);
 
 test("a color that another project holds is not free, and the own color stays free", () => {
 	const free = freeProjectColors(["blue", "teal"], "blue");
@@ -20,23 +34,34 @@ test("the names run out after 25 projects", () => {
 	expect(freeProjectColors(projectColors, "pine")).toEqual(["pine"]);
 });
 
-// A closed Select draws the chosen item and no list, so the test reads the
-// trigger.
-test("the field shows the color of the project on its trigger", () => {
-	const html = renderToStaticMarkup(
-		<ProjectColorField value="blue" taken={["blue", "orange"]} onValueChange={() => {}} />,
-	);
-
-	expect(html).toContain('data-project-color="blue"');
-	expect(html).toContain(">Blue<");
-	expect(html).toContain("The color fills the mark of the project");
-	expect(html).not.toContain('aria-disabled="true"');
+test("the grid draws all 25 names in palette order whatever the taken set is", () => {
+	expect(drawnOrder(field("blue", ["blue"]))).toEqual([...projectColors]);
+	expect(drawnOrder(field("blue", ["blue", "red", "teal", "rose"]))).toEqual([...projectColors]);
+	expect(drawnOrder(field(null, projectColors))).toEqual([...projectColors]);
 });
 
-test("the field says the slots are gone and takes no pick", () => {
-	const html = renderToStaticMarkup(<ProjectColorField value={null} taken={projectColors} onValueChange={() => {}} />);
+test("a color another project holds cannot be chosen", () => {
+	const html = field("blue", ["blue", "teal"]);
+
+	expect(cellOf(html, "teal")).toContain('aria-disabled="true"');
+	expect(cellOf(html, "teal")).toContain("Teal, another project holds it");
+	expect(cellOf(html, "blue")).not.toContain("aria-disabled");
+	expect(cellOf(html, "red")).not.toContain("aria-disabled");
+});
+
+test("the color of the project is the one that reads as current", () => {
+	const html = field("blue", ["blue", "teal"]);
+
+	expect(cellOf(html, "blue")).toContain('aria-checked="true"');
+	expect(cellOf(html, "red")).toContain('aria-checked="false"');
+	expect(html).toContain('aria-label="Blue"');
+});
+
+test("no color stays reachable when every name is gone", () => {
+	const html = field(null, projectColors);
 
 	expect(html).toContain("Every color belongs to another project. Take one back there to give this project a color.");
-	expect(html).toContain('aria-disabled="true"');
-	expect(html).toContain(">No color<");
+	expect(html).toContain('aria-label="No color"');
+	expect(tagAt(html, 'aria-label="No color"')).toContain('aria-checked="true"');
+	expect(tagAt(html, 'aria-label="No color"')).not.toContain("aria-disabled");
 });

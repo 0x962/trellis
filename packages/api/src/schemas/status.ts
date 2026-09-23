@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ProjectRefStringSchema, StatusRefStringSchema } from "../refs.ts";
-import { ColorTokenSchema, ReviewerSchema, StatusCategorySchema } from "./enums.ts";
+import { ColorTokenSchema, StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 
 const StatusNameSchema = z
@@ -27,7 +27,6 @@ export const StatusSummarySchema = z.object({
 	slug: StatusSlugSchema,
 	name: StatusNameSchema,
 	category: StatusCategorySchema,
-	reviewer: ReviewerSchema.nullable(),
 	color: ColorSchema,
 });
 export type StatusSummary = z.infer<typeof StatusSummarySchema>;
@@ -52,22 +51,15 @@ export const StatusListInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 });
 
-// A review status names who reviews; every other category carries no reviewer.
-const reviewerMatchesCategory = (input: { category: string; reviewer?: string | undefined }) =>
-	(input.category === "review") === (input.reviewer !== undefined);
-
-export const StatusCreateInputSchema = z
-	.strictObject({
-		project: ProjectRefStringSchema,
-		name: StatusNameSchema,
-		category: StatusCategorySchema,
-		reviewer: ReviewerSchema.optional(),
-		description: StatusDescriptionSchema.optional(),
-		color: ColorSchema.optional(),
-		position: z.number().int().optional(),
-		isDefault: z.boolean().optional(),
-	})
-	.refine(reviewerMatchesCategory, "A review status needs a reviewer; another category cannot carry one.");
+export const StatusCreateInputSchema = z.strictObject({
+	project: ProjectRefStringSchema,
+	name: StatusNameSchema,
+	category: StatusCategorySchema,
+	description: StatusDescriptionSchema.optional(),
+	color: ColorSchema.optional(),
+	position: z.number().int().optional(),
+	isDefault: z.boolean().optional(),
+});
 export type StatusCreateInput = z.input<typeof StatusCreateInputSchema>;
 
 // `category` is immutable after creation, so it is not an update field.
@@ -77,7 +69,6 @@ export const StatusUpdateInputSchema = z.strictObject({
 	name: StatusNameSchema.optional(),
 	description: StatusDescriptionSchema.optional(),
 	color: ColorSchema.optional(),
-	reviewer: ReviewerSchema.optional(),
 	isDefault: z.boolean().optional(),
 });
 export type StatusUpdateInput = z.input<typeof StatusUpdateInputSchema>;

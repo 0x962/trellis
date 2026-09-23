@@ -18,8 +18,8 @@ const styles = StyleSheet.create({
 });
 
 // Approve as the primary button and Send back beside it, shown only on a
-// human reviewer status. Send back opens a sheet with the field "Reason"
-// and the buttons Cancel and Confirm.
+// review status. Send back opens a sheet with the field "Reason" and the
+// buttons Cancel and Confirm.
 export function ReviewActions({ ticket, onApprove, onSendBack }: ReviewActionsProps) {
 	const [asking, setAsking] = useState(false);
 	if (!showsReviewActions(ticket.status)) return null;
