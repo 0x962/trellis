@@ -5,8 +5,6 @@ import { createBus } from "../events/bus.ts";
 import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
 import { createDbTiming } from "../serverTiming.ts";
 import { type ServiceKind, services } from "../services/registry.ts";
-import { openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
 import { openDatabase } from "./open.ts";
 import { createInlineTransport, type Runtime, type ServiceTransport } from "./transport.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./workerProtocol.ts";
@@ -43,12 +41,6 @@ export class ServiceQueue {
 		return this.calls.splice(index, 1)[0];
 	}
 }
-
-export const openWorkerDatabase = async (dataDir: string) => {
-	const db = await openDb(dataDir);
-	await migrate(db);
-	return db;
-};
 
 const errorOf = (error: unknown): SerializedError => {
 	if (error instanceof ORPCError) {

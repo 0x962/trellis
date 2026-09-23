@@ -20,6 +20,7 @@ import { reviews } from "./reviews";
 import { search } from "./search.ts";
 import { sessions } from "./sessions.ts";
 import { settings } from "./settings.ts";
+import { statistics } from "./statistics.ts";
 import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
@@ -42,6 +43,7 @@ export const contract = {
 	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),
+	statistics: oc.tag("statistics").router(statistics),
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),
 	timeline: oc.tag("timeline").router(timeline),

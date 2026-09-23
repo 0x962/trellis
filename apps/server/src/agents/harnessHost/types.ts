@@ -6,6 +6,8 @@ import type { BuiltInHarness } from "../harnesses/types.ts";
 export type HarnessHostOptions = {
 	runtime: RuntimeClient;
 	directory: string;
+	// The directory that holds one worktree per agent run.
+	agents: string;
 	env: Record<string, string | undefined>;
 	bun: string;
 	observationTimeoutMs?: number;

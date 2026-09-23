@@ -2,3 +2,7 @@
 # isolated linker makes one copy of Expo for each peer set.
 [install]
 linker = "hoisted"
+
+# `apps/server/scripts/testPreload.ts` states why a test process runs it first.
+[test]
+preload = ["./apps/server/scripts/testPreload.ts"]

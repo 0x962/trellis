@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { sessionStatus } from "@trellis/api";
 import { Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { SessionRow } from "../components/SessionRow";
+import { statusesBySessionId } from "./statusesBySessionId";
 
 export function SessionList() {
 	const { orpc, queryClient } = useApp();
@@ -12,10 +12,11 @@ export function SessionList() {
 	// agentRuns.activity carries the runs of the sessions here and the runs of
 	// the ticket agents, which the dot on a project Sessions row counts. Both
 	// readers share this one query.
-	const activity = useQuery({ ...orpc.agentRuns.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
-	const runs = new Map(
-		activity.data?.flatMap((entry) => (entry.sessionId === null ? [] : [[entry.sessionId, entry.run] as const])),
-	);
+	const { data: statuses } = useQuery({
+		...orpc.agentRuns.activity.queryOptions({ input: {} }),
+		refetchInterval: 2000,
+		select: statusesBySessionId,
+	});
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined)
 		return (
@@ -40,13 +41,13 @@ export function SessionList() {
 				{data
 					.filter((session) => session.projectId === null)
 					.map((session) => {
-						const run = runs.get(session.id);
+						const status = statuses?.[session.id] ?? "unavailable";
 						return (
 							<SessionRow
 								key={session.id}
 								session={session}
-								status={run ? sessionStatus(run) : "unavailable"}
-								workingCount={run && sessionStatus(run) === "working" ? 1 : 0}
+								status={status}
+								workingCount={status === "working" ? 1 : 0}
 								active={pathname === `/sessions/${session.id}`}
 							/>
 						);

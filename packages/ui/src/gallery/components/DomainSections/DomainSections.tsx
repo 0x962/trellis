@@ -13,6 +13,7 @@ import {
 	MergeConflictMarkSection,
 	PrGlyphSection,
 	PriorityIconSection,
+	ProjectRoomSection,
 	ResourceListSection,
 	ReviewDiffSection,
 	ReviewStatusSummarySection,
@@ -44,6 +45,7 @@ export function DomainSections() {
 			<TicketIdSection />
 			<TicketGlimmerSection />
 			<TrellisMarkSection />
+			<ProjectRoomSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
 			<ReviewDiffSection />

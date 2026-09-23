@@ -12,4 +12,4 @@ export { type DiffAnchor, ReviewDiff, type ReviewDiffFile } from "./ReviewDiff/R
 export { ReviewDiffSkeleton } from "./ReviewDiff/ReviewDiffSkeleton";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
-export { ReviewThreadCard } from "./ReviewThreadCard/ReviewThreadCard";
+export { ReviewThreadCard } from "./ReviewThreadCard";

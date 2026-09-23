@@ -4,6 +4,7 @@ import type {
 	DesktopServiceStatus,
 	DesktopStatus,
 	DesktopUpdateStatus,
+	ThermalState,
 } from "./desktopSettings/desktopSettings.ts";
 
 contextBridge.exposeInMainWorld(
@@ -12,6 +13,12 @@ contextBridge.exposeInMainWorld(
 		platform: "darwin",
 		sessionVisible: (runId: string | null): Promise<void> => ipcRenderer.invoke("trellis:session-visible", runId),
 		previewNotification: (volume: number): Promise<void> => ipcRenderer.invoke("trellis:preview-notification", volume),
+		onThermalStateChanged: (listener: (state: ThermalState) => void) => {
+			const handler = (_event: IpcRendererEvent, state: ThermalState) => listener(state);
+			ipcRenderer.on("trellis:thermal-state", handler);
+			void ipcRenderer.invoke("trellis:thermal-ready");
+			return () => ipcRenderer.removeListener("trellis:thermal-state", handler);
+		},
 		onAccessibilitySupportChanged: (listener: (enabled: boolean) => void) => {
 			const handler = (_event: IpcRendererEvent, enabled: boolean) => listener(enabled);
 			ipcRenderer.on("trellis:accessibility-support", handler);

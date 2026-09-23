@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { type Session, type SessionStatus, sessionStatusLabels } from "@trellis/api";
 import { Avatar, cx } from "@trellis/ui";
-import { lazy, Suspense, useState } from "react";
+import { lazy, memo, Suspense, useState } from "react";
 import { agentProfileOf } from "../../../agents/agentProfileOf";
 import { SessionNameField } from "../../../sessions/SessionNameField";
 
@@ -15,7 +15,7 @@ export type SessionRowProps = {
 	active: boolean;
 };
 
-export function SessionRow({ session, status, workingCount = 0, active }: SessionRowProps) {
+export const SessionRow = memo(function SessionRow({ session, status, workingCount = 0, active }: SessionRowProps) {
 	const [renaming, setRenaming] = useState(false);
 	return (
 		<li
@@ -86,4 +86,4 @@ export function SessionRow({ session, status, workingCount = 0, active }: Sessio
 			)}
 		</li>
 	);
-}
+});

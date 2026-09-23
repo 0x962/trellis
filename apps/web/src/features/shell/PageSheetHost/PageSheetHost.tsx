@@ -3,14 +3,13 @@ import { useApp } from "../../../lib/appContext";
 import { pageSheetActions, usePageSheetStore } from "../../../stores/pageSheetStore";
 import { refreshBehindSheet } from "../../../stores/pageSheetStore/refreshBehindSheet";
 import { BrowserSheet } from "./components/BrowserSheet";
-import { EpicStatisticsSheet } from "./components/EpicStatisticsSheet";
 import { PullRequestSheet } from "./components/PullRequestSheet";
 import { SessionSheet } from "./components/SessionSheet";
 import { TicketSheet } from "./components/TicketSheet";
 
-// The root shell mounts this sheet stack once. It opens one statistics
-// sheet, or a ticket with a pull request or a session over it. The in-app
-// browser stands over every one of them.
+// The root shell mounts this sheet stack once. It opens one ticket with a
+// pull request or a session over it. The in-app browser stands over every
+// one of them.
 //
 // A pull request or a session that opens from a ticket renders inside
 // `TicketSheet`, because Base UI reads the stack from the React tree. One
@@ -29,7 +28,6 @@ export function PageSheetHost() {
 			<TicketSheet />
 			{ticket === null && <PullRequestSheet />}
 			{ticket === null && <SessionSheet />}
-			{ticket === null && <EpicStatisticsSheet />}
 			<BrowserSheet at="page" />
 		</>
 	);

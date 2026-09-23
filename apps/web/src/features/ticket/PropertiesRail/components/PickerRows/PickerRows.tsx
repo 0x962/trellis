@@ -1,7 +1,17 @@
 import { PencilSimple } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { EpicLink, EpicSummary, Priority, Status, Ticket } from "@trellis/api";
-import { Button, IconButton, PriorityIcon, PropertyRow, StatusIcon, TicketId, Tooltip, useHotkey } from "@trellis/ui";
+import {
+	Button,
+	IconButton,
+	PriorityIcon,
+	ProjectKey,
+	PropertyRow,
+	StatusIcon,
+	TicketId,
+	Tooltip,
+	useHotkey,
+} from "@trellis/ui";
 import { useEffect } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { failToast } from "../../../../../lib/failToast";
@@ -10,7 +20,6 @@ import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
-import { ProjectKey } from "../../../../shell/ProjectKey";
 import { useStatuses } from "../../../hooks/useStatuses";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { type PickerKind, usePickerStore } from "../../../stores/pickerStore";

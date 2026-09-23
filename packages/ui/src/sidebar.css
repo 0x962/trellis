@@ -10,6 +10,14 @@
 	@apply flex w-6 shrink-0 items-center justify-center text-xs tabular pointer-coarse:w-11;
 }
 
+/* Two marks at the end of one row, such as the activity dot and the caret of
+   the More row. The right padding is the gap that `sidebar-trailing` leaves
+   when it centres one mark, so the last mark keeps the place it takes in the
+   narrow slot and stays in line with the rows above and below. */
+@utility sidebar-trailing-pair {
+	@apply flex w-10 shrink-0 items-center justify-end gap-1 pr-1.5 text-xs tabular pointer-coarse:w-15 pointer-coarse:pr-4;
+}
+
 /* A group title: one step larger and heavier than the rows
    under it. */
 @utility sidebar-section {
