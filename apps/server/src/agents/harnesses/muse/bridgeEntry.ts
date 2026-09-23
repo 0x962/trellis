@@ -221,6 +221,10 @@ try {
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
+	// The steps below wait for the runtime, which answers a write in up to ten
+	// seconds. A live reader would echo each typed character in that time, and
+	// Enter would start a turn on a session host that stops a moment later.
+	stopMuseTerminalReader();
 	const usageHome = museHome;
 	// `queueUsage` sends a rejected write to `reportFailure`, and that call
 	// changes nothing here, because the promise it rejects is already
@@ -237,9 +241,9 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
-	// The steps below wait up to five seconds for the Muse host, and the
-	// removal of the directory can throw. This call runs first, so the
-	// keyboard works again in both cases.
+	// A SIGTERM reaches this block with no catch block before it. The steps
+	// below wait up to five seconds for the Muse host, and the removal of the
+	// directory can throw, so the keyboard works again before them.
 	stopMuseTerminalReader();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
