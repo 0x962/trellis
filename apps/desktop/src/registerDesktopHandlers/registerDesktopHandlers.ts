@@ -1,4 +1,4 @@
-import { app, type BrowserWindow, clipboard, dialog, type IpcMainInvokeEvent, ipcMain } from "electron";
+import { app, type BrowserWindow, clipboard, dialog, type IpcMainInvokeEvent, ipcMain, powerMonitor } from "electron";
 import {
 	type DesktopAction,
 	type DesktopServiceStatus,
@@ -51,6 +51,13 @@ export function registerDesktopHandlers(options: {
 	ipcMain.handle("trellis:accessibility-ready", (event) => {
 		options.trust(event);
 		event.sender.send("trellis:accessibility-support", app.isAccessibilitySupportEnabled());
+	});
+	// The renderer asks for the thermal state when it mounts the banner.
+	// macOS sends every later change through the "thermal-state-change" event
+	// of powerMonitor, which main.ts forwards on the same channel.
+	ipcMain.handle("trellis:thermal-ready", (event) => {
+		options.trust(event);
+		event.sender.send("trellis:thermal-state", powerMonitor.getCurrentThermalState());
 	});
 	ipcMain.handle("trellis:desktop-status", (event) => {
 		options.trust(event);
