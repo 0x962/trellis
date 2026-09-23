@@ -11,6 +11,8 @@ import {
 	assertKeyFree,
 	assertNameFree,
 	assertSlugFree,
+	colorFree,
+	freeColor,
 	projectActivity,
 	projectRow,
 	projectView,
@@ -37,6 +39,8 @@ export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- 
 
 // The slug of a new project is the lower-case spelling of its key. A key
 // already answers to `slugPattern`, so the slug needs no other rule.
+// A project that names no color takes a free one at random, and a person
+// changes it afterwards with the color picker.
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
 	requireActor(ctx);
 	const id = ulid();
@@ -45,11 +49,12 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	await assertSlugFree(tx, slug, null);
 	await assertNameFree(tx, input.name, null);
 	if (input.color !== undefined && input.color !== null) await assertColorFree(tx, input.color, null);
+	const color = input.color ?? (await freeColor(tx, null));
 	const position = await nextPosition(tx);
 	await tx.execute(
 		sql`INSERT INTO projects (id, key, slug, name, description, directory, ticket_template, ticket_counter, position, color, archived_at, created_at, updated_at)
 			VALUES (${id}, ${input.key}, ${slug}, ${input.name}, ${input.description ?? ""}, ${input.directory ?? ""},
-				${input.ticketTemplate ?? DEFAULT_TICKET_TEMPLATE}, 0, ${position}, ${input.color ?? null}, NULL,
+				${input.ticketTemplate ?? DEFAULT_TICKET_TEMPLATE}, 0, ${position}, ${color}, NULL,
 				${ctx.now}, ${ctx.now})`,
 	);
 	await seedStatuses(ctx, tx, id);
@@ -86,9 +91,16 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 		sets.push(sql`slug = ${input.key.toLowerCase()}`);
 		field("key", project.key, input.key, sql`key = ${input.key}`);
 	}
-	const color = input.color === undefined ? row.color : input.color;
-	if (color !== null && (input.color !== undefined || restored)) await assertColorFree(tx, color, project.id);
-	field("color", row.color, input.color, sql`color = ${input.color}`);
+	if (input.color !== undefined && input.color !== null) await assertColorFree(tx, input.color, project.id);
+	// A project in the archive holds no slot, so another project can take the
+	// color it held. A project that comes back to a color another project now
+	// holds takes a free color at random, and null when the five slots are full.
+	const regained =
+		restored && input.color === undefined && row.color !== null && !(await colorFree(tx, row.color, project.id))
+			? await freeColor(tx, project.id)
+			: undefined;
+	const color = input.color === undefined ? regained : input.color;
+	field("color", row.color, color, sql`color = ${color}`);
 	if (input.archived !== undefined) {
 		const archived = row.archived_at !== null;
 		field("archived", archived, input.archived, sql`archived_at = ${input.archived ? ctx.now : null}`);
