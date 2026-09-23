@@ -115,8 +115,10 @@ export function ReviewHeaderActions({
 			: []),
 	];
 
+	// The caller draws the box this button sits in, so the button itself adds
+	// no box of its own.
 	return (
-		<div className="review-header-actions">
+		<>
 			<Menu
 				label="GitHub actions"
 				trigger={<IconButton label="GitHub actions" icon={<GithubMark />} variant="default" />}
@@ -143,6 +145,6 @@ export function ReviewHeaderActions({
 					<Checkbox label="Admin merge" checked={adminMerge} onCheckedChange={setAdminMerge} className="text-sm" />
 				)}
 			</ConfirmDialog>
-		</div>
+		</>
 	);
 }

@@ -304,6 +304,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							ticket={status.data?.ticket?.identifier ?? null}
 							run={run}
 							submissions={allSubmissions}
+							submissionsFetched={submissions.isFetched}
 							onDone={refreshAll}
 						/>
 					)}

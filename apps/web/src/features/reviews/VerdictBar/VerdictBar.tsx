@@ -17,18 +17,25 @@ export type VerdictBarProps = {
 	run: AgentRun | null;
 	// The local submissions on this pull request, from `reviews.submissions`.
 	submissions: readonly ReviewSubmission[];
+	// False while the `reviews.submissions` read is still on its way. The
+	// card draws nothing until it answers. A card drawn before the answer
+	// offers Approve and Request changes, and a verdict the person already
+	// gave replaces both with Change verdict a moment later, under a pointer
+	// that was on its way to Request changes.
+	submissionsFetched: boolean;
 	onDone: () => void;
 };
 
 // The card that floats over the bottom right of the review shows the verdict
 // of the person on one line. A comment on a diff line reaches the agent when
 // the person posts it, so the card holds the two verdicts only.
-export function VerdictBar({ pr, revision, ticket, run, submissions, onDone }: VerdictBarProps) {
+export function VerdictBar({ pr, revision, ticket, run, submissions, submissionsFetched, onDone }: VerdictBarProps) {
 	const state = verdictState(submissions);
 	// Change verdict opens the buttons for the verdict on screen only. A new
 	// submission has another id and closes them again.
 	const [changing, setChanging] = useState<string | null>(null);
 	const given = state?.current && changing !== state.id ? state : null;
+	if (!submissionsFetched) return null;
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
 			{state && (
