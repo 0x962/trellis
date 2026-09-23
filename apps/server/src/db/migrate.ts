@@ -21,9 +21,9 @@ const migrationCount = async (db: Db) => {
 // restarts, and an ANALYZE of 50k tickets grows the WebAssembly heap by about
 // 100 MB for the life of the process. A caller that runs queries must also
 // call `prepareSearch`, which builds the search functions of the session.
-export const migrate = async (db: Db, migrationsFolder = defaultDir) => {
+export const migrate = async (db: Db) => {
 	const before = await migrationCount(db);
-	await runMigrations(db, { migrationsFolder });
+	await runMigrations(db, { migrationsFolder: defaultDir });
 	const applied = (await migrationCount(db)) - before;
 	if (applied > 0) await db.execute(sql`ANALYZE`);
 	return applied;
