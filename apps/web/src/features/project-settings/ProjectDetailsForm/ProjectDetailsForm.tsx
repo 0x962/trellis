@@ -7,6 +7,8 @@ import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { takenColors } from "../../../lib/projectColors";
 
+const noColors: readonly ProjectColor[] = [];
+
 export type ProjectDetailsFormProps = {
 	project: Project;
 };
@@ -26,7 +28,14 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 	const [description, setDescription] = useState(project.description);
 	const [color, setColor] = useState<ProjectColor | null>(project.color);
 	const [message, setMessage] = useState<string | null>(null);
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
+	// The query gives back the color names alone. The project list refetches
+	// after every ticket move, and a result that held the rows would redraw
+	// the form and rebuild the list of the color field each time.
+	const taken =
+		useQuery({
+			...orpc.projects.list.queryOptions({ input: {} }),
+			select: (projects) => takenColors(projects, project.id),
+		}).data ?? noColors;
 	const locked = project.ticketCounter > 0;
 
 	const save = async (event: FormEvent) => {
@@ -70,7 +79,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 					{keyLockedHint(project.key)}
 				</p>
 			)}
-			<ProjectColorField value={color} taken={takenColors(projects, project.id)} onValueChange={setColor} />
+			<ProjectColorField value={color} taken={taken} onValueChange={setColor} />
 			<Textarea
 				label="Description"
 				rows={3}

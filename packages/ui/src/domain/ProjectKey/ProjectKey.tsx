@@ -3,13 +3,11 @@ import type { ProjectColor } from "../projectColors";
 
 export type ProjectKeyProps = {
 	projectKey: string;
-	// `null` draws the grey chip. A color draws the key in that color, on
-	// the soft ground of it.
 	color: ProjectColor | null;
 	className?: string;
 };
 
-// A root project's key as a small mono tag: `CDE`.
+// The key of a project as a small mono tag: `CDE`.
 export function ProjectKey({ projectKey, color, className }: ProjectKeyProps) {
 	return (
 		<span
