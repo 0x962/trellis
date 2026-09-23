@@ -16,26 +16,26 @@ const project = {
 const labels = (rows: { label: string }[]) => rows.map((row) => row.label);
 
 const activeLabel = (pathname: string) => {
-	const { top, more } = projectPageRows(project, pathname);
+	const { top, more } = projectPageRows(project, pathname, 0);
 	return [...top, ...more].find((row) => row.active)?.label ?? null;
 };
 
 test("Epics and Diffs stand under the project, and More holds Tickets and Sessions", () => {
-	const { top, more } = projectPageRows(project, "/p/TRL");
+	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
 	expect(labels(top)).toEqual(["Epics", "Diffs"]);
 	expect(labels(more)).toEqual(["Tickets", "Sessions"]);
 });
 
 test("only the Epics row prints a count", () => {
-	const { top, more } = projectPageRows(project, "/p/TRL");
+	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
 	expect(top.map((row) => row.trailing)).toEqual(["3", null]);
 	expect(more.map((row) => row.trailing)).toEqual([null, null]);
 });
 
 test("a project with no open epic prints no count", () => {
-	const { top } = projectPageRows({ ...project, openEpicCount: 0 }, "/p/TRL");
+	const { top } = projectPageRows({ ...project, openEpicCount: 0 }, "/p/TRL", 0);
 
 	expect(top[0]?.trailing).toBe(null);
 });
@@ -66,7 +66,7 @@ test("the Sessions row carries the count of the active agents, and no other row 
 });
 
 test("a project with no active agent counts none", () => {
-	const { more } = projectPageRows(project, "/p/TRL");
+	const { more } = projectPageRows(project, "/p/TRL", 0);
 
 	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 0]);
 });
