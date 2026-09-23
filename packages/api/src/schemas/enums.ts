@@ -93,8 +93,39 @@ export type LabelColor = z.infer<typeof LabelColorSchema>;
 // The color names a project may take. packages/ui holds one
 // `--project-<name>` token set per name, with a light and a dark value, so
 // the wire never carries a raw color value. Two projects never hold one
-// name, so the five names are five slots. Yellow marks the work that waits
-// for a person and violet marks a merged pull request, so no project takes
-// either hue. A color picker lists the names in this order.
-export const ProjectColorSchema = z.enum(["orange", "teal", "blue", "pink", "azure"]);
+// name, so the 25 names are 25 slots. The names run around the hue circle,
+// and `packages/ui/src/domain/projectPalette.ts` holds the recipe that gives
+// each name its values. A color picker lists the names in this order, and a
+// name added later goes on the end, so no name moves.
+// A project color draws the mark of a project, the ground of the pages of
+// that project, and its key chip. It never draws a status. A status color and
+// a project color never sit in one slot of one row, which is what keeps the
+// two apart: 25 hues cannot step around the 4 status hues.
+export const ProjectColorSchema = z.enum([
+	"red",
+	"brick",
+	"rust",
+	"orange",
+	"amber",
+	"gold",
+	"olive",
+	"moss",
+	"fern",
+	"green",
+	"emerald",
+	"jade",
+	"pine",
+	"teal",
+	"cyan",
+	"azure",
+	"cobalt",
+	"blue",
+	"indigo",
+	"violet",
+	"purple",
+	"orchid",
+	"pink",
+	"rose",
+	"crimson",
+]);
 export type ProjectColor = z.infer<typeof ProjectColorSchema>;

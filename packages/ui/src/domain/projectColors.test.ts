@@ -1,39 +1,27 @@
 import { expect, test } from "bun:test";
-import { projectColors } from "./projectColors";
+import { projectColorLabels, projectColors } from "./projectColors";
+import { rampAt } from "./projectPalette";
 
 const css = await Bun.file(new URL("../tokens.css", import.meta.url)).text();
+const bindingCss = await Bun.file(new URL("../project-room.css", import.meta.url)).text();
 
 // The bar of WCAG 1.4.11 for a graphical object, and the bar of 1.4.3 for
 // text.
 const graphicBar = 3;
 const textBar = 4.5;
 
-// The share of the project color that the ground of a project page takes.
-// `project-room.css` holds the number, and this test reads it from there.
-const roomCss = await Bun.file(new URL("../project-room.css", import.meta.url)).text();
-const tintShare = Number(roomCss.match(/var\(--project-tint\) (\d+)%/)![1]!) / 100;
-
 // The blocks of tokens.css: the bare `:root` holds the light palette, and
 // `:root[data-theme="dark"]` holds the dark one. The media block above it
-// repeats the dark values, and the test below compares the two.
-// A value is a hex value or one `var()` that names another token of the same
-// block, such as `--project-teal-tint: var(--label-teal)`. The block resolves
-// the link of a project token, and it drops a link of another token, such as
-// `--shadow-lg`, which names a value this test never reads.
+// repeats the dark values, and the test below compares the two. This reader
+// takes the hex values of a block and drops a value written as a `var()`,
+// because no project token is written that way.
 const block = (selector: string) => {
 	const start = css.indexOf(selector);
 	const body = css.slice(start, css.indexOf("\n}", start));
 	const values = new Map<string, string>();
-	const links = new Map<string, string>();
-	for (const match of body.matchAll(/(--[a-z0-9-]+): (#[0-9A-Fa-f]{6}|var\(--[a-z0-9-]+\));/g)) {
+	for (const match of body.matchAll(/(--[a-z0-9-]+): (#[0-9A-Fa-f]{6});/g)) {
 		const [, name, value] = match as unknown as [string, string, string];
-		if (value.startsWith("#")) values.set(name, value);
-		else if (name.startsWith("--project-")) links.set(name, value.slice("var(".length, -1));
-	}
-	for (const [name, target] of links) {
-		const value = values.get(target);
-		expect(value, `${name} reads ${target}, which holds no value in this block`).toBeString();
-		values.set(name, value!);
+		values.set(name, value);
 	}
 	return values;
 };
@@ -42,14 +30,6 @@ const themes = {
 	dark: block(':root[data-theme="dark"] {'),
 };
 const mediaDark = block(':root:not([data-theme="light"]) {');
-
-// The silver face of the dot that says a ticket waits for a person is one
-// set for both themes, so it stands outside the two palette blocks.
-const onlyValue = (name: string) => {
-	const found = [...css.matchAll(new RegExp(`${name}: (#[0-9A-Fa-f]{6});`, "g"))];
-	expect(found).toHaveLength(1);
-	return found[0]![1]!;
-};
 
 const rgb = (hex: string) => [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16));
 
@@ -68,26 +48,34 @@ const ratio = (one: string, two: string) => {
 	return (high + 0.05) / (low + 0.05);
 };
 
-// `color-mix(in srgb, <tint> <share>, <ground>)`, as the browser computes it.
-const mix = (tint: string, ground: string, share: number) => {
-	const parts = rgb(tint).map((value, index) => Math.round(value * share + rgb(ground)[index]! * (1 - share)));
-	return `#${parts.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
-};
+test("the list holds 25 names, each one once, and each one with a label", () => {
+	expect(projectColors).toHaveLength(25);
+	expect(new Set(projectColors).size).toBe(25);
+	for (const color of projectColors) {
+		expect(projectColorLabels[color]).toBeString();
+	}
+});
 
-// The color of a status glyph, and the face of the silver dot that says a
-// ticket waits for a person.
-const statusTokens = ["--success", "--warning", "--danger", "--agent", "--metal-bottom"];
+// `projectPalette.ts` is the recipe, and `tokens.css` is its output. A hand
+// written value fails here.
+test("every value of tokens.css comes from the recipe", () => {
+	for (const theme of ["light", "dark"] as const) {
+		for (const [index, color] of projectColors.entries()) {
+			const ramp = rampAt(index, theme);
+			expect(themes[theme].get(`--project-${color}-solid`)).toBe(ramp.solid);
+			expect(themes[theme].get(`--project-${color}-soft`)).toBe(ramp.soft);
+		}
+	}
+});
 
-const statusValue = (theme: "light" | "dark", name: string) => themes[theme].get(name) ?? onlyValue(name);
-
-test("every project color holds its three values in both themes", () => {
+test("every project color holds its two values in both themes", () => {
 	for (const color of projectColors) {
 		for (const theme of ["light", "dark"] as const) {
-			for (const suffix of ["-solid", "-tint", "-soft"]) {
+			for (const suffix of ["-solid", "-soft"]) {
 				expect(themes[theme].get(`--project-${color}${suffix}`)).toMatch(/^#[0-9A-F]{6}$/);
 			}
 		}
-		for (const suffix of ["-solid", "-tint", "-soft"]) {
+		for (const suffix of ["-solid", "-soft"]) {
 			expect(mediaDark.get(`--project-${color}${suffix}`)).toBe(themes.dark.get(`--project-${color}${suffix}`)!);
 		}
 	}
@@ -96,6 +84,23 @@ test("every project color holds its three values in both themes", () => {
 	expect(mediaDark.get("--project-strand")).toBe("#0A0A0A");
 });
 
+// The rule of a name is what puts the two values of that name on a mark or a
+// chip, so a name with no rule draws nothing.
+test("project-room.css binds every name to its two values", () => {
+	for (const color of projectColors) {
+		expect(bindingCss).toContain(
+			[
+				`[data-project-color="${color}"] {`,
+				`\t--project-solid: var(--project-${color}-solid);`,
+				`\t--project-soft: var(--project-${color}-soft);`,
+				"}",
+			].join("\n"),
+		);
+	}
+});
+
+// A project color draws the mark of a project and its key chip. Nothing else
+// on a page carries it, so these three bars are every place a person meets it.
 test("the ground of every project mark reads on the page and on the surface", () => {
 	for (const theme of ["light", "dark"] as const) {
 		for (const color of projectColors) {
@@ -122,29 +127,6 @@ test("the key of a project reads as text on its own chip", () => {
 			const solid = themes[theme].get(`--project-${color}-solid`)!;
 			const soft = themes[theme].get(`--project-${color}-soft`)!;
 			expect(ratio(solid, soft)).toBeGreaterThanOrEqual(textBar);
-		}
-	}
-});
-
-// The ground of a project page is the pane with a share of the project color
-// mixed in. The light pane is `--surface` and the dark pane is `--bg`, which
-// is what `--pane` resolves to in each theme.
-test("every status glyph still reads on the ground of every project", () => {
-	for (const theme of ["light", "dark"] as const) {
-		const pane = theme === "light" ? themes.light.get("--surface")! : themes.dark.get("--bg")!;
-		for (const color of projectColors) {
-			const room = mix(themes[theme].get(`--project-${color}-tint`)!, pane, tintShare);
-			for (const token of statusTokens) {
-				const status = statusValue(theme, token);
-				if (token !== "--metal-bottom") {
-					expect(ratio(status, room)).toBeGreaterThanOrEqual(graphicBar);
-				}
-				// The tint costs a status glyph a part of its contrast. The
-				// sample that Navid picked measured the same part for every
-				// status, so no status starts to look like another.
-				const cost = 1 - ratio(status, room) / ratio(status, pane);
-				expect(Math.abs(cost)).toBeLessThan(0.1);
-			}
 		}
 	}
 });

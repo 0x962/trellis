@@ -73,33 +73,75 @@
 	--label-blue: #2A80E2;
 	--label-purple: #9751D7;
 	--label-pink: #D84497;
-	/* The five project colors. A project holds one name, and two projects
-	   never hold one name, so a person tells two projects apart by color
-	   alone. `--project-<name>-solid` fills the ground of the mark of the
-	   project and writes the text of its key chip. `--project-<name>-tint` is the
-	   color that the ground of a page of the project takes a share of, and
-	   `project-room.css` sets that share.
-	   `--project-<name>-soft` is the ground of the key chip.
-	   Orange, teal, blue and pink hold the hue of the label token of that
-	   name. Azure holds hue 228 and the lightness of the label ramp, because
-	   the four label hues leave one open band. No project color is yellow,
-	   which marks the work that waits for a person, and none is violet,
-	   which marks a merged pull request. */
-	--project-orange-solid: #9D4700;
-	--project-orange-tint: var(--label-orange);
+	/* The 25 project colors. A project holds one name, and two projects never
+	   hold one name, so a person tells two projects apart by color alone.
+	   `--project-<name>-solid` fills the ground of the mark of the project and
+	   writes the text of its key chip. `--project-<name>-soft` is the ground of
+	   that chip.
+	   `projectPalette.ts` holds the recipe of every value below, and it prints
+	   these lines again. The hues sit 14.4 degrees apart on one circle, and the
+	   first one is 8 degrees. A solid holds OKLCH lightness 0.500 in this block
+	   and 0.780 in the two dark blocks. A soft holds 0.965 here and 0.270
+	   there. Each value takes the largest chroma sRGB shows at that lightness,
+	   up to the cap of its role, which keeps one hue from shouting over the
+	   other 24.
+	   A project color draws the mark of a project and its key chip, and no
+	   other surface. It never draws a status, a check or a glyph of state. A
+	   status color and a project color never sit in one slot of one row. That
+	   rule keeps a project color apart from a status, because 25 hues cannot
+	   step around the 4 status hues.
+	   `projectColors.test.ts` measures every value: 3:1 for a graphic, and
+	   4.5:1 for the text on a chip, in both themes. */
+	--project-red-solid: #B7004D;
+	--project-red-soft: #FFEFF1;
+	--project-brick-solid: #BB0027;
+	--project-brick-soft: #FFEFEE;
+	--project-rust-solid: #AE3100;
+	--project-rust-soft: #FFF0EB;
+	--project-orange-solid: #9B4800;
 	--project-orange-soft: #FFF0E8;
-	--project-teal-solid: #007276;
-	--project-teal-tint: var(--label-teal);
-	--project-teal-soft: #D2FDFF;
-	--project-blue-solid: #0061BF;
-	--project-blue-tint: var(--label-blue);
+	--project-amber-solid: #8D5400;
+	--project-amber-soft: #FFF1E3;
+	--project-gold-solid: #825B00;
+	--project-gold-soft: #FFF2DC;
+	--project-olive-solid: #766100;
+	--project-olive-soft: #FDF4D2;
+	--project-moss-solid: #696700;
+	--project-moss-soft: #F5F7D4;
+	--project-fern-solid: #566E00;
+	--project-fern-soft: #EDF9D8;
+	--project-green-solid: #307600;
+	--project-green-soft: #E5FBDE;
+	--project-emerald-solid: #00773B;
+	--project-emerald-soft: #DEFDE5;
+	--project-jade-solid: #007556;
+	--project-jade-soft: #D8FEED;
+	--project-pine-solid: #007466;
+	--project-pine-soft: #D4FEF5;
+	--project-teal-solid: #007272;
+	--project-teal-soft: #D2FEFD;
+	--project-cyan-solid: #00707E;
+	--project-cyan-soft: #DCFAFF;
+	--project-azure-solid: #006E8B;
+	--project-azure-soft: #E4F7FF;
+	--project-cobalt-solid: #006B9B;
+	--project-cobalt-soft: #E8F6FF;
+	--project-blue-solid: #0063B7;
 	--project-blue-soft: #ECF4FF;
-	--project-pink-solid: #9F1B9A;
-	--project-pink-tint: var(--label-pink);
-	--project-pink-soft: #FFEDFD;
-	--project-azure-solid: #006D8F;
-	--project-azure-tint: #0092BD;
-	--project-azure-soft: #E5F7FF;
+	--project-indigo-solid: #2F51D8;
+	--project-indigo-soft: #EEF3FF;
+	--project-violet-solid: #5745D5;
+	--project-violet-soft: #F1F2FF;
+	--project-purple-solid: #7239CA;
+	--project-purple-soft: #F4F1FF;
+	--project-orchid-solid: #882DB9;
+	--project-orchid-soft: #F8F0FF;
+	--project-pink-solid: #9A20A3;
+	--project-pink-soft: #FFEDFF;
+	--project-rose-solid: #A81089;
+	--project-rose-soft: #FFEEF9;
+	--project-crimson-solid: #B2006C;
+	--project-crimson-soft: #FFEEF4;
 	/* The four strands of a project mark, on the ground of that mark. A
 	   light ground carries white. A dark ground is bright, so there the
 	   strands flip to near black. */
@@ -120,7 +162,7 @@
 	--band-translucent: color-mix(in srgb, var(--fg) 6%, transparent);
 	/* The ground of the main pane. It holds the page. Light takes the
 	   surface one step off the page ground, and dark takes the page ground
-	   itself. `project-room.css` mixes the color of a project into it. */
+	   itself. */
 	--pane: var(--surface);
 	--scrim: rgba(0,0,0,.4);
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);
@@ -172,21 +214,56 @@
 		--label-blue: #70ADFB;
 		--label-purple: #C190F6;
 		--label-pink: #F691CC;
-		--project-orange-solid: var(--label-orange);
-		--project-orange-tint: var(--label-orange);
-		--project-orange-soft: #431800;
-		--project-teal-solid: var(--label-teal);
-		--project-teal-tint: var(--label-teal);
-		--project-teal-soft: #002D30;
-		--project-blue-solid: var(--label-blue);
-		--project-blue-tint: var(--label-blue);
-		--project-blue-soft: #05264C;
-		--project-pink-solid: var(--label-pink);
-		--project-pink-tint: var(--label-pink);
-		--project-pink-soft: #3B1539;
-		--project-azure-solid: #1AC7FF;
-		--project-azure-tint: #1AC7FF;
-		--project-azure-soft: #002B3C;
+		--project-red-solid: #FF91A7;
+		--project-red-soft: #45111F;
+		--project-brick-solid: #FF9591;
+		--project-brick-soft: #461213;
+		--project-rust-solid: #FF987A;
+		--project-rust-soft: #451405;
+		--project-orange-solid: #FF9A5C;
+		--project-orange-soft: #401A00;
+		--project-amber-solid: #F8A13E;
+		--project-amber-soft: #3A1F00;
+		--project-gold-solid: #E9AB2B;
+		--project-gold-soft: #352300;
+		--project-olive-solid: #D6B528;
+		--project-olive-soft: #2F2600;
+		--project-moss-solid: #C0BE38;
+		--project-moss-soft: #292800;
+		--project-fern-solid: #A5C750;
+		--project-fern-soft: #202B00;
+		--project-green-solid: #86CD6B;
+		--project-green-soft: #102F02;
+		--project-emerald-solid: #62D286;
+		--project-emerald-soft: #003014;
+		--project-jade-solid: #31D5A2;
+		--project-jade-soft: #002F20;
+		--project-pine-solid: #00D4BC;
+		--project-pine-soft: #002E28;
+		--project-teal-solid: #00D1D2;
+		--project-teal-soft: #002D2D;
+		--project-cyan-solid: #00CEE6;
+		--project-cyan-soft: #002C33;
+		--project-azure-solid: #00CAFC;
+		--project-azure-soft: #002B39;
+		--project-cobalt-solid: #5FC2FF;
+		--project-cobalt-soft: #002A40;
+		--project-blue-solid: #81BBFF;
+		--project-blue-soft: #02274C;
+		--project-indigo-solid: #98B5FF;
+		--project-indigo-soft: #15234D;
+		--project-violet-solid: #ABAEFF;
+		--project-violet-soft: #211F4C;
+		--project-purple-solid: #BFA6FF;
+		--project-purple-soft: #2B1C48;
+		--project-orchid-solid: #D59AFE;
+		--project-orchid-soft: #321943;
+		--project-pink-solid: #E794EC;
+		--project-pink-soft: #39163C;
+		--project-rose-solid: #F58FD7;
+		--project-rose-soft: #3E1333;
+		--project-crimson-solid: #FF8DBF;
+		--project-crimson-soft: #421229;
 		--project-strand: #0A0A0A;
 		--control: #1C1C1E;
 		--control-hover: #252527;
@@ -238,21 +315,56 @@
 	--label-blue: #70ADFB;
 	--label-purple: #C190F6;
 	--label-pink: #F691CC;
-	--project-orange-solid: var(--label-orange);
-	--project-orange-tint: var(--label-orange);
-	--project-orange-soft: #431800;
-	--project-teal-solid: var(--label-teal);
-	--project-teal-tint: var(--label-teal);
-	--project-teal-soft: #002D30;
-	--project-blue-solid: var(--label-blue);
-	--project-blue-tint: var(--label-blue);
-	--project-blue-soft: #05264C;
-	--project-pink-solid: var(--label-pink);
-	--project-pink-tint: var(--label-pink);
-	--project-pink-soft: #3B1539;
-	--project-azure-solid: #1AC7FF;
-	--project-azure-tint: #1AC7FF;
-	--project-azure-soft: #002B3C;
+	--project-red-solid: #FF91A7;
+	--project-red-soft: #45111F;
+	--project-brick-solid: #FF9591;
+	--project-brick-soft: #461213;
+	--project-rust-solid: #FF987A;
+	--project-rust-soft: #451405;
+	--project-orange-solid: #FF9A5C;
+	--project-orange-soft: #401A00;
+	--project-amber-solid: #F8A13E;
+	--project-amber-soft: #3A1F00;
+	--project-gold-solid: #E9AB2B;
+	--project-gold-soft: #352300;
+	--project-olive-solid: #D6B528;
+	--project-olive-soft: #2F2600;
+	--project-moss-solid: #C0BE38;
+	--project-moss-soft: #292800;
+	--project-fern-solid: #A5C750;
+	--project-fern-soft: #202B00;
+	--project-green-solid: #86CD6B;
+	--project-green-soft: #102F02;
+	--project-emerald-solid: #62D286;
+	--project-emerald-soft: #003014;
+	--project-jade-solid: #31D5A2;
+	--project-jade-soft: #002F20;
+	--project-pine-solid: #00D4BC;
+	--project-pine-soft: #002E28;
+	--project-teal-solid: #00D1D2;
+	--project-teal-soft: #002D2D;
+	--project-cyan-solid: #00CEE6;
+	--project-cyan-soft: #002C33;
+	--project-azure-solid: #00CAFC;
+	--project-azure-soft: #002B39;
+	--project-cobalt-solid: #5FC2FF;
+	--project-cobalt-soft: #002A40;
+	--project-blue-solid: #81BBFF;
+	--project-blue-soft: #02274C;
+	--project-indigo-solid: #98B5FF;
+	--project-indigo-soft: #15234D;
+	--project-violet-solid: #ABAEFF;
+	--project-violet-soft: #211F4C;
+	--project-purple-solid: #BFA6FF;
+	--project-purple-soft: #2B1C48;
+	--project-orchid-solid: #D59AFE;
+	--project-orchid-soft: #321943;
+	--project-pink-solid: #E794EC;
+	--project-pink-soft: #39163C;
+	--project-rose-solid: #F58FD7;
+	--project-rose-soft: #3E1333;
+	--project-crimson-solid: #FF8DBF;
+	--project-crimson-soft: #421229;
 	--project-strand: #0A0A0A;
 	--control: #1C1C1E;
 	--control-hover: #252527;
