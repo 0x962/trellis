@@ -5,10 +5,7 @@ import { createBus } from "../events/bus.ts";
 import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
 import { createDbTiming } from "../serverTiming.ts";
 import { type ServiceKind, services } from "../services/registry.ts";
-import { openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
 import { openDatabase } from "./open.ts";
-import { prepareSearch } from "./queries/search.ts";
 import { createInlineTransport, type Runtime, type ServiceTransport } from "./transport.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./workerProtocol.ts";
 
@@ -44,15 +41,6 @@ export class ServiceQueue {
 		return this.calls.splice(index, 1)[0];
 	}
 }
-
-// `prepareSearch` builds the search functions of the session, and PGlite holds
-// one session for the life of the process.
-export const openWorkerDatabase = async (dataDir: string) => {
-	const db = await openDb(dataDir);
-	await migrate(db);
-	await prepareSearch(db);
-	return db;
-};
 
 const errorOf = (error: unknown): SerializedError => {
 	if (error instanceof ORPCError) {
