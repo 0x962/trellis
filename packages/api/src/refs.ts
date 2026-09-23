@@ -9,13 +9,14 @@ import { keyPattern, reservedSlugs, slugPattern, ulidPattern } from "./schemas/p
 
 export type TicketRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; number: number };
 
-export type ProjectRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slugs: string[] };
+// A project ref that is not a ULID is the key of the project, or its slug
+// when the value is no key. The server reads the value as a key first.
+export type ProjectRef = { kind: "ulid"; id: string } | { kind: "key"; key: string } | { kind: "slug"; slug: string };
 
-// An epic ref joins the root key and the epic slug with a slash, so it never
-// reads as a project ref, which joins its segments with dots.
+// An epic ref joins the project key and the epic slug with a slash.
 export type EpicRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slug: string };
 
-// A wave ref joins the root key, the epic slug, and the wave slug
+// A wave ref joins the project key, the epic slug, and the wave slug
 // with slashes. The three segments keep it apart from an epic ref, which
 // holds two.
 export type WaveRef =
@@ -76,18 +77,19 @@ const ticketRef = defineRef(
 
 const parseProjectRef = (value: string): ProjectRef | undefined => {
 	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
-	const segments = value.split(".");
-	const key = segments[0]!.toUpperCase();
-	if (!keyPattern.test(key)) return undefined;
-	const slugs = segments.slice(1).map((slug) => slug.toLowerCase());
-	if (!slugs.every((slug) => slugPattern.test(slug) && !reservedSlugs.has(slug))) return undefined;
-	return { kind: "identifier", key, slugs };
+	if (keyPattern.test(value.toUpperCase())) return { kind: "key", key: value.toUpperCase() };
+	const slug = value.toLowerCase();
+	if (!slugPattern.test(slug) || reservedSlugs.has(slug)) return undefined;
+	return { kind: "slug", slug };
 };
 
-const formatProjectRef = (ref: ProjectRef) => (ref.kind === "ulid" ? ref.id : [ref.key, ...ref.slugs].join("."));
+const formatProjectRef = (ref: ProjectRef) => {
+	if (ref.kind === "ulid") return ref.id;
+	return ref.kind === "key" ? ref.key : ref.slug;
+};
 
 const projectRef = defineRef(
-	"Expected a project ref: a ULID, a KEY, or KEY.slug.slug, for example CDE.web.auth.",
+	"Expected a project ref: a ULID, a KEY, or a slug, for example CDE or hardware-shop.",
 	parseProjectRef,
 	formatProjectRef,
 );

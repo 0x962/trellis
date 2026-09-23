@@ -29,7 +29,7 @@ const noteList: ListSpec<Note> = {
 		{ name: "id", value: (row) => row.id },
 		{ name: "title", value: (row) => cell(row.title) },
 		{ name: "audience", value: (row) => row.audience },
-		{ name: "project", value: (row) => row.projectPath },
+		{ name: "project", value: (row) => row.projectKey },
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 		{ name: "expires", value: (row) => timeCell(row.expiresAt) },
 	],
@@ -39,7 +39,7 @@ const noteList: ListSpec<Note> = {
 const noteRecord: RecordSpec<Note> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
-		{ name: "project", value: (row) => row.projectPath },
+		{ name: "project", value: (row) => row.projectKey },
 		{ name: "title", value: (row) => cell(row.title) },
 		{ name: "audience", value: (row) => row.audience },
 		{ name: "expires", value: (row) => timeCell(row.expiresAt) },

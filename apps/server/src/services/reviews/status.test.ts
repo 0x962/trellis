@@ -18,10 +18,10 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Test', 'human', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES
-			(${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at}),
-			(${firstRoot}, ${firstRoot}, 'AAA', 'aaa', 'First project', ${at}, ${at})`);
+			(${root}, 'TST', 'tst', 'Test', ${at}, ${at}),
+			(${firstRoot}, 'AAA', 'aaa', 'First project', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES
@@ -31,11 +31,11 @@ beforeAll(async () => {
 	const lowerNumberTicket = ulid();
 	const firstProjectTicket = ulid();
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
+		id, project_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
-		(${laterNumberTicket}, ${root}, ${root}, 9, 'Later ticket', ${todoStatusId}, 0, ${at}, ${at}),
-		(${lowerNumberTicket}, ${root}, ${root}, 2, 'Lower number ticket', ${todoStatusId}, 1, ${at}, ${at}),
-		(${firstProjectTicket}, ${firstRoot}, ${firstRoot}, 7, 'First project ticket', ${firstRootTodoStatusId}, 0, ${at}, ${at})`);
+		(${laterNumberTicket}, ${root}, 9, 'Later ticket', ${todoStatusId}, 0, ${at}, ${at}),
+		(${lowerNumberTicket}, ${root}, 2, 'Lower number ticket', ${todoStatusId}, 1, ${at}, ${at}),
+		(${firstProjectTicket}, ${firstRoot}, 7, 'First project ticket', ${firstRootTodoStatusId}, 0, ${at}, ${at})`);
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
 		id, owner, repo, number, changed_files, files, url, state, is_draft, is_queued, head_ref, base_ref,

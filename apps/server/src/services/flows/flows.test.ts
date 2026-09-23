@@ -16,9 +16,9 @@ const childId = ulid();
 const at = "2026-09-22T10:00:00Z";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const addProject = async (id: string, rootId: string, parentId: string | null, key: string | null, slug: string) => {
-	await db.execute(sql`INSERT INTO projects (id, root_id, parent_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${rootId}, ${parentId}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
+const addProject = async (id: string, key: string, slug: string) => {
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${id}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
@@ -26,9 +26,9 @@ const addProject = async (id: string, rootId: string, parentId: string | null, k
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await addProject(oneId, oneId, null, "ONE", "one");
-	await addProject(twoId, twoId, null, "TWO", "two");
-	await addProject(childId, oneId, oneId, null, "web");
+	await addProject(oneId, "ONE", "one");
+	await addProject(twoId, "TWO", "two");
+	await addProject(childId, "WEB", "web");
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	ctx = {
@@ -54,12 +54,6 @@ test("a flow stores the project it belongs to, and null for every project", asyn
 
 	expect(scoped.project).toBe("ONE");
 	expect(everywhere.project).toBeNull();
-});
-
-test("a ref to a sub-project is refused, because a flow takes a root project", async () => {
-	await expect(run((tx) => create(ctx, tx, { name: "Web review", project: "ONE.web" }))).rejects.toThrow(
-		"A flow takes a root project",
-	);
 });
 
 test("a ticket asks for the flows of its project and for the flows of every project", async () => {

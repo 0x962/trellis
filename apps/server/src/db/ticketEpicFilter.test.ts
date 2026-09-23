@@ -4,8 +4,8 @@ import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import { list } from "../services/tickets/read.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 
 // One root TST with one status, one epic `TST/plan`, and three tickets:
 // TST-1 and TST-3 in the epic, TST-2 outside every epic.
@@ -17,22 +17,21 @@ const epic = ulid();
 const at = "2026-09-18T10:00:00.000Z";
 
 const insertTicket = (id: string, number: number, status: string, epicId: string | null) =>
-	db.execute(sql`INSERT INTO tickets (id, project_id, root_id, number, title, status_id, epic_id, position, created_at, updated_at)
-		VALUES (${id}, ${tst}, ${tst}, ${number}, ${`Ticket ${number}`}, ${status}, ${epicId}, ${number}, ${at}, ${at})`);
+	db.execute(sql`INSERT INTO tickets (id, project_id, number, title, status_id, epic_id, position, created_at, updated_at)
+		VALUES (${id}, ${tst}, ${number}, ${`Ticket ${number}`}, ${status}, ${epicId}, ${number}, ${at}, ${at})`);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${tst}, ${tst}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${tst}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	const status = ulid();
 	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${status}, ${tst}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO epics (id, project_id, root_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${epic}, ${tst}, ${tst}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${epic}, ${tst}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
 	await insertTicket(ulid(), 1, status, epic);
 	await insertTicket(ulid(), 2, status, null);
 	await insertTicket(ulid(), 3, status, epic);

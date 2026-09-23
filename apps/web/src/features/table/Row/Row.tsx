@@ -1,12 +1,4 @@
-import type {
-	EpicSummary,
-	Label,
-	Priority,
-	ProjectSummary,
-	StatusSummary,
-	TicketSummary,
-	WaveSummary,
-} from "@trellis/api";
+import type { EpicSummary, Label, Priority, StatusSummary, TicketSummary, WaveSummary } from "@trellis/api";
 import { cx, DoneWash, TicketId } from "@trellis/ui";
 import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
@@ -39,14 +31,13 @@ import { TitleCell } from "./components/TitleCell";
 import { WaitsCell } from "./components/WaitsCell";
 
 // The inline editors a row opens.
-export type EditField = "status" | "priority" | "project" | "parent" | "labels" | "epic" | "wave";
+export type EditField = "status" | "priority" | "parent" | "labels" | "epic" | "wave";
 
 // One change a row's picker or the bulk bar applies. `checked` on a label
 // change is the new state of that label on the ticket.
 export type RowChange =
 	| { status: StatusSummary }
 	| { priority: Priority }
-	| { project: string }
 	| { parent: TicketSummary | null }
 	| { epic: EpicSummary | null }
 	| { wave: WaveSummary | null }
@@ -84,7 +75,6 @@ export type RowProps = {
 	// The picker that is open on this row.
 	editing?: EditField | null;
 	statuses?: readonly StatusSummary[];
-	projects?: readonly ProjectSummary[];
 	onFocus?: (id: string) => void;
 	onClick?: (id: string, event: MouseEvent) => void;
 	onToggleDisclosure?: (id: string) => void;
@@ -100,7 +90,6 @@ export { phoneRowHeight, rowHeights } from "../rowHeights";
 import { rowHeights } from "../rowHeights";
 
 const noStatuses: StatusSummary[] = [];
-const noProjects: ProjectSummary[] = [];
 const linkedCellClass =
 	"pointer-events-none [&_a]:pointer-events-auto [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_[role=button]]:pointer-events-auto [&_[role=checkbox]]:pointer-events-auto";
 
@@ -125,7 +114,6 @@ export const Row = memo(function Row({
 	selecting = false,
 	editing = null,
 	statuses = noStatuses,
-	projects = noProjects,
 	onFocus,
 	onClick,
 	onToggleDisclosure,
@@ -137,8 +125,6 @@ export const Row = memo(function Row({
 	const element = useRef<HTMLDivElement>(null);
 	const { identifier } = ticket;
 	const href = `/t/${identifier}`;
-	const ticketRootId = projects.find((project) => project.id === ticket.project.id)?.rootId;
-	const ticketRootIds = ticketRootId === undefined ? [] : [ticketRootId];
 	const editingChange = (field: EditField) => (open: boolean) => onEditingChange?.(ticket.id, open ? field : null);
 	const change = (value: RowChange) => onChange?.(ticket, value);
 	const toggleDisclosure = () => onToggleDisclosure?.(ticket.id);
@@ -187,7 +173,7 @@ export const Row = memo(function Row({
 		labels: (
 			<LabelsCell
 				labels={ticket.labels}
-				project={ticket.project.path}
+				project={ticket.project.key}
 				open={editing === "labels"}
 				onOpenChange={editingChange("labels")}
 				onToggle={(label, checked) => change({ label, checked })}
@@ -207,18 +193,7 @@ export const Row = memo(function Row({
 			/>
 		),
 		pr: ticket.pr === null ? null : <PrCell pr={ticket.pr} density={density} />,
-		project: (
-			<ProjectCell
-				path={ticket.project.path}
-				viewedProject={viewedProject}
-				projects={projects}
-				ticketRootIds={ticketRootIds}
-				open={editing === "project"}
-				onOpenChange={editingChange("project")}
-				onPick={(project) => change({ project })}
-				finalFocus={element}
-			/>
-		),
+		project: <ProjectCell projectKey={ticket.project.key} viewedProject={viewedProject} />,
 		waits: <WaitsCell waitsOn={ticket.waitsOn} ready={ticket.ready} />,
 		releases: <ReleasesCell releases={ticket.releases} />,
 		actor: <ActorAvatar ticketId={ticket.id} />,
@@ -343,8 +318,6 @@ export const Row = memo(function Row({
 				columns={columns}
 				editing={editing}
 				statuses={statuses}
-				projects={projects}
-				ticketRootIds={ticketRootIds}
 				finalFocus={element}
 				onEditingChange={editingChange}
 				onChange={change}

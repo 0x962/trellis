@@ -78,8 +78,8 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	}
 	const id = ulid();
 	await tx.execute(
-		sql`INSERT INTO waves (id, epic_id, root_id, slug, name, position, created_at, updated_at)
-			VALUES (${id}, ${epic.id}, ${epic.root_id}, ${slug}, ${input.name},
+		sql`INSERT INTO waves (id, epic_id, slug, name, position, created_at, updated_at)
+			VALUES (${id}, ${epic.id}, ${slug}, ${input.name},
 				(SELECT coalesce(max(position) + 1, 0) FROM waves WHERE epic_id = ${epic.id}),
 				${ctx.now}, ${ctx.now})`,
 	);
@@ -148,7 +148,6 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const ref = waveRefOf(existing);
 	for (const member of members) {
 		await record(ctx, tx, {
-			rootId: existing.root_id,
 			projectId: member.project_id,
 			ticketId: member.id,
 			action: "ticket.updated",

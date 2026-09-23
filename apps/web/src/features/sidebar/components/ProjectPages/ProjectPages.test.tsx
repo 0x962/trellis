@@ -13,12 +13,8 @@ import { ProjectPages } from "./ProjectPages";
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
 	key: "TRL",
-	path: "TRL",
-	parentId: null,
-	rootId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	slug: "trellis",
 	name: "Trellis",
-	depth: 0,
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
@@ -27,11 +23,11 @@ const project = {
 
 // A `Link` reads the router, so the rows need one. This router holds the two
 // routes the rows open and starts on the page under test.
-const render = async (pathname: string) => {
+const render = async (pathname: string, activeAgents = 0) => {
 	const rootRoute = createRootRoute({
 		component: () => (
 			<ul>
-				<ProjectPages project={project} depth={1} pathname={pathname} />
+				<ProjectPages project={project} pathname={pathname} activeAgents={activeAgents} />
 			</ul>
 		),
 	});
@@ -99,4 +95,21 @@ test("only the Epics row prints a count", async () => {
 	const counts = [...html.matchAll(/<span class="sidebar-trailing text-fg-faint">([^<]*)<\/span>/g)];
 
 	expect(counts.map((match) => match[1])).toEqual(["3"]);
+});
+
+test("the Sessions row wears a dot while agents of the project are active", async () => {
+	const html = await render("/sessions/project/TRL", 2);
+
+	expect(html).toContain('aria-label="2 agents are active"');
+});
+
+test("the More row wears the dot while it hides the Sessions row", async () => {
+	const html = await render("/p/TRL/epics", 1);
+
+	expect(html).toContain('aria-expanded="false"');
+	expect(html).toContain('aria-label="1 agent is active"');
+});
+
+test("no row wears a dot while no agent of the project is active", async () => {
+	expect(await render("/sessions/project/TRL")).not.toContain("is active");
 });

@@ -2,21 +2,19 @@ import type { ProjectSetReposInput, Repo } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
-import { rows, textArray } from "../db/queries/support.ts";
+import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { projectActivity } from "./projectRows.ts";
-import { chainOf, resolveMutableProject, resolveProject } from "./refs.ts";
+import { resolveMutableProject, resolveProject } from "./refs.ts";
 
 type Pair = { owner: string; repo: string };
 
-// The repo rows of the given projects, owner and repo in order, the nearest
-// project first when two projects hold the same pair.
-export const repoRows = (tx: Tx, projectIds: string[]): Promise<Repo[]> =>
+// The repo rows of one project, owner and repo in order.
+export const repoRows = (tx: Tx, projectId: string): Promise<Repo[]> =>
 	rows<Repo>(
 		tx,
 		sql`SELECT id, project_id AS "projectId", owner, repo FROM repos
-			WHERE project_id = ANY(${textArray(projectIds)})
-			ORDER BY owner, repo, array_position(${textArray(projectIds)}, project_id)`,
+			WHERE project_id = ${projectId} ORDER BY owner, repo`,
 	);
 
 const pairKey = (pair: Pair) => `${pair.owner}/${pair.repo}`;
@@ -34,7 +32,7 @@ const normalize = (pairs: Pair[]): Pair[] => {
 // Replaces the whole repo set of one project. An equal set writes nothing.
 export const setRepos = async (ctx: ServiceCtx, tx: Tx, input: ProjectSetReposInput): Promise<Repo[]> => {
 	const project = await resolveMutableProject(ctx, tx, input.project);
-	const current = await repoRows(tx, [project.id]);
+	const current = await repoRows(tx, project.id);
 	const before = current.map((repo) => ({ owner: repo.owner, repo: repo.repo }));
 	const after = normalize(input.repos);
 	if (before.map(pairKey).join(",") === after.map(pairKey).join(",")) return current;
@@ -48,18 +46,11 @@ export const setRepos = async (ctx: ServiceCtx, tx: Tx, input: ProjectSetReposIn
 		{ field: "repos", from: null, to: null, meta: { from: before, to: after } },
 	]);
 	ctx.emit({ type: "project.updated", id: project.id });
-	return repoRows(tx, [project.id]);
+	return repoRows(tx, project.id);
 };
 
-// The project's own repos plus its ancestors', one row per distinct pair.
-export const effectiveRepos = async (ctx: ServiceCtx, tx: Tx, input: { project: string }): Promise<Repo[]> => {
+// The repos the poller scans for one project.
+export const projectRepos = async (ctx: ServiceCtx, tx: Tx, input: { project: string }): Promise<Repo[]> => {
 	const project = await resolveProject(ctx, tx, input.project);
-	const chain = chainOf(ctx.cache, project.id).map((ancestor) => ancestor.id);
-	const seen = new Set<string>();
-	return (await repoRows(tx, chain)).filter((repo) => {
-		const key = pairKey(repo);
-		if (seen.has(key)) return false;
-		seen.add(key);
-		return true;
-	});
+	return repoRows(tx, project.id);
 };

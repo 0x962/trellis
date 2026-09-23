@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { EpicLink } from "@trellis/api";
-import { epicSplat } from "../../../../../lib/projectPath";
+import { epicSplat } from "../../../../../lib/projectUrl";
 
 export type EpicCellProps = {
 	epic: EpicLink;

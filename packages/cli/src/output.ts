@@ -169,7 +169,7 @@ export const ticketList: ListSpec<TicketRow> = {
 // The fields the ticket block reads. A Ticket has them all.
 export type TicketFields = TicketRow & {
 	status: { slug: string; category: string };
-	project: { path: string };
+	project: { key: string };
 	parent: { identifier: string } | null;
 	epic: { ref: string; name: string } | null;
 	wave: { ref: string; name: string } | null;
@@ -192,7 +192,7 @@ export const ticketRecord: RecordSpec<TicketFields> = {
 		{ name: "status", value: (row) => `${row.status.slug} (${row.status.category})` },
 		{ name: "priority", value: (row) => row.priority },
 		{ name: "labels", value: (row) => labelsCell(row.labels) },
-		{ name: "project", value: (row) => row.project.path },
+		{ name: "project", value: (row) => row.project.key },
 		{ name: "parent", value: (row) => cell(row.parent?.identifier) },
 		{ name: "epic", value: (row) => (row.epic === null ? "-" : cell(`${row.epic.name} (${row.epic.ref})`)) },
 		{

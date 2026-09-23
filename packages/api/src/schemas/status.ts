@@ -9,7 +9,7 @@ const StatusNameSchema = z
 	.max(40, "Enter a status name of 1 to 40 characters.");
 
 // A status slug is the name in slug form. The reserved project slugs (`board`,
-// `settings`) are web routes under a project path. A status is never a route
+// `settings`) are web routes under a project URL. A status is never a route
 // segment, so a status named Settings keeps its slug.
 const StatusSlugSchema = z
 	.string()
@@ -42,11 +42,9 @@ export const StatusSchema = StatusSummarySchema.extend({
 });
 export type Status = z.infer<typeof StatusSchema>;
 
-// `inheritedFrom` names the ancestor that owns the set, or null when the
-// project owns its own statuses.
+// The status set of one project, in position order.
 export const StatusListOutputSchema = z.object({
 	statuses: z.array(StatusSchema),
-	inheritedFrom: UlidSchema.nullable(),
 });
 export type StatusListOutput = z.infer<typeof StatusListOutputSchema>;
 
@@ -101,15 +99,4 @@ export const StatusDeleteInputSchema = z.strictObject({
 export const StatusDeleteOutputSchema = z.object({
 	deleted: UlidSchema,
 	moved: CountSchema,
-});
-
-export const StatusClearInputSchema = z.strictObject({
-	project: ProjectRefStringSchema,
-});
-
-// After a clear the project inherits again; `remapped` counts the tickets
-// moved onto the inherited set.
-export const StatusClearOutputSchema = z.object({
-	inheritedFrom: UlidSchema,
-	remapped: CountSchema,
 });

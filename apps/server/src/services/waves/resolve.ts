@@ -16,19 +16,18 @@ export const resolveWave = async (_ctx: ServiceCtx, tx: Tx, ref: string): Promis
 	const where =
 		parsed.data.kind === "ulid"
 			? sql`m.id = ${parsed.data.id}`
-			: sql`root.key = ${parsed.data.key} AND e.slug = ${parsed.data.epicSlug} AND m.slug = ${parsed.data.slug}`;
+			: sql`proj.key = ${parsed.data.key} AND e.slug = ${parsed.data.epicSlug} AND m.slug = ${parsed.data.slug}`;
 	const found = await rows<RawWave>(tx, sql`${waveSelect} WHERE ${where}`);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "wave", ref: canonical });
 	return found[0]!;
 };
 
-// The wave a ticket of `rootId` can join. The wave sits in the
-// same root, and the project of its epic accepts a mutation. The foreign key
-// on `tickets.wave_id` cannot hold the root rule, so the service holds
-// it.
-export const resolveWaveForTicket = async (ctx: ServiceCtx, tx: Tx, rootId: string, ref: string) => {
+// The wave a ticket of `projectId` can join. The epic of the wave sits in
+// the same project, and that project accepts a mutation. The foreign key on
+// `tickets.wave_id` cannot hold the project rule, so the service holds it.
+export const resolveWaveForTicket = async (ctx: ServiceCtx, tx: Tx, projectId: string, ref: string) => {
 	const wave = await resolveWave(ctx, tx, ref);
-	if (wave.root_id !== rootId) throw fail("CROSS_ROOT_MOVE");
+	if (wave.epic_project_id !== projectId) throw fail("CROSS_PROJECT_LINK");
 	assertProjectActive(ctx, wave.epic_project_id);
 	return wave;
 };

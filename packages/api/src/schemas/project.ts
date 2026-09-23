@@ -8,24 +8,19 @@ const ProjectNameSchema = z
 	.min(1, "Enter a project name of 1 to 120 characters.")
 	.max(120, "Enter a project name of 1 to 120 characters.");
 
-// The project fields a ticket row carries. `path` is the canonical project
-// ref, `CDE.web.auth`.
+// The project fields a ticket row carries. `key` is the canonical project
+// ref and the prefix of every ticket identifier of the project.
 export const ProjectLinkSchema = z.object({
 	id: UlidSchema,
 	key: KeySchema,
-	path: z.string().min(1),
 });
 export type ProjectLink = z.infer<typeof ProjectLinkSchema>;
 
-// One row of the flat project list. The client builds the tree from
-// `parentId`, and `depth` and `position` give the display order.
-// `openEpicCount` counts the epics of this project alone whose state is open.
+// One row of the project list. `position` gives the display order.
+// `openEpicCount` counts the epics of this project whose state is open.
 export const ProjectSummarySchema = ProjectLinkSchema.extend({
-	parentId: UlidSchema.nullable(),
-	rootId: UlidSchema,
 	slug: SlugSchema,
 	name: ProjectNameSchema,
-	depth: CountSchema,
 	position: z.number().int(),
 	openCount: CountSchema,
 	openEpicCount: CountSchema,
@@ -41,11 +36,6 @@ export const RepoSchema = z.object({
 });
 export type Repo = z.infer<typeof RepoSchema>;
 
-const AncestorSchema = ProjectLinkSchema.extend({
-	slug: SlugSchema,
-	name: ProjectNameSchema,
-});
-
 const ProjectDirectorySchema = z
 	.string()
 	.trim()
@@ -58,11 +48,8 @@ export const ProjectSchema = ProjectSummarySchema.extend({
 	ticketCounter: CountSchema,
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
-	ancestors: z.array(AncestorSchema),
-	children: z.array(ProjectSummarySchema),
 	repos: z.array(RepoSchema),
 	statuses: z.array(StatusSchema),
-	statusesInheritedFrom: UlidSchema.nullable(),
 });
 export type Project = z.infer<typeof ProjectSchema>;
 
@@ -75,43 +62,32 @@ export const ProjectGetInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 });
 
-// A root owns a key and the ticket counter. A child takes its root's key and
-// is addressed by slug, so exactly one of `key` and `parent` is present.
-export const ProjectCreateInputSchema = z
-	.strictObject({
-		directory: ProjectDirectorySchema.optional(),
-		key: KeySchema.optional(),
-		parent: ProjectRefStringSchema.optional(),
-		name: ProjectNameSchema,
-		slug: SlugSchema.optional(),
-		description: z.string().optional(),
-		ticketTemplate: z.string().optional(),
-	})
-	.refine(
-		(input) => (input.parent === undefined) !== (input.key === undefined),
-		"A root project needs a key; a sub-project takes its parent and no key.",
-	);
+// Every project owns a key and the ticket counter that numbers its tickets.
+export const ProjectCreateInputSchema = z.strictObject({
+	directory: ProjectDirectorySchema.optional(),
+	key: KeySchema,
+	name: ProjectNameSchema,
+	description: z.string().optional(),
+	ticketTemplate: z.string().optional(),
+});
 export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
 
-// `key` applies to a root and only while its ticket counter is zero; `slug`
-// applies to a sub-project, whose slug is its path segment.
+// A new `key` lands only while the ticket counter is zero, because the key
+// is the prefix of every ticket identifier the project handed out.
 export const ProjectUpdateInputSchema = z.strictObject({
 	directory: ProjectDirectorySchema.optional(),
 	project: ProjectRefStringSchema,
 	key: KeySchema.optional(),
 	name: ProjectNameSchema.optional(),
-	slug: SlugSchema.optional(),
 	description: z.string().optional(),
 	ticketTemplate: z.string().optional(),
 	archived: z.boolean().optional(),
 });
 export type ProjectUpdateInput = z.input<typeof ProjectUpdateInputSchema>;
 
-// `parent: null` moves the project to the top level of its root. A project
-// never leaves its root.
+// Reorders the project in the list, before or after another project.
 export const ProjectMoveInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
-	parent: ProjectRefStringSchema.nullable().optional(),
 	after: ProjectRefStringSchema.optional(),
 	before: ProjectRefStringSchema.optional(),
 });

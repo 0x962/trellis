@@ -13,7 +13,6 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	state: "open",
 	isDraft: false,
 	isQueued: false,
-	localState: "ready",
 	reviewGaps: [],
 	additions: null,
 	deletions: null,

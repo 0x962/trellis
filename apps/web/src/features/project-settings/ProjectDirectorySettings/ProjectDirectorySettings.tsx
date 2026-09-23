@@ -11,7 +11,7 @@ export function ProjectDirectorySettings({ project }: ProjectDirectorySettingsPr
 	const { client, orpc, queryClient } = useApp();
 	const [directory, setDirectory] = useState(project.directory);
 	const save = useMutation({
-		mutationFn: (value: string) => client.projects.update({ project: project.path, directory: value }),
+		mutationFn: (value: string) => client.projects.update({ project: project.key, directory: value }),
 		onSuccess: async () => queryClient.invalidateQueries({ queryKey: orpc.projects.get.key() }),
 		onError: (error) => toast.error("Could not save the project directory", { description: error.message }),
 	});
@@ -43,9 +43,7 @@ export function ProjectDirectorySettings({ project }: ProjectDirectorySettingsPr
 			<div className="flex flex-col gap-1">
 				<h3 className="project-settings-group-title">Project directory</h3>
 				<p className="text-sm leading-relaxed text-fg-muted">
-					{project.parentId !== null
-						? "Leave this empty to use the nearest parent project directory."
-						: "Choose the local repository that agents use for this project."}
+					Choose the local repository that agents use for this project.
 				</p>
 			</div>
 			<div className="project-directory-field">

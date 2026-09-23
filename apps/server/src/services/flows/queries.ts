@@ -1,5 +1,6 @@
 import { type Flow, type FlowDoc, type FlowEdge, type FlowNode, type FlowSummary, ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { flowAppliesToProject } from "../../db/queries/flowScope.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
@@ -15,15 +16,15 @@ const flowColumns = sql`${summaryColumns}, f.briefing`;
 
 const fromFlowsLeftJoinProjects = sql`FROM flows f LEFT JOIN projects p ON p.id = f.project_id`;
 
-// A null `rootId` lists every flow of the server.
-export const listFlows = (tx: Tx, rootId: string | null): Promise<FlowSummary[]> =>
+// A null `projectId` lists every flow of the server.
+export const listFlows = (tx: Tx, projectId: string | null): Promise<FlowSummary[]> =>
 	rows<FlowSummary>(
 		tx,
 		sql`SELECT ${summaryColumns},
 			(SELECT count(*)::int FROM flow_nodes WHERE flow_nodes.flow_id = f.id) AS "nodeCount",
 			(SELECT count(*)::int FROM flow_edges WHERE flow_edges.flow_id = f.id) AS "edgeCount"
 			${fromFlowsLeftJoinProjects}
-			WHERE ${rootId === null ? sql`true` : sql`f.project_id IS NULL OR f.project_id = ${rootId}`}
+			WHERE ${projectId === null ? sql`true` : flowAppliesToProject(sql`f`, sql`${projectId}`)}
 			ORDER BY f.name, f.id`,
 	);
 

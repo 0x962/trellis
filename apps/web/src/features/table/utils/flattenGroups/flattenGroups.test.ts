@@ -178,7 +178,7 @@ describe("the order of a ticket's pull requests", () => {
 	});
 
 	test("counts a pull request that is not ready and a queued one as open", () => {
-		const draft = { ...prIn(11, "open"), localState: "not-ready" } as TicketPr;
+		const draft = { ...prIn(11, "open"), reviewGaps: [{ kind: "not-asked", count: 1 }] } as TicketPr;
 		const queued = { ...prIn(12, "open"), isQueued: true } as TicketPr;
 		const prs = [prIn(13, "merged"), draft, queued];
 

@@ -52,7 +52,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 						/>
 						<div className="min-w-0">
 							<h2 className="truncate text-xl font-semibold text-fg">{run.name}</h2>
-							<p className="mt-1 truncate text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectPath}</p>
+							<p className="mt-1 truncate text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectKey}</p>
 						</div>
 					</div>
 				</header>

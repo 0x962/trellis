@@ -5,12 +5,8 @@ import { projectPageRows } from "./projectPageRows";
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
 	key: "TRL",
-	path: "TRL",
-	parentId: null,
-	rootId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	slug: "trellis",
 	name: "Trellis",
-	depth: 0,
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
@@ -60,4 +56,17 @@ test("the settings page and its notes section leave every row off", () => {
 test("a page of another project leaves every row off", () => {
 	expect(activeLabel("/p/CDE/diffs")).toBe(null);
 	expect(activeLabel("/sessions/project/CDE")).toBe(null);
+});
+
+test("the Sessions row carries the count of the active agents, and no other row does", () => {
+	const { top, more } = projectPageRows(project, "/p/TRL", 2);
+
+	expect(top.map((row) => row.activeAgents)).toEqual([0, 0]);
+	expect(more.map((row) => row.activeAgents)).toEqual([0, 2]);
+});
+
+test("a project with no active agent counts none", () => {
+	const { more } = projectPageRows(project, "/p/TRL");
+
+	expect(more.map((row) => row.activeAgents)).toEqual([0, 0]);
 });

@@ -1,4 +1,6 @@
+import type { Check, LocalPrState, Mergeable, PrState, ReviewReadyFacts } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
+import { flowAppliesToProject } from "./flowScope.ts";
 
 // The facts that `reviewGaps` in `packages/api` reads, in SQL. `p` is the
 // alias of the `pull_requests` row in the caller's query.
@@ -8,12 +10,19 @@ import { type SQL, sql } from "drizzle-orm";
 const linkedTickets = (p: SQL) => sql`SELECT pr_link.ticket_id
 	FROM ticket_pull_requests pr_link WHERE pr_link.pull_request_id = ${p}.id`;
 
-// True when nothing is owed for a flow: the server keeps no flow at all, no
-// ticket links the pull request, the agent wrote why no flow fits this
-// commit, or a run of this commit succeeded. A flow is machine review, so a
-// run that stopped and waits answers nothing: it did not finish.
+// True when some flow applies to the project of a ticket that links this
+// pull request. A flow belongs to one root project, or to every project, and
+// `flowAppliesToProject` is the one rule for that. `trellis ready` asks the
+// flows service the same question, so both answer alike.
+const someFlowApplies = (p: SQL) => sql`EXISTS (
+	SELECT 1 FROM flows flow
+	JOIN tickets ticket ON ticket.id IN (${linkedTickets(p)})
+	WHERE ${flowAppliesToProject(sql`flow`, sql`ticket.project_id`)}
+)`;
+
+// True when the flow check needs no run.
 export const flowAnsweredSql = (p: SQL) => sql`(
-	NOT EXISTS (SELECT 1 FROM flows)
+	NOT ${someFlowApplies(p)}
 	OR NOT EXISTS (${linkedTickets(p)})
 	OR EXISTS (
 		SELECT 1 FROM pr_flow_waivers waiver
@@ -33,10 +42,12 @@ export const hasExplanationSql = (p: SQL) => sql`EXISTS (
 	WHERE summary.pull_request_id = ${p}.id AND summary.head_sha = ${p}.head_sha
 )`;
 
-// One evidence document per pull request, and a new write replaces it. It
-// counts at any commit.
+// One evidence document per pull request, and a new write replaces it. The
+// document names the commit it proves, so a push takes it away the way it
+// takes the explanation away.
 export const hasEvidenceSql = (p: SQL) => sql`EXISTS (
-	SELECT 1 FROM pr_evidence_documents document WHERE document.pull_request_id = ${p}.id
+	SELECT 1 FROM pr_evidence_documents document
+	WHERE document.pull_request_id = ${p}.id AND document.head_sha = ${p}.head_sha
 )`;
 
 export const openFindingsSql = (p: SQL) => sql`(
@@ -59,3 +70,30 @@ export const notReadyForReviewSql = (p: SQL) => sql`(
 		OR ${p}.mergeable = 'conflicting'
 	)
 )`;
+
+// The stored fields a row carries, whatever query read it. Every caller that
+// turns a row into `ReviewReadyFacts` reads the same names, so a new fact is
+// added here and in `reviewGaps`, not in each query.
+export type ReviewReadyRow = {
+	state: PrState;
+	localState: LocalPrState;
+	checks: Check[];
+	openFindings: number;
+	hasExplanation: boolean;
+	hasEvidence: boolean;
+	flowAnswered: boolean;
+	mergeable: Mergeable;
+};
+
+// A canceled check counts as a failed one, the way `ciState` folds it.
+export const reviewReadyFacts = (row: ReviewReadyRow): ReviewReadyFacts => ({
+	state: row.state,
+	localState: row.localState,
+	failedChecks: row.checks.filter((check) => check.bucket === "fail" || check.bucket === "cancel").length,
+	pendingChecks: row.checks.filter((check) => check.bucket === "pending").length,
+	hasExplanation: row.hasExplanation,
+	hasEvidence: row.hasEvidence,
+	flowAnswered: row.flowAnswered,
+	openFindings: row.openFindings,
+	mergeable: row.mergeable,
+});

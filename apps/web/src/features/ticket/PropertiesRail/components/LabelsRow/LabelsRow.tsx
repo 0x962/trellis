@@ -24,7 +24,7 @@ const triggerClass = "-ml-2 h-auto max-w-full min-h-7 justify-start py-1 font-no
 // toast with a Retry action.
 export function LabelsRow({ ticket }: LabelsRowProps) {
 	const { write } = useTicketWrite(ticket.identifier);
-	const { groups } = useLabels(ticket.project.path);
+	const { groups } = useLabels(ticket.project.key);
 	const open = usePickerStore((state) => state.open);
 	const setOpen = usePickerStore((state) => state.setOpen);
 
@@ -42,7 +42,7 @@ export function LabelsRow({ ticket }: LabelsRowProps) {
 	return (
 		<PropertyRow compact align="start" label="Labels">
 			<LabelPicker
-				project={ticket.project.path}
+				project={ticket.project.key}
 				checked={ticket.labels.map((label) => label.id)}
 				onToggle={(label, checked) => void toggle(label, checked)}
 				trigger={

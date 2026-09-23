@@ -11,7 +11,7 @@ import { assertProjectActive, resolveTicket, type TicketRow } from "../refs.ts";
 import { assertVersion } from "./rules.ts";
 
 type DependencyNode = Pick<TicketRow, "id" | "identifier">;
-type DependencyTarget = DependencyNode & Pick<TicketRow, "projectId" | "rootId" | "version">;
+type DependencyTarget = DependencyNode & Pick<TicketRow, "projectId" | "version">;
 type ParsedDependencyResult = "cycle" | "unchanged" | "written";
 
 const resolveDependencies = async (
@@ -24,8 +24,8 @@ const resolveDependencies = async (
 	const resolved = new Map<string, TicketRow>();
 	for (const ref of refs) {
 		const dependency = await resolveTicket(ctx, tx, ref);
-		if (dependency.rootId !== target.rootId) {
-			throw invalidInput(field, "A dependency must belong to the same root as its ticket.");
+		if (dependency.projectId !== target.projectId) {
+			throw invalidInput(field, "A dependency must belong to the same project as its ticket.");
 		}
 		resolved.set(dependency.id, dependency);
 	}
@@ -61,11 +61,11 @@ const findDependencyPath = async (tx: Tx, dependsOnId: string, dependsOnIdentifi
 			SELECT d.depends_on_id FROM ticket_deps d JOIN reach ON reach.id = d.ticket_id
 		)
 		SELECT d.ticket_id AS "ticketId", d.depends_on_id AS "dependsOnId",
-			root.key || '-' || dependency.number AS identifier
+			proj.key || '-' || dependency.number AS identifier
 		FROM reach
 		JOIN ticket_deps d ON d.ticket_id = reach.id
 		JOIN tickets dependency ON dependency.id = d.depends_on_id
-		JOIN projects root ON root.id = dependency.root_id
+		JOIN projects proj ON proj.id = dependency.project_id
 		ORDER BY d.ticket_id, identifier`,
 	);
 	const edges = new Map<string, Array<{ id: string; identifier: string }>>();
@@ -165,7 +165,6 @@ export const updateDependencies = async (ctx: ServiceCtx, tx: Tx, rawInput: unkn
 	const batchId = ulid();
 	await tx.execute(sql`UPDATE tickets SET version = version + 1, updated_at = ${ctx.now} WHERE id = ${target.id}`);
 	await record(ctx, tx, {
-		rootId: target.rootId,
 		projectId: target.projectId,
 		ticketId: target.id,
 		action: "ticket.updated",

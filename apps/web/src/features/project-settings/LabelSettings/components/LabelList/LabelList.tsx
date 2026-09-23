@@ -6,7 +6,7 @@ import { LabelRow } from "../../../LabelRow";
 import type { LabelEntry } from "../../utils/labelEntries";
 
 export type LabelListProps = {
-	// A project path. The root project of its tree owns the labels.
+	// The key of the project that owns the labels.
 	project: string;
 	// The lines to draw, in the order they stand in.
 	entries: LabelEntry[];

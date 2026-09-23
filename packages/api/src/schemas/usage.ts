@@ -73,7 +73,7 @@ export const UsageSessionSchema = z.object({
 			name: z.string(),
 			ticketIdentifier: z.string().nullable(),
 			ticketTitle: z.string().nullable(),
-			projectPath: z.string(),
+			projectKey: z.string(),
 			account: z.string().nullable(),
 		})
 		.nullable(),

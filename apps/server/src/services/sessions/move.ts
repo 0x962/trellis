@@ -4,7 +4,7 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
-import { pathOf, resolveMutableProject } from "../refs.ts";
+import { resolveMutableProject } from "../refs.ts";
 import { getSession, resolveSession } from "./queries.ts";
 
 type MovableSession = { id: string; runId: string; ticketId: string | null };
@@ -22,10 +22,10 @@ export const move = async (ctx: ServiceCtx, tx: Tx, input: SessionMoveInput) => 
 	if (session === undefined) throw fail("NOT_FOUND", { kind: "session", ref: input.id });
 	if (session.ticketId !== null) throw invalidInput("id", "A ticket session keeps the project of its ticket.");
 	const project = input.project === null ? null : await resolveMutableProject(ctx, tx, input.project);
-	const projectPath = project === null ? "" : pathOf(ctx.cache, project.id);
+	const projectKey = project === null ? "" : ctx.cache.get(project.id).key;
 	await tx.execute(
 		sql`UPDATE agent_runs
-			SET project_id = ${project?.id ?? null}, project_path = ${projectPath}, updated_at = ${ctx.now}
+			SET project_id = ${project?.id ?? null}, project_key = ${projectKey}, updated_at = ${ctx.now}
 			WHERE id = ${session.runId}`,
 	);
 	await tx.execute(sql`UPDATE sessions SET updated_at = ${ctx.now} WHERE id = ${session.id}`);

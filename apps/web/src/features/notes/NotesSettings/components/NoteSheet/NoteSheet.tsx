@@ -34,7 +34,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 	const [expires, setExpires] = useState(toLocalInput(note?.expiresAt ?? null));
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const input = NoteCreateInputSchema.safeParse({
-		project: project.path,
+		project: project.key,
 		title,
 		body,
 		audience,
@@ -79,9 +79,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 				}}
 			>
 				<SheetBody>
-					<p className="text-sm text-fg-muted">
-						Every agent of {project.path} and its sub-projects reads this note when it starts.
-					</p>
+					<p className="text-sm text-fg-muted">Every agent of {project.key} reads this note when it starts.</p>
 					<Input
 						ref={titleRef}
 						label="Title"

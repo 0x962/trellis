@@ -3,7 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { EmptyState, StackedBar, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { formatCount } from "../../../../../lib/format";
-import { projectSlashPath } from "../../../../../lib/projectPath";
+
 import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageSheetStore";
 import { EpicProgress } from "../../../../epics/EpicPage/components/EpicProgress";
 import { epicBarLegend } from "../../../../epics/EpicPage/components/EpicProgress/epicBarLegend";
@@ -61,7 +61,7 @@ export function EpicStatisticsSheet() {
 					<EpicProgress
 						epic={epic.data}
 						running={running}
-						splat={`${projectSlashPath(epic.data.projectPath)}/epics/${epic.data.slug}`}
+						splat={`${epic.data.projectKey}/epics/${epic.data.slug}`}
 						search={tableSearch}
 						phone={phone}
 						workingTicketIds={workingTicketIds}

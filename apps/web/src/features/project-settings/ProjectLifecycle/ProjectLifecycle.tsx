@@ -35,9 +35,7 @@ export function ProjectLifecycle({ project }: ProjectLifecycleProps) {
 			<div className="project-settings-action-row">
 				<div className="project-settings-action-copy">
 					<h3 className="project-settings-group-title">Delete this project</h3>
-					<p className="text-sm text-fg-muted">
-						Permanently delete this project, its subprojects, and all their tickets.
-					</p>
+					<p className="text-sm text-fg-muted">Permanently delete this project and all its tickets.</p>
 				</div>
 				<Button variant="danger-soft" onClick={() => setDeleteOpen(true)}>
 					Delete project…
