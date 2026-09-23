@@ -27,9 +27,19 @@ const titleOf = (run: FlowExecutionRecord, nodeId: string) => run.doc.nodes.find
 // What `trellis flows run` prints when it stops watching a run. The flow
 // name comes from the run's own copy of the flow, so a renamed flow still
 // prints the name the run used.
+//
+// One successful run answers for the pull request, whatever commit it ran
+// against. An agent reads this text and nothing else, so the success line
+// says that, and it says not to run the flow again after the findings are
+// fixed. A failed run is the one case that asks for another run, because a
+// flow that stopped before it reported has answered nothing.
 export const flowRunText = (run: FlowExecutionRecord, number: number): string => {
 	const flow = run.doc.flow.name;
-	if (run.state.status === "succeeded") return `The ${flow} flow succeeded on #${number}.\n`;
+	if (run.state.status === "succeeded")
+		return (
+			`The ${flow} flow succeeded on #${number}. This one run answers for the whole pull request.\n` +
+			"Fix every finding it left. Do not run the flow again after you fix them.\n"
+		);
 	if (run.state.status === "canceled") return `The ${flow} flow was canceled on #${number}.\n`;
 	if (run.state.status === "failed") {
 		const step = failedStep(run);

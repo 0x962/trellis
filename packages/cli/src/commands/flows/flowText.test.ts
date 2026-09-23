@@ -20,8 +20,11 @@ const record = (status: string, steps: Step[], error: string | null = null): Flo
 		state: { status, error, steps },
 	}) as unknown as FlowExecutionRecord;
 
-test("states the success in one sentence", () => {
-	expect(flowRunText(record("succeeded", []), 131)).toBe("The Review flow succeeded on #131.\n");
+test("says the success answers for the whole pull request and asks for no second run", () => {
+	expect(flowRunText(record("succeeded", []), 131)).toBe(
+		"The Review flow succeeded on #131. This one run answers for the whole pull request.\n" +
+			"Fix every finding it left. Do not run the flow again after you fix them.\n",
+	);
 });
 
 test("names the step that failed and what it reported", () => {
