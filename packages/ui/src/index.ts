@@ -116,6 +116,7 @@ export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDial
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
+export { Field, type FieldProps } from "./primitives/Field";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
 export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";
