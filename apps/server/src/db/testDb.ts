@@ -109,9 +109,10 @@ const loadTar = async () => {
 let cached: Promise<Blob> | undefined;
 
 // The tar of the migrated database, built on the first call of the process.
-// That build takes about 3.5 seconds, and a setup hook stops after five
-// seconds, so `apps/server/scripts/testPreload.ts` calls this before bun runs
-// the first test file.
+// That build takes about 1 second on a quiet machine and more than 5 seconds
+// on a loaded one, and a setup hook stops after 5 seconds, so
+// `apps/server/scripts/testPreload.ts` calls this before bun runs the first
+// test file.
 export const migratedTar = () => (cached ??= loadTar());
 
 // PGlite builds a new empty database when it finds no database in the file it
