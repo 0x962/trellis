@@ -1,4 +1,4 @@
-import type { Project, ProjectSummary, Repo } from "@trellis/api";
+import type { Project, ProjectColor, ProjectSummary, Repo } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, splitList } from "../context.ts";
@@ -9,6 +9,7 @@ const projectList: ListSpec<ProjectSummary> = {
 		{ name: "key", value: (row) => row.key },
 		{ name: "slug", value: (row) => row.slug },
 		{ name: "name", value: (row) => cell(row.name) },
+		{ name: "color", value: (row) => cell(row.color) },
 		{ name: "open", value: (row) => String(row.openCount) },
 		{ name: "archived", value: (row) => cell(row.archivedAt) },
 	],
@@ -26,6 +27,7 @@ const projectRecord: RecordSpec<Project> = {
 		{ name: "description", value: (row) => cell(row.description) },
 		{ name: "repos", value: (row) => cell(row.repos.map(repoName).join(", ")) },
 		{ name: "statuses", value: (row) => cell(row.statuses.map((status) => status.slug).join(", ")) },
+		{ name: "color", value: (row) => cell(row.color) },
 		{ name: "open", value: (row) => String(row.openCount) },
 		{ name: "ticketCounter", value: (row) => String(row.ticketCounter) },
 		{ name: "archived", value: (row) => cell(row.archivedAt) },
@@ -59,12 +61,18 @@ const create = defineCommand({
 		key: { type: "string", required: true, description: "Key of the project, KEY" },
 		name: { type: "string", required: true, description: "Name" },
 		description: { type: "string", description: "Description" },
+		color: { type: "string", description: "Color: orange, teal, blue, pink, or azure" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
 		const project = await clientOf(ctx).projects.create(
-			compact({ key: args.key, name: args.name, description: args.description }),
+			compact({
+				key: args.key,
+				name: args.name,
+				description: args.description,
+				color: args.color as ProjectColor | undefined,
+			}),
 		);
 		printRecord(ctx.out, ctx.format, project, projectRecord);
 	},
