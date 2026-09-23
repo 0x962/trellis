@@ -6,7 +6,7 @@ import { markPullRequestReady } from "./ready.ts";
 const readiness = (isDraft: boolean): PullRequestReadiness => ({
 	dataModelDiagramRequired: false,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft },
-	flows: { flows: [], runs: [], satisfied: true },
+	flows: { flows: [], runs: [], waived: null, satisfied: true },
 	missing: [],
 	ready: true,
 });

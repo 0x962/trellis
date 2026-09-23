@@ -47,7 +47,10 @@ Prove the change. A pull request is ready for review when it has the explanation
    A flow is a saved set of agent steps that Trellis runs against your pull request.
    Pick every flow whose name and description fit what you changed.
    Start each one and wait for its result:  trellis flows run <pr> --flow <slug>
-   When a flow run fails, fix the fault and run the flow again, or write in the evidence document why the flow does not apply.
+   When a flow run fails, fix the fault and run the flow again.
+   When no flow fits your change, say so in one step. Write the reason in the evidence document, then record it:
+   trellis ready <pr> --flow-does-not-apply "<reason>"
+   Trellis keeps that reason with the pull request for the current head, and the person reads it beside your change.
 7. Ask for review:  trellis ready <pr>
    It checks the parts, marks the pull request ready in Trellis, and makes it ready for review on GitHub.
    Until then the person sees a draft.

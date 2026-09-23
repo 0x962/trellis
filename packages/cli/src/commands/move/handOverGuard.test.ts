@@ -37,6 +37,7 @@ const clientWith = ({
 		pullRequests: {
 			refresh: async () => ({ number: linked.number, files }),
 			readEvidence: async () => evidence,
+			readFlowWaiver: async () => null,
 			readSummaryHead: async () => (summaryHead === null ? null : { why: "Why.", watch: "nothing", ...summaryHead }),
 		},
 		reviews: { status: async () => ({ headRefOid: "head-sha", ticket: { identifier: "KEY-42" } }) },

@@ -13,7 +13,7 @@ const readiness = (
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft: false },
-	flows: { flows: [], runs: [], satisfied: true },
+	flows: { flows: [], runs: [], waived: null, satisfied: true },
 	missing,
 	ready: missing.length === 0,
 });
@@ -50,6 +50,7 @@ test("names each flow with the command that runs it when no flow ran", () => {
 			{ slug: "review", name: "Review", description: "Read the diff." },
 		] as PullRequestReadiness["flows"]["flows"],
 		runs: [],
+		waived: null,
 		satisfied: false,
 	};
 
@@ -58,6 +59,9 @@ test("names each flow with the command that runs it when no flow ran", () => {
   MISSING  flow run  no flow ran on the current head
     Pick the flows that fit this change and run each one:
     review  Read the diff.  trellis flows run 131 --flow review
+    A flow that does not fit this change is answered in one step. Write the reason in the
+    evidence document, then record it here:
+      trellis ready 131 --flow-does-not-apply "<reason>"
 `,
 	);
 });
@@ -91,6 +95,7 @@ const clientWith = ({
 		pullRequests: {
 			refresh: async () => ({ number: 131, files, isDraft: false }),
 			readEvidence: async () => evidence,
+			readFlowWaiver: async () => null,
 			readSummaryHead: async () => summaryHead,
 		},
 		reviews: { status: async () => ({ headRefOid: "abc123", ticket: { identifier: "OP-74" } }) },

@@ -7,6 +7,7 @@ import {
 	PullRequestFileSchema,
 	PullRequestFileUploadInputSchema,
 } from "../schemas/evidence.ts";
+import { PullRequestFlowWaiverSchema, PullRequestFlowWaiverWriteInputSchema } from "../schemas/flowWaiver.ts";
 import {
 	LinkedPullRequestSchema,
 	PullRequestDiffOutputSchema,
@@ -87,6 +88,22 @@ export const pullRequests = {
 		.route({ method: "PUT", path: "/prs/{id}/evidence", summary: "Write the evidence document of a pull request" })
 		.input(PullRequestEvidenceWriteInputSchema)
 		.output(PullRequestEvidenceSchema),
+	readFlowWaiver: base
+		.route({
+			method: "GET",
+			path: "/prs/{id}/flow-waiver",
+			summary: "Read what an agent wrote when no flow fits the change",
+		})
+		.input(PullRequestIdInputSchema)
+		.output(PullRequestFlowWaiverSchema.nullable()),
+	writeFlowWaiver: base
+		.route({
+			method: "PUT",
+			path: "/prs/{id}/flow-waiver",
+			summary: "Record why no flow fits the change at one head commit",
+		})
+		.input(PullRequestFlowWaiverWriteInputSchema)
+		.output(PullRequestFlowWaiverSchema),
 	readFile: base
 		.route({ method: "GET", path: "/pr-files/{fileId}", summary: "Read one pull request file" })
 		.input(PullRequestFileIdInputSchema)

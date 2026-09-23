@@ -7,6 +7,7 @@ import {
 	flowRunMissingLines,
 	flowRunMissingSummary,
 	flowRunWaitingLines,
+	flowWaivedLines,
 } from "./flowReadiness.ts";
 
 const flow = (slug: string, name: string, description: string): FlowSummary =>
@@ -15,12 +16,19 @@ const flow = (slug: string, name: string, description: string): FlowSummary =>
 const readiness = (runs: FlowReadiness["runs"]): FlowReadiness => ({
 	flows: [flow("review", "Review", "Read the diff and report every fault."), flow("e2e", "End to end", "")],
 	runs,
+	waived: null,
 	satisfied: runs.some((run) => run.status === "succeeded" || run.status === "waiting"),
 });
 
 // Records the list input, so a test can state that the head filter reaches
 // the server instead of the client.
-const clientWith = (flows: FlowSummary[], records: Array<{ slug: string; name: string; status: string }>) => {
+const ref = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" };
+
+const clientWith = (
+	flows: FlowSummary[],
+	records: Array<{ slug: string; name: string; status: string }>,
+	waiver: { headSha: string; reason: string } | null = null,
+) => {
 	const sent: unknown[] = [];
 	const client = {
 		flows: { list: async () => flows },
@@ -33,6 +41,7 @@ const clientWith = (flows: FlowSummary[], records: Array<{ slug: string; name: s
 				}));
 			},
 		},
+		pullRequests: { readFlowWaiver: async () => waiver },
 	} as unknown as TrellisClient;
 	return { client, sent };
 };
@@ -40,19 +49,24 @@ const clientWith = (flows: FlowSummary[], records: Array<{ slug: string; name: s
 test("asks for nothing when the server holds no flow", async () => {
 	const { client } = clientWith([], []);
 
-	expect(await flowReadiness(client, "OP-74", "abc123")).toEqual({ flows: [], runs: [], satisfied: true });
+	expect(await flowReadiness(client, ref, "OP-74", "abc123")).toEqual({
+		flows: [],
+		runs: [],
+		waived: null,
+		satisfied: true,
+	});
 });
 
 test("asks for nothing when no ticket links the pull request", async () => {
 	const { client } = clientWith([flow("review", "Review", "")], []);
 
-	expect((await flowReadiness(client, null, "abc123")).satisfied).toBe(true);
+	expect((await flowReadiness(client, ref, null, "abc123")).satisfied).toBe(true);
 });
 
 test("asks the server for the runs of the current head only", async () => {
 	const { client, sent } = clientWith([flow("review", "Review", "")], []);
 
-	await flowReadiness(client, "OP-74", "abc123");
+	await flowReadiness(client, ref, "OP-74", "abc123");
 
 	expect(sent).toEqual([{ ticket: "OP-74", headSha: "abc123" }]);
 });
@@ -63,7 +77,7 @@ test("is satisfied by a run that succeeded", async () => {
 		[{ slug: "review", name: "Review", status: "succeeded" }],
 	);
 
-	expect((await flowReadiness(client, "OP-74", "abc123")).satisfied).toBe(true);
+	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(true);
 });
 
 test("is satisfied by a run that waits for a person", async () => {
@@ -72,13 +86,13 @@ test("is satisfied by a run that waits for a person", async () => {
 		[{ slug: "review", name: "Review", status: "waiting" }],
 	);
 
-	expect((await flowReadiness(client, "OP-74", "abc123")).satisfied).toBe(true);
+	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(true);
 });
 
 test("is not satisfied by a run that failed", async () => {
 	const { client } = clientWith([flow("review", "Review", "")], [{ slug: "review", name: "Review", status: "failed" }]);
 
-	expect((await flowReadiness(client, "OP-74", "abc123")).satisfied).toBe(false);
+	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(false);
 });
 
 test("names every flow and its command when no flow ran", () => {
@@ -89,6 +103,9 @@ test("names every flow and its command when no flow ran", () => {
 		"    Pick the flows that fit this change and run each one:",
 		"    review  Read the diff and report every fault.  trellis flows run 131 --flow review",
 		"    e2e     End to end                             trellis flows run 131 --flow e2e",
+		"    A flow that does not fit this change is answered in one step. Write the reason in the",
+		"    evidence document, then record it here:",
+		'      trellis ready 131 --flow-does-not-apply "<reason>"',
 	]);
 });
 
@@ -106,7 +123,9 @@ test("names the failed run and both ways out of it", () => {
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    The Review flow failed. Fix the fault and run it again:",
 		"      trellis flows run 131 --flow review",
-		"    Or write in the evidence document why this flow does not apply to the change.",
+		"    A flow that does not fit this change is answered in one step. Write the reason in the",
+		"    evidence document, then record it here:",
+		'      trellis ready 131 --flow-does-not-apply "<reason>"',
 	]);
 });
 
@@ -118,4 +137,40 @@ test("tells the person which flow waits for them", () => {
 
 test("says nothing to the person when no run waits", () => {
 	expect(flowRunWaitingLines(readiness([{ slug: "review", name: "Review", status: "succeeded" }]))).toEqual([]);
+});
+
+test("takes the agent's own sentence in place of a run", async () => {
+	const { client } = clientWith([flow("review", "Review", "")], [], {
+		headSha: "abc123",
+		reason: "This change edits only the README.",
+	});
+
+	const result = await flowReadiness(client, ref, "OP-74", "abc123");
+
+	expect(result.waived).toBe("This change edits only the README.");
+	expect(result.satisfied).toBe(true);
+});
+
+test("drops a sentence written about an older head", async () => {
+	const { client } = clientWith([flow("review", "Review", "")], [], { headSha: "older1", reason: "Docs only." });
+
+	const result = await flowReadiness(client, ref, "OP-74", "abc123");
+
+	expect(result.waived).toBeNull();
+	expect(result.satisfied).toBe(false);
+});
+
+test("prints the agent's sentence for the person", () => {
+	expect(flowWaivedLines({ ...readiness([]), waived: "This change edits only the README." })).toEqual([
+		"  No flow fits this change, and the agent wrote why: This change edits only the README.",
+	]);
+	expect(flowWaivedLines(readiness([]))).toEqual([]);
+});
+
+test("names the one step that records a change no flow fits", () => {
+	expect(flowRunMissingLines(readiness([]), 131).slice(-3)).toEqual([
+		"    A flow that does not fit this change is answered in one step. Write the reason in the",
+		"    evidence document, then record it here:",
+		'      trellis ready 131 --flow-does-not-apply "<reason>"',
+	]);
 });

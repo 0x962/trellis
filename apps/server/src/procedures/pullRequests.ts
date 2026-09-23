@@ -25,6 +25,12 @@ export const pullRequests = os.pullRequests.router({
 	writeEvidence: os.pullRequests.writeEvidence.handler(({ context, input }) =>
 		call(context, "pullRequests.writeEvidence", input),
 	),
+	readFlowWaiver: os.pullRequests.readFlowWaiver.handler(({ context, input }) =>
+		call(context, "pullRequests.readFlowWaiver", input),
+	),
+	writeFlowWaiver: os.pullRequests.writeFlowWaiver.handler(({ context, input }) =>
+		call(context, "pullRequests.writeFlowWaiver", input),
+	),
 	readFile: os.pullRequests.readFile.handler(({ context, input }) => call(context, "pullRequests.readFile", input)),
 	uploadFile: os.pullRequests.uploadFile.handler(({ context, input }) =>
 		call(context, "pullRequests.uploadFile", input),

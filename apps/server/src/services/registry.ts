@@ -29,6 +29,7 @@ import { get as getFlowExecution } from "./flowExecutions/queries.ts";
 import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
+import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as labelGroups from "./labelGroups.ts";
@@ -277,6 +278,8 @@ export const services = {
 	"pullRequests.readSummaryHead": io("read", prSummary.readHead),
 	"pullRequests.writeSummary": prepared("mutation", prSummary.prepareWrite, prSummary.write),
 	"pullRequests.readEvidence": io("read", evidence.read),
+	"pullRequests.readFlowWaiver": io("read", flowWaiver.read),
+	"pullRequests.writeFlowWaiver": io("mutation", flowWaiver.write),
 	"pullRequests.writeEvidence": prepared("mutation", evidence.prepareWrite, evidence.write),
 	"pullRequests.readFile": io("read", prFiles.read),
 	"pullRequests.uploadFile": prepared("mutation", prFiles.prepareUpload, prFiles.upload),
