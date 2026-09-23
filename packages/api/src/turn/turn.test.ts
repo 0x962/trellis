@@ -13,7 +13,6 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 		url: "https://github.com/acme/app/pull/42",
 		state: "open",
 		isDraft: false,
-		localState: "ready",
 		reviewGaps: [],
 		fail: 0,
 		pending: 0,
@@ -48,8 +47,8 @@ test("gives a pull request to you when the Trellis state is ready", () => {
 
 test("gives a pull request to the agent until the agent asks for review", () => {
 	const gaps: TicketPr["reviewGaps"] = [{ kind: "not-asked", count: 1 }];
-	expect(turnOf(pullRequest({ localState: "not-ready", reviewGaps: gaps }), false)).toBe("agent");
-	expect(turnOf(ticket({ prRows: [pullRequest({ localState: "not-ready", reviewGaps: gaps })] }), false)).toBe("agent");
+	expect(turnOf(pullRequest({ reviewGaps: gaps }), false)).toBe("agent");
+	expect(turnOf(ticket({ prRows: [pullRequest({ reviewGaps: gaps })] }), false)).toBe("agent");
 });
 
 test("gives a pull request with an open finding to the agent", () => {
