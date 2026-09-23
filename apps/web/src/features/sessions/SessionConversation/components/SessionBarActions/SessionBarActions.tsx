@@ -2,6 +2,7 @@ import { Play, Stop, Ticket } from "@phosphor-icons/react";
 import type { AgentRun, AgentWorkspaceSummary, Session } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { SessionActionsMenu } from "../../../SessionActionsMenu";
+import { canStartAgent } from "../../../sessionPane";
 import { SessionDetails } from "../SessionDetails";
 
 export type SessionBarActionsProps = {
@@ -73,9 +74,7 @@ export function SessionBarActions({
 					disabled={
 						readOnly ||
 						busy ||
-						run.runtime !== "native" ||
-						run.state === "starting" ||
-						(!active && !session && !run.terminalId)
+						(active ? run.runtime !== "native" || run.state === "starting" : !canStartAgent(run, session !== undefined))
 					}
 					onClick={active ? onStop : onStart}
 				/>

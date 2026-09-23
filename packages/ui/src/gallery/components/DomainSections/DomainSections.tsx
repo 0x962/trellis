@@ -7,6 +7,7 @@ import {
 	CheckRibbonSection,
 	ChecksLineSection,
 	DoneWashSection,
+	FailureStateSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -29,6 +30,7 @@ import {
 export function DomainSections() {
 	return (
 		<>
+			<FailureStateSection />
 			<StatusIconSection />
 			<PriorityIconSection />
 			<AttentionDotSection />

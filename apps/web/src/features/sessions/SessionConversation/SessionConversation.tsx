@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, ConfirmDialog, EmptyState } from "@trellis/ui";
+import { Avatar, Button, ConfirmDialog, EmptyState, FailureState, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -10,6 +10,7 @@ import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
+import { canStartAgent, sessionPane } from "../sessionPane";
 import { sessionStateLabel } from "../sessionStateLabel";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
@@ -55,11 +56,13 @@ export function SessionConversation({
 					requestId: crypto.randomUUID(),
 				});
 		},
+		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
 	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: run.id }),
 		onSuccess: () => setConfirmStop(false),
+		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
 	// The line under the name is present for every native run, so the name
@@ -67,7 +70,6 @@ export function SessionConversation({
 	const native = run.runtime === "native";
 	const summary = useWorkspaceSummary(run, { focus: true }).data;
 	const busy = start.isPending || stop.isPending;
-	const error = start.error ?? stop.error;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
 	const title = (
 		<h2
@@ -79,6 +81,13 @@ export function SessionConversation({
 		>
 			{name}
 		</h2>
+	);
+	const pane = sessionPane(run);
+	const canStart = canStartAgent(run, session !== undefined);
+	const startButton = (
+		<Button size="md" disabled={readOnly || !canStart} processing={start.isPending} onClick={() => start.mutate()}>
+			Start the agent
+		</Button>
 	);
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -129,13 +138,24 @@ export function SessionConversation({
 				</p>
 			)}
 			<PendingQuestions run={run} readOnly={readOnly} />
-			{(error || run.error) && (
-				<p role="alert" className="px-3 py-2 text-sm text-danger">
-					{error?.message ?? run.error}
-				</p>
-			)}
 			<div className="flex min-h-0 flex-1 flex-col">
-				{run.terminalId ? (
+				{pane.kind === "failed" ? (
+					<FailureState
+						variant="page"
+						title={pane.title}
+						description={pane.description}
+						detail={pane.detail}
+						action={canStart ? startButton : undefined}
+					/>
+				) : pane.kind === "stopped" ? (
+					<EmptyState
+						variant="page"
+						image={null}
+						title={pane.title}
+						description={pane.description}
+						action={canStart ? startButton : undefined}
+					/>
+				) : run.terminalId ? (
 					<NativeTerminal
 						key={run.terminalId}
 						run={run}
@@ -146,7 +166,12 @@ export function SessionConversation({
 						onLeave={leaveTerminal}
 					/>
 				) : (
-					<EmptyState variant="page" title="No session process" description="Start the session to open the agent." />
+					<EmptyState
+						variant="page"
+						image={null}
+						title="This session has no process"
+						description="Trellis starts no process for this runtime."
+					/>
 				)}
 			</div>
 			<ConfirmDialog
