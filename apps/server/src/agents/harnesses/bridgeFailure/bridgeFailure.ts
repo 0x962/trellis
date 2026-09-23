@@ -43,9 +43,9 @@ export async function recordBridgeFailure(options: {
 	});
 }
 
-// The reader of a failure in a bridge. The race of a bridge reads
-// `observationFailed` one time, so a second failure, or a failure after the
-// race ends, reaches nobody. `closeReports` marks that end, and each failure
+// The reader of a failure in a bridge. Only one reader takes the rejection of
+// `observationFailed`, so a second failure, or a failure after the race of the
+// bridge ends, reaches nobody. `closeReports` marks that end, and each failure
 // after it writes its reason to the standard error stream.
 export function failureReporter(): {
 	observationFailed: Promise<never>;
@@ -56,19 +56,19 @@ export function failureReporter(): {
 	const observationFailed = new Promise<never>((_, rejectFailure) => {
 		reject = rejectFailure;
 	});
-	let open = true;
+	let raceOpen = true;
 	return {
 		observationFailed,
 		reportFailure: (error: unknown) => {
-			if (open) {
-				open = false;
+			if (raceOpen) {
+				raceOpen = false;
 				reject(error);
 				return;
 			}
 			process.stderr.write(`The bridge also failed: ${failureReason(error)}\n`);
 		},
 		closeReports: () => {
-			open = false;
+			raceOpen = false;
 		},
 	};
 }

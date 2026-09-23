@@ -215,7 +215,7 @@ try {
 } finally {
 	acceptingEvents = false;
 	// A signal can end the run while a write of an event is open. The process
-	// exits after this block, so the chain settles first.
+	// exits after this block, so `eventQueue` settles first.
 	await eventQueue.catch((failure: unknown) => {
 		const dropped = failureReason(failure);
 		if (dropped !== reportedReason) process.stderr.write(`The bridge lost an event write: ${dropped}\n`);

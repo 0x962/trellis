@@ -267,7 +267,7 @@ try {
 	// Muse host, and the removal of the directory can throw.
 	stopMuseTerminalReader();
 	// A signal can end the run while a write of an event is open. The process
-	// exits after this block, so both chains settle first.
+	// exits after this block, so `eventQueue` and `usageQueue` settle first.
 	await eventQueue.catch((failure: unknown) => {
 		const dropped = failureReason(failure);
 		if (dropped !== reportedReason) process.stderr.write(`The bridge lost an event write: ${dropped}\n`);

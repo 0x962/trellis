@@ -1,11 +1,11 @@
 import { failureReason } from "../bridgeFailure/index.ts";
 import type { HarnessEvent } from "../types.ts";
 
-// A bridge takes a stop signal and writes one line, because nothing else tells
+// A bridge receives a stop signal and writes one line, because nothing else tells
 // a person why the session ended. Each listener runs one time: a second press
 // of Ctrl+C finds none, and Node stops the bridge. The Muse bridge needs that
 // first press, because its failure path ends the raw mode of the terminal, and
-// Ctrl+C then makes SIGINT while the bridge still records the reason.
+// the terminal then sends SIGINT while the bridge still records the reason.
 //
 // `stopNormally` resolves the same promise for a bridge that ends its own run,
 // and `receivedSignal` stays null in that case.
