@@ -1,7 +1,7 @@
 import { List, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import type { Project } from "@trellis/api";
+import { AGENT_RUN_HISTORY_WINDOW_HOURS, AGENT_RUN_LIST_MAX_LIMIT, type Project } from "@trellis/api";
 import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -32,7 +32,9 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	// holds a month of closed runs, which do not change, and the event stream
 	// still refreshes it when a run in it changes.
 	const runsOptions = orpc.agentRuns.list.queryOptions({
-		input: history ? { project: project.id, windowHours: 24 * 30, limit: 1000 } : { project: project.id },
+		input: history
+			? { project: project.id, windowHours: AGENT_RUN_HISTORY_WINDOW_HOURS, limit: AGENT_RUN_LIST_MAX_LIMIT }
+			: { project: project.id },
 	});
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({

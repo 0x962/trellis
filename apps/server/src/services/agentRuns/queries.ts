@@ -30,5 +30,17 @@ export const getRun = async (tx: Tx, id: string) => {
 	return run;
 };
 
+// Every agent run that no one has closed. `needsYou` and the statistics
+// faults read this set to decide something, not to draw a list, so it
+// carries no limit: a row that a limit hides changes their answer, and the
+// statistics fault names the oldest run of the set. Only a person removes
+// the assignment of an agent run, so the set can hold any number of rows.
+export const openAgentRuns = (tx: Tx) =>
+	rows<StoredRun>(
+		tx,
+		sql`SELECT ${listColumns} FROM agent_runs WHERE closed_at IS NULL AND kind = 'agent'
+		ORDER BY created_at DESC, id DESC`,
+	);
+
 export const listSessionRuns = (tx: Tx) =>
 	rows<StoredRun>(tx, sql`SELECT ${listColumns} FROM agent_runs WHERE id IN (SELECT run_id FROM sessions)`);

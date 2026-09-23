@@ -1,11 +1,4 @@
-import {
-	AGENT_RUN_LIST_MAX_LIMIT,
-	AGENT_RUN_LIST_WINDOW_HOURS,
-	type AgentRun,
-	type AgentRunListInput,
-	type AgentRunStartInput,
-	type TicketGetInputSchema,
-} from "@trellis/api";
+import type { AgentRun, AgentRunListInput, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
@@ -21,7 +14,7 @@ import { launchRun } from "./launchRun";
 import { launchState } from "./launchState";
 import { observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
-import { getRun, listColumns, type StoredRun } from "./queries.ts";
+import { getRun, listColumns, openAgentRuns, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
 import { aggregateTicketMetrics } from "./ticketMetrics.ts";
 
@@ -82,15 +75,10 @@ export const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimePr
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
 
-// Every run that a ticket or a session still holds. The list route caps how
-// many rows it answers with, and a reader of the open set must see all of
-// them, so this asks for the largest answer the list gives.
-export const prepareOpenRuns = (ctx: Ctx) =>
-	prepareList(ctx, {
-		assigned: true,
-		windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
-		limit: AGENT_RUN_LIST_MAX_LIMIT,
-	});
+// Every open agent run with its live state. `needsYou` and the statistics
+// faults read this set to decide something, so it takes no bound from the
+// list route.
+export const prepareOpenAgentRuns = async (ctx: Ctx) => observeRuns(ctx, await ctx.newTx(openAgentRuns));
 
 export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;

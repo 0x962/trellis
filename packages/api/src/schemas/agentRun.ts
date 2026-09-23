@@ -100,9 +100,12 @@ export const AGENT_RUN_LIST_WINDOW_HOURS = 24;
 // The newest rows the list answers with. 200 rows fill the session list
 // and the CLI table many times over, and they cost about 250 kB.
 export const AGENT_RUN_LIST_LIMIT = 200;
-// The largest answer the list gives. A reader that must see every open run
-// asks for this many, because the host runs far fewer agents at once.
+// The largest answer the list gives.
 export const AGENT_RUN_LIST_MAX_LIMIT = 1000;
+// The window the session list asks for when a person presses its history
+// button. A month covers the runs a person looks back for by name, and the
+// host keeps the rows far longer than that.
+export const AGENT_RUN_HISTORY_WINDOW_HOURS = 24 * 30;
 // `ids` and `ticket` are bounds of their own, so the window does not apply
 // to them. A caller that names a run by its ID reads that run at any age.
 export const AgentRunListInputSchema = z.strictObject({
