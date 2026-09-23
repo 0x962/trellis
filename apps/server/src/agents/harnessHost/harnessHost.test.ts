@@ -66,7 +66,11 @@ test("a harness that reports work without a provider session ends the launch at 
 		JSON.stringify({ fingerprint: "test", prompt: "Read the source", spec, harness: "claude" }),
 	);
 	const host = new HarnessHost({
-		runtime: { ...busyRuntime(), list: async () => [], start: async () => {} } as unknown as RuntimeClient,
+		runtime: {
+			...busyRuntime(),
+			list: async () => ({ sessions: [], complete: true }),
+			start: async () => {},
+		} as unknown as RuntimeClient,
 		directory,
 		agentsDirectory: join(directory, "agents"),
 		env: {},
