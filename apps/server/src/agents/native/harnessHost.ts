@@ -20,6 +20,10 @@ export const nativeHost = (
 		bun: process.execPath,
 		log,
 		observationTimeoutMs: 60000,
+		// A launch that reports work for five minutes without a provider
+		// session and an acknowledged prompt fails. The run then carries the
+		// reason, and the person reads it beside the session.
+		confirmationLimitMs: 300000,
 	});
 
 export const nativePreset = async (home: string, id: string): Promise<HarnessPreset> =>

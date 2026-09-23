@@ -16,6 +16,7 @@ import { attachmentPrompt, prepareFiles } from "./attachments.ts";
 import { createProjectSession } from "./createProject.ts";
 import { createSessionRepository, sessionDirectoryNames } from "./directory.ts";
 import { launchSession } from "./launchSession";
+import { holdSession } from "./operation.ts";
 import { sessionColumns, sessionNames } from "./queries.ts";
 import { friendlySessionName, sessionSlug, uniqueSessionName } from "./sessionName.ts";
 
@@ -94,6 +95,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 			resume: false,
 			attempt: reservation.attempt,
 		},
+		holdSession(ctx.home, reservation.run.id),
 		start,
 		() => createSessionRepository(ctx.home, reservation.session.name),
 	);

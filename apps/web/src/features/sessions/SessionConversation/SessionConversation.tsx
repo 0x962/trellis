@@ -115,9 +115,9 @@ export function SessionConversation({
 					<IconButton
 						label={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}
 						icon={active ? <Stop /> : <Play />}
+						processing={busy}
 						disabled={
 							readOnly ||
-							busy ||
 							run.runtime !== "native" ||
 							run.state === "starting" ||
 							(!active && !session && !run.terminalId)

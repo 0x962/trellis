@@ -11,7 +11,13 @@ export type HarnessHostOptions = {
 	env: Record<string, string | undefined>;
 	bun: string;
 	log?: JobsLog;
+	// The longest time a wait accepts between two reports of the harness. Each
+	// report restarts this clock.
 	observationTimeoutMs?: number;
+	// The longest time the wait for a launch confirmation takes, counted from
+	// the first event. No report of the harness extends it, so a harness that
+	// reports work but never confirms its provider session still fails.
+	confirmationLimitMs?: number;
 };
 export type HarnessStartInput = {
 	id: string;

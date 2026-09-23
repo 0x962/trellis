@@ -82,7 +82,7 @@ export function ControlSections() {
 			</Section>
 			<Section
 				name="IconButton"
-				note="primary, default, quiet, danger, danger-soft; xs 24 px, sm 28 px, md 32 px; disabled"
+				note="primary, default, quiet, danger, danger-soft; xs 24 px, sm 28 px, md 32 px; disabled; processing"
 			>
 				{iconSizes.map((size) => (
 					<div key={size} className="flex items-center gap-2">
@@ -92,6 +92,7 @@ export function ControlSections() {
 						<IconButton label="Delete" icon={<Trash />} size={size} variant="danger" />
 						<IconButton label="Delete" icon={<Trash />} size={size} variant="danger-soft" />
 						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} disabled />
+						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} processing />
 					</div>
 				))}
 			</Section>
