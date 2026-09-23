@@ -15,12 +15,12 @@ export type ThreadListStore = {
 
 // One person resolving or reopening one thread: which thread, the status it
 // takes, the name of the person, and the time they clicked.
-export type ResolveChange = { id: string; resolved: boolean; by: string | null; at: string };
+type ResolveChange = { id: string; resolved: boolean; by: string | null; at: string };
 
 // The list as it looks the moment the person clicks, before the server
 // answers. The `open` count is the number of threads with the status open,
 // so it moves with the one thread that changed.
-export const markResolved = (list: ThreadList, change: ResolveChange): ThreadList => {
+const markResolved = (list: ThreadList, change: ResolveChange): ThreadList => {
 	const items = list.items.map((thread) =>
 		thread.id !== change.id
 			? thread
