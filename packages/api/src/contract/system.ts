@@ -30,7 +30,7 @@ export const system = {
 		.route({ method: "GET", path: "/system/processes", summary: "List every process of the computer" })
 		.output(SystemProcessesSchema),
 	pressure: base
-		.route({ method: "GET", path: "/system/pressure", summary: "Read the memory pressure of the computer" })
+		.route({ method: "GET", path: "/system/pressure", summary: "Read CPU load, memory pressure, and temperature" })
 		.input(MachinePressureInputSchema)
 		.output(MachinePressureSchema),
 	gh: base.route({ method: "GET", path: "/gh", summary: "Read the gh state" }).output(GhStatusSchema),

@@ -40,19 +40,38 @@ const PercentSchema = z.number().min(0).max(100);
 export const MemoryPressureLevelSchema = z.union([z.literal(1), z.literal(2), z.literal(4)]);
 export type MemoryPressureLevel = z.infer<typeof MemoryPressureLevelSchema>;
 
-// NSProcessInfo publishes these five thermal states, and Electron returns them
-// from powerMonitor.getCurrentThermalState. A computer outside the macOS app
-// reports no thermal state, and the field that holds one is then null.
+// NSProcessInfo publishes four thermal states, and Electron adds `unknown`.
+// A nominal state can also mean that the operating system cannot read the
+// state. A computer outside the macOS app reports no thermal state.
 export const ThermalStateSchema = z.enum(["unknown", "nominal", "fair", "serious", "critical"]);
 export type ThermalState = z.infer<typeof ThermalStateSchema>;
 
-// The two red lines of the machine, which the server and the web app share.
-// Level 4 is the point at which macOS starts to end processes to free memory.
-// Apple states that the system reduces performance at "serious" and at
-// "critical". A Mac reaches memory level 2 and thermal "fair" many times an
-// hour and recovers on its own, so neither counts as red.
+// The managed macOS server runs one bounded native process. A failed process
+// is different from a release that has no supported reader.
+export const ProcessorTemperatureSchema = z.discriminatedUnion("state", [
+	z.object({
+		state: z.literal("available"),
+		celsius: z.number(),
+		sensor: z.string(),
+		source: z.literal("IOHIDEventSystemClient"),
+		readDurationMs: z.number().nonnegative(),
+	}),
+	z.object({
+		state: z.literal("unavailable"),
+		reason: z.enum(["unsupported-platform", "reader-not-installed", "sensor-unavailable"]),
+		readDurationMs: z.number().nonnegative(),
+	}),
+	z.object({
+		state: z.literal("failed"),
+		reason: z.enum(["reader-start", "reader-timeout", "reader-exit", "reader-output"]),
+		readDurationMs: z.number().nonnegative(),
+	}),
+]);
+export type ProcessorTemperature = z.infer<typeof ProcessorTemperatureSchema>;
+
+// This helper identifies the high state that callers show in red. It does not
+// translate the state into a resource consequence.
 export const memoryIsRed = (level: MemoryPressureLevel | null) => level === 4;
-export const thermalIsRed = (state: ThermalState | null) => state === "serious" || state === "critical";
 
 // `memoryPercent` is the share of the memory that is in use, which
 // `/usr/bin/memory_pressure -Q` reports as a free percentage.
@@ -113,18 +132,27 @@ export const PressureRunSchema = z.object({
 });
 export type PressureRun = z.infer<typeof PressureRunSchema>;
 
-// `runs` holds the agent runs that use the most memory, largest first. It is
-// empty while both red lines are clear, because each read walks every process.
+// `loadPerCore` is the one-minute load average divided by the logical CPU
+// count. It is a ratio of queued processes, not a native pressure level.
+// `processorTemperature` holds the hottest measured PMU processor-die sensor
+// and the full process cost. `runs` holds the agent runs that use the most
+// memory, largest first.
 export const MachinePressureSchema = z.object({
+	sampledAt: IsoDateTimeSchema,
+	hostname: z.string(),
+	platform: z.string(),
+	cpuCount: CountSchema,
+	loadAverage1m: z.number().nonnegative(),
+	loadPerCore: z.number().nonnegative(),
 	memoryLevel: MemoryPressureLevelSchema.nullable(),
+	processorTemperature: ProcessorTemperatureSchema,
 	runs: z.array(PressureRunSchema),
 });
 export type MachinePressure = z.infer<typeof MachinePressureSchema>;
 
-// The caller sets `thermalIsRed` from the thermal state, which only the macOS
-// app can read. The server answers with the heaviest runs when that flag is
-// set or when its own memory level is red.
-export const MachinePressureInputSchema = z.object({ thermalIsRed: z.boolean().default(false) });
+// A run read walks the process table. The details panel asks for it only while
+// the panel is open.
+export const MachinePressureInputSchema = z.object({ includeRuns: z.boolean().default(false) });
 export type MachinePressureInput = z.infer<typeof MachinePressureInputSchema>;
 
 export const BackupOutputSchema = z.object({

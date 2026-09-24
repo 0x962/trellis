@@ -9,6 +9,7 @@ export async function writeDesktopBuild(desktop: string, host: string) {
 		"dist/preload.cjs",
 		"dist/host-service.cjs",
 		"dist/TrellisHost",
+		"dist/processor-temperature",
 		"native/com.trellis.desktop.host.plist",
 	];
 	const hashes: Record<string, string> = {};

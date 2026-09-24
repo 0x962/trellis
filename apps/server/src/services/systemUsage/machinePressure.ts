@@ -1,4 +1,5 @@
-import { type MachinePressure, type MachinePressureInput, memoryIsRed, type PressureRun } from "@trellis/api";
+import { cpus, hostname, loadavg, platform } from "node:os";
+import type { MachinePressure, MachinePressureInput, PressureRun } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
@@ -6,8 +7,9 @@ import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { IoCtx } from "../support.ts";
 import { readMemoryPressureLevel } from "./memoryPressureLevel.ts";
 import { readProcessGroupMemory } from "./processGroupMemory.ts";
+import { readProcessorTemperature } from "./processorTemperature.ts";
 
-// The number of runs the banner names.
+// The details panel names at most three runs.
 const HEAVIEST_LIMIT = 3;
 
 export type OpenRun = { id: string; name: string; ticketIdentifier: string | null; terminalId: string };
@@ -36,8 +38,24 @@ export const heaviestRuns = (
 };
 
 export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureInput): Promise<MachinePressure> => {
-	const memoryLevel = await readMemoryPressureLevel();
-	if (!input.thermalIsRed && !memoryIsRed(memoryLevel)) return { memoryLevel, runs: [] };
+	const [memoryLevel, processorTemperature] = await Promise.all([
+		readMemoryPressureLevel(),
+		readProcessorTemperature(),
+	]);
+	const sampledAt = ctx.now().toISOString();
+	const cpuCount = cpus().length;
+	const loadAverage1m = loadavg()[0]!;
+	const base = {
+		sampledAt,
+		hostname: hostname(),
+		platform: platform(),
+		cpuCount,
+		loadAverage1m,
+		loadPerCore: loadAverage1m / cpuCount,
+		memoryLevel,
+		processorTemperature,
+	};
+	if (!input.includeRuns) return { ...base, runs: [] };
 	const openRuns = await ctx.newTx((tx) =>
 		rows<OpenRun>(
 			tx,
@@ -45,10 +63,10 @@ export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureI
 				FROM agent_runs WHERE closed_at IS NULL AND terminal_id IS NOT NULL`,
 		),
 	);
-	if (openRuns.length === 0) return { memoryLevel, runs: [] };
+	if (openRuns.length === 0) return { ...base, runs: [] };
 	const [sessions, memoryByGroup] = await Promise.all([
 		readRuntimeSessions(ctx.home, { ids: openRuns.map((run) => run.terminalId) }),
 		readProcessGroupMemory(),
 	]);
-	return { memoryLevel, runs: heaviestRuns(openRuns, sessions, memoryByGroup, HEAVIEST_LIMIT) };
+	return { ...base, runs: heaviestRuns(openRuns, sessions, memoryByGroup, HEAVIEST_LIMIT) };
 };

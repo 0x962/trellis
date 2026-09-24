@@ -35,6 +35,12 @@ export { type LabelPillItem, LabelPills, type LabelPillsProps } from "./domain/L
 export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesVisible } from "./domain/LineChanges";
 export { type LabelColor, labelColors } from "./domain/labelColors";
 export {
+	MachinePressure,
+	type MachinePressureMachineView,
+	type MachinePressureProps,
+	type MachinePressureReadingView,
+} from "./domain/MachinePressure";
+export {
 	MergeConflictMark,
 	type MergeConflictMarkProps,
 	type MergeConflictMarkSize,

@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, Menu, powerMonitor, shell } from "electron";
+import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, Menu, powerMonitor, shell } from "electron";
 import { activateHostRelease } from "./activateHostRelease/activateHostRelease.ts";
 import { appMenu } from "./appMenu/appMenu.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
@@ -12,12 +12,14 @@ import {
 	type DesktopStatus,
 	type DesktopUpdateStatus,
 	requireOpenedPath,
+	type ThermalState,
 	updateSummary,
 } from "./desktopSettings/desktopSettings.ts";
 import { askForFullDiskAccess, hasFullDiskAccess } from "./fullDiskAccess/fullDiskAccess.ts";
 import { connectHost, type HostConnection } from "./host/host.ts";
 import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, rendererPath, sameOrigin } from "./navigation/navigation.ts";
+import { openWindow as openDesktopWindow } from "./openWindow";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { registerDesktopHandlers } from "./registerDesktopHandlers/registerDesktopHandlers.ts";
@@ -29,12 +31,10 @@ import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { openServiceSettings, serviceCommand } from "./service/service.ts";
 import { requireService, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { sessionNotifications } from "./sessionNotifications/sessionNotifications.ts";
-import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showStartupError } from "./showStartupError/index.ts";
 import { startupProgress } from "./startupProgress/index.ts";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
-import { windowOptions } from "./windowOptions/windowOptions.ts";
 
 configureDesktopIdentity(app);
 
@@ -64,47 +64,23 @@ const developmentHostOptions = () => ({
 	entry: join(paths().hostRoot, "apps/server/src/index.ts"),
 	webDist: join(paths().hostRoot, "apps/web/dist"),
 });
-const openWindow = async () => {
-	if (window) {
-		showMaximizedWindow(window);
-		return;
-	}
-	window = new BrowserWindow({
-		width: 1280,
-		height: 800,
-		minWidth: 900,
-		minHeight: 650,
-		show: false,
-		title: "Trellis",
-		...windowOptions(process.platform),
-		webPreferences: {
-			preload: paths().preload,
-			contextIsolation: true,
-			nodeIntegration: false,
-			sandbox: true,
-			webSecurity: true,
-			webviewTag: true,
-			partition: "persist:trellis",
+const openWindow = () =>
+	openDesktopWindow({
+		current: () => window,
+		setCurrent: (value) => {
+			window = value;
 		},
+		clearVisibleSession: () => {
+			visibleSession = null;
+		},
+		finishProgress: progress.finish,
+		hostOrigin: () => host.origin,
+		initialPath: rendererNavigation.initialPath,
+		platform: process.platform,
+		preload: () => paths().preload,
+		secure: (value) => secureRenderer(value, () => host),
+		startLoad: rendererNavigation.startLoad,
 	});
-	const createdWindow = window;
-	if (process.platform === "darwin") {
-		createdWindow.on("restore", () => createdWindow.webContents.invalidate());
-		createdWindow.on("show", () => createdWindow.webContents.invalidate());
-	}
-	rendererNavigation.startLoad();
-	window.once("ready-to-show", () => {
-		void progress.finish(() => showMaximizedWindow(createdWindow));
-	});
-	window.on("closed", () => {
-		rendererNavigation.startLoad();
-		window = undefined;
-		visibleSession = null;
-	});
-	window.webContents.on("did-start-loading", rendererNavigation.startLoad);
-	secureRenderer(window, () => host);
-	await window.loadURL(`${host.origin}${rendererNavigation.initialPath()}`);
-};
 const chooseHome = (current = desktopHome()) =>
 	chooseDataHome({
 		current,
@@ -259,17 +235,21 @@ else {
 				status: desktopStatus,
 				serviceStatus: desktopServiceStatus,
 				updateStatus: desktopUpdateStatus,
+				hostOrigin: () => host.origin,
 				requirePackaged,
 				action: (action) => desktopActions[action](),
 			});
-			// powerMonitor is available only after the ready event. macOS raises
-			// this event when the thermal state changes, so the renderer needs no
-			// timer to learn that the system reduces performance.
-			powerMonitor.on("thermal-state-change", (state) => {
-				window?.webContents.send("trellis:thermal-state", state);
-			});
 			await connect(progress.show);
 			if (!host) return;
+			const sendThermalState = (details: { state: ThermalState }) => {
+				window?.webContents.send("trellis:thermal-state", {
+					state: details.state,
+					sampledAt: new Date().toISOString(),
+					hostOrigin: host.origin,
+				});
+			};
+			powerMonitor.on("thermal-state-change", sendThermalState);
+			app.once("before-quit", () => powerMonitor.removeListener("thermal-state-change", sendThermalState));
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate(
 					appMenu({

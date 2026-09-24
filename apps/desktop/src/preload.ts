@@ -3,9 +3,11 @@ import type {
 	DesktopAction,
 	DesktopServiceStatus,
 	DesktopStatus,
+	DesktopThermalSample,
 	DesktopUpdateStatus,
-	ThermalState,
 } from "./desktopSettings/desktopSettings.ts";
+
+const refreshThermalState = (): Promise<DesktopThermalSample> => ipcRenderer.invoke("trellis:thermal-ready");
 
 contextBridge.exposeInMainWorld(
 	"trellisDesktop",
@@ -13,11 +15,18 @@ contextBridge.exposeInMainWorld(
 		platform: "darwin",
 		sessionVisible: (runId: string | null): Promise<void> => ipcRenderer.invoke("trellis:session-visible", runId),
 		previewNotification: (volume: number): Promise<void> => ipcRenderer.invoke("trellis:preview-notification", volume),
-		onThermalStateChanged: (listener: (state: ThermalState) => void) => {
-			const handler = (_event: IpcRendererEvent, state: ThermalState) => listener(state);
+		refreshThermalState,
+		onThermalStateChanged: (listener: (sample: DesktopThermalSample) => void) => {
+			let current = true;
+			const handler = (_event: IpcRendererEvent, sample: DesktopThermalSample) => listener(sample);
 			ipcRenderer.on("trellis:thermal-state", handler);
-			void ipcRenderer.invoke("trellis:thermal-ready");
-			return () => ipcRenderer.removeListener("trellis:thermal-state", handler);
+			void refreshThermalState().then((sample) => {
+				if (current) listener(sample);
+			});
+			return () => {
+				current = false;
+				ipcRenderer.removeListener("trellis:thermal-state", handler);
+			};
 		},
 		onAccessibilitySupportChanged: (listener: (enabled: boolean) => void) => {
 			const handler = (_event: IpcRendererEvent, enabled: boolean) => listener(enabled);

@@ -1,5 +1,11 @@
 import type { ThermalState } from "@trellis/api";
 
+export type DesktopThermalSample = {
+	state: ThermalState;
+	sampledAt: string;
+	hostOrigin: string;
+};
+
 // apps/desktop/src/preload.ts exposes window.trellisDesktop in the macOS app.
 // These types copy the desktop IPC contract because the web app cannot import
 // the desktop package.
@@ -32,8 +38,9 @@ export type DesktopBridge = {
 	platform: string;
 	sessionVisible?: (runId: string | null) => Promise<void>;
 	previewNotification?: (volume: number) => Promise<void>;
+	refreshThermalState?: () => Promise<DesktopThermalSample>;
 	onAccessibilitySupportChanged?: (listener: (enabled: boolean) => void) => () => void;
-	onThermalStateChanged?: (listener: (state: ThermalState) => void) => () => void;
+	onThermalStateChanged?: (listener: (sample: DesktopThermalSample) => void) => () => void;
 	writeClipboard?: (text: string) => Promise<void>;
 	chooseDirectory: () => Promise<string | null>;
 	status: () => Promise<DesktopStatus>;

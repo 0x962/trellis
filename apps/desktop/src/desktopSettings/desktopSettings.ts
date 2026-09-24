@@ -13,10 +13,16 @@ export const desktopActions = [
 ] as const;
 export type DesktopAction = (typeof desktopActions)[number];
 
-// NSProcessInfo publishes these five thermal states, and Electron returns them
-// from powerMonitor.getCurrentThermalState. Apple states that the system
-// reduces performance at "serious" and at "critical".
+// NSProcessInfo publishes four thermal states, and Electron adds `unknown`.
+// A nominal state can also mean that the operating system cannot read the
+// state, so this value is not a temperature measurement.
 export type ThermalState = "unknown" | "nominal" | "fair" | "serious" | "critical";
+
+export type DesktopThermalSample = {
+	state: ThermalState;
+	sampledAt: string;
+	hostOrigin: string;
+};
 
 export type DesktopStatus = {
 	packaged: boolean;

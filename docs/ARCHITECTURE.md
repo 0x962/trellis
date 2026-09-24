@@ -72,6 +72,15 @@ The explicit Quit Trellis Completely action stops owned processes and unregister
 The host stops new launches during shutdown. Open Trellis to start the helper.
 An unconfirmed process prevents a successful stop.
 
+The verified host release contains a macOS processor temperature helper.
+The service passes its absolute release path to the server.
+The server owns CPU load, memory pressure, and processor temperature for one host.
+Each pressure sample starts at most one helper process, with a two-second limit.
+The helper reads the highest `PMU tdie` event from the private `IOHIDEventSystemClient` interface.
+A missing helper, an unsupported sensor, or a failed process supplies no temperature value.
+The desktop supplies thermal state through the trusted preload bridge.
+The renderer combines that state only when the desktop host origin exactly matches the page origin.
+
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
 Its private Unix socket uses protocol 12. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.

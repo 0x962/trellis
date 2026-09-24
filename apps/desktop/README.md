@@ -53,6 +53,14 @@ bun run --cwd apps/desktop package
 
 The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The package records a SHA-256 hash for the complete dependency tree, binaries, and relative links. Before host launch, Trellis copies that release into the profile’s `releases` directory. Host processes use these retained files. Links cannot point outside the release.
 
+The build also compiles `processor-temperature` against CoreFoundation and IOKit. The staging step puts it in the verified host release. `host-service.ts` gives the managed server its absolute release path. A standalone server has no reader and reports processor temperature as unavailable.
+
+The server starts at most one reader process for each pressure sample. It stops a reader that exceeds two seconds. It measures the complete process time and reports that cost with a successful value. A crash, timeout, bad result, or missing sensor returns no temperature value.
+
+The helper uses the private `IOHIDEventSystemClient` interface on macOS. It matches primary usage page `0xff00` and usage `0x5`. It selects the highest sensor whose product label starts with `PMU tdie`. It never substitutes a battery, NAND, or `PMU tdev` reading.
+
+This private interface has no supported Apple header. The reader needs no privilege, but an operating system update can make it unavailable. On the M4 Max proof machine, 45 of 46 matched services returned temperature events. The `PMU tdie` readings were 70.229 °C to 73.018 °C. The native read took 64.362 ms, and the bounded shell process took 0.50 seconds.
+
 `package` creates an unpacked macOS application. `dist:mac` creates DMG and ZIP artifacts. Set the Electron Builder signing and notarization credentials for distribution. A local package can use `CSC_IDENTITY_AUTO_DISCOVERY=false` for an unsigned feasibility check.
 
 ## Local preview signature

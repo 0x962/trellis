@@ -11,6 +11,7 @@ import {
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
+	MachinePressureSection,
 	MergeConflictMarkSection,
 	PrGlyphSection,
 	PriorityIconSection,
@@ -35,6 +36,7 @@ export function DomainSections() {
 			<StatusIconSection />
 			<PriorityIconSection />
 			<AttentionDotSection />
+			<MachinePressureSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
 			<CheckConfettiSection />
