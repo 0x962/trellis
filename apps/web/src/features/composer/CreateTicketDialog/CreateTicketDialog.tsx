@@ -2,7 +2,7 @@ import type { Priority, Ticket, TicketSummary } from "@trellis/api";
 import { Button, ConfirmDialog, Dialog, Switch, useHotkey } from "@trellis/ui";
 import { useId, useRef, useState } from "react";
 import { failToast } from "../../../lib/failToast";
-import { AttachmentBox } from "../../attachments/AttachmentBox";
+import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
 import { DropTarget } from "../../attachments/DropTarget";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { UploadProgress } from "../../attachments/UploadProgress";
@@ -43,7 +43,7 @@ export function CreateTicketDialog() {
 	// The ticket the server already created. While it is set, the form
 	// fields stay disabled and only the attachments still need a request.
 	const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
-	const uploads = useUploads(undefined, false);
+	const uploadManager = useUploads(undefined, false);
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
 	const titleId = useId();
@@ -60,13 +60,13 @@ export function CreateTicketDialog() {
 	const dirty =
 		draft.title.trim() !== "" ||
 		(draft.description !== "" && draft.description !== defaults.template) ||
-		uploads.uploads.length > 0;
-	const needsUpload = uploads.uploads.some((upload) => upload.status !== "complete");
+		uploadManager.uploads.length > 0;
+	const needsUpload = uploadManager.uploads.some((upload) => upload.status !== "complete");
 
 	const finish = (stay: boolean) => {
 		clearDraft();
 		labelDraft.clear();
-		uploads.clear();
+		uploadManager.clear();
 		setCreatedTicket(null);
 		if (!stay) {
 			composerActions.close();
@@ -118,7 +118,7 @@ export function CreateTicketDialog() {
 				}
 				setCreatedTicket(ticket);
 			}
-			if (await uploads.uploadPending(ticket.identifier)) finish(stay);
+			if (await uploadManager.uploadPending(ticket.identifier)) finish(stay);
 		} finally {
 			inFlight.current = false;
 			setCreating(false);
@@ -149,7 +149,7 @@ export function CreateTicketDialog() {
 			initialFocus={titleRef}
 			className="bg-surface p-3"
 		>
-			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploads.addFiles}>
+			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploadManager.addFiles}>
 				<div className="flex min-h-0 flex-col gap-3">
 					<ComposerHeader closeDisabled={creating} onClose={requestClose} />
 					<fieldset disabled={createdTicket !== null} className="flex min-h-0 flex-col gap-2">
@@ -206,20 +206,21 @@ export function CreateTicketDialog() {
 							onLabel={labelDraft.toggle}
 						/>
 					</fieldset>
-					{uploads.uploads.length > 0 && (
+					{uploadManager.uploads.length > 0 && (
 						<div className="flex max-h-40 flex-col gap-2 overflow-y-auto">
-							{uploads.uploads.map((upload) => (
-								<UploadProgress key={upload.id} upload={upload} onDismiss={uploads.dismiss} />
+							{uploadManager.uploads.map((upload) => (
+								<UploadProgress key={upload.id} upload={upload} onDismiss={uploadManager.dismiss} />
 							))}
 						</div>
 					)}
 					{createdTicket !== null && (
 						<p role="status" className="text-xs text-fg-muted">
-							Trellis created {createdTicket.identifier}. The files still need to upload.
+							Trellis created {createdTicket.identifier}.{" "}
+							{needsUpload ? "The files still need to upload." : "Press Finish to close this form."}
 						</p>
 					)}
 					<div className="flex flex-wrap items-center gap-2">
-						<AttachmentBox uploads={uploads} />
+						<AddAttachmentButton uploads={uploadManager} />
 						<div className="ml-auto flex items-center gap-3">
 							<Switch
 								label="Keep open after create"
@@ -231,7 +232,6 @@ export function CreateTicketDialog() {
 								variant="primary"
 								size="md"
 								kbd="⌘↩"
-								className="min-w-35"
 								processing={creating}
 								onClick={() => void create(createMore)}
 							>
@@ -257,7 +257,7 @@ export function CreateTicketDialog() {
 					if (composerCloseAction({ createPending: inFlight.current, dirty: false }) === "block") return;
 					setAsking(false);
 					clearDraft();
-					uploads.clear();
+					uploadManager.clear();
 					composerActions.close();
 				}}
 				onCancel={() => {

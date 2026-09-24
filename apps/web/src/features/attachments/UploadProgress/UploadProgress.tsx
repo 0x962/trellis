@@ -13,8 +13,6 @@ export type UploadProgressProps = {
 
 // One row of the attachment list. A file that waits for a ticket stays
 // removable, a failed file shows its message, and a running file shows a bar.
-// Each action is a round icon button with a tooltip, the shape that every
-// other row of the app gives an action.
 export function UploadProgress({ upload, showName = true, onDismiss, onRetry }: UploadProgressProps) {
 	const name = upload.file.name;
 	if (upload.error !== null) {

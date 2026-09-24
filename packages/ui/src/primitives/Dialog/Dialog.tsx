@@ -11,13 +11,9 @@ export type DialogProps = {
 	// A row the caller draws in place of the heading, such as a project
 	// chip and a close button. The title then stays for assistive tech only.
 	header?: ReactNode;
-	// A bare dialog draws no heading block at all. The title stays in the
-	// DOM for assistive tech, and the caller draws every visible part. A
-	// bare dialog also draws no padding and no gap of its own, so the
-	// `className` of the caller sets both. `cx` joins the class names and
-	// removes no duplicate, so a padding class here and a padding class from
-	// the caller would both reach the element, and the order of the
-	// stylesheet would pick the winner.
+	// A bare dialog draws no heading block, no padding, and no gap. The title
+	// stays in the DOM for assistive tech, and the `className` of the caller
+	// sets the padding and the gap.
 	bare?: boolean;
 	description?: string;
 	children: ReactNode;

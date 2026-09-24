@@ -56,9 +56,8 @@ type ChipProps = {
 // One property chip: 28 px, the icon, then the value. The pickers pass
 // their own props to the element they clone, so it is a plain button.
 //
-// The chip stops at 160 px and shortens the value with an ellipsis. An epic
-// name runs to 40 characters and more, and without the limit that one chip
-// takes half of the row and pushes the chips after it to a second line.
+// An epic name runs to 40 characters and more. Without the width limit one
+// chip takes half of the row and pushes the chips after it to a second line.
 // `aria-label` carries the whole value, so a shortened chip loses no name.
 const chip = ({ label, icon, children, unset = false, invalid = false, disabled = false }: ChipProps) => (
 	<button

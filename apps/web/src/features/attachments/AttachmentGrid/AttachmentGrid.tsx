@@ -4,7 +4,7 @@ import { Dialog, EmptyState, InlineEdit, SectionHeader } from "@trellis/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { failToast } from "../../../lib/failToast";
-import { AttachmentBox } from "../AttachmentBox";
+import { AddAttachmentButton } from "../AddAttachmentButton";
 import { DropTarget } from "../DropTarget";
 import { type Uploads, useUploads } from "../hooks/useUploads";
 import { UploadProgress } from "../UploadProgress";
@@ -115,7 +115,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 				<SectionHeader
 					title="Attachments"
 					count={list.length > 0 ? list.length : undefined}
-					actions={<AttachmentBox uploads={uploadManager} />}
+					actions={<AddAttachmentButton uploads={uploadManager} />}
 				/>
 				{uploadManager.uploads.map((upload) => (
 					<UploadProgress
