@@ -5,6 +5,8 @@ import {
 	FolderSimple,
 	Info,
 	PencilSimple,
+	PushPin,
+	PushPinSlash,
 	Trash,
 	UserSwitch,
 } from "@phosphor-icons/react";
@@ -16,6 +18,7 @@ import { MoveSessionProjectDialog } from "../MoveSessionProjectDialog";
 import { SwitchAccountDialog } from "../SwitchAccountDialog";
 import { canArchiveSession, isSessionArchived } from "../sessionPane";
 import { useSessionArchive } from "../useSessionArchive";
+import { useSessionPin } from "../useSessionPin";
 
 export type SessionActionsMenuProps = {
 	session?: Session;
@@ -52,10 +55,20 @@ export function SessionActionsMenu({
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
 	const archive = useSessionArchive();
+	const pin = useSessionPin();
 	const name = session?.name ?? run!.name;
 	const archived = isSessionArchived(session);
+	const pinned = (run?.pinnedAt ?? session?.pinnedAt) !== null;
+	const pinTarget = { id: run?.id ?? session!.runId, name };
 	const items: MenuItem[] = [];
 	if (onSessionDetails) items.push({ label: "Session details", icon: <Info />, onSelect: onSessionDetails });
+	if (!archived)
+		items.push({
+			label: pinned ? "Unpin" : "Pin",
+			icon: pinned ? <PushPinSlash /> : <PushPin />,
+			disabled: deleteDisabled || pin.isPending,
+			onSelect: () => pin.mutate({ target: pinTarget, pinned: !pinned }),
+		});
 	if (run) {
 		items.push({
 			label: "Switch account",
@@ -83,6 +96,7 @@ export function SessionActionsMenu({
 				: {
 						label: "Archive",
 						icon: <Archive />,
+						disabled: pinned,
 						onSelect: () => archive.mutate({ session: session!, archived: true }),
 					},
 		);

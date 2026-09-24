@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type Session, type SessionStatus, sessionStatusLabels } from "@trellis/api";
-import { Avatar, cx } from "@trellis/ui";
+import { Avatar, cx, PinMark } from "@trellis/ui";
 import { lazy, memo, Suspense, useState } from "react";
 import { agentProfileOf } from "../../../agents/agentProfileOf";
 import { SessionName } from "../../../sessions/SessionName";
@@ -62,9 +62,14 @@ export const SessionRow = memo(function SessionRow({ session, status, active }: 
 						{avatar}
 					</span>
 					<span className="sr-only">{sessionStatusLabels[status]}: </span>
-					<span data-slot="label" title={`${session.name} · ${sessionStatusLabels[status]}`} className="sidebar-label">
+					<span
+						data-slot="label"
+						title={`${session.name} · ${sessionStatusLabels[status]}${session.pinnedAt === null ? "" : " · Pinned"}`}
+						className="sidebar-label"
+					>
 						{session.name}
 					</span>
+					{session.pinnedAt !== null && <PinMark tooltip={false} focusable={false} />}
 					<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
 				</Link>
 			</SessionName>

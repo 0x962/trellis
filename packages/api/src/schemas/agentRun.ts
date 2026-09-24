@@ -2,7 +2,7 @@ import { z } from "zod";
 import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
 import { StatusCategorySchema } from "./enums.ts";
-import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { booleanString, CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { SessionAttentionSchema } from "./sessionActivity.ts";
 
 export const AgentRunKindSchema = z.enum(["agent", "flow", "session"]);
@@ -24,6 +24,7 @@ export const AgentRunSchema = z.object({
 	ticketStatusCategory: StatusCategorySchema.nullable(),
 	ticketEpicId: UlidSchema.nullable().default(null),
 	ticketEpicProjectId: UlidSchema.nullable().default(null),
+	pinnedAt: IsoDateTimeSchema.nullable(),
 	assigned: z.boolean(),
 	state: z.enum(["starting", "interrupted", "running", "failed", "stopped", "exited"]),
 	processStatus: z.enum(["running", "exited", "unknown"]).nullable(),
@@ -105,11 +106,14 @@ export const AGENT_RUN_LIST_LIMIT = 200;
 export const AGENT_RUN_LIST_MAX_LIMIT = 1000;
 // `ids` and `ticket` are bounds of their own, so the window does not apply
 // to them. A caller that names a run by its ID reads that run at any age.
+// `includePinnedHistory` keeps every pinned ticket agent and session that
+// matches the filters. The limit then applies to the unpinned rows alone.
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),
 	ids: z.array(z.string().min(1)).max(200).optional(),
 	assigned: z.boolean().optional(),
+	includePinnedHistory: booleanString.default(false),
 	windowHours: z.coerce
 		.number()
 		.int()
@@ -119,6 +123,18 @@ export const AgentRunListInputSchema = z.strictObject({
 	limit: z.coerce.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
 });
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
+
+export const AgentRunPinInputSchema = z.strictObject({
+	id: UlidSchema,
+	pinned: booleanString,
+});
+export type AgentRunPinInput = z.infer<typeof AgentRunPinInputSchema>;
+
+export const AgentRunPinOutputSchema = z.object({
+	id: UlidSchema,
+	pinnedAt: IsoDateTimeSchema.nullable(),
+});
+export type AgentRunPinOutput = z.infer<typeof AgentRunPinOutputSchema>;
 
 export const AgentWorkspaceInputSchema = z.object({ runId: UlidSchema });
 export const AgentWorkspaceLineStatsInputSchema = z.strictObject({

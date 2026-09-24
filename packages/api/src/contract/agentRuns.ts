@@ -4,6 +4,8 @@ import { ModelIdSchema } from "../models/models.ts";
 import { AgentActivitySchema } from "../schemas/agentActivity.ts";
 import {
 	AgentRunListInputSchema,
+	AgentRunPinInputSchema,
+	AgentRunPinOutputSchema,
 	AgentRunRetryInputSchema,
 	AgentRunSchema,
 	AgentRunStartInputSchema,
@@ -212,6 +214,10 @@ export const agentRuns = {
 		.route({ method: "GET", path: "/agent-runs", summary: "List agents" })
 		.input(AgentRunListInputSchema)
 		.output(z.array(AgentRunSchema)),
+	setPinned: base
+		.route({ method: "PUT", path: "/agent-runs/{id}/pinned", summary: "Pin or unpin a saved session" })
+		.input(AgentRunPinInputSchema)
+		.output(AgentRunPinOutputSchema),
 	ticketMetrics: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "GET", path: "/tickets/{ticket}/metrics", summary: "Read ticket work metrics" })

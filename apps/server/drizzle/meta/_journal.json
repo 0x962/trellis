@@ -813,6 +813,13 @@
       "when": 1790286827009,
       "tag": "0118_lowly_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1790288633683,
+      "tag": "0119_rare_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }

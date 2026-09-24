@@ -1,6 +1,6 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight, useMediaQuery } from "@trellis/ui";
+import { Avatar, GroupHeader, groupHeaderHeight, PinMark, phoneGroupHeaderHeight, useMediaQuery } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
@@ -221,6 +221,7 @@ export function SessionGroup({
 								<span className="min-w-0 flex-1">
 									<span className="flex items-center gap-2">
 										<span className="min-w-0 flex-1 truncate font-medium tabular">{name}</span>
+										{run.pinnedAt !== null && <PinMark tooltip={false} focusable={false} />}
 										{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
 									</span>
 									<span className="flex items-center gap-2 text-xs text-fg-muted tabular">
@@ -261,12 +262,17 @@ export function SessionGroup({
 										{row}
 									</SessionName>
 								)}
-								{session !== undefined && !renaming && (
+								{!renaming && (
 									<span
 										data-slot="menu"
 										className="absolute top-1 right-1 flex size-6 pointer-coarse:top-0 pointer-coarse:size-11 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
 									>
-										<SessionActionsMenu session={session} size="xs" onRename={() => setRenamingId(session.id)} />
+										<SessionActionsMenu
+											session={session}
+											run={session === undefined ? run : undefined}
+											size="xs"
+											onRename={session === undefined ? undefined : () => setRenamingId(session.id)}
+										/>
 									</span>
 								)}
 							</li>

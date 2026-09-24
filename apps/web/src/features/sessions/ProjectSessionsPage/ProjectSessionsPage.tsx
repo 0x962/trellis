@@ -13,7 +13,7 @@ import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
 import { SessionList } from "./components/SessionList";
-import { sessionGroups } from "./sessionGroups";
+import { selectedSession, sessionGroups } from "./sessionGroups";
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
 	const { orpc, queryClient } = useApp();
@@ -25,6 +25,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
 	const [history, setHistory] = useState(false);
+	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
 	// The list asks for what it draws. Closed runs sit behind the history
@@ -33,7 +34,9 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	// holds a month of closed runs, which do not change, and the event stream
 	// still refreshes it when a run in it changes.
 	const runsOptions = orpc.agentRuns.list.queryOptions({
-		input: history ? { project: project.id, windowHours: 24 * 30, limit: 1000 } : { project: project.id },
+		input: history
+			? { project: project.id, includePinnedHistory: true, windowHours: 24 * 30, limit: 1000 }
+			: { project: project.id, includePinnedHistory: true },
 	});
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({
@@ -52,7 +55,10 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			run.kind !== "flow" && (run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id)),
 	);
 	const groups = sessionGroups(items, { search: "", history: false });
-	const selected = hash ? items.find((run) => run.id === hash) : (groups.sessions[0] ?? groups.ticketed[0] ?? items[0]);
+	const selected = selectedSession(items, [...groups.sessions, ...groups.ticketed], hash, heldSelectedId);
+	useEffect(() => {
+		if (!hash && selected?.id !== heldSelectedId) setHeldSelectedId(selected?.id);
+	}, [hash, heldSelectedId, selected?.id]);
 	const open = (id: string) => {
 		returnToConversation.current = true;
 		setListOpen(false);

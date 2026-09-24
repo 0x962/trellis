@@ -16,6 +16,7 @@ export type LaunchRun = StoredRun & { instruction: string };
 export const listColumns = sql`id, jsonb_build_object('attemptId', seen_attempt_id, 'sequence', seen_sequence) AS "seenAttention", account_id AS "accountId", name, runtime, harness, kind,
 	(SELECT target->>'switchedTo' FROM agent_start_requests WHERE run_id=agent_runs.id AND target->>'switchedTo' IS NOT NULL ORDER BY created_at DESC LIMIT 1) AS "switchedTo",
 	project_id AS "projectId", project_key AS "projectKey", ticket_id AS "ticketId", ticket_identifier AS "ticketIdentifier", ${iso(sql`closed_at`)} AS "closedAt",
+	${iso(sql`pinned_at`)} AS "pinnedAt",
 	(SELECT title FROM tickets WHERE tickets.id=agent_runs.ticket_id) AS "ticketTitle",
 	(SELECT statuses.category FROM tickets JOIN statuses ON statuses.id=tickets.status_id WHERE tickets.id=agent_runs.ticket_id) AS "ticketStatusCategory",
 	(SELECT epic_id FROM tickets WHERE tickets.id=agent_runs.ticket_id) AS "ticketEpicId",

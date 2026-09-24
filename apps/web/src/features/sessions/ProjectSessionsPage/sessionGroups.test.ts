@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { keptSessionRows, nextSessionRow, sessionGroups, sessionRowRange } from "./sessionGroups";
+import { keptSessionRows, nextSessionRow, selectedSession, sessionGroups, sessionRowRange } from "./sessionGroups";
 
 const run = (id: string, fields: Partial<Parameters<typeof sessionGroups>[0][number]> = {}) => ({
 	id,
@@ -10,6 +10,7 @@ const run = (id: string, fields: Partial<Parameters<typeof sessionGroups>[0][num
 	ticketTitle: "Restore the database",
 	assigned: true,
 	ticketStatusCategory: "started" as const,
+	pinnedAt: null,
 	createdAt: "2026-09-17T12:00:00.000Z",
 	...fields,
 });
@@ -27,6 +28,23 @@ test("history hides old assignments without hiding a selected deep link", () => 
 	expect(groups.ticketed.map((item) => item.id)).toEqual(["current", "old"]);
 	expect(groups.historyCount).toBe(2);
 	expect(sessionGroups(runs, { search: "", history: true }).ticketed).toHaveLength(3);
+});
+
+test("a pinned old session stays visible and leads its existing group", () => {
+	const runs = [
+		run("current", { createdAt: "2026-09-24T12:00:00.000Z" }),
+		run("pinned", { assigned: false, pinnedAt: "2026-09-24T11:00:00.000Z" }),
+		run("old", { assigned: false }),
+	];
+	const groups = sessionGroups(runs, { search: "", history: false });
+	expect(groups.ticketed.map((item) => item.id)).toEqual(["pinned", "current"]);
+	expect(groups.historyCount).toBe(1);
+});
+
+test("a refresh keeps the selected session when a pin changes the row order", () => {
+	const current = run("current");
+	const pinned = run("pinned", { pinnedAt: "2026-09-24T11:00:00.000Z" });
+	expect(selectedSession([current, pinned], [pinned, current], "", current.id)?.id).toBe("current");
 });
 
 test("search finds historical ticket titles and identifiers without a history toggle", () => {

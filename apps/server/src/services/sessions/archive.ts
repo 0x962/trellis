@@ -14,6 +14,8 @@ import { getSession, resolveSession } from "./queries.ts";
 const heldByProject = () =>
 	invalidInput("id", "A session of a project cannot be archived. Move the session out of the project first.");
 
+const pinnedSession = () => invalidInput("id", "Unpin the session before you archive it.");
+
 // Puts a session away, or brings it back. An archived session keeps its
 // directory, every file in it, and the conversation of its agent.
 //
@@ -39,6 +41,7 @@ export const prepareSetArchived = async (
 		const session = await ctx.newTx((tx) => getSession(tx, target.id));
 		if ((session.archivedAt !== null) === input.archived) return session;
 		if (input.archived && session.projectId !== null) throw heldByProject();
+		if (input.archived && session.pinnedAt !== null) throw pinnedSession();
 		if (input.archived) await stopRunProcess(ctx, await ctx.newTx((tx) => getRun(tx, session.runId)), deps);
 		const archivedAt = input.archived ? ctx.now() : null;
 		const changed = await ctx.newTx(async (tx) => {
@@ -49,11 +52,16 @@ export const prepareSetArchived = async (
 					? sql`UPDATE sessions SET archived_at = ${archivedAt}, updated_at = ${ctx.now()}
 						WHERE id = ${session.id}
 						AND (SELECT project_id FROM agent_runs WHERE agent_runs.id = sessions.run_id) IS NULL
+						AND (SELECT pinned_at FROM agent_runs WHERE agent_runs.id = sessions.run_id) IS NULL
 						RETURNING id`
 					: sql`UPDATE sessions SET archived_at = NULL, updated_at = ${ctx.now()}
 						WHERE id = ${session.id} RETURNING id`,
 			);
-			if (written.length === 0) throw heldByProject();
+			if (written.length === 0) {
+				const current = await getSession(tx, session.id);
+				if (current.pinnedAt !== null) throw pinnedSession();
+				throw heldByProject();
+			}
 			return getSession(tx, session.id);
 		});
 		ctx.log(input.archived ? "session archived" : "session unarchived", {
