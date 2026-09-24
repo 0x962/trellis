@@ -62,6 +62,13 @@ const labelClause = (labelIds: readonly string[] | undefined, noLabel: boolean |
 	return noLabel === true ? sql`(${holdsAny(labelIds)} OR ${holdsNothing})` : holdsAny(labelIds);
 };
 
+// The pull request filter answers one question: does the pull request still
+// miss a part of its review material? The glyph on the row answers another
+// one: did the agent ask for review? So a ticket that the filter `not-ready`
+// returns can draw the green glyph, because the agent handed the pull
+// request over and a check then failed. `notReadyForReviewSql` reads every
+// part, and `askedForReview` in `packages/api/src/reviewReady` reads the
+// flag of the agent alone.
 const prClause = (pr: PrFilter): SQL => {
 	switch (pr) {
 		case "any":

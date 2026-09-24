@@ -16,12 +16,16 @@ export type PrGlyphSize = "sm" | "md";
 export type PrGlyphProps = {
 	state: PullRequestState;
 	isQueued: boolean;
-	// True when the pull request holds every part the person needs before
-	// they review it. The caller computes it with `readyForReview`.
-	readyForReview: boolean;
-	// Why it is not ready, in plain words, such as "2 checks pending". The
-	// tooltip and the accessible name say it. A ready pull request has none.
-	reason?: string | null;
+	// True when the agent asked the person to review the pull request. The
+	// agent sets that flag with `trellis diff set-state <diff> ready`. A
+	// failed check, a pending check, an open finding and a conflict do not
+	// clear it.
+	askedForReview: boolean;
+	// The parts of the review material that the pull request still misses,
+	// such as "no evidence document". The tooltip prints it under its own
+	// words, and the accessible name leaves it out, so the name states the
+	// state alone.
+	description?: string | null;
 	size?: PrGlyphSize;
 	tooltip?: boolean;
 	focusable?: boolean;
@@ -48,10 +52,10 @@ const looks = {
 
 type PrGlyphLook = keyof typeof looks;
 
-const prGlyphLook = (state: PullRequestState, isQueued: boolean, readyForReview: boolean): PrGlyphLook => {
+const prGlyphLook = (state: PullRequestState, isQueued: boolean, askedForReview: boolean): PrGlyphLook => {
 	if (state !== "open") return state;
 	if (isQueued) return "queued";
-	return readyForReview ? "open" : "not-ready";
+	return askedForReview ? "open" : "not-ready";
 };
 
 // A table row is 32 px tall and holds the small glyph. A pull request row has
@@ -60,22 +64,22 @@ const spanSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-5" };
 const iconSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-4" };
 
 // The glyph shows the state, never the check result. A failed check leaves an
-// open pull request open. The caller draws the check result next to the glyph.
+// open pull request open, and it leaves a pull request the agent handed over
+// ready for review. The caller draws the check result next to the glyph.
 // The accessible name and the tooltip use the same words, so color is never
 // the only signal.
 export function PrGlyph({
 	state,
 	isQueued,
-	readyForReview,
-	reason = null,
+	askedForReview,
+	description = null,
 	size = "md",
 	tooltip = true,
 	focusable = true,
 	decorative = false,
 }: PrGlyphProps) {
-	const key = prGlyphLook(state, isQueued, readyForReview);
-	const { tone, Icon } = looks[key];
-	const label = key === "not-ready" && reason !== null ? `${looks[key].label}: ${reason}` : looks[key].label;
+	const key = prGlyphLook(state, isQueued, askedForReview);
+	const { label, tone, Icon } = looks[key];
 	if (decorative) {
 		return (
 			<span
@@ -98,5 +102,11 @@ export function PrGlyph({
 			<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
 		</span>
 	);
-	return tooltip ? <Tooltip content={label}>{glyph}</Tooltip> : glyph;
+	return tooltip ? (
+		<Tooltip content={label} description={description ?? undefined}>
+			{glyph}
+		</Tooltip>
+	) : (
+		glyph
+	);
 }

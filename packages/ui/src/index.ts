@@ -108,6 +108,7 @@ export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
+export { ChoiceBoxes, type ChoiceBoxesOption, type ChoiceBoxesProps } from "./primitives/ChoiceBoxes";
 export { ChoiceGroup, type ChoiceGroupOption, type ChoiceGroupProps } from "./primitives/ChoiceGroup";
 export { CodeText, type CodeTextProps } from "./primitives/CodeText";
 export {
@@ -153,6 +154,7 @@ export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
 export { dotted } from "./utils/dotted";
+export { focusInView } from "./utils/focusInView";
 export { formatClock } from "./utils/formatClock";
 export { isTextEntry } from "./utils/isTextEntry";
 export { readRowMotion } from "./utils/readRowMotion";

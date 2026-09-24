@@ -2,9 +2,9 @@ import {
 	type CiState,
 	type PrState,
 	type ReviewState,
-	readyForReview,
 	type StoredActorKind,
 	type TicketSummary,
+	ticketReviewGaps,
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
@@ -201,10 +201,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => {
 			row.pr_state === null
 				? null
 				: {
-						// A ticket can link several pull requests. This row
-						// carries the gaps of the first linked pull request
-						// that is not ready for review.
-						reviewGaps: prRows.find((pullRequest) => !readyForReview(pullRequest))?.reviewGaps ?? [],
+						reviewGaps: ticketReviewGaps(prRows),
 						state: row.pr_state,
 						isDraft: row.pr_is_draft as boolean,
 						isQueued: row.pr_is_queued as boolean,

@@ -2,6 +2,7 @@ import type { ErrorMap } from "@orpc/contract";
 import { z } from "zod";
 import { actorHeaderGrammar } from "./refs.ts";
 import { GhReasonSchema, RunnerReasonSchema } from "./schemas/enums.ts";
+import { PageSummarySchema } from "./schemas/page.ts";
 import { CountSchema } from "./schemas/primitives.ts";
 import { StatusSummarySchema } from "./schemas/status.ts";
 import { TicketIdentifierSchema, TicketSchema } from "./schemas/ticket.ts";
@@ -169,6 +170,11 @@ export const errors = {
 		status: 409,
 		message: "An archived session runs no agent. Bring the session back first.",
 		data: z.undefined(),
+	},
+	PAGE_VERSION_CONFLICT: {
+		status: 412,
+		message: "The page changed since the revision you sent.",
+		data: z.object({ current: PageSummarySchema }),
 	},
 	INVALID_ANCHOR: {
 		status: 409,

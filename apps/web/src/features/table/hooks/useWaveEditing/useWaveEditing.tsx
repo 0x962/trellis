@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { TicketSummary, WaveSummary } from "@trellis/api";
-import { ConfirmDialog, type InlineEditFocus } from "@trellis/ui";
+import { ConfirmDialog, focusInView, type InlineEditFocus } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { failToast } from "../../../../lib/failToast";
@@ -58,8 +58,12 @@ const failTitle = (write: Write) => {
 // The collapse button of a wave header takes the focus back after a move.
 // The header is a line of the virtual list, and a moved line loses the
 // focus when React moves its DOM node.
-const focusHeader = (waveId: string) =>
-	document.querySelector<HTMLElement>(`[data-group="${waveId}"] button[aria-expanded]`)?.focus();
+// A wave that a move sends outside the view comes back into view, and a
+// header that stands at the top of the list keeps the list where it is.
+const focusHeader = (waveId: string) => {
+	const button = document.querySelector<HTMLElement>(`[data-group="${waveId}"] button[aria-expanded]`);
+	if (button !== null) focusInView(button);
+};
 
 // The wave writes of the epic page. Every write refetches the `epics`
 // queries, so the wave groups of the table follow.

@@ -1,1 +1,1 @@
-export { elbowRadius, TreeBranch, type TreeDepth, TreeRule, TreeStem, treeContentPad } from "./TreeLines";
+export { elbowRadius, TreeBranch, type TreeDepth, TreeStem, treeContentPad } from "./TreeLines";

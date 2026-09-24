@@ -14,6 +14,7 @@ export function ModelPicker({
 	disabled = false,
 	className,
 	compact = false,
+	id,
 }: {
 	harness: Exclude<HarnessPreset, "custom">;
 	value?: string;
@@ -21,6 +22,9 @@ export function ModelPicker({
 	disabled?: boolean;
 	className?: string;
 	compact?: boolean;
+	// The id of the trigger. A `Field` passes it, so its `<label htmlFor>`
+	// reaches the picker.
+	id?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
@@ -28,14 +32,15 @@ export function ModelPicker({
 	const selectedId = value ?? defaultModel;
 	const selected = MODEL_CATALOG.find((model) => model.id === selectedId)!;
 	const models = modelsForHarness(harness);
-	const pick = (id: string) => {
+	const pick = (picked: string) => {
 		setOpen(false);
-		onValueChange(id === DEFAULT_MODEL ? undefined : id);
+		onValueChange(picked === DEFAULT_MODEL ? undefined : picked);
 	};
 	return (
 		<Popover
 			trigger={
 				<PickerButton
+					id={id}
 					label="Model"
 					size={compact ? "sm" : "md"}
 					title={value === undefined ? `Default · ${selected.name}` : selected.name}

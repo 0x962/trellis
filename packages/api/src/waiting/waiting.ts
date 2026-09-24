@@ -21,6 +21,10 @@ const waitsForGithub = (pullRequest: TicketPr): boolean =>
 	pullRequest.reviewGaps.length > 0 &&
 	pullRequest.reviewGaps.every((gap) => gap.kind === "checks-pending");
 
+// The glyph of a pull request answers "did the agent hand it over", and it
+// reads `askedForReview`. This answers "who acts next", and it reads every
+// part. One row can therefore print a green glyph beside the word `agent`: the
+// agent asked for review, and a check then failed, so that agent acts next.
 const waitsForAgent = (pullRequest: TicketPr): boolean =>
 	pullRequest.state === "open" && !readyForReview(pullRequest) && !waitsForGithub(pullRequest);
 

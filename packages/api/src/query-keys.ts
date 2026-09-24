@@ -218,6 +218,18 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "epics.changed":
 				enqueue([family("epics"), family("tickets"), family("projects", "list")]);
 				return;
+			case "pages.changed":
+				enqueue([family("pages"), family("projects", "list"), family("search")]);
+				return;
+			case "page-comments.changed":
+				enqueue([family("pages"), family("pageComments"), family("needsYou"), family("projects", "list")]);
+				return;
+			case "page-watches.changed":
+				enqueue([family("pages"), family("pageWatches")]);
+				return;
+			case "page-pins.changed":
+				enqueue([family("pages"), family("pagePins")]);
+				return;
 			case "resource-comments.changed":
 				enqueue([family("resourceComments")]);
 				return;

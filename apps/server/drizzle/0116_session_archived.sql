@@ -1,1 +1,0 @@
-ALTER TABLE "sessions" ADD COLUMN "archived_at" timestamp (3) with time zone;

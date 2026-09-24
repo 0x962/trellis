@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { type ChangedFile, TicketSummarySchema } from "@trellis/api";
+import { askedForReview, type ChangedFile, TicketSummarySchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { Db } from "./client.ts";
@@ -243,4 +243,41 @@ test("the row verdict is the newest verdict of the person", async () => {
 	const afterPush = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
 	expect(afterPush.prRows[0]?.verdict).toBe("approved");
 	await db.execute(sql`UPDATE pull_requests SET head_sha = 'deleted-test-head' WHERE id = ${row!.id}`);
+});
+
+// The one badge of a ticket row draws the review flag of every pull request
+// the ticket links. A check that starts or finishes must not move it.
+test("the query keeps the not-asked gap of the ticket while one pull request waits for its agent", async () => {
+	const twoPullTicket = ulid();
+	await db.execute(sql`INSERT INTO tickets (
+		id, project_id, number, title, status_id, position, created_at, updated_at
+	) VALUES (${twoPullTicket}, ${root}, 5, 'Two pull requests', ${status}, 4, ${at}, ${at})`);
+	const handedOver = await insertPull({
+		number: 11,
+		additions: 10,
+		deletions: 1,
+		checks: [check("unit", "CI", "fail")],
+		files: [{ path: "apps/server/src/log.ts", change: "change", additions: 5, deletions: 1 }],
+		ticketId: twoPullTicket,
+	});
+	const heldBack = await insertPull({
+		number: 12,
+		additions: 4,
+		deletions: 0,
+		checks: [check("unit", "CI", "pass")],
+		files: [{ path: "packages/ui/src/Button.tsx", change: "change", additions: 4, deletions: 0 }],
+		ticketId: twoPullTicket,
+	});
+	await db.execute(sql`UPDATE pull_requests SET local_state = 'not-ready' WHERE id = ${heldBack}`);
+
+	const withTheFailedCheck = await db.transaction((tx) => ticketSummary(tx, twoPullTicket));
+	expect(withTheFailedCheck.pr).not.toBeNull();
+	expect(askedForReview(withTheFailedCheck.pr!)).toBe(false);
+
+	await db.execute(sql`UPDATE pull_requests
+		SET checks = ${JSON.stringify([check("unit", "CI", "pass")])}::jsonb, ci_state = 'pass'
+		WHERE id = ${handedOver}`);
+
+	const afterTheCheckPasses = await db.transaction((tx) => ticketSummary(tx, twoPullTicket));
+	expect(askedForReview(afterTheCheckPasses.pr!)).toBe(false);
 });

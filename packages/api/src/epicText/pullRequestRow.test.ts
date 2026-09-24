@@ -46,7 +46,7 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr => {
 describe("pullRequestRowLine", () => {
 	test("prints the state, the size, the checks and what the pull request waits for", () => {
 		expect(pullRequestRowLine(pullRequest())).toBe(
-			"#57080  not ready · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · agent",
+			"#57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · agent",
 		);
 	});
 
@@ -76,7 +76,7 @@ describe("pullRequestRowLine", () => {
 
 	test("waits for GitHub while a check is pending", () => {
 		expect(pullRequestRowLine(pullRequest({ fail: 0 }))).toBe(
-			"#57080  not ready · +311 −12 · 6 files · 6 pending · 47 passed · github",
+			"#57080  open · +311 −12 · 6 files · 6 pending · 47 passed · github",
 		);
 	});
 
@@ -89,7 +89,20 @@ describe("pullRequestRowLine", () => {
 			],
 		});
 		expect(pullRequestRowLine(pr)).toBe(
-			"#57080  not ready · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 1 comment · flow: passed · agent",
+			"#57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 1 comment · flow: passed · agent",
+		);
+	});
+
+	// The web row draws the same flag as its glyph, so the two surfaces state
+	// one fact about the pull request.
+	test("prints not ready only while the agent has not asked for review", () => {
+		const gaps = (kind: "checks-failed" | "findings" | "conflict") => [{ kind, count: 1 }] as TicketPr["reviewGaps"];
+
+		expect(pullRequestRowLine(pullRequest({ reviewGaps: gaps("checks-failed") }))).toStartWith("#57080  open ·");
+		expect(pullRequestRowLine(pullRequest({ reviewGaps: gaps("findings") }))).toStartWith("#57080  open ·");
+		expect(pullRequestRowLine(pullRequest({ reviewGaps: gaps("conflict") }))).toStartWith("#57080  open ·");
+		expect(pullRequestRowLine(pullRequest({ reviewGaps: [{ kind: "not-asked", count: 1 }] }))).toStartWith(
+			"#57080  not ready ·",
 		);
 	});
 

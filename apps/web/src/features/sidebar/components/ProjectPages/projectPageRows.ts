@@ -1,7 +1,6 @@
 import type { ProjectSummary } from "@trellis/api";
 import { formatCount } from "../../../../lib/format";
 import { projectRefOfPathname } from "../../../../lib/projectUrl";
-import type { ProjectSettingsSectionId } from "../../../project-settings";
 
 export type ProjectPageRow = {
 	label: string;
@@ -16,9 +15,6 @@ export type ProjectPageRow = {
 	// How many active agents this row stands for. Only the Sessions row holds a
 	// count; every other row holds 0.
 	activeAgentCount: number;
-	// The section of the project settings sheet the row opens, or null when
-	// the row opens a page.
-	settingsSection: ProjectSettingsSectionId | null;
 };
 
 export type ProjectPageRows = {
@@ -36,8 +32,7 @@ export const hiddenAgentCount = (more: ProjectPageRow[]) =>
 
 // The sidebar rows of one project, split into the rows it always shows and
 // the rows the More row holds. `pathname` is the page on screen, and one row
-// at most is active. The Settings row and the Notes row open a sheet over
-// the page on screen, so neither one is ever the active row.
+// at most is active.
 export const projectPageRows = (
 	project: ProjectSummary,
 	pathname: string,
@@ -57,7 +52,6 @@ export const projectPageRows = (
 				// The count of open epics of this project alone.
 				trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
 				activeAgentCount: 0,
-				settingsSection: null,
 			},
 			{
 				label: "Sessions",
@@ -65,7 +59,6 @@ export const projectPageRows = (
 				active: current && sessions,
 				trailing: null,
 				activeAgentCount,
-				settingsSection: null,
 			},
 		],
 		more: [
@@ -75,7 +68,6 @@ export const projectPageRows = (
 				active: current && !diffs && !epics && !sessions,
 				trailing: null,
 				activeAgentCount: 0,
-				settingsSection: null,
 			},
 			{
 				label: "Diffs",
@@ -83,23 +75,6 @@ export const projectPageRows = (
 				active: current && diffs,
 				trailing: null,
 				activeAgentCount: 0,
-				settingsSection: null,
-			},
-			{
-				label: "Settings",
-				suffix: "/settings",
-				active: false,
-				trailing: null,
-				activeAgentCount: 0,
-				settingsSection: "",
-			},
-			{
-				label: "Notes",
-				suffix: "/notes",
-				active: false,
-				trailing: null,
-				activeAgentCount: 0,
-				settingsSection: "notes",
 			},
 		],
 	};

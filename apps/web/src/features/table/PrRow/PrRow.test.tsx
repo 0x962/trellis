@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { TicketPr } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prRowHeight } from "../rowHeights";
 import { elbowRadius } from "../TreeLines";
@@ -100,10 +101,37 @@ describe("PrRow", () => {
 		expect(merged).toContain("Pull request merged");
 	});
 
-	test("an open pull request that is not ready draws the grey glyph and names the reason", () => {
+	test("only the review flag turns the glyph grey, never a check or a finding", () => {
+		const row = (reviewGaps: TicketPr["reviewGaps"]) =>
+			renderToStaticMarkup(<PrRow pr={prOf({ reviewGaps })} top={0} last={false} hasChildLines={false} />);
+
+		expect(row([{ kind: "checks-failed", count: 1 }])).toContain('data-pr-glyph="open"');
+		expect(row([{ kind: "checks-pending", count: 2 }])).toContain('data-pr-glyph="open"');
+		expect(row([{ kind: "findings", count: 3 }])).toContain('data-pr-glyph="open"');
+		expect(row([{ kind: "conflict", count: 1 }])).toContain('data-pr-glyph="open"');
+		expect(row(notAsked)).toContain('data-pr-glyph="not-ready"');
+	});
+
+	test("an open pull request that the agent handed over reads ready while a check fails", () => {
 		const html = renderToStaticMarkup(
 			<PrRow
-				pr={prOf({ reviewGaps: [{ kind: "checks-pending", count: 2 }] })}
+				pr={prOf({ reviewGaps: [{ kind: "checks-failed", count: 1 }], fail: 1, pass: 11 })}
+				top={0}
+				last={false}
+				hasChildLines={false}
+			/>,
+		);
+
+		expect(html).toContain("Ready for review");
+		expect(html).not.toContain("Not ready for review");
+		// The ribbon still counts the failed check beside the glyph.
+		expect(html).toContain('aria-label="12 checks: 1 failed, 11 passed"');
+	});
+
+	test("an open pull request that the agent holds back reads not ready while every check passes", () => {
+		const html = renderToStaticMarkup(
+			<PrRow
+				pr={prOf({ reviewGaps: notAsked, fail: 0, pending: 0, pass: 12 })}
 				top={0}
 				last={false}
 				hasChildLines={false}
@@ -111,7 +139,32 @@ describe("PrRow", () => {
 		);
 
 		expect(html).toContain('data-pr-glyph="not-ready"');
-		expect(html).toContain("Not ready for review: 2 checks pending");
+		expect(html).toContain("Not ready for review");
+		expect(html).toContain('aria-label="12 checks: 12 passed"');
+	});
+
+	test("keeps the open glyph when a push took the explanation and the evidence away", () => {
+		const html = renderToStaticMarkup(
+			<PrRow
+				pr={prOf({
+					reviewGaps: [
+						{ kind: "explanation", count: 1 },
+						{ kind: "evidence", count: 1 },
+					],
+				})}
+				top={0}
+				last={false}
+				hasChildLines={false}
+			/>,
+		);
+
+		// A push takes the explanation and the evidence of the older commit
+		// away and leaves the review flag at ready. The glyph stays open, and
+		// its accessible name states the state alone. The tooltip names both
+		// missing parts, and `missingPartsText` in `@trellis/api` writes those
+		// words; a closed tooltip renders no markup here.
+		expect(html).toContain('data-pr-glyph="open"');
+		expect(html).toContain('aria-label="Ready for review"');
 	});
 
 	test("takes the height and offset that the virtual list reserves", () => {

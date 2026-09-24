@@ -1,11 +1,5 @@
 import { Warning } from "@phosphor-icons/react";
-import {
-	askedForReview,
-	firstReviewGapText,
-	type LinkedPullRequest,
-	readyForReview,
-	type TicketSummary,
-} from "@trellis/api";
+import { askedForReview, type LinkedPullRequest, missingPartsText, type TicketSummary } from "@trellis/api";
 import { cx, GithubMark, IconButton, PrGlyph, ReviewStateIcon, Tooltip } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { openLink } from "../../../lib/openLink";
@@ -28,8 +22,8 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			<PrGlyph
 				state={pr.state}
 				isQueued={pr.isQueued}
-				readyForReview={readyForReview(pr)}
-				reason={firstReviewGapText(pr)}
+				askedForReview={askedForReview(pr)}
+				description={missingPartsText(pr)}
 			/>
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">

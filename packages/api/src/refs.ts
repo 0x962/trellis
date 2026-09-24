@@ -23,6 +23,10 @@ export type WaveRef =
 	| { kind: "ulid"; id: string }
 	| { kind: "identifier"; key: string; epicSlug: string; slug: string };
 
+// A page ref joins the project key, the fixed `pages` segment, and the
+// immutable page slug with slashes.
+export type PageRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slug: string };
+
 export type StatusRef =
 	| { kind: "ulid"; id: string }
 	| { kind: "category"; category: StatusCategory }
@@ -133,6 +137,23 @@ const waveRef = defineRef(
 	formatWaveRef,
 );
 
+const pageIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})\/pages\/([A-Z0-9]+(?:-[A-Z0-9]+)*)$/i;
+
+const parsePageRef = (value: string): PageRef | undefined => {
+	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
+	const match = pageIdentifierPattern.exec(value);
+	if (match === null) return undefined;
+	return { kind: "identifier", key: match[1]!.toUpperCase(), slug: match[2]!.toLowerCase() };
+};
+
+const formatPageRef = (ref: PageRef) => (ref.kind === "ulid" ? ref.id : `${ref.key}/pages/${ref.slug}`);
+
+const pageRef = defineRef(
+	"Expected a page ref: a ULID or KEY/pages/slug, for example OP/pages/release-report.",
+	parsePageRef,
+	formatPageRef,
+);
+
 // A status name is 1 to 40 characters. The colon is reserved for the
 // `category:` form, so a name never contains one.
 const parseStatusRef = (value: string): StatusRef | undefined => {
@@ -222,6 +243,7 @@ export const TicketRefSchema = ticketRef.schema;
 export const ProjectRefSchema = projectRef.schema;
 export const EpicRefSchema = epicRef.schema;
 export const WaveRefSchema = waveRef.schema;
+export const PageRefSchema = pageRef.schema;
 export const StatusRefSchema = statusRef.schema;
 export const LabelRefSchema = labelRef.schema;
 export const LabelGroupRefSchema = labelGroupRef.schema;
@@ -233,6 +255,7 @@ export const TicketRefStringSchema = ticketRef.canonical;
 export const ProjectRefStringSchema = projectRef.canonical;
 export const EpicRefStringSchema = epicRef.canonical;
 export const WaveRefStringSchema = waveRef.canonical;
+export const PageRefStringSchema = pageRef.canonical;
 export const StatusRefStringSchema = statusRef.canonical;
 export const LabelRefStringSchema = labelRef.canonical;
 export const LabelGroupRefStringSchema = labelGroupRef.canonical;
