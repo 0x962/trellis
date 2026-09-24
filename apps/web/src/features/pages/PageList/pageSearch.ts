@@ -32,16 +32,16 @@ const booleanValue = (raw: unknown) => {
 export const parsePageSearch = (raw: Record<string, unknown>): PageSearch => {
 	const qValue = value(raw.q)?.trim();
 	const q = qValue === undefined || qValue === "" ? undefined : parsed(qValue, PageListInputSchema.shape.q);
+	const author = parsed(raw.author, ActorHeaderStringSchema);
+	const watcher = parsed(raw.watcher, UlidSchema);
+	const comment = parsed(raw.comment, PageCommentFilterSchema);
+	const pin = booleanValue(raw.pin);
 	return {
 		...(q === undefined ? {} : { q }),
-		...(parsed(raw.author, ActorHeaderStringSchema) === undefined
-			? {}
-			: { author: parsed(raw.author, ActorHeaderStringSchema)! }),
-		...(parsed(raw.watcher, UlidSchema) === undefined ? {} : { watcher: parsed(raw.watcher, UlidSchema)! }),
-		...(parsed(raw.comment, PageCommentFilterSchema) === undefined
-			? {}
-			: { comment: parsed(raw.comment, PageCommentFilterSchema)! }),
-		...(booleanValue(raw.pin) === undefined ? {} : { pin: booleanValue(raw.pin)! }),
+		...(author === undefined ? {} : { author }),
+		...(watcher === undefined ? {} : { watcher }),
+		...(comment === undefined ? {} : { comment }),
+		...(pin === undefined ? {} : { pin }),
 	};
 };
 

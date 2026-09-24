@@ -164,7 +164,7 @@ function ProjectPage() {
 
 	if (view === "pages" || view === "page") {
 		return (
-			<Suspense fallback={<PageListSkeleton />}>
+			<Suspense fallback={<PageListPending />}>
 				<PageList
 					key={project.id}
 					project={project}
@@ -277,19 +277,21 @@ function ProjectPage() {
 function ProjectPending() {
 	const params = useParams({ strict: false });
 	const { view } = parseProjectSplat(params._splat ?? "");
-	if (view === "pages" || view === "page") {
-		return (
-			<>
-				<Topbar>
-					<PageTitle title="Pages" />
-				</Topbar>
-				<div className="page-card flex flex-1 flex-col overflow-hidden">
-					<PageListSkeleton />
-				</div>
-			</>
-		);
-	}
+	if (view === "pages" || view === "page") return <PageListPending />;
 	return <ListPending view={view === "board" ? "board" : "table"} />;
+}
+
+function PageListPending() {
+	return (
+		<>
+			<Topbar>
+				<PageTitle title="Pages" />
+			</Topbar>
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				<PageListSkeleton />
+			</div>
+		</>
+	);
 }
 
 // A splat that names no project.
