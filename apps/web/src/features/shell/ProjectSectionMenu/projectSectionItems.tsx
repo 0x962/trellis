@@ -1,0 +1,38 @@
+import { Chats, Check, ListBullets } from "@phosphor-icons/react";
+import type { MenuItem } from "@trellis/ui";
+import type { ReactElement } from "react";
+import { projectHref } from "../../../lib/projectUrl";
+
+export type ProjectSectionId = "epics" | "sessions";
+
+export type ProjectSection = {
+	id: ProjectSectionId;
+	label: string;
+	icon: ReactElement;
+	// The page of this section under one project key, such as
+	// `/p/TRL/epics`.
+	href: (projectKey: string) => string;
+};
+
+// The sections of one project that the header menu moves between, in the
+// order of the sidebar rows. A section added here joins the menu of every
+// page that draws `ProjectSectionMenu`.
+export const projectSections: readonly ProjectSection[] = [
+	{ id: "epics", label: "Epics", icon: <ListBullets />, href: (projectKey) => projectHref(projectKey, "epics") },
+	{ id: "sessions", label: "Sessions", icon: <Chats />, href: (projectKey) => `/sessions/project/${projectKey}` },
+];
+
+export const projectSectionLabel = (id: ProjectSectionId): string =>
+	projectSections.find((section) => section.id === id)!.label;
+
+// The rows of the header menu. The row of the section on screen carries a
+// check and runs nothing, because that page is already open.
+export const projectSectionItems = (current: ProjectSectionId, onPick: (section: ProjectSection) => void): MenuItem[] =>
+	projectSections.map((section) => ({
+		id: section.id,
+		label: section.label,
+		icon: section.id === current ? <Check /> : section.icon,
+		onSelect: () => {
+			if (section.id !== current) onPick(section);
+		},
+	}));
