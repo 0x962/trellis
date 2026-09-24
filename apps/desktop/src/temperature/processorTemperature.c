@@ -9,18 +9,19 @@
 
 typedef struct __IOHIDEvent *IOHIDEventRef;
 
-// The macOS SDK declares the client types and matching keys, but not these
-// private functions. These signatures follow Netdata and Stats and remain an
-// unsupported macOS ABI.
+// Netdata declares SetMatching as void, while Stats declares it as int. This
+// helper uses Netdata's form and checks the service array after the call. Both
+// sources give CopyEvent 64-bit type and time fields with 32-bit options.
+// These private declarations remain an unsupported macOS ABI.
 extern IOHIDEventSystemClientRef IOHIDEventSystemClientCreate(CFAllocatorRef allocator);
 extern void IOHIDEventSystemClientSetMatching(
 	IOHIDEventSystemClientRef client, CFDictionaryRef matching);
 extern IOHIDEventRef IOHIDServiceClientCopyEvent(IOHIDServiceClientRef service, int64_t type,
 	int32_t options, int64_t timestamp);
-extern double IOHIDEventGetFloatValue(IOHIDEventRef event, uint32_t field);
+extern double IOHIDEventGetFloatValue(IOHIDEventRef event, int32_t field);
 
 static const int64_t temperatureEvent = 15;
-static const uint32_t temperatureLevel = 15 << 16;
+static const int32_t temperatureLevel = 15 << 16;
 static const char processorSensorPrefix[] = "PMU tdie";
 
 static CFDictionaryRef temperatureMatching(void) {

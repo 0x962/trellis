@@ -59,6 +59,8 @@ The web app requests one pressure sample every five seconds. The server starts a
 
 The helper uses the private `IOHIDEventSystemClient` interface on macOS. It matches primary usage page `0xff00` and usage `0x5`. It selects the highest sensor whose product label starts with `PMU tdie`. It never substitutes a battery, NAND, or `PMU tdev` reading.
 
+The private declarations follow [Netdata's `macos_iohid.c`](https://github.com/netdata/netdata/blob/a80f1c6ca5b70306ed6be8d570d548562ee6f100/src/collectors/macos.plugin/macos_iohid.c) and [Stats's `bridge.h`](https://github.com/exelban/stats/blob/913fa4e6177a3fb228818eb567995c344d116e11/Modules/Sensors/bridge.h). Both sources give `CopyEvent` a service, 64-bit type, 32-bit options, and 64-bit timestamp, in that order. Both give `GetFloatValue` an event and a 32-bit field. They disagree on the `SetMatching` return type. The helper uses Netdata's void declaration and validates the call through `CopyServices`.
+
 This private interface has no supported Apple header. The reader needs no privilege, but an operating system update can make it unavailable. On the M4 Max proof machine, 45 of 46 matched services returned temperature events. The `PMU tdie` readings were 70.229 °C to 73.018 °C. The native read took 64.362 ms, and the bounded shell process took 0.50 seconds.
 
 `package` creates an unpacked macOS application. `dist:mac` creates DMG and ZIP artifacts. Set the Electron Builder signing and notarization credentials for distribution. A local package can use `CSC_IDENTITY_AUTO_DISCOVERY=false` for an unsigned feasibility check.
