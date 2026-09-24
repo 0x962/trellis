@@ -17,9 +17,7 @@ afterAll(async () => {
 });
 
 test("the capture sits under the run and carries the name of the attempt", () => {
-	expect(attemptCapturePath(home, runId, terminalId)).toBe(
-		join(home, "agents", runId, `output-${terminalId}.txt`),
-	);
+	expect(attemptCapturePath(home, runId, terminalId)).toBe(join(home, "agents", runId, `output-${terminalId}.txt`));
 });
 
 test("an attempt with no capture is not a confirmed stop", async () => {

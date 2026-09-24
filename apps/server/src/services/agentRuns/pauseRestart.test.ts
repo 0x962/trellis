@@ -116,7 +116,11 @@ test("a start refuses an attempt that no capture and no runtime record vouch for
 	const { runId, sessionRowId } = await seed({ terminalId: crypto.randomUUID(), sessionId: providerSessionId });
 
 	await expect(
-		prepareStart(ctx, { id: sessionRowId }, { process: forgotten, start: async () => ({ id: runId }), preset: async () => "claude" }),
+		prepareStart(
+			ctx,
+			{ id: sessionRowId },
+			{ process: forgotten, start: async () => ({ id: runId }), preset: async () => "claude" },
+		),
 	).rejects.toThrow("The prior launch is not confirmed");
 });
 

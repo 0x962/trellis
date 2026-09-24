@@ -95,9 +95,7 @@ export function SessionBarActions({
 				onRename={onRename}
 				onSessionDetails={hasWorkspace ? () => setDetailsOpen(true) : undefined}
 			/>
-			{hasWorkspace && (
-				<SessionDetails run={run} summary={summary} open={detailsOpen} onOpenChange={setDetailsOpen} />
-			)}
+			{hasWorkspace && <SessionDetails run={run} summary={summary} open={detailsOpen} onOpenChange={setDetailsOpen} />}
 		</>
 	);
 }
