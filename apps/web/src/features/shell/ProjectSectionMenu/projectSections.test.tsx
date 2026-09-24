@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Chats, Check, ListBullets } from "@phosphor-icons/react";
+import { Chats, ListBullets } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
 import { type ProjectSection, projectSectionItems, projectSectionLabel } from "./projectSections";
 
@@ -19,12 +19,17 @@ describe("projectSectionItems", () => {
 		expect(items.map((item) => item.label)).toEqual(["Epics", "Sessions"]);
 	});
 
-	test("checks the section on screen and leaves every other section its own icon", () => {
-		const items = projectSectionItems("sessions", () => {});
-		expect(iconType(items[0]!.icon)).toBe(ListBullets);
-		expect(iconType(items[1]!.icon)).toBe(Check);
-		expect(iconType(projectSectionItems("epics", () => {})[0]!.icon)).toBe(Check);
-		expect(iconType(projectSectionItems("epics", () => {})[1]!.icon)).toBe(Chats);
+	test("marks the section on screen, and no other section", () => {
+		expect(projectSectionItems("sessions", () => {}).map((row) => row.checked)).toEqual([false, true]);
+		expect(projectSectionItems("epics", () => {}).map((row) => row.checked)).toEqual([true, false]);
+	});
+
+	test("every row keeps its own icon, on each page", () => {
+		for (const current of ["epics", "sessions"] as const) {
+			const items = projectSectionItems(current, () => {});
+			expect(iconType(items[0]!.icon)).toBe(ListBullets);
+			expect(iconType(items[1]!.icon)).toBe(Chats);
+		}
 	});
 
 	test("opens the page of the section a person picks, under that project", () => {

@@ -1,4 +1,4 @@
-import { Chats, Check, ListBullets } from "@phosphor-icons/react";
+import { Chats, ListBullets } from "@phosphor-icons/react";
 import type { MenuItem } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { projectHref, projectSessionsHref } from "../../../lib/projectUrl";
@@ -24,13 +24,15 @@ export const projectSections: readonly ProjectSection[] = [
 export const projectSectionLabel = (id: ProjectSectionId): string =>
 	projectSections.find((section) => section.id === id)!.label;
 
-// The rows of the header menu. The row of the section on screen carries a
-// check and runs nothing, because that page is already open.
+// The rows of the header menu. The row of the section on screen reports its
+// state to a screen reader, draws a check, and runs nothing, because that
+// page is already open.
 export const projectSectionItems = (current: ProjectSectionId, onPick: (section: ProjectSection) => void): MenuItem[] =>
 	projectSections.map((section) => ({
 		id: section.id,
 		label: section.label,
-		icon: section.id === current ? <Check /> : section.icon,
+		icon: section.icon,
+		checked: section.id === current,
 		onSelect: () => {
 			if (section.id !== current) onPick(section);
 		},

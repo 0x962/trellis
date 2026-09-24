@@ -1,40 +1,14 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import { DotsThree } from "@phosphor-icons/react";
+import { Check, DotsThree } from "@phosphor-icons/react";
 import { type KeyboardEvent, type ReactElement, useState } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
 import { Kbd } from "../Kbd";
 import { Tooltip } from "../Tooltip";
+import { isCheckableItem, itemForKey, type MenuGroup, type MenuItem, menuGroups } from "./menuRows";
 
-export type MenuItem = {
-	type?: "item";
-	// The identity of the item in its group, for two items that carry the same
-	// words but are not the same item. The label is the identity when this is
-	// absent.
-	id?: string;
-	label: string;
-	onSelect: () => void;
-	// An icon element, shown at 14 px before the label.
-	icon?: ReactElement;
-	// A second line under the label, for a detail of the thing the item names.
-	detail?: string;
-	// `warning` draws the second line in the warning color, for a detail the
-	// reader must see before the item runs.
-	detailTone?: "muted" | "warning";
-	// The key that runs the item, shown as a Kbd. A key of one character also
-	// runs the item while the menu is open.
-	kbd?: string;
-	disabled?: boolean;
-	// A danger item is red: delete, cancel.
-	danger?: boolean;
-};
-
-export type MenuGroup = {
-	type: "group";
-	label?: string;
-	items: readonly MenuItem[];
-};
+export type { MenuGroup, MenuItem } from "./menuRows";
 
 export type MenuProps = {
 	// The accessible name of the trigger.
@@ -48,29 +22,21 @@ export type MenuProps = {
 	onOpenChange?: (open: boolean) => void;
 };
 
-const isMenuGroup = (item: MenuItem | MenuGroup): item is MenuGroup => item.type === "group";
+const rowClass = (item: MenuItem) =>
+	cx(
+		"flex items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
+		// A row of a list carries its own 44 px box on a coarse pointer. An
+		// invisible hit layer cannot do it here, because the row above and
+		// the row below each paint over it. The sidebar rows and the
+		// settings rows grow the same way.
+		item.detail === undefined ? "h-7 pointer-coarse:h-11" : "min-h-8 py-1.5 pointer-coarse:min-h-11",
+		item.danger ? "text-danger data-highlighted:bg-danger-soft" : "text-fg data-highlighted:bg-bg",
+		"data-disabled:opacity-50",
+	);
 
-const menuGroups = (items: readonly MenuItem[] | readonly MenuGroup[]): readonly MenuGroup[] => {
-	if (items.length > 0 && items.every(isMenuGroup)) return items;
-	return [{ type: "group", items: items as readonly MenuItem[] }];
-};
-
-function MenuItemRow({ item }: { item: MenuItem }) {
+function MenuRowContent({ item }: { item: MenuItem }) {
 	return (
-		<BaseMenu.Item
-			disabled={item.disabled}
-			onClick={item.onSelect}
-			className={cx(
-				"flex items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
-				// A row of a list carries its own 44 px box on a coarse pointer. An
-				// invisible hit layer cannot do it here, because the row above and
-				// the row below each paint over it. The sidebar rows and the
-				// settings rows grow the same way.
-				item.detail === undefined ? "h-7 pointer-coarse:h-11" : "min-h-8 py-1.5 pointer-coarse:min-h-11",
-				item.danger ? "text-danger data-highlighted:bg-danger-soft" : "text-fg data-highlighted:bg-bg",
-				"data-disabled:opacity-50",
-			)}
-		>
+		<>
 			{item.icon && (
 				<span
 					aria-hidden="true"
@@ -91,27 +57,43 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 				)}
 			</span>
 			{item.kbd && <Kbd>{item.kbd}</Kbd>}
-		</BaseMenu.Item>
+		</>
 	);
 }
 
-// The item that one key press runs while the menu is open. The key matches
-// the `kbd` of an item of one character, such as the 1 of the first item. A
-// press that carries a modifier belongs to the browser or the operating
-// system, so it runs no item, and a disabled item takes no press.
-const itemForKey = (groups: readonly MenuGroup[], event: KeyboardEvent) => {
-	if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.key.length !== 1) return undefined;
-	const key = event.key.toLowerCase();
-	return groups
-		.flatMap((group) => group.items)
-		.find((item) => item.disabled !== true && item.kbd?.length === 1 && item.kbd.toLowerCase() === key);
-};
+function MenuItemRow({ item }: { item: MenuItem }) {
+	// A checkbox item keeps the menu open when it is clicked, because a person
+	// ticks several settings in one visit. Every row of this menu runs one
+	// thing and closes, so `closeOnClick` puts the state row back on the
+	// behavior of the plain row beside it.
+	if (isCheckableItem(item)) {
+		return (
+			<BaseMenu.CheckboxItem
+				disabled={item.disabled}
+				checked={item.checked}
+				closeOnClick
+				onClick={item.onSelect}
+				className={rowClass(item)}
+			>
+				<MenuRowContent item={item} />
+				<BaseMenu.CheckboxItemIndicator className="inline-flex size-3.5 shrink-0 text-accent *:size-full">
+					<Check aria-hidden="true" />
+				</BaseMenu.CheckboxItemIndicator>
+			</BaseMenu.CheckboxItem>
+		);
+	}
+	return (
+		<BaseMenu.Item disabled={item.disabled} onClick={item.onSelect} className={rowClass(item)}>
+			<MenuRowContent item={item} />
+		</BaseMenu.Item>
+	);
+}
 
 // A list of actions under a button. Arrow keys move between items, Enter runs
 // one, Escape closes and returns focus to the trigger.
 export function Menu({ label, items, trigger, triggerTooltip, align = "end", className, onOpenChange }: MenuProps) {
 	const [open, setOpen] = useState(false);
-	const groups = menuGroups(items).filter((group) => group.items.length > 0);
+	const groups = menuGroups(items);
 	const changeOpen = (next: boolean) => {
 		setOpen(next);
 		onOpenChange?.(next);
