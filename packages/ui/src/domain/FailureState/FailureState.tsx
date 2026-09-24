@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { OutputBlock } from "../../primitives/OutputBlock";
 import { Spinner } from "../../primitives/Spinner";
+import { cx } from "../../utils/cx";
 
 // What trellis does about a failure while the person reads it.
 // `retrying` means trellis sends the request again on a timer. `waiting`
@@ -40,7 +41,11 @@ export type FailureStateProps = {
 	// disclosure holds it, and the text stays selectable.
 	detail?: string | null;
 	// `page` fills a route or a pane. `section` sits inside a tab or a list.
-	variant?: "section" | "page";
+	// `inline` is one 22 px line under a control, for a row too short for the
+	// empty state shape: the sign, the words at the small size, and the action
+	// under them. It takes no `description`, no `recovery` and no `detail`,
+	// because none of them fits on that line.
+	variant?: "section" | "page" | "inline";
 	className?: string;
 };
 
@@ -64,6 +69,7 @@ export type FailureStateProps = {
 // 6. The words carry no blame, no apology and no exclamation mark.
 // 7. It draws the empty state shape with no picture, so the words take the
 //    top of the pane. Red marks one thing: the small sign beside the title.
+//    The `inline` variant draws one line instead, and keeps rules 1, 3 and 6.
 export function FailureState({
 	title,
 	description,
@@ -76,6 +82,16 @@ export function FailureState({
 }: FailureStateProps) {
 	const page = variant === "page";
 	const line = recoveryLines[recovery];
+	if (variant === "inline")
+		return (
+			<div role="alert" className={cx("flex flex-col items-start gap-1 text-xs text-danger", className)}>
+				<span className="flex items-start gap-2">
+					<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+					<span>{title}</span>
+				</span>
+				{action}
+			</div>
+		);
 	return (
 		<EmptyState
 			variant={variant}

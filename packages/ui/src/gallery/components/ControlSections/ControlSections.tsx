@@ -2,8 +2,10 @@ import { ArrowsClockwise, CaretDown, Check, Copy, Trash } from "@phosphor-icons/
 import { useState } from "react";
 import { LabelDot } from "../../../domain/LabelDot";
 import { type LabelColor, labelColors } from "../../../domain/labelColors";
+import { ProviderIcon } from "../../../domain/ProviderIcon";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
+import { ChoiceBoxes } from "../../../primitives/ChoiceBoxes";
 import { Field } from "../../../primitives/Field";
 import { IconButton } from "../../../primitives/IconButton";
 import { Input } from "../../../primitives/Input";
@@ -24,6 +26,14 @@ const priorities = ["none", "low", "medium", "high", "urgent"].map((value) => ({
 
 const hues = labelColors.map((color) => ({ value: color, label: color, icon: <LabelDot color={color} /> }));
 
+const harnesses = [
+	{ value: "claude", label: "Claude", icon: <ProviderIcon provider="anthropic" decorative className="size-4" /> },
+	{ value: "codex", label: "Codex", icon: <ProviderIcon provider="openai" decorative className="size-4" /> },
+	{ value: "opencode", label: "OpenCode", icon: <ProviderIcon provider="anthropic" decorative className="size-4" /> },
+	{ value: "pi", label: "pi", icon: <ProviderIcon provider="openai" decorative className="size-4" /> },
+	{ value: "muse", label: "Muse", icon: <ProviderIcon provider="meta" decorative className="size-4" /> },
+];
+
 // Every control primitive in every state.
 export function ControlSections() {
 	const [title, setTitle] = useState("Restore the export pages after the upstream 1.27 merge");
@@ -33,6 +43,7 @@ export function ControlSections() {
 	const [done, setDone] = useState(false);
 	const [sound, setSound] = useState(true);
 	const [view, setView] = useState("Table");
+	const [harness, setHarness] = useState("claude");
 	const [tab, setTab] = useState("All");
 	const [section, setSection] = useState("account");
 	return (
@@ -152,6 +163,17 @@ export function ControlSections() {
 				<Switch label="Sound" checked={sound} onCheckedChange={setSound} />
 				<Switch label="Off" checked={false} onCheckedChange={() => {}} />
 				<Switch label="Locked" checked disabled onCheckedChange={() => {}} />
+			</Section>
+			<Section name="ChoiceBoxes" note="a mark over a name; one box on; arrow keys move it">
+				<ChoiceBoxes label="Harness" options={harnesses} value={harness} onValueChange={setHarness} className="w-100" />
+				<ChoiceBoxes
+					label="Locked"
+					options={harnesses}
+					value="codex"
+					onValueChange={() => {}}
+					disabled
+					className="w-100"
+				/>
 			</Section>
 			<Section name="Segmented" note="one option on; arrow keys move it">
 				<Segmented

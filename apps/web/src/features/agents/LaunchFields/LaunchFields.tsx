@@ -1,14 +1,7 @@
 import { effortForHarness, HARNESS_DEFAULT_MODELS, HARNESS_PRESETS, type Harness } from "@trellis/api";
-import { cx, Field, Select } from "@trellis/ui";
+import { Field, Select } from "@trellis/ui";
+import { harnessPresets, type NativePreset } from "../harnessPresets";
 import { ModelPicker } from "../ModelPicker";
-
-const presets = [
-	{ value: "claude", label: "Claude" },
-	{ value: "codex", label: "Codex" },
-	{ value: "opencode", label: "OpenCode" },
-	{ value: "pi", label: "pi" },
-	{ value: "muse", label: "Muse" },
-] as const;
 
 type Common = { disabled?: boolean; compact?: boolean };
 
@@ -34,10 +27,10 @@ export function LaunchFields({
 			? undefined
 			: (harness.model ?? (harness.preset === "custom" ? undefined : HARNESS_DEFAULT_MODELS[harness.preset]));
 	const effort = harness === null || model === undefined ? null : effortForHarness(harness.preset, model);
-	type Choice = (typeof presets)[number]["value"] | "custom" | "default";
+	type Choice = NativePreset | "custom" | "default";
 	const items: { value: Choice; label: string }[] = [
 		...(allowDefault === undefined ? [] : [{ value: "default" as const, label: allowDefault }]),
-		...presets,
+		...harnessPresets,
 		...(harness?.preset === "custom" ? [{ value: "custom" as const, label: "Custom" }] : []),
 	];
 	return (
@@ -55,8 +48,7 @@ export function LaunchFields({
 				/>
 			</Field>
 			{harness !== null && harness.preset !== "custom" && (
-				<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
-					<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>Model</span>
+				<Field label="Model" hideLabel={compact} className={compact ? "max-w-full" : undefined}>
 					<ModelPicker
 						harness={harness.preset}
 						value={harness.model}
@@ -65,7 +57,7 @@ export function LaunchFields({
 						disabled={disabled}
 						onValueChange={(model) => change({ ...harness, model, effort: undefined })}
 					/>
-				</div>
+				</Field>
 			)}
 			{harness !== null && effort && (
 				<Field label={effort.label} hideLabel={compact} className={compact ? "max-w-full" : undefined}>
