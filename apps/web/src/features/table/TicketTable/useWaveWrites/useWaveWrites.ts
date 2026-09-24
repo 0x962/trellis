@@ -23,8 +23,6 @@ export type WaveWritesOptions = {
 };
 
 export type WaveWrites = {
-	// The wave controls the table body draws, or undefined on a table
-	// without them.
 	waves?: WaveHeaderOptions & { onDrop: (ticketIds: string[], group: TableGroup) => void };
 	createWave: (name: string) => Promise<void>;
 };

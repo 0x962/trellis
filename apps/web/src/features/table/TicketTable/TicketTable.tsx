@@ -149,7 +149,7 @@ export function TicketTable({
 	const applyChange = useApplyChange(mutations, bulk, labelGroups);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
-	const ticketById = (id: string) => byId.get(id);
+	const findTicket = (id: string) => byId.get(id);
 	// How the selected tickets hold each label: `all` draws a check, `some`
 	// draws a minus. A pick on a check removes the label everywhere, and a
 	// pick on a minus adds it everywhere.
@@ -158,8 +158,8 @@ export function TicketTable({
 	// mark no row when the selection disagrees.
 	const epics = epicState(selectedTickets());
 
-	const rows = useRowActions({
-		ticketById,
+	const rowActions = useRowActions({
+		findTicket,
 		selection,
 		selectedTickets,
 		applyChange,
@@ -201,15 +201,15 @@ export function TicketTable({
 		selection,
 		editing,
 		setEditing,
-		openField: rows.openField,
+		openField: rowActions.openField,
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
-		openTicket: rows.openTicket,
-		openPage: rows.openPage,
+		openTicket: rowActions.openTicket,
+		openPage: rowActions.openPage,
 		openComposer: () => openNew(),
-		copy: rows.copy,
-		copySelection: rows.copyIds,
-		requestDelete: rows.requestDelete,
+		copy: rowActions.copy,
+		copySelection: rowActions.copyIds,
+		requestDelete: rowActions.requestDelete,
 	});
 	useCommandContext(focusState === null ? null : (byId.get(focusState)?.identifier ?? null), selectedTickets(), {
 		selectAll: selection.selectAll,
@@ -244,10 +244,10 @@ export function TicketTable({
 				selection={selection}
 				editing={editing}
 				onFocusRow={setRowFocus}
-				onRowClick={rows.onRowClick}
-				onOpen={rows.openTicket}
-				onEditingChange={rows.onEditingChange}
-				onRowChange={rows.onRowChange}
+				onRowClick={rowActions.onRowClick}
+				onOpen={rowActions.openTicket}
+				onEditingChange={rowActions.onEditingChange}
+				onRowChange={rowActions.onRowChange}
 				onToggleGroup={collapsed.toggle}
 				onToggleTicket={expandedTickets.toggle}
 				onCreateInGroup={openNew}
@@ -274,8 +274,8 @@ export function TicketTable({
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
 				onWave={(picked) => void applyChange(selectedTickets(), { wave: picked }, "selection")}
 				onCreateWave={(name) => void createWave(name)}
-				onCopyIds={rows.copyIds}
-				onDelete={() => rows.requestDelete(selection.selected)}
+				onCopyIds={rowActions.copyIds}
+				onDelete={() => rowActions.requestDelete(selection.selected)}
 				onClear={clearSelection}
 			/>
 			{bulk.confirmDialog}

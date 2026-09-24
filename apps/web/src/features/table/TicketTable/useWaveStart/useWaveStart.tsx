@@ -4,7 +4,6 @@ import type { TableGroup } from "../../utils/flattenGroups";
 import { WaveStartDialog } from "../../WaveStart";
 
 export type WaveStartOptions = {
-	// The groups of the table, which hold the tickets of each wave.
 	groups: readonly TableGroup[];
 	// The ids of the tickets that hold an open agent run. The table offers
 	// Start wave only once these arrive.

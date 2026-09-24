@@ -1,17 +1,14 @@
 import { GroupHeader } from "../../../GroupHeader";
 import type { TableGroup } from "../../../utils/flattenGroups";
 import { type WaveHeaderOptions, waveHeaderParts } from "../../../WaveHeader";
-import type { WaveBox } from "../waveBoxes";
+import type { WaveBox } from "../../waveBoxes";
 
 export type GroupHeaderLineProps = {
 	group: TableGroup;
 	// The offset inside the virtual body.
 	top: number;
-	// The offset and the height of the box that the group owns, from this
-	// header line to the header line of the next group. The header stands at
-	// the top of the scroll container while that box passes, and the box ends
-	// where the next header starts, so the next header pushes this one out.
-	// Undefined on a table that does not hold its headers at the top.
+	// The box that the group owns. Undefined on a table that does not hold
+	// its headers at the top.
 	box?: WaveBox;
 	phone: boolean;
 	// True while the progress circle of the wave fills to full, because the

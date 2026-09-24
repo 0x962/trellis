@@ -1,6 +1,7 @@
 import type { StatusSummary, TicketSummary } from "@trellis/api";
 import { CheckConfetti, cx, useMediaQuery } from "@trellis/ui";
 import { type MouseEvent, type RefObject, useMemo, useRef } from "react";
+import { useStableCallback } from "../../../../../hooks/useStableCallback";
 import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
 import type { ColumnId, TableKind } from "../../../columns";
@@ -11,11 +12,11 @@ import { type EditField, Row, type RowChange } from "../../../Row";
 import { groupHeaderHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
 import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import type { WaveHeaderOptions } from "../../../WaveHeader";
+import { waveBoxes } from "../../waveBoxes";
 import { EmptyWaveLine } from "../EmptyWaveLine";
 import { GroupHeaderLine } from "../GroupHeaderLine";
 import { ShowMoreRow } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
-import { waveBoxes } from "../waveBoxes";
 import { useCheckConfetti } from "./useCheckConfetti";
 import { useDoneWash } from "./useDoneWash";
 import { useLineMotion } from "./useLineMotion";
@@ -54,10 +55,7 @@ export type TableBodyProps = {
 	// The wave controls of a table of one epic: the header actions of each
 	// wave, and the drop of dragged rows into a wave group.
 	waves?: WaveHeaderOptions & { onDrop: (ticketIds: string[], group: TableGroup) => void };
-	// True on a table whose groups are the waves of one epic. The header of
-	// each wave then stands at the top of the list while the rows of that
-	// wave pass. A table grouped any other way scrolls its headers away with
-	// their rows.
+	// True on a table whose groups are the waves of one epic.
 	pinHeaders?: boolean;
 	// True while the bulk bar shows. The list then gets 72 px of room under
 	// its last row, so that row can scroll clear of the bar.
@@ -70,7 +68,6 @@ export type TableBodyProps = {
 // gives the bar.
 const ribbonHeight = 12;
 
-// The scroll container and the virtual list inside it.
 export function TableBody({
 	items: allItems,
 	tableKind,
@@ -124,6 +121,12 @@ export function TableBody({
 	// `getTotalSize` refreshes `measurementsCache`, which carries the height
 	// an agent line took after it wrapped, so each box ends where the header
 	// line of the next group starts.
+	// One callback for every row. A new one per row on each render of the
+	// body defeats the memo of `Row`.
+	const focusRow = useStableCallback((id: string) => {
+		if (pendingFocus.current === null) onFocusRow(id);
+	});
+
 	const totalSize = virtualizer.getTotalSize();
 	const boxes = pinHeaders ? waveBoxes(headerIndexes, virtualizer.measurementsCache, totalSize) : undefined;
 	// A row that the browser scrolls into view lands under the header that
@@ -230,9 +233,7 @@ export function TableBody({
 								selecting={selection.count > 0}
 								editing={editing?.id === ticket.id ? editing.field : null}
 								statuses={statuses}
-								onFocus={(id) => {
-									if (pendingFocus.current === null) onFocusRow(id);
-								}}
+								onFocus={focusRow}
 								onClick={onRowClick}
 								onToggleDisclosure={onToggleTicket}
 								onOpen={onOpen}

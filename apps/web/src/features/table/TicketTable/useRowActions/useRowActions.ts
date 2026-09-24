@@ -13,7 +13,8 @@ import type { EditField, RowChange } from "../../Row";
 import { rowClickOpens } from "../rowClickOpens";
 
 export type RowActionsOptions = {
-	ticketById: (id: string) => TicketSummary | undefined;
+	// The ticket of one row, or undefined when the list no longer holds it.
+	findTicket: (id: string) => TicketSummary | undefined;
 	selection: RowSelection;
 	// The tickets of the selection, read at the moment of the write.
 	selectedTickets: () => TicketSummary[];
@@ -49,7 +50,7 @@ export type RowActions = {
 // change on a selected row writes to the whole selection. A change on a row
 // the selection does not hold writes to that row alone.
 export function useRowActions({
-	ticketById,
+	findTicket,
 	selection,
 	selectedTickets,
 	applyChange,
@@ -65,7 +66,7 @@ export function useRowActions({
 	// A click and Enter open the ticket in the sheet over this list, so the
 	// list keeps its scroll. The `o` key opens the ticket page on its route.
 	const openTicket = useStableCallback((id: string) => {
-		const ticket = ticketById(id);
+		const ticket = findTicket(id);
 		if (ticket !== undefined) pageSheetActions.openTicket(ticket.identifier);
 	});
 
@@ -81,7 +82,7 @@ export function useRowActions({
 	return {
 		openTicket,
 		openPage: useStableCallback((id: string) =>
-			navigate({ to: "/t/$identifier", params: { identifier: ticketById(id)!.identifier } }),
+			navigate({ to: "/t/$identifier", params: { identifier: findTicket(id)!.identifier } }),
 		),
 		onRowClick: useStableCallback((id: string, event: MouseEvent) => {
 			// The link that covers the whole row (`data-row-link` in `Row`) forwards
@@ -102,9 +103,9 @@ export function useRowActions({
 			if (selection.count > 0 && barHasField(field)) onBulkPicker(field);
 			else onEditing({ id, field });
 		}),
-		copy: useStableCallback((id: string, kind: CopyKind) => void copier.copy(ticketById(id)!, kind)),
+		copy: useStableCallback((id: string, kind: CopyKind) => void copier.copy(findTicket(id)!, kind)),
 		copyIds: () => void copier.copyIds(selectedTickets()),
 		requestDelete: (targets: readonly string[]) =>
-			void bulk.remove(targets.map(ticketById).filter((ticket) => ticket !== undefined)),
+			void bulk.remove(targets.map(findTicket).filter((ticket) => ticket !== undefined)),
 	};
 }

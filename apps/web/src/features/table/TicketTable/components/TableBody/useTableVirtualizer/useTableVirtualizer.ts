@@ -9,7 +9,7 @@ export type TableVirtualizerOptions = {
 	// The scroll container of the list.
 	viewport: RefObject<HTMLDivElement | null>;
 	items: readonly TableItem[];
-	// The box of a ticket row and of a group header at the current density
+	// The height of a ticket row and of a group header at the current density
 	// and width.
 	rowHeight: number;
 	headerHeight: number;
@@ -32,9 +32,9 @@ const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 
 // The virtual list of the table body. Every line but the agent line has a
 // fixed height. An agent line wraps its words, so the virtualizer measures
-// it once it renders and moves the lines below it. Every header line renders
-// whatever the scroll offset is, because the header of a group stands at the
-// top of the list while the rows of that group pass.
+// it once it renders and moves the lines below it. The list draws every
+// header line at any scroll offset, because a header must stay in place
+// while the rows of its group pass.
 export function useTableVirtualizer({
 	viewport,
 	items,

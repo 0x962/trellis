@@ -3,7 +3,6 @@ import type { TableData } from "../../hooks/useTableData";
 import { closedCategories } from "../../hooks/useTableGroups";
 
 export type FooterCounts = {
-	// The tickets the footer names.
 	total: number;
 	// The Done and Canceled tickets that the groups of the view leave out.
 	hidden: number;

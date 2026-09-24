@@ -9,7 +9,7 @@ export type VisibleColumnsOptions = {
 	// The pathname, which keys the stored preferences.
 	routeKey: string;
 	tableKind: TableKind;
-	// True on a table over every project, which shows the project column.
+	// True on a table over every project.
 	showProject: boolean;
 	// How the rows are grouped. A table grouped by a field hides the column
 	// of that field.
@@ -48,5 +48,8 @@ export function useVisibleColumns({
 			}
 		},
 	});
-	return table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
+	// A new array here redraws every row of the table, because `Row` is
+	// memoized and takes this list.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the visible set follows `visibility`; the table instance is stable
+	return useMemo(() => table.getVisibleLeafColumns().map((column) => column.id as ColumnId), [visibility]);
 }
