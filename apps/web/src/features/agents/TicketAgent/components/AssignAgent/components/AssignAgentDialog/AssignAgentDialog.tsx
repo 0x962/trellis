@@ -1,16 +1,15 @@
 import { effortForHarness, HARNESS_DEFAULT_MODELS, type HarnessEffort } from "@trellis/api";
 import { Button, ChoiceBoxes, Dialog, Field, ProviderIcon, Select } from "@trellis/ui";
 import { type RefObject, useState } from "react";
-import { type AssignAccounts, type AssignChoice, draftFrom, modelIdOf } from "../../../../../assignChoice";
 import { harnessPresets, type NativePreset } from "../../../../../harnessPresets";
 import { ModelPicker } from "../../../../../ModelPicker";
 import { modelProviderOf } from "../../../../../modelProviderOf";
+import { type AssignAccounts, type AssignChoice, modelIdOf, withoutLostValues } from "../../assignChoice";
 
 const DEFAULT_ACCOUNT = "default";
 const DEFAULT_EFFORT = "default";
 
-// The mark of a harness is the mark of the company behind the model it
-// serves by default: Anthropic for Claude, OpenAI for Codex, Meta for Muse.
+// Each harness shows the logo of the company that makes its default model.
 const boxes = harnessPresets.map(({ value, label }) => ({
 	value,
 	label,
@@ -60,18 +59,17 @@ export function AssignAgentDialog({
 					label="Harness"
 					options={boxes}
 					value={draft.preset}
-					// The harness decides the model list, the effort list and the
-					// accounts, so it starts with no value of the harness before it.
+					// The harness decides which models, effort levels and accounts are
+					// available, so a new harness clears all three.
 					onValueChange={(preset: NativePreset) => setDraft({ preset, model: null, effort: null, accountId: null })}
 				/>
-				<div className="flex min-w-0 flex-col gap-1">
-					<span className="text-sm text-fg-muted">Model</span>
+				<Field label="Model">
 					<ModelPicker
 						harness={draft.preset}
 						value={draft.model ?? undefined}
-						onValueChange={(model) => setDraft(draftFrom({ ...draft, model: model ?? null }, accounts))}
+						onValueChange={(model) => setDraft(withoutLostValues({ ...draft, model: model ?? null }, accounts))}
 					/>
-				</div>
+				</Field>
 				{/* The slot holds its height where the harness offers no effort, so
 				    the dialog keeps one size across the five harnesses. */}
 				<div className="flex min-h-12 min-w-0 flex-col gap-1">

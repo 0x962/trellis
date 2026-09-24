@@ -9,21 +9,18 @@ import { Tooltip } from "../Tooltip";
 
 export type MenuItem = {
 	type?: "item";
-	// The identity of the item among its group, where two items can carry the
-	// same words: two stored agent choices of one harness and one model, for
-	// example, that differ in the effort alone. The label is the identity
-	// where this is absent.
+	// The identity of the item in its group, for two items that carry the same
+	// words but are not the same item. The label is the identity when this is
+	// absent.
 	id?: string;
 	label: string;
 	onSelect: () => void;
 	// An icon element, shown at 14 px before the label.
 	icon?: ReactElement;
-	// A second line under the label, for the detail of the thing the item
-	// names, such as the effort and the account of a stored agent choice.
+	// A second line under the label, for a detail of the thing the item names.
 	detail?: string;
 	// `warning` draws the second line in the warning color, for a detail the
-	// reader must see before the item runs, such as a model the harness no
-	// longer serves.
+	// reader must see before the item runs.
 	detailTone?: "muted" | "warning";
 	// The key that runs the item, shown as a Kbd. A key of one character also
 	// runs the item while the menu is open.
@@ -65,7 +62,11 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 			onClick={item.onSelect}
 			className={cx(
 				"flex items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
-				item.detail === undefined ? "h-7" : "min-h-8 py-1.5",
+				// A row of a list carries its own 44 px box on a coarse pointer. An
+				// invisible hit layer cannot do it here, because the row above and
+				// the row below each paint over it. The sidebar rows and the
+				// settings rows grow the same way.
+				item.detail === undefined ? "h-7 pointer-coarse:h-11" : "min-h-8 py-1.5 pointer-coarse:min-h-11",
 				item.danger ? "text-danger data-highlighted:bg-danger-soft" : "text-fg data-highlighted:bg-bg",
 				"data-disabled:opacity-50",
 			)}
@@ -95,7 +96,7 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 }
 
 // The item that one key press runs while the menu is open. The key matches
-// the `kbd` of an item of one character, such as the 1 of a first choice. A
+// the `kbd` of an item of one character, such as the 1 of the first item. A
 // press that carries a modifier belongs to the browser or the operating
 // system, so it runs no item, and a disabled item takes no press.
 const itemForKey = (groups: readonly MenuGroup[], event: KeyboardEvent) => {

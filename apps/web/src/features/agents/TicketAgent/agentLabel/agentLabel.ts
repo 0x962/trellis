@@ -1,7 +1,7 @@
 import type { AgentRun } from "@trellis/api";
-import { agentProfileOf } from "../agentProfileOf";
-import { harnessLabel } from "../harnessPresets";
-import { modelFamily } from "../ModelPicker";
+import { agentProfileOf } from "../../agentProfileOf";
+import { harnessLabel } from "../../harnessPresets";
+import { modelFamily } from "../../ModelPicker";
 
 // The word the Agent row of a ticket prints for the agent it holds: the
 // family of the model, such as Opus or Sol.

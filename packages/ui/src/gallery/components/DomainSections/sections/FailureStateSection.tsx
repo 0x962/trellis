@@ -23,7 +23,7 @@ export function FailureStateSection() {
 	return (
 		<Section
 			name="FailureState"
-			note="the one way trellis shows a failure: a process that stopped, a server that does not answer, a tab that threw"
+			note="the one way trellis shows a failure: a process that stopped, a server that does not answer, a tab that threw; page, section and inline"
 			className="flex-col items-stretch gap-6"
 		>
 			<ol className="ms-4 list-decimal text-sm text-fg-muted">
@@ -62,6 +62,17 @@ export function FailureStateSection() {
 					secondAction={
 						<Button size="md" variant="quiet">
 							Open the run
+						</Button>
+					}
+				/>
+			</div>
+			<div className="w-72 rounded-lg border border-border p-4">
+				<FailureState
+					variant="inline"
+					title="Could not start the agent. The harness did not answer."
+					action={
+						<Button variant="quiet" className="-ml-2.5">
+							Try again
 						</Button>
 					}
 				/>

@@ -6,8 +6,8 @@ import { cx } from "../../utils/cx";
 export type ChoiceBoxesOption<Value extends string> = {
 	value: Value;
 	label: string;
-	// A mark over the label, such as the company mark of a model. It keeps
-	// its own size.
+	// An icon over the label, such as the logo of a company. It keeps its own
+	// size.
 	icon?: ReactNode;
 };
 
@@ -23,10 +23,9 @@ export type ChoiceBoxesProps<Value extends string> = {
 };
 
 // A row of boxes where one is on, for a choice of four to six things that
-// each carry a mark: the harness of an agent, for example. Every box takes
-// the same share of the width and is 56 px tall, so a mark and a name stand
-// one over the other. The arrow keys move the choice, which is how a radio
-// group answers the keyboard.
+// each carry an icon. Every box takes the same share of the width and is
+// 56 px tall, and the icon sits over the label. The arrow keys move the
+// choice, which is how a radio group answers the keyboard.
 //
 // `ChoiceGroup` stays the shape for a choice whose options need a sentence
 // each, and `Segmented` for a switch between views of one page.

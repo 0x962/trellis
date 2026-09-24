@@ -4,9 +4,9 @@ import { Avatar, Button, ConfirmDialog, IconButton, Tooltip, toast } from "@trel
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
-import { agentLabel } from "../agentLabel";
 import { agentMarkState } from "../agentMarkState";
 import { agentProfileOf } from "../agentProfileOf";
+import { agentLabel } from "./agentLabel";
 import { AssignAgent } from "./components/AssignAgent";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {

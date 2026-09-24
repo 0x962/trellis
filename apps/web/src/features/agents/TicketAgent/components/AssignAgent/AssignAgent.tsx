@@ -1,42 +1,37 @@
 import { ORPCError } from "@orpc/client";
-import { CaretDown, Gear, WarningCircle } from "@phosphor-icons/react";
+import { CaretDown, Gear } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { MODEL_CATALOG } from "@trellis/api";
-import { Button, IconButton, Menu, type MenuItem, ProviderIcon, Tooltip } from "@trellis/ui";
-import { useRef, useState } from "react";
+import { Button, FailureState, IconButton, Menu, type MenuItem, ProviderIcon, Tooltip } from "@trellis/ui";
+import { useMemo, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { harnessLabel } from "../../../harnessPresets";
+import { modelProviderOf } from "../../../modelProviderOf";
 import {
 	type AssignAccounts,
 	type AssignChoice,
-	choiceDetail,
-	choiceKey,
-	choiceTitle,
 	DEFAULT_CHOICE,
-	draftFrom,
+	detailOf,
 	harnessOf,
+	keyOf,
 	modelIdOf,
+	modelNameOf,
 	staleReasonOf,
-} from "../../../assignChoice";
-import { assignChoiceActions, useAssignChoices } from "../../../assignChoices";
-import { harnessLabel } from "../../../harnessPresets";
-import { modelProviderOf } from "../../../modelProviderOf";
+	titleOf,
+	withoutLostValues,
+} from "./assignChoice";
 import { AssignAgentDialog } from "./components/AssignAgentDialog";
+import { rememberChoice, useRecentChoices } from "./recentChoices";
 
 const MENU_LABEL = "Change the harness and the model";
 
-const modelNameOf = (choice: AssignChoice) => {
-	const id = modelIdOf(choice);
-	return MODEL_CATALOG.find((model) => model.id === id)?.name ?? id;
-};
-
-const choiceMark = (choice: AssignChoice) => {
+const choiceIcon = (choice: AssignChoice) => {
 	const provider = modelProviderOf(modelIdOf(choice));
 	return provider === null ? undefined : <ProviderIcon provider={provider} decorative />;
 };
 
-// The words the server refused, where it refused the input, and its message
-// otherwise.
+// The message to show after a failed start. A rejected input carries its
+// reason in the first issue. Every other error carries it in `message`.
 const startFailure = (error: Error) =>
 	error instanceof ORPCError && error.code === "INPUT_VALIDATION_FAILED"
 		? (error.data as { issues: { message: string }[] }).issues[0]!.message
@@ -48,18 +43,17 @@ const startFailure = (error: Error) =>
 export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: boolean }) {
 	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
-	const main = useRef<HTMLButtonElement>(null);
-	const arrow = useRef<HTMLButtonElement>(null);
-	const recent = useAssignChoices((store) => store.recent);
+	const assignButton = useRef<HTMLButtonElement>(null);
+	const menuButton = useRef<HTMLButtonElement>(null);
+	const recent = useRecentChoices((store) => store.recent);
 	const accountList = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
 	const accounts: AssignAccounts = accountList.data;
 	// The choice the dialog stands on, and the half of the split control that
 	// takes the focus back when it closes.
-	const [dialog, setDialog] = useState<{ choice: AssignChoice; from: "main" | "menu" } | null>(null);
-	// The choice of the last start and its request ID. One intent keeps one
-	// request ID, so Try again after a failure starts no second agent. A
-	// different choice is a different intent.
-	const [intent, setIntent] = useState<{ choice: AssignChoice; requestId: string } | null>(null);
+	const [dialog, setDialog] = useState<{ choice: AssignChoice; from: "assign" | "menu" } | null>(null);
+	// One intent keeps one request ID, so Try again after a failure starts no
+	// second agent. A different choice is a different intent.
+	const [lastStart, setLastStart] = useState<{ choice: AssignChoice; requestId: string } | null>(null);
 	const start = useMutation({
 		mutationFn: ({ choice, requestId }: { choice: AssignChoice; requestId: string }) =>
 			client.agentRuns.start({
@@ -69,8 +63,8 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 				requestId,
 			}),
 		onSuccess: (run, { choice }) => {
-			assignChoiceActions.remember(choice);
-			setIntent(null);
+			rememberChoice(choice);
+			setLastStart(null);
 			queryClient.setQueryData(orpc.agentRuns.list.queryOptions({ input: { ticket } }).queryKey, (current) => [
 				run,
 				...(current ?? []).filter((item) => item.id !== run.id),
@@ -86,47 +80,60 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 	const assign = (choice: AssignChoice) => {
 		if (disabled) return;
 		const requestId =
-			intent !== null && choiceKey(intent.choice) === choiceKey(choice) ? intent.requestId : crypto.randomUUID();
-		setIntent({ choice, requestId });
+			lastStart !== null && keyOf(lastStart.choice) === keyOf(choice) ? lastStart.requestId : crypto.randomUUID();
+		setLastStart({ choice, requestId });
 		start.mutate({ choice, requestId });
 	};
-	// A choice the machine can no longer run opens the dialog with the values
-	// it lost dropped. The person picks again and presses Assign.
-	const take = (choice: AssignChoice, from: "main" | "menu") => {
+	const assignOrEdit = (choice: AssignChoice, from: "assign" | "menu") => {
 		if (disabled) return;
 		if (staleReasonOf(choice, accounts) === null) assign(choice);
-		else setDialog({ choice: draftFrom(choice, accounts), from });
+		else setDialog({ choice: withoutLostValues(choice, accounts), from });
 	};
-	const current = recent[0] ?? DEFAULT_CHOICE;
-	const rows: readonly AssignChoice[] = recent.length > 0 ? recent : [DEFAULT_CHOICE];
-	const items: readonly MenuItem[] = rows.map((choice, index) => {
-		const stale = staleReasonOf(choice, accounts);
+	// The menu reads the model catalog once per row, and this row draws again
+	// every two seconds while the ticket polls its agent runs. The rows change
+	// only with the store and the account list, so they are built here and the
+	// map below adds the handler, which holds this draw's values.
+	const { current, rows, staleCurrent, currentTitle } = useMemo(() => {
+		const current = recent[0] ?? DEFAULT_CHOICE;
+		const choices = recent.length > 0 ? recent : [DEFAULT_CHOICE];
 		return {
-			id: choiceKey(choice),
-			label: `${harnessLabel(choice.preset)} · ${modelNameOf(choice)}`,
-			detail: stale ?? choiceDetail(choice, accounts),
-			detailTone: stale === null ? "muted" : "warning",
-			icon: choiceMark(choice),
-			kbd: String(index + 1),
-			onSelect: () => take(choice, "menu"),
+			current,
+			staleCurrent: staleReasonOf(current, accounts),
+			currentTitle: titleOf(current, accounts),
+			rows: choices.map((choice, index) => {
+				const stale = staleReasonOf(choice, accounts);
+				return {
+					choice,
+					id: keyOf(choice),
+					label: `${harnessLabel(choice.preset)} · ${modelNameOf(choice)}`,
+					detail: stale ?? detailOf(choice, accounts),
+					detailTone: (stale === null ? "muted" : "warning") as MenuItem["detailTone"],
+					icon: choiceIcon(choice),
+					kbd: String(index + 1),
+				};
+			}),
 		};
-	});
-	const busy = start.isPending ? intent : null;
-	const failure = start.isError && intent !== null ? { choice: intent.choice, words: startFailure(start.error) } : null;
-	const staleCurrent = staleReasonOf(current, accounts);
+	}, [recent, accounts]);
+	const items: readonly MenuItem[] = rows.map(({ choice, ...row }) => ({
+		...row,
+		onSelect: () => assignOrEdit(choice, "menu"),
+	}));
+	const pendingStart = start.isPending ? lastStart : null;
+	const failure =
+		start.isError && lastStart !== null ? { choice: lastStart.choice, message: startFailure(start.error) } : null;
 	return (
 		<>
 			<div className="flex items-center justify-between gap-2 py-1">
 				<h3 className="text-xs font-medium text-fg-faint">Agent</h3>
 				<span className="inline-flex items-center">
-					<Tooltip content={staleCurrent ?? choiceTitle(current, accounts)}>
+					<Tooltip content={staleCurrent ?? currentTitle}>
 						<Button
-							ref={main}
+							ref={assignButton}
 							variant="primary"
 							className="min-w-30 rounded-r-none focus-visible:z-1"
 							disabled={disabled}
 							processing={start.isPending}
-							onClick={() => take(current, "main")}
+							onClick={() => assignOrEdit(current, "assign")}
 						>
 							{`Assign ${harnessLabel(current.preset)}`}
 						</Button>
@@ -142,7 +149,7 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 									{
 										label: "Set something else…",
 										icon: <Gear />,
-										onSelect: () => setDialog({ choice: draftFrom(current, accounts), from: "menu" }),
+										onSelect: () => setDialog({ choice: withoutLostValues(current, accounts), from: "menu" }),
 									},
 								],
 							},
@@ -150,7 +157,7 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 						className="w-80"
 						trigger={
 							<IconButton
-								ref={arrow}
+								ref={menuButton}
 								label={MENU_LABEL}
 								icon={<CaretDown />}
 								variant="primary"
@@ -161,20 +168,21 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 					/>
 				</span>
 			</div>
-			{busy !== null ? (
+			{pendingStart !== null ? (
 				<p role="status" className="min-h-5.5 text-xs text-fg-muted">
-					{`Start ${choiceTitle(busy.choice, accounts)}…`}
+					{`Start ${titleOf(pendingStart.choice, accounts)}…`}
 				</p>
 			) : failure !== null ? (
-				<div role="alert" className="flex min-h-5.5 flex-col items-start gap-1 text-xs text-danger">
-					<span className="flex items-start gap-2">
-						<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-						<span>{failure.words}</span>
-					</span>
-					<Button variant="quiet" className="-ml-2.5" disabled={disabled} onClick={() => assign(failure.choice)}>
-						Try again
-					</Button>
-				</div>
+				<FailureState
+					variant="inline"
+					className="min-h-5.5"
+					title={failure.message}
+					action={
+						<Button variant="quiet" className="-ml-2.5" disabled={disabled} onClick={() => assign(failure.choice)}>
+							Try again
+						</Button>
+					}
+				/>
 			) : (
 				<p className="min-h-5.5 text-xs text-fg-muted">{recent.length > 0 ? "" : "No choice was stored yet."}</p>
 			)}
@@ -183,7 +191,7 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 					initial={dialog.choice}
 					accounts={accounts}
 					disabled={disabled}
-					finalFocus={dialog.from === "main" ? main : arrow}
+					finalFocus={dialog.from === "assign" ? assignButton : menuButton}
 					onAssign={(choice) => {
 						setDialog(null);
 						assign(choice);
