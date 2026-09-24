@@ -2,7 +2,7 @@ import { Plus } from "@phosphor-icons/react";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
 import { Tooltip, toast } from "@trellis/ui";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ArchivedBanner } from "../../project-actions";
 import { sessionComposerActions } from "../../sessions/sessionComposerStore";
@@ -32,7 +32,7 @@ export function PageList({ project, search, onSearchChange }: PageListProps) {
 		getNextPageParam: (page) => page.nextCursor ?? undefined,
 	});
 	const query = useInfiniteQuery(options);
-	const pages = pageRows(query.data);
+	const pages = useMemo(() => pageRows(query.data), [query.data]);
 	const failed = query.data === undefined && query.failureCount > 0;
 	const pin = useMutation({
 		mutationFn: (page: (typeof pages)[number]) => client.pages.pin({ page: page.ref, pinned: !page.pinned }),

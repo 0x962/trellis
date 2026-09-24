@@ -1,7 +1,7 @@
 import { ChatCircle, Eye, FunnelSimple, PushPinSimple, User } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Chip, type CommandItem, FilterBar, FilterPopover, IconButton, Input, useHotkey } from "@trellis/ui";
-import { type ReactElement, useEffect, useState } from "react";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { searchDebounceMs } from "../../../../command/hooks/useCommandSearch";
 import type { PageSearch } from "../../pageSearch";
@@ -66,6 +66,31 @@ export function PageListFilters({
 		setOpen(true);
 	});
 
+	const actorItems = useMemo(
+		() =>
+			(actors.data ?? []).map((actor) => ({
+				id: `${actor.kind}:${actor.name}`,
+				label: actor.displayName ?? actor.name,
+				hint: actor.kind,
+				current: search.author === `${actor.kind}:${actor.name}`,
+			})),
+		[actors.data, search.author],
+	);
+	const watcherItems = useMemo(
+		() =>
+			(runs.data ?? []).map((run) => ({
+				id: run.id,
+				label: run.name,
+				current: search.watcher === run.id,
+			})),
+		[runs.data, search.watcher],
+	);
+	const actorNames = useMemo(
+		() => new Map((actors.data ?? []).map((actor) => [`${actor.kind}:${actor.name}`, actor.displayName ?? actor.name])),
+		[actors.data],
+	);
+	const watcherNames = useMemo(() => new Map((runs.data ?? []).map((run) => [run.id, run.name])), [runs.data]);
+
 	const close = () => {
 		setOpen(false);
 		setStage("fields");
@@ -85,17 +110,8 @@ export function PageListFilters({
 		close();
 	};
 	const valueItems: Record<PageFilter, CommandItem[]> = {
-		author: (actors.data ?? []).map((actor) => ({
-			id: `${actor.kind}:${actor.name}`,
-			label: actor.displayName ?? actor.name,
-			hint: actor.kind,
-			current: search.author === `${actor.kind}:${actor.name}`,
-		})),
-		watcher: (runs.data ?? []).map((run) => ({
-			id: run.id,
-			label: run.name,
-			current: search.watcher === run.id,
-		})),
+		author: actorItems,
+		watcher: watcherItems,
 		comment: [
 			{ id: "open", label: "Has open comments", current: search.comment === "open" },
 			{ id: "none", label: "Has no open comments", current: search.comment === "none" },
@@ -105,14 +121,10 @@ export function PageListFilters({
 			{ id: "false", label: "Not pinned", current: search.pin === false },
 		],
 	};
-	const actorName = (header: string) => {
-		const actor = (actors.data ?? []).find((entry) => `${entry.kind}:${entry.name}` === header);
-		return actor?.displayName ?? header.slice(header.indexOf(":") + 1);
-	};
-	const watcherName = (id: string) => runs.data?.find((run) => run.id === id)?.name ?? id;
 	const valueLabel = (field: PageFilter) => {
-		if (field === "author") return actorName(search.author!);
-		if (field === "watcher") return watcherName(search.watcher!);
+		if (field === "author")
+			return actorNames.get(search.author!) ?? search.author!.slice(search.author!.indexOf(":") + 1);
+		if (field === "watcher") return watcherNames.get(search.watcher!) ?? search.watcher!;
 		if (field === "comment") return search.comment === "open" ? "Has open comments" : "Has no open comments";
 		return search.pin ? "Pinned" : "Not pinned";
 	};

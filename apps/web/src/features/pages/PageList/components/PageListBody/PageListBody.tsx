@@ -2,6 +2,7 @@ import { ArrowDown, PushPinSimple, PushPinSlash } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { PageSummary } from "@trellis/api";
 import { Button, EmptyState, FailureState, IconButton, PageRow, Tooltip } from "@trellis/ui";
+import { useMemo } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { PageListSkeleton } from "../PageListSkeleton";
 
@@ -41,6 +42,16 @@ export function PageListBody({
 	onLoadMore,
 	onPin,
 }: PageListBodyProps) {
+	const rows = useMemo(
+		() =>
+			pages.map((page) => ({
+				page,
+				publishedBy: page.publishedBy.displayName ?? page.publishedBy.name,
+				age: compactRelativeTime(page.publishedAt),
+				watcher: page.watcher?.agent.name ?? null,
+			})),
+		[pages],
+	);
 	if (pending) return <PageListSkeleton />;
 	if (pages.length === 0 && error !== null) {
 		return (
@@ -91,16 +102,16 @@ export function PageListBody({
 				/>
 			)}
 			<ul aria-label="Pages">
-				{pages.map((page) => (
+				{rows.map(({ page, publishedBy, age, watcher }) => (
 					<PageRow
 						key={page.id}
 						title={page.title}
 						summary={page.summary}
 						latestVersion={page.latestVersion}
-						publishedBy={page.publishedBy.displayName ?? page.publishedBy.name}
+						publishedBy={publishedBy}
 						publishedAt={page.publishedAt}
-						age={compactRelativeTime(page.publishedAt)}
-						watcher={page.watcher?.agent.name ?? null}
+						age={age}
+						watcher={watcher}
 						openThreadCount={page.openThreadCount}
 						pinned={page.pinned}
 						deleted={page.deletedAt !== null}
