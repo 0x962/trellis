@@ -19,7 +19,7 @@ import { SessionActionsMenu } from "../../../SessionActionsMenu";
 import { SessionName } from "../../../SessionName";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
-import { nextSessionRow, SESSION_ROW_HEIGHT, sessionRowRange } from "../../sessionGroups";
+import { keptSessionRows, nextSessionRow, SESSION_ROW_HEIGHT, sessionRowRange } from "../../sessionGroups";
 import { RunLineChanges } from "./components/RunLineChanges";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
@@ -29,7 +29,8 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
 	minute: "2-digit",
 });
 
-const rowIndexOf = (target: EventTarget) => Number((target as HTMLElement).closest("li")?.dataset.index);
+const rowOf = (target: EventTarget) => (target as HTMLElement).closest("li")!;
+const controlsOf = (item: Element) => [...item.querySelectorAll("button")];
 
 // One group of the session list. The rows of every group scroll in one box,
 // which `SessionList` owns and passes as `scroller`. The group draws only
@@ -71,14 +72,16 @@ export function SessionGroup({
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [renamingId, setRenamingId] = useState<string | null>(null);
-	const [focusedIndex, setFocusedIndex] = useState<number>();
+	// The run the keyboard focus stands on, and the run the Tab key asks
+	// for while its row is outside the tree. Both hold the ID of the run and
+	// not its place, because a poll every two seconds can move a run in the
+	// list or drop it from the list.
+	const [focusedId, setFocusedId] = useState<string>();
 	const [scrollMargin, setScrollMargin] = useState(0);
 	const rowBox = useRef<HTMLUListElement>(null);
 	const selectedButton = useRef<HTMLButtonElement>(null);
-	// The row the Tab key asks for while it is still outside the tree. The
-	// effect below focuses it on the render that draws it.
-	const wantsFocus = useRef<number | null>(null);
-	const selectedIndex = runs.findIndex((run) => run.id === selectedId);
+	const wantsFocus = useRef<{ id: string; back: boolean } | null>(null);
+	const [selectedIndex, focusedIndex] = keptSessionRows(runs, [selectedId, focusedId]);
 	const revealId = selectedIndex === -1 ? undefined : selectedId;
 	useEffect(() => {
 		if (revealId || searching) uiActions.setGroupCollapsed(routeKey, group, false);
@@ -95,7 +98,7 @@ export function SessionGroup({
 	}, [collapsed, layout, scroller]);
 	const rangeExtractor = useCallback(
 		(range: Parameters<typeof defaultRangeExtractor>[0]) =>
-			sessionRowRange(defaultRangeExtractor(range), [selectedIndex === -1 ? undefined : selectedIndex, focusedIndex]),
+			sessionRowRange(defaultRangeExtractor(range), [selectedIndex!, focusedIndex!]),
 		[selectedIndex, focusedIndex],
 	);
 	const virtualizer = useVirtualizer({
@@ -111,12 +114,27 @@ export function SessionGroup({
 		getItemKey: (index) => runs[index]!.id,
 	});
 	const drawn = virtualizer.getVirtualItems();
+	// The request of the Tab key, once the row it names is in the tree. The
+	// Tab key walks forward to the first control of a row and back to the
+	// last control of a row, which is the menu of a session. A request for a
+	// run the list no longer holds ends here. A run the list still holds but
+	// does not draw gets one more scroll, because the list can move a run
+	// between the key and this render.
 	useEffect(() => {
-		const index = wantsFocus.current;
-		if (index === null) return;
-		const button = rowBox.current!.querySelector<HTMLElement>(`li[data-index="${index}"] button.sidebar-item`);
-		if (button === null) return;
-		button.focus({ preventScroll: true });
+		const request = wantsFocus.current;
+		if (request === null) return;
+		const index = runs.findIndex((run) => run.id === request.id);
+		if (index === -1) {
+			wantsFocus.current = null;
+			return;
+		}
+		const item = rowBox.current!.querySelector(`li[data-run="${request.id}"]`);
+		if (item === null) {
+			virtualizer.scrollToIndex(index, { align: "auto" });
+			return;
+		}
+		const controls = controlsOf(item);
+		(request.back ? controls[controls.length - 1]! : controls[0]!).focus({ preventScroll: true });
 		wantsFocus.current = null;
 	});
 	// The Tab key walks the rows of the list. The row after the last drawn
@@ -125,19 +143,21 @@ export function SessionGroup({
 	// request until the row renders.
 	const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
 		if (event.key !== "Tab") return;
-		const item = (event.target as HTMLElement).closest("li")!;
-		const buttons = [...item.querySelectorAll("button")];
-		if (event.target !== (event.shiftKey ? buttons[0] : buttons[buttons.length - 1])) return;
+		const item = rowOf(event.target);
+		const controls = controlsOf(item);
+		if (event.target !== (event.shiftKey ? controls[0] : controls[controls.length - 1])) return;
 		const next = nextSessionRow({
-			focused: Number(item.dataset.index),
+			focused: runs.findIndex((run) => run.id === item.dataset.run),
 			total: runs.length,
 			back: event.shiftKey,
 			drawn: drawn.map((row) => row.index),
 		});
 		if (next === null) return;
 		event.preventDefault();
+		// The request stands before the scroll, because the scroll can draw
+		// the row and run the effect above in the same turn.
+		wantsFocus.current = { id: runs[next]!.id, back: event.shiftKey };
 		virtualizer.scrollToIndex(next, { align: "auto" });
-		wantsFocus.current = next;
 	};
 	return (
 		<section aria-label={group === "sessions" ? "Sessions" : `${label} sessions`}>
@@ -158,8 +178,8 @@ export function SessionGroup({
 					className="relative mb-2"
 					style={{ height: `${virtualizer.getTotalSize()}px` }}
 					onKeyDown={onKeyDown}
-					onFocus={(event) => setFocusedIndex(rowIndexOf(event.target))}
-					onBlur={() => setFocusedIndex(undefined)}
+					onFocus={(event) => setFocusedId(rowOf(event.target).dataset.run)}
+					onBlur={() => setFocusedId(undefined)}
 				>
 					{drawn.map((virtual) => {
 						const run = runs[virtual.index]!;
@@ -213,7 +233,7 @@ export function SessionGroup({
 						return (
 							<li
 								key={virtual.key}
-								data-index={virtual.index}
+								data-run={run.id}
 								className="group/row absolute right-2 left-2"
 								style={{ top: `${virtual.start - scrollMargin}px`, height: `${SESSION_ROW_HEIGHT}px` }}
 							>
