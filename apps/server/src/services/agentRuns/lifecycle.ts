@@ -18,6 +18,19 @@ export const prepareStop = async (ctx: ServiceCtx, input: { id: string }) => {
 	return stopNative(ctx, run);
 };
 
+// Stops the process of a run and keeps its assignment, so a person resumes
+// the same conversation in the same workspace: `sessions.start` for a
+// session, `agentRuns.resume` for the agent of a ticket.
+//
+// A flow step ends with its process, and `closeExitedAssignments` closes its
+// run. A pause of such a run would leave a step that no flow can finish.
+export const preparePause = async (ctx: ServiceCtx, input: { id: string }) => {
+	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (run.runtime !== "native") throw invalidInput("id", "This historical assignment has no local process to pause.");
+	if (run.kind === "flow") throw invalidInput("id", "A flow step runs to its end. Stop the flow run instead.");
+	return stopNative(ctx, run, false);
+};
+
 export const prepareRefresh = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime !== "native") return input;

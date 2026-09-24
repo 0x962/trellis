@@ -1,1 +1,1 @@
-export { SessionDetails, type SessionDetailsProps } from "./SessionDetails";
+export { SessionDetails, type SessionDetailsDialogProps, type SessionDetailsProps } from "./SessionDetails";

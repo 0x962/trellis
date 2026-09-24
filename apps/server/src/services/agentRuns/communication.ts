@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
 import type { HarnessPreset } from "@trellis/api";
 import { errors } from "@trellis/api";
@@ -10,6 +9,7 @@ import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import type { ServiceCtx } from "../support.ts";
+import { attemptCapturePath } from "./attemptCapture.ts";
 import { historicalOutput } from "./history/historicalOutput.ts";
 import { nativeOutput } from "./nativeLifecycle.ts";
 import { getRun } from "./queries.ts";
@@ -101,8 +101,13 @@ export const prepareOutput = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime !== "native") return historicalOutput(ctx.home, run);
 	if (!run.terminalId) return { text: "The agent has no terminal yet." };
-	const capture = Bun.file(join(ctx.home, "agents", run.id, `output-${run.terminalId}.txt`));
-	if (run.closedAt !== null && (await capture.exists())) return { text: await capture.text() };
+	// `stopNative` writes this file when it stops the process, and every
+	// resume gives the run another terminal id. So a file named after the
+	// current terminal means that terminal is stopped, and it holds the
+	// whole output of it. The execution service forgets an exited terminal
+	// at its next start, so this file is the only copy after that.
+	const capture = Bun.file(attemptCapturePath(ctx.home, run.id, run.terminalId));
+	if (await capture.exists()) return { text: await capture.text() };
 	try {
 		return { text: await nativeOutput(ctx.home, run.terminalId) };
 	} catch (cause) {
