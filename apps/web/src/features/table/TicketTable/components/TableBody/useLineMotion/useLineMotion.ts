@@ -4,6 +4,11 @@ import { type RefObject, useLayoutEffect, useRef } from "react";
 import type { TableItem } from "../../../../utils/flattenGroups";
 import { ticketOrderChanged } from "./ticketOrderChanged";
 
+// True for the box that holds the header of one group. The browser reads the
+// offset and the height of that box to hold the header at the top of the
+// list, so nothing here writes to it.
+const isGroupBox = (line: HTMLElement) => line.dataset.waveBox !== undefined;
+
 // The offset that a line's `translateY` style gives it inside the virtual
 // body. The lines hold no other transform.
 const topOf = (line: HTMLElement) => new DOMMatrixReadOnly(line.style.transform).m42;
@@ -31,7 +36,7 @@ export function useLineMotion(body: RefObject<HTMLDivElement | null>, items: rea
 		const moved = ticketOrderChanged(ticketIds.current, ids);
 		ticketIds.current = ids;
 		if (body.current === null) return;
-		const lines = [...body.current.children] as HTMLElement[];
+		const lines = ([...body.current.children] as HTMLElement[]).filter((line) => !isGroupBox(line));
 		const previous = new Map(lines.map((line) => [line, tops.current.get(line)]));
 		for (const line of lines) tops.current.set(line, topOf(line));
 		if (!moved || reducedMotion) return;

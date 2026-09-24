@@ -1,16 +1,7 @@
-import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
 import { CheckConfetti, cx, useMediaQuery } from "@trellis/ui";
-import {
-	type MouseEvent,
-	type RefObject,
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type MouseEvent, type RefObject, useMemo, useRef } from "react";
+import { useStableCallback } from "../../../../../hooks/useStableCallback";
 import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
 import type { ColumnId, TableKind } from "../../../columns";
@@ -18,16 +9,18 @@ import { phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
-import { agentLineHeight, groupHeaderHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
+import { groupHeaderHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
 import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import type { WaveHeaderOptions } from "../../../WaveHeader";
+import { waveBoxes } from "../../waveBoxes";
 import { EmptyWaveLine } from "../EmptyWaveLine";
 import { GroupHeaderLine } from "../GroupHeaderLine";
-import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
+import { ShowMoreRow } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
 import { useCheckConfetti } from "./useCheckConfetti";
 import { useDoneWash } from "./useDoneWash";
 import { useLineMotion } from "./useLineMotion";
+import { useTableVirtualizer } from "./useTableVirtualizer";
 import { useWaveDrop } from "./useWaveDrop";
 
 export type TableBodyProps = {
@@ -62,6 +55,8 @@ export type TableBodyProps = {
 	// The wave controls of a table of one epic: the header actions of each
 	// wave, and the drop of dragged rows into a wave group.
 	waves?: WaveHeaderOptions & { onDrop: (ticketIds: string[], group: TableGroup) => void };
+	// True on a table whose groups are the waves of one epic.
+	pinHeaders?: boolean;
 	// True while the bulk bar shows. The list then gets 72 px of room under
 	// its last row, so that row can scroll clear of the bar.
 	bottomRoom: boolean;
@@ -73,17 +68,6 @@ export type TableBodyProps = {
 // gives the bar.
 const ribbonHeight = 12;
 
-const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
-	if (item.kind === "header") return headerHeight;
-	if (item.kind === "agent") return agentLineHeight;
-	if (item.kind === "pr") return prRowHeight;
-	if (item.kind === "more") return showMoreHeight;
-	return rowHeight;
-};
-
-// The scroll container and the virtual list inside it. Every line but the
-// agent line has a fixed height. An agent line wraps its words, so the
-// virtualizer measures it once it renders and moves the lines below it.
 export function TableBody({
 	items: allItems,
 	tableKind,
@@ -107,6 +91,7 @@ export function TableBody({
 	onCreateInGroup,
 	onStartGroup,
 	waves,
+	pinHeaders = false,
 	bottomRoom,
 }: TableBodyProps) {
 	const viewport = useRef<HTMLDivElement>(null);
@@ -116,39 +101,13 @@ export function TableBody({
 	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
 	const headerHeight = phone ? phoneGroupHeaderHeight : groupHeaderHeight;
 	const items = useMemo(() => (phone ? phoneItems(allItems) : allItems), [phone, allItems]);
-	const [initialRect, setInitialRect] = useState({ width: 0, height: 0 });
-	useLayoutEffect(() => {
-		const { width, height } = viewport.current!.getBoundingClientRect();
-		setInitialRect({ width, height });
-	}, []);
-	const headerIndexes = useMemo(() => items.flatMap((item, index) => (item.kind === "header" ? [index] : [])), [items]);
-	const rangeExtractor = useCallback(
-		(range: Parameters<typeof defaultRangeExtractor>[0]) =>
-			[...new Set([...defaultRangeExtractor(range), ...headerIndexes])].sort((a, b) => a - b),
-		[headerIndexes],
-	);
-	const virtualizer = useVirtualizer({
-		count: items.length,
-		getScrollElement: () => viewport.current,
-		estimateSize: (index) => heightOf(items[index]!, rowHeight, headerHeight),
-		enabled: initialRect.height > 0,
-		initialRect,
-		observeElementRect: (instance, callback) => {
-			const element = instance.scrollElement!;
-			let previous = { width: 0, height: 0 };
-			const update = () => {
-				const { width, height } = element.getBoundingClientRect();
-				if (width === previous.width && height === previous.height) return;
-				previous = { width, height };
-				callback({ width, height });
-			};
-			update();
-			instance.targetWindow!.addEventListener("resize", update);
-			return () => instance.targetWindow!.removeEventListener("resize", update);
-		},
-		overscan: 8,
-		rangeExtractor,
-		getItemKey: (index) => items[index]!.key,
+	const { virtualizer, headerIndexes } = useTableVirtualizer({
+		viewport,
+		items,
+		rowHeight,
+		headerHeight,
+		pendingFocus,
+		scrollPaddingStart: pinHeaders ? headerHeight : 0,
 	});
 
 	useLineMotion(body, items);
@@ -159,26 +118,20 @@ export function TableBody({
 		waves?.onDrop(ids, group),
 	);
 
-	// A density or a width change resizes every line.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the line heights are the trigger; the virtualizer is stable
-	useEffect(() => virtualizer.measure(), [rowHeight, headerHeight]);
-
-	useEffect(() => {
-		const id = pendingFocus.current;
-		if (id === null) return;
-		const index = items.findIndex((item) => item.kind === "row" && item.ticket.id === id);
-		if (index === -1) {
-			pendingFocus.current = null;
-			return;
-		}
-		virtualizer.scrollToIndex(index, { align: "auto" });
-		const element = viewport.current?.querySelector<HTMLElement>(
-			`[role="row"][data-identifier="${(items[index] as { ticket: TicketSummary }).ticket.identifier}"]`,
-		);
-		if (element === null || element === undefined) return;
-		element.focus({ preventScroll: true });
-		pendingFocus.current = null;
+	// One callback for every row. A new one per row on each render of the
+	// body defeats the memo of `Row`.
+	const focusRow = useStableCallback((id: string) => {
+		if (pendingFocus.current === null) onFocusRow(id);
 	});
+
+	// `getTotalSize` refreshes `measurementsCache`, which carries the height an
+	// agent line took after it wrapped, so each box ends where the header line
+	// of the next group starts.
+	const totalSize = virtualizer.getTotalSize();
+	const boxes = pinHeaders ? waveBoxes(headerIndexes, virtualizer.measurementsCache, totalSize) : undefined;
+	// A row that the browser scrolls into view lands under the header that
+	// stands at the top of the list, not behind it.
+	const scrollRoom = pinHeaders ? { scrollPaddingTop: `${headerHeight}px` } : undefined;
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: the grid is virtualized, so its rows are absolutely positioned divs.
@@ -191,6 +144,7 @@ export function TableBody({
 			data-table-viewport=""
 			data-selecting={selection.count > 0 ? "" : undefined}
 			tabIndex={-1}
+			style={scrollRoom}
 			className={cx("min-h-0 flex-1 overflow-auto outline-none [scrollbar-gutter:stable]", bottomRoom && "pb-18")}
 		>
 			{loading ? (
@@ -199,7 +153,7 @@ export function TableBody({
 				<div
 					ref={body}
 					data-table-body=""
-					style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+					style={{ height: `${totalSize}px`, position: "relative" }}
 					{...(waves === undefined ? {} : drop.handlers)}
 				>
 					{virtualizer.getVirtualItems().map((virtual) => {
@@ -210,6 +164,7 @@ export function TableBody({
 									key={virtual.key}
 									group={item.group}
 									top={virtual.start}
+									box={boxes?.get(virtual.index)}
 									phone={phone}
 									filling={wash.waves.includes(item.group.key)}
 									waves={waves}
@@ -277,9 +232,7 @@ export function TableBody({
 								selecting={selection.count > 0}
 								editing={editing?.id === ticket.id ? editing.field : null}
 								statuses={statuses}
-								onFocus={(id) => {
-									if (pendingFocus.current === null) onFocusRow(id);
-								}}
+								onFocus={focusRow}
 								onClick={onRowClick}
 								onToggleDisclosure={onToggleTicket}
 								onOpen={onOpen}
