@@ -30,8 +30,9 @@ export type ProcedureContext = {
 
 const base = implement(contract).$context<ProcedureContext>();
 
-// A read ignores the header, so a malformed one on a GET is not an error.
-// A mutation needs it: missing is ACTOR_REQUIRED, malformed is ACTOR_INVALID.
+// A read does not require the actor header, so a malformed header on a GET is
+// not an error. A mutation needs it: missing is ACTOR_REQUIRED, and malformed
+// is ACTOR_INVALID.
 const requireActor = base.middleware(async ({ context, next, procedure }) => {
 	const method = procedure["~orpc"].route.method ?? "POST";
 	if (method === "GET") return next();
@@ -59,10 +60,13 @@ const declaredValidation = base.middleware(async ({ next }) => {
 // a request without the header answers ACTOR_REQUIRED before any schema runs.
 export const os = base.use(declaredValidation).use(requireActor);
 
+const actorAwareReads: ReadonlySet<ServiceName> = new Set(["agentRuns.list", "pages.list", "pages.get"]);
+
 // Runs one service through the transport with the context of this request.
 export const call = <T>(context: ProcedureContext, name: ServiceName, input: unknown): Promise<T> => {
-	const readActor =
-		name === "agentRuns.list" ? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor")) : null;
+	const readActor = actorAwareReads.has(name)
+		? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor"))
+		: null;
 	const ctx: RequestContext = {
 		actor: context.actor ?? (readActor?.success ? readActor.data : null),
 		session: context.headers.get("x-trellis-session"),
@@ -86,7 +90,7 @@ export const withIfMatch = <T extends { expectedVersion?: number }>(context: Pro
 	if (header === null) return input;
 	const match = IF_MATCH.exec(header);
 	if (match === null)
-		throw invalidInput("If-Match", 'If-Match must be the ticket version in quotes, for example If-Match: "3".');
+		throw invalidInput("If-Match", 'If-Match must be the current version in quotes, for example If-Match: "3".');
 	const version = Number(match[1]);
 	if (input.expectedVersion !== undefined && input.expectedVersion !== version) {
 		throw invalidInput(

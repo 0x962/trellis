@@ -6,8 +6,7 @@ import { at } from "./actors.ts";
 // Every project stands on its own. `key` is the prefix of every ticket
 // identifier of the project, and `ticket_counter` is the last number it
 // handed out. `slug` is the lower-case second name a client may type in
-// place of the key. The slugs `board` and `settings` are web routes under
-// a project URL, so no project takes them.
+// place of the key. A project slug cannot match a route under a project URL.
 // `color` is the name of one of the five color slots, and the index below
 // gives a slot to one active project at a time. A project without a color
 // holds NULL, and any number of projects hold NULL. An archived project
@@ -33,7 +32,7 @@ export const projects = pgTable(
 		check("projects_key_check", sql`${t.key} ~ '^[A-Z][A-Z0-9]{1,9}$'`),
 		check(
 			"projects_slug_check",
-			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'settings')`,
+			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'pages', 'settings')`,
 		),
 		check("projects_name_check", sql`length(${t.name}) BETWEEN 1 AND 120`),
 		checkIn(t.color, PROJECT_COLORS),

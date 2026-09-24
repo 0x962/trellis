@@ -12,6 +12,7 @@ import { labels } from "./labels.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
+import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { resourceComments } from "./resourceComments.ts";
@@ -48,6 +49,7 @@ export const contract = {
 	tickets: oc.tag("tickets").router(tickets),
 	timeline: oc.tag("timeline").router(timeline),
 	notes: oc.tag("notes").router(notes),
+	pages: oc.tag("pages").router(pages),
 	epics: oc.tag("epics").router(epics),
 	waves: oc.tag("waves").router(waves),
 	attachments: oc.tag("attachments").router(attachments),
