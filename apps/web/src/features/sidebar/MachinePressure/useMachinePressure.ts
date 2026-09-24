@@ -47,11 +47,24 @@ export function useMachinePressure(includeRuns: boolean) {
 		...orpc.system.pressure.queryOptions({ input: { includeRuns } }),
 		refetchInterval: PRESSURE_POLL_MS,
 	});
-	const thermalCycle = useDesktopThermalSample(pressure.dataUpdatedAt);
-	const sample = pressure.data;
+	const [lastCycle, setLastCycle] = useState<{
+		sample: NonNullable<typeof pressure.data>;
+		updatedAt: number;
+	} | null>(null);
+	useEffect(() => {
+		const sample = pressure.data;
+		if (!sample) return;
+		setLastCycle((current) =>
+			current && current.updatedAt >= pressure.dataUpdatedAt ? current : { sample, updatedAt: pressure.dataUpdatedAt },
+		);
+	}, [pressure.data, pressure.dataUpdatedAt]);
+	const currentIsNewest = pressure.data !== undefined && pressure.dataUpdatedAt >= (lastCycle?.updatedAt ?? 0);
+	const sample = currentIsNewest ? pressure.data : lastCycle?.sample;
+	const sampleUpdatedAt = currentIsNewest ? pressure.dataUpdatedAt : (lastCycle?.updatedAt ?? 0);
+	const thermalCycle = useDesktopThermalSample(sampleUpdatedAt);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: A failed poll changes only `errorUpdatedAt`, and that change must age the last sample.
 	useEffect(() => {
-		if (!sample || thermalCycle.refreshedAt !== pressure.dataUpdatedAt) return;
+		if (!sample || thermalCycle.refreshedAt !== sampleUpdatedAt) return;
 		const now = Date.now();
 		const sampledAt = Date.parse(sample.sampledAt);
 		const processorTemperature = sample.processorTemperature;
@@ -73,6 +86,6 @@ export function useMachinePressure(includeRuns: boolean) {
 		const state = monitor.current.update(readings, now);
 		const machine = machinePressureView(sample, state, now);
 		setMachines([machine]);
-	}, [pressure.dataUpdatedAt, pressure.errorUpdatedAt, sample, thermalCycle]);
+	}, [pressure.errorUpdatedAt, sample, sampleUpdatedAt, thermalCycle]);
 	return machines;
 }
