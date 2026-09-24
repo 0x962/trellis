@@ -1,11 +1,18 @@
 import { GroupHeader } from "../../../GroupHeader";
 import type { TableGroup } from "../../../utils/flattenGroups";
 import { type WaveHeaderOptions, waveHeaderParts } from "../../../WaveHeader";
+import type { WaveBox } from "../waveBoxes";
 
 export type GroupHeaderLineProps = {
 	group: TableGroup;
 	// The offset inside the virtual body.
 	top: number;
+	// The offset and the height of the box that the group owns, from this
+	// header line to the header line of the next group. The header stands at
+	// the top of the scroll container while that box passes, and the box ends
+	// where the next header starts, so the next header pushes this one out.
+	// Undefined on a table that does not hold its headers at the top.
+	box?: WaveBox;
 	phone: boolean;
 	// True while the progress circle of the wave fills to full, because the
 	// last open ticket of the wave was marked done a moment ago.
@@ -23,6 +30,7 @@ export type GroupHeaderLineProps = {
 export function GroupHeaderLine({
 	group,
 	top,
+	box,
 	phone,
 	filling,
 	waves,
@@ -30,7 +38,7 @@ export function GroupHeaderLine({
 	onCreateInGroup,
 	onStartGroup,
 }: GroupHeaderLineProps) {
-	return (
+	const header = (
 		<GroupHeader
 			group={group.key}
 			label={group.label ?? ""}
@@ -53,7 +61,22 @@ export function GroupHeaderLine({
 			}
 			{...(waves === undefined ? undefined : waveHeaderParts(group, waves))}
 			phone={phone}
-			top={top}
+			top={box === undefined ? top : undefined}
+			sticky={box !== undefined}
 		/>
+	);
+	if (box === undefined) return header;
+	// The browser holds the header at the top of the scroll container and
+	// stops at the bottom edge of this box, with no work on each scroll
+	// event. The box takes no `transform`, because a transformed parent can
+	// stop a browser from holding its child at the top.
+	return (
+		<div
+			data-wave-box={group.key}
+			style={{ top: `${box.top}px`, height: `${box.height}px` }}
+			className="absolute left-0 w-full"
+		>
+			{header}
+		</div>
 	);
 }
