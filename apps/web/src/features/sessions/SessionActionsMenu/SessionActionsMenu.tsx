@@ -1,4 +1,4 @@
-import { DotsThree, FolderSimple, PencilSimple, Trash, UserSwitch } from "@phosphor-icons/react";
+import { DotsThree, FolderSimple, Info, PencilSimple, Trash, UserSwitch } from "@phosphor-icons/react";
 import type { AgentRun, Session } from "@trellis/api";
 import { type ButtonVariant, IconButton, Menu, type MenuItem } from "@trellis/ui";
 import { useState } from "react";
@@ -20,6 +20,10 @@ export type SessionActionsMenuProps = {
 	deleteDisabled?: boolean;
 	onDeleted?: () => void;
 	onRename?: () => void;
+	// Opens the session details. The conversation header passes it, because
+	// it holds the workspace read that those details show. A session row
+	// passes none, so its menu carries no details row.
+	onSessionDetails?: () => void;
 };
 
 export function SessionActionsMenu({
@@ -31,12 +35,14 @@ export function SessionActionsMenu({
 	deleteDisabled = false,
 	onDeleted,
 	onRename,
+	onSessionDetails,
 }: SessionActionsMenuProps) {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
 	const name = session?.name ?? run!.name;
 	const items: MenuItem[] = [];
+	if (onSessionDetails) items.push({ label: "Session details", icon: <Info />, onSelect: onSessionDetails });
 	if (run) {
 		items.push({
 			label: "Switch account",

@@ -30,7 +30,17 @@ export const nativeOutput = async (home: string, terminalId: string) => {
 	return Buffer.concat(chunks).toString("utf8");
 };
 
-export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
+// Stops the native process of a run and keeps its terminal output on disk.
+//
+// `close` writes `closed_at`, which ends the assignment: `assigned` in
+// `liveState.ts` is `closed_at IS NULL`. A pause passes false, so the run
+// keeps its assignment. The ticket keeps its agent, and the session keeps
+// its place in the session list.
+//
+// The UPDATE names the terminal that the caller read. A resume between that
+// read and this write gives the run another terminal id, and the write then
+// changes no row, so neither a stop nor a pause touches the newer attempt.
+export const stopNative = async (ctx: ServiceCtx, run: StoredRun, close = true) => {
 	let client = nativeClient(ctx.home);
 	try {
 		await client.hello();
@@ -55,9 +65,13 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 		});
 	}
 	await ctx.newTx((tx) =>
-		tx.execute(
-			sql`UPDATE agent_runs SET closed_at = ${ctx.now()}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id IS NOT DISTINCT FROM ${run.terminalId}`,
-		),
+		close
+			? tx.execute(
+					sql`UPDATE agent_runs SET closed_at = ${ctx.now()}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id IS NOT DISTINCT FROM ${run.terminalId}`,
+				)
+			: tx.execute(
+					sql`UPDATE agent_runs SET updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id IS NOT DISTINCT FROM ${run.terminalId}`,
+				),
 	);
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
 	return { id: run.id };
@@ -74,7 +88,7 @@ export const refreshNative = async (
 			await ctx.newTx((tx) =>
 				tx.execute(
 					sql`UPDATE agent_runs SET closed_at = coalesce(closed_at, ${ctx.now()}) WHERE id = ${run.id} AND terminal_id = ${run.terminalId}
-					AND kind <> 'agent'`,
+					AND kind NOT IN ('agent', 'session')`,
 				),
 			);
 	}

@@ -7,14 +7,17 @@ export type SessionPane =
 	// the line that the execution service recorded, such as the path of the
 	// binary and the exit code it returned.
 	| { kind: "failed"; title: string; description: string; detail: string | null }
-	// The process ended, and nothing went wrong. A person pressed Stop, or
+	// The process ended, and nothing went wrong. A person pressed Pause, or
 	// the agent finished and the process closed.
-	| { kind: "stopped"; title: string; description: string };
+	| { kind: "paused"; title: string; description: string };
 
 // A terminal draws the output of a live process. A process that ended
-// takes its buffer with it, so the pane says why the process is gone and
-// offers the control that starts a new one. A run that another runtime
-// owns keeps its own view, because trellis starts no process for it.
+// takes its buffer with it, so the pane says why the process is gone. A run
+// that another runtime owns keeps its own view, because trellis starts no
+// process for it.
+//
+// No block here carries a button. The conversation header holds the one
+// control that starts the process again.
 export function sessionPane(run: AgentRun): SessionPane {
 	if (run.runtime !== "native" || run.state === "starting" || hasAssignedProcess(run)) return { kind: "terminal" };
 	if (run.state === "failed" || run.error !== null)
@@ -26,9 +29,10 @@ export function sessionPane(run: AgentRun): SessionPane {
 			detail: run.error,
 		};
 	return {
-		kind: "stopped",
-		title: "The agent is not running",
-		description: "Trellis keeps the workspace and every file in it. Start the agent to open its terminal again.",
+		kind: "paused",
+		title: "The agent is paused",
+		description:
+			"Trellis keeps the conversation, the workspace and every file in it. Resume opens the same conversation in the same workspace.",
 	};
 }
 

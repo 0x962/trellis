@@ -34,5 +34,6 @@ export const agentRuns = os.agentRuns.router({
 	),
 	start: os.agentRuns.start.handler(({ context, input }) => call(context, "agentRuns.start", input)),
 	stop: os.agentRuns.stop.handler(({ context, input }) => call(context, "agentRuns.stop", input)),
+	pause: os.agentRuns.pause.handler(({ context, input }) => call(context, "agentRuns.pause", input)),
 	refresh: os.agentRuns.refresh.handler(({ context, input }) => call(context, "agentRuns.refresh", input)),
 });

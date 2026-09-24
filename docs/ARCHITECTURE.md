@@ -653,6 +653,8 @@ Sidebar work indicators request assigned runs. Individual agent views request th
 An active background launch reports `starting` until the runtime has a process.
 Otherwise, a missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
+A pause stops the process and writes no `closed_at`, so the ticket keeps its agent and the session keeps its place in the session list.
+A flow run closes when its process exits. A ticket agent and a session keep the assignment until a person unassigns or archives it.
 
 The ticket page uses three separate metric definitions. Tokens burned sums the latest provider-recorded cumulative total for each agent session.
 Multiple execution attempts for one agent session contribute only the largest cumulative total. A ticket shows Unavailable when any agent run has no recorded total.
@@ -1082,6 +1084,7 @@ returns one canonical spelling.
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET and POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
+| agentRuns.pause | POST /api/agent-runs/{id}/pause | stops the process and keeps the assignment, the conversation and the workspace; refuses a flow run |
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |

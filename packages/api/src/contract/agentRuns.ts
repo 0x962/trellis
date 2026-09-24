@@ -235,6 +235,16 @@ export const agentRuns = {
 		.route({ method: "POST", path: "/agent-runs/{id}/stop", summary: "Stop an agent" })
 		.input(idInput)
 		.output(AgentRunSchema),
+	pause: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/pause",
+			summary:
+				"Stop the process of a session or a ticket agent and keep its assignment, its conversation and its workspace. A resume continues the same conversation.",
+		})
+		.input(idInput)
+		.output(AgentRunSchema),
 	refresh: base
 		.route({ method: "POST", path: "/agent-runs/{id}/refresh", summary: "Check an agent terminal" })
 		.input(idInput)

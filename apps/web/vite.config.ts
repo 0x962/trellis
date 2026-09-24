@@ -31,6 +31,7 @@ export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	ExclamationMark: ["bold"],
 	LockSimple: ["fill"],
 	Minus: ["bold"],
+	Pause: ["fill"],
 	Play: ["fill"],
 	Robot: ["bold"],
 	Star: ["fill"],

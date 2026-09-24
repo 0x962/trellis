@@ -207,6 +207,7 @@ export const services = {
 	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.switchAccount": agentMutation(prepareSwitchAccount),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
+	"agentRuns.pause": agentMutation(agentLifecycle.preparePause),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"flows.list": core("read", flows.list),
 	"flows.get": core("read", flows.get),

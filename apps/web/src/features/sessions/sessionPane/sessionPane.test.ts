@@ -50,14 +50,19 @@ describe("sessionPane", () => {
 		if (pane.kind === "failed") expect(pane.title).not.toContain("exited with code");
 	});
 
-	test("calls a clean stop no failure", () => {
+	test("calls a clean stop a pause, and names what a resume keeps", () => {
 		const pane = sessionPane(run({ state: "stopped", processStatus: "exited" }));
 
 		expect(pane).toEqual({
-			kind: "stopped",
-			title: "The agent is not running",
-			description: "Trellis keeps the workspace and every file in it. Start the agent to open its terminal again.",
+			kind: "paused",
+			title: "The agent is paused",
+			description:
+				"Trellis keeps the conversation, the workspace and every file in it. Resume opens the same conversation in the same workspace.",
 		});
+	});
+
+	test("keeps a failed process out of the paused words", () => {
+		expect(sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine })).kind).toBe("failed");
 	});
 });
 

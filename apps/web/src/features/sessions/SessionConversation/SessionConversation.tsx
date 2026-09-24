@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, Button, ConfirmDialog, EmptyState, FailureState, toast } from "@trellis/ui";
+import { Avatar, EmptyState, FailureState, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -10,8 +10,7 @@ import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
-import { canStartAgent, sessionPane } from "../sessionPane";
-import { sessionStateLabel } from "../sessionStateLabel";
+import { sessionPane } from "../sessionPane";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -41,7 +40,6 @@ export function SessionConversation({
 	headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
 	const { client, orpc, queryClient } = useApp();
-	const [confirmStop, setConfirmStop] = useState(false);
 	const [renaming, setRenaming] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const headingElement = headingRef ?? localHeading;
@@ -66,9 +64,11 @@ export function SessionConversation({
 		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
-	const stop = useMutation({
-		mutationFn: () => client.agentRuns.stop({ id: run.id }),
-		onSuccess: () => setConfirmStop(false),
+	// A pause stops the process and keeps the assignment, the conversation
+	// and the workspace. The ticket page holds the action that ends an
+	// assignment.
+	const pause = useMutation({
+		mutationFn: () => client.agentRuns.pause({ id: run.id }),
 		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
@@ -76,7 +76,7 @@ export function SessionConversation({
 	// does not move when the workspace of a new run appears.
 	const native = run.runtime === "native";
 	const summary = useWorkspaceSummary(run, { focus: true }).data;
-	const busy = start.isPending || stop.isPending;
+	const busy = start.isPending || pause.isPending;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
 	const heading = (
 		<h2
@@ -90,12 +90,6 @@ export function SessionConversation({
 		</h2>
 	);
 	const pane = sessionPane(run);
-	const canStart = canStartAgent(run, session !== undefined);
-	const startButton = (
-		<Button size="md" disabled={readOnly || !canStart} processing={start.isPending} onClick={() => start.mutate()}>
-			Start the agent
-		</Button>
-	);
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -124,7 +118,6 @@ export function SessionConversation({
 					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
-				<span className="text-xs text-fg-muted">{sessionStateLabel(run)}</span>
 				<SessionBarActions
 					run={run}
 					session={session}
@@ -134,7 +127,7 @@ export function SessionConversation({
 					readOnly={readOnly}
 					onOpenTicket={onOpenTicket}
 					onStart={() => start.mutate()}
-					onStop={() => setConfirmStop(true)}
+					onPause={() => pause.mutate()}
 					onRename={session ? () => setRenaming(true) : undefined}
 					onDeleted={onDeleted}
 				/>
@@ -147,21 +140,11 @@ export function SessionConversation({
 			<PendingQuestions run={run} readOnly={readOnly} />
 			<div className="flex min-h-0 flex-1 flex-col">
 				{pane.kind === "failed" ? (
-					<FailureState
-						variant="page"
-						title={pane.title}
-						description={pane.description}
-						detail={pane.detail}
-						action={canStart ? startButton : undefined}
-					/>
-				) : pane.kind === "stopped" ? (
-					<EmptyState
-						variant="page"
-						image={null}
-						title={pane.title}
-						description={pane.description}
-						action={canStart ? startButton : undefined}
-					/>
+					<FailureState variant="page" title={pane.title} description={pane.description} detail={pane.detail} />
+				) : pane.kind === "paused" ? (
+					// The page variant draws the picture that every page-level state
+					// of the app draws. A pause is no failure, so the block keeps it.
+					<EmptyState variant="page" title={pane.title} description={pane.description} />
 				) : run.terminalId ? (
 					<NativeTerminal
 						key={run.terminalId}
@@ -181,16 +164,6 @@ export function SessionConversation({
 					/>
 				)}
 			</div>
-			<ConfirmDialog
-				open={confirmStop}
-				title={run.kind === "agent" ? "Remove this assignment?" : `Stop ${name}?`}
-				description="The workspace and its files stay available."
-				confirmLabel={run.kind === "agent" ? "Remove assignment" : "Stop session"}
-				danger
-				processing={stop.isPending}
-				onConfirm={() => stop.mutate()}
-				onCancel={() => setConfirmStop(false)}
-			/>
 		</section>
 	);
 }

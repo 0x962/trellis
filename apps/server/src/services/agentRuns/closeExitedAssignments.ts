@@ -3,7 +3,11 @@ import { rows, textArray } from "../../db/queries/support.ts";
 import type { ServiceCtx } from "../support.ts";
 import { readRuntimeSessions } from "./liveState.ts";
 
-// Idle expiry preserves assignments so a follow-up can resume the saved conversation.
+// A run that a ticket or a session holds keeps its assignment when its
+// process ends, so a follow-up resumes the saved conversation. The ticket
+// keeps its agent until a person unassigns it, and the session keeps its
+// place in the session list until a person archives it. A flow run closes
+// here, because a flow step ends with its process.
 // The runtime query selects only open runs to keep the response bounded.
 export async function closeExitedAssignments(ctx: ServiceCtx, read = readRuntimeSessions) {
 	const open = await ctx.newTx((tx) =>
@@ -31,7 +35,7 @@ export async function closeExitedAssignments(ctx: ServiceCtx, read = readRuntime
 			);
 		await tx.execute(
 			sql`UPDATE agent_runs SET closed_at = ${ctx.now()} WHERE runtime = 'native' AND closed_at IS NULL
-			AND kind <> 'agent'
+			AND kind NOT IN ('agent', 'session')
 			AND terminal_id = ANY(${textArray(exited.filter((session) => session.stopReason !== "idle").map((session) => session.id))})`,
 		);
 	});
