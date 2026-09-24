@@ -8,6 +8,9 @@ export const PAGE_SUMMARY_MAX = 2000;
 export const PAGE_DOCUMENT_MAX_BYTES = 16 * 1024 * 1024;
 export const PAGE_ASSET_MAX_BYTES = 100 * 1024 * 1024;
 export const PAGE_ASSET_PATH_MAX = 1024;
+// The document of a version answers to this one name. No asset row can hold
+// it, because the CHECK of `page_assets` refuses it.
+export const PAGE_DOCUMENT_PATH = "index.html";
 
 export const PageTitleSchema = z
 	.string()

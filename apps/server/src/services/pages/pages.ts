@@ -14,13 +14,21 @@ import {
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../../context.ts";
-import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
-import { decodeCursor, encodeCursor, isIsoTimestamp, iso, rows } from "../../db/queries/support.ts";
+import { decodeCursor, encodeCursor, isIsoTimestamp, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
-import { PAGE_RETENTION_MS, pageSelect, pinOf, type RawPage, type RawVersion, toSummary, toVersion } from "./rows.ts";
+import {
+	PAGE_RETENTION_MS,
+	pageSelect,
+	pinOf,
+	type RawPage,
+	type RawVersionDetail,
+	toSummary,
+	toVersion,
+	versionColumns,
+} from "./rows.ts";
 
 const pageByWhere = async (ctx: ServiceCtx, tx: Tx, where: SQL, includeDeleted: boolean, lock: boolean) => {
 	const [row] = await rows<RawPage>(
@@ -43,13 +51,16 @@ const resolve = async (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted: boo
 	return row;
 };
 
-const resolvePage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
+export const resolvePage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
 	resolve(ctx, tx, ref, includeDeleted, false);
 
-const lockPage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
+// The page row of `ref`, held against another writer until this transaction
+// ends. A publication and a metadata change both take it before they read
+// the revision, so two callers cannot pass one revision check.
+export const lockPage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
 	resolve(ctx, tx, ref, includeDeleted, true);
 
-const byId = async (ctx: ServiceCtx, tx: Tx, id: string) => {
+export const pageById = async (ctx: ServiceCtx, tx: Tx, id: string) => {
 	const row = await pageByWhere(ctx, tx, sql`p.id = ${id}`, true, false);
 	if (row === undefined) throw fail("NOT_FOUND", { kind: "page", ref: id });
 	return row;
@@ -172,13 +183,9 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<P
 	const input = PageGetInputSchema.parse(rawInput);
 	const page = await resolvePage(ctx, tx, input.page, input.includeDeleted);
 	const number = input.version ?? page.latest_version;
-	const [version] = await rows<RawVersion>(
+	const [version] = await rows<RawVersionDetail>(
 		tx,
-		sql`SELECT
-		v.page_id, v.number, v.request_id, v.label, v.document_sha256, v.document_size,
-		v.source_agent_id, v.source_path, v.actor_name, v.actor_kind,
-		${actorDisplayName(sql`v.actor_name`, sql`v.actor_kind`)} AS actor_display_name,
-		${iso(sql`v.created_at`)} AS created_at,
+		sql`SELECT ${versionColumns},
 		(SELECT count(*)::int FROM page_assets asset WHERE asset.page_id = v.page_id AND asset.version = v.number) AS asset_count,
 		(SELECT count(*)::int FROM page_comment_threads thread WHERE thread.page_id = v.page_id AND thread.version = v.number) AS total_thread_count,
 		(SELECT count(*)::int FROM page_comment_threads thread WHERE thread.page_id = v.page_id AND thread.version = v.number AND thread.resolved_at IS NOT NULL) AS resolved_thread_count
@@ -217,7 +224,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	await tx.execute(sql`UPDATE pages SET ${sql.join(sets, sql`, `)}, version = version + 1,
 		actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
-	return toSummary(await byId(ctx, tx, page.id));
+	return toSummary(await pageById(ctx, tx, page.id));
 };
 
 export const pin = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
@@ -263,7 +270,7 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		version = version + 1, updated_at = ${ctx.now} WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	if (removedWatch.length > 0) ctx.emit({ type: "page-watches.changed", projectId: page.project_id, pageId: page.id });
-	return toSummary(await byId(ctx, tx, page.id));
+	return toSummary(await pageById(ctx, tx, page.id));
 };
 
 export const restore = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PageSummary> => {
@@ -281,5 +288,5 @@ export const restore = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 		actor_name = ${actor.name}, actor_kind = ${actor.kind}, version = version + 1, updated_at = ${ctx.now}
 		WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
-	return toSummary(await byId(ctx, tx, page.id));
+	return toSummary(await pageById(ctx, tx, page.id));
 };

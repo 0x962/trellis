@@ -1,13 +1,14 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { ResponseHeadersPlugin } from "@orpc/server/plugins";
-import type { PageDetail } from "@trellis/api";
+import { PAGE_RENDER_IDLE_MS, PAGE_RENDER_MAX_MS, type PageDetail, type PageRenderLease } from "@trellis/api";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import { createCache } from "../db/cache.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import type { Tx } from "../db/tx.ts";
 import type { GhAccess } from "../ghState.ts";
+import { clearPageLeases } from "../pageLeases.ts";
 import { createDbTiming } from "../serverTiming.ts";
 import { list as listPages } from "../services/pages/pages.ts";
 import type { ServiceName } from "../services/registry.ts";
@@ -84,7 +85,76 @@ const json = (body: unknown, headers: Record<string, string> = {}) => ({
 	body: JSON.stringify(body),
 });
 
+beforeEach(() => {
+	clearPageLeases();
+});
+
 describe("Page procedures", () => {
+	test("creates a render lease for the version the caller asked for", async () => {
+		const calls: Array<{ name: ServiceName; input: unknown }> = [];
+		const response = await request(
+			"/pages/render/WRT/pages/stable",
+			{ method: "POST", ...json({ version: 1 }) },
+			async (name, _ctx, input) => {
+				calls.push({ name, input });
+				return page;
+			},
+		);
+		expect(response.status).toBe(201);
+		const lease = (await response.json()) as PageRenderLease;
+		expect(calls).toEqual([{ name: "pages.get", input: { page: "WRT/pages/stable", version: 1 } }]);
+		expect(lease.pageId).toBe(pageId);
+		expect(lease.version).toBe(1);
+		expect(lease.frameUrl).toBe(`/api/page-render/${lease.id}`);
+		expect(lease.contentRoot).toBe(`/api/page-render/${lease.id}/`);
+		expect(Date.parse(lease.absoluteExpiresAt) - Date.parse(lease.idleExpiresAt)).toBe(
+			PAGE_RENDER_MAX_MS - PAGE_RENDER_IDLE_MS,
+		);
+	});
+
+	test("renews a lease of the same actor and refuses one of another actor", async () => {
+		const created = await request("/pages/render/WRT/pages/stable", { method: "POST", ...json({}) }, async () => page);
+		const lease = (await created.json()) as PageRenderLease;
+		const renewed = await request(
+			"/page-render-leases/renew",
+			{ method: "POST", ...json({ leaseId: lease.id }) },
+			async () => page,
+		);
+		expect(renewed.status).toBe(200);
+		expect(((await renewed.json()) as PageRenderLease).id).toBe(lease.id);
+		const stranger = await request(
+			"/page-render-leases/renew",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json", "x-trellis-actor": "human:other" },
+				body: JSON.stringify({ leaseId: lease.id }),
+			},
+			async () => page,
+		);
+		expect(stranger.status).toBe(404);
+		expect((await stranger.json()) as { code: string }).toMatchObject({ code: "RENDER_LEASE_EXPIRED" });
+	});
+
+	test("reads one version and its assets without a download link", async () => {
+		const content = { page, version: page.requestedVersion, assets: [] };
+		const response = await request("/pages/pull/WRT/pages/stable", {}, async () => content);
+		expect(response.status).toBe(200);
+		expect(await response.json()).toMatchObject({ version: { number: 1 } });
+	});
+
+	test("mints a download link of its own", async () => {
+		const content = { page, version: page.requestedVersion, assets: [] };
+		const response = await request(
+			"/pages/archive/WRT/pages/stable",
+			{ method: "POST", ...json({}) },
+			async () => content,
+		);
+		expect(response.status).toBe(201);
+		const link = (await response.json()) as { url: string; expiresAt: string };
+		expect(link.url).toMatch(/^\/api\/page-archive\/[0-9a-f]{32}$/);
+		expect(Date.parse(link.expiresAt)).toBeGreaterThan(Date.now());
+	});
+
 	test("matches slash refs on the restore and pin prefix routes", async () => {
 		const calls: Array<{ name: ServiceName; input: unknown }> = [];
 		const call: Call = async (name, _ctx, input) => {

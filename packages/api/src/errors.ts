@@ -171,6 +171,24 @@ export const errors = {
 		message: "An archived session runs no agent. Bring the session back first.",
 		data: z.undefined(),
 	},
+	// The render lease of a Page viewer. It ends after its idle limit, after
+	// its absolute limit, or when the server restarts. The server then holds
+	// no record of it, and a lease that never existed reads the same way, so
+	// the status is the one for an address the server does not have. No
+	// credential opens the route: the lease is the secret in the address.
+	RENDER_LEASE_EXPIRED: {
+		status: 404,
+		message: "The render lease ended. Ask for a new lease and load the page version again.",
+		data: z.undefined(),
+	},
+	// A Page that a person deleted keeps its rows and its files for 30 days.
+	// The content route answers this code for that Page, and NOT_FOUND once
+	// the retention task removes the rows.
+	PAGE_DELETED: {
+		status: 410,
+		message: "The page is deleted. Restore it before you read its content.",
+		data: z.undefined(),
+	},
 	PAGE_VERSION_CONFLICT: {
 		status: 412,
 		message: "The page changed since the revision you sent.",
