@@ -1,7 +1,7 @@
 # Harness effort options
 
 `catalog.json` maps canonical model IDs to the effort values each harness accepts.
-The snapshot date is 2026-09-16.
+The snapshot date is 2026-09-23 for Claude and 2026-09-16 for Codex, pi, and OpenCode.
 
 | Harness | Source |
 | --- | --- |

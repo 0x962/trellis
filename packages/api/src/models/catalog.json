@@ -48,6 +48,14 @@
 		"name": "Claude Opus 5 (Fast)"
 	},
 	{
+		"id": "anthropic/claude-opus-5.5",
+		"name": "Claude Opus 5.5"
+	},
+	{
+		"id": "anthropic/claude-opus-5.5-fast",
+		"name": "Claude Opus 5.5 (Fast)"
+	},
+	{
 		"id": "anthropic/claude-sonnet-4",
 		"name": "Claude Sonnet 4"
 	},
