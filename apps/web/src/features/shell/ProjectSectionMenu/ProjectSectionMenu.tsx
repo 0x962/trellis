@@ -23,7 +23,12 @@ export function ProjectSectionMenu({ projectKey, current }: ProjectSectionMenuPr
 			// by that padding. A margin cannot do it: the button sits inside the
 			// `h1`, so a negative margin takes 6 px off the width the heading asks
 			// for, and the heading then cuts the last letters of the name.
-			trigger={<TitleMenuButton className="-translate-x-1.5" label={label} />}
+			//
+			// Under 768 px `Topbar` cuts every `h1` of the bar with an ellipsis, so
+			// the heading there is a box that clips. The drawn button must stay
+			// inside it, or that box takes the left edge of the hover fill and of
+			// the focus ring, and the transform stops.
+			trigger={<TitleMenuButton className="-translate-x-1.5 max-md:translate-x-0" label={label} />}
 		/>
 	);
 }
