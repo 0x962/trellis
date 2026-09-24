@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { ActivityDot, cx } from "@trellis/ui";
 import { memo } from "react";
-import { uiActions, useUiStore } from "../../../../stores/uiStore";
+import { projectMoreActions } from "../../../../stores/projectMoreStore";
 import { activeAgentsLabel } from "../../../agents/activeAgents";
 import { hiddenAgentCount, type ProjectPageRow, projectPageRows } from "./projectPageRows";
 
@@ -20,18 +20,18 @@ export const ProjectPages = memo(function ProjectPages({
 	project,
 	pathname,
 	activeAgentCount,
+	moreOpen,
 }: {
 	project: ProjectSummary;
 	pathname: string;
 	// The Sessions row shows a dot while the number is above zero.
 	activeAgentCount: number;
+	// The caller decides when More opens. See `morePathnameByProject` in the
+	// project More store.
+	moreOpen: boolean;
 }) {
 	const { top, more } = projectPageRows(project, pathname, activeAgentCount);
-	const stored = useUiStore((state) => state.expandedProjectMore[project.id] ?? false);
-	// The row of the page on screen must stay on screen. A page that the More
-	// row holds therefore keeps More open, whatever the person stored.
-	const open = stored || more.some((row) => row.active);
-	const agentCountUnderMore = open ? 0 : hiddenAgentCount(more);
+	const agentCountUnderMore = moreOpen ? 0 : hiddenAgentCount(more);
 	const pageLink = (row: ProjectPageRow, inMore: boolean) => (
 		<li key={row.label}>
 			<Link
@@ -63,8 +63,8 @@ export const ProjectPages = memo(function ProjectPages({
 						<button
 							type="button"
 							data-project-page=""
-							aria-expanded={open}
-							onClick={() => uiActions.toggleProjectMore(project.id)}
+							aria-expanded={moreOpen}
+							onClick={() => projectMoreActions.toggleProjectMore(project.id, pathname)}
 							className={cx(rowClass(false, false), "w-full text-left active:bg-elevated")}
 						>
 							<span className="sidebar-label">More</span>
@@ -81,11 +81,11 @@ export const ProjectPages = memo(function ProjectPages({
 									/>
 								)}
 								<span aria-hidden="true" className="*:size-3">
-									{open ? <CaretDown /> : <CaretRight />}
+									{moreOpen ? <CaretDown /> : <CaretRight />}
 								</span>
 							</span>
 						</button>
-						{open && <ul className="flex flex-col">{more.map((row) => pageLink(row, true))}</ul>}
+						{moreOpen && <ul className="flex flex-col">{more.map((row) => pageLink(row, true))}</ul>}
 					</li>
 				</ul>
 			</nav>
