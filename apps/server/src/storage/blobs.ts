@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { mkdir, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ulid } from "ulid";
+import { hashFile, shardedHashPath, withHashLock } from "./hashStore.ts";
 
 // An attachment or pull request file is stored once per sha256 and is named by that hash.
 // The first two characters of the hash are a directory, so one directory
@@ -24,31 +25,7 @@ export const tempDir = (home: string) => join(attachmentsDir(home), TEMP_DIR);
 
 export const tempPath = (home: string, name: string) => join(tempDir(home), name);
 
-export const blobPath = (home: string, sha: string) => join(attachmentsDir(home), sha.slice(0, 2), sha);
-
-const HASH_CHUNK_BYTES = 1024 * 1024;
-
-// The task of each hash waits for the task before it. `locks` holds the
-// promise of the running task; a task that finds none runs at once. The
-// entry is dropped when the last task of that hash finishes, so the map
-// holds one entry per upload or delete in flight.
-const locks = new Map<string, Promise<void>>();
-
-const withBlobLock = async <T>(sha: string, task: () => Promise<T>): Promise<T> => {
-	const running = locks.get(sha);
-	let done: () => void = () => {};
-	const held = new Promise<void>((resolve) => {
-		done = resolve;
-	});
-	locks.set(sha, held);
-	if (running !== undefined) await running;
-	try {
-		return await task();
-	} finally {
-		done();
-		if (locks.get(sha) === held) locks.delete(sha);
-	}
-};
+export const blobPath = (home: string, sha: string) => shardedHashPath(attachmentsDir(home), sha);
 
 // The temp file names of the uploads in flight. sweep leaves those files and
 // removes every other file under `attachments/tmp`.
@@ -65,7 +42,7 @@ export const markLiveTempFile = (name: string) => {
 // returns that path. A file with the same hash is already the same bytes, so
 // the stored file stays as it is and the upload is dropped.
 export const finalize = (home: string, name: string, sha: string): Promise<string> =>
-	withBlobLock(sha, async () => {
+	withHashLock(blobPath(home, sha), async () => {
 		const path = blobPath(home, sha);
 		const source = tempPath(home, name);
 		if (existsSync(path)) {
@@ -81,31 +58,19 @@ export const finalize = (home: string, name: string, sha: string): Promise<strin
 export const storeFile = async (home: string, file: File) => {
 	const name = ulid();
 	const release = markLiveTempFile(name);
-	const hasher = new Bun.CryptoHasher("sha256");
 	const sink = Bun.file(tempPath(home, name)).writer();
-	let size = 0;
-	for await (const chunk of file.stream()) {
-		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
-			const part = chunk.subarray(offset, offset + HASH_CHUNK_BYTES);
-			hasher.update(part);
-			sink.write(part);
-			size += part.byteLength;
-		}
-	}
+	const { sha256, size } = await hashFile(file, (chunk) => {
+		sink.write(chunk);
+	});
 	await sink.end();
-	const sha256 = hasher.digest("hex");
 	await finalize(home, name, sha256);
 	release();
 	return { sha256, size };
 };
 
 export const sha256OfFile = async (file: File) => {
-	const hasher = new Bun.CryptoHasher("sha256");
-	for await (const chunk of file.stream()) {
-		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES)
-			hasher.update(chunk.subarray(offset, offset + HASH_CHUNK_BYTES));
-	}
-	return hasher.digest("hex");
+	const { sha256 } = await hashFile(file, () => {});
+	return sha256;
 };
 
 // The database stores a MIME type without parameters. An empty or malformed
@@ -121,7 +86,7 @@ export const storedMime = (type: string) => {
 // holds it. Returns whether the file was removed. `hasRows` runs under the
 // lock, so a finalize of the same hash finishes first and its row is counted.
 const gc = (home: string, sha: string, hasRows: () => Promise<boolean>): Promise<boolean> =>
-	withBlobLock(sha, async () => {
+	withHashLock(blobPath(home, sha), async () => {
 		if (await hasRows()) return false;
 		await unlink(blobPath(home, sha));
 		return true;

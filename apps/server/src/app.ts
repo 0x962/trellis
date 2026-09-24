@@ -96,7 +96,7 @@ const deleteWithQuery = (request: Request) => {
 };
 
 // The middleware chain: request id, the request log line and the api
-// version header, the Host check, cors, the body limit on the two upload
+// version header, the Host check, cors, the body limits on upload
 // paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
 // routes, a JSON 404 under the two mounts, and the web app for everything
 // else.
@@ -168,6 +168,10 @@ export const createApp = ({
 		"/api/prs/:id/files/:fileId",
 		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
+	app.use(
+		"/api/page-uploads",
+		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
+	);
 	// The RPC codec wraps every body in `json`. The limit answers before the
 	// handler runs, so it writes that shape itself; without it the client
 	// reads an undefined error and never sees the cap it must report.
@@ -180,6 +184,13 @@ export const createApp = ({
 	);
 	app.use(
 		"/rpc/pullRequests/uploadFile",
+		bodyLimit({
+			maxSize: maxBytes,
+			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+		}),
+	);
+	app.use(
+		"/rpc/pages/upload",
 		bodyLimit({
 			maxSize: maxBytes,
 			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),

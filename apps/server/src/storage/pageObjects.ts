@@ -1,50 +1,36 @@
 import { existsSync } from "node:fs";
-import { mkdir, rename, unlink } from "node:fs/promises";
+import { mkdir, rename, rm, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { ulid } from "ulid";
+import { hashFile, shardedHashPath, withHashLock } from "./hashStore.ts";
 
-export const PAGES_DIR = "pages";
-export const PAGE_OBJECTS_DIR = "objects";
-export const PAGE_TEMP_DIR = "tmp";
+const PAGES_DIR = "pages";
+const PAGE_OBJECTS_DIR = "objects";
+const PAGE_TEMP_DIR = "tmp";
 
-export const pagesDir = (home: string) => join(home, PAGES_DIR);
+const pagesDir = (home: string) => join(home, PAGES_DIR);
 
-export const pageObjectsDir = (home: string) => join(pagesDir(home), PAGE_OBJECTS_DIR);
+const pageObjectsDir = (home: string) => join(pagesDir(home), PAGE_OBJECTS_DIR);
 
-export const pageTempDir = (home: string) => join(pagesDir(home), PAGE_TEMP_DIR);
+const pageTempDir = (home: string) => join(pagesDir(home), PAGE_TEMP_DIR);
 
-export const pageTempPath = (home: string, uploadId: string) => join(pageTempDir(home), uploadId);
+export const pageTempPath = (home: string, stageId: string) => join(pageTempDir(home), stageId);
 
-export const pageObjectPath = (home: string, sha256: string) => join(pageObjectsDir(home), sha256.slice(0, 2), sha256);
-
-const HASH_CHUNK_BYTES = 1024 * 1024;
+export const pageObjectPath = (home: string, sha256: string) => shardedHashPath(pageObjectsDir(home), sha256);
 
 type Release = () => void;
 
-const hashLocks = new Map<string, Promise<void>>();
-const uploadLocks = new Map<string, Promise<void>>();
 const liveHashes = new Map<string, number>();
-const holderObservations = new Map<string, Set<{ invalidated: boolean }>>();
+type HolderCheck = { stale: boolean; release: Release };
 
-const invalidateHolderObservations = (sha256: string) => {
-	for (const observation of holderObservations.get(sha256) ?? []) observation.invalidated = true;
-};
+const holderChecks = new Map<string, Set<HolderCheck>>();
 
-const acquire = async (locks: Map<string, Promise<void>>, key: string): Promise<Release> => {
-	const running = locks.get(key);
-	let done: Release = () => {};
-	const held = new Promise<void>((resolve) => {
-		done = resolve;
-	});
-	locks.set(key, held);
-	if (running !== undefined) await running;
-	return () => {
-		done();
-		if (locks.get(key) === held) locks.delete(key);
-	};
+const markHolderChecksStale = (sha256: string) => {
+	for (const check of holderChecks.get(sha256) ?? []) check.stale = true;
 };
 
 const retainHash = (sha256: string): Release => {
-	invalidateHolderObservations(sha256);
+	markHolderChecksStale(sha256);
 	liveHashes.set(sha256, (liveHashes.get(sha256) ?? 0) + 1);
 	return () => {
 		const remaining = liveHashes.get(sha256)! - 1;
@@ -53,119 +39,110 @@ const retainHash = (sha256: string): Release => {
 	};
 };
 
-const observeHolder = (sha256: string) => {
-	const observation = { invalidated: false };
-	const observations = holderObservations.get(sha256) ?? new Set();
-	observations.add(observation);
-	holderObservations.set(sha256, observations);
-	return {
-		observation,
+const startHolderCheck = (sha256: string) => {
+	const check: HolderCheck = {
+		stale: false,
 		release: () => {
-			observations.delete(observation);
-			if (observations.size === 0) holderObservations.delete(sha256);
+			checks.delete(check);
+			if (checks.size === 0) holderChecks.delete(sha256);
 		},
 	};
+	const checks = holderChecks.get(sha256) ?? new Set();
+	checks.add(check);
+	holderChecks.set(sha256, checks);
+	return check;
 };
 
 export type StagedPageObject = {
-	uploadId: string;
+	stageId: string;
 	sha256: string;
 	size: number;
-	releaseUpload: Release;
 };
 
-export type FinalizedPageObject = {
+type FinalizedPageObject = {
 	path: string;
-	release: Release;
+	releaseHash: Release;
 };
 
-// `stagePageObject` keeps two requests with one upload id from writing the same
-// temporary file. `finalizePageObject` and `discardPageObject` release that lock.
-export const stagePageObject = async (home: string, uploadId: string, file: File): Promise<StagedPageObject> => {
-	const releaseUpload = await acquire(uploadLocks, uploadId);
-	let staged = false;
+export const stagePageObject = async (
+	home: string,
+	file: File,
+	maxBytes = Number.POSITIVE_INFINITY,
+): Promise<StagedPageObject | null> => {
+	const stageId = ulid();
+	await mkdir(pageTempDir(home), { recursive: true });
+	const path = pageTempPath(home, stageId);
+	const sink = Bun.file(path).writer();
 	try {
-		await mkdir(pageTempDir(home), { recursive: true });
-		const hasher = new Bun.CryptoHasher("sha256");
-		const sink = Bun.file(pageTempPath(home, uploadId)).writer();
-		const reader = file.stream().getReader();
-		let size = 0;
-		while (true) {
-			const { done, value: chunk } = await reader.read();
-			if (done) break;
-			for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
-				const part = chunk.subarray(offset, offset + HASH_CHUNK_BYTES);
-				hasher.update(part);
-				sink.write(part);
-				size += part.byteLength;
-			}
-		}
+		const stored = await hashFile(
+			file,
+			(chunk) => {
+				sink.write(chunk);
+			},
+			maxBytes,
+		);
 		await sink.end();
-		staged = true;
-		return { uploadId, sha256: hasher.digest("hex"), size, releaseUpload };
-	} finally {
-		if (!staged) releaseUpload();
+		if ("limitExceeded" in stored) {
+			await unlink(path);
+			return null;
+		}
+		return { stageId, ...stored };
+	} catch (error) {
+		try {
+			await sink.end();
+		} finally {
+			await rm(path, { force: true });
+		}
+		throw error;
 	}
 };
 
-export const discardPageObject = async (home: string, staged: StagedPageObject) => {
-	try {
-		await unlink(pageTempPath(home, staged.uploadId));
-	} finally {
-		staged.releaseUpload();
-	}
-};
+export const discardPageObject = (home: string, staged: StagedPageObject) => unlink(pageTempPath(home, staged.stageId));
 
-// `finalizePageObject` marks its hash as live before it renames the file.
-// `gcPageObjects` keeps that object until the caller records its database row.
+// `finalizePageObject` calls `retainHash` before it waits for the object lock.
+// The caller invokes `releaseHash` after it writes the database row.
 export const finalizePageObject = async (home: string, staged: StagedPageObject): Promise<FinalizedPageObject> => {
 	const releaseHash = retainHash(staged.sha256);
 	let finalized = false;
 	try {
-		const releaseLock = await acquire(hashLocks, staged.sha256);
-		let path: string;
-		try {
-			path = pageObjectPath(home, staged.sha256);
-			const source = pageTempPath(home, staged.uploadId);
+		const path = pageObjectPath(home, staged.sha256);
+		await withHashLock(path, async () => {
+			const source = pageTempPath(home, staged.stageId);
 			if (existsSync(path)) await unlink(source);
 			else {
 				await mkdir(dirname(path), { recursive: true });
 				await rename(source, path);
 			}
-		} finally {
-			releaseLock();
-		}
+		});
 		finalized = true;
-		return { path, release: releaseHash };
+		return { path, releaseHash };
 	} finally {
-		staged.releaseUpload();
 		if (!finalized) releaseHash();
 	}
 };
 
-// `removePageObject` reads the database holder before it waits for the hash lock.
-// `retainHash` invalidates that observation before each finalize, so an older
-// result cannot remove the new object.
+// `removePageObject` asks `holdsSha` if a database row still uses this hash. It
+// asks before it waits for the hash lock.
+// `retainHash` marks each earlier answer as out of date, so an answer from
+// before a new `finalizePageObject` cannot delete the new file.
 const removePageObject = async (home: string, sha256: string, holdsSha: () => Promise<boolean>) => {
-	const holder = observeHolder(sha256);
+	const check = startHolderCheck(sha256);
 	try {
 		if (await holdsSha()) return false;
-		const releaseLock = await acquire(hashLocks, sha256);
-		try {
-			if (liveHashes.has(sha256) || holder.observation.invalidated) return false;
+		return withHashLock(pageObjectPath(home, sha256), async () => {
+			if (liveHashes.has(sha256) || check.stale) return false;
 			await unlink(pageObjectPath(home, sha256));
-			invalidateHolderObservations(sha256);
+			markHolderChecksStale(sha256);
 			return true;
-		} finally {
-			releaseLock();
-		}
+		});
 	} finally {
-		holder.release();
+		check.release();
 	}
 };
 
-// `holdsSha` must run a current database query. A cached holder set can miss a
-// row committed while garbage collection waits for a hash lock.
+// `holdsSha` must ask the database at each call. A list of used hashes that the
+// caller made earlier can miss a row that another transaction writes while
+// `gcPageObjects` waits for the hash lock.
 export const gcPageObjects = async (
 	home: string,
 	sha256s: string[],

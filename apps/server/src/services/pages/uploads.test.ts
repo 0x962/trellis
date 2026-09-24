@@ -1,15 +1,15 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PAGE_ASSET_MAX_BYTES, PageUploadInputSchema, PageUploadSchema, type ActorRef } from "@trellis/api";
+import { type ActorRef, PAGE_ASSET_MAX_BYTES, PageUploadInputSchema, PageUploadSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { gcPageObjects, pageObjectPath, pageTempPath } from "../../storage/pageObjects.ts";
+import { discardPageObject, gcPageObjects, pageObjectPath } from "../../storage/pageObjects.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
 import { PAGE_UPLOAD_TTL_MS, prepareUpload, upload } from "./uploads.ts";
 
@@ -25,7 +25,7 @@ const otherActor = { name: "Page agent", kind: "agent" as const };
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const contextOf = (actor: ActorRef) =>
+const contextOf = (actor: ActorRef, maxUploadBytes = 50 * 1024 * 1024) =>
 	({
 		core: {
 			actor,
@@ -41,11 +41,14 @@ const contextOf = (actor: ActorRef) =>
 		actor,
 		session: null,
 		home,
-		maxUploadBytes: 50 * 1024 * 1024,
+		maxUploadBytes,
 		now: () => at,
+		log: () => {},
 		newTx: inTx,
 		afterCommit: () => {},
 	}) as unknown as IoCtx & PrepareCtx;
+
+const tempFiles = () => readdir(join(home, "pages", "tmp"));
 
 const stageAndStore = async (actor: ActorRef, input: unknown) => {
 	const ctx = contextOf(actor);
@@ -93,16 +96,29 @@ test("stores empty CSS and JavaScript uploads for 24 hours", async () => {
 	expect(script).toMatchObject({ size: 0, mime: "text/javascript", originalName: "empty.js" });
 	expect(existsSync(pageObjectPath(home, css.sha256))).toBe(true);
 	expect(existsSync(join(home, "attachments", css.sha256.slice(0, 2), css.sha256))).toBe(false);
-	expect(existsSync(pageTempPath(home, cssId))).toBe(false);
+	expect(await tempFiles()).toEqual([]);
 });
 
-test("stores an overlong MIME type as application/octet-stream", async () => {
-	const upload = await stageAndStore(human, {
+test("uses application/octet-stream when an upload has no MIME type", async () => {
+	const stored = await stageAndStore(human, {
 		project: projectId,
-		file: new File(["bytes"], "asset.bin", { type: `application/${"x".repeat(300)}` }),
+		file: new File(["bytes"], "asset.bin"),
 	});
 
-	expect(upload.mime).toBe("application/octet-stream");
+	expect(stored.mime).toBe("application/octet-stream");
+});
+
+test("refuses a malformed nonempty MIME type", async () => {
+	for (const type of ["invalid", `application/${"x".repeat(300)}`]) {
+		await expect(
+			prepareUpload(contextOf(human), {
+				project: projectId,
+				file: new File(["bytes"], "asset.bin", { type }),
+			}),
+		).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	}
+
+	expect(await tempFiles()).toEqual([]);
 });
 
 test("returns one staged upload for a repeated id and the same input", async () => {
@@ -120,23 +136,33 @@ test("returns one staged upload for a repeated id and the same input", async () 
 	expect(rows.rows).toEqual([{ id }]);
 });
 
-test("releases an object for collection after the upload row rolls back", async () => {
+test("releases an object after the upload transaction rolls back", async () => {
 	const ctx = contextOf(human);
 	const prepared = await prepareUpload(ctx, {
 		project: projectId,
 		file: new File(["rolled back"], "rollback.txt", { type: "text/plain" }),
 	});
+	const holdsShaStarted = Promise.withResolvers<void>();
+	let collection: ReturnType<typeof gcPageObjects> | undefined;
 
 	await expect(
 		inTx(async (tx) => {
 			await upload(ctx, tx, prepared);
+			collection = gcPageObjects(home, [prepared.staged.sha256], async (sha256) => {
+				holdsShaStarted.resolve();
+				return inTx(async (holderTx) => {
+					const held = await holderTx.execute(sql`SELECT id FROM page_uploads WHERE sha256 = ${sha256} LIMIT 1`);
+					return held.rows.length > 0;
+				});
+			});
+			await holdsShaStarted.promise;
 			throw new Error("rollback");
 		}),
 	).rejects.toThrow("rollback");
-	expect(existsSync(pageObjectPath(home, prepared.staged.sha256))).toBe(true);
-	expect(await gcPageObjects(home, [prepared.staged.sha256], async () => false)).toEqual({
+	expect(await collection).toEqual({
 		removed: [prepared.staged.sha256],
 	});
+	expect(existsSync(pageObjectPath(home, prepared.staged.sha256))).toBe(false);
 });
 
 test("keeps an upload when collection starts before its transaction commits", async () => {
@@ -145,19 +171,19 @@ test("keeps an upload when collection starts before its transaction commits", as
 		project: projectId,
 		file: new File(["commit race"], "commit-race.txt", { type: "text/plain" }),
 	});
-	const holderStarted = Promise.withResolvers<void>();
+	const holdsShaStarted = Promise.withResolvers<void>();
 	let collection: ReturnType<typeof gcPageObjects> | undefined;
 
 	await inTx(async (tx) => {
 		await upload(ctx, tx, prepared);
 		collection = gcPageObjects(home, [prepared.staged.sha256], async (sha256) => {
-			holderStarted.resolve();
+			holdsShaStarted.resolve();
 			return inTx(async (holderTx) => {
 				const held = await holderTx.execute(sql`SELECT id FROM page_uploads WHERE sha256 = ${sha256} LIMIT 1`);
 				return held.rows.length > 0;
 			});
 		});
-		await holderStarted.promise;
+		await holdsShaStarted.promise;
 	});
 
 	expect(await collection).toEqual({ removed: [] });
@@ -175,36 +201,63 @@ test("binds a staged upload id to its project, actor, and bytes", async () => {
 		[human, projectId, new File(["changed"], "shared.txt", { type: "text/plain" })],
 	] as const) {
 		await expect(stageAndStore(actor, { id, project, file: nextFile })).rejects.toMatchObject({
-			code: "INPUT_VALIDATION_FAILED",
+			code: "DUPLICATE",
+			data: { field: "id" },
 		});
-		expect(existsSync(pageTempPath(home, id))).toBe(false);
+		expect(await tempFiles()).toEqual([]);
 	}
 
 	expect(await stageAndStore(human, { id, project: projectId, file })).toMatchObject({ id, projectId });
 });
 
-test("refuses an upload over the Page asset limit before it writes a file", async () => {
-	const id = ulid();
+test("refuses a declared size over the Page asset limit before it writes a file", async () => {
 	const file = new File([], "large.bin", { type: "application/octet-stream" });
 	Object.defineProperty(file, "size", { value: PAGE_ASSET_MAX_BYTES + 1 });
 
-	await expect(prepareUpload(contextOf(human), { id, project: projectId, file })).rejects.toMatchObject({
+	await expect(
+		prepareUpload(contextOf(human, PAGE_ASSET_MAX_BYTES * 2), { project: projectId, file }),
+	).rejects.toMatchObject({
 		code: "PAYLOAD_TOO_LARGE",
 		data: { maxBytes: PAGE_ASSET_MAX_BYTES },
 	});
-	expect(existsSync(pageTempPath(home, id))).toBe(false);
+	expect(await tempFiles()).toEqual([]);
+});
+
+test("refuses streamed bytes over the host limit when a test File understates its size", async () => {
+	const file = new File(["12345"], "large.bin", { type: "application/octet-stream" });
+	Object.defineProperty(file, "size", { value: 4 });
+
+	await expect(prepareUpload(contextOf(human, 4), { project: projectId, file })).rejects.toMatchObject({
+		code: "PAYLOAD_TOO_LARGE",
+		data: { maxBytes: 4 },
+	});
+	expect(await tempFiles()).toEqual([]);
+});
+
+test("uses a unique temporary stage for each request", async () => {
+	const ctx = contextOf(human);
+	const input = {
+		id: ulid(),
+		project: projectId,
+		file: new File(["same bytes"], "same.txt", { type: "text/plain" }),
+	};
+	const first = await prepareUpload(ctx, input);
+	const second = await prepareUpload(ctx, input);
+
+	expect(first.staged.stageId).not.toBe(second.staged.stageId);
+	await discardPageObject(home, first.staged);
+	await discardPageObject(home, second.staged);
+	expect(await tempFiles()).toEqual([]);
 });
 
 test("refuses an archived project before it writes a file", async () => {
-	const id = ulid();
 	await expect(
 		prepareUpload(contextOf(human), {
-			id,
 			project: archivedProjectId,
 			file: new File(["blocked"], "blocked.html", { type: "text/html" }),
 		}),
 	).rejects.toMatchObject({ code: "PROJECT_ARCHIVED" });
-	expect(existsSync(pageTempPath(home, id))).toBe(false);
+	expect(await tempFiles()).toEqual([]);
 });
 
 test("refuses an invalid upload name", () => {
