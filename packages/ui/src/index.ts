@@ -45,8 +45,8 @@ export {
 	type MergeConflictMarkProps,
 	type MergeConflictMarkSize,
 } from "./domain/MergeConflictMark";
-export { PinMark, type PinMarkProps } from "./domain/PinMark";
 export { PageRow, type PageRowProps } from "./domain/PageRow";
+export { PinMark, type PinMarkProps } from "./domain/PinMark";
 export {
 	PrGlyph,
 	type PrGlyphProps,
