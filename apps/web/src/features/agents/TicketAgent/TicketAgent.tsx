@@ -6,8 +6,8 @@ import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
 import { agentMarkState } from "../agentMarkState";
 import { agentProfileOf } from "../agentProfileOf";
-import { modelFamily } from "../ModelPicker";
-import { AgentAssignmentDialog } from "./components/AgentAssignmentDialog";
+import { agentLabel } from "./agentLabel";
+import { AssignAgent } from "./components/AssignAgent";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
@@ -19,7 +19,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 	const runs = query.data ?? [];
 	const assigned = runs.find((run) => run.kind === "agent" && run.assigned) ?? null;
 	const profile = agentProfileOf(assigned?.harness);
-	const label = profile ? modelFamily(profile.model) : (assigned?.name ?? "Agent");
+	const label = assigned === null ? "Agent" : agentLabel(assigned);
 	const unassign = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: assigned!.id }),
 		onSuccess: async () => {
@@ -65,10 +65,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 					</Tooltip>
 				</div>
 			) : (
-				<div className="flex items-center justify-between gap-2 py-1">
-					<h3 className="text-xs font-medium text-fg-faint">Agent</h3>
-					<AgentAssignmentDialog ticket={ticket} disabled={disabled} />
-				</div>
+				<AssignAgent ticket={ticket} disabled={disabled} />
 			)}
 			<ConfirmDialog
 				open={confirmUnassign && assigned !== null}
