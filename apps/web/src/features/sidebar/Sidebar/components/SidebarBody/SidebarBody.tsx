@@ -54,11 +54,11 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const project = projectRefOfPathname(pathname);
-	// Navid asks for a shut More row each time he opens a project page. The
-	// store shuts every open More row when this page differs from the page it
-	// holds, so a press lasts until the person leaves, and a return to the page
-	// of the press finds it shut. `pathname` follows the page the outlet shows,
-	// so a link and the Back button of the browser both reach this.
+	// The store holds the page that the sidebar draws. A page that differs from
+	// the stored one shuts the More row of every project. A press on More
+	// therefore lasts while the person stays on the page, and a return to that
+	// page draws More shut. `pathname` follows the page the outlet shows, so a
+	// link and the Back button of the browser both reach this call.
 	useEffect(() => {
 		uiActions.setShownPage(pathname);
 	}, [pathname]);
