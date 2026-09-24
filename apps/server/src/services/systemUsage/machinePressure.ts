@@ -13,6 +13,11 @@ const HEAVIEST_LIMIT = 3;
 
 export type OpenRun = { id: string; name: string; ticketIdentifier: string | null; terminalId: string };
 
+export const hostLoad = (hostPlatform: string, cpuCount: number, loadAverage1m: number) => {
+	if (hostPlatform === "win32" || cpuCount === 0) return { loadAverage1m: null, loadPerCore: null };
+	return { loadAverage1m, loadPerCore: loadAverage1m / cpuCount };
+};
+
 // A run holds a terminal, the terminal holds a process group, and the process
 // group holds the memory. A run whose terminal or process group is gone holds
 // no known memory, so it is left out rather than shown with a guessed number.
@@ -43,14 +48,13 @@ export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureI
 	]);
 	const sampledAt = ctx.now().toISOString();
 	const cpuCount = cpus().length;
-	const loadAverage1m = loadavg()[0]!;
+	const hostPlatform = platform();
 	const base = {
 		sampledAt,
 		hostname: hostname(),
-		platform: platform(),
+		platform: hostPlatform,
 		cpuCount,
-		loadAverage1m,
-		loadPerCore: loadAverage1m / cpuCount,
+		...hostLoad(hostPlatform, cpuCount, loadavg()[0]!),
 		memoryLevel,
 		processorTemperature,
 	};

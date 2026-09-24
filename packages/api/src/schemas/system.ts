@@ -132,6 +132,8 @@ export type PressureRun = z.infer<typeof PressureRunSchema>;
 
 // `loadPerCore` is the one-minute load average divided by the logical CPU
 // count. It is a ratio of queued processes, not a native pressure level.
+// Node reports a false zero load on Windows, so both load fields are null
+// there and when the host reports no logical CPU count.
 // `processorTemperature` holds the hottest measured PMU processor-die sensor
 // and the full process cost. `runs` holds the agent runs that use the most
 // memory, largest first.
@@ -140,8 +142,8 @@ export const MachinePressureSchema = z.object({
 	hostname: z.string(),
 	platform: z.string(),
 	cpuCount: CountSchema,
-	loadAverage1m: z.number().nonnegative(),
-	loadPerCore: z.number().nonnegative(),
+	loadAverage1m: z.number().nonnegative().nullable(),
+	loadPerCore: z.number().nonnegative().nullable(),
 	memoryLevel: MemoryPressureLevelSchema.nullable(),
 	processorTemperature: ProcessorTemperatureSchema,
 	runs: z.array(PressureRunSchema),

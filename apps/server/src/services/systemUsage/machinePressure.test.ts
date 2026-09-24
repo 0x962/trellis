@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { heaviestRuns, type OpenRun } from "./machinePressure.ts";
+import { heaviestRuns, hostLoad, type OpenRun } from "./machinePressure.ts";
 import { parseProcessGroupMemory } from "./processGroupMemory.ts";
 
 const run = (id: string, terminalId: string): OpenRun => ({
@@ -25,6 +25,20 @@ describe("parseProcessGroupMemory", () => {
 				[901, 524_288],
 			]),
 		);
+	});
+});
+
+describe("hostLoad", () => {
+	test("reports the one-minute load per logical CPU", () => {
+		expect(hostLoad("darwin", 16, 68.8)).toEqual({ loadAverage1m: 68.8, loadPerCore: 4.3 });
+	});
+
+	test("does not report the false zero load that Node returns on Windows", () => {
+		expect(hostLoad("win32", 16, 0)).toEqual({ loadAverage1m: null, loadPerCore: null });
+	});
+
+	test("does not divide a load by an unavailable logical CPU count", () => {
+		expect(hostLoad("darwin", 0, 4)).toEqual({ loadAverage1m: null, loadPerCore: null });
 	});
 });
 

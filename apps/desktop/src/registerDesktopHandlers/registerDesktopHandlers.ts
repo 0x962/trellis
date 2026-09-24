@@ -53,8 +53,8 @@ export function registerDesktopHandlers(options: {
 		options.trust(event);
 		event.sender.send("trellis:accessibility-support", app.isAccessibilitySupportEnabled());
 	});
-	// The machine row asks for the current thermal state in each pressure sample
-	// cycle. powerMonitor also sends each state change on the same channel.
+	// The web query asks for the current thermal state with each server sample.
+	// powerMonitor also sends each state change on the same channel.
 	ipcMain.handle("trellis:thermal-ready", (event) => {
 		options.trust(event);
 		return {
