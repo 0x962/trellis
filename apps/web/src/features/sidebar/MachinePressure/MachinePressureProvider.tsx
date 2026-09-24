@@ -9,6 +9,8 @@ type MachinePressureContextValue = {
 
 export const MachinePressureContext = createContext<MachinePressureContextValue | null>(null);
 
+// The desktop body and the phone sheet can stay mounted together. This
+// provider gives both rows one pressure sample lifecycle.
 export function MachinePressureProvider({ children }: { children: ReactNode }) {
 	const [openConsumers, setOpenConsumers] = useState<Set<string>>(() => new Set());
 	const setDetailsOpen = useCallback((id: string, open: boolean) => {
