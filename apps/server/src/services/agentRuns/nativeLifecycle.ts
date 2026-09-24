@@ -1,11 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname } from "node:path";
 import { ORPCError } from "@orpc/server";
 import { errors } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ensureNativeRuntime, nativeClient } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx } from "../support.ts";
+import { attemptCapturePath } from "./attemptCapture.ts";
 import type { StoredRun } from "./queries.ts";
 
 const stopFailure = (run: StoredRun, message: string) =>
@@ -56,13 +57,12 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun, close = true) 
 			});
 		if (stopped.status !== "exited")
 			throw stopFailure(run, stopped.error ?? "The host cannot confirm that the process stopped.");
-		const directory = join(ctx.home, "agents", run.id);
-		await mkdir(directory, { recursive: true, mode: 0o700 });
-		// The output route reads this file for the current terminal of the
-		// run once the run is closed.
-		await writeFile(join(directory, `output-${run.terminalId}.txt`), await nativeOutput(ctx.home, run.terminalId), {
-			mode: 0o600,
-		});
+		const capture = attemptCapturePath(ctx.home, run.id, run.terminalId);
+		await mkdir(dirname(capture), { recursive: true, mode: 0o700 });
+		// `prepareOutput` reads this file for the terminal of a run that
+		// stopped, and `attemptStopped` reads its presence as the record of a
+		// confirmed process exit.
+		await writeFile(capture, await nativeOutput(ctx.home, run.terminalId), { mode: 0o600 });
 	}
 	await ctx.newTx((tx) =>
 		close

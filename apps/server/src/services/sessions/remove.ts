@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 import { invalidInput } from "../../errors.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { upsert } from "../actors.ts";
+import { attemptStopped } from "../agentRuns/attemptCapture.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import type { IoCtx } from "../support.ts";
@@ -25,7 +26,16 @@ export const prepareDelete = async (
 		await ctx.newTx((tx) => getSession(tx, session.id));
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		const previous = await deps.process(ctx, run.terminalId);
-		if (previous === null && run.terminalId !== null && run.closedAt === null)
+		// A pause keeps the run open, and the execution service forgets an
+		// exited terminal when it starts again. `attemptStopped` reads the
+		// output file that the pause wrote, which proves the process of that
+		// attempt ended, so a paused session still deletes after a restart.
+		if (
+			previous === null &&
+			run.terminalId !== null &&
+			run.closedAt === null &&
+			!(await attemptStopped(ctx.home, run.id, run.terminalId))
+		)
 			throw invalidInput("id", "The prior launch is not confirmed. Inspect the agent before deletion.");
 		if (previous !== null && (previous.status !== "exited" || previous.stopReason === "idle"))
 			await deps.stop(ctx, run);

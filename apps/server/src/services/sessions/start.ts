@@ -5,6 +5,7 @@ import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
+import { attemptStopped } from "../agentRuns/attemptCapture.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { columns, getRun, type LaunchRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
@@ -41,7 +42,16 @@ export const prepareStart = async (
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const previous = await deps.process(ctx, run.terminalId);
-		if (previous === null && run.terminalId !== null && run.closedAt === null)
+		// A pause keeps the run open, and the execution service forgets an
+		// exited terminal when it starts again. `attemptStopped` reads the
+		// output file that the pause wrote, which proves the process of that
+		// attempt ended, so a paused session still starts after a restart.
+		if (
+			previous === null &&
+			run.terminalId !== null &&
+			run.closedAt === null &&
+			!(await attemptStopped(ctx.home, run.id, run.terminalId))
+		)
 			throw invalidInput("id", "The prior launch is not confirmed. Inspect the agent before another start.");
 		if (previous?.status === "running") return { id: session.id };
 		if (previous !== null && previous.status !== "exited")
