@@ -1,7 +1,7 @@
 import { type Session, type SessionDetail, sessionStatus, sessionStatusLabels } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
-import { contextOf } from "../context.ts";
+import { compact, contextOf } from "../context.ts";
 import { usageError } from "../errors.ts";
 import { cell, type ListSpec, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 
@@ -36,9 +36,18 @@ const sessionList: ListSpec<SessionDetail> = {
 
 const list = defineCommand({
 	meta: { name: "list", description: "List sessions" },
+	args: {
+		archived: { type: "boolean", description: "List only the archived sessions" },
+		active: { type: "boolean", description: "List only the sessions nobody archived" },
+	},
 	async run(context) {
 		const ctx = contextOf(context);
-		printList(ctx.out, ctx.format, await clientOf(ctx).sessions.activity({}), sessionList);
+		const { args } = context;
+		if (args.archived === true && args.active === true) throw usageError("Pass at most one of --archived or --active");
+		// Without a flag the list holds both groups, and the archived column
+		// says which group each row sits in.
+		const archived = args.archived === true ? true : args.active === true ? false : undefined;
+		printList(ctx.out, ctx.format, await clientOf(ctx).sessions.activity(compact({ archived })), sessionList);
 	},
 });
 

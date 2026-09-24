@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { HarnessSchema } from "../harness/harness.ts";
 import { AgentRunSchema } from "./agentRun.ts";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The name a person gave the session, or the generated name of a session
 // nobody named. Two sessions may hold one name.
@@ -25,6 +25,14 @@ export type Session = z.infer<typeof SessionSchema>;
 // A session with the observed state of its agent run.
 export const SessionDetailSchema = SessionSchema.extend({ run: AgentRunSchema });
 export type SessionDetail = z.infer<typeof SessionDetailSchema>;
+
+// `archived` keeps only archived or only active sessions. Without it every
+// session is listed, which is what the sidebar asks for: one read fills the
+// Sessions section and the Archived section.
+export const SessionListInputSchema = z.strictObject({
+	archived: booleanString.optional().describe("True lists only archived sessions, false only active ones."),
+});
+export type SessionListInput = z.input<typeof SessionListInputSchema>;
 
 export const SessionCreateInputSchema = z
 	.strictObject({

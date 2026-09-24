@@ -3,8 +3,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { useApp } from "../../../lib/appContext";
 import { useSessionStatuses } from "../../agents/useSessionStatuses";
 import { ArchivedGroup } from "../components/ArchivedGroup";
-import { SessionRow } from "../components/SessionRow";
 import { archivedSessions, sidebarSessionsQuery } from "../sidebarSessions";
+import { ArchivedSessionRows } from "./components/ArchivedSessionRows";
 
 export function ArchivedSessions() {
 	const { orpc } = useApp();
@@ -20,16 +20,7 @@ export function ArchivedSessions() {
 	if (rows.length === 0) return null;
 	return (
 		<ArchivedGroup label="Archived sessions" count={rows.length}>
-			<ul className="flex flex-col gap-0.5">
-				{rows.map((session) => (
-					<SessionRow
-						key={session.id}
-						session={session}
-						status={statuses?.[session.id] ?? "unavailable"}
-						active={pathname === `/sessions/${session.id}`}
-					/>
-				))}
-			</ul>
+			<ArchivedSessionRows sessions={rows} statuses={statuses} pathname={pathname} />
 		</ArchivedGroup>
 	);
 }

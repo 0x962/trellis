@@ -36,8 +36,16 @@ export const getSession = async (tx: Tx, id: string) => {
 	return session;
 };
 
-export const listSessions = (tx: Tx) =>
-	rows<Session>(tx, sql`SELECT ${sessionColumns} FROM sessions ORDER BY created_at DESC, id DESC`);
+// Every session, newest first. `archived` keeps only the archived sessions or
+// only the active ones; without it the answer holds both groups, which is
+// what one sidebar read needs.
+export const listSessions = (tx: Tx, archived?: boolean) => {
+	const where = archived === undefined ? sql`true` : archived ? sql`archived_at IS NOT NULL` : sql`archived_at IS NULL`;
+	return rows<Session>(
+		tx,
+		sql`SELECT ${sessionColumns} FROM sessions WHERE ${where} ORDER BY created_at DESC, id DESC`,
+	);
+};
 
 // The last path part of every session folder. A new scratch session takes a
 // folder name that no row and no folder on disk holds.

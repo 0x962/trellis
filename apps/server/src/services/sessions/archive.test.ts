@@ -11,7 +11,7 @@ import { prepareResume } from "../agentRuns/resume.ts";
 import type { IoCtx } from "../support.ts";
 import { prepareSetArchived } from "./archive.ts";
 import { move } from "./move.ts";
-import { getSession } from "./queries.ts";
+import { getSession, listSessions } from "./queries.ts";
 import { prepareStart } from "./start.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
@@ -243,4 +243,19 @@ test("an archive refuses a session that gained a project while its agent stopped
 
 	expect(await run((tx) => getSession(tx, bareSessionId))).toMatchObject({ archivedAt: null });
 	await db.execute(sql`UPDATE agent_runs SET project_id = NULL, project_key = '' WHERE id = ${bareRunId}`);
+});
+
+test("the list filter answers one group, and no filter answers both", async () => {
+	await prepareSetArchived(ctx, { id: bareSessionId, archived: true }, noProcess);
+
+	const every = await run((tx) => listSessions(tx));
+	const archived = await run((tx) => listSessions(tx, true));
+	const active = await run((tx) => listSessions(tx, false));
+
+	expect(archived.map((row) => row.id)).toContain(bareSessionId);
+	expect(active.map((row) => row.id)).not.toContain(bareSessionId);
+	expect(archived.every((row) => row.archivedAt !== null)).toBe(true);
+	expect(active.every((row) => row.archivedAt === null)).toBe(true);
+	expect(archived.length + active.length).toBe(every.length);
+	await prepareSetArchived(ctx, { id: bareSessionId, archived: false }, noProcess);
 });
