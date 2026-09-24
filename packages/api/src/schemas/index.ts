@@ -19,6 +19,7 @@ export * from "./page.ts";
 export * from "./pageComment.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
+export * from "./provider.ts";
 export * from "./pullRequest.ts";
 export * from "./resource.ts";
 export * from "./resourceComment.ts";

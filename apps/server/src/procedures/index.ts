@@ -12,6 +12,7 @@ import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
+import { providers } from "./providers.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { resourceComments } from "./resourceComments.ts";
@@ -41,6 +42,7 @@ export const router = os.router({
 	labels,
 	labelGroups,
 	projects,
+	providers,
 	statistics,
 	statuses,
 	tickets,

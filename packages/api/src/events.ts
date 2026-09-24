@@ -18,6 +18,7 @@ export const eventNames = [
 	"notes.changed",
 	"epics.changed",
 	"pages.changed",
+	"providers.changed",
 	"page-comments.changed",
 	"page-watches.changed",
 	"page-pins.changed",
@@ -111,6 +112,10 @@ export const PagesChangedPayloadSchema = z.strictObject({
 	pageId: UlidSchema,
 });
 
+export const ProvidersChangedPayloadSchema = z.strictObject({
+	id: UlidSchema,
+});
+
 export const PageCommentsChangedPayloadSchema = z.strictObject({
 	projectId: UlidSchema,
 	pageId: UlidSchema,
@@ -180,6 +185,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("notes.changed", NotesChangedPayloadSchema),
 	typed("epics.changed", EpicsChangedPayloadSchema),
 	typed("pages.changed", PagesChangedPayloadSchema),
+	typed("providers.changed", ProvidersChangedPayloadSchema),
 	typed("page-comments.changed", PageCommentsChangedPayloadSchema),
 	typed("page-watches.changed", PageWatchesChangedPayloadSchema),
 	typed("page-pins.changed", PagePinsChangedPayloadSchema),

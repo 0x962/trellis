@@ -171,20 +171,44 @@ const EXTRA_COLUMNS: Record<string, SQL> = {
 	attachments: sql`, '/api/attachments/' || t.id || '/file' AS url`,
 };
 
-const pageQuery = (table: string, key: string[], after: unknown[] | null): SQL => {
-	const columns = sql.join(
+const REDACTED_COLUMNS: Record<string, readonly string[]> = {
+	providers: ["api_key"],
+};
+
+const tableColumns = async (tx: Tx) => {
+	const found = await rows<{ table_name: string; column_name: string }>(
+		tx,
+		sql`SELECT table_name, column_name FROM information_schema.columns
+			WHERE table_schema = 'public' ORDER BY table_name, ordinal_position`,
+	);
+	const columns = new Map<string, string[]>();
+	for (const row of found) columns.set(row.table_name, [...(columns.get(row.table_name) ?? []), row.column_name]);
+	return columns;
+};
+
+const pageQuery = (table: string, key: string[], columns: string[], after: unknown[] | null): SQL => {
+	const keys = sql.join(
 		key.map((column) => sql.identifier(column)),
+		sql`, `,
+	);
+	const redacted = new Set(REDACTED_COLUMNS[table] ?? []);
+	const selected = sql.join(
+		columns.map((column) =>
+			redacted.has(column)
+				? sql`'<redacted>' AS ${sql.identifier(column)}`
+				: sql`${sql.identifier("t")}.${sql.identifier(column)}`,
+		),
 		sql`, `,
 	);
 	const extra = EXTRA_COLUMNS[table] ?? sql``;
 	const where =
 		after === null
 			? sql``
-			: sql`WHERE (${columns}) > (${sql.join(
+			: sql`WHERE (${keys}) > (${sql.join(
 					after.map((value) => sql`${value}`),
 					sql`, `,
 				)})`;
-	return sql`SELECT t.*${extra} FROM ${sql.identifier(table)} t ${where} ORDER BY ${columns} LIMIT ${EXPORT_PAGE_ROWS}`;
+	return sql`SELECT ${selected}${extra} FROM ${sql.identifier(table)} t ${where} ORDER BY ${keys} LIMIT ${EXPORT_PAGE_ROWS}`;
 };
 
 type ExportRow = Record<string, unknown>;
@@ -196,11 +220,12 @@ type ExportRow = Record<string, unknown>;
 export async function* exportNdjson(ctx: ServiceCtx, tx: Tx, input: EmptyInput): AsyncGenerator<string> {
 	yield `${JSON.stringify({ version: EXPORT_VERSION, exportedAt: ctx.now().toISOString() })}\n`;
 	const keys = await primaryKeys(tx);
+	const columns = await tableColumns(tx);
 	for (const table of await tableNames(tx)) {
 		const key = keys.get(table)!;
 		let after: unknown[] | null = null;
 		for (;;) {
-			const page: ExportRow[] = await rows<ExportRow>(tx, pageQuery(table, key, after));
+			const page: ExportRow[] = await rows<ExportRow>(tx, pageQuery(table, key, columns.get(table)!, after));
 			for (const row of page) yield `${JSON.stringify({ table, row })}\n`;
 			if (page.length < EXPORT_PAGE_ROWS) break;
 			after = key.map((column) => page[page.length - 1]![column]);

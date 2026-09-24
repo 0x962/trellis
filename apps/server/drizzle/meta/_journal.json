@@ -806,6 +806,13 @@
       "when": 1790286633840,
       "tag": "0117_session_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1790286827009,
+      "tag": "0118_lowly_swordsman",
+      "breakpoints": true
     }
   ]
 }

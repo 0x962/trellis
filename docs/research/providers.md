@@ -105,7 +105,7 @@ A row in `provider_models` is a model that the provider offers in Trellis. The A
 
 A provider is deleted, not archived. Nothing references a provider today. The Part 4 ticket that adds `agent_runs.provider_id` adds it with ON DELETE SET NULL, so a deleted provider leaves the run and its history keeps the run.
 
-One migration, generated with `bun run db:generate` after TRL-441 of the Pages epic merges, and numbered after the newest journal tag at that time. On 2026-09-24 the newest tag is `0115_flow_diff`, and TRL-441 takes 0116, so the provider migration takes the next free number after it. Keep the snapshot. The SQL holds the two tables, their checks, the unique index, and the primary key. Never edit an earlier migration.
+Migration `0118_lowly_swordsman`, with journal time `1790286827009`, follows `0117_session_archive`. Its snapshot uses the 0117 snapshot as its previous snapshot. The SQL holds the two tables, their checks, the unique index, and the primary key.
 
 The entity diagram:
 
@@ -411,20 +411,20 @@ The models field is a `Popover` from a `PickerButton` that prints "3 models" or 
 
 ### 3.1 Tickets
 
-Four tickets under TRL-428, in the wave External Providers: TRL-430, TRL-439, TRL-431, and TRL-432. Each carries a contract with its files, its verify commands, and its review focus. The agent that manages the epic wrote the contracts and owns the order. TRL-430 waits on TRL-441 of the Pages epic, which owns migration 0116.
+Four tickets are under TRL-428 in the External Providers wave: TRL-430, TRL-439, TRL-431, and TRL-432. Each carries a contract with its files, its verify commands, and its review focus. TRL-430 and TRL-439 share PR 430, one owner, and one first Review. TRL-430 waits on TRL-441 of the Pages epic, which owns migration 0116.
 
 | ticket | holds | waits on | evidence |
 |---|---|---|---|
 | TRL-430 Provider record, API, and CLI | the tables, the migration, the schemas, the contract without models and check, the services, the procedures, the event, the export redaction and its test, the CLI verbs list, show, create, edit, delete, the guide paragraph, the ARCHITECTURE rows | TRL-441 | the erDiagram; the server test output; a terminal transcript of create, list, show, edit, delete with the key on stdin; `trellis export` output with `<redacted>` |
 | TRL-431 Provider catalog and key check | `providers.models`, `providers.publicModels`, `providers.check`, their caches and their invalidation, the CLI verbs models and check | TRL-430, TRL-439 | the test output with the stubbed fetch; a transcript of check against a real key with the balance, and against a wrong key with the refusal |
 | TRL-432 Providers on the Usage page | the section, the `ProviderCard` visual, the forms, the model list control, the remove dialog, the palette item, the gallery section, the `ProviderIcon` values, the UI_PATTERNS rows | TRL-430, TRL-431, TRL-439 | screenshots of the empty state, the loading state, the read failure, the Add form on desktop and on a phone width, the stale models line, a card with a balance, a card with a refused key, a disabled card, the remove dialog, both themes |
-| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts` with the reader and its callers | TRL-430 | the test output |
+| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts` with the reader and its callers | none; shares PR 430 with TRL-430 | the test output |
 
-TRL-439 is small. It exists so the key rules have one owner and one test file, and so TRL-430 does not grow past a reviewable size. TRL-431 reads the key through its `keyOf`, so it waits on it.
+TRL-439 stays a separate ticket because the key rules need one owner and one test file. PR 430 carries it with TRL-430, so one Review covers the public record boundary and the internal secret reader. TRL-431 reads the key through its `keyOf`, so it waits on it.
 
 ### 3.2 Tests
 
-One ticket owns each test file while that ticket is open. The tickets run one after another, so a later ticket can extend a test file once its owner has merged, and no two workers edit one file at once. A case appears in one file only.
+One ticket owns each test file while that ticket is open. TRL-430 and TRL-439 use the same owner, branch, and pull request. A later ticket can extend a test file after PR 430 merges. A case appears in one file only.
 
 | file | owner |
 |---|---|
@@ -436,7 +436,7 @@ One ticket owns each test file while that ticket is open. The tickets run one af
 | `packages/cli/src/commands/provider/remoteText.test.ts` | TRL-431 |
 | `packages/ui/src/domain/ProviderCard/ProviderCard.test.tsx`, `ProviderForm/ProviderForm.test.tsx` | TRL-432 |
 
-The tickets run one after another, so a shared file is never edited by two workers at once. The split avoids a duplicate test: TRL-430 proves the record, the public output for long and short keys, and the export redaction in the first commit that stores a key, as its contract asks. TRL-439 proves the reader and its callers at that commit. TRL-431 proves the header, log, and detail boundary of the remote reads, which do not exist before it.
+The shared branch avoids a duplicate test. TRL-430 proves the record, public output for long and short keys, and export redaction in the first commit that stores a key. TRL-439 proves the reader and its callers in the same pull request. TRL-431 proves the header, log, and detail boundary of the later remote reads.
 
 Server, `providers.test.ts` (TRL-430), on `openTestDb` with a hand-built `ServiceCtx`:
 
