@@ -39,6 +39,7 @@ import * as notes from "./notes/notes.ts";
 import * as pages from "./pages/pages.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
+import * as providers from "./providers/providers.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequestLocalState from "./pullRequestLocalState.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -147,6 +148,11 @@ export const services = {
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"providers.list": io("read", providers.list),
+	"providers.get": io("read", providers.get),
+	"providers.create": io("mutation", providers.create),
+	"providers.update": io("mutation", providers.update),
+	"providers.delete": io("mutation", providers.remove),
 	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),

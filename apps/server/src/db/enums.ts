@@ -10,6 +10,7 @@ import {
 	PrioritySchema,
 	PrLinkSourceSchema,
 	ProjectColorSchema,
+	ProviderKindSchema,
 	PrStateSchema,
 	ReviewStateSchema,
 	StatusCategorySchema,
@@ -35,6 +36,7 @@ export const MERGEABLE_STATES = MergeableSchema.options;
 export const FLOW_NODE_KINDS = FlowNodeKindSchema.options;
 export const FLOW_BRANCHES = FlowBranchSchema.options;
 export const NOTE_AUDIENCES = NoteAudienceSchema.options;
+export const PROVIDER_KINDS = ProviderKindSchema.options;
 export const TICKET_DEP_SOURCES = ["manual", "parsed", "derived"] as const;
 
 // A CHECK named `<table>_<column>_check` that keeps a column inside a closed

@@ -221,6 +221,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "pages.changed":
 				enqueue([family("pages"), family("projects", "list"), family("search")]);
 				return;
+			case "providers.changed":
+				enqueue([family("providers")]);
+				return;
 			case "page-comments.changed":
 				enqueue([family("pages"), family("pageComments"), family("needsYou"), family("projects", "list")]);
 				return;

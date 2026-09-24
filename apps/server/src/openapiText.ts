@@ -12,6 +12,7 @@ export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The lo
 
 export const TAGS = [
 	{ name: "harness accounts", description: "Configured account profiles and provider quota." },
+	{ name: "providers", description: "External model gateways with a stored key and the models they offer." },
 	{ name: "needs you", description: "Work that requires a human decision." },
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Pull request diffs, local comments, and GitHub review actions." },
@@ -106,6 +107,13 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /harness-accounts": { name: "Work", harness: "claude" },
 	"PATCH /harness-accounts/{id}": { isDefault: true },
+	"POST /providers": {
+		name: "Vercel",
+		kind: "vercel-ai-gateway",
+		apiKey: "vck_example",
+		models: ["typesafe-ai/jev"],
+	},
+	"PATCH /providers/{id}": { enabled: false },
 	"POST /agent-runs/{id}/resume": {
 		expectedTerminalId: "stopped-attempt-id",
 		requestId: "CDE-42:resume",

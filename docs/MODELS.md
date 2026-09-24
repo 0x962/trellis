@@ -24,6 +24,9 @@ It does not require a network request when Trellis starts or displays the select
 Run `bun scripts/update-model-catalog.ts` to refresh the catalog, then review the diff and run its tests.
 Native harness mappings remain explicit application code.
 
+A provider can offer model identifiers that are outside the checked-in catalog.
+The checked-in catalog remains the source for harness model selectors until provider-backed launches use these identifiers.
+
 # Proposed model guide
 
 Navid supplied these preference orders on 2026-09-16.
