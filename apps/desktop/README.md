@@ -55,7 +55,7 @@ The staging step copies the server, database worker, migrations, PGlite assets, 
 
 The build also compiles `processor-temperature` against CoreFoundation and IOKit. The staging step puts it in the verified host release. `host-service.ts` gives the managed server its absolute release path. A standalone server has no reader and reports processor temperature as unavailable.
 
-The web app requests one pressure sample every five seconds. The server starts at most one reader process for each sample. It stops a reader that exceeds two seconds. It measures the complete process time and reports that cost with a successful value. A crash, timeout, bad result, or missing sensor returns no temperature value.
+While the page is active, the web app requests one pressure sample every five seconds. The server starts at most one reader process for each sample. It stops a reader that exceeds two seconds. It measures the complete process time and reports that cost with a successful value. A crash, timeout, bad result, or missing sensor returns no temperature value.
 
 The helper uses the private `IOHIDEventSystemClient` interface on macOS. It matches primary usage page `0xff00` and usage `0x5`. It selects the highest sensor whose product label starts with `PMU tdie`. It never substitutes a battery, NAND, or `PMU tdev` reading.
 
