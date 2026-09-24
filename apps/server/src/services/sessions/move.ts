@@ -21,6 +21,8 @@ export const move = async (ctx: ServiceCtx, tx: Tx, input: SessionMoveInput) => 
 	);
 	if (session === undefined) throw fail("NOT_FOUND", { kind: "session", ref: input.id });
 	if (session.ticketId !== null) throw invalidInput("id", "A ticket session keeps the project of its ticket.");
+	if (target.archivedAt !== null)
+		throw invalidInput("id", "An archived session belongs to no project. Bring the session back first.");
 	const project = input.project === null ? null : await resolveMutableProject(ctx, tx, input.project);
 	const projectKey = project === null ? "" : ctx.cache.get(project.id).key;
 	await tx.execute(

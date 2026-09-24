@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import {
+	SessionArchiveInputSchema,
 	SessionCreateInputSchema,
 	SessionDetailSchema,
 	SessionIdInputSchema,
@@ -57,6 +58,15 @@ export const sessions = {
 			summary: "Rename a session",
 		})
 		.input(SessionRenameInputSchema)
+		.output(SessionSchema),
+	setArchived: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/sessions/{id}/archived",
+			summary: "Archive a session, which stops its agent and keeps its files, or unarchive it",
+		})
+		.input(SessionArchiveInputSchema)
 		.output(SessionSchema),
 	delete: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

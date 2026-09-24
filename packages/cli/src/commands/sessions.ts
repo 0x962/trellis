@@ -12,6 +12,7 @@ const sessionRecord: RecordSpec<Session> = {
 		{ name: "project", value: (row) => cell(row.projectKey) },
 		{ name: "directory", value: (row) => row.directory },
 		{ name: "run", value: (row) => row.runId },
+		{ name: "archived", value: (row) => cell(row.archivedAt) },
 		{ name: "created", value: (row) => row.createdAt },
 		{ name: "updated", value: (row) => row.updatedAt },
 	],
@@ -28,6 +29,7 @@ const sessionList: ListSpec<SessionDetail> = {
 		{ name: "project", value: (row) => cell(row.projectKey) },
 		{ name: "state", value: (row) => sessionStatusLabels[sessionStatus(row.run)] },
 		{ name: "last activity", value: (row) => timeCell(activityAt(row)) },
+		{ name: "archived", value: (row) => timeCell(row.archivedAt) },
 	],
 	identifier: (row) => row.id,
 };
@@ -78,7 +80,26 @@ const rename = defineCommand({
 	},
 });
 
+// Archive puts a session away: its agent stops, its files stay, and the
+// sidebar draws it under Archived. Unarchive brings it back, and a person
+// starts its agent again.
+const setArchived = (name: string, description: string, archived: boolean) =>
+	defineCommand({
+		meta: { name, description },
+		args: {
+			session: { type: "positional", required: true, description: "Session id, run id, or name" },
+		},
+		async run(context) {
+			const ctx = contextOf(context);
+			const session = await clientOf(ctx).sessions.setArchived({ id: context.args.session, archived });
+			printRecord(ctx.out, ctx.format, session, sessionRecord);
+		},
+	});
+
+const archive = setArchived("archive", "Archive a session, which stops its agent and keeps its files", true);
+const unarchive = setArchived("unarchive", "Bring an archived session back to the session list", false);
+
 export default defineCommand({
-	meta: { name: "sessions", description: "List, move, and rename sessions" },
-	subCommands: { list, move, rename },
+	meta: { name: "sessions", description: "List, move, rename, and archive sessions" },
+	subCommands: { list, move, rename, archive, unarchive },
 });

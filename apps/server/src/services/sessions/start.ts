@@ -37,7 +37,9 @@ export const prepareStart = async (
 	const release = holdSession(ctx.home, session.runId);
 	let launching = false;
 	try {
-		await ctx.newTx((tx) => getSession(tx, session.id));
+		const stored = await ctx.newTx((tx) => getSession(tx, session.id));
+		if (stored.archivedAt !== null)
+			throw invalidInput("id", "An archived session runs no agent. Bring the session back first.");
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const previous = await deps.process(ctx, run.terminalId);

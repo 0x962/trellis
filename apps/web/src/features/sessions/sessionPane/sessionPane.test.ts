@@ -50,6 +50,17 @@ describe("sessionPane", () => {
 		if (pane.kind === "failed") expect(pane.title).not.toContain("exited with code");
 	});
 
+	test("names the archive of a session whose process still runs", () => {
+		const pane = sessionPane(run(), true);
+
+		expect(pane).toEqual({
+			kind: "stopped",
+			title: "This session is archived",
+			description:
+				"Trellis keeps the workspace, every file in it, and the conversation. Unarchive the session to start its agent again.",
+		});
+	});
+
 	test("calls a clean stop no failure", () => {
 		const pane = sessionPane(run({ state: "stopped", processStatus: "exited" }));
 
@@ -76,5 +87,9 @@ describe("canStartAgent", () => {
 
 	test("starts nothing while the process starts", () => {
 		expect(canStartAgent(run({ state: "starting" }), true)).toBe(false);
+	});
+
+	test("starts nothing for an archived session", () => {
+		expect(canStartAgent(run({ processStatus: "exited" }), true, true)).toBe(false);
 	});
 });

@@ -16,6 +16,7 @@ export const SessionSchema = z.object({
 	directory: z.string(),
 	harness: HarnessSchema,
 	runId: UlidSchema,
+	archivedAt: IsoDateTimeSchema.nullable(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
 });
@@ -52,6 +53,14 @@ export const SessionMoveInputSchema = z
 	})
 	.describe("Set the project of a session, or send null to make it independent.");
 export type SessionMoveInput = z.infer<typeof SessionMoveInputSchema>;
+
+export const SessionArchiveInputSchema = z
+	.strictObject({
+		id: SessionRefSchema,
+		archived: z.boolean(),
+	})
+	.describe("Put a session away, or bring it back. An archived session runs no agent and joins no project.");
+export type SessionArchiveInput = z.infer<typeof SessionArchiveInputSchema>;
 
 export const SessionRenameInputSchema = z
 	.strictObject({

@@ -55,6 +55,7 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
+import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
 import { prepareDelete as deleteSession } from "./sessions/remove.ts";
@@ -138,6 +139,7 @@ export const services = {
 	"sessions.start": sessionMutation(startSession),
 	"sessions.move": core("mutation", moveSession),
 	"sessions.rename": core("mutation", renameSession),
+	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),

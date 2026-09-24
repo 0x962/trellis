@@ -15,7 +15,18 @@ export type SessionPane =
 // takes its buffer with it, so the pane says why the process is gone and
 // offers the control that starts a new one. A run that another runtime
 // owns keeps its own view, because trellis starts no process for it.
-export function sessionPane(run: AgentRun): SessionPane {
+//
+// `archived` is true for a session a person put away. Trellis runs no agent
+// for such a session, so the pane names that state and the page offers the
+// control that brings the session back.
+export function sessionPane(run: AgentRun, archived = false): SessionPane {
+	if (archived)
+		return {
+			kind: "stopped",
+			title: "This session is archived",
+			description:
+				"Trellis keeps the workspace, every file in it, and the conversation. Unarchive the session to start its agent again.",
+		};
 	if (run.runtime !== "native" || run.state === "starting" || hasAssignedProcess(run)) return { kind: "terminal" };
 	if (run.state === "failed" || run.error !== null)
 		return {
@@ -34,6 +45,7 @@ export function sessionPane(run: AgentRun): SessionPane {
 
 // True while trellis can open a process for this run. A session carries
 // its own start. A ticket agent resumes the terminal it already holds, so
-// it needs a terminal id.
-export const canStartAgent = (run: AgentRun, hasSession: boolean) =>
-	run.runtime === "native" && run.state !== "starting" && (hasSession || run.terminalId !== null);
+// it needs a terminal id. An archived session runs no agent, and the server
+// refuses its start.
+export const canStartAgent = (run: AgentRun, hasSession: boolean, archived = false) =>
+	!archived && run.runtime === "native" && run.state !== "starting" && (hasSession || run.terminalId !== null);

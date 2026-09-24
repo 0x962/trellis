@@ -8,6 +8,10 @@ import { agentRuns } from "./agentRuns.ts";
 // the launch configuration of the agent, because a session can have no
 // project to read one from. A delete removes the row and the directory. The
 // run stays as history.
+//
+// `archived_at` holds the time a person put the session away. A session with
+// a time in this column keeps its directory and its conversation, runs no
+// agent, and belongs to no project. The sidebar draws it under Archived.
 export const sessions = pgTable(
 	"sessions",
 	{
@@ -18,6 +22,7 @@ export const sessions = pgTable(
 		runId: text("run_id")
 			.notNull()
 			.references(() => agentRuns.id),
+		archivedAt: at("archived_at"),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},

@@ -7,6 +7,7 @@ import { fail, invalidInput } from "../../errors.ts";
 export const sessionColumns = sql`id, name, directory, harness, run_id AS "runId",
 	(SELECT project_id FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectId",
 	(SELECT project_key FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectKey",
+	${iso(sql`archived_at`)} AS "archivedAt",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 
 // Finds the session a person named on the command line. An id or a run id

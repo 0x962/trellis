@@ -75,7 +75,9 @@ export function SessionBarActions({
 					processing={busy}
 					disabled={
 						readOnly ||
-						(active ? run.runtime !== "native" || run.state === "starting" : !canStartAgent(run, session !== undefined))
+						(active
+							? run.runtime !== "native" || run.state === "starting"
+							: !canStartAgent(run, session !== undefined, session?.archivedAt != null))
 					}
 					onClick={active ? onStop : onStart}
 				/>

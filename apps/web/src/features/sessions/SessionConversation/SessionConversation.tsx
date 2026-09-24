@@ -12,6 +12,7 @@ import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
 import { canStartAgent, sessionPane } from "../sessionPane";
 import { sessionStateLabel } from "../sessionStateLabel";
+import { useSessionArchive } from "../useSessionArchive";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -66,6 +67,10 @@ export function SessionConversation({
 		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
+	const { setArchived } = useSessionArchive();
+	const unarchive = useMutation({
+		mutationFn: () => setArchived(session!, false),
+	});
 	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: run.id }),
 		onSuccess: () => setConfirmStop(false),
@@ -89,13 +94,22 @@ export function SessionConversation({
 			{name}
 		</h2>
 	);
-	const pane = sessionPane(run);
-	const canStart = canStartAgent(run, session !== undefined);
+	const archived = session?.archivedAt != null;
+	const pane = sessionPane(run, archived);
+	const canStart = canStartAgent(run, session !== undefined, archived);
 	const startButton = (
 		<Button size="md" disabled={readOnly || !canStart} processing={start.isPending} onClick={() => start.mutate()}>
 			Start the agent
 		</Button>
 	);
+	// The pane of an archived session offers the control that brings the
+	// session back, in the place where a stopped session offers its start.
+	const unarchiveButton = (
+		<Button size="md" processing={unarchive.isPending} onClick={() => unarchive.mutate()}>
+			Unarchive
+		</Button>
+	);
+	const paneAction = archived ? unarchiveButton : canStart ? startButton : undefined;
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -152,7 +166,7 @@ export function SessionConversation({
 						title={pane.title}
 						description={pane.description}
 						detail={pane.detail}
-						action={canStart ? startButton : undefined}
+						action={paneAction}
 					/>
 				) : pane.kind === "stopped" ? (
 					<EmptyState
@@ -160,7 +174,7 @@ export function SessionConversation({
 						image={null}
 						title={pane.title}
 						description={pane.description}
-						action={canStart ? startButton : undefined}
+						action={paneAction}
 					/>
 				) : run.terminalId ? (
 					<NativeTerminal
