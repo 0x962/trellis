@@ -246,6 +246,14 @@ trellis project label list DEMO
 Read the status descriptions before you change a ticket's status.
 Do not infer status names from another project's workflow.
 
+## Providers
+
+Providers are the model gateways for which Trellis holds a key.
+A person adds a provider in Usage. An agent reads providers and never changes them.
+
+Read the providers: `trellis provider list`
+Read the models a provider offers: `trellis provider show <id>`
+
 ## Tickets and dependencies
 
 | Command | Purpose |
@@ -603,7 +611,7 @@ Use each command group's help for its complete syntax and options.
 | Area | Commands |
 | --- | --- |
 | Search and observation | `data search`, `activity list`, `event watch` |
-| Configuration | `project`, `project status`, `project label`, `account`, `model` |
+| Configuration | `project`, `project status`, `project label`, `account`, `model`, `provider` |
 | Host | `host status show`, `host doctor`, `host log list`, `host serve`, `host install`, `host uninstall`, `host gateway start` |
 | Data administration | `data backup`, `data restore`, `data export` |
 | Record removal | `ticket delete`, `epic delete`, `wave delete`, `project note rm`, `resource rm`, `diff unlink` |

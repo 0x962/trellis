@@ -2,6 +2,7 @@ import type { PageDetail } from "@trellis/api";
 import { call, os, withIfMatch } from "./base.ts";
 
 export const pages = os.pages.router({
+	upload: os.pages.upload.handler(({ context, input }) => call(context, "pages.upload", input)),
 	list: os.pages.list.handler(({ context, input }) => call(context, "pages.list", input)),
 	get: os.pages.get.handler(async ({ context, input }) => {
 		const page = await call<PageDetail>(context, "pages.get", input);

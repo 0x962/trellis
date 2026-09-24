@@ -7,9 +7,12 @@ export type SessionPane =
 	// the line that the execution service recorded, such as the path of the
 	// binary and the exit code it returned.
 	| { kind: "failed"; title: string; description: string; detail: string | null }
-	// The process ended, and nothing went wrong. A person pressed Stop, or
+	// The process ended, and nothing went wrong. A person pressed Pause, or
 	// the agent finished and the process closed.
-	| { kind: "stopped"; title: string; description: string };
+	| { kind: "paused"; title: string; description: string }
+	// A person archived the session. Its agent stays stopped until a person
+	// unarchives it, so this state is not a pause.
+	| { kind: "archived"; title: string; description: string };
 
 // True for a session a person archived. A run with no session, such as a
 // ticket agent, is never archived.
@@ -21,13 +24,17 @@ export const isSessionArchived = (session: Session | undefined) => session?.arch
 export const canArchiveSession = (session: Session | undefined) => session !== undefined && session.projectId === null;
 
 // A terminal draws the output of a live process. A process that ended
-// takes its buffer with it, so the pane says why the process is gone and
-// offers the control that starts a new one. A run that another runtime
-// owns keeps its own view, because trellis starts no process for it.
+// takes its buffer with it, so the pane says why the process is gone. A run
+// that another runtime owns keeps its own view, because trellis starts no
+// process for it.
+//
+// The archived block carries Unarchive, which changes the state of the
+// session and starts no process. No other block carries a button: the
+// conversation header holds the one control that starts the process again.
 export function sessionPane(run: AgentRun, archived: boolean): SessionPane {
 	if (archived)
 		return {
-			kind: "stopped",
+			kind: "archived",
 			title: "This session is archived",
 			description:
 				"Trellis keeps the workspace, every file in it, and the conversation. Unarchive the session to start its agent again.",
@@ -42,9 +49,10 @@ export function sessionPane(run: AgentRun, archived: boolean): SessionPane {
 			detail: run.error,
 		};
 	return {
-		kind: "stopped",
-		title: "The agent is not running",
-		description: "Trellis keeps the workspace and every file in it. Start the agent to open its terminal again.",
+		kind: "paused",
+		title: "The agent is paused",
+		description:
+			"Trellis keeps the conversation, the workspace and every file in it. Resume opens the same conversation in the same workspace.",
 	};
 }
 

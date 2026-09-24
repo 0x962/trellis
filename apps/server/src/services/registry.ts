@@ -37,8 +37,10 @@ import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as pages from "./pages/pages.ts";
+import * as pageUploads from "./pages/uploads.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
+import * as providers from "./providers/providers.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequestLocalState from "./pullRequestLocalState.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -147,6 +149,11 @@ export const services = {
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"providers.list": io("read", providers.list),
+	"providers.get": io("read", providers.get),
+	"providers.create": io("mutation", providers.create),
+	"providers.update": io("mutation", providers.update),
+	"providers.delete": io("mutation", providers.remove),
 	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
@@ -209,6 +216,7 @@ export const services = {
 	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.switchAccount": agentMutation(prepareSwitchAccount),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
+	"agentRuns.pause": agentMutation(agentLifecycle.preparePause),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"flows.list": core("read", flows.list),
 	"flows.get": core("read", flows.get),
@@ -262,6 +270,7 @@ export const services = {
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
 	"pages.list": core("read", pages.list),
+	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
 	"pages.get": core("read", pages.get),
 	"pages.update": core("mutation", pages.update),
 	"pages.pin": core("mutation", pages.pin),

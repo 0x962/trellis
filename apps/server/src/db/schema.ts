@@ -38,6 +38,7 @@ export * from "./tables/prEvidenceDocuments.ts";
 export * from "./tables/prFiles.ts";
 export * from "./tables/prFlowWaivers.ts";
 export * from "./tables/projects.ts";
+export * from "./tables/providers.ts";
 export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";
 export * from "./tables/resourceComments.ts";

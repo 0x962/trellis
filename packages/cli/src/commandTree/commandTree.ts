@@ -63,6 +63,7 @@ export const commandTree: Record<string, Entry> = {
 	session: extend("sessions", "session", {}),
 	resource: { description: "Manage epic resources and document comments", load: alias("resource") },
 	model: extend("models", "model", {}),
+	provider: extend("providers", "provider", {}),
 	account: extend("accounts", "account", {
 		quota: group("quota", "Inspect account quota", { show: alias("accounts", ["quota"]) }).load,
 	}),

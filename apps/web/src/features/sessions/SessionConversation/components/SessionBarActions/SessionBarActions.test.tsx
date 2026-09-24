@@ -6,9 +6,9 @@ import { type AppContext, AppProvider } from "../../../../../lib/appContext";
 import { barSlots } from "../../../../../lib/barSlots";
 import { SessionBarActions } from "./SessionBarActions";
 
-// Session details reads the harness accounts to name the account of the
-// run, and the Move to project dialog behind the session menu reads the
-// projects. The render below needs the query options of those two reads
+// The Session details dialog reads the harness accounts to name the account
+// of the run, and the Move to project dialog behind the session menu reads
+// the projects. The render below needs the query options of those two reads
 // and nothing more.
 const queryClient = new QueryClient();
 const app = {
@@ -64,7 +64,7 @@ const render = (props: Partial<Parameters<typeof SessionBarActions>[0]> = {}) =>
 					readOnly={false}
 					onOpenTicket={() => {}}
 					onStart={() => {}}
-					onStop={() => {}}
+					onPause={() => {}}
 					onRename={() => {}}
 					{...props}
 				/>
@@ -72,8 +72,15 @@ const render = (props: Partial<Parameters<typeof SessionBarActions>[0]> = {}) =>
 		</AppProvider>,
 	);
 
-test("the bar draws its four controls in one order", () => {
-	expect(barSlots(render())).toEqual(["session-details", "open-ticket", "play", "session-actions"]);
+test("the bar draws its three controls in one order", () => {
+	expect(barSlots(render())).toEqual(["open-ticket", "play", "session-actions"]);
+});
+
+// A person reads one place for the action that stops and starts the
+// process. The pane under the bar draws no button of its own.
+test("the play control names the pause and the resume", () => {
+	expect(render()).toContain("Pause session");
+	expect(render({ active: false })).toContain("Resume session");
 });
 
 test("the read of the workspace moves no control", () => {
@@ -82,7 +89,7 @@ test("the read of the workspace moves no control", () => {
 	expect(barSlots(render({ summary: ready as never }))).toEqual(barSlots(render()));
 });
 
-test("a stopped session keeps the play control in the same place", () => {
+test("a paused session keeps the play control in the same place", () => {
 	expect(barSlots(render({ active: false }))).toEqual(barSlots(render()));
 });
 
@@ -94,11 +101,11 @@ test("the play control is the one metal disk and the rest are control disks", ()
 	const html = render();
 
 	expect(html.match(/class="[^"]*\bmetal\b[^"]*"/g)?.length).toBe(1);
-	expect(html.match(/class="[^"]*\bbg-control\b[^"]*"/g)?.length).toBe(3);
+	expect(html.match(/class="[^"]*\bbg-control\b[^"]*"/g)?.length).toBe(2);
 });
 
 test("every control of the bar is round", () => {
 	const html = render();
 
-	expect(html.match(/class="[^"]*\brounded-round\b[^"]*"/g)?.length).toBe(4);
+	expect(html.match(/class="[^"]*\brounded-round\b[^"]*"/g)?.length).toBe(3);
 });

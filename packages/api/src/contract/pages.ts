@@ -10,12 +10,24 @@ import {
 	PageRestoreInputSchema,
 	PageSummarySchema,
 	PageUpdateInputSchema,
+	PageUploadInputSchema,
+	PageUploadSchema,
 } from "../schemas/page.ts";
 import { base } from "./base.ts";
 
 const revisionErrors = pickErrors(["PROJECT_ARCHIVED", "PAGE_VERSION_CONFLICT"]);
 
 export const pages = {
+	upload: base
+		.errors(pickErrors(["DUPLICATE", "PAYLOAD_TOO_LARGE", "PROJECT_ARCHIVED"]))
+		.route({
+			method: "POST",
+			path: "/page-uploads",
+			successStatus: 200,
+			summary: "Stage a Page file as multipart form data",
+		})
+		.input(PageUploadInputSchema)
+		.output(PageUploadSchema),
 	list: base
 		.errors(pickErrors(["INVALID_CURSOR"]))
 		.route({ method: "GET", path: "/pages", summary: "List the pages of a project" })

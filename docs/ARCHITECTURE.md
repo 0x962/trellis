@@ -653,6 +653,8 @@ Sidebar work indicators request assigned runs. Individual agent views request th
 An active background launch reports `starting` until the runtime has a process.
 Otherwise, a missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
+A pause stops the process and writes no `closed_at`, so the ticket keeps its agent and the session keeps its place in the session list.
+A flow run closes when its process exits. A ticket agent and a session keep the assignment until a person unassigns or archives it.
 
 The ticket page uses three separate metric definitions. Tokens burned sums the latest provider-recorded cumulative total for each agent session.
 Multiple execution attempts for one agent session contribute only the largest cumulative total. A ticket shows Unavailable when any agent run has no recorded total.
@@ -706,6 +708,22 @@ A normal snapshot with a later observation time supersedes an older quota error.
 Trellis accepts a Muse observation for 60 seconds. An older observation returns `unavailable` without its windows.
 Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
+
+### Providers
+
+A provider is a global model gateway that Trellis can access with a stored key.
+The `providers` row stores its name, kind, base URL, key, and enabled state.
+The `provider_models` rows store the model identifiers that the provider offers.
+A provider name is unique without case sensitivity. A provider model identifier contains no space or control character.
+The base URL uses HTTPS and contains no credentials, query, or fragment.
+The API removes its trailing slash and trailing `/v1`, so a provider service can append an endpoint path.
+
+Only a human actor can create, update, or delete a provider.
+The API returns `keyLast4` and never returns `api_key`.
+`keyLast4` is empty when the stored key has fewer than eight characters.
+The database row selector does not select `api_key`, and a data export replaces its value with `<redacted>`.
+The CLI exposes `trellis provider list`, `show`, `create`, `edit`, and `delete`.
+Each mutation emits `providers.changed {id}`.
 
 ### Usage
 
@@ -998,6 +1016,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
+| providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
+| provider_models | provider_id (FK providers CASCADE), model_id (CHECK 1 to 200, no space or control character). PK (provider_id, model_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
 | sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
@@ -1085,9 +1105,14 @@ returns one canonical spelling.
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET and POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
+| agentRuns.pause | POST /api/agent-runs/{id}/pause | stops the process and keeps the assignment, the conversation and the workspace; refuses a flow run |
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
+| providers.list, get | GET /api/providers, /api/providers/{id} | global provider records with a key hint and model identifiers |
+| providers.create | POST /api/providers | 201 and `Location`; a human actor supplies the stored key |
+| providers.update | PATCH /api/providers/{id} | a human actor can replace the key or the full model set |
+| providers.delete | DELETE /api/providers/{id} | a human actor deletes the provider and its model rows |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; cached for five minutes |
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
@@ -1176,7 +1201,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`, `labels.changed {projectId}`, `epics.changed {projectId, id}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `needs-you.changed {actorName}`.
+`flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, `providers.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 
