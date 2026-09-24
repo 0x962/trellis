@@ -46,9 +46,14 @@ const announcementOf = (machines: MachinePressureMachineView[]) =>
 function PressureDots({ machines, collapsed }: { machines: MachinePressureMachineView[]; collapsed: boolean }) {
 	if (collapsed) {
 		return (
-		<span className="absolute -right-0.5 -top-0.5 inline-flex">
-			<AttentionDot label="Machine pressure has high readings" tone={toneOf(machines)} tooltip={false} focusable={false} />
-		</span>
+			<span className="absolute -right-0.5 -top-0.5 inline-flex">
+				<AttentionDot
+					label="Machine pressure has high readings"
+					tone={toneOf(machines)}
+					tooltip={false}
+					focusable={false}
+				/>
+			</span>
 		);
 	}
 	return (
@@ -93,10 +98,12 @@ function MachinePanel({ machines, usageLink }: Pick<MachinePressureProps, "machi
 							</div>
 						))}
 					</dl>
-					<div className="mt-3 border-border border-t pt-3 text-xs text-fg-muted">
-						{machine.runs && machine.runs.length > 0 && <p>Heaviest runs: {machine.runs.join(", ")}.</p>}
-						{machine.ageText && <p>{machine.ageText}</p>}
-					</div>
+					{((machine.runs && machine.runs.length > 0) || machine.ageText) && (
+						<div className="mt-3 border-border border-t pt-3 text-xs text-fg-muted">
+							{machine.runs && machine.runs.length > 0 && <p>Heaviest runs: {machine.runs.join(", ")}.</p>}
+							{machine.ageText && <p>{machine.ageText}</p>}
+						</div>
+					)}
 				</section>
 			))}
 			<div className="px-3 pb-3 text-xs text-fg-muted">{usageLink}</div>

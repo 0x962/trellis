@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MachinePressureMonitor, type MachinePressure, type MachinePressureReadings } from "@trellis/api";
+import { type MachinePressure, MachinePressureMonitor, type MachinePressureReadings } from "@trellis/api";
 import { machinePressureView, thermalReadingForOrigin } from "./machinePressureView";
 
 const sample: MachinePressure = {
@@ -56,6 +56,7 @@ describe("machinePressureView", () => {
 			{ label: "Processor temperature", value: "97", unit: "°C" },
 		]);
 		expect(view.readings.at(-1)?.detail).toBe("PMU tdie6 sensor · 2.5 ms read");
+		expect(view.ageText).toBe("Last read 0 s ago.");
 	});
 
 	test("omits a lost temperature while other high signals stay visible", () => {
@@ -65,7 +66,7 @@ describe("machinePressureView", () => {
 		const lost = monitor.update({ ...readings(15_001), temperature: null, temperatureReader: "lost" }, 15_001);
 		const view = machinePressureView(sample, lost, 15_001);
 		expect(view.readings.map(({ key }) => key)).toEqual(["cpuLoad", "memory", "thermal"]);
-		expect(view.ageText).toBeUndefined();
+		expect(view.ageText).toBe("Last read 0 s ago.");
 	});
 
 	test("marks a retained high sample as stale and shows its age", () => {

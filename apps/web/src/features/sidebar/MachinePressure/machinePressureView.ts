@@ -5,8 +5,8 @@ import {
 	type ThermalState,
 } from "@trellis/api";
 import type { MachinePressureMachineView, MachinePressureReadingView } from "@trellis/ui";
-import { formatBytes } from "../../../lib/format";
 import type { DesktopThermalSample } from "../../../lib/desktopBridge";
+import { formatBytes } from "../../../lib/format";
 
 export const thermalReadingForOrigin = (
 	sample: DesktopThermalSample | null,
@@ -60,9 +60,9 @@ const readingView = (signal: ReturnType<typeof activeMachinePressureSignals>[num
 };
 
 const ageText = (state: MachinePressureState, now: number): string | undefined => {
-	const stale = activeMachinePressureSignals(state).filter((signal) => signal.freshness === "stale");
-	if (stale.length === 0) return undefined;
-	const sampledAt = Math.min(...stale.map((signal) => signal.reading!.sampledAt));
+	const active = activeMachinePressureSignals(state);
+	if (active.length === 0) return undefined;
+	const sampledAt = Math.min(...active.map((signal) => signal.reading!.sampledAt));
 	const seconds = Math.max(0, Math.floor((now - sampledAt) / 1_000));
 	return `Last read ${seconds} s ago.`;
 };

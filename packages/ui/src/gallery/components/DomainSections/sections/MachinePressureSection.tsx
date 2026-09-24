@@ -49,6 +49,7 @@ const machine = (
 		name: "Canary-JQV57W1HPL",
 		readings: items,
 		runs: ["TRL-441 4.2 GB", "TRL-454 3.1 GB"],
+		ageText: "Last read 2 s ago.",
 		...extra,
 	},
 ];
