@@ -10,18 +10,26 @@ export function terminalResize(terminal: Terminal, fit: FitAddon, send: (cols: n
 	let force = false;
 	let disposed = false;
 	let attachFrame: number | undefined;
+	// True after a view takes this terminal, and after the host of a view loses
+	// its size, until the next fit. A session that a person opens, and a view
+	// that comes back on screen, therefore start on the newest line. A person
+	// who scrolls up in a view that stays on screen keeps that line.
+	let viewAppeared = false;
 	const measure = () => {
 		if (disposed || attachFrame !== undefined || parsing || !pending || !host?.clientWidth || !host.clientHeight)
 			return;
 		pending = false;
 		const buffer = terminal.buffer.active;
-		const pinned = buffer.viewportY >= buffer.baseY;
+		const moveToNewest = viewAppeared || buffer.viewportY >= buffer.baseY;
 		const viewport = buffer.viewportY;
 		const cols = terminal.cols;
 		const rows = terminal.rows;
 		fit.fit();
-		if (pinned) terminal.scrollToBottom();
+		// xterm follows new output only while the viewport sits on the last line.
+		// scrollToBottom puts the viewport there, so later output stays in view.
+		if (moveToNewest) terminal.scrollToBottom();
 		else terminal.scrollToLine(Math.min(viewport, terminal.buffer.active.baseY));
+		viewAppeared = false;
 		terminal.refresh(0, terminal.rows - 1);
 		if (force || cols !== terminal.cols || rows !== terminal.rows) send(terminal.cols, terminal.rows);
 		force = false;
@@ -46,16 +54,24 @@ export function terminalResize(terminal: Terminal, fit: FitAddon, send: (cols: n
 		attach(next: HTMLElement) {
 			detach();
 			host = next;
+			viewAppeared = true;
 			// WebGL attaches on the next frame. Fit after it replaces the renderer and updates terminal geometry.
 			attachFrame = requestAnimationFrame(() => {
 				attachFrame = undefined;
 				request(true);
 			});
+			// True from the size that a hidden host reports until the fit that
+			// follows it. That fit sends its size to the process even when the
+			// cell count stays the same, because the process kept the size of
+			// another view while this one was away.
 			let reveal = false;
 			observer = new ResizeObserver((entries) => {
 				clearTimeout(timer);
+				// A host with no width or no height holds a view that a person
+				// cannot read. The view that comes back opens on the newest line.
 				if (entries.some((entry) => entry.contentRect.width <= 0 || entry.contentRect.height <= 0)) {
 					reveal = true;
+					viewAppeared = true;
 					return;
 				}
 				timer = setTimeout(() => {
