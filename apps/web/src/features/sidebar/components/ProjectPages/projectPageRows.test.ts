@@ -21,18 +21,18 @@ const activeLabel = (pathname: string) => {
 	return [...top, ...more].find((row) => row.active)?.label ?? null;
 };
 
-test("Epics and Sessions stand under the project, and More holds Tickets, Diffs, Settings and Notes", () => {
+test("Epics and Sessions stand under the project, and More holds Tickets and Diffs", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
 	expect(labels(top)).toEqual(["Epics", "Sessions"]);
-	expect(labels(more)).toEqual(["Tickets", "Diffs", "Settings", "Notes"]);
+	expect(labels(more)).toEqual(["Tickets", "Diffs"]);
 });
 
 test("only the Epics row prints a count", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
 	expect(top.map((row) => row.trailing)).toEqual(["3", null]);
-	expect(more.map((row) => row.trailing)).toEqual([null, null, null, null]);
+	expect(more.map((row) => row.trailing)).toEqual([null, null]);
 });
 
 test("a project with no open epic prints no count", () => {
@@ -49,23 +49,6 @@ test("each page of the project makes its own row active", () => {
 	expect(activeLabel("/sessions/project/TRL")).toBe("Sessions");
 });
 
-test("the Settings row and the Notes row open a sheet, and neither is ever active", () => {
-	const { more } = projectPageRows(project, "/p/TRL", 0);
-	const sheetRows = more.filter((row) => row.settingsSection !== null);
-
-	expect(sheetRows.map((row) => [row.label, row.suffix, row.settingsSection, row.active])).toEqual([
-		["Settings", "/settings", "", false],
-		["Notes", "/notes", "notes", false],
-	]);
-});
-
-test("every row that opens a page names no section", () => {
-	const { top, more } = projectPageRows(project, "/p/TRL", 0);
-	const pageRows = [...top, ...more].filter((row) => row.label !== "Settings" && row.label !== "Notes");
-
-	expect(pageRows.every((row) => row.settingsSection === null)).toBe(true);
-});
-
 test("a page of another project leaves every row off", () => {
 	expect(activeLabel("/p/CDE/diffs")).toBe(null);
 	expect(activeLabel("/sessions/project/CDE")).toBe(null);
@@ -75,7 +58,7 @@ test("the Sessions row carries the count of the active agents, and no other row 
 	const { top, more } = projectPageRows(project, "/p/TRL", 2);
 
 	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 2]);
-	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 0, 0, 0]);
+	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 0]);
 });
 
 test("a project with no active agent counts none", () => {

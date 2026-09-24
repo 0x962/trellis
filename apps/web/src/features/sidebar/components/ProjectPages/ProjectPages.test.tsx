@@ -75,7 +75,7 @@ test("a project whose current page is Diffs renders with More open", async () =>
 	const html = await render("/p/TRL/diffs");
 
 	expect(html).toContain('aria-expanded="true"');
-	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs", "Settings", "Notes"]);
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs"]);
 	const diffs = html.match(/<a [^>]*>(?=<span class="sidebar-label">Diffs<)/)?.[0] ?? "";
 
 	expect(diffs).toContain('href="/p/TRL/diffs"');
@@ -86,16 +86,7 @@ test("a project whose current page is Diffs renders with More open", async () =>
 test("a project whose current page is Tickets renders with More open", async () => {
 	const html = await render("/p/TRL");
 
-	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs", "Settings", "Notes"]);
-});
-
-test("the Settings row and the Notes row keep the href of their page", async () => {
-	const html = await render("/p/TRL");
-	const hrefOf = (label: string) =>
-		html.match(new RegExp(`href="([^"]*)"[^>]*><span class="sidebar-label">${label}<`))?.[1] ?? null;
-
-	expect(hrefOf("Settings")).toBe("/p/TRL/settings");
-	expect(hrefOf("Notes")).toBe("/p/TRL/notes");
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs"]);
 });
 
 test("the rows under More indent one step past the rows above them", async () => {
@@ -109,8 +100,6 @@ test("the rows under More indent one step past the rows above them", async () =>
 	expect(indentOf("More")).toBe("pl-8");
 	expect(indentOf("Tickets")).toBe("pl-11");
 	expect(indentOf("Diffs")).toBe("pl-11");
-	expect(indentOf("Settings")).toBe("pl-11");
-	expect(indentOf("Notes")).toBe("pl-11");
 });
 
 test("only the Epics row prints a count", async () => {
