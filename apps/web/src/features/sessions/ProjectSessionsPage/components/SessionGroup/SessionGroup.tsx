@@ -1,6 +1,16 @@
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, GroupHeader, useMediaQuery } from "@trellis/ui";
-import { type RefObject, useEffect, useId, useRef, useState } from "react";
+import { Avatar, GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight, useMediaQuery } from "@trellis/ui";
+import {
+	type KeyboardEvent,
+	type RefObject,
+	useCallback,
+	useEffect,
+	useId,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
@@ -9,7 +19,7 @@ import { SessionActionsMenu } from "../../../SessionActionsMenu";
 import { SessionName } from "../../../SessionName";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
-import { nextSessionLimit, SESSION_REVEAL_STEP, visibleSessions } from "../../sessionGroups";
+import { nextSessionRow, SESSION_ROW_HEIGHT, sessionRowRange } from "../../sessionGroups";
 import { RunLineChanges } from "./components/RunLineChanges";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
@@ -19,12 +29,27 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
 	minute: "2-digit",
 });
 
+const rowIndexOf = (target: EventTarget) => Number((target as HTMLElement).closest("li")?.dataset.index);
+
+// One group of the session list. The rows of every group scroll in one box,
+// which `SessionList` owns and passes as `scroller`. The group draws only
+// the rows that box shows, so a history of a thousand runs costs the same
+// as a history of thirty. Each drawn row of a native run asks the server
+// for the Git state of its workspace, and the server runs Git for each of
+// those reads, so the number of drawn rows is the cost of the list.
+//
+// `scrollMargin` is the distance from the top of the scrolled content to
+// the first row of this group. The virtualizer needs it, because two groups
+// share one box and the second group starts below the rows of the first.
+// `layout` counts the changes of the content height, and every change moves
+// the groups, so the group measures that distance again on each count.
 export function SessionGroup({
 	group,
 	label,
 	projectKey,
 	runs,
 	scroller,
+	layout,
 	sessionsByRunId,
 	selectedId,
 	onSelect,
@@ -35,6 +60,7 @@ export function SessionGroup({
 	projectKey: string;
 	runs: AgentRun[];
 	scroller: RefObject<HTMLDivElement | null>;
+	layout: number;
 	sessionsByRunId: Map<string, Session>;
 	selectedId?: string;
 	onSelect: (id: string) => void;
@@ -44,43 +70,75 @@ export function SessionGroup({
 	const routeKey = `/sessions/project/${projectKey}`;
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
-	const [limit, setLimit] = useState(SESSION_REVEAL_STEP);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
+	const [focusedIndex, setFocusedIndex] = useState<number>();
+	const [scrollMargin, setScrollMargin] = useState(0);
+	const rowBox = useRef<HTMLUListElement>(null);
 	const selectedButton = useRef<HTMLButtonElement>(null);
-	const selected = runs.find((run) => run.id === selectedId);
-	const revealId = selected?.id;
+	// The row the Tab key asks for while it is still outside the tree. The
+	// effect below focuses it on the render that draws it.
+	const wantsFocus = useRef<number | null>(null);
+	const selectedIndex = runs.findIndex((run) => run.id === selectedId);
+	const revealId = selectedIndex === -1 ? undefined : selectedId;
 	useEffect(() => {
 		if (revealId || searching) uiActions.setGroupCollapsed(routeKey, group, false);
 	}, [revealId, routeKey, group, searching]);
 	useEffect(() => {
 		if (revealId && !collapsed) selectedButton.current?.scrollIntoView({ block: "nearest" });
 	}, [revealId, collapsed]);
-	const visible = visibleSessions(runs, limit, selectedId);
-	// A selected run that sits past the limit joins the drawn rows, so the
-	// limit, and not the number of drawn rows, says whether rows remain.
-	const more = runs.length > limit;
-	// The end marker sits under the last drawn row. The browser reports it
-	// when it comes within 240 px of the bottom of the scrolling box, and the
-	// group then draws its next rows. A collapsed group draws no box, so the
-	// browser reports nothing and the group reveals nothing. The marker
-	// leaves the tree once every run is drawn, which ends the reveal.
-	//
-	// A new limit builds a new observer, which measures the marker again. A
-	// tall box that still holds the marker after a reveal therefore draws the
-	// rows after those as well, until the marker sits below the box.
-	const endMarker = useRef<HTMLDivElement>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `layout` counts the changes of the content height, which is the trigger to measure again
+	useLayoutEffect(() => {
+		if (collapsed) return;
+		const view = scroller.current!;
+		const top = rowBox.current!.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop;
+		setScrollMargin(top);
+	}, [collapsed, layout, scroller]);
+	const rangeExtractor = useCallback(
+		(range: Parameters<typeof defaultRangeExtractor>[0]) =>
+			sessionRowRange(defaultRangeExtractor(range), [selectedIndex === -1 ? undefined : selectedIndex, focusedIndex]),
+		[selectedIndex, focusedIndex],
+	);
+	const virtualizer = useVirtualizer({
+		count: runs.length,
+		getScrollElement: () => scroller.current,
+		estimateSize: () => SESSION_ROW_HEIGHT,
+		scrollMargin,
+		overscan: 8,
+		rangeExtractor,
+		// A row that a key scrolls to lands under the header of its group,
+		// which stands at the top of the box while its rows pass.
+		scrollPaddingStart: phone ? phoneGroupHeaderHeight : groupHeaderHeight,
+		getItemKey: (index) => runs[index]!.id,
+	});
+	const drawn = virtualizer.getVirtualItems();
 	useEffect(() => {
-		const marker = endMarker.current;
-		if (marker === null) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries.some((entry) => entry.isIntersecting)) setLimit(nextSessionLimit(limit, runs.length));
-			},
-			{ root: scroller.current, rootMargin: "0px 0px 240px 0px" },
-		);
-		observer.observe(marker);
-		return () => observer.disconnect();
-	}, [limit, runs.length, scroller]);
+		const index = wantsFocus.current;
+		if (index === null) return;
+		const button = rowBox.current!.querySelector<HTMLElement>(`li[data-index="${index}"] button.sidebar-item`);
+		if (button === null) return;
+		button.focus({ preventScroll: true });
+		wantsFocus.current = null;
+	});
+	// The Tab key walks the rows of the list. The row after the last drawn
+	// row is outside the tree, so the browser would send the focus past the
+	// list. The group scrolls that row into view instead and holds the
+	// request until the row renders.
+	const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
+		if (event.key !== "Tab") return;
+		const item = (event.target as HTMLElement).closest("li")!;
+		const buttons = [...item.querySelectorAll("button")];
+		if (event.target !== (event.shiftKey ? buttons[0] : buttons[buttons.length - 1])) return;
+		const next = nextSessionRow({
+			focused: Number(item.dataset.index),
+			total: runs.length,
+			back: event.shiftKey,
+			drawn: drawn.map((row) => row.index),
+		});
+		if (next === null) return;
+		event.preventDefault();
+		virtualizer.scrollToIndex(next, { align: "auto" });
+		wantsFocus.current = next;
+	};
 	return (
 		<section aria-label={group === "sessions" ? "Sessions" : `${label} sessions`}>
 			<GroupHeader
@@ -95,8 +153,16 @@ export function SessionGroup({
 				sticky
 			/>
 			<div id={contentId} hidden={collapsed}>
-				<ul className="flex flex-col gap-0.5 px-2 pb-2">
-					{visible.map((run) => {
+				<ul
+					ref={rowBox}
+					className="relative mb-2"
+					style={{ height: `${virtualizer.getTotalSize()}px` }}
+					onKeyDown={onKeyDown}
+					onFocus={(event) => setFocusedIndex(rowIndexOf(event.target))}
+					onBlur={() => setFocusedIndex(undefined)}
+				>
+					{drawn.map((virtual) => {
+						const run = runs[virtual.index]!;
 						const historical = isHistoricalSession(run);
 						const state = sessionStateLabel(run);
 						const needsAttention = ["failed", "interrupted", "needs-input", "done"].includes(sessionStatus(run));
@@ -145,7 +211,12 @@ export function SessionGroup({
 							</button>
 						);
 						return (
-							<li key={run.id} className="group/row relative">
+							<li
+								key={virtual.key}
+								data-index={virtual.index}
+								className="group/row absolute right-2 left-2"
+								style={{ top: `${virtual.start - scrollMargin}px`, height: `${SESSION_ROW_HEIGHT}px` }}
+							>
 								{session === undefined ? (
 									row
 								) : (
@@ -176,14 +247,6 @@ export function SessionGroup({
 						);
 					})}
 				</ul>
-				{more && (
-					<div ref={endMarker} role="status" className="px-4 pb-2 text-xs text-fg-muted tabular">
-						{visible.length} of {runs.length}
-					</div>
-				)}
-				{!more && runs.length > SESSION_REVEAL_STEP && (
-					<p className="px-4 pb-2 text-xs text-fg-muted tabular">All {runs.length} shown</p>
-				)}
 			</div>
 		</section>
 	);

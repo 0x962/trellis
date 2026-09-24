@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { nextSessionLimit, SESSION_REVEAL_STEP, sessionGroups, visibleSessions } from "./sessionGroups";
+import { nextSessionRow, sessionGroups, sessionRowRange } from "./sessionGroups";
 
 const run = (id: string, fields: Partial<Parameters<typeof sessionGroups>[0][number]> = {}) => ({
 	id,
@@ -41,27 +41,17 @@ test("search finds historical ticket titles and identifiers without a history to
 	expect(sessionGroups(runs, { search: "missing", history: true }).ticketed).toEqual([]);
 });
 
-test("a group draws one step of rows and keeps the selected run", () => {
-	const runs = Array.from({ length: 119 }, (_, index) => run(`run-${index}`));
-	expect(visibleSessions(runs, SESSION_REVEAL_STEP).map((item) => item.id)).toEqual(
-		runs.slice(0, SESSION_REVEAL_STEP).map((item) => item.id),
-	);
-	const withSelected = visibleSessions(runs, SESSION_REVEAL_STEP, "run-100");
-	expect(withSelected).toHaveLength(SESSION_REVEAL_STEP + 1);
-	expect(withSelected[SESSION_REVEAL_STEP]?.id).toBe("run-100");
-	const inStep = visibleSessions(runs, SESSION_REVEAL_STEP, "run-2");
-	expect(inStep).toHaveLength(SESSION_REVEAL_STEP);
+test("the drawn rows hold the selected row and the focused row", () => {
+	expect(sessionRowRange([10, 11, 12], [100, 4])).toEqual([4, 10, 11, 12, 100]);
+	expect(sessionRowRange([10, 11], [undefined, undefined])).toEqual([10, 11]);
+	expect(sessionRowRange([10, 11], [11, undefined])).toEqual([10, 11]);
 });
 
-test("the reveal reaches every run and then stops", () => {
-	const total = 119;
-	let limit = SESSION_REVEAL_STEP;
-	const steps = [];
-	for (let reveal = 0; reveal < 10; reveal++) {
-		limit = nextSessionLimit(limit, total);
-		steps.push(limit);
-	}
-	expect(steps).toEqual([60, 90, 119, 119, 119, 119, 119, 119, 119, 119]);
-	expect(nextSessionLimit(total, total)).toBe(total);
-	expect(nextSessionLimit(SESSION_REVEAL_STEP, 5)).toBe(5);
+test("the Tab key takes over only for a row outside the tree", () => {
+	const drawn = [20, 21, 22];
+	expect(nextSessionRow({ focused: 22, total: 133, back: false, drawn })).toBe(23);
+	expect(nextSessionRow({ focused: 21, total: 133, back: false, drawn })).toBeNull();
+	expect(nextSessionRow({ focused: 20, total: 133, back: true, drawn })).toBe(19);
+	expect(nextSessionRow({ focused: 132, total: 133, back: false, drawn: [132] })).toBeNull();
+	expect(nextSessionRow({ focused: 0, total: 133, back: true, drawn: [0] })).toBeNull();
 });

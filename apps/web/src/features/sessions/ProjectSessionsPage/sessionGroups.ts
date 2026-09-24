@@ -40,27 +40,27 @@ export function sessionGroups<T extends GroupableRun>(
 	};
 }
 
-// The rows one group adds each time the end of its list comes into view.
-// Each drawn row of a native run asks the server for the Git state of its
-// workspace, and the server runs Git for every one of those reads, so this
-// number is the count of reads that one reveal starts.
-export const SESSION_REVEAL_STEP = 30;
+// The box one row of the session list takes: the 44 px row of the sidebar
+// and the 2 px space under it. Every row of the list has these two lines,
+// so one number answers for all of them, and the height of the list never
+// changes as rows come into the tree and leave it.
+export const SESSION_ROW_HEIGHT = 46;
 
-// The runs one group draws. `limit` holds the rows the person has reached
-// by scrolling. The selected run is always drawn, because the page puts the
-// conversation of that run beside the list, and a person who opens a link to
-// an old run must see which row is open.
-export function visibleSessions<T extends { id: string }>(runs: T[], limit: number, selectedId?: string) {
-	const visible = runs.slice(0, limit);
-	const selected = runs.find((run) => run.id === selectedId);
-	if (selected !== undefined && !visible.includes(selected)) visible.push(selected);
-	return visible;
+// The rows the list draws, on top of the rows that the scroll position
+// asks for. `keep` holds the selected row and the row that holds the
+// keyboard focus. A row that leaves the tree takes the focus with it, so
+// the list holds both of those rows at any scroll position.
+export function sessionRowRange(range: number[], keep: (number | undefined)[]) {
+	const kept = keep.filter((index): index is number => index !== undefined);
+	return [...new Set([...range, ...kept])].sort((a, b) => a - b);
 }
 
-// The next value of `limit` when the end of the list comes into view. The
-// value stops at the number of runs the group holds. A limit that has
-// reached that number returns itself, so the reveal stops and React starts
-// no further render from the same state.
-export function nextSessionLimit(limit: number, total: number) {
-	return Math.min(limit + SESSION_REVEAL_STEP, total);
+// The row that takes the keyboard focus when the Tab key leaves the last
+// row in the tree. `null` means the browser moves the focus itself: the
+// next row is already in the tree, or the focus leaves the list.
+export function nextSessionRow(input: { focused: number; total: number; back: boolean; drawn: number[] }) {
+	const next = input.focused + (input.back ? -1 : 1);
+	if (next < 0 || next >= input.total) return null;
+	if (input.drawn.includes(next)) return null;
+	return next;
 }
