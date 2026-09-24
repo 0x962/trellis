@@ -5,4 +5,4 @@ export {
 	projectSectionItems,
 	projectSectionLabel,
 	projectSections,
-} from "./projectSectionItems";
+} from "./projectSections";

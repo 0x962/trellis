@@ -1,7 +1,7 @@
 import { Chats, Check, ListBullets } from "@phosphor-icons/react";
 import type { MenuItem } from "@trellis/ui";
 import type { ReactElement } from "react";
-import { projectHref } from "../../../lib/projectUrl";
+import { projectHref, projectSessionsHref } from "../../../lib/projectUrl";
 
 export type ProjectSectionId = "epics" | "sessions";
 
@@ -15,11 +15,10 @@ export type ProjectSection = {
 };
 
 // The sections of one project that the header menu moves between, in the
-// order of the sidebar rows. A section added here joins the menu of every
-// page that draws `ProjectSectionMenu`.
+// order of the sidebar rows.
 export const projectSections: readonly ProjectSection[] = [
 	{ id: "epics", label: "Epics", icon: <ListBullets />, href: (projectKey) => projectHref(projectKey, "epics") },
-	{ id: "sessions", label: "Sessions", icon: <Chats />, href: (projectKey) => `/sessions/project/${projectKey}` },
+	{ id: "sessions", label: "Sessions", icon: <Chats />, href: (projectKey) => projectSessionsHref(projectKey) },
 ];
 
 export const projectSectionLabel = (id: ProjectSectionId): string =>

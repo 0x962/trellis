@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { Chats, Check, ListBullets } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
-import { type ProjectSection, projectSectionItems, projectSectionLabel } from "./projectSectionItems";
+import { type ProjectSection, projectSectionItems, projectSectionLabel } from "./projectSections";
 
 const iconType = (icon: ReactElement | undefined) => (icon as ReactElement).type;
 
-const picked = (current: "epics" | "sessions", label: string) => {
-	const taken: ProjectSection[] = [];
-	const items = projectSectionItems(current, (section) => taken.push(section));
+const opens = (current: "epics" | "sessions", label: string) => {
+	const opened: ProjectSection[] = [];
+	const items = projectSectionItems(current, (section) => opened.push(section));
 	items.find((item) => item.label === label)!.onSelect();
-	return taken;
+	return opened;
 };
 
 describe("projectSectionItems", () => {
@@ -28,13 +28,13 @@ describe("projectSectionItems", () => {
 	});
 
 	test("opens the page of the section a person picks, under that project", () => {
-		expect(picked("sessions", "Epics").map((section) => section.href("TRL"))).toEqual(["/p/TRL/epics"]);
-		expect(picked("epics", "Sessions").map((section) => section.href("TRL"))).toEqual(["/sessions/project/TRL"]);
+		expect(opens("sessions", "Epics").map((section) => section.href("TRL"))).toEqual(["/p/TRL/epics"]);
+		expect(opens("epics", "Sessions").map((section) => section.href("TRL"))).toEqual(["/sessions/project/TRL"]);
 	});
 
 	test("opens nothing for the section that is already on screen", () => {
-		expect(picked("sessions", "Sessions")).toEqual([]);
-		expect(picked("epics", "Epics")).toEqual([]);
+		expect(opens("sessions", "Sessions")).toEqual([]);
+		expect(opens("epics", "Epics")).toEqual([]);
 	});
 });
 
