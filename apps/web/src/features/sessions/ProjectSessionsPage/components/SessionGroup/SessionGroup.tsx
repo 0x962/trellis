@@ -29,7 +29,12 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
 	minute: "2-digit",
 });
 
-const rowOf = (target: EventTarget) => (target as HTMLElement).closest("li")!;
+// The row of the list that holds an event, or null when the event comes
+// from outside the rows. The menu of a row draws its items in a portal at
+// the end of the document, and React sends the events of that portal to
+// the handlers of the list, so a target with no row above it is a normal
+// event of an open menu and not a row of the list.
+const rowOf = (target: EventTarget) => (target as HTMLElement).closest<HTMLLIElement>("li[data-run]");
 const controlsOf = (item: Element) => [...item.querySelectorAll("button")];
 
 // One group of the session list. The rows of every group scroll in one box,
@@ -72,10 +77,15 @@ export function SessionGroup({
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [renamingId, setRenamingId] = useState<string | null>(null);
-	// The run the keyboard focus stands on, and the run the Tab key asks
-	// for while its row is outside the tree. Both hold the ID of the run and
-	// not its place, because a poll every two seconds can move a run in the
-	// list or drop it from the list.
+	// The run whose row last took the keyboard focus, and the run the Tab
+	// key asks for while its row is outside the tree. Both hold the ID of
+	// the run and not its place, because a poll every two seconds can move a
+	// run in the list or drop it from the list.
+	//
+	// The list holds that row until another row takes the focus. The focus
+	// leaves a row for the items of its own menu, which stand outside the
+	// list, and the row must stay in the tree while its menu is open,
+	// because the menu hangs from a control of that row.
 	const [focusedId, setFocusedId] = useState<string>();
 	const [scrollMargin, setScrollMargin] = useState(0);
 	const rowBox = useRef<HTMLUListElement>(null);
@@ -144,6 +154,7 @@ export function SessionGroup({
 	const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
 		if (event.key !== "Tab") return;
 		const item = rowOf(event.target);
+		if (item === null) return;
 		const controls = controlsOf(item);
 		if (event.target !== (event.shiftKey ? controls[0] : controls[controls.length - 1])) return;
 		const next = nextSessionRow({
@@ -178,8 +189,10 @@ export function SessionGroup({
 					className="relative mb-2"
 					style={{ height: `${virtualizer.getTotalSize()}px` }}
 					onKeyDown={onKeyDown}
-					onFocus={(event) => setFocusedId(rowOf(event.target).dataset.run)}
-					onBlur={() => setFocusedId(undefined)}
+					onFocus={(event) => {
+						const item = rowOf(event.target);
+						if (item !== null) setFocusedId(item.dataset.run);
+					}}
 				>
 					{drawn.map((virtual) => {
 						const run = runs[virtual.index]!;
