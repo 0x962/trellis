@@ -10,8 +10,8 @@ import { sessionResources } from "../sessionResources.ts";
 import { expireIdleSessions } from "./idleCleanup.ts";
 
 const now = Date.parse("2026-09-23T12:00:00Z");
-const fiveMinutes = 5 * 60 * 1000;
-const timeout = 30 * 60 * 1000;
+const underIdleTimeoutMs = 5 * 60 * 1000;
+const idleTimeoutMs = 30 * 60 * 1000;
 let home: string;
 let record: SessionRecord;
 let stops: number;
@@ -29,7 +29,7 @@ beforeEach(() => {
 			pid: process.pid,
 			mode: "pty",
 			status: "running",
-			startedAt: new Date(now - timeout * 2).toISOString(),
+			startedAt: new Date(now - idleTimeoutMs * 2).toISOString(),
 			endedAt: null,
 			exitCode: null,
 			error: null,
@@ -57,7 +57,7 @@ beforeEach(() => {
 	};
 	observeHarness(record, { kind: "prompt", sessionId: "saved-conversation", prompt: "trellis-message:attempt\nWork" });
 	observeHarness(record, { kind: "idle", outcome: "completed", result: "Done" });
-	record.activity = { state: "idle", updatedAt: new Date(now - timeout - 1).toISOString() };
+	record.activity = { state: "idle", updatedAt: new Date(now - idleTimeoutMs - 1).toISOString() };
 });
 
 afterEach(async () => {
@@ -66,10 +66,10 @@ afterEach(async () => {
 });
 
 test("stops after 30 idle minutes and retains the saved conversation", () => {
-	record.activity!.updatedAt = new Date(now - fiveMinutes).toISOString();
+	record.activity!.updatedAt = new Date(now - underIdleTimeoutMs).toISOString();
 	expireIdleSessions([record], save, now);
 	expect(stops).toBe(0);
-	record.activity!.updatedAt = new Date(now - timeout).toISOString();
+	record.activity!.updatedAt = new Date(now - idleTimeoutMs).toISOString();
 	expireIdleSessions([record], save, now);
 	expect(stops).toBe(0);
 	expireIdleSessions([record], save, now + 1);
@@ -79,7 +79,7 @@ test("stops after 30 idle minutes and retains the saved conversation", () => {
 	expect(record.retainForResume).toBe(true);
 	expect(record.observations.agent!.sessionId).toBe("saved-conversation");
 	expect(record.completion.latest?.text).toBe("Done");
-	expireIdleSessions([record], save, now + timeout);
+	expireIdleSessions([record], save, now + idleTimeoutMs);
 	expect(stops).toBe(1);
 });
 
@@ -92,7 +92,7 @@ test.each(["working", "ready"] as const)("keeps an old %s observation alive", (s
 test("keeps a process without an idle observation or confirmed conversation", () => {
 	record.activity = null;
 	expireIdleSessions([record], save, now);
-	record.activity = { state: "idle", updatedAt: new Date(now - timeout - 1).toISOString() };
+	record.activity = { state: "idle", updatedAt: new Date(now - idleTimeoutMs - 1).toISOString() };
 	record.observations.agent!.sessionId = null;
 	expireIdleSessions([record], save, now);
 	expect(stops).toBe(0);
@@ -116,7 +116,7 @@ test("keeps an unresolved question and an active tool alive", () => {
 
 test("a native message accepted before cleanup prevents a stop until its receipt", () => {
 	record.ledger.registerNative("followup", "digest", () => acceptSessionInput(record));
-	record.lastInputAt = now - timeout - 1;
+	record.lastInputAt = now - idleTimeoutMs - 1;
 	expireIdleSessions([record], save, now);
 	expect(stops).toBe(0);
 	record.ledger.acknowledge("followup");
@@ -135,12 +135,12 @@ test("a queued terminal message also prevents a stop until its receipt", async (
 
 test("recent human input delays cleanup but a terminal response does not", () => {
 	acceptSessionInput(record);
-	expireIdleSessions([record], save, record.lastInputAt! + timeout);
+	expireIdleSessions([record], save, record.lastInputAt! + idleTimeoutMs);
 	expect(stops).toBe(0);
 	const inputAt = record.lastInputAt!;
 	acceptSessionInput(record, false);
 	expect(record.lastInputAt).toBe(inputAt);
-	expireIdleSessions([record], save, inputAt + timeout + 1);
+	expireIdleSessions([record], save, inputAt + idleTimeoutMs + 1);
 	expect(stops).toBe(1);
 });
 
@@ -155,6 +155,6 @@ test("a message after cleanup starts fails before it reserves delivery", () => {
 
 test("a working event before the sweep cancels expiry", () => {
 	observeHarness(record, { kind: "working", turnId: "next" });
-	expireIdleSessions([record], save, now + timeout * 10);
+	expireIdleSessions([record], save, now + idleTimeoutMs * 10);
 	expect(stops).toBe(0);
 });

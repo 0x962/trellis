@@ -43,7 +43,7 @@ A child can close standard input while it remains active. A failed write returns
 
 Input calls have no automatic resend. The host must preserve an unknown input result until its harness can establish receipt.
 
-The runtime checks owned agents every 30 seconds. It stops a process tree after more than five idle minutes when the provider reports idle and has a saved conversation. Active tools, pending questions, unacknowledged messages, and recent human input prevent this stop. Terminal responses and window resizes do not extend the clock.
+The runtime checks owned agents every 30 seconds. It stops a process tree after more than 30 idle minutes when the provider reports idle and has a saved conversation. Active tools, pending questions, unacknowledged messages, and recent human input prevent this stop. Terminal responses and window resizes do not extend the clock.
 
 Idle expiry records `stopReason: "idle"` and preserves the saved conversation on disk for resume. New input receives `SESSION_IDLE_STOPPED` before delivery. The host resumes the conversation for a new message and releases the prior record after the new attempt starts. Explicit stop and session deletion also release the record.
 
