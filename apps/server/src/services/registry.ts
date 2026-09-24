@@ -6,6 +6,7 @@ import { answerQuestion } from "./agentRuns/answerQuestion.ts";
 import * as agentAttention from "./agentRuns/attention.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import { setPinned as setAgentRunPinned } from "./agentRuns/pin.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareRetry } from "./agentRuns/retry.ts";
 import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
@@ -201,6 +202,7 @@ export const services = {
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
+	"agentRuns.setPinned": core("mutation", setAgentRunPinned),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": prepared(
 		"mutation",

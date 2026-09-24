@@ -47,28 +47,44 @@ const withinWindow = (input: AgentRunListInput, ticketId: string | null, now: Da
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = input.project === undefined ? null : await resolveProject(ctx, tx, input.project);
+	const projectWhere =
+		project === null
+			? sql`true`
+			: sql`((ticket_id IS NULL AND project_id = ${project.id}) OR
+				ticket_id IN (SELECT id FROM tickets WHERE project_id = ${project.id}))`;
+	const ticketWhere = ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`;
+	const idsWhere =
+		input.ids === undefined
+			? sql`true`
+			: input.ids.length === 0
+				? sql`false`
+				: sql`id IN (${sql.join(
+						input.ids.map((id) => sql`${id}`),
+						sql`, `,
+					)})`;
+	const assignedWhere =
+		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
+	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}`;
+	const window = withinWindow(input, ticket === null ? null : ticket.id, ctx.now);
+	if (input.includePinnedHistory)
+		return rows<StoredRun>(
+			tx,
+			sql`WITH pinned AS (
+					SELECT ${listColumns} FROM agent_runs
+					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NOT NULL
+				), recent AS (
+					SELECT ${listColumns} FROM agent_runs
+					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NULL AND ${window}
+					ORDER BY created_at DESC, id DESC LIMIT ${input.limit}
+				)
+				SELECT * FROM pinned
+				UNION ALL
+				SELECT * FROM recent
+				ORDER BY "pinnedAt" DESC NULLS LAST, "createdAt" DESC, id DESC`,
+		);
 	return rows<StoredRun>(
 		tx,
-		sql`SELECT ${listColumns} FROM agent_runs WHERE
-		${
-			project === null
-				? sql`true`
-				: sql`((ticket_id IS NULL AND project_id = ${project.id}) OR
-					ticket_id IN (SELECT id FROM tickets WHERE project_id = ${project.id}))`
-		} AND
-		${ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`} AND
-		${
-			input.ids === undefined
-				? sql`true`
-				: input.ids.length === 0
-					? sql`false`
-					: sql`id IN (${sql.join(
-							input.ids.map((id) => sql`${id}`),
-							sql`, `,
-						)})`
-		} AND
-		${input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`} AND
-		${withinWindow(input, ticket === null ? null : ticket.id, ctx.now)}
+		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${window}
 		ORDER BY created_at DESC, id DESC LIMIT ${input.limit}`,
 	);
 };
@@ -88,6 +104,7 @@ export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 export const prepareOpenRuns = (ctx: Ctx) =>
 	prepareList(ctx, {
 		assigned: true,
+		includePinnedHistory: false,
 		windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
 		limit: AGENT_RUN_LIST_MAX_LIMIT,
 	});

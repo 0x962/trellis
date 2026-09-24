@@ -29,6 +29,7 @@ export const agentRuns = os.agentRuns.router({
 	send: os.agentRuns.send.handler(({ context, input }) => call(context, "agentRuns.send", input)),
 	output: os.agentRuns.output.handler(({ context, input }) => call(context, "agentRuns.output", input)),
 	list: os.agentRuns.list.handler(({ context, input }) => call(context, "agentRuns.list", input)),
+	setPinned: os.agentRuns.setPinned.handler(({ context, input }) => call(context, "agentRuns.setPinned", input)),
 	ticketMetrics: os.agentRuns.ticketMetrics.handler(({ context, input }) =>
 		call(context, "agentRuns.ticketMetrics", input),
 	),

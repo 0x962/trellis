@@ -16,6 +16,7 @@ export const SessionSchema = z.object({
 	directory: z.string(),
 	harness: HarnessSchema,
 	runId: UlidSchema,
+	pinnedAt: IsoDateTimeSchema.nullable(),
 	archivedAt: IsoDateTimeSchema.nullable(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,

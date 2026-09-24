@@ -18,6 +18,7 @@ const run = (id: string): AgentRun => ({
 	ticketStatusCategory: null,
 	ticketEpicId: null,
 	ticketEpicProjectId: null,
+	pinnedAt: null,
 	assigned: true,
 	state: "running",
 	processStatus: "running",

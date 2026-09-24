@@ -10,7 +10,14 @@ export const sidebarSessionsQuery = (orpc: AppContext["orpc"]) => orpc.sessions.
 // sessions page of that project, and an archived session lives under
 // Archived.
 export const openSessions = (sessions: readonly Session[]) =>
-	sessions.filter((session) => session.projectId === null && session.archivedAt === null);
+	sessions
+		.filter((session) => session.projectId === null && session.archivedAt === null)
+		.toSorted(
+			(a, b) =>
+				Number(b.pinnedAt !== null) - Number(a.pinnedAt !== null) ||
+				b.createdAt.localeCompare(a.createdAt) ||
+				b.id.localeCompare(a.id),
+		);
 
 // The sessions of the Archived section. The server archives no session that
 // holds a project, so an archived session is always a top level session.

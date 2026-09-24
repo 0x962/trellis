@@ -11,6 +11,7 @@ type GroupableRun = Pick<
 	| "ticketTitle"
 	| "assigned"
 	| "ticketStatusCategory"
+	| "pinnedAt"
 	| "createdAt"
 >;
 
@@ -24,10 +25,11 @@ export function sessionGroups<T extends GroupableRun>(
 			return [run.name, run.ticketIdentifier, run.ticketTitle, run.createdAt].some((value) =>
 				value?.toLocaleLowerCase().includes(query),
 			);
-		return options.history || !isHistoricalSession(run) || run.id === options.selectedId;
+		return options.history || run.pinnedAt !== null || !isHistoricalSession(run) || run.id === options.selectedId;
 	});
 	matches.sort(
 		(a, b) =>
+			Number(b.pinnedAt !== null) - Number(a.pinnedAt !== null) ||
 			Number(isHistoricalSession(a)) - Number(isHistoricalSession(b)) ||
 			Number(b.kind === "session") - Number(a.kind === "session") ||
 			b.createdAt.localeCompare(a.createdAt) ||
@@ -36,8 +38,18 @@ export function sessionGroups<T extends GroupableRun>(
 	return {
 		sessions: matches.filter((run) => run.ticketId === null),
 		ticketed: matches.filter((run) => run.ticketId !== null),
-		historyCount: runs.filter(isHistoricalSession).length,
+		historyCount: runs.filter((run) => run.pinnedAt === null && isHistoricalSession(run)).length,
 	};
+}
+
+export function selectedSession<T extends { id: string }>(
+	runs: T[],
+	ordered: T[],
+	requestedId: string,
+	heldId?: string,
+) {
+	if (requestedId) return runs.find((run) => run.id === requestedId);
+	return runs.find((run) => run.id === heldId) ?? ordered[0] ?? runs[0];
 }
 
 // The box one row of the session list takes: the 44 px row of the sidebar

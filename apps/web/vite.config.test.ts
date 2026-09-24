@@ -35,8 +35,8 @@ test("drops unused weights from icons without a special weight", () => {
 	expect(transformed).not.toContain('"fill"');
 });
 
-test("keeps the fill weight of the verdict card and flow step icons", () => {
-	for (const icon of ["ChatCircle", "ClockCounterClockwise", "WarningCircle"]) {
+test("keeps each requested fill weight", () => {
+	for (const icon of ["ChatCircle", "ClockCounterClockwise", "PushPin", "WarningCircle"]) {
 		const transformed = stripPhosphorWeights(definition, `/node_modules/@phosphor-icons/react/dist/defs/${icon}.es.js`);
 
 		expect(transformed).toContain('"fill"');

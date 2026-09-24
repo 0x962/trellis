@@ -7,6 +7,7 @@ import { fail, invalidInput } from "../../errors.ts";
 export const sessionColumns = sql`id, name, directory, harness, run_id AS "runId",
 	(SELECT project_id FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectId",
 	(SELECT project_key FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectKey",
+	(SELECT ${iso(sql`pinned_at`)} FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "pinnedAt",
 	${iso(sql`archived_at`)} AS "archivedAt",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 
@@ -43,7 +44,9 @@ export const listSessions = (tx: Tx, archived?: boolean) => {
 	const where = archived === undefined ? sql`true` : archived ? sql`archived_at IS NOT NULL` : sql`archived_at IS NULL`;
 	return rows<Session>(
 		tx,
-		sql`SELECT ${sessionColumns} FROM sessions WHERE ${where} ORDER BY created_at DESC, id DESC`,
+		sql`SELECT ${sessionColumns} FROM sessions WHERE ${where}
+			ORDER BY (SELECT pinned_at FROM agent_runs WHERE agent_runs.id = sessions.run_id) DESC NULLS LAST,
+			created_at DESC, id DESC`,
 	);
 };
 

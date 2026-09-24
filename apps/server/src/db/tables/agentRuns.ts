@@ -20,6 +20,7 @@ export const agentRuns = pgTable(
 		projectKey: text("project_key").notNull(),
 		ticketId: text("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
 		ticketIdentifier: text("ticket_identifier"),
+		pinnedAt: at("pinned_at"),
 		closedAt: at("closed_at"),
 		// The moment the harness process of the first launch started. A resume
 		// and a retry leave it as it is. The difference to `created_at` is the
@@ -41,6 +42,7 @@ export const agentRuns = pgTable(
 		uniqueIndex("agent_runs_active_ticket_idx")
 			.on(t.ticketId)
 			.where(sql`${t.kind} = 'agent' AND ${t.closedAt} IS NULL`),
+		index("agent_runs_pinned_at_idx").on(t.pinnedAt).where(sql`${t.pinnedAt} IS NOT NULL`),
 		index("agent_runs_created_at_idx").on(t.createdAt),
 	],
 );

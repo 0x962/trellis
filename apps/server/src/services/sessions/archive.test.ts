@@ -173,6 +173,17 @@ test("a session of a project cannot be archived", async () => {
 	);
 });
 
+test("a pinned session cannot be archived until a person unpins it", async () => {
+	await db.execute(sql`UPDATE agent_runs SET pinned_at = ${at} WHERE id = ${bareRunId}`);
+
+	await expect(prepareSetArchived(ctx, { id: bareSessionId, archived: true }, noProcess)).rejects.toThrow(
+		"Unpin the session before you archive it.",
+	);
+	expect((await run((tx) => getSession(tx, bareSessionId))).archivedAt).toBeNull();
+
+	await db.execute(sql`UPDATE agent_runs SET pinned_at = NULL WHERE id = ${bareRunId}`);
+});
+
 test("an archive stops the agent of a session whose process runs", async () => {
 	stopped.length = 0;
 	await prepareSetArchived(

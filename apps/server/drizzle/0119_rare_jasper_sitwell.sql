@@ -1,0 +1,2 @@
+ALTER TABLE "agent_runs" ADD COLUMN "pinned_at" timestamp (3) with time zone;--> statement-breakpoint
+CREATE INDEX "agent_runs_pinned_at_idx" ON "agent_runs" USING btree ("pinned_at") WHERE "agent_runs"."pinned_at" IS NOT NULL;
