@@ -10,18 +10,26 @@ export function terminalResize(terminal: Terminal, fit: FitAddon, send: (cols: n
 	let force = false;
 	let disposed = false;
 	let attachFrame: number | undefined;
+	// True from the moment a view attaches until the first fit that follows it.
+	// That fit puts the viewport on the newest line, so a terminal that a person
+	// left scrolled up opens on the newest output. Every later fit keeps the
+	// line the person reads.
+	let showNewest = false;
 	const measure = () => {
 		if (disposed || attachFrame !== undefined || parsing || !pending || !host?.clientWidth || !host.clientHeight)
 			return;
 		pending = false;
 		const buffer = terminal.buffer.active;
-		const pinned = buffer.viewportY >= buffer.baseY;
+		const pinned = showNewest || buffer.viewportY >= buffer.baseY;
 		const viewport = buffer.viewportY;
 		const cols = terminal.cols;
 		const rows = terminal.rows;
 		fit.fit();
+		// scrollToBottom also clears the scroll position that the person set, so
+		// output that arrives after it moves the viewport with it again.
 		if (pinned) terminal.scrollToBottom();
 		else terminal.scrollToLine(Math.min(viewport, terminal.buffer.active.baseY));
+		showNewest = false;
 		terminal.refresh(0, terminal.rows - 1);
 		if (force || cols !== terminal.cols || rows !== terminal.rows) send(terminal.cols, terminal.rows);
 		force = false;
@@ -40,12 +48,14 @@ export function terminalResize(terminal: Terminal, fit: FitAddon, send: (cols: n
 		host = null;
 		pending = false;
 		force = false;
+		showNewest = false;
 	};
 	return {
 		request,
 		attach(next: HTMLElement) {
 			detach();
 			host = next;
+			showNewest = true;
 			// WebGL attaches on the next frame. Fit after it replaces the renderer and updates terminal geometry.
 			attachFrame = requestAnimationFrame(() => {
 				attachFrame = undefined;
