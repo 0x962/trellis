@@ -154,7 +154,7 @@ ProviderCreateInputSchema = { name, kind, baseUrl?, apiKey, enabled?, models? }
 ProviderUpdateInputSchema = { id, name?, baseUrl?, apiKey?, enabled?, models? }   // an absent field keeps its value
 ProviderIdInputSchema = { id }
 ProviderCatalogEntrySchema = { id, name, type }
-ProviderCatalogSchema = { fetchedAt, models: ProviderCatalogEntry[] }
+ProviderCatalogSchema = { ok: boolean, detail: string | null, fetchedAt, models: ProviderCatalogEntry[] }   // ok false: the fetch failed, models is empty, detail says why
 ProviderCheckSchema = { ok: boolean, balance: string | null, detail: string | null, checkedAt }
 ```
 
@@ -190,7 +190,7 @@ Errors:
 - A mutation from an agent actor fails with `invalidInput("actor", "Only a person can manage providers.")`, the rule of `harnessAccounts`. A person pastes the key, and an agent must not create a record that spends money. The CLI exits 4.
 - A catalog or check that cannot reach the endpoint is not an error. The answer carries `ok: false` and a `detail`, in the pattern of the quota service. A 503 code would turn a bad key into a CLI exit 6 and a red failure block, and a bad key is a normal state of a provider.
 
-`providers.catalog` fetches `GET <baseUrl>/v1/models` and returns the `language` entries as `{ id, name, type }`, sorted by id. The gateway needs no key for that call. An OpenAI-compatible endpoint gets the key in the header, because the OpenAI format requires one. The answer is cached for 5 minutes per provider, and `refresh` shortens the cache to 1 second, the shape of `prepareQuota`. A fetch failure answers an empty list with `detail`.
+`providers.catalog` fetches `GET <baseUrl>/v1/models` and returns the `language` entries as `{ id, name, type }`, sorted by id. The gateway needs no key for that call. An OpenAI-compatible endpoint gets the key in the header, because the OpenAI format requires one. The answer is cached for 5 minutes per provider, and `refresh` shortens the cache to 1 second, the shape of `prepareQuota`. The result shape separates two states that both hold no model: a successful fetch of an endpoint with no language model answers `ok: true`, `detail: null`, `models: []`; a failed fetch answers `ok: false`, `models: []`, and `detail` from the failure table below. `ok: true` never carries a `detail`, and `ok: false` always does. The same shape serves `providers.publicCatalog`.
 
 `providers.check` proves the key. A `vercel-ai-gateway` provider gets `GET <baseUrl>/v1/credits` with the key. A 200 answers `ok: true` and the balance as the string the gateway sent. An `openai-compatible` provider has no credits route, so the check calls `GET <baseUrl>/v1/models` with the key and answers `balance: null`. The mapping of a failure:
 
@@ -241,7 +241,7 @@ Rules:
 - `--model` repeats through `repeatedFlag`. On `add` it sets the list. On `edit` it replaces the list. `--no-models` on `edit` clears it. `--model` and `--no-models` together is a usage error.
 - `--enabled` reads `true` or `false`, as `list.ts` reads `--blocked`. `--disabled` on `add` sets `enabled: false`.
 - `add` and `edit` print the record. `rm` prints `deleted: <id>` through `deletedRecord`.
-- `catalog` prints the models of the endpoint. Without `--all` it prints the first 50 rows and a last line `... <n> more; add --all`. In json mode it prints every row.
+- `catalog` prints the models of the endpoint. Without `--all` it prints the first 50 rows and a last line `... <n> more; add --all`. In json mode it prints the whole result object. An `ok: false` result prints `error: <detail>` on stderr and exits 1, so a script sees the difference between no model and no answer.
 - An agent actor that runs `add`, `edit`, or `rm` gets the refusal of the API, exit 4.
 
 The list columns, in this order: `id`, `name`, `kind`, `enabled`, `models`, `key`. `models` is the count. `key` is `••••` plus the last four characters. The record fields of `show`: id, name, kind, base url, enabled, key, models (one per line, comma-joined in a table), created, updated. Times print through `shortZonedDateTime`.
@@ -374,6 +374,7 @@ After a successful Add the section runs `providers.check` with `refresh` on the 
 The models field is a `Popover` from a `PickerButton` that prints "3 models" or "No models", with a `Command` inside, the shape of `ModelPicker`:
 
 - The `Command` has `placeholder="Search models"` and `empty="No model matches. Press Enter to add the typed id."`.
+- The control reads `ok` first. `ok: false` prints the `detail` as one muted line above the list, "Trellis cannot reach ai-gateway.vercel.sh. Type the ids.", and the typed path stays open. `ok: true` with no model prints the `empty` text of the `Command`.
 - The groups come from `providers.catalog` of the provider, grouped by creator (the part before the slash): Anthropic, Google, Meta, OpenAI, TypeSafe AI, then Other creators by name. Each item is `{ id, label: name, keywords: [id], checked }`. A click or Enter toggles `checked`.
 - A typed text that matches no item and passes `ProviderModelIdSchema` shows one item "Add <text>" at the top. Enter adds it as checked. This is how `typesafe-ai/jev` enters when the catalog does not list it, and how an OpenAI-compatible endpoint with no models route gets its ids.
 - On Add, before the provider exists, the catalog cannot come from the provider. The control fetches the public catalog through `providers.catalog` on a temporary basis: the form calls `GET /api/providers/catalog?kind=vercel-ai-gateway`, a kind-level variant of the same read that needs no provider and no key. For `openai-compatible` on Add the list is empty and the typed path is the only path. The kind-level route is one more row in the contract: `providers.publicCatalog`, GET `/api/providers/catalog`, input `{ kind }`.
