@@ -254,10 +254,15 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	if (page.deleted_at !== null) return toSummary(page);
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);
+	const removedWatch = await rows<{ agent_id: string }>(
+		tx,
+		sql`DELETE FROM page_watches WHERE page_id = ${page.id} RETURNING agent_id`,
+	);
 	await tx.execute(sql`UPDATE pages SET deleted_at = ${ctx.now}, deleted_actor_name = ${actor.name},
 		deleted_actor_kind = ${actor.kind}, actor_name = ${actor.name}, actor_kind = ${actor.kind},
 		version = version + 1, updated_at = ${ctx.now} WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
+	if (removedWatch.length > 0) ctx.emit({ type: "page-watches.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await byId(ctx, tx, page.id));
 };
 

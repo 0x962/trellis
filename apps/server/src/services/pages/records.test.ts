@@ -24,8 +24,6 @@ const newPage = ulid();
 const deletedPage = ulid();
 const writePage = ulid();
 const removePage = ulid();
-const removeCursorId = ulid();
-const removeCompletedReservationId = ulid();
 const expiredPage = ulid();
 const archivedPage = ulid();
 const archivedDeletedPage = ulid();
@@ -122,11 +120,8 @@ beforeAll(async () => {
 		title: "Deleted",
 		deletedAt: at,
 	});
-	await db.execute(sql`INSERT INTO page_watches (
-		page_id, agent_id, cursor_at, cursor_id, last_completed_reservation_id, created_at, updated_at
-	) VALUES
-		(${newPage}, ${agentId}, NULL, NULL, NULL, ${at}, ${at}),
-		(${removePage}, ${agentId}, ${at}, ${removeCursorId}, ${removeCompletedReservationId}, ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO page_watches (page_id, agent_id, created_at, updated_at) VALUES
+		(${newPage}, ${agentId}, ${at}, ${at}), (${removePage}, ${agentId}, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO page_assets (page_id, version, path, sha256, size, mime)
 		VALUES (${oldPage}, 1, 'chart.png', ${"b".repeat(64)}, 25, 'image/png')`);
 	await db.execute(sql`INSERT INTO page_comment_threads (
@@ -136,6 +131,8 @@ beforeAll(async () => {
 		(${ulid()}, ${oldPage}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
 			${human.name}, ${human.kind}, ${at}, ${human.name}, ${human.kind}, ${at}, ${at}),
 		(${ulid()}, ${newPage}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
+			${human.name}, ${human.kind}, NULL, NULL, NULL, ${at}, ${at}),
+		(${ulid()}, ${removePage}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
 			${human.name}, ${human.kind}, NULL, NULL, NULL, ${at}, ${at})`);
 	await inTx(cache.rebuild);
 }, 30_000);
@@ -254,7 +251,7 @@ describe("Page writes", () => {
 		).rejects.toMatchObject({ code: "PROJECT_ARCHIVED" });
 	});
 
-	test("soft-deletes and restores a page with its watch cursor", async () => {
+	test("soft-deletes and restores a page without its watcher", async () => {
 		const humanCtx = contextOf(human);
 		await inTx((tx) => pin(humanCtx, tx, { page: removePage, pinned: true }));
 		await expect(
@@ -267,7 +264,6 @@ describe("Page writes", () => {
 			code: "PAGE_VERSION_CONFLICT",
 			data: { current: { revision: 1 } },
 		});
-		const eventStart = events.length;
 		const deleted = await inTx((tx) => remove(humanCtx, tx, { page: removePage, expectedVersion: 1 }));
 		expect(deleted).toMatchObject({ revision: 2, pinned: true, watcher: null, deletedBy: human });
 		expect(deleted.purgeAt).toBe(new Date(at.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString());
@@ -275,12 +271,7 @@ describe("Page writes", () => {
 		expect((await inTx((tx) => get(humanCtx, tx, { page: removePage, includeDeleted: true }))).deletedAt).toBe(
 			at.toISOString(),
 		);
-		const savedWatch = await db.execute(
-			sql`SELECT cursor_id, last_completed_reservation_id FROM page_watches WHERE page_id = ${removePage}`,
-		);
-		expect(savedWatch.rows).toEqual([
-			{ cursor_id: removeCursorId, last_completed_reservation_id: removeCompletedReservationId },
-		]);
+		expect((await db.execute(sql`SELECT page_id FROM page_watches WHERE page_id = ${removePage}`)).rows).toEqual([]);
 		await expect(inTx((tx) => restore(humanCtx, tx, { page: removePage, expectedVersion: 1 }))).rejects.toMatchObject({
 			code: "PAGE_VERSION_CONFLICT",
 			data: { current: { revision: 2 } },
@@ -290,10 +281,11 @@ describe("Page writes", () => {
 			revision: 3,
 			deletedAt: null,
 			purgeAt: null,
-			watcher: { pageId: removePage, agent: { id: agentId, name: "Page agent" } },
+			watcher: null,
 			pinned: true,
 		});
-		expect(events.slice(eventStart).map((event) => event.type)).toEqual(["pages.changed", "pages.changed"]);
+		expect((await inTx((tx) => get(humanCtx, tx, { page: removePage }))).totalThreadCount).toBe(1);
+		expect(events.map((event) => event.type)).toContain("page-watches.changed");
 	});
 
 	test("refuses restore after the retention window before it checks the revision", async () => {

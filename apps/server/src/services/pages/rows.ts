@@ -94,7 +94,7 @@ export const pageSelect = (ctx: ServiceCtx, searchRank: SQL = sql`0`) => sql`SEL
 	FROM pages p
 	JOIN projects project ON project.id = p.project_id
 	JOIN page_versions latest ON latest.page_id = p.id AND latest.number = p.latest_version
-	LEFT JOIN page_watches watch ON watch.page_id = p.id AND p.deleted_at IS NULL
+	LEFT JOIN page_watches watch ON watch.page_id = p.id
 	LEFT JOIN agent_runs watch_agent ON watch_agent.id = watch.agent_id`;
 
 const toWatch = (row: RawPage): PageWatch | null =>
