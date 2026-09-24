@@ -10,6 +10,7 @@ import {
 	providerRecord,
 	providerUpdateInput,
 } from "./providerText.ts";
+import { printProviderCheck, printProviderModels } from "./remoteText.ts";
 
 const idArg = { type: "positional" as const, required: true as const, description: "Provider ID" };
 const modelArg = { type: "string" as const, description: "Model ID; repeat for more models" };
@@ -80,7 +81,37 @@ const remove = defineCommand({
 	},
 });
 
+const remoteArgs = {
+	id: idArg,
+	refresh: { type: "boolean" as const, description: "Refresh the remote result" },
+};
+
+const models = defineCommand({
+	meta: { name: "models", description: "Read models from the provider" },
+	args: { ...remoteArgs, all: { type: "boolean", description: "Print every model" } },
+	async run(context) {
+		const ctx = contextOf(context);
+		const result = await clientOf(ctx).providers.models({ id: context.args.id, refresh: context.args.refresh });
+		return printProviderModels(ctx, result, context.args.all === true);
+	},
+});
+
+const check = defineCommand({
+	meta: { name: "check", description: "Check the provider key" },
+	args: remoteArgs,
+	async run(context) {
+		const ctx = contextOf(context);
+		const client = clientOf(ctx);
+		const input = { id: context.args.id, refresh: context.args.refresh };
+		const [provider, result] = await Promise.all([
+			client.providers.get({ id: input.id }),
+			client.providers.check(input),
+		]);
+		printProviderCheck(ctx, input.id, provider.name, result);
+	},
+});
+
 export default defineCommand({
 	meta: { name: "providers", description: "List, create, edit, check, or delete model gateways" },
-	subCommands: { list, show, create, edit, delete: remove },
+	subCommands: { list, show, create, edit, delete: remove, models, check },
 });

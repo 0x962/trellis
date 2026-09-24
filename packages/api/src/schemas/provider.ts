@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const providerKinds = ["vercel-ai-gateway", "openai-compatible"] as const;
 
@@ -102,11 +102,11 @@ export type ParsedProviderUpdateInput = z.infer<typeof ProviderUpdateInputSchema
 export const ProviderIdInputSchema = z.strictObject({ id: UlidSchema });
 export type ProviderIdInput = z.infer<typeof ProviderIdInputSchema>;
 
-export const ProviderRemoteInputSchema = z.strictObject({ id: UlidSchema, refresh: z.boolean().optional() });
+export const ProviderRemoteInputSchema = z.strictObject({ id: UlidSchema, refresh: booleanString.optional() });
 export type ProviderRemoteInput = z.infer<typeof ProviderRemoteInputSchema>;
 export const ProviderPublicModelsInputSchema = z.strictObject({
 	kind: ProviderKindSchema,
-	refresh: z.boolean().optional(),
+	refresh: booleanString.optional(),
 });
 export type ProviderPublicModelsInput = z.infer<typeof ProviderPublicModelsInputSchema>;
 

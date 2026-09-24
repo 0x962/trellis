@@ -60,6 +60,7 @@ describe("Provider procedures", () => {
 			db.transaction((tx) => {
 				const serviceCtx = {
 					actor: ctx.actor,
+					afterCommit: () => {},
 					now: () => ctx.now,
 					emit: () => undefined,
 				} as unknown as IoCtx;
@@ -97,4 +98,36 @@ describe("Provider procedures", () => {
 		const updated = (await updateResponse.json()) as Provider;
 		expect(updated.baseUrl).toBe("https://api.example.com/v1/v1");
 	});
+});
+
+test("routes catalogs and checks with a boolean refresh input", async () => {
+	const id = ulid();
+	for (const [path, name, input, result] of [
+		[
+			`/providers/${id}/models?refresh=true`,
+			"providers.models",
+			{ id, refresh: true },
+			{ ok: true, detail: null, models: [], fetchedAt: "2026-09-24T20:00:00.000Z" },
+		],
+		[
+			"/providers/kinds/openai-compatible/models?refresh=false",
+			"providers.publicModels",
+			{ kind: "openai-compatible", refresh: false },
+			{ ok: true, detail: null, models: [], fetchedAt: "2026-09-24T20:00:00.000Z" },
+		],
+		[
+			`/providers/${id}/check?refresh=true`,
+			"providers.check",
+			{ id, refresh: true },
+			{ ok: false, detail: "The provider refused the key.", balance: null, checkedAt: "2026-09-24T20:00:00.000Z" },
+		],
+	] as const) {
+		const response = await request(path, { method: "GET" }, async (actualName, _ctx, actualInput) => {
+			expect(actualName).toBe(name);
+			expect(actualInput).toEqual(input);
+			return result;
+		});
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual(result);
+	}
 });
