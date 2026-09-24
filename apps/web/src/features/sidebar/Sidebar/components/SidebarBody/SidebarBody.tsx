@@ -37,6 +37,12 @@ export type SidebarBodyProps = {
 // takes the spare height. Every fixed destination sits above it, so none of
 // them moves when the region grows.
 //
+// The archive area is the last child of that region and carries `mt-auto`, so
+// a short list leaves it at the bottom edge of the region, directly above the
+// connection panel and the actor footer. A list that fills the region leaves
+// no spare height, so the archive area follows the project list and a scroll
+// reaches it.
+//
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
@@ -99,39 +105,45 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					/>
 				))}
 			</nav>
-			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
-				<div className="sidebar-section">
-					<h2>Sessions</h2>
-					<Tooltip content="New session">
-						<IconButton
-							size="xs"
-							className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
-							label="New session"
-							icon={<Plus />}
-							onClick={() => {
-								// The dialog mounts from the root shell. The phone sheet
-								// closes first, so no second modal sits under the dialog.
-								uiActions.setMobileSidebarOpen(false);
-								sessionComposerActions.open();
-							}}
-						/>
-					</Tooltip>
+			<div hidden={collapsed} className="mt-3 flex min-h-0 flex-1 flex-col overflow-y-auto pb-2">
+				{/* The lists keep their own height. Without this the flex column
+				    squeezes them to fit and the region never scrolls. */}
+				<div className="shrink-0">
+					<div className="sidebar-section">
+						<h2>Sessions</h2>
+						<Tooltip content="New session">
+							<IconButton
+								size="xs"
+								className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+								label="New session"
+								icon={<Plus />}
+								onClick={() => {
+									// The dialog mounts from the root shell. The phone sheet
+									// closes first, so no second modal sits under the dialog.
+									uiActions.setMobileSidebarOpen(false);
+									sessionComposerActions.open();
+								}}
+							/>
+						</Tooltip>
+					</div>
+					<SessionList />
+					<div className="sidebar-section mt-3">
+						<h2>Projects</h2>
+						<Tooltip content="New project">
+							<IconButton
+								size="xs"
+								className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+								label="New project"
+								icon={<Plus />}
+								onClick={() => navigate({ to: "/setup", search: { step: "project" } })}
+							/>
+						</Tooltip>
+					</div>
+					<ProjectTree />
 				</div>
-				<SessionList />
-				<div className="sidebar-section mt-3">
-					<h2>Projects</h2>
-					<Tooltip content="New project">
-						<IconButton
-							size="xs"
-							className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
-							label="New project"
-							icon={<Plus />}
-							onClick={() => navigate({ to: "/setup", search: { step: "project" } })}
-						/>
-					</Tooltip>
+				<div className="mt-auto flex shrink-0 flex-col">
+					<ArchivedProjects />
 				</div>
-				<ProjectTree />
-				<ArchivedProjects />
 			</div>
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />

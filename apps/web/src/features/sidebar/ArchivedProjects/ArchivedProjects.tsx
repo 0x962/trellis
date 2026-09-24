@@ -4,9 +4,10 @@ import { useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { activeAgentCountOf } from "../../agents/activeAgents";
 import { useActiveAgentCounts } from "../../agents/useActiveAgentCounts";
-import { ProjectPages } from "../components/ProjectPages";
+import { moreIsOpen, ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
 export function ArchivedProjects() {
@@ -15,6 +16,7 @@ export function ArchivedProjects() {
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const [open, setOpen] = useState(false);
 	const projectAgentCounts = useActiveAgentCounts();
+	const projectMorePath = useUiStore((state) => state.projectMorePath);
 	if (data === undefined || data.length === 0) return null;
 	return (
 		<nav aria-label="Archived projects" className="pt-1">
@@ -39,6 +41,8 @@ export function ArchivedProjects() {
 							project={project}
 							pathname={pathname}
 							activeAgentCount={activeAgentCountOf(projectAgentCounts, project.id)}
+							moreOpen={moreIsOpen(projectMorePath, project.id, pathname)}
+							onToggleMore={() => uiActions.toggleProjectMore(project.id, pathname)}
 						/>,
 					])}
 				</ul>

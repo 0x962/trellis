@@ -41,15 +41,40 @@ test("project collapse state works without localStorage", () => {
 	expect(store.getState().expandedProjects).toEqual({ "project-1": false });
 });
 
-test("the More state of a project starts shut and persists by project id", () => {
+test("the More row of a project starts shut and opens on the page of the press", () => {
+	const store = createUiStore();
+
+	expect(store.getState().projectMorePath).toEqual({});
+	store.getState().toggleProjectMore("project-1", "/p/TRL/epics");
+
+	expect(store.getState().projectMorePath).toEqual({ "project-1": "/p/TRL/epics" });
+});
+
+test("a second press on the same page shuts the More row again", () => {
+	const store = createUiStore();
+
+	store.getState().toggleProjectMore("project-1", "/p/TRL/epics");
+	store.getState().toggleProjectMore("project-1", "/p/TRL/epics");
+
+	expect(store.getState().projectMorePath).toEqual({});
+});
+
+test("a press on one project leaves the More row of another project shut", () => {
+	const store = createUiStore();
+
+	store.getState().toggleProjectMore("project-1", "/p/TRL/epics");
+	store.getState().toggleProjectMore("project-2", "/p/CDE/epics");
+
+	expect(store.getState().projectMorePath).toEqual({ "project-1": "/p/TRL/epics", "project-2": "/p/CDE/epics" });
+});
+
+test("no browser storage holds the open More row, so a reload shuts it", () => {
 	const entries = new Map<string, string>();
 	globalThis.localStorage = memoryStorage(entries);
 	const store = createUiStore();
 
-	expect(store.getState().expandedProjectMore).toEqual({});
-	store.getState().toggleProjectMore("project-1");
+	store.getState().toggleProjectMore("project-1", "/p/TRL/epics");
 
-	expect(store.getState().expandedProjectMore).toEqual({ "project-1": true });
-	expect(JSON.parse(entries.get(uiStorageKey) ?? "{}").state.expandedProjectMore).toEqual({ "project-1": true });
-	expect(createUiStore().getState().expandedProjectMore).toEqual({ "project-1": true });
+	expect(JSON.parse(entries.get(uiStorageKey) ?? "{}").state.projectMorePath).toBeUndefined();
+	expect(createUiStore().getState().projectMorePath).toEqual({});
 });

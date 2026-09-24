@@ -16,29 +16,37 @@ export type UiData = {
 	expandedTickets: Record<string, string[]>;
 	// A project row is expanded unless this holds `false` for its id.
 	expandedProjects: Record<string, boolean>;
-	// The More row under a project shows the pages it holds only when this
-	// holds `true` for the project id.
-	expandedProjectMore: Record<string, boolean>;
 	// The table columns a route hides or shows: `{"/p/CDE": {updated: false}}`.
 	columnVisibility: Record<string, Record<string, boolean>>;
 };
 
-export type UiState = UiData & {
-	// The sidebar sheet on a phone. It is never stored, so a reload opens
-	// the page with the sheet closed.
+// The values that live for as long as the page does. Nothing writes them to
+// browser storage, so a reload starts each one at its default.
+export type UiRuntime = {
+	// The sidebar sheet on a phone.
 	mobileSidebarOpen: boolean;
-	setMobileSidebarOpen: (open: boolean) => void;
-	toggleSidebar: () => void;
-	setSidebarCollapsed: (collapsed: boolean) => void;
-	setDensity: (density: Density) => void;
-	toggleProject: (id: string) => void;
-	toggleProjectMore: (id: string) => void;
-	// `defaults` names the groups a route collapses before its first toggle.
-	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
-	toggleTicketExpanded: (route: string, ticketId: string) => void;
-	setColumnVisible: (route: string, column: string, visible: boolean) => void;
-	setGroupCollapsed: (route: string, group: string, collapsed: boolean) => void;
+	// The page that each open More row was opened on, by project id. The More
+	// row of a project shows the pages it holds only while the person stands
+	// on that same page, so every arrival at a project page finds More shut.
+	// A project with no entry holds More shut.
+	projectMorePath: Record<string, string>;
 };
+
+export type UiState = UiData &
+	UiRuntime & {
+		setMobileSidebarOpen: (open: boolean) => void;
+		toggleSidebar: () => void;
+		setSidebarCollapsed: (collapsed: boolean) => void;
+		setDensity: (density: Density) => void;
+		toggleProject: (id: string) => void;
+		// `pathname` is the page on screen at the press.
+		toggleProjectMore: (id: string, pathname: string) => void;
+		// `defaults` names the groups a route collapses before its first toggle.
+		toggleGroup: (route: string, group: string, defaults?: string[]) => void;
+		toggleTicketExpanded: (route: string, ticketId: string) => void;
+		setColumnVisible: (route: string, column: string, visible: boolean) => void;
+		setGroupCollapsed: (route: string, group: string, collapsed: boolean) => void;
+	};
 
 const defaults: UiData = {
 	sidebarCollapsed: false,
@@ -46,8 +54,12 @@ const defaults: UiData = {
 	collapsedGroups: {},
 	expandedTickets: {},
 	expandedProjects: {},
-	expandedProjectMore: {},
 	columnVisibility: {},
+};
+
+const runtimeDefaults: UiRuntime = {
+	mobileSidebarOpen: false,
+	projectMorePath: {},
 };
 
 // Every change as a pure function of the data. A store action and the
@@ -64,10 +76,13 @@ const updates = {
 			expandedProjects: { ...state.expandedProjects, [id]: !(state.expandedProjects[id] ?? true) },
 		}),
 	toggleProjectMore:
-		(id: string) =>
-		(state: UiData): Partial<UiData> => ({
-			expandedProjectMore: { ...state.expandedProjectMore, [id]: !(state.expandedProjectMore[id] ?? false) },
-		}),
+		(id: string, pathname: string) =>
+		(state: UiRuntime): Partial<UiRuntime> => {
+			const paths = { ...state.projectMorePath };
+			if (paths[id] === pathname) delete paths[id];
+			else paths[id] = pathname;
+			return { projectMorePath: paths };
+		},
 	toggleGroup:
 		(route: string, group: string, defaults: string[] = []) =>
 		(state: UiData): Partial<UiData> => {
@@ -132,13 +147,13 @@ export const createUiStore = () =>
 		persist(
 			(set) => ({
 				...defaults,
-				mobileSidebarOpen: false,
+				...runtimeDefaults,
 				setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),
 				setSidebarCollapsed: (collapsed) => set(updates.setSidebarCollapsed(collapsed)),
 				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
-				toggleProjectMore: (id) => set(updates.toggleProjectMore(id)),
+				toggleProjectMore: (id, pathname) => set(updates.toggleProjectMore(id, pathname)),
 				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
 				toggleTicketExpanded: (route, ticketId) => set(updates.toggleTicketExpanded(route, ticketId)),
 				setColumnVisible: (route, column, visible) => set(updates.setColumnVisible(route, column, visible)),
@@ -153,7 +168,6 @@ export const createUiStore = () =>
 					collapsedGroups: state.collapsedGroups,
 					expandedTickets: state.expandedTickets,
 					expandedProjects: state.expandedProjects,
-					expandedProjectMore: state.expandedProjectMore,
 					columnVisibility: state.columnVisibility,
 				}),
 			},
@@ -169,7 +183,7 @@ export const uiActions = {
 	setSidebarCollapsed: (collapsed: boolean) => useUiStore.setState(updates.setSidebarCollapsed(collapsed)),
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
-	toggleProjectMore: (id: string) => useUiStore.setState(updates.toggleProjectMore(id)),
+	toggleProjectMore: (id: string, pathname: string) => useUiStore.setState(updates.toggleProjectMore(id, pathname)),
 	toggleGroup: (route: string, group: string, defaults?: string[]) =>
 		useUiStore.setState(updates.toggleGroup(route, group, defaults)),
 	toggleTicketExpanded: (route: string, ticketId: string) =>

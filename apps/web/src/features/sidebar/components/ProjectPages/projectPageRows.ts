@@ -30,6 +30,13 @@ export type ProjectPageRows = {
 export const hiddenAgentCount = (more: ProjectPageRow[]) =>
 	more.reduce((total, row) => total + row.activeAgentCount, 0);
 
+// True while the More row of this project shows the pages it holds. A person
+// opens More for one page, and `projectMorePath` of the UI store holds that
+// page by project id. Every other page draws More shut, so an arrival at a
+// project page never finds it open.
+export const moreIsOpen = (projectMorePath: Record<string, string>, projectId: string, pathname: string) =>
+	projectMorePath[projectId] === pathname;
+
 // The sidebar rows of one project, split into the rows it always shows and
 // the rows the More row holds. `pathname` is the page on screen, and one row
 // at most is active.

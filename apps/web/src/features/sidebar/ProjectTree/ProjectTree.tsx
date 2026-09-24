@@ -7,7 +7,7 @@ import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { activeAgentCountOf } from "../../agents/activeAgents";
 import { useActiveAgentCounts } from "../../agents/useActiveAgentCounts";
 import { ProjectListStatus } from "../components/ProjectListStatus";
-import { ProjectPages } from "../components/ProjectPages";
+import { moreIsOpen, ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 import { retrySidebarProjects, sidebarProjectsQuery } from "../sidebarProjects";
 
@@ -22,6 +22,7 @@ export function ProjectTree() {
 	const projects = useQuery(sidebarProjectsQuery(orpc));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const expandedProjects = useUiStore((state) => state.expandedProjects);
+	const projectMorePath = useUiStore((state) => state.projectMorePath);
 	const projectAgentCounts = useActiveAgentCounts();
 	const data = projects.data;
 	// `failureCount` counts the failed tries of the fetch that runs now. A
@@ -55,6 +56,8 @@ export function ProjectTree() {
 										project={project}
 										pathname={pathname}
 										activeAgentCount={activeAgentCountOf(projectAgentCounts, project.id)}
+										moreOpen={moreIsOpen(projectMorePath, project.id, pathname)}
+										onToggleMore={() => uiActions.toggleProjectMore(project.id, pathname)}
 									/>
 								</ul>
 							</li>

@@ -24,11 +24,17 @@ const project = {
 
 // A `Link` reads the router, so the rows need one. This router holds the two
 // routes the rows open and starts on the page under test.
-const render = async (pathname: string, activeAgentCount = 0) => {
+const render = async (pathname: string, { activeAgentCount = 0, moreOpen = false } = {}) => {
 	const rootRoute = createRootRoute({
 		component: () => (
 			<ul>
-				<ProjectPages project={project} pathname={pathname} activeAgentCount={activeAgentCount} />
+				<ProjectPages
+					project={project}
+					pathname={pathname}
+					activeAgentCount={activeAgentCount}
+					moreOpen={moreOpen}
+					onToggleMore={() => {}}
+				/>
 			</ul>
 		),
 	});
@@ -71,26 +77,32 @@ test("a project whose current page is Sessions renders with More shut", async ()
 	expect(sessions).toContain("sidebar-selected");
 });
 
-test("a project whose current page is Diffs renders with More open", async () => {
+test("a project whose current page is Diffs renders with More shut", async () => {
 	const html = await render("/p/TRL/diffs");
+
+	expect(html).toContain('aria-expanded="false"');
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More"]);
+});
+
+test("a project whose current page is Tickets renders with More shut", async () => {
+	const html = await render("/p/TRL");
+
+	expect(html).toContain('aria-expanded="false"');
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More"]);
+});
+
+test("an open More row shows the pages it holds", async () => {
+	const html = await render("/p/TRL/epics", { moreOpen: true });
 
 	expect(html).toContain('aria-expanded="true"');
 	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs"]);
 	const diffs = html.match(/<a [^>]*>(?=<span class="sidebar-label">Diffs<)/)?.[0] ?? "";
 
 	expect(diffs).toContain('href="/p/TRL/diffs"');
-	expect(diffs).toContain('aria-current="page"');
-	expect(diffs).toContain("sidebar-selected");
-});
-
-test("a project whose current page is Tickets renders with More open", async () => {
-	const html = await render("/p/TRL");
-
-	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs"]);
 });
 
 test("the rows under More indent one step past the rows above them", async () => {
-	const html = await render("/p/TRL");
+	const html = await render("/p/TRL", { moreOpen: true });
 	const indentOf = (label: string) =>
 		html.match(new RegExp(`class="([^"]*)"[^>]*><span class="sidebar-label">${label}<`))?.[1]?.match(/pl-\d+/)?.[0] ??
 		null;
@@ -103,7 +115,7 @@ test("the rows under More indent one step past the rows above them", async () =>
 });
 
 test("only the Epics row prints a count", async () => {
-	const html = await render("/p/TRL");
+	const html = await render("/p/TRL", { moreOpen: true });
 
 	const counts = [...html.matchAll(/<span class="[^"]*sidebar-trailing[^"]*">([^<]*)<\/span>/g)];
 
@@ -111,13 +123,13 @@ test("only the Epics row prints a count", async () => {
 });
 
 test("the Sessions row shows a dot while agents of the project are active", async () => {
-	const html = await render("/sessions/project/TRL", 2);
+	const html = await render("/sessions/project/TRL", { activeAgentCount: 2 });
 
 	expect(html).toContain('aria-label="2 agents are active"');
 });
 
 test("the Sessions row shows its dot on a page that keeps More shut", async () => {
-	const html = await render("/p/TRL/epics", 1);
+	const html = await render("/p/TRL/epics", { activeAgentCount: 1 });
 
 	expect(html).toContain('aria-expanded="false"');
 	const sessions = html.match(/<a [^>]*>(?=<span class="sidebar-label">Sessions<)/s)?.index ?? -1;
