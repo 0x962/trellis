@@ -154,6 +154,7 @@ export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
 export { dotted } from "./utils/dotted";
 export { formatClock } from "./utils/formatClock";
+export { formatWhen } from "./utils/formatWhen";
 export { isTextEntry } from "./utils/isTextEntry";
 export { readRowMotion } from "./utils/readRowMotion";
 export { writeClipboard } from "./utils/writeClipboard";

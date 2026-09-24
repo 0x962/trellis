@@ -18,21 +18,25 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
 export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; pricingTableUpdated: string }) {
 	return (
 		<section aria-label="Totals" className="flex flex-col gap-5">
-			<div className="grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
+			<div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
 				<Stat
 					label="API-rate cost"
 					value={`${totals.approximate ? "~" : ""}${formatUsd(totals.usd)}`}
 					detail={`${formatUsd(totals.cacheSavingsUsd)} net cache savings`}
 				/>
 				<Stat
-					label="Trellis agents"
+					label="Trellis agent cost"
 					value={formatUsd(totals.trellisUsd)}
-					detail={`${formatShare(totals.trellisUsd, totals.usd) || "0%"} of the range · ${totals.runs.toLocaleString("en-US")} runs`}
+					detail={`${formatShare(totals.trellisUsd, totals.usd) || "0%"} of the API-rate cost · ${totals.runs.toLocaleString("en-US")} runs`}
 				/>
 				<Stat
-					label="Cost per ticket"
-					value={totals.tickets > 0 ? formatUsd(totals.trellisUsd / totals.tickets) : "No tickets"}
-					detail={totals.tickets > 0 ? `${totals.tickets.toLocaleString("en-US")} tickets with agent work` : undefined}
+					label="Agent cost per ticket"
+					value={totals.tickets > 0 ? formatUsd(totals.trellisUsd / totals.tickets) : formatUsd(0)}
+					detail={
+						totals.tickets > 0
+							? `${totals.tickets.toLocaleString("en-US")} tickets with agent work`
+							: "No ticket took agent work"
+					}
 				/>
 				<Stat
 					label="Sessions"
@@ -67,7 +71,7 @@ export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; p
 					{ key: "output", label: "Output", value: totals.output, valueLabel: formatTokens(totals.output), tone: "fg" },
 				]}
 			/>
-			<p className="text-xs text-fg-faint">
+			<p className="max-w-prose text-xs text-fg-faint text-pretty">
 				Priced at the API list rate of {pricingTableUpdated}. A subscription does not bill per token. A ~ marks a model
 				priced with a fallback rate.
 			</p>

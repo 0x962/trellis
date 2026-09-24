@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, cx, SectionHeader, Skeleton, UsageChart } from "@trellis/ui";
+import { Button, cx, FailureState, SectionHeader, Skeleton, UsageChart } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { formatBytes } from "../../../../../lib/format";
-import { formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
+import { formatAxisPercent, formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
 import { memoryPressureLevel } from "./memoryPressure";
 import { ProcessTable } from "./ProcessTable";
 
@@ -22,21 +22,22 @@ export function SystemUsage() {
 	const failure = usage.error ?? processes.error;
 	if (failure !== null) {
 		return (
-			<div
-				role="alert"
-				className="mt-5 flex max-w-7xl items-center justify-between gap-3 rounded-lg border border-border p-4"
-			>
-				<p className="text-sm text-danger">Unable to read system usage. {failure.message}</p>
-				<Button
-					disabled={usage.isFetching || processes.isFetching}
-					onClick={() => {
-						void usage.refetch();
-						void processes.refetch();
-					}}
-				>
-					Retry
-				</Button>
-			</div>
+			<FailureState
+				title="Could not read system usage"
+				detail={failure.message}
+				action={
+					<Button
+						size="md"
+						processing={usage.isFetching || processes.isFetching}
+						onClick={() => {
+							void usage.refetch();
+							void processes.refetch();
+						}}
+					>
+						Try again
+					</Button>
+				}
+			/>
 		);
 	}
 
@@ -44,7 +45,7 @@ export function SystemUsage() {
 	const processData = processes.data;
 	if (data === undefined || processData === undefined) {
 		return (
-			<div role="status" aria-label="Load system usage" className="flex max-w-7xl flex-col gap-3 pt-5">
+			<div role="status" aria-label="Load system usage" className="flex max-w-7xl flex-col gap-3">
 				<span className="sr-only">Load system usage</span>
 				<Skeleton height="h-24" />
 				<Skeleton height="h-64" />
@@ -56,56 +57,51 @@ export function SystemUsage() {
 	const times = data.history.map((sample) => sample.at);
 	const memoryPressure = memoryPressureLevel(data.memoryLevel);
 	return (
-		<div className="flex max-w-7xl flex-col gap-8 pt-5">
-			<section
-				aria-label="Current system usage"
-				className="grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1"
-			>
+		<div className="flex max-w-7xl flex-col gap-8">
+			<section aria-label="Right now" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-sm text-fg-muted">CPU</dt>
-					<dd className="mt-1 text-2xl font-semibold text-fg tabular">{formatPercent(data.cpuPercent)}</dd>
-					<dd className="mt-1 text-xs text-fg-faint">{data.cpuCount} logical cores</dd>
+					<dt className="text-xs text-fg-faint">CPU</dt>
+					<dd className="mt-1 text-xl font-semibold text-fg tabular">{formatPercent(data.cpuPercent)}</dd>
+					<dd className="mt-1 text-xs text-fg-muted tabular">{data.cpuCount} logical cores</dd>
 				</dl>
 				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-sm text-fg-muted">Memory</dt>
-					<dd className={cx("mt-1 text-2xl font-semibold tabular", memoryPressure.textClass)}>
+					<dt className="text-xs text-fg-faint">Memory</dt>
+					<dd className={cx("mt-1 text-xl font-semibold tabular", memoryPressure.valueClass)}>
 						{formatPercent(data.memoryPercent)}
 					</dd>
-					<dd className="mt-1 text-xs text-fg-faint tabular">
+					<dd className="mt-1 text-xs text-fg-muted tabular">
 						<span className={memoryPressure.textClass}>{memoryPressure.label}</span> ·{" "}
 						{formatBytes(data.memoryUsedBytes)} of {formatBytes(data.memoryTotalBytes)} used
 					</dd>
 				</dl>
 				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-sm text-fg-muted">Load average</dt>
-					<dd className="mt-1 text-2xl font-semibold text-fg tabular">{data.loadAverage[0].toFixed(2)}</dd>
-					<dd className="mt-1 text-xs text-fg-faint tabular">
-						{data.loadAverage.map((value) => value.toFixed(2)).join(" · ")} over 1, 5, and 15 minutes
+					<dt className="text-xs text-fg-faint">Load average</dt>
+					<dd className="mt-1 text-xl font-semibold text-fg tabular">{data.loadAverage[0].toFixed(2)}</dd>
+					<dd className="mt-1 text-xs text-fg-muted tabular">
+						Over 1 minute · {data.loadAverage[1].toFixed(2)} over 5 · {data.loadAverage[2].toFixed(2)} over 15
 					</dd>
 				</dl>
 				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-sm text-fg-muted">Processes</dt>
-					<dd className="mt-1 text-2xl font-semibold text-fg tabular">{processData.processCount}</dd>
-					<dd className="mt-1 text-xs text-fg-faint tabular">Uptime {formatUptime(data.uptimeSeconds)}</dd>
+					<dt className="text-xs text-fg-faint">Uptime</dt>
+					<dd className="mt-1 text-xl font-semibold text-fg tabular">{formatUptime(data.uptimeSeconds)}</dd>
+					<dd className="mt-1 text-xs text-fg-muted tabular">
+						{processData.processCount.toLocaleString("en-US")} processes
+					</dd>
 				</dl>
 			</section>
 
-			<section aria-label="Recent history" className="flex flex-col gap-4">
-				<SectionHeader
-					title="Recent history"
-					count={`${data.history.length} samples`}
-					actions={<span>Updates every 2 seconds</span>}
-				/>
-				<div className="grid grid-cols-2 gap-6 max-lg:grid-cols-1">
-					<div className="rounded-lg border border-border p-4">
-						<h3 className="mb-4 text-sm font-medium text-fg">CPU history</h3>
+			<section aria-label="Recent history" className="flex flex-col gap-3">
+				<SectionHeader title="Recent history" />
+				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+					<div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+						<SectionHeader title="CPU history" level={3} />
 						<UsageChart
 							label="Recent CPU usage"
 							days={times}
 							series={[
 								{ key: "cpu", label: "CPU", tone: "agent", values: data.history.map((sample) => sample.cpuPercent) },
 							]}
-							format={formatPercent}
+							format={formatAxisPercent}
 							formatDay={formatSampleTime}
 							selectedDay={selectedSample}
 							onSelectDay={setSelectedSample}
@@ -113,8 +109,8 @@ export function SystemUsage() {
 							variant="line"
 						/>
 					</div>
-					<div className="rounded-lg border border-border p-4">
-						<h3 className="mb-4 text-sm font-medium text-fg">Memory history</h3>
+					<div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+						<SectionHeader title="Memory history" level={3} />
 						<UsageChart
 							label="Recent memory use"
 							days={times}
@@ -127,7 +123,7 @@ export function SystemUsage() {
 									values: data.history.map((sample) => sample.memoryPercent),
 								},
 							]}
-							format={formatPercent}
+							format={formatAxisPercent}
 							formatDay={formatSampleTime}
 							selectedDay={selectedSample}
 							onSelectDay={setSelectedSample}
@@ -137,7 +133,8 @@ export function SystemUsage() {
 					</div>
 				</div>
 				<p className="text-xs text-fg-faint">
-					{data.hostname} · {data.platform} · {data.cpuModel} · sampled {formatSampleTime(data.sampledAt)}
+					{data.hostname} · {data.platform} · {data.cpuModel} · sampled {formatSampleTime(data.sampledAt)} · updates
+					every 2 seconds
 				</p>
 			</section>
 

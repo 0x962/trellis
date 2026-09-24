@@ -1,4 +1,5 @@
 import { cx } from "../../utils/cx";
+import { formatWhen } from "../../utils/formatWhen";
 
 export type QuotaWindow = { id: string; label: string; usedPercent: number; resetsAt: string | null };
 
@@ -15,7 +16,7 @@ export const quotaFillClass = (usedPercent: number) =>
 
 // One meter per quota window of a subscription account: the session
 // window and the weekly window for Claude, and the same pair for Codex. The
-// account card in Settings and the Usage page both draw it.
+// account card of the Usage page draws it.
 export function QuotaWindows({ name, windows }: QuotaWindowsProps) {
 	return (
 		<>
@@ -33,7 +34,8 @@ export function QuotaWindows({ name, windows }: QuotaWindowsProps) {
 							aria-valuemin={0}
 							aria-valuemax={100}
 							aria-valuenow={used}
-							className="h-2 w-full overflow-hidden rounded-hairline bg-elevated"
+							aria-valuetext={`${window.usedPercent}% used`}
+							className="h-2 w-full overflow-hidden rounded-hairline bg-border"
 						>
 							<div
 								data-quota-fill=""
@@ -41,9 +43,7 @@ export function QuotaWindows({ name, windows }: QuotaWindowsProps) {
 								style={{ width: `${used}%` }}
 							/>
 						</div>
-						{window.resetsAt && (
-							<p className="text-xs text-fg-muted tabular">Resets {new Date(window.resetsAt).toLocaleString()}</p>
-						)}
+						{window.resetsAt && <p className="text-xs text-fg-muted tabular">Resets {formatWhen(window.resetsAt)}</p>}
 					</div>
 				);
 			})}

@@ -10,6 +10,7 @@ import type {
 } from "@trellis/api";
 import {
 	ConfirmDialog,
+	EmptyState,
 	HarnessAccountForm,
 	HarnessAccountNameForm,
 	IconButton,
@@ -51,6 +52,10 @@ export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): U
 			fetchedAt: account.updatedAt,
 		},
 	}));
+
+// The card grid, shared by the placeholder and the cards, so the cards land
+// where the placeholder stood and nothing under them moves.
+const cardGrid = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
 
 export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
@@ -116,7 +121,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 				actions={
 					<Tooltip content="Add account">
 						<IconButton
-							label="Add agent account"
+							label="Add account"
 							disabled={busy}
 							onClick={() => {
 								setError(undefined);
@@ -128,8 +133,8 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 					</Tooltip>
 				}
 			/>
-			<p className="text-sm text-fg-muted">
-				Add and manage the logins that agents can use. Select one default account for each harness.
+			<p className="-mt-1 max-w-prose text-xs text-fg-faint text-pretty">
+				Add the accounts that agents can use. Select one default account for each harness.
 			</p>
 			{(error || accounts.isError || configured.isError) && (
 				<p role="alert" className="text-sm text-danger">
@@ -137,14 +142,19 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 				</p>
 			)}
 			{accounts.isPending || configured.isPending ? (
-				<div role="status" aria-label="Load accounts">
+				<div role="status" aria-label="Load accounts" className={cardGrid}>
 					<span className="sr-only">Load accounts</span>
-					<Skeleton height="h-32" />
+					{[0, 1, 2].map((slot) => (
+						<Skeleton key={slot} height="h-52" />
+					))}
 				</div>
 			) : values.length === 0 ? (
-				<p className="text-sm text-fg-muted">No agent accounts. Add an account for agent assignments.</p>
+				<EmptyState
+					title="No accounts"
+					description="Add an account so an agent can sign in to a harness on this machine."
+				/>
 			) : (
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+				<div className={cardGrid}>
 					{values.map((account) => {
 						const managed = configured.data?.find((candidate) => candidate.id === account.id);
 						const shared = account.sharedWith.length

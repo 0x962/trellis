@@ -68,7 +68,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 	const visible = expanded ? rows : rows.slice(0, limit);
 	return (
 		<div className={cx("flex flex-col gap-1", className)}>
-			<ul aria-label={label} className="flex flex-col gap-1">
+			<ul aria-label={label} className="-mx-2 flex flex-col gap-1">
 				{visible.map((row) => {
 					const pressed = row.key === selected;
 					return (
@@ -108,7 +108,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 				})}
 			</ul>
 			{rows.length > limit && (
-				<div className="flex justify-start px-2">
+				<div className="flex justify-start">
 					<Button size="sm" variant="quiet" onClick={() => setExpanded((value) => !value)}>
 						{expanded ? "Show fewer" : `Show all ${rows.length}`}
 					</Button>
