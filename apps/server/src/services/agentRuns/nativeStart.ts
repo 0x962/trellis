@@ -5,20 +5,21 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
-import { launchPrompt } from "../../agents/launchCommand/launchPrompt.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { customLaunch } from "../../agents/native/customLaunch.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
-import { nativeWorkspace } from "../../agents/native/workspace.ts";
+import { agentWorkspace, nativeWorkspace } from "../../agents/native/workspace.ts";
+import { workspaceOperation } from "../../agents/native/workspaceOperation.ts";
 import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
+import { launchGuide } from "../agentPrompt/launchGuide.ts";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import { readHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
 import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
-import type { ServiceCtx } from "../support.ts";
+import type { IoCtx, ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
 import { launchedHarness } from "./launchedHarness";
@@ -44,8 +45,8 @@ async function hostDefaultProfile(
 	return pointer.profilePath ? { harness: preset, profilePath: pointer.profilePath } : null;
 }
 
-export const startNative = async (
-	ctx: ServiceCtx & { localUrl: string },
+const start = async (
+	ctx: ServiceCtx & Pick<IoCtx, "core" | "localUrl">,
 	input: {
 		run: LaunchRun;
 		config: ProjectLaunchConfig;
@@ -97,6 +98,13 @@ export const startNative = async (
 			);
 		});
 		if (owned.length === 0 || hostIsShuttingDown(ctx.home)) return { id: run.id };
+		const prompt = await launchGuide(ctx, {
+			run,
+			workspace: workspaceId,
+			attemptId: terminalId,
+			message: input.resumePrompt ?? input.prompt,
+			env: baseEnv,
+		});
 		const env = {
 			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
@@ -122,6 +130,7 @@ export const startNative = async (
 				directory: workspaceId,
 				resume,
 				template: resume ? config.harness.resumeCommand : config.harness.startCommand,
+				prompt,
 			});
 			const spec = await customLaunch(ctx.home, {
 				id: terminalId,
@@ -150,7 +159,7 @@ export const startNative = async (
 				...(run.kind === "session" ? {} : { kind: "builder" }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
-				prompt: input.resumePrompt ?? input.prompt ?? launchPrompt({ run }),
+				prompt,
 				model: config.harness.model,
 				effort: config.harness.effort,
 				token: input.attempt.token,
@@ -233,3 +242,6 @@ export const startNative = async (
 	}
 	return { id: run.id, launchedAt };
 };
+
+export const startNative = (...args: Parameters<typeof start>) =>
+	workspaceOperation(args[1].run.workspaceId ?? agentWorkspace(args[0].home, args[1].run.id), () => start(...args));

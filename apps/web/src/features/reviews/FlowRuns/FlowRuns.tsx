@@ -7,19 +7,14 @@ import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
 import { StartFlowDialog } from "./components/StartFlowDialog";
 
-// The flow runs of the ticket that owns the pull request, newest first. A
-// live run and the newest run open with their steps. An older run opens on
-// its name. The list refreshes on the flows.changed event of the live
-// connection.
-//
-// `headSha` is the commit the pull request points at now. A run started from
-// this page stores it, and the run then says which code it read.
-export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string }) {
+// The diff's runs appear newest first. A live run and the newest run show their steps.
+// Each run records the head commit it read.
+export function FlowRuns({ ticket, headSha, diffId }: { ticket: string; headSha: string; diffId: string }) {
 	const { orpc } = useApp();
 	const [start, setStart] = useState(false);
 	// The runs whose open state differs from the default.
 	const [toggled, setToggled] = useState<ReadonlySet<string>>(() => new Set());
-	const executions = useQuery(orpc.flowExecutions.list.queryOptions({ input: { ticket } }));
+	const executions = useQuery(orpc.flowExecutions.list.queryOptions({ input: { diffId } }));
 	const toggle = (id: string) =>
 		setToggled((previous) => {
 			const next = new Set(previous);
@@ -57,6 +52,7 @@ export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string 
 								key={execution.id}
 								execution={execution}
 								ticket={ticket}
+								diffId={diffId}
 								expanded={toggled.has(execution.id) ? !open : open}
 								onToggle={() => toggle(execution.id)}
 								canStart={!anyLive}
@@ -66,7 +62,7 @@ export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string 
 					})}
 				</div>
 			)}
-			{start && <StartFlowDialog ticket={ticket} headSha={headSha} onClose={() => setStart(false)} />}
+			{start && <StartFlowDialog ticket={ticket} diffId={diffId} headSha={headSha} onClose={() => setStart(false)} />}
 		</section>
 	);
 }

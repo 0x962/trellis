@@ -23,6 +23,7 @@ const endOf = (execution: FlowExecutionRecord) =>
 export function FlowRun({
 	execution,
 	ticket,
+	diffId,
 	expanded,
 	onToggle,
 	canStart,
@@ -30,9 +31,10 @@ export function FlowRun({
 }: {
 	execution: FlowExecutionRecord;
 	ticket: string;
+	diffId: string;
 	expanded: boolean;
 	onToggle: () => void;
-	// No run of the ticket is live, so this one can run again.
+	// The diff has no active run, so the user can request another run.
 	canStart: boolean;
 	// The commit the pull request points at now, which a new run stores.
 	headSha: string;
@@ -65,7 +67,10 @@ export function FlowRun({
 			const current = await client.flows.get({ flow: execution.flowId });
 			return client.flowExecutions.start({
 				flow: execution.flowId,
+				allowRepeat: true,
+				repeatReason: "The user selected Run again.",
 				ticket,
+				diffId,
 				headSha,
 				requestId: crypto.randomUUID(),
 				expectedVersion: current.flow.version,

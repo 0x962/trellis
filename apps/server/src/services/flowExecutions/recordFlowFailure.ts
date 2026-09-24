@@ -9,5 +9,6 @@ export async function recordFlowFailure(ctx: ServiceCtx, tx: Tx, input: { id: st
 	const state = structuredClone(execution.state);
 	state.status = "failed";
 	state.error = input.error;
+	state.failureKind = "error";
 	await saveState(ctx, tx, execution, settleFlow(execution.doc, state, ctx.now.getTime()));
 }

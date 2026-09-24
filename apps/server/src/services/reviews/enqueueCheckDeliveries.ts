@@ -6,9 +6,9 @@ import { recipientsOf } from "./enqueueReviewDeliveries.ts";
 
 // Writes one check notice and queues it for every ticket that links the
 // pull request. One row of `review_deliveries` is one message that waits to
-// be sent, and `dispatchDeliveries` sends it. A ticket whose agent does not
-// run keeps the message in the state `held`, and the next run of that
-// ticket reads it. A pull request that no ticket links gets no notice row:
+// be sent, and `dispatchDeliveries` sends it. CI notices can resume an agent
+// after idle expiry. Other stopped agents keep their notices in `held`.
+// A pull request that no ticket links gets no notice row:
 // the person reads the checks on the page. A notice describes the pull
 // request and no agent writes it, so it has no author and it reaches every
 // ticket.

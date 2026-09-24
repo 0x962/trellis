@@ -20,9 +20,9 @@ const record = (status: string, steps: Step[], error: string | null = null): Flo
 		state: { status, error, steps },
 	}) as unknown as FlowExecutionRecord;
 
-test("says the success answers for the whole pull request and asks for no second run", () => {
+test("says the success answers for the whole diff and asks for no second run", () => {
 	expect(flowRunText(record("succeeded", []), 131)).toBe(
-		"The Review flow succeeded on #131. This one run answers for the whole pull request.\n" +
+		"The Review flow succeeded on #131. This one run answers for the whole diff.\n" +
 			"Fix every finding it left. Do not run the flow again after you fix them.\n",
 	);
 });
@@ -41,12 +41,12 @@ test("falls back to the error of the run when no step carries one", () => {
 
 test("names the step that waits for a person", () => {
 	expect(flowRunText(record("waiting", [step("sign", "waiting_human")]), 131)).toBe(
-		"The Review flow waits for a person on #131 at the step Sign it off. Open the Flows tab of the pull request to answer it.\n",
+		"The Review flow waits for a person on #131 at the step Sign it off. Open the Flows tab of the diff to answer it.\n",
 	);
 });
 
 test("points at the runs list when the wait ran out", () => {
 	expect(flowRunText(record("running", [step("read", "running")]), 131)).toBe(
-		"The Review flow still runs on #131. Read its state with: trellis flows runs 131\n",
+		"The Review flow still runs on #131. Read its state with: trellis flow run list --diff 131\n",
 	);
 });

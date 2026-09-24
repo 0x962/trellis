@@ -20,6 +20,7 @@ export const FlowExecutionStateSchema = z.object({
 	startedAt: z.number(),
 	updatedAt: z.number(),
 	error: z.string().nullable(),
+	failureKind: z.enum(["error", "feedback"]).optional(),
 	steps: z.array(
 		z.object({
 			key: z.string(),
@@ -65,9 +66,12 @@ export const FlowExecutionSchema = z.object({
 	flowId: UlidSchema,
 	ticketId: UlidSchema,
 	projectId: UlidSchema,
+	diffId: UlidSchema.nullable().optional(),
+	repeatOf: UlidSchema.nullable().optional(),
+	repeatReason: z.string().nullable().optional(),
 	revision: z.number().int().positive(),
 	// The commit the caller named when the run started. It is null when the
-	// caller named none. It says which code the run read, and `trellis flows
+	// caller named none. It says which code the run read, and `trellis flow run
 	// list` prints it.
 	headSha: z.string().nullable(),
 	doc: FlowDocSchema,
@@ -79,6 +83,9 @@ export const FlowExecutionSchema = z.object({
 export const FlowExecutionStartInputSchema = z.strictObject({
 	flow: FlowRefSchema,
 	ticket: z.string().min(1),
+	diffId: UlidSchema.optional(),
+	allowRepeat: z.boolean().optional(),
+	repeatReason: z.string().trim().min(1).max(10000).optional(),
 	// The current head commit of the pull request. The run stores it.
 	headSha: z.string().min(1).max(64).optional(),
 	requestId: z.uuid(),
@@ -88,6 +95,9 @@ export const FlowExecutionGetInputSchema = z.strictObject({ id: UlidSchema });
 export const FlowExecutionListInputSchema = z.strictObject({
 	flow: FlowRefSchema.optional(),
 	ticket: z.string().min(1).optional(),
+	diffId: UlidSchema.optional(),
+	limit: z.number().int().min(1).max(500).optional(),
+	offset: z.number().int().min(0).optional(),
 });
 export const FlowExecutionDecisionInputSchema = z.strictObject({
 	id: UlidSchema,

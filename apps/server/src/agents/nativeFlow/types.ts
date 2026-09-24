@@ -37,6 +37,7 @@ export interface FlowExecution {
 	updatedAt: number;
 	error: string | null;
 	steps: FlowStep[];
+	failureKind?: "error" | "feedback";
 }
 export type FlowEvent =
 	| { type: "started"; key: string }

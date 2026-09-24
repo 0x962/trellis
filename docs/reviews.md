@@ -33,9 +33,8 @@ A suggestion on deleted lines, on a resolved thread, on a closed pull request, o
 **Refresh from GitHub** moves a suggestion whose lines still stand to the new revision, and marks one whose lines changed as outdated.
 An apply that finds changed lines marks the suggestion outdated and stops.
 
-A submission carries no thread to GitHub unless you check **Send open threads to GitHub as review comments**.
-Each thread then becomes a GitHub review comment at its anchor, and a suggestion block renders there as a suggested change.
-Only threads on the reviewed head can go.
+A submission saves its verdict, body, and selected threads in Trellis.
+The delivery loop sends the local review to the assigned agent.
 
 Local threads draw on the Diff tab.
 Threads support replies, edits, resolve, reopen, and eight reactions.
@@ -49,9 +48,7 @@ The displayed diff stays on its saved revision until you select **Refresh from G
 A changed head or base produces a notice.
 Older threads retain their original revision.
 
-**Review changes** matches the GitHub review choices: Comment, Approve, and Request changes.
-The server checks the reviewed head before it submits the review to GitHub.
-The request then refreshes the pull request in Trellis.
+**Review changes** saves a local Comment, Approve, or Request changes verdict.
 It writes one activity item for each linked ticket.
 
 Merge and repository actions use a separate sheet.
@@ -63,29 +60,29 @@ Environment commands run only after an explicit form submission.
 ## CLI
 
 ```sh
-trellis review open owner/repo#123 --browser
-trellis review prs
-trellis review prs --project TRL
-trellis review list owner/repo#123
-trellis review list owner/repo#123 --all --json
-trellis review add owner/repo#123 --path src/app.ts --start-line 10 --line 14 --side old --author reviewer --body "Check this branch."
-trellis review add owner/repo#123 --path src/app.ts --start-line 10 --line 11 --body "Use the helper." --suggestion "const total = sum(items);"
-trellis review apply owner/repo#123 <thread-id> [<thread-id>...] --message "Apply suggestions from code review"
-trellis review reply <thread-id> --body "Fixed in the latest commit."
-trellis review edit <thread-id> --body "Updated finding."
-trellis review edit <reply-id> --thread <thread-id> --body "Updated reply."
-trellis review resolve <thread-id>
-trellis review reopen <thread-id>
-trellis review react <message-id> +1
-trellis review react <message-id> +1 --remove
-trellis review submit owner/repo#123 --verdict comment --body "Review complete."
-trellis review submit owner/repo#123 --verdict approve
-trellis review submit owner/repo#123 --verdict request_changes --body "Fix the failing branch."
-trellis review submit owner/repo#123 --verdict comment --body "See the threads." --threads <thread-id>,<thread-id>
+trellis diff open owner/repo#123 --browser
+trellis diff list
+trellis diff list --project DEMO
+trellis diff comment list owner/repo#123
+trellis diff comment list owner/repo#123 --all --json
+trellis diff comment add owner/repo#123 --path src/app.ts --start-line 10 --line 14 --side old --author reviewer --body "Check this branch."
+trellis diff comment add owner/repo#123 --path src/app.ts --start-line 10 --line 11 --body "Use the helper." --suggestion "const total = sum(items);"
+trellis diff comment apply owner/repo#123 <thread-id> [<thread-id>...] --message "Apply suggestions from code review"
+trellis diff comment reply <thread-id> --body "Fixed in the latest commit."
+trellis diff comment edit <thread-id> --body "Updated finding."
+trellis diff comment edit <reply-id> --thread <thread-id> --body "Updated reply."
+trellis diff comment resolve <thread-id>
+trellis diff comment reopen <thread-id>
+trellis diff comment react <message-id> +1
+trellis diff comment react <message-id> +1 --remove
+trellis diff review submit owner/repo#123 --verdict comment --body "Review complete."
+trellis diff review submit owner/repo#123 --verdict approve
+trellis diff review submit owner/repo#123 --verdict request_changes --body "Fix the failing branch."
+trellis diff review submit owner/repo#123 --verdict comment --body "See the threads." --threads <thread-id>,<thread-id>
 ```
 
 `--suggestion -` reads the replacement lines from stdin. An empty value deletes the anchor lines.
-`--threads` sends the named threads to GitHub as review comments of the submission.
+`--threads` includes the named local threads in the review sent to the assigned agent.
 
 Use `--body -` to read Markdown from stdin.
 Use `--session` on add or reply to record the author session.
@@ -102,8 +99,8 @@ Generated Trellis instructions include this workflow.
 Export a complete local review or back up all server data:
 
 ```sh
-trellis review export owner/repo#123 > review.json
-trellis backup
+trellis diff review export owner/repo#123 > review.json
+trellis data backup
 ```
 
 The review export includes revisions, threads, reactions, and submissions.
@@ -112,7 +109,7 @@ The normal server backup and NDJSON export include all review tables.
 Generate a gateway service file without loading it:
 
 ```sh
-trellis gateway --write-plist "$HOME/Library/LaunchAgents/com.trellis.gateway.plist"
+trellis host gateway start --write-plist "$HOME/Library/LaunchAgents/com.trellis.gateway.plist"
 plutil -lint "$HOME/Library/LaunchAgents/com.trellis.gateway.plist"
 ```
 
@@ -121,6 +118,6 @@ It preserves configured routes and supplies the Trellis default.
 `GATEWAY_ROUTES_FILE` selects another route file.
 The gateway accepts requests from loopback addresses and defaults to port 80.
 For low ports on macOS, it uses a wildcard bind. The request handler refuses clients outside loopback.
-Use `trellis gateway --port 8080` for a foreground rehearsal.
+Use `trellis host gateway start --port 8080` for a foreground rehearsal.
 To remove the gateway, unload `com.trellis.gateway` and remove its plist.
-The normal `trellis uninstall` command removes the Trellis server and its route.
+The normal `trellis host uninstall` command removes the Trellis server and its route.

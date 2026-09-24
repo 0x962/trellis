@@ -106,7 +106,7 @@ export const reviews = {
 		.output(z.object({ id: UlidSchema, url: z.string() })),
 	prs: base
 		.route({ method: "GET", path: "/reviews/prs", summary: "List local PR reviews, or the PRs of one project" })
-		.input(project)
+		.input(project.extend({ all: z.boolean().optional() }))
 		.output(z.array(ReviewPrSchema)),
 	list: base
 		.route({ method: "GET", path: "/reviews/threads", summary: "Read local review threads" })

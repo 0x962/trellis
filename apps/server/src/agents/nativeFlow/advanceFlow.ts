@@ -40,11 +40,15 @@ export function advanceFlow(doc: FlowDoc, previous: FlowExecution, event: FlowEv
 		} else if (event.type === "human" && step.state === "waiting_human") {
 			step.output = event.output;
 			step.state = event.approved ? "succeeded" : "failed";
-			if (!event.approved) step.error = `Human rejected ${node.title}: ${event.output}`;
+			if (!event.approved) {
+				step.error = `Human rejected ${node.title}: ${event.output}`;
+				state.failureKind = "feedback";
+			}
 		} else if ((step.state === "running" || step.state === "unknown") && step.phase !== "children") {
 			if (event.type === "unknown" || event.type === "fail") {
 				step.state = event.type === "unknown" ? "unknown" : "failed";
 				step.error = event.error;
+				if (event.type === "fail") state.failureKind = "error";
 			} else if (event.type === "complete") {
 				if ((node.kind === "gate" || step.phase === "condition") && event.decision === undefined)
 					throw new Error(`A decision is required for ${node.title}`);
@@ -55,6 +59,7 @@ export function advanceFlow(doc: FlowDoc, previous: FlowExecution, event: FlowEv
 					if (step.round >= node.maxRounds!) {
 						step.state = "failed";
 						step.error = `Loop ${node.title} reached its round limit (${node.maxRounds})`;
+						state.failureKind = "feedback";
 					} else {
 						step.round++;
 						step.phase = "children";

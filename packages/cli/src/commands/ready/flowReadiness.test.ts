@@ -11,7 +11,7 @@ import {
 } from "./flowReadiness.ts";
 
 const flow = (slug: string, name: string, description: string): FlowSummary =>
-	({ slug, name, description }) as FlowSummary;
+	({ id: `flow:${slug}`, slug, name, description }) as FlowSummary;
 
 const readiness = (runs: FlowReadiness["runs"]): FlowReadiness => ({
 	flows: [flow("review", "Review", "Read the diff and report every fault."), flow("e2e", "End to end", "")],
@@ -26,7 +26,7 @@ const ref = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/tr
 
 const clientWith = (
 	flows: FlowSummary[],
-	records: Array<{ slug: string; name: string; status: string }>,
+	records: Array<{ slug: string; name: string; status: string; flowId?: string }>,
 	waiver: { headSha: string; reason: string } | null = null,
 ) => {
 	const sent: unknown[] = [];
@@ -41,7 +41,9 @@ const clientWith = (
 		flowExecutions: {
 			list: async (input: unknown) => {
 				sent.push(input);
-				return records.map((record) => ({
+				const offset = (input as { offset?: number }).offset ?? 0;
+				return records.slice(offset, offset + 500).map((record) => ({
+					flowId: record.flowId ?? `flow:${record.slug}`,
 					doc: { flow: { slug: record.slug, name: record.name } },
 					state: { status: record.status },
 				}));
@@ -79,12 +81,12 @@ test("asks the server for the flows of the ticket's project only", async () => {
 	expect(asked).toEqual([{ ticket: "OP-74" }]);
 });
 
-test("asks the server for every run of the ticket", async () => {
+test("asks the server for every run of the diff", async () => {
 	const { client, sent } = clientWith([flow("review", "Review", "")], []);
 
 	await flowReadiness(client, ref, "OP-74");
 
-	expect(sent).toEqual([{ ticket: "OP-74" }]);
+	expect(sent).toEqual([{ diffId: ref.id, limit: 500, offset: 0 }]);
 });
 
 test("is satisfied by a run that succeeded", async () => {
@@ -117,45 +119,33 @@ test("names every flow and its command when no flow ran", () => {
 	expect(flowRunMissingSummary(state, 131)).toBe("no flow ran for this pull request");
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    Pick the flows that fit this change and run each one:",
-		"    review  Read the diff and report every fault.  trellis flows run 131 --flow review",
-		"    e2e     End to end                             trellis flows run 131 --flow e2e",
+		"    review  Read the diff and report every fault.  trellis flow start review --diff 131",
+		"    e2e     End to end                             trellis flow start e2e --diff 131",
 		"    A flow that does not fit this change is answered in one step. Write the reason in the",
 		"    evidence document, then record it here:",
-		'      trellis ready 131 --flow-does-not-apply "<reason>"',
+		'      trellis diff set-state 131 ready --flow-does-not-apply "<reason>"',
 	]);
 });
 
 test("tells the agent to wait only while a run works on its own", () => {
 	const state = readiness([{ slug: "review", name: "Review", status: "running" }]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe("a flow still works. Wait for it, then run: trellis ready 131");
+	expect(flowRunMissingSummary(state, 131)).toBe(
+		"a flow still works. Wait for it, then run: trellis diff set-state 131 ready",
+	);
 	expect(flowRunMissingLines(state, 131)).toEqual(["    The Review flow is still at work."]);
 });
 
-test("names the failed run and both ways out of it", () => {
-	const state = readiness([{ slug: "review", name: "Review", status: "failed" }]);
-
-	expect(flowRunMissingSummary(state, 131)).toBe("no flow run finished");
-	expect(flowRunMissingLines(state, 131)).toEqual([
-		"    The Review flow failed. Fix the fault and run it again:",
-		"      trellis flows run 131 --flow review",
-		"    A flow that does not fit this change is answered in one step. Write the reason in the",
-		"    evidence document, then record it here:",
-		'      trellis ready 131 --flow-does-not-apply "<reason>"',
+test("only an execution error recommends another start", () => {
+	const failed = readiness([{ slug: "review", name: "Review", status: "failed", failureKind: "error" }]);
+	expect(flowRunMissingLines(failed, 131)).toEqual([
+		"    The Review flow ended with an execution error. Fix the cause and start it again:",
+		"      trellis flow start review --diff 131",
 	]);
-});
-
-test("names a run that stopped and tells the agent to run the flow again", () => {
-	const state = readiness([{ slug: "review", name: "Review", status: "waiting" }]);
-
-	expect(flowRunMissingSummary(state, 131)).toBe("no flow run finished");
-	expect(flowRunMissingLines(state, 131)).toEqual([
-		"    The Review flow stopped and did not finish. Fix the fault and run it again:",
-		"      trellis flows run 131 --flow review",
-		"    A flow that does not fit this change is answered in one step. Write the reason in the",
-		"    evidence document, then record it here:",
-		'      trellis ready 131 --flow-does-not-apply "<reason>"',
-	]);
+	for (const status of ["failed", "waiting", "canceled"]) {
+		const feedback = readiness([{ slug: "review", name: "Review", status, failureKind: "feedback" }]);
+		expect(flowRunMissingLines(feedback, 131).join("\n")).not.toContain("trellis flow start");
+	}
 });
 
 test("takes the agent's own sentence in place of a run", async () => {
@@ -200,6 +190,33 @@ test("names the one step that records a change no flow fits", () => {
 	expect(flowRunMissingLines(readiness([]), 131).slice(-3)).toEqual([
 		"    A flow that does not fit this change is answered in one step. Write the reason in the",
 		"    evidence document, then record it here:",
-		'      trellis ready 131 --flow-does-not-apply "<reason>"',
+		'      trellis diff set-state 131 ready --flow-does-not-apply "<reason>"',
 	]);
+});
+
+test("a flow rename preserves its completed review", async () => {
+	const { client } = clientWith(
+		[{ ...flow("renamed", "Renamed review", ""), id: "flow:original" }],
+		[{ slug: "original", name: "Original review", status: "succeeded", flowId: "flow:original" }],
+	);
+	expect((await flowReadiness(client, ref, "DEMO-1")).satisfied).toBe(true);
+});
+
+test("reads a completed review beyond the first page", async () => {
+	const records = Array.from({ length: 500 }, () => ({ slug: "review", name: "Review", status: "failed" }));
+	records.push({ slug: "review", name: "Review", status: "succeeded" });
+	const { client, sent } = clientWith([flow("review", "Review", "")], records);
+	expect((await flowReadiness(client, ref, "DEMO-1")).satisfied).toBe(true);
+	expect(sent).toEqual([
+		{ diffId: ref.id, limit: 500, offset: 0 },
+		{ diffId: ref.id, limit: 500, offset: 500 },
+	]);
+});
+
+test("an older error does not recommend a repeat of the active run", () => {
+	const state = readiness([
+		{ slug: "review", name: "Review", status: "running" },
+		{ slug: "review", name: "Review", status: "failed", failureKind: "error" },
+	]);
+	expect(flowRunMissingLines(state, 131)).toEqual(["    The Review flow is still at work."]);
 });

@@ -24,8 +24,10 @@ const pullRequestForFlow = async (client: TrellisClient, input: string) => {
 	const resolved = await resolvePullRequest(client, input, true);
 	const head = await currentHead(client, resolved);
 	if (head.ticket === null)
-		throw usageError(`no ticket links pull request ${input}; link it first: trellis pr add <ticket> ${resolved.url}`);
-	return { ticket: head.ticket, headSha: head.sha, number: head.pullRequest.number };
+		throw usageError(
+			`no ticket links diff ${input}; link it first: trellis diff link ${resolved.url} --ticket <ticket>`,
+		);
+	return { ticket: head.ticket, headSha: head.sha, number: head.pullRequest.number, diffId: resolved.id };
 };
 
 // A flow ref is its slug, its ULID, or its name. `flowExecutions.start` asks
@@ -86,13 +88,15 @@ const run = defineCommand({
 	meta: { name: "run", description: "Start a flow on a pull request and wait for its result" },
 	args: {
 		ref,
-		flow: { type: "string", required: true, description: "Flow slug, name, or ULID, as trellis flows list prints it" },
+		flow: { type: "string", required: true, description: "Flow slug, name, or ULID, as trellis flow list prints it" },
 		wait: {
 			type: "boolean",
 			default: true,
 			description: "Wait for the run to end; --no-wait prints the run id to poll",
 		},
 		timeout: { type: "string", valueHint: "minutes", description: "Stop waiting after this many minutes (default 60)" },
+		"allow-repeat": { type: "boolean", description: "Start another run after an explicit user request" },
+		reason: { type: "string", description: "The user's reason for another run" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -104,6 +108,9 @@ const run = defineCommand({
 		const started = await client.flowExecutions.start({
 			flow: flow.slug,
 			ticket: pr.ticket,
+			diffId: pr.diffId,
+			...(context.args["allow-repeat"] ? { allowRepeat: true } : {}),
+			...(context.args.reason === undefined ? {} : { repeatReason: context.args.reason }),
 			headSha: pr.headSha,
 			requestId: crypto.randomUUID(),
 			expectedVersion: flow.version,
@@ -112,7 +119,9 @@ const run = defineCommand({
 		// own time limit, and the agent still needs the run id to poll the run
 		// and to name it in the evidence document.
 		if (!wantsJson(ctx))
-			ctx.out.write(`Started the ${flow.name} flow on #${pr.number} at head ${pr.headSha}. Run ${started.id}\n`);
+			ctx.out.write(
+				`The ${flow.name} flow on #${pr.number}: run ${started.id}, head ${started.headSha ?? "not recorded"}.\n`,
+			);
 		const deadline = ctx.deps.now().getTime() + minutes * 60_000;
 		const finished = context.args.wait ? await watch(ctx, client, started, deadline) : started;
 		if (wantsJson(ctx)) ctx.out.write(json(finished));
@@ -132,7 +141,7 @@ const runs = defineCommand({
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
 		const pr = await pullRequestForFlow(client, context.args.ref);
-		const found = await client.flowExecutions.list({ ticket: pr.ticket });
+		const found = await client.flowExecutions.list({ diffId: pr.diffId });
 		printList(ctx.out, ctx.format, found, {
 			identifier: (record) => record.id,
 			columns: [

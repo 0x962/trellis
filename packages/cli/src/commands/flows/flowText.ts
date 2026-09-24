@@ -1,6 +1,6 @@
 import { type FlowExecutionRecord, type FlowSummary, flowPurpose } from "@trellis/api";
 
-export const flowRunCommand = (slug: string, number: number): string => `trellis flows run ${number} --flow ${slug}`;
+export const flowRunCommand = (slug: string, number: number): string => `trellis flow start ${slug} --diff ${number}`;
 
 // One indented line per flow: the slug, what the flow is for, and the
 // command that starts it on this pull request. An agent picks by the second
@@ -24,7 +24,7 @@ const humanStep = (run: FlowExecutionRecord) => run.state.steps.find((step) => s
 // lookup always finds one.
 const titleOf = (run: FlowExecutionRecord, nodeId: string) => run.doc.nodes.find((node) => node.id === nodeId)!.title;
 
-// What `trellis flows run` prints when it stops watching a run. The flow
+// What `trellis flow start` prints when it stops watching a run. The flow
 // name comes from the run's own copy of the flow, so a renamed flow still
 // prints the name the run used.
 //
@@ -37,7 +37,7 @@ export const flowRunText = (run: FlowExecutionRecord, number: number): string =>
 	const flow = run.doc.flow.name;
 	if (run.state.status === "succeeded")
 		return (
-			`The ${flow} flow succeeded on #${number}. This one run answers for the whole pull request.\n` +
+			`The ${flow} flow succeeded on #${number}. This one run answers for the whole diff.\n` +
 			"Fix every finding it left. Do not run the flow again after you fix them.\n"
 		);
 	if (run.state.status === "canceled") return `The ${flow} flow was canceled on #${number}.\n`;
@@ -50,7 +50,7 @@ export const flowRunText = (run: FlowExecutionRecord, number: number): string =>
 	if (run.state.status === "waiting") {
 		const step = humanStep(run);
 		const where = step === undefined ? "" : ` at the step ${titleOf(run, step.nodeId)}`;
-		return `The ${flow} flow waits for a person on #${number}${where}. Open the Flows tab of the pull request to answer it.\n`;
+		return `The ${flow} flow waits for a person on #${number}${where}. Open the Flows tab of the diff to answer it.\n`;
 	}
-	return `The ${flow} flow still runs on #${number}. Read its state with: trellis flows runs ${number}\n`;
+	return `The ${flow} flow still runs on #${number}. Read its state with: trellis flow run list --diff ${number}\n`;
 };

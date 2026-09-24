@@ -31,6 +31,15 @@ test("an open run keeps the worktree", () => {
 	expect(workspaceRemovable(work, [run({ open: true })], [])).toBe(false);
 });
 
+test("a stopped assignment on a finished ticket frees its worktree", () => {
+	expect(workspaceRemovable(work, [run({ open: true })], [], new Set(["t1"]))).toBe(true);
+	expect(workspaceRemovable(work, [run({ open: true, ticketCategory: "review" })], [], new Set(["t1"]))).toBe(false);
+});
+
+test("an editor or child process with an open file keeps the worktree", () => {
+	expect(workspaceRemovable(work, [run()], [], new Set(["t1"]), [`${work}/node_modules/tool/index.js`])).toBe(false);
+});
+
 test("a ticket in review keeps the worktree", () => {
 	expect(workspaceRemovable(work, [run({ ticketCategory: "review" })], [])).toBe(false);
 });

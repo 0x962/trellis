@@ -126,11 +126,11 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 		enabled: revision !== null || status.data?.isQueued === true,
 	});
 	const reviewMetadata = metadata.data as ReviewMetadata | undefined;
-	// What the Flows tab needs to start a flow. One `gh pr view` answer carries
-	// both the ticket and the head commit, so either both are here or neither
-	// is.
+	// A diff flow uses its ticket for project context and records the current head commit.
 	const flowTarget =
-		status.data?.ticket == null ? null : { ticket: status.data.ticket.identifier, headSha: status.data.headRefOid };
+		status.data?.ticket == null || status.data.prRow === null
+			? null
+			: { ticket: status.data.ticket.identifier, headSha: status.data.headRefOid, diffId: status.data.prRow.id };
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
@@ -251,7 +251,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 											description="No ticket links this pull request, and a flow runs against a ticket."
 										/>
 									) : (
-										<FlowRuns ticket={flowTarget.ticket} headSha={flowTarget.headSha} />
+										<FlowRuns ticket={flowTarget.ticket} headSha={flowTarget.headSha} diffId={flowTarget.diffId} />
 									)}
 								</div>
 							),
