@@ -1,28 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { nativeWorkspace } from "../../../agents/native/workspace.ts";
 import { workspaceBaseRef } from "../../../agents/native/workspaceBase.ts";
+import { tempDirs } from "../../../tempDir.ts";
 import { countWorkspace, lineStats } from "./lineStats.ts";
 import type { WorkspaceCtx } from "./types.ts";
 
+const tempDir = tempDirs();
+
 const exec = promisify(execFile);
-const roots: string[] = [];
-
-afterEach(async () => {
-	await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
 const git = async (directory: string, args: string[]) => {
 	return (await exec("git", ["-C", directory, ...args])).stdout.trim();
 };
 
 const createRepository = async () => {
-	const root = await mkdtemp(join(tmpdir(), "trellis-line-stats-"));
-	roots.push(root);
+	const root = await tempDir("trellis-line-stats-");
 	const repository = join(root, "repository");
 	await mkdir(repository);
 	await git(repository, ["init", "--initial-branch=main"]);

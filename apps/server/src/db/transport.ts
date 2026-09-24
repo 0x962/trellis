@@ -252,10 +252,14 @@ export const createInlineTransport = ({
 			// with a large backlog is swept in the background of the boot.
 			fileSweep = startNativeReconcile({
 				// One line per sweep holds the counts and the scratch bytes, so
-				// the log says that the sweep ran and what it took away.
+				// the log says that the sweep ran and what it took away. A
+				// directory that the sweep cannot remove fails at every sweep,
+				// so its own message gives a person a word to search for.
 				tick: async () => {
 					const result = (await backgroundCall("system.sweep", {})) as SweepResult;
 					options.log("sweep agent files", result);
+					if (result.errors.length > 0)
+						options.log("sweep could not remove", { count: result.errors.length, errors: result.errors });
 				},
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,

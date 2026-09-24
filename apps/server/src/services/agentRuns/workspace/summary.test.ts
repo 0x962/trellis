@@ -1,28 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { nativeWorkspace } from "../../../agents/native/workspace.ts";
+import { tempDirs } from "../../../tempDir.ts";
 import { createSessionRepository } from "../../sessions/directory.ts";
 import { readWorkspace, summarizeWorkspace } from "./summary.ts";
 
+const tempDir = tempDirs();
+
 const exec = promisify(execFile);
-const roots: string[] = [];
-
-afterEach(async () => {
-	await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
 const git = async (directory: string, args: string[]) => (await exec("git", ["-C", directory, ...args])).stdout.trim();
 
 const commit = (directory: string, message: string) =>
 	git(directory, ["-c", "user.name=Trellis Test", "-c", "user.email=trellis@example.com", "commit", "-m", message]);
 
 const createRoot = async () => {
-	const root = await realpath(await mkdtemp(join(tmpdir(), "trellis-workspace-summary-")));
-	roots.push(root);
+	const root = await realpath(await tempDir("trellis-workspace-summary-"));
 	return root;
 };
 

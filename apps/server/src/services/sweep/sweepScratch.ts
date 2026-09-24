@@ -1,6 +1,6 @@
 import { lstat, readdir, realpath, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { heldScratchNames, SCRATCH_PREFIX } from "./decide.ts";
+import { heldScratchNames, OWNED_SCRATCH_NAMES, SCRATCH_PREFIX } from "./decide.ts";
 
 // The sweep of the scratch directories that the agents leave in the
 // temporary directory of the person. AGENTS.md tells an agent to remove its
@@ -12,7 +12,7 @@ import { heldScratchNames, SCRATCH_PREFIX } from "./decide.ts";
 // is a day old belongs to work that ended.
 export const SCRATCH_MIN_AGE_MS = 24 * 60 * 60 * 1000;
 
-export type ScratchSweepResult = { removedScratch: number; removedScratchBytes: number };
+export type ScratchSweepResult = { removedScratch: number; removedScratchBytes: number; errors: string[] };
 
 // The newest modification time in the tree, and the bytes its files hold.
 //
@@ -24,7 +24,10 @@ export type ScratchSweepResult = { removedScratch: number; removedScratchBytes: 
 //
 // The agent that owns a scratch directory can remove it while the walk
 // reads it. The walk skips an entry it cannot read and counts the rest,
-// because one removal by an owner must not stop the sweep.
+// because one removal by an owner must not stop the sweep. A directory that
+// exists carries its own time, so a newest time of 0 means that the whole
+// directory is gone. treeState returns null there, and sweepScratch does not
+// count it as removed.
 const treeState = async (path: string) => {
 	let bytes = 0;
 	let newestMs = 0;
@@ -40,22 +43,42 @@ const treeState = async (path: string) => {
 		}
 		if (info.isFile()) bytes += info.size;
 	}
-	return { bytes, newestMs };
+	return newestMs === 0 ? null : { bytes, newestMs };
 };
 
 // Removes each scratch directory under `root` that no process holds open
 // and whose newest file is older than `SCRATCH_MIN_AGE_MS`. `openPaths`
 // holds every path that a process on this computer has open. Returns the
-// number of directories that went and the bytes they held.
+// number of directories that went, the bytes they held, and one message for
+// each directory that the sweep chose to remove but could not remove.
+//
+// The sweep cannot delete the files in a directory that denies write
+// permission. The sweep records the path and the error, then continues with
+// the next name. `readdir` gives the same order at each sweep, so a stop at
+// that name would block every name after it at every sweep.
 export const sweepScratch = async (root: string, now: number, openPaths: string[]): Promise<ScratchSweepResult> => {
 	const held = heldScratchNames(openPaths, [root, await realpath(root)]);
-	const result: ScratchSweepResult = { removedScratch: 0, removedScratchBytes: 0 };
+	const result: ScratchSweepResult = { removedScratch: 0, removedScratchBytes: 0, errors: [] };
 	for (const entry of await readdir(root, { withFileTypes: true })) {
 		if (!entry.isDirectory() || !entry.name.startsWith(SCRATCH_PREFIX)) continue;
+		if (OWNED_SCRATCH_NAMES.has(entry.name)) continue;
 		if (held.has(entry.name)) continue;
-		const state = await treeState(join(root, entry.name));
+		const path = join(root, entry.name);
+		const state = await treeState(path);
+		if (state === null) continue;
 		if (now - state.newestMs < SCRATCH_MIN_AGE_MS) continue;
-		await rm(join(root, entry.name), { recursive: true, force: true });
+		const removeError = await rm(path, { recursive: true, force: true }).then(
+			() => null,
+			(error: unknown) => (error instanceof Error ? error.message : String(error)),
+		);
+		if (removeError !== null) {
+			result.errors.push(`${path}: ${removeError}`);
+			// `rm` deletes the files it reaches before it stops, so a second
+			// walk says what the disk gave back.
+			const left = await treeState(path);
+			result.removedScratchBytes += state.bytes - (left?.bytes ?? 0);
+			continue;
+		}
 		result.removedScratch += 1;
 		result.removedScratchBytes += state.bytes;
 	}
