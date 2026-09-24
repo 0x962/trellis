@@ -60,16 +60,24 @@ export function terminalResize(terminal: Terminal, fit: FitAddon, send: (cols: n
 				attachFrame = undefined;
 				request(true);
 			});
+			// True from the size that a hidden host reports until the fit that
+			// follows it. That fit sends its size to the process even when the
+			// cell count stays the same, because the process kept the size of
+			// another view while this one was away.
+			let reveal = false;
 			observer = new ResizeObserver((entries) => {
 				clearTimeout(timer);
 				// A host with no width or no height holds a view that a person
-				// cannot read. The next size belongs to a view on screen, and it
-				// carries the size to the process.
+				// cannot read. The view that comes back opens on the newest line.
 				if (entries.some((entry) => entry.contentRect.width <= 0 || entry.contentRect.height <= 0)) {
+					reveal = true;
 					viewAppeared = true;
 					return;
 				}
-				timer = setTimeout(() => request(viewAppeared), 75);
+				timer = setTimeout(() => {
+					request(reveal);
+					reveal = false;
+				}, 75);
 			});
 			observer.observe(next);
 		},

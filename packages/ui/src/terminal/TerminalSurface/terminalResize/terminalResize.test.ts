@@ -171,6 +171,26 @@ describe("terminalResize", () => {
 		expect(terminal.buffer.viewportY).toBe(900);
 	});
 
+	test("a host that comes back sends its size although a fit ran while output was parsed", async () => {
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.resize.attach(terminal.host);
+		runFrames();
+		terminal.resize.write(new Uint8Array([65]), () => {});
+
+		resizeTo(600, 400);
+		await afterObserverWait();
+		resizeTo(0, 0);
+		resizeTo(900, 600);
+		terminal.pendingWrites.shift()?.();
+		await afterObserverWait();
+
+		expect(terminal.sizes).toEqual([
+			[80, 24],
+			[80, 24],
+		]);
+	});
+
 	test("a host that changes size while the person reads keeps the line", async () => {
 		const terminal = fakeTerminal();
 		terminal.buffer.baseY = 900;
