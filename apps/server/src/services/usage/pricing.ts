@@ -1,8 +1,11 @@
 // API list prices in USD per million tokens. A subscription does not bill
 // per token, so the report prices every turn at the API rate and labels the
 // result as an estimate. The match is the longest prefix of the lowercased
-// model id. An unknown model takes the cheapest rate of its harness, and
-// the result is marked approximate.
+// model id, with every dot read as a dash. One model reaches this table
+// under two spellings: the Claude harness reports claude-opus-5-5 and the
+// gateway harnesses report anthropic/claude-opus-5.5. An unknown model
+// takes the cheapest rate of its harness, and the result is marked
+// approximate.
 
 import type { UsageHarness } from "@trellis/api";
 
@@ -100,9 +103,13 @@ export type MatchedRate = ModelRate & {
 	approximate: boolean;
 };
 
+// A model version appears with a dot in a gateway id and with a dash in a
+// native Claude name. Both spellings must find the same row.
+const dashed = (id: string) => id.toLowerCase().replaceAll(".", "-");
+
 export function matchModelRate(harness: UsageHarness, model: string, promptTokens = 0): MatchedRate {
 	const rates = RATES_BY_HARNESS[harness];
-	const normalized = model.toLowerCase();
+	const normalized = dashed(model);
 	// A multi-provider harness qualifies the id with its vendor, such as
 	// "anthropic/claude-sonnet-4". The segment after the last slash matches too.
 	const candidates = [normalized];
@@ -110,7 +117,8 @@ export function matchModelRate(harness: UsageHarness, model: string, promptToken
 	if (slash >= 0 && slash < normalized.length - 1) candidates.push(normalized.slice(slash + 1));
 	let best: { prefix: string; rate: ModelRate } | null = null;
 	for (const candidate of candidates) {
-		for (const [prefix, rate] of Object.entries(rates)) {
+		for (const [name, rate] of Object.entries(rates)) {
+			const prefix = dashed(name);
 			if (candidate.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) best = { prefix, rate };
 		}
 	}

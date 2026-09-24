@@ -356,22 +356,6 @@
 		"name": "GPT-6 Astra (Fast)"
 	},
 	{
-		"id": "openai/gpt-6-luna",
-		"name": "GPT-6 Luna"
-	},
-	{
-		"id": "openai/gpt-6-luna-fast",
-		"name": "GPT-6 Luna (Fast)"
-	},
-	{
-		"id": "openai/gpt-6-sol",
-		"name": "GPT-6 Sol"
-	},
-	{
-		"id": "openai/gpt-6-sol-fast",
-		"name": "GPT-6 Sol (Fast)"
-	},
-	{
 		"id": "openai/gpt-oss-120b",
 		"name": "GPT OSS 120B"
 	},
