@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { sessionGroups } from "./sessionGroups";
+import { nextSessionLimit, SESSION_REVEAL_STEP, sessionGroups, visibleSessions } from "./sessionGroups";
 
 const run = (id: string, fields: Partial<Parameters<typeof sessionGroups>[0][number]> = {}) => ({
 	id,
@@ -39,4 +39,29 @@ test("search finds historical ticket titles and identifiers without a history to
 	]);
 	expect(sessionGroups(runs, { search: "op-6", history: false }).ticketed.map((item) => item.id)).toEqual(["old"]);
 	expect(sessionGroups(runs, { search: "missing", history: true }).ticketed).toEqual([]);
+});
+
+test("a group draws one step of rows and keeps the selected run", () => {
+	const runs = Array.from({ length: 119 }, (_, index) => run(`run-${index}`));
+	expect(visibleSessions(runs, SESSION_REVEAL_STEP).map((item) => item.id)).toEqual(
+		runs.slice(0, SESSION_REVEAL_STEP).map((item) => item.id),
+	);
+	const withSelected = visibleSessions(runs, SESSION_REVEAL_STEP, "run-100");
+	expect(withSelected).toHaveLength(SESSION_REVEAL_STEP + 1);
+	expect(withSelected[SESSION_REVEAL_STEP]?.id).toBe("run-100");
+	const inStep = visibleSessions(runs, SESSION_REVEAL_STEP, "run-2");
+	expect(inStep).toHaveLength(SESSION_REVEAL_STEP);
+});
+
+test("the reveal reaches every run and then stops", () => {
+	const total = 119;
+	let limit = SESSION_REVEAL_STEP;
+	const steps = [];
+	for (let reveal = 0; reveal < 10; reveal++) {
+		limit = nextSessionLimit(limit, total);
+		steps.push(limit);
+	}
+	expect(steps).toEqual([60, 90, 119, 119, 119, 119, 119, 119, 119, 119]);
+	expect(nextSessionLimit(total, total)).toBe(total);
+	expect(nextSessionLimit(SESSION_REVEAL_STEP, 5)).toBe(5);
 });

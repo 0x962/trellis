@@ -1,7 +1,6 @@
-import { ArrowDown } from "@phosphor-icons/react";
 import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, GroupHeader, IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
-import { useEffect, useId, useRef, useState } from "react";
+import { Avatar, GroupHeader, useMediaQuery } from "@trellis/ui";
+import { type RefObject, useEffect, useId, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
@@ -10,6 +9,7 @@ import { SessionActionsMenu } from "../../../SessionActionsMenu";
 import { SessionName } from "../../../SessionName";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
+import { nextSessionLimit, SESSION_REVEAL_STEP, visibleSessions } from "../../sessionGroups";
 import { RunLineChanges } from "./components/RunLineChanges";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
@@ -24,6 +24,7 @@ export function SessionGroup({
 	label,
 	projectKey,
 	runs,
+	scroller,
 	sessionsByRunId,
 	selectedId,
 	onSelect,
@@ -33,6 +34,7 @@ export function SessionGroup({
 	label: string;
 	projectKey: string;
 	runs: AgentRun[];
+	scroller: RefObject<HTMLDivElement | null>;
 	sessionsByRunId: Map<string, Session>;
 	selectedId?: string;
 	onSelect: (id: string) => void;
@@ -42,7 +44,7 @@ export function SessionGroup({
 	const routeKey = `/sessions/project/${projectKey}`;
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
-	const [limit, setLimit] = useState(30);
+	const [limit, setLimit] = useState(SESSION_REVEAL_STEP);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const selectedButton = useRef<HTMLButtonElement>(null);
 	const selected = runs.find((run) => run.id === selectedId);
@@ -53,8 +55,32 @@ export function SessionGroup({
 	useEffect(() => {
 		if (revealId && !collapsed) selectedButton.current?.scrollIntoView({ block: "nearest" });
 	}, [revealId, collapsed]);
-	const visible = runs.slice(0, limit);
-	if (selected && !visible.includes(selected)) visible.push(selected);
+	const visible = visibleSessions(runs, limit, selectedId);
+	// A selected run that sits past the limit joins the drawn rows, so the
+	// limit, and not the number of drawn rows, says whether rows remain.
+	const more = runs.length > limit;
+	// The end marker sits under the last drawn row. The browser reports it
+	// when it comes within 240 px of the bottom of the scrolling box, and the
+	// group then draws its next rows. A collapsed group draws no box, so the
+	// browser reports nothing and the group reveals nothing. The marker
+	// leaves the tree once every run is drawn, which ends the reveal.
+	//
+	// A new limit builds a new observer, which measures the marker again. A
+	// tall box that still holds the marker after a reveal therefore draws the
+	// rows after those as well, until the marker sits below the box.
+	const endMarker = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const marker = endMarker.current;
+		if (marker === null) return;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((entry) => entry.isIntersecting)) setLimit(nextSessionLimit(limit, runs.length));
+			},
+			{ root: scroller.current, rootMargin: "0px 0px 240px 0px" },
+		);
+		observer.observe(marker);
+		return () => observer.disconnect();
+	}, [limit, runs.length, scroller]);
 	return (
 		<section aria-label={group === "sessions" ? "Sessions" : `${label} sessions`}>
 			<GroupHeader
@@ -150,19 +176,13 @@ export function SessionGroup({
 						);
 					})}
 				</ul>
-				{runs.length > visible.length && (
-					<div className="flex items-center justify-center gap-2 pb-2">
-						<span className="text-xs text-fg-muted tabular">
-							{visible.length} of {runs.length}
-						</span>
-						<Tooltip content={`Load more ${label.toLowerCase()} sessions`}>
-							<IconButton
-								label={`Load more ${label.toLowerCase()} sessions`}
-								icon={<ArrowDown />}
-								onClick={() => setLimit(limit + 30)}
-							/>
-						</Tooltip>
+				{more && (
+					<div ref={endMarker} role="status" className="px-4 pb-2 text-xs text-fg-muted tabular">
+						{visible.length} of {runs.length}
 					</div>
+				)}
+				{!more && runs.length > SESSION_REVEAL_STEP && (
+					<p className="px-4 pb-2 text-xs text-fg-muted tabular">All {runs.length} shown</p>
 				)}
 			</div>
 		</section>

@@ -39,3 +39,28 @@ export function sessionGroups<T extends GroupableRun>(
 		historyCount: runs.filter(isHistoricalSession).length,
 	};
 }
+
+// The rows one group adds each time the end of its list comes into view.
+// Each drawn row of a native run asks the server for the Git state of its
+// workspace, and the server runs Git for every one of those reads, so this
+// number is the count of reads that one reveal starts.
+export const SESSION_REVEAL_STEP = 30;
+
+// The runs one group draws. `limit` holds the rows the person has reached
+// by scrolling. The selected run is always drawn, because the page puts the
+// conversation of that run beside the list, and a person who opens a link to
+// an old run must see which row is open.
+export function visibleSessions<T extends { id: string }>(runs: T[], limit: number, selectedId?: string) {
+	const visible = runs.slice(0, limit);
+	const selected = runs.find((run) => run.id === selectedId);
+	if (selected !== undefined && !visible.includes(selected)) visible.push(selected);
+	return visible;
+}
+
+// The next value of `limit` when the end of the list comes into view. The
+// value stops at the number of runs the group holds. A limit that has
+// reached that number returns itself, so the reveal stops and React starts
+// no further render from the same state.
+export function nextSessionLimit(limit: number, total: number) {
+	return Math.min(limit + SESSION_REVEAL_STEP, total);
+}

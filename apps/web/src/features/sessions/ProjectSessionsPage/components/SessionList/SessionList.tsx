@@ -1,7 +1,7 @@
 import { ClockCounterClockwise, Plus } from "@phosphor-icons/react";
 import type { AgentRun, Project, Session } from "@trellis/api";
 import { Button, IconButton, Input, Tooltip } from "@trellis/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { sessionComposerActions } from "../../../sessionComposerStore";
 import { sessionGroups } from "../../sessionGroups";
 import { SessionGroup } from "../SessionGroup";
@@ -34,6 +34,10 @@ export function SessionList({
 	onHistoryChange: (history: boolean) => void;
 }) {
 	const [search, setSearch] = useState("");
+	// The one element of this page that scrolls the rows. Each group watches
+	// the end of its own rows against this box, so a group reveals its next
+	// rows when the person scrolls that end into view.
+	const scroller = useRef<HTMLDivElement>(null);
 	const groups = sessionGroups(runs, { search, history, selectedId });
 	const sessionsByRunId = new Map(sessions.map((session) => [session.runId, session]));
 	return (
@@ -73,7 +77,7 @@ export function SessionList({
 					/>
 				</Tooltip>
 			</div>
-			<div className="min-h-0 flex-1 overflow-y-auto py-2">
+			<div ref={scroller} className="min-h-0 flex-1 overflow-y-auto py-2">
 				{pending && !failed && (
 					<p role="status" className="px-4 py-2 text-sm text-fg-muted">
 						Load sessions…
@@ -111,6 +115,7 @@ export function SessionList({
 										label="Sessions"
 										projectKey={project.key}
 										runs={groups.sessions}
+										scroller={scroller}
 										sessionsByRunId={sessionsByRunId}
 										selectedId={selectedId}
 										onSelect={onSelect}
@@ -124,6 +129,7 @@ export function SessionList({
 										label="Ticketed"
 										projectKey={project.key}
 										runs={groups.ticketed}
+										scroller={scroller}
 										sessionsByRunId={sessionsByRunId}
 										selectedId={selectedId}
 										onSelect={onSelect}
