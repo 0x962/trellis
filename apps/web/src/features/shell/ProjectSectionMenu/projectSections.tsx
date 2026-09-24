@@ -1,9 +1,9 @@
-import { Chats, ListBullets } from "@phosphor-icons/react";
+import { Chats, FileHtml, ListBullets } from "@phosphor-icons/react";
 import type { MenuItem } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { projectHref, projectSessionsHref } from "../../../lib/projectUrl";
 
-export type ProjectSectionId = "epics" | "sessions";
+export type ProjectSectionId = "epics" | "pages" | "sessions";
 
 export type ProjectSection = {
 	id: ProjectSectionId;
@@ -18,6 +18,7 @@ export type ProjectSection = {
 // order of the sidebar rows.
 export const projectSections: readonly ProjectSection[] = [
 	{ id: "epics", label: "Epics", icon: <ListBullets />, href: (projectKey) => projectHref(projectKey, "epics") },
+	{ id: "pages", label: "Pages", icon: <FileHtml />, href: (projectKey) => projectHref(projectKey, "pages") },
 	{ id: "sessions", label: "Sessions", icon: <Chats />, href: (projectKey) => projectSessionsHref(projectKey) },
 ];
 

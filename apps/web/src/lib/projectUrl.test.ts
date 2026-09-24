@@ -3,9 +3,11 @@ import {
 	epicHref,
 	epicSplat,
 	isEpicPathname,
+	pageHref,
 	parseProjectSplat,
 	projectHref,
 	projectRefOfPathname,
+	projectViewOfPathname,
 } from "./projectUrl";
 
 test("epics is the epics view of the project", () => {
@@ -26,6 +28,21 @@ test("epics/<slug> is the epic view with the slug", () => {
 	});
 });
 
+test("pages is the Pages view of the project", () => {
+	expect(parseProjectSplat("OP/pages")).toEqual({ ref: "OP", view: "pages" });
+	expect(projectHref("CDE", "pages")).toBe("/p/CDE/pages");
+});
+
+test("pages/<slug> is one Page even when the slug names another view", () => {
+	expect(parseProjectSplat("OP/pages/release-report")).toEqual({
+		ref: "OP",
+		view: "page",
+		page: "release-report",
+	});
+	expect(parseProjectSplat("OP/pages/diffs")).toEqual({ ref: "OP", view: "page", page: "diffs" });
+	expect(pageHref("OP", "release-report")).toBe("/p/OP/pages/release-report");
+});
+
 test("a project ref is one segment", () => {
 	expect(() => parseProjectSplat("CDE/web/auth")).toThrow();
 	expect(projectRefOfPathname("/p/EPICS/routine-runtime")).toBe(null);
@@ -40,7 +57,16 @@ test("the epic hrefs keep slashes", () => {
 test("the sidebar reads the project of an epic pathname", () => {
 	expect(projectRefOfPathname("/p/OP/epics")).toBe("OP");
 	expect(projectRefOfPathname("/p/OP/epics/routine-runtime")).toBe("OP");
+	expect(projectRefOfPathname("/p/OP/pages")).toBe("OP");
+	expect(projectRefOfPathname("/p/OP/pages/release-report")).toBe("OP");
 	expect(projectRefOfPathname("/p/hardware-shop")).toBe("hardware-shop");
+});
+
+test("the sidebar reads the Pages view from list and detail paths", () => {
+	expect(projectViewOfPathname("/p/TRL/pages")).toBe("pages");
+	expect(projectViewOfPathname("/p/TRL/pages/release-report")).toBe("page");
+	expect(projectViewOfPathname("/p/TRL/pages/diffs")).toBe("page");
+	expect(projectViewOfPathname("/p/TRL/not-a-view")).toBeNull();
 });
 
 test("only the page of one epic is an epic pathname", () => {
