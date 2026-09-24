@@ -7,6 +7,7 @@ import { fail, invalidInput } from "../../errors.ts";
 export const sessionColumns = sql`id, name, directory, harness, run_id AS "runId",
 	(SELECT project_id FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectId",
 	(SELECT project_key FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectKey",
+	${iso(sql`archived_at`)} AS "archivedAt",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 
 // Finds the session a person named on the command line. An id or a run id
@@ -35,8 +36,16 @@ export const getSession = async (tx: Tx, id: string) => {
 	return session;
 };
 
-export const listSessions = (tx: Tx) =>
-	rows<Session>(tx, sql`SELECT ${sessionColumns} FROM sessions ORDER BY created_at DESC, id DESC`);
+// Every session, newest first. `archived` keeps only the archived sessions or
+// only the active ones; without it the answer holds both groups, which is
+// what one sidebar read needs.
+export const listSessions = (tx: Tx, archived?: boolean) => {
+	const where = archived === undefined ? sql`true` : archived ? sql`archived_at IS NOT NULL` : sql`archived_at IS NULL`;
+	return rows<Session>(
+		tx,
+		sql`SELECT ${sessionColumns} FROM sessions WHERE ${where} ORDER BY created_at DESC, id DESC`,
+	);
+};
 
 // The last path part of every session folder. A new scratch session takes a
 // folder name that no row and no folder on disk holds.

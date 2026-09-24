@@ -1,12 +1,15 @@
 // API list prices in USD per million tokens. A subscription does not bill
 // per token, so the report prices every turn at the API rate and labels the
 // result as an estimate. The match is the longest prefix of the lowercased
-// model id. An unknown model takes the cheapest rate of its harness, and
-// the result is marked approximate.
+// model id, with every dot read as a dash. One model reaches this table
+// under two spellings: the Claude harness reports claude-opus-5-5 and the
+// gateway harnesses report anthropic/claude-opus-5.5. An unknown model
+// takes the cheapest rate of its harness, and the result is marked
+// approximate.
 
 import type { UsageHarness } from "@trellis/api";
 
-export const PRICING_TABLE_UPDATED = "2026-09-17";
+export const PRICING_TABLE_UPDATED = "2026-09-23";
 
 export type ModelRate = {
 	inputPerM: number;
@@ -28,6 +31,8 @@ const CLAUDE_RATES: Record<string, ModelRate> = {
 	"claude-mythos-5-1": { inputPerM: 10, outputPerM: 50, cacheReadPerM: 0.25 },
 	"claude-fable-5": { inputPerM: 10, outputPerM: 50 },
 	"claude-mythos": { inputPerM: 10, outputPerM: 50 },
+	// Opus 5.5 cuts cache reads to $0.20/M, 0.05x input instead of the usual 0.1x.
+	"claude-opus-5-5": { inputPerM: 4, outputPerM: 20, cacheReadPerM: 0.2 },
 	"claude-opus-5": { inputPerM: 5, outputPerM: 25 },
 	"claude-opus-4-8": { inputPerM: 5, outputPerM: 25 },
 	"claude-opus-4-7": { inputPerM: 5, outputPerM: 25 },
@@ -98,9 +103,13 @@ export type MatchedRate = ModelRate & {
 	approximate: boolean;
 };
 
+// A model version appears with a dot in a gateway id and with a dash in a
+// native Claude name. Both spellings must find the same row.
+const dashed = (id: string) => id.toLowerCase().replaceAll(".", "-");
+
 export function matchModelRate(harness: UsageHarness, model: string, promptTokens = 0): MatchedRate {
 	const rates = RATES_BY_HARNESS[harness];
-	const normalized = model.toLowerCase();
+	const normalized = dashed(model);
 	// A multi-provider harness qualifies the id with its vendor, such as
 	// "anthropic/claude-sonnet-4". The segment after the last slash matches too.
 	const candidates = [normalized];
@@ -108,7 +117,8 @@ export function matchModelRate(harness: UsageHarness, model: string, promptToken
 	if (slash >= 0 && slash < normalized.length - 1) candidates.push(normalized.slice(slash + 1));
 	let best: { prefix: string; rate: ModelRate } | null = null;
 	for (const candidate of candidates) {
-		for (const [prefix, rate] of Object.entries(rates)) {
+		for (const [name, rate] of Object.entries(rates)) {
+			const prefix = dashed(name);
 			if (candidate.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) best = { prefix, rate };
 		}
 	}

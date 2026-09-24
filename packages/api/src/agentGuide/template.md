@@ -403,6 +403,8 @@ Keep shell tracing and verbose HTTP logs off for this request.
 | `trellis session rename <session-id> <name>` | Rename a session. |
 | `trellis session move <session-id> --project <project>` | Move a session to a project. |
 | `trellis session move <session-id> --no-project` | Remove its project association. |
+| `trellis session archive <session-id>` | Stop the agent of a session without a project and put the session away. |
+| `trellis session unarchive <session-id>` | Bring an archived session back to the session list. |
 
 `agent start` accepts `--harness`, `--account`, `--model`, `--effort`, and `--request-id`.
 Use `trellis model list` and `trellis account list` to inspect available choices.
@@ -433,6 +435,10 @@ trellis agent resume <agent-id> \
 
 A session resumes within its existing conversation.
 Do not reset another agent's conversation to obtain its attention.
+
+An archived session keeps its workspace, its files, and its conversation.
+It runs no agent and belongs to no project.
+Unarchive it before you start its agent or move it to a project.
 
 ## Diffs, explanations, and evidence
 

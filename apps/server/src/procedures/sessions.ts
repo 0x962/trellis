@@ -13,5 +13,6 @@ export const sessions = os.sessions.router({
 	start: os.sessions.start.handler(({ context, input }) => call(context, "sessions.start", input)),
 	move: os.sessions.move.handler(({ context, input }) => call(context, "sessions.move", input)),
 	rename: os.sessions.rename.handler(({ context, input }) => call(context, "sessions.rename", input)),
+	setArchived: os.sessions.setArchived.handler(({ context, input }) => call(context, "sessions.setArchived", input)),
 	delete: os.sessions.delete.handler(({ context, input }) => call(context, "sessions.delete", input)),
 });

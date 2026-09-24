@@ -24,6 +24,15 @@ export type StackedBarProps = {
 
 const barHeightClass = { sm: "h-1.5", md: "h-3" };
 
+// The share of a segment that the legend prints. The bar leaves out a
+// segment with no value, so every segment in the legend has a value above
+// zero. A share under half a percent prints "<1%", because "0%" would
+// contradict the value beside it.
+const segmentShare = (value: number, total: number) => {
+	const share = (100 * value) / total;
+	return share < 0.5 ? "<1%" : `${Math.round(share)}%`;
+};
+
 // One bar that shows how a total splits: each segment is as wide as its
 // share, and the legend under it names each segment with its value and its
 // share. A segment with no value is left out of the bar and the legend.
@@ -48,7 +57,7 @@ export function StackedBar({ label, segments, size = "md", legend = true, classN
 			<div
 				role="img"
 				aria-label={label}
-				className={cx("flex w-full overflow-hidden rounded-hairline bg-elevated", barHeightClass[size])}
+				className={cx("flex w-full overflow-hidden rounded-hairline bg-border", barHeightClass[size])}
 			>
 				{present.map((segment) => (
 					<span
@@ -74,7 +83,7 @@ export function StackedBar({ label, segments, size = "md", legend = true, classN
 							/>
 							{segment.label}
 							<span className="text-fg tabular">{segment.valueLabel}</span>
-							<span className="text-fg-faint tabular">{Math.round((100 * segment.value) / total)}%</span>
+							<span className="text-fg-faint tabular">{segmentShare(segment.value, total)}</span>
 						</li>
 					))}
 				</ul>
