@@ -1,4 +1,4 @@
-import { Check, Copy, PencilSimple, X } from "@phosphor-icons/react";
+import { Chats, Check, Copy, ListBullets, PencilSimple, X } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Command } from "../../../primitives/Command";
@@ -45,6 +45,20 @@ export function OverlaySections() {
 					label="Actions"
 					trigger={<Button>Actions</Button>}
 					items={[{ label: "Edit", onSelect: () => toast("Edit") }]}
+				/>
+			</Section>
+			<Section
+				name="Menu with a state"
+				note="one row of the set is checked; the check closes the menu as an action row does"
+			>
+				<Menu
+					label="Section"
+					trigger={<Button>Sessions</Button>}
+					items={[
+						{ label: "Epics", icon: <ListBullets />, checked: false, onSelect: () => toast("Epics") },
+						{ label: "Sessions", icon: <Chats />, checked: true, onSelect: () => toast("Sessions") },
+						{ label: "Rename…", icon: <PencilSimple />, onSelect: () => toast("Rename") },
+					]}
 				/>
 			</Section>
 			<Section name="Dialog" note="modal; focus stays inside">

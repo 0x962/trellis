@@ -1,3 +1,4 @@
+import { cx } from "@trellis/ui";
 import type { ReactNode } from "react";
 
 export type PageTitleProps = {
@@ -11,6 +12,11 @@ export type PageTitleProps = {
 // The title of a page in the topbar: the parent link in muted text, a
 // slash, and the page name in the page heading. Every page names itself
 // this one way.
+//
+// A name that arrives as text is cut with an ellipsis by the heading. A
+// control keeps its own box, which can paint a hover fill and a focus
+// outline outside the text, so the heading holds no clip for it and the
+// control cuts its own label.
 export function PageTitle({ parent, title }: PageTitleProps) {
 	return (
 		<div className="flex min-w-0 items-center gap-2">
@@ -24,7 +30,9 @@ export function PageTitle({ parent, title }: PageTitleProps) {
 					</span>
 				</>
 			)}
-			<h1 className="truncate text-lg font-semibold text-fg">{title}</h1>
+			<h1 className={cx("text-lg font-semibold text-fg", typeof title === "string" ? "truncate" : "flex min-w-0")}>
+				{title}
+			</h1>
 		</div>
 	);
 }
