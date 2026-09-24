@@ -128,7 +128,7 @@ export const agentRuns = {
 		)
 		.output(AgentRunSchema),
 	setModel: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "SESSION_ARCHIVED"]))
 		.route({
 			method: "POST",
 			path: "/agent-runs/{id}/model",
@@ -143,7 +143,7 @@ export const agentRuns = {
 		)
 		.output(AgentRunSchema),
 	resume: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "SESSION_ARCHIVED"]))
 		.route({
 			method: "POST",
 			path: "/agent-runs/{id}/resume",

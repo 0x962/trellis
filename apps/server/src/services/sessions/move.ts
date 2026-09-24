@@ -5,6 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { resolveMutableProject } from "../refs.ts";
+import { archivedSessionMoveRefusal } from "./archived.ts";
 import { getSession, resolveSession } from "./queries.ts";
 
 type MovableSession = { id: string; runId: string; ticketId: string | null };
@@ -21,6 +22,7 @@ export const move = async (ctx: ServiceCtx, tx: Tx, input: SessionMoveInput) => 
 	);
 	if (session === undefined) throw fail("NOT_FOUND", { kind: "session", ref: input.id });
 	if (session.ticketId !== null) throw invalidInput("id", "A ticket session keeps the project of its ticket.");
+	if (target.archivedAt !== null) throw archivedSessionMoveRefusal();
 	const project = input.project === null ? null : await resolveMutableProject(ctx, tx, input.project);
 	const projectKey = project === null ? "" : ctx.cache.get(project.id).key;
 	await tx.execute(

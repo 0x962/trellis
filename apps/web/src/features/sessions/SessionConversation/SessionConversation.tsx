@@ -10,8 +10,9 @@ import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
-import { canStartAgent, sessionPane } from "../sessionPane";
+import { canStartAgent, isSessionArchived, sessionPane } from "../sessionPane";
 import { sessionStateLabel } from "../sessionStateLabel";
+import { useSessionArchive } from "../useSessionArchive";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -66,6 +67,7 @@ export function SessionConversation({
 		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
+	const archive = useSessionArchive();
 	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: run.id }),
 		onSuccess: () => setConfirmStop(false),
@@ -75,7 +77,11 @@ export function SessionConversation({
 	// The line under the name is present for every native run, so the name
 	// does not move when the workspace of a new run appears.
 	const native = run.runtime === "native";
-	const summary = useWorkspaceSummary(run, { focus: true }).data;
+	const archived = isSessionArchived(session);
+	// Nothing writes in the workspace of an archived session, so a repeat read
+	// on window focus returns the numbers of the first read and runs git for
+	// nothing.
+	const summary = useWorkspaceSummary(run, { focus: !archived }).data;
 	const busy = start.isPending || stop.isPending;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
 	const heading = (
@@ -89,13 +95,23 @@ export function SessionConversation({
 			{name}
 		</h2>
 	);
-	const pane = sessionPane(run);
-	const canStart = canStartAgent(run, session !== undefined);
+	const pane = sessionPane(run, archived);
+	const canStart = canStartAgent(run, session !== undefined, archived);
 	const startButton = (
 		<Button size="md" disabled={readOnly || !canStart} processing={start.isPending} onClick={() => start.mutate()}>
 			Start the agent
 		</Button>
 	);
+	const unarchiveButton = (
+		<Button
+			size="md"
+			processing={archive.isPending}
+			onClick={() => archive.mutate({ session: session!, archived: false })}
+		>
+			Unarchive
+		</Button>
+	);
+	const paneAction = archived ? unarchiveButton : canStart ? startButton : undefined;
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -152,7 +168,7 @@ export function SessionConversation({
 						title={pane.title}
 						description={pane.description}
 						detail={pane.detail}
-						action={canStart ? startButton : undefined}
+						action={paneAction}
 					/>
 				) : pane.kind === "stopped" ? (
 					<EmptyState
@@ -160,7 +176,7 @@ export function SessionConversation({
 						image={null}
 						title={pane.title}
 						description={pane.description}
-						action={canStart ? startButton : undefined}
+						action={paneAction}
 					/>
 				) : run.terminalId ? (
 					<NativeTerminal

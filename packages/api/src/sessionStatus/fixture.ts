@@ -9,6 +9,7 @@ export const session = (): SessionDetail => ({
 	directory: "/tmp",
 	harness: HarnessSchema.parse({ preset: "codex" }),
 	runId: "run",
+	archivedAt: null,
 	createdAt: at,
 	updatedAt: at,
 	run: {

@@ -12,6 +12,7 @@ import { getAccount } from "../harnessAccounts/queries.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
+import { archivedSessionRefusal, runArchivedAt } from "../sessions/archived.ts";
 import { sessionOperation } from "../sessions/operation.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
@@ -42,6 +43,10 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (input.requireAssigned && run.closedAt !== null)
 		throw invalidInput("id", "This assignment closed before the message could resume it.");
+	// The archive of a session keeps the attempt of its agent, so the runtime
+	// still holds a record that this call could resume. A run that an archived
+	// session owns opens no process until a person brings that session back.
+	if ((await ctx.newTx((tx) => runArchivedAt(tx, run.id))) !== null) throw archivedSessionRefusal();
 	await ctx.newTx((tx) => assertResumeTicket(tx, run));
 	if (run.runtime !== "native" || (!run.projectId && run.kind !== "session"))
 		throw invalidInput("id", "This assignment has no resumable native session.");
@@ -122,6 +127,7 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 		const current = await getRun(tx, input.id);
 		if (input.requireAssigned && current.closedAt !== null)
 			throw invalidInput("id", "This assignment closed before the message could resume it.");
+		if ((await runArchivedAt(tx, current.id)) !== null) throw archivedSessionRefusal();
 		await assertResumeTicket(tx, current);
 		if (current.terminalId !== input.expectedTerminalId)
 			throw invalidInput("expectedTerminalId", "Another call already replaced this attempt.");

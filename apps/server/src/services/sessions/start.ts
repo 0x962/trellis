@@ -12,6 +12,7 @@ import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
 import type { IoCtx } from "../support.ts";
+import { archivedSessionRefusal } from "./archived.ts";
 import { prepareSessionRepository } from "./directory.ts";
 import { launchSession } from "./launchSession";
 import { holdSession } from "./operation.ts";
@@ -37,7 +38,8 @@ export const prepareStart = async (
 	const release = holdSession(ctx.home, session.runId);
 	let launching = false;
 	try {
-		await ctx.newTx((tx) => getSession(tx, session.id));
+		const stored = await ctx.newTx((tx) => getSession(tx, session.id));
+		if (stored.archivedAt !== null) throw archivedSessionRefusal();
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const previous = await deps.process(ctx, run.terminalId);
