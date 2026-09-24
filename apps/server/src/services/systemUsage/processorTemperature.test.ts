@@ -58,12 +58,19 @@ describe("parseProcessorTemperatureOutput", () => {
 		});
 	});
 
-	test("rejects a battery reading as processor temperature", () => {
-		expect(
-			parseProcessorTemperatureOutput(
-				'{"state":"available","source":"IOHIDEventSystemClient","sensor":"gas gauge battery","units":"degrees Celsius","celsius":32.6}',
-			),
-		).toBeNull();
+	test("rejects battery, device, and storage sensors as processor temperature", () => {
+		for (const sensor of ["gas gauge battery", "PMU tdev2", "NAND CH0 temp"])
+			expect(
+				parseProcessorTemperatureOutput(
+					JSON.stringify({
+						state: "available",
+						source: "IOHIDEventSystemClient",
+						sensor,
+						units: "degrees Celsius",
+						celsius: 32.6,
+					}),
+				),
+			).toBeNull();
 	});
 });
 

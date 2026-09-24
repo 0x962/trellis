@@ -46,6 +46,15 @@ static int sensorName(CFTypeRef value, char *target, CFIndex size) {
 		CFStringGetCString((CFStringRef)value, target, size, kCFStringEncodingUTF8);
 }
 
+static int isProcessorSensor(const char *sensor) {
+	size_t prefixLength = strlen(processorSensorPrefix);
+	if (strncmp(sensor, processorSensorPrefix, prefixLength) != 0) return 0;
+	if (sensor[prefixLength] < '0' || sensor[prefixLength] > '9') return 0;
+	for (const char *cursor = sensor + prefixLength + 1; *cursor != '\0'; cursor += 1)
+		if (*cursor < '0' || *cursor > '9') return 0;
+	return 1;
+}
+
 static void printJsonString(const char *value) {
 	putchar('"');
 	for (const unsigned char *cursor = (const unsigned char *)value; *cursor != '\0'; cursor += 1) {
@@ -81,8 +90,7 @@ int main(void) {
 		IOHIDServiceClientRef service = (IOHIDServiceClientRef)CFArrayGetValueAtIndex(services, index);
 		CFTypeRef product = IOHIDServiceClientCopyProperty(service, CFSTR("Product"));
 		char sensor[128] = {0};
-		if (!sensorName(product, sensor, sizeof(sensor)) ||
-			strncmp(sensor, processorSensorPrefix, strlen(processorSensorPrefix)) != 0) {
+		if (!sensorName(product, sensor, sizeof(sensor)) || !isProcessorSensor(sensor)) {
 			if (product != NULL) CFRelease(product);
 			continue;
 		}
