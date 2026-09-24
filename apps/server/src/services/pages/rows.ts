@@ -1,4 +1,4 @@
-import type { ActorRef, PageSummary, PageVersion, PageWatch } from "@trellis/api";
+import type { ActorRef, PageSummary, PageUpload, PageVersion, PageWatch } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { ServiceCtx } from "../../context.ts";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
@@ -58,6 +58,27 @@ export type RawVersion = {
 	total_thread_count: number;
 	resolved_thread_count: number;
 };
+
+export type RawUpload = {
+	id: string;
+	project_id: string;
+	sha256: string;
+	size: number;
+	mime: string;
+	original_name: string;
+	actor_name: string;
+	actor_kind: ActorRef["kind"];
+	actor_display_name: string | null;
+	created_at: string;
+	expires_at: string;
+};
+
+export const uploadColumns = sql`
+	u.id, u.project_id, u.sha256, u.size, u.mime, u.original_name,
+	u.actor_name, u.actor_kind,
+	${actorDisplayName(sql`u.actor_name`, sql`u.actor_kind`)} AS actor_display_name,
+	${iso(sql`u.created_at`)} AS created_at, ${iso(sql`u.expires_at`)} AS expires_at
+`;
 
 const actorOf = (name: string, kind: ActorRef["kind"], displayName: string | null): ActorRef => ({
 	name,
@@ -145,4 +166,16 @@ export const toVersion = (row: RawVersion): PageVersion => ({
 	sourcePath: row.source_path,
 	actor: actorOf(row.actor_name, row.actor_kind, row.actor_display_name),
 	createdAt: row.created_at,
+});
+
+export const toPageUpload = (row: RawUpload): PageUpload => ({
+	id: row.id,
+	projectId: row.project_id,
+	sha256: row.sha256,
+	size: row.size,
+	mime: row.mime,
+	originalName: row.original_name,
+	actor: actorOf(row.actor_name, row.actor_kind, row.actor_display_name),
+	createdAt: row.created_at,
+	expiresAt: row.expires_at,
 });
