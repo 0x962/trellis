@@ -1,5 +1,6 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { cx } from "../../utils/cx";
+import { focusInView } from "../../utils/focusInView";
 import { Input } from "../Input";
 import { toast } from "../Toast";
 import { type InlineEditEvent, type InlineEditFocus, inlineEditAction, runInlineEdit } from "./inlineEditRules";
@@ -98,10 +99,12 @@ export function InlineEdit({
 		}
 	}
 
-	// The browser must draw the text field before anything can focus it.
+	// The browser must draw the text field before anything can focus it. A
+	// field that a new record opens can sit outside the view, and `focusInView`
+	// brings that one into view.
 	useEffect(() => {
 		if (!editing) return;
-		field.current?.focus();
+		if (field.current !== null) focusInView(field.current);
 		field.current?.select();
 	}, [editing]);
 
@@ -109,7 +112,7 @@ export function InlineEdit({
 	// takes no focus. The focus therefore waits for the redraw that enables the
 	// field again.
 	useEffect(() => {
-		if (refusals > 0) field.current?.focus();
+		if (refusals > 0 && field.current !== null) focusInView(field.current);
 	}, [refusals]);
 
 	const close = (focus: InlineEditFocus) => {
@@ -118,7 +121,7 @@ export function InlineEdit({
 		// The box takes the focus before `onEditingChange` runs. A screen that
 		// draws the resting value itself gives the focus to that value inside
 		// `onEditingChange`, and the last call wins.
-		if (focus === "value") box.current?.focus();
+		if (focus === "value" && box.current !== null) focusInView(box.current);
 		onEditingChange(false, focus);
 	};
 

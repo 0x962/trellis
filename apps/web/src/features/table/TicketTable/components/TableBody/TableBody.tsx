@@ -118,15 +118,15 @@ export function TableBody({
 		waves?.onDrop(ids, group),
 	);
 
-	// `getTotalSize` refreshes `measurementsCache`, which carries the height
-	// an agent line took after it wrapped, so each box ends where the header
-	// line of the next group starts.
 	// One callback for every row. A new one per row on each render of the
 	// body defeats the memo of `Row`.
 	const focusRow = useStableCallback((id: string) => {
 		if (pendingFocus.current === null) onFocusRow(id);
 	});
 
+	// `getTotalSize` refreshes `measurementsCache`, which carries the height an
+	// agent line took after it wrapped, so each box ends where the header line
+	// of the next group starts.
 	const totalSize = virtualizer.getTotalSize();
 	const boxes = pinHeaders ? waveBoxes(headerIndexes, virtualizer.measurementsCache, totalSize) : undefined;
 	// A row that the browser scrolls into view lands under the header that
