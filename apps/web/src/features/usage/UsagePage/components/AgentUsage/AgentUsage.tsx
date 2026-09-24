@@ -15,6 +15,7 @@ import { CHART_TOP_ROWS, formatDayLabel, formatMetric, localDayKey, rowTone } fr
 import { useUsageReport } from "../../hooks/useUsageReport";
 import { UsageAccounts } from "../UsageAccounts";
 import { UsageGroups } from "../UsageGroups";
+import { UsageProviders } from "../UsageProviders";
 import { UsageSessions } from "../UsageSessions";
 import { UsageTotals } from "../UsageTotals";
 
@@ -82,6 +83,7 @@ export function AgentUsage() {
 				total={report.data?.totals[metric] ?? 0}
 				pending={report.isPending}
 			/>
+			<UsageProviders />
 			{report.isPending ? (
 				<div role="status" aria-label="Load usage" className="flex flex-col gap-3">
 					<span className="sr-only">Load usage</span>
