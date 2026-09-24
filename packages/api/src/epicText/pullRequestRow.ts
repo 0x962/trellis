@@ -1,4 +1,4 @@
-import { readyForReview } from "../reviewReady/reviewReady.ts";
+import { prStateWord } from "../reviewReady/reviewReady.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 import { waitingFor } from "../waiting/waiting.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
@@ -14,18 +14,10 @@ import { factSeparator, groupSeparator } from "./separators.ts";
 const countWord = (count: number, singular: string, plural: string): string =>
 	`${count} ${count === 1 ? singular : plural}`;
 
-// Queued and not ready for review are open states. A terminal state takes
-// precedence over either one, so the word agrees with the glyph on the web
-// row.
-const stateWord = (pr: TicketPr): string => {
-	if (pr.state === "open" && pr.isQueued) return "queued";
-	return pr.state === "open" && !readyForReview(pr) ? "not ready" : pr.state;
-};
-
 // `stackedOn` holds the pull request whose head branch is the base branch of
 // this one, so this one merges after that one.
 const stateFacts = (pr: TicketPr): string[] =>
-	pr.stackedOn === null ? [stateWord(pr)] : [stateWord(pr), `stacked on #${pr.stackedOn.number}`];
+	pr.stackedOn === null ? [prStateWord(pr)] : [prStateWord(pr), `stacked on #${pr.stackedOn.number}`];
 
 // GitHub leaves `additions`, `deletions` and `changedFiles` null until it
 // measures the pull request, and counts 0 for a pull request that changes no

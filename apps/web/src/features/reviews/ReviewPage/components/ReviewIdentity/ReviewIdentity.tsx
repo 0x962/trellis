@@ -1,4 +1,4 @@
-import { type LinkedPullRequest, type ReviewRevision, reviewGapText, reviewRef } from "@trellis/api";
+import { askedForReview, type LinkedPullRequest, missingPartsText, type ReviewRevision, reviewRef } from "@trellis/api";
 import { Badge, type BadgeTone, MergeConflictMark, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 import { LocalStateMenu } from "./components/LocalStateMenu";
@@ -72,11 +72,10 @@ export function ReviewIdentity({
 	onAction,
 }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
+	// The stored local review state, which `LocalStateMenu` writes. The glyph
+	// reads the same flag through `askedForReview`, the one answer that every
+	// surface of a pull request draws from.
 	const localState = linkedPr?.localState ?? "ready";
-	// Every part the pull request still needs before the person reviews it.
-	// The glyph draws the ready mark from the count and names the first part
-	// in its tooltip.
-	const gaps = linkedPr === null ? [] : linkedPr.reviewGaps;
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	const stateBadge = <Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>;
 	return (
@@ -110,8 +109,8 @@ export function ReviewIdentity({
 							<PrGlyph
 								state={glyphState}
 								isQueued={isQueued}
-								readyForReview={gaps.length === 0}
-								reason={gaps[0] === undefined ? null : reviewGapText(gaps[0])}
+								askedForReview={linkedPr === null || askedForReview(linkedPr)}
+								description={linkedPr === null ? null : missingPartsText(linkedPr)}
 								size="sm"
 							/>
 						)}

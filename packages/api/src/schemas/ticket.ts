@@ -41,8 +41,10 @@ const PrReviewSchema = z.object({
 
 // The PR badge on a row: the pull request and review states that need the
 // most work, the check counts behind the ribbon, and the approval state of
-// each linked pull request. `reviewGaps` holds what the first linked pull
-// request that is not ready for review still needs.
+// each linked pull request. `reviewGaps` comes from `ticketReviewGaps`: the
+// parts that the linked pull request the agent holds back still needs, or
+// the parts of the first one that misses a part when the agent handed every
+// one over.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),

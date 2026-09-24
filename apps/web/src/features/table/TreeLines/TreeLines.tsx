@@ -34,19 +34,6 @@ export function TreeStem({ depth }: TreeStemProps) {
 	);
 }
 
-type TreeRuleProps = {
-	// The level whose rule passes through this line.
-	depth: TreeDepth;
-};
-
-// The rule of a level that runs the full height of a line it does not
-// belong to. The agent line hangs from a pull request line at level 2, and
-// the merged pull requests of the same ticket can follow it at level 1. The
-// rule of the ticket then has to cross the agent line to reach them.
-export function TreeRule({ depth }: TreeRuleProps) {
-	return <span aria-hidden="true" className={cx("absolute top-0 bottom-0 w-px bg-border", ruleLeft[depth])} />;
-}
-
 type TreeBranchProps = {
 	// True on the final child line of the parent. The rule then stops at the
 	// elbow, and the rounded corner of the elbow ends the tree.

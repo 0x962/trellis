@@ -1,4 +1,4 @@
-import { firstReviewGapText, readyForReview, type TicketPr } from "@trellis/api";
+import { askedForReview, missingPartsText, type TicketPr } from "@trellis/api";
 import { cx, MergeConflictMark, PrGlyph, ReviewStateIcon } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import type { PrRowCell } from "../PrRow/prRowText";
@@ -22,8 +22,8 @@ export function PrCells({ pr, cells }: { pr: TicketPr; cells: readonly PrRowCell
 			<PrGlyph
 				state={pr.state}
 				isQueued={pr.isQueued}
-				readyForReview={readyForReview(pr)}
-				reason={firstReviewGapText(pr)}
+				askedForReview={askedForReview(pr)}
+				description={missingPartsText(pr)}
 				size="sm"
 			/>
 			<span className={cx("w-14 shrink-0 text-fg", tabularClass)}>#{pr.number}</span>

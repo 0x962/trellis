@@ -3,18 +3,13 @@ import type { KeyboardEvent, MouseEvent, Ref } from "react";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AgentWords } from "../AgentWords";
 import { agentLineHeight } from "../rowHeights";
-import { TreeBranch, type TreeDepth, TreeRule, treeContentPad } from "../TreeLines";
+import { TreeBranch, type TreeDepth, treeContentPad } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";
 
 type AgentLineProps = {
 	line: TicketAgentLine;
 	// The offset of this line inside the virtual body.
 	top: number;
-	// True when this is the final child line of its ticket. The line then
-	// draws the bottom border of the group. It is false when the merged pull
-	// requests of the ticket follow the line, and the rule of the ticket then
-	// runs through the line to reach them.
-	last: boolean;
 	// The line this one hangs from: 1 under the ticket row, 2 under a pull
 	// request of the ticket.
 	depth: TreeDepth;
@@ -29,8 +24,10 @@ type AgentLineProps = {
 	render?: (markdown: string) => string;
 };
 
-// What the run of a ticket says, on the line under the pull request the run
-// works on, or under the ticket row when the ticket links none. A run
+// What the run of a ticket says, on the line under the last pull request of
+// the ticket, or under the ticket row when the ticket links none. It is the
+// last child line of its ticket, so it draws the bottom border of the
+// group. A run
 // that works writes what it does at this moment on one line, and the line
 // shimmers. A run that ended its turn writes its last message: those words
 // wrap and never truncate, so the line is one text line tall at least and
@@ -43,7 +40,7 @@ type AgentLineProps = {
 // and a link or an image inside a `button` element is invalid HTML. A click
 // that starts on such a link or image does its own work and opens no sheet.
 // `base.css` gives every `role="button"` the pointer cursor.
-export function AgentLine({ line, top, last, depth, index, measureRef, render }: AgentLineProps) {
+export function AgentLine({ line, top, depth, index, measureRef, render }: AgentLineProps) {
 	const open = () => pageSheetActions.openSession(line.runId);
 	const onClick = (event: MouseEvent<HTMLDivElement>) => {
 		if ((event.target as HTMLElement).closest("a, img") !== null) return;
@@ -67,13 +64,12 @@ export function AgentLine({ line, top, last, depth, index, measureRef, render }:
 			className={cx(
 				"absolute top-0 left-0 flex w-full items-start gap-2 py-1 pr-5 text-left text-sm transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 				treeContentPad[depth],
-				last && "border-b border-border",
+				"border-b border-border",
 			)}
 			onClick={onClick}
 			onKeyDown={onKeyDown}
 		>
 			<TreeBranch last elbowTop={agentLineHeight / 2} depth={depth} />
-			{depth === 2 && !last && <TreeRule depth={1} />}
 			<AgentWords line={line} wrap render={render} />
 		</div>
 	);

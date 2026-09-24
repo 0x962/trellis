@@ -1,4 +1,4 @@
-import { askedForReview, readyForReview, type Ticket } from "@trellis/api";
+import { askedForReview, type Ticket } from "@trellis/api";
 import { MergeConflictMark, PrGlyph, ReviewStateIcon, SectionHeader } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
@@ -25,7 +25,7 @@ export function PullRequestsSection({ ticket }: PullRequestsSectionProps) {
 							<PrGlyph
 								state={pr.state}
 								isQueued={pr.isQueued}
-								readyForReview={readyForReview(pr)}
+								askedForReview={askedForReview(pr)}
 								size="sm"
 								decorative
 							/>

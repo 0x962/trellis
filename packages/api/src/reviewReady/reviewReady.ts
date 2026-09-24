@@ -39,8 +39,8 @@ export type ReviewGap = { kind: ReviewGapKind; count: number };
 const one = (kind: ReviewGapKind): ReviewGap => ({ kind, count: 1 });
 
 // The one rule that decides whether a pull request is ready for review. The
-// glyph, the Waiting grouping, the Needs you inbox, the pull request sheet
-// and `trellis ready` all answer from this list, so they never disagree.
+// Waiting grouping, the Needs you inbox, the pull request sheet and
+// `trellis ready` all answer from this list, so they never disagree.
 //
 // A closed or merged pull request needs nothing: its glyph already says
 // closed or merged, and nobody reviews it again.
@@ -58,20 +58,59 @@ export const reviewGaps = (facts: ReviewReadyFacts): ReviewGap[] => {
 	];
 };
 
-// The server puts the gaps in the row it sends, so a caller that holds a row
-// does not compute the rule again.
+// True when the pull request holds every part the person needs. The server
+// puts the gaps in the row it sends, so a caller that holds a row does not
+// compute the rule again.
+//
+// This does not decide the words on the screen. "Ready for review" and "Not
+// ready for review" come from `askedForReview`, which reads the flag of the
+// agent alone.
 export const readyForReview = (pr: { reviewGaps: ReviewGap[] }): boolean => pr.reviewGaps.length === 0;
 
-// True while the agent has not run `trellis ready`. GitHub takes no review
-// then. This is one part of the rule, not the whole of it: a pull request
-// the agent did ask to review can still wait for a check or a finding.
+// True when the agent set the local review state of the pull request to
+// `ready`. The `not-asked` gap is the only place a row carries that stored
+// flag, so this reads it back.
+//
+// A failed check, a pending check, an open finding and a conflict are
+// separate facts. None of them clears this flag.
 export const askedForReview = (pr: { reviewGaps: ReviewGap[] }): boolean =>
 	!pr.reviewGaps.some((gap) => gap.kind === "not-asked");
 
+// The gaps that the one pull request badge of a ticket row shows when the
+// ticket links more than one pull request. A pull request that the agent
+// holds back comes first, so a check that passes or fails never changes the
+// badge while one agent has not asked for review. When the agent handed
+// every one over, the badge takes the gaps of the first that still misses a
+// part. A closed or merged pull request misses none.
+export const ticketReviewGaps = (prRows: readonly { reviewGaps: ReviewGap[] }[]): ReviewGap[] => {
+	const heldBack = prRows.find((pullRequest) => !askedForReview(pullRequest));
+	const missesAPart = prRows.find((pullRequest) => !readyForReview(pullRequest));
+	return (heldBack ?? missesAPart)?.reviewGaps ?? [];
+};
+
+// The state of a pull request in one lowercase word. A closed or merged pull
+// request prints its own state. An open one prints `queued` while it sits in
+// the merge queue, then `not ready` while the agent has not asked for review,
+// and `open` otherwise. The caller sets the letter case that its surface
+// needs.
+//
+// The epic row of the CLI, the row of the diffs page and the child row of
+// the ticket page all print this word, and the glyph beside each one reads
+// the same flag.
+export const prStateWord = (pr: { state: string; isQueued: boolean; reviewGaps: ReviewGap[] }): string => {
+	if (pr.state === "open" && pr.isQueued) return "queued";
+	return pr.state === "open" && !askedForReview(pr) ? "not ready" : pr.state;
+};
+
 const checkWord = (count: number) => (count === 1 ? "check" : "checks");
 
-// The plain words for one missing part. The glyph tooltip shows the first
-// one, and the pull request sheet shows the whole list.
+// The parts that the surfaces around a pull request glyph do not draw on
+// their own. The check counts sit in the check ribbon, the conflict has its
+// own mark, and the review flag is the glyph itself.
+const DESCRIBED_GAP_KINDS: ReviewGapKind[] = ["explanation", "evidence", "flow-run", "findings"];
+
+// The plain words for one missing part. `trellis ready` prints one line per
+// part from these words.
 export const reviewGapText = (gap: ReviewGap): string => {
 	if (gap.kind === "not-asked") return "the agent has not asked for review";
 	if (gap.kind === "explanation") return "no explanation for this commit";
@@ -83,10 +122,15 @@ export const reviewGapText = (gap: ReviewGap): string => {
 	return "the pull request conflicts with its base branch";
 };
 
-// The first part a pull request still needs, in plain words, or null when it
-// needs none. One line of a tooltip holds one part, and the caller that draws
-// the glyph puts "Not ready for review" in front of it.
-export const firstReviewGapText = (pr: { reviewGaps: ReviewGap[] }): string | null => {
-	const first = pr.reviewGaps[0];
-	return first === undefined ? null : reviewGapText(first);
+// The parts of the review material that a pull request still misses, in one
+// line, or null when it misses none. The tooltip of the glyph puts this line
+// under its own words, so a pull request that the agent handed over still
+// names a missing evidence document.
+//
+// A push takes the explanation and the evidence of the older commit away and
+// leaves the review flag at `ready`, so the glyph alone states nothing about
+// that loss.
+export const missingPartsText = (pr: { reviewGaps: ReviewGap[] }): string | null => {
+	const parts = pr.reviewGaps.filter((gap) => DESCRIBED_GAP_KINDS.includes(gap.kind));
+	return parts.length === 0 ? null : parts.map(reviewGapText).join(", ");
 };
