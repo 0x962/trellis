@@ -6,7 +6,7 @@ import type { TableGroup } from "../../utils/flattenGroups";
 import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
 import { forYouCount, type WorkingTicketIds } from "../../utils/waitingGroups";
-import { waveMarks, withEmptyWaves } from "../../utils/waveGroups";
+import { orderWaveGroups, waveMarks, withEmptyWaves } from "../../utils/waveGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
 
 export type TableGroupsOptions = {
@@ -52,8 +52,9 @@ const noRefs: string[] = [];
 
 // The groups the table renders: the rows grouped by the view, then, under
 // the status grouping, one group per closed category with the server's count
-// and its own pages. Under the wave grouping the groups follow the
-// wave positions of each epic in view. A view that names one epic also
+// and its own pages. Under the wave grouping, open waves follow their
+// positions, No wave comes next, and done waves follow their positions.
+// A view that names one epic also
 // holds the Done and Canceled rows of that epic (see `hasInlineClosed`), so
 // a finished wave keeps its group. When every row belongs to one epic,
 // each wave header prints the done and total counts of the wave from the server.
@@ -100,22 +101,22 @@ export const useTableGroups = ({
 			rowRank,
 			workingTicketIds: working,
 		});
-		const active: TableGroup[] = (oneEpic && view.group === "wave" ? withEmptyWaves(grouped, waves) : grouped).map(
-			(group) => {
-				const mark = marks?.get(group.key);
-				return {
-					...group,
-					count: group.rows.length,
-					countLabel: mark?.countLabel,
-					completedCount: mark?.completedCount,
-					totalCount: mark?.totalCount,
-					forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
-					done: mark?.done,
-					epicRef: oneEpic && view.group === "wave" ? epicRefs[0] : undefined,
-					expanded: view.group === "none" || !isCollapsed(group.key),
-				};
-			},
-		);
+		const ordered =
+			view.group !== "wave" ? grouped : oneEpic ? withEmptyWaves(grouped, waves) : orderWaveGroups(grouped, waves);
+		const active: TableGroup[] = ordered.map((group) => {
+			const mark = marks?.get(group.key);
+			return {
+				...group,
+				count: group.rows.length,
+				countLabel: mark?.countLabel,
+				completedCount: mark?.completedCount,
+				totalCount: mark?.totalCount,
+				forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
+				done: mark?.done,
+				epicRef: oneEpic && view.group === "wave" ? epicRefs[0] : undefined,
+				expanded: view.group === "none" || !isCollapsed(group.key),
+			};
+		});
 		if (closed === null || view.group !== "status" || view.closed === "hide") return active;
 		const tail: TableGroup[] = [];
 		for (const category of closedCategories) {

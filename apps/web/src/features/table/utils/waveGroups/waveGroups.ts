@@ -36,19 +36,31 @@ export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> 
 export const doneWaveIds = (waves: readonly WaveSummary[]): string[] =>
 	waves.filter((wave) => wave.state === "done").map((wave) => wave.id);
 
-// The wave groups with one empty group for each wave that holds no ticket
-// at all, in wave position order, and the No wave group last. A group
-// comes from its rows, so a new wave has no group until this adds it. A
-// wave whose tickets a filter hides still counts tickets, so it gets no
-// empty group, and a filtered view never claims that a wave is empty.
+// Wave groups keep the position order within each state. Open waves come
+// first, the No wave group comes next, and done waves come last.
+export const orderWaveGroups = (groups: readonly RowGroup[], waves: readonly WaveSummary[]): RowGroup[] => {
+	const byKey = new Map(groups.map((group) => [group.key, group]));
+	const listed = new Set(waves.map((wave) => wave.id));
+	const groupsOf = (state: WaveSummary["state"]) =>
+		waves.flatMap((wave) => {
+			if (wave.state !== state) return [];
+			const group = byKey.get(wave.id);
+			return group === undefined ? [] : [group];
+		});
+	const unlisted = groups.filter((group) => group.key !== "none" && !listed.has(group.key));
+	const noWave = byKey.get("none");
+	return [...groupsOf("open"), ...unlisted, ...(noWave === undefined ? [] : [noWave]), ...groupsOf("done")];
+};
+
+// `withEmptyWaves` adds a group only for a wave with no ticket. A wave
+// that has tickets but no visible row gets no group, because a filter hides
+// its rows. `orderWaveGroups` sets the display order.
 export const withEmptyWaves = (groups: readonly RowGroup[], waves: readonly WaveSummary[]): RowGroup[] => {
 	const byKey = new Map(groups.map((group) => [group.key, group]));
-	const ordered = waves.flatMap((wave): RowGroup[] => {
-		const group = byKey.get(wave.id);
-		if (group !== undefined) return [group];
+	const empty = waves.flatMap((wave): RowGroup[] => {
+		if (byKey.has(wave.id)) return [];
 		if (wave.counts.total > 0) return [];
 		return [{ key: wave.id, label: wave.name, rows: [], wave: { id: wave.id, ref: wave.ref, name: wave.name } }];
 	});
-	const listed = new Set(waves.map((wave) => wave.id));
-	return [...ordered, ...groups.filter((group) => !listed.has(group.key))];
+	return orderWaveGroups([...groups, ...empty], waves);
 };

@@ -923,8 +923,8 @@ picker of the focused row or of the selection, and the picker of the bulk bar of
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
 `waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the New wave
 and the Add tickets buttons of the `Topbar`.
-The ticket filters take `wave`, the table groups by Wave in position order with No wave last,
-and the table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
+The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
+The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
 waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The
 ticket rail shows a Wave row after Epic when the ticket has an
 epic.
