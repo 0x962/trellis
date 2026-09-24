@@ -41,15 +41,9 @@ describe("MachinePressureMonitor", () => {
 		const monitor = new MachinePressureMonitor();
 		const high = { ...normal(0), cpuLoad: { value: 4.3, sampledAt: 0 } };
 		expect(monitor.update(high, 0).cpuLoad.tier).toBe("normal");
-		expect(monitor.update({ ...high, cpuLoad: { value: 4.3, sampledAt: 9_999 } }, 9_999).cpuLoad.tier).toBe(
-			"normal",
-		);
-		expect(monitor.update({ ...high, cpuLoad: { value: 4.3, sampledAt: 10_000 } }, 10_000).cpuLoad.tier).toBe(
-			"danger",
-		);
-		expect(monitor.update({ ...high, cpuLoad: { value: 2.5, sampledAt: 10_001 } }, 10_001).cpuLoad.tier).toBe(
-			"danger",
-		);
+		expect(monitor.update({ ...high, cpuLoad: { value: 4.3, sampledAt: 9_999 } }, 9_999).cpuLoad.tier).toBe("normal");
+		expect(monitor.update({ ...high, cpuLoad: { value: 4.3, sampledAt: 10_000 } }, 10_000).cpuLoad.tier).toBe("danger");
+		expect(monitor.update({ ...high, cpuLoad: { value: 2.5, sampledAt: 10_001 } }, 10_001).cpuLoad.tier).toBe("danger");
 		expect(monitor.update({ ...high, cpuLoad: { value: 2.5, sampledAt: 70_001 } }, 70_001).cpuLoad.tier).toBe(
 			"warning",
 		);
@@ -83,19 +77,15 @@ describe("MachinePressureMonitor", () => {
 		expect(monitor.update({ ...normal(0), thermal: { value: "serious", sampledAt: 0 } }, 0).thermal.tier).toBe(
 			"danger",
 		);
-		expect(
-			monitor.update({ ...normal(1), thermal: { value: "fair", sampledAt: 1 } }, 1).thermal.tier,
-		).toBe("danger");
+		expect(monitor.update({ ...normal(1), thermal: { value: "fair", sampledAt: 1 } }, 1).thermal.tier).toBe("danger");
 		expect(
 			monitor.update({ ...normal(60_001), thermal: { value: "fair", sampledAt: 60_001 } }, 60_001).thermal.tier,
 		).toBe("warning");
 		expect(
-			monitor.update({ ...normal(120_002), thermal: { value: "nominal", sampledAt: 120_002 } }, 120_002)
-				.thermal.tier,
+			monitor.update({ ...normal(120_002), thermal: { value: "nominal", sampledAt: 120_002 } }, 120_002).thermal.tier,
 		).toBe("warning");
 		expect(
-			monitor.update({ ...normal(180_002), thermal: { value: "nominal", sampledAt: 180_002 } }, 180_002)
-				.thermal.tier,
+			monitor.update({ ...normal(180_002), thermal: { value: "nominal", sampledAt: 180_002 } }, 180_002).thermal.tier,
 		).toBe("normal");
 	});
 
@@ -108,18 +98,18 @@ describe("MachinePressureMonitor", () => {
 			readDurationMs: 2.5,
 		});
 		expect(monitor.update({ ...normal(0), temperature: temperature(97, 0) }, 0).temperature.tier).toBe("normal");
-		expect(
-			monitor.update({ ...normal(15_000), temperature: temperature(97, 15_000) }, 15_000).temperature.tier,
-		).toBe("danger");
-		expect(
-			monitor.update({ ...normal(15_001), temperature: temperature(87, 15_001) }, 15_001).temperature.tier,
-		).toBe("danger");
-		expect(
-			monitor.update({ ...normal(75_001), temperature: temperature(87, 75_001) }, 75_001).temperature.tier,
-		).toBe("warning");
-		expect(
-			monitor.update({ ...normal(75_002), temperature: temperature(79, 75_002) }, 75_002).temperature.tier,
-		).toBe("warning");
+		expect(monitor.update({ ...normal(15_000), temperature: temperature(97, 15_000) }, 15_000).temperature.tier).toBe(
+			"danger",
+		);
+		expect(monitor.update({ ...normal(15_001), temperature: temperature(87, 15_001) }, 15_001).temperature.tier).toBe(
+			"danger",
+		);
+		expect(monitor.update({ ...normal(75_001), temperature: temperature(87, 75_001) }, 75_001).temperature.tier).toBe(
+			"warning",
+		);
+		expect(monitor.update({ ...normal(75_002), temperature: temperature(79, 75_002) }, 75_002).temperature.tier).toBe(
+			"warning",
+		);
 		expect(
 			monitor.update({ ...normal(135_002), temperature: temperature(79, 135_002) }, 135_002).temperature.tier,
 		).toBe("normal");

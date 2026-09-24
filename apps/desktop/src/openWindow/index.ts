@@ -1,1 +1,1 @@
-export { openWindow, type OpenWindowOptions } from "./openWindow.ts";
+export { type OpenWindowOptions, openWindow } from "./openWindow.ts";

@@ -14,9 +14,7 @@ function useDesktopThermalSample(refreshedAt: number): ThermalCycle {
 	const [cycle, setCycle] = useState<ThermalCycle>({ sample: null, refreshedAt: 0 });
 	useEffect(() => {
 		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
-		return desktop?.onThermalStateChanged?.((sample) =>
-			setCycle((current) => ({ ...current, sample })),
-		);
+		return desktop?.onThermalStateChanged?.((sample) => setCycle((current) => ({ ...current, sample })));
 	}, []);
 	useEffect(() => {
 		if (refreshedAt === 0) return;
@@ -52,6 +50,7 @@ export function useMachinePressure() {
 	});
 	const thermalCycle = useDesktopThermalSample(pressure.dataUpdatedAt);
 	const sample = pressure.data;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: A failed poll changes only `errorUpdatedAt`, and that change must age the last sample.
 	useEffect(() => {
 		if (!sample || thermalCycle.refreshedAt !== pressure.dataUpdatedAt) return;
 		const now = Date.now();
