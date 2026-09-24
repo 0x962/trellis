@@ -1,6 +1,6 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { DotsThree } from "@phosphor-icons/react";
-import type { ReactElement } from "react";
+import { type KeyboardEvent, type ReactElement, useState } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
@@ -9,11 +9,24 @@ import { Tooltip } from "../Tooltip";
 
 export type MenuItem = {
 	type?: "item";
+	// The identity of the item among its group, where two items can carry the
+	// same words: two stored agent choices of one harness and one model, for
+	// example, that differ in the effort alone. The label is the identity
+	// where this is absent.
+	id?: string;
 	label: string;
 	onSelect: () => void;
 	// An icon element, shown at 14 px before the label.
 	icon?: ReactElement;
-	// The key that runs the item from the page, shown as a Kbd.
+	// A second line under the label, for the detail of the thing the item
+	// names, such as the effort and the account of a stored agent choice.
+	detail?: string;
+	// `warning` draws the second line in the warning color, for a detail the
+	// reader must see before the item runs, such as a model the harness no
+	// longer serves.
+	detailTone?: "muted" | "warning";
+	// The key that runs the item, shown as a Kbd. A key of one character also
+	// runs the item while the menu is open.
 	kbd?: string;
 	disabled?: boolean;
 	// A danger item is red: delete, cancel.
@@ -51,7 +64,8 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 			disabled={item.disabled}
 			onClick={item.onSelect}
 			className={cx(
-				"flex h-7 items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
+				"flex items-center gap-2 rounded-sm px-2 text-sm outline-none select-none",
+				item.detail === undefined ? "h-7" : "min-h-8 py-1.5",
 				item.danger ? "text-danger data-highlighted:bg-danger-soft" : "text-fg data-highlighted:bg-bg",
 				"data-disabled:opacity-50",
 			)}
@@ -59,20 +73,55 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 			{item.icon && (
 				<span
 					aria-hidden="true"
-					className={cx("inline-flex size-3.5 shrink-0 *:size-full", item.danger ? "text-danger" : "text-fg-muted")}
+					className={cx(
+						"inline-flex size-3.5 shrink-0 *:size-full",
+						item.danger ? "text-danger" : item.detailTone === "warning" ? "text-warning" : "text-fg-muted",
+					)}
 				>
 					{item.icon}
 				</span>
 			)}
-			<span className="flex-1">{item.label}</span>
+			<span className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate">{item.label}</span>
+				{item.detail !== undefined && (
+					<span className={cx("truncate text-xs", item.detailTone === "warning" ? "text-warning" : "text-fg-muted")}>
+						{item.detail}
+					</span>
+				)}
+			</span>
 			{item.kbd && <Kbd>{item.kbd}</Kbd>}
 		</BaseMenu.Item>
 	);
 }
 
+// The item that one key press runs while the menu is open. The key matches
+// the `kbd` of an item of one character, such as the 1 of a first choice. A
+// press that carries a modifier belongs to the browser or the operating
+// system, so it runs no item, and a disabled item takes no press.
+const itemForKey = (groups: readonly MenuGroup[], event: KeyboardEvent) => {
+	if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.key.length !== 1) return undefined;
+	const key = event.key.toLowerCase();
+	return groups
+		.flatMap((group) => group.items)
+		.find((item) => item.disabled !== true && item.kbd?.length === 1 && item.kbd.toLowerCase() === key);
+};
+
 // A list of actions under a button. Arrow keys move between items, Enter runs
 // one, Escape closes and returns focus to the trigger.
 export function Menu({ label, items, trigger, triggerTooltip, align = "end", className, onOpenChange }: MenuProps) {
+	const [open, setOpen] = useState(false);
+	const groups = menuGroups(items).filter((group) => group.items.length > 0);
+	const changeOpen = (next: boolean) => {
+		setOpen(next);
+		onOpenChange?.(next);
+	};
+	const runKey = (event: KeyboardEvent) => {
+		const item = itemForKey(groups, event);
+		if (!item) return;
+		event.preventDefault();
+		changeOpen(false);
+		item.onSelect();
+	};
 	const button = (
 		<BaseMenu.Trigger
 			aria-label={label}
@@ -97,11 +146,12 @@ export function Menu({ label, items, trigger, triggerTooltip, align = "end", cla
 		</BaseMenu.Trigger>
 	);
 	return (
-		<BaseMenu.Root onOpenChange={onOpenChange}>
+		<BaseMenu.Root open={open} onOpenChange={changeOpen}>
 			{triggerTooltip ? <Tooltip content={triggerTooltip}>{button}</Tooltip> : button}
 			<BaseMenu.Portal>
 				<BaseMenu.Positioner align={align} sideOffset={4} className="z-50 outline-none">
 					<BaseMenu.Popup
+						onKeyDown={runKey}
 						className={cx(
 							"min-w-40 origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
 							popupMotion,
@@ -109,21 +159,19 @@ export function Menu({ label, items, trigger, triggerTooltip, align = "end", cla
 							className,
 						)}
 					>
-						{menuGroups(items)
-							.filter((group) => group.items.length > 0)
-							.map((group, index) => (
-								<BaseMenu.Group key={group.label ?? index}>
-									{index > 0 && <BaseMenu.Separator className="-mx-1 my-1 h-px bg-border" />}
-									{group.label && (
-										<BaseMenu.GroupLabel className="px-2 py-1 text-kbd font-medium tracking-normal text-fg-faint">
-											{group.label}
-										</BaseMenu.GroupLabel>
-									)}
-									{group.items.map((item) => (
-										<MenuItemRow key={item.label} item={item} />
-									))}
-								</BaseMenu.Group>
-							))}
+						{groups.map((group, index) => (
+							<BaseMenu.Group key={group.label ?? index}>
+								{index > 0 && <BaseMenu.Separator className="-mx-1 my-1 h-px bg-border" />}
+								{group.label && (
+									<BaseMenu.GroupLabel className="px-2 py-1 text-kbd font-medium tracking-normal text-fg-faint">
+										{group.label}
+									</BaseMenu.GroupLabel>
+								)}
+								{group.items.map((item) => (
+									<MenuItemRow key={item.id ?? item.label} item={item} />
+								))}
+							</BaseMenu.Group>
+						))}
 					</BaseMenu.Popup>
 				</BaseMenu.Positioner>
 			</BaseMenu.Portal>
