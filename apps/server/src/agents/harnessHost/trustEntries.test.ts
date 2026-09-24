@@ -1,8 +1,10 @@
 import { expect, test } from "bun:test";
-import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, realpath } from "node:fs/promises";
 import { join, sep } from "node:path";
+import { tempDirs } from "../../tempDir.ts";
 import { trustEntriesToRemove } from "./trustEntries.ts";
+
+const tempDir = tempDirs();
 
 const prefix = `/home/me/.trellis/agents${sep}`;
 const gone = new Set(["/home/me/.trellis/agents/OLD/work"]);
@@ -19,12 +21,11 @@ test("a key outside the agent directory never comes back", async () => {
 });
 
 test("a directory that is gone comes back, and one that exists does not", async () => {
-	const home = await realpath(await mkdtemp(join(tmpdir(), "trellis-trust-entries-")));
+	const home = await realpath(await tempDir("trellis-trust-entries-"));
 	const live = join(home, "LIVE", "work");
 	await mkdir(live, { recursive: true });
 	const keys = [live, join(home, "OLD", "work")];
 	expect(await trustEntriesToRemove(keys, `${home}${sep}`)).toEqual([join(home, "OLD", "work")]);
-	await rm(home, { recursive: true, force: true });
 });
 
 test("a stat that fails for another reason stops the removal", async () => {

@@ -1,20 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { writeMuseUsage } from "../../agents/harnesses/muse/museUsage.ts";
+import { tempDirs } from "../../tempDir.ts";
 import { fetchAccountQuota } from "./fetchQuota.ts";
 
-const directories: string[] = [];
-
-afterEach(async () => {
-	await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
+const tempDir = tempDirs();
 
 describe("Muse account quota", () => {
 	test("returns windows observed no more than 60 seconds ago", async () => {
-		const profilePath = await mkdtemp(join(tmpdir(), "trellis-muse-quota-"));
-		directories.push(profilePath);
+		const profilePath = await tempDir("trellis-muse-quota-");
 		const museHome = join(profilePath, "muse");
 		await mkdir(museHome);
 		const now = Date.parse("2026-09-17T12:00:00Z");
@@ -46,8 +41,7 @@ describe("Muse account quota", () => {
 	});
 
 	test("does not return windows from an older observation", async () => {
-		const profilePath = await mkdtemp(join(tmpdir(), "trellis-muse-quota-"));
-		directories.push(profilePath);
+		const profilePath = await tempDir("trellis-muse-quota-");
 		const museHome = join(profilePath, "muse");
 		await mkdir(museHome);
 		const now = Date.parse("2026-09-17T12:00:00Z");

@@ -1,19 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
+import { tempDirs } from "../../../tempDir.ts";
 import { museUsageWindows, readMuseUsage, writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 
-const directories: string[] = [];
-
-afterEach(async () => {
-	await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
+const tempDir = tempDirs();
 
 describe("Muse usage", () => {
 	test("keeps a quota error after a late normal snapshot", async () => {
-		const museHome = await mkdtemp(join(tmpdir(), "trellis-muse-usage-"));
-		directories.push(museHome);
+		const museHome = await tempDir("trellis-muse-usage-");
 		const reset = Date.parse("2026-09-17T02:30:15Z");
 		const quotaObservedAt = reset - 60_000;
 
@@ -56,8 +49,7 @@ describe("Muse usage", () => {
 	});
 
 	test("uses a normal snapshot observed after a quota error", async () => {
-		const museHome = await mkdtemp(join(tmpdir(), "trellis-muse-usage-"));
-		directories.push(museHome);
+		const museHome = await tempDir("trellis-muse-usage-");
 		const reset = Date.parse("2026-09-17T02:30:15Z");
 		const quotaObservedAt = reset - 60_000;
 
@@ -99,8 +91,7 @@ describe("Muse usage", () => {
 	});
 
 	test("rejects a stale normal snapshot after a newer normal snapshot", async () => {
-		const museHome = await mkdtemp(join(tmpdir(), "trellis-muse-usage-"));
-		directories.push(museHome);
+		const museHome = await tempDir("trellis-muse-usage-");
 		const reset = Date.parse("2026-09-17T02:30:15Z");
 
 		expect(
@@ -147,8 +138,7 @@ describe("Muse usage", () => {
 	});
 
 	test("rejects a delayed quota error observed before a newer normal snapshot", async () => {
-		const museHome = await mkdtemp(join(tmpdir(), "trellis-muse-usage-"));
-		directories.push(museHome);
+		const museHome = await tempDir("trellis-muse-usage-");
 		const reset = Date.parse("2026-09-17T02:30:15Z");
 		const delayedQuotaWrite = () =>
 			writeMuseQuotaError(

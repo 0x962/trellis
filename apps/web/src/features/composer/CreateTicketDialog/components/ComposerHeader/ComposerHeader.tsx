@@ -7,11 +7,13 @@ export type ComposerHeaderProps = {
 };
 
 // The dialog title stays in the DOM for assistive technology. This visible
-// heading gives sighted readers the same name and keeps the close action near it.
+// label gives sighted readers the same name and keeps the close action near
+// it. This label uses a smaller size and a muted colour, because a person
+// reads the ticket title under it first.
 export function ComposerHeader({ closeDisabled = false, onClose }: ComposerHeaderProps) {
 	return (
-		<div data-composer-header="" className="flex min-h-7 items-center gap-2 px-1">
-			<span aria-hidden="true" className="text-base font-semibold text-fg">
+		<div className="flex min-h-7 items-center gap-2">
+			<span aria-hidden="true" className="text-sm font-medium text-fg-muted">
 				New ticket
 			</span>
 			<IconButton

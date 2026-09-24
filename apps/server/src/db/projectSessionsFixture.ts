@@ -96,10 +96,12 @@ beforeAll(async () => {
 		},
 	};
 });
+// Remove the temporary directory before the call to db.$client.close().
+// A close that throws would otherwise leave the directory on disk.
 afterAll(async () => {
 	await drainBackground();
-	await db?.$client.close();
 	if (home) await rm(home, { recursive: true, force: true });
+	await db?.$client.close();
 });
 
 export { ctx, db, drainBackground, git, harness, home, launches, projectId, repo, start, ticketId };

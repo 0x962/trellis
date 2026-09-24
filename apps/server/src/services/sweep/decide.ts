@@ -26,6 +26,11 @@ export type AttemptDirectory = { id: string; modifiedAt: number };
 // when the work ends.
 export const SCRATCH_PREFIX = "trellis-";
 
+// `apps/server/src/db/testDb.ts` keeps the migrated database tar under this
+// name and removes a tar that no test read for a day. The sweep leaves the
+// retention of that directory to that module.
+export const OWNED_SCRATCH_NAMES = new Set(["trellis-testdb"]);
+
 const finishedCategories = new Set(["done", "canceled"]);
 
 const inside = (path: string, directory: string) => path === directory || path.startsWith(directory + sep);

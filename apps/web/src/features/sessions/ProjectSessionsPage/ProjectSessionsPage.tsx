@@ -8,6 +8,7 @@ import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
+import { ProjectSectionMenu } from "../../shell/ProjectSectionMenu";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
@@ -108,7 +109,10 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 					</>
 				}
 			>
-				<PageTitle parent={<ProjectBreadcrumb project={project} showName />} title="Sessions" />
+				<PageTitle
+					parent={<ProjectBreadcrumb project={project} showName />}
+					title={<ProjectSectionMenu projectKey={project.key} current="sessions" />}
+				/>
 			</Topbar>
 			<div className="page-card flex min-h-0 flex-1 overflow-hidden">
 				{!phone && <div className="flex w-72 shrink-0 border-r border-border">{sessionList}</div>}

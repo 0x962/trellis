@@ -1,1 +1,1 @@
-export { doneWaveIds, type WaveMark, waveMarks, withEmptyWaves } from "./waveGroups";
+export { doneWaveIds, orderWaveGroups, orderWaves, type WaveMark, waveMarks, withEmptyWaves } from "./waveGroups";

@@ -678,6 +678,9 @@ When the previous process has no confirmed conversation, it starts from the orig
 Concurrent start and delete requests cannot change the same session. An unconfirmed process blocks a new start or deletion.
 A compatible desktop restart preserves a session agent. After a protocol change, the user can start a stopped session again.
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
+`sessions.setArchived` puts a session away, or brings it back. It stops the agent the same way a delete does, and keeps the directory, the files, and the conversation.
+An archived session runs no agent and holds no project: `sessions.start` and `sessions.move` refuse it, and a session that holds a project cannot be archived.
+The sidebar draws the archived sessions under the session list, in an Archived group that opens on a press.
 Project Sessions lists session, ticket, and flow runs. A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
@@ -957,8 +960,8 @@ picker of the focused row or of the selection, and the picker of the bulk bar of
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
 `waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the New wave
 and the Add tickets buttons of the `Topbar`.
-The ticket filters take `wave`, the table groups by Wave in position order with No wave last,
-and the table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
+The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
+The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
 waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The
 ticket rail shows a Wave row after Epic when the ticket has an
 epic.

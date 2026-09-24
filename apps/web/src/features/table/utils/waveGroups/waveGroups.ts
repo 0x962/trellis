@@ -36,19 +36,43 @@ export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> 
 export const doneWaveIds = (waves: readonly WaveSummary[]): string[] =>
 	waves.filter((wave) => wave.state === "done").map((wave) => wave.id);
 
-// The wave groups with one empty group for each wave that holds no ticket
-// at all, in wave position order, and the No wave group last. A group
-// comes from its rows, so a new wave has no group until this adds it. A
-// wave whose tickets a filter hides still counts tickets, so it gets no
-// empty group, and a filtered view never claims that a wave is empty.
+const wavesByState = (waves: readonly WaveSummary[]): [WaveSummary[], WaveSummary[]] => [
+	waves.filter((wave) => wave.state === "open"),
+	waves.filter((wave) => wave.state === "done"),
+];
+
+export const orderWaves = (waves: readonly WaveSummary[]): WaveSummary[] => wavesByState(waves).flat();
+
+// Each state keeps the wave position order. A group whose key matches no
+// wave in `waves` keeps its place after the open waves.
+export const orderWaveGroups = (groups: readonly RowGroup[], waves: readonly WaveSummary[]): RowGroup[] => {
+	const byKey = new Map(groups.map((group) => [group.key, group]));
+	const waveIds = new Set(waves.map((wave) => wave.id));
+	const groupsOf = (stateWaves: readonly WaveSummary[]) =>
+		stateWaves.flatMap((wave) => {
+			const group = byKey.get(wave.id);
+			return group === undefined ? [] : [group];
+		});
+	const [openWaves, doneWaves] = wavesByState(waves);
+	const unknownWaveGroups = groups.filter((group) => group.key !== "none" && !waveIds.has(group.key));
+	const noWave = byKey.get("none");
+	return [
+		...groupsOf(openWaves),
+		...unknownWaveGroups,
+		...(noWave === undefined ? [] : [noWave]),
+		...groupsOf(doneWaves),
+	];
+};
+
+// A wave gets an empty group only when the wave holds no ticket at all. A
+// wave whose tickets a filter hides still counts tickets, so a filtered
+// view never shows that wave as empty.
 export const withEmptyWaves = (groups: readonly RowGroup[], waves: readonly WaveSummary[]): RowGroup[] => {
 	const byKey = new Map(groups.map((group) => [group.key, group]));
-	const ordered = waves.flatMap((wave): RowGroup[] => {
-		const group = byKey.get(wave.id);
-		if (group !== undefined) return [group];
+	const emptyWaveGroups = waves.flatMap((wave): RowGroup[] => {
+		if (byKey.has(wave.id)) return [];
 		if (wave.counts.total > 0) return [];
 		return [{ key: wave.id, label: wave.name, rows: [], wave: { id: wave.id, ref: wave.ref, name: wave.name } }];
 	});
-	const listed = new Set(waves.map((wave) => wave.id));
-	return [...ordered, ...groups.filter((group) => !listed.has(group.key))];
+	return orderWaveGroups([...groups, ...emptyWaveGroups], waves);
 };
