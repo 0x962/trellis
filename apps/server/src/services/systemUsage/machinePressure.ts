@@ -9,7 +9,6 @@ import { readMemoryPressureLevel } from "./memoryPressureLevel.ts";
 import { readProcessGroupMemory } from "./processGroupMemory.ts";
 import { readProcessorTemperature } from "./processorTemperature.ts";
 
-// The details panel names at most three runs.
 const HEAVIEST_LIMIT = 3;
 
 export type OpenRun = { id: string; name: string; ticketIdentifier: string | null; terminalId: string };

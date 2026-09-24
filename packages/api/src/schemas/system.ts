@@ -69,8 +69,6 @@ export const ProcessorTemperatureSchema = z.discriminatedUnion("state", [
 ]);
 export type ProcessorTemperature = z.infer<typeof ProcessorTemperatureSchema>;
 
-// This helper identifies the high state that callers show in red. It does not
-// translate the state into a resource consequence.
 export const memoryIsRed = (level: MemoryPressureLevel | null) => level === 4;
 
 // `memoryPercent` is the share of the memory that is in use, which
