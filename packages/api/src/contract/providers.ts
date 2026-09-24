@@ -1,8 +1,12 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import {
+	ProviderCheckSchema,
 	ProviderCreateInputSchema,
 	ProviderIdInputSchema,
+	ProviderModelsSchema,
+	ProviderPublicModelsInputSchema,
+	ProviderRemoteInputSchema,
 	ProviderSchema,
 	ProviderUpdateInputSchema,
 } from "../schemas/provider.ts";
@@ -11,6 +15,18 @@ import { base } from "./base.ts";
 const write = pickErrors(["DUPLICATE"]);
 
 export const providers = {
+	models: base
+		.route({ method: "GET", path: "/providers/{id}/models", summary: "Read the provider model catalog" })
+		.input(ProviderRemoteInputSchema)
+		.output(ProviderModelsSchema),
+	publicModels: base
+		.route({ method: "GET", path: "/providers/kinds/{kind}/models", summary: "Read a public provider model catalog" })
+		.input(ProviderPublicModelsInputSchema)
+		.output(ProviderModelsSchema),
+	check: base
+		.route({ method: "GET", path: "/providers/{id}/check", summary: "Check the provider key" })
+		.input(ProviderRemoteInputSchema)
+		.output(ProviderCheckSchema),
 	list: base
 		.route({ method: "GET", path: "/providers", summary: "List external model providers by name" })
 		.input(z.strictObject({}))

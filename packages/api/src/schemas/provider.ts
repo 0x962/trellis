@@ -101,3 +101,50 @@ export type ParsedProviderUpdateInput = z.infer<typeof ProviderUpdateInputSchema
 
 export const ProviderIdInputSchema = z.strictObject({ id: UlidSchema });
 export type ProviderIdInput = z.infer<typeof ProviderIdInputSchema>;
+
+export const ProviderRemoteInputSchema = z.strictObject({ id: UlidSchema, refresh: z.boolean().optional() });
+export type ProviderRemoteInput = z.infer<typeof ProviderRemoteInputSchema>;
+export const ProviderPublicModelsInputSchema = z.strictObject({
+	kind: ProviderKindSchema,
+	refresh: z.boolean().optional(),
+});
+export type ProviderPublicModelsInput = z.infer<typeof ProviderPublicModelsInputSchema>;
+
+export const ProviderModelEntrySchema = z.strictObject({
+	id: ProviderModelIdSchema,
+	name: z.string(),
+	type: z.literal("language"),
+});
+export type ProviderModelEntry = z.infer<typeof ProviderModelEntrySchema>;
+
+export const ProviderModelsSchema = z.discriminatedUnion("ok", [
+	z.strictObject({
+		ok: z.literal(true),
+		detail: z.null(),
+		fetchedAt: IsoDateTimeSchema,
+		models: z.array(ProviderModelEntrySchema),
+	}),
+	z.strictObject({
+		ok: z.literal(false),
+		detail: z.string().min(1),
+		fetchedAt: IsoDateTimeSchema,
+		models: z.array(z.never()),
+	}),
+]);
+export type ProviderModels = z.infer<typeof ProviderModelsSchema>;
+
+export const ProviderCheckSchema = z.discriminatedUnion("ok", [
+	z.strictObject({
+		ok: z.literal(true),
+		balance: z.string().nullable(),
+		detail: z.null(),
+		checkedAt: IsoDateTimeSchema,
+	}),
+	z.strictObject({
+		ok: z.literal(false),
+		balance: z.null(),
+		detail: z.string().min(1),
+		checkedAt: IsoDateTimeSchema,
+	}),
+]);
+export type ProviderCheck = z.infer<typeof ProviderCheckSchema>;
