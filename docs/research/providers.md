@@ -199,7 +199,7 @@ Errors:
 |---|---|---|
 | 200 | true | null |
 | 401 | false | "The provider refused the key." |
-| 403 | false | "The provider accepted the key and refused the request." |
+| 403 | false | "The provider refused the request." |
 | other status | false | "The provider answered HTTP <status>." |
 | timeout after 10 s, network error, bad JSON | false | "Trellis cannot reach <host>." |
 
@@ -334,7 +334,7 @@ The card visual is `packages/ui/src/domain/ProviderCard/ProviderCard.tsx`, expor
    | ok with a balance | `<p role="status" className="text-sm text-success">Key accepted · $95.50 left</p>`; the number is tabular |
    | ok without a balance | `<p role="status" className="text-sm text-success">Key accepted</p>` |
    | refused | `<p role="status" className="text-sm text-warning">The provider refused the key. Paste a new key in Edit.</p>` |
-   | forbidden | `<p role="status" className="text-sm text-warning">The provider accepted the key and refused the request. Check the plan of the team at the provider.</p>` |
+   | forbidden | `<p role="status" className="text-sm text-warning">The provider refused the request. Check the key and the plan at the provider.</p>` |
    | unreachable | `<p role="status" className="text-sm text-fg-muted">Trellis cannot reach ai-gateway.vercel.sh. Check the key again later.</p>` |
    | disabled | the state slot prints the last check as above; the Off word in the header carries the state |
 
@@ -415,10 +415,10 @@ Four tickets under TRL-428, in the wave External Providers: TRL-430, TRL-439, TR
 
 | ticket | holds | waits on | evidence |
 |---|---|---|---|
-| TRL-430 Provider record, API, and CLI | the tables, the migration, the schemas, the contract without models and check, the services, the procedures, the event, the export redaction, the CLI verbs list, show, create, edit, delete, the guide paragraph, the ARCHITECTURE rows | TRL-441 | the erDiagram; the server test output; a terminal transcript of create, list, show, edit, delete with the key on stdin; `trellis export` output with `<redacted>` |
+| TRL-430 Provider record, API, and CLI | the tables, the migration, the schemas, the contract without models and check, the services, the procedures, the event, the export redaction and its test, the CLI verbs list, show, create, edit, delete, the guide paragraph, the ARCHITECTURE rows | TRL-441 | the erDiagram; the server test output; a terminal transcript of create, list, show, edit, delete with the key on stdin; `trellis export` output with `<redacted>` |
 | TRL-431 Provider catalog and key check | `providers.models`, `providers.publicModels`, `providers.check`, their caches and their invalidation, the CLI verbs models and check | TRL-430, TRL-439 | the test output with the stubbed fetch; a transcript of check against a real key with the balance, and against a wrong key with the refusal |
 | TRL-432 Providers on the Usage page | the section, the `ProviderCard` visual, the forms, the model list control, the remove dialog, the palette item, the gallery section, the `ProviderIcon` values, the UI_PATTERNS rows | TRL-430, TRL-431, TRL-439 | screenshots of the empty state, the loading state, the read failure, the Add form on desktop and on a phone width, the stale models line, a card with a balance, a card with a refused key, a disabled card, the remove dialog, both themes |
-| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts`, the redaction test in `system.test.ts`, the log rule | TRL-430 | the test output |
+| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts` with the secret boundary proof, the log rule | TRL-430 | the test output |
 
 TRL-439 is small. It exists so the key rules have one owner and one test file, and so TRL-430 does not grow past a reviewable size. TRL-431 reads the key through its `keyOf`, so it waits on it.
 
@@ -430,13 +430,13 @@ One ticket owns each test file. A later ticket adds a file, never a case in a fi
 |---|---|
 | `apps/server/src/services/providers/providers.test.ts` | TRL-430 |
 | `apps/server/src/services/providers/secret.test.ts` | TRL-439 |
-| `apps/server/src/services/system.test.ts`, the provider cases | TRL-439 |
+| `apps/server/src/services/system.test.ts`, the provider case | TRL-430 |
 | `apps/server/src/services/providers/models.test.ts`, `check.test.ts` | TRL-431 |
 | `packages/cli/src/commands/provider/providerText.test.ts` | TRL-430 |
 | `packages/cli/src/commands/provider/remoteText.test.ts` | TRL-431 |
 | `packages/ui/src/domain/ProviderCard/ProviderCard.test.tsx`, `ProviderForm/ProviderForm.test.tsx` | TRL-432 |
 
-TRL-430 writes the export redaction in `system.ts` and proves it with a transcript, as its contract asks. TRL-439 turns the proof into the tests.
+The tickets run one after another, so a shared file is never edited by two workers at once. The split avoids a duplicate test: TRL-430 proves the record and the export redaction with the first tests, and TRL-439 proves the secret boundary through its own reader.
 
 Server, `providers.test.ts` (TRL-430), on `openTestDb` with a hand-built `ServiceCtx`:
 
@@ -454,9 +454,9 @@ Server, `secret.test.ts` (TRL-439):
 - `JSON.stringify` of every procedure output holds none of the key, with a long key and with a key of four characters
 - create with a key of four characters returns an empty `keyLast4`; list and get print the same; an update to a long key fills `keyLast4`, and an update back to a short key empties it
 
-Server, `models.test.ts` and `check.test.ts` (TRL-431), with the fetch injected as in `fetchProviderQuota.test.ts`: a 200 maps to the entries and to `ok: true`; a 200 with no language model maps to `ok: true` and an empty list; a 401 maps to the refusal; a 403 maps to the accepted key and the refused request; a thrown error maps to unreachable; the cache serves the second call inside the window, `refresh` bypasses it, and an update of the provider clears it.
+Server, `models.test.ts` and `check.test.ts` (TRL-431), with the fetch injected as in `fetchProviderQuota.test.ts`: a 200 maps to the entries and to `ok: true`; a 200 with no language model maps to `ok: true` and an empty list; a 401 maps to the refusal; a 403 maps to the refused request, a text that names neither the key nor the plan, because an OpenAI-compatible endpoint can answer 403 for either; a thrown error maps to unreachable; the cache serves the second call inside the window, `refresh` bypasses it, and an update of the provider clears it.
 
-Server, `system.test.ts` (TRL-439): the export prints `<redacted>` for `api_key` and the real values for every other column of the row, for a long key and for a short key.
+Server, `system.test.ts` (TRL-430): the export prints `<redacted>` for `api_key` and the real values for every other column of the row.
 
 CLI, `providerText.test.ts` (TRL-430): the input builders with `--api-key -` and a fake stdin; the usage error for `--api-key value`; `--model` repeated; `--no-models`; the table text of list and show, with a row whose `keyLast4` is empty printing `••••` alone. CLI, `remoteText.test.ts` (TRL-431): the table text of models and check, and the `error: <detail>` line on `ok: false`.
 
