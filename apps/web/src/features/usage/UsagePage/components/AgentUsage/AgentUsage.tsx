@@ -1,31 +1,22 @@
-import { ArrowClockwise } from "@phosphor-icons/react";
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { UsageDays, UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
+import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
 import {
 	Button,
 	EmptyState,
-	IconButton,
+	FailureState,
 	otherTone,
 	SectionHeader,
 	Segmented,
 	Skeleton,
-	Tooltip,
 	UsageChart,
 	type UsageChartSeries,
 } from "@trellis/ui";
-import { useApp } from "../../../../../lib/appContext";
 import { CHART_TOP_ROWS, formatDayLabel, formatMetric, localDayKey, rowTone } from "../../../formatUsage";
+import { useUsageReport } from "../../hooks/useUsageReport";
 import { UsageAccounts } from "../UsageAccounts";
 import { UsageGroups } from "../UsageGroups";
 import { UsageSessions } from "../UsageSessions";
 import { UsageTotals } from "../UsageTotals";
-
-const rangeOptions = [
-	{ value: "7", label: "7d" },
-	{ value: "30", label: "30d" },
-	{ value: "90", label: "90d" },
-] as const;
 
 const metricOptions = [
 	{ value: "usd", label: "Cost" },
@@ -66,10 +57,9 @@ function chartSeries(
 }
 
 export function AgentUsage() {
-	const { orpc, client, queryClient } = useApp();
 	const search = useSearch({ from: "/usage" });
 	const navigate = useNavigate({ from: "/usage" });
-	const days: UsageDays = search.days ?? 30;
+	const { days, report } = useUsageReport();
 	const metric: UsageMetric = search.metric ?? "usd";
 	const group: UsageGroupBy = search.group ?? "ticket";
 	const selectedRow = search.row ?? null;
@@ -77,15 +67,6 @@ export function AgentUsage() {
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 
-	const report = useQuery({
-		...orpc.usage.report.queryOptions({ input: { days } }),
-		staleTime: 5 * 60_000,
-		placeholderData: keepPreviousData,
-	});
-	const refresh = useMutation({
-		mutationFn: () => client.usage.report({ days, refresh: true }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
-	});
 	const ranking = report.data?.rankings[metric];
 	const rows = ranking?.groups[group] ?? [];
 	const row = selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null);
@@ -95,22 +76,6 @@ export function AgentUsage() {
 
 	return (
 		<div className="flex max-w-7xl flex-col gap-8">
-			<div className="flex items-center justify-end gap-2">
-				<Segmented
-					label="Range"
-					options={rangeOptions}
-					value={String(days) as "7" | "30" | "90"}
-					onValueChange={(value) => setSearch({ days: Number(value) as UsageDays, row: undefined, day: undefined })}
-				/>
-				<Tooltip content="Scan the transcripts again">
-					<IconButton
-						label="Refresh usage"
-						icon={<ArrowClockwise />}
-						disabled={refresh.isPending || report.isFetching}
-						onClick={() => refresh.mutate()}
-					/>
-				</Tooltip>
-			</div>
 			<UsageAccounts
 				rows={ranking?.groups.account ?? []}
 				metric={metric}
@@ -125,21 +90,28 @@ export function AgentUsage() {
 					<Skeleton height="h-64" />
 				</div>
 			) : report.isError ? (
-				<div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
-					<p className="text-sm text-danger">Could not read the usage history. {report.error.message}</p>
-					<Button disabled={report.isFetching} onClick={() => void report.refetch()}>
-						Retry
-					</Button>
-				</div>
+				<FailureState
+					title="Could not read the usage history"
+					detail={report.error.message}
+					action={
+						<Button size="md" processing={report.isFetching} onClick={() => void report.refetch()}>
+							Try again
+						</Button>
+					}
+				/>
 			) : report.data.totals.sessions === 0 ? (
 				<EmptyState
-					title="No usage in this range"
-					description={`No Claude Code, Codex, Pi, OpenCode, or Muse transcript on this machine has a turn in the last ${days} days.`}
+					title={`No usage in the last ${days} days`}
+					description={
+						days < 90
+							? "Trellis found no agent transcript on this machine for this range. Select a longer range, or select Refresh usage."
+							: "Trellis found no agent transcript on this machine for this range. Select Refresh usage to read the transcripts again."
+					}
 				/>
 			) : (
 				<>
 					<UsageTotals totals={report.data.totals} pricingTableUpdated={report.data.pricingTableUpdated} />
-					<section aria-label="Per day" className="flex flex-col gap-4">
+					<section aria-label="Per day" className="flex flex-col gap-3">
 						<SectionHeader
 							title={
 								row ? `${row.label} per day` : `${metric === "usd" ? "Cost" : "Tokens"} per day by ${groupLabel[group]}`
