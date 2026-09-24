@@ -79,6 +79,21 @@ describe("MachinePressureMonitor freshness", () => {
 		expect(state.temperature).toMatchObject({ tier: "normal", freshness: "unavailable", reading: null });
 	});
 
+	test("clears the prior temperature when its reader becomes unavailable", () => {
+		const monitor = new MachinePressureMonitor();
+		monitor.update(readingsWithHighMemoryAndTemperature(0), 0);
+		monitor.update(readingsWithHighMemoryAndTemperature(15_000), 15_000);
+		const state = monitor.update(
+			{
+				...readingsWithHighMemoryAndTemperature(20_000),
+				temperature: null,
+				temperatureReader: "unavailable",
+			},
+			20_000,
+		);
+		expect(state.temperature).toMatchObject({ tier: "normal", freshness: "unavailable", reading: null });
+	});
+
 	test("clears a signal when its native reading becomes unavailable", () => {
 		const monitor = new MachinePressureMonitor();
 		monitor.update({ ...normal(0), memory: { value: 4, sampledAt: 0 } }, 0);
