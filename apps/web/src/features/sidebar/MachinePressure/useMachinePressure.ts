@@ -39,13 +39,12 @@ function useDesktopThermalSample(refreshedAt: number): ThermalCycle {
 	return cycle;
 }
 
-export function useMachinePressure() {
+export function useMachinePressure(includeRuns: boolean) {
 	const { orpc } = useApp();
 	const monitor = useRef(new MachinePressureMonitor());
-	const [open, setOpen] = useState(false);
 	const [machines, setMachines] = useState<MachinePressureMachineView[]>([]);
 	const pressure = useQuery({
-		...orpc.system.pressure.queryOptions({ input: { includeRuns: open } }),
+		...orpc.system.pressure.queryOptions({ input: { includeRuns } }),
 		refetchInterval: PRESSURE_POLL_MS,
 	});
 	const thermalCycle = useDesktopThermalSample(pressure.dataUpdatedAt);
@@ -74,7 +73,6 @@ export function useMachinePressure() {
 		const state = monitor.current.update(readings, now);
 		const machine = machinePressureView(sample, state, now);
 		setMachines([machine]);
-		if (machine.readings.length === 0) setOpen(false);
 	}, [pressure.dataUpdatedAt, pressure.errorUpdatedAt, sample, thermalCycle]);
-	return { machines, open, setOpen };
+	return machines;
 }
