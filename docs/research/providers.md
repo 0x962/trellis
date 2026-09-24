@@ -8,7 +8,7 @@ Decisions taken in this plan, each with its reason in its section:
 
 1. The key is a column in the database, never returned by the API, redacted in the export.
 2. A provider is global, not per project. One machine, one person, one bill.
-3. Providers live on the Usage page under Accounts, with the account card and the account form as their shapes. No new element. Navid confirmed this home on 2026-09-24 through the agent that manages the epic.
+3. Providers live on the Usage page under Accounts, with the account card and the account form as their shapes. No new element. The release coordinator chose this home on 2026-09-24 under the delegation of Navid.
 4. The model set of a provider is free text with a shape check, not a catalog check, because `typesafe-ai/jev` is not in the catalog.
 5. The first consumer of a provider is a flow gate that Jev answers. It replaces a full agent run that answers YES or NO.
 6. Only a person can create, change, or remove a provider. An agent reads.
@@ -138,7 +138,7 @@ The key is a column in the database. The reasons:
 
 Three rules keep the key out of every output:
 
-- The API never returns `api_key`. `ProviderSchema` carries `keyLast4`, the last four characters. The row select in `rows.ts` never lists the column, so a new procedure cannot leak it by accident. One test asserts that `JSON.stringify` of every procedure output holds no key.
+- The API never returns `api_key`. `ProviderSchema` carries `keyLast4`: the last four characters when the key is at least eight characters long, and the empty string otherwise. A short key is legal, because an OpenAI-compatible endpoint on this machine can accept any string, and a hint of a short key is the key. The row select in `rows.ts` computes the hint in SQL, `CASE WHEN length(api_key) >= 8 THEN right(api_key, 4) ELSE '' END AS key_last4`, and never lists the column itself, so a new procedure cannot leak it by accident. One test asserts that `JSON.stringify` of every procedure output holds no key, and it runs once with a long key and once with a key of four characters.
 - `exportNdjson` gains `REDACTED_COLUMNS = { providers: ["api_key"] }`. The page query selects `'<redacted>' AS api_key` for a redacted column. There is no import, so the redaction breaks no round trip.
 - The server log never prints a provider row. The models and check services log the status code and the host, not the header.
 
@@ -245,7 +245,7 @@ Rules:
 - `models` prints the models of the endpoint. Without `--all` it prints the first 50 rows and a last line `... <n> more; add --all`. In json mode it prints the whole result object. An `ok: false` result prints `error: <detail>` on stderr and exits 1, so a script sees the difference between no model and no answer.
 - An agent actor that runs `create`, `edit`, or `delete` gets the refusal of the API, exit 4.
 
-The list columns, in this order: `id`, `name`, `kind`, `enabled`, `models`, `key`. `models` is the count. `key` is `••••` plus the last four characters. The record fields of `show`: id, name, kind, base url, enabled, key, models (one per line, comma-joined in a table), created, updated. Times print through `shortZonedDateTime`.
+The list columns, in this order: `id`, `name`, `kind`, `enabled`, `models`, `key`. `models` is the count. `key` is `••••` plus `keyLast4`, so a short key prints `••••` alone. The record fields of `show`: id, name, kind, base url, enabled, key, models (one per line, comma-joined in a table), created, updated. Times print through `shortZonedDateTime`.
 
 The check record: provider, ok, balance, detail, checked. A pipe gets JSON, so a script reads `ok` from the object.
 
@@ -280,7 +280,7 @@ Providers live on the Usage page, Agent tab, in a section "Providers" directly u
 - The account card already draws every shape a provider needs: a name, a mark, a state line, a balance, a code line, and a circular action row.
 - The Settings sheet caps a page at 720 px inside a `divide-y` column, and holds no create action today. A card grid does not fit there.
 
-The alternative was a `providers` section in the Settings sheet with one `SettingsRow` per provider. It fits a list of two, and it fails at the card content: the balance, the refusal, and the models. Navid chose the Usage page on 2026-09-24.
+The alternative was a `providers` section in the Settings sheet with one `SettingsRow` per provider. It fits a list of two, and it fails at the card content: the balance, the refusal, and the models. The release coordinator chose the Usage page on 2026-09-24 under the delegation of Navid.
 
 The palette gains a static item `goto.providers`, label "Providers", section `goto`, which navigates to `/usage#providers`. The Usage page scrolls to the section when the hash is set.
 
@@ -324,7 +324,7 @@ The card visual is `packages/ui/src/domain/ProviderCard/ProviderCard.tsx`, expor
    | Remove provider | Remove {name} | Trash | |
 
 2. Address line: `<CodeText className="break-all text-xs text-fg-faint">{baseUrl}</CodeText>`.
-3. Key line: `<p className="text-sm text-fg-muted">Key ••••{keyLast4}</p>`. There is no reveal. A person who lost the key mints a new one at the provider and pastes it in Edit.
+3. Key line: `<p className="text-sm text-fg-muted">Key ••••{keyLast4}</p>`, which prints `Key ••••` alone when `keyLast4` is empty. There is no reveal. A person who lost the key mints a new one at the provider and pastes it in Edit.
 4. State slot, one of:
 
    | condition | draws |
@@ -360,7 +360,7 @@ The fields, in order, inside `<form className="flex flex-col gap-4">`:
 1. `Input label="Name"`, required, `maxLength={120}`, placeholder "Vercel", `autoFocus` on Add.
 2. `Field label="Kind"` around `Select label="Provider kind"` with the items "Vercel AI Gateway" and "OpenAI-compatible". On Edit the kind is read only: the field prints the kind as text, because a kind change changes the meaning of the URL and the check.
 3. `Input label="Address"`, shown for `openai-compatible` only, placeholder "https://api.example.com", `type="url"`, `inputMode="url"`, `autoCapitalize="off"`. For `vercel-ai-gateway` a `Field hint` under the kind prints "ai-gateway.vercel.sh".
-4. `Input label="API key"`, `type="password"`, `autoComplete="off"`, `spellCheck={false}`, placeholder "vck_…" for the gateway kind and "sk-…" for the other. Required on Add. On Edit the placeholder reads "Leave blank to keep ••••1234". There is no reveal control, because the value comes from a paste, not from typing. The `type="password"` attribute is the native input attribute; `Input` passes it through, and this is the first use in the product.
+4. `Input label="API key"`, `type="password"`, `autoComplete="off"`, `spellCheck={false}`, placeholder "vck_…" for the gateway kind and "sk-…" for the other. Required on Add. On Edit the placeholder reads "Leave blank to keep ••••1234", or "Leave blank to keep the stored key" when `keyLast4` is empty. There is no reveal control, because the value comes from a paste, not from typing. The `type="password"` attribute is the native input attribute; `Input` passes it through, and this is the first use in the product.
 5. `Field label="Models" hint="The models Trellis offers from this provider. Type an id the list does not show, such as typesafe-ai/jev."` around the model list control of 2.10.
 6. `Switch label="Enabled"`, default on. Off keeps the record and stops every use.
 7. `{error && <p role="alert" className="text-sm text-danger">{error}</p>}`
@@ -425,18 +425,19 @@ TRL-439 is small. It exists so the key rules have one owner and one test file, a
 Server, `apps/server/src/services/providers/providers.test.ts`, on `openTestDb` with a hand-built `ServiceCtx`:
 
 - create returns the record with `keyLast4` and no `apiKey` property, and emits `providers.changed`
+- create with a key of four characters returns an empty `keyLast4`; list and get print the same; the export prints `<redacted>`; an update to a long key fills `keyLast4`, and an update back to a short key empties it
 - create with a name that differs only in case fails with `DUPLICATE`
 - create from an agent actor fails with `INPUT_VALIDATION_FAILED` on `actor`
 - update with `models` replaces the set; update without `apiKey` keeps the key; update with `apiKey` changes `keyLast4`
 - delete removes the `provider_models` rows through the cascade
 - the base URL loses a trailing slash and a trailing `/v1`
-- `JSON.stringify` of every output holds none of the key
+- `JSON.stringify` of every output holds none of the key, with a long key and with a key of four characters
 
 Server, `models.test.ts` and `check.test.ts`, with the fetch injected as in `fetchProviderQuota.test.ts`: a 200 maps to the entries and to `ok: true`; a 200 with no language model maps to `ok: true` and an empty list; a 401 maps to the refusal; a thrown error maps to unreachable; the cache serves the second call inside the window, `refresh` bypasses it, and an update of the provider clears it.
 
 Server, `system.test.ts`: the export prints `<redacted>` for `api_key` and the real values for every other column of the row.
 
-CLI, `providerText.test.ts`: the input builders with `--api-key -` and a fake stdin; the usage error for `--api-key value`; `--model` repeated; `--no-models`; the table text of list, models, and check.
+CLI, `providerText.test.ts`: the input builders with `--api-key -` and a fake stdin; the usage error for `--api-key value`; `--model` repeated; `--no-models`; the table text of list, models, and check, with a row whose `keyLast4` is empty printing `••••` alone.
 
 Web and ui, `ProviderCard.test.tsx` and `ProviderForm.test.tsx`: static markup for each state of 2.8 and for both forms, in the pattern of `LabelGroupRow.test.tsx`.
 
