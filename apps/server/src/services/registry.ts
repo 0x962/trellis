@@ -36,7 +36,9 @@ import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
+import * as pageContent from "./pages/content.ts";
 import * as pages from "./pages/pages.ts";
+import { publish as publishPage } from "./pages/publish.ts";
 import * as pageUploads from "./pages/uploads.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
@@ -272,6 +274,10 @@ export const services = {
 	"pages.list": core("read", pages.list),
 	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
 	"pages.get": core("read", pages.get),
+	"pages.publish": core("mutation", publishPage),
+	"pages.versions": core("read", pageContent.versions),
+	"pages.pull": core("read", pageContent.pull),
+	"pages.content": core("read", pageContent.content),
 	"pages.update": core("mutation", pages.update),
 	"pages.pin": core("mutation", pages.pin),
 	"pages.delete": core("mutation", pages.remove),

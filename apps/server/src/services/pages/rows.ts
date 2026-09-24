@@ -54,6 +54,10 @@ export type RawVersion = {
 	actor_kind: ActorRef["kind"];
 	actor_display_name: string | null;
 	created_at: string;
+};
+
+// A version with the counts the Page detail reads beside it.
+export type RawVersionDetail = RawVersion & {
 	asset_count: number;
 	total_thread_count: number;
 	resolved_thread_count: number;
@@ -72,6 +76,13 @@ export type RawUpload = {
 	created_at: string;
 	expires_at: string;
 };
+
+export const versionColumns = sql`
+	v.page_id, v.number, v.request_id, v.label, v.document_sha256, v.document_size,
+	v.source_agent_id, v.source_path, v.actor_name, v.actor_kind,
+	${actorDisplayName(sql`v.actor_name`, sql`v.actor_kind`)} AS actor_display_name,
+	${iso(sql`v.created_at`)} AS created_at
+`;
 
 export const uploadColumns = sql`
 	u.id, u.project_id, u.sha256, u.size, u.mime, u.original_name,

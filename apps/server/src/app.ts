@@ -23,6 +23,8 @@ import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
+import { PAGE_ARCHIVE_PREFIX, pageArchiveRoute } from "./routes/pageArchive.ts";
+import { PAGE_RENDER_PREFIX, pageContentRoute, pageFrameRoute } from "./routes/pageContent.ts";
 import { prFileRoute } from "./routes/prFile.ts";
 import { resourceBlobRoute } from "./routes/resourceBlob.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
@@ -256,6 +258,12 @@ export const createApp = ({
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
+	// The frame document and the page it holds. The address of the page sits
+	// under the address of the frame, so a relative address in the page names
+	// an asset of the same version and of no other.
+	app.get(`${PAGE_RENDER_PREFIX}/:lease`, pageFrameRoute());
+	app.get(`${PAGE_RENDER_PREFIX}/:lease/*`, pageContentRoute({ config, transport }));
+	app.get(`${PAGE_ARCHIVE_PREFIX}/:grant`, pageArchiveRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);
 	app.get("/api/docs", docs.docs);
