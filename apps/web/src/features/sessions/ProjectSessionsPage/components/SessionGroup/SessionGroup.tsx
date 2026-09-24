@@ -1,16 +1,7 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
 import { Avatar, GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight, useMediaQuery } from "@trellis/ui";
-import {
-	type KeyboardEvent,
-	type RefObject,
-	useCallback,
-	useEffect,
-	useId,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import { type KeyboardEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
@@ -65,7 +56,7 @@ export function SessionGroup({
 	label: string;
 	projectKey: string;
 	runs: AgentRun[];
-	scroller: RefObject<HTMLDivElement | null>;
+	scroller: HTMLDivElement | null;
 	layout: number;
 	sessionsByRunId: Map<string, Session>;
 	selectedId?: string;
@@ -99,10 +90,12 @@ export function SessionGroup({
 	useEffect(() => {
 		if (revealId && !collapsed) selectedButton.current?.scrollIntoView({ block: "nearest" });
 	}, [revealId, collapsed]);
+	// React attaches the parent scroller after this child's layout effects.
+	// SessionList passes that element through state to measure again once it exists.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `layout` counts the changes of the content height, which is the trigger to measure again
 	useLayoutEffect(() => {
-		if (collapsed) return;
-		const view = scroller.current!;
+		if (collapsed || scroller === null) return;
+		const view = scroller;
 		const top = rowBox.current!.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop;
 		setScrollMargin(top);
 	}, [collapsed, layout, scroller]);
@@ -113,7 +106,7 @@ export function SessionGroup({
 	);
 	const virtualizer = useVirtualizer({
 		count: runs.length,
-		getScrollElement: () => scroller.current,
+		getScrollElement: () => scroller,
 		estimateSize: () => SESSION_ROW_HEIGHT,
 		scrollMargin,
 		overscan: 8,

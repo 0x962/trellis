@@ -36,7 +36,7 @@ export function SessionList({
 	const [search, setSearch] = useState("");
 	// The one element of this page that scrolls the rows. Each group draws
 	// the rows this box shows and no others.
-	const scroller = useRef<HTMLDivElement>(null);
+	const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
 	// Each group holds the distance from the top of the scrolled content to
 	// its own first row. A change of the content height moves that distance,
 	// so this counter tells both groups to measure it again.
@@ -86,7 +86,7 @@ export function SessionList({
 					/>
 				</Tooltip>
 			</div>
-			<div ref={scroller} className="min-h-0 flex-1 overflow-y-auto py-2">
+			<div ref={setScroller} className="min-h-0 flex-1 overflow-y-auto py-2">
 				<div ref={content}>
 					{pending && !failed && (
 						<p role="status" className="px-4 py-2 text-sm text-fg-muted">
