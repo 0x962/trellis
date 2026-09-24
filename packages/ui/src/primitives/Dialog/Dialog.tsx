@@ -12,7 +12,12 @@ export type DialogProps = {
 	// chip and a close button. The title then stays for assistive tech only.
 	header?: ReactNode;
 	// A bare dialog draws no heading block at all. The title stays in the
-	// DOM for assistive tech, and the caller draws every visible part.
+	// DOM for assistive tech, and the caller draws every visible part. A
+	// bare dialog also draws no padding and no gap of its own, so the
+	// `className` of the caller sets both. `cx` joins the class names and
+	// removes no duplicate, so a padding class here and a padding class from
+	// the caller would both reach the element, and the order of the
+	// stylesheet would pick the winner.
 	bare?: boolean;
 	description?: string;
 	children: ReactNode;
@@ -72,7 +77,8 @@ export function Dialog({
 					initialFocus={initialFocus}
 					finalFocus={finalFocus}
 					className={cx(
-						"fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-elevated p-4 text-base text-fg shadow-lg outline-none",
+						"fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-lg border border-border bg-elevated text-base text-fg shadow-lg outline-none",
+						!bare && "gap-4 p-4",
 						sizes[size],
 						bottomSheet,
 						popupMotion,

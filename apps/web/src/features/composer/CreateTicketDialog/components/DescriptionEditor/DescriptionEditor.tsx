@@ -11,6 +11,8 @@ export type DescriptionEditorProps = {
 
 // The Tiptap editor over the description, markdown in and markdown out.
 // It takes focus on mount, because the read-only view hands over to it.
+// `DescriptionField` sets the minimum height of the writing area, so the
+// area keeps one height in the read view and in the editor.
 export function DescriptionEditor({ markdown, onChange }: DescriptionEditorProps) {
 	const editor = useEditor({
 		extensions: [StarterKit, Markdown, ListDash],
@@ -18,7 +20,7 @@ export function DescriptionEditor({ markdown, onChange }: DescriptionEditorProps
 		contentType: "markdown",
 		autofocus: "end",
 		onUpdate: ({ editor: instance }) => onChange(instance.getMarkdown()),
-		editorProps: { attributes: { class: "markdown min-h-20 outline-none", "aria-label": "Description" } },
+		editorProps: { attributes: { class: "markdown outline-none", "aria-label": "Description" } },
 	});
 	return <EditorContent editor={editor} />;
 }

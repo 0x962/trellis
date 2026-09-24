@@ -1,5 +1,5 @@
-import { Plus } from "@phosphor-icons/react";
-import { Button } from "@trellis/ui";
+import { Paperclip } from "@phosphor-icons/react";
+import { IconButton, Tooltip } from "@trellis/ui";
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import type { Uploads } from "../hooks/useUploads";
 
@@ -9,7 +9,8 @@ export type AttachmentBoxProps = {
 	uploads: Uploads;
 };
 
-// The control that picks files and takes a drop from the attachment header.
+// The control that picks files and takes a drop. It is a round icon button,
+// because every icon action of the app is one.
 export function AttachmentBox({ uploads }: AttachmentBoxProps) {
 	const picker = useRef<HTMLInputElement>(null);
 	const [over, setOver] = useState(false);
@@ -40,19 +41,20 @@ export function AttachmentBox({ uploads }: AttachmentBoxProps) {
 	return (
 		<>
 			<input ref={picker} type="file" multiple className="hidden" onChange={selected} />
-			<Button
-				variant="quiet"
-				size="sm"
-				icon={<Plus />}
-				data-attachment-box=""
-				data-over={String(over)}
-				onClick={choose}
-				onDragOver={dragOver}
-				onDragLeave={dragLeave}
-				onDrop={drop}
-			>
-				Add
-			</Button>
+			<Tooltip content="Add attachment">
+				<IconButton
+					variant="quiet"
+					size="sm"
+					label="Add attachment"
+					icon={<Paperclip />}
+					data-attachment-box=""
+					data-over={String(over)}
+					onClick={choose}
+					onDragOver={dragOver}
+					onDragLeave={dragLeave}
+					onDrop={drop}
+				/>
+			</Tooltip>
 		</>
 	);
 }
