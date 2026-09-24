@@ -11,6 +11,7 @@ const project = {
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
+	openPageCommentCount: 2,
 	color: null,
 	archivedAt: null,
 } satisfies ProjectSummary;
