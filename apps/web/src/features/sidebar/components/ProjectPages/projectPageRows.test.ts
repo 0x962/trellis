@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ProjectSummary } from "@trellis/api";
-import { hiddenAgentCount, moreIsOpen, projectPageRows } from "./projectPageRows";
+import { hiddenAgentCount, projectPageRows } from "./projectPageRows";
 
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
@@ -72,24 +72,4 @@ test("the shut More row counts the agents of the rows it hides", () => {
 
 	expect(hiddenAgentCount(more)).toBe(0);
 	expect(hiddenAgentCount([...more, { ...more[0]!, label: "Runs", activeAgentCount: 3 }])).toBe(3);
-});
-
-test("a project with no stored page draws More shut", () => {
-	expect(moreIsOpen({}, project.id, "/p/TRL")).toBe(false);
-});
-
-test("More is open on the page the person opened it on", () => {
-	expect(moreIsOpen({ [project.id]: "/p/TRL" }, project.id, "/p/TRL")).toBe(true);
-});
-
-test("More is shut on every other page of the same project", () => {
-	const paths = { [project.id]: "/p/TRL" };
-
-	expect(moreIsOpen(paths, project.id, "/p/TRL/diffs")).toBe(false);
-	expect(moreIsOpen(paths, project.id, "/p/TRL/epics")).toBe(false);
-	expect(moreIsOpen(paths, project.id, "/sessions/project/TRL")).toBe(false);
-});
-
-test("the open More row of one project leaves another project shut", () => {
-	expect(moreIsOpen({ "01M24SPHTX36AJ3VKTNZ263E00": "/p/TRL" }, project.id, "/p/TRL")).toBe(false);
 });

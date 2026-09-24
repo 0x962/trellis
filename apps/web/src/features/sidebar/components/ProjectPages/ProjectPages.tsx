@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { ActivityDot, cx } from "@trellis/ui";
 import { memo } from "react";
+import { projectMoreActions } from "../../../../stores/projectMoreStore";
 import { activeAgentsLabel } from "../../../agents/activeAgents";
 import { hiddenAgentCount, type ProjectPageRow, projectPageRows } from "./projectPageRows";
 
@@ -20,17 +21,14 @@ export const ProjectPages = memo(function ProjectPages({
 	pathname,
 	activeAgentCount,
 	moreOpen,
-	onToggleMore,
 }: {
 	project: ProjectSummary;
 	pathname: string;
 	// The Sessions row shows a dot while the number is above zero.
 	activeAgentCount: number;
-	// True while the More row shows the pages it holds. The caller opens More
-	// for the page on screen alone, so every arrival at another page draws it
-	// shut.
+	// The caller decides when More opens. See `morePathnameByProject` in the
+	// project More store.
 	moreOpen: boolean;
-	onToggleMore: () => void;
 }) {
 	const { top, more } = projectPageRows(project, pathname, activeAgentCount);
 	const agentCountUnderMore = moreOpen ? 0 : hiddenAgentCount(more);
@@ -66,7 +64,7 @@ export const ProjectPages = memo(function ProjectPages({
 							type="button"
 							data-project-page=""
 							aria-expanded={moreOpen}
-							onClick={onToggleMore}
+							onClick={() => projectMoreActions.toggleProjectMore(project.id, pathname)}
 							className={cx(rowClass(false, false), "w-full text-left active:bg-elevated")}
 						>
 							<span className="sidebar-label">More</span>

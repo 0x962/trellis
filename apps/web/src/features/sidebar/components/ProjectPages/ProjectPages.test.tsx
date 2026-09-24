@@ -28,13 +28,7 @@ const render = async (pathname: string, { activeAgentCount = 0, moreOpen = false
 	const rootRoute = createRootRoute({
 		component: () => (
 			<ul>
-				<ProjectPages
-					project={project}
-					pathname={pathname}
-					activeAgentCount={activeAgentCount}
-					moreOpen={moreOpen}
-					onToggleMore={() => {}}
-				/>
+				<ProjectPages project={project} pathname={pathname} activeAgentCount={activeAgentCount} moreOpen={moreOpen} />
 			</ul>
 		),
 	});

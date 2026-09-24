@@ -1,10 +1,11 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ActivityDot, IconButton, Kbd, Tooltip } from "@trellis/ui";
+import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useEffect } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
+import { projectMoreActions } from "../../../../../stores/projectMoreStore";
 import { uiActions } from "../../../../../stores/uiStore";
 import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
@@ -56,13 +57,10 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const project = projectRefOfPathname(pathname);
-	// The store holds the page that the sidebar draws. A page that differs from
-	// the stored one shuts the More row of every project. A press on More
-	// therefore lasts while the person stays on the page, and a return to that
-	// page draws More shut. `pathname` follows the page the outlet shows, so a
-	// link and the Back button of the browser both reach this call.
+	// `pathname` follows the page the outlet shows, so a link and the Back
+	// button of the browser both reach this call.
 	useEffect(() => {
-		uiActions.setShownPage(pathname);
+		projectMoreActions.setShownPathname(pathname);
 	}, [pathname]);
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 	const needsYouActive = (inbox.data?.active ?? 0) > 0;
@@ -116,9 +114,13 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					/>
 				))}
 			</nav>
-			<div hidden={collapsed} className="mt-3 flex min-h-0 flex-1 flex-col overflow-y-auto pb-2">
-				{/* The lists keep their own height. Without this the flex column
-				    squeezes them to fit and the region never scrolls. */}
+			{/* The `hidden` attribute draws in the base layer of the stylesheet and
+			    a display utility draws in the utilities layer, which wins. So the
+			    rail keeps `display: flex` and shows the whole list while
+			    `collapsed` is true, unless the class stays off. */}
+			<div hidden={collapsed} className={cx("mt-3 min-h-0 flex-1 flex-col overflow-y-auto pb-2", !collapsed && "flex")}>
+				{/* `shrink-0` keeps each list at its own height. A flex column
+				    squeezes them to fit, and then the region never scrolls. */}
 				<div className="shrink-0">
 					<div className="sidebar-section">
 						<h2>Sessions</h2>
