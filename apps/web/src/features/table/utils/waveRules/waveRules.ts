@@ -1,15 +1,21 @@
 import type { TicketSummary, WaveSummary } from "@trellis/api";
 import { formatCount } from "../../../../lib/format";
+import { orderWaves } from "../waveGroups";
 
-// The full wave order after a move of one place: -1 is up, 1 is down.
-// Null when the wave is first and moves up, or last and moves down.
+// A move changes two positions inside one state section of the displayed
+// order. Every wave outside that pair keeps its saved position.
 export const movedRefs = (waves: readonly WaveSummary[], id: string, step: -1 | 1): string[] | null => {
-	const index = waves.findIndex((wave) => wave.id === id);
+	const displayedWaves = orderWaves(waves);
+	const index = displayedWaves.findIndex((wave) => wave.id === id);
 	const target = index + step;
-	if (index === -1 || target < 0 || target >= waves.length) return null;
+	if (index === -1 || target < 0 || target >= displayedWaves.length) return null;
+	const wave = displayedWaves[index]!;
+	const targetWave = displayedWaves[target]!;
+	if (wave.state !== targetWave.state) return null;
 	const refs = waves.map((wave) => wave.ref);
-	const [moved] = refs.splice(index, 1);
-	refs.splice(target, 0, moved!);
+	const position = waves.findIndex((entry) => entry.id === wave.id);
+	const targetPosition = waves.findIndex((entry) => entry.id === targetWave.id);
+	[refs[position], refs[targetPosition]] = [refs[targetPosition]!, refs[position]!];
 	return refs;
 };
 

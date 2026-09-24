@@ -34,10 +34,6 @@ export type GroupOptions = {
 	statuses: readonly GroupStatus[];
 	// The viewed project ref. A project label is the path under it.
 	project?: string;
-	// The wave ids in display order: the waves of one epic in
-	// position order, then the waves of the next epic. The wave
-	// grouping reads it. A wave outside the list sorts after the list.
-	waveOrder?: readonly string[];
 	// The rank of a row inside its group. A lower rank comes first, and the
 	// view's sort orders the rows of one rank.
 	rowRank?: RowRank;
@@ -151,12 +147,10 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 				: { key: row.epic.id, label: row.epic.name, rank: row.epic.name.toLowerCase() };
 		case "wave": {
 			if (row.wave === null) return { key: "none", label: "No wave", rank: Number.POSITIVE_INFINITY };
-			const order = options.waveOrder ?? [];
-			const index = order.indexOf(row.wave.id);
 			return {
 				key: row.wave.id,
 				label: row.wave.name,
-				rank: index === -1 ? order.length : index,
+				rank: 0,
 				wave: row.wave,
 			};
 		}

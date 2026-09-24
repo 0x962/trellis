@@ -22,9 +22,8 @@ export type WaveHeaderParts = Pick<GroupHeaderProps, "labelField" | "actions" | 
 // move the wave. The No wave group and a wave of another epic get none.
 export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): WaveHeaderParts | undefined => {
 	const { editing } = options;
-	const index = editing.waves.findIndex((wave) => wave.id === group.wave?.id);
-	if (index === -1) return undefined;
-	const wave = editing.waves[index]!;
+	const wave = editing.waves.find((entry) => entry.id === group.wave?.id);
+	if (wave === undefined) return undefined;
 	const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
 		if (event.key === "F2") {
 			event.preventDefault();
@@ -42,8 +41,8 @@ export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): 
 				name={wave.name}
 				project={options.project}
 				exclude={group.rows.map((row) => row.identifier)}
-				first={index === 0}
-				last={index === editing.waves.length - 1}
+				first={!editing.canMove(wave.id, -1)}
+				last={!editing.canMove(wave.id, 1)}
 				onAddTicket={(ticket) => options.onAddTicket(ticket, group)}
 				onNewTicket={() => options.onNewTicket(group)}
 				onRename={() => editing.startRename(wave.id)}

@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { failToast } from "../../../../lib/failToast";
 import { nextWaveName } from "../../../pickers/utils/nextWaveName";
+import { orderWaves } from "../../utils/waveGroups";
 import { deleteWords, movedRefs } from "../../utils/waveRules";
 
 export type WaveEditingOptions = {
@@ -20,6 +21,7 @@ export type WaveEditingOptions = {
 
 export type WaveEditing = {
 	epicRef: string;
+	// The waves in the same order as their headers.
 	waves: readonly WaveSummary[];
 	// Adds `Wave <n>` at the end of the epic and opens its name field.
 	create: () => void;
@@ -36,6 +38,8 @@ export type WaveEditing = {
 	endRename: (waveId: string, focus: InlineEditFocus) => void;
 	// Moves a wave one place: -1 is up, 1 is down.
 	move: (waveId: string, step: -1 | 1) => void;
+	// True when a wave can move one place in the requested direction.
+	canMove: (waveId: string, step: -1 | 1) => boolean;
 	// Deletes a wave that holds no ticket at once, and asks first for a
 	// wave that holds tickets.
 	requestDelete: (waveId: string) => void;
@@ -46,7 +50,7 @@ export type WaveEditing = {
 
 type Write =
 	| { kind: "create"; name: string }
-	| { kind: "reorder"; wave: WaveSummary; refs: string[] }
+	| { kind: "reorder"; wave: WaveSummary; refs: string[]; place: number; total: number }
 	| { kind: "delete"; wave: WaveSummary };
 
 const failTitle = (write: Write) => {
@@ -72,6 +76,7 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<WaveSummary | null>(null);
 	const [announcement, setAnnouncement] = useState("");
+	const displayedWaves = orderWaves(waves);
 
 	const write = useMutation({
 		mutationFn: async (input: Write): Promise<WaveSummary | null> => {
@@ -89,9 +94,7 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 			}
 			if (input.kind === "reorder") {
 				focusHeader(input.wave.id);
-				setAnnouncement(
-					`${input.wave.name} moved to place ${input.refs.indexOf(input.wave.ref) + 1} of ${input.refs.length}.`,
-				);
+				setAnnouncement(`${input.wave.name} moved to place ${input.place} of ${input.total}.`);
 			}
 		},
 		onError: (error, input) => failToast(failTitle(input), error, () => write.mutate(input)),
@@ -116,8 +119,17 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 
 	const move = (waveId: string, step: -1 | 1) => {
 		const refs = movedRefs(waves, waveId, step);
-		if (refs !== null && !write.isPending) write.mutate({ kind: "reorder", wave: byId(waveId), refs });
+		if (refs !== null && !write.isPending) {
+			write.mutate({
+				kind: "reorder",
+				wave: byId(waveId),
+				refs,
+				place: displayedWaves.findIndex((wave) => wave.id === waveId) + step + 1,
+				total: displayedWaves.length,
+			});
+		}
 	};
+	const canMove = (waveId: string, step: -1 | 1) => movedRefs(waves, waveId, step) !== null;
 
 	const requestDelete = (waveId: string) => {
 		const wave = byId(waveId);
@@ -145,7 +157,7 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 
 	return {
 		epicRef,
-		waves,
+		waves: displayedWaves,
 		create,
 		busy: write.isPending,
 		renamingId,
@@ -153,6 +165,7 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 		rename,
 		endRename,
 		move,
+		canMove,
 		requestDelete,
 		element,
 	};

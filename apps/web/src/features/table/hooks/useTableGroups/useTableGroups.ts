@@ -52,9 +52,8 @@ const noRefs: string[] = [];
 
 // The groups the table renders: the rows grouped by the view, then, under
 // the status grouping, one group per closed category with the server's count
-// and its own pages. Under the wave grouping, open waves follow their
-// positions, No wave comes next, and done waves follow their positions.
-// A view that names one epic also
+// and its own pages. Under the wave grouping the groups follow
+// `orderWaveGroups`. A view that names one epic also
 // holds the Done and Canceled rows of that epic (see `hasInlineClosed`), so
 // a finished wave keeps its group. When every row belongs to one epic,
 // each wave header prints the done and total counts of the wave from the server.
@@ -97,13 +96,12 @@ export const useTableGroups = ({
 			sort: view.sort,
 			statuses,
 			project,
-			waveOrder: waves.map((wave) => wave.id),
 			rowRank,
 			workingTicketIds: working,
 		});
-		const ordered =
+		const groupsToRender =
 			view.group !== "wave" ? grouped : oneEpic ? withEmptyWaves(grouped, waves) : orderWaveGroups(grouped, waves);
-		const active: TableGroup[] = ordered.map((group) => {
+		const active: TableGroup[] = groupsToRender.map((group) => {
 			const mark = marks?.get(group.key);
 			return {
 				...group,

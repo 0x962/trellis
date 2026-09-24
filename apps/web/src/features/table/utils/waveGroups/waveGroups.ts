@@ -36,31 +36,43 @@ export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> 
 export const doneWaveIds = (waves: readonly WaveSummary[]): string[] =>
 	waves.filter((wave) => wave.state === "done").map((wave) => wave.id);
 
-// Wave groups keep the position order within each state. Open waves come
-// first, the No wave group comes next, and done waves come last.
+const wavesByState = (waves: readonly WaveSummary[]): [WaveSummary[], WaveSummary[]] => [
+	waves.filter((wave) => wave.state === "open"),
+	waves.filter((wave) => wave.state === "done"),
+];
+
+export const orderWaves = (waves: readonly WaveSummary[]): WaveSummary[] => wavesByState(waves).flat();
+
+// Each state keeps the wave position order. A group whose key matches no
+// wave in `waves` keeps its place after the open waves.
 export const orderWaveGroups = (groups: readonly RowGroup[], waves: readonly WaveSummary[]): RowGroup[] => {
 	const byKey = new Map(groups.map((group) => [group.key, group]));
-	const listed = new Set(waves.map((wave) => wave.id));
-	const groupsOf = (state: WaveSummary["state"]) =>
-		waves.flatMap((wave) => {
-			if (wave.state !== state) return [];
+	const waveIds = new Set(waves.map((wave) => wave.id));
+	const groupsOf = (stateWaves: readonly WaveSummary[]) =>
+		stateWaves.flatMap((wave) => {
 			const group = byKey.get(wave.id);
 			return group === undefined ? [] : [group];
 		});
-	const unlisted = groups.filter((group) => group.key !== "none" && !listed.has(group.key));
+	const [openWaves, doneWaves] = wavesByState(waves);
+	const unknownWaveGroups = groups.filter((group) => group.key !== "none" && !waveIds.has(group.key));
 	const noWave = byKey.get("none");
-	return [...groupsOf("open"), ...unlisted, ...(noWave === undefined ? [] : [noWave]), ...groupsOf("done")];
+	return [
+		...groupsOf(openWaves),
+		...unknownWaveGroups,
+		...(noWave === undefined ? [] : [noWave]),
+		...groupsOf(doneWaves),
+	];
 };
 
-// `withEmptyWaves` adds a group only for a wave with no ticket. A wave
-// that has tickets but no visible row gets no group, because a filter hides
-// its rows. `orderWaveGroups` sets the display order.
+// A wave gets an empty group only when the wave holds no ticket at all. A
+// wave whose tickets a filter hides still counts tickets, so a filtered
+// view never shows that wave as empty.
 export const withEmptyWaves = (groups: readonly RowGroup[], waves: readonly WaveSummary[]): RowGroup[] => {
 	const byKey = new Map(groups.map((group) => [group.key, group]));
-	const empty = waves.flatMap((wave): RowGroup[] => {
+	const emptyWaveGroups = waves.flatMap((wave): RowGroup[] => {
 		if (byKey.has(wave.id)) return [];
 		if (wave.counts.total > 0) return [];
 		return [{ key: wave.id, label: wave.name, rows: [], wave: { id: wave.id, ref: wave.ref, name: wave.name } }];
 	});
-	return orderWaveGroups([...groups, ...empty], waves);
+	return orderWaveGroups([...groups, ...emptyWaveGroups], waves);
 };
