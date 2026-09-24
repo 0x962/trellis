@@ -1,13 +1,10 @@
 import {
-	askedForReview,
 	type CiState,
 	type PrState,
-	type ReviewGap,
 	type ReviewState,
-	readyForReview,
 	type StoredActorKind,
-	type TicketPr,
 	type TicketSummary,
+	ticketReviewGaps,
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
@@ -161,21 +158,6 @@ export const summaryJoins = sql`
 export const summaryStatement = (cte: SQL, extra: SQL, orderBy: SQL) =>
 	sql`WITH RECURSIVE ${cte} SELECT ${summaryColumns} ${extra} ${summaryJoins} ORDER BY ${orderBy}`;
 
-// The parts that the one pull request badge of a ticket row carries when the
-// ticket links several pull requests.
-//
-// A pull request whose agent has not asked for review wins. The glyph of the
-// badge draws that one flag, so a check that starts or finishes must never
-// turn the badge from grey to green while an agent still holds a pull
-// request back. When the agent asked for review on every one, the badge
-// takes the parts of the first pull request that still misses one, so the
-// row names real work. A closed or merged pull request misses nothing.
-export const foldedReviewGaps = (prRows: readonly TicketPr[]): ReviewGap[] => {
-	const notAsked = prRows.find((pullRequest) => !askedForReview(pullRequest));
-	const notReady = prRows.find((pullRequest) => !readyForReview(pullRequest));
-	return (notAsked ?? notReady)?.reviewGaps ?? [];
-};
-
 export const toSummary = (row: SummaryRow): TicketSummary => {
 	const prRows = toTicketPrRows(row.pr_rows);
 	return {
@@ -219,7 +201,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => {
 			row.pr_state === null
 				? null
 				: {
-						reviewGaps: foldedReviewGaps(prRows),
+						reviewGaps: ticketReviewGaps(prRows),
 						state: row.pr_state,
 						isDraft: row.pr_is_draft as boolean,
 						isQueued: row.pr_is_queued as boolean,

@@ -17,11 +17,15 @@ export type PrGlyphProps = {
 	state: PullRequestState;
 	isQueued: boolean;
 	// True when the agent asked the person to review the pull request. The
-	// agent sets that flag with `trellis diff set-state <diff> ready`, and
-	// the caller reads it back with `askedForReview`. A failed check, a
-	// pending check, an open finding and a conflict never clear it. The
-	// caller draws each of those facts of its own next to the glyph.
+	// agent sets that flag with `trellis diff set-state <diff> ready`. A
+	// failed check, a pending check, an open finding and a conflict do not
+	// clear it.
 	askedForReview: boolean;
+	// The parts of the review material that the pull request still misses,
+	// such as "no evidence document". The tooltip prints it under its own
+	// words, and the accessible name leaves it out, so the name states the
+	// state alone.
+	description?: string | null;
 	size?: PrGlyphSize;
 	tooltip?: boolean;
 	focusable?: boolean;
@@ -68,6 +72,7 @@ export function PrGlyph({
 	state,
 	isQueued,
 	askedForReview,
+	description = null,
 	size = "md",
 	tooltip = true,
 	focusable = true,
@@ -97,5 +102,11 @@ export function PrGlyph({
 			<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
 		</span>
 	);
-	return tooltip ? <Tooltip content={label}>{glyph}</Tooltip> : glyph;
+	return tooltip ? (
+		<Tooltip content={label} description={description ?? undefined}>
+			{glyph}
+		</Tooltip>
+	) : (
+		glyph
+	);
 }

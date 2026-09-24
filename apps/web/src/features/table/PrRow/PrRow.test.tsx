@@ -143,6 +143,30 @@ describe("PrRow", () => {
 		expect(html).toContain('aria-label="12 checks: 12 passed"');
 	});
 
+	test("keeps the open glyph when a push took the explanation and the evidence away", () => {
+		const html = renderToStaticMarkup(
+			<PrRow
+				pr={prOf({
+					reviewGaps: [
+						{ kind: "explanation", count: 1 },
+						{ kind: "evidence", count: 1 },
+					],
+				})}
+				top={0}
+				last={false}
+				hasChildLines={false}
+			/>,
+		);
+
+		// A push takes the explanation and the evidence of the older commit
+		// away and leaves the review flag at ready. The glyph stays open, and
+		// its accessible name states the state alone. The tooltip names both
+		// missing parts, and `missingPartsText` in `@trellis/api` writes those
+		// words; a closed tooltip renders no markup here.
+		expect(html).toContain('data-pr-glyph="open"');
+		expect(html).toContain('aria-label="Ready for review"');
+	});
+
 	test("takes the height and offset that the virtual list reserves", () => {
 		const html = renderToStaticMarkup(<PrRow pr={prOf({})} top={288} last={false} hasChildLines={false} />);
 

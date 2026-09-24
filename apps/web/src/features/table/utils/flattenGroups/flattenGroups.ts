@@ -45,14 +45,14 @@ export type TableItem =
 			// tree rule under its status icon and draws no bottom border.
 			hasChildLines: boolean;
 	  }
-	// The agent line is the last child line of its ticket, so `last` is
-	// true: the line draws the bottom border of the group.
+	// The agent line is the last child line of its ticket, so it always draws
+	// the bottom border of the group.
 	//
 	// `depth` is 1 when the agent line hangs from the ticket row, and 2 when
 	// it hangs from a pull request line. The line draws its tree rule under
 	// its parent, so the depth sets how far from the left edge the rule and
 	// the words sit.
-	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; last: boolean; depth: AgentLineDepth }
+	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; depth: AgentLineDepth }
 	// `last` is true on the last pull request line of the ticket. That line
 	// ends the tree rule of the ticket with a corner.
 	//
@@ -128,14 +128,14 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 				// The agent line hangs from the last pull request line, so no
 				// pull request of the ticket comes after the words of its run.
 				if (line !== undefined) {
-					items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true, depth: 2 });
+					items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, depth: 2 });
 				}
 				continue;
 			}
 			// A ticket that links no pull request hangs its agent line from the
 			// ticket row itself.
 			if (line !== undefined) {
-				items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true, depth: 1 });
+				items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, depth: 1 });
 			}
 		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });

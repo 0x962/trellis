@@ -440,9 +440,8 @@ ticket with the actor. A poll that finds a new head commit clears it, and so
 does `setHeadSha`, because the person then waits for nothing. The pull request
 payload carries it as `readyForReviewAt`.
 
-A pull request is ready for review, and its glyph draws green, only when every
-one of these holds: the agent asked for review, no check failed and none is
-pending, a flow run for that diff succeeded or the agent recorded why no
+A pull request is ready for review only when every one of these holds: the
+agent asked for review, no check failed and none is pending, a flow run for that diff succeeded or the agent recorded why no
 flow fits, no review finding is open, the pull request merges cleanly, and the
 explanation of the current head and the evidence document exist. A flow is
 machine review and it asks the person nothing, so a flow run that stopped and
@@ -451,8 +450,18 @@ in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
 answers with the parts that are missing, each with its plain words from
 `reviewGapText`. The wire carries the list as `reviewGaps` on a pull request
 row, on a ticket pull request row, on the PR badge of a ticket row and on a
-Diffs row, so the glyph, the Waiting grouping, the Needs you inbox and the pull request
-sheet all read one answer. `notReadyForReviewSql` in
+Diffs row, so the Waiting grouping, the Needs you inbox and the pull request
+sheet all read one answer.
+
+The glyph reads one part of that list and not the whole of it. It draws green
+when the agent asked for review, which `askedForReview` reads from the
+`not-asked` gap. A failed check, a pending check, an open finding and a
+conflict leave the glyph green, and the check ribbon, the conflict mark and
+the tooltip of the glyph state each of those parts beside it. `prStateWord`
+writes the same answer as one word for the Diffs row, the child row of a
+ticket and the epic row of the CLI, and `ticketReviewGaps` picks the parts
+that the one badge of a ticket row shows. The ticket filters, the wave counts,
+the Waiting grouping and `trellis diff check` keep the whole rule. `notReadyForReviewSql` in
 `apps/server/src/db/queries/reviewReady.ts` is its SQL form, which the ticket
 filters and the wave counts use. Nothing in the rule reads the GitHub draft
 flag.

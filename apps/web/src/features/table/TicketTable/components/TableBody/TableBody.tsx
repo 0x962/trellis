@@ -228,7 +228,6 @@ export function TableBody({
 									key={virtual.key}
 									line={item.line}
 									top={virtual.start}
-									last={item.last}
 									depth={item.depth}
 									index={virtual.index}
 									measureRef={virtualizer.measureElement}

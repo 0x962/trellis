@@ -247,7 +247,7 @@ test("the row verdict is the newest verdict of the person", async () => {
 
 // The one badge of a ticket row draws the review flag of every pull request
 // the ticket links. A check that starts or finishes must not move it.
-test("the badge stays not asked while one pull request waits for its agent", async () => {
+test("the query keeps the not-asked gap of the ticket while one pull request waits for its agent", async () => {
 	const twoPullTicket = ulid();
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, number, title, status_id, position, created_at, updated_at

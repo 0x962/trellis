@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { askedForReview, type Check, type Project, reviewRef } from "@trellis/api";
+import { askedForReview, type Check, type Project, prStateWord, reviewRef } from "@trellis/api";
 import { Button, CheckRibbon, EmptyState, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
@@ -10,6 +10,10 @@ import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import "@trellis/ui/review.css";
+
+// `prStateWord` writes one lowercase word. The badge of the row prints it
+// with a capital first letter, and the accessible name prints it in capitals.
+const sentenceCase = (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`;
 
 const checkWords = (checks: readonly Check[]) => {
 	if (checks.length === 0) return "without checks";
@@ -70,14 +74,15 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 			? (prs.data ?? []).map((pr) => ({
 					...pr,
 					repository: `${pr.owner}/${pr.repo}`,
-					state: pr.isQueued ? "QUEUED" : pr.state === "open" && !askedForReview(pr) ? "NOT READY" : pr.state,
+					word: prStateWord(pr),
 				}))
 			: (mine.data ?? []).map((pr) => ({
 					...reviewRef(pr.url),
 					id: pr.url,
 					title: pr.title,
 					repository: pr.repository.nameWithOwner,
-					state: "OPEN",
+					state: "open",
+					word: "open",
 					isDraft: pr.isDraft,
 					isQueued: false,
 					reviewGaps: [],
@@ -180,7 +185,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 										return (
 											<Link
 												className="review-index-row"
-												aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${openLabel}` : ""}`}
+												aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.word.toUpperCase()}${pr.open ? `, ${openLabel}` : ""}`}
 												key={pr.id}
 												to="/reviews/$owner/$repo/$number"
 												params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
@@ -200,7 +205,12 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 														</span>
 													</Tooltip>
 												)}
-												<ReviewStatus state={pr.state} isQueued={pr.isQueued} askedForReview={askedForReview(pr)} />
+												<ReviewStatus
+													state={pr.state}
+													isQueued={pr.isQueued}
+													askedForReview={askedForReview(pr)}
+													word={sentenceCase(pr.word)}
+												/>
 												<ArrowRight className="review-row-arrow" aria-hidden="true" />
 											</Link>
 										);

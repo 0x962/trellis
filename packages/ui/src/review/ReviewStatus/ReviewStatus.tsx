@@ -1,34 +1,30 @@
 import { PrGlyph } from "../../domain/PrGlyph";
 import { Badge } from "../../primitives/Badge";
 
-// The state of a pull request as one glyph and one word. `askedForReview`
-// is the local review flag of the pull request, so `Not ready` says that the
-// agent has not handed the pull request over. The check counts sit in their
-// own cell of the row.
+// The state of a pull request as one glyph and one word. `askedForReview` is
+// the local review flag of the pull request, and it draws the glyph. `word`
+// is the same state in the words of the caller: `prStateWord` in
+// `@trellis/api` writes it, and this package imports no `@trellis/api`.
 export function ReviewStatus({
 	state: value,
 	isQueued,
 	askedForReview,
+	word,
 }: {
 	state: string;
 	isQueued: boolean;
 	askedForReview: boolean;
+	word: string;
 }) {
 	const state = value.toUpperCase();
 	const glyphState = state === "MERGED" ? "merged" : state === "CLOSED" ? "closed" : "open";
-	const word = isQueued
-		? "Queued"
-		: state === "MERGED"
-			? "Merged"
-			: state === "CLOSED"
-				? "Closed"
-				: askedForReview
-					? "Open"
-					: "Not ready";
+	// The badge takes the green tone on the same condition as the open glyph:
+	// the pull request is open and the agent asked for review.
+	const tone = isQueued ? "wait" : state === "MERGED" ? "agent" : state === "OPEN" && askedForReview ? "ok" : "neutral";
 	return (
 		<span className="inline-flex items-center gap-1">
 			<PrGlyph state={glyphState} isQueued={isQueued} askedForReview={askedForReview} size="sm" decorative />
-			<Badge tone={isQueued ? "wait" : state === "MERGED" ? "agent" : state === "OPEN" ? "ok" : "neutral"} size="sm">
+			<Badge tone={tone} size="sm">
 				{word}
 			</Badge>
 		</span>
