@@ -171,7 +171,12 @@ async function fixture() {
 	};
 }
 
-test("idle cleanup preserves the assignment through both exit reconciliation paths", async () => {
+// A session keeps its assignment through every exit, so a follow-up resumes
+// the saved conversation and the session keeps its place in the session
+// list. A person ends it with an archive or a delete. The reason the
+// process ended changes nothing here: the third call reports an exit that
+// the runtime did not make for idleness.
+test("a session keeps its assignment through both exit reconciliation paths", async () => {
 	const f = await fixture();
 	await closeExitedAssignments(ctx, async () => [f.saved]);
 	let run = await ctx.newTx((tx) => getRun(tx, f.id));
@@ -180,7 +185,9 @@ test("idle cleanup preserves the assignment through both exit reconciliation pat
 	run = await ctx.newTx((tx) => getRun(tx, f.id));
 	expect(run.closedAt).toBeNull();
 	await refreshNative(ctx, run, async () => ({ ...f.saved, stopReason: undefined }));
-	expect((await ctx.newTx((tx) => getRun(tx, f.id))).closedAt).not.toBeNull();
+	expect((await ctx.newTx((tx) => getRun(tx, f.id))).closedAt).toBeNull();
+	await closeExitedAssignments(ctx, async () => [{ ...f.saved, stopReason: undefined }]);
+	expect((await ctx.newTx((tx) => getRun(tx, f.id))).closedAt).toBeNull();
 });
 
 test("a follow-up resumes the saved conversation with only the requested message", async () => {

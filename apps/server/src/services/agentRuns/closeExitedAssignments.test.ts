@@ -36,7 +36,7 @@ afterAll(async () => {
 	await db.$client.close();
 });
 
-async function seedRun(kind: "session" | "agent") {
+async function seedRun(kind: "session" | "agent" | "flow") {
 	const id = ulid();
 	const terminalId = crypto.randomUUID();
 	await db.execute(sql`INSERT INTO agent_runs
@@ -103,6 +103,22 @@ test("an agent run keeps the reason and stays open", async () => {
 	const stored = await storedRun(run.id);
 	expect(stored.error).toBe("Codex engine exited: 3");
 	expect(stored.closed_at).toBeNull();
+});
+
+// A session keeps its assignment after its process exits, so it stays in
+// the session list and a resume continues the same conversation. A person
+// archives the session to take it out of that list.
+test("a session run stays open", async () => {
+	const run = await seedRun("session");
+	await closeExitedAssignments(ctx, async () => [exitedSession(run.terminalId, null)]);
+	expect((await storedRun(run.id)).closed_at).toBeNull();
+});
+
+// A flow step ends with its process, so its run closes here.
+test("a flow run closes", async () => {
+	const run = await seedRun("flow");
+	await closeExitedAssignments(ctx, async () => [exitedSession(run.terminalId, null)]);
+	expect((await storedRun(run.id)).closed_at).not.toBeNull();
 });
 
 test("a run that stopped with no reason keeps an empty error", async () => {

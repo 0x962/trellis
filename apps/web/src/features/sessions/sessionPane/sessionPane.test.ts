@@ -54,21 +54,32 @@ describe("sessionPane", () => {
 		const pane = sessionPane(run(), true);
 
 		expect(pane).toEqual({
-			kind: "stopped",
+			kind: "archived",
 			title: "This session is archived",
 			description:
 				"Trellis keeps the workspace, every file in it, and the conversation. Unarchive the session to start its agent again.",
 		});
 	});
 
-	test("calls a clean stop no failure", () => {
+	// An archive is no pause. The agent of an archived session stays stopped
+	// until a person unarchives it.
+	test("keeps the archive apart from the pause", () => {
+		expect(sessionPane(run({ state: "stopped", processStatus: "exited" }), true).kind).toBe("archived");
+	});
+
+	test("calls a clean stop a pause, and names what a resume keeps", () => {
 		const pane = sessionPane(run({ state: "stopped", processStatus: "exited" }), false);
 
 		expect(pane).toEqual({
-			kind: "stopped",
-			title: "The agent is not running",
-			description: "Trellis keeps the workspace and every file in it. Start the agent to open its terminal again.",
+			kind: "paused",
+			title: "The agent is paused",
+			description:
+				"Trellis keeps the conversation, the workspace and every file in it. Resume opens the same conversation in the same workspace.",
 		});
+	});
+
+	test("keeps a failed process out of the paused words", () => {
+		expect(sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine }), false).kind).toBe("failed");
 	});
 });
 

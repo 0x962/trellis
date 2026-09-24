@@ -5,6 +5,7 @@ import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
+import { attemptStopped } from "../agentRuns/attemptCapture.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { columns, getRun, type LaunchRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
@@ -43,16 +44,32 @@ export const prepareStart = async (
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const previous = await deps.process(ctx, run.terminalId);
-		if (previous === null && run.terminalId !== null && run.closedAt === null)
+		// A pause keeps the run open, and the execution service forgets an
+		// exited terminal when it starts again. `attemptStopped` reads the
+		// output file that the pause wrote, which proves the process of that
+		// attempt ended, so a paused session still starts after a restart.
+		if (
+			previous === null &&
+			run.terminalId !== null &&
+			run.closedAt === null &&
+			!(await attemptStopped(ctx.home, run.id, run.terminalId))
+		)
 			throw invalidInput("id", "The prior launch is not confirmed. Inspect the agent before another start.");
 		if (previous?.status === "running") return { id: session.id };
 		if (previous !== null && previous.status !== "exited")
 			throw invalidInput("id", "Stop the prior process and confirm it exited before you start the session again.");
 		const fresh = run.projectId === null && run.terminalId === null;
+		// The runtime forgets an exited attempt when it starts again, and the
+		// guard above lets such an attempt through on the record of its
+		// output file. `agent_runs.session_id` holds the provider conversation
+		// of the last confirmed launch, and `launch.json`, which `deps.preset`
+		// reads, holds the harness. So a start after a restart of the runtime
+		// still resumes the saved conversation.
+		const stopped = previous === null ? run.terminalId !== null : previous.status === "exited";
 		const resume =
-			previous?.status === "exited" &&
-			previous.agent?.sessionId != null &&
-			previous.launch !== null &&
+			stopped &&
+			(previous?.agent?.sessionId ?? run.sessionId) != null &&
+			(previous === null || previous.launch !== null) &&
 			session.harness.preset !== "custom" &&
 			(await deps.preset(ctx.home, run.terminalId!)) === session.harness.preset;
 		const reservation = await ctx.newTx(async (tx) => {

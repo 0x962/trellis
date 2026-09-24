@@ -1,18 +1,8 @@
-import { Copy, Info } from "@phosphor-icons/react";
+import { Copy } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { AgentRun, AgentWorkspaceSummary } from "@trellis/api";
-import {
-	CodeText,
-	IconButton,
-	LineChanges,
-	Popover,
-	PropertyRow,
-	Sheet,
-	Skeleton,
-	Tooltip,
-	useMediaQuery,
-} from "@trellis/ui";
-import { useRef, useState } from "react";
+import { Button, CodeText, Dialog, IconButton, LineChanges, PropertyRow, Skeleton, Tooltip } from "@trellis/ui";
+import { useRef } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { formatCount, relativeTime } from "../../../../../lib/format";
@@ -23,10 +13,9 @@ export type SessionDetailsProps = {
 	summary: AgentWorkspaceSummary | undefined;
 };
 
-export type SessionDetailsTriggerProps = SessionDetailsProps & {
-	// The name of this control inside its bar, written onto the trigger as
-	// `data-bar-slot`, which `barSlots` reads.
-	barSlot?: string;
+export type SessionDetailsDialogProps = SessionDetailsProps & {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 };
 
 const startedFormat = new Intl.DateTimeFormat(undefined, {
@@ -152,47 +141,23 @@ function Details({ run, summary }: SessionDetailsProps) {
 	);
 }
 
-// The details of a session behind one button in the conversation header:
-// where the workspace is, what it holds, which account runs it, and since
-// when. A popover on a desktop; a sheet on a phone, where a popover of
-// this width has no room. Focus lands on the list itself, so the first
-// copy button does not open its tooltip on a click of the button.
-export function SessionDetails({ run, summary, barSlot }: SessionDetailsTriggerProps) {
-	const phone = useMediaQuery("(max-width: 767px)");
-	const [open, setOpen] = useState(false);
+// The details of a session: where the workspace is, what it holds, which
+// account runs it, and since when. The Session details row of
+// `SessionActionsMenu` opens it. Below 768 px `Dialog` draws it as a sheet
+// on the bottom edge of the screen.
+//
+// Focus lands on the list itself, so the first copy button does not open
+// its tooltip on a click of the button.
+export function SessionDetails({ run, summary, open, onOpenChange }: SessionDetailsDialogProps) {
 	const list = useRef<HTMLDivElement>(null);
-	const trigger = <IconButton data-bar-slot={barSlot} variant="default" label="Session details" icon={<Info />} />;
-	if (phone)
-		return (
-			<>
-				<Tooltip content="Session details">
-					<IconButton
-						data-bar-slot={barSlot}
-						variant="default"
-						label="Session details"
-						icon={<Info />}
-						onClick={() => setOpen(true)}
-					/>
-				</Tooltip>
-				<Sheet open={open} title="Session details" onOpenChange={setOpen} titleClassName="text-sm font-medium">
-					<div className="px-4 py-2">
-						<Details run={run} summary={summary} />
-					</div>
-				</Sheet>
-			</>
-		);
 	return (
-		<Popover
-			label="Session details"
-			align="end"
-			className="w-120 max-w-[calc(100vw-2rem)] px-3 py-2"
-			triggerTooltip="Session details"
-			trigger={trigger}
-			initialFocus={list}
-		>
+		<Dialog open={open} onOpenChange={onOpenChange} title="Session details" initialFocus={list}>
 			<div ref={list} tabIndex={-1} className="outline-none">
 				<Details run={run} summary={summary} />
 			</div>
-		</Popover>
+			<div className="flex justify-end">
+				<Button onClick={() => onOpenChange(false)}>Close</Button>
+			</div>
+		</Dialog>
 	);
 }
