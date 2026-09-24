@@ -12,7 +12,7 @@ export type ComposerHeaderProps = {
 // reads the ticket title under it first.
 export function ComposerHeader({ closeDisabled = false, onClose }: ComposerHeaderProps) {
 	return (
-		<div data-composer-header="" className="flex min-h-7 items-center gap-2">
+		<div className="flex min-h-7 items-center gap-2">
 			<span aria-hidden="true" className="text-sm font-medium text-fg-muted">
 				New ticket
 			</span>
