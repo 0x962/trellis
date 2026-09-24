@@ -154,6 +154,7 @@ export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
 export { dotted } from "./utils/dotted";
+export { focusInView } from "./utils/focusInView";
 export { formatClock } from "./utils/formatClock";
 export { isTextEntry } from "./utils/isTextEntry";
 export { readRowMotion } from "./utils/readRowMotion";

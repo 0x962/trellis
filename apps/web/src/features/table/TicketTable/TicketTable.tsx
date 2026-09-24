@@ -1,45 +1,41 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useTable } from "@tanstack/react-table";
-import type { TicketSummary, WaveSummary } from "@trellis/api";
-import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
-import { useApp } from "../../../lib/appContext";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
 import { type View, viewOf } from "../../filters/grammar";
 import { useScopeLabels } from "../../filters/hooks/useScopeLabels";
 import { hasFilters } from "../../filters/labels";
 import { BulkBar, type BulkPicker } from "../BulkBar";
-import { buildColumns, type ColumnId, type TableKind, tableFeatureSet } from "../columns";
+import type { TableKind } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useBulkWrite } from "../hooks/useBulkWrite";
-import { useCopyTickets } from "../hooks/useCopyTickets";
 import { useExpandedTickets } from "../hooks/useExpandedTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableCollapse } from "../hooks/useTableCollapse";
 import { useTableData } from "../hooks/useTableData";
-import { closedCategories, type TableGroupsOptions, useTableGroups } from "../hooks/useTableGroups";
-import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
+import { type TableGroupsOptions, useTableGroups } from "../hooks/useTableGroups";
+import { useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { WaveEditing } from "../hooks/useWaveEditing";
-import type { EditField, RowChange } from "../Row";
+import type { EditField } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
 import type { TicketAgentLine } from "../utils/agentLines";
-import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
 import { labelStates } from "../utils/labelStates";
 import { visibleRows } from "../utils/visibleRows";
-import { WaveStartDialog } from "../WaveStart";
 import { CapBanner } from "./components/CapBanner";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
-import { rowClickOpens } from "./rowClickOpens";
+import { footerCounts } from "./footerCounts";
+import { useRowActions } from "./useRowActions";
+import { useVisibleColumns } from "./useVisibleColumns";
+import { useWaveStart } from "./useWaveStart";
+import { useWaveWrites } from "./useWaveWrites";
 
 export type TicketTableProps = {
 	// The project ref of the route, or undefined for a table over every project.
@@ -73,8 +69,6 @@ export type TicketTableProps = {
 };
 
 export type Editing = { id: string; field: EditField } | null;
-const columns = buildColumns();
-const noTickets: TicketSummary[] = [];
 const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar] [data-filter-button]")?.focus();
 
 // The ticket table of a list route: the active rows grouped client-side,
@@ -93,8 +87,6 @@ export function TicketTable({
 	assignedTicketIds,
 	waveEditing,
 }: TicketTableProps) {
-	const { client, orpc, queryClient } = useApp();
-	const navigate = useNavigate();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
 	const density = search.density ?? storedDensity;
@@ -103,11 +95,6 @@ export function TicketTable({
 	const [focusState, setFocusState] = useState<string | null>(null);
 	const [editing, setEditing] = useState<Editing>(null);
 	const [bulkPicker, setBulkPicker] = useState<BulkPicker | null>(null);
-	// The key of the wave group whose Start wave dialog is open or was open
-	// last. It stays set while the dialog closes, so the dialog keeps its
-	// lists through the close motion.
-	const [startKey, setStartKey] = useState<string | null>(null);
-	const [startOpen, setStartOpen] = useState(false);
 
 	const showProject = project === undefined;
 
@@ -135,24 +122,7 @@ export function TicketTable({
 	const tickets = useMemo(() => visibleRows(items), [items]);
 	const ids = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
 	const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
-	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
-	const visibility = useMemo(
-		() => autoHide(columnVisibility(stored, showProject, tableKind), { group: view.group, rows: loaded }),
-		[stored, showProject, tableKind, view.group, loaded],
-	);
-	const table = useTable({
-		features: tableFeatureSet,
-		columns,
-		data: noTickets,
-		state: { columnVisibility: visibility },
-		onColumnVisibilityChange: (updater) => {
-			const next = typeof updater === "function" ? updater(visibility) : updater;
-			for (const [id, visible] of Object.entries(next)) {
-				if (visible !== visibility[id as ColumnId]) uiActions.setColumnVisible(routeKey, id, visible);
-			}
-		},
-	});
-	const columnIds = table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
+	const columnIds = useVisibleColumns({ routeKey, tableKind, showProject, group: view.group, rows: loaded });
 	const selection = useRowSelection({ ids });
 	const mutations = useTicketMutations();
 	// An empty selection leaves no control for a bulk picker to hang on, so
@@ -179,6 +149,7 @@ export function TicketTable({
 	const applyChange = useApplyChange(mutations, bulk, labelGroups);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
+	const findTicket = (id: string) => byId.get(id);
 	// How the selected tickets hold each label: `all` draws a check, `some`
 	// draws a minus. A pick on a check removes the label everywhere, and a
 	// pick on a minus adds it everywhere.
@@ -187,54 +158,16 @@ export function TicketTable({
 	// mark no row when the selection disagrees.
 	const epics = epicState(selectedTickets());
 
-	// A change on a selected row writes to the whole selection. A change on
-	// a row the selection does not hold writes to that row alone.
-	const onRowChange = useStableCallback((ticket: TicketSummary, change: RowChange) => {
-		if (selection.isSelected(ticket.id)) void applyChange(selectedTickets(), change, "selection");
-		else void applyChange([ticket], change, "row");
-	});
-
-	// A click and Enter open the ticket in the sheet over this list, so the
-	// list keeps its scroll. The `o` key opens the ticket page on its route.
-	const openTicket = useStableCallback((id: string) => {
-		const ticket = byId.get(id);
-		if (ticket !== undefined) pageSheetActions.openTicket(ticket.identifier);
-	});
-	const openPage = useStableCallback((id: string) =>
-		navigate({ to: "/t/$identifier", params: { identifier: byId.get(id)!.identifier } }),
-	);
-
-	const copier = useCopyTickets();
-	const copy = useStableCallback((id: string, kind: CopyKind) => void copier.copy(byId.get(id)!, kind));
-	const copyIds = () => void copier.copyIds(selectedTickets());
-
-	const requestDelete = (targets: readonly string[]) =>
-		void bulk.remove(targets.map((id) => byId.get(id)).filter((ticket) => ticket !== undefined));
-
-	const onRowClick = useStableCallback((id: string, event: MouseEvent) => {
-		// The link that covers the whole row (`data-row-link` in `Row`) forwards
-		// its plain click here, with the link as `currentTarget`.
-		if (!rowClickOpens(event.target as Element, event.currentTarget as Node)) return;
-		if (event.shiftKey) selection.extend(id);
-		else if (event.metaKey || event.ctrlKey) selection.toggle(id);
-		else openTicket(id);
-	});
-
-	const onEditingChange = useStableCallback((id: string, field: EditField | null) =>
-		setEditing(field === null ? null : { id, field }),
-	);
-
-	// A field key writes to the whole selection when one exists, and to the
-	// focused row when none does. The bulk bar owns the labels and the epic
-	// of a route with no project, so those two keys fall back to the row. The
-	// bar sets a wave only when every selected ticket is in one epic.
-	const barHasField = (field: EditField) => {
-		if (field === "wave") return project !== undefined && epics.epicRef !== undefined;
-		return field === "labels" || field === "epic" ? project !== undefined : true;
-	};
-	const openField = useStableCallback((id: string, field: EditField) => {
-		if (selection.count > 0 && barHasField(field)) setBulkPicker(field);
-		else setEditing({ id, field });
+	const rowActions = useRowActions({
+		findTicket,
+		selection,
+		selectedTickets,
+		applyChange,
+		bulk,
+		project,
+		epicRef: epics.epicRef,
+		onEditing: setEditing,
+		onBulkPicker: setBulkPicker,
 	});
 
 	// A table of one epic creates the ticket inside that epic, and inside the
@@ -247,40 +180,17 @@ export function TicketTable({
 			wave: group?.wave?.ref,
 		});
 
-	// A wave write refetches the epic, because the wave counts live on it.
-	const setWave = async (targets: readonly TicketSummary[], wave: WaveSummary | null) => {
-		await applyChange(targets, { wave }, targets.length > 1 ? "selection" : "row");
-		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
-	};
-
-	const createWave = async (name: string) => {
-		const wave = await client.waves.create({ epic: epics.epicRef!, name });
-		await setWave(selectedTickets(), wave);
-	};
-
-	const waves =
-		waveEditing === undefined || project === undefined
-			? undefined
-			: {
-					editing: waveEditing,
-					project,
-					onNewTicket: openNew,
-					// A ticket from outside the epic joins the epic and the wave in one write.
-					onAddTicket: async (ticket: TicketSummary, group: TableGroup) => {
-						await mutations.updateMany(
-							[ticket],
-							{ epic: group.epicRef, wave: group.wave!.ref },
-							{},
-							(subject) => `${subject} did not join ${group.label}.`,
-						);
-						await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
-					},
-					onDrop: (ticketIds: string[], group: TableGroup) =>
-						void setWave(
-							ticketIds.map((id) => byId.get(id)!),
-							waveEditing.waves.find((wave) => wave.id === group.wave?.id) ?? null,
-						),
-				};
+	const waveStart = useWaveStart({ groups, assignedTicketIds });
+	const { waves, createWave } = useWaveWrites({
+		waveEditing,
+		project,
+		epicRef: epics.epicRef,
+		selectedTickets,
+		ticketById: (id) => byId.get(id)!,
+		applyChange,
+		mutations,
+		onNewTicket: openNew,
+	});
 
 	useTableHotkeys({
 		root,
@@ -291,15 +201,15 @@ export function TicketTable({
 		selection,
 		editing,
 		setEditing,
-		openField,
+		openField: rowActions.openField,
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
-		openTicket,
-		openPage,
+		openTicket: rowActions.openTicket,
+		openPage: rowActions.openPage,
 		openComposer: () => openNew(),
-		copy,
-		copySelection: copyIds,
-		requestDelete,
+		copy: rowActions.copy,
+		copySelection: rowActions.copyIds,
+		requestDelete: rowActions.requestDelete,
 	});
 	useCommandContext(focusState === null ? null : (byId.get(focusState)?.identifier ?? null), selectedTickets(), {
 		selectAll: selection.selectAll,
@@ -316,18 +226,7 @@ export function TicketTable({
 		);
 	}
 
-	const startGroup = startKey === null ? undefined : groups.find((group) => group.key === startKey);
-	const closedVisible =
-		data.closed !== null && ((view.group === "status" && view.closed !== "hide") || data.inlineClosed !== null);
-	const closedTotal = closedVisible
-		? closedCategories.reduce((sum, category) => sum + data.closed![category].count, 0)
-		: 0;
-	const loadedTotal = data.rows.length + closedTotal;
-	// Under a grouping that holds no closed rows the rows are the open tickets
-	// only, and the footer names the Done and Canceled tickets it leaves out. The
-	// server total counts them, so the open count subtracts them.
-	const hidden = data.closed !== null && !closedVisible ? data.closed.done.count + data.closed.canceled.count : 0;
-	const total = data.allActiveLoaded ? loadedTotal : (data.total ?? loadedTotal) - hidden;
+	const { total, hidden } = footerCounts(data, view);
 	return (
 		<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
 			{data.capped && <CapBanner onNarrow={focusFilter} />}
@@ -345,22 +244,16 @@ export function TicketTable({
 				selection={selection}
 				editing={editing}
 				onFocusRow={setRowFocus}
-				onRowClick={onRowClick}
-				onOpen={openTicket}
-				onEditingChange={onEditingChange}
-				onRowChange={onRowChange}
+				onRowClick={rowActions.onRowClick}
+				onOpen={rowActions.openTicket}
+				onEditingChange={rowActions.onEditingChange}
+				onRowChange={rowActions.onRowChange}
 				onToggleGroup={collapsed.toggle}
 				onToggleTicket={expandedTickets.toggle}
 				onCreateInGroup={openNew}
 				waves={waves}
-				onStartGroup={
-					assignedTicketIds !== undefined
-						? (group) => {
-								setStartKey(group.key);
-								setStartOpen(true);
-							}
-						: undefined
-				}
+				pinHeaders={view.group === "wave"}
+				onStartGroup={waveStart.onStartGroup}
 				bottomRoom={selection.count > 0}
 			/>
 			<TableFooter total={total} hidden={hidden} sort={view.sort} />
@@ -381,20 +274,12 @@ export function TicketTable({
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
 				onWave={(picked) => void applyChange(selectedTickets(), { wave: picked }, "selection")}
 				onCreateWave={(name) => void createWave(name)}
-				onCopyIds={copyIds}
-				onDelete={() => requestDelete(selection.selected)}
+				onCopyIds={rowActions.copyIds}
+				onDelete={() => rowActions.requestDelete(selection.selected)}
 				onClear={clearSelection}
 			/>
 			{bulk.confirmDialog}
-			{startGroup !== undefined && assignedTicketIds !== undefined && (
-				<WaveStartDialog
-					open={startOpen}
-					onOpenChange={setStartOpen}
-					wave={startGroup.label ?? ""}
-					tickets={startGroup.rows}
-					assigned={assignedTicketIds}
-				/>
-			)}
+			{waveStart.dialog}
 		</div>
 	);
 }
