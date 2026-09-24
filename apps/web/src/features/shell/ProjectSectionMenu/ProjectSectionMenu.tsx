@@ -18,7 +18,12 @@ export function ProjectSectionMenu({ projectKey, current }: ProjectSectionMenuPr
 			align="start"
 			triggerTooltip="Switch section"
 			items={projectSectionItems(current, (section) => void navigate({ href: section.href(projectKey) }))}
-			trigger={<TitleMenuButton className="-ml-1.5" label={label} />}
+			// The button pads itself by 6 px, so its label would start 6 px right of
+			// the label of a plain page title. A transform moves the drawn box back
+			// by that padding. A margin cannot do it: the button sits inside the
+			// `h1`, so a negative margin takes 6 px off the width the heading asks
+			// for, and the heading then cuts the last letters of the name.
+			trigger={<TitleMenuButton className="-translate-x-1.5" label={label} />}
 		/>
 	);
 }
