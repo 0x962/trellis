@@ -142,6 +142,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 										count={formatCount(group.epics.length)}
 										expanded={expanded}
 										controls={controls}
+										appearance="inset"
 										sticky
 										onToggle={() => toggle(group.key)}
 									/>
