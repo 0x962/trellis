@@ -1,12 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import { ORPCError } from "@orpc/server";
 import { errors } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ensureNativeRuntime, nativeClient } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx } from "../support.ts";
-import { attemptCapturePath } from "./attemptCapture.ts";
+import { recordAttemptExit, writeAttemptCapture } from "./attemptCapture.ts";
 import type { StoredRun } from "./queries.ts";
 
 const stopFailure = (run: StoredRun, message: string) =>
@@ -57,12 +55,10 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun, close = true) 
 			});
 		if (stopped.status !== "exited")
 			throw stopFailure(run, stopped.error ?? "The host cannot confirm that the process stopped.");
-		const capture = attemptCapturePath(ctx.home, run.id, run.terminalId);
-		await mkdir(dirname(capture), { recursive: true, mode: 0o700 });
 		// `prepareOutput` reads this file for the terminal of a run that
 		// stopped, and `attemptStopped` reads its presence as the record of a
 		// confirmed process exit.
-		await writeFile(capture, await nativeOutput(ctx.home, run.terminalId), { mode: 0o600 });
+		await writeAttemptCapture(ctx.home, run.id, run.terminalId, await nativeOutput(ctx.home, run.terminalId));
 	}
 	await ctx.newTx((tx) =>
 		close
@@ -81,16 +77,23 @@ export const refreshNative = async (
 	ctx: ServiceCtx,
 	run: StoredRun,
 	inspect = (id: string) => nativeHost(ctx.home).status(id),
+	readOutput = nativeOutput,
 ) => {
 	if (run.terminalId !== null) {
 		const process = await inspect(run.terminalId);
-		if (process.status === "exited" && process.stopReason !== "idle")
-			await ctx.newTx((tx) =>
-				tx.execute(
-					sql`UPDATE agent_runs SET closed_at = coalesce(closed_at, ${ctx.now()}) WHERE id = ${run.id} AND terminal_id = ${run.terminalId}
+		if (process.status === "exited") {
+			// A run that keeps its assignment outlives the record that the
+			// execution service holds for this terminal, so the exit goes on
+			// disk while that service can still answer for it.
+			if (run.kind !== "flow") await recordAttemptExit(ctx.home, run.id, run.terminalId, readOutput);
+			if (process.stopReason !== "idle")
+				await ctx.newTx((tx) =>
+					tx.execute(
+						sql`UPDATE agent_runs SET closed_at = coalesce(closed_at, ${ctx.now()}) WHERE id = ${run.id} AND terminal_id = ${run.terminalId}
 					AND kind NOT IN ('agent', 'session')`,
-				),
-			);
+					),
+				);
+		}
 	}
 	ctx.emit({ type: "agent-runs.changed", id: run.id });
 	return { id: run.id };

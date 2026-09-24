@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
@@ -12,6 +13,7 @@ import type { startNative } from "../agentRuns/nativeStart.ts";
 import { prepareStart } from "../sessions/start.ts";
 import type { IoCtx } from "../support.ts";
 import { attemptCapturePath } from "./attemptCapture.ts";
+import { closeExitedAssignments } from "./closeExitedAssignments.ts";
 import { getRun } from "./queries.ts";
 import { stopRunProcess } from "./stopRunProcess.ts";
 
@@ -62,6 +64,38 @@ const closedAt = async (runId: string) =>
 
 // The execution service after a restart: it holds no record of any terminal.
 const forgotten = async () => null;
+
+// The record the execution service holds for a process that ended on its
+// own, with no pause. `stopReason` is absent, because no idle rule ended it.
+const exitedOnItsOwn = (terminalId: string): RuntimeProcessStatus => ({
+	id: terminalId,
+	daemonId: "test",
+	pid: null,
+	mode: "pty",
+	status: "exited",
+	startedAt: at.toISOString(),
+	endedAt: at.toISOString(),
+	exitCode: 0,
+	error: null,
+	checkedAt: at.toISOString(),
+	elapsedMs: 0,
+	controllable: false,
+	process: null,
+	launch: { command: "claude", args: [], cwd: "/nowhere" },
+	agent: null,
+	activity: null,
+	acknowledgedMessageIds: [],
+	result: null,
+});
+
+// The reconciliation that `agentRuns.list` runs, reading one exited process
+// and the output that the execution service still holds for it.
+const reconcile = (terminalId: string) =>
+	closeExitedAssignments(
+		ctx,
+		async () => [exitedOnItsOwn(terminalId)],
+		async () => "the agent finished its work\n",
+	);
 
 beforeAll(async () => {
 	db = await openTestDb();
@@ -213,4 +247,73 @@ test("an archive after a restart closes the run of a paused session", async () =
 	});
 
 	expect(await closedAt(runId)).not.toBeNull();
+});
+
+// A process that ends on its own writes no capture of its own, and the run
+// stays open. The reconciliation records the exit while the execution
+// service can still answer for the terminal, so the two tests below reach
+// the same place as a pause.
+test("a session that ended on its own resumes after a restart", async () => {
+	const terminalId = crypto.randomUUID();
+	const { runId, sessionRowId } = await seed({ terminalId, sessionId: providerSessionId });
+	await reconcile(terminalId);
+	expect(await closedAt(runId)).toBeNull();
+	const launches: Parameters<typeof startNative>[1][] = [];
+	pending = [];
+
+	await prepareStart(
+		ctx,
+		{ id: sessionRowId },
+		{
+			process: forgotten,
+			start: async (_background, input) => {
+				launches.push(input);
+				return { id: runId };
+			},
+			preset: async () => "claude",
+		},
+	);
+	await Promise.all(pending);
+
+	expect(launches[0]).toMatchObject({ resume: true, previousAttemptId: terminalId });
+	expect((await storedRun(runId)).sessionId).toBe(providerSessionId);
+});
+
+test("a session that ended on its own archives after a restart", async () => {
+	const terminalId = crypto.randomUUID();
+	const { runId } = await seed({ terminalId, sessionId: providerSessionId });
+	await reconcile(terminalId);
+	const run = await storedRun(runId);
+
+	await stopRunProcess(ctx, run, {
+		process: forgotten,
+		stop: async () => {
+			throw new Error("the service stopped a process that had already ended");
+		},
+	});
+
+	expect(await closedAt(runId)).not.toBeNull();
+});
+
+// The reconciliation records an exit one time. A terminal whose output the
+// execution service can no longer read stays unrecorded, so the guards keep
+// refusing an outcome nobody confirmed.
+test("an exit the execution service cannot read stays unrecorded", async () => {
+	const terminalId = crypto.randomUUID();
+	const { runId, sessionRowId } = await seed({ terminalId, sessionId: providerSessionId });
+	await closeExitedAssignments(
+		ctx,
+		async () => [exitedOnItsOwn(terminalId)],
+		async () => {
+			throw new Error("the execution service dropped this terminal");
+		},
+	);
+
+	await expect(
+		prepareStart(
+			ctx,
+			{ id: sessionRowId },
+			{ process: forgotten, start: async () => ({ id: runId }), preset: async () => "claude" },
+		),
+	).rejects.toThrow("The prior launch is not confirmed");
 });
