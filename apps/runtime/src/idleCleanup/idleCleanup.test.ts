@@ -10,7 +10,8 @@ import { sessionResources } from "../sessionResources.ts";
 import { expireIdleSessions } from "./idleCleanup.ts";
 
 const now = Date.parse("2026-09-23T12:00:00Z");
-const timeout = 5 * 60 * 1000;
+const fiveMinutes = 5 * 60 * 1000;
+const timeout = 30 * 60 * 1000;
 let home: string;
 let record: SessionRecord;
 let stops: number;
@@ -64,7 +65,10 @@ afterEach(async () => {
 	rmSync(home, { recursive: true, force: true });
 });
 
-test("stops after five idle minutes and retains the saved conversation", () => {
+test("stops after 30 idle minutes and retains the saved conversation", () => {
+	record.activity!.updatedAt = new Date(now - fiveMinutes).toISOString();
+	expireIdleSessions([record], save, now);
+	expect(stops).toBe(0);
 	record.activity!.updatedAt = new Date(now - timeout).toISOString();
 	expireIdleSessions([record], save, now);
 	expect(stops).toBe(0);
