@@ -11,6 +11,8 @@ export type DescriptionEditorProps = {
 
 // The Tiptap editor over the description, markdown in and markdown out.
 // It takes focus on mount, because the read-only view hands over to it.
+// The editor keeps the 80 px minimum height of the area around it, so a
+// click under the last line of text still puts the caret in the text.
 export function DescriptionEditor({ markdown, onChange }: DescriptionEditorProps) {
 	const editor = useEditor({
 		extensions: [StarterKit, Markdown, ListDash],

@@ -1,4 +1,5 @@
-import { Button } from "@trellis/ui";
+import { ArrowClockwise, X } from "@phosphor-icons/react";
+import { IconButton, Tooltip } from "@trellis/ui";
 import type { Upload } from "../hooks/useUploads";
 import { uploadErrorText } from "../utils/uploadErrorText";
 
@@ -22,13 +23,25 @@ export function UploadProgress({ upload, showName = true, onDismiss, onRetry }: 
 			>
 				<span className="min-w-0 flex-1 truncate">{uploadErrorText(name, upload.error)}</span>
 				{upload.error.code === "UPLOAD_FAILED" && onRetry !== undefined && (
-					<Button size="sm" variant="quiet" onClick={() => onRetry(upload.id)}>
-						Retry
-					</Button>
+					<Tooltip content="Retry">
+						<IconButton
+							size="sm"
+							variant="quiet"
+							label={`Retry ${name}`}
+							icon={<ArrowClockwise />}
+							onClick={() => onRetry(upload.id)}
+						/>
+					</Tooltip>
 				)}
-				<Button size="sm" variant="quiet" onClick={() => onDismiss(upload.id)}>
-					Dismiss
-				</Button>
+				<Tooltip content="Dismiss">
+					<IconButton
+						size="sm"
+						variant="quiet"
+						label={`Dismiss ${name}`}
+						icon={<X />}
+						onClick={() => onDismiss(upload.id)}
+					/>
+				</Tooltip>
 			</div>
 		);
 	}
@@ -36,9 +49,15 @@ export function UploadProgress({ upload, showName = true, onDismiss, onRetry }: 
 		return (
 			<div className="flex h-10 items-center gap-3 rounded-md border border-border bg-surface px-3">
 				<span className="min-w-0 flex-1 truncate text-sm text-fg">{name}</span>
-				<Button size="sm" variant="quiet" onClick={() => onDismiss(upload.id)}>
-					Remove
-				</Button>
+				<Tooltip content="Remove">
+					<IconButton
+						size="sm"
+						variant="quiet"
+						label={`Remove ${name}`}
+						icon={<X />}
+						onClick={() => onDismiss(upload.id)}
+					/>
+				</Tooltip>
 			</div>
 		);
 	}
