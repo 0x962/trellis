@@ -13,6 +13,7 @@ import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
 import type { IoCtx } from "../support.ts";
+import { archivedSessionRefusal } from "./archived.ts";
 import { prepareSessionRepository } from "./directory.ts";
 import { launchSession } from "./launchSession";
 import { holdSession } from "./operation.ts";
@@ -38,7 +39,8 @@ export const prepareStart = async (
 	const release = holdSession(ctx.home, session.runId);
 	let launching = false;
 	try {
-		await ctx.newTx((tx) => getSession(tx, session.id));
+		const stored = await ctx.newTx((tx) => getSession(tx, session.id));
+		if (stored.archivedAt !== null) throw archivedSessionRefusal();
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const previous = await deps.process(ctx, run.terminalId);
@@ -57,10 +59,17 @@ export const prepareStart = async (
 		if (previous !== null && previous.status !== "exited")
 			throw invalidInput("id", "Stop the prior process and confirm it exited before you start the session again.");
 		const fresh = run.projectId === null && run.terminalId === null;
+		// The runtime forgets an exited attempt when it starts again, and the
+		// guard above lets such an attempt through on the record of its
+		// output file. `agent_runs.session_id` holds the provider conversation
+		// of the last confirmed launch, and `launch.json`, which `deps.preset`
+		// reads, holds the harness. So a start after a restart of the runtime
+		// still resumes the saved conversation.
+		const stopped = previous === null ? run.terminalId !== null : previous.status === "exited";
 		const resume =
-			previous?.status === "exited" &&
-			previous.agent?.sessionId != null &&
-			previous.launch !== null &&
+			stopped &&
+			(previous?.agent?.sessionId ?? run.sessionId) != null &&
+			(previous === null || previous.launch !== null) &&
 			session.harness.preset !== "custom" &&
 			(await deps.preset(ctx.home, run.terminalId!)) === session.harness.preset;
 		const reservation = await ctx.newTx(async (tx) => {

@@ -68,7 +68,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 	const visible = expanded ? rows : rows.slice(0, limit);
 	return (
 		<div className={cx("flex flex-col gap-1", className)}>
-			<ul aria-label={label} className="flex flex-col gap-1">
+			<ul aria-label={label} className="-mx-2 flex flex-col gap-1">
 				{visible.map((row) => {
 					const pressed = row.key === selected;
 					return (
@@ -80,7 +80,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 								className={cx(
 									"grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-md px-2 py-1.5 text-left transition-colors duration-hover ease-out",
 									"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-									pressed ? "bg-accent-soft" : "hover:bg-elevated",
+									pressed ? "bg-accent-soft" : "hover:bg-band",
 								)}
 							>
 								<span className="flex min-w-0 items-center gap-2">
@@ -95,7 +95,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 									<span className="w-20 text-right text-sm text-fg tabular">{row.valueLabel}</span>
 									<span className="w-10 text-right text-xs text-fg-faint tabular">{Math.round(row.share * 100)}%</span>
 								</span>
-								<span aria-hidden="true" className="col-span-2 block h-1.5 w-full rounded-hairline bg-elevated">
+								<span aria-hidden="true" className="col-span-2 block h-1.5 w-full rounded-hairline bg-border">
 									<span
 										className={cx("block h-1.5 rounded-hairline", chartBgClass[row.tone])}
 										style={{ width: `${max > 0 ? Math.max(1, (100 * row.value) / max) : 0}%` }}
@@ -108,7 +108,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 				})}
 			</ul>
 			{rows.length > limit && (
-				<div className="flex justify-start px-2">
+				<div className="flex justify-start">
 					<Button size="sm" variant="quiet" onClick={() => setExpanded((value) => !value)}>
 						{expanded ? "Show fewer" : `Show all ${rows.length}`}
 					</Button>

@@ -166,6 +166,11 @@ export const errors = {
 		message: "The project is archived. Unarchive it before a change.",
 		data: z.undefined(),
 	},
+	SESSION_ARCHIVED: {
+		status: 409,
+		message: "An archived session runs no agent. Bring the session back first.",
+		data: z.undefined(),
+	},
 	PAGE_VERSION_CONFLICT: {
 		status: 412,
 		message: "The page changed since the revision you sent.",

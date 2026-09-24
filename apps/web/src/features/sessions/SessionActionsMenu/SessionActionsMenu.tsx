@@ -1,10 +1,21 @@
-import { DotsThree, FolderSimple, Info, PencilSimple, Trash, UserSwitch } from "@phosphor-icons/react";
+import {
+	Archive,
+	BoxArrowUp,
+	DotsThree,
+	FolderSimple,
+	Info,
+	PencilSimple,
+	Trash,
+	UserSwitch,
+} from "@phosphor-icons/react";
 import type { AgentRun, Session } from "@trellis/api";
 import { type ButtonVariant, IconButton, Menu, type MenuItem } from "@trellis/ui";
 import { useState } from "react";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { MoveSessionProjectDialog } from "../MoveSessionProjectDialog";
 import { SwitchAccountDialog } from "../SwitchAccountDialog";
+import { canArchiveSession, isSessionArchived } from "../sessionPane";
+import { useSessionArchive } from "../useSessionArchive";
 
 export type SessionActionsMenuProps = {
 	session?: Session;
@@ -40,7 +51,9 @@ export function SessionActionsMenu({
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
+	const archive = useSessionArchive();
 	const name = session?.name ?? run!.name;
+	const archived = isSessionArchived(session);
 	const items: MenuItem[] = [];
 	if (onSessionDetails) items.push({ label: "Session details", icon: <Info />, onSelect: onSessionDetails });
 	if (run) {
@@ -59,9 +72,23 @@ export function SessionActionsMenu({
 			onSelect: onRename,
 		});
 	}
+	if (canArchiveSession(session))
+		items.push(
+			archived
+				? {
+						label: "Unarchive",
+						icon: <BoxArrowUp />,
+						onSelect: () => archive.mutate({ session: session!, archived: false }),
+					}
+				: {
+						label: "Archive",
+						icon: <Archive />,
+						onSelect: () => archive.mutate({ session: session!, archived: true }),
+					},
+		);
 	if (session) {
 		items.push(
-			{ label: "Move to project…", icon: <FolderSimple />, onSelect: () => setMoveOpen(true) },
+			{ label: "Move to project…", icon: <FolderSimple />, disabled: archived, onSelect: () => setMoveOpen(true) },
 			{
 				label: "Delete…",
 				icon: <Trash />,

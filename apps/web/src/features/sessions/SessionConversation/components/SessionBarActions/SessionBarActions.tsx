@@ -3,7 +3,7 @@ import type { AgentRun, AgentWorkspaceSummary, Session } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { SessionActionsMenu } from "../../../SessionActionsMenu";
-import { canStartAgent } from "../../../sessionPane";
+import { canStartAgent, isSessionArchived } from "../../../sessionPane";
 import { SessionDetails } from "../SessionDetails";
 
 export type SessionBarActionsProps = {
@@ -78,7 +78,9 @@ export function SessionBarActions({
 					processing={busy}
 					disabled={
 						readOnly ||
-						(active ? run.runtime !== "native" || run.state === "starting" : !canStartAgent(run, session !== undefined))
+						(active
+							? run.runtime !== "native" || run.state === "starting"
+							: !canStartAgent(run, session !== undefined, isSessionArchived(session)))
 					}
 					onClick={active ? onPause : onStart}
 				/>

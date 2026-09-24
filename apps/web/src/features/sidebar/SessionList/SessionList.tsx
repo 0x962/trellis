@@ -4,10 +4,11 @@ import { Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { useSessionStatuses } from "../../agents/useSessionStatuses";
 import { SessionRow } from "../components/SessionRow";
+import { openSessions, sidebarSessionsQuery } from "../sidebarSessions";
 
 export function SessionList() {
 	const { orpc, queryClient } = useApp();
-	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
+	const sessionsOptions = sidebarSessionsQuery(orpc);
 	const { data, failureCount } = useQuery(sessionsOptions);
 	const statuses = useSessionStatuses();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
@@ -27,23 +28,22 @@ export function SessionList() {
 				)}
 			</nav>
 		);
-	if (data.length === 0) return <nav aria-label="Sessions" data-session-list="" />;
+	const rows = openSessions(data);
+	if (rows.length === 0) return <nav aria-label="Sessions" data-session-list="" />;
 	return (
 		<nav aria-label="Sessions" data-session-list="">
 			<ul className="flex flex-col gap-0.5">
-				{data
-					.filter((session) => session.projectId === null)
-					.map((session) => {
-						const status = statuses?.[session.id] ?? "unavailable";
-						return (
-							<SessionRow
-								key={session.id}
-								session={session}
-								status={status}
-								active={pathname === `/sessions/${session.id}`}
-							/>
-						);
-					})}
+				{rows.map((session) => {
+					const status = statuses?.[session.id] ?? "unavailable";
+					return (
+						<SessionRow
+							key={session.id}
+							session={session}
+							status={status}
+							active={pathname === `/sessions/${session.id}`}
+						/>
+					);
+				})}
 			</ul>
 		</nav>
 	);

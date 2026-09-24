@@ -3,20 +3,26 @@ import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@
 import {
 	Button,
 	CodeText,
+	cx,
 	Dialog,
+	formatDayTime,
 	IconButton,
 	ProviderIcon,
 	QuotaWindows,
 	Skeleton,
 	Tooltip,
-	toast,
-	writeClipboard,
 } from "@trellis/ui";
 import { useState } from "react";
+import { copyText } from "../../../../../../../lib/clipboard";
 import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
-const statusLabel: Record<UsageAccount["quota"]["status"], string> = {
-	ok: "Quota available",
+type QuotaStatus = UsageAccount["quota"]["status"];
+
+// An account with the status `ok` draws its meters and reads neither map
+// below, so neither one holds an entry for it.
+type StatusLine = Exclude<QuotaStatus, "ok">;
+
+const statusLabel: Record<StatusLine, string> = {
 	unlimited: "Unlimited",
 	metered: "Metered billing",
 	signed_out: "Sign in required",
@@ -25,19 +31,19 @@ const statusLabel: Record<UsageAccount["quota"]["status"], string> = {
 	unavailable: "Quota unavailable",
 };
 
-const needsLogin = new Set<UsageAccount["quota"]["status"]>(["signed_out", "expired"]);
-
-const formatObservedAt = (iso: string) =>
-	new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
-const copy = async (text: string) => {
-	try {
-		await writeClipboard(text);
-		toast("Login command copied");
-	} catch (error) {
-		toast(error instanceof Error ? error.message : "Could not copy the command.");
-	}
+// The color of a status line. Yellow marks a state that a person clears by
+// signing in again. Green marks a plan that bills no quota. Every other
+// state is a fact that nobody acts on, so it takes the muted text.
+const statusTextClass: Record<StatusLine, string> = {
+	unlimited: "text-success",
+	metered: "text-fg-muted",
+	signed_out: "text-warning",
+	stale: "text-fg-muted",
+	expired: "text-warning",
+	unavailable: "text-fg-muted",
 };
+
+const needsLogin = new Set<StatusLine>(["signed_out", "expired"]);
 
 export function UsageAccountCard({
 	account,
@@ -71,6 +77,9 @@ export function UsageAccountCard({
 	const [login, setLogin] = useState(false);
 	const value = row?.[metric] ?? 0;
 	const sharedValue = shared?.[metric] ?? 0;
+	const subtitle = `${harnessLabel[account.harness]}${
+		account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""
+	}`;
 	const quotaDetail =
 		account.quota.creditsBalance !== null
 			? `${formatUsd(account.quota.creditsBalance)} credits`
@@ -81,23 +90,24 @@ export function UsageAccountCard({
 		<article aria-label={account.name} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-4">
 			<div className="flex items-start justify-between gap-2">
 				<div className="min-w-0">
-					<h3 className="flex min-w-0 items-center gap-2 text-md font-medium text-fg">
+					<h3 className="flex min-w-0 items-center gap-2 text-base font-medium text-fg">
 						{harnessProvider[account.harness] && (
 							<ProviderIcon provider={harnessProvider[account.harness]!} className="text-fg-muted" />
 						)}
-						<span className="break-words">{account.name}</span>
+						<span className="truncate" title={account.name}>
+							{account.name}
+						</span>
 					</h3>
-					<p className="mt-1 text-xs text-fg-faint">
-						{harnessLabel[account.harness]}
-						{account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""}
+					<p className="mt-1 truncate text-xs text-fg-faint" title={subtitle}>
+						{subtitle}
 					</p>
 				</div>
-				<div className="flex shrink-0 flex-wrap justify-end gap-1">
+				<div className="flex shrink-0 justify-end gap-1">
 					{managed && (
 						<>
 							<Tooltip content="Make default">
 								<IconButton
-									label={`Make ${account.name} the default`}
+									label={`Make default for ${account.name}`}
 									disabled={busy || managed.isDefault}
 									onClick={onDefault}
 									icon={<Star weight={managed.isDefault ? "fill" : "regular"} />}
@@ -105,7 +115,7 @@ export function UsageAccountCard({
 							</Tooltip>
 							<Tooltip content="Rename account">
 								<IconButton
-									label={`Rename ${account.name}`}
+									label={`Rename account ${account.name}`}
 									disabled={busy}
 									onClick={onRename}
 									icon={<PencilSimple />}
@@ -124,20 +134,25 @@ export function UsageAccountCard({
 					<Tooltip content="Refresh quota">
 						<IconButton
 							label={`Refresh quota for ${account.name}`}
-							disabled={refreshing}
+							processing={refreshing}
 							onClick={onRefresh}
 							icon={<ArrowClockwise />}
 						/>
 					</Tooltip>
 					{managed && (
 						<Tooltip content="Remove account">
-							<IconButton label={`Remove ${account.name}`} disabled={busy} onClick={onRemove} icon={<Trash />} />
+							<IconButton
+								label={`Remove account ${account.name}`}
+								disabled={busy}
+								onClick={onRemove}
+								icon={<Trash />}
+							/>
 						</Tooltip>
 					)}
 				</div>
 			</div>
 			{account.quota.email && (
-				<p className="truncate text-sm text-fg-muted">
+				<p className="truncate text-xs text-fg-muted">
 					{account.quota.email}
 					{account.quota.plan ? ` · ${account.quota.plan}` : ""}
 				</p>
@@ -145,9 +160,9 @@ export function UsageAccountCard({
 			<div className="flex items-baseline justify-between gap-2">
 				<span className="text-xs text-fg-faint">{metric === "usd" ? "Cost in range" : "Tokens in range"}</span>
 				{pending ? (
-					<Skeleton width="w-16" height="h-4" />
+					<Skeleton width="w-16" height="h-6" />
 				) : (
-					<span className="text-md font-medium text-fg tabular">
+					<span className="text-lg font-semibold text-fg tabular">
 						{formatMetric(metric, value)}
 						<span className="ml-1 text-xs font-normal text-fg-faint">{formatShare(value, total)}</span>
 					</span>
@@ -155,7 +170,7 @@ export function UsageAccountCard({
 			</div>
 			{shared && sharedValue > 0 && (
 				<p className="text-xs text-fg-faint text-pretty">
-					{formatMetric(metric, sharedValue)} more is in a transcript directory this login shares with{" "}
+					{formatMetric(metric, sharedValue)} more is in a transcript directory this account shares with{" "}
 					{account.sharedWith.join(", ")}, so Trellis cannot split it between them.
 				</p>
 			)}
@@ -164,18 +179,18 @@ export function UsageAccountCard({
 					<QuotaWindows name={account.name} windows={account.quota.windows} />
 					{quotaDetail && <p className="text-xs text-fg-muted tabular">{quotaDetail}</p>}
 					{account.harness === "muse" && (
-						<p className="text-xs text-fg-faint tabular">Observed {formatObservedAt(account.quota.fetchedAt)}</p>
+						<p className="text-xs text-fg-faint tabular">Observed {formatDayTime(account.quota.fetchedAt)}</p>
 					)}
 				</>
 			) : account.quota.status === "unlimited" || account.quota.status === "metered" ? (
-				<p role="status" className="text-sm text-success">
+				<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
 					{statusLabel[account.quota.status]}
 					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
 					{quotaDetail ? ` · ${quotaDetail}` : ""}
 				</p>
 			) : needsLogin.has(account.quota.status) && account.loginCommand ? (
 				<div className="flex flex-col gap-2">
-					<p role="status" className="text-sm text-warning">
+					<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
 						{statusLabel[account.quota.status]}. Run this command on this machine, then refresh.
 					</p>
 					<div className="flex min-w-0 items-start gap-2">
@@ -184,20 +199,20 @@ export function UsageAccountCard({
 						</CodeText>
 						<Tooltip content="Copy login command">
 							<IconButton
-								label={`Copy the login command of ${account.name}`}
+								label={`Copy login command for ${account.name}`}
 								icon={<Copy />}
-								onClick={() => void copy(account.loginCommand!)}
+								onClick={() => void copyText(account.loginCommand!, "Login command copied")}
 							/>
 						</Tooltip>
 					</div>
 				</div>
 			) : (
-				<p role="status" className="text-sm text-fg-muted">
+				<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
 					{statusLabel[account.quota.status]}
 					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
 				</p>
 			)}
-			<CodeText className="break-all text-xs text-fg-faint">{account.profilePath}</CodeText>
+			<CodeText className="mt-auto break-all text-xs text-fg-faint">{account.profilePath}</CodeText>
 			<Dialog
 				open={login}
 				onOpenChange={setLogin}
@@ -207,7 +222,11 @@ export function UsageAccountCard({
 				<div className="flex min-w-0 items-start gap-2">
 					<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
 					<Tooltip content="Copy command">
-						<IconButton label="Copy login command" onClick={() => void copy(account.loginCommand!)} icon={<Copy />} />
+						<IconButton
+							label="Copy login command"
+							onClick={() => void copyText(account.loginCommand!, "Login command copied")}
+							icon={<Copy />}
+						/>
 					</Tooltip>
 				</div>
 				<div className="flex justify-end">

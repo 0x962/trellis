@@ -1,5 +1,9 @@
 export const formatPercent = (percent: number) => `${percent.toFixed(1)}%`;
 
+// The gridline labels of a history chart. The axis marks 0, 25, 50, 75
+// and 100, so the decimal is always a zero. This form drops it.
+export const formatAxisPercent = (percent: number) => `${Math.round(percent)}%`;
+
 export const formatUptime = (seconds: number) => {
 	const days = Math.floor(seconds / 86_400);
 	const hours = Math.floor((seconds % 86_400) / 3_600);

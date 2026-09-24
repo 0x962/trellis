@@ -10,6 +10,7 @@ import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
+import { ArchivedSessions } from "../../../ArchivedSessions";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
 import { ConnectionPanel } from "../ConnectionPanel";
@@ -118,6 +119,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					</Tooltip>
 				</div>
 				<SessionList />
+				<ArchivedSessions />
 				<div className="sidebar-section mt-3">
 					<h2>Projects</h2>
 					<Tooltip content="New project">
