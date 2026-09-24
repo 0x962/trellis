@@ -15,9 +15,9 @@ const ticket = ulid();
 const flow = ulid();
 const pull = ulid();
 
-const answered = async (): Promise<boolean> => {
+const answered = async (diffId = pull): Promise<boolean> => {
 	const found = await db.execute(
-		sql`SELECT ${flowAnsweredSql(sql`p`)} AS answered FROM pull_requests p WHERE p.id = ${pull}`,
+		sql`SELECT ${flowAnsweredSql(sql`p`)} AS answered FROM pull_requests p WHERE p.id = ${diffId}`,
 	);
 	return (found.rows[0] as { answered: boolean }).answered;
 };
@@ -25,13 +25,13 @@ const answered = async (): Promise<boolean> => {
 // Moves the pull request to a new commit, the way a push does.
 const push = (headSha: string) => db.execute(sql`UPDATE pull_requests SET head_sha = ${headSha} WHERE id = ${pull}`);
 
-const insertRun = (headSha: string, status: string) =>
+const insertRun = (headSha: string, status: string, diffId = pull) =>
 	db.execute(sql`INSERT INTO flow_executions (
 		id, flow_id, ticket_id, project_id, actor_kind, actor_name, request_id,
-		request, head_sha, doc, state, revision, created_at, updated_at
+		request, head_sha, doc, state, revision, created_at, updated_at, diff_id
 	) VALUES (
 		${ulid()}, ${flow}, ${ticket}, ${project}, 'agent', 'Builder', ${ulid()},
-		'{}', ${headSha}, ${{ flow: { slug: "review", name: "Review" } }}, ${{ status }}, 1, ${at}, ${at}
+		'{}', ${headSha}, ${{ flow: { slug: "review", name: "Review" } }}, ${{ status }}, 1, ${at}, ${at}, ${diffId}
 	)`);
 
 beforeAll(async () => {
@@ -68,8 +68,6 @@ test("asks for a run while the only run did not succeed", async () => {
 	expect(await answered()).toBe(false);
 });
 
-// The rule this ticket changed. The agent ran the flow once, then pushed
-// three more commits, and Trellis asks for no second run.
 test("keeps a succeeded run through three later commits", async () => {
 	await insertRun("commit1", "succeeded");
 	expect(await answered()).toBe(true);
@@ -87,4 +85,16 @@ test("keeps the agent's sentence through a later commit", async () => {
 	await push("commit5");
 
 	expect(await answered()).toBe(true);
+});
+
+test("a completed review applies only to its diff when a ticket has two diffs", async () => {
+	const other = ulid();
+	await insertRun("commit5", "succeeded");
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
+		VALUES (${other}, 'acme', 'app', 2, 'https://github.com/acme/app/pull/2', 'open', 'commit5', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket}, ${other}, 'manual', 'Builder', 'agent', ${at})`);
+	expect(await answered(other)).toBe(false);
+	await insertRun("commit5", "succeeded", other);
+	expect(await answered(other)).toBe(true);
 });

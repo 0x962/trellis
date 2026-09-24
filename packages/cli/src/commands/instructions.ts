@@ -1,13 +1,13 @@
+import { agentGuide } from "@trellis/api/agent-guide";
 import { defineCommand } from "citty";
 import { contextOf } from "../context.ts";
-import template from "../instructions.md" with { type: "text" };
 
 export default defineCommand({
-	meta: { name: "instructions", description: "Print the AGENTS.md block" },
+	meta: { name: "show", description: "Print the Trellis main guide" },
 	args: {
 		project: { type: "string", description: "Project key to put in the text" },
 	},
 	async run(context) {
-		contextOf(context).out.write(template.replaceAll("KEY", context.args.project ?? "KEY"));
+		contextOf(context).out.write(agentGuide({ "project.key": context.args.project ?? "None" }));
 	},
 });

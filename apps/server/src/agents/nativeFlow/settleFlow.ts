@@ -42,6 +42,7 @@ export function settleFlow(doc: FlowDoc, state: FlowExecution, now: number): Flo
 			if (step.state === "running" && step.deadlineAt !== null && now >= step.deadlineAt) {
 				step.state = "failed";
 				step.error = `Group ${node.title} reached its time limit (${node.minutes} min)`;
+				state.failureKind = "error";
 				changed = true;
 			}
 			if (step.state === "failed") {

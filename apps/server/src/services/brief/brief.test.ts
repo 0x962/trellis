@@ -20,64 +20,17 @@ const input = {
 	publicUrl: "http://127.0.0.1:4521",
 };
 
-test("an assignment names the ticket, the branch, and the trellis commands", () => {
-	expect(assignmentInstruction(input)).toBe(
-		[
-			"# OP-27: Bound the Operator message post",
-			"",
-			"- Project: OP",
-			"- Branch: trellis/op-27-01m2s1scg7ppywezh4b5m8ez4y",
-			"- URL: http://127.0.0.1:4521/t/OP-27",
-			"",
-			"## Description",
-			"",
-			"The post waits forever when the thread never answers.",
-			"",
-			"## Assignment",
-			"",
-			"Trellis is the ticket tracker on this machine. It assigned this ticket to you. Your worktree is on the branch named above.",
-			"Before you start, read the ticket with its pull requests and the project notes: trellis brief OP-27",
-			"If a UI task needs Vite, start a scratch Trellis server under `$TMPDIR/trellis-*`.",
-			"Set `TRELLIS_DEV_API` to that server.",
-			"Stop the scratch server before you finish.",
-			"Do not point Vite at the live host.",
-			"",
-			"## Protocol",
-			"",
-			"Work on the branch named above. Use the trellis CLI to report progress:",
-			"",
-			"- Start: trellis move OP-27 in-progress",
-			"- Open a normal pull request on GitHub and link it: trellis pr add OP-27 <url>.",
-			"  It waits in Trellis until you ask for review.",
-			"- When the work is complete and you want the person to review it, run: trellis ready <pr>",
-			'- Split the work: trellis sub OP-27 -t "..."',
-			"",
-			"Before you ask for a review, link your pull request. The ticket page and the reviewers see only a linked pull request.",
-			"",
-			"Before you end a turn, run trellis review list <pr-url>. Answer every review thread.",
-			"",
-			"When your work is ready for review, run: trellis move OP-27 agent-review",
-			"",
-			"Report what you did in your final message and in the pull request description. A person reads both.",
-			"",
-			"## Review comments",
-			"",
-			"Review comments for a pull request live in Trellis, not on GitHub. GitHub comments are for people.",
-			"",
-			"- Read the open review comments before you act on review feedback: trellis review list <pr-url>",
-			'- Reply to a review comment: trellis review reply <thread-id> --body "..."',
-			"- Resolve a review comment you addressed: trellis review resolve <thread-id>",
-			'- Post a review comment: trellis review add <pr-url> --path <file> --line <n> --body "..."',
-			"",
-			"Never post your review comments on GitHub.",
-		].join("\n"),
-	);
+test("an assignment carries the task and workspace without common platform rules", () => {
+	const text = assignmentInstruction(input);
+	expect(text).toContain(input.description.trim());
+	expect(text).toContain(`- Branch: ${input.branch}`);
+	expect(text).toContain(`- URL: ${input.publicUrl}/t/${input.identifier}`);
+	expect(text).not.toContain("## Protocol");
+	expect(text).not.toContain("## Review comments");
 });
 
-test("an assignment skips the description section of a ticket with no description", () => {
-	const text = assignmentInstruction({ ...input, description: "  \n" });
-	expect(text).not.toContain("## Description");
-	expect(text).toContain("- URL: http://127.0.0.1:4521/t/OP-27\n\n## Assignment");
+test("an empty ticket description has no description section", () => {
+	expect(assignmentInstruction({ ...input, description: "  \n" })).not.toContain("## Description");
 });
 
 // The fields of a ticket row the epic sections read. `waveId` is null
@@ -234,7 +187,7 @@ test("the results section lists the done tickets of each earlier wave with their
 	expect(resultsLines(grouped, "01J00000000000000000000032", outcomes)).toEqual([]);
 });
 
-test("the brief prints a stable contract and the two evidence lines above the chain", async () => {
+test("the brief prints stable task context without common review instructions", async () => {
 	const db = await openTestDb();
 	const rootId = ulid();
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
@@ -274,17 +227,14 @@ test("the brief prints a stable contract and the two evidence lines above the ch
 	const first = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const second = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const contractAt = first.markdown.indexOf("## Contract");
-	const evidenceAt = first.markdown.indexOf("## Evidence\n");
 	const chainAt = first.markdown.indexOf("## Chain");
 
 	expect(first.markdown).toBe(second.markdown);
 	expect(contractAt).toBeGreaterThan(first.markdown.indexOf("## Description"));
-	expect(evidenceAt).toBeGreaterThan(contractAt);
-	expect(chainAt).toBeGreaterThan(evidenceAt);
+	expect(chainAt).toBeGreaterThan(contractAt);
+	expect(first.markdown).not.toContain("## Evidence");
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
-	expect(first.markdown).toContain(
-		"## Evidence\n\nWrite the explanation with trellis summary write <pr>, and write the evidence document with trellis evidence write <pr> --body -.\nWhen the pull request adds or changes data models, include a mermaid `erDiagram` in the explanation. Show the added or changed tables, key fields with types, and relations to the models they touch. Mark new and changed parts.\ntrellis pr add and trellis ready <pr> exit with code 1 until the pull request has both, and they name the missing one with its command.\n\n## Chain",
-	);
+
 	expect(first.markdown).toContain(
 		"## Chain\n\n- Waits on:\n  - nothing\n- Ready: yes. No ticket holds this one back.\n- Releases:\n  - nothing",
 	);

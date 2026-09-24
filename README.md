@@ -43,10 +43,10 @@ bun install
 Run the install command one time from the clone:
 
 ```sh
-bun packages/cli/src/index.ts install
+bun packages/cli/src/index.ts host install
 ```
 
-`trellis install` does these steps:
+`trellis host install` does these steps:
 
 1. It builds the web app into `apps/web/dist`.
 2. It writes the `trellis` command to `~/.local/bin/trellis`. Add `~/.local/bin` to your `PATH`.
@@ -54,14 +54,14 @@ bun packages/cli/src/index.ts install
 4. It adds the `trellis` route to the gateway routes file.
 5. It loads the agent with `launchctl`, waits until `http://127.0.0.1:4521/api/health` answers, and prints the server URL.
 
-`--no-launchd` writes the files and loads nothing. `trellis uninstall` removes the agent and the command.
+`--no-launchd` writes the files and loads nothing. `trellis host uninstall` removes the agent and the command.
 
-`trellis gateway` on port 80 serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis install` sets the `trellis` entry and keeps the others, and `trellis uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
+`trellis host gateway start` on port 80 serves `http://trellis.localhost` when it reads the routes file `~/.config/localhost-gateway/routes.json`. The file maps each `*.localhost` name to a port, as in `{ "trellis": 4521 }`. `trellis host install` sets the `trellis` entry and keeps the others, and `trellis host uninstall` removes it. When no gateway answers for `trellis.localhost`, install prints `http://127.0.0.1:4521` and the path of the routes file.
 
 To run the server in the foreground and not as a launchd agent, run this command in a separate terminal:
 
 ```sh test background
-trellis serve
+trellis host serve
 ```
 
 ## Daily use
@@ -71,17 +71,17 @@ Open `http://127.0.0.1:4521`. With the optional gateway, open `http://trellis.lo
 Create a project and a ticket from the CLI:
 
 ```sh test
-trellis projects create --key TRL --name trellis
+trellis project create --key DEMO --name "Example project"
 ```
 
 ```sh test
-trellis create -p TRL -t "Write the README"
+trellis ticket create -p DEMO -t "Write the README"
 ```
 
 In a terminal, the CLI prints aligned text. When you pipe the output or pass `--json`, the CLI prints JSON:
 
 ```sh test
-trellis list --project TRL --json
+trellis ticket list --project DEMO --json
 ```
 
 ### The pages
@@ -125,7 +125,7 @@ The ticket page shows:
 - the run of the assigned agent, with a form that sends the agent a message
 - a properties rail with the status, the priority, the parent, and the agents of the ticket
 
-To link a pull request to the ticket, paste its URL on the ticket page or run `trellis pr add <ticket> <url>`. The first prompt of an assigned agent tells the agent to run that command.
+To link a diff to a ticket, paste its GitHub URL on the ticket page or run `trellis diff link <url> --ticket <ticket>`.
 
 ### The diff viewer
 
@@ -167,9 +167,15 @@ is `apps/web/src/lib/shortcuts.ts`.
 
 ## Agents
 
-Run `trellis instructions --project TRL` to print the workflow block below. Paste the block into the `AGENTS.md` file of the repository that the agent works in. The [agent setup guide](docs/agents.md) has the actor rules and the Done rule.
+Every agent receives the [shared Trellis guide](packages/api/src/agentGuide/template.md) at each start and resume.
+The guide includes the concepts, CLI reference, current task context, and resource rules.
+Project instructions come from project records and repository files.
+Read the [agent guide](docs/agents.md) for launch and assignment details.
 
-Every write sends the header `x-trellis-actor: <human|agent>:<name>`. The CLI sets the header. Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, `TRELLIS_ACTOR` or `--as` sets the actor. `trellis whoami` prints how the CLI chose the actor.
+Every write sends the header `x-trellis-actor: <human|agent>:<name>`.
+Trellis supplies `TRELLIS_ACTOR=agent:<run id>` to its agents.
+`TRELLIS_ACTOR` or `--as` selects the actor in other terminals.
+`trellis identity show` prints the selected actor and its source.
 
 ### Agent runs
 
@@ -189,14 +195,14 @@ closes the terminal, and keeps the workspace, the history, and the final output.
 
 | Command | Purpose |
 |---|---|
-| `trellis agents list` | List the runs. `--ticket` and `--project` narrow the list. |
-| `trellis agents start --ticket <ticket> --harness <preset>` | Assign a ticket agent. `--model` and `--effort` select its configuration. |
-| `trellis agents refresh <id>` | Read the terminal and update the state. |
-| `trellis agents stop <id>` | Stop the terminal and keep the workspace and the output. |
-| `trellis agents send <id> --text "..."` | Send a follow-up. `--text -` reads stdin. |
-| `trellis agents output <id>` | Print the terminal output of a run. |
+| `trellis agent list` | List the runs. `--ticket` and `--project` narrow the list. |
+| `trellis agent start --ticket <ticket> --harness <preset>` | Assign a ticket agent. `--model` and `--effort` select its configuration. |
+| `trellis agent refresh <id>` | Read the terminal and update the state. |
+| `trellis agent stop <id>` | Stop the terminal and keep the workspace and the output. |
+| `trellis agent send <id> --text "..."` | Send a follow-up. `--text -` reads stdin. |
+| `trellis agent output <id>` | Print the terminal output of a run. |
 
-`trellis agents start` exits 6 when the run answers in a state other than `running`, and writes the
+`trellis agent start` exits 6 when the run answers in a state other than `running`, and writes the
 reason to stderr.
 
 ### How trellis starts an agent
@@ -204,31 +210,32 @@ reason to stderr.
 Trellis reserves an execution attempt and creates a Git worktree for each ticket run.
 The local runtime owns the process and retains its output across a host restart.
 The Claude preset uses structured messages and explicit tool permissions. Other harness presets run through the native terminal.
-Trust the repository in project settings before the structured harness starts.
+Trellis trusts configured project repositories and directories required by assigned work.
 
 Use the same `--request-id` if a worker start has an uncertain result. Use a new identifier for intentional new work.
 
 The launch supplies `TRELLIS_URL`, `TRELLIS_ACTOR`, `TRELLIS_RUN_ID`, and `TRELLIS_ATTEMPT_TOKEN` to the agent.
 The actor is `agent:<run id>`. The attempt token prevents an old execution from changing the current run.
 
-## Ticket workflow (trellis)
+## Ticket workflow
 
-Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the `trellis` CLI. When you pipe its output, it prints JSON.
-Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `TRELLIS_ACTOR=agent:<name>`.
+The user assigns work through Trellis.
+Each project defines its ticket statuses.
+Read those statuses before you change a ticket:
 
-1. Pick work:        trellis list --project TRL --status todo
-2. Read the ticket:  trellis brief TRL-42
-3. Start:            trellis move TRL-42 in-progress
-4. Put the identifier in the branch name, for example TRL-42-dark-mode. Link the PR to the ticket: trellis pr add TRL-42 <url>
-5. Split work:       trellis sub TRL-42 -t "Write tests"
-6. Finish coding:    trellis move TRL-42 agent-review
-7. When the agent review passes: trellis move TRL-42 human-review
-Report what you did in your final message and in the pull request description.
-Never delete tickets.
+```sh
+trellis project status list DEMO
+trellis ticket brief DEMO-42
+trellis diff link https://github.com/example/repository/pull/42 --ticket DEMO-42
+```
 
-Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
-curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"TRL","title":"First"}'
-The OpenAPI spec is at http://127.0.0.1:4521/api/openapi.json.
+Use `trellis ticket set-status <ticket> <configured-status>` to change a ticket status.
+Use `trellis diff check <diff>` to inspect the requirements for review.
+Use `trellis diff set-state <diff> ready` to request local review after the required materials exist.
+The CLI also clears the GitHub draft flag before it records the local request.
+
+The HTTP API exposes the same records.
+The OpenAPI spec is at `http://127.0.0.1:4521/api/openapi.json`.
 
 ### Exit codes
 
@@ -245,63 +252,50 @@ A failed command writes one line to stderr: `error: <message> (<CODE>)`.
 | 6 | gh unavailable |
 | 7 | CLI newer than the server |
 
-## CLI cheat sheet
+## CLI reference
 
-Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`. `--url` defaults to `TRELLIS_URL`, then `http://127.0.0.1:4521`.
+Commands use singular nouns before actions: `trellis <object> <action>`.
+A child collection follows its parent: `trellis flow run list`.
+Run `trellis --help` or `trellis <object> --help` for the available commands.
+The [complete CLI reference](packages/api/src/agentGuide/template.md#trellis-cli) includes arguments, output rules, exit codes, and examples.
+`trellis guide show` prints that reference as part of the shared agent guide.
+
+Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
+`--url` defaults to `TRELLIS_URL`, then `http://127.0.0.1:4521`.
 
 | Command | Purpose |
 |---|---|
-| `trellis projects list` | List projects. |
-| `trellis projects create` | Create a project. |
-| `trellis projects show` | Show a project. |
-| `trellis projects move` | Move a project. |
-| `trellis projects repos` | Add or remove project repositories. |
-| `trellis statuses list` | List statuses. |
-| `trellis statuses add` | Add a status. |
-| `trellis statuses edit` | Edit a status. |
-| `trellis statuses rm` | Remove a status. |
-| `trellis labels list` | List the labels and the label groups of a project. |
-| `trellis labels add` | Add a label. `--group`, `--color`, and `--description` set its fields. |
-| `trellis labels edit` | Edit a label. `--group` moves it, and `--no-group` takes it out of its group. |
-| `trellis labels rm` | Delete a label and take it off every ticket. |
-| `trellis labels group-add` | Add a label group. |
-| `trellis labels group-edit` | Rename a label group. |
-| `trellis labels group-rm` | Delete a label group. `--labels` takes `ungroup` or `delete`. |
-| `trellis agents list` | List agent runs. |
-| `trellis agents start` | Assign a ticket agent. |
-| `trellis agents refresh` | Read the terminal and update the state. |
-| `trellis agents stop` | Stop an agent. |
-| `trellis agents send` | Send an agent a follow-up. |
-| `trellis agents output` | Print the terminal output of an agent. |
-| `trellis create` | Create a ticket. `--label` puts labels on it. |
-| `trellis show` | Show a ticket. |
-| `trellis list` | List tickets. `--label` and `--label-not` filter by label. |
-| `trellis edit` | Edit a ticket. `--add-label` and `--remove-label` change its labels. |
-| `trellis move` | Move a ticket to a status. |
-| `trellis attach` | Add an attachment. |
-| `trellis attachments` | List attachments. |
-| `trellis pr add` | Link a pull request. |
-| `trellis pr list` | List pull requests. |
-| `trellis pr rm` | Unlink a pull request. |
-| `trellis pr refresh` | Refresh pull request data. |
-| `trellis pr diff` | Show a pull request diff. |
-| `trellis sub` | Create a sub-ticket. `--label` puts labels on it. |
-| `trellis delete` | Delete a ticket. |
-| `trellis search` | Search tickets. |
-| `trellis activity` | List ticket activity. |
-| `trellis brief` | Print an agent brief. |
-| `trellis watch` | Stream events. |
-| `trellis open` | Print or open a ticket URL. |
-| `trellis whoami` | Show how the CLI chose the actor. |
-| `trellis instructions` | Print the `AGENTS.md` block. `--project` supplies the project key. |
-| `trellis status` | Show server status. |
-| `trellis logs` | Show server logs. |
-| `trellis serve` | Start the server. |
-| `trellis install` | Install the local service. |
-| `trellis uninstall` | Remove the local service. |
-| `trellis backup` | Create a backup. |
-| `trellis restore` | Restore a backup. |
-| `trellis export` | Stream all data as JSON. |
+| `trellis project list` | List projects. |
+| `trellis project status list <project>` | Read the configured statuses. |
+| `trellis project label list <project>` | Read labels and label groups. |
+| `trellis project note list <project>` | Read project instructions and notes. |
+| `trellis ticket list --project <project>` | List tickets. |
+| `trellis ticket show <ticket>` | Read a ticket. |
+| `trellis ticket create --project <project> --title "..."` | Create a ticket. |
+| `trellis ticket create --project <project> --parent <ticket> --title "..."` | Create a sub-ticket. |
+| `trellis ticket set-status <ticket> <status>` | Use a configured project status. |
+| `trellis ticket brief <ticket>` | Read current ticket context. |
+| `trellis epic status show <project/epic>` | Read epic progress. |
+| `trellis wave list <project/epic>` | Read the waves of an epic. |
+| `trellis resource list --epic <project/epic>` | Read epic resources. |
+| `trellis diff list --project <project>` | Read diffs known to Trellis. |
+| `trellis diff link <url> --ticket <ticket>` | Link a GitHub pull request. |
+| `trellis diff summary write <diff> --headline "..." --why "..." --watch "..."` | Record the explanation of a diff. |
+| `trellis diff evidence write <diff> --body <path>` | Record evidence for a diff. |
+| `trellis diff comment list <diff>` | Read local review comments. |
+| `trellis diff check <diff>` | Inspect all review requirements. |
+| `trellis diff set-state <diff> ready` | Request local review. |
+| `trellis flow start <flow> --diff <diff>` | Start a flow or return its existing run. |
+| `trellis flow run list --diff <diff>` | Read saved runs across commits. |
+| `trellis agent list` | List agent runs. |
+| `trellis session list` | List sessions. |
+| `trellis activity list <ticket>` | Read ticket activity. |
+| `trellis identity show` | Read the actor and its source. |
+| `trellis host status show` | Read host status. |
+| `trellis host log list` | Read host logs. |
+| `trellis data backup` | Create a backup. |
+
+Earlier command names remain available for saved agent conversations and scripts.
 
 ## Settings
 
@@ -343,12 +337,12 @@ By default, the server listens on `127.0.0.1`, so a phone cannot reach it.
 
 Set `TRELLIS_AUTH_TOKEN` before you expose the standalone server to your network. Clients must send that token as a bearer credential.
 
-To open the server to your network, run `trellis install --host 0.0.0.0`. `trellis serve --host` and `TRELLIS_HOST` do the same.
+To open the server to your network, run `trellis host install --host 0.0.0.0`. `trellis host serve --host` and `TRELLIS_HOST` do the same.
 
-The server answers a request only when its Host header names an IP address, `localhost`, a `*.localhost` name, or the `TRELLIS_HOST` name. A proxy keeps its own hostname in the Host header. To allow a proxy hostname, add it to `TRELLIS_ALLOWED_HOSTS`, a comma-separated list. `trellis install --allow-host <name>` and `trellis serve --allow-host <name>` set the list. Repeat the flag for each name. For Tailscale Serve, which forwards `https://<machine>.<tailnet>.ts.net` to `127.0.0.1:4521`:
+The server answers a request only when its Host header names an IP address, `localhost`, a `*.localhost` name, or the `TRELLIS_HOST` name. A proxy keeps its own hostname in the Host header. To allow a proxy hostname, add it to `TRELLIS_ALLOWED_HOSTS`, a comma-separated list. `trellis host install --allow-host <name>` and `trellis host serve --allow-host <name>` set the list. Repeat the flag for each name. For Tailscale Serve, which forwards `https://<machine>.<tailnet>.ts.net` to `127.0.0.1:4521`:
 
 ```sh
-trellis install --allow-host my-laptop.tail1a2b3c.ts.net
+trellis host install --allow-host my-laptop.tail1a2b3c.ts.net
 ```
 
 To pair the phone:

@@ -22,24 +22,24 @@ const readiness = (
 
 test("names each missing part with its command", () => {
 	expect(pullRequestReadyText(readiness(["explanation", "evidence"]))).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis ready 131
-  MISSING  explanation  trellis summary write 131 --headline "..." --why - --watch "..."
-  MISSING  evidence     trellis evidence write 131 --body -
+		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
+  MISSING  explanation  trellis diff summary write 131 --headline "..." --why - --watch "..."
+  MISSING  evidence     trellis diff evidence write 131 --body -
 `,
 	);
 });
 
 test("names only the evidence document when the explanation exists", () => {
 	expect(pullRequestReadyText(readiness(["evidence"]))).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis ready 131
-  MISSING  evidence  trellis evidence write 131 --body -
+		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
+  MISSING  evidence  trellis diff evidence write 131 --body -
 `,
 	);
 });
 
 test("names the missing data model diagram and tells the agent how to add it", () => {
 	expect(pullRequestReadyText(readiness(["data-model-diagram"], true))).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis ready 131
+		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
   MISSING  data model diagram  add a \`\`\`mermaid erDiagram\`\`\` block to the explanation or evidence document
 `,
 	);
@@ -58,13 +58,13 @@ test("names each flow with the command that runs it when no flow ran", () => {
 	};
 
 	expect(pullRequestReadyText(result)).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis ready 131
+		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
   MISSING  flow run  no flow ran for this pull request
     Pick the flows that fit this change and run each one:
-    review  Read the diff.  trellis flows run 131 --flow review
+    review  Read the diff.  trellis flow start review --diff 131
     A flow that does not fit this change is answered in one step. Write the reason in the
     evidence document, then record it here:
-      trellis ready 131 --flow-does-not-apply "<reason>"
+      trellis diff set-state 131 ready --flow-does-not-apply "<reason>"
 `,
 	);
 });
@@ -91,7 +91,7 @@ test("names what the pull request still waits for after the agent asked for revi
 
 test("tells the agent that a linked pull request waits until trellis ready", () => {
 	expect(pullRequestWaitingText(131)).toBe(
-		"#131 waits in Trellis. When the work is complete and you want the person to review it, run: trellis ready 131\n",
+		"#131 waits in Trellis. When the work is complete and you want the person to review it, run: trellis diff set-state 131 ready\n",
 	);
 });
 
@@ -195,7 +195,7 @@ test("takes a succeeded run as the flow run", async () => {
 	);
 });
 
-// One flow run answers for the whole pull request. The agent pushed three
+// One flow run answers for the whole diff. The agent pushed three
 // more commits after the run, and Trellis asks for no second run.
 test("keeps the flow run after three later commits", async () => {
 	const result = await pullRequestReadiness(

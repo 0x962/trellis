@@ -24,10 +24,14 @@ const projectClause = async (ctx: IoCtx, tx: Tx, ref: string): Promise<SQL> => {
 			WHERE r.project_id = ${project.id} AND r.owner = p.owner AND r.repo = p.repo))`;
 };
 
-// Without a project: every pull request kept for a local review. With a
-// project: every pull request of that project, retained or not.
-export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string }) {
-	const where = input.project === undefined ? sql`p.review_retained` : await projectClause(ctx, tx, input.project);
+// A project includes both linked changes and changes in its configured repositories.
+export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: boolean }) {
+	const where =
+		input.project === undefined
+			? input.all
+				? sql`true`
+				: sql`p.review_retained`
+			: await projectClause(ctx, tx, input.project);
 	const found = await rows<z.infer<typeof ReviewPrSchema> & ReviewPrFacts>(
 		tx,
 		sql`SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state, p.mergeable,

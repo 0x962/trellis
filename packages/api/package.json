@@ -12,6 +12,7 @@
 		"./contract": "./src/contract/index.ts",
 		"./schemas": "./src/schemas/index.ts",
 		"./models": "./src/models/models.ts",
+		"./agent-guide": "./src/agentGuide/agentGuide.ts",
 		"./time": "./src/time.ts"
 	},
 	"scripts": {

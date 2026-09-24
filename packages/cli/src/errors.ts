@@ -82,15 +82,6 @@ export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No
 export const fileUnreadable = (path: string, reason: string) =>
 	new CliFailure("USAGE", 2, `cannot read ${path}: ${reason}`);
 
-// HAND_OVER_REFUSED and PR_NOT_READY come from this CLI, so exitCodes has no
-// row for them. Exit code 1 reports a refused operation, not invalid input.
-export const handOverRefused = (ticket: string) =>
-	new CliFailure(
-		"HAND_OVER_REFUSED",
-		1,
-		`An agent moves ${ticket} to human-review after each open pull request passes trellis ready.`,
-	);
-
 const partWords: Record<ReadinessPart, string> = {
 	"data-model-diagram": "the data model diagram",
 	"flow-run": "a flow run",
@@ -102,7 +93,7 @@ export const pullRequestNotReady = (number: number, missing: ReadinessPart[]) =>
 	new CliFailure(
 		"PR_NOT_READY",
 		1,
-		`#${number} needs ${missing.map((part) => partWords[part]).join(" and ")}. Write each missing part with the command above, then run: trellis ready ${number}`,
+		`#${number} needs ${missing.map((part) => partWords[part]).join(" and ")}. Write each missing part with the command above, then run: trellis diff set-state ${number} ready`,
 	);
 
 export const unreachable = (url: string) =>

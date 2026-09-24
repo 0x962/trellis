@@ -34,16 +34,28 @@ const inside = (path: string, directory: string) => path === directory || path.s
 //
 // A run refers to its worktree through `workspace_id`. A restart gives the
 // same worktree to a run with a new id, so the run named by the directory
-// alone proves nothing about who works there. The worktree stays while any
-// run that refers to it is open, works a ticket that is not done or
-// canceled, or is a scratch session (a person deletes those through the
-// session), and while a process the runtime reports as running belongs to
-// one of those runs or has its working directory inside the worktree.
-export const workspaceRemovable = (directory: string, runs: SweepRun[], running: RunningProcess[]) => {
+// alone proves nothing about who works there. An assigned agent on a finished
+// ticket must have a confirmed process exit before its worktree can go.
+// A person owns a session workspace and deletes it through the session.
+export const workspaceRemovable = (
+	directory: string,
+	runs: SweepRun[],
+	running: RunningProcess[],
+	stopped: ReadonlySet<string> = new Set(),
+	heldPaths: readonly string[] = [],
+) => {
 	const runId = basename(dirname(directory));
 	const owners = runs.filter((run) => run.workspaceId === directory || run.id === runId);
-	if (owners.some((run) => run.kind === "session" || run.open || !finishedCategories.has(run.ticketCategory ?? "")))
+	if (
+		owners.some(
+			(run) =>
+				run.kind === "session" ||
+				!finishedCategories.has(run.ticketCategory ?? "") ||
+				(run.open && (run.terminalId === null || !stopped.has(run.terminalId))),
+		)
+	)
 		return false;
+	if (heldPaths.some((path) => inside(path, directory))) return false;
 	const terminals = new Set(owners.map((run) => run.terminalId));
 	return !running.some(
 		(process) => terminals.has(process.id) || (process.cwd !== null && inside(process.cwd, directory)),

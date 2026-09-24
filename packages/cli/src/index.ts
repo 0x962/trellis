@@ -5,6 +5,7 @@ import { type ArgsDef, type CommandDef, defineCommand, renderUsage, runCommand }
 import apiPkg from "../../api/package.json" with { type: "json" };
 import cliPkg from "../package.json" with { type: "json" };
 import { type ActorResolution, actorHint, resolveActor } from "./actor.ts";
+import { commandTree } from "./commandTree/commandTree.ts";
 import type { CliContext } from "./context.ts";
 import { desktopConnection } from "./desktopConnection/desktopConnection.ts";
 import { CliFailure, exitCodeFor, formatError, formatFailure, usageError } from "./errors.ts";
@@ -70,7 +71,7 @@ const description = "A local ticket tracker for agent-driven work";
 export const main = defineCommand({
 	meta: { name: "trellis", version: cliPkg.version, description },
 	args: globalArgs,
-	subCommands: Object.fromEntries(Object.entries(verbs).map(([name, verb]) => [name, verb.load])),
+	subCommands: Object.fromEntries(Object.entries(commandTree).map(([name, verb]) => [name, verb.load])),
 });
 
 type Globals = {
@@ -126,8 +127,8 @@ export const splitGlobals = (argv: string[], valued: Set<string> = new Set()): G
 };
 
 const rootUsage = (): string => {
-	const width = Math.max(...Object.keys(verbs).map((name) => name.length));
-	const commands = Object.entries(verbs).map(([name, verb]) => `  ${name.padEnd(width)}  ${verb.description}`);
+	const width = Math.max(...Object.keys(commandTree).map((name) => name.length));
+	const commands = Object.entries(commandTree).map(([name, verb]) => `  ${name.padEnd(width)}  ${verb.description}`);
 	const options = Object.entries(globalArgs).map(([name, arg]) => `  --${name.padEnd(8)}  ${arg.description}`);
 	return [
 		`${description} (trellis v${cliPkg.version})`,
@@ -165,7 +166,7 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 	} catch (error) {
 		return report(error, deps.stderr, false);
 	}
-	const [verbName, ...rest] = globals.rest;
+	const [verbName] = globals.rest;
 	if (verbName === undefined) {
 		if (globals.help) {
 			deps.stdout.write(`${rootUsage()}\n`);
@@ -174,27 +175,28 @@ export const run = async (argv: string[], deps: Deps): Promise<number> => {
 		deps.stderr.write(`${rootUsage()}\n`);
 		return 2;
 	}
-	const verb = verbs[verbName];
+	const legacyActivity = verbName === "activity" && globals.rest[1] !== undefined && globals.rest[1] !== "list";
+	const verb = legacyActivity ? verbs.activity : (commandTree[verbName] ?? verbs[verbName]);
 	if (verb === undefined) return usageLine(deps.stderr, `unknown command ${verbName}; run trellis --help`);
 	let command = await verb.load();
 	let parent: CommandDef = { meta: { name: "trellis" } };
 	let usage = `trellis ${verbName}`;
-	// The tokens of `argv` that name the verb and its subverb. The command
-	// takes everything after them.
+	// Each command group consumes one token before the leaf command receives its arguments.
 	let named = 1;
-	const subs = await subCommandsOf(command);
-	if (subs !== undefined) {
-		const subName = rest[0];
+	for (;;) {
+		const subs = await subCommandsOf(command);
+		if (subs === undefined) break;
+		const subName = globals.rest[named];
 		const sub = subName === undefined ? undefined : subs[subName];
 		if (sub === undefined && !globals.help) {
-			return usageLine(deps.stderr, `${verbName} needs one of ${Object.keys(subs).join(", ")}`);
+			return usageLine(deps.stderr, `${usage} needs one of ${Object.keys(subs).join(", ")}`);
 		}
-		if (sub !== undefined) {
-			parent = { meta: { name: usage, description: verb.description } };
-			usage = `${usage} ${subName}`;
-			command = sub;
-			named = 2;
-		}
+		if (sub === undefined) break;
+		parent = { meta: { name: usage, description: verb.description } };
+		usage = `${usage} ${subName}`;
+		const meta = await (typeof sub.meta === "function" ? sub.meta() : sub.meta);
+		command = { ...sub, meta: { ...meta, name: subName } };
+		named += 1;
 	}
 	// The command is known, so its own flags are known. Split again: a global
 	// flag spelling that follows one of them is its value, not a global flag.

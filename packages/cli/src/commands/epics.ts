@@ -8,11 +8,11 @@ import {
 	type TicketSummary,
 	type WaveSummary,
 } from "@trellis/api";
+import { agentGuide } from "@trellis/api/agent-guide";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText } from "../context.ts";
-import template from "../instructions.md" with { type: "text" };
 import {
 	cell,
 	heading,
@@ -164,7 +164,7 @@ const show = defineCommand({
 const guide = defineCommand({
 	meta: { name: "guide", description: "Print how to plan an epic: fronts, waves, and dependencies" },
 	run(context) {
-		contextOf(context).out.write(planGuideText(template));
+		contextOf(context).out.write(planGuideText(agentGuide()));
 	},
 });
 
