@@ -81,4 +81,3 @@ test("the words count what is missing", () => {
 	expect(reviewGapText({ kind: "not-asked", count: 1 })).toBe("the agent has not asked for review");
 	expect(reviewGapText({ kind: "conflict", count: 1 })).toBe("the pull request conflicts with its base branch");
 });
-
