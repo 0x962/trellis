@@ -75,8 +75,8 @@ An unconfirmed process prevents a successful stop.
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
 Its private Unix socket uses protocol 12. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
-The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than five idle minutes.
-The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the five-minute clock. Working agents and custom terminals stay active.
+The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
+The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
 The runtime keeps idle attempt records on disk until a successful resume, explicit stop, or session deletion releases them. Other unsubscribed exited records remain for up to seven days, with a limit of 500. It caches eight records on demand.
 Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.

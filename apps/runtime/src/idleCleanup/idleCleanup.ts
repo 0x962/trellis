@@ -1,6 +1,6 @@
 import type { SessionRecord } from "../sessionRecord.ts";
 
-const idleTimeoutMs = 5 * 60 * 1000;
+const idleTimeoutMs = 30 * 60 * 1000;
 
 export function expireIdleSessions(
 	records: Iterable<SessionRecord>,

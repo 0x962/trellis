@@ -7,6 +7,8 @@ import { inspectProcess } from "../inspectProcess.ts";
 import { SessionStore } from "../sessionStore.ts";
 
 const home = mkdtempSync(join(tmpdir(), "trellis-idle-process-test-"));
+const underIdleTimeoutMs = 5 * 60 * 1000;
+const idleTimeoutMs = 30 * 60 * 1000;
 const store = new SessionStore(home, "test");
 let restored: SessionStore | undefined;
 try {
@@ -40,10 +42,11 @@ try {
 		event: { kind: "idle", outcome: "completed", result: "Saved answer" },
 	});
 	let idleAt = Date.parse(store.inspect(parent.id).activity!.updatedAt);
-	store.expireIdle(idleAt + 5 * 60 * 1000);
+	store.expireIdle(idleAt + underIdleTimeoutMs);
 	assert.equal(store.inspect(parent.id).status, "running");
 	store.registerNativeDelivery({ id: parent.id, token: "token", messageId: "queued", promptDigest: "digest" });
-	store.expireIdle(idleAt + 10 * 60 * 1000);
+	// registerNativeDelivery records an unread message. expireIdleSessions keeps the process active until the provider acknowledges that message.
+	store.expireIdle(idleAt + idleTimeoutMs + 1);
 	assert.equal(store.inspect(parent.id).status, "running");
 	store.observe({ id: parent.id, token: "token", event: { kind: "prompt", prompt: "trellis-message:queued\nNext" } });
 	store.observe({
@@ -52,7 +55,9 @@ try {
 		event: { kind: "idle", outcome: "completed", result: "Saved answer" },
 	});
 	idleAt = Date.parse(store.inspect(parent.id).activity!.updatedAt);
-	store.expireIdle(idleAt + 5 * 60 * 1000 + 1);
+	store.expireIdle(idleAt + idleTimeoutMs);
+	assert.equal(store.inspect(parent.id).status, "running");
+	store.expireIdle(idleAt + idleTimeoutMs + 1);
 	assert.throws(
 		() =>
 			store.registerNativeDelivery({ id: parent.id, token: "token", messageId: "late-native", promptDigest: "digest" }),
