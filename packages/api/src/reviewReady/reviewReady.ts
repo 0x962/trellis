@@ -62,16 +62,22 @@ export const reviewGaps = (facts: ReviewReadyFacts): ReviewGap[] => {
 // does not compute the rule again.
 export const readyForReview = (pr: { reviewGaps: ReviewGap[] }): boolean => pr.reviewGaps.length === 0;
 
-// True while the agent has not run `trellis ready`. GitHub takes no review
-// then. This is one part of the rule, not the whole of it: a pull request
-// the agent did ask to review can still wait for a check or a finding.
+// True when the agent set the local review state of the pull request to
+// `ready`. The `not-asked` gap is the only place a row carries that stored
+// flag, so this reads it back.
+//
+// This answers one question: did the agent hand the pull request to the
+// person? A failed check, a pending check, an open finding and a conflict
+// are separate facts, and none of them clears the flag. The pull request
+// glyph, the state word of the diffs page and the state word of the CLI
+// epic row all draw from this one answer, so they say the same thing.
 export const askedForReview = (pr: { reviewGaps: ReviewGap[] }): boolean =>
 	!pr.reviewGaps.some((gap) => gap.kind === "not-asked");
 
 const checkWord = (count: number) => (count === 1 ? "check" : "checks");
 
-// The plain words for one missing part. The glyph tooltip shows the first
-// one, and the pull request sheet shows the whole list.
+// The plain words for one missing part. `trellis ready` prints one line per
+// part from these words.
 export const reviewGapText = (gap: ReviewGap): string => {
 	if (gap.kind === "not-asked") return "the agent has not asked for review";
 	if (gap.kind === "explanation") return "no explanation for this commit";
@@ -81,12 +87,4 @@ export const reviewGapText = (gap: ReviewGap): string => {
 	if (gap.kind === "checks-pending") return `${gap.count} ${checkWord(gap.count)} pending`;
 	if (gap.kind === "findings") return `${gap.count} review ${gap.count === 1 ? "finding" : "findings"} open`;
 	return "the pull request conflicts with its base branch";
-};
-
-// The first part a pull request still needs, in plain words, or null when it
-// needs none. One line of a tooltip holds one part, and the caller that draws
-// the glyph puts "Not ready for review" in front of it.
-export const firstReviewGapText = (pr: { reviewGaps: ReviewGap[] }): string | null => {
-	const first = pr.reviewGaps[0];
-	return first === undefined ? null : reviewGapText(first);
 };

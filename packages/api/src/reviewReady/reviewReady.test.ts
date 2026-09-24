@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { firstReviewGapText, type ReviewReadyFacts, readyForReview, reviewGaps, reviewGapText } from "./reviewReady.ts";
+import { askedForReview, type ReviewReadyFacts, readyForReview, reviewGaps, reviewGapText } from "./reviewReady.ts";
 
 // A pull request that holds every part. Each test takes this away one fact
 // at a time, which is what happens to a real pull request after a push, a
@@ -21,7 +21,6 @@ const kinds = (facts: Partial<ReviewReadyFacts>) => reviewGaps({ ...ready, ...fa
 test("a pull request with every part is ready for review", () => {
 	expect(reviewGaps(ready)).toEqual([]);
 	expect(readyForReview({ reviewGaps: reviewGaps(ready) })).toBe(true);
-	expect(firstReviewGapText({ reviewGaps: reviewGaps(ready) })).toBeNull();
 });
 
 test("each missing part takes the pull request back to not ready", () => {
@@ -39,6 +38,22 @@ test("the pull request is ready again once the fact holds", () => {
 	const broken = { ...ready, pendingChecks: 2 };
 	expect(readyForReview({ reviewGaps: reviewGaps(broken) })).toBe(false);
 	expect(readyForReview({ reviewGaps: reviewGaps({ ...broken, pendingChecks: 0 }) })).toBe(true);
+});
+
+// The pull request glyph, the state word of the diffs page and the state
+// word of the CLI epic row all read this one answer.
+test("only the local review state answers whether the agent asked for review", () => {
+	const asked = (facts: Partial<ReviewReadyFacts>) =>
+		askedForReview({ reviewGaps: reviewGaps({ ...ready, ...facts }) });
+
+	expect(asked({})).toBe(true);
+	expect(asked({ failedChecks: 1 })).toBe(true);
+	expect(asked({ pendingChecks: 2 })).toBe(true);
+	expect(asked({ openFindings: 3 })).toBe(true);
+	expect(asked({ mergeable: "conflicting" })).toBe(true);
+	expect(asked({ hasEvidence: false, flowAnswered: false })).toBe(true);
+	expect(asked({ localState: "not-ready" })).toBe(false);
+	expect(asked({ localState: "not-ready", failedChecks: 0, pendingChecks: 0 })).toBe(false);
 });
 
 test("a pull request that is not open needs nothing", () => {
@@ -67,7 +82,3 @@ test("the words count what is missing", () => {
 	expect(reviewGapText({ kind: "conflict", count: 1 })).toBe("the pull request conflicts with its base branch");
 });
 
-test("the glyph reads the first missing part", () => {
-	const gaps = reviewGaps({ ...ready, pendingChecks: 2, openFindings: 1 });
-	expect(firstReviewGapText({ reviewGaps: gaps })).toBe("2 checks pending");
-});

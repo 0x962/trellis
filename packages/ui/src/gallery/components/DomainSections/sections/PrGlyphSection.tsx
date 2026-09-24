@@ -5,29 +5,29 @@ export function PrGlyphSection() {
 	return (
 		<Section
 			name="PrGlyph"
-			note="the pull request states and the review readiness; the medium size, then the small size"
+			note="the pull request states and the local review flag; the medium size, then the small size"
 		>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<PrGlyph state="open" isQueued={false} readyForReview /> Ready for review
+				<PrGlyph state="open" isQueued={false} askedForReview /> Ready for review
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<PrGlyph state="open" isQueued={false} readyForReview={false} reason="2 checks pending" /> Not ready for review
+				<PrGlyph state="open" isQueued={false} askedForReview={false} /> Not ready for review
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<PrGlyph state="open" isQueued readyForReview /> Queued
+				<PrGlyph state="open" isQueued askedForReview /> Queued
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<PrGlyph state="merged" isQueued={false} readyForReview /> Merged
+				<PrGlyph state="merged" isQueued={false} askedForReview /> Merged
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<PrGlyph state="closed" isQueued={false} readyForReview /> Closed
+				<PrGlyph state="closed" isQueued={false} askedForReview /> Closed
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<PrGlyph state="open" isQueued={false} readyForReview size="sm" />
-				<PrGlyph state="open" isQueued={false} readyForReview={false} reason="no evidence document" size="sm" />
-				<PrGlyph state="open" isQueued readyForReview size="sm" />
-				<PrGlyph state="merged" isQueued={false} readyForReview size="sm" />
-				<PrGlyph state="closed" isQueued={false} readyForReview size="sm" />
+				<PrGlyph state="open" isQueued={false} askedForReview size="sm" />
+				<PrGlyph state="open" isQueued={false} askedForReview={false} size="sm" />
+				<PrGlyph state="open" isQueued askedForReview size="sm" />
+				<PrGlyph state="merged" isQueued={false} askedForReview size="sm" />
+				<PrGlyph state="closed" isQueued={false} askedForReview size="sm" />
 				In a table row
 			</span>
 		</Section>

@@ -120,21 +120,15 @@ describe("AgentLine", () => {
 		expect(html).not.toContain("left-[60px]");
 	});
 
-	test("runs the rule of the ticket through the line when a merged pull request follows it", () => {
+	// Every pull request of the ticket stands above this line, so the rule of
+	// the ticket has nothing left to reach and stops at the last pull request.
+	test("draws the border of the group and no rule of the ticket", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={ticketAgentLine("crisp-fjord: I rebased.")} top={0} last={false} depth={2} render={render} />,
+			<AgentLine line={ticketAgentLine("crisp-fjord: I rebased.")} top={0} last depth={2} render={render} />,
 		);
 
-		expect(html).toContain("left-[84px]");
-		expect(html).toContain("left-[60px]");
-	});
-
-	test("leaves the border of the group to the pull request lines that follow it", () => {
-		const html = renderToStaticMarkup(
-			<AgentLine line={ticketAgentLine("crisp-fjord: I rebased.")} top={0} last={false} depth={2} render={render} />,
-		);
-
-		expect(html).not.toContain("border-b border-border");
+		expect(html).toContain("border-b border-border");
+		expect(html).not.toContain("left-[60px]");
 	});
 
 	test("ends its own branch with a corner, whatever follows it", () => {

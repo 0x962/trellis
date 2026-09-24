@@ -1,4 +1,4 @@
-import { readyForReview } from "../reviewReady/reviewReady.ts";
+import { askedForReview } from "../reviewReady/reviewReady.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 import { waitingFor } from "../waiting/waiting.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
@@ -16,10 +16,11 @@ const countWord = (count: number, singular: string, plural: string): string =>
 
 // Queued and not ready for review are open states. A terminal state takes
 // precedence over either one, so the word agrees with the glyph on the web
-// row.
+// row. `not ready` says that the agent has not asked for review, and it says
+// nothing about the checks: the check counts follow in their own facts.
 const stateWord = (pr: TicketPr): string => {
 	if (pr.state === "open" && pr.isQueued) return "queued";
-	return pr.state === "open" && !readyForReview(pr) ? "not ready" : pr.state;
+	return pr.state === "open" && !askedForReview(pr) ? "not ready" : pr.state;
 };
 
 // `stackedOn` holds the pull request whose head branch is the base branch of

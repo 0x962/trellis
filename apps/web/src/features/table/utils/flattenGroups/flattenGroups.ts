@@ -45,16 +45,17 @@ export type TableItem =
 			// tree rule under its status icon and draws no bottom border.
 			hasChildLines: boolean;
 	  }
-	// `last` is true on the final child line of the ticket. That line ends
-	// the tree rule of the ticket with a corner and draws the bottom border
-	// of the group. A pull request line that comes after the agent line
-	// leaves `last` false on the agent line.
+	// The agent line is the last child line of its ticket, so `last` is
+	// true: the line draws the bottom border of the group.
 	//
 	// `depth` is 1 when the agent line hangs from the ticket row, and 2 when
 	// it hangs from a pull request line. The line draws its tree rule under
 	// its parent, so the depth sets how far from the left edge the rule and
 	// the words sit.
 	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; last: boolean; depth: AgentLineDepth }
+	// `last` is true on the last pull request line of the ticket. That line
+	// ends the tree rule of the ticket with a corner.
+	//
 	// `hasChildLines` is true on the pull request line that the agent line
 	// hangs from. That line carries the tree rule down to its bottom edge
 	// and leaves the bottom border of the group to the line under it.
@@ -92,22 +93,12 @@ const ticketDisclosure = (ticket: TicketSummary, hasChildren: boolean, expandedT
 const prRank = (pr: TicketPr) => (pr.state === "merged" ? 2 : pr.state === "closed" ? 1 : 0);
 const sortTicketPrs = (prs: readonly TicketPr[]) => [...prs].sort((a, b) => prRank(a) - prRank(b));
 
-// The index of the pull request line that the agent line hangs from: the
-// last open one, which is the newest open work, because the server orders a
-// ticket's pull requests by the time each was linked. A ticket whose pull
-// requests are all closed or merged hangs the agent line from its last line.
-const agentAnchor = (prs: readonly TicketPr[]) => {
-	const openCount = prs.filter((pr) => prRank(pr) === 0).length;
-	return openCount > 0 ? openCount - 1 : prs.length - 1;
-};
-
 // The lines in order: each group's header, its rows while it is expanded
 // (or one empty line under a wave that holds no row),
 // the pull requests of each row when `prRows` asks for them, the agent line
 // of each row when `agentLines` holds one for it, and its "show more" line
-// while a page waits on the server. The agent line of a ticket with pull
-// requests follows the one it hangs from, so the merged pull requests of
-// that ticket come after it.
+// while a page waits on the server. The pull requests of one ticket stand in
+// one block, and the agent line of that ticket follows the last of them.
 export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOptions = {}): TableItem[] => {
 	const items: TableItem[] = [];
 	for (const group of groups) {
@@ -127,29 +118,18 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 			if (!hasChildLines) continue;
 			if (hasPrRows) {
 				const prs = sortTicketPrs(ticket.prRows);
-				const anchor = agentAnchor(prs);
-				// The agent line sits right under the pull request it hangs from,
-				// so merged pull request lines can follow it. It ends the tree of
-				// the ticket only when that pull request is the last line.
-				const agent: TableItem | null =
-					line === undefined
-						? null
-						: {
-								kind: "agent",
-								key: `agent:${ticket.id}`,
-								group,
-								line,
-								last: anchor === prs.length - 1,
-								depth: 2,
-							};
 				prs.forEach((pr, index) => {
 					// Two tickets can link the same pull request, so the ticket id is
 					// part of the key that the virtualizer uses to hold a line.
 					const key = `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`;
-					const holdsAgent = agent !== null && index === anchor;
-					items.push({ kind: "pr", key, group, pr, last: index === prs.length - 1, hasChildLines: holdsAgent });
-					if (agent !== null && holdsAgent) items.push(agent);
+					const last = index === prs.length - 1;
+					items.push({ kind: "pr", key, group, pr, last, hasChildLines: last && line !== undefined });
 				});
+				// The agent line hangs from the last pull request line, so no
+				// pull request of the ticket comes after the words of its run.
+				if (line !== undefined) {
+					items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true, depth: 2 });
+				}
 				continue;
 			}
 			// A ticket that links no pull request hangs its agent line from the

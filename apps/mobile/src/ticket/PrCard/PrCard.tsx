@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { type LinkedPullRequest, type PrState, readyForReview } from "@trellis/api";
+import { askedForReview, type LinkedPullRequest, type PrState } from "@trellis/api";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { CheckRibbon } from "../../components/CheckRibbon";
 import { compactRelativeTime } from "../../lib/time";
@@ -63,7 +63,7 @@ export function PrCard({ pr }: PrCardProps) {
 	const palette = usePalette();
 	const counts = checkCounts(pr.checks);
 	const [pillBg, pillFg] = pillColors[counts.state]!;
-	const stateColor = pr.state === "open" && !readyForReview(pr) ? palette.fgMuted : palette[stateColors[pr.state]];
+	const stateColor = pr.state === "open" && !askedForReview(pr) ? palette.fgMuted : palette[stateColors[pr.state]];
 	const review = reviewLabels[pr.reviewState];
 	return (
 		<Pressable

@@ -1,5 +1,5 @@
 import { Plus } from "@phosphor-icons/react";
-import { readyForReview, type Ticket, type TicketSummary } from "@trellis/api";
+import { askedForReview, type Ticket, type TicketSummary } from "@trellis/api";
 import {
 	Button,
 	CheckRibbon,
@@ -35,7 +35,7 @@ const badgeChecks = (pr: NonNullable<TicketSummary["pr"]>) => [
 const ciLabels = { none: "none", pending: "pending", pass: "passed", fail: "failed" } as const;
 
 const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
-	`${pr.isQueued ? "Queued" : pr.state === "open" && !readyForReview(pr) ? "Not ready" : `${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)}`} PR, checks ${ciLabels[pr.ciState]}`;
+	`${pr.isQueued ? "Queued" : pr.state === "open" && !askedForReview(pr) ? "Not ready" : `${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)}`} PR, checks ${ciLabels[pr.ciState]}`;
 
 // The children of a ticket: the header with the done count and the Add
 // button, a progress bar, and one fixed-height row per child. Add opens the
@@ -108,7 +108,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 							<PrGlyph
 								state={pr.state}
 								isQueued={pr.isQueued}
-								readyForReview={readyForReview(pr)}
+								askedForReview={askedForReview(pr)}
 								size="sm"
 								decorative
 							/>

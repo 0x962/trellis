@@ -188,7 +188,7 @@ describe("the order of a ticket's pull requests", () => {
 	});
 });
 
-describe("the anchor of the agent line", () => {
+describe("the place of the agent line", () => {
 	const agentLines = { a: line("crisp-fjord: I rebased.") };
 	const orderOf = (items: ReturnType<typeof flattenGroups>) =>
 		items.flatMap((item) => {
@@ -196,20 +196,41 @@ describe("the anchor of the agent line", () => {
 			return item.kind === "agent" ? ["agent"] : [];
 		});
 
-	test("hangs the agent line from the last open pull request, and the merged lines follow it", () => {
+	test("puts the merged pull request of a ticket before the agent line", () => {
 		const prs = [prIn(11, "merged"), prIn(12, "open"), prIn(13, "open")];
 
 		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true, agentLines });
 
-		expect(orderOf(items)).toEqual(["pr:12", "pr:13", "agent", "pr:11"]);
+		expect(orderOf(items)).toEqual(["pr:12", "pr:13", "pr:11", "agent"]);
 	});
 
-	test("hangs the agent line from the last line when no pull request is open", () => {
+	test("puts two open pull requests and one merged one before a long message", () => {
+		const prs = [prIn(5611, "open"), prIn(1163, "merged"), prIn(5614, "open")];
+		const long = {
+			a: line(
+				"crisp-fjord: Both new review-bot failures are the same agent, not code. I stopped at your interrupt. Left unfinished on my side, ready to run when you say so: answer the last three threads, refresh the Trellis evidence for both new heads, and mark #5614 ready. Merge order stays #5611, then #5614.",
+			),
+		};
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true, agentLines: long });
+
+		expect(orderOf(items)).toEqual(["pr:5611", "pr:5614", "pr:1163", "agent"]);
+	});
+
+	test("puts the agent line last when no pull request is open", () => {
 		const prs = [prIn(11, "merged"), prIn(12, "closed")];
 
 		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true, agentLines });
 
 		expect(orderOf(items)).toEqual(["pr:12", "pr:11", "agent"]);
+	});
+
+	test("puts the agent line last when every pull request is open", () => {
+		const prs = [prIn(11, "open"), prIn(12, "open")];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true, agentLines });
+
+		expect(orderOf(items)).toEqual(["pr:11", "pr:12", "agent"]);
 	});
 });
 
@@ -244,7 +265,7 @@ describe("flattenGroups tree", () => {
 		expect(lastOf(items)).toEqual([false, true, true]);
 	});
 
-	test("ends the tree at the last line when a merged pull request follows the agent line", () => {
+	test("hangs the agent line from the merged pull request when that one is last", () => {
 		const prs = [prIn(11, "merged"), prIn(12, "open")];
 
 		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], {
@@ -252,9 +273,9 @@ describe("flattenGroups tree", () => {
 			agentLines: { a: line("Pushed.") },
 		});
 
-		// The open pull request, then the agent line, then the merged one.
-		expect(lastOf(items)).toEqual([false, false, true]);
-		expect(items.flatMap((item) => (item.kind === "pr" ? [item.hasChildLines] : []))).toEqual([true, false]);
+		// The open pull request, then the merged one, then the agent line.
+		expect(lastOf(items)).toEqual([false, true, true]);
+		expect(items.flatMap((item) => (item.kind === "pr" ? [item.hasChildLines] : []))).toEqual([false, true]);
 	});
 
 	test("hangs the agent line from the last pull request of the ticket", () => {
