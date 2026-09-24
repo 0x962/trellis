@@ -10,7 +10,7 @@ import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
-import { canStartAgent, sessionPane } from "../sessionPane";
+import { canStartAgent, isSessionArchived, sessionPane } from "../sessionPane";
 import { sessionStateLabel } from "../sessionStateLabel";
 import { useSessionArchive } from "../useSessionArchive";
 import { SessionBarActions } from "./components/SessionBarActions";
@@ -67,10 +67,7 @@ export function SessionConversation({
 		onError: (failure) => toast(failure.message),
 		onSettled: refresh,
 	});
-	const { setArchived } = useSessionArchive();
-	const unarchive = useMutation({
-		mutationFn: () => setArchived(session!, false),
-	});
+	const archive = useSessionArchive();
 	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: run.id }),
 		onSuccess: () => setConfirmStop(false),
@@ -80,7 +77,11 @@ export function SessionConversation({
 	// The line under the name is present for every native run, so the name
 	// does not move when the workspace of a new run appears.
 	const native = run.runtime === "native";
-	const summary = useWorkspaceSummary(run, { focus: true }).data;
+	const archived = isSessionArchived(session);
+	// Nothing writes in the workspace of an archived session, so a repeat read
+	// on window focus returns the numbers of the first read and runs git for
+	// nothing.
+	const summary = useWorkspaceSummary(run, { focus: !archived }).data;
 	const busy = start.isPending || stop.isPending;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
 	const heading = (
@@ -94,7 +95,6 @@ export function SessionConversation({
 			{name}
 		</h2>
 	);
-	const archived = session?.archivedAt != null;
 	const pane = sessionPane(run, archived);
 	const canStart = canStartAgent(run, session !== undefined, archived);
 	const startButton = (
@@ -102,10 +102,12 @@ export function SessionConversation({
 			Start the agent
 		</Button>
 	);
-	// The pane of an archived session offers the control that brings the
-	// session back, in the place where a stopped session offers its start.
 	const unarchiveButton = (
-		<Button size="md" processing={unarchive.isPending} onClick={() => unarchive.mutate()}>
+		<Button
+			size="md"
+			processing={archive.isPending}
+			onClick={() => archive.mutate({ session: session!, archived: false })}
+		>
 			Unarchive
 		</Button>
 	);

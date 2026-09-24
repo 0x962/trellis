@@ -35,7 +35,7 @@ export const sessions = {
 		.input(SessionCreateInputSchema)
 		.output(SessionDetailSchema),
 	start: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "SESSION_ARCHIVED"]))
 		.route({
 			method: "POST",
 			path: "/sessions/{id}/start",
@@ -44,6 +44,7 @@ export const sessions = {
 		.input(SessionIdInputSchema)
 		.output(SessionDetailSchema),
 	move: base
+		.errors(pickErrors(["SESSION_ARCHIVED"]))
 		.route({
 			method: "POST",
 			path: "/sessions/{id}/project",
@@ -62,7 +63,7 @@ export const sessions = {
 	setArchived: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({
-			method: "POST",
+			method: "PUT",
 			path: "/sessions/{id}/archived",
 			summary: "Archive a session, which stops its agent and keeps its files, or unarchive it",
 		})

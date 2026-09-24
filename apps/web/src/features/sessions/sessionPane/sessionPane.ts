@@ -1,4 +1,4 @@
-import { type AgentRun, hasAssignedProcess } from "@trellis/api";
+import { type AgentRun, hasAssignedProcess, type Session } from "@trellis/api";
 
 // The block that the conversation pane draws under its header.
 export type SessionPane =
@@ -11,15 +11,20 @@ export type SessionPane =
 	// the agent finished and the process closed.
 	| { kind: "stopped"; title: string; description: string };
 
+// True for a session a person archived. A run with no session, such as a
+// ticket agent, is never archived.
+export const isSessionArchived = (session: Session | undefined) => session?.archivedAt != null;
+
+// True while a person can archive this session. The server refuses the
+// archive of a session that holds a project, because such a session lives on
+// the sessions page of that project.
+export const canArchiveSession = (session: Session | undefined) => session !== undefined && session.projectId === null;
+
 // A terminal draws the output of a live process. A process that ended
 // takes its buffer with it, so the pane says why the process is gone and
 // offers the control that starts a new one. A run that another runtime
 // owns keeps its own view, because trellis starts no process for it.
-//
-// `archived` is true for a session a person put away. Trellis runs no agent
-// for such a session, so the pane names that state and the page offers the
-// control that brings the session back.
-export function sessionPane(run: AgentRun, archived = false): SessionPane {
+export function sessionPane(run: AgentRun, archived: boolean): SessionPane {
 	if (archived)
 		return {
 			kind: "stopped",
@@ -45,7 +50,7 @@ export function sessionPane(run: AgentRun, archived = false): SessionPane {
 
 // True while trellis can open a process for this run. A session carries
 // its own start. A ticket agent resumes the terminal it already holds, so
-// it needs a terminal id. An archived session runs no agent, and the server
-// refuses its start.
-export const canStartAgent = (run: AgentRun, hasSession: boolean, archived = false) =>
+// it needs a terminal id. The server refuses every start of an archived
+// session.
+export const canStartAgent = (run: AgentRun, hasSession: boolean, archived: boolean) =>
 	!archived && run.runtime === "native" && run.state !== "starting" && (hasSession || run.terminalId !== null);

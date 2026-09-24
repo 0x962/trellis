@@ -165,6 +165,11 @@ export const errors = {
 		message: "The project is archived. Unarchive it before a change.",
 		data: z.undefined(),
 	},
+	SESSION_ARCHIVED: {
+		status: 409,
+		message: "An archived session runs no agent. Bring the session back first.",
+		data: z.undefined(),
+	},
 	INVALID_ANCHOR: {
 		status: 409,
 		message: "The after or before item is not in the target list.",

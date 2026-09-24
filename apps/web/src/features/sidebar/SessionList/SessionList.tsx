@@ -4,10 +4,11 @@ import { Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { useSessionStatuses } from "../../agents/useSessionStatuses";
 import { SessionRow } from "../components/SessionRow";
+import { openSessions, sidebarSessionsQuery } from "../sidebarSessions";
 
 export function SessionList() {
 	const { orpc, queryClient } = useApp();
-	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
+	const sessionsOptions = sidebarSessionsQuery(orpc);
 	const { data, failureCount } = useQuery(sessionsOptions);
 	const statuses = useSessionStatuses();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
@@ -27,7 +28,7 @@ export function SessionList() {
 				)}
 			</nav>
 		);
-	const rows = data.filter((session) => session.projectId === null && session.archivedAt === null);
+	const rows = openSessions(data);
 	if (rows.length === 0) return <nav aria-label="Sessions" data-session-list="" />;
 	return (
 		<nav aria-label="Sessions" data-session-list="">

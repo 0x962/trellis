@@ -80,10 +80,7 @@ const rename = defineCommand({
 	},
 });
 
-// Archive puts a session away: its agent stops, its files stay, and the
-// sidebar draws it under Archived. Unarchive brings it back, and a person
-// starts its agent again.
-const setArchived = (name: string, description: string, archived: boolean) =>
+const archiveCommand = (name: string, description: string, archived: boolean) =>
 	defineCommand({
 		meta: { name, description },
 		args: {
@@ -96,8 +93,8 @@ const setArchived = (name: string, description: string, archived: boolean) =>
 		},
 	});
 
-const archive = setArchived("archive", "Archive a session, which stops its agent and keeps its files", true);
-const unarchive = setArchived("unarchive", "Bring an archived session back to the session list", false);
+const archive = archiveCommand("archive", "Archive a session, which stops its agent and keeps its files", true);
+const unarchive = archiveCommand("unarchive", "Bring an archived session back to the session list", false);
 
 export default defineCommand({
 	meta: { name: "sessions", description: "List, move, rename, and archive sessions" },

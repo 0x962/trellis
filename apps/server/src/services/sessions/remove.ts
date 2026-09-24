@@ -7,24 +7,24 @@ import { executionEnvironment } from "../../executionEnvironment";
 import { upsert } from "../actors.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { getRun } from "../agentRuns/queries.ts";
+import { type StopRunDeps, stopRunProcess } from "../agentRuns/stopRunProcess.ts";
 import type { IoCtx } from "../support.ts";
 import { removeSessionDirectory } from "./directory.ts";
 import { sessionOperation } from "./operation.ts";
 import { sessionProcess } from "./process.ts";
 import { getSession, resolveSession } from "./queries.ts";
-import { stopSessionAgent } from "./stopSessionAgent.ts";
 
 // The run retains its output after the session and its worktree are deleted.
 export const prepareDelete = async (
 	ctx: IoCtx,
 	input: { id: string },
-	deps = { process: sessionProcess, stop: stopNative },
+	deps: StopRunDeps = { process: sessionProcess, stop: stopNative },
 ) => {
 	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
 	return sessionOperation(ctx.home, session.runId, async () => {
 		await ctx.newTx((tx) => getSession(tx, session.id));
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
-		await stopSessionAgent(ctx, run, deps);
+		await stopRunProcess(ctx, run, deps);
 		if (session.directory === join(ctx.home, "agents", run.id, "work")) {
 			const exists = await stat(session.directory).catch((error: NodeJS.ErrnoException) => {
 				if (error.code === "ENOENT") return null;

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { MoveSessionProjectDialog } from "../MoveSessionProjectDialog";
 import { SwitchAccountDialog } from "../SwitchAccountDialog";
+import { canArchiveSession, isSessionArchived } from "../sessionPane";
 import { useSessionArchive } from "../useSessionArchive";
 
 export type SessionActionsMenuProps = {
@@ -36,13 +37,9 @@ export function SessionActionsMenu({
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
-	const { setArchived } = useSessionArchive();
+	const archive = useSessionArchive();
 	const name = session?.name ?? run!.name;
-	// A session of a project lives on the sessions page of that project, and
-	// the server archives no session that holds a project. The archive item
-	// belongs to a session that holds none.
-	const archived = session?.archivedAt != null;
-	const archivable = session !== undefined && session.projectId === null;
+	const archived = isSessionArchived(session);
 	const items: MenuItem[] = [];
 	if (run) {
 		items.push({
@@ -60,11 +57,19 @@ export function SessionActionsMenu({
 			onSelect: onRename,
 		});
 	}
-	if (archivable)
+	if (canArchiveSession(session))
 		items.push(
 			archived
-				? { label: "Unarchive", icon: <BoxArrowUp />, onSelect: () => void setArchived(session, false) }
-				: { label: "Archive", icon: <Archive />, onSelect: () => void setArchived(session, true) },
+				? {
+						label: "Unarchive",
+						icon: <BoxArrowUp />,
+						onSelect: () => archive.mutate({ session: session!, archived: false }),
+					}
+				: {
+						label: "Archive",
+						icon: <Archive />,
+						onSelect: () => archive.mutate({ session: session!, archived: true }),
+					},
 		);
 	if (session) {
 		items.push(
