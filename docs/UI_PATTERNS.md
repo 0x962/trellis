@@ -43,6 +43,8 @@ Each page supplies its data and available actions. It does not choose new contro
 | Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
 | Summary of GitHub check outcomes | `CheckRing` | `packages/ui/src/domain/CheckRing/CheckRing.tsx` |
 | Composition of each part of a whole | `StackedBarList` | `packages/ui/src/domain/StackedBarList/StackedBarList.tsx` |
+| Mark of a gateway | `ProviderIcon` | `packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx` |
+| Provider key status and model choices | `ProviderCard`, `ProviderForm` | `packages/ui/src/domain/ProviderCard/ProviderCard.tsx` |
 | Company mark of a model | `ProviderIcon` | `packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx` |
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
@@ -196,6 +198,14 @@ The words carry no blame, no apology and no exclamation mark. Red marks one thin
 `variant="page"` fills a route or a pane and draws no picture. `variant="section"` sits inside a tab or a list.
 
 `EmptyState` stays the block for a list or a page that holds nothing. A state that is not a failure keeps it, such as a session that a person stopped.
+
+## Usage providers
+
+The Agent Usage tab puts Providers directly under Accounts.
+`ProviderCard` is the second card shape on the page. It shows the key status, balance, and selected models.
+`ProviderForm` uses the account dialog shape for Add and Edit. Edit leaves the key blank and preserves it until a person enters a replacement.
+The model control uses `Popover`, `PickerButton`, `Command`, and `Chip`. It accepts an identifier outside the catalog.
+The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 
 ## Statistics page
 

@@ -15,6 +15,7 @@ export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
 export { ProjectColorFieldSection } from "./ProjectColorFieldSection";
 export { ProjectColorSection } from "./ProjectColorSection";
+export { ProviderCardSection } from "./ProviderCardSection";
 export { ResourceListSection } from "./ResourceListSection";
 export { ReviewDiffSection } from "./ReviewDiffSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";

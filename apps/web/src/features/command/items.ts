@@ -54,6 +54,7 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "goto.board", label: "Board", section: "goto", shortcutId: "gotoBoard" },
 	{ id: "goto.table", label: "Table", section: "goto", shortcutId: "gotoTable" },
 	{ id: "goto.diffs", label: "Diffs", section: "goto" },
+	{ id: "goto.providers", label: "Providers", section: "goto" },
 	{ id: "goto.usage", label: "Usage", section: "goto" },
 	{ id: "goto.settings", label: "Settings", section: "goto" },
 	{ id: "goto.project", label: "Go to project…", section: "goto", shortcutId: "gotoProject", submenu: true },

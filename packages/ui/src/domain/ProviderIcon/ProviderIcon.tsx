@@ -1,11 +1,16 @@
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
-// The companies that serve the models of the harnesses. Each mark is the
-// Simple Icons glyph of the company, released under CC0, on a 24 by 24 box.
-export type ModelProvider = "anthropic" | "openai" | "meta" | "google";
+// Company marks use Simple Icons glyphs on a 24 by 24 box.
+// OpenAI-compatible endpoints use a plug because the endpoint can serve any model.
+export type ModelProvider = "anthropic" | "openai" | "meta" | "google" | "vercel" | "openai-compatible";
 
 const marks: Record<ModelProvider, { title: string; path: string }> = {
+	vercel: { title: "Vercel AI Gateway", path: "M24 20.785H0L12 0z" },
+	"openai-compatible": {
+		title: "OpenAI-compatible",
+		path: "M7 2h2v5h6V2h2v5h3v2h-2v4a6 6 0 0 1-5 5.917V22h-2v-3.083A6 6 0 0 1 6 13V9H4V7h3zm1 7v4a4 4 0 0 0 8 0V9z",
+	},
 	anthropic: {
 		title: "Anthropic",
 		path: "M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z",

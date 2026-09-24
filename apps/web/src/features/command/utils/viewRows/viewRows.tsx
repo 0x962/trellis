@@ -7,6 +7,7 @@ import {
 	Gear,
 	GitPullRequest,
 	Moon,
+	Plugs,
 	Plus,
 	Rows,
 	SidebarSimple,
@@ -36,6 +37,7 @@ const icons: Record<string, ReactNode> = {
 	"goto.table": <Table />,
 	"goto.diffs": <GitPullRequest />,
 	"goto.usage": <ChartLine />,
+	"goto.providers": <Plugs />,
 	"goto.settings": <Gear />,
 	"goto.project": <FolderOpen />,
 	"view.filter": <Funnel />,
@@ -78,6 +80,7 @@ export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
 		"goto.needsYou": run(deps, () => deps.action.navigate("/needs-you")),
 		"goto.usage": run(deps, () => deps.action.navigate("/usage")),
+		"goto.providers": run(deps, () => deps.action.navigate("/usage#providers")),
 		"goto.settings": run(deps, () => pageSheetActions.openSettings("account")),
 		"goto.project": () => deps.openSubmenu({ kind: "goto" }),
 	};
