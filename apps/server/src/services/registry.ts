@@ -37,6 +37,7 @@ import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as pages from "./pages/pages.ts";
+import * as pageUploads from "./pages/uploads.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
@@ -260,6 +261,7 @@ export const services = {
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
 	"pages.list": core("read", pages.list),
+	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
 	"pages.get": core("read", pages.get),
 	"pages.update": core("mutation", pages.update),
 	"pages.pin": core("mutation", pages.pin),

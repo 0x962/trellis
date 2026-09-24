@@ -137,6 +137,20 @@ export const PageUploadSchema = z.object({
 });
 export type PageUpload = z.infer<typeof PageUploadSchema>;
 
+const PageUploadFileSchema = z
+	.file()
+	.refine(
+		(file) => PageUploadNameSchema.safeParse(file.name).success,
+		"Use a file name of 1 to 255 characters without a slash, a backslash, or a control character.",
+	);
+
+export const PageUploadInputSchema = z.strictObject({
+	id: UlidSchema.optional(),
+	project: ProjectRefStringSchema,
+	file: PageUploadFileSchema,
+});
+export type PageUploadInput = z.input<typeof PageUploadInputSchema>;
+
 export const PageDetailSchema = PageSummarySchema.extend({
 	requestedVersion: PageVersionSchema,
 	assetCount: CountSchema,
