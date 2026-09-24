@@ -45,17 +45,32 @@ export function ArchivedSessionRows({ sessions, statuses, pathname }: ArchivedSe
 	const coarse = useMediaQuery("(pointer: coarse)");
 	const height = rowHeight(coarse);
 	const [scroller, setScroller] = useState<{ element: HTMLElement; margin: number } | null>(null);
-	// The rows above this list change height when a person opens a project or
-	// the window resizes, so the start of the list is read again each time the
-	// box that scrolls changes size.
+	// The start of the list moves when a person opens a project above it, and
+	// that is three separate signals. The height of the region itself comes
+	// from its flex parent, so the region keeps its box while its content
+	// grows: an observer of the region alone answers a window resize and
+	// nothing else. The children of the region do grow, so the observer takes
+	// them as well. A scroll reads the start again, which covers a growth that
+	// neither box reports. The state keeps its old value when the number does
+	// not change, so a scroll draws no new frame.
 	useLayoutEffect(() => {
 		const element = scrollParentOf(list.current);
 		if (element === null) return;
-		const measure = () => setScroller({ element, margin: offsetIn(list.current!, element) });
+		const measure = () => {
+			const margin = offsetIn(list.current!, element);
+			setScroller((current) =>
+				current !== null && current.element === element && current.margin === margin ? current : { element, margin },
+			);
+		};
 		measure();
 		const observer = new ResizeObserver(measure);
 		observer.observe(element);
-		return () => observer.disconnect();
+		for (const child of element.children) observer.observe(child);
+		element.addEventListener("scroll", measure, { passive: true });
+		return () => {
+			observer.disconnect();
+			element.removeEventListener("scroll", measure);
+		};
 	}, []);
 	const virtualizer = useVirtualizer({
 		count: sessions.length,
