@@ -10,6 +10,7 @@ export { FailureStateSection } from "./FailureStateSection";
 export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
+export { MachinePressureSection } from "./MachinePressureSection";
 export { MergeConflictMarkSection } from "./MergeConflictMarkSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";

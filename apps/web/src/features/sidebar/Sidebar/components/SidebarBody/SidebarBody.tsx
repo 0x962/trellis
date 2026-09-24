@@ -13,6 +13,7 @@ import { sessionComposerActions } from "../../../../sessions/sessionComposerStor
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ArchivedSessions } from "../../../ArchivedSessions";
+import { SidebarMachinePressure } from "../../../MachinePressure";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
 import { ConnectionPanel } from "../ConnectionPanel";
@@ -113,6 +114,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						}
 					/>
 				))}
+				<SidebarMachinePressure collapsed={collapsed} />
 			</nav>
 			{/* The `hidden` attribute draws in the base layer of the stylesheet and
 			    a display utility draws in the utilities layer, which wins. So the

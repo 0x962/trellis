@@ -17,6 +17,7 @@ export function registerDesktopHandlers(options: {
 	status: () => DesktopStatus;
 	serviceStatus: () => Promise<DesktopServiceStatus>;
 	updateStatus: () => Promise<DesktopUpdateStatus>;
+	hostOrigin: () => string;
 	requirePackaged: () => void;
 	action: (action: DesktopAction) => Promise<unknown>;
 }) {
@@ -52,12 +53,15 @@ export function registerDesktopHandlers(options: {
 		options.trust(event);
 		event.sender.send("trellis:accessibility-support", app.isAccessibilitySupportEnabled());
 	});
-	// The renderer asks for the thermal state when it mounts the banner.
-	// macOS sends every later change through the "thermal-state-change" event
-	// of powerMonitor, which main.ts forwards on the same channel.
+	// The web query asks for the current thermal state with each server sample.
+	// powerMonitor also sends each state change on the same channel.
 	ipcMain.handle("trellis:thermal-ready", (event) => {
 		options.trust(event);
-		event.sender.send("trellis:thermal-state", powerMonitor.getCurrentThermalState());
+		return {
+			state: powerMonitor.getCurrentThermalState(),
+			sampledAt: new Date().toISOString(),
+			hostOrigin: options.hostOrigin(),
+		};
 	});
 	ipcMain.handle("trellis:desktop-status", (event) => {
 		options.trust(event);

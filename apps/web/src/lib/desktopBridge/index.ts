@@ -5,6 +5,7 @@ export {
 	type DesktopServiceStatus,
 	type DesktopSettingsBridge,
 	type DesktopStatus,
+	type DesktopThermalSample,
 	type DesktopUpdateState,
 	type DesktopUpdateStatus,
 	desktopErrorMessage,

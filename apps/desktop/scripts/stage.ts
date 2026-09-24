@@ -19,6 +19,7 @@ const copies = await stagePackages(repo, target, [
 await cp(join(repo, "apps/web/dist"), join(target, "apps/web/dist"), { recursive: true });
 await cp(process.execPath, join(target, "bin/bun"));
 await cp(join(repo, "node_modules/node/bin/node"), join(target, "bin/node"));
+await cp(join(repo, "apps/desktop/dist/processor-temperature"), join(target, "bin/processor-temperature"));
 await writeFile(
 	join(target, "bin/trellis"),
 	'#!/bin/sh\nexec "$(dirname "$0")/bun" "$(dirname "$0")/../packages/cli/src/index.ts" "$@"\n',

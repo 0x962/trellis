@@ -39,3 +39,25 @@ const swift = Bun.spawn(
 	{ stdout: "inherit", stderr: "inherit" },
 );
 if (await swift.exited) throw new Error("Could not compile the macOS service helper.");
+
+const temperature = Bun.spawn(
+	[
+		"xcrun",
+		"clang",
+		"-Wall",
+		"-Wextra",
+		"-Werror",
+		"-O2",
+		"-target",
+		`${process.arch === "arm64" ? "arm64" : "x86_64"}-apple-macos13`,
+		resolve(root, "src/temperature/processorTemperature.c"),
+		"-framework",
+		"CoreFoundation",
+		"-framework",
+		"IOKit",
+		"-o",
+		resolve(root, "dist/processor-temperature"),
+	],
+	{ stdout: "inherit", stderr: "inherit" },
+);
+if (await temperature.exited) throw new Error("Could not compile the processor temperature reader.");

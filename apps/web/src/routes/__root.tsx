@@ -5,11 +5,11 @@ import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { LinkCapture } from "../features/shell/LinkCapture";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
-import { MachinePressureBanner } from "../features/shell/MachinePressureBanner";
 import { RouteError } from "../features/shell/RouteError";
 import { RouteProgress } from "../features/shell/RouteProgress";
 import { ShellFrame, ShellSidebar } from "../features/shell/ShellFrame";
 import { ShellOverlays } from "../features/shell/ShellOverlays";
+import { MachinePressureProvider } from "../features/sidebar/MachinePressure";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useActor } from "../lib/actor";
 import type { RouterContext } from "../lib/appContext";
@@ -74,12 +74,13 @@ function RootComponent() {
 
 	return (
 		<div className="flex h-full bg-bg text-fg">
-			<Suspense fallback={<ShellSidebar />}>
-				<Sidebar />
-			</Suspense>
+			<MachinePressureProvider>
+				<Suspense fallback={<ShellSidebar />}>
+					<Sidebar />
+				</Suspense>
+			</MachinePressureProvider>
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<RouteProgress />
-				<MachinePressureBanner />
 				<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />
 				</main>
