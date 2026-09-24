@@ -1,5 +1,5 @@
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, ConfirmDialog, Dialog, Switch, useHotkey } from "@trellis/ui";
+import { Button, ConfirmDialog, Dialog, Switch, useHotkey, useMediaQuery } from "@trellis/ui";
 import { useId, useRef, useState } from "react";
 import { failToast } from "../../../lib/failToast";
 import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
@@ -44,6 +44,10 @@ export function CreateTicketDialog() {
 	// fields stay disabled and only the attachments still need a request.
 	const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
 	const uploadManager = useUploads(undefined, false);
+	// Below 768 px the dialog is a sheet on the bottom edge of a phone, and a
+	// phone has no command key. The create button then carries no key cap, so
+	// no person and no screen reader meets a key that nobody can press.
+	const phone = useMediaQuery("(max-width: 767px)");
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
 	const titleId = useId();
@@ -231,7 +235,7 @@ export function CreateTicketDialog() {
 							<Button
 								variant="primary"
 								size="md"
-								kbd="⌘↩"
+								kbd={phone ? undefined : "⌘↩"}
 								processing={creating}
 								onClick={() => void create(createMore)}
 							>
