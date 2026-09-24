@@ -12,6 +12,7 @@ import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
+import { ProjectSectionMenu } from "../../shell/ProjectSectionMenu";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { rowHeights } from "../../table/rowHeights";
@@ -66,7 +67,10 @@ export function EpicsPage({ project }: EpicsPageProps) {
 	return (
 		<>
 			<Topbar actions={newEpic}>
-				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Epics" />
+				<PageTitle
+					parent={<ProjectBreadcrumb project={project} />}
+					title={<ProjectSectionMenu projectKey={project.key} current="epics" />}
+				/>
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}

@@ -1,19 +1,14 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { tempDirs } from "../../tempDir.ts";
 import { collectMuseEntries } from "./muse.ts";
 
-const directories: string[] = [];
-
-afterEach(async () => {
-	await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
+const tempDir = tempDirs();
 
 describe("Muse usage logs", () => {
 	test("uses the current queued turn prompt as the session label", async () => {
-		const root = await mkdtemp(join(tmpdir(), "trellis-usage-muse-"));
-		directories.push(root);
+		const root = await tempDir("trellis-usage-muse-");
 		const sessionId = "019cfe62-5d41-7dda-8efe-cf8ec7958868";
 		const session = join(root, "sessions", "2026", "09", "17", sessionId);
 		await mkdir(session, { recursive: true });

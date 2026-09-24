@@ -53,6 +53,9 @@ export const parseProjectSplat = (splat: string): ProjectSplat => {
 export const projectHref = (ref: string, view: Exclude<ProjectView, "epic"> = "board") =>
 	`/p/${ref}${view === "board" ? "" : `/${view}`}`;
 
+// The sessions page of one project: `/sessions/project/TRL`.
+export const projectSessionsHref = (ref: string) => `/sessions/project/${ref}`;
+
 // The page of one epic: `/p/OP/epics/routine-runtime`.
 export const epicHref = (ref: string, slug: string) => `${projectHref(ref, "epics")}/${slug}`;
 

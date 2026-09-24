@@ -8,8 +8,7 @@ import type { DbTiming } from "../serverTiming.ts";
 import type { ServiceName } from "../services/registry.ts";
 
 // What the HTTP layer hands every procedure. `actor` is null until the
-// actor middleware parses the header, which it does on every procedure
-// whose route method is not GET. `resHeaders` comes from the response
+// actor middleware parses the header. `resHeaders` comes from the response
 // headers plugin; a create sets `Location` on it. `timing` belongs to the
 // HTTP request, so every procedure of a batch adds to the same one.
 // `chooseDirectory` opens the folder picker of the machine. It is here and
@@ -30,12 +29,15 @@ export type ProcedureContext = {
 
 const base = implement(contract).$context<ProcedureContext>();
 
-// A read ignores the header, so a malformed one on a GET is not an error.
-// A mutation needs it: missing is ACTOR_REQUIRED, malformed is ACTOR_INVALID.
+// A GET accepts an optional actor header. A missing or malformed GET header
+// gives the service a null actor. A mutation requires a valid actor header.
 const requireActor = base.middleware(async ({ context, next, procedure }) => {
 	const method = procedure["~orpc"].route.method ?? "POST";
-	if (method === "GET") return next();
 	const header = context.headers.get("x-trellis-actor");
+	if (method === "GET") {
+		const parsed = ActorHeaderSchema.safeParse(header);
+		return next({ context: { actor: parsed.success ? parsed.data : null } });
+	}
 	if (header === null) throw fail("ACTOR_REQUIRED");
 	const parsed = ActorHeaderSchema.safeParse(header);
 	if (!parsed.success) throw fail("ACTOR_INVALID", { grammar: actorHeaderGrammar });
@@ -55,16 +57,14 @@ const declaredValidation = base.middleware(async ({ next }) => {
 	}
 });
 
-// Both middlewares sit before the input validation of every procedure, so
-// a request without the header answers ACTOR_REQUIRED before any schema runs.
+// Both middlewares sit before the input validation of every procedure. A
+// mutation without the actor header answers ACTOR_REQUIRED before a schema runs.
 export const os = base.use(declaredValidation).use(requireActor);
 
 // Runs one service through the transport with the context of this request.
 export const call = <T>(context: ProcedureContext, name: ServiceName, input: unknown): Promise<T> => {
-	const readActor =
-		name === "agentRuns.list" ? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor")) : null;
 	const ctx: RequestContext = {
-		actor: context.actor ?? (readActor?.success ? readActor.data : null),
+		actor: context.actor,
 		session: context.headers.get("x-trellis-session"),
 		attemptToken: context.headers.get("x-trellis-attempt"),
 		reqId: context.reqId,
@@ -86,7 +86,7 @@ export const withIfMatch = <T extends { expectedVersion?: number }>(context: Pro
 	if (header === null) return input;
 	const match = IF_MATCH.exec(header);
 	if (match === null)
-		throw invalidInput("If-Match", 'If-Match must be the ticket version in quotes, for example If-Match: "3".');
+		throw invalidInput("If-Match", 'If-Match must be the current version in quotes, for example If-Match: "3".');
 	const version = Number(match[1]);
 	if (input.expectedVersion !== undefined && input.expectedVersion !== version) {
 		throw invalidInput(

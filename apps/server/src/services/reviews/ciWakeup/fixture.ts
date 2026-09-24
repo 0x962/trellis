@@ -202,11 +202,13 @@ export async function fixture() {
 					),
 				)
 			)[0]!,
+		// Remove the temporary directory before the call to db.$client.close().
+		// A close that throws would otherwise leave the directory on disk.
 		close: async () => {
 			status.mockRestore();
 			waitFor.mockRestore();
+			await rm(home, { recursive: true, force: true });
 			await db.$client.close();
-			await rm(home, { recursive: true });
 		},
 	};
 }

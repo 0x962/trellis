@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActorRefSchema } from "./schemas/actor.ts";
 import { AgentActivitySchema } from "./schemas/agentActivity.ts";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
@@ -16,6 +17,10 @@ export const eventNames = [
 	"pr.updated",
 	"notes.changed",
 	"epics.changed",
+	"pages.changed",
+	"page-comments.changed",
+	"page-watches.changed",
+	"page-pins.changed",
 	"resource-comments.changed",
 	"attachment.created",
 	"attachment.deleted",
@@ -101,6 +106,28 @@ export const EpicsChangedPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
+export const PagesChangedPayloadSchema = z.strictObject({
+	projectId: UlidSchema,
+	pageId: UlidSchema,
+});
+
+export const PageCommentsChangedPayloadSchema = z.strictObject({
+	projectId: UlidSchema,
+	pageId: UlidSchema,
+	version: z.number().int().positive(),
+});
+
+export const PageWatchesChangedPayloadSchema = z.strictObject({
+	projectId: UlidSchema,
+	pageId: UlidSchema,
+});
+
+export const PagePinsChangedPayloadSchema = z.strictObject({
+	projectId: UlidSchema,
+	pageId: UlidSchema,
+	actor: ActorRefSchema,
+});
+
 export const ProjectEventPayloadSchema = z.object({
 	id: UlidSchema,
 });
@@ -152,6 +179,10 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("pr.updated", PrEventPayloadSchema),
 	typed("notes.changed", NotesChangedPayloadSchema),
 	typed("epics.changed", EpicsChangedPayloadSchema),
+	typed("pages.changed", PagesChangedPayloadSchema),
+	typed("page-comments.changed", PageCommentsChangedPayloadSchema),
+	typed("page-watches.changed", PageWatchesChangedPayloadSchema),
+	typed("page-pins.changed", PagePinsChangedPayloadSchema),
 	typed("resource-comments.changed", z.object({ projectId: UlidSchema, resourceId: UlidSchema })),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),

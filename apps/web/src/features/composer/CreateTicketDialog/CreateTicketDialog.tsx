@@ -1,8 +1,8 @@
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, ConfirmDialog, Dialog, Kbd, SectionHeader, Switch, useHotkey } from "@trellis/ui";
+import { Button, ConfirmDialog, Dialog, Switch, useHotkey, useMediaQuery } from "@trellis/ui";
 import { useId, useRef, useState } from "react";
 import { failToast } from "../../../lib/failToast";
-import { AttachmentBox } from "../../attachments/AttachmentBox";
+import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
 import { DropTarget } from "../../attachments/DropTarget";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { UploadProgress } from "../../attachments/UploadProgress";
@@ -43,7 +43,11 @@ export function CreateTicketDialog() {
 	// The ticket the server already created. While it is set, the form
 	// fields stay disabled and only the attachments still need a request.
 	const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
-	const uploads = useUploads(undefined, false);
+	const uploadManager = useUploads(undefined, false);
+	// Below 768 px the dialog is a sheet on the bottom edge of a phone, and a
+	// phone has no command key. The create button then carries no key cap, so
+	// no person and no screen reader meets a key that nobody can press.
+	const phone = useMediaQuery("(max-width: 767px)");
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
 	const titleId = useId();
@@ -60,13 +64,13 @@ export function CreateTicketDialog() {
 	const dirty =
 		draft.title.trim() !== "" ||
 		(draft.description !== "" && draft.description !== defaults.template) ||
-		uploads.uploads.length > 0;
-	const needsUpload = uploads.uploads.some((upload) => upload.status !== "complete");
+		uploadManager.uploads.length > 0;
+	const needsUpload = uploadManager.uploads.some((upload) => upload.status !== "complete");
 
 	const finish = (stay: boolean) => {
 		clearDraft();
 		labelDraft.clear();
-		uploads.clear();
+		uploadManager.clear();
 		setCreatedTicket(null);
 		if (!stay) {
 			composerActions.close();
@@ -118,7 +122,7 @@ export function CreateTicketDialog() {
 				}
 				setCreatedTicket(ticket);
 			}
-			if (await uploads.uploadPending(ticket.identifier)) finish(stay);
+			if (await uploadManager.uploadPending(ticket.identifier)) finish(stay);
 		} finally {
 			inFlight.current = false;
 			setCreating(false);
@@ -147,89 +151,94 @@ export function CreateTicketDialog() {
 			size="lg"
 			bare
 			initialFocus={titleRef}
-			className="gap-0 bg-surface p-0"
+			className="bg-surface p-3"
 		>
-			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploads.addFiles}>
-				<div className="flex min-h-0 flex-col gap-2 p-3">
+			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploadManager.addFiles}>
+				<div className="flex min-h-0 flex-col gap-3">
 					<ComposerHeader closeDisabled={creating} onClose={requestClose} />
-					<div className="flex flex-col rounded-lg border border-border bg-elevated">
-						<fieldset disabled={createdTicket !== null} className="contents">
-							<label htmlFor={titleId} className="sr-only">
-								Title
-							</label>
-							<input
-								id={titleId}
-								ref={titleRef}
-								aria-invalid={(titleMissing && draft.title.trim() === "") || undefined}
-								aria-describedby={titleMissing && draft.title.trim() === "" ? titleErrorId : undefined}
-								autoComplete="off"
-								maxLength={500}
-								placeholder="Ticket title"
-								value={draft.title}
-								onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-								className="h-10 w-full rounded-sm bg-transparent px-3 pt-1 text-xl font-semibold text-fg outline-none placeholder:text-fg-faint focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
-							/>
-							{titleMissing && draft.title.trim() === "" && (
-								<p id={titleErrorId} role="alert" className="px-3 text-xs text-danger">
-									Add a ticket title.
-								</p>
-							)}
-							<DescriptionField
-								key={editorKey}
-								markdown={description}
-								editing={editing}
-								onEdit={() => setEditing(true)}
-								onChange={(markdown) => setDraft({ ...draft, description: markdown })}
-							/>
-							<ChipRow
-								project={chosenProject}
-								projectMissing={projectMissing && chosenProject === undefined}
-								statuses={defaults.statuses}
-								status={chosenStatus}
-								priority={chosenPriority}
-								parent={parent ?? null}
-								parentRef={parent === undefined ? defaults.parent : undefined}
-								epic={chosenEpic}
-								wave={chosenWave}
-								labels={labelDraft.labels}
-								onProject={(next) => {
-									setProject(next);
-									setProjectMissing(false);
-								}}
-								onStatus={(next) => setStatus(next.slug)}
-								onPriority={setPriority}
-								onParent={setParent}
-								onEpic={(next) => {
-									setEpic(next);
-									setWave(null);
-								}}
-								onWave={setWave}
-								onLabel={labelDraft.toggle}
-							/>
-						</fieldset>
-					</div>
-					<div className="flex flex-col gap-2 px-1 pt-1">
-						<SectionHeader
-							title="Attachments"
-							count={uploads.uploads.length > 0 ? uploads.uploads.length : undefined}
-							actions={<AttachmentBox uploads={uploads} />}
+					<fieldset disabled={createdTicket !== null} className="flex min-h-0 flex-col gap-2">
+						<label htmlFor={titleId} className="sr-only">
+							Title
+						</label>
+						<input
+							id={titleId}
+							ref={titleRef}
+							aria-invalid={(titleMissing && draft.title.trim() === "") || undefined}
+							aria-describedby={titleMissing && draft.title.trim() === "" ? titleErrorId : undefined}
+							autoComplete="off"
+							maxLength={500}
+							placeholder="Ticket title"
+							value={draft.title}
+							onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+							className="h-8 w-full rounded-md bg-transparent text-xl font-semibold tracking-tight text-fg outline-none placeholder:text-fg-faint focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 						/>
-						{uploads.uploads.map((upload) => (
-							<UploadProgress key={upload.id} upload={upload} onDismiss={uploads.dismiss} />
-						))}
-					</div>
-					<div className="flex flex-wrap items-center gap-2 px-1 pt-1">
-						<Switch
-							label="Keep open after create"
-							checked={createMore}
-							onCheckedChange={setCreateMore}
-							className="text-xs text-fg-muted"
+						{titleMissing && draft.title.trim() === "" && (
+							<p id={titleErrorId} role="alert" className="text-xs text-danger">
+								Add a ticket title.
+							</p>
+						)}
+						<DescriptionField
+							key={editorKey}
+							markdown={description}
+							editing={editing}
+							onEdit={() => setEditing(true)}
+							onChange={(markdown) => setDraft({ ...draft, description: markdown })}
 						/>
-						<div className="ml-auto flex items-center gap-2">
-							<span className="hidden items-center gap-1 text-xs text-fg-muted sm:inline-flex">
-								<Kbd>⌘↩</Kbd> to create
-							</span>
-							<Button variant="primary" size="md" processing={creating} onClick={() => void create(createMore)}>
+						<ChipRow
+							project={chosenProject}
+							projectMissing={projectMissing && chosenProject === undefined}
+							statuses={defaults.statuses}
+							status={chosenStatus}
+							priority={chosenPriority}
+							parent={parent ?? null}
+							parentRef={parent === undefined ? defaults.parent : undefined}
+							epic={chosenEpic}
+							wave={chosenWave}
+							labels={labelDraft.labels}
+							onProject={(next) => {
+								setProject(next);
+								setProjectMissing(false);
+							}}
+							onStatus={(next) => setStatus(next.slug)}
+							onPriority={setPriority}
+							onParent={setParent}
+							onEpic={(next) => {
+								setEpic(next);
+								setWave(null);
+							}}
+							onWave={setWave}
+							onLabel={labelDraft.toggle}
+						/>
+					</fieldset>
+					{uploadManager.uploads.length > 0 && (
+						<div className="flex max-h-40 flex-col gap-2 overflow-y-auto">
+							{uploadManager.uploads.map((upload) => (
+								<UploadProgress key={upload.id} upload={upload} onDismiss={uploadManager.dismiss} />
+							))}
+						</div>
+					)}
+					{createdTicket !== null && (
+						<p role="status" className="text-xs text-fg-muted">
+							Trellis created {createdTicket.identifier}.{" "}
+							{needsUpload ? "The files still need to upload." : "Press Finish to close this form."}
+						</p>
+					)}
+					<div className="flex flex-wrap items-center gap-2">
+						<AddAttachmentButton uploads={uploadManager} />
+						<div className="ml-auto flex items-center gap-3">
+							<Switch
+								label="Keep open after create"
+								checked={createMore}
+								onCheckedChange={setCreateMore}
+								className="text-fg-muted"
+							/>
+							<Button
+								variant="primary"
+								size="md"
+								kbd={phone ? undefined : "⌘↩"}
+								processing={creating}
+								onClick={() => void create(createMore)}
+							>
 								{createdTicket === null ? "Create ticket" : needsUpload ? "Retry attachments" : "Finish"}
 							</Button>
 						</div>
@@ -252,7 +261,7 @@ export function CreateTicketDialog() {
 					if (composerCloseAction({ createPending: inFlight.current, dirty: false }) === "block") return;
 					setAsking(false);
 					clearDraft();
-					uploads.clear();
+					uploadManager.clear();
 					composerActions.close();
 				}}
 				onCancel={() => {

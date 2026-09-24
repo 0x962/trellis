@@ -61,7 +61,7 @@ const phase2 = { id: "01WAVEPHASE2000000000", ref: "OP/routine-runtime/phase-2",
 const alpha = { id: "01WAVEALPHA0000000000", ref: "OP/routine-runtime/alpha", name: "Alpha" };
 
 describe("groupRows by wave", () => {
-	test("follows the wave order, not the names, No wave last", () => {
+	test("groups rows by wave and keeps No wave last", () => {
 		const rows = [
 			ticket("a", runtime),
 			ticket("b", runtime, alpha),
@@ -70,29 +70,11 @@ describe("groupRows by wave", () => {
 			ticket("e", runtime, phase2),
 		];
 
-		const groups = groupRows(rows, {
-			group: "wave",
-			sort: "-updatedAt",
-			statuses: [],
-			waveOrder: [phase1.id, phase2.id, alpha.id],
-		});
+		const groups = groupRows(rows, { group: "wave", sort: "-updatedAt", statuses: [] });
 
-		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2", "Alpha", "No wave"]);
-		expect(groups.map((group) => group.key)).toEqual([phase1.id, phase2.id, alpha.id, "none"]);
+		expect(groups.map((group) => group.label)).toEqual(["Alpha", "Phase 2", "Phase 1", "No wave"]);
+		expect(groups.map((group) => group.key)).toEqual([alpha.id, phase2.id, phase1.id, "none"]);
 		expect(groups[1]!.rows.map((row) => row.id).sort()).toEqual(["c", "e"]);
-	});
-
-	test("puts a wave outside the order after the list and before No wave", () => {
-		const rows = [ticket("a", null), ticket("b", runtime, alpha), ticket("c", runtime, phase1)];
-
-		const groups = groupRows(rows, {
-			group: "wave",
-			sort: "-updatedAt",
-			statuses: [],
-			waveOrder: [phase1.id],
-		});
-
-		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Alpha", "No wave"]);
 	});
 
 	test("puts every row without a wave in one group", () => {
@@ -115,18 +97,14 @@ describe("groupRows by wave", () => {
 			closed("d", "done", phase1),
 		];
 
-		const groups = groupRows(rows, {
-			group: "wave",
-			sort: "-updatedAt",
-			statuses: [],
-			waveOrder: [phase1.id, phase2.id],
-		});
+		const groups = groupRows(rows, { group: "wave", sort: "-updatedAt", statuses: [] });
+		const phase1Group = groups.find((group) => group.key === phase1.id)!;
+		const phase2Group = groups.find((group) => group.key === phase2.id)!;
 
-		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2"]);
-		expect(groups[0]!.wave).toEqual(phase1);
-		expect(groups[1]!.rows[0]!.id).toBe("b");
+		expect(phase1Group.wave).toEqual(phase1);
+		expect(phase2Group.rows[0]!.id).toBe("b");
 		expect(
-			groups[1]!.rows
+			phase2Group.rows
 				.slice(1)
 				.map((row) => row.id)
 				.sort(),
@@ -158,7 +136,6 @@ describe("groupRows with a row rank", () => {
 			group: "wave",
 			sort: "-updatedAt",
 			statuses: [],
-			waveOrder: [phase1.id, phase2.id],
 			rowRank,
 		});
 

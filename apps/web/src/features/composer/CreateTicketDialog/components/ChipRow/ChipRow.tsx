@@ -55,6 +55,10 @@ type ChipProps = {
 
 // One property chip: 28 px, the icon, then the value. The pickers pass
 // their own props to the element they clone, so it is a plain button.
+//
+// An epic name runs to 40 characters and more. Without the width limit one
+// chip takes half of the row and pushes the chips after it to a second line.
+// `aria-label` carries the whole value, so a shortened chip loses no name.
 const chip = ({ label, icon, children, unset = false, invalid = false, disabled = false }: ChipProps) => (
 	<button
 		type="button"
@@ -63,19 +67,19 @@ const chip = ({ label, icon, children, unset = false, invalid = false, disabled 
 		aria-describedby={invalid ? "new-ticket-project-error" : undefined}
 		disabled={disabled}
 		className={cx(
-			"inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 text-sm whitespace-nowrap transition-colors duration-hover ease-out",
-			"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 enabled:hover:border-border-strong",
+			"inline-flex h-7 max-w-40 shrink-0 items-center gap-1.5 rounded-md border px-2 text-sm whitespace-nowrap transition-colors duration-hover ease-out",
+			"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 enabled:hover:bg-fg/6",
 			invalid
 				? "border-danger text-danger"
 				: unset
 					? "border-dashed border-border text-fg-faint"
-					: "border-border text-fg",
+					: "border-border-strong text-fg",
 		)}
 	>
 		<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
 			{icon}
 		</span>
-		{children}
+		<span className="min-w-0 truncate">{children}</span>
 	</button>
 );
 
@@ -120,7 +124,7 @@ export function ChipRow({
 	const waveName = epicRecord?.waves.find((entry) => entry.ref === wave)?.name ?? wave;
 	const waveLabel = waveName ?? "No wave";
 	return (
-		<div className="flex flex-col gap-1 px-2 pb-2 pt-1">
+		<div className="flex flex-col gap-1">
 			<div className="flex flex-wrap items-center gap-1.5">
 				<ProjectPicker
 					projects={projects}
@@ -141,6 +145,7 @@ export function ChipRow({
 					trigger={chip({
 						label: `Status: ${status?.name ?? "None"}`,
 						icon: status === undefined ? undefined : <StatusIcon category={status.category} />,
+						unset: status === undefined,
 						disabled: statuses.length === 0,
 						children: status?.name ?? "Status",
 					})}
