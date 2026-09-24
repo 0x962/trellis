@@ -1,7 +1,11 @@
 DO $$
+DECLARE
+	conflicting_project RECORD;
 BEGIN
-	IF EXISTS (SELECT 1 FROM projects WHERE slug = 'pages') THEN
-		RAISE EXCEPTION 'Cannot add Pages because a project already uses the reserved slug "pages".';
+	SELECT key, name INTO conflicting_project FROM projects WHERE slug = 'pages';
+	IF FOUND THEN
+		RAISE EXCEPTION 'Cannot add Pages because project % ("%") uses the reserved slug "pages".',
+			conflicting_project.key, conflicting_project.name;
 	END IF;
 END
 $$;
@@ -197,7 +201,6 @@ CREATE INDEX "page_comment_threads_page_version_created_idx" ON "page_comment_th
 CREATE INDEX "page_comment_threads_open_idx" ON "page_comment_threads" USING btree ("page_id","created_at","id") WHERE "page_comment_threads"."resolved_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "page_comments_thread_created_idx" ON "page_comments" USING btree ("thread_id","created_at","id");--> statement-breakpoint
 CREATE INDEX "page_pins_actor_idx" ON "page_pins" USING btree ("actor_kind","actor_name","created_at","page_id");--> statement-breakpoint
-CREATE INDEX "pages_project_id_updated_at_id_idx" ON "pages" USING btree ("project_id","updated_at" DESC NULLS FIRST,"id" DESC NULLS FIRST) WHERE "pages"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "pages_deleted_at_idx" ON "pages" USING btree ("deleted_at") WHERE "pages"."deleted_at" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "page_uploads_project_actor_idx" ON "page_uploads" USING btree ("project_id","actor_kind","actor_name","created_at");--> statement-breakpoint
 CREATE INDEX "page_uploads_sha256_idx" ON "page_uploads" USING btree ("sha256");--> statement-breakpoint

@@ -276,7 +276,7 @@ test("migration 0116 refuses a project that already uses the Pages route", async
 		await migrationDb.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 			VALUES (${existing}, 'PGS', 'pages', 'Existing pages project', ${at}, ${at})`);
 		await expect(runMigrations(migrationDb, { migrationsFolder: source })).rejects.toThrow(
-			'Cannot add Pages because a project already uses the reserved slug "pages".',
+			'Cannot add Pages because project PGS ("Existing pages project") uses the reserved slug "pages".',
 		);
 		const row = await migrationDb.execute(sql`SELECT id, slug FROM projects WHERE id = ${existing}`);
 		const tables = await migrationDb.execute(sql`SELECT to_regclass('pages') AS pages`);

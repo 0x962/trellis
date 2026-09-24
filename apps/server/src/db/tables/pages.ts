@@ -40,6 +40,9 @@ export const pages = pgTable(
 		check("pages_slug_check", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
 		check("pages_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 200`),
 		check("pages_summary_check", sql`length(${t.summary}) <= 2000`),
+		// `pages.version` is the row revision.
+		// A publish increments both `version` and `latest_version` in one transaction.
+		// A metadata update increments only `version`.
 		check("pages_version_check", sql`${t.version} > 0`),
 		check("pages_latest_version_check", sql`${t.latestVersion} > 0 AND ${t.latestVersion} <= ${t.version}`),
 		check(
@@ -47,9 +50,6 @@ export const pages = pgTable(
 			sql`(${t.deletedAt} IS NULL) = (${t.deletedActorName} IS NULL)
 				AND (${t.deletedAt} IS NULL) = (${t.deletedActorKind} IS NULL)`,
 		),
-		index("pages_project_id_updated_at_id_idx")
-			.on(t.projectId, t.updatedAt.desc().nullsFirst(), t.id.desc().nullsFirst())
-			.where(sql`${t.deletedAt} IS NULL`),
 		index("pages_deleted_at_idx").on(t.deletedAt).where(sql`${t.deletedAt} IS NOT NULL`),
 	],
 );

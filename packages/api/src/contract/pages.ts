@@ -15,8 +15,6 @@ import { base } from "./base.ts";
 
 const revisionErrors = pickErrors(["PROJECT_ARCHIVED", "PAGE_VERSION_CONFLICT"]);
 
-// `{+page}` matches the slashes in `KEY/pages/slug`. Routes for other Page
-// operations use fixed paths because no route can continue after this match.
 export const pages = {
 	list: base
 		.errors(pickErrors(["INVALID_CURSOR"]))
@@ -26,14 +24,16 @@ export const pages = {
 	restore: base
 		.errors(revisionErrors)
 		.errors(pickErrors(["AGENT_CANNOT_DELETE"]))
-		.route({ method: "POST", path: "/pages/restore", summary: "Restore a retained page" })
+		.route({ method: "POST", path: "/pages/restore/{+page}", summary: "Restore a retained page" })
 		.input(PageRestoreInputSchema)
 		.output(PageSummarySchema),
 	pin: base
 		.errors(pickErrors(["PROJECT_ARCHIVED"]))
-		.route({ method: "PUT", path: "/pages/pin", summary: "Set the current actor's page pin" })
+		.route({ method: "PUT", path: "/pages/pin/{+page}", summary: "Set the current actor's page pin" })
 		.input(PagePinInputSchema)
 		.output(PagePinOutputSchema),
+	// `{+page}` matches the slashes of `KEY/pages/slug`. No path segment can
+	// follow it, so `restore` and `pin` put fixed segments before their Page refs.
 	get: base
 		.route({ method: "GET", path: "/pages/{+page}", summary: "Read a page and one version" })
 		.input(PageGetInputSchema)

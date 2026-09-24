@@ -7,8 +7,6 @@ export const PAGE_TITLE_MAX = 200;
 export const PAGE_SUMMARY_MAX = 2000;
 export const PAGE_DOCUMENT_MAX_BYTES = 16 * 1024 * 1024;
 export const PAGE_ASSET_MAX_BYTES = 100 * 1024 * 1024;
-export const PAGE_ASSET_COUNT_MAX = 200;
-export const PAGE_ASSET_TOTAL_MAX_BYTES = 250 * 1024 * 1024;
 export const PAGE_ASSET_PATH_MAX = 1024;
 
 export const PageTitleSchema = z
@@ -179,91 +177,20 @@ export const PageUpdateInputSchema = z
 		page: PageRefStringSchema,
 		title: PageTitleSchema.optional(),
 		summary: PageSummaryTextSchema.optional(),
-		expectedVersion: PageRevisionSchema.optional(),
+		expectedVersion: PageRevisionSchema,
 	})
 	.refine((input) => input.title !== undefined || input.summary !== undefined, "Change the title or the summary.");
 export type PageUpdateInput = z.input<typeof PageUpdateInputSchema>;
 
 export const PageDeleteInputSchema = z.strictObject({
 	page: PageRefStringSchema,
-	expectedVersion: PageRevisionSchema.optional(),
+	expectedVersion: PageRevisionSchema,
 	force: booleanString.optional(),
 });
 export type PageDeleteInput = z.input<typeof PageDeleteInputSchema>;
 
 export const PageRestoreInputSchema = PageDeleteInputSchema;
 export type PageRestoreInput = z.input<typeof PageRestoreInputSchema>;
-
-export const PageUploadInputSchema = z.strictObject({
-	project: ProjectRefStringSchema,
-	uploadId: UlidSchema.optional(),
-	file: z.file().min(0).max(PAGE_ASSET_MAX_BYTES),
-});
-export type PageUploadInput = z.input<typeof PageUploadInputSchema>;
-
-export const PagePublishAssetInputSchema = z.strictObject({
-	uploadId: UlidSchema,
-	path: PageAssetPathSchema,
-});
-
-const PagePublishAssetsSchema = z
-	.array(PagePublishAssetInputSchema)
-	.max(PAGE_ASSET_COUNT_MAX)
-	.superRefine((assets, ctx) => {
-		const paths = new Set<string>();
-		for (const [index, asset] of assets.entries()) {
-			if (paths.has(asset.path))
-				ctx.addIssue({ code: "custom", path: [index, "path"], message: "Use each asset path once." });
-			paths.add(asset.path);
-		}
-	});
-
-const publishFields = {
-	requestId: z.uuid(),
-	documentUploadId: UlidSchema,
-	assets: PagePublishAssetsSchema.default([]),
-	label: z.string().trim().min(1).max(PAGE_TITLE_MAX).optional(),
-	summary: PageSummaryTextSchema.optional(),
-	sourcePath: PageSourcePathSchema,
-};
-
-export const PagePublishInputSchema = z.union([
-	z.strictObject({ ...publishFields, project: ProjectRefStringSchema, title: PageTitleSchema }),
-	z.strictObject({ ...publishFields, page: PageRefStringSchema, expectedVersion: PageRevisionSchema }),
-]);
-export type PagePublishInput = z.input<typeof PagePublishInputSchema>;
-
-export const PagePublishOutputSchema = z.object({
-	page: PageSummarySchema,
-	version: PageVersionSchema,
-	warnings: z.array(z.string()),
-});
-export type PagePublishOutput = z.infer<typeof PagePublishOutputSchema>;
-
-export const PageVersionsInputSchema = z.strictObject({
-	page: PageRefStringSchema,
-	cursor: z.string().optional(),
-	limit: z.coerce.number().int().min(1).max(200).default(50),
-});
-
-export const PageVersionsOutputSchema = z.object({
-	items: z.array(PageVersionSchema),
-	nextCursor: z.string().nullable(),
-});
-export type PageVersionsOutput = z.infer<typeof PageVersionsOutputSchema>;
-
-export const PagePullInputSchema = z.strictObject({
-	page: PageRefStringSchema,
-	version: PageVersionQuerySchema.optional(),
-});
-
-export const PagePullOutputSchema = z.object({
-	page: PageSummarySchema,
-	version: PageVersionSchema,
-	archiveUrl: z.string().min(1),
-	expiresAt: IsoDateTimeSchema,
-});
-export type PagePullOutput = z.infer<typeof PagePullOutputSchema>;
 
 export const PagePinInputSchema = z.strictObject({
 	page: PageRefStringSchema,
@@ -272,24 +199,3 @@ export const PagePinInputSchema = z.strictObject({
 
 export const PagePinOutputSchema = z.object({ pageId: UlidSchema, pinned: z.boolean() });
 export type PagePinOutput = z.infer<typeof PagePinOutputSchema>;
-
-export const PageWatchGetInputSchema = z.strictObject({ page: PageRefStringSchema });
-export const PageWatchAssignInputSchema = z.strictObject({ page: PageRefStringSchema, agent: UlidSchema });
-export const PageWatchStopInputSchema = z.strictObject({ page: PageRefStringSchema });
-export const PageWatchStopOutputSchema = z.object({ pageId: UlidSchema });
-
-export const PageRenderTicketInputSchema = z.strictObject({
-	page: PageRefStringSchema,
-	version: PageVersionNumberSchema,
-});
-
-export const PageRenderLeaseSchema = z.object({
-	lease: z.string().min(1),
-	contentRoot: z.string().min(1),
-	runtimeNonce: z.string().min(1),
-	idleExpiresAt: IsoDateTimeSchema,
-	absoluteExpiresAt: IsoDateTimeSchema,
-});
-export type PageRenderLease = z.infer<typeof PageRenderLeaseSchema>;
-
-export const PageRenewRenderLeaseInputSchema = z.strictObject({ lease: z.string().min(1).max(1000) });

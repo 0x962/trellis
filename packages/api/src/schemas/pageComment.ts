@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { PageRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { PageVersionNumberSchema, PageVersionQuerySchema } from "./page.ts";
-import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { PageVersionNumberSchema } from "./page.ts";
+import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const PAGE_COMMENT_BODY_MAX = 10000;
 export const PAGE_COMMENT_ANCHOR_MAX_BYTES = 16 * 1024;
-export const PageCommentBodySchema = z.string().trim().min(1).max(PAGE_COMMENT_BODY_MAX);
+export const PageCommentBodySchema = z.string().min(1).max(PAGE_COMMENT_BODY_MAX);
 const PageDomPathSchema = z.string().min(1).max(4000);
 
 // PostgreSQL renders JSONB with one space after each colon and comma. These
@@ -34,7 +33,7 @@ export type PageCommentAnchor = z.infer<typeof PageCommentAnchorSchema>;
 export const PageCommentSchema = z.object({
 	id: UlidSchema,
 	threadId: UlidSchema,
-	body: z.string(),
+	body: PageCommentBodySchema,
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
@@ -64,22 +63,3 @@ export const PageCommentThreadSchema = z
 		}
 	});
 export type PageCommentThread = z.infer<typeof PageCommentThreadSchema>;
-
-export const PageCommentListInputSchema = z.strictObject({
-	page: PageRefStringSchema,
-	version: PageVersionQuerySchema.optional(),
-	resolved: booleanString.optional(),
-});
-
-export const PageCommentCreateInputSchema = z.strictObject({
-	page: PageRefStringSchema,
-	version: PageVersionNumberSchema,
-	anchor: PageCommentAnchorSchema,
-	body: PageCommentBodySchema,
-});
-
-export const PageCommentReplyInputSchema = z.strictObject({ thread: UlidSchema, body: PageCommentBodySchema });
-export const PageCommentEditInputSchema = z.strictObject({ id: UlidSchema, body: PageCommentBodySchema });
-export const PageCommentResolveInputSchema = z.strictObject({ thread: UlidSchema, resolved: z.boolean() });
-export const PageCommentIdInputSchema = z.strictObject({ id: UlidSchema });
-export const PageCommentRemoveOutputSchema = z.object({ deleted: UlidSchema });

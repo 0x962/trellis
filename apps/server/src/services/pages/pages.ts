@@ -17,7 +17,7 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { decodeCursor, encodeCursor, isIsoTimestamp, iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { fail, invalidInput } from "../../errors.ts";
+import { fail } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { PAGE_RETENTION_MS, pageSelect, pinOf, type RawPage, type RawVersion, toSummary, toVersion } from "./rows.ts";
@@ -43,7 +43,7 @@ const resolve = async (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted: boo
 	return row;
 };
 
-export const resolvePage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
+const resolvePage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
 	resolve(ctx, tx, ref, includeDeleted, false);
 
 const lockPage = (ctx: ServiceCtx, tx: Tx, ref: string, includeDeleted = false) =>
@@ -55,7 +55,14 @@ const byId = async (ctx: ServiceCtx, tx: Tx, id: string) => {
 	return row;
 };
 
-type PageCursor = { v: 1; h: string; p: 0 | 1; r: number; at: string; id: string };
+type PageCursor = {
+	format: 1;
+	filterHash: string;
+	pinned: 0 | 1;
+	searchRank: number;
+	publishedAt: string;
+	id: string;
+};
 const cursorHash = (ctx: ServiceCtx, projectId: string, input: ReturnType<typeof PageListInputSchema.parse>) =>
 	createHash("sha1")
 		.update(
@@ -81,14 +88,14 @@ const readCursor = (value: string, hash: string): PageCursor => {
 	const cursor = parsed as Partial<PageCursor> | null;
 	if (
 		cursor === null ||
-		cursor.v !== 1 ||
-		cursor.h !== hash ||
-		(cursor.p !== 0 && cursor.p !== 1) ||
-		typeof cursor.r !== "number" ||
-		!Number.isInteger(cursor.r) ||
-		cursor.r < 0 ||
-		cursor.r > 3 ||
-		!isIsoTimestamp(cursor.at) ||
+		cursor.format !== 1 ||
+		cursor.filterHash !== hash ||
+		(cursor.pinned !== 0 && cursor.pinned !== 1) ||
+		typeof cursor.searchRank !== "number" ||
+		!Number.isInteger(cursor.searchRank) ||
+		cursor.searchRank < 0 ||
+		cursor.searchRank > 3 ||
+		!isIsoTimestamp(cursor.publishedAt) ||
 		typeof cursor.id !== "string"
 	)
 		throw fail("INVALID_CURSOR");
@@ -100,6 +107,7 @@ const likePattern = (value: string) =>
 
 export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PageListOutput> => {
 	const input = PageListInputSchema.parse(rawInput);
+	if (input.pinned !== undefined) requireActor(ctx);
 	const project = await resolveProject(ctx, tx, input.project);
 	const pinned = pinOf(ctx);
 	const pinRank = sql`CASE WHEN ${pinned} THEN 1 ELSE 0 END`;
@@ -134,7 +142,7 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		const cursor = readCursor(input.cursor, hash);
 		conditions.push(
 			sql`(${pinRank}, ${searchRank}, latest.created_at, p.id) <
-				(${cursor.p}::int, ${cursor.r}::int, ${cursor.at}::timestamptz, ${cursor.id})`,
+				(${cursor.pinned}::int, ${cursor.searchRank}::int, ${cursor.publishedAt}::timestamptz, ${cursor.id})`,
 		);
 	}
 	const found = await rows<RawPage>(
@@ -149,11 +157,11 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		nextCursor:
 			found.length > input.limit && last !== undefined
 				? encodeCursor({
-						v: 1,
-						h: hash,
-						p: last.pinned ? 1 : 0,
-						r: last.search_rank,
-						at: last.published_at,
+						format: 1,
+						filterHash: hash,
+						pinned: last.pinned ? 1 : 0,
+						searchRank: last.search_rank,
+						publishedAt: last.published_at,
 						id: last.id,
 					})
 				: null,
@@ -186,8 +194,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<P
 	};
 };
 
-const assertRevision = (page: RawPage, expectedVersion: number | undefined) => {
-	if (expectedVersion === undefined) throw invalidInput("expectedVersion", "Send the current Page revision.");
+const assertRevision = (page: RawPage, expectedVersion: number) => {
 	if (expectedVersion !== page.revision) throw fail("PAGE_VERSION_CONFLICT", { current: toSummary(page) });
 };
 
@@ -247,15 +254,10 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	if (page.deleted_at !== null) return toSummary(page);
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);
-	const removedWatch = await rows<{ agent_id: string }>(
-		tx,
-		sql`DELETE FROM page_watches WHERE page_id = ${page.id} RETURNING agent_id`,
-	);
 	await tx.execute(sql`UPDATE pages SET deleted_at = ${ctx.now}, deleted_actor_name = ${actor.name},
 		deleted_actor_kind = ${actor.kind}, actor_name = ${actor.name}, actor_kind = ${actor.kind},
 		version = version + 1, updated_at = ${ctx.now} WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
-	if (removedWatch.length > 0) ctx.emit({ type: "page-watches.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await byId(ctx, tx, page.id));
 };
 

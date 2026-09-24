@@ -6,7 +6,9 @@ import { at } from "./actors.ts";
 // Every project stands on its own. `key` is the prefix of every ticket
 // identifier of the project, and `ticket_counter` is the last number it
 // handed out. `slug` is the lower-case second name a client may type in
-// place of the key. A project slug cannot match a route under a project URL.
+// place of the key. The check below rejects `board`, `pages`, and `settings`.
+// `reservedSlugs` in packages/api/src/schemas/primitives.ts holds the full
+// list that an API request must pass.
 // `color` is the name of one of the five color slots, and the index below
 // gives a slot to one active project at a time. A project without a color
 // holds NULL, and any number of projects hold NULL. An archived project

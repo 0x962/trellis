@@ -20,6 +20,8 @@ export const pageCommentThreads = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
+		// Page retention keeps every version. A Page purge removes its versions,
+		// threads, and comments through this cascade.
 		foreignKey({
 			name: "page_comment_threads_version_fk",
 			columns: [t.pageId, t.version],

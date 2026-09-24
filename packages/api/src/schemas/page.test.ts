@@ -3,7 +3,6 @@ import {
 	PageAssetPathSchema,
 	PageAssetSchema,
 	PageSourcePathSchema,
-	PageUploadInputSchema,
 	PageUploadSchema,
 	PageVersionSchema,
 } from "./page.ts";
@@ -37,7 +36,6 @@ test("an empty Page asset and staged upload keep their zero-byte size", () => {
 
 	expect(asset.size).toBe(0);
 	expect(upload.size).toBe(0);
-	expect(PageUploadInputSchema.parse({ project: "TRL", file: new File([], "empty.txt") }).file.size).toBe(0);
 });
 
 test("a Page HTML document must contain at least one byte", () => {

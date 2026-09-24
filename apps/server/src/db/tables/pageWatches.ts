@@ -4,6 +4,13 @@ import { at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { pages } from "./pages.ts";
 
+// One agent can watch a Page. `cursor_at` and `cursor_id` identify the last
+// comment that the agent accepted. `reservation_id` identifies one pending
+// comment batch. `reservation_expires_at` sets the time when another read can
+// take that batch. `reservation_end_at` and `reservation_end_id` fix the last
+// comment in the batch when the batch starts. A retry after a crash therefore
+// sends the same comments and excludes comments that arrived later.
+// `last_completed_reservation_id` identifies the last accepted batch.
 export const pageWatches = pgTable(
 	"page_watches",
 	{
