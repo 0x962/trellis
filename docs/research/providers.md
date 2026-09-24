@@ -413,9 +413,9 @@ Four tickets under TRL-428, in the wave External Providers. The first three exis
 | TRL-430 Provider record, API, and CLI | the tables, the migration, the schemas, the contract without catalog and check, the services, the procedures, the event, the export redaction, the CLI verbs list, show, add, edit, rm, the instructions paragraph, the ARCHITECTURE rows | | the erDiagram; the server test output; a terminal transcript of add, list, show, edit, rm with the key on stdin; `trellis export` output with `<redacted>` |
 | TRL-431 Provider catalog and key check | `providers.catalog`, `providers.publicCatalog`, `providers.check`, their caches, the CLI verbs catalog and check | TRL-430 | the test output with the stubbed fetch; a transcript of check against a real key with the balance, and against a wrong key with the refusal |
 | TRL-432 Providers on the Usage page | the section, the card, the forms, the model list control, the remove dialog, the palette item, the gallery section, the `ProviderIcon` values, the UI_PATTERNS rows | TRL-430, TRL-431 | screenshots of the empty state, the loading state, the Add form on desktop and on a phone width, a card with a balance, a card with a refused key, a disabled card, the remove dialog, both themes |
-| TRL-433 Provider secrets in the record | `secret.ts` with `keyOf`, the redaction test, the "no key in any output" test, the log rule | TRL-430 | the test output |
+| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, the redaction test, the "no key in any output" test, the log rule | TRL-430 | the test output |
 
-TRL-433 is small. It exists so the key rules have one owner and one test file, and so TRL-430 does not grow past a reviewable size.
+TRL-439 is small. It exists so the key rules have one owner and one test file, and so TRL-430 does not grow past a reviewable size.
 
 ### 3.2 Tests
 
