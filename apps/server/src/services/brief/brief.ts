@@ -13,7 +13,6 @@ import { notesLines } from "../notes/text.ts";
 import { resolveTicket } from "../refs.ts";
 import { chainLines } from "./chainLines.ts";
 import { contractLines } from "./contractLines.ts";
-import { evidenceLines } from "./evidenceLines.ts";
 import { flowLines } from "./flowLines.ts";
 
 // The markdown an agent starts from. The layout is fixed and every list
@@ -83,7 +82,7 @@ const subTickets = (ticket: Ticket) =>
 
 const pullRequests = (ticket: Ticket) => {
 	if (ticket.prs.length === 0) return [];
-	const lines = ["## Pull requests", ""];
+	const lines = ["## Diffs", ""];
 	for (const pr of ticket.prs) {
 		lines.push(`- ${pr.url} (${pr.state}, CI ${pr.ciState})`);
 		const failing = pr.checks.filter((check) => check.bucket === "fail" || check.bucket === "cancel");
@@ -97,59 +96,8 @@ const attachments = (ticket: Ticket, publicUrl: string) =>
 		? []
 		: ["## Attachments", "", ...ticket.attachments.map((file) => `- ${file.filename}: ${publicUrl}${file.url}`)];
 
-const protocol = (identifier: string) => [
-	"## Protocol",
-	"",
-	"Work on the branch named above. Use the trellis CLI to report progress:",
-	"",
-	`- Start: trellis move ${identifier} in-progress`,
-	`- Open a normal pull request on GitHub and link it: trellis pr add ${identifier} <url>.`,
-	"  It waits in Trellis until you ask for review.",
-	"- When the work is complete and you want the person to review it, run: trellis ready <pr>",
-	`- Split the work: trellis sub ${identifier} -t "..."`,
-	"",
-	"Before you ask for a review, link your pull request. The ticket page and the reviewers see only a linked pull request.",
-	"",
-	"Before you end a turn, run trellis review list <pr-url>. Answer every review thread.",
-	"",
-	`When your work is ready for review, run: trellis move ${identifier} agent-review`,
-	"",
-	"Report what you did in your final message and in the pull request description. A person reads both.",
-];
-
-const reviewComments = [
-	"## Review comments",
-	"",
-	"Review comments for a pull request live in Trellis, not on GitHub. GitHub comments are for people.",
-	"",
-	"- Read the open review comments before you act on review feedback: trellis review list <pr-url>",
-	'- Reply to a review comment: trellis review reply <thread-id> --body "..."',
-	"- Resolve a review comment you addressed: trellis review resolve <thread-id>",
-	'- Post a review comment: trellis review add <pr-url> --path <file> --line <n> --body "..."',
-	"",
-	"Never post your review comments on GitHub.",
-];
-
-const assignment = (identifier: string) => [
-	"## Assignment",
-	"",
-	"Trellis is the ticket tracker on this machine. It assigned this ticket to you. Your worktree is on the branch named above.",
-	`Before you start, read the ticket with its pull requests and the project notes: trellis brief ${identifier}`,
-	"If a UI task needs Vite, start a scratch Trellis server under `$TMPDIR/trellis-*`.",
-	"Set `TRELLIS_DEV_API` to that server.",
-	"Stop the scratch server before you finish.",
-	"Do not point Vite at the live host.",
-];
-
 const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).map((part) => part.join("\n"));
 
-// This text is the first prompt of an agent that trellis assigns to a ticket.
-// `reserve` in `agentRuns/reserve.ts` builds this text once and saves it in
-// `agent_runs.instruction`. A run keeps that saved text for its whole life.
-// The pull requests and the project notes change while the agent works, so a
-// saved copy of them goes out of date. The lines from `assignment` tell the
-// agent to read their current state with `trellis brief`. `branch` is the
-// branch of the Git worktree that `nativeWorkspace` creates for the run.
 export const assignmentInstruction = (input: {
 	identifier: string;
 	title: string;
@@ -167,9 +115,7 @@ export const assignmentInstruction = (input: {
 			`- URL: ${input.publicUrl}/t/${input.identifier}`,
 		],
 		input.description.trim() === "" ? [] : ["## Description", "", input.description.trimEnd()],
-		assignment(input.identifier),
-		protocol(input.identifier),
-		reviewComments,
+		["Complete this assigned ticket. Record the result."],
 	]).join("\n\n");
 
 export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Brief> => {
@@ -202,7 +148,6 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		header(ticket, parentTitle, epic, ctx.publicUrl),
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
-		evidenceLines,
 		flowLines(await listFlows(tx, row.projectId)),
 		chainLines(ticket, waitsOn),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
@@ -211,8 +156,6 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),
 		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.key),
-		protocol(ticket.identifier),
-		reviewComments,
 	]).join("\n\n");
 	return { markdown: `${markdown}\n`, generatedAt: new Date().toISOString() };
 };

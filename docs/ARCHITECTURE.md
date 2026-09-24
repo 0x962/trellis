@@ -413,24 +413,24 @@ The API is `pullRequests.readEvidence`, `pullRequests.writeEvidence`,
 `PUT /api/prs/{id}/files/{fileId}`, and `GET /api/pr-files/{fileId}`. The file
 route is `GET /api/evidence/{fileId}/file`.
 
-The CLI verb is `trellis evidence` with `write` and `show`. `write` reads a
-Markdown file or stdin, uploads each local image, and points the image at its
-stored file. `trellis summary write` uploads its images the same way.
+The CLI uses `trellis diff evidence write` and `trellis diff evidence show`.
+A write reads Markdown from a file or stdin, uploads local images, and replaces their paths with stored file URLs.
+`trellis diff summary write` uploads images the same way.
 
-`trellis pr add` and `trellis ready <pr>` require the current-head summary and
-the evidence document. While one is missing, they print it with its command,
-and they exit 1 for an agent. The CLI applies the same check to each open
-linked pull request before an actor moves a ticket to `human-review`. It
-refuses an agent and permits a human. The server does not apply this CLI guard
-in `tickets.move`.
+`trellis diff link <url> --ticket <ticket>` records the link and refreshes its GitHub data.
+`trellis diff check <diff>` reads the review requirements without a local state change.
+`trellis diff set-state <diff> ready` requires the current-head summary and evidence document.
+For an agent, it also requires a completed applicable flow or a recorded reason that no flow fits.
+Ticket statuses come from project configuration.
+`trellis ticket set-status` passes the requested status to the server's ticket transition rules.
 
-`pull_requests.local_state` records whether the agent asked the person to
-review a pull request: `not-ready` or `ready`. A new link by an agent writes
-`not-ready`, and every other row starts as `ready`. `trellis ready <pr>`
-writes `ready` after its checks pass, through `pullRequests.setLocalState`. It
-also runs the GitHub ready action when the pull request needs that action. A
-person flips the state from the ⋯ menu of the pull request sheet. A poll or a
-push leaves the state as it is.
+`pull_requests.local_state` records the local request for review: `not-ready` or `ready`.
+A new link by an agent writes `not-ready`; other new records start as `ready`.
+`trellis diff set-state <diff> ready` clears the GitHub draft flag before it records the local request.
+A failed GitHub action leaves the local request unchanged.
+CI, conflicts, and open comments can still prevent full readiness after the request is recorded.
+A person changes the local state from the diff sheet menu.
+A poll or push preserves the local state.
 
 `pull_requests.ready_for_review_at` is the moment that state became `ready`,
 which is the moment the wait of the person started. `setLocalState` stamps it,
@@ -442,7 +442,7 @@ payload carries it as `readyForReviewAt`.
 
 A pull request is ready for review, and its glyph draws green, only when every
 one of these holds: the agent asked for review, no check failed and none is
-pending, a flow run of the current head finished or the agent recorded why no
+pending, a flow run for that diff succeeded or the agent recorded why no
 flow fits, no review finding is open, the pull request merges cleanly, and the
 explanation of the current head and the evidence document exist. A flow is
 machine review and it asks the person nothing, so a flow run that stopped and
@@ -457,8 +457,8 @@ sheet all read one answer. `notReadyForReviewSql` in
 filters and the wave counts use. Nothing in the rule reads the GitHub draft
 flag.
 
-A pull request goes back to not ready on its own. A new commit takes away the
-explanation of that commit and the flow run of that commit; a failed check, a
+A pull request goes back to not ready on its own. A new commit requires an
+explanation for that commit; a successful flow remains valid across commits; a failed check, a
 new finding or a conflict adds its own missing part. It turns green again as
 soon as the facts hold, with no command from the agent, except for the parts
 only the agent writes.
@@ -592,6 +592,11 @@ The row retains the project key and ticket identifier so its history remains rea
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
 The runtime keeps the record and the output of an exited process for 7 days, and at most 500 exited records at any time.
 The oldest exits leave first. The sweep runs at boot, after every exit, and once an hour.
+The server also sweeps workspaces at boot and once an hour.
+It removes a clean worktree for a done or canceled ticket after the assigned process exits.
+Session workspaces, active tickets, live processes, open files, and dirty worktrees keep their directories.
+`workspaceOperation` serializes launch and removal for the same workspace.
+The sweep keeps the branch, assignment, and provider conversation.
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
 
@@ -613,7 +618,7 @@ The assignment retains its ticket, workspace, account, and provider conversation
 The project and account defaults stay unchanged.
 
 Each model change requires the current attempt ID and a request ID. A repeated request returns the existing attempt.
-The CLI exposes `agents start --model`, `agents resume --model`, and `agents model <id> --model`.
+The CLI exposes `agent start --model`, `agent resume --model`, and `agent model <id> --model`.
 The session API can inspect the observed model through `agentRuns.session` with `include: ["model"]`.
 
 Project settings store the repository directory.
@@ -622,8 +627,15 @@ Statuses do not store agent settings. A ticket transition does not change its ag
 An agent restart preserves the workspace and resumes a compatible provider conversation.
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
-`launchCommand.ts` sends the saved run instruction without added assignment context.
-For a ticket assignment, `reserve.ts` saves the text from `assignmentInstruction` in `services/brief.ts`: the ticket, the branch of the worktree, and the `trellis` commands.
+`agentPrompt/launchGuide.ts` composes the common guide at every start and resume.
+`packages/api/src/agentGuide/template.md` supplies the concepts, CLI reference, context fields, and rules.
+The renderer reads current project records, configured statuses, resources, epic and wave context, and the full ticket.
+It includes the user context that Trellis has and the current workspace and session identifiers.
+A session request or flow node instruction follows the common context.
+A ticket assignment uses its current title and description as the task.
+`assignmentInstruction` in `services/brief/brief.ts` saves a short assignment reference.
+Built-in harnesses and custom launch templates receive the same composed guide.
+A compatible resume preserves the provider conversation.
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
 Each new agent in a configured repository uses a Git worktree under its run directory. This includes sessions, ticket agents, and flow agents.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
@@ -743,8 +755,8 @@ Suffix `m` means minutes; prefix `m` means months. Past times require a future d
 
 ### Flows
 
-A flow is a graph of agent steps that trellis runs against a target, such as a
-pull request. Flows are local records shared across projects. The Flows link of
+A flow is a graph of agents with defined responsibilities and paths between their steps.
+Flows often review diffs, which are GitHub pull requests. Flows are local records shared across projects. The Flows link of
 the sidebar opens the Flows page at `/ai/flows`, and each flow opens in a canvas
 editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
@@ -790,7 +802,7 @@ The topbar shows the save status and the count of draft issues. A conflict
 keeps the browser draft. A reload of the server graph requires explicit
 confirmation to discard that draft.
 
-The Flows tab of a ticket lists the runs of the ticket, newest first. A live
+The Flows tab of a diff lists the runs associated with that diff, newest first. A live
 run and the newest run open with their steps; an older run opens on its name.
 `FlowRunSummary` shows the flow name and version, the state, the start, the
 duration, and the fact to act on: the step that failed, the step that waits,
@@ -799,7 +811,7 @@ order, with every node of the saved graph: a step of a box that never started
 shows as not started, a box row collapses its children, a running box shows
 its time left, and a finished step shows its duration from `startedAt` to
 `endedAt`. A row opens its terminal, copies its output or error, or takes a
-human decision. A finished run can run again at the current flow version.
+human decision. The Run again control records an explicit user request for another run.
 A failed child fails its box with the same error, and the run stops there.
 When the runtime stops a worker at a box time limit, the step records the box
 and its limit. The step prompt names the limit and the time left, and the
@@ -807,6 +819,19 @@ worker gets a message at half of the budget and again at a quarter. The
 list refreshes on `flows.changed`. Every flow agent reads
 the ticket, its description, and its linked pull requests right after the
 briefing, so no step spends its budget on finding the target.
+
+A flow execution stores its diff in `flow_executions.diff_id`.
+The migration associates older runs only when their ticket has exactly one linked diff.
+`flowExecutions.start` serializes starts for a flow and returns the latest run for the same diff.
+The latest execution error permits a new run, with `repeatOf` pointing to the earlier run.
+A user can also request another run with `allowRepeat` and `repeatReason`.
+The request identifier still provides replay for a created execution.
+
+`state.failureKind` distinguishes an execution error from feedback on a failed run.
+A process error or timeout has `failureKind: "error"`.
+A human rejection or exhausted negative loop has `failureKind: "feedback"`.
+A completed gate decision can follow its NO path without an execution error.
+Only an execution error permits an automatic repeated start.
 
 ## Web routes
 
@@ -1100,7 +1125,7 @@ One example on the three surfaces:
 ```
 GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
 /p/CDE?status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
-trellis list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -updatedAt
+trellis ticket list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -updatedAt
 ```
 
 The contract declares every error as `{defined, code, status, message, data}`.
@@ -1246,13 +1271,16 @@ message carries the annotations only. A commit status has no check run id and
 gives no lines.
 
 **Delivery.** A notice queues one `review_deliveries` row with
-`check_notice_id` for each open agent run of a linked ticket, through
-`agentsOf`. The review delivery loop sends it with the same states, the same
-15 second deadline, and the same failure sentences as a review. A pull
-request with no ticket, or with no agent, gets no notice row. The dispatcher
-fails a pending check delivery when the agent has no running process, and
-when a newer notice of the same family, a new head commit, a merge, or a close
-replaced it. A merged or closed pull request gets no new notice.
+`check_notice_id` for each linked ticket, through `recipientsOf`.
+The delivery loop reads the current attempt of each assigned agent with a pending or held notice.
+CI notices can resume an attempt that exited after idle expiry. The resume preserves the conversation and workspace.
+The CI notice supplies the resume prompt. Provider startup confirmation determines when that delivery completes.
+A live process receives its notice through the 15 second send deadline.
+One notice resumes an idle assignment per dispatch pass. The next pass reads the new attempt before it sends another notice.
+An explicitly stopped agent keeps its notice in `held`. Review and merge-conflict notices wait for a live process.
+A pull request with no linked ticket gets no notice row.
+The dispatcher drops a notice after a newer notice of the same family, a new head commit, a merge, or a close replaces it.
+A merged or closed pull request gets no new notice.
 
 **Merge conflicts.** The poll query also reads `mergeable`, and the upsert
 stores it on `pull_requests.mergeable` as `mergeable`, `conflicting`, or
@@ -1345,7 +1373,7 @@ Conventions shared by every workspace:
 `packages/api` holds the contract and no runtime dependency beyond zod and oRPC:
 `refs.ts`, `errors.ts`, `events.ts`, `query-keys.ts`, `client.ts`, `pair.ts`,
 `schemas/`, `contract/`, `agentLaunch/` (agent command variables).
-The `AGENTS.md` block lives in `packages/cli/src/instructions.md`.
+The shared agent guide lives in `packages/api/src/agentGuide/template.md`.
 
 `apps/server` holds `index.ts` (boot), `config.ts`, `log.ts`, `app.ts`,
 `context.ts`, `db/` (worker, transport, client, migrate, schema, tables, enums,
@@ -1371,7 +1399,7 @@ A backup runs `CHECKPOINT` in the worker and copies `db/` and `attachments/` to
 for the checkpoint and the copy only. The HTTP process then runs `tar` over the
 snapshot into `trellis-<stamp>.tar.gz.partial`, renames the file when tar exits
 0, and removes the snapshot. A failed backup removes both, and so does the next
-boot. The data home keeps the 10 newest archives. `trellis export` streams
+boot. The data home keeps the 10 newest archives. `trellis data export` streams
 NDJSON per table in keyset pages of 1000 rows.
 
 `apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
@@ -1387,12 +1415,14 @@ The app keeps the server URL, the actor name, the theme, and the query cache in
 `expo-sqlite/kv-store`. Every dependency is in the bundled native module list of
 the Expo SDK, so the app runs in Expo Go and needs no build step.
 
-`packages/cli` holds `index.ts` (the citty root), `verbs.ts` (one row per verb,
-each with a lazy import), `actor.ts`, `client.ts`, `context.ts`, `output.ts`,
-`errors.ts`, `flags.ts`, `sse.ts`, `installation.ts`, `gatewayRoutes.ts`,
-`instructions.md`, and `commands/` with one file per verb. A verb loads its
-module on dispatch, so `--help` loads no command module. A new verb needs both a
-file under `commands/` and a row in `verbs.ts`.
+`packages/cli` holds `index.ts` (the citty root), `commandTree/` (the canonical command hierarchy),
+`verbs.ts` (legacy aliases), `actor.ts`, `client.ts`, `context.ts`, `output.ts`,
+`errors.ts`, `flags.ts`, `sse.ts`, `installation.ts`, `gatewayRoutes.ts`, and `commands/`.
+Commands use singular nouns before actions, such as `ticket show` and `diff set-state`.
+Child collections follow their parent, such as `flow run list`.
+Each root command loads on dispatch.
+Root help reads command metadata without a command import.
+`trellis guide show` reads the same guide that the server sends to agents.
 
 ## UI system
 

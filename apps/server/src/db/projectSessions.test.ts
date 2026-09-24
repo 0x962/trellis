@@ -56,7 +56,7 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	const branch = await git(assigned.workspaceId!, "branch", "--show-current");
 	expect(branch).toBe(`trellis/tst-1-${ticket.run.id.toLowerCase()}`);
 	expect(assigned.instruction).toStartWith(
-		`# TST-1: Task\n\n- Project: TST\n- Branch: ${branch}\n- URL: http://localhost:4597/t/TST-1\n\n## Assignment`,
+		`# TST-1: Task\n\n- Project: TST\n- Branch: ${branch}\n- URL: http://localhost:4597/t/TST-1\n\nComplete this assigned ticket. Record the result.`,
 	);
 });
 
@@ -324,7 +324,11 @@ test("start answers before the harness confirms, and the session reads starting"
 		entered.resolve();
 		return confirm.promise;
 	};
-	const answer = await prepareStart(ctx, { id: session.id }, { process: exited, start: held, preset: async () => "codex" });
+	const answer = await prepareStart(
+		ctx,
+		{ id: session.id },
+		{ process: exited, start: held, preset: async () => "codex" },
+	);
 	expect(answer.id).toBe(session.id);
 	// The launch has not answered, and the call already has.
 	await entered.promise;

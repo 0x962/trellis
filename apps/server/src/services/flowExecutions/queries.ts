@@ -5,6 +5,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
+import { failureKind } from "./failureKind.ts";
 import type { StoredExecution } from "./types.ts";
 
 // A run stored before the flow harness, the flow project, or the node
@@ -27,7 +28,7 @@ export const readExecution = async (tx: Tx, id: string, lock = false) => {
 export const get = async (_ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<FlowExecutionRecord> => {
 	const [record] = await rows<Omit<FlowExecutionRecord, "tasks">>(
 		tx,
-		sql`SELECT id,flow_id AS "flowId",ticket_id AS "ticketId",project_id AS "projectId",revision,head_sha AS "headSha",doc,state,${iso(sql`created_at`)} AS "createdAt",${iso(sql`updated_at`)} AS "updatedAt" FROM flow_executions WHERE id=${input.id}`,
+		sql`SELECT id,flow_id AS "flowId",ticket_id AS "ticketId",project_id AS "projectId",diff_id AS "diffId",request->>'repeatOf' AS "repeatOf",request->>'repeatReason' AS "repeatReason",revision,head_sha AS "headSha",doc,state,${iso(sql`created_at`)} AS "createdAt",${iso(sql`updated_at`)} AS "updatedAt" FROM flow_executions WHERE id=${input.id}`,
 	);
 	if (!record) throw fail("NOT_FOUND", { kind: "flow execution", ref: input.id });
 	const tasks = await rows<FlowExecutionRecord["tasks"][number]>(
@@ -40,6 +41,7 @@ export const get = async (_ctx: ServiceCtx, tx: Tx, input: { id: string }): Prom
 		// A step stored before `endedAt` existed has no such key.
 		state: {
 			...record.state,
+			failureKind: failureKind(record.state, record.doc),
 			steps: record.state.steps.map((step) => ({ ...step, endedAt: step.endedAt ?? null, actionKey: taskKey(step) })),
 		},
 		tasks,

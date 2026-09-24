@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { FlowDoc } from "@trellis/api";
 import { advanceFlow } from "./advanceFlow.ts";
 import { createFlowExecution } from "./createFlowExecution.ts";
+import { taskKey } from "./taskKey.ts";
 import { edge, flowDoc, node } from "./testDoc.ts";
 import type { FlowExecution } from "./types.ts";
 
@@ -55,4 +56,36 @@ test("a warned event keeps the count of time warnings on a running step", () => 
 	expect(step(state, `${inner}/1/first`).timeWarnings).toBe(1);
 	const idle = advanceFlow(doc, state, { type: "warned", key: `${inner}/1/second:step:1`, count: 1 }, 4000);
 	expect(step(idle, `${inner}/1/second`).timeWarnings).toBeUndefined();
+});
+
+test("a human rejection is feedback", () => {
+	const doc = flowDoc([node("decision", "human", null)], []);
+	const created = createFlowExecution(doc, 0);
+	const result = advanceFlow(
+		doc,
+		created,
+		{ type: "human", key: taskKey(created.steps[0]!), approved: false, output: "Fix the findings" },
+		1,
+	);
+	expect(result.failureKind).toBe("feedback");
+});
+
+test("a negative agent decision completes without an execution error", () => {
+	const doc = flowDoc([node("review", "gate", null)], []);
+	const created = createFlowExecution(doc, 0);
+	const key = taskKey(created.steps[0]!);
+	const started = advanceFlow(doc, created, { type: "started", key }, 1);
+	const result = advanceFlow(doc, started, { type: "complete", key, output: "Changes requested", decision: "no" }, 2);
+	expect(result.status).toBe("succeeded");
+	expect(result.failureKind).toBeUndefined();
+});
+
+test("a worker error permits an execution retry", () => {
+	const doc = flowDoc([node("review", "agent", null)], []);
+	const created = createFlowExecution(doc, 0);
+	const key = taskKey(created.steps[0]!);
+	const started = advanceFlow(doc, created, { type: "started", key }, 1);
+	const result = advanceFlow(doc, started, { type: "fail", key, error: "Provider exited" }, 2);
+	expect(result.status).toBe("failed");
+	expect(result.failureKind).toBe("error");
 });

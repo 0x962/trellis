@@ -5,15 +5,11 @@ import { flowAppliesToProject } from "./flowScope.ts";
 // The facts that `reviewGaps` in `packages/api` reads, in SQL. `p` is the
 // alias of the `pull_requests` row in the caller's query.
 
-// The tickets that link this pull request. A flow run belongs to a ticket,
-// so a run reaches the pull request through this set.
+// Linked tickets supply the projects whose flows apply to this diff.
 const linkedTickets = (p: SQL) => sql`SELECT pr_link.ticket_id
 	FROM ticket_pull_requests pr_link WHERE pr_link.pull_request_id = ${p}.id`;
 
-// True when some flow applies to the project of a ticket that links this
-// pull request. A flow belongs to one root project, or to every project, and
-// `flowAppliesToProject` is the one rule for that. `trellis ready` asks the
-// flows service the same question, so both answer alike.
+// A flow can belong to one root project or apply to every project.
 const someFlowApplies = (p: SQL) => sql`EXISTS (
 	SELECT 1 FROM flows flow
 	JOIN tickets ticket ON ticket.id IN (${linkedTickets(p)})
@@ -33,7 +29,10 @@ export const flowAnsweredSql = (p: SQL) => sql`(
 	)
 	OR EXISTS (
 		SELECT 1 FROM flow_executions execution
-		WHERE execution.ticket_id IN (${linkedTickets(p)})
+		JOIN flows flow ON flow.id = execution.flow_id
+		JOIN tickets ticket ON ticket.id IN (${linkedTickets(p)})
+		WHERE execution.diff_id = ${p}.id
+			AND ${flowAppliesToProject(sql`flow`, sql`ticket.project_id`)}
 			AND execution.state->>'status' = 'succeeded'
 	)
 )`;

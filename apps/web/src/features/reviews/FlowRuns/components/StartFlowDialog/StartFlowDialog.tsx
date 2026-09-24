@@ -6,10 +6,12 @@ import { startFlowId } from "./startFlowId";
 
 export function StartFlowDialog({
 	ticket,
+	diffId,
 	headSha,
 	onClose,
 }: {
 	ticket: string;
+	diffId: string;
 	headSha: string;
 	onClose: () => void;
 }) {
@@ -26,6 +28,7 @@ export function StartFlowDialog({
 			client.flowExecutions.start({
 				flow: selectedFlowId,
 				ticket,
+				diffId,
 				headSha,
 				requestId,
 				expectedVersion: flow!.version,

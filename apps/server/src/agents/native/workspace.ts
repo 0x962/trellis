@@ -61,8 +61,8 @@ export const nativeWorkspace = async (
 	const source = await realpath(directory);
 	if (!(await stat(source)).isDirectory()) throw new Error(`Not a directory: ${source}`);
 	const git = deps.exec ?? exec;
-	// The sweep removes the worktree of a run that is closed on a done ticket.
-	// A run that starts again after that gets a new worktree on its branch.
+	// A stopped run on a finished ticket can lose its worktree to the sweep.
+	// Its branch survives, so a later start can restore the worktree.
 	if (run.workspaceId !== null && run.runtime === "native" && existsSync(run.workspaceId)) {
 		if (run.workspaceId !== source) {
 			const env = await (deps.environment ?? executionEnvironment)();

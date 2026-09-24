@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { sql } from "drizzle-orm";
 import { agentWorkspacesRoot } from "../../agents/native/workspace.ts";
+import { workspaceOperation } from "../../agents/native/workspaceOperation.ts";
 import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
@@ -15,7 +16,7 @@ import { openPaths } from "./openPaths.ts";
 import { type ScratchSweepResult, sweepScratch } from "./sweepScratch.ts";
 
 // The sweep removes the files of finished agent work from the data home:
-// the worktree of a run that is closed on a done or canceled ticket, the
+// the clean worktree of a stopped run on a done or canceled ticket, the
 // terminal output files of earlier terminals, and the launch directory of
 // an attempt that no run holds any more. It then removes the scratch
 // directories that the agents left in the temporary directory of the
@@ -60,20 +61,19 @@ const removeWorktree = async (work: string, env: NodeJS.ProcessEnv): Promise<str
 	return work;
 };
 
-async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
-	const runs = await ctx.newTx((tx) =>
+const readRuns = (ctx: ServiceCtx, owner?: { runId: string; work: string }) =>
+	ctx.newTx((tx) =>
 		rows<SweepRun>(
 			tx,
 			sql`SELECT id, kind, runtime, workspace_id AS "workspaceId", terminal_id AS "terminalId", closed_at IS NULL AS open,
 			(SELECT statuses.category FROM tickets JOIN statuses ON statuses.id=tickets.status_id WHERE tickets.id=agent_runs.ticket_id) AS "ticketCategory"
-			FROM agent_runs`,
+			FROM agent_runs ${owner === undefined ? sql`` : sql`WHERE workspace_id=${owner.work} OR id=${owner.runId}`}`,
 		),
 	);
-	const running = (await readRuntimeSessions(ctx.home, { status: "running" })).map((session) => ({
-		id: session.id,
-		cwd: session.launch?.cwd ?? null,
-	}));
-	const byId = new Map(runs.map((run) => [run.id, run]));
+
+async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
+	const heldPaths = await openPaths();
+	const observed = await readRuntimeSessions(ctx.home);
 	const result: SweepResult = {
 		removedWorkspaces: [],
 		removedOutputFiles: 0,
@@ -89,23 +89,34 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 	const agents = agentWorkspacesRoot(ctx.home);
 	for (const runId of await directories(agents)) {
 		const directory = join(agents, runId);
-		const names = await readdir(directory);
-		for (const name of outputFilesToRemove(names, byId.get(runId))) {
-			await rm(join(directory, name), { force: true });
-			result.removedOutputFiles += 1;
-		}
 		const work = join(directory, "work");
-		if (!names.includes("work") || !existsSync(join(work, ".git"))) continue;
-		if (!workspaceRemovable(work, runs, running)) continue;
-		// One worktree that git cannot remove, for example one whose source
-		// repository is gone, does not stop the sweep of the others.
-		const removed = await removeWorktree(work, await gitEnv()).catch((error: unknown) => {
-			result.errors.push(`${work}: ${gitText(error)}`);
-			return null;
+		await workspaceOperation(work, async () => {
+			const runs = await readRuns(ctx, { runId, work });
+			const names = await readdir(directory);
+			for (const name of outputFilesToRemove(
+				names,
+				runs.find((run) => run.id === runId),
+			)) {
+				await rm(join(directory, name), { force: true });
+				result.removedOutputFiles += 1;
+			}
+			if (!names.includes("work") || !existsSync(join(work, ".git"))) return;
+			const ids = runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId]));
+			const current = ids.length === 0 ? [] : await readRuntimeSessions(ctx.home, { ids });
+			const sessions = [...observed.filter((session) => !ids.includes(session.id)), ...current];
+			const running = sessions
+				.filter((session) => session.status !== "exited")
+				.map((session) => ({ id: session.id, cwd: session.launch?.cwd ?? null }));
+			const stopped = new Set(sessions.filter((session) => session.status === "exited").map((session) => session.id));
+			if (!workspaceRemovable(work, runs, running, stopped, heldPaths)) return;
+			const removed = await removeWorktree(work, await gitEnv()).catch((error: unknown) => {
+				result.errors.push(`${work}: ${gitText(error)}`);
+				return null;
+			});
+			if (removed !== null) result.removedWorkspaces.push(removed);
 		});
-		if (removed !== null) result.removedWorkspaces.push(removed);
 	}
-	const current = new Set(runs.map((run) => run.terminalId).filter((id): id is string => id !== null));
+	const current = new Set((await readRuns(ctx)).map((run) => run.terminalId).filter((id): id is string => id !== null));
 	const attemptsRoot = join(ctx.home, "harness-attempts");
 	const attempts = [];
 	for (const name of await directories(attemptsRoot)) {
@@ -116,9 +127,7 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 		await rm(join(attemptsRoot, id), { recursive: true, force: true });
 		result.removedAttempts += 1;
 	}
-	// The scratch sweep comes last, so a failed read of the open files keeps
-	// the removals above.
-	const scratch = await sweepScratch(tmpdir(), ctx.now().getTime(), await openPaths());
+	const scratch = await sweepScratch(tmpdir(), ctx.now().getTime(), heldPaths);
 	result.removedScratch = scratch.removedScratch;
 	result.removedScratchBytes = scratch.removedScratchBytes;
 	return result;

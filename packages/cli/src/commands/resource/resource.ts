@@ -55,7 +55,8 @@ export const resourceInput = async (ctx: CliContext, args: ResourceArgs, readFil
 const add = defineCommand({
 	meta: { name: "add", description: "Add a resource to an epic" },
 	args: {
-		epic: { type: "positional", required: true, description: "Epic ref" },
+		epic: { type: "string", description: "Epic ref" },
+		epicRef: { type: "positional", required: false, description: "Epic ref (legacy)" },
 		kind: { type: "enum", options: [...resourceKinds], required: true, description: "Resource kind" },
 		name: { type: "string", required: true, description: "Resource name" },
 		ticket: { type: "string", description: "Ticket ref that uses the resource" },
@@ -65,17 +66,24 @@ const add = defineCommand({
 	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const resource = await clientOf(ctx).resources.add(await resourceInput(ctx, context.args));
+		const epic = context.args.epic ?? context.args.epicRef;
+		if (!epic) throw usageError("--epic is required");
+		const resource = await clientOf(ctx).resources.add(await resourceInput(ctx, { ...context.args, epic }));
 		printRecord(ctx.out, ctx.format, resource, resourceRecord);
 	},
 });
 
 const list = defineCommand({
 	meta: { name: "list", description: "List the resources of an epic" },
-	args: { epic: { type: "positional", required: true, description: "Epic ref" } },
+	args: {
+		epic: { type: "string", description: "Epic ref" },
+		epicRef: { type: "positional", required: false, description: "Epic ref (legacy)" },
+	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const resources = await clientOf(ctx).resources.list({ epic: context.args.epic });
+		const epic = context.args.epic ?? context.args.epicRef;
+		if (!epic) throw usageError("--epic is required");
+		const resources = await clientOf(ctx).resources.list({ epic });
 		printList(ctx.out, ctx.format, resources, resourceList);
 	},
 });
@@ -140,5 +148,17 @@ export default defineCommand({
 		name: "resource",
 		description: "Add, list, or remove the resources of an epic, and answer document comments",
 	},
-	subCommands: { add, list, rm, comments, reply, resolve: resolveCommand(true), reopen: resolveCommand(false) },
+	subCommands: {
+		add,
+		list,
+		rm,
+		comments,
+		reply,
+		resolve: resolveCommand(true),
+		reopen: resolveCommand(false),
+		comment: defineCommand({
+			meta: { name: "comment", description: "Read and answer document comments" },
+			subCommands: { list: comments, reply, resolve: resolveCommand(true), reopen: resolveCommand(false) },
+		}),
+	},
 });
