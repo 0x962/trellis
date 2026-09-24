@@ -96,10 +96,12 @@ beforeAll(async () => {
 		},
 	};
 });
+// The directory goes before the database closes, because a failed close
+// would otherwise leave it in the temporary directory.
 afterAll(async () => {
 	await drainBackground();
-	await db?.$client.close();
 	if (home) await rm(home, { recursive: true, force: true });
+	await db?.$client.close();
 });
 
 export { ctx, db, drainBackground, git, harness, home, launches, projectId, repo, start, ticketId };

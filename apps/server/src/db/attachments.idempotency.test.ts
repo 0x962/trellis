@@ -69,8 +69,10 @@ describe("attachments.upload idempotency", () => {
 			expect(activity.rows).toHaveLength(1);
 			expect(tickets.rows[0]!.version).toBe(2);
 		} finally {
-			await db.$client.close();
+			// The directory goes before the database closes, because a failed
+			// close would otherwise leave it in the temporary directory.
 			rmSync(home, { recursive: true, force: true });
+			await db.$client.close();
 		}
 	});
 
@@ -138,8 +140,10 @@ describe("attachments.upload idempotency", () => {
 			expect(activity.rows).toHaveLength(1);
 			expect(tickets.rows[0]!.version).toBe(2);
 		} finally {
-			await db.$client.close();
+			// The directory goes before the database closes, because a failed
+			// close would otherwise leave it in the temporary directory.
 			rmSync(home, { recursive: true, force: true });
+			await db.$client.close();
 		}
 	});
 });

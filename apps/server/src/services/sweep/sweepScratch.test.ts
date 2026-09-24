@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, realpath, rm, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SCRATCH_MIN_AGE_MS, sweepScratch } from "./sweepScratch.ts";
@@ -20,7 +20,14 @@ const age = async (paths: string[], at: Date) => {
 
 beforeAll(async () => {
 	root = await mkdtemp(join(tmpdir(), "trellis-scratch-sweep-test-"));
-	for (const name of ["trellis-stale", "trellis-open", "trellis-open-real", "trellis-busy", "other-tool"]) {
+	for (const name of [
+		"trellis-stale",
+		"trellis-open",
+		"trellis-open-real",
+		"trellis-busy",
+		"trellis-locked",
+		"other-tool",
+	]) {
 		await mkdir(join(root, name, "repo"), { recursive: true });
 		await writeFile(join(root, name, "repo", "big.bin"), "a".repeat(1000));
 		await writeFile(join(root, name, "note.txt"), "b".repeat(24));
@@ -31,7 +38,8 @@ beforeAll(async () => {
 		join(root, name, "repo"),
 		join(root, name),
 	];
-	for (const name of ["trellis-stale", "trellis-open", "trellis-open-real", "other-tool"]) await age(paths(name), old);
+	for (const name of ["trellis-stale", "trellis-open", "trellis-open-real", "trellis-locked", "other-tool"])
+		await age(paths(name), old);
 	// The top directory is old and one file deep inside is new, which is what
 	// a build that still writes looks like.
 	await age(paths("trellis-busy"), old);
@@ -39,6 +47,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+	// The mode of `trellis-locked` denies the write that an unlink of its
+	// files needs, so the removal of the root needs the mode back.
+	await chmod(join(root, "trellis-locked"), 0o700);
 	await rm(root, { recursive: true, force: true });
 });
 
@@ -47,8 +58,15 @@ test("the sweep removes a stale scratch directory and counts its bytes", async (
 		join(root, "trellis-open", "repo", ".git", "index"),
 		join(await realpath(root), "trellis-open-real", "repo"),
 	];
+	// A mode that denies the write makes the unlink of the files inside
+	// `trellis-locked` fail. Every sweep of this file meets it, and every
+	// sweep must still reach the names after it.
+	await chmod(join(root, "trellis-locked"), 0o500);
 	const result = await sweepScratch(root, now, held);
-	expect(result).toEqual({ removedScratch: 1, removedScratchBytes: 1024 });
+	expect({ removedScratch: result.removedScratch, removedScratchBytes: result.removedScratchBytes }).toEqual({
+		removedScratch: 1,
+		removedScratchBytes: 1024,
+	});
 	expect(existsSync(join(root, "trellis-stale"))).toBe(false);
 	// A process holds the first two, the third still writes, and the fourth
 	// belongs to another program.
@@ -60,8 +78,19 @@ test("the sweep removes a stale scratch directory and counts its bytes", async (
 
 test("the directory of an exited process goes at the next sweep", async () => {
 	const result = await sweepScratch(root, now, []);
-	expect(result).toEqual({ removedScratch: 2, removedScratchBytes: 2048 });
+	expect({ removedScratch: result.removedScratch, removedScratchBytes: result.removedScratchBytes }).toEqual({
+		removedScratch: 2,
+		removedScratchBytes: 2048,
+	});
 	expect(existsSync(join(root, "trellis-open"))).toBe(false);
 	expect(existsSync(join(root, "trellis-open-real"))).toBe(false);
 	expect(existsSync(join(root, "trellis-busy"))).toBe(true);
+});
+
+test("the sweep names the directory it cannot remove and keeps its own count", async () => {
+	const result = await sweepScratch(root, now, []);
+	expect(result.errors).toHaveLength(1);
+	expect(result.errors[0]).toContain(join(root, "trellis-locked"));
+	expect(result.removedScratch).toBe(0);
+	expect(existsSync(join(root, "trellis-locked"))).toBe(true);
 });

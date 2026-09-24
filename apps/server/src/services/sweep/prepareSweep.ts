@@ -40,7 +40,6 @@ export type SweepResult = ScratchSweepResult & {
 	removedWorkspaces: string[];
 	removedOutputFiles: number;
 	removedAttempts: number;
-	errors: string[];
 };
 
 // A failed git command carries git's own words in `stderr`.
@@ -130,6 +129,7 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 	const scratch = await sweepScratch(tmpdir(), ctx.now().getTime(), heldPaths);
 	result.removedScratch = scratch.removedScratch;
 	result.removedScratchBytes = scratch.removedScratchBytes;
+	result.errors.push(...scratch.errors);
 	return result;
 }
 
