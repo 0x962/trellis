@@ -20,7 +20,7 @@ export type ProjectLink = z.infer<typeof ProjectLinkSchema>;
 // One row of the project list. `position` gives the display order.
 // `openEpicCount` counts the epics of this project whose state is open.
 // `openPageCommentCount` counts the Pages with an unresolved thread that
-// contains a visible human comment.
+// contains a nondeleted human comment.
 // `color` is the color this project holds. It tints the mark of the project
 // and the ground of every page of the project. A project takes a color when
 // it is created, and a project with `null` keeps the grey mark and the plain

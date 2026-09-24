@@ -6,9 +6,9 @@ import { openTestDb } from "../db/testDb.ts";
 import type { Tx } from "../db/tx.ts";
 import { assertColorFree, projectRow } from "./projectRows.ts";
 
-// `assertColorFree`, and the two rules of the database that stand behind it.
-// One database for the file. Every project of the file takes its own key, so
-// no test reads a row another test wrote.
+// One database holds the color constraints and project summary tests. Every
+// project of the file takes its own key, so no test reads a row another test
+// wrote.
 let db: Awaited<ReturnType<typeof openTestDb>>;
 
 const at = new Date("2026-09-23T10:00:00.000Z");
@@ -99,7 +99,7 @@ test("a taken color is not free, and the project that holds it keeps it", async 
 	});
 });
 
-test("the project summary counts Pages with visible human comments on open threads", async () => {
+test("the project summary counts Pages with nondeleted human comments on open threads", async () => {
 	const projectId = ulid();
 	const otherProjectId = ulid();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES

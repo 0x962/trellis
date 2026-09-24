@@ -19,7 +19,7 @@ export type ProjectSummaryRow = {
 // open tickets of `p`. `openEpicCount` counts the epics of `p` whose state
 // is open: an epic with no ticket, or with one ticket at least whose status
 // is not done and not canceled. `openPageCommentCount` counts each Page once
-// when an unresolved thread contains a visible human comment.
+// when an unresolved thread contains a nondeleted human comment.
 export const projectSummaryColumns = sql`
 	p.id, p.key, p.slug, p.name, p.position, p.color,
 	(SELECT count(*)::int FROM tickets t
