@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import type { WaveSummary } from "@trellis/api";
 import type { RowGroup } from "../groupRows";
-import { doneWaveIds, waveMarks, withEmptyWaves } from "./waveGroups";
+import { doneWaveIds, orderWaveGroups, orderWaves, waveMarks, withEmptyWaves } from "./waveGroups";
 
 const wave = (id: string, state: "open" | "done", done: number, total: number, canceled = 0) =>
 	({ id, state, counts: { done, total, canceled } }) as WaveSummary;
+const group = (key: string) => ({ key, label: key, rows: [] }) as unknown as RowGroup;
 
 const foundation = wave("foundation", "done", 4, 5, 1);
 const surfaces = wave("surfaces", "open", 1, 3);
@@ -48,12 +49,42 @@ describe("doneWaveIds", () => {
 	});
 });
 
+describe("orderWaveGroups", () => {
+	test("puts open waves first, No wave next, and done waves last", () => {
+		const groups = [group("fix"), group("none"), group("foundation"), group("integrate"), group("surfaces")];
+
+		expect(orderWaveGroups(groups, waves).map((entry) => entry.key)).toEqual([
+			"surfaces",
+			"integrate",
+			"none",
+			"foundation",
+			"fix",
+		]);
+	});
+
+	test("puts an unknown wave after the open waves and before No wave", () => {
+		const groups = [group("fix"), group("none"), group("unknown"), group("integrate"), group("surfaces")];
+
+		expect(orderWaveGroups(groups, waves).map((entry) => entry.key)).toEqual([
+			"surfaces",
+			"integrate",
+			"unknown",
+			"none",
+			"fix",
+		]);
+	});
+});
+
+describe("orderWaves", () => {
+	test("puts open waves before done waves and keeps each position order", () => {
+		expect(orderWaves(waves).map((entry) => entry.id)).toEqual(["surfaces", "integrate", "foundation", "fix"]);
+	});
+});
+
 describe("withEmptyWaves", () => {
 	const named = (id: string, total: number) =>
-		({ id, ref: `OP/epic/${id}`, name: id, counts: { done: 0, total, canceled: 0 } }) as WaveSummary;
-	const group = (key: string) => ({ key, label: key, rows: [] }) as unknown as RowGroup;
-
-	test("adds a group for a wave with no ticket, in wave order, before No wave", () => {
+		({ id, ref: `OP/epic/${id}`, name: id, state: "open", counts: { done: 0, total, canceled: 0 } }) as WaveSummary;
+	test("adds an empty open wave before No wave", () => {
 		const groups = withEmptyWaves([group("one"), group("none")], [named("one", 2), named("two", 0)]);
 
 		expect(groups.map((entry) => entry.key)).toEqual(["one", "two", "none"]);
