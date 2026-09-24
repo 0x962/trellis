@@ -96,7 +96,7 @@ Table `provider_models`, in the same file:
 | column | type and constraint |
 |---|---|
 | provider_id | text NOT NULL, FK providers(id) ON DELETE CASCADE |
-| model_id | text NOT NULL, CHECK matches `^[a-z0-9-]+/[a-z0-9._-]+$` |
+| model_id | text NOT NULL, CHECK `length(model_id) BETWEEN 1 AND 200 AND model_id !~ '[[:space:][:cntrl:]]'` |
 | | PK (provider_id, model_id) |
 
 A row in `provider_models` is a model that the provider offers in Trellis. The API reads the set as `models: string[]`, sorted. An update with `models` replaces the whole set in one transaction: delete the rows of the provider, insert the new rows. The set is not checked against the catalog. `typesafe-ai/jev` and an OpenAI-compatible endpoint both serve ids that the catalog does not hold.
@@ -148,7 +148,7 @@ A provider has no ref grammar. The API takes the ULID, as `harnessAccounts` does
 
 ```
 ProviderKindSchema = z.enum(["vercel-ai-gateway", "openai-compatible"])
-ProviderModelIdSchema = z.string().regex(/^[a-z0-9-]+\/[a-z0-9._-]+$/, "Write a model id as creator/model, such as anthropic/claude-opus-5.")
+ProviderModelIdSchema = z.string().min(1).max(200).regex(/^[^\s\p{Cc}]+$/u, "Enter the model id as the endpoint names it, such as anthropic/claude-opus-5 or qwen2.5-coder:7b.")
 ProviderSchema = { id, name, kind, baseUrl, keyLast4, enabled, models: ProviderModelId[], createdAt, updatedAt }
 ProviderCreateInputSchema = { name, kind, baseUrl?, apiKey, enabled?, models? }
 ProviderUpdateInputSchema = { id, name?, baseUrl?, apiKey?, enabled?, models? }   // an absent field keeps its value
@@ -167,7 +167,7 @@ Field rules, with the message a person reads:
 | baseUrl | `z.string().url()`, `https` only, trailing slash and a trailing `/v1` removed; required when kind is `openai-compatible`; defaults when kind is `vercel-ai-gateway` | "Enter the https address of the endpoint, without /v1." |
 | apiKey | trim, 1 to 4000 | "Paste the API key of the provider." |
 | enabled | boolean, default true | |
-| models | array of ProviderModelId, unique, at most 200 | the id message above; "A provider offers at most 200 models." |
+| models | array of ProviderModelId, unique, at most 200 | the id message above; "A provider offers at most 200 models." The id rule is 1 to 200 characters with no space and no control character, because a gateway id is `creator/model`, Ollama serves `qwen2.5-coder:7b`, vLLM serves `Qwen/Qwen2.5-72B-Instruct`, and LM Studio serves `gpt-oss-20b`. The CHECK of section 2.1 holds the same rule. |
 
 Every input is a `z.strictObject`. A `PATCH` with `apiKey` replaces the key. A `PATCH` without `apiKey` keeps it. There is no way to read a key back.
 
@@ -181,7 +181,7 @@ Contract `packages/api/src/contract/providers.ts`, registered in the contract in
 | providers.update | PATCH /api/providers/{id} | NOT_FOUND, DUPLICATE | Provider |
 | providers.delete | DELETE /api/providers/{id} | NOT_FOUND | { id } |
 | providers.models | GET /api/providers/{id}/models?refresh= | NOT_FOUND | ProviderModels |
-| providers.publicModels | GET /api/providers/models?kind= | | ProviderModels |
+| providers.publicModels | GET /api/providers/kinds/{kind}/models?refresh= | | ProviderModels |
 | providers.check | GET /api/providers/{id}/check?refresh= | NOT_FOUND | ProviderCheck |
 
 Errors:
@@ -191,14 +191,15 @@ Errors:
 - A mutation from an agent actor fails with `invalidInput("actor", "Only a person can manage providers.")`, the rule of `harnessAccounts`. A person pastes the key, and an agent must not create a record that spends money. The CLI exits 4.
 - A models read or a check that cannot reach the endpoint is not an error. The answer carries `ok: false` and a `detail`, in the pattern of the quota service. A 503 code would turn a bad key into a CLI exit 6 and a red failure block, and a bad key is a normal state of a provider.
 
-`providers.models` fetches `GET <baseUrl>/v1/models` and returns the `language` entries as `{ id, name, type }`, sorted by id. The gateway needs no key for that call. An OpenAI-compatible endpoint gets the key in the header, because the OpenAI format requires one. The answer is cached for 5 minutes per provider, and `refresh` shortens the cache to 1 second, the shape of `prepareQuota`. The result shape separates two states that both hold no model: a successful fetch of an endpoint with no language model answers `ok: true`, `detail: null`, `models: []`; a failed fetch answers `ok: false`, `models: []`, and `detail` from the failure table below. `ok: true` never carries a `detail`, and `ok: false` always does. The same shape serves `providers.publicModels`, the kind-level read of section 2.10 that needs no provider and no key.
+`providers.models` fetches `GET <baseUrl>/v1/models` and returns the `language` entries as `{ id, name, type }`, sorted by id. The gateway needs no key for that call. An OpenAI-compatible endpoint gets the key in the header, because the OpenAI format requires one. The answer is cached for 5 minutes per provider, and `refresh` shortens the cache to 1 second, the shape of `prepareQuota`. The result shape separates two states that both hold no model: a successful fetch of an endpoint with no language model answers `ok: true`, `detail: null`, `models: []`; a failed fetch answers `ok: false`, `models: []`, and `detail` from the failure table below. `ok: true` never carries a `detail`, and `ok: false` always does. The same shape serves `providers.publicModels`, the kind-level read of section 2.10 that needs no provider and no key. Its path is `/api/providers/kinds/{kind}/models`, under its own literal segment, because `/api/providers/{id}` takes any text as `{id}` and the router picks a route by registration order, not by the shape of the id. For `vercel-ai-gateway` the read calls the default URL of the kind. For `openai-compatible` there is no endpoint to ask, and the read answers `ok: true`, `detail: null`, `models: []` without a fetch. The kind is `ProviderKindSchema`; any other value fails input validation.
 
 `providers.check` proves the key. A `vercel-ai-gateway` provider gets `GET <baseUrl>/v1/credits` with the key. A 200 answers `ok: true` and the balance as the string the gateway sent. An `openai-compatible` provider has no credits route, so the check calls `GET <baseUrl>/v1/models` with the key and answers `balance: null`. The mapping of a failure:
 
 | result | ok | detail |
 |---|---|---|
 | 200 | true | null |
-| 401 or 403 | false | "The provider refused the key." |
+| 401 | false | "The provider refused the key." |
+| 403 | false | "The provider accepted the key and refused the request." |
 | other status | false | "The provider answered HTTP <status>." |
 | timeout after 10 s, network error, bad JSON | false | "Trellis cannot reach <host>." |
 
@@ -333,10 +334,11 @@ The card visual is `packages/ui/src/domain/ProviderCard/ProviderCard.tsx`, expor
    | ok with a balance | `<p role="status" className="text-sm text-success">Key accepted · $95.50 left</p>`; the number is tabular |
    | ok without a balance | `<p role="status" className="text-sm text-success">Key accepted</p>` |
    | refused | `<p role="status" className="text-sm text-warning">The provider refused the key. Paste a new key in Edit.</p>` |
+   | forbidden | `<p role="status" className="text-sm text-warning">The provider accepted the key and refused the request. Check the plan of the team at the provider.</p>` |
    | unreachable | `<p role="status" className="text-sm text-fg-muted">Trellis cannot reach ai-gateway.vercel.sh. Check the key again later.</p>` |
    | disabled | the state slot prints the last check as above; the Off word in the header carries the state |
 
-   Yellow marks the one state a person clears, a refused key. Red is not used on the card, because nothing on it is a fault of the machine.
+   Yellow marks the two states a person clears: a refused key, and a request the provider refused. Red is not used on the card, because nothing on it is a fault of the machine.
 5. Models line: `<p className="text-sm text-fg-muted">3 models · typesafe-ai/jev, anthropic/claude-opus-5, openai/gpt-6-astra</p>`, truncated at one line with `truncate`, and the full list in a `Tooltip` on hover. Zero models prints "No models. Edit the provider to choose some."
 
 The card does not print spend. Spend comes from the gateway report in Part 4.
@@ -376,9 +378,9 @@ The models field is a `Popover` from a `PickerButton` that prints "3 models" or 
 
 - The `Command` has `placeholder="Search models"` and `empty="No model matches. Press Enter to add the typed id."`.
 - The control reads `ok` first. `ok: false` prints the `detail` as one muted line above the list, "Trellis cannot reach ai-gateway.vercel.sh. Type the ids.", and the typed path stays open. `ok: true` with no model prints the `empty` text of the `Command`.
-- The groups come from `providers.models` of the provider, grouped by creator (the part before the slash): Anthropic, Google, Meta, OpenAI, TypeSafe AI, then Other creators by name. Each item is `{ id, label: name, keywords: [id], checked }`. A click or Enter toggles `checked`.
+- The groups come from `providers.models` of the provider, grouped by creator (the part before the slash, or Other for an id with no slash): Anthropic, Google, Meta, OpenAI, TypeSafe AI, then Other creators by name. Each item is `{ id, label: name, keywords: [id], checked }`. A click or Enter toggles `checked`.
 - A typed text that matches no item and passes `ProviderModelIdSchema` shows one item "Add <text>" at the top. Enter adds it as checked. This is how `typesafe-ai/jev` enters when the catalog does not list it, and how an OpenAI-compatible endpoint with no models route gets its ids.
-- On Add, before the provider exists, the list cannot come from the provider. The control calls `providers.publicModels` with the kind, the kind-level read of section 2.3 that needs no provider and no key. For `openai-compatible` on Add the list is empty and the typed path is the only path.
+- On Add, before the provider exists, the list cannot come from the provider. The control calls `providers.publicModels` with the kind, the kind-level read of section 2.3 that needs no provider and no key. For `openai-compatible` on Add the control does not call the read. It prints one muted line in place of the list, "Type the model ids that the endpoint serves, such as qwen2.5-coder:7b.", and the typed path is the only path. The same line draws when a read of that kind answers an empty list.
 - A stale list: when `fetchedAt` is older than 5 minutes, the popover prints one muted line "Models from <time>" with a Refresh `IconButton` (`ArrowClockwise`, tooltip "Refresh models"), which calls the read with `refresh`. The line is the stale state that TRL-432 proves.
 - Checked ids print as chips under the picker, each with a remove action, in the `Chip` shape of the filter bar, so a person sees the set without opening the popover.
 
@@ -416,30 +418,49 @@ Four tickets under TRL-428, in the wave External Providers: TRL-430, TRL-439, TR
 | TRL-430 Provider record, API, and CLI | the tables, the migration, the schemas, the contract without models and check, the services, the procedures, the event, the export redaction, the CLI verbs list, show, create, edit, delete, the guide paragraph, the ARCHITECTURE rows | TRL-441 | the erDiagram; the server test output; a terminal transcript of create, list, show, edit, delete with the key on stdin; `trellis export` output with `<redacted>` |
 | TRL-431 Provider catalog and key check | `providers.models`, `providers.publicModels`, `providers.check`, their caches and their invalidation, the CLI verbs models and check | TRL-430, TRL-439 | the test output with the stubbed fetch; a transcript of check against a real key with the balance, and against a wrong key with the refusal |
 | TRL-432 Providers on the Usage page | the section, the `ProviderCard` visual, the forms, the model list control, the remove dialog, the palette item, the gallery section, the `ProviderIcon` values, the UI_PATTERNS rows | TRL-430, TRL-431, TRL-439 | screenshots of the empty state, the loading state, the read failure, the Add form on desktop and on a phone width, the stale models line, a card with a balance, a card with a refused key, a disabled card, the remove dialog, both themes |
-| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, the redaction test, the "no key in any output" test, the log rule | TRL-430 | the test output |
+| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts`, the redaction test in `system.test.ts`, the log rule | TRL-430 | the test output |
 
 TRL-439 is small. It exists so the key rules have one owner and one test file, and so TRL-430 does not grow past a reviewable size. TRL-431 reads the key through its `keyOf`, so it waits on it.
 
 ### 3.2 Tests
 
-Server, `apps/server/src/services/providers/providers.test.ts`, on `openTestDb` with a hand-built `ServiceCtx`:
+One ticket owns each test file. A later ticket adds a file, never a case in a file of an earlier ticket.
+
+| file | owner |
+|---|---|
+| `apps/server/src/services/providers/providers.test.ts` | TRL-430 |
+| `apps/server/src/services/providers/secret.test.ts` | TRL-439 |
+| `apps/server/src/services/system.test.ts`, the provider cases | TRL-439 |
+| `apps/server/src/services/providers/models.test.ts`, `check.test.ts` | TRL-431 |
+| `packages/cli/src/commands/provider/providerText.test.ts` | TRL-430 |
+| `packages/cli/src/commands/provider/remoteText.test.ts` | TRL-431 |
+| `packages/ui/src/domain/ProviderCard/ProviderCard.test.tsx`, `ProviderForm/ProviderForm.test.tsx` | TRL-432 |
+
+TRL-430 writes the export redaction in `system.ts` and proves it with a transcript, as its contract asks. TRL-439 turns the proof into the tests.
+
+Server, `providers.test.ts` (TRL-430), on `openTestDb` with a hand-built `ServiceCtx`:
 
 - create returns the record with `keyLast4` and no `apiKey` property, and emits `providers.changed`
-- create with a key of four characters returns an empty `keyLast4`; list and get print the same; the export prints `<redacted>`; an update to a long key fills `keyLast4`, and an update back to a short key empties it
 - create with a name that differs only in case fails with `DUPLICATE`
 - create from an agent actor fails with `INPUT_VALIDATION_FAILED` on `actor`
 - update with `models` replaces the set; update without `apiKey` keeps the key; update with `apiKey` changes `keyLast4`
 - delete removes the `provider_models` rows through the cascade
 - the base URL loses a trailing slash and a trailing `/v1`
-- `JSON.stringify` of every output holds none of the key, with a long key and with a key of four characters
+- a model id with a colon and no slash, and one with capital letters, are accepted; an id with a space is refused
 
-Server, `models.test.ts` and `check.test.ts`, with the fetch injected as in `fetchProviderQuota.test.ts`: a 200 maps to the entries and to `ok: true`; a 200 with no language model maps to `ok: true` and an empty list; a 401 maps to the refusal; a thrown error maps to unreachable; the cache serves the second call inside the window, `refresh` bypasses it, and an update of the provider clears it.
+Server, `secret.test.ts` (TRL-439):
 
-Server, `system.test.ts`: the export prints `<redacted>` for `api_key` and the real values for every other column of the row.
+- `keyOf` returns the stored key, and no other export of the folder does
+- `JSON.stringify` of every procedure output holds none of the key, with a long key and with a key of four characters
+- create with a key of four characters returns an empty `keyLast4`; list and get print the same; an update to a long key fills `keyLast4`, and an update back to a short key empties it
 
-CLI, `providerText.test.ts`: the input builders with `--api-key -` and a fake stdin; the usage error for `--api-key value`; `--model` repeated; `--no-models`; the table text of list, models, and check, with a row whose `keyLast4` is empty printing `••••` alone.
+Server, `models.test.ts` and `check.test.ts` (TRL-431), with the fetch injected as in `fetchProviderQuota.test.ts`: a 200 maps to the entries and to `ok: true`; a 200 with no language model maps to `ok: true` and an empty list; a 401 maps to the refusal; a 403 maps to the accepted key and the refused request; a thrown error maps to unreachable; the cache serves the second call inside the window, `refresh` bypasses it, and an update of the provider clears it.
 
-Web and ui, `ProviderCard.test.tsx` and `ProviderForm.test.tsx`: static markup for each state of 2.8 and for both forms, in the pattern of `LabelGroupRow.test.tsx`.
+Server, `system.test.ts` (TRL-439): the export prints `<redacted>` for `api_key` and the real values for every other column of the row, for a long key and for a short key.
+
+CLI, `providerText.test.ts` (TRL-430): the input builders with `--api-key -` and a fake stdin; the usage error for `--api-key value`; `--model` repeated; `--no-models`; the table text of list and show, with a row whose `keyLast4` is empty printing `••••` alone. CLI, `remoteText.test.ts` (TRL-431): the table text of models and check, and the `error: <detail>` line on `ok: false`.
+
+Web and ui, `ProviderCard.test.tsx` and `ProviderForm.test.tsx` (TRL-432): static markup for each state of 2.8 and for both forms, in the pattern of `LabelGroupRow.test.tsx`.
 
 ### 3.3 Verification in the build
 
