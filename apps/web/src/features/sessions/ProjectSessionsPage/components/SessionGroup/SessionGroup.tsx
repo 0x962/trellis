@@ -1,16 +1,7 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
 import { Avatar, GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight, useMediaQuery } from "@trellis/ui";
-import {
-	type KeyboardEvent,
-	type RefObject,
-	useCallback,
-	useEffect,
-	useId,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useEffect, useId, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
@@ -99,8 +90,10 @@ export function SessionGroup({
 	useEffect(() => {
 		if (revealId && !collapsed) selectedButton.current?.scrollIntoView({ block: "nearest" });
 	}, [revealId, collapsed]);
+	// React attaches the parent scroller ref after this child's layout effects.
+	// Measure in a passive effect so the first mount can read both elements.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `layout` counts the changes of the content height, which is the trigger to measure again
-	useLayoutEffect(() => {
+	useEffect(() => {
 		if (collapsed) return;
 		const view = scroller.current!;
 		const top = rowBox.current!.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop;
