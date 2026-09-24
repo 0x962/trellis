@@ -1,16 +1,6 @@
 import type { UsageTotals as Totals } from "@trellis/api";
-import { StackedBar } from "@trellis/ui";
+import { StackedBar, StatTile } from "@trellis/ui";
 import { formatShare, formatTokens, formatUsd } from "../../../formatUsage";
-
-function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-	return (
-		<div className="flex min-w-0 flex-col gap-0.5">
-			<span className="truncate text-xs text-fg-faint">{label}</span>
-			<span className="text-xl font-semibold text-fg tabular">{value}</span>
-			{detail && <span className="truncate text-xs text-fg-muted tabular">{detail}</span>}
-		</div>
-	);
-}
 
 // The figures of the range: four numbers, then how the tokens split. The
 // cost is what the same tokens cost at the API list rate; a subscription
@@ -19,17 +9,17 @@ export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; p
 	return (
 		<section aria-label="Totals" className="flex flex-col gap-5">
 			<div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
-				<Stat
+				<StatTile
 					label="API-rate cost"
 					value={`${totals.approximate ? "~" : ""}${formatUsd(totals.usd)}`}
 					detail={`${formatUsd(totals.cacheSavingsUsd)} net cache savings`}
 				/>
-				<Stat
+				<StatTile
 					label="Trellis agent cost"
 					value={formatUsd(totals.trellisUsd)}
 					detail={`${formatShare(totals.trellisUsd, totals.usd) || "0%"} of the API-rate cost · ${totals.runs.toLocaleString("en-US")} runs`}
 				/>
-				<Stat
+				<StatTile
 					label="Agent cost per ticket"
 					value={totals.tickets > 0 ? formatUsd(totals.trellisUsd / totals.tickets) : formatUsd(0)}
 					detail={
@@ -38,7 +28,7 @@ export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; p
 							: "No ticket took agent work"
 					}
 				/>
-				<Stat
+				<StatTile
 					label="Sessions"
 					value={totals.sessions.toLocaleString("en-US")}
 					detail={`${formatTokens(totals.tokens)} tokens`}

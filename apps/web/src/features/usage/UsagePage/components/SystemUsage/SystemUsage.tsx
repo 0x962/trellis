@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, cx, FailureState, SectionHeader, Skeleton, UsageChart } from "@trellis/ui";
+import { Button, FailureState, SectionHeader, Skeleton, StatTile, UsageChart } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { formatBytes } from "../../../../../lib/format";
+import { ProcessTable } from "./components/ProcessTable";
 import { formatAxisPercent, formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
 import { memoryPressureLevel } from "./memoryPressure";
-import { ProcessTable } from "./ProcessTable";
 
 const USAGE_POLL_MS = 2_000;
 const PROCESS_POLL_MS = 15_000;
@@ -59,35 +59,31 @@ export function SystemUsage() {
 	return (
 		<div className="flex max-w-7xl flex-col gap-8">
 			<section aria-label="Right now" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-xs text-fg-faint">CPU</dt>
-					<dd className="mt-1 text-xl font-semibold text-fg tabular">{formatPercent(data.cpuPercent)}</dd>
-					<dd className="mt-1 text-xs text-fg-muted tabular">{data.cpuCount} logical cores</dd>
-				</dl>
-				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-xs text-fg-faint">Memory</dt>
-					<dd className={cx("mt-1 text-xl font-semibold tabular", memoryPressure.valueClass)}>
-						{formatPercent(data.memoryPercent)}
-					</dd>
-					<dd className="mt-1 text-xs text-fg-muted tabular">
-						<span className={memoryPressure.textClass}>{memoryPressure.label}</span> ·{" "}
-						{formatBytes(data.memoryUsedBytes)} of {formatBytes(data.memoryTotalBytes)} used
-					</dd>
-				</dl>
-				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-xs text-fg-faint">Load average</dt>
-					<dd className="mt-1 text-xl font-semibold text-fg tabular">{data.loadAverage[0].toFixed(2)}</dd>
-					<dd className="mt-1 text-xs text-fg-muted tabular">
-						Over 1 minute · {data.loadAverage[1].toFixed(2)} over 5 · {data.loadAverage[2].toFixed(2)} over 15
-					</dd>
-				</dl>
-				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-xs text-fg-faint">Uptime</dt>
-					<dd className="mt-1 text-xl font-semibold text-fg tabular">{formatUptime(data.uptimeSeconds)}</dd>
-					<dd className="mt-1 text-xs text-fg-muted tabular">
-						{processData.processCount.toLocaleString("en-US")} processes
-					</dd>
-				</dl>
+				<StatTile framed label="CPU" value={formatPercent(data.cpuPercent)} detail={`${data.cpuCount} logical cores`} />
+				<StatTile
+					framed
+					label="Memory"
+					value={formatPercent(data.memoryPercent)}
+					valueClass={memoryPressure.valueClass}
+					detail={
+						<>
+							<span className={memoryPressure.textClass}>{memoryPressure.label}</span> ·{" "}
+							{formatBytes(data.memoryUsedBytes)} of {formatBytes(data.memoryTotalBytes)} used
+						</>
+					}
+				/>
+				<StatTile
+					framed
+					label="Load average"
+					value={data.loadAverage[0].toFixed(2)}
+					detail={`Over 1 minute · ${data.loadAverage[1].toFixed(2)} over 5 · ${data.loadAverage[2].toFixed(2)} over 15`}
+				/>
+				<StatTile
+					framed
+					label="Uptime"
+					value={formatUptime(data.uptimeSeconds)}
+					detail={`${processData.processCount.toLocaleString("en-US")} processes`}
+				/>
 			</section>
 
 			<section aria-label="Recent history" className="flex flex-col gap-3">

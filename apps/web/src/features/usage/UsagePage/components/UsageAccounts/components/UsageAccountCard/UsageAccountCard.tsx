@@ -5,20 +5,24 @@ import {
 	CodeText,
 	cx,
 	Dialog,
-	formatWhen,
+	formatDayTime,
 	IconButton,
 	ProviderIcon,
 	QuotaWindows,
 	Skeleton,
 	Tooltip,
-	toast,
-	writeClipboard,
 } from "@trellis/ui";
 import { useState } from "react";
+import { copyText } from "../../../../../../../lib/clipboard";
 import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
-const statusLabel: Record<UsageAccount["quota"]["status"], string> = {
-	ok: "Quota available",
+type QuotaStatus = UsageAccount["quota"]["status"];
+
+// An account with the status `ok` draws its meters and reads neither map
+// below, so neither one holds an entry for it.
+type StatusLine = Exclude<QuotaStatus, "ok">;
+
+const statusLabel: Record<StatusLine, string> = {
 	unlimited: "Unlimited",
 	metered: "Metered billing",
 	signed_out: "Sign in required",
@@ -27,11 +31,10 @@ const statusLabel: Record<UsageAccount["quota"]["status"], string> = {
 	unavailable: "Quota unavailable",
 };
 
-// The color of a status line. Yellow marks the one state a person clears
-// by signing in again. Green marks a plan that bills no quota. Every other
+// The color of a status line. Yellow marks a state that a person clears by
+// signing in again. Green marks a plan that bills no quota. Every other
 // state is a fact that nobody acts on, so it takes the muted text.
-const statusTone: Record<UsageAccount["quota"]["status"], string> = {
-	ok: "text-fg-muted",
+const statusTextClass: Record<StatusLine, string> = {
 	unlimited: "text-success",
 	metered: "text-fg-muted",
 	signed_out: "text-warning",
@@ -40,16 +43,7 @@ const statusTone: Record<UsageAccount["quota"]["status"], string> = {
 	unavailable: "text-fg-muted",
 };
 
-const needsLogin = new Set<UsageAccount["quota"]["status"]>(["signed_out", "expired"]);
-
-const copy = async (text: string) => {
-	try {
-		await writeClipboard(text);
-		toast("Login command copied");
-	} catch (error) {
-		toast(error instanceof Error ? error.message : "Could not copy the command.");
-	}
-};
+const needsLogin = new Set<StatusLine>(["signed_out", "expired"]);
 
 export function UsageAccountCard({
 	account,
@@ -185,18 +179,18 @@ export function UsageAccountCard({
 					<QuotaWindows name={account.name} windows={account.quota.windows} />
 					{quotaDetail && <p className="text-xs text-fg-muted tabular">{quotaDetail}</p>}
 					{account.harness === "muse" && (
-						<p className="text-xs text-fg-faint tabular">Observed {formatWhen(account.quota.fetchedAt)}</p>
+						<p className="text-xs text-fg-faint tabular">Observed {formatDayTime(account.quota.fetchedAt)}</p>
 					)}
 				</>
 			) : account.quota.status === "unlimited" || account.quota.status === "metered" ? (
-				<p className={cx("text-sm text-pretty", statusTone[account.quota.status])}>
+				<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
 					{statusLabel[account.quota.status]}
 					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
 					{quotaDetail ? ` · ${quotaDetail}` : ""}
 				</p>
 			) : needsLogin.has(account.quota.status) && account.loginCommand ? (
 				<div className="flex flex-col gap-2">
-					<p className={cx("text-sm text-pretty", statusTone[account.quota.status])}>
+					<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
 						{statusLabel[account.quota.status]}. Run this command on this machine, then refresh.
 					</p>
 					<div className="flex min-w-0 items-start gap-2">
@@ -207,13 +201,13 @@ export function UsageAccountCard({
 							<IconButton
 								label={`Copy login command for ${account.name}`}
 								icon={<Copy />}
-								onClick={() => void copy(account.loginCommand!)}
+								onClick={() => void copyText(account.loginCommand!, "Login command copied")}
 							/>
 						</Tooltip>
 					</div>
 				</div>
 			) : (
-				<p className={cx("text-sm text-pretty", statusTone[account.quota.status])}>
+				<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
 					{statusLabel[account.quota.status]}
 					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
 				</p>
@@ -228,7 +222,11 @@ export function UsageAccountCard({
 				<div className="flex min-w-0 items-start gap-2">
 					<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
 					<Tooltip content="Copy command">
-						<IconButton label="Copy login command" onClick={() => void copy(account.loginCommand!)} icon={<Copy />} />
+						<IconButton
+							label="Copy login command"
+							onClick={() => void copyText(account.loginCommand!, "Login command copied")}
+							icon={<Copy />}
+						/>
 					</Tooltip>
 				</div>
 				<div className="flex justify-end">

@@ -51,7 +51,7 @@ export { ProjectKey, type ProjectKeyProps } from "./domain/ProjectKey";
 export { ProjectMark, type ProjectMarkProps } from "./domain/ProjectMark";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type ProjectColor, projectColors } from "./domain/projectColors";
-export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
+export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
 export {
 	ResourceList,
@@ -146,6 +146,7 @@ export { SheetFooter } from "./primitives/SheetFooter";
 export { SheetSection } from "./primitives/SheetSection";
 export { Skeleton, type SkeletonProps } from "./primitives/Skeleton";
 export { Spinner, type SpinnerProps } from "./primitives/Spinner";
+export { StatTile, type StatTileProps } from "./primitives/StatTile";
 export { Switch, type SwitchProps } from "./primitives/Switch";
 export { type TabItem, Tabs, type TabsProps } from "./primitives/Tabs";
 export { Textarea, type TextareaProps } from "./primitives/Textarea";
@@ -154,7 +155,7 @@ export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
 export { dotted } from "./utils/dotted";
 export { formatClock } from "./utils/formatClock";
-export { formatWhen } from "./utils/formatWhen";
+export { formatDayTime } from "./utils/formatDayTime";
 export { isTextEntry } from "./utils/isTextEntry";
 export { readRowMotion } from "./utils/readRowMotion";
 export { writeClipboard } from "./utils/writeClipboard";

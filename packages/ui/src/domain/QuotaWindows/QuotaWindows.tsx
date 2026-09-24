@@ -1,5 +1,5 @@
 import { cx } from "../../utils/cx";
-import { formatWhen } from "../../utils/formatWhen";
+import { formatDayTime } from "../../utils/formatDayTime";
 
 export type QuotaWindow = { id: string; label: string; usedPercent: number; resetsAt: string | null };
 
@@ -11,12 +11,11 @@ export type QuotaWindowsProps = {
 
 // The color of a quota bar by how much of the window is used: green while
 // less than half is used, yellow up to 80%, red from 80% up.
-export const quotaFillClass = (usedPercent: number) =>
+const fillClass = (usedPercent: number) =>
 	usedPercent >= 80 ? "bg-danger" : usedPercent >= 50 ? "bg-warning" : "bg-success";
 
 // One meter per quota window of a subscription account: the session
-// window and the weekly window for Claude, and the same pair for Codex. The
-// account card of the Usage page draws it.
+// window and the weekly window for Claude, and the same pair for Codex.
 export function QuotaWindows({ name, windows }: QuotaWindowsProps) {
 	return (
 		<>
@@ -37,13 +36,11 @@ export function QuotaWindows({ name, windows }: QuotaWindowsProps) {
 							aria-valuetext={`${window.usedPercent}% used`}
 							className="h-2 w-full overflow-hidden rounded-hairline bg-border"
 						>
-							<div
-								data-quota-fill=""
-								className={cx("h-full rounded-hairline", quotaFillClass(used))}
-								style={{ width: `${used}%` }}
-							/>
+							<div className={cx("h-full rounded-hairline", fillClass(used))} style={{ width: `${used}%` }} />
 						</div>
-						{window.resetsAt && <p className="text-xs text-fg-muted tabular">Resets {formatWhen(window.resetsAt)}</p>}
+						{window.resetsAt && (
+							<p className="text-xs text-fg-muted tabular">Resets {formatDayTime(window.resetsAt)}</p>
+						)}
 					</div>
 				);
 			})}

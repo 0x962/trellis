@@ -53,9 +53,9 @@ export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): U
 		},
 	}));
 
-// The card grid, shared by the placeholder and the cards, so the cards land
-// where the placeholder stood and nothing under them moves.
-const cardGrid = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
+// The placeholder and the cards use the same grid, so the page does not
+// move when the accounts arrive.
+const cardGridClass = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
 
 export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
@@ -142,7 +142,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 				</p>
 			)}
 			{accounts.isPending || configured.isPending ? (
-				<div role="status" aria-label="Load accounts" className={cardGrid}>
+				<div role="status" aria-label="Load accounts" className={cardGridClass}>
 					<span className="sr-only">Load accounts</span>
 					{[0, 1, 2].map((slot) => (
 						<Skeleton key={slot} height="h-52" />
@@ -154,7 +154,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 					description="Add an account so an agent can sign in to a harness on this machine."
 				/>
 			) : (
-				<div className={cardGrid}>
+				<div className={cardGridClass}>
 					{values.map((account) => {
 						const managed = configured.data?.find((candidate) => candidate.id === account.id);
 						const shared = account.sharedWith.length

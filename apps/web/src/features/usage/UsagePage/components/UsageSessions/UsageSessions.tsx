@@ -1,18 +1,9 @@
 import { Copy } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageMetric, UsageSession } from "@trellis/api";
-import {
-	Button,
-	EmptyState,
-	formatWhen,
-	IconButton,
-	SectionHeader,
-	TicketId,
-	Tooltip,
-	toast,
-	writeClipboard,
-} from "@trellis/ui";
+import { Button, EmptyState, formatDayTime, IconButton, SectionHeader, TicketId, Tooltip } from "@trellis/ui";
 import { useState } from "react";
+import { copyText } from "../../../../../lib/clipboard";
 import { formatMetric, harnessLabel } from "../../../formatUsage";
 
 export type UsageSessionsProps = {
@@ -32,9 +23,9 @@ const kindLabel: Record<string, string> = {
 };
 
 // The agent that ran the session, such as "Code Reviewer · Agent". A
-// session that Trellis did not start has no agent, so the cell names the
+// session that Trellis did not start has no run, so the label names the
 // harness that ran it, such as "Claude Code".
-const agentOrHarness = (session: UsageSession) =>
+const runLabel = (session: UsageSession) =>
 	session.run
 		? `${session.run.name} · ${kindLabel[session.run.kind] ?? session.run.kind}`
 		: harnessLabel[session.harness];
@@ -45,19 +36,12 @@ const agentOrHarness = (session: UsageSession) =>
 export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps) {
 	const [shown, setShown] = useState(PAGE);
 	const visible = sessions.slice(0, shown);
-	const copy = async (id: string) => {
-		try {
-			await writeClipboard(id);
-			toast("Session id copied");
-		} catch (error) {
-			toast(error instanceof Error ? error.message : "Could not copy the session id.");
-		}
-	};
 	return (
 		<section aria-label="Sessions" className="flex flex-col gap-3">
 			<SectionHeader
 				title={filtered === null ? "Top sessions" : `Top sessions in ${filtered}`}
 				count={sessions.length}
+				actions={<span>{metric === "usd" ? "Highest cost first" : "Most tokens first"}</span>}
 			/>
 			{sessions.length === 0 ? (
 				<EmptyState
@@ -97,7 +81,7 @@ export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps
 										key={session.sessionId}
 										className="group h-9 border-b border-border transition-colors duration-hover ease-out hover:bg-band"
 									>
-										<td className="whitespace-nowrap pr-3 text-fg-muted tabular">{formatWhen(session.lastAt)}</td>
+										<td className="whitespace-nowrap pr-3 text-fg-muted tabular">{formatDayTime(session.lastAt)}</td>
 										<td className="max-w-0 pr-3">
 											<div className="flex min-w-0 items-center gap-2">
 												{session.run?.ticketIdentifier && (
@@ -121,8 +105,8 @@ export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps
 											</div>
 										</td>
 										<td className="max-w-0 pr-3 text-fg-muted max-md:hidden">
-											<span className="block truncate" title={agentOrHarness(session)}>
-												{agentOrHarness(session)}
+											<span className="block truncate" title={runLabel(session)}>
+												{runLabel(session)}
 											</span>
 										</td>
 										<td className="max-w-0 pr-3 text-fg-muted max-lg:hidden">
@@ -140,7 +124,7 @@ export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps
 													label={`Copy session id ${session.sessionId}`}
 													icon={<Copy />}
 													className="opacity-0 transition-opacity duration-hover ease-out group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
-													onClick={() => void copy(session.sessionId)}
+													onClick={() => void copyText(session.sessionId, "Session id copied")}
 												/>
 											</Tooltip>
 										</td>

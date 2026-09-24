@@ -1,6 +1,5 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { UsageDays, UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
+import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
 import {
 	Button,
 	EmptyState,
@@ -12,8 +11,8 @@ import {
 	UsageChart,
 	type UsageChartSeries,
 } from "@trellis/ui";
-import { useApp } from "../../../../../lib/appContext";
 import { CHART_TOP_ROWS, formatDayLabel, formatMetric, localDayKey, rowTone } from "../../../formatUsage";
+import { useUsageReport } from "../../hooks/useUsageReport";
 import { UsageAccounts } from "../UsageAccounts";
 import { UsageGroups } from "../UsageGroups";
 import { UsageSessions } from "../UsageSessions";
@@ -58,10 +57,9 @@ function chartSeries(
 }
 
 export function AgentUsage() {
-	const { orpc } = useApp();
 	const search = useSearch({ from: "/usage" });
 	const navigate = useNavigate({ from: "/usage" });
-	const days: UsageDays = search.days ?? 30;
+	const { days, report } = useUsageReport();
 	const metric: UsageMetric = search.metric ?? "usd";
 	const group: UsageGroupBy = search.group ?? "ticket";
 	const selectedRow = search.row ?? null;
@@ -69,11 +67,6 @@ export function AgentUsage() {
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 
-	const report = useQuery({
-		...orpc.usage.report.queryOptions({ input: { days } }),
-		staleTime: 5 * 60_000,
-		placeholderData: keepPreviousData,
-	});
 	const ranking = report.data?.rankings[metric];
 	const rows = ranking?.groups[group] ?? [];
 	const row = selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null);
@@ -109,7 +102,11 @@ export function AgentUsage() {
 			) : report.data.totals.sessions === 0 ? (
 				<EmptyState
 					title={`No usage in the last ${days} days`}
-					description="Trellis found no agent transcript on this machine for this range. Select a longer range, or select Refresh usage."
+					description={
+						days < 90
+							? "Trellis found no agent transcript on this machine for this range. Select a longer range, or select Refresh usage."
+							: "Trellis found no agent transcript on this machine for this range. Select Refresh usage to read the transcripts again."
+					}
 				/>
 			) : (
 				<>

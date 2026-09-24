@@ -8,8 +8,8 @@ export type MemoryPressureDisplay = {
 	// the figure.
 	textClass: "text-fg-faint" | "text-danger";
 	// The color of the memory figure itself. It stays the plain text color
-	// until the kernel reports level 4, so the figure reads as loud as the
-	// CPU figure beside it.
+	// until the kernel reports level 4, so the memory figure and the CPU
+	// figure beside it look the same.
 	valueClass: "text-fg" | "text-danger";
 };
 

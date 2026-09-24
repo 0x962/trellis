@@ -1,8 +1,8 @@
 import type { SystemProcess } from "@trellis/api";
 import { Button, DisplayPopover, EmptyState, FilterBar, Input, SectionHeader } from "@trellis/ui";
-import { useMemo, useState } from "react";
-import { formatBytes } from "../../../../../lib/format";
-import { formatPercent, formatUptime } from "./formatSystemUsage";
+import { memo, useMemo, useState } from "react";
+import { formatBytes } from "../../../../../../../lib/format";
+import { formatPercent, formatUptime } from "../../formatSystemUsage";
 
 type ProcessSort = "cpu" | "memory" | "name" | "pid" | "time";
 
@@ -34,7 +34,10 @@ const compare = (field: ProcessSort, left: SystemProcess, right: SystemProcess) 
 	return left.cpuPercent - right.cpuPercent;
 };
 
-export function ProcessTable({ processes }: { processes: readonly SystemProcess[] }) {
+// SystemUsage reads the machine again every 2 seconds, and the process
+// list every 15. `memo` keeps the 2 second read from redrawing up to two
+// thousand rows that did not change.
+export const ProcessTable = memo(function ProcessTable({ processes }: { processes: readonly SystemProcess[] }) {
 	const [query, setQuery] = useState("");
 	const [sort, setSort] = useState<ProcessSort>("cpu");
 	const [descending, setDescending] = useState(true);
@@ -151,4 +154,4 @@ export function ProcessTable({ processes }: { processes: readonly SystemProcess[
 			)}
 		</section>
 	);
-}
+});
