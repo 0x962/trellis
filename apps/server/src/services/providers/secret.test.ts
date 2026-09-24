@@ -16,6 +16,7 @@ const at = new Date("2026-09-24T22:00:00.000Z");
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const context = {
 	actor: { kind: "human", name: "Navid" },
+	afterCommit: () => {},
 	now: () => at,
 	emit: (_event: TrellisEvent) => {},
 } as unknown as IoCtx;

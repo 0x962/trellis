@@ -15,6 +15,7 @@ const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const context = (kind: "human" | "agent" = "human") =>
 	({
 		actor: { kind, name: kind === "human" ? "Navid" : "provider-agent" },
+		afterCommit: () => {},
 		now: () => at,
 		emit: (event: TrellisEvent) => events.push(event),
 	}) as unknown as IoCtx;

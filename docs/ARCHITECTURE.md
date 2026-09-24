@@ -731,7 +731,17 @@ Only a human actor can create, update, or delete a provider.
 The API returns `keyLast4` and never returns `api_key`.
 `keyLast4` is empty when the stored key has fewer than eight characters.
 The database row selector does not select `api_key`, and a data export replaces its value with `<redacted>`.
-The CLI exposes `trellis provider list`, `show`, `create`, `edit`, and `delete`.
+The CLI exposes `trellis provider list`, `show`, `create`, `edit`, `delete`, `models`, and `check`.
+
+Catalog and key checks run in the registry prepare step, outside database transactions.
+Catalog reads cache results for five minutes. Key checks cache results for thirty seconds.
+A refresh uses a result for one second. An update or delete clears both caches after commit.
+A failed remote read returns `ok: false` with a fixed detail and no remote response text.
+An empty successful catalog returns `ok: true` and an empty model list.
+
+Vercel catalogs need no key. Compatible catalogs receive the stored key in the authorization header.
+Compatible models without name or type fields use their identifier and the language type.
+Vercel key checks return the credit balance string. Compatible key checks return a null balance.
 Each mutation emits `providers.changed {id}`.
 
 ### Usage
@@ -1122,6 +1132,9 @@ returns one canonical spelling.
 | providers.create | POST /api/providers | 201 and `Location`; a human actor supplies the stored key |
 | providers.update | PATCH /api/providers/{id} | a human actor can replace the key or the full model set |
 | providers.delete | DELETE /api/providers/{id} | a human actor deletes the provider and its model rows |
+| providers.models | GET /api/providers/{id}/models | language models from the remote catalog; optional refresh |
+| providers.publicModels | GET /api/providers/kinds/{kind}/models | public Vercel catalog or an empty compatible catalog; optional refresh |
+| providers.check | GET /api/providers/{id}/check | key acceptance and optional credit balance; optional refresh |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; cached for five minutes |
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |

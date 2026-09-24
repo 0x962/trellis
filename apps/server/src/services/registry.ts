@@ -43,7 +43,10 @@ import { publish as publishPage } from "./pages/publish.ts";
 import * as pageUploads from "./pages/uploads.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
+import { prepareCheck } from "./providers/check.ts";
+import { prepareModels } from "./providers/models.ts";
 import * as providers from "./providers/providers.ts";
+import { preparePublicModels } from "./providers/publicModels.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequestLocalState from "./pullRequestLocalState.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -152,6 +155,9 @@ export const services = {
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"providers.models": prepared("read", prepareModels, agentTerminal.result),
+	"providers.publicModels": prepared("read", preparePublicModels, agentTerminal.result),
+	"providers.check": prepared("read", prepareCheck, agentTerminal.result),
 	"providers.list": io("read", providers.list),
 	"providers.get": io("read", providers.get),
 	"providers.create": io("mutation", providers.create),

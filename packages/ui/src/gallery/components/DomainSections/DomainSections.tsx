@@ -17,6 +17,7 @@ import {
 	PriorityIconSection,
 	ProjectColorFieldSection,
 	ProjectColorSection,
+	ProviderCardSection,
 	ResourceListSection,
 	ReviewDiffSection,
 	ReviewStatusSummarySection,
@@ -33,6 +34,7 @@ export function DomainSections() {
 	return (
 		<>
 			<FailureStateSection />
+			<ProviderCardSection />
 			<StatusIconSection />
 			<PriorityIconSection />
 			<AttentionDotSection />

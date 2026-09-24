@@ -10,6 +10,7 @@ import { rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import type { IoCtx } from "../support.ts";
+import { invalidateProvider } from "./cache.ts";
 import { providerById, providerSelect, type RawProvider, toProvider } from "./rows.ts";
 
 const requirePerson = (ctx: IoCtx) => {
@@ -72,6 +73,7 @@ export const update = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Pro
 	sets.push(sql`updated_at = ${ctx.now()}`);
 	await tx.execute(sql`UPDATE providers SET ${sql.join(sets, sql`, `)} WHERE id = ${existing.id}`);
 	if (input.models !== undefined) await replaceModels(tx, existing.id, input.models);
+	ctx.afterCommit(async () => invalidateProvider(ctx.home, existing.id));
 	ctx.emit({ type: "providers.changed", id: existing.id });
 	return providerById(tx, existing.id);
 };
@@ -81,6 +83,7 @@ export const remove = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	requirePerson(ctx);
 	await providerById(tx, input.id);
 	await tx.execute(sql`DELETE FROM providers WHERE id = ${input.id}`);
+	ctx.afterCommit(async () => invalidateProvider(ctx.home, input.id));
 	ctx.emit({ type: "providers.changed", id: input.id });
 	return input;
 };
