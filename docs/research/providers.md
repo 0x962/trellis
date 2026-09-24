@@ -138,7 +138,7 @@ The key is a column in the database. The reasons:
 
 Three rules keep the key out of every output:
 
-- The API never returns `api_key`. `ProviderSchema` carries `keyLast4`: the last four characters when the key is at least eight characters long, and the empty string otherwise. A short key is legal, because an OpenAI-compatible endpoint on this machine can accept any string, and a hint of a short key is the key. The row select in `rows.ts` computes the hint in SQL, `CASE WHEN length(api_key) >= 8 THEN right(api_key, 4) ELSE '' END AS key_last4`, and never lists the column itself, so a new procedure cannot leak it by accident. One test asserts that `JSON.stringify` of every procedure output holds no key, and it runs once with a long key and once with a key of four characters.
+- The API never returns `api_key`. `ProviderSchema` carries `keyLast4`: the last four characters when the key is at least eight characters long, and the empty string otherwise. A short key is legal, because an OpenAI-compatible endpoint on this machine can accept any string, and a hint of a short key is the key. The row select in `rows.ts` computes the hint in SQL, `CASE WHEN length(api_key) >= 8 THEN right(api_key, 4) ELSE '' END AS key_last4`, and never lists the column itself, so a new procedure cannot leak it by accident. One test in TRL-430 asserts that `JSON.stringify` of every procedure output holds no key, with a long key and with keys of one to four characters.
 - `exportNdjson` gains `REDACTED_COLUMNS = { providers: ["api_key"] }`. The page query selects `'<redacted>' AS api_key` for a redacted column. There is no import, so the redaction breaks no round trip.
 - The server log never prints a provider row. The models and check services log the status code and the host, not the header.
 
@@ -418,13 +418,13 @@ Four tickets under TRL-428, in the wave External Providers: TRL-430, TRL-439, TR
 | TRL-430 Provider record, API, and CLI | the tables, the migration, the schemas, the contract without models and check, the services, the procedures, the event, the export redaction and its test, the CLI verbs list, show, create, edit, delete, the guide paragraph, the ARCHITECTURE rows | TRL-441 | the erDiagram; the server test output; a terminal transcript of create, list, show, edit, delete with the key on stdin; `trellis export` output with `<redacted>` |
 | TRL-431 Provider catalog and key check | `providers.models`, `providers.publicModels`, `providers.check`, their caches and their invalidation, the CLI verbs models and check | TRL-430, TRL-439 | the test output with the stubbed fetch; a transcript of check against a real key with the balance, and against a wrong key with the refusal |
 | TRL-432 Providers on the Usage page | the section, the `ProviderCard` visual, the forms, the model list control, the remove dialog, the palette item, the gallery section, the `ProviderIcon` values, the UI_PATTERNS rows | TRL-430, TRL-431, TRL-439 | screenshots of the empty state, the loading state, the read failure, the Add form on desktop and on a phone width, the stale models line, a card with a balance, a card with a refused key, a disabled card, the remove dialog, both themes |
-| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts` with the secret boundary proof, the log rule | TRL-430 | the test output |
+| TRL-439 Provider secrets in the record | `secret.ts` with `keyOf`, `secret.test.ts` with the reader and the wider secret boundary proof, the log rule | TRL-430 | the test output |
 
 TRL-439 is small. It exists so the key rules have one owner and one test file, and so TRL-430 does not grow past a reviewable size. TRL-431 reads the key through its `keyOf`, so it waits on it.
 
 ### 3.2 Tests
 
-One ticket owns each test file. A later ticket adds a file, never a case in a file of an earlier ticket.
+One ticket owns each test file while that ticket is open. The tickets run one after another, so a later ticket can extend a test file once its owner has merged, and no two workers edit one file at once. A case appears in one file only.
 
 | file | owner |
 |---|---|
@@ -436,7 +436,7 @@ One ticket owns each test file. A later ticket adds a file, never a case in a fi
 | `packages/cli/src/commands/provider/remoteText.test.ts` | TRL-431 |
 | `packages/ui/src/domain/ProviderCard/ProviderCard.test.tsx`, `ProviderForm/ProviderForm.test.tsx` | TRL-432 |
 
-The tickets run one after another, so a shared file is never edited by two workers at once. The split avoids a duplicate test: TRL-430 proves the record and the export redaction with the first tests, and TRL-439 proves the secret boundary through its own reader.
+The tickets run one after another, so a shared file is never edited by two workers at once. The split avoids a duplicate test: TRL-430 proves the record, the public output for long and short keys, and the export redaction in the first commit that stores a key, as its contract asks. TRL-439 proves the reader and the wider secret boundary.
 
 Server, `providers.test.ts` (TRL-430), on `openTestDb` with a hand-built `ServiceCtx`:
 
@@ -447,12 +447,13 @@ Server, `providers.test.ts` (TRL-430), on `openTestDb` with a hand-built `Servic
 - delete removes the `provider_models` rows through the cascade
 - the base URL loses a trailing slash and a trailing `/v1`
 - a model id with a colon and no slash, and one with capital letters, are accepted; an id with a space is refused
+- `JSON.stringify` of every procedure output holds none of the key, with a long key and with keys of one to four characters
+- create with a key of four characters returns an empty `keyLast4`; list and get print the same; an update to a long key fills `keyLast4`, and an update back to a short key empties it
 
 Server, `secret.test.ts` (TRL-439):
 
-- `keyOf` returns the stored key, and no other export of the folder does
-- `JSON.stringify` of every procedure output holds none of the key, with a long key and with a key of four characters
-- create with a key of four characters returns an empty `keyLast4`; list and get print the same; an update to a long key fills `keyLast4`, and an update back to a short key empties it
+- `keyOf` returns the stored key, and no other export of the folder reads the column
+- the secret boundary beyond the procedures: the models and check services pass the key only in the header, and no log line and no `detail` holds it
 
 Server, `models.test.ts` and `check.test.ts` (TRL-431), with the fetch injected as in `fetchProviderQuota.test.ts`: a 200 maps to the entries and to `ok: true`; a 200 with no language model maps to `ok: true` and an empty list; a 401 maps to the refusal; a 403 maps to the refused request, a text that names neither the key nor the plan, because an OpenAI-compatible endpoint can answer 403 for either; a thrown error maps to unreachable; the cache serves the second call inside the window, `refresh` bypasses it, and an update of the provider clears it.
 
