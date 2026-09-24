@@ -32,8 +32,10 @@ export const hiddenAgentCount = (more: ProjectPageRow[]) =>
 
 // True while the More row of this project shows the pages it holds. A person
 // opens More for one page, and `projectMorePath` of the UI store holds that
-// page by project id. Every other page draws More shut, so an arrival at a
-// project page never finds it open.
+// page by project id. This answers false on every other page, which draws the
+// first frame of a navigation with More shut. The sidebar empties the record
+// at that same navigation, so a return to the page of the press finds no
+// entry and draws More shut as well.
 export const moreIsOpen = (projectMorePath: Record<string, string>, projectId: string, pathname: string) =>
 	projectMorePath[projectId] === pathname;
 

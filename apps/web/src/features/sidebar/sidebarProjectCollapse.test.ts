@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { createUiStore, uiStorageKey } from "../../stores/uiStore";
+import { moreIsOpen } from "./components/ProjectPages";
 
 const hadLocalStorage = "localStorage" in globalThis;
 const originalLocalStorage = globalThis.localStorage;
@@ -66,6 +67,38 @@ test("a press on one project leaves the More row of another project shut", () =>
 	store.getState().toggleProjectMore("project-2", "/p/CDE/epics");
 
 	expect(store.getState().projectMorePath).toEqual({ "project-1": "/p/TRL/epics", "project-2": "/p/CDE/epics" });
+});
+
+test("a change of page shuts the More row of every project", () => {
+	const store = createUiStore();
+
+	store.getState().setShownPage("/p/TRL");
+	store.getState().toggleProjectMore("project-1", "/p/TRL");
+	store.getState().toggleProjectMore("project-2", "/p/CDE/epics");
+	store.getState().setShownPage("/p/TRL/diffs");
+
+	expect(store.getState().projectMorePath).toEqual({});
+});
+
+test("a return to the page of the press finds no open More row", () => {
+	const store = createUiStore();
+
+	store.getState().setShownPage("/p/TRL");
+	store.getState().toggleProjectMore("project-1", "/p/TRL");
+	store.getState().setShownPage("/p/TRL/diffs");
+	store.getState().setShownPage("/p/TRL");
+
+	expect(moreIsOpen(store.getState().projectMorePath, "project-1", "/p/TRL")).toBe(false);
+});
+
+test("the page the sidebar already draws keeps an open More row", () => {
+	const store = createUiStore();
+
+	store.getState().setShownPage("/p/TRL");
+	store.getState().toggleProjectMore("project-1", "/p/TRL");
+	store.getState().setShownPage("/p/TRL");
+
+	expect(moreIsOpen(store.getState().projectMorePath, "project-1", "/p/TRL")).toBe(true);
 });
 
 test("no browser storage holds the open More row, so a reload shuts it", () => {

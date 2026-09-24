@@ -25,11 +25,16 @@ export type UiData = {
 export type UiRuntime = {
 	// The sidebar sheet on a phone.
 	mobileSidebarOpen: boolean;
-	// The page that each open More row was opened on, by project id. The More
-	// row of a project shows the pages it holds only while the person stands
-	// on that same page, so every arrival at a project page finds More shut.
-	// A project with no entry holds More shut.
+	// The page that each open More row was opened on, by project id. A project
+	// with no entry holds More shut. Two rules keep an arrival at a project
+	// page shut. The page in this record must equal the page on screen, which
+	// draws the first frame of a navigation shut. `setShownPage` then empties
+	// the record, which shuts a return to the page where the person pressed
+	// More.
 	projectMorePath: Record<string, string>;
+	// The page that the sidebar draws now. The sidebar reports each page it
+	// draws, and a page that differs from this one empties `projectMorePath`.
+	shownPage: string;
 };
 
 export type UiState = UiData &
@@ -41,6 +46,9 @@ export type UiState = UiData &
 		toggleProject: (id: string) => void;
 		// `pathname` is the page on screen at the press.
 		toggleProjectMore: (id: string, pathname: string) => void;
+		// Reports the page that the sidebar draws now. A page that differs from
+		// the stored one shuts the More row of every project.
+		setShownPage: (pathname: string) => void;
 		// `defaults` names the groups a route collapses before its first toggle.
 		toggleGroup: (route: string, group: string, defaults?: string[]) => void;
 		toggleTicketExpanded: (route: string, ticketId: string) => void;
@@ -60,6 +68,7 @@ const defaults: UiData = {
 const runtimeDefaults: UiRuntime = {
 	mobileSidebarOpen: false,
 	projectMorePath: {},
+	shownPage: "",
 };
 
 // Every change as a pure function of the data. A store action and the
@@ -83,6 +92,10 @@ const updates = {
 			else paths[id] = pathname;
 			return { projectMorePath: paths };
 		},
+	setShownPage:
+		(pathname: string) =>
+		(state: UiRuntime): Partial<UiRuntime> =>
+			state.shownPage === pathname ? {} : { shownPage: pathname, projectMorePath: {} },
 	toggleGroup:
 		(route: string, group: string, defaults: string[] = []) =>
 		(state: UiData): Partial<UiData> => {
@@ -154,6 +167,7 @@ export const createUiStore = () =>
 				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
 				toggleProjectMore: (id, pathname) => set(updates.toggleProjectMore(id, pathname)),
+				setShownPage: (pathname) => set(updates.setShownPage(pathname)),
 				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
 				toggleTicketExpanded: (route, ticketId) => set(updates.toggleTicketExpanded(route, ticketId)),
 				setColumnVisible: (route, column, visible) => set(updates.setColumnVisible(route, column, visible)),
@@ -184,6 +198,7 @@ export const uiActions = {
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
 	toggleProjectMore: (id: string, pathname: string) => useUiStore.setState(updates.toggleProjectMore(id, pathname)),
+	setShownPage: (pathname: string) => useUiStore.setState(updates.setShownPage(pathname)),
 	toggleGroup: (route: string, group: string, defaults?: string[]) =>
 		useUiStore.setState(updates.toggleGroup(route, group, defaults)),
 	toggleTicketExpanded: (route: string, ticketId: string) =>

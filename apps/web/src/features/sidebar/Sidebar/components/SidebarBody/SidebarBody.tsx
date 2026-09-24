@@ -1,6 +1,7 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, IconButton, Kbd, Tooltip } from "@trellis/ui";
+import { useEffect } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
@@ -53,6 +54,14 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const project = projectRefOfPathname(pathname);
+	// Navid asks for a shut More row each time he opens a project page. The
+	// store shuts every open More row when this page differs from the page it
+	// holds, so a press lasts until the person leaves, and a return to the page
+	// of the press finds it shut. `pathname` follows the page the outlet shows,
+	// so a link and the Back button of the browser both reach this.
+	useEffect(() => {
+		uiActions.setShownPage(pathname);
+	}, [pathname]);
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 	const needsYouActive = (inbox.data?.active ?? 0) > 0;
 	const needsYouMark = needsYouActive ? (
