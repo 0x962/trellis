@@ -88,9 +88,11 @@ export const ticketReviewGaps = (prRows: readonly { reviewGaps: ReviewGap[] }[])
 	return (heldBack ?? missesAPart)?.reviewGaps ?? [];
 };
 
-// The state of a pull request in one lowercase word. Queued wins over every
-// other word, and a terminal state wins over the review flag. The caller
-// sets the letter case that its surface needs.
+// The state of a pull request in one lowercase word. A closed or merged pull
+// request prints its own state. An open one prints `queued` while it sits in
+// the merge queue, then `not ready` while the agent has not asked for review,
+// and `open` otherwise. The caller sets the letter case that its surface
+// needs.
 //
 // The epic row of the CLI, the row of the diffs page and the child row of
 // the ticket page all print this word, and the glyph beside each one reads
@@ -126,8 +128,8 @@ export const reviewGapText = (gap: ReviewGap): string => {
 // names a missing evidence document.
 //
 // A push takes the explanation and the evidence of the older commit away and
-// leaves the review flag at `ready`. This line is then the only place that
-// states it.
+// leaves the review flag at `ready`, so the glyph alone states nothing about
+// that loss.
 export const missingPartsText = (pr: { reviewGaps: ReviewGap[] }): string | null => {
 	const parts = pr.reviewGaps.filter((gap) => DESCRIBED_GAP_KINDS.includes(gap.kind));
 	return parts.length === 0 ? null : parts.map(reviewGapText).join(", ");

@@ -2,9 +2,9 @@ import { PrGlyph } from "../../domain/PrGlyph";
 import { Badge } from "../../primitives/Badge";
 
 // The state of a pull request as one glyph and one word. `askedForReview` is
-// the local review flag of the pull request, and it draws the glyph. `word`
-// is the same state in the words of the caller: `prStateWord` in
-// `@trellis/api` writes it, and this package imports no `@trellis/api`.
+// the local review flag of the pull request, and it draws the glyph and the
+// tone of the badge. `word` is the text of the badge, which the caller
+// writes, such as `Not ready` or `Merged`.
 export function ReviewStatus({
 	state: value,
 	isQueued,
