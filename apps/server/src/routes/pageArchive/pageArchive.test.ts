@@ -2,14 +2,21 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { PAGE_ARCHIVE_TTL_MS, type PagePullContent } from "@trellis/api";
+import { PAGE_ARCHIVE_TTL_MS, type PagePullOutput } from "@trellis/api";
 import { Hono } from "hono";
 import { ulid } from "ulid";
-import type { Config } from "../config.ts";
-import type { ServiceTransport } from "../db/transport.ts";
-import { clearPageLeases, createArchiveGrant, readArchiveGrant } from "../pageLeases.ts";
-import { pageObjectPath } from "../storage/pageObjects.ts";
-import { archiveFilename, PAGE_ARCHIVE_PREFIX, pageArchiveRoute } from "./pageArchive.ts";
+import type { Config } from "../../config.ts";
+import type { ServiceTransport } from "../../db/transport.ts";
+import type { Logger } from "../../log.ts";
+import {
+	archiveFilename,
+	clearPageLeases,
+	createArchiveGrant,
+	PAGE_ARCHIVE_PREFIX,
+	readArchiveGrant,
+} from "../../pageLeases.ts";
+import { pageObjectPath } from "../../storage/pageObjects.ts";
+import { pageArchiveRoute } from "./pageArchive.ts";
 
 let home: string;
 const pageId = ulid();
@@ -20,8 +27,8 @@ const assetSha = "b".repeat(64);
 const document = "<p>Forecast report</p>";
 const asset = "body{color:red}";
 
-const content: PagePullContent = {
-	page: { id: pageId, slug: "forecast-report" } as PagePullContent["page"],
+const content: PagePullOutput = {
+	page: { id: pageId, slug: "forecast-report" } as PagePullOutput["page"],
 	version: {
 		pageId,
 		number: 3,
@@ -57,7 +64,8 @@ const appOf = () => {
 		c.set("requestId", ulid());
 		await next();
 	});
-	app.get(`${PAGE_ARCHIVE_PREFIX}/:grant`, pageArchiveRoute({ config: { home } as Config, transport }));
+	const log = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger;
+	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config: { home } as Config, transport, log }));
 	return app;
 };
 
@@ -122,7 +130,6 @@ describe("the archive of one page version", () => {
 		const grant = grantOf();
 		const response = await appOf().request(`http://trellis.test${PAGE_ARCHIVE_PREFIX}/${grant.id}`);
 		const entries = readZip(new Uint8Array(await response.arrayBuffer()));
-		// The check value of "<p>Forecast report</p>" under the zip rule.
 		expect(entries[0]!.crc).toBe(Bun.hash.crc32(document));
 		expect(entries[1]!.crc).toBe(Bun.hash.crc32(asset));
 	});

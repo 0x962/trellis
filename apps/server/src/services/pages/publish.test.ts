@@ -231,24 +231,19 @@ describe("a second publication", () => {
 		expect(detail.latestVersion).toBe(1);
 	});
 
-	test("returns the first result for a repeated request identifier", async () => {
+	test("returns the first result when the same request arrives twice", async () => {
 		const document = await stage(human, html("<p>Once</p>"));
-		const requestId = crypto.randomUUID();
-		const created = await publishIn(human, {
-			requestId,
+		const input = {
+			requestId: crypto.randomUUID(),
 			project: project.key,
 			title: "Idempotent report",
 			document,
 			sourcePath: "index.html",
-		});
-		const other = await stage(human, html("<p>Twice</p>"));
-		const repeated = await publishIn(human, {
-			requestId,
-			project: project.key,
-			title: "Idempotent report",
-			document: other,
-			sourcePath: "index.html",
-		});
+		};
+		const created = await publishIn(human, input);
+		// The first call consumed the staged upload, so the retry names a row
+		// that is gone. It reads the version the first call created.
+		const repeated = await publishIn(human, input);
 		expect(repeated.page.id).toBe(created.page.id);
 		expect(repeated.version.number).toBe(1);
 		expect(repeated.version.documentSha256).toBe(created.version.documentSha256);
@@ -256,6 +251,58 @@ describe("a second publication", () => {
 			sql`SELECT id FROM pages WHERE project_id = ${project.id} AND title = 'Idempotent report'`,
 		);
 		expect(pages.rows.length).toBe(1);
+	});
+
+	test("refuses other bytes under a request identifier it already holds", async () => {
+		const document = await stage(human, html("<p>First bytes</p>"));
+		const requestId = crypto.randomUUID();
+		const created = await publishIn(human, {
+			requestId,
+			project: project.key,
+			title: "Reused identifier",
+			document,
+			sourcePath: "index.html",
+		});
+		const other = await stage(human, html("<p>Other bytes</p>"));
+		await expect(
+			publishIn(human, {
+				requestId,
+				project: project.key,
+				title: "Reused identifier",
+				document: other,
+				sourcePath: "index.html",
+			}),
+		).rejects.toThrow("A row with this value exists.");
+		const detail = await inTx((tx) => get(contextOf(human), tx, { page: created.page.ref }));
+		expect(detail.latestVersion).toBe(1);
+	});
+
+	test("refuses a request identifier that belongs to another page", async () => {
+		const first = await stage(human, html("<p>Page one</p>"));
+		const one = await publishIn(human, {
+			requestId: crypto.randomUUID(),
+			project: project.key,
+			title: "Identifier page one",
+			document: first,
+			sourcePath: "index.html",
+		});
+		const second = await stage(human, html("<p>Page two</p>"));
+		const two = await publishIn(human, {
+			requestId: crypto.randomUUID(),
+			project: project.key,
+			title: "Identifier page two",
+			document: second,
+			sourcePath: "index.html",
+		});
+		await expect(
+			publishIn(human, {
+				requestId: one.version.requestId,
+				page: two.page.ref,
+				expectedVersion: two.page.revision,
+				document: second,
+				sourcePath: "index.html",
+			}),
+		).rejects.toThrow("A row with this value exists.");
 	});
 });
 

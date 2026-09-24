@@ -277,7 +277,7 @@ export const services = {
 	"pages.publish": core("mutation", publishPage),
 	"pages.versions": core("read", pageContent.versions),
 	"pages.pull": core("read", pageContent.pull),
-	"pages.content": core("read", pageContent.content),
+	"pages.versionFile": core("read", pageContent.versionFile),
 	"pages.update": core("mutation", pages.update),
 	"pages.pin": core("mutation", pages.pin),
 	"pages.delete": core("mutation", pages.remove),

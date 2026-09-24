@@ -18,13 +18,15 @@ import type { GhAccess } from "./ghState.ts";
 import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
 import { chooseDirectory } from "./native/chooseDirectory";
+import { PAGE_ARCHIVE_PREFIX, PAGE_RENDER_PREFIX } from "./pageLeases.ts";
 import { type ProcedureContext, router } from "./procedures/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
-import { PAGE_ARCHIVE_PREFIX, pageArchiveRoute } from "./routes/pageArchive.ts";
-import { PAGE_RENDER_PREFIX, pageContentRoute, pageFrameRoute } from "./routes/pageContent.ts";
+import { pageArchiveRoute } from "./routes/pageArchive/pageArchive.ts";
+import { pageContentRoute } from "./routes/pageRender/pageContent.ts";
+import { pageFrameRoute } from "./routes/pageRender/pageRender.ts";
 import { prFileRoute } from "./routes/prFile.ts";
 import { resourceBlobRoute } from "./routes/resourceBlob.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
@@ -157,6 +159,19 @@ export const createApp = ({
 		await next();
 	});
 
+	// Three routes: the frame document, the files of the page inside it, and
+	// one download.
+	//
+	// They answer before the host token check, because a browser sends no
+	// header of its own on a frame load, on a request the page makes from
+	// inside that frame, or on a download. Each address carries its own
+	// authorization: 128 random bits that `pages.createRenderLease` and
+	// `pages.archive` mint for one page version, and that end within minutes
+	// or hours.
+	app.get(`${PAGE_RENDER_PREFIX}/:leaseId`, pageFrameRoute({ log }));
+	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
+	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config, transport, log }));
+
 	app.use(hostAuth(config.authToken));
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
@@ -258,12 +273,6 @@ export const createApp = ({
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
-	// The frame document and the page it holds. The address of the page sits
-	// under the address of the frame, so a relative address in the page names
-	// an asset of the same version and of no other.
-	app.get(`${PAGE_RENDER_PREFIX}/:lease`, pageFrameRoute());
-	app.get(`${PAGE_RENDER_PREFIX}/:lease/*`, pageContentRoute({ config, transport }));
-	app.get(`${PAGE_ARCHIVE_PREFIX}/:grant`, pageArchiveRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);
 	app.get("/api/docs", docs.docs);

@@ -100,14 +100,13 @@ describe("Page procedures", () => {
 				return page;
 			},
 		);
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(201);
 		const lease = (await response.json()) as PageRenderLease;
 		expect(calls).toEqual([{ name: "pages.get", input: { page: "WRT/pages/stable", version: 1 } }]);
 		expect(lease.pageId).toBe(pageId);
 		expect(lease.version).toBe(1);
-		expect(lease.frameUrl).toBe(`/api/page-render/${lease.lease}`);
-		expect(lease.contentRoot).toBe(`/api/page-render/${lease.lease}/`);
-		expect(lease.nonce).not.toBe(lease.lease);
+		expect(lease.frameUrl).toBe(`/api/page-render/${lease.id}`);
+		expect(lease.contentRoot).toBe(`/api/page-render/${lease.id}/`);
 		expect(Date.parse(lease.absoluteExpiresAt) - Date.parse(lease.idleExpiresAt)).toBe(
 			PAGE_RENDER_MAX_MS - PAGE_RENDER_IDLE_MS,
 		);
@@ -118,31 +117,42 @@ describe("Page procedures", () => {
 		const lease = (await created.json()) as PageRenderLease;
 		const renewed = await request(
 			"/page-render-leases/renew",
-			{ method: "POST", ...json({ lease: lease.lease }) },
+			{ method: "POST", ...json({ leaseId: lease.id }) },
 			async () => page,
 		);
 		expect(renewed.status).toBe(200);
-		expect(((await renewed.json()) as PageRenderLease).lease).toBe(lease.lease);
+		expect(((await renewed.json()) as PageRenderLease).id).toBe(lease.id);
 		const stranger = await request(
 			"/page-render-leases/renew",
 			{
 				method: "POST",
 				headers: { "content-type": "application/json", "x-trellis-actor": "human:other" },
-				body: JSON.stringify({ lease: lease.lease }),
+				body: JSON.stringify({ leaseId: lease.id }),
 			},
 			async () => page,
 		);
-		expect(stranger.status).toBe(401);
+		expect(stranger.status).toBe(404);
 		expect((await stranger.json()) as { code: string }).toMatchObject({ code: "RENDER_LEASE_EXPIRED" });
 	});
 
-	test("adds a download link to the source of one version", async () => {
+	test("reads one version and its assets without a download link", async () => {
 		const content = { page, version: page.requestedVersion, assets: [] };
 		const response = await request("/pages/pull/WRT/pages/stable", {}, async () => content);
 		expect(response.status).toBe(200);
-		const pulled = (await response.json()) as { archiveUrl: string; archiveExpiresAt: string };
-		expect(pulled.archiveUrl).toMatch(/^\/api\/page-archive\/[0-9a-f]{32}$/);
-		expect(Date.parse(pulled.archiveExpiresAt)).toBeGreaterThan(Date.now());
+		expect(await response.json()).toMatchObject({ version: { number: 1 } });
+	});
+
+	test("mints a download link of its own", async () => {
+		const content = { page, version: page.requestedVersion, assets: [] };
+		const response = await request(
+			"/pages/archive/WRT/pages/stable",
+			{ method: "POST", ...json({}) },
+			async () => content,
+		);
+		expect(response.status).toBe(201);
+		const link = (await response.json()) as { url: string; expiresAt: string };
+		expect(link.url).toMatch(/^\/api\/page-archive\/[0-9a-f]{32}$/);
+		expect(Date.parse(link.expiresAt)).toBeGreaterThan(Date.now());
 	});
 
 	test("matches slash refs on the restore and pin prefix routes", async () => {

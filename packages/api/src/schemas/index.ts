@@ -17,6 +17,7 @@ export * from "./needsYou.ts";
 export * from "./note.ts";
 export * from "./page.ts";
 export * from "./pageComment.ts";
+export * from "./pageVersion.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
 export * from "./provider.ts";

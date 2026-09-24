@@ -5,11 +5,19 @@ import { dirname, join } from "node:path";
 import { PAGE_RENDER_IDLE_MS, PAGE_RENDER_MAX_MS, type PageContentFile } from "@trellis/api";
 import { Hono } from "hono";
 import { ulid } from "ulid";
-import type { Config } from "../config.ts";
-import type { ServiceTransport } from "../db/transport.ts";
-import { clearPageLeases, createRenderLease, readRenderLease, renewRenderLease } from "../pageLeases.ts";
-import { pageObjectPath } from "../storage/pageObjects.ts";
-import { PAGE_RENDER_PREFIX, pageContentRoute, pageFrameRoute } from "./pageContent.ts";
+import type { Config } from "../../config.ts";
+import type { ServiceTransport } from "../../db/transport.ts";
+import type { Logger } from "../../log.ts";
+import {
+	clearPageLeases,
+	createRenderLease,
+	PAGE_RENDER_PREFIX,
+	readRenderLease,
+	renewRenderLease,
+} from "../../pageLeases.ts";
+import { pageObjectPath } from "../../storage/pageObjects.ts";
+import { pageContentRoute } from "./pageContent.ts";
+import { pageFrameRoute } from "./pageRender.ts";
 
 let home: string;
 const pageId = ulid();
@@ -31,13 +39,15 @@ let missing = false;
 
 const transport = {
 	call: async (name: string, _ctx: unknown, input: unknown) => {
-		expect(name).toBe("pages.content");
-		const query = input as { pageId: string; version: number; path?: string };
+		expect(name).toBe("pages.versionFile");
+		const query = input as { pageId: string; version: number; path: string };
 		expect(query.pageId).toBe(pageId);
 		if (missing) return { state: "missing" };
 		if (deleted) return { state: "deleted" };
 		if (query.version !== 3) return { state: "missing" };
-		return files.get(query.path ?? "") ?? { state: "missing" };
+		// `pages.versionFile` reads an empty address and `index.html` as the
+		// document, so this stand-in reads them the same way.
+		return files.get(query.path === "index.html" ? "" : query.path) ?? { state: "missing" };
 	},
 } as unknown as ServiceTransport;
 
@@ -54,8 +64,9 @@ const appOf = () => {
 		await next();
 	});
 	const config = { home } as Config;
-	app.get(`${PAGE_RENDER_PREFIX}/:lease`, pageFrameRoute());
-	app.get(`${PAGE_RENDER_PREFIX}/:lease/*`, pageContentRoute({ config, transport }));
+	const log = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger;
+	app.get(`${PAGE_RENDER_PREFIX}/:leaseId`, pageFrameRoute({ log }));
+	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
 	return app;
 };
 
@@ -89,6 +100,8 @@ describe("the frame document", () => {
 		expect(body).toContain(`src="${PAGE_RENDER_PREFIX}/${open.id}/"`);
 		expect(body).toContain('sandbox="allow-scripts"');
 		expect(body).toContain('referrerpolicy="no-referrer"');
+		expect(body).toContain("background:transparent");
+		expect(body).not.toContain("#fff");
 		const policy = response.headers.get("content-security-policy")!;
 		expect(policy).toContain(`frame-src http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/`);
 		expect(policy).toContain("default-src 'none'");
@@ -98,7 +111,7 @@ describe("the frame document", () => {
 
 	test("refuses an address no lease holds", async () => {
 		const response = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${"f".repeat(32)}`);
-		expect(response.status).toBe(401);
+		expect(response.status).toBe(404);
 		expect(await response.json()).toMatchObject({ code: "RENDER_LEASE_EXPIRED" });
 	});
 });
@@ -113,6 +126,9 @@ describe("the page document and its assets", () => {
 		expect(response.headers.get("etag")).toBe(`"${documentSha}"`);
 		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 		expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+		// The browser keeps the bytes and asks the server on every request, so
+		// the tag below can answer 304.
+		expect(response.headers.get("cache-control")).toBe("private, no-cache");
 	});
 
 	test("names index.html as the document", async () => {
@@ -189,7 +205,7 @@ describe("the page document and its assets", () => {
 });
 
 describe("the life of a render lease", () => {
-	test("a content request puts the idle limit 30 minutes ahead", async () => {
+	test("a content request moves the idle limit ahead", async () => {
 		const open = lease(new Date(Date.now() - 25 * 60 * 1000));
 		const nearlyIdle = new Date(open.idleExpiresAt.getTime() - 60 * 1000);
 		await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/`);
@@ -225,7 +241,7 @@ describe("the life of a render lease", () => {
 		const open = lease();
 		clearPageLeases();
 		const response = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/`);
-		expect(response.status).toBe(401);
+		expect(response.status).toBe(404);
 		expect(await response.json()).toMatchObject({ code: "RENDER_LEASE_EXPIRED" });
 	});
 });

@@ -1,5 +1,6 @@
-// A zip file of stored entries. Trellis writes one for the download of a
-// page version, so a person and the CLI both unpack it with ordinary tools.
+// A zip file of stored entries. `pageArchive.ts` writes one for the download
+// of a page version, so a person and the CLI both unpack it with ordinary
+// tools.
 //
 // Every entry keeps its bytes as they are. The writer never buffers a whole
 // file, so a 100 MiB asset costs no memory. The size of an entry is known
@@ -98,7 +99,7 @@ const endRecord = (count: number, directorySize: number, directoryOffset: number
 
 // The bytes of the archive, in order. The caller reads one chunk at a time,
 // so the writer holds one chunk of one file at a time.
-export async function* zipChunks(entries: ArchiveEntry[]): AsyncGenerator<Uint8Array> {
+async function* zipChunks(entries: ArchiveEntry[]): AsyncGenerator<{ chunk: Uint8Array; path: string }> {
 	const encoder = new TextEncoder();
 	let offset = 0;
 	const written: Written[] = [];
@@ -107,37 +108,52 @@ export async function* zipChunks(entries: ArchiveEntry[]): AsyncGenerator<Uint8A
 		const start = offset;
 		const header = localHeader(name);
 		offset += header.length;
-		yield header;
+		yield { chunk: header, path: entry.path };
 		let crc = 0xffffffff;
 		let size = 0;
 		for await (const chunk of entry.open()) {
 			crc = updateCrc(crc, chunk);
 			size += chunk.length;
 			offset += chunk.length;
-			yield chunk;
+			yield { chunk, path: entry.path };
 		}
 		crc = (crc ^ 0xffffffff) >>> 0;
 		const descriptor = dataDescriptor(crc, size);
 		offset += descriptor.length;
-		yield descriptor;
+		yield { chunk: descriptor, path: entry.path };
 		written.push({ name, crc, size, offset: start });
 	}
 	const directoryOffset = offset;
 	for (const entry of written) {
 		const central = centralEntry(entry);
 		offset += central.length;
-		yield central;
+		yield { chunk: central, path: "" };
 	}
-	yield endRecord(written.length, offset - directoryOffset, directoryOffset);
+	yield { chunk: endRecord(written.length, offset - directoryOffset, directoryOffset), path: "" };
 }
 
-export const zipStream = (entries: ArchiveEntry[]): ReadableStream<Uint8Array> => {
+// `onError` receives a read that fails while the browser already holds the
+// first bytes of the archive. The stream then fails too, so the download
+// breaks in both places instead of ending with a short file that looks whole.
+export const zipStream = (
+	entries: ArchiveEntry[],
+	onError: (error: unknown, path: string) => void,
+): ReadableStream<Uint8Array> => {
 	const chunks = zipChunks(entries);
+	let path = "";
 	return new ReadableStream<Uint8Array>({
 		async pull(controller) {
-			const next = await chunks.next();
-			if (next.done === true) controller.close();
-			else controller.enqueue(next.value);
+			try {
+				const next = await chunks.next();
+				if (next.done === true) controller.close();
+				else {
+					path = next.value.path;
+					controller.enqueue(next.value.chunk);
+				}
+			} catch (error) {
+				onError(error, path);
+				controller.error(error);
+			}
 		},
 	});
 };

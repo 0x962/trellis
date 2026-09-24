@@ -1,9 +1,10 @@
 import {
+	PAGE_DOCUMENT_PATH,
 	type PageAsset,
 	type PageContentFile,
 	PageContentInputSchema,
-	type PagePullContent,
 	PagePullInputSchema,
+	type PagePullOutput,
 	type PageVersion,
 	PageVersionListInputSchema,
 	type PageVersionListOutput,
@@ -16,9 +17,7 @@ import { fail } from "../../errors.ts";
 import { resolvePage } from "./pages.ts";
 import { type RawVersion, toSummary, toVersion, versionColumns } from "./rows.ts";
 
-// Every page serves its document under the name `index.html`, so the content
-// route answers the root of a render lease and that one name with the
-// document itself.
+// The media type of every page document. A page document is always HTML.
 const DOCUMENT_MIME = "text/html; charset=utf-8";
 
 export const versionRow = async (tx: Tx, pageId: string, number: number): Promise<PageVersion | undefined> => {
@@ -35,12 +34,12 @@ type DeletedRow = { deleted_at: string | null };
 // page and the version, and `path` is the rest of the address the browser
 // asked for. A page that a person deleted answers `deleted`, and the route
 // turns that into HTTP 410.
-export const content = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PageContentFile> => {
+export const versionFile = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PageContentFile> => {
 	const input = PageContentInputSchema.parse(rawInput);
 	const [page] = await rows<DeletedRow>(tx, sql`SELECT deleted_at FROM pages WHERE id = ${input.pageId}`);
 	if (page === undefined) return { state: "missing" };
 	if (page.deleted_at !== null) return { state: "deleted" };
-	if (input.path === undefined) {
+	if (input.path === "" || input.path === PAGE_DOCUMENT_PATH) {
 		const [version] = await rows<{ document_sha256: string; document_size: number }>(
 			tx,
 			sql`SELECT document_sha256, document_size FROM page_versions
@@ -99,7 +98,7 @@ export const versions = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Prom
 	};
 };
 
-export const assetsOf = async (tx: Tx, pageId: string, version: number): Promise<PageAsset[]> => {
+const assetsOf = async (tx: Tx, pageId: string, version: number): Promise<PageAsset[]> => {
 	const found = await rows<{ path: string; sha256: string; size: number; mime: string }>(
 		tx,
 		sql`SELECT path, sha256, size, mime FROM page_assets
@@ -109,8 +108,8 @@ export const assetsOf = async (tx: Tx, pageId: string, version: number): Promise
 };
 
 // One page version with every file it holds. The caller writes the document
-// as `index.html` and each asset at its own path.
-export const pull = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PagePullContent> => {
+// at `PAGE_DOCUMENT_PATH` and each asset at its own path.
+export const pull = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PagePullOutput> => {
 	const input = PagePullInputSchema.parse(rawInput);
 	const page = await resolvePage(ctx, tx, input.page);
 	const summary = toSummary(page);
