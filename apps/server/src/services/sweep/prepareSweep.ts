@@ -40,6 +40,7 @@ export type SweepResult = ScratchSweepResult & {
 	removedWorkspaces: string[];
 	removedOutputFiles: number;
 	removedAttempts: number;
+	errors: string[];
 };
 
 // A failed git command carries git's own words in `stderr`.

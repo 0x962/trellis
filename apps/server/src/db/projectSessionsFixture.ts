@@ -96,8 +96,8 @@ beforeAll(async () => {
 		},
 	};
 });
-// The directory goes before the database closes, because a failed close
-// would otherwise leave it in the temporary directory.
+// Remove the temporary directory before the call to db.$client.close().
+// A close that throws would otherwise leave the directory on disk.
 afterAll(async () => {
 	await drainBackground();
 	if (home) await rm(home, { recursive: true, force: true });

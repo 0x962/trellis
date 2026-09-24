@@ -202,8 +202,8 @@ export async function fixture() {
 					),
 				)
 			)[0]!,
-		// The directory goes before the database closes, because a failed
-		// close would otherwise leave it in the temporary directory.
+		// Remove the temporary directory before the call to db.$client.close().
+		// A close that throws would otherwise leave the directory on disk.
 		close: async () => {
 			status.mockRestore();
 			waitFor.mockRestore();
