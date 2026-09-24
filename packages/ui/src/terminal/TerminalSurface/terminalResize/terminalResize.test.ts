@@ -4,19 +4,39 @@ import type { Terminal } from "@xterm/xterm";
 import { terminalResize } from "./terminalResize";
 
 // terminalResize asks the page for an animation frame and for a ResizeObserver.
-// A test process has neither, so each test installs one. The frames queue holds
-// the callback of requestAnimationFrame until a test runs it.
-const frames: (() => void)[] = [];
-const runFrame = () => frames.shift()?.();
+// A test process has neither, so each test installs one. frames holds the
+// callback of each requestAnimationFrame under the number it answered, and
+// sizeObserver holds the callback the ResizeObserver was built with.
+const frames = new Map<number, () => void>();
+let frameCount = 0;
+let sizeObserver: ((entries: { contentRect: { width: number; height: number } }[]) => void) | null = null;
+const runFrames = () => {
+	for (const [handle, frame] of [...frames]) {
+		frames.delete(handle);
+		frame();
+	}
+};
+const resizeTo = (width: number, height: number) => sizeObserver?.([{ contentRect: { width, height } }]);
+// The observer of terminalResize waits 75 ms before it fits.
+const afterObserverWait = () => new Promise((resolve) => setTimeout(resolve, 120));
 const page = globalThis as unknown as Record<string, unknown>;
 const original: Record<string, unknown> = {};
 
 beforeEach(() => {
 	for (const name of ["requestAnimationFrame", "cancelAnimationFrame", "ResizeObserver"]) original[name] = page[name];
-	frames.length = 0;
-	page.requestAnimationFrame = (callback: () => void) => frames.push(callback);
-	page.cancelAnimationFrame = () => {};
+	frames.clear();
+	frameCount = 0;
+	sizeObserver = null;
+	page.requestAnimationFrame = (callback: () => void) => {
+		frameCount += 1;
+		frames.set(frameCount, callback);
+		return frameCount;
+	};
+	page.cancelAnimationFrame = (handle: number) => frames.delete(handle);
 	page.ResizeObserver = class {
+		constructor(callback: (entries: { contentRect: { width: number; height: number } }[]) => void) {
+			sizeObserver = callback;
+		}
 		observe() {}
 		disconnect() {}
 	};
@@ -26,14 +46,16 @@ afterEach(() => {
 	for (const [name, value] of Object.entries(original)) page[name] = value;
 });
 
-// Records what terminalResize asks a terminal to do. "newest" is a call to
-// scrollToBottom, which puts the viewport on the last line of the buffer.
-// "line <n>" is a call to scrollToLine, which puts the viewport on line n.
-const setup = () => {
+// A terminal that records what terminalResize asks it to do. "newest" is a
+// call to scrollToBottom, which puts the viewport on the last line of the
+// buffer. "line <n>" is a call to scrollToLine, which puts the viewport on
+// line n. pendingWrites holds the callback that xterm runs when it finishes
+// a write, and a test calls it to finish that write.
+const fakeTerminal = () => {
 	const buffer = { viewportY: 0, baseY: 0 };
 	const moves: string[] = [];
 	const sizes: [number, number][] = [];
-	const parsed: (() => void)[] = [];
+	const pendingWrites: (() => void)[] = [];
 	const terminal = {
 		cols: 80,
 		rows: 24,
@@ -48,75 +70,118 @@ const setup = () => {
 		},
 		refresh() {},
 		write(_bytes: Uint8Array, complete: () => void) {
-			parsed.push(complete);
+			pendingWrites.push(complete);
 		},
 	} as unknown as Terminal;
 	const fit = { fit() {} } as unknown as FitAddon;
 	const resize = terminalResize(terminal, fit, (cols, rows) => sizes.push([cols, rows]));
 	const host = { clientWidth: 900, clientHeight: 600 } as unknown as HTMLElement;
-	return { buffer, moves, sizes, parsed, resize, host };
+	return { buffer, moves, sizes, pendingWrites, resize, host };
 };
 
 describe("terminalResize", () => {
 	test("a view that opens on a terminal the person scrolled shows the newest output", () => {
-		const probe = setup();
-		probe.buffer.baseY = 900;
-		probe.buffer.viewportY = 500;
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.buffer.viewportY = 500;
 
-		probe.resize.attach(probe.host);
-		runFrame();
+		terminal.resize.attach(terminal.host);
+		runFrames();
 
-		expect(probe.moves).toEqual(["newest"]);
-		expect(probe.buffer.viewportY).toBe(900);
-		expect(probe.sizes).toEqual([[80, 24]]);
+		expect(terminal.moves).toEqual(["newest"]);
+		expect(terminal.buffer.viewportY).toBe(900);
+		expect(terminal.sizes).toEqual([[80, 24]]);
 	});
 
 	test("a fit after the view opened keeps the line the person reads", () => {
-		const probe = setup();
-		probe.buffer.baseY = 900;
-		probe.resize.attach(probe.host);
-		runFrame();
-		probe.buffer.viewportY = 500;
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.resize.attach(terminal.host);
+		runFrames();
+		terminal.buffer.viewportY = 500;
 
-		probe.resize.request();
+		terminal.resize.request();
 
-		expect(probe.moves).toEqual(["newest", "line 500"]);
-		expect(probe.buffer.viewportY).toBe(500);
+		expect(terminal.moves).toEqual(["newest", "line 500"]);
+		expect(terminal.buffer.viewportY).toBe(500);
 	});
 
 	test("a view that opens while output is still parsed shows the newest output after that write", async () => {
-		const probe = setup();
-		probe.buffer.baseY = 900;
-		probe.buffer.viewportY = 500;
-		probe.resize.attach(probe.host);
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.buffer.viewportY = 500;
+		terminal.resize.attach(terminal.host);
 		let written = false;
-		probe.resize.write(new Uint8Array([65]), () => {
+		terminal.resize.write(new Uint8Array([65]), () => {
 			written = true;
 		});
 
-		runFrame();
-		expect(probe.moves).toEqual([]);
+		runFrames();
+		expect(terminal.moves).toEqual([]);
 
-		probe.parsed.shift()?.();
+		terminal.pendingWrites.shift()?.();
 		await Promise.resolve();
 
 		expect(written).toBe(true);
-		expect(probe.moves).toEqual(["newest"]);
-		expect(probe.buffer.viewportY).toBe(900);
+		expect(terminal.moves).toEqual(["newest"]);
+		expect(terminal.buffer.viewportY).toBe(900);
 	});
 
 	test("a view that leaves and opens again shows the newest output", () => {
-		const probe = setup();
-		probe.buffer.baseY = 900;
-		probe.resize.attach(probe.host);
-		runFrame();
-		probe.buffer.viewportY = 500;
-		probe.resize.detach();
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.resize.attach(terminal.host);
+		runFrames();
+		terminal.buffer.viewportY = 500;
+		terminal.resize.detach();
 
-		probe.resize.attach(probe.host);
-		runFrame();
+		terminal.resize.attach(terminal.host);
+		runFrames();
 
-		expect(probe.moves).toEqual(["newest", "newest"]);
-		expect(probe.buffer.viewportY).toBe(900);
+		expect(terminal.moves).toEqual(["newest", "newest"]);
+		expect(terminal.buffer.viewportY).toBe(900);
+	});
+
+	test("a view that leaves before its first fit fits one time when it opens again", () => {
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.buffer.viewportY = 500;
+		terminal.resize.attach(terminal.host);
+		terminal.resize.detach();
+
+		terminal.resize.attach(terminal.host);
+		runFrames();
+
+		expect(terminal.moves).toEqual(["newest"]);
+		expect(terminal.buffer.viewportY).toBe(900);
+	});
+
+	test("a host that loses its size and gets it again shows the newest output", async () => {
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.resize.attach(terminal.host);
+		runFrames();
+		terminal.buffer.viewportY = 500;
+
+		resizeTo(0, 0);
+		resizeTo(900, 600);
+		await afterObserverWait();
+
+		expect(terminal.moves).toEqual(["newest", "newest"]);
+		expect(terminal.buffer.viewportY).toBe(900);
+	});
+
+	test("a host that changes size while the person reads keeps the line", async () => {
+		const terminal = fakeTerminal();
+		terminal.buffer.baseY = 900;
+		terminal.resize.attach(terminal.host);
+		runFrames();
+		terminal.buffer.viewportY = 500;
+
+		resizeTo(600, 400);
+		await afterObserverWait();
+
+		expect(terminal.moves).toEqual(["newest", "line 500"]);
+		expect(terminal.buffer.viewportY).toBe(500);
 	});
 });
