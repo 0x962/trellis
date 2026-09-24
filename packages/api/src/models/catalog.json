@@ -48,6 +48,14 @@
 		"name": "Claude Opus 5 (Fast)"
 	},
 	{
+		"id": "anthropic/claude-opus-5.5",
+		"name": "Claude Opus 5.5"
+	},
+	{
+		"id": "anthropic/claude-opus-5.5-fast",
+		"name": "Claude Opus 5.5 (Fast)"
+	},
+	{
 		"id": "anthropic/claude-sonnet-4",
 		"name": "Claude Sonnet 4"
 	},
@@ -346,6 +354,22 @@
 	{
 		"id": "openai/gpt-6-astra-fast",
 		"name": "GPT-6 Astra (Fast)"
+	},
+	{
+		"id": "openai/gpt-6-luna",
+		"name": "GPT-6 Luna"
+	},
+	{
+		"id": "openai/gpt-6-luna-fast",
+		"name": "GPT-6 Luna (Fast)"
+	},
+	{
+		"id": "openai/gpt-6-sol",
+		"name": "GPT-6 Sol"
+	},
+	{
+		"id": "openai/gpt-6-sol-fast",
+		"name": "GPT-6 Sol (Fast)"
 	},
 	{
 		"id": "openai/gpt-oss-120b",

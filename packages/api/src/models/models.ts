@@ -10,6 +10,7 @@ const claudeNames: Record<string, string> = {
 	"anthropic/claude-opus-4.7": "claude-opus-4-7",
 	"anthropic/claude-opus-4.8": "claude-opus-4-8",
 	"anthropic/claude-opus-5": "claude-opus-5",
+	"anthropic/claude-opus-5.5": "claude-opus-5-5",
 	"anthropic/claude-sonnet-4.6": "claude-sonnet-4-6",
 	"anthropic/claude-sonnet-5": "claude-sonnet-5",
 	"anthropic/claude-haiku-4.5": "claude-haiku-4-5-20251001",
@@ -20,7 +21,7 @@ const claudeNames: Record<string, string> = {
 };
 const aliases: Record<string, string> = {
 	sonnet: "anthropic/claude-sonnet-5",
-	opus: "anthropic/claude-opus-5",
+	opus: "anthropic/claude-opus-5.5",
 	haiku: "anthropic/claude-haiku-4.5",
 	fable: "anthropic/claude-fable-5.1",
 	best: "anthropic/claude-fable-5.1",

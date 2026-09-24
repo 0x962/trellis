@@ -16,6 +16,16 @@ describe("usage pricing", () => {
 		).toBe(8);
 	});
 
+	test("takes the longest model prefix, so Opus 5.5 does not read the Opus 5 rate", () => {
+		expect(matchModelRate("claude", "claude-opus-5-5")).toEqual({
+			inputPerM: 4,
+			outputPerM: 20,
+			cacheReadPerM: 0.2,
+			approximate: false,
+		});
+		expect(matchModelRate("claude", "claude-opus-5")).toEqual({ inputPerM: 5, outputPerM: 25, approximate: false });
+	});
+
 	test("subtracts cache write premiums from cache savings", () => {
 		expect(
 			cacheSavingsUsd(

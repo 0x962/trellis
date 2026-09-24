@@ -6,7 +6,7 @@
 
 import type { UsageHarness } from "@trellis/api";
 
-export const PRICING_TABLE_UPDATED = "2026-09-17";
+export const PRICING_TABLE_UPDATED = "2026-09-23";
 
 export type ModelRate = {
 	inputPerM: number;
@@ -28,6 +28,8 @@ const CLAUDE_RATES: Record<string, ModelRate> = {
 	"claude-mythos-5-1": { inputPerM: 10, outputPerM: 50, cacheReadPerM: 0.25 },
 	"claude-fable-5": { inputPerM: 10, outputPerM: 50 },
 	"claude-mythos": { inputPerM: 10, outputPerM: 50 },
+	// Opus 5.5 cuts cache reads to $0.20/M, 0.05x input instead of the usual 0.1x.
+	"claude-opus-5-5": { inputPerM: 4, outputPerM: 20, cacheReadPerM: 0.2 },
 	"claude-opus-5": { inputPerM: 5, outputPerM: 25 },
 	"claude-opus-4-8": { inputPerM: 5, outputPerM: 25 },
 	"claude-opus-4-7": { inputPerM: 5, outputPerM: 25 },
