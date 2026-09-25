@@ -290,3 +290,5 @@ export const restore = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await pageById(ctx, tx, page.id));
 };
+
+export { collectUnheldPageObjects, listHeldPageObjects } from "./objects";

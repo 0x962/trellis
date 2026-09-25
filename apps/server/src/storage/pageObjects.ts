@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, rename, rm, unlink } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ulid } from "ulid";
 import { hashFile, shardedHashPath, withHashLock } from "./hashStore.ts";
@@ -19,6 +19,9 @@ export const pageTempPath = (home: string, stageId: string) => join(pageTempDir(
 export const pageObjectPath = (home: string, sha256: string) => shardedHashPath(pageObjectsDir(home), sha256);
 
 type Release = () => void;
+
+const activeStages = new Map<string, number>();
+export const PAGE_STAGE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const liveHashes = new Map<string, number>();
 type HolderCheck = { stale: boolean; release: Release };
@@ -70,8 +73,9 @@ export const stagePageObject = async (
 	maxBytes = Number.POSITIVE_INFINITY,
 ): Promise<StagedPageObject | null> => {
 	const stageId = ulid();
-	await mkdir(pageTempDir(home), { recursive: true });
 	const path = pageTempPath(home, stageId);
+	activeStages.set(path, Number.POSITIVE_INFINITY);
+	await mkdir(pageTempDir(home), { recursive: true });
 	const sink = Bun.file(path).writer();
 	try {
 		const stored = await hashFile(
@@ -84,20 +88,27 @@ export const stagePageObject = async (
 		await sink.end();
 		if ("limitExceeded" in stored) {
 			await unlink(path);
+			activeStages.delete(path);
 			return null;
 		}
+		activeStages.set(path, Date.now() + PAGE_STAGE_TTL_MS);
 		return { stageId, ...stored };
 	} catch (error) {
 		try {
 			await sink.end();
 		} finally {
 			await rm(path, { force: true });
+			activeStages.delete(path);
 		}
 		throw error;
 	}
 };
 
-export const discardPageObject = (home: string, staged: StagedPageObject) => unlink(pageTempPath(home, staged.stageId));
+export const discardPageObject = async (home: string, staged: StagedPageObject) => {
+	const path = pageTempPath(home, staged.stageId);
+	await rm(path, { force: true });
+	activeStages.delete(path);
+};
 
 // `finalizePageObject` calls `retainHash` before it waits for the object lock.
 // The caller invokes `releaseHash` after it writes the database row.
@@ -114,6 +125,7 @@ export const finalizePageObject = async (home: string, staged: StagedPageObject)
 				await rename(source, path);
 			}
 		});
+		activeStages.delete(pageTempPath(home, staged.stageId));
 		finalized = true;
 		return { path, releaseHash };
 	} finally {
@@ -130,7 +142,7 @@ const removePageObject = async (home: string, sha256: string, holdsSha: () => Pr
 	try {
 		if (await holdsSha()) return false;
 		return withHashLock(pageObjectPath(home, sha256), async () => {
-			if (liveHashes.has(sha256) || check.stale) return false;
+			if (liveHashes.has(sha256) || check.stale || !existsSync(pageObjectPath(home, sha256))) return false;
 			await unlink(pageObjectPath(home, sha256));
 			markHolderChecksStale(sha256);
 			return true;
@@ -153,4 +165,29 @@ export const gcPageObjects = async (
 		if (await removePageObject(home, sha256, () => holdsSha(sha256))) removed.push(sha256);
 	}
 	return { removed };
+};
+
+export const diskPageHashes = async (home: string) => {
+	await mkdir(pageObjectsDir(home), { recursive: true });
+	const hashes: string[] = [];
+	for await (const path of new Bun.Glob("[0-9a-f][0-9a-f]/*").scan(pageObjectsDir(home))) {
+		const sha256 = path.slice(3);
+		if (/^[0-9a-f]{64}$/.test(sha256) && path.slice(0, 2) === sha256.slice(0, 2)) hashes.push(sha256);
+	}
+	return hashes;
+};
+
+// An active upload keeps its temp file. A completed upload keeps its temp file for 24 hours.
+// The sweep removes temp files that a previous process left behind.
+export const sweepPageTemp = async (home: string, now = Date.now()) => {
+	await mkdir(pageTempDir(home), { recursive: true });
+	let removed = 0;
+	for (const name of await readdir(pageTempDir(home))) {
+		const path = pageTempPath(home, name);
+		if ((activeStages.get(path) ?? 0) > now) continue;
+		await rm(path, { recursive: true, force: true });
+		activeStages.delete(path);
+		removed++;
+	}
+	return removed;
 };
