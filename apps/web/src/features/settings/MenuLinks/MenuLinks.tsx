@@ -11,21 +11,23 @@ export function MenuLinks() {
 	const [editingLink, setEditingLink] = useState<MenuLink | "new" | null>(null);
 	const [busy, setBusy] = useState(false);
 	if (!saved) return null;
-	const links = saved.menuLinks ?? [];
-	const saveLinks = async (menuLinks: MenuLink[]) => {
+	const menuLinks = saved.menuLinks ?? [];
+	const saveLinks = async (nextMenuLinks: MenuLink[]) => {
 		setBusy(true);
-		const savedSettings = await save({ menuLinks });
+		const savedSettings = await save({ menuLinks: nextMenuLinks });
 		setBusy(false);
 		if (savedSettings) setEditingLink(null);
 	};
-	const editor = editingLink !== null && (
+	const linkEditor = editingLink !== null && (
 		<MenuLinkEditor
 			key={editingLink === "new" ? "new" : editingLink.id}
 			link={editingLink === "new" ? null : editingLink}
 			busy={busy}
 			onCancel={() => setEditingLink(null)}
 			onSave={(link) =>
-				saveLinks(editingLink === "new" ? [...links, link] : links.map((item) => (item.id === link.id ? link : item)))
+				saveLinks(
+					editingLink === "new" ? [...menuLinks, link] : menuLinks.map((item) => (item.id === link.id ? link : item)),
+				)
 			}
 		/>
 	);
@@ -36,9 +38,9 @@ export function MenuLinks() {
 					<IconButton label="Add menu link" icon={<Plus />} disabled={busy} onClick={() => setEditingLink("new")} />
 				</Tooltip>
 			</div>
-			{links.length === 0 && <EmptyState title="No menu links." />}
+			{menuLinks.length === 0 && <EmptyState title="No menu links." />}
 			<ul className="flex flex-col">
-				{links.map((link) => (
+				{menuLinks.map((link) => (
 					<SettingsListRow
 						key={link.id}
 						label={link.label}
@@ -57,17 +59,17 @@ export function MenuLinks() {
 										label: "Delete",
 										icon: <Trash />,
 										danger: true,
-										onSelect: () => void saveLinks(links.filter((item) => item.id !== link.id)),
+										onSelect: () => void saveLinks(menuLinks.filter((item) => item.id !== link.id)),
 									},
 								]}
 							/>
 						}
 					>
-						{editingLink !== "new" && editingLink?.id === link.id && editor}
+						{editingLink !== "new" && editingLink?.id === link.id && linkEditor}
 					</SettingsListRow>
 				))}
 			</ul>
-			{editingLink === "new" && editor}
+			{editingLink === "new" && linkEditor}
 		</div>
 	);
 }
