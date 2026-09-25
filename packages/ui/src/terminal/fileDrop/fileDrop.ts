@@ -10,8 +10,8 @@ const canWrite = (state: DropState) =>
 	!state.stopped &&
 	!state.error;
 
-export function fileDrop(state: () => DropState, insert: (text: string) => void) {
-	const consumeFiles = (event: DragEvent) => {
+export function fileDrop(readState: () => DropState, insert: (text: string) => void) {
+	const isFileDrag = (event: DragEvent) => {
 		if (!event.dataTransfer?.types.includes("Files")) return false;
 		event.preventDefault();
 		event.stopPropagation();
@@ -19,13 +19,13 @@ export function fileDrop(state: () => DropState, insert: (text: string) => void)
 	};
 	return {
 		dragover(event: DragEvent) {
-			if (!consumeFiles(event)) return;
-			const current = state();
+			if (!isFileDrag(event)) return;
+			const current = readState();
 			event.dataTransfer!.dropEffect = canWrite(current) && current.view?.getPathForFile ? "copy" : "none";
 		},
 		drop(event: DragEvent) {
-			if (!consumeFiles(event)) return;
-			const current = state();
+			if (!isFileDrag(event)) return;
+			const current = readState();
 			const getPathForFile = current.view?.getPathForFile;
 			if (!canWrite(current) || !getPathForFile) return;
 			const paths = Array.from(event.dataTransfer!.files, getPathForFile);
