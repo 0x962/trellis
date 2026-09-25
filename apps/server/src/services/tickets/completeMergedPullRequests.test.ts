@@ -189,6 +189,7 @@ const pullRequestRow = (number: number, state: "open" | "closed" | "merged"): Pu
 	state,
 	isDraft: false,
 	isQueued: false,
+	queuePosition: null,
 	headSha: "abc1234",
 	headRef: "feature",
 	baseRef: "main",

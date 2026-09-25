@@ -1,5 +1,5 @@
 import type { Mergeable, PrState } from "@trellis/api";
-import { CONFLICT_NOTICE_KINDS } from "../db/tables/checkNotices.ts";
+import { CONFLICT_NOTICE_KINDS } from "../noticeKind/index.ts";
 import type { CheckNoticeKind, NoticeDecision, StoredNotice } from "./checkNotice.ts";
 
 // Decides whether the agent of a pull request must hear that its branch

@@ -2,8 +2,8 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { type SQL, sql } from "drizzle-orm";
 import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
-import { CONFLICT_NOTICE_KINDS } from "../../db/tables/checkNotices.ts";
 import type { Tx } from "../../db/tx.ts";
+import { CONFLICT_NOTICE_KINDS, QUEUE_NOTICE_KINDS } from "../../noticeKind/index.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { deliveryTarget } from "../agentRuns/deliveryTarget.ts";
 import { launchState } from "../agentRuns/launchState";
@@ -37,11 +37,12 @@ const due = sql`delivery.due_at <= now()`;
 // Trellis will never send them.
 const waiting = sql`delivery.state IN ('pending', 'held')`;
 
-// A check notice leaves only while it still describes the pull request. A
+// A check or conflict notice leaves only while it still describes the pull request. A
 // notice that a newer notice of the same family or a new head commit
 // replaced fails, so the agent never reads an old result. The merge family
 // holds `conflict` and `clear`, and a check result never replaces a merge
-// result.
+// result. Each queue notice describes a completed state change, so this step
+// keeps every queue notice.
 const mergeFamily = (notice: SQL) => sql`(${notice}.kind IN (${list([...CONFLICT_NOTICE_KINDS])}))`;
 
 const dropStaleCheckDeliveries = (tx: Tx) =>
@@ -50,8 +51,10 @@ const dropStaleCheckDeliveries = (tx: Tx) =>
 		sql`UPDATE review_deliveries delivery SET state = 'failed', error = ${supersededCheck}
 		FROM check_notices notice, pull_requests pr
 		WHERE delivery.check_notice_id = notice.id AND pr.id = notice.pr_id AND ${waiting}
+			AND notice.kind NOT IN (${list([...QUEUE_NOTICE_KINDS])})
 			AND (pr.head_sha IS DISTINCT FROM notice.head_sha
 				OR EXISTS (SELECT 1 FROM check_notices newer WHERE newer.pr_id = notice.pr_id
+					AND newer.kind NOT IN (${list([...QUEUE_NOTICE_KINDS])})
 					AND ${mergeFamily(sql`newer`)} = ${mergeFamily(sql`notice`)}
 					AND (newer.created_at, newer.id) > (notice.created_at, notice.id)))
 		RETURNING delivery.id`,
@@ -72,13 +75,15 @@ const dropOwnAuthorDeliveries = (tx: Tx) =>
 		RETURNING delivery.id`,
 	);
 
-// A message of a pull request that merged or closed has no reader, whatever
-// kind it is.
+// A review, comment, check, or conflict message has no reader after the pull
+// request ends. Queue messages still report how the pull request left the queue.
 const dropEndedPullRequestDeliveries = (tx: Tx) =>
 	rows<{ id: string }>(
 		tx,
 		sql`UPDATE review_deliveries delivery SET state = 'failed', error = ${pullRequestEnded}
 		WHERE ${waiting}
+			AND NOT EXISTS (SELECT 1 FROM check_notices notice
+				WHERE notice.id = delivery.check_notice_id AND notice.kind IN (${list([...QUEUE_NOTICE_KINDS])}))
 			AND EXISTS (SELECT 1 FROM pull_requests pr WHERE pr.id = ${prOfDelivery} AND pr.state <> 'open')
 		RETURNING delivery.id`,
 	);
@@ -137,7 +142,8 @@ const waitingDeliveries = (tx: Tx, state: "pending" | "held") =>
 	rows<WaitingDelivery>(
 		tx,
 		sql`SELECT delivery.id, delivery.ticket_id AS "ticketId",
-			COALESCE(delivery.thread_message_id IS NOT NULL OR notice.kind IN ('failed', 'passed', 'stuck'), false) AS "resumesIdle"
+			COALESCE(delivery.thread_message_id IS NOT NULL
+				OR notice.kind IN ('failed', 'passed', 'stuck', 'queued', 'dequeued', 'merged'), false) AS "resumesIdle"
 		FROM review_deliveries delivery
 		LEFT JOIN check_notices notice ON notice.id = delivery.check_notice_id
 		WHERE delivery.state = ${state} AND ${due}
@@ -191,7 +197,7 @@ const outcomeOf = (failure: unknown) => {
 	return text === unconfirmedDelivery ? { state: "unknown", error: text } : { state: "failed", error: text };
 };
 
-// sessions holds live and idle processes. A due comment or check result uses a live terminal or restarts an idle run.
+// A due comment, check result, or queue notice can restart an idle run.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],

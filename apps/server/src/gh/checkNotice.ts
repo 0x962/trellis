@@ -1,5 +1,5 @@
 import type { Check, CiState, PrState } from "@trellis/api";
-import type { CHECK_NOTICE_KINDS } from "../db/tables/checkNotices.ts";
+import type { CheckNoticeKind } from "../noticeKind/index.ts";
 
 // Decides which change in the stored checks of one pull request the agent of
 // its ticket must hear about. The rule reads only what the poller stored and
@@ -21,7 +21,7 @@ import type { CHECK_NOTICE_KINDS } from "../db/tables/checkNotices.ts";
 export const SETTLE_MS = 60_000;
 export const STUCK_MS = 1_800_000;
 
-export type CheckNoticeKind = (typeof CHECK_NOTICE_KINDS)[number];
+export type { CheckNoticeKind } from "../noticeKind/index.ts";
 
 // One check as a notice names it. `lines` holds the first lines of the
 // failure output, and the poller fills it after this rule decides.

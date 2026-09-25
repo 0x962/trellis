@@ -841,6 +841,13 @@
       "when": 1790369659823,
       "tag": "0122_handy_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1790370776449,
+      "tag": "0123_pretty_purple_man",
+      "breakpoints": true
     }
   ]
 }

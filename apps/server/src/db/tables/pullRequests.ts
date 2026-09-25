@@ -21,6 +21,7 @@ export const pullRequests = pgTable(
 		state: text().notNull(),
 		isDraft: boolean("is_draft").notNull().default(false),
 		isQueued: boolean("is_queued").notNull().default(false),
+		queuePosition: integer("queue_position"),
 		// Whether the agent asked the person to review this pull request. The
 		// link of an agent writes `not-ready`; `trellis ready` writes `ready`.
 		// It is one part of being ready for review; `reviewGaps` in

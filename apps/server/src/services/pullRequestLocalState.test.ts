@@ -336,6 +336,7 @@ const fetched = (number: number, headSha: string, state: "open" | "merged"): Pul
 	state,
 	isDraft: false,
 	isQueued: false,
+	queuePosition: null,
 	headSha,
 	headRef: "fix",
 	baseRef: "main",

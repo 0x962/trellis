@@ -3,17 +3,19 @@ import { sql } from "drizzle-orm";
 import { iso, rows } from "../db/queries/support.ts";
 import { type Tx, withTx } from "../db/tx.ts";
 import type { JobsLog } from "../jobs.ts";
-import { enqueueCheckDeliveries } from "../services/reviews/enqueueCheckDeliveries.ts";
+import { isQueueNoticeKind } from "../noticeKind/index.ts";
+import { enqueueNoticeDeliveries } from "../services/reviews/enqueueNoticeDeliveries.ts";
 import { recipientsOf } from "../services/reviews/enqueueReviewDeliveries.ts";
 import { decideNotice, type NoticeDecision, type StoredNotice } from "./checkNotice.ts";
 import { decideConflictNotice, isConflictKind } from "./conflictNotice.ts";
 import { failureLines } from "./failureLines.ts";
+import { decideQueueNotice } from "./queueNotice/index.ts";
 import type { GhRunner } from "./run.ts";
 
-// The last step of every poller tick: it reads the stored checks and merge
-// state of each open pull request, decides with `decideNotice` and
-// `decideConflictNotice` whether the agents of its tickets must hear about a
-// change, and queues each notice. The step reads
+// The last step of every poller tick reads the stored checks, merge conflict,
+// and merge queue state of each active pull request. The three decision
+// functions decide whether the agents of its tickets must hear about a
+// change, and this step queues each notice. The step reads
 // the rows the poll just wrote and makes no GitHub call of its own, except
 // one annotations read per failed check that a new failed notice names.
 
@@ -30,6 +32,8 @@ type Subject = {
 	url: string;
 	state: PrState;
 	isDraft: boolean;
+	isQueued: boolean;
+	queuePosition: number | null;
 	headSha: string | null;
 	mergeable: Mergeable;
 	ciState: CiState;
@@ -40,17 +44,23 @@ type Subject = {
 
 type Due = { subject: Subject; decision: NoticeDecision };
 
-// Every open pull request, with its notices oldest first.
+// Each open pull request, plus a closed pull request whose last queue notice
+// says it entered the queue.
 const selectSubjects = (tx: Tx) =>
 	rows<Subject>(
 		tx,
-		sql`SELECT p.id, p.owner, p.repo, p.url, p.state, p.is_draft AS "isDraft", p.head_sha AS "headSha", p.mergeable,
+		sql`SELECT p.id, p.owner, p.repo, p.url, p.state, p.is_draft AS "isDraft", p.is_queued AS "isQueued",
+			p.queue_position AS "queuePosition", p.head_sha AS "headSha", p.mergeable,
 			p.ci_state AS "ciState", p.checks,
 			${iso(sql`p.checks_changed_at`)} AS "checksChangedAt",
 			coalesce((SELECT jsonb_agg(jsonb_build_object('headSha', n.head_sha, 'kind', n.kind, 'checks', n.checks)
 				ORDER BY n.created_at, n.id) FROM check_notices n WHERE n.pr_id = p.id), '[]'::jsonb) AS notices
 		FROM pull_requests p
-		WHERE p.state = 'open'
+		WHERE p.state = 'open' OR (
+			SELECT notice.kind FROM check_notices notice
+			WHERE notice.pr_id = p.id AND notice.kind IN ('queued', 'dequeued', 'merged')
+			ORDER BY notice.created_at DESC, notice.id DESC LIMIT 1
+		) = 'queued'
 		ORDER BY p.id`,
 	);
 
@@ -59,9 +69,13 @@ const selectSubjects = (tx: Tx) =>
 const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 	const due: Due[] = [];
 	for (const subject of await selectSubjects(tx)) {
-		const checkNotices = subject.notices.filter((notice) => !isConflictKind(notice.kind));
+		const checkNotices = subject.notices.filter(
+			(notice) => !isConflictKind(notice.kind) && !isQueueNoticeKind(notice.kind),
+		);
 		const conflictNotices = subject.notices.filter((notice) => isConflictKind(notice.kind));
+		const queueNotices = subject.notices.filter((notice) => isQueueNoticeKind(notice.kind));
 		const decisions = [
+			decideQueueNotice(subject, queueNotices),
 			decideNotice(subject, checkNotices, at.getTime()),
 			decideConflictNotice(subject, conflictNotices),
 		].filter((decision) => decision !== null);
@@ -84,23 +98,27 @@ const withLines = async (gh: GhRunner, { subject, decision }: Due): Promise<Due>
 
 // `log` writes one line per notice, so a person reads from the log which
 // pull request produced a notice, on which commit, and for how many tickets.
-export const noticeChecks = async (db: Db, gh: GhRunner, at: Date, log: JobsLog = () => undefined) => {
+export const noticePullRequests = async (db: Db, gh: GhRunner, at: Date, log: JobsLog = () => undefined) => {
 	const { result: due } = await withTx(db, (tx) => selectDue(tx, at));
 	const filled: Due[] = [];
 	for (const entry of due) filled.push(await withLines(gh, entry));
 	await withTx(db, async (tx) => {
 		for (const { subject, decision } of filled) {
-			const recipients = await enqueueCheckDeliveries(tx, {
+			const recipients = await enqueueNoticeDeliveries(tx, {
 				prId: subject.id,
 				headSha: subject.headSha!,
 				kind: decision.kind,
 				checks: decision.checks,
+				isQueued: subject.isQueued,
+				queuePosition: subject.queuePosition,
 				at,
 			});
 			log("notice queued", {
 				pr: subject.url,
 				kind: decision.kind,
 				head: subject.headSha,
+				isQueued: subject.isQueued,
+				queuePosition: subject.queuePosition,
 				tickets: recipients.map((recipient) => recipient.ticketId),
 			});
 		}

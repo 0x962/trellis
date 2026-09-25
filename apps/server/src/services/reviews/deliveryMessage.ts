@@ -1,6 +1,7 @@
 import { type CheckNoticeKind, type NoticeCheck, STUCK_MS } from "../../gh/checkNotice.ts";
+import type { QueueNoticeKind } from "../../noticeKind/index.ts";
 
-// What an agent reads in its terminal when a delivery reaches it.
+// The text that an agent reads when a review delivery reaches its terminal.
 
 // A local verdict for the pull request of an agent. The message includes the
 // note because `trellis review list` shows the comments, not the submission.
@@ -39,7 +40,13 @@ export const commentMessage = (input: { url: string; comments: CommentNote[] }) 
 // A change in the GitHub checks of the pull request of an agent. `headSha`
 // is the commit the checks ran on, so the agent can tell whether its newest
 // push is the one that failed.
-export const checkMessage = (input: { url: string; headSha: string; kind: CheckNoticeKind; checks: NoticeCheck[] }) => {
+export const checkMessage = (input: {
+	url: string;
+	headSha: string;
+	kind: CheckNoticeKind;
+	checks: NoticeCheck[];
+	isQueued?: boolean;
+}) => {
 	const commit = input.headSha.slice(0, 7);
 	if (input.kind === "passed") return `trellis: every check passed on commit ${commit} of ${input.url}.`;
 	const count = input.checks.length;
@@ -57,7 +64,20 @@ export const checkMessage = (input: { url: string; headSha: string; kind: CheckN
 		input.kind === "failed"
 			? "Read the log, fix the cause, and push. Trellis tells you when every check passes."
 			: "Open the check on GitHub to find what it waits for.";
-	return `${opening}\n${checks.join("\n")}\n${close}`;
+	const queueBlock =
+		input.kind === "failed" && input.isQueued
+			? count === 1
+				? "This failed check blocks the pull request in the merge queue."
+				: "These failed checks block the pull request in the merge queue."
+			: null;
+	return `${opening}\n${[queueBlock, ...checks].filter((line) => line !== null).join("\n")}\n${close}`;
+};
+
+export const queueMessage = (input: { url: string; kind: QueueNoticeKind; queuePosition: number | null }) => {
+	if (input.kind === "merged") return `trellis: your pull request merged from the merge queue: ${input.url}.`;
+	if (input.kind === "dequeued") return `trellis: GitHub removed your pull request from the merge queue: ${input.url}.`;
+	const position = input.queuePosition === null ? "" : ` at position ${input.queuePosition}`;
+	return `trellis: your pull request entered the merge queue${position}: ${input.url}.`;
 };
 
 // A change in the merge state of the pull request of an agent: a `conflict`

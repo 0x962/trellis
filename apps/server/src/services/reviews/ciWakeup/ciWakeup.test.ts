@@ -11,8 +11,8 @@ beforeEach(async () => {
 }, 30_000);
 afterEach(async () => f.close());
 
-test.each(["failed", "passed", "stuck"] as const)(
-	"a %s CI notice resumes the saved conversation once",
+test.each(["failed", "passed", "stuck", "queued", "dequeued", "merged"] as const)(
+	"a %s notice resumes the saved conversation once",
 	async (kind) => {
 		const queued = await f.queue(kind);
 		let reads = 0;
@@ -31,6 +31,7 @@ test.each(["failed", "passed", "stuck"] as const)(
 		expect(reads).toBe(1);
 		expect(f.prompts).toHaveLength(1);
 		expect(f.prompts[0]).toContain(queued.url);
+		expect(f.prompts[0]).not.toContain("Original task");
 		expect(f.messages).toEqual([]);
 		expect(await f.delivery(queued.deliveryId)).toEqual({ state: "sent", error: null });
 		const run = await f.ctx.newTx((tx) => getRun(tx, f.id));
@@ -74,9 +75,9 @@ test("another CI notice waits for the new attempt before delivery", async () => 
 });
 
 test.each(["explicit stop", "absent", "closed assignment", "replaced attempt"])(
-	"%s does not wake from CI",
+	"%s does not wake from a queue notice",
 	async (reason) => {
-		const queued = await f.queue();
+		const queued = await f.queue("queued");
 		if (reason === "closed assignment") await f.db.execute(sql`UPDATE agent_runs SET closed_at=now() WHERE id=${f.id}`);
 		if (reason === "replaced attempt")
 			await f.db.execute(sql`UPDATE agent_runs SET terminal_id='new-attempt' WHERE id=${f.id}`);
@@ -90,6 +91,16 @@ test.each(["explicit stop", "absent", "closed assignment", "replaced attempt"])(
 		expect(await f.delivery(queued.deliveryId)).toEqual({ state: "held", error: waitingForRun });
 	},
 );
+
+test("a merge completion resumes the idle conversation after the pull request merges", async () => {
+	const queued = await f.queue("merged");
+	await f.db.execute(sql`UPDATE pull_requests SET state='merged' WHERE id=${queued.prId}`);
+
+	await f.dispatch(f.ctx, [f.saved]);
+
+	expect(f.prompts).toEqual([`trellis: your pull request merged from the merge queue: ${queued.url}.`]);
+	expect(await f.delivery(queued.deliveryId)).toEqual({ state: "sent", error: null });
+});
 
 test.each(["new head", "merged", "closed"])("a notice for a PR with %s cannot resume its agent", async (reason) => {
 	const queued = await f.queue();
