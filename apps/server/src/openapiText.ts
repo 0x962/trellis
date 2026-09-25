@@ -262,7 +262,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	},
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
-	"PUT /settings": {
+	"PATCH /settings": {
 		defaultActorName: "dana",
 	},
 	"POST /agent-runs": {
