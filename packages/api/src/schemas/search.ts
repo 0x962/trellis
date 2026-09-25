@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ProjectRefStringSchema } from "../refs.ts";
+import { PageSummarySchema } from "./page.ts";
 import { ProjectSummarySchema } from "./project.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 
@@ -18,6 +19,7 @@ export type SearchQueryInput = z.input<typeof SearchQuerySchema>;
 
 export const SearchOutputSchema = z.object({
 	tickets: z.array(TicketSummarySchema),
+	pages: z.array(PageSummarySchema),
 	projects: z.array(ProjectSummarySchema),
 });
 export type SearchOutput = z.infer<typeof SearchOutputSchema>;

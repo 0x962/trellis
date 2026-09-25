@@ -10,7 +10,7 @@ import { discardPageObject, pageObjectPath, pageTempPath, stagePageObject } from
 import { delete as deleteProject } from "../projectsDelete.ts";
 import { collectUnheldPageObjects } from "./objects";
 import { remove, restore } from "./pages.ts";
-import { publish } from "./publish.ts";
+import { preparePublish, publish } from "./publish.ts";
 import { purgeExpiredPages } from "./retention";
 import { PAGE_RETENTION_MS } from "./rows.ts";
 
@@ -100,16 +100,15 @@ test("keeps every historical version without an age limit", async () => {
 	await fixture.project("HIST");
 	const page = await fixture.page("HIST", "History", "first version", "first style");
 	const next = await fixture.stage("HIST", "second version");
-	await fixture.newTx((tx) =>
-		publish(fixture.core, tx, {
-			page: page.page.id,
-			expectedVersion: 1,
-			document: next.id,
-			assets: [],
-			requestId: crypto.randomUUID(),
-			sourcePath: "index.html",
-		}),
-	);
+	const prepared = await preparePublish(fixture.ctx, {
+		page: page.page.id,
+		expectedVersion: 1,
+		document: next.id,
+		assets: [],
+		requestId: crypto.randomUUID(),
+		sourcePath: "index.html",
+	});
+	await fixture.newTx((tx) => publish(fixture.ctx, tx, prepared));
 	fixture.core.now = new Date(fixture.at.getTime() + 365 * 24 * 60 * 60 * 1000);
 	await sweep();
 	for (const sha of [page.document.sha256, page.style.sha256, next.sha256])

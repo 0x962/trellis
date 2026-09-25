@@ -10,14 +10,35 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
+import { pageObjectPath } from "../../storage/pageObjects.ts";
 import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
+import type { IoCtx, PrepareCtx } from "../support.ts";
 import { versionRow } from "./content.ts";
 import { lockPage, pageById, resolvePage } from "./pages.ts";
 import { type RawPage, toSummary } from "./rows.ts";
+import { staticPageText } from "./search.ts";
 
 type StagedRow = { id: string; sha256: string; size: number; mime: string };
+type PublishInput = ReturnType<typeof PagePublishInputSchema.parse>;
+type PreparedPublish = { input: PublishInput; searchText: string };
+
+export const preparePublish = async (ctx: IoCtx & PrepareCtx, rawInput: unknown): Promise<PreparedPublish> => {
+	const input = PagePublishInputSchema.parse(rawInput);
+	const [document] = await ctx.newTx((tx) =>
+		rows<{ sha256: string }>(
+			tx,
+			sql`SELECT sha256 FROM page_uploads
+				WHERE id = ${input.document} AND actor_name = ${ctx.actor.name} AND actor_kind = ${ctx.actor.kind}`,
+		),
+	);
+	return {
+		input,
+		searchText:
+			document === undefined ? "" : staticPageText(await Bun.file(pageObjectPath(ctx.home, document.sha256)).text()),
+	};
+};
 
 // The version that `requestId` already created. `request_id` is unique over
 // every page, so one identifier names one version of one page.
@@ -116,11 +137,12 @@ const repeatOf = async (
 	return publishOutput(ctx, tx, repeated.page_id, repeated.number);
 };
 
-// One publication. It creates a page with its first version, or it adds a
-// version to the page the caller names. Both paths write the version row,
-// the asset rows, and the new page revision in this transaction, so no
-// reader sees a page whose newest version holds no content.
-export const publish = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PagePublishOutput> => {
+const publishWithText = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	rawInput: unknown,
+	searchText: string,
+): Promise<PagePublishOutput> => {
 	const input = PagePublishInputSchema.parse(rawInput);
 	const actor = requireActor(ctx);
 	const repeated = await versionOfRequest(tx, input.requestId);
@@ -165,16 +187,12 @@ export const publish = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 			${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now}
 		)`);
 	}
-	// `search_text` takes its column default. `pages.list` ranks a content
-	// match from that column, so a search matches a title and a summary until
-	// TRL-450 reads the document bytes and fills it. This service has the
-	// database alone and cannot open the stored document.
 	await tx.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, label, document_sha256, document_size,
-		source_agent_id, source_path, actor_name, actor_kind, created_at
+		search_text, source_agent_id, source_path, actor_name, actor_kind, created_at
 	) VALUES (
 		${pageId}, ${number}, ${input.requestId}, ${input.label ?? null}, ${document.sha256}, ${document.size},
-		${await sourceAgentId(ctx, tx)}, ${input.sourcePath}, ${actor.name}, ${actor.kind}, ${ctx.now}
+		${searchText}, ${await sourceAgentId(ctx, tx)}, ${input.sourcePath}, ${actor.name}, ${actor.kind}, ${ctx.now}
 	)`);
 	// One statement for every asset. The server holds one database
 	// connection, so each statement of this transaction makes every other
@@ -200,3 +218,8 @@ export const publish = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 	ctx.emit({ type: "pages.changed", projectId, pageId });
 	return publishOutput(ctx, tx, pageId, number);
 };
+
+// One publication writes the Page, its version, its assets, and the static
+// search text in one transaction.
+export const publish = (ctx: IoCtx, tx: Tx, prepared: PreparedPublish) =>
+	publishWithText(ctx.core, tx, prepared.input, prepared.searchText);

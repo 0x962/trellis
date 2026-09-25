@@ -99,10 +99,10 @@ export default function SearchScreen() {
 				)
 			) : search.isPending || replaced ? null : search.isError ? (
 				<EmptyState title="Search failed" hint={describeError(search.error, store.getString(keys.serverUrl)!).detail} />
-			) : search.data.tickets.length === 0 ? (
+			) : search.data.tickets.length === 0 && search.data.pages.length === 0 ? (
 				<EmptyState title={`No results for “${query}”`} />
 			) : (
-				<SearchResults tickets={search.data.tickets} onSelect={openTicket} />
+				<SearchResults tickets={search.data.tickets} pages={search.data.pages} onSelect={openTicket} />
 			)}
 		</View>
 	);

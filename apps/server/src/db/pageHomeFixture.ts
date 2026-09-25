@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { PageCleanupCtx } from "../context.ts";
 import { collectUnheldPageObjects } from "../services/pages/pages.ts";
-import { publish } from "../services/pages/publish.ts";
+import { preparePublish, publish } from "../services/pages/publish.ts";
 import { prepareUpload, upload } from "../services/pages/uploads.ts";
 import type { IoCtx, PrepareCtx } from "../services/support.ts";
 import { createCache } from "./cache.ts";
@@ -87,16 +87,15 @@ export const pageHomeFixture = async () => {
 	const page = async (project: string, title: string, body = "<h1>Page</h1>", asset = "body{}") => {
 		const document = await stage(project, body);
 		const style = await stage(project, asset, "style.css", "text/css");
-		const result = await newTx((tx) =>
-			publish(core, tx, {
-				project,
-				title,
-				document: document.id,
-				assets: [{ uploadId: style.id, path: "style.css" }],
-				requestId: crypto.randomUUID(),
-				sourcePath: "index.html",
-			}),
-		);
+		const prepared = await preparePublish(ctx, {
+			project,
+			title,
+			document: document.id,
+			assets: [{ uploadId: style.id, path: "style.css" }],
+			requestId: crypto.randomUUID(),
+			sourcePath: "index.html",
+		});
+		const result = await newTx((tx) => publish(ctx, tx, prepared));
 		return { ...result, document, style };
 	};
 	return {
