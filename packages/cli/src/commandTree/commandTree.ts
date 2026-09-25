@@ -62,6 +62,7 @@ export const commandTree: Record<string, Entry> = {
 	agent: extend("agents", "agent", {}),
 	session: extend("sessions", "session", {}),
 	resource: { description: "Manage epic resources and document comments", load: alias("resource") },
+	page: { description: "Publish, read, and manage the pages of a project", load: alias("page") },
 	model: extend("models", "model", {}),
 	provider: extend("providers", "provider", {}),
 	account: extend("accounts", "account", {

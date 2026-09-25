@@ -115,6 +115,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Add, list, or remove the resources of an epic",
 		load: () => import("./commands/resource/resource.ts").then((m) => command(m.default)),
 	},
+	page: {
+		description: "Publish, read, and manage the pages of a project",
+		load: () => import("./commands/page/page.ts").then((m) => command(m.default)),
+	},
 	attach: {
 		description: "Upload a file to a ticket",
 		load: () => import("./commands/attach.ts").then((m) => command(m.default)),
