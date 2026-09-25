@@ -26,6 +26,7 @@ Status names vary by project.
 The status categories are `todo`, `started`, `review`, `done`, and `canceled`.
 
 A project can contain several epics.
+A project also owns its pages, which hold published HTML with a version history.
 Project notes record shared facts, decisions, and instructions.
 Resources include documents, links, images, and files.
 Each resource currently belongs to an epic within a project.
@@ -221,6 +222,7 @@ For example, `diff link` can save the link before a GitHub refresh fails.
 | Epic | Epic ID or `PROJECT/epic-slug`. |
 | Wave | Wave ID or `PROJECT/epic-slug/wave-slug`. |
 | Status | A status ID, slug, or name from that project's list. |
+| Page | Page ID or `PROJECT/pages/page-slug`. |
 | Diff | Trellis ID, full GitHub URL, or `owner/repo#123`. Every command that accepts a diff uses these forms. |
 | Agent, session, note, or resource | Use the ID returned by Trellis. |
 
@@ -394,6 +396,61 @@ curl --fail-with-body --request PATCH \
 
 Read the returned resource and confirm the saved content.
 Keep shell tracing and verbose HTTP logs off for this request.
+
+## Pages
+
+A page is an HTML artifact that a project owns.
+The source stays in your workspace.
+Trellis stores each published version and its assets.
+
+| Command | Purpose |
+| --- | --- |
+| `trellis page list --project <project>` | List the pages of a project. |
+| `trellis page show <page>` | Read one page, one version, and the current revision. |
+| `trellis page publish <path> --project <project> --title <text>` | Create a page from an HTML file or a directory. |
+| `trellis page publish <path> --page <page> --expected-version <n>` | Add a version to a page. |
+| `trellis page versions <page>` | List the versions of a page, newest first. |
+| `trellis page pull <page> --out <dir> [--version <n>]` | Write the document and the assets of one version. |
+| `trellis page rename <page> <title> --expected-version <n>` | Change the title, and the summary with `--summary`. |
+| `trellis page pin <page>`, `trellis page unpin <page>` | Set or remove this actor's pin. |
+| `trellis page rm <page> --expected-version <n> --yes` | Delete a page and keep it for 30 days. |
+| `trellis page restore <page> --expected-version <n>` | Restore a deleted page during those 30 days. |
+
+`publish` takes one `.html` file, or a directory that holds `index.html`.
+A directory publishes every other file under it as an asset at its own path.
+The document answers to `index.html` in every version.
+
+The first publication creates the page.
+It needs `--project` and `--title`.
+It answers with the page ref, such as `DEMO/pages/forecast`, and the revision.
+Use that ref for every later command of the same page.
+
+~~~sh
+trellis page publish build/forecast --project DEMO --title "Quarter forecast"
+trellis page show DEMO/pages/forecast
+~~~
+
+A later publication needs `--page` and `--expected-version`.
+`--expected-version` takes the `revision` field of the page, not the version number.
+Read that field with `trellis page show <page>` before you publish.
+
+~~~sh
+trellis page publish build/forecast --page DEMO/pages/forecast --expected-version 3 \
+  --label "Second draft"
+~~~
+
+A revision that another writer already changed answers `PAGE_VERSION_CONFLICT`.
+That answer names the current revision and writes no version.
+Read the page again, check the newer version, and publish against the new revision.
+
+Each publication carries one request identifier.
+Pass `--request-id <uuid>` and repeat that identifier to retry the same publication.
+The server answers with the version the first call created, so a retry adds no second version.
+A retry that carries other bytes under the same identifier is refused.
+
+`rename` changes the title of the page, and `--summary` changes its summary.
+Neither one adds a version, and the address of a page never changes, so every saved link still opens it.
+A delete and a restore need a person, or `--force` from an agent.
 
 ## Agents and sessions
 

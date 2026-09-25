@@ -29,5 +29,7 @@ test("keeps the Page conflict separate from the ticket formatter", () => {
 	});
 
 	expect(exitCodeFor(error.code)).toBe(4);
-	expect(formatError(error)).toBe("error: The page changed since the revision you sent. (PAGE_VERSION_CONFLICT)");
+	expect(formatError(error)).toBe(
+		"error: The page changed since the revision you sent. The current revision is 4. (PAGE_VERSION_CONFLICT)",
+	);
 });

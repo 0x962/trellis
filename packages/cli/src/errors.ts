@@ -129,6 +129,8 @@ const detail = (code: string, message: string, data: Data): string => {
 		}
 		case "VERSION_CONFLICT":
 			return `${message} The current version is ${(data.current as { version: number }).version}.`;
+		case "PAGE_VERSION_CONFLICT":
+			return `${message} The current revision is ${(data.current as { revision: number }).revision}.`;
 		case "STATUS_IN_USE":
 			return `${message} ${data.count} tickets use it.`;
 		case "LABEL_AMBIGUOUS":
