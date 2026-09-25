@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GroupHeader } from "./GroupHeader";
+import { GroupHeader, insetRowHover } from "./GroupHeader";
 
 const markup = (props: Partial<Parameters<typeof GroupHeader>[0]>) =>
 	renderToStaticMarkup(
@@ -27,6 +27,12 @@ describe("GroupHeader icon", () => {
 });
 
 describe("GroupHeader appearance", () => {
+	test("the shared inset row style leaves positioning to its consumer", () => {
+		expect(insetRowHover.split(" ")).not.toContain("relative");
+		expect(insetRowHover.split(" ")).not.toContain("absolute");
+		expect(insetRowHover).toContain("after:absolute");
+	});
+
 	test("the inset box holds a side margin, a rounded border and its own background", () => {
 		const html = markup({});
 

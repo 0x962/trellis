@@ -34,12 +34,13 @@ export type EpicRowProps = {
 // keeps room.
 export function EpicRow({ epic, density, readOnly, onEdit, onDelete }: EpicRowProps) {
 	const wave = currentWaveLabel(epic);
+	// The `relative` class contains the absolute background from `insetRowHover` in this row.
 	return (
 		<li
 			data-epic={epic.slug}
 			style={{ height: `${rowHeights[density]}px` }}
 			className={cx(
-				"group/row grid w-full grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 transition-colors duration-hover max-md:grid-cols-[minmax(0,1fr)_48px_48px_28px] max-md:gap-2 max-md:px-4",
+				"group/row relative grid w-full grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 transition-colors duration-hover max-md:grid-cols-[minmax(0,1fr)_48px_48px_28px] max-md:gap-2 max-md:px-4",
 				density === "comfortable" ? "text-base" : "text-sm",
 				insetRowHover,
 			)}
