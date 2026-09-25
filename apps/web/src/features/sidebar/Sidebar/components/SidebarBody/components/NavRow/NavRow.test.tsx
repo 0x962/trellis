@@ -21,7 +21,9 @@ test("expanded and phone rows show the saved label and icon", () => {
 });
 
 test("collapsed rows keep an accessible label", () => {
-	expect(renderToStaticMarkup(<NavRow {...actionsRowProps} accessibleLabel="Actions" />)).toContain('aria-label="Actions"');
+	expect(renderToStaticMarkup(<NavRow {...actionsRowProps} accessibleLabel="Actions" />)).toContain(
+		'aria-label="Actions"',
+	);
 });
 
 test("a click closes the phone menu and opens the browser over the current sheet", () => {
