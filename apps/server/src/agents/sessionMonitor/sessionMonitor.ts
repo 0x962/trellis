@@ -43,9 +43,10 @@ export function startSessionMonitor(options: {
 	const publish = (session: AgentActivity, notify: boolean, completedEvent: boolean) => {
 		const key = `${session.run.id}:${session.run.terminalId}`;
 		const next = fingerprint(session);
-		if (fingerprints.get(key) === next) return;
-		fingerprints.set(key, next);
-		options.emit({ type: "agent-runs.status", activity: session, notify });
+		if (fingerprints.get(key) !== next) {
+			fingerprints.set(key, next);
+			options.emit({ type: "agent-runs.status", activity: session, notify });
+		}
 		const agentResponse = session.run.observation?.lastMessage?.text;
 		if (
 			!completedEvent ||

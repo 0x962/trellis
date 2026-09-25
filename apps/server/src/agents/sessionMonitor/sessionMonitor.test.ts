@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { TrellisEvent } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { session } from "../../../../../packages/api/src/sessionStatus/fixture.ts";
+import { projectRun } from "../../services/agentRuns/liveState.ts";
 import { startSessionMonitor } from "./sessionMonitor.ts";
 
 test("the monitor emits changed states, suppresses startup alerts, and closes subscriptions", async () => {
@@ -80,6 +81,55 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	expect(emitted).toHaveLength(count);
 	await monitor.stop();
 	expect(aborted).toBe(true);
+});
+
+test("a completed runtime event requests a name after a poll observed the same response", async () => {
+	const process = {
+		id: "attempt",
+		checkedAt: "2026-09-18T12:00:01.000Z",
+		status: "running",
+		controllable: true,
+		error: null,
+		acknowledgedMessageIds: ["attempt"],
+		activity: { state: "idle" },
+		agent: {
+			outcome: "completed",
+			turnId: "turn",
+			attention: {
+				sequence: 2,
+				completion: { sequence: 2, at: "2026-09-18T12:00:01.000Z" },
+				failure: null,
+				requests: [],
+			},
+			lastMessage: { text: "First response", at: "2026-09-18T12:00:01.000Z" },
+		},
+	} as unknown as RuntimeProcessStatus;
+	const base = session().run;
+	const value = {
+		run: projectRun({ ...base, closedAt: null }, [process]),
+		sessionId: "session",
+	};
+	const emitted: TrellisEvent[] = [];
+	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
+	const monitor = startSessionMonitor({
+		read: async () => [structuredClone(value)],
+		client: {
+			subscribeSession: async function* () {
+				yield { type: "session" as const, session: process };
+			},
+		},
+		emit: (event) => emitted.push(event),
+		complete: async (input) => {
+			completed.push(input);
+		},
+		log: () => {},
+	});
+
+	await monitor.tick();
+	await Bun.sleep(0);
+	expect(emitted).toHaveLength(1);
+	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id, agentResponse: "First response" }]);
+	await monitor.stop();
 });
 
 test("the monitor emits when the last message or the shown tool changes, and not for tool output", async () => {
