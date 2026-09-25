@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import {
 	PageDeleteInputSchema,
@@ -13,6 +14,16 @@ import {
 	PageUploadInputSchema,
 	PageUploadSchema,
 } from "../schemas/page.ts";
+import {
+	PageCommentCreateInputSchema,
+	PageCommentEditInputSchema,
+	PageCommentIdInputSchema,
+	PageCommentListInputSchema,
+	PageCommentRemoveOutputSchema,
+	PageCommentReplyInputSchema,
+	PageCommentResolveInputSchema,
+	PageCommentThreadSchema,
+} from "../schemas/pageComment.ts";
 import {
 	PageArchiveInputSchema,
 	PageArchiveLinkSchema,
@@ -46,6 +57,45 @@ export const pages = {
 		.route({ method: "GET", path: "/pages", summary: "List the pages of a project" })
 		.input(PageListInputSchema)
 		.output(PageListOutputSchema),
+	comments: base
+		.errors(pickErrors(["PAGE_DELETED"]))
+		.route({ method: "GET", path: "/page-comments/{+page}", summary: "List every comment thread of a page" })
+		.input(PageCommentListInputSchema)
+		.output(z.array(PageCommentThreadSchema)),
+	comment: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
+		.route({
+			method: "POST",
+			path: "/page-comments/{+page}",
+			successStatus: 201,
+			summary: "Comment on one version of a page",
+		})
+		.input(PageCommentCreateInputSchema)
+		.output(PageCommentThreadSchema),
+	commentReply: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
+		.route({ method: "POST", path: "/page-comment-threads/{thread}/replies", summary: "Reply to a page comment" })
+		.input(PageCommentReplyInputSchema)
+		.output(PageCommentThreadSchema),
+	commentResolve: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
+		.route({
+			method: "POST",
+			path: "/page-comment-threads/{thread}/resolve",
+			summary: "Resolve or reopen a page comment thread",
+		})
+		.input(PageCommentResolveInputSchema)
+		.output(PageCommentThreadSchema),
+	commentEdit: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
+		.route({ method: "PATCH", path: "/page-comments/{id}", summary: "Edit your own page comment" })
+		.input(PageCommentEditInputSchema)
+		.output(PageCommentThreadSchema),
+	commentDelete: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
+		.route({ method: "DELETE", path: "/page-comments/{id}", summary: "Delete your own page comment" })
+		.input(PageCommentIdInputSchema)
+		.output(PageCommentRemoveOutputSchema),
 	publish: base
 		.errors(revisionErrors)
 		.errors(pickErrors(["DUPLICATE"]))
@@ -99,7 +149,8 @@ export const pages = {
 		.output(PagePinOutputSchema),
 	// `{+page}` matches the slashes of `KEY/pages/slug`. No path segment can
 	// follow it, so `versions`, `pull`, `archive`, `createRenderLease`,
-	// `restore`, and `pin` put their fixed segment before the Page ref.
+	// `restore`, `pin`, and the comment routes put their fixed segment before
+	// the Page ref.
 	get: base
 		.route({ method: "GET", path: "/pages/{+page}", summary: "Read a page and one version" })
 		.input(PageGetInputSchema)

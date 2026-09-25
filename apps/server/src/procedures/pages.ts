@@ -26,6 +26,12 @@ const leaseReply = (lease: RenderLease): PageRenderLease => ({
 export const pages = os.pages.router({
 	upload: os.pages.upload.handler(({ context, input }) => call(context, "pages.upload", input)),
 	list: os.pages.list.handler(({ context, input }) => call(context, "pages.list", input)),
+	comments: os.pages.comments.handler(({ context, input }) => call(context, "pages.comments", input)),
+	comment: os.pages.comment.handler(({ context, input }) => call(context, "pages.comment", input)),
+	commentReply: os.pages.commentReply.handler(({ context, input }) => call(context, "pages.commentReply", input)),
+	commentResolve: os.pages.commentResolve.handler(({ context, input }) => call(context, "pages.commentResolve", input)),
+	commentEdit: os.pages.commentEdit.handler(({ context, input }) => call(context, "pages.commentEdit", input)),
+	commentDelete: os.pages.commentDelete.handler(({ context, input }) => call(context, "pages.commentDelete", input)),
 	publish: os.pages.publish.handler(({ context, input }) => call(context, "pages.publish", input)),
 	versions: os.pages.versions.handler(({ context, input }) => call(context, "pages.versions", input)),
 	pull: os.pages.pull.handler(({ context, input }) => call(context, "pages.pull", input)),

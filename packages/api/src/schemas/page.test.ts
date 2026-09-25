@@ -99,6 +99,13 @@ test("a Page comment anchor uses the stored JSONB byte limit", () => {
 	expect(PageCommentAnchorSchema.safeParse(overLimit).success).toBe(false);
 });
 
+test("a Page comment anchor accepts only generated element paths", () => {
+	for (const path of ["main", "html>body:nth-of-type(1)>custom-chart:nth-of-type(2)"])
+		expect(PageCommentAnchorSchema.safeParse({ kind: "element", path }).success).toBe(true);
+	for (const path of ["#report", "main .chart", "main>p:nth-of-type(0)", "main>p:first-child", "main[data-id=x]"])
+		expect(PageCommentAnchorSchema.safeParse({ kind: "element", path }).success).toBe(false);
+});
+
 test("a Page comment thread pairs selected text with a text anchor", () => {
 	const thread = {
 		id: "01M3A9BCJ1TQ5V5T76BPTB9CKW",

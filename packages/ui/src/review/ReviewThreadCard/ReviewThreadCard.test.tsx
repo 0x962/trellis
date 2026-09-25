@@ -96,3 +96,12 @@ test("a thread resolved a moment ago names no resolver until the server does", (
 	expect(html).toContain("Resolved ·");
 	expect(html).not.toContain("Resolved by");
 });
+
+test("a read-only thread disables its reply and resolve controls", () => {
+	const html = render({ readOnly: true, submitRepliesOnEnter: true });
+
+	expect(html).toContain('aria-label="Reply"');
+	expect(html).toContain('aria-label="Post reply"');
+	expect(html).toContain('aria-label="Resolve comment"');
+	expect(html.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(3);
+});

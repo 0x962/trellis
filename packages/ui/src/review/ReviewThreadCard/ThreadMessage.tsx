@@ -38,6 +38,7 @@ type Props = {
 	onEdit: (id: string, body: string, version: number) => Promise<unknown>;
 	// A card without it draws no delete button.
 	onDelete?: (id: string) => Promise<unknown>;
+	deleteRootLabel?: string;
 	// A card without it draws no reaction row.
 	onReaction?: (id: string, reaction: string, remove: boolean) => Promise<unknown>;
 };
@@ -54,6 +55,7 @@ export function ThreadMessage({
 	run,
 	onEdit,
 	onDelete,
+	deleteRootLabel,
 	onReaction,
 }: Props) {
 	return (
@@ -94,10 +96,10 @@ export function ThreadMessage({
 					</Tooltip>
 				)}
 				{onDelete !== undefined && canChange && (
-					<Tooltip content={root ? "Delete thread" : "Delete message"}>
+					<Tooltip content={root ? (deleteRootLabel ?? "Delete thread") : "Delete message"}>
 						<IconButton
 							className="review-message-action"
-							label={root ? "Delete thread" : "Delete message"}
+							label={root ? (deleteRootLabel ?? "Delete thread") : "Delete message"}
 							icon={<Trash />}
 							disabled={busy}
 							onClick={() => void run(() => onDelete(message.id))}

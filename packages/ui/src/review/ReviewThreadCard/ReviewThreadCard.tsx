@@ -31,6 +31,9 @@ type Props = {
 	// when Trellis kept the diff of that time no more. The card folds such a
 	// thread and prints those lines above it.
 	outdated?: { lines: string[] };
+	readOnly?: boolean;
+	submitRepliesOnEnter?: boolean;
+	deleteRootLabel?: string;
 };
 
 export function ReviewThreadCard({
@@ -45,6 +48,9 @@ export function ReviewThreadCard({
 	actor,
 	anchor,
 	outdated,
+	readOnly = false,
+	submitRepliesOnEnter = false,
+	deleteRootLabel,
 }: Props) {
 	const root = useRef<HTMLElement>(null);
 	const foldedReopen = useRef<HTMLButtonElement>(null);
@@ -87,7 +93,7 @@ export function ReviewThreadCard({
 	// before `onResolve` answers, so the only wait is the network, and a
 	// second click while the first call is out does nothing.
 	const toggleResolved = () => {
-		if (resolving) return;
+		if (readOnly || resolving) return;
 		if (pointerInside.current) setHoldOpen(true);
 		moveFocus.current = true;
 		setResolving(true);
@@ -159,7 +165,7 @@ export function ReviewThreadCard({
 								ref={foldedReopen}
 								label="Reopen comment"
 								icon={<ArrowCounterClockwise />}
-								disabled={resolving}
+								disabled={readOnly || resolving}
 								// The button stays in the tab order while the call is out, so focus stays on it.
 								focusableWhenDisabled
 								onClick={toggleResolved}
@@ -183,13 +189,14 @@ export function ReviewThreadCard({
 							root={message.id === thread.id}
 							renderBody={renderBody}
 							busy={busy}
-							canChange={canChange(message.id)}
+							canChange={!readOnly && canChange(message.id)}
 							actor={actor}
 							edit={edit}
 							setEdit={setEdit}
 							run={run}
 							onEdit={onEdit}
 							onDelete={onDelete}
+							deleteRootLabel={deleteRootLabel}
 							onReaction={onReaction}
 						/>
 					))}
@@ -199,6 +206,8 @@ export function ReviewThreadCard({
 						busy={busy}
 						resolving={resolving}
 						resolved={thread.status === "resolved"}
+						readOnly={readOnly}
+						submitOnEnter={submitRepliesOnEnter}
 						onReply={onReply}
 						run={run}
 						toggleResolved={toggleResolved}
