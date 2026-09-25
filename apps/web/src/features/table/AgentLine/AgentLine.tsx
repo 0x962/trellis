@@ -1,4 +1,4 @@
-import { cx } from "@trellis/ui";
+import { cx, insetRowControl } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, Ref } from "react";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AgentWords } from "../AgentWords";
@@ -62,7 +62,8 @@ export function AgentLine({ line, top, depth, index, measureRef, render }: Agent
 			data-agent-line={line.asks ? "asks" : line.working ? "working" : "message"}
 			style={{ minHeight: `${agentLineHeight}px`, transform: `translateY(${top}px)` }}
 			className={cx(
-				"absolute top-0 left-0 flex w-full items-start gap-2 py-1 pr-5 text-left text-sm transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+				"absolute top-0 left-0 flex w-full items-start gap-2 py-1 pr-5 text-left text-sm transition-colors duration-hover",
+				insetRowControl,
 				treeContentPad[depth],
 				"border-b border-border",
 			)}

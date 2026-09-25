@@ -32,6 +32,15 @@ describe("GroupHeader count slot", () => {
 });
 
 describe("GroupHeader actions and height", () => {
+	test("uses the rounded inset band inside the virtual table slot", () => {
+		const html = markup({ top: 64 });
+
+		expect(html).toContain("mx-3");
+		expect(html).toContain("rounded-sm");
+		expect(html).toContain("absolute inset-x-0 top-0");
+		expect(html).not.toContain("my-1");
+	});
+
 	test("draws the Start wave button when the header can start its wave", () => {
 		expect(markup({ onStart: () => {} })).toContain('aria-label="Start wave"');
 		expect(markup({})).not.toContain("Start wave");

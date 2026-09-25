@@ -1,5 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
-import { cx, DoneWash, StatusIcon } from "@trellis/ui";
+import { cx, DoneWash, insetRowSelection, StatusIcon } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { pageSheetActions } from "../../../../../stores/pageSheetStore";
@@ -207,8 +207,8 @@ export function PhoneRow({
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"absolute top-0 left-0 flex w-full items-center gap-3 border-b border-border px-4 outline-none",
-				"data-focused:bg-accent-soft/60 data-selected:bg-accent-soft",
+				"absolute top-0 left-0 flex w-full items-center gap-3 border-b border-border px-4 outline-none transition-colors duration-hover",
+				insetRowSelection,
 				top === undefined && "relative",
 			)}
 			onFocus={(event) => {
