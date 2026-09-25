@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 test("expanded and phone rows show the saved label and icon", () => {
-	const html = renderToStaticMarkup(<NavRow {...props} />);
+	const html = renderToStaticMarkup(<NavRow {...actionsRowProps} />);
 	expect(html).toContain('type="button"');
 	expect(html).toContain('class="sidebar-label">Actions');
 	expect(html).toContain(renderToStaticMarkup(menuLinkIcons.GithubLogo));
@@ -21,7 +21,7 @@ test("expanded and phone rows show the saved label and icon", () => {
 });
 
 test("collapsed rows keep an accessible label", () => {
-	expect(renderToStaticMarkup(<NavRow {...props} accessibleLabel="Actions" />)).toContain('aria-label="Actions"');
+	expect(renderToStaticMarkup(<NavRow {...actionsRowProps} accessibleLabel="Actions" />)).toContain('aria-label="Actions"');
 });
 
 test("a click closes the phone menu and opens the browser over the current sheet", () => {
