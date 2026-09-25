@@ -1,7 +1,9 @@
 import { ArrowCounterClockwise, ArrowUp, Check } from "@phosphor-icons/react";
 import { type RefObject, useRef } from "react";
 import { IconButton } from "../../primitives/IconButton";
+import { Textarea } from "../../primitives/Textarea";
 import { Tooltip } from "../../primitives/Tooltip";
+import { commentKeySubmits } from "../commentSubmitKey";
 
 type Props = {
 	reply: string;
@@ -13,6 +15,8 @@ type Props = {
 	// the resolve control alone.
 	resolving: boolean;
 	resolved: boolean;
+	readOnly: boolean;
+	submitOnEnter: boolean;
 	onReply: (body: string) => Promise<unknown>;
 	// Sends one call and writes its failure into the card.
 	run: (action: () => Promise<unknown>) => Promise<void>;
@@ -27,6 +31,8 @@ export function ThreadReplyForm({
 	busy,
 	resolving,
 	resolved,
+	readOnly,
+	submitOnEnter,
 	onReply,
 	run,
 	toggleResolved,
@@ -46,28 +52,46 @@ export function ThreadReplyForm({
 				});
 			}}
 		>
-			<textarea
+			<Textarea
 				ref={replyInput}
-				aria-label="Reply"
+				label="Reply"
+				hideLabel
+				variant="composer"
+				wrapperClassName="min-w-0 flex-1"
 				placeholder="Leave a reply…"
+				disabled={readOnly}
 				value={reply}
 				onChange={(e) => setReply(e.target.value)}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && reply.trim() && !busy) {
+					if (
+						commentKeySubmits(
+							{
+								key: e.key,
+								shiftKey: e.shiftKey,
+								metaKey: e.metaKey,
+								ctrlKey: e.ctrlKey,
+								isComposing: e.nativeEvent.isComposing,
+							},
+							submitOnEnter,
+						) &&
+						reply.trim() &&
+						!busy &&
+						!readOnly
+					) {
 						e.preventDefault();
 						e.currentTarget.form?.requestSubmit();
 					}
 				}}
 			/>
 			<Tooltip content="Post reply">
-				<IconButton type="submit" label="Post reply" icon={<ArrowUp />} disabled={busy || !reply.trim()} />
+				<IconButton type="submit" label="Post reply" icon={<ArrowUp />} disabled={readOnly || busy || !reply.trim()} />
 			</Tooltip>
 			<Tooltip content={resolveLabel}>
 				<IconButton
 					ref={resolveRef}
 					label={resolveLabel}
 					icon={resolved ? <ArrowCounterClockwise /> : <Check />}
-					disabled={resolving}
+					disabled={readOnly || resolving}
 					// The button stays in the tab order while the call is out, so focus stays on it.
 					focusableWhenDisabled
 					onClick={toggleResolved}

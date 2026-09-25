@@ -54,6 +54,7 @@ export {
 	type MergeConflictMarkProps,
 	type MergeConflictMarkSize,
 } from "./domain/MergeConflictMark";
+export { PageCommentPin, type PageCommentPinProps } from "./domain/PageCommentPin";
 export { PageRow, type PageRowProps } from "./domain/PageRow";
 export * from "./domain/PageVersionRow";
 export * from "./domain/PageViewer";

@@ -15,7 +15,13 @@ export type Message = {
 
 // The first message of a thread, the replies under it, and the state a
 // reader can change.
-export type Thread = Message & { replies: Message[]; status: string; resolvedBy: string | null };
+export type Thread = Message & {
+	// `threadId` identifies the thread when `id` identifies its first message.
+	threadId?: string;
+	replies: Message[];
+	status: string;
+	resolvedBy: string | null;
+};
 
 // The message the reader has open in the edit form, and the text they have
 // typed so far. `version` is the version they started from, which the server

@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { ResponseHeadersPlugin } from "@orpc/server/plugins";
-import { PAGE_RENDER_IDLE_MS, PAGE_RENDER_MAX_MS, type PageDetail, type PageRenderLease } from "@trellis/api";
+import {
+	PAGE_RENDER_IDLE_MS,
+	PAGE_RENDER_MAX_MS,
+	type PageCommentThread,
+	type PageDetail,
+	type PageRenderLease,
+} from "@trellis/api";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import { createCache } from "../db/cache.ts";
@@ -171,6 +177,78 @@ describe("Page procedures", () => {
 		expect(calls).toEqual([
 			{ name: "pages.pin", input: { page: "WRT/pages/stable", pinned: true } },
 			{ name: "pages.restore", input: { page: "WRT/pages/stable", expectedVersion: 7 } },
+		]);
+	});
+
+	test("matches slash refs on Page comment routes", async () => {
+		const threadId = ulid();
+		const commentId = ulid();
+		const thread: PageCommentThread = {
+			id: threadId,
+			pageId,
+			version: 1,
+			anchor: { kind: "element", path: "main" },
+			selectedText: null,
+			creator: actor,
+			resolved: null,
+			comments: [
+				{
+					id: commentId,
+					threadId,
+					body: "Check this chart.",
+					actor,
+					createdAt: at,
+					updatedAt: at,
+					deletedAt: null,
+				},
+			],
+			createdAt: at,
+			updatedAt: at,
+		};
+		const calls: Array<{ name: ServiceName; input: unknown }> = [];
+		const call: Call = async (name, _ctx, input) => {
+			calls.push({ name, input });
+			return name === "pages.comments" ? [thread] : thread;
+		};
+		expect((await request("/page-comment-threads/WRT/pages/stable", {}, call)).status).toBe(200);
+		expect(
+			(
+				await request(
+					"/page-comment-threads/WRT/pages/stable",
+					{
+						method: "POST",
+						...json({ version: 1, anchor: { kind: "element", path: "main" }, body: "Check this chart." }),
+					},
+					call,
+				)
+			).status,
+		).toBe(201);
+		expect(
+			(
+				await request(
+					`/page-comment-threads/${threadId}/replies`,
+					{ method: "POST", ...json({ body: "Reply." }) },
+					call,
+				)
+			).status,
+		).toBe(201);
+		expect(
+			(await request(`/page-comment-threads/${threadId}`, { method: "PATCH", ...json({ resolved: true }) }, call))
+				.status,
+		).toBe(200);
+		expect(calls).toEqual([
+			{ name: "pages.comments", input: { page: "WRT/pages/stable" } },
+			{
+				name: "pages.comment",
+				input: {
+					page: "WRT/pages/stable",
+					version: 1,
+					anchor: { kind: "element", path: "main" },
+					body: "Check this chart.",
+				},
+			},
+			{ name: "pages.commentReply", input: { thread: threadId, body: "Reply." } },
+			{ name: "pages.commentResolve", input: { thread: threadId, resolved: true } },
 		]);
 	});
 
