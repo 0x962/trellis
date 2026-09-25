@@ -1,6 +1,6 @@
 import { defaultNotifications } from "../notificationSound/notificationSound.ts";
 import type { AgentActivity } from "../schemas/agentActivity.ts";
-import type { Settings } from "../schemas/settings.ts";
+import type { Settings } from "../schemas/settings/index.ts";
 import { type SessionAlert, SessionAlerts } from "../sessionAlerts/sessionAlerts.ts";
 
 export function createAgentNotifications(options: {

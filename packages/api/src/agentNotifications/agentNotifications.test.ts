@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { AgentActivity } from "../schemas/agentActivity.ts";
-import type { Settings } from "../schemas/settings.ts";
+import type { Settings } from "../schemas/settings/index.ts";
 import type { SessionAlert } from "../sessionAlerts/sessionAlerts.ts";
 import { at, session } from "../sessionStatus/fixture.ts";
 import { createAgentNotifications } from "./agentNotifications.ts";

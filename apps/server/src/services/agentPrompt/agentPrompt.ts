@@ -5,7 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { LaunchRun } from "../agentRuns/queries.ts";
-import { get as settings } from "../settings.ts";
+import { get as settings } from "../settings/index.ts";
 import { projectContext } from "./projectContext.ts";
 import { cell } from "./text.ts";
 import { ticketContext } from "./ticketContext.ts";

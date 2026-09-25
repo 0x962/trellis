@@ -1,9 +1,9 @@
 import { userInfo } from "node:os";
 import type { Settings, SettingsSetInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { requireActor, type ServiceCtx } from "../context.ts";
-import { rows, textArray } from "../db/queries/support.ts";
-import type { Tx } from "../db/tx.ts";
+import { requireActor, type ServiceCtx } from "../../context.ts";
+import { rows, textArray } from "../../db/queries/support.ts";
+import type { Tx } from "../../db/tx.ts";
 
 // A key absent from the settings table uses its default value.
 export const defaults = (): Settings => ({

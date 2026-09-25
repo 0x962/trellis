@@ -71,7 +71,7 @@ import { prepareDelete as deleteSession } from "./sessions/remove.ts";
 import { rename as renameSession } from "./sessions/rename.ts";
 import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
-import * as settings from "./settings.ts";
+import * as settings from "./settings/index.ts";
 import * as statistics from "./statistics/statistics.ts";
 import * as statuses from "./statuses.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";

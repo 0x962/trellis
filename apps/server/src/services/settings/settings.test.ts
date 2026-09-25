@@ -3,8 +3,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type MenuLink, SettingsSetInputSchema } from "@trellis/api";
-import type { ServiceCtx } from "../context";
-import { openDatabase } from "../db/open";
+import type { ServiceCtx } from "../../context";
+import { openDatabase } from "../../db/open";
 import * as settings from "./settings";
 
 let home: string;

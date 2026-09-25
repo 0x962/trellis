@@ -4,7 +4,7 @@ import type { ServiceCtx } from "../context.ts";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import * as settings from "./settings.ts";
+import * as settings from "./settings/index.ts";
 
 // The actor row is rewritten at most once per this window. Between two
 // writes `last_seen_at` lags by at most this long.

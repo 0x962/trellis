@@ -31,7 +31,7 @@ export function NavRow({
 	iconMark,
 	browserUrl,
 }: NavRowProps) {
-	const content = (
+	const rowContent = (
 		<>
 			<span data-slot="leading" className="sidebar-leading">
 				<span className="relative inline-flex">
@@ -49,22 +49,22 @@ export function NavRow({
 			</span>
 		</>
 	);
-	const props = { "aria-label": accessibleLabel, className: cx(rowClass, active && "sidebar-selected font-medium") };
+	const rowProps = { "aria-label": accessibleLabel, className: cx(rowClass, active && "sidebar-selected font-medium") };
 	const row =
 		browserUrl !== undefined ? (
 			<button
 				type="button"
-				{...props}
+				{...rowProps}
 				onClick={() => {
 					uiActions.setMobileSidebarOpen(false);
 					pageSheetActions.openBrowser(browserUrl);
 				}}
 			>
-				{content}
+				{rowContent}
 			</button>
 		) : (
-			<Link to={to} search={search} {...props} aria-current={active ? "page" : undefined}>
-				{content}
+			<Link to={to} search={search} {...rowProps} aria-current={active ? "page" : undefined}>
+				{rowContent}
 			</Link>
 		);
 	return accessibleLabel === undefined ? row : <Tooltip content={accessibleLabel}>{row}</Tooltip>;
