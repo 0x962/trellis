@@ -1,7 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { CaretDown, Gear } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { Button, FailureState, IconButton, Menu, type MenuItem, ProviderIcon, Tooltip } from "@trellis/ui";
 import { useMemo, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -20,6 +19,7 @@ import {
 	titleOf,
 	withoutLostValues,
 } from "./assignChoice";
+import { completeAssignment } from "./completeAssignment";
 import { AssignAgentDialog } from "./components/AssignAgentDialog";
 import { rememberChoice, useRecentChoices } from "./recentChoices";
 
@@ -42,7 +42,6 @@ const startFailure = (error: Error) =>
 // stored choices and the dialog of every other choice.
 export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: boolean }) {
 	const { client, orpc, queryClient } = useApp();
-	const navigate = useNavigate();
 	const assignButton = useRef<HTMLButtonElement>(null);
 	const menuButton = useRef<HTMLButtonElement>(null);
 	const recent = useRecentChoices((store) => store.recent);
@@ -63,14 +62,18 @@ export function AssignAgent({ ticket, disabled }: { ticket: string; disabled: bo
 				requestId,
 			}),
 		onSuccess: (run, { choice }) => {
-			rememberChoice(choice);
-			setLastStart(null);
-			queryClient.setQueryData(orpc.agentRuns.list.queryOptions({ input: { ticket } }).queryKey, (current) => [
+			completeAssignment({
+				queryClient,
+				queryKeys: [
+					orpc.agentRuns.list.queryOptions({ input: { ticket } }).queryKey,
+					orpc.agentRuns.list.queryOptions({ input: { ticket, assigned: true } }).queryKey,
+					orpc.agentRuns.list.queryOptions({ input: { assigned: true } }).queryKey,
+				],
 				run,
-				...(current ?? []).filter((item) => item.id !== run.id),
-			]);
-			void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			void navigate({ to: "/t/$identifier", params: { identifier: ticket }, hash: `attempt-${run.terminalId}` });
+				rememberChoice: () => rememberChoice(choice),
+				clearStart: () => setLastStart(null),
+				invalidateRuns: () => void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() }),
+			});
 		},
 	});
 	// A ticket that completed takes no agent. The ticket can complete while
