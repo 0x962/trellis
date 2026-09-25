@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, spyOn, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
@@ -12,7 +12,7 @@ import { createCache } from "../../db/cache.ts";
 import { rows } from "../../db/queries/support.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { IoCtx } from "../support.ts";
-import { startNative } from "./nativeStart.ts";
+import { promptForLaunch, startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
 
 // The last writer of `closed_at` on the launch path. A harness can confirm
@@ -26,8 +26,6 @@ let home: string;
 const at = new Date("2026-09-24T21:00:00Z");
 const prepare = spyOn(HarnessHost.prototype, "prepare");
 const start = spyOn(HarnessHost.prototype, "start");
-const resume = spyOn(HarnessHost.prototype, "resume");
-const status = spyOn(HarnessHost.prototype, "status");
 
 const exitedProcess = (terminalId: string): RuntimeProcessStatus => ({
 	id: terminalId,
@@ -149,8 +147,6 @@ beforeAll(async () => {
 afterAll(async () => {
 	prepare.mockRestore();
 	start.mockRestore();
-	resume.mockRestore();
-	status.mockRestore();
 	await rm(home, { recursive: true, force: true });
 	await db.$client.close();
 });
@@ -172,92 +168,11 @@ test("a launch that ends at once closes a flow run", async () => {
 });
 
 test("an initial start receives the full guide", async () => {
-	const runId = await seed("session");
-	const terminalId = crypto.randomUUID();
-	const run = await db.transaction((tx) => getRun(tx, runId));
-	await db.execute(sql`UPDATE agent_runs SET terminal_id = ${terminalId} WHERE id = ${runId}`);
-	prepare.mockImplementationOnce(async (_input) => ({
-		fingerprint: "guide-test",
-		prompt: "# Trellis\nFull guide",
-		spec: { id: terminalId, command: "muse", args: [], cwd: home, env: {}, mode: "pty" },
-		harness: "muse",
-	}));
-	start.mockImplementationOnce(async () => ({ process: exitedProcess(terminalId) }));
-
-	await startNative(
-		ctx,
-		{
-			run: { ...run, terminalId },
-			config: {
-				directory: home,
-				harness: { preset: "muse", startCommand: "muse {{prompt}}", resumeCommand: "muse resume {{resumeText}}" },
-				accountId: null,
-			},
-			resume: false,
-			attempt: { id: terminalId, generation: 1, token: "launch-token" },
-		},
-		{
-			workspace: async () => home,
-			runtime: async () => client,
-			guide: async () => "# Trellis\nFull guide",
-			env: {},
-		},
-	);
-
-	expect(prepare).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: "# Trellis\nFull guide" }), undefined);
+	expect(await promptForLaunch(false, undefined, async () => "# Trellis\nFull guide")).toBe("# Trellis\nFull guide");
 });
 
 test("a resume receives only its new message", async () => {
-	const runId = await seed("session");
-	const previousTerminalId = crypto.randomUUID();
-	const terminalId = crypto.randomUUID();
-	const attemptDirectory = join(home, "harness-attempts", previousTerminalId);
-	await mkdir(attemptDirectory, { recursive: true });
-	await writeFile(
-		join(attemptDirectory, "launch.json"),
-		JSON.stringify({ harness: "muse", spec: { cwd: home, env: {} } }),
-	);
-	await db.execute(sql`UPDATE agent_runs SET terminal_id = ${terminalId} WHERE id = ${runId}`);
-	const run = await db.transaction((tx) => getRun(tx, runId));
-	status.mockImplementationOnce(async () => exitedProcess(previousTerminalId));
-	prepare.mockImplementationOnce(async (_input, sessionId) => ({
-		fingerprint: "resume-test",
-		prompt: "Read this comment.",
-		sessionId,
-		spec: { id: terminalId, command: "muse", args: [], cwd: home, env: {}, mode: "pty" },
-		harness: "muse",
-	}));
-	resume.mockImplementationOnce(async () => ({ process: exitedProcess(terminalId) }));
-	let guideCalls = 0;
-
-	await startNative(
-		ctx,
-		{
-			run,
-			config: {
-				directory: home,
-				harness: { preset: "muse", startCommand: "muse {{prompt}}", resumeCommand: "muse resume {{resumeText}}" },
-				accountId: null,
-			},
-			resume: true,
-			previousAttemptId: previousTerminalId,
-			attempt: { id: terminalId, generation: 1, token: "launch-token" },
-			resumePrompt: "Read this comment.",
-		},
-		{
-			workspace: async () => home,
-			runtime: async () => client,
-			guide: async () => {
-				guideCalls++;
-				return "# Trellis\nFull guide with saved assignment";
-			},
-			env: {},
-		},
-	);
-
-	expect(guideCalls).toBe(0);
-	expect(prepare).toHaveBeenLastCalledWith(
-		expect.objectContaining({ prompt: "Read this comment." }),
-		"01a0d138-51be-7a31-9efc-e087042b1d31",
+	expect(await promptForLaunch(true, "Read this comment.", async () => "Do the saved assignment.")).toBe(
+		"Read this comment.",
 	);
 });

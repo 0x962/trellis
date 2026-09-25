@@ -58,7 +58,6 @@ for (const placeholder of ["prompt", "instruction", "resumeText"]) {
 		const result = launchCommand({
 			run: { ...run, sessionId: "saved-conversation" },
 			url: "http://localhost:4521",
-			resume: true,
 			template: `agent --resume {{sessionId}} --message {{${placeholder}}}`,
 			messageId: "attempt-3",
 			prompt: "Check the next file.",

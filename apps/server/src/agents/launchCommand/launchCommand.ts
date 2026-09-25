@@ -11,7 +11,6 @@ export const launchCommand = (input: {
 	run: LaunchRun;
 	url: string;
 	directory?: string;
-	resume?: boolean;
 	template: string;
 	messageId?: string;
 	prompt?: string;
