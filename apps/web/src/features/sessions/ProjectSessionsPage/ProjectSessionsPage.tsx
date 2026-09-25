@@ -24,38 +24,48 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const conversationHeading = useRef<HTMLHeadingElement>(null);
 	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
-	const [history, setHistory] = useState(false);
+	const [archived, setArchived] = useState(false);
 	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
-	// The list asks for what it draws. Closed runs sit behind the history
-	// button, and the page asks for a month of them only while that button is
-	// pressed. The two second timer runs on the short list. The history list
-	// holds a month of closed runs, which do not change, and the event stream
-	// still refreshes it when a run in it changes.
+	// The current list needs the full 48-hour window. The Archived list asks
+	// for a longer window only while a person reads it. Runtime events refresh
+	// the Archived list when new activity moves a run back to the current list.
 	const runsOptions = orpc.agentRuns.list.queryOptions({
-		input: history
-			? { project: project.id, includePinnedHistory: true, windowHours: 24 * 30, limit: 1000 }
-			: { project: project.id, includePinnedHistory: true },
+		input: archived
+			? { project: project.id, includePinnedHistory: true, windowHours: 24 * 365, limit: 1000 }
+			: { project: project.id, includePinnedHistory: true, windowHours: 48, limit: 1000 },
 	});
+	const selectedRunOptions = orpc.agentRuns.list.queryOptions({ input: { ids: hash ? [hash] : [] } });
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({
 		...runsOptions,
-		refetchInterval: history ? false : 2000,
+		refetchInterval: archived ? false : 2000,
 	});
+	const selectedRun = useQuery({ ...selectedRunOptions, enabled: Boolean(hash) });
 	const sessions = useQuery(sessionsOptions);
-	const sessionsFailed =
+	const selectedRunPending = Boolean(hash) && selectedRun.isPending;
+	const listFailed =
 		(runs.data === undefined && runs.failureCount > 0) || (sessions.data === undefined && sessions.failureCount > 0);
+	const sessionsFailed =
+		listFailed || (Boolean(hash) && selectedRun.data === undefined && selectedRun.failureCount > 0);
 	const retrySessions = () => {
 		void queryClient.resetQueries({ queryKey: runsOptions.queryKey, exact: true });
+		if (hash) void queryClient.resetQueries({ queryKey: selectedRunOptions.queryKey, exact: true });
 		void queryClient.resetQueries({ queryKey: sessionsOptions.queryKey, exact: true });
 	};
-	const items = (runs.data ?? []).filter(
+	const listedRuns = runs.data ?? [];
+	const linkedRun = selectedRun.data?.[0];
+	const availableRuns =
+		linkedRun !== undefined && !listedRuns.some((run) => run.id === linkedRun.id)
+			? [...listedRuns, linkedRun]
+			: listedRuns;
+	const items = availableRuns.filter(
 		(run) =>
 			run.kind !== "flow" && (run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id)),
 	);
-	const groups = sessionGroups(items, { search: "", history: false });
-	const selected = selectedSession(items, [...groups.sessions, ...groups.ticketed], hash, heldSelectedId);
+	const current = sessionGroups(items, { search: "", archived: false });
+	const selected = selectedSession(items, current.runs, hash, heldSelectedId);
 	useEffect(() => {
 		if (!hash && selected?.id !== heldSelectedId) setHeldSelectedId(selected?.id);
 	}, [hash, heldSelectedId, selected?.id]);
@@ -73,7 +83,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			selectedId={selected?.id}
 			pending={runs.isPending || sessions.isPending}
 			error={runs.error?.message ?? sessions.error?.message}
-			failed={sessionsFailed}
+			failed={listFailed}
 			onRetry={retrySessions}
 			onSelect={(id) => void open(id)}
 			onConversation={() => {
@@ -81,8 +91,8 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 				setListOpen(false);
 				if (!phone) conversationHeading.current?.focus();
 			}}
-			history={history}
-			onHistoryChange={setHistory}
+			archived={archived}
+			onArchivedChange={setArchived}
 		/>
 	);
 	return (
@@ -134,7 +144,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 							selected.ticketIdentifier ? () => pageSheetActions.openTicket(selected.ticketIdentifier!) : undefined
 						}
 					/>
-				) : runs.isPending || sessions.isPending ? (
+				) : runs.isPending || sessions.isPending || selectedRunPending ? (
 					<p role="status" className="p-4 text-sm text-fg-muted">
 						Load sessions…
 					</p>
@@ -148,11 +158,11 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 							</Button>
 						}
 					/>
-				) : runs.isError || sessions.isError ? (
+				) : runs.isError || sessions.isError || selectedRun.isError ? (
 					<EmptyState
 						variant="page"
 						title="Sessions unavailable"
-						description={runs.error?.message ?? sessions.error?.message}
+						description={runs.error?.message ?? sessions.error?.message ?? selectedRun.error?.message}
 					/>
 				) : (
 					<EmptyState

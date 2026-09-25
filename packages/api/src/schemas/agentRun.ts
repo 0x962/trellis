@@ -60,6 +60,7 @@ export const AgentRunSchema = z.object({
 	sessionId: z.string().nullable(),
 	// True after a resume in which the agent did not find the session.
 	sessionLost: z.boolean(),
+	activityAt: IsoDateTimeSchema.nullable().describe("Latest stored process or provider conversation activity."),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
 });
@@ -92,7 +93,7 @@ export const AgentRunRetryInputSchema = z.strictObject({
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
 // The list keeps an open run, which is a run that a ticket or a session
-// still holds, and a closed run that started inside the window. The
+// still holds, and a closed run that changed inside the window. The
 // machine closes about 1000 runs a day and keeps every one of them, so a
 // list without a bound grows without end. One day of history answers the
 // question the session list and the agent table ask: what runs now, and

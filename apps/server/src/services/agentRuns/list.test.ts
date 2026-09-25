@@ -15,10 +15,11 @@ let ctx: ServiceCtx;
 const projectId = ulid();
 const now = new Date("2026-09-23T12:00:00.000Z");
 const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 3_600_000).toISOString();
-// Every run below is closed unless the row says otherwise, so the window is
-// the only rule that decides whether the list keeps it.
+// Every run below is closed unless the row says otherwise, so the time of
+// its last stored change decides whether the list keeps it.
 const openRun = ulid();
 const freshRun = ulid();
+const recentActivityRun = ulid();
 const oldRun = ulid();
 const olderRun = ulid();
 const flowRun = ulid();
@@ -39,9 +40,12 @@ beforeAll(async () => {
 		(id, name, kind, instruction, project_id, project_key, pinned_at, closed_at, created_at, updated_at) VALUES
 		(${openRun}, 'open', 'session', 'Open prompt.', ${projectId}, 'LST', NULL, NULL, ${hoursAgo(200)}, ${hoursAgo(200)}),
 		(${freshRun}, 'fresh', 'session', 'Fresh prompt.', ${projectId}, 'LST', NULL, ${hoursAgo(2)}, ${hoursAgo(3)}, ${hoursAgo(2)}),
+		(${recentActivityRun}, 'recent activity', 'session', 'Recent prompt.', ${projectId}, 'LST', NULL, ${hoursAgo(40)}, ${hoursAgo(200)}, ${hoursAgo(1.5)}),
 		(${oldRun}, 'old', 'session', 'Old prompt.', ${projectId}, 'LST', ${hoursAgo(1)}, ${hoursAgo(40)}, ${hoursAgo(48)}, ${hoursAgo(40)}),
 		(${olderRun}, 'older', 'session', 'Older prompt.', ${projectId}, 'LST', ${hoursAgo(2)}, ${hoursAgo(100)}, ${hoursAgo(120)}, ${hoursAgo(100)}),
 		(${flowRun}, 'flow', 'flow', 'Review.', ${projectId}, 'LST', NULL, ${hoursAgo(1)}, ${hoursAgo(1)}, ${hoursAgo(1)})`);
+	await db.execute(sql`INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
+		VALUES (${ulid()}, ${recentActivityRun}, 1, 'hash', ${hoursAgo(1.5)})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	ctx = {
@@ -59,14 +63,15 @@ beforeAll(async () => {
 
 afterAll(async () => db.$client.close());
 
-test("the list keeps the open runs and the runs that started inside the window", async () => {
+test("the list keeps open runs and uses stored activity instead of the creation time", async () => {
 	const rows = await listRuns({ project: projectId });
-	expect(rows.map((row) => row.id)).toEqual([flowRun, freshRun, openRun]);
+	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun, freshRun, openRun]);
+	expect(rows.find((row) => row.id === recentActivityRun)?.activityAt).toBe(hoursAgo(1.5));
 });
 
 test("the session history keeps every pin plus the requested count of normal rows", async () => {
 	const rows = await listRuns({ project: projectId, includePinnedHistory: true, limit: 1 });
-	expect(rows.map((row) => row.id)).toEqual([oldRun, olderRun, freshRun]);
+	expect(rows.map((row) => row.id)).toEqual([oldRun, olderRun, recentActivityRun]);
 });
 
 test("the generic list keeps its limit when the pin count meets that limit", async () => {
@@ -76,12 +81,12 @@ test("the generic list keeps its limit when the pin count meets that limit", asy
 
 test("a wider window reaches the runs that closed before it", async () => {
 	const rows = await listRuns({ project: projectId, windowHours: 168 });
-	expect(rows.map((row) => row.id)).toEqual([flowRun, freshRun, oldRun, olderRun, openRun]);
+	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun, freshRun, oldRun, olderRun, openRun]);
 });
 
 test("the limit cuts the answer to the newest rows", async () => {
 	const rows = await listRuns({ project: projectId, windowHours: 168, limit: 2 });
-	expect(rows.map((row) => row.id)).toEqual([flowRun, freshRun]);
+	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun]);
 });
 
 test("a run named by its id comes back whatever its age", async () => {

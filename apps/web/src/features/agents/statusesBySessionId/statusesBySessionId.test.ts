@@ -28,6 +28,7 @@ const run = (id: string): AgentRun => ({
 	error: null,
 	sessionId: null,
 	sessionLost: false,
+	activityAt: "2026-09-23T00:00:00.000Z",
 	createdAt: "2026-09-23T00:00:00.000Z",
 	updatedAt: "2026-09-23T00:00:00.000Z",
 	observation: {

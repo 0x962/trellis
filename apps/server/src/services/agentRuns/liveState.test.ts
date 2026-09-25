@@ -31,6 +31,7 @@ const run: StoredRun = {
 	error: null,
 	sessionId: "conversation",
 	sessionLost: false,
+	activityAt: started,
 	createdAt: started,
 	updatedAt: started,
 	closedAt: null,
@@ -79,6 +80,7 @@ test("projectRun forwards the last message and the last tool as its name, its ta
 	const projected = projectRun(run, [process()]);
 
 	expect(projected.observation?.lastMessage).toEqual({ text: "Done", at: updated });
+	expect(projected.activityAt).toBe(updated);
 	expect(projected.observation?.lastTool).toEqual({
 		name: "Read",
 		target: "apps/web/src/app.css",

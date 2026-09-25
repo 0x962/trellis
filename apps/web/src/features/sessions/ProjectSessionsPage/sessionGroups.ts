@@ -1,44 +1,45 @@
 import type { AgentRun } from "@trellis/api";
-import { isHistoricalSession } from "./isHistoricalSession";
+
+export const SESSION_ARCHIVE_AFTER_MS = 48 * 60 * 60 * 1000;
 
 type GroupableRun = Pick<
 	AgentRun,
-	| "id"
-	| "name"
-	| "kind"
-	| "ticketId"
-	| "ticketIdentifier"
-	| "ticketTitle"
-	| "assigned"
-	| "ticketStatusCategory"
-	| "pinnedAt"
-	| "createdAt"
+	"id" | "name" | "kind" | "ticketId" | "ticketIdentifier" | "ticketTitle" | "pinnedAt" | "activityAt" | "createdAt"
 >;
 
-export function sessionGroups<T extends GroupableRun>(
-	runs: T[],
-	options: { search: string; history: boolean; selectedId?: string },
-) {
+export const isAutomaticallyArchived = (run: Pick<GroupableRun, "pinnedAt" | "activityAt">) =>
+	run.pinnedAt === null &&
+	run.activityAt !== null &&
+	Date.now() - Date.parse(run.activityAt) >= SESSION_ARCHIVE_AFTER_MS;
+
+export const nextSessionArchiveAt = (runs: Array<Pick<GroupableRun, "pinnedAt" | "activityAt">>) => {
+	const now = Date.now();
+	const times = runs.flatMap((run) => {
+		if (run.pinnedAt !== null || run.activityAt === null) return [];
+		const archiveAt = Date.parse(run.activityAt) + SESSION_ARCHIVE_AFTER_MS;
+		return archiveAt > now ? [archiveAt] : [];
+	});
+	return times.length === 0 ? null : Math.min(...times);
+};
+
+export function sessionGroups<T extends GroupableRun>(runs: T[], options: { search: string; archived: boolean }) {
 	const query = options.search.trim().toLocaleLowerCase();
-	const matches = runs.filter((run) => {
-		if (query)
-			return [run.name, run.ticketIdentifier, run.ticketTitle, run.createdAt].some((value) =>
+	const matches = runs
+		.filter((run) => isAutomaticallyArchived(run) === options.archived)
+		.filter((run) => {
+			if (!query) return true;
+			return [run.name, run.ticketIdentifier, run.ticketTitle, run.activityAt, run.createdAt].some((value) =>
 				value?.toLocaleLowerCase().includes(query),
 			);
-		return options.history || run.pinnedAt !== null || !isHistoricalSession(run) || run.id === options.selectedId;
-	});
+		});
 	matches.sort(
 		(a, b) =>
 			Number(b.pinnedAt !== null) - Number(a.pinnedAt !== null) ||
-			Number(isHistoricalSession(a)) - Number(isHistoricalSession(b)) ||
-			Number(b.kind === "session") - Number(a.kind === "session") ||
-			b.createdAt.localeCompare(a.createdAt) ||
+			(b.activityAt ?? "").localeCompare(a.activityAt ?? "") ||
 			b.id.localeCompare(a.id),
 	);
 	return {
-		sessions: matches.filter((run) => run.ticketId === null),
-		ticketed: matches.filter((run) => run.ticketId !== null),
-		historyCount: runs.filter((run) => run.pinnedAt === null && isHistoricalSession(run)).length,
+		runs: matches,
 	};
 }
 
@@ -58,7 +59,7 @@ export function selectedSession<T extends { id: string }>(
 // changes as rows come into the tree and leave it.
 export const SESSION_ROW_HEIGHT = 46;
 
-// The place of each named run in the list of one group. A poll refreshes
+// The place of each named run in the session list. A poll refreshes
 // that list every two seconds, and a run can move or leave it, so a caller
 // that holds a run over several renders holds its ID and reads its place
 // again on each render. A run the list no longer holds gives -1.
@@ -75,11 +76,9 @@ export function sessionRowRange(range: number[], keep: number[]) {
 	return [...new Set([...range, ...keep.filter((index) => index >= 0)])].sort((a, b) => a - b);
 }
 
-// The row that takes the keyboard focus when the Tab key leaves the last
-// row in the tree. `null` means the browser moves the focus itself: the
-// next row is already in the tree, the focus leaves the list for the
-// controls of a group, or the list has dropped the run under the focus,
-// which gives `focused` the value -1.
+// The row that takes the keyboard focus when the Tab key leaves a drawn
+// row. `null` means the browser moves the focus itself. The next row is
+// already in the tree, the focus leaves the list, or the run is gone.
 export function nextSessionRow(input: { focused: number; total: number; back: boolean; drawn: number[] }) {
 	if (input.focused < 0) return null;
 	const next = input.focused + (input.back ? -1 : 1);
