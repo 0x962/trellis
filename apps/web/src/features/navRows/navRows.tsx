@@ -1,4 +1,16 @@
-import { ChartBar, ChartLine, FlowArrow, MagnifyingGlass, Tray } from "@phosphor-icons/react";
+import {
+	BookOpen,
+	ChartBar,
+	ChartLine,
+	FlowArrow,
+	GithubLogo,
+	Globe,
+	Link,
+	MagnifyingGlass,
+	Play,
+	Tray,
+} from "@phosphor-icons/react";
+import type { MenuLinkIcon } from "@trellis/api";
 import type { ReactElement } from "react";
 
 export type NavTarget = "/needs-you" | "/search" | "/ai/flows" | "/statistics" | "/usage";
@@ -15,3 +27,12 @@ export const navRows: readonly NavRow[] = [
 	{ to: "/statistics", label: "Statistics", icon: <ChartBar /> },
 	{ to: "/usage", label: "Usage", icon: <ChartLine /> },
 ];
+
+export const menuLinkIcons: Record<MenuLinkIcon, ReactElement> = {
+	Link: <Link />,
+	GithubLogo: <GithubLogo />,
+	Play: <Play />,
+	Globe: <Globe />,
+	BookOpen: <BookOpen />,
+	ChartLine: <ChartLine />,
+};

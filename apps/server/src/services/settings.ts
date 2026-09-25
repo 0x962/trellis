@@ -5,14 +5,13 @@ import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 
-// The value of every key the table does not hold.
-// `{url}` in the diff template stands for the URL of the pull request, so
-// the default opens the Files changed tab of that pull request on GitHub.
+// A key absent from the settings table uses its default value.
 export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
+	menuLinks: [],
 });
 
-const KEYS = ["defaultActorName", "notifications"] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName", "notifications", "menuLinks"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so
@@ -27,9 +26,7 @@ export const get = async (_ctx: ServiceCtx, tx: Tx): Promise<Settings> => {
 	return result as Settings;
 };
 
-// Replaces every value. Every row takes `updated_at = ctx.now`, also a
-// row whose value stays. A settings write is not activity: no activity row,
-// no event.
+// Omitted optional keys keep their stored values, so older clients preserve newer settings.
 export const set = async (ctx: ServiceCtx, tx: Tx, input: SettingsSetInput): Promise<Settings> => {
 	requireActor(ctx);
 	for (const key of KEYS) {
@@ -39,5 +36,5 @@ export const set = async (ctx: ServiceCtx, tx: Tx, input: SettingsSetInput): Pro
 				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,
 		);
 	}
-	return { ...input };
+	return get(ctx, tx);
 };
