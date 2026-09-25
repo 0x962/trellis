@@ -3,7 +3,16 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { finalizePageObject, gcPageObjects, pageObjectPath, pageTempPath, stagePageObject } from "./pageObjects.ts";
+import {
+	discardPageObject,
+	finalizePageObject,
+	gcPageObjects,
+	PAGE_STAGE_TTL_MS,
+	pageObjectPath,
+	pageTempPath,
+	stagePageObject,
+	sweepPageTemp,
+} from "./pageObjects.ts";
 
 let home: string;
 
@@ -114,4 +123,46 @@ test("removes a partial stage when the file stream fails", async () => {
 test("removes a stage that exceeds its byte limit", async () => {
 	expect(await stagePageObject(home, new File(["12345"], "large.txt"), 4)).toBeNull();
 	expect(await readdir(join(home, "pages", "tmp"))).toEqual([]);
+});
+
+test("expires a completed stage that never reaches the upload service", async () => {
+	const stage = (await stagePageObject(home, new File(["abandoned"], "abandoned.txt")))!;
+	expect(await sweepPageTemp(home)).toBe(0);
+	expect(await sweepPageTemp(home, Date.now() + PAGE_STAGE_TTL_MS)).toBe(1);
+	expect(existsSync(pageTempPath(home, stage.stageId))).toBe(false);
+});
+
+test("preserves an unfinished stream past the completed-stage expiry", async () => {
+	const entered = Promise.withResolvers<void>();
+	const finish = Promise.withResolvers<void>();
+	const file = new File([], "active.txt");
+	Object.defineProperty(file, "stream", {
+		value: () =>
+			new ReadableStream<Uint8Array>({
+				async start(controller) {
+					controller.enqueue(new TextEncoder().encode("partial"));
+					entered.resolve();
+					await finish.promise;
+					controller.close();
+				},
+			}),
+	});
+	const pending = stagePageObject(home, file);
+	await entered.promise;
+	expect(await sweepPageTemp(home, Date.now() + PAGE_STAGE_TTL_MS * 2)).toBe(0);
+	finish.resolve();
+	const stage = (await pending)!;
+	expect(existsSync(pageTempPath(home, stage.stageId))).toBe(true);
+	await discardPageObject(home, stage);
+});
+
+test("collects duplicate candidates from concurrent sweeps once", async () => {
+	const stage = (await stagePageObject(home, new File(["orphan"], "orphan.txt")))!;
+	(await finalizePageObject(home, stage)).releaseHash();
+	const results = await Promise.all([
+		gcPageObjects(home, [stage.sha256], async () => false),
+		gcPageObjects(home, [stage.sha256], async () => false),
+	]);
+	expect(results.flatMap((result) => result.removed)).toEqual([stage.sha256]);
+	expect(await gcPageObjects(home, [stage.sha256], async () => false)).toEqual({ removed: [] });
 });

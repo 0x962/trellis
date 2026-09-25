@@ -37,6 +37,8 @@ export type ServiceCtx = RequestContext & {
 	publicUrl: string;
 };
 
+export type PageCleanupCtx = ServiceCtx & { dropPageObjects: (shas: string[]) => void };
+
 export type CreateContextInput = {
 	headers: Headers;
 	reqId: string;

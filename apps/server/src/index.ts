@@ -3,14 +3,17 @@ import { networkInterfaces } from "node:os";
 import { websocket } from "hono/bun";
 import { ulid } from "ulid";
 import pkg from "../package.json";
+import { startNativeReconcile } from "./agents/nativeReconcile/host.ts";
 import { createApp } from "./app.ts";
 import { type Config, type Env, loadConfig } from "./config.ts";
+import { systemContext } from "./context.ts";
 import { openDatabase } from "./db/open.ts";
 import { createInlineTransport, createWorkerTransport } from "./db/transport.ts";
 import { createBus } from "./events/bus.ts";
 import { createGhRunner } from "./gh/run.ts";
 import { createGhState } from "./ghState.ts";
 import { lockHome } from "./homeLock.ts";
+import { scaledClock } from "./jobs.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
 import { assertStandaloneHandoffReady } from "./standaloneHandoff/bootGuard.ts";
@@ -138,6 +141,15 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		log.info("migrate", { applied: started.applied });
 		const swept = await sweep(config.home, started.liveShas);
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
+		const pageClock = scaledClock(config.clockRate);
+		const pageSweep = startNativeReconcile({
+			tick: () => transport.call("pages.retention", systemContext(), {}),
+			setTimer: pageClock.setTimer,
+			clearTimer: pageClock.clearTimer,
+			log: (message, fields) => log.info(message, fields),
+			intervalMs: 60 * 60 * 1000,
+		});
+		await pageSweep.tick();
 		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState });
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
@@ -153,6 +165,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			bye("shutdown");
 			await Promise.race([server.stop(), Bun.sleep(SHUTDOWN_DEADLINE_MS)]);
 			for (const hook of hooks) await hook.stop();
+			await pageSweep.stop();
 			await transport.close();
 			if (database) await database.close();
 			lock.release();

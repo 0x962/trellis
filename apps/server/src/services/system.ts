@@ -7,12 +7,13 @@ import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { executionEnvironment } from "../executionEnvironment";
 import type { GhRunner } from "../gh/run.ts";
-import { PARTIAL_SUFFIX, SNAPSHOT_PREFIX } from "../storage/backups.ts";
+import { BACKUP_MANIFEST, PARTIAL_SUFFIX, SNAPSHOT_PREFIX, snapshotPageObjects } from "../storage/backups.ts";
+import { pageObjects } from "./pages/objects.ts";
 import type { ServiceCtx } from "./support.ts";
 
 // The three answers a person needs about the running server: is it healthy,
 // can it reach GitHub, and is the data safe. A backup is one archive of the
-// data directory and the attachments. The export is every row as NDJSON, so
+// data directory, the attachments, and Page objects. The export is every row as NDJSON, so
 // nobody is locked into this database.
 
 export type EmptyInput = Record<string, never>;
@@ -67,7 +68,7 @@ const pruneArchives = (dir: string) => {
 	for (const archive of archives.slice(KEEP_ARCHIVES)) unlinkSync(join(dir, archive.name));
 };
 
-// A copy of `db/` and `attachments/` under `backups/`, and the path its
+// A copy of the database and its objects under `backups/`, and the path its
 // archive gets.
 export type Snapshot = { staging: string; path: string };
 
@@ -97,11 +98,12 @@ export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Prom
 	ctx.afterCommit(ctx.vacuum);
 	await tx.execute(sql`CHECKPOINT`);
 	const dir = join(ctx.home, "backups");
-	const stamp = stampOf(ctx.now());
+	const stamp = `${stampOf(ctx.now())}-${crypto.randomUUID()}`;
 	const staging = join(dir, `${SNAPSHOT_PREFIX}${stamp}`);
 	mkdirSync(staging, { recursive: true });
 	try {
 		await run([...copyArgs, join(ctx.home, "db"), join(ctx.home, "attachments"), staging]);
+		await snapshotPageObjects(ctx.home, staging, await pageObjects(tx));
 	} catch (error) {
 		rmSync(staging, { recursive: true, force: true });
 		throw error;
@@ -112,13 +114,13 @@ export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Prom
 // Compresses a snapshot into its archive, removes the snapshot, and keeps
 // the newest archives. It reads no database, so the HTTP process runs it and
 // no request waits for the compression. The archive is a data home again:
-// `db/` and `attachments/` at its root, so a restore is an extract. tar
+// `db/`, `attachments/`, and `pages/` at its root. tar
 // writes the `.partial` name, and only an archive tar finished gets the
 // final name. A failed tar leaves neither the snapshot nor the partial file.
 export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
 	const partial = `${taken.path}${PARTIAL_SUFFIX}`;
 	try {
-		await run(["tar", "-czf", partial, "-C", taken.staging, "db", "attachments"]);
+		await run(["tar", "-czf", partial, "-C", taken.staging, "db", "attachments", "pages", BACKUP_MANIFEST]);
 		renameSync(partial, taken.path);
 	} finally {
 		rmSync(taken.staging, { recursive: true, force: true });

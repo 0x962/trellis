@@ -40,6 +40,7 @@ import * as notes from "./notes/notes.ts";
 import * as pageContent from "./pages/content.ts";
 import * as pages from "./pages/pages.ts";
 import { publish as publishPage } from "./pages/publish.ts";
+import { retention as pageRetention } from "./pages/retention.ts";
 import * as pageUploads from "./pages/uploads.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
@@ -279,6 +280,7 @@ export const services = {
 	"notes.create": core("mutation", notes.create),
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
+	"pages.retention": io("mutation", pageRetention),
 	"pages.list": core("read", pages.list),
 	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
 	"pages.get": core("read", pages.get),

@@ -53,7 +53,7 @@ CLI imports the contract as a type only. Only web imports `ui`. Each package
 exports TypeScript source and has no side effects.
 
 The standalone data home is `~/.trellis`, and `TRELLIS_HOME` overrides it.
-It holds `db/`, `attachments/`, `backups/`, `agents/`, `runtime/`, and `server.log`.
+It holds `db/`, `attachments/`, `pages/`, `backups/`, `agents/`, `runtime/`, and `server.log`.
 Project agent worktrees live under `agents/<run id>/work`. The runtime retains process records and output under `runtime/`.
 The server log rotates at 10 MB and keeps five files.
 The standalone port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1` (`TRELLIS_HOST`).
@@ -1454,12 +1454,35 @@ Shutdown stops the listener, sends `bye` on every stream, drains the poller for
 up to 5 seconds, closes the worker, and exits 0.
 
 A backup runs `CHECKPOINT` in the worker and copies `db/` and `attachments/` to
-`backups/snapshot-<stamp>` by reference. The worker therefore holds its queue
-for the checkpoint and the copy only. The HTTP process then runs `tar` over the
+`backups/snapshot-<stamp>` by reference. It also copies every Page object named
+by `page_uploads`, `page_versions`, or `page_assets` into the snapshot.
+The worker holds its queue until these copies finish. The HTTP process then runs `tar` over the
 snapshot into `trellis-<stamp>.tar.gz.partial`, renames the file when tar exits
 0, and removes the snapshot. A failed backup removes both, and so does the next
 boot. The data home keeps the 10 newest archives. `trellis data export` streams
 NDJSON per table in keyset pages of 1000 rows.
+
+The archive keeps `db/`, `attachments/`, `pages/`, and `backup-manifest.json` at its root.
+The manifest declares version 1 and the `pages-v1` capability.
+Restore rejects an unknown capability or an absent database cluster.
+It verifies every Page object hash and size against the restored database before it moves the active home.
+A failure before the moves removes the extracted copy and leaves the active home intact.
+A failure during the moves retains the restore directories for manual recovery.
+
+The pre-Pages reader at `e9f8d42cc` ignores the manifest and preserves the extra archive entries.
+It does not verify Page hashes. Its own backup writer omits Page objects.
+Before a binary rollback, keep a backup from a Pages-capable release.
+The older binary preserves the Page tables and the separate `pages/` directory in an existing home.
+
+Page retention runs at boot and once each hour through the database worker.
+Published versions remain until their Page reaches 30 days after deletion.
+Unused upload rows expire after 24 hours.
+The collector queries all three object holders before each removal and shares the finalizer's hash lock.
+Project deletion queues the same collector after its cascades commit.
+
+An active stream protects its temporary file. A completed temporary stage expires after 24 hours.
+A boot removes stages that the previous process abandoned.
+Each sweep logs aggregate counts for purged Pages, expired uploads, removed objects, and removed stages.
 
 `apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
 attachments, board, command, composer, epics, filters, flows, navRows, needs-you,

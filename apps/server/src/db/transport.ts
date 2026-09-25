@@ -13,6 +13,7 @@ import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcBlobs } from "../services/blobs.ts";
+import { gcPageObjects } from "../services/pages/objects.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import type { IoCtx } from "../services/support.ts";
 import type { SweepResult } from "../services/sweep/prepareSweep.ts";
@@ -109,6 +110,9 @@ export const createInlineTransport = ({
 		actorCache,
 		dropBlobs: (shas: string[]) => {
 			tasks.push(() => gcBlobs({ home: config.home, newTx }, shas).then(() => undefined));
+		},
+		dropPageObjects: (shas: string[]) => {
+			tasks.push(() => gcPageObjects({ home: config.home, newTx }, shas).then(() => undefined));
 		},
 		publicUrl: config.publicUrl,
 	});

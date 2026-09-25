@@ -6,10 +6,10 @@ type HashedFile = { sha256: string; size: number };
 type HashLimitExceeded = { limitExceeded: true };
 type WriteChunk = (chunk: Uint8Array) => void;
 
-export function hashFile(file: File, write: WriteChunk): Promise<HashedFile>;
-export function hashFile(file: File, write: WriteChunk, maxBytes: number): Promise<HashedFile | HashLimitExceeded>;
+export function hashFile(file: Blob, write: WriteChunk): Promise<HashedFile>;
+export function hashFile(file: Blob, write: WriteChunk, maxBytes: number): Promise<HashedFile | HashLimitExceeded>;
 export async function hashFile(
-	file: File,
+	file: Blob,
 	write: WriteChunk,
 	maxBytes = Number.POSITIVE_INFINITY,
 ): Promise<HashedFile | HashLimitExceeded> {
