@@ -1,9 +1,9 @@
-import { CaretDown, CaretRight, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import type { AgentRun, Project, Session } from "@trellis/api";
-import { Button, IconButton, Input, Tooltip } from "@trellis/ui";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ArchivedToggle, Button, IconButton, Input, Tooltip } from "@trellis/ui";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { sessionComposerActions } from "../../../sessionComposerStore";
-import { nextSessionArchiveAt, sessionGroups } from "../../sessionGroups";
+import { sessionGroups } from "../../sessionGroups";
 import { SessionGroup } from "../SessionGroup";
 
 export function SessionList({
@@ -17,8 +17,9 @@ export function SessionList({
 	onRetry,
 	onSelect,
 	onConversation,
-	archived,
-	onArchivedChange,
+	showArchived,
+	onShowArchivedChange,
+	archiveClock,
 }: {
 	project: Project;
 	runs: AgentRun[];
@@ -30,8 +31,9 @@ export function SessionList({
 	onRetry: () => void;
 	onSelect: (id: string) => void;
 	onConversation: () => void;
-	archived: boolean;
-	onArchivedChange: (archived: boolean) => void;
+	showArchived: boolean;
+	onShowArchivedChange: (showArchived: boolean) => void;
+	archiveClock: number;
 }) {
 	const [search, setSearch] = useState("");
 	// The one element of this page that scrolls the rows. The virtual list
@@ -41,23 +43,20 @@ export function SessionList({
 	// the virtual list to measure that distance again.
 	const content = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState(0);
-	const [, setArchiveClock] = useState(Date.now());
 	useLayoutEffect(() => {
 		const observer = new ResizeObserver(() => setLayout((count) => count + 1));
 		observer.observe(content.current!);
 		return () => observer.disconnect();
 	}, []);
-	useEffect(() => {
-		const archiveAt = nextSessionArchiveAt(runs);
-		if (archiveAt === null) return;
-		const timer = window.setTimeout(
-			() => setArchiveClock(Date.now()),
-			Math.min(archiveAt - Date.now() + 1, 2_147_483_647),
-		);
-		return () => window.clearTimeout(timer);
-	}, [runs]);
-	const groups = sessionGroups(runs, { search, archived });
-	const sessionsByRunId = new Map(sessions.map((session) => [session.runId, session]));
+	const onSearchChange = (value: string) => {
+		setSearch(value);
+		if (scroller !== null) scroller.scrollTop = 0;
+	};
+	const groups = useMemo(
+		() => sessionGroups(runs, { search, showArchived, now: archiveClock }),
+		[runs, search, showArchived, archiveClock],
+	);
+	const sessionsByRunId = useMemo(() => new Map(sessions.map((session) => [session.runId, session])), [sessions]);
 	return (
 		<nav aria-label="Project sessions" className="relative flex h-full min-h-0 w-full flex-col bg-bg">
 			{selectedId && (
@@ -72,7 +71,7 @@ export function SessionList({
 						hideLabel
 						placeholder="Search sessions…"
 						value={search}
-						onChange={(event) => setSearch(event.target.value)}
+						onChange={(event) => onSearchChange(event.target.value)}
 						className="h-7 text-sm"
 					/>
 				</div>
@@ -108,25 +107,25 @@ export function SessionList({
 						<>
 							{search.trim() && (
 								<p role="status" className="px-4 pb-1 text-xs text-fg-muted">
-									{groups.runs.length} results in {archived ? "Archived" : "current sessions"}
+									{groups.runs.length} results in {showArchived ? "Archived" : "current sessions"}
 								</p>
 							)}
 							{groups.runs.length === 0 ? (
 								<p className="px-4 py-3 text-sm text-fg-muted">
 									{search.trim()
 										? "No matching sessions."
-										: archived
+										: showArchived
 											? "No archived sessions."
 											: "No current sessions. Start one."}
 								</p>
 							) : (
 								<SessionGroup
-									key={`${archived}:${search}`}
+									key={String(showArchived)}
 									group="sessions"
 									label="Sessions"
 									projectKey={project.key}
 									searching={Boolean(search.trim())}
-									header={false}
+									showHeader={false}
 									runs={groups.runs}
 									scroller={scroller}
 									layout={layout}
@@ -140,17 +139,7 @@ export function SessionList({
 				</div>
 			</div>
 			<div className="shrink-0 border-t border-border p-2">
-				<button
-					type="button"
-					aria-pressed={archived}
-					onClick={() => onArchivedChange(!archived)}
-					className="sidebar-row w-full text-left text-sm text-fg-muted hover:bg-elevated hover:text-fg active:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-				>
-					<span aria-hidden="true" className="sidebar-leading text-fg-faint *:size-3">
-						{archived ? <CaretDown /> : <CaretRight />}
-					</span>
-					<span className="sidebar-label">Archived</span>
-				</button>
+				<ArchivedToggle expanded={showArchived} onExpandedChange={onShowArchivedChange} semantics="pressed" />
 			</div>
 		</nav>
 	);

@@ -6,6 +6,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
+import { recordObservedActivity } from "./activity.ts";
 import { list } from "./agentRuns.ts";
 import { projectRun } from "./liveState.ts";
 import { getRun } from "./queries.ts";
@@ -103,4 +104,12 @@ test("a run read with its instruction loses it before it leaves the server", asy
 	const stored = await run((tx) => getRun(tx, openRun));
 	expect(stored.instruction).toBe("Open prompt.");
 	expect(projectRun(stored, [])).not.toHaveProperty("instruction");
+});
+
+test("stored process activity survives a missing runtime record", async () => {
+	await run((tx) => recordObservedActivity(ctx, tx, [{ id: openRun, activityAt: hoursAgo(1) }]));
+	await run((tx) => recordObservedActivity(ctx, tx, [{ id: openRun, activityAt: hoursAgo(2) }]));
+	const stored = await run((tx) => getRun(tx, openRun));
+
+	expect(projectRun(stored, []).activityAt).toBe(hoursAgo(1));
 });

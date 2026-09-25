@@ -10,6 +10,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	let reads = 0;
 	let aborted = false;
 	const emitted: TrellisEvent[] = [];
+	const recorded: Array<Array<{ id: string; activityAt: string }>> = [];
 	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
 	let deliver!: (value: RuntimeProcessStatus) => void;
 	const next = new Promise<RuntimeProcessStatus>((resolve) => {
@@ -19,6 +20,9 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 		read: async () => {
 			reads++;
 			return [structuredClone(value)];
+		},
+		record: async (values) => {
+			recorded.push(values);
 		},
 		client: {
 			subscribeSession: async function* (_id, signal) {
@@ -47,8 +51,10 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	expect(reads).toBe(1);
 	expect(emitted).toHaveLength(1);
 	expect(emitted[0]).toMatchObject({ type: "agent-runs.status", notify: false });
+	expect(recorded).toEqual([[{ id: "run", activityAt: "2026-09-18T12:00:00.000Z" }]]);
 	await monitor.tick();
 	expect(emitted).toHaveLength(1);
+	expect(recorded).toHaveLength(1);
 	deliver({
 		id: "attempt",
 		checkedAt: "2026-09-18T12:00:01.000Z",
@@ -76,6 +82,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 		activity: { run: { observation: { outcome: "completed" } } },
 	});
 	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id, agentResponse: "First response" }]);
+	expect(recorded.at(-1)).toEqual([{ id: "run", activityAt: "2026-09-18T12:00:01.000Z" }]);
 	const count = emitted.length;
 	await monitor.tick();
 	expect(emitted).toHaveLength(count);
@@ -113,6 +120,7 @@ test("a completed runtime event requests a name after a poll observed the same r
 	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
 	const monitor = startSessionMonitor({
 		read: async () => [structuredClone(value)],
+		record: async () => {},
 		client: {
 			subscribeSession: async function* () {
 				yield { type: "session" as const, session: process };
@@ -139,6 +147,7 @@ test("the monitor emits when the last message or the shown tool changes, and not
 	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
 	const monitor = startSessionMonitor({
 		read: async () => [structuredClone(value)],
+		record: async () => {},
 		client: {
 			subscribeSession: async function* () {},
 		},
