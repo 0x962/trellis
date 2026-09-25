@@ -31,10 +31,14 @@ class MissingNativeSessionIdentity extends Error {}
 type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
+	guide: typeof launchGuide;
 	env: Record<string, string | undefined>;
 	environment: () => Promise<NodeJS.ProcessEnv>;
 };
 const exportedProfile: Partial<Record<string, string>> = { claude: "CLAUDE_CONFIG_DIR", codex: "CODEX_HOME" };
+
+export const promptForLaunch = (resume: boolean, resumePrompt: string | undefined, guide: () => Promise<string>) =>
+	resume ? Promise.resolve(resumePrompt!) : guide();
 
 async function hostDefaultProfile(
 	preset: string,
@@ -99,13 +103,15 @@ const start = async (
 			);
 		});
 		if (owned.length === 0 || hostIsShuttingDown(ctx.home)) return { id: run.id };
-		const prompt = await launchGuide(ctx, {
-			run,
-			workspace: workspaceId,
-			attemptId: terminalId,
-			message: input.resumePrompt ?? input.prompt,
-			env: baseEnv,
-		});
+		const prompt = await promptForLaunch(resume, input.resumePrompt, () =>
+			(deps.guide ?? launchGuide)(ctx, {
+				run,
+				workspace: workspaceId,
+				attemptId: terminalId,
+				message: input.prompt,
+				env: baseEnv,
+			}),
+		);
 		const env = {
 			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
@@ -129,7 +135,6 @@ const start = async (
 				url: ctx.localUrl,
 				messageId: terminalId,
 				directory: workspaceId,
-				resume,
 				template: resume ? config.harness.resumeCommand : config.harness.startCommand,
 				prompt,
 			});

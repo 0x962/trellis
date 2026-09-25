@@ -1,8 +1,8 @@
 // The variables of an agent command template: the program that is one
-// agent. trellis names the session and passes it in `sessionId`; the
-// template decides what its agent does with it. `prompt` is the whole
-// assignment of a new session, and `resumeText` is what a resumed agent
-// reads first.
+// agent. Trellis names the session and passes it in `sessionId`; the
+// template decides what its agent does with it. `prompt` is the full guide
+// for a new conversation or the new message for a saved conversation.
+// `resumeText` has the same value as `prompt` when Trellis supplies it.
 export const AGENT_COMMAND_VARIABLES = [
 	"id",
 	"workspaceId",

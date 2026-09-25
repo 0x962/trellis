@@ -5,6 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import { CONFLICT_NOTICE_KINDS } from "../../db/tables/checkNotices.ts";
 import type { Tx } from "../../db/tx.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
+import { deliveryTarget } from "../agentRuns/deliveryTarget.ts";
 import { launchState } from "../agentRuns/launchState";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import {
@@ -23,7 +24,7 @@ import { prOfDelivery } from "./deliveryPullRequest.ts";
 import { report } from "./deliveryReport.ts";
 import { pendingDeliveries } from "./pendingDeliveries";
 import { changed } from "./queries.ts";
-import { openAssignment, readyDelivery } from "./ticketRun.ts";
+import { openAssignment } from "./ticketRun.ts";
 
 const list = (values: string[]) =>
 	sql.join(
@@ -130,29 +131,67 @@ const startingTerminals = async (tx: Tx, home: string) => {
 	return found.filter((row) => launchState.has(home, row.terminalId)).map((row) => row.terminalId);
 };
 
-// A message waits in `held` until its assigned agent can receive it.
-const holdDeliveries = (tx: Tx, terminals: string[], idleTerminals: string[]) =>
-	rows<{ id: string }>(
+type WaitingDelivery = { id: string; ticketId: string; resumesIdle: boolean };
+
+const waitingDeliveries = (tx: Tx, state: "pending" | "held") =>
+	rows<WaitingDelivery>(
 		tx,
-		sql`UPDATE review_deliveries delivery SET state = 'held', error = ${waitingForRun}
-		WHERE delivery.state = 'pending' AND ${due} AND NOT ${readyDelivery(terminals, idleTerminals)}
-		RETURNING delivery.id`,
+		sql`SELECT delivery.id, delivery.ticket_id AS "ticketId",
+			COALESCE(delivery.thread_message_id IS NOT NULL OR notice.kind IN ('failed', 'passed', 'stuck'), false) AS "resumesIdle"
+		FROM review_deliveries delivery
+		LEFT JOIN check_notices notice ON notice.id = delivery.check_notice_id
+		WHERE delivery.state = ${state} AND ${due}
+		ORDER BY delivery.id`,
 	);
 
-const releaseDeliveries = (tx: Tx, terminals: string[], idleTerminals: string[]) =>
-	rows<{ id: string }>(
-		tx,
-		sql`UPDATE review_deliveries delivery SET state = 'pending', error = NULL
-		WHERE delivery.state = 'held' AND ${readyDelivery(terminals, idleTerminals)}
-		RETURNING delivery.id`,
-	);
+const targetedDeliveries = async (tx: Tx, state: "pending" | "held", live: string[], idle: string[]) => {
+	const targets = new Map<string, boolean>();
+	const found = await waitingDeliveries(tx, state);
+	for (const delivery of found) {
+		const key = `${delivery.ticketId}:${delivery.resumesIdle}`;
+		if (!targets.has(key))
+			targets.set(
+				key,
+				(await deliveryTarget(tx, {
+					ticketId: delivery.ticketId,
+					terminals: delivery.resumesIdle ? [...live, ...idle] : live,
+				})) !== null,
+			);
+	}
+	return { found, targets };
+};
+
+// A message waits in `held` until its assigned agent can receive it.
+const holdDeliveries = async (tx: Tx, live: string[], idle: string[]) => {
+	const { found, targets } = await targetedDeliveries(tx, "pending", live, idle);
+	const ids = found.filter((row) => !targets.get(`${row.ticketId}:${row.resumesIdle}`)).map((row) => row.id);
+	return ids.length === 0
+		? []
+		: rows<{ id: string }>(
+				tx,
+				sql`UPDATE review_deliveries SET state = 'held', error = ${waitingForRun}
+				WHERE id IN (${list(ids)}) RETURNING id`,
+			);
+};
+
+const releaseDeliveries = async (tx: Tx, live: string[], idle: string[]) => {
+	const { found, targets } = await targetedDeliveries(tx, "held", live, idle);
+	const ids = found.filter((row) => targets.get(`${row.ticketId}:${row.resumesIdle}`)).map((row) => row.id);
+	return ids.length === 0
+		? []
+		: rows<{ id: string }>(
+				tx,
+				sql`UPDATE review_deliveries SET state = 'pending', error = NULL
+				WHERE id IN (${list(ids)}) RETURNING id`,
+			);
+};
 
 const outcomeOf = (failure: unknown) => {
 	const text = failure instanceof Error ? failure.message : String(failure);
 	return text === unconfirmedDelivery ? { state: "unknown", error: text } : { state: "failed", error: text };
 };
 
-// Runtime observations select live recipients and agents that CI results can resume after idle expiry.
+// sessions holds live and idle processes. A due comment or check result uses a live terminal or restarts an idle run.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],

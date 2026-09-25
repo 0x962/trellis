@@ -12,7 +12,7 @@ import { createCache } from "../../db/cache.ts";
 import { rows } from "../../db/queries/support.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { IoCtx } from "../support.ts";
-import { startNative } from "./nativeStart.ts";
+import { promptForLaunch, startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
 
 // The last writer of `closed_at` on the launch path. A harness can confirm
@@ -165,4 +165,14 @@ test("a launch that ends at once closes a flow run", async () => {
 	await launch(runId);
 
 	expect(await closedAt(runId)).not.toBeNull();
+});
+
+test("an initial start receives the full guide", async () => {
+	expect(await promptForLaunch(false, undefined, async () => "# Trellis\nFull guide")).toBe("# Trellis\nFull guide");
+});
+
+test("a resume receives only its new message", async () => {
+	expect(await promptForLaunch(true, "Read this comment.", async () => "Do the saved assignment.")).toBe(
+		"Read this comment.",
+	);
 });

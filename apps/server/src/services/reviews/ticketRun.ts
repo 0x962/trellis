@@ -1,12 +1,10 @@
 import { type SQL, sql } from "drizzle-orm";
-import { textArray } from "../../db/queries/support.ts";
 
 // The one rule for the agent run that holds a ticket. `agent_runs` allows
 // one row of kind `agent` per ticket while nobody closed it, and that row
 // takes every message Trellis sends about the pull requests of the ticket.
-// A run whose process already ended still holds the ticket. CI notices can
-// resume it after idle expiry; other notices wait for a live terminal. The rule
-// names no runtime, because a ticket can hold a run that another program
+// An idle run keeps its ticket and its saved conversation, so a due comment or check result restarts it.
+// The rule names no runtime, because a ticket can hold a run that another program
 // started, and `dispatchDeliveries` answers that case with a sentence.
 export const openAssignment = (run: SQL, ticket: SQL) =>
 	sql`${run}.ticket_id = ${ticket} AND ${run}.kind = 'agent' AND ${run}.closed_at IS NULL`;
@@ -20,16 +18,3 @@ export const newestOpenRun = (ticket: SQL, columns: SQL) =>
 		ORDER BY assignment.created_at DESC, assignment.id DESC
 		LIMIT 1
 	) run ON true`;
-
-// The caller selects the terminals that can receive its message.
-export const readyAssignment = (ticket: SQL, terminals: readonly string[]) =>
-	sql`EXISTS (SELECT 1 FROM agent_runs assignment
-		WHERE ${openAssignment(sql`assignment`, ticket)} AND assignment.runtime = 'native'
-			AND assignment.terminal_id = ANY(${textArray(terminals)}))`;
-
-// CI results can resume an agent whose process stopped after idle expiry.
-export const readyDelivery = (terminals: readonly string[], idleTerminals: readonly string[]) =>
-	sql`(${readyAssignment(sql`delivery.ticket_id`, terminals)}
-		OR (${readyAssignment(sql`delivery.ticket_id`, idleTerminals)}
-			AND EXISTS (SELECT 1 FROM check_notices notice
-				WHERE notice.id = delivery.check_notice_id AND notice.kind IN ('failed', 'passed', 'stuck'))))`;
