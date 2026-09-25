@@ -67,7 +67,7 @@ const quietTickets = sql`SELECT ticket_id FROM review_deliveries
 	HAVING max(due_at) <= now()
 		OR min(due_at) <= now() - make_interval(secs => ${commentBatchLimitSeconds - commentBatchSeconds})`;
 
-const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
+const pendingComments = async (tx: Tx, terminals: string[], idleTerminals: string[]): Promise<Delivery[]> => {
 	const found = await rows<CommentRow>(
 		tx,
 		sql`SELECT ${deliveryColumns}, pr.url AS "url", pr.id AS "prId",
@@ -81,7 +81,7 @@ const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]>
 		JOIN review_threads thread ON thread.id = delivery.thread_id
 		JOIN pull_requests pr ON pr.id = thread.pr_id
 		WHERE delivery.state = 'pending' AND delivery.thread_message_id IS NOT NULL
-			AND ${readyRun(terminals)} AND delivery.ticket_id IN (${quietTickets})
+			AND ${readyRun([...terminals, ...idleTerminals])} AND delivery.ticket_id IN (${quietTickets})
 		ORDER BY delivery.id LIMIT 50`,
 	);
 	const batches = new Map<string, { row: CommentRow; comments: CommentNote[]; ids: string[] }>();
@@ -122,6 +122,6 @@ const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[
 
 export const pendingDeliveries = async (tx: Tx, terminals: string[], idleTerminals: string[]) => [
 	...(await pendingReviews(tx, terminals)),
-	...(await pendingComments(tx, terminals)),
+	...(await pendingComments(tx, terminals, idleTerminals)),
 	...(await pendingChecks(tx, terminals, idleTerminals)),
 ];

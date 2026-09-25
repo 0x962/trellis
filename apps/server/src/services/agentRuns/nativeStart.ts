@@ -31,6 +31,7 @@ class MissingNativeSessionIdentity extends Error {}
 type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
+	guide: typeof launchGuide;
 	env: Record<string, string | undefined>;
 	environment: () => Promise<NodeJS.ProcessEnv>;
 };
@@ -99,13 +100,15 @@ const start = async (
 			);
 		});
 		if (owned.length === 0 || hostIsShuttingDown(ctx.home)) return { id: run.id };
-		const prompt = await launchGuide(ctx, {
-			run,
-			workspace: workspaceId,
-			attemptId: terminalId,
-			message: input.resumePrompt ?? input.prompt,
-			env: baseEnv,
-		});
+		const prompt = resume
+			? input.resumePrompt!
+			: await (deps.guide ?? launchGuide)(ctx, {
+					run,
+					workspace: workspaceId,
+					attemptId: terminalId,
+					message: input.prompt,
+					env: baseEnv,
+				});
 		const env = {
 			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,

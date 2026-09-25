@@ -4,10 +4,8 @@ import { textArray } from "../../db/queries/support.ts";
 // The one rule for the agent run that holds a ticket. `agent_runs` allows
 // one row of kind `agent` per ticket while nobody closed it, and that row
 // takes every message Trellis sends about the pull requests of the ticket.
-// A run whose process already ended still holds the ticket. CI notices can
-// resume it after idle expiry; other notices wait for a live terminal. The rule
-// names no runtime, because a ticket can hold a run that another program
-// started, and `dispatchDeliveries` answers that case with a sentence.
+// A run whose process already ended still holds the ticket. The rule names
+// no runtime because another program can start a ticket run.
 export const openAssignment = (run: SQL, ticket: SQL) =>
 	sql`${run}.ticket_id = ${ticket} AND ${run}.kind = 'agent' AND ${run}.closed_at IS NULL`;
 
@@ -27,9 +25,10 @@ export const readyAssignment = (ticket: SQL, terminals: readonly string[]) =>
 		WHERE ${openAssignment(sql`assignment`, ticket)} AND assignment.runtime = 'native'
 			AND assignment.terminal_id = ANY(${textArray(terminals)}))`;
 
-// CI results can resume an agent whose process stopped after idle expiry.
+// A new comment or a completed CI result can resume an agent after idle expiry.
 export const readyDelivery = (terminals: readonly string[], idleTerminals: readonly string[]) =>
 	sql`(${readyAssignment(sql`delivery.ticket_id`, terminals)}
 		OR (${readyAssignment(sql`delivery.ticket_id`, idleTerminals)}
-			AND EXISTS (SELECT 1 FROM check_notices notice
-				WHERE notice.id = delivery.check_notice_id AND notice.kind IN ('failed', 'passed', 'stuck'))))`;
+			AND (delivery.thread_message_id IS NOT NULL
+				OR EXISTS (SELECT 1 FROM check_notices notice
+					WHERE notice.id = delivery.check_notice_id AND notice.kind IN ('failed', 'passed', 'stuck')))))`;

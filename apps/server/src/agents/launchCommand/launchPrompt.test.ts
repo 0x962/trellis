@@ -42,17 +42,30 @@ test("a custom harness keeps the message receipt before the instruction", () => 
 });
 
 for (const placeholder of ["prompt", "instruction", "resumeText"]) {
-	test(`a custom resume receives the common guide through ${placeholder}`, () => {
+	test(`a custom start receives the common guide through ${placeholder}`, () => {
+		const result = launchCommand({
+			run: { ...run, sessionId: "saved-conversation" },
+			url: "http://localhost:4521",
+			template: `agent --message {{${placeholder}}}`,
+			messageId: "attempt-2",
+			prompt: "# Trellis\nCurrent ticket context.",
+		});
+		expect(result.command).toContain("trellis-message:attempt-2\n# Trellis\nCurrent ticket context.");
+		expect(result.command).not.toContain("Do the work.");
+	});
+
+	test(`a custom resume receives only the new message through ${placeholder}`, () => {
 		const result = launchCommand({
 			run: { ...run, sessionId: "saved-conversation" },
 			url: "http://localhost:4521",
 			resume: true,
 			template: `agent --resume {{sessionId}} --message {{${placeholder}}}`,
-			messageId: "attempt-2",
-			prompt: "# Trellis\nCurrent ticket context.",
+			messageId: "attempt-3",
+			prompt: "Check the next file.",
 		});
 		expect(result.command).toContain("saved-conversation");
-		expect(result.command).toContain("trellis-message:attempt-2\n# Trellis\nCurrent ticket context.");
+		expect(result.command).toContain("trellis-message:attempt-3\nCheck the next file.");
+		expect(result.command).not.toContain("# Trellis");
 		expect(result.command).not.toContain("Do the work.");
 	});
 }

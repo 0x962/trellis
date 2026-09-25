@@ -152,7 +152,7 @@ const outcomeOf = (failure: unknown) => {
 	return text === unconfirmedDelivery ? { state: "unknown", error: text } : { state: "failed", error: text };
 };
 
-// Runtime observations select live recipients and agents that CI results can resume after idle expiry.
+// Runtime observations select live recipients and idle agents that a new comment or a CI result can resume.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],

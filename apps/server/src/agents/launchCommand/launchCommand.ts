@@ -18,11 +18,10 @@ export const launchCommand = (input: {
 }) => {
 	const { run, url } = input;
 	const actor = `agent:${run.id}`;
-	const prefix = input.messageId ? `trellis-message:${input.messageId}\n` : "";
-	const prompt = input.prompt === undefined ? launchPrompt(input) : `${prefix}${input.prompt}`;
+	const prompt = launchPrompt(input);
 	if (input.prompt !== undefined && !/\{\{(?:prompt|instruction|resumeText)\}\}/.test(input.template))
 		throw new Error(
-			"A custom harness command must include {{prompt}}, {{instruction}}, or {{resumeText}} to receive the agent guide.",
+			"A custom harness command must include {{prompt}}, {{instruction}}, or {{resumeText}} to receive its prompt.",
 		);
 	const agent = expandLaunchTemplate(input.template, {
 		name: run.name,
@@ -35,8 +34,8 @@ export const launchCommand = (input: {
 			input.prompt !== undefined
 				? prompt
 				: run.kind === "session"
-					? `${prefix}Continue this session in the same conversation and workspace.`
-					: `${prefix}${run.instruction}\n\n${resumeText}`,
+					? launchPrompt({ ...input, prompt: "Continue this session in the same conversation and workspace." })
+					: launchPrompt({ ...input, prompt: `${run.instruction}\n\n${resumeText}` }),
 		actor,
 		trellisUrl: url,
 		directory: input.directory ?? "",

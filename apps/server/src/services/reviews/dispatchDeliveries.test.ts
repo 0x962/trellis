@@ -57,6 +57,8 @@ let prNumber = 900;
 
 const running = (terminalId: string) =>
 	[{ id: terminalId, status: "running", controllable: true }] as unknown as RuntimeProcessStatus[];
+const idle = (terminalId: string) =>
+	[{ id: terminalId, status: "exited", stopReason: "idle", controllable: false }] as unknown as RuntimeProcessStatus[];
 
 const startRun = (id: string, ticketId: string, identifier: string, name = "crisp-fjord", kind = "agent") =>
 	db.execute(sql`INSERT INTO agent_runs
@@ -380,6 +382,33 @@ test("the comments a person writes travel to the agent in one message", async ()
 	const states = (await db.execute(sql`SELECT state FROM review_deliveries WHERE ticket_id = ${queued.ticketId}`)).rows;
 	expect(states).toEqual([{ state: "sent" }, { state: "sent" }]);
 	expect(events.map((event) => event.type)).toContain("reviews.changed");
+});
+
+test("a comment batch wakes an idle assigned session once", async () => {
+	sent.length = 0;
+	const queued = await queueComments("Wake for the review", [
+		{ path: "apps/server/src/db/tx.ts", line: 42, body: "Name the count." },
+		{ path: "apps/web/src/App.tsx", line: 8, body: "Use the token." },
+	]);
+	const session = idle(`term-${queued.runId}`);
+
+	await dispatchDeliveries(ctx(), session, send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]).toMatchObject({
+		id: queued.runId,
+		messageId: `review-${queued.ids[0]}`,
+		expectedTerminalId: `term-${queued.runId}`,
+	});
+	expect(sent[0]!.text).toContain("2 new comments.");
+	expect(await deliveriesOf(queued.ticketId)).toEqual([
+		{ state: "sent", error: null },
+		{ state: "sent", error: null },
+	]);
+
+	await dispatchDeliveries(ctx(), session, send, preset);
+
+	expect(sent).toHaveLength(1);
 });
 
 test("a comment another agent writes travels to the ticket agent", async () => {

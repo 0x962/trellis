@@ -200,6 +200,7 @@ test("a follow-up resumes the saved conversation with only the requested message
 	};
 	expect(await prepareSend(ctx, input, f.deps)).toEqual({ id: f.id, launchedAt: at.toISOString() });
 	expect(f.stats()).toEqual({ launches: 1, sends: 0, waits: 1, prompt: input.text });
+	expect(f.stats().prompt).not.toContain("Original task");
 	const run = await ctx.newTx((tx) => getRun(tx, f.id));
 	expect(run.closedAt).toBeNull();
 	expect(run.terminalId).not.toBe(f.terminalId);
