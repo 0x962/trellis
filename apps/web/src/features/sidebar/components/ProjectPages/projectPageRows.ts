@@ -1,6 +1,6 @@
 import type { ProjectSummary } from "@trellis/api";
 import { formatCount } from "../../../../lib/format";
-import { projectRefOfPathname } from "../../../../lib/projectUrl";
+import { projectRefOfPathname, projectViewOfPathname } from "../../../../lib/projectUrl";
 
 export type ProjectPageRow = {
 	label: string;
@@ -39,9 +39,11 @@ export const projectPageRows = (
 	activeAgentCount: number,
 ): ProjectPageRows => {
 	const current = projectRefOfPathname(pathname) === project.key;
-	const diffs = pathname.endsWith("/diffs");
-	// The epics list and the page of one epic, `/epics/<slug>`.
-	const epics = pathname.endsWith("/epics") || pathname.includes("/epics/");
+	const view = current ? projectViewOfPathname(pathname) : null;
+	const diffs = view === "diffs";
+	const epics = view === "epics" || view === "epic";
+	const pages = view === "pages" || view === "page";
+	const tickets = view !== null && !diffs && !epics && !pages;
 	const sessions = pathname.startsWith("/sessions/project/");
 	return {
 		top: [
@@ -51,6 +53,13 @@ export const projectPageRows = (
 				active: current && epics,
 				// The count of open epics of this project alone.
 				trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
+				activeAgentCount: 0,
+			},
+			{
+				label: "Pages",
+				suffix: "/pages",
+				active: current && pages,
+				trailing: project.openPageCommentCount > 0 ? formatCount(project.openPageCommentCount) : null,
 				activeAgentCount: 0,
 			},
 			{
@@ -65,7 +74,7 @@ export const projectPageRows = (
 			{
 				label: "Tickets",
 				suffix: "",
-				active: current && !diffs && !epics && !sessions,
+				active: current && tickets && !sessions,
 				trailing: null,
 				activeAgentCount: 0,
 			},

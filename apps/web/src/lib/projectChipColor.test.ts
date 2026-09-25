@@ -10,6 +10,7 @@ const project = (key: string, color: ProjectSummary["color"]): ProjectSummary =>
 	position: 0,
 	openCount: 0,
 	openEpicCount: 0,
+	openPageCommentCount: 0,
 	color,
 	archivedAt: null,
 });

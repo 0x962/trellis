@@ -13,6 +13,8 @@ import {
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
+import { PageListSkeleton } from "../../../features/pages/PageList/components/PageListSkeleton";
+import { isCanonicalPageSearch, type PageSearch, parsePageSearch } from "../../../features/pages/PageList/pageSearch";
 import { ArchivedBanner } from "../../../features/project-actions";
 import { projectSettingsSection } from "../../../features/project-settings";
 import { ListFooter } from "../../../features/shell/ListFooter";
@@ -41,6 +43,24 @@ const EpicsPage = lazy(async () => ({
 const EpicPage = lazy(async () => ({
 	default: (await import("../../../features/epics/EpicPage")).EpicPage,
 }));
+const PageList = lazy(async () => ({
+	default: (await import("../../../features/pages/PageList")).PageList,
+}));
+
+type ProjectRouteSearch = Partial<View> & PageSearch;
+
+const parseProjectSearch = (raw: Record<string, unknown>): ProjectRouteSearch => ({
+	...keepEpicPageChoices(raw, stripDefaults(parseSearch(raw))),
+	...parsePageSearch(raw),
+});
+
+const ticketSearchOf = ({
+	author: _author,
+	watcher: _watcher,
+	comment: _comment,
+	pin: _pin,
+	...search
+}: ProjectRouteSearch) => search;
 
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
@@ -52,17 +72,16 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 		input: { project: ref, ...toCountsQuery(viewOf(search), { statuses }) },
 	});
 
-// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`,
-// `/p/CDE/notes`, `/p/CDE/diffs`, `/p/CDE/epics`, and `/p/CDE/epics/<slug>`.
-// The splat is `[key, ...slugs, view?]`, and the epic view takes two
-// segments. The URL keeps slashes, and the API ref joins with dots. The URL
-// omits the default view.
+// `/p/CDE` and its reserved view segments share this route. An epic and a
+// Page add their slug after `epics` or `pages`. The URL omits the board
+// segment because the board is the default project view.
 export const Route = createFileRoute("/p/$")({
 	// The epic page groups by wave when the URL names no group, and lists
-	// So `group=status` and `scope=self` are choices there, and the validated
+	// all tickets when the URL names no scope. So `group=status` and
+	// `scope=self` are choices there, and the validated
 	// search keeps them. On every other view `beforeLoad` redirects them away
 	// as written defaults.
-	validateSearch: (search: Record<string, unknown>) => keepEpicPageChoices(search, stripDefaults(parseSearch(search))),
+	validateSearch: parseProjectSearch,
 	beforeLoad: ({ location, params, search }) => {
 		// The board is the bare path now. An older link that ends in /board
 		// still works: it lands on the same view with the segment dropped.
@@ -75,14 +94,22 @@ export const Route = createFileRoute("/p/$")({
 		// of a project open the sheet, then redirect to the tickets of that
 		// project.
 		const { ref, view } = parseProjectSplat(splat);
+		const ticketSearch = ticketSearchOf(search);
+		if (view === "pages" || view === "page") {
+			const pageSearch = parsePageSearch(search);
+			if (!isCanonicalPageSearch(location.searchStr, pageSearch)) {
+				throw redirect({ to: "/p/$", params: { _splat: splat }, search: pageSearch, replace: true });
+			}
+			return;
+		}
 		if (view === "settings" || view === "notes") {
 			pageSheetActions.openProjectSettings({ project: ref, section: projectSettingsSection(view, location.hash) });
-			throw redirect({ to: "/p/$", params: { _splat: ref }, search, replace: true });
+			throw redirect({ to: "/p/$", params: { _splat: ref }, search: ticketSearch, replace: true });
 		}
 		if (view === "epic") {
 			const phone = window.matchMedia("(max-width: 767px)").matches;
-			if (!isCanonicalEpicSearch(location.searchStr, search, phone)) {
-				const canonical = epicUrlSearch(epicPageSearch(search, "", phone), phone);
+			if (!isCanonicalEpicSearch(location.searchStr, ticketSearch, phone)) {
+				const canonical = epicUrlSearch(epicPageSearch(ticketSearch, "", phone), phone);
 				throw redirect({ to: "/p/$", params: { _splat: splat }, search: canonical, replace: true });
 			}
 			return;
@@ -92,10 +119,10 @@ export const Route = createFileRoute("/p/$")({
 		// old link with `group=waiting` on a board or a table drops the param, so
 		// the view takes its own default grouping. `tab` names a tab of the
 		// epic page, so a board or a table drops it too.
-		const { tab, ...withoutTab } = search;
+		const { tab, ...withoutTab } = ticketSearch;
 		const { group, ...withoutGroup } = withoutTab;
-		const listSearch = group === "waiting" ? withoutGroup : tab !== undefined ? withoutTab : search;
-		if (listSearch !== search || !isCanonicalSearch(location.searchStr, listSearch)) {
+		const listSearch = group === "waiting" ? withoutGroup : tab !== undefined ? withoutTab : ticketSearch;
+		if (listSearch !== ticketSearch || !isCanonicalSearch(location.searchStr, listSearch)) {
 			throw redirect({ to: "/p/$", params: { _splat: splat }, search: stripDefaults(listSearch), replace: true });
 		}
 	},
@@ -104,7 +131,7 @@ export const Route = createFileRoute("/p/$")({
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
 		if (view === "board" || view === "table") {
-			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
+			await context.queryClient.ensureQueryData(countsOptions(context, ref, ticketSearchOf(deps), project.statuses));
 		}
 	},
 	component: ProjectPage,
@@ -119,7 +146,9 @@ export const Route = createFileRoute("/p/$")({
 
 function ProjectPage() {
 	const _splat = Route.useParams()._splat ?? "";
-	const search = Route.useSearch();
+	const routeSearch = Route.useSearch();
+	const search = ticketSearchOf(routeSearch);
+	const pageSearch = parsePageSearch(routeSearch);
 	const navigate = useNavigate();
 	const context = useApp();
 	const storedDensity = useUiStore((state) => state.density);
@@ -128,7 +157,23 @@ function ProjectPage() {
 	const full = viewOf(search);
 	const routeKey = projectHref(ref);
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
-	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
+	const counts = useQuery({
+		...countsOptions(context, ref, search, project.statuses),
+		enabled: view === "board" || view === "table",
+	}).data;
+
+	if (view === "pages" || view === "page") {
+		return (
+			<Suspense fallback={<PageListPending />}>
+				<PageList
+					key={project.id}
+					project={project}
+					search={pageSearch}
+					onSearchChange={(next) => navigate({ to: "/p/$", params: { _splat }, search: next })}
+				/>
+			</Suspense>
+		);
+	}
 
 	if (view === "diffs") {
 		return (
@@ -174,8 +219,8 @@ function ProjectPage() {
 
 	const archived = project.archivedAt !== null;
 	// `beforeLoad` redirects the settings URL and the notes URL of a project
-	// to the tickets of that project, and the branches above answer the diffs
-	// view and the epic views. The view left here is the board or the table.
+	// to the tickets of that project. The branches above answer the Pages,
+	// diffs, and epic views. The view left here is the board or the table.
 	const listView: ListView = view === "table" ? "table" : "board";
 
 	// The server refuses every write to an archived project. The disabled
@@ -232,7 +277,21 @@ function ProjectPage() {
 function ProjectPending() {
 	const params = useParams({ strict: false });
 	const { view } = parseProjectSplat(params._splat ?? "");
+	if (view === "pages" || view === "page") return <PageListPending />;
 	return <ListPending view={view === "board" ? "board" : "table"} />;
+}
+
+function PageListPending() {
+	return (
+		<>
+			<Topbar>
+				<PageTitle title="Pages" />
+			</Topbar>
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				<PageListSkeleton />
+			</div>
+		</>
+	);
 }
 
 // A splat that names no project.
