@@ -11,6 +11,7 @@ import { seen } from "../services/agentRuns/attention.ts";
 import { startNative } from "../services/agentRuns/nativeStart.ts";
 import { getRun } from "../services/agentRuns/queries.ts";
 import { reserve } from "../services/agentRuns/reserve.ts";
+import { sessionIdsForRuns } from "../services/sessions";
 import { prepareCreate } from "../services/sessions/create.ts";
 import { getSession, listSessions } from "../services/sessions/queries.ts";
 import { prepareDelete } from "../services/sessions/remove.ts";
@@ -300,11 +301,14 @@ test("completion acknowledgement is monotonic and rejects a replaced attempt", a
 test("alert activity includes ticket agents and sessions but excludes flow agents", async () => {
 	const sessions = await db.transaction(listSessions);
 	const entries = await db.transaction(activityRows);
+	const sessionIds = await db.transaction((tx) =>
+		sessionIdsForRuns(ctx.core, tx, { runIds: entries.map((run) => run.id) }),
+	);
 	const ticketRun = entries.find((run) => run.ticketId === ticketId)!;
 	expect(ticketRun.kind).toBe("agent");
-	expect(ticketRun.activitySessionId).toBeNull();
+	expect(sessionIds[ticketRun.id] ?? null).toBeNull();
 	const standalone = sessions.find((entry) => entry.name === "scratch")!;
-	expect(entries.find((run) => run.id === standalone.runId)!.activitySessionId).toBe(standalone.id);
+	expect(sessionIds[standalone.runId]).toBe(standalone.id);
 	await db.execute(sql`UPDATE agent_runs SET kind='flow' WHERE id=${ticketRun.id}`);
 	expect((await db.transaction(activityRows)).some((run) => run.id === ticketRun.id)).toBe(false);
 	expect((await db.transaction((tx) => getRun(tx, ticketRun.id))).kind).toBe("flow");

@@ -16,7 +16,7 @@ export const sessions = pgTable(
 	{
 		id: text().primaryKey(),
 		name: text().notNull(),
-		titleState: text("title_state").notNull().default("set"),
+		nameState: text("name_state").notNull().default("set"),
 		directory: text().notNull(),
 		harness: jsonb().notNull(),
 		runId: text("run_id")
@@ -27,10 +27,10 @@ export const sessions = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		// The name is what a person typed, with the spaces around it
-		// removed, 1 to 60 characters. Two sessions may hold one name.
+		// The name is what a person typed, with the spaces around it removed, 1 to 60 characters.
+		// Two sessions can use the same name.
 		check("sessions_name_check", sql`${t.name} = btrim(${t.name}) AND char_length(${t.name}) BETWEEN 1 AND 60`),
-		check("sessions_title_state_check", sql`${t.titleState} IN ('temporary', 'requested', 'set')`),
+		check("sessions_name_state_check", sql`${t.nameState} IN ('temporary', 'requested', 'set')`),
 		unique("sessions_run_id_unique").on(t.runId),
 	],
 );

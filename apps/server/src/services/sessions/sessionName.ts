@@ -1,9 +1,10 @@
 export const temporarySessionName = "New session";
 
-// The directory-safe form of a session name: lowercase letters, digits, and
-// single dashes, at most 40 characters, with no dash at either end. A name
-// written only in punctuation or in another script gives an empty string,
-// and the caller then uses `new-session` for the directory.
+// The folder form of a session name uses lowercase letters, digits, and single dashes.
+// The name holds at most 40 characters.
+// It starts and ends with a letter or a digit.
+// A name with only punctuation or non-Latin letters gives an empty string.
+// The caller then uses `new-session` for the directory.
 export const sessionSlug = (name: string) =>
 	name
 		.toLowerCase()
@@ -12,11 +13,12 @@ export const sessionSlug = (name: string) =>
 		.slice(0, 40)
 		.replace(/-+$/g, "");
 
-// Picks the folder name for a scratch session repository. Two sessions may
-// hold one display name, but two folders in `sessions/` cannot, so the
-// second one gets `-2`, `-3`, and so on. A suffix never pushes the folder
-// name past 40 characters. `taken` holds the folder names that already
-// exist, both on disk and in the sessions table.
+// The folder of a session without a project needs a unique name.
+// Two sessions can use the same display name.
+// Two folders cannot use the same name.
+// The second folder adds `-2`, `-3`, and so on.
+// A suffix keeps the folder name within 40 characters.
+// `taken` holds the folder names from disk and from the sessions table.
 export const uniqueDirectoryName = (slug: string, taken: ReadonlySet<string>) => {
 	if (!taken.has(slug)) return slug;
 	for (let count = 2; ; count++) {

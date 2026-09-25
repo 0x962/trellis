@@ -3,11 +3,11 @@ import { HarnessSchema } from "../harness/harness.ts";
 import { AgentRunSchema } from "./agentRun.ts";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-// The name a person gave the session, the temporary name, or the title that
-// an agent wrote from the first exchange. Two sessions may hold one name.
+// The name stores user input, the temporary name, or the agent name from the first exchange.
+// Two sessions can use the same name.
 export const SessionNameSchema = z.string().trim().min(1, "Enter a name.").max(60);
-export const SessionGeneratedTitleSchema = SessionNameSchema.refine(
-	(title) => title.split(/\s+/).length <= 8,
+export const SessionGeneratedNameSchema = SessionNameSchema.refine(
+	(name) => name.split(/\s+/).length <= 8,
 	"Use eight words or fewer.",
 );
 
@@ -45,7 +45,7 @@ export const SessionCreateInputSchema = z
 		requestId: z.string().uuid().optional(),
 		files: z.array(z.file()).max(20).optional(),
 		name: SessionNameSchema.optional().describe(
-			"The session name, stored as it is typed. Omit it to show New session until the first exchange supplies a title.",
+			"The session name, stored as it is typed. Omit it to show New session until the first exchange supplies a name.",
 		),
 		prompt: z.string().trim().max(20000).describe("The initial prompt sent to the agent."),
 		harness: HarnessSchema.optional().describe("The agent program, model, and effort. Sessions default to Claude."),
