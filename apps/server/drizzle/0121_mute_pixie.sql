@@ -1,0 +1,2 @@
+ALTER TABLE "sessions" ADD COLUMN "title_state" text DEFAULT 'set' NOT NULL;--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_title_state_check" CHECK ("sessions"."title_state" IN ('temporary', 'requested', 'set'));

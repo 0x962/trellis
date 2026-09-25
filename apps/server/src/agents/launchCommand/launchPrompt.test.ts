@@ -27,6 +27,7 @@ const run: Parameters<typeof launchPrompt>[0]["run"] = {
 	sessionId: null,
 	sessionLost: false,
 	closedAt: null,
+	activityAt: "2026-09-17T00:00:00.000Z",
 	createdAt: "2026-09-17T00:00:00.000Z",
 	updatedAt: "2026-09-17T00:00:00.000Z",
 };

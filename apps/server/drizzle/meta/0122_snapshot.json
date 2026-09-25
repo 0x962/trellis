@@ -1,6 +1,6 @@
 {
-  "id": "776d69f7-1949-4087-8ac4-5aa840f1509d",
-  "prevId": "a23a63fd-c887-4b0f-9c45-6de0f5a9933f",
+  "id": "608bb589-6444-4c13-97b4-da4ddeb16f27",
+  "prevId": "776d69f7-1949-4087-8ac4-5aa840f1509d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1510,6 +1510,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "is_queued": {
+          "name": "is_queued",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "queue_position": {
+          "name": "queue_position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp (3) with time zone",
@@ -1561,7 +1574,7 @@
       "checkConstraints": {
         "check_notices_kind_check": {
           "name": "check_notices_kind_check",
-          "value": "\"check_notices\".\"kind\" IN ('failed', 'passed', 'stuck', 'conflict', 'clear')"
+          "value": "\"check_notices\".\"kind\" IN ('failed', 'passed', 'stuck', 'conflict', 'clear', 'queued', 'dequeued', 'merged')"
         },
         "check_notices_checks_check": {
           "name": "check_notices_checks_check",
@@ -5215,6 +5228,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "queue_position": {
+          "name": "queue_position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "local_state": {
           "name": "local_state",

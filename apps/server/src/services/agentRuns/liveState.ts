@@ -115,8 +115,18 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], hom
 					: process.exitCode !== null && process.exitCode !== 0
 						? "failed"
 						: "exited";
+	const activityAt = [
+		process.startedAt,
+		process.endedAt,
+		process.activity?.updatedAt,
+		process.agent?.lastMessage?.at,
+		process.agent?.lastTool?.updatedAt,
+	]
+		.filter((at): at is string => at !== null && at !== undefined)
+		.reduce<string | null>((latest, at) => (latest === null || at > latest ? at : latest), metadata.activityAt);
 	return {
 		...metadata,
+		activityAt,
 		assigned: run.closedAt === null,
 		state,
 		processStatus: process.status,
