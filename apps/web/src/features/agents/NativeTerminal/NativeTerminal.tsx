@@ -2,6 +2,7 @@ import type { AgentRun } from "@trellis/api";
 import { Badge, cx, EmptyState } from "@trellis/ui";
 import type { TerminalConnectionState, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import type { DesktopBridge } from "../../../lib/desktopBridge";
 import { useSessionAttention } from "../../sessions/useSessionAttention";
 import { nativeTerminalTransport } from "./nativeTerminalTransport";
 import { useTerminalAccessibility } from "./useTerminalAccessibility";
@@ -24,6 +25,7 @@ export function NativeTerminal({
 	onLeave?: () => void;
 }) {
 	useSessionAttention(run, !readOnly);
+	const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 	const screenReaderMode = useTerminalAccessibility();
 	const heading = useRef<HTMLHeadingElement>(null);
 	const [connection, setConnection] = useState<TerminalConnectionState>({
@@ -86,6 +88,7 @@ export function NativeTerminal({
 					layout={layout}
 					label={`Terminal input for ${run.name}`}
 					readOnly={readOnly}
+					getPathForFile={desktop?.getPathForFile}
 					autoFocus={autoFocus}
 					autoFocusDelay={autoFocusDelay}
 					stopped={run.processStatus === "exited"}

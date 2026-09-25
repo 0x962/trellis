@@ -91,6 +91,14 @@ Concurrent views use separate instances.
 The registry retains at most 12 parked instances for five minutes.
 Process exit, connection failure while parked, cache eviction, and page teardown dispose the instance.
 
+The desktop preload resolves a dropped `File` with Electron `webUtils.getPathForFile`.
+A writable terminal inserts the escaped paths in drop order, with one space between paths and no Enter.
+The terminal uses backslash escapes for shell characters and rejects paths with control characters or line separators.
+The drop handler reads no file content and transfers no file.
+A browser without the desktop bridge inserts nothing.
+Read-only, stopped, detached, and disconnected terminals insert nothing.
+Text drags and app drags keep their existing behavior.
+
 The desktop reports the OS accessibility state through its preload bridge.
 The terminal enables xterm's screen reader DOM only when that state requires it.
 An accessibility change updates the current terminal without a reconnect.

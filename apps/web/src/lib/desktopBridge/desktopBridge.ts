@@ -36,6 +36,7 @@ export type DesktopUpdateStatus = {
 
 export type DesktopBridge = {
 	platform: string;
+	getPathForFile?: (file: File) => string;
 	sessionVisible?: (runId: string | null) => Promise<void>;
 	previewNotification?: (volume: number) => Promise<void>;
 	refreshThermalState?: () => Promise<DesktopThermalSample>;
