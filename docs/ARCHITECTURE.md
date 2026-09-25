@@ -678,8 +678,14 @@ A session holds an agent conversation, its workspace, and its saved harness sett
 A project session uses the same reservation, native launch, and Git worktree functions as a ticket agent.
 The worktree lives under `agents/<run id>/work` in the data home and starts from the configured repository HEAD.
 A session without a project uses `sessions/<name>`, a Git repository on `main` with one empty commit.
-The session name contains lowercase letters, digits, and dashes, at most 40 characters.
-An omitted name takes a generated `<adjective>-<noun>`. A taken name gets a numeric suffix.
+The session name contains 1 to 60 characters. Two sessions can hold the same name.
+An omitted name starts as `New session`.
+After the first complete exchange, a separate agent writes a short title and the existing rename service saves it.
+The title request runs once and does not use the saved conversation.
+A user rename before or during that request wins.
+The internal title state is `temporary`, `requested`, or `set`.
+This state makes two completion events claim one title request.
+It also keeps later messages, resumes, and server restarts from making another title.
 The `sessions` row keeps the name, directory, harness, and run. The run holds the project, conversation, and process attempts.
 The launch accepts a harness, model, effort, account, prompt, and files. A project session receives the prompt that the person entered.
 Files live under `agents/<run id>/attachments/<content hash>/`. The agent receives their absolute paths.
@@ -1060,7 +1066,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
 | provider_models | provider_id (FK providers CASCADE), model_id (CHECK 1 to 200, no space or control character). PK (provider_id, model_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
-| sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
+| sessions | id PK, name (CHECK trimmed, 1 to 60), title_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -1161,7 +1167,7 @@ returns one canonical spelling.
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
-| sessions.create | POST /api/sessions | 201 and `Location`; a prompt or files, optional project, name, harness, account, and request ID |
+| sessions.create | POST /api/sessions | 201 and `Location`; a prompt or files, optional project, name, harness, account, and request ID; an omitted name starts as New session |
 | sessions.start | POST /api/sessions/{id}/start | resumes the saved conversation, or starts again from the prompt |
 | sessions.delete | DELETE /api/sessions/{id} | stops the agent and removes the directory; the run stays as history |
 | search.query | GET /api/search | tickets and projects |

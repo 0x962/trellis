@@ -54,8 +54,8 @@ export async function createProjectSession(
 		const directory = agentWorkspace(ctx.home, reservation.run.id);
 		const [session] = await rows<Session>(
 			tx,
-			sql`INSERT INTO sessions (id,name,directory,harness,run_id,created_at,updated_at)
-			VALUES (${ulid()},${reservation.run.name},${directory},${JSON.stringify(reservation.config.harness)}::jsonb,${reservation.run.id},${ctx.now()},${ctx.now()}) RETURNING ${sessionColumns}`,
+			sql`INSERT INTO sessions (id,name,title_state,directory,harness,run_id,created_at,updated_at)
+			VALUES (${ulid()},${reservation.run.name},${input.name === undefined ? "temporary" : "set"},${directory},${JSON.stringify(reservation.config.harness)}::jsonb,${reservation.run.id},${ctx.now()},${ctx.now()}) RETURNING ${sessionColumns}`,
 		);
 		return { ...reservation, session: session! };
 	});
