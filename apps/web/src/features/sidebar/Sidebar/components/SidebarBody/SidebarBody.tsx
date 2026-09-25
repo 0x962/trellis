@@ -1,4 +1,5 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useEffect } from "react";
@@ -7,7 +8,7 @@ import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { projectMoreActions } from "../../../../../stores/projectMoreStore";
 import { uiActions } from "../../../../../stores/uiStore";
-import { type NavTarget, navRows } from "../../../../navRows";
+import { menuLinkIcons, type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
@@ -52,7 +53,8 @@ export type SidebarBodyProps = {
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
-	const { live } = useApp();
+	const { live, orpc } = useApp();
+	const menuLinks = useQuery(orpc.settings.get.queryOptions({ select: (settings) => settings.menuLinks })).data;
 	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
@@ -115,6 +117,15 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					/>
 				))}
 				<SidebarMachinePressure collapsed={collapsed} />
+				{menuLinks?.map((link) => (
+					<NavRow
+						key={link.id}
+						icon={menuLinkIcons[link.icon]}
+						label={link.label}
+						accessibleLabel={collapsed ? link.label : undefined}
+						browserUrl={link.url}
+					/>
+				))}
 			</nav>
 			{/* The `hidden` attribute draws in the base layer of the stylesheet and
 			    a display utility draws in the utilities layer, which wins. So the
