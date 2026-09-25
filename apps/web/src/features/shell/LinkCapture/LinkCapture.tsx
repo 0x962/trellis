@@ -29,7 +29,7 @@ export function LinkCapture() {
 				event.preventDefault();
 				void client.internalLinks
 					.resolve({ link: internal })
-					.then(({ path }) => navigate({ href: path }))
+					.then(({ href }) => navigate({ href }))
 					.catch((error: unknown) =>
 						toast.error("The Trellis link did not open", { description: errorMessage(error) }),
 					);

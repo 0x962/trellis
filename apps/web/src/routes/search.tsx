@@ -34,8 +34,8 @@ export const Route = createFileRoute("/search")({
 	loaderDeps: ({ search }) => ({ q: search.q, rankProject: search.rankProject, internalLink: search.internalLink }),
 	loader: async ({ context, deps }) => {
 		if (deps.internalLink !== undefined) {
-			const { path } = await context.client.internalLinks.resolve({ link: deps.internalLink });
-			throw redirect({ href: path, replace: true });
+			const { href } = await context.client.internalLinks.resolve({ link: deps.internalLink });
+			throw redirect({ href, replace: true });
 		}
 		if (deps.q !== undefined) {
 			await context.queryClient.ensureQueryData(

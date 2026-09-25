@@ -60,14 +60,14 @@ beforeAll(async () => {
 afterAll(async () => db.$client.close());
 
 test("resolves every supported record ID to its current route", async () => {
-	expect(await pathOf("page", ids.page)).toEqual({ path: "/p/TRL/pages/link-guide" });
-	expect(await pathOf("pr", ids.pullRequest)).toEqual({ path: "/reviews/acme/app/12" });
-	expect(await pathOf("ticket", ids.ticket)).toEqual({ path: "/t/TRL-480" });
+	expect(await pathOf("page", ids.page)).toEqual({ href: "/p/TRL/pages/link-guide" });
+	expect(await pathOf("pr", ids.pullRequest)).toEqual({ href: "/reviews/acme/app/12" });
+	expect(await pathOf("ticket", ids.ticket)).toEqual({ href: "/t/TRL-480" });
 	expect(await pathOf("resource", ids.resource)).toEqual({
-		path: `/p/TRL/epics/internal-links?tab=resources#${ids.resource}`,
+		href: `/p/TRL/epics/internal-links?tab=resources#${ids.resource}`,
 	});
-	expect(await pathOf("epic", ids.epic)).toEqual({ path: "/p/TRL/epics/internal-links" });
-	expect(await pathOf("session", ids.session)).toEqual({ path: `/sessions/${ids.session}` });
+	expect(await pathOf("epic", ids.epic)).toEqual({ href: "/p/TRL/epics/internal-links" });
+	expect(await pathOf("session", ids.session)).toEqual({ href: `/sessions/${ids.session}` });
 });
 
 test("keeps each link after route names change", async () => {
@@ -80,14 +80,14 @@ test("keeps each link after route names change", async () => {
 		url = 'https://github.com/other/renamed/pull/99' WHERE id = ${ids.pullRequest}`);
 	await db.execute(sql`UPDATE sessions SET name = 'Renamed session' WHERE id = ${ids.session}`);
 
-	expect(await pathOf("page", ids.page)).toEqual({ path: "/p/NEW/pages/renamed-page" });
-	expect(await pathOf("pr", ids.pullRequest)).toEqual({ path: "/reviews/other/renamed/99" });
-	expect(await pathOf("ticket", ids.ticket)).toEqual({ path: "/t/NEW-480" });
+	expect(await pathOf("page", ids.page)).toEqual({ href: "/p/NEW/pages/renamed-page" });
+	expect(await pathOf("pr", ids.pullRequest)).toEqual({ href: "/reviews/other/renamed/99" });
+	expect(await pathOf("ticket", ids.ticket)).toEqual({ href: "/t/NEW-480" });
 	expect(await pathOf("resource", ids.resource)).toEqual({
-		path: `/p/NEW/epics/renamed-epic?tab=resources#${ids.resource}`,
+		href: `/p/NEW/epics/renamed-epic?tab=resources#${ids.resource}`,
 	});
-	expect(await pathOf("epic", ids.epic)).toEqual({ path: "/p/NEW/epics/renamed-epic" });
-	expect(await pathOf("session", ids.session)).toEqual({ path: `/sessions/${ids.session}` });
+	expect(await pathOf("epic", ids.epic)).toEqual({ href: "/p/NEW/epics/renamed-epic" });
+	expect(await pathOf("session", ids.session)).toEqual({ href: `/sessions/${ids.session}` });
 });
 
 test("reports a deleted Page and a missing record", async () => {
