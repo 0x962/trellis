@@ -16,7 +16,7 @@ import { resumeIdleSession } from "../../agentRuns/resumeIdleSession";
 import type { IoCtx } from "../../support.ts";
 import { create } from "../../tickets/create.ts";
 import { dispatchDeliveries } from "../dispatchDeliveries.ts";
-import { enqueueCheckDeliveries } from "../enqueueCheckDeliveries.ts";
+import { enqueueNoticeDeliveries } from "../enqueueNoticeDeliveries.ts";
 
 export async function fixture() {
 	const db = await openTestDb();
@@ -163,7 +163,7 @@ export async function fixture() {
 		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
 			VALUES (${ticket.id},${prId},'manual','qa','human',${at})`);
 		await ctx.newTx((tx) =>
-			enqueueCheckDeliveries(tx, {
+			enqueueNoticeDeliveries(tx, {
 				prId,
 				headSha: "head",
 				kind,

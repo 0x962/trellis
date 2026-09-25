@@ -12,7 +12,7 @@ import { recipientsOf } from "./enqueueReviewDeliveries.ts";
 // the person reads the checks on the page. A notice describes the pull
 // request and no agent writes it, so it has no author and it reaches every
 // ticket.
-export const enqueueCheckDeliveries = async (
+export const enqueueNoticeDeliveries = async (
 	tx: Tx,
 	input: {
 		prId: string;

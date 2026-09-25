@@ -5,7 +5,7 @@ import { withTx } from "../db/tx.ts";
 import { completeMergedPullRequestTickets } from "../services/tickets/completeMergedPullRequests.ts";
 import { fetchPullRequests } from "./graphql.ts";
 import { type DueRow, isDue, refOf, selectCandidates } from "./pollerDue.ts";
-import { noticeChecks } from "./pollerNotices.ts";
+import { noticePullRequests } from "./pollerNotices.ts";
 import { type Polled, type PolledFailure, storeFetchErrors, writePolled } from "./pollerWrite.ts";
 import { readRateLimit } from "./ratelimit.ts";
 import type { GhRunner } from "./run.ts";
@@ -178,7 +178,7 @@ const tick = async (hook: PollerHook, state: PollerState) => {
 	if (!(await checkGh(hook, state, atMs))) return;
 	await readBudget(hook, state, atMs);
 	await pollDue(hook, state, at);
-	await noticeChecks(hook.db, hook.gh, at, hook.log);
+	await noticePullRequests(hook.db, hook.gh, at, hook.log);
 	await withTx(hook.db, (tx, emit) => completeMergedPullRequestTickets(serviceCtx(hook, emit, at), tx), hook.sink);
 };
 

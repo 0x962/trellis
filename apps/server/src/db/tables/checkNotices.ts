@@ -1,20 +1,9 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { CHECK_NOTICE_KINDS } from "../../noticeKind/index.ts";
 import { checkIn } from "../enums.ts";
 import { at } from "./actors.ts";
 import { pullRequests } from "./pullRequests.ts";
-
-// Each kind belongs to the checks, merge conflict, or merge queue family.
-// A decision function reads only the kinds in its family.
-export const CONFLICT_NOTICE_KINDS = ["conflict", "clear"] as const;
-export const QUEUE_NOTICE_KINDS = ["queued", "dequeued", "merged"] as const;
-export const CHECK_NOTICE_KINDS = [
-	"failed",
-	"passed",
-	"stuck",
-	...CONFLICT_NOTICE_KINDS,
-	...QUEUE_NOTICE_KINDS,
-] as const;
 
 // One row is one change in the GitHub checks, merge conflict, or merge queue
 // state that the agents of its tickets must hear about. `head_sha` is the

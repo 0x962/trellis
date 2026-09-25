@@ -3,12 +3,13 @@ import { sql } from "drizzle-orm";
 import { iso, rows } from "../db/queries/support.ts";
 import { type Tx, withTx } from "../db/tx.ts";
 import type { JobsLog } from "../jobs.ts";
-import { enqueueCheckDeliveries } from "../services/reviews/enqueueCheckDeliveries.ts";
+import { isQueueNoticeKind } from "../noticeKind/index.ts";
+import { enqueueNoticeDeliveries } from "../services/reviews/enqueueNoticeDeliveries.ts";
 import { recipientsOf } from "../services/reviews/enqueueReviewDeliveries.ts";
 import { decideNotice, type NoticeDecision, type StoredNotice } from "./checkNotice.ts";
 import { decideConflictNotice, isConflictKind } from "./conflictNotice.ts";
 import { failureLines } from "./failureLines.ts";
-import { decideQueueNotice, isQueueKind } from "./queueNotice.ts";
+import { decideQueueNotice } from "./queueNotice/index.ts";
 import type { GhRunner } from "./run.ts";
 
 // The last step of every poller tick reads the stored checks, merge conflict,
@@ -44,7 +45,7 @@ type Subject = {
 type Due = { subject: Subject; decision: NoticeDecision };
 
 // Each open pull request, plus a closed pull request whose last queue notice
-// says it entered the queue. The notice list uses oldest-first order.
+// says it entered the queue.
 const selectSubjects = (tx: Tx) =>
 	rows<Subject>(
 		tx,
@@ -68,9 +69,11 @@ const selectSubjects = (tx: Tx) =>
 const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 	const due: Due[] = [];
 	for (const subject of await selectSubjects(tx)) {
-		const checkNotices = subject.notices.filter((notice) => !isConflictKind(notice.kind) && !isQueueKind(notice.kind));
+		const checkNotices = subject.notices.filter(
+			(notice) => !isConflictKind(notice.kind) && !isQueueNoticeKind(notice.kind),
+		);
 		const conflictNotices = subject.notices.filter((notice) => isConflictKind(notice.kind));
-		const queueNotices = subject.notices.filter((notice) => isQueueKind(notice.kind));
+		const queueNotices = subject.notices.filter((notice) => isQueueNoticeKind(notice.kind));
 		const decisions = [
 			decideQueueNotice(subject, queueNotices),
 			decideNotice(subject, checkNotices, at.getTime()),
@@ -95,13 +98,13 @@ const withLines = async (gh: GhRunner, { subject, decision }: Due): Promise<Due>
 
 // `log` writes one line per notice, so a person reads from the log which
 // pull request produced a notice, on which commit, and for how many tickets.
-export const noticeChecks = async (db: Db, gh: GhRunner, at: Date, log: JobsLog = () => undefined) => {
+export const noticePullRequests = async (db: Db, gh: GhRunner, at: Date, log: JobsLog = () => undefined) => {
 	const { result: due } = await withTx(db, (tx) => selectDue(tx, at));
 	const filled: Due[] = [];
 	for (const entry of due) filled.push(await withLines(gh, entry));
 	await withTx(db, async (tx) => {
 		for (const { subject, decision } of filled) {
-			const recipients = await enqueueCheckDeliveries(tx, {
+			const recipients = await enqueueNoticeDeliveries(tx, {
 				prId: subject.id,
 				headSha: subject.headSha!,
 				kind: decision.kind,
@@ -114,6 +117,8 @@ export const noticeChecks = async (db: Db, gh: GhRunner, at: Date, log: JobsLog 
 				pr: subject.url,
 				kind: decision.kind,
 				head: subject.headSha,
+				isQueued: subject.isQueued,
+				queuePosition: subject.queuePosition,
 				tickets: recipients.map((recipient) => recipient.ticketId),
 			});
 		}

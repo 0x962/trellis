@@ -2,8 +2,8 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { type SQL, sql } from "drizzle-orm";
 import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
-import { CONFLICT_NOTICE_KINDS, QUEUE_NOTICE_KINDS } from "../../db/tables/checkNotices.ts";
 import type { Tx } from "../../db/tx.ts";
+import { CONFLICT_NOTICE_KINDS, QUEUE_NOTICE_KINDS } from "../../noticeKind/index.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { deliveryTarget } from "../agentRuns/deliveryTarget.ts";
 import { launchState } from "../agentRuns/launchState";
@@ -197,7 +197,7 @@ const outcomeOf = (failure: unknown) => {
 	return text === unconfirmedDelivery ? { state: "unknown", error: text } : { state: "failed", error: text };
 };
 
-// `sessions` holds live and idle processes. A due comment, check result, or queue notice can restart an idle run.
+// A due comment, check result, or queue notice can restart an idle run.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],

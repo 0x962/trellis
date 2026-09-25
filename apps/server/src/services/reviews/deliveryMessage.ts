@@ -1,5 +1,5 @@
 import { type CheckNoticeKind, type NoticeCheck, STUCK_MS } from "../../gh/checkNotice.ts";
-import type { QueueNoticeKind } from "../../gh/queueNotice.ts";
+import type { QueueNoticeKind } from "../../noticeKind/index.ts";
 
 // The text that an agent reads when a review delivery reaches its terminal.
 

@@ -3,7 +3,7 @@ import { rows, textArray } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import type { CheckNoticeKind, NoticeCheck } from "../../../gh/checkNotice.ts";
 import { isConflictKind } from "../../../gh/conflictNotice.ts";
-import { isQueueKind } from "../../../gh/queueNotice.ts";
+import { isQueueNoticeKind } from "../../../noticeKind/index.ts";
 import { type DeliveryTarget, deliveryTarget } from "../../agentRuns/deliveryTarget.ts";
 import {
 	type CommentNote,
@@ -34,7 +34,7 @@ type ReviewRow = Queued & {
 	body: string;
 };
 type CommentRow = Pending & CommentNote & { url: string; prId: string };
-type CheckRow = Pending & {
+type NoticeRow = Pending & {
 	url: string;
 	baseRef: string;
 	headSha: string;
@@ -132,8 +132,8 @@ const pendingComments = async (tx: Tx, terminals: string[], idleTerminals: strin
 	}));
 };
 
-const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[]): Promise<Delivery[]> => {
-	const found = await rows<CheckRow>(
+const pendingNotices = async (tx: Tx, terminals: string[], idleTerminals: string[]): Promise<Delivery[]> => {
+	const found = await rows<NoticeRow>(
 		tx,
 		sql`SELECT delivery.id, delivery.ticket_id AS "ticketId", pr.url AS "url",
 			pr.base_ref AS "baseRef", notice.head_sha AS "headSha",
@@ -152,13 +152,13 @@ const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[
 	const resumable = await targetsFor(
 		tx,
 		found
-			.filter((row) => ["failed", "passed", "stuck"].includes(row.kind) || isQueueKind(row.kind))
+			.filter((row) => ["failed", "passed", "stuck"].includes(row.kind) || isQueueNoticeKind(row.kind))
 			.map((row) => row.ticketId),
 		[...terminals, ...idleTerminals],
 	);
 	return found.flatMap((row) => {
 		const target =
-			["failed", "passed", "stuck"].includes(row.kind) || isQueueKind(row.kind)
+			["failed", "passed", "stuck"].includes(row.kind) || isQueueNoticeKind(row.kind)
 				? resumable.get(row.ticketId)
 				: live.get(row.ticketId);
 		return target
@@ -166,7 +166,7 @@ const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[
 					{
 						...target,
 						ids: [row.id],
-						text: isQueueKind(row.kind)
+						text: isQueueNoticeKind(row.kind)
 							? queueMessage({
 									url: row.url,
 									kind: row.kind,
@@ -184,5 +184,5 @@ const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[
 export const pendingDeliveries = async (tx: Tx, terminals: string[], idleTerminals: string[]) => [
 	...(await pendingReviews(tx, terminals)),
 	...(await pendingComments(tx, terminals, idleTerminals)),
-	...(await pendingChecks(tx, terminals, idleTerminals)),
+	...(await pendingNotices(tx, terminals, idleTerminals)),
 ];
