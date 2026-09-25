@@ -87,6 +87,7 @@ const row = (
 	state,
 	isDraft: false,
 	isQueued: false,
+	queuePosition: null,
 	headSha,
 	headRef: "fix",
 	baseRef: "main",
@@ -127,6 +128,14 @@ const notices = async (prId: string) =>
 			sql`SELECT kind, head_sha AS "headSha", checks FROM check_notices WHERE pr_id = ${prId} ORDER BY created_at, id`,
 		)
 	).rows as { kind: string; headSha: string; checks: { name: string; lines: string[] }[] }[];
+
+const queueNotices = async (prId: string) =>
+	(
+		await db.execute(
+			sql`SELECT kind, queue_position AS "queuePosition" FROM check_notices
+			WHERE pr_id = ${prId} AND kind IN ('queued', 'dequeued', 'merged') ORDER BY created_at, id`,
+		)
+	).rows;
 
 const deliveries = async (ticketId: string) =>
 	(await db.execute(sql`SELECT state, error FROM review_deliveries WHERE ticket_id = ${ticketId} ORDER BY id`)).rows;
@@ -201,6 +210,45 @@ test("a failure reaches the running agent once, after the burst settles, and a g
 	]);
 });
 
+test("a failed check stays separate and states that it blocks a queued pull request", async () => {
+	const pr = await seed([check("lint", "fail")]);
+	await write(later(1000), {
+		...row(pr.number, "aaa1111aaaa", [check("lint", "fail")]),
+		isQueued: true,
+		queuePosition: 5,
+	});
+
+	await noticeChecks(db, gh, later(SETTLE_MS + 1000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	expect(sent.map((entry) => entry.text)).toEqual([
+		`trellis: your pull request entered the merge queue at position 5: https://github.com/o/r/pull/${pr.number}.`,
+		expect.stringContaining("This failed check blocks the pull request in the merge queue."),
+	]);
+	expect(await deliveries(pr.ticketId!)).toEqual([
+		{ state: "sent", error: null },
+		{ state: "sent", error: null },
+	]);
+});
+
+test("a later queue notice does not replace a pending CI failure", async () => {
+	const pr = await seed([check("lint", "fail")]);
+	await noticeChecks(db, gh, later(SETTLE_MS));
+	await write(later(SETTLE_MS + 1000), {
+		...row(pr.number, "aaa1111aaaa", [check("lint", "fail")]),
+		isQueued: true,
+		queuePosition: 8,
+	});
+	await noticeChecks(db, gh, later(SETTLE_MS + 1000));
+
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	expect(sent.map((entry) => entry.text)).toEqual([
+		expect.stringContaining("1 check failed"),
+		`trellis: your pull request entered the merge queue at position 8: https://github.com/o/r/pull/${pr.number}.`,
+	]);
+});
+
 test("a write that leaves the checks and the head alone keeps the quiet time", async () => {
 	const pr = await seed([check("lint", "fail"), check("test", "pending")]);
 	await write(later(50_000), row(pr.number, "aaa1111aaaa", [check("lint", "fail"), check("test", "pending")]));
@@ -218,6 +266,87 @@ test("a pull request with no ticket, or one that merged, gets no notice", async 
 	expect(await notices(orphan.prId)).toEqual([]);
 	expect(await notices(merged.prId)).toEqual([]);
 	expect(ghCalls).toEqual([]);
+});
+
+test("a queue entry includes its known position and repeated polls send it once", async () => {
+	const pr = await seed([]);
+	const queued = { ...row(pr.number, "aaa1111aaaa", []), isQueued: true, queuePosition: 4 };
+	await write(later(1000), queued);
+
+	await noticeChecks(db, gh, later(1000));
+	await noticeChecks(db, gh, later(2000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	await noticeChecks(db, gh, later(3000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	expect(sent.map((entry) => entry.text)).toEqual([
+		`trellis: your pull request entered the merge queue at position 4: https://github.com/o/r/pull/${pr.number}.`,
+	]);
+	expect(await queueNotices(pr.prId)).toEqual([{ kind: "queued", queuePosition: 4 }]);
+});
+
+test("a queue removal sends one message after its queue entry", async () => {
+	const pr = await seed([]);
+	await write(later(1000), { ...row(pr.number, "aaa1111aaaa", []), isQueued: true, queuePosition: 2 });
+	await noticeChecks(db, gh, later(1000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	await write(later(2000), row(pr.number, "aaa1111aaaa", []));
+	await noticeChecks(db, gh, later(2000));
+	await noticeChecks(db, gh, later(3000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	expect(sent.map((entry) => entry.text)).toEqual([
+		expect.stringContaining("entered the merge queue at position 2"),
+		`trellis: GitHub removed your pull request from the merge queue: https://github.com/o/r/pull/${pr.number}.`,
+	]);
+	expect(await queueNotices(pr.prId)).toEqual([
+		{ kind: "queued", queuePosition: 2 },
+		{ kind: "dequeued", queuePosition: null },
+	]);
+});
+
+test("a pull request that merges from the queue sends its completion", async () => {
+	const pr = await seed([]);
+	await write(later(1000), { ...row(pr.number, "aaa1111aaaa", []), isQueued: true, queuePosition: 1 });
+	await noticeChecks(db, gh, later(1000));
+
+	await write(later(2000), row(pr.number, "aaa1111aaaa", [], "merged"));
+	await noticeChecks(db, gh, later(2000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	expect(sent.map((entry) => entry.text)).toEqual([
+		expect.stringContaining("entered the merge queue at position 1"),
+		`trellis: your pull request merged from the merge queue: https://github.com/o/r/pull/${pr.number}.`,
+	]);
+	expect(await queueNotices(pr.prId)).toEqual([
+		{ kind: "queued", queuePosition: 1 },
+		{ kind: "merged", queuePosition: null },
+	]);
+});
+
+test("a queue entry reaches the agents of every linked ticket", async () => {
+	const pr = await seed([]);
+	const ticket = await run((tx) => create(core, tx, { project: "CHK", title: `Share ${pr.number}` }));
+	const second = ulid();
+	await db.execute(sql`INSERT INTO agent_runs
+		(id, name, kind, instruction, project_key, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
+		VALUES (${second}, 'brisk-pine', 'agent', 'Build it', '/tmp/work', ${ticket.id}, ${ticket.identifier},
+			${`term-${second}`}, ${t0}, ${t0})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests
+		(ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${pr.prId}, 'manual', 'dana', 'human', ${t0})`);
+	await write(later(1000), { ...row(pr.number, "aaa1111aaaa", []), isQueued: true, queuePosition: 6 });
+
+	await noticeChecks(db, gh, later(1000));
+	await dispatchDeliveries(ioCtx(), [...running(pr.terminal), ...running(`term-${second}`)], send, preset);
+
+	expect(sent.map((entry) => entry.id).sort()).toEqual([pr.runId, second].sort());
+	expect(new Set(sent.map((entry) => entry.text))).toEqual(
+		new Set([
+			`trellis: your pull request entered the merge queue at position 6: https://github.com/o/r/pull/${pr.number}.`,
+		]),
+	);
 });
 
 test("a notice for an agent that does not run waits, and the next run of the ticket reads it", async () => {
@@ -371,7 +500,7 @@ test("a notice that waits is dropped when a new head arrives before the agent st
 	]);
 });
 
-test("a notice reaches the newest open run of the ticket, and never a closed one", async () => {
+test("a queue notice reaches the newest open run of the ticket, and never a closed one", async () => {
 	const pr = await seed([]);
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${later(500)} WHERE id = ${pr.runId}`);
 	const second = ulid();
@@ -379,7 +508,11 @@ test("a notice reaches the newest open run of the ticket, and never a closed one
 		(id, name, kind, instruction, project_key, ticket_id, terminal_id, created_at, updated_at)
 		VALUES (${second}, 'brisk-pine', 'agent', 'Build it', '/tmp/work', ${pr.ticketId}, ${`term-${second}`},
 			${later(600)}, ${later(600)})`);
-	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+	await write(later(1000), {
+		...row(pr.number, "aaa1111aaaa", []),
+		isQueued: true,
+		queuePosition: 7,
+	});
 	await noticeChecks(db, gh, later(1000), log);
 
 	await dispatchDeliveries(ioCtx(), [...running(pr.terminal), ...running(`term-${second}`)], send, preset);

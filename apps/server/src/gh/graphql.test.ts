@@ -69,6 +69,7 @@ describe("pull request GraphQL size", () => {
 		if (!("row" in result)) throw new Error(result.error);
 
 		expect(result.row.isQueued).toBe(true);
+		expect(result.row.queuePosition).toBe(1);
 	});
 
 	test("stores the merge state in lower case, and includes it in the content hash", () => {
@@ -139,6 +140,7 @@ describe("pull request GraphQL size", () => {
 		const queued = withQueueState(row, true);
 
 		expect(queued.isQueued).toBe(true);
+		expect(queued.queuePosition).toBeNull();
 		expect(queued.contentHash).not.toBe(row.contentHash);
 	});
 

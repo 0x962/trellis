@@ -69,6 +69,7 @@ export type PullRequestContent = {
 	state: PrState;
 	isDraft: boolean;
 	isQueued: boolean;
+	queuePosition: number | null;
 	headSha: string;
 	headRef: string;
 	baseRef: string;
@@ -129,7 +130,7 @@ export const contentHash = (content: Record<string, unknown>): string =>
 
 export const withQueueState = (row: PullRequestRow, isQueued: boolean): PullRequestRow => {
 	const { contentHash: _contentHash, ...content } = row;
-	const next = { ...content, isQueued };
+	const next = { ...content, isQueued, queuePosition: isQueued ? content.queuePosition : null };
 	return { ...next, contentHash: contentHash(next) };
 };
 
@@ -149,6 +150,7 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 		state: raw.state.toLowerCase() as PrState,
 		isDraft: raw.isDraft,
 		isQueued: raw.mergeQueueEntry !== null,
+		queuePosition: raw.mergeQueueEntry?.position ?? null,
 		headSha: raw.headRefOid,
 		headRef: raw.headRefName,
 		baseRef: raw.baseRefName,

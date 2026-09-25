@@ -3,8 +3,16 @@ import { rows, textArray } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import type { CheckNoticeKind, NoticeCheck } from "../../../gh/checkNotice.ts";
 import { isConflictKind } from "../../../gh/conflictNotice.ts";
+import { isQueueKind } from "../../../gh/queueNotice.ts";
 import { type DeliveryTarget, deliveryTarget } from "../../agentRuns/deliveryTarget.ts";
-import { type CommentNote, checkMessage, commentMessage, conflictMessage, reviewMessage } from "../deliveryMessage.ts";
+import {
+	type CommentNote,
+	checkMessage,
+	commentMessage,
+	conflictMessage,
+	queueMessage,
+	reviewMessage,
+} from "../deliveryMessage.ts";
 import { commentBatchLimitSeconds, commentBatchSeconds } from "../enqueueCommentDeliveries.ts";
 import { newestOpenRun } from "../ticketRun.ts";
 
@@ -32,6 +40,8 @@ type CheckRow = Pending & {
 	headSha: string;
 	kind: CheckNoticeKind;
 	checks: NoticeCheck[];
+	isQueued: boolean;
+	queuePosition: number | null;
 };
 
 const assignedRun = newestOpenRun(
@@ -127,7 +137,7 @@ const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[
 		tx,
 		sql`SELECT delivery.id, delivery.ticket_id AS "ticketId", pr.url AS "url",
 			pr.base_ref AS "baseRef", notice.head_sha AS "headSha",
-			notice.kind, notice.checks
+			notice.kind, notice.checks, notice.is_queued AS "isQueued", notice.queue_position AS "queuePosition"
 		FROM review_deliveries delivery
 		JOIN check_notices notice ON notice.id = delivery.check_notice_id
 		JOIN pull_requests pr ON pr.id = notice.pr_id
@@ -141,19 +151,30 @@ const pendingChecks = async (tx: Tx, terminals: string[], idleTerminals: string[
 	);
 	const resumable = await targetsFor(
 		tx,
-		found.filter((row) => ["failed", "passed", "stuck"].includes(row.kind)).map((row) => row.ticketId),
+		found
+			.filter((row) => ["failed", "passed", "stuck"].includes(row.kind) || isQueueKind(row.kind))
+			.map((row) => row.ticketId),
 		[...terminals, ...idleTerminals],
 	);
 	return found.flatMap((row) => {
-		const target = ["failed", "passed", "stuck"].includes(row.kind)
-			? resumable.get(row.ticketId)
-			: live.get(row.ticketId);
+		const target =
+			["failed", "passed", "stuck"].includes(row.kind) || isQueueKind(row.kind)
+				? resumable.get(row.ticketId)
+				: live.get(row.ticketId);
 		return target
 			? [
 					{
 						...target,
 						ids: [row.id],
-						text: isConflictKind(row.kind) ? conflictMessage(row) : checkMessage(row),
+						text: isQueueKind(row.kind)
+							? queueMessage({
+									url: row.url,
+									kind: row.kind,
+									queuePosition: row.queuePosition,
+								})
+							: isConflictKind(row.kind)
+								? conflictMessage(row)
+								: checkMessage(row),
 					},
 				]
 			: [];

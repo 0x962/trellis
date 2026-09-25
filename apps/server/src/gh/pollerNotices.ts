@@ -8,12 +8,13 @@ import { recipientsOf } from "../services/reviews/enqueueReviewDeliveries.ts";
 import { decideNotice, type NoticeDecision, type StoredNotice } from "./checkNotice.ts";
 import { decideConflictNotice, isConflictKind } from "./conflictNotice.ts";
 import { failureLines } from "./failureLines.ts";
+import { decideQueueNotice, isQueueKind } from "./queueNotice.ts";
 import type { GhRunner } from "./run.ts";
 
-// The last step of every poller tick: it reads the stored checks and merge
-// state of each open pull request, decides with `decideNotice` and
-// `decideConflictNotice` whether the agents of its tickets must hear about a
-// change, and queues each notice. The step reads
+// The last step of every poller tick reads the stored checks, merge conflict,
+// and merge queue state of each active pull request. The three decision
+// functions decide whether the agents of its tickets must hear about a
+// change, and this step queues each notice. The step reads
 // the rows the poll just wrote and makes no GitHub call of its own, except
 // one annotations read per failed check that a new failed notice names.
 
@@ -30,6 +31,8 @@ type Subject = {
 	url: string;
 	state: PrState;
 	isDraft: boolean;
+	isQueued: boolean;
+	queuePosition: number | null;
 	headSha: string | null;
 	mergeable: Mergeable;
 	ciState: CiState;
@@ -40,17 +43,23 @@ type Subject = {
 
 type Due = { subject: Subject; decision: NoticeDecision };
 
-// Every open pull request, with its notices oldest first.
+// Each open pull request, plus a closed pull request whose last queue notice
+// says it entered the queue. The notice list uses oldest-first order.
 const selectSubjects = (tx: Tx) =>
 	rows<Subject>(
 		tx,
-		sql`SELECT p.id, p.owner, p.repo, p.url, p.state, p.is_draft AS "isDraft", p.head_sha AS "headSha", p.mergeable,
+		sql`SELECT p.id, p.owner, p.repo, p.url, p.state, p.is_draft AS "isDraft", p.is_queued AS "isQueued",
+			p.queue_position AS "queuePosition", p.head_sha AS "headSha", p.mergeable,
 			p.ci_state AS "ciState", p.checks,
 			${iso(sql`p.checks_changed_at`)} AS "checksChangedAt",
 			coalesce((SELECT jsonb_agg(jsonb_build_object('headSha', n.head_sha, 'kind', n.kind, 'checks', n.checks)
 				ORDER BY n.created_at, n.id) FROM check_notices n WHERE n.pr_id = p.id), '[]'::jsonb) AS notices
 		FROM pull_requests p
-		WHERE p.state = 'open'
+		WHERE p.state = 'open' OR (
+			SELECT notice.kind FROM check_notices notice
+			WHERE notice.pr_id = p.id AND notice.kind IN ('queued', 'dequeued', 'merged')
+			ORDER BY notice.created_at DESC, notice.id DESC LIMIT 1
+		) = 'queued'
 		ORDER BY p.id`,
 	);
 
@@ -59,9 +68,11 @@ const selectSubjects = (tx: Tx) =>
 const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 	const due: Due[] = [];
 	for (const subject of await selectSubjects(tx)) {
-		const checkNotices = subject.notices.filter((notice) => !isConflictKind(notice.kind));
+		const checkNotices = subject.notices.filter((notice) => !isConflictKind(notice.kind) && !isQueueKind(notice.kind));
 		const conflictNotices = subject.notices.filter((notice) => isConflictKind(notice.kind));
+		const queueNotices = subject.notices.filter((notice) => isQueueKind(notice.kind));
 		const decisions = [
+			decideQueueNotice(subject, queueNotices),
 			decideNotice(subject, checkNotices, at.getTime()),
 			decideConflictNotice(subject, conflictNotices),
 		].filter((decision) => decision !== null);
@@ -95,6 +106,8 @@ export const noticeChecks = async (db: Db, gh: GhRunner, at: Date, log: JobsLog 
 				headSha: subject.headSha!,
 				kind: decision.kind,
 				checks: decision.checks,
+				isQueued: subject.isQueued,
+				queuePosition: subject.queuePosition,
 				at,
 			});
 			log("notice queued", {

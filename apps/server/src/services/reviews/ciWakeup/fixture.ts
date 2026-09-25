@@ -168,6 +168,8 @@ export async function fixture() {
 				headSha: "head",
 				kind,
 				checks: [{ name: "test", workflow: "CI", link: null, lines: [] }],
+				isQueued: kind === "queued",
+				queuePosition: kind === "queued" ? 3 : null,
 				at,
 			}),
 		);

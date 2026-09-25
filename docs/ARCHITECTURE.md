@@ -1309,10 +1309,10 @@ Tests drive `poller.tick()` against a stub gh script. `TRELLIS_GH_BIN` points at
 the stub, `TRELLIS_GH_STUB_FILE` holds its replies, and the stub counts its
 spawns.
 
-### Check notices
+### Pull request notices
 
-A check notice tells the agent of a ticket that the GitHub checks of its pull
-request changed in a way that needs its action. No person relays it.
+A pull request notice tells the agent of a ticket about a check, conflict, or
+merge queue change. No person relays it.
 
 **Source.** The detector is the last step of every poller tick
 (`gh/pollerNotices.ts`). It reads the checks that the poll just stored, so it
@@ -1354,14 +1354,16 @@ gives no lines.
 **Delivery.** A notice queues one `review_deliveries` row with
 `check_notice_id` for each linked ticket, through `recipientsOf`.
 The delivery loop reads the current attempt of each assigned agent with a pending or held notice.
-CI notices can resume an attempt that exited after idle expiry. The resume preserves the conversation and workspace.
-The CI notice supplies the resume prompt. Provider startup confirmation determines when that delivery completes.
+CI and queue notices can resume an attempt that exited after idle expiry.
+The resume preserves the conversation and workspace.
+The notice supplies the resume prompt. Provider startup confirmation determines when that delivery completes.
 A live process receives its notice through the 15 second send deadline.
 One notice resumes an idle assignment per dispatch pass. The next pass reads the new attempt before it sends another notice.
 An explicitly stopped agent keeps its notice in `held`. Review and merge-conflict notices wait for a live process.
 A pull request with no linked ticket gets no notice row.
-The dispatcher drops a notice after a newer notice of the same family, a new head commit, a merge, or a close replaces it.
-A merged or closed pull request gets no new notice.
+The dispatcher drops an old check or conflict notice after a newer fact replaces it.
+The dispatcher keeps each queue notice because each one records a completed state change.
+A merged or closed pull request gets no new check or conflict notice.
 
 **Merge conflicts.** The poll query also reads `mergeable`, and the upsert
 stores it on `pull_requests.mergeable` as `mergeable`, `conflicting`, or
@@ -1380,12 +1382,26 @@ kinds:
 `unknown` sends nothing. A pull request that GitHub marks as a draft sends
 nothing. A pull request that is not ready for review still sends, because its
 agent owns the branch. The
-merge kinds and the check kinds are two families: `decideNotice` reads only
-the check kinds, and a notice of one family never replaces a pending notice
-of the other. The pull request rows of the ticket page and the epic table,
+conflict kinds and the check kinds are separate families. `decideNotice`
+reads only the check kinds. A notice of one family never replaces a pending
+notice of another family. The pull request rows of the ticket page and the epic table,
 and the review header, draw `MergeConflictMark` (packages/ui): the Phosphor
 `ArrowsSplit` glyph, one stem that forks into two arrows, in the warning
 colour, with the tooltip "Merge conflict with <base branch>".
+
+**Merge queue.** The poll stores `is_queued` and the optional
+`queue_position` from `mergeQueueEntry`. `decideQueueNotice`
+(`gh/queueNotice.ts`) writes three more kinds:
+
+- `queued`: the pull request enters the merge queue. The message includes the
+  queue position when GitHub supplies it.
+- `dequeued`: GitHub removes the pull request from the merge queue without a
+  merge.
+- `merged`: the pull request merges after a `queued` notice.
+
+The newest queue notice defines the prior queue state. Repeated polls write no
+duplicate notice. A failure notice keeps its own row and says when the failed
+checks block a queued pull request.
 
 ## Attachments
 
