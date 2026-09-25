@@ -3,7 +3,7 @@ import { Button, Input, Select } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { menuLinkIcons } from "../../../../navRows";
 
-const items: { value: MenuLinkIcon; label: string; icon: React.ReactNode }[] = [
+const iconItems: { value: MenuLinkIcon; label: string; icon: React.ReactNode }[] = [
 	{ value: "Link", label: "Link", icon: menuLinkIcons.Link },
 	{ value: "GithubLogo", label: "GitHub", icon: menuLinkIcons.GithubLogo },
 	{ value: "Play", label: "Play", icon: menuLinkIcons.Play },
@@ -27,19 +27,19 @@ export function MenuLinkEditor({
 	const [label, setLabel] = useState(link?.label ?? "");
 	const [url, setUrl] = useState(link?.url ?? "");
 	const [icon, setIcon] = useState<MenuLinkIcon>(link?.icon ?? "Link");
-	const [message, setMessage] = useState<string | null>(null);
-	const submit = (event: FormEvent) => {
+	const [error, setError] = useState<string | null>(null);
+	const handleSubmit = (event: FormEvent) => {
 		event.preventDefault();
 		const parsed = MenuLinkSchema.safeParse({ id, label, url, icon });
 		if (!parsed.success) {
-			setMessage(parsed.error.issues[0]!.message);
+			setError(parsed.error.issues[0]!.message);
 			return;
 		}
-		setMessage(null);
+		setError(null);
 		void onSave(parsed.data);
 	};
 	return (
-		<form aria-label={link ? "Edit menu link" : "Add menu link"} className="status-row-editor" onSubmit={submit}>
+		<form aria-label={link ? "Edit menu link" : "Add menu link"} className="status-row-editor" onSubmit={handleSubmit}>
 			<div className="status-row-editor-grid">
 				<Input
 					label="Label"
@@ -53,13 +53,13 @@ export function MenuLinkEditor({
 					<span aria-hidden="true" className="status-row-field-label">
 						Icon
 					</span>
-					<Select label="Icon" items={items} value={icon} disabled={busy} onValueChange={setIcon} />
+					<Select label="Icon" items={iconItems} value={icon} disabled={busy} onValueChange={setIcon} />
 				</div>
 			</div>
 			<Input label="HTTPS URL" value={url} disabled={busy} onChange={(event) => setUrl(event.target.value)} />
-			{message !== null && (
+			{error !== null && (
 				<p role="alert" className="text-sm text-danger">
-					{message}
+					{error}
 				</p>
 			)}
 			<div className="status-row-editor-buttons justify-end">

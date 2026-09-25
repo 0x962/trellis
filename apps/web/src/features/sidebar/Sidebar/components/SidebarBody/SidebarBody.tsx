@@ -54,7 +54,7 @@ export type SidebarBodyProps = {
 // highlight moves when the page does.
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
 	const { live, orpc } = useApp();
-	const settings = useQuery(orpc.settings.get.queryOptions({})).data;
+	const menuLinks = useQuery(orpc.settings.get.queryOptions({ select: (settings) => settings.menuLinks })).data;
 	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
@@ -117,7 +117,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					/>
 				))}
 				<SidebarMachinePressure collapsed={collapsed} />
-				{settings?.menuLinks?.map((link) => (
+				{menuLinks?.map((link) => (
 					<NavRow
 						key={link.id}
 						icon={menuLinkIcons[link.icon]}
