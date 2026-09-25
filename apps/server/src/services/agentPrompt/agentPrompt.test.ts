@@ -116,6 +116,28 @@ test("the common guide includes full project, epic, wave, ticket, and user conte
 	expect(prompt).toContain("| Timezone, when supplied | Not recorded |");
 });
 
+test("the common guide defines the overview for the human", async () => {
+	const prompt = await tx((tx) => agentPrompt(ctx, tx, input()));
+	for (const text of [
+		"The human is the user of Trellis.",
+		"3. Write the overview for the human who uses Trellis.",
+		"Tell the human what changed, why it changed, and what the product now does.",
+		"Do not use commit IDs, branch names, head references, or internal implementation details.",
+		"Show the command or product action, the observed result, and the proof artifact.",
+		"Do not include commit IDs, branch names, head references, or repository bookkeeping.",
+		"A diff is not evidence.",
+		"Use any aid that helps the human understand the change and decide quickly.",
+		"Examples include charts, graphs, screenshots, videos, code snippets, diagrams, tables, and short definitions.",
+		"This list is not exhaustive.",
+		"Define a new concept before you use it.",
+		"Choose the smallest aid that makes the change or its proof clear.",
+		"The examples do not form a fixed evidence checklist.",
+		"Choose any clear form of explanation or proof.",
+		"Rewrite both documents after each push.",
+	])
+		expect(prompt).toContain(text);
+});
+
 test("a later launch reads current ticket data and retains the specific request", async () => {
 	await db.execute(sql`UPDATE tickets SET description='Updated scope' WHERE id=${run.ticketId}`);
 	const prompt = await tx((tx) => agentPrompt(ctx, tx, { ...input(), request: "CI returned an error. Inspect it." }));

@@ -533,6 +533,26 @@ The default limit is 50. Use `--all` for every matching record.
 Trellis links an existing GitHub pull request.
 Use the project's repository tools to create or update the GitHub pull request.
 
+The human is the user of Trellis.
+Write the explanation for that human in simple English.
+Tell the human what changed, why it changed, and what the product now does.
+Use product terms only when the human needs them.
+Do not include commit IDs, branch names, head references, or internal implementation details.
+
+Use the evidence section only to show how you tested the change.
+Show the command or product action, the observed result, and the proof artifact.
+Evidence can include commands, product actions, results, screenshots, recordings, responses, tables, and diagrams.
+Do not include commit IDs, branch names, head references, or repository bookkeeping.
+A diff is not evidence.
+
+Use any aid that helps the human understand the change and decide quickly.
+Examples include charts, graphs, screenshots, videos, code snippets, diagrams, tables, and short definitions.
+This list is not exhaustive.
+Define a new concept before you use it.
+Choose the smallest aid that makes the change or its proof clear.
+The examples do not form a fixed evidence checklist.
+Choose any clear form of explanation or proof.
+
 `diff summary write --why` accepts text or stdin.
 `--watch` names the first file to read and its reason, or the word `nothing`.
 The CLI checks the explanation's sentence form and prints any refusal.
@@ -554,8 +574,8 @@ A link does not require completed review material.
 Use `trellis diff check <diff>` to read the review gaps.
 Write the required material on the linked diff.
 
-A push can make the explanation and evidence stale.
-Record evidence for the head commit that the user will review.
+The explanation and evidence belong to the current head.
+Rewrite both documents after each push.
 The readiness check can also require an ER diagram for detected data-model changes.
 Read each reported gap and address it.
 
@@ -845,7 +865,25 @@ Apply ticket and flow steps only when the task has a linked ticket.
 
 1. Follow the project's branch and diff conventions.
 2. Link the diff to its assigned ticket, when one exists.
-3. Write the explanation and evidence for the current head commit.
+3. Write the overview for the human who uses Trellis.
+
+Use simple English in the explanation.
+Tell the human what changed, why it changed, and what the product now does.
+Use product terms only when the human needs them.
+Do not use commit IDs, branch names, head references, or internal implementation details.
+
+Use the evidence section only to show how you tested the change.
+Show the command or product action, the observed result, and the proof artifact.
+Do not include commit IDs, branch names, head references, or repository bookkeeping.
+
+Use any aid that helps the human understand the change and decide quickly.
+Examples include charts, graphs, screenshots, videos, code snippets, diagrams, tables, and short definitions.
+This list is not exhaustive.
+Define a new concept before you use it.
+Choose the smallest aid that makes the change or its proof clear.
+The examples do not form a fixed evidence checklist.
+Choose any clear form of explanation or proof.
+
 4. For a linked ticket, read the available flows and existing runs.
 5. Run each applicable flow once for this diff.
 6. Address its findings in the same diff.
