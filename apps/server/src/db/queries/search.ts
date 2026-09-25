@@ -160,7 +160,7 @@ const projectsMatching = async (tx: Tx, q: string, projectIds: readonly string[]
 // Tickets and projects for the text of the search box. A ticket found twice
 // keeps its best rank. A KEY-n text names one ticket, so its answer holds no
 // projects.
-export const search = async (tx: Tx, input: SearchRankInput): Promise<SearchOutput> => {
+export const search = async (tx: Tx, input: SearchRankInput): Promise<Pick<SearchOutput, "tickets" | "projects">> => {
 	const limit = input.limit ?? SEARCH_LIMIT;
 	const ids = input.projectIds === undefined ? undefined : textArray(input.projectIds);
 	const rankIds = input.rankProjectIds === undefined ? undefined : textArray(input.rankProjectIds);

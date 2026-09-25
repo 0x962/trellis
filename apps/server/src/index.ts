@@ -16,6 +16,7 @@ import { scaledClock } from "./jobs.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
 import { startPageRetention } from "./services/pages/retention/startPageRetention";
+import { startSearchBackfill } from "./services/pages/startSearchBackfill";
 import { assertStandaloneHandoffReady } from "./standaloneHandoff/bootGuard.ts";
 import { sweepBackups } from "./storage/backups.ts";
 import { sweep } from "./storage/blobs.ts";
@@ -147,6 +148,13 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			setTimer: pageClock.setTimer,
 			clearTimer: pageClock.clearTimer,
 		});
+		const pageSearchBackfill = await startSearchBackfill({
+			backfill: () =>
+				transport.call("pages.backfillSearch", systemContext(), {}) as Promise<{ updated: number; pending: boolean }>,
+			setTimer: pageClock.setTimer,
+			clearTimer: pageClock.clearTimer,
+			log: (message, fields) => log.info(message, fields),
+		});
 		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState });
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
@@ -162,6 +170,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			bye("shutdown");
 			await Promise.race([server.stop(), Bun.sleep(SHUTDOWN_DEADLINE_MS)]);
 			for (const hook of hooks) await hook.stop();
+			await pageSearchBackfill.stop();
 			await pageSweep.stop();
 			await transport.close();
 			if (database) await database.close();

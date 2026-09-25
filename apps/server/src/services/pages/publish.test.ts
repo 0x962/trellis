@@ -12,7 +12,7 @@ import type { Tx } from "../../db/tx.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
 import { pull, versions } from "./content.ts";
 import { get, remove } from "./pages.ts";
-import { publish } from "./publish.ts";
+import { preparePublish, publish } from "./publish.ts";
 import { prepareUpload, upload } from "./uploads.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
@@ -41,14 +41,14 @@ const contextOf = (actor: ActorRef | null, now = at): ServiceCtx => ({
 	publicUrl: "http://trellis.test",
 });
 
-const ioContextOf = (actor: ActorRef) =>
+const ioContextOf = (actor: ActorRef, now = at) =>
 	({
-		core: contextOf(actor),
+		core: contextOf(actor, now),
 		actor,
 		session: null,
 		home,
 		maxUploadBytes: 50 * 1024 * 1024,
-		now: () => at,
+		now: () => now,
 		log: () => {},
 		newTx: inTx,
 		afterCommit: () => {},
@@ -65,8 +65,11 @@ const stage = async (actor: ActorRef, file: File, projectKey = project.key) => {
 
 const html = (body: string) => new File([body], "index.html", { type: "text/html" });
 
-const publishIn = (actor: ActorRef, input: Record<string, unknown>, now = at) =>
-	inTx((tx) => publish(contextOf(actor, now), tx, input));
+const publishIn = async (actor: ActorRef, input: Record<string, unknown>, now = at) => {
+	const ctx = ioContextOf(actor, now);
+	const prepared = await preparePublish(ctx, input);
+	return inTx((tx) => publish(ctx, tx, prepared));
+};
 
 const insertProject = (row: typeof project, archivedAt: Date | null = null) =>
 	db.execute(sql`INSERT INTO projects (id, key, slug, name, archived_at, created_at, updated_at)
@@ -115,6 +118,9 @@ describe("a first publication", () => {
 		expect(created.version.sourcePath).toBe("reports/forecast/index.html");
 		expect(created.version.sourceAgentId).toBe(agentId);
 		expect(created.version.documentSize).toBe(15);
+		expect(
+			(await db.execute(sql`SELECT search_text FROM page_versions WHERE page_id = ${created.page.id}`)).rows,
+		).toEqual([{ search_text: "Forecast" }]);
 		expect(events.at(-1)).toEqual({ type: "pages.changed", projectId: project.id, pageId: created.page.id });
 
 		const detail = await inTx((tx) => get(contextOf(agent), tx, { page: created.page.ref }));

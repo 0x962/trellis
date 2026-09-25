@@ -1,4 +1,4 @@
-import { ChatCircle, DotsThree, PushPinSimple } from "@phosphor-icons/react";
+import { ChatCircle, DotsThree, FileHtml, PushPinSimple } from "@phosphor-icons/react";
 import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { Menu, type MenuItem } from "../../primitives/Menu";
@@ -18,6 +18,9 @@ export type PageRowProps = {
 	deleted: boolean;
 	link: ReactElement<{ className?: string; children?: ReactNode }>;
 	actions?: readonly MenuItem[];
+	variant?: "list" | "search";
+	project?: ReactNode;
+	titleContent?: ReactNode;
 };
 
 export function PageRow({
@@ -33,7 +36,11 @@ export function PageRow({
 	deleted,
 	link,
 	actions = [],
+	variant = "list",
+	project,
+	titleContent,
 }: PageRowProps) {
+	const search = variant === "search";
 	return (
 		<li
 			data-page-row=""
@@ -43,9 +50,35 @@ export function PageRow({
 			)}
 		>
 			{cloneElement(link, {
-				className:
-					"grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_3.5rem_7rem_7rem_3rem_3rem] items-center gap-3 px-5 py-1.5 text-sm outline-none focus-visible:before:absolute focus-visible:before:inset-y-1 focus-visible:before:left-0 focus-visible:before:w-0.5 focus-visible:before:bg-accent max-md:grid-cols-[minmax(0,1fr)_3rem] max-md:gap-x-2 max-md:px-4",
-				children: (
+				className: cx(
+					"grid min-w-0 flex-1 items-center gap-3 px-5 py-1.5 text-sm outline-none focus-visible:before:absolute focus-visible:before:inset-y-1 focus-visible:before:left-0 focus-visible:before:w-0.5 focus-visible:before:bg-accent max-md:grid-cols-[minmax(0,1fr)_3rem] max-md:gap-x-2 max-md:px-4",
+					search
+						? "grid-cols-[1rem_4rem_minmax(0,1fr)_10rem_3rem_3.5rem]"
+						: "grid-cols-[minmax(0,1fr)_3.5rem_7rem_7rem_3rem_3rem]",
+				),
+				children: search ? (
+					<>
+						<FileHtml aria-hidden="true" className="size-4 text-fg-faint max-md:hidden" />
+						<span className="font-mono text-fg-faint max-md:hidden">Page</span>
+						<span className="flex min-w-0 flex-col">
+							<span className="truncate font-medium text-fg">{titleContent ?? title}</span>
+							<span className="truncate text-xs text-fg-muted">{summary || "No summary"}</span>
+						</span>
+						<span className="min-w-0 max-md:hidden">{project}</span>
+						<span className="text-fg-muted tabular max-md:hidden">v{latestVersion}</span>
+						<time
+							dateTime={publishedAt}
+							title={new Date(publishedAt).toLocaleString()}
+							className="text-right text-fg-faint tabular"
+						>
+							{age}
+						</time>
+						<span className="col-span-2 hidden min-w-0 items-center gap-2 text-xs text-fg-muted max-md:flex">
+							<span className="shrink-0">v{latestVersion}</span>
+							<span className="min-w-0 truncate">{project}</span>
+						</span>
+					</>
+				) : (
 					<>
 						<span className="flex min-w-0 flex-col">
 							<span className="flex min-w-0 items-center gap-1.5 font-medium text-fg">
@@ -88,22 +121,24 @@ export function PageRow({
 					</>
 				),
 			})}
-			<span className="flex w-9 shrink-0 items-center justify-center max-md:w-11">
-				{actions.length > 0 && (
-					<Menu
-						label={`Actions for ${title}`}
-						triggerTooltip="Page actions"
-						trigger={
-							<IconButton
-								label={`Actions for ${title}`}
-								icon={<DotsThree />}
-								className="opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 data-popup-open:opacity-100 [@media(hover:none)]:opacity-100"
-							/>
-						}
-						items={actions}
-					/>
-				)}
-			</span>
+			{!search && (
+				<span className="flex w-9 shrink-0 items-center justify-center max-md:w-11">
+					{actions.length > 0 && (
+						<Menu
+							label={`Actions for ${title}`}
+							triggerTooltip="Page actions"
+							trigger={
+								<IconButton
+									label={`Actions for ${title}`}
+									icon={<DotsThree />}
+									className="opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 data-popup-open:opacity-100 [@media(hover:none)]:opacity-100"
+								/>
+							}
+							items={actions}
+						/>
+					)}
+				</span>
+			)}
 		</li>
 	);
 }

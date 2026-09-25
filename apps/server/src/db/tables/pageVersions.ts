@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, index, integer, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, integer, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { pages } from "./pages.ts";
 
+// Migration 0120 holds the GIN index for the text search vector because
+// drizzle-kit cannot render an expression index.
 export const pageVersions = pgTable(
 	"page_versions",
 	{
@@ -16,6 +18,7 @@ export const pageVersions = pgTable(
 		documentSha256: text("document_sha256").notNull(),
 		documentSize: bigint("document_size", { mode: "number" }).notNull(),
 		searchText: text("search_text").notNull().default(""),
+		searchIndexed: boolean("search_indexed").notNull().default(false),
 		sourceAgentId: text("source_agent_id").references(() => agentRuns.id, { onDelete: "set null" }),
 		sourcePath: text("source_path").notNull(),
 		...actorColumns(),

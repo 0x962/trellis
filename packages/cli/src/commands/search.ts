@@ -1,4 +1,4 @@
-import type { ProjectSummary } from "@trellis/api";
+import type { PageSummary, ProjectSummary } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, toNumber } from "../context.ts";
@@ -12,8 +12,18 @@ const projectHits: ListSpec<ProjectSummary> = {
 	identifier: (row) => row.key,
 };
 
+const pageHits: ListSpec<PageSummary> = {
+	columns: [
+		{ name: "ref", value: (row) => row.ref },
+		{ name: "title", value: (row) => cell(row.title) },
+		{ name: "summary", value: (row) => cell(row.summary) },
+		{ name: "version", value: (row) => String(row.latestVersion) },
+	],
+	identifier: (row) => row.ref,
+};
+
 export default defineCommand({
-	meta: { name: "search", description: "Search tickets and projects" },
+	meta: { name: "search", description: "Search tickets, Pages, and projects" },
 	args: {
 		q: { type: "positional", required: true, description: "Query text" },
 		project: { type: "string", description: "Project ref to search under" },
@@ -32,10 +42,12 @@ export default defineCommand({
 				return;
 			case "quiet":
 				printList(ctx.out, ctx.format, result.tickets, ticketList);
+				printList(ctx.out, ctx.format, result.pages, pageHits);
 				printList(ctx.out, ctx.format, result.projects, projectHits);
 				return;
 			case "table":
 				ctx.out.write(`${heading("tickets", ctx.format.color)}${renderTable(result.tickets, ticketList.columns)}\n`);
+				ctx.out.write(`${heading("pages", ctx.format.color)}${renderTable(result.pages, pageHits.columns)}\n`);
 				ctx.out.write(`${heading("projects", ctx.format.color)}${renderTable(result.projects, projectHits.columns)}`);
 				return;
 		}

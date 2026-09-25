@@ -1,10 +1,8 @@
-import { ArrowRight } from "@phosphor-icons/react";
-import type { TicketSummary } from "@trellis/api";
+import { ArrowRight, FileHtml } from "@phosphor-icons/react";
+import type { PageSummary, TicketSummary } from "@trellis/api";
 import { StatusIcon } from "@trellis/ui";
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import type { PaletteRow, RowDeps } from "../../rows";
-
-// The Tickets section and the jump row a typed ID makes.
 
 const openTicket = (deps: RowDeps, identifier: string) => () => {
 	deps.close();
@@ -13,7 +11,7 @@ const openTicket = (deps: RowDeps, identifier: string) => () => {
 
 // A ticket row reads like a list row: the status icon, the ID in faint
 // mono, then the title.
-export const resultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[] =>
+export const ticketResultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[] =>
 	tickets.map((ticket) => ({
 		value: ticket.identifier,
 		label: ticket.title,
@@ -21,6 +19,19 @@ export const resultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[
 		icon: <StatusIcon category={ticket.status.category} />,
 		keywords: [ticket.identifier],
 		run: openTicket(deps, ticket.identifier),
+	}));
+
+export const pageResultRows = (pages: PageSummary[], deps: RowDeps): PaletteRow[] =>
+	pages.map((page) => ({
+		value: `page:${page.ref}`,
+		label: page.title,
+		prefix: page.projectKey,
+		icon: <FileHtml />,
+		keywords: [page.ref, page.summary],
+		run: () => {
+			deps.close();
+			deps.action.navigate(`/p/${page.ref}`);
+		},
 	}));
 
 // A typed `KEY-n` opens the ticket itself, so the palette answers before

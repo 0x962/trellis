@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { TicketRefStringSchema, type TicketSummary } from "@trellis/api";
+import { type PageSummary, TicketRefStringSchema, type TicketSummary } from "@trellis/api";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 
 export type CommandSearch = {
 	// The top 5 tickets for the query.
 	tickets: TicketSummary[];
+	// The top 5 Pages for the query.
+	pages: PageSummary[];
 	// The identifier the query spells, or null. The match is local, so the
 	// jump item needs no request.
 	jump: string | null;
@@ -14,10 +16,11 @@ export type CommandSearch = {
 // The debounce before a typed query reaches search.query.
 export const searchDebounceMs = 120;
 
-// How many tickets the palette shows. The full list lives on /search.
+// The palette shows this many results of each type. The full lists live on /search.
 const topResults = 5;
 
 const empty: TicketSummary[] = [];
+const emptyPages: PageSummary[] = [];
 
 // `cde-1` and `CDE-1` both name CDE-1, because the ref grammar reads
 // either case.
@@ -51,6 +54,10 @@ export const useCommandSearch = (query: string): CommandSearch => {
 
 	// The rendered results always belong to the query on screen, so a slow
 	// response for an earlier query never lands.
-	if (!enabled || results.data === undefined) return { tickets: empty, jump };
-	return { tickets: results.data.tickets.filter((ticket) => ticket.identifier !== jump), jump };
+	if (!enabled || results.data === undefined) return { tickets: empty, pages: emptyPages, jump };
+	return {
+		tickets: results.data.tickets.filter((ticket) => ticket.identifier !== jump),
+		pages: results.data.pages,
+		jump,
+	};
 };

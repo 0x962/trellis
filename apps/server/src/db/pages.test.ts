@@ -265,7 +265,10 @@ test("migration 0116 refuses a project that already uses the Pages route", async
 	const journal = JSON.parse(await readFile(join(source, "meta/_journal.json"), "utf8")) as {
 		entries: Array<{ tag: string }>;
 	};
-	const entries = journal.entries.filter((entry) => entry.tag !== "0116_pages");
+	const entries = journal.entries.slice(
+		0,
+		journal.entries.findIndex((entry) => entry.tag === "0116_pages"),
+	);
 	await mkdir(join(before, "meta"), { recursive: true });
 	for (const entry of entries) await copyFile(join(source, `${entry.tag}.sql`), join(before, `${entry.tag}.sql`));
 	await writeFile(join(before, "meta/_journal.json"), `${JSON.stringify({ ...journal, entries }, null, 2)}\n`);

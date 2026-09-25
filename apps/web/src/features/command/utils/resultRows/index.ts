@@ -1,1 +1,1 @@
-export { jumpRow, resultRows } from "./resultRows";
+export { jumpRow, pageResultRows, ticketResultRows } from "./resultRows";

@@ -48,3 +48,17 @@ test("keeps empty facts and the deleted state explicit", () => {
 	expect(html).toContain("Deleted");
 	expect(html).not.toContain('aria-label="Pinned"');
 });
+
+test("shows the search project without the actions column", () => {
+	const html = render({
+		variant: "search",
+		project: <span>TRL</span>,
+		titleContent: <mark>Release</mark>,
+		actions: [],
+	});
+
+	expect(html).toContain("<mark>Release</mark>");
+	expect(html).toContain(">TRL</span>");
+	expect(html).toContain("Page</span>");
+	expect(html).not.toContain("Page actions");
+});

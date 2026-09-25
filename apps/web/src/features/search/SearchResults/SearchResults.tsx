@@ -1,12 +1,13 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EmptyState, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
+import { EmptyState, PageRow, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
 import { projectColorsByKey } from "../../../lib/projectChipColor";
 import type { View } from "../../filters/grammar";
 import { TicketLink } from "../../shell/TicketLink";
 import { highlight } from "../utils/highlight";
+import { ResultGroup } from "./components/ResultGroup";
 
 export type SearchResultsProps = {
 	q: string;
@@ -25,19 +26,16 @@ const linkClass =
 const phoneLinkClass =
 	"flex h-14 w-full flex-col justify-center gap-1 px-4 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// The tickets and the projects that match `q`, as display-only rows with the
-// table's cells: the status icon, ID, the title with each matched word marked,
-// the project, the priority, and the last update. Below 768 px a row takes
-// the table's phone treatment: two lines in one cell, and the whole row is
-// the link.
+// A phone row uses the same two-line treatment and 56 px height as a ticket
+// table row.
 export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const { orpc } = useApp();
 	const phone = useMediaQuery("(max-width: 767px)");
-	const { tickets, projects } = useSuspenseQuery(
+	const { tickets, pages, projects } = useSuspenseQuery(
 		orpc.search.query.queryOptions({ input: { q, rankProject: filters.rankProject } }),
 	).data;
-	// A ticket row carries the key of its project and no color, so the chip of
-	// that row reads the color out of the project list.
+	// A ticket or Page row carries a project key without its color. The project
+	// list supplies that color.
 	const colors = useQuery({
 		...orpc.projects.list.queryOptions({ input: {} }),
 		select: projectColorsByKey,
@@ -45,16 +43,12 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const visibleTickets = tickets.filter(
 		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
 	);
-	// TRL-35. With no ticket and no project left, the page takes the same
-	// empty state it shows with no query, and the title names the query. A
-	// summary line that reads "0 tickets" over an empty page states the count
-	// and nothing else.
-	if (visibleTickets.length === 0 && projects.length === 0) {
+	if (visibleTickets.length === 0 && pages.length === 0 && projects.length === 0) {
 		return (
 			<EmptyState
 				variant="page"
 				title={`No results for '${q}'`}
-				description="No ticket title, no ticket description, and no project name holds this text. Check the spelling, or search for one word."
+				description="No ticket, Page, or project holds this text. Check the spelling, or search for one word."
 			/>
 		);
 	}
@@ -62,15 +56,11 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 		<div className="flex flex-col">
 			<p className="flex h-8 items-center px-5 text-sm text-fg-muted tabular">
 				{formatCount(visibleTickets.length)} {visibleTickets.length === 1 ? "ticket" : "tickets"}
+				{pages.length > 0 && ` · ${formatCount(pages.length)} ${pages.length === 1 ? "Page" : "Pages"}`}
 				{projects.length > 0 && ` · ${formatCount(projects.length)} ${projects.length === 1 ? "project" : "projects"}`}
 			</p>
-			<table
-				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: The keyboard treats each result as one selectable grid row.
-				role="grid"
-				aria-label="Search results"
-				className="w-full table-fixed border-collapse"
-			>
-				<tbody>
+			{visibleTickets.length > 0 && (
+				<ResultGroup label="Tickets" count={visibleTickets.length}>
 					{visibleTickets.map((ticket) => {
 						const segments = ticket.project.key.split(".");
 						if (phone) {
@@ -119,6 +109,42 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							</tr>
 						);
 					})}
+				</ResultGroup>
+			)}
+			{pages.length > 0 && (
+				<ResultGroup label="Pages" count={pages.length} layout="list">
+					{pages.map((page) => {
+						const segments = page.projectKey.split(".");
+						const href = `${page.projectKey}/pages/${page.slug}`;
+						return (
+							<PageRow
+								key={page.id}
+								variant="search"
+								title={page.title}
+								titleContent={highlight(page.title, q)}
+								summary={page.summary}
+								latestVersion={page.latestVersion}
+								publishedBy={page.publishedBy.displayName ?? page.publishedBy.name}
+								publishedAt={page.publishedAt}
+								age={compactRelativeTime(page.publishedAt)}
+								watcher={page.watcher?.agent.name ?? null}
+								openThreadCount={page.openThreadCount}
+								pinned={page.pinned}
+								deleted={false}
+								project={
+									<span className="flex min-w-0 items-center gap-1.5">
+										<ProjectKey projectKey={segments[0]!} color={colors?.[segments[0]!] ?? null} />
+										{segments.length > 1 && <span className="truncate text-sm text-fg-muted">{segments.at(-1)}</span>}
+									</span>
+								}
+								link={<Link to="/p/$" params={{ _splat: href }} search={{}} />}
+							/>
+						);
+					})}
+				</ResultGroup>
+			)}
+			{projects.length > 0 && (
+				<ResultGroup label="Projects" count={projects.length}>
 					{projects.map((project) =>
 						phone ? (
 							<tr key={project.id} className={phoneRowClass}>
@@ -149,8 +175,8 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							</tr>
 						),
 					)}
-				</tbody>
-			</table>
+				</ResultGroup>
+			)}
 		</div>
 	);
 }
