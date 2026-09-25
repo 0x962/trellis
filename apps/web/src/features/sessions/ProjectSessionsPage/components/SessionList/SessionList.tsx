@@ -1,9 +1,9 @@
-import { CaretDown, CaretRight, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import type { AgentRun, Project, Session } from "@trellis/api";
-import { Button, IconButton, Input, Tooltip } from "@trellis/ui";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ArchivedToggle, Button, IconButton, Input, Tooltip } from "@trellis/ui";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { sessionComposerActions } from "../../../sessionComposerStore";
-import { nextSessionArchiveAt, sessionGroups } from "../../sessionGroups";
+import { nextSessionArchiveTimeMs, sessionGroups } from "../../sessionGroups";
 import { SessionGroup } from "../SessionGroup";
 
 export function SessionList({
@@ -17,8 +17,8 @@ export function SessionList({
 	onRetry,
 	onSelect,
 	onConversation,
-	archived,
-	onArchivedChange,
+	showArchived,
+	onShowArchivedChange,
 }: {
 	project: Project;
 	runs: AgentRun[];
@@ -30,8 +30,8 @@ export function SessionList({
 	onRetry: () => void;
 	onSelect: (id: string) => void;
 	onConversation: () => void;
-	archived: boolean;
-	onArchivedChange: (archived: boolean) => void;
+	showArchived: boolean;
+	onShowArchivedChange: (showArchived: boolean) => void;
 }) {
 	const [search, setSearch] = useState("");
 	// The one element of this page that scrolls the rows. The virtual list
@@ -48,16 +48,16 @@ export function SessionList({
 		return () => observer.disconnect();
 	}, []);
 	useEffect(() => {
-		const archiveAt = nextSessionArchiveAt(runs);
-		if (archiveAt === null) return;
+		const nextArchiveTimeMs = nextSessionArchiveTimeMs(runs);
+		if (nextArchiveTimeMs === null) return;
 		const timer = window.setTimeout(
 			() => setArchiveClock(Date.now()),
-			Math.min(archiveAt - Date.now() + 1, 2_147_483_647),
+			Math.min(nextArchiveTimeMs - Date.now() + 1, 2_147_483_647),
 		);
 		return () => window.clearTimeout(timer);
 	}, [runs]);
-	const groups = sessionGroups(runs, { search, archived });
-	const sessionsByRunId = new Map(sessions.map((session) => [session.runId, session]));
+	const groups = useMemo(() => sessionGroups(runs, { search, showArchived }), [runs, search, showArchived]);
+	const sessionsByRunId = useMemo(() => new Map(sessions.map((session) => [session.runId, session])), [sessions]);
 	return (
 		<nav aria-label="Project sessions" className="relative flex h-full min-h-0 w-full flex-col bg-bg">
 			{selectedId && (
@@ -108,25 +108,25 @@ export function SessionList({
 						<>
 							{search.trim() && (
 								<p role="status" className="px-4 pb-1 text-xs text-fg-muted">
-									{groups.runs.length} results in {archived ? "Archived" : "current sessions"}
+									{groups.runs.length} results in {showArchived ? "Archived" : "current sessions"}
 								</p>
 							)}
 							{groups.runs.length === 0 ? (
 								<p className="px-4 py-3 text-sm text-fg-muted">
 									{search.trim()
 										? "No matching sessions."
-										: archived
+										: showArchived
 											? "No archived sessions."
 											: "No current sessions. Start one."}
 								</p>
 							) : (
 								<SessionGroup
-									key={`${archived}:${search}`}
+									key={`${showArchived}:${search}`}
 									group="sessions"
 									label="Sessions"
 									projectKey={project.key}
 									searching={Boolean(search.trim())}
-									header={false}
+									showHeader={false}
 									runs={groups.runs}
 									scroller={scroller}
 									layout={layout}
@@ -140,17 +140,7 @@ export function SessionList({
 				</div>
 			</div>
 			<div className="shrink-0 border-t border-border p-2">
-				<button
-					type="button"
-					aria-pressed={archived}
-					onClick={() => onArchivedChange(!archived)}
-					className="sidebar-row w-full text-left text-sm text-fg-muted hover:bg-elevated hover:text-fg active:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-				>
-					<span aria-hidden="true" className="sidebar-leading text-fg-faint *:size-3">
-						{archived ? <CaretDown /> : <CaretRight />}
-					</span>
-					<span className="sidebar-label">Archived</span>
-				</button>
+				<ArchivedToggle expanded={showArchived} onExpandedChange={onShowArchivedChange} />
 			</div>
 		</nav>
 	);

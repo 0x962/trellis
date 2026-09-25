@@ -3,14 +3,13 @@ import type { Diagnostics } from "@trellis/api";
 import { RUNTIME_PROTOCOL_VERSION, type RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
-import { rows } from "../db/queries/support.ts";
-import { listColumns, type StoredRun } from "./agentRuns/queries.ts";
+import { listColumns, type StoredRun, storedRows } from "./agentRuns/queries.ts";
 import { projectUnresolvedAttempts } from "./agentRuns.ts";
 import type { ServiceCtx } from "./support.ts";
 
 export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 	const runs = await ctx.newTx((tx) =>
-		rows<StoredRun>(
+		storedRows<StoredRun>(
 			tx,
 			sql`SELECT ${listColumns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		),

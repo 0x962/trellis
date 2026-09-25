@@ -12,20 +12,20 @@ export const isAutomaticallyArchived = (run: Pick<GroupableRun, "pinnedAt" | "ac
 	run.activityAt !== null &&
 	Date.now() - Date.parse(run.activityAt) >= SESSION_ARCHIVE_AFTER_MS;
 
-export const nextSessionArchiveAt = (runs: Array<Pick<GroupableRun, "pinnedAt" | "activityAt">>) => {
+export const nextSessionArchiveTimeMs = (runs: Array<Pick<GroupableRun, "pinnedAt" | "activityAt">>) => {
 	const now = Date.now();
 	const times = runs.flatMap((run) => {
 		if (run.pinnedAt !== null || run.activityAt === null) return [];
-		const archiveAt = Date.parse(run.activityAt) + SESSION_ARCHIVE_AFTER_MS;
-		return archiveAt > now ? [archiveAt] : [];
+		const archiveTimeMs = Date.parse(run.activityAt) + SESSION_ARCHIVE_AFTER_MS;
+		return archiveTimeMs > now ? [archiveTimeMs] : [];
 	});
 	return times.length === 0 ? null : Math.min(...times);
 };
 
-export function sessionGroups<T extends GroupableRun>(runs: T[], options: { search: string; archived: boolean }) {
+export function sessionGroups<T extends GroupableRun>(runs: T[], options: { search: string; showArchived: boolean }) {
 	const query = options.search.trim().toLocaleLowerCase();
 	const matches = runs
-		.filter((run) => isAutomaticallyArchived(run) === options.archived)
+		.filter((run) => isAutomaticallyArchived(run) === options.showArchived)
 		.filter((run) => {
 			if (!query) return true;
 			return [run.name, run.ticketIdentifier, run.ticketTitle, run.activityAt, run.createdAt].some((value) =>

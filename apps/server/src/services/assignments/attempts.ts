@@ -1,12 +1,13 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { sql } from "drizzle-orm";
 import type { RequestContext } from "../../context.ts";
-import { rows, textArray } from "../../db/queries/support.ts";
+import { iso, rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 
 export type ExecutionAttempt = { id: string; generation: number; token: string };
 export type ExecutionAttemptRecord = { id: string; runId: string };
+export type LatestExecutionAttemptAt = { runId: string; activityAt: string };
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("hex");
 
 export const listExecutionAttempts = (tx: Tx, runIds: string[]) =>
@@ -15,6 +16,15 @@ export const listExecutionAttempts = (tx: Tx, runIds: string[]) =>
 		: rows<ExecutionAttemptRecord>(
 				tx,
 				sql`SELECT id, run_id AS "runId" FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) ORDER BY generation`,
+			);
+
+export const latestExecutionAttemptAt = (tx: Tx, runIds: string[]) =>
+	runIds.length === 0
+		? Promise.resolve([] as LatestExecutionAttemptAt[])
+		: rows<LatestExecutionAttemptAt>(
+				tx,
+				sql`SELECT run_id AS "runId", ${iso(sql`MAX(created_at)`)} AS "activityAt"
+				FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) GROUP BY run_id`,
 			);
 
 export const reserveAttempt = async (
