@@ -13,7 +13,7 @@ import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
 import { SessionList } from "./components/SessionList";
-import { selectedSession, sessionGroups } from "./sessionGroups";
+import { nextSessionArchiveTimeMs, selectedSession, sessionGroups } from "./sessionGroups";
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
 	const { orpc, queryClient } = useApp();
@@ -25,6 +25,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
 	const [showArchived, setShowArchived] = useState(false);
+	const [archiveClock, setArchiveClock] = useState(Date.now());
 	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
@@ -61,12 +62,22 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			linkedRun !== undefined && !listedRuns.some((run) => run.id === linkedRun.id)
 				? [...listedRuns, linkedRun]
 				: listedRuns;
-		return availableRuns.filter(
-			(run) =>
-				run.kind !== "flow" && (run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id)),
-		);
+		const sessionRunIds = new Set(sessions.data?.map((session) => session.runId));
+		return availableRuns.filter((run) => run.kind !== "flow" && (run.kind !== "session" || sessionRunIds.has(run.id)));
 	}, [runs.data, linkedRun, sessions.data]);
-	const current = useMemo(() => sessionGroups(items, { search: "", showArchived: false }), [items]);
+	useEffect(() => {
+		const nextArchiveTimeMs = nextSessionArchiveTimeMs(items, archiveClock);
+		if (nextArchiveTimeMs === null) return;
+		const timer = window.setTimeout(
+			() => setArchiveClock(Date.now()),
+			Math.min(nextArchiveTimeMs - Date.now() + 1, 2_147_483_647),
+		);
+		return () => window.clearTimeout(timer);
+	}, [items, archiveClock]);
+	const current = useMemo(
+		() => sessionGroups(items, { search: "", showArchived: false, now: archiveClock }),
+		[items, archiveClock],
+	);
 	const selected = selectedSession(items, current.runs, hash, heldSelectedId);
 	useEffect(() => {
 		if (!hash && selected?.id !== heldSelectedId) setHeldSelectedId(selected?.id);
@@ -95,6 +106,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			}}
 			showArchived={showArchived}
 			onShowArchivedChange={setShowArchived}
+			archiveClock={archiveClock}
 		/>
 	);
 	return (
