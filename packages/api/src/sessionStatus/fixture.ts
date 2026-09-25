@@ -37,6 +37,7 @@ export const session = (): SessionDetail => ({
 		error: null,
 		sessionId: "conversation",
 		sessionLost: false,
+		activityAt: at,
 		createdAt: at,
 		updatedAt: at,
 		observation: {

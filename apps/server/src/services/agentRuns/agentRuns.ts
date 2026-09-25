@@ -35,13 +35,13 @@ const ticketRuns = (_ctx: CoreCtx, tx: Tx, ticketId: string, projectId: string |
 		${projectId === null ? sql`true` : sql`project_id = ${projectId}`} ORDER BY created_at DESC, id DESC`,
 	);
 
-// The window keeps every open run and every run that started inside
-// `windowHours`. A caller that names `ids` or `ticket` already asks for a
-// bounded set, so the window would only hide a row that caller asked for.
+// The window keeps every open run. It also keeps each closed run whose
+// `updated_at` value falls inside `windowHours`. A caller that names `ids`
+// or `ticket` already asks for a bounded set.
 const withinWindow = (input: AgentRunListInput, ticketId: string | null, now: Date) => {
 	if (input.ids !== undefined || ticketId !== null) return sql`true`;
 	const start = new Date(now.getTime() - input.windowHours * 3_600_000);
-	return sql`(closed_at IS NULL OR created_at >= ${start})`;
+	return sql`(closed_at IS NULL OR updated_at >= ${start})`;
 };
 
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
@@ -75,7 +75,7 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 				), recent AS (
 					SELECT ${listColumns} FROM agent_runs
 					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NULL AND ${window}
-					ORDER BY created_at DESC, id DESC LIMIT ${input.limit}
+					ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}
 				)
 				SELECT * FROM pinned
 				UNION ALL
@@ -85,7 +85,7 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	return rows<StoredRun>(
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${window}
-		ORDER BY created_at DESC, id DESC LIMIT ${input.limit}`,
+		ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}`,
 	);
 };
 

@@ -692,7 +692,10 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.setArchived` puts a session away, or brings it back. It stops the agent the same way a delete does, and keeps the directory, the files, and the conversation.
 An archived session runs no agent and holds no project: `sessions.start` and `sessions.move` refuse it, and a session that holds a project cannot be archived.
 The sidebar draws the archived sessions under the session list, in an Archived group that opens on a press.
-Project Sessions lists session, ticket, and flow runs. A ticket row uses its identifier, and its terminal header uses the ticket title.
+Project Sessions puts project sessions and ticket agents in one list, in order of the latest stored process or conversation activity.
+After 48 hours without activity, an unpinned row moves to Archived.
+This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
+A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
