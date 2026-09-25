@@ -1,13 +1,13 @@
 export const sameOrigin = (url: string, origin: string) => URL.canParse(url) && new URL(url).origin === origin;
 
-export const externalUrl = (url: string) => {
+export const isSafeWebLink = (url: string) => {
 	if (!URL.canParse(url)) return false;
 	const parsed = new URL(url);
 	return ["http:", "https:"].includes(parsed.protocol) && !parsed.username && !parsed.password;
 };
 
-export const openExternalUrl = (url: string, open: (url: string) => unknown) => {
-	if (!externalUrl(url)) return false;
+export const openSafeWebLink = (url: string, open: (url: string) => unknown) => {
+	if (!isSafeWebLink(url)) return false;
 	open(url);
 	return true;
 };

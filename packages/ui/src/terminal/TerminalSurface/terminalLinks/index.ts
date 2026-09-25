@@ -1,1 +1,1 @@
-export { terminalLinkHandler } from "./terminalLinks";
+export { makeSafeWebLinkHandler } from "./terminalLinks";

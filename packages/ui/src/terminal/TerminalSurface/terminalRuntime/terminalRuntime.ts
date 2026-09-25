@@ -1,5 +1,5 @@
 import { terminalInputSource } from "../terminalInputSource";
-import { terminalLinkHandler } from "../terminalLinks";
+import { makeSafeWebLinkHandler } from "../terminalLinks";
 import { terminalOutput } from "../terminalOutput";
 import { terminalResize } from "../terminalResize";
 import { terminalWebgl } from "../terminalWebgl";
@@ -38,7 +38,7 @@ export async function createTerminalRuntime(
 	});
 	const fit = new FitAddon();
 	terminal.loadAddon(fit);
-	terminal.loadAddon(new WebLinksAddon(terminalLinkHandler()));
+	terminal.loadAddon(new WebLinksAddon(makeSafeWebLinkHandler()));
 	terminal.open(wrapper);
 	const transport = createTransport();
 	const wheel = terminalWheel(terminal);
