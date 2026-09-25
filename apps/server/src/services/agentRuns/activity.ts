@@ -1,4 +1,3 @@
-import type { AgentActivity } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -7,20 +6,13 @@ import { observeRuns } from "./liveState.ts";
 import { listColumns, type StoredRun } from "./queries.ts";
 
 export const activityRows = (tx: Tx) =>
-	rows<StoredRun & { activitySessionId: string | null }>(
+	rows<StoredRun>(
 		tx,
 		sql`
-		SELECT ${listColumns}, (SELECT id FROM sessions WHERE run_id=agent_runs.id) AS "activitySessionId"
+		SELECT ${listColumns}
 		FROM agent_runs WHERE kind <> 'flow' AND runtime='native' AND terminal_id IS NOT NULL AND
-		(closed_at IS NULL OR id IN (SELECT run_id FROM sessions)) AND
-		(ticket_identifier IS NOT NULL OR id IN (SELECT run_id FROM sessions))`,
+		(closed_at IS NULL OR kind = 'session') AND
+		(ticket_identifier IS NOT NULL OR kind = 'session')`,
 	);
 
-export const activity = async (ctx: IoCtx): Promise<AgentActivity[]> => {
-	const entries = await ctx.newTx(activityRows);
-	const runs = await observeRuns(
-		ctx,
-		entries.map(({ activitySessionId: _sessionId, ...run }) => run),
-	);
-	return runs.map((run, index) => ({ run, sessionId: entries[index]!.activitySessionId }));
-};
+export const activityRuns = async (ctx: IoCtx) => observeRuns(ctx, await ctx.newTx(activityRows));

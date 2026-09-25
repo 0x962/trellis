@@ -3,7 +3,7 @@ import { HarnessSchema } from "../harness/harness.ts";
 import { AgentRunSchema } from "./agentRun.ts";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-// The name stores user input, the temporary name, or the agent title from the first exchange.
+// The name stores user input, the temporary name, or the agent name from the first exchange.
 // Two sessions can use the same name.
 export const SessionNameSchema = z.string().trim().min(1, "Enter a name.").max(60);
 export const SessionGeneratedNameSchema = SessionNameSchema.refine(

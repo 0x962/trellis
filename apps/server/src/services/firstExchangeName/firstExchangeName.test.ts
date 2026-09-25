@@ -98,7 +98,7 @@ test("the first complete exchange supplies one session name", async () => {
 		async (_nameCtx, input) => {
 			expect(input.runId).toBe(normalRunId);
 			expect(input.agentResponse).toBe("The login tests now pass.");
-			return { response: "Fix login tests", userMessage: "Fix the login tests.", protectedTerms: [] };
+			return { candidateName: "Fix login tests", initialPrompt: "Fix the login tests.", protectedTerms: [] };
 		},
 	);
 	const after = (
@@ -122,7 +122,7 @@ test("a user rename before completion keeps the user name", async () => {
 		{ sessionId: renamedSessionId, agentResponse: "The cache stores project rows." },
 		async () => {
 			requests++;
-			return { response: "Explain the cache", userMessage: "Explain the cache.", protectedTerms: [] };
+			return { candidateName: "Explain the cache", initialPrompt: "Explain the cache.", protectedTerms: [] };
 		},
 	);
 	expect(named).toBeNull();
@@ -132,8 +132,8 @@ test("a user rename before completion keeps the user name", async () => {
 
 test("duplicate completion events make one name request", async () => {
 	let requests = 0;
-	let answer!: (name: { response: string; userMessage: string; protectedTerms: string[] }) => void;
-	const name = new Promise<{ response: string; userMessage: string; protectedTerms: string[] }>((resolve) => {
+	let answer!: (name: { candidateName: string; initialPrompt: string; protectedTerms: string[] }) => void;
+	const name = new Promise<{ candidateName: string; initialPrompt: string; protectedTerms: string[] }>((resolve) => {
 		answer = resolve;
 	});
 	const requestName = async () => {
@@ -151,7 +151,7 @@ test("duplicate completion events make one name request", async () => {
 		requestName,
 	);
 	while (requests === 0) await Bun.sleep(0);
-	answer({ response: "Add session names", userMessage: "Add a session name.", protectedTerms: [] });
+	answer({ candidateName: "Add session names", initialPrompt: "Add a session name.", protectedTerms: [] });
 	await Promise.all([first, duplicate]);
 	expect(requests).toBe(1);
 	expect((await run((tx) => getSession(tx, duplicateSessionId))).name).toBe("Add session names");
@@ -161,7 +161,7 @@ test("a later completion after resume keeps the saved name", async () => {
 	let requests = 0;
 	const requestName = async () => {
 		requests++;
-		return { response: "Review session list", userMessage: "Review the session list.", protectedTerms: [] };
+		return { candidateName: "Review session list", initialPrompt: "Review the session list.", protectedTerms: [] };
 	};
 	await nameFromFirstExchange(
 		nameContext(),

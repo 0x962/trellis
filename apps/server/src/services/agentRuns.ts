@@ -1,3 +1,4 @@
+export { activityRuns } from "./agentRuns/activity.ts";
 export { projectUnresolvedAttempts } from "./agentRuns/agentRuns.ts";
 export {
 	type RequestedSessionName,

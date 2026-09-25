@@ -1,5 +1,5 @@
 import * as actors from "./actors.ts";
-import { activity as agentActivity } from "./agentRuns/activity.ts";
+import { activity as agentActivity } from "./agentActivity";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import { answerQuestion } from "./agentRuns/answerQuestion.ts";
 import * as agentAttention from "./agentRuns/attention.ts";
