@@ -7,7 +7,7 @@ import { invalidInput } from "../../errors.ts";
 
 export type ExecutionAttempt = { id: string; generation: number; token: string };
 export type ExecutionAttemptRecord = { id: string; runId: string };
-export type LatestExecutionAttemptAt = { runId: string; activityAt: string };
+export type LatestAttemptActivity = { runId: string; activityAt: string };
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("hex");
 
 export const listExecutionAttempts = (tx: Tx, runIds: string[]) =>
@@ -18,10 +18,10 @@ export const listExecutionAttempts = (tx: Tx, runIds: string[]) =>
 				sql`SELECT id, run_id AS "runId" FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) ORDER BY generation`,
 			);
 
-export const latestExecutionAttemptAt = (tx: Tx, runIds: string[]) =>
+export const latestAttemptActivityByRuns = (tx: Tx, runIds: string[]) =>
 	runIds.length === 0
-		? Promise.resolve([] as LatestExecutionAttemptAt[])
-		: rows<LatestExecutionAttemptAt>(
+		? Promise.resolve([] as LatestAttemptActivity[])
+		: rows<LatestAttemptActivity>(
 				tx,
 				sql`SELECT run_id AS "runId", ${iso(sql`MAX(created_at)`)} AS "activityAt"
 				FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) GROUP BY run_id`,

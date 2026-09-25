@@ -1,6 +1,6 @@
 export {
 	type ExecutionAttemptRecord,
-	type LatestExecutionAttemptAt,
-	latestExecutionAttemptAt,
+	type LatestAttemptActivity,
+	latestAttemptActivityByRuns,
 	listExecutionAttempts,
 } from "./assignments/attempts.ts";

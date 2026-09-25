@@ -48,6 +48,10 @@ export function SessionList({
 		observer.observe(content.current!);
 		return () => observer.disconnect();
 	}, []);
+	const onSearchChange = (value: string) => {
+		setSearch(value);
+		if (scroller !== null) scroller.scrollTop = 0;
+	};
 	const groups = useMemo(
 		() => sessionGroups(runs, { search, showArchived, now: archiveClock }),
 		[runs, search, showArchived, archiveClock],
@@ -67,7 +71,7 @@ export function SessionList({
 						hideLabel
 						placeholder="Search sessions…"
 						value={search}
-						onChange={(event) => setSearch(event.target.value)}
+						onChange={(event) => onSearchChange(event.target.value)}
 						className="h-7 text-sm"
 					/>
 				</div>
@@ -116,7 +120,7 @@ export function SessionList({
 								</p>
 							) : (
 								<SessionGroup
-									key={`${showArchived}:${search}`}
+									key={String(showArchived)}
 									group="sessions"
 									label="Sessions"
 									projectKey={project.key}
@@ -135,7 +139,7 @@ export function SessionList({
 				</div>
 			</div>
 			<div className="shrink-0 border-t border-border p-2">
-				<ArchivedToggle expanded={showArchived} onExpandedChange={onShowArchivedChange} />
+				<ArchivedToggle expanded={showArchived} onExpandedChange={onShowArchivedChange} semantics="pressed" />
 			</div>
 		</nav>
 	);

@@ -16,7 +16,7 @@ export function ArchivedGroup({ label, count, children }: ArchivedGroupProps) {
 	const [open, setOpen] = useState(false);
 	return (
 		<nav aria-label={label} className="pt-1">
-			<ArchivedToggle expanded={open} onExpandedChange={setOpen} count={count} className="pl-2" />
+			<ArchivedToggle expanded={open} onExpandedChange={setOpen} semantics="expanded" count={count} className="pl-2" />
 			{open && children}
 		</nav>
 	);

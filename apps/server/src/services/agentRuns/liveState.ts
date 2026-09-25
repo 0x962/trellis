@@ -5,7 +5,7 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
 import { launchState } from "./launchState";
-import { type StoredRun, storeObservedActivity } from "./queries.ts";
+import type { StoredRun } from "./queries.ts";
 
 type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
 type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<RuntimeProcessStatus[]>;
@@ -167,7 +167,7 @@ const runtimeIds = (runs: StoredRun[], attemptIdsByRun: ReadonlyMap<string, stri
 ];
 
 export async function observeRuns(
-	ctx: Pick<ServiceCtx, "home" | "newTx">,
+	ctx: Pick<ServiceCtx, "home">,
 	runs: StoredRun[],
 	readSessions: ReadRuntimeSessions = readRuntimeSessionsRequired,
 ): Promise<AgentRun[]> {
@@ -175,14 +175,7 @@ export async function observeRuns(
 	const ids = [...new Set(runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])))];
 	if (ids.length === 0) return runs.map((run) => projectRun(run, [], ctx.home));
 	const sessions = await readSessions(ctx.home, { ids });
-	const projected = runs.map((run) => projectRun(run, sessions, ctx.home));
-	const changed = projected.flatMap((run, index) =>
-		run.activityAt !== null && (runs[index]!.activityAt === null || run.activityAt > runs[index]!.activityAt!)
-			? [{ id: run.id, activityAt: run.activityAt }]
-			: [],
-	);
-	if (changed.length > 0) await ctx.newTx((tx) => storeObservedActivity(tx, changed));
-	return projected;
+	return runs.map((run) => projectRun(run, sessions, ctx.home));
 }
 
 type RunWork = Pick<TicketMetrics, "durationMs" | "tokenCount">;

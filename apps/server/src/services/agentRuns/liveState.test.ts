@@ -103,10 +103,7 @@ test("projectRun preserves stored activity when the execution service has no liv
 test("observeRuns reports an activity read failure", async () => {
 	const failure = new Error("execution service unavailable");
 	const readSessions = () => Promise.reject(failure);
-	const ctx = {
-		home: "/tmp/trellis-live-state-test",
-		newTx: () => Promise.reject(new Error("The failed read must not write activity.")),
-	};
+	const ctx = { home: "/tmp/trellis-live-state-test" };
 
 	await expect(observeRuns(ctx, [run], readSessions)).rejects.toBe(failure);
 });

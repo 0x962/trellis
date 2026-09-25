@@ -6,15 +6,17 @@ const countFormat = new Intl.NumberFormat();
 export type ArchivedToggleProps = {
 	expanded: boolean;
 	onExpandedChange: (expanded: boolean) => void;
+	semantics: "expanded" | "pressed";
 	count?: number;
 	className?: string;
 };
 
-export function ArchivedToggle({ expanded, onExpandedChange, count, className }: ArchivedToggleProps) {
+export function ArchivedToggle({ expanded, onExpandedChange, semantics, count, className }: ArchivedToggleProps) {
 	return (
 		<button
 			type="button"
-			aria-expanded={expanded}
+			aria-expanded={semantics === "expanded" ? expanded : undefined}
+			aria-pressed={semantics === "pressed" ? expanded : undefined}
 			onClick={() => onExpandedChange(!expanded)}
 			className={cx(
 				"sidebar-row w-full text-left text-sm text-fg-muted hover:bg-elevated hover:text-fg active:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
