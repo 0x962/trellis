@@ -13,7 +13,7 @@ import { useCommandSearch } from "../../../hooks/useCommandSearch";
 import type { PaletteGroup, PaletteRow, RowDeps, Submenu } from "../../../rows";
 import { paletteTypeahead } from "../../../typeahead";
 import { drawRows } from "../../../utils/drawRows";
-import { jumpRow, pageResultRows, resultRows } from "../../../utils/resultRows";
+import { jumpRow, pageResultRows, ticketResultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
 import { createRows, gotoProjectRows, gotoRows, viewRows } from "../../../utils/viewRows";
@@ -130,7 +130,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		groups.push(...commands);
 	} else if (submenu === null) {
 		if (results.tickets.length > 0) {
-			groups.push({ id: "results", heading: "Tickets", rows: resultRows(results.tickets, deps) });
+			groups.push({ id: "results", heading: "Tickets", rows: ticketResultRows(results.tickets, deps) });
 		}
 		if (results.pages.length > 0) {
 			groups.push({ id: "pages", heading: "Pages", rows: pageResultRows(results.pages, deps) });

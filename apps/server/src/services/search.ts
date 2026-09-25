@@ -2,10 +2,9 @@ import { SearchQuerySchema } from "@trellis/api";
 import type { ServiceCtx } from "../context.ts";
 import { search } from "../db/queries/search.ts";
 import type { Tx } from "../db/tx.ts";
-import { searchPages } from "./pages/search.ts";
+import { searchPages } from "./pages";
 import { resolveProject } from "./refs.ts";
 
-// A project ref narrows the ticket, Page, and project results to one project.
 export const query = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const input = SearchQuerySchema.parse(rawInput);
 	const projectIds = input.project === undefined ? undefined : [(await resolveProject(ctx, tx, input.project)).id];

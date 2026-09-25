@@ -15,10 +15,9 @@ import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
-import { versionRow } from "./content.ts";
+import { staticPageText, versionRow } from "./content.ts";
 import { lockPage, pageById, resolvePage } from "./pages.ts";
 import { type RawPage, toSummary } from "./rows.ts";
-import { staticPageText } from "./search.ts";
 
 type StagedRow = { id: string; sha256: string; size: number; mime: string };
 type PublishInput = ReturnType<typeof PagePublishInputSchema.parse>;
@@ -189,10 +188,10 @@ const publishWithText = async (
 	}
 	await tx.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, label, document_sha256, document_size,
-		search_text, source_agent_id, source_path, actor_name, actor_kind, created_at
+		search_text, search_indexed, source_agent_id, source_path, actor_name, actor_kind, created_at
 	) VALUES (
 		${pageId}, ${number}, ${input.requestId}, ${input.label ?? null}, ${document.sha256}, ${document.size},
-		${searchText}, ${await sourceAgentId(ctx, tx)}, ${input.sourcePath}, ${actor.name}, ${actor.kind}, ${ctx.now}
+		${searchText}, true, ${await sourceAgentId(ctx, tx)}, ${input.sourcePath}, ${actor.name}, ${actor.kind}, ${ctx.now}
 	)`);
 	// One statement for every asset. The server holds one database
 	// connection, so each statement of this transaction makes every other
@@ -219,7 +218,5 @@ const publishWithText = async (
 	return publishOutput(ctx, tx, pageId, number);
 };
 
-// One publication writes the Page, its version, its assets, and the static
-// search text in one transaction.
 export const publish = (ctx: IoCtx, tx: Tx, prepared: PreparedPublish) =>
 	publishWithText(ctx.core, tx, prepared.input, prepared.searchText);

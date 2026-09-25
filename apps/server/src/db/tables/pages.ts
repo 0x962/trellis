@@ -3,6 +3,8 @@ import { check, foreignKey, index, integer, pgTable, text, unique } from "drizzl
 import { actorColumns, actorFk, actors, at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
+// Migration 0120 holds the GIN indexes for the title and summary search
+// vectors because drizzle-kit cannot render an expression index.
 export const pages = pgTable(
 	"pages",
 	{

@@ -4,8 +4,6 @@ import { StatusIcon } from "@trellis/ui";
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import type { PaletteRow, RowDeps } from "../../rows";
 
-// The result sections and the jump row of a typed ticket identifier.
-
 const openTicket = (deps: RowDeps, identifier: string) => () => {
 	deps.close();
 	pageSheetActions.openTicket(identifier);
@@ -13,7 +11,7 @@ const openTicket = (deps: RowDeps, identifier: string) => () => {
 
 // A ticket row reads like a list row: the status icon, the ID in faint
 // mono, then the title.
-export const resultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[] =>
+export const ticketResultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[] =>
 	tickets.map((ticket) => ({
 		value: ticket.identifier,
 		label: ticket.title,

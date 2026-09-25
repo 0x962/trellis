@@ -1,4 +1,5 @@
 import { core, io, prepared } from "../../registryEntry";
+import { backfillSearchText, prepareSearchBackfill } from "../backfillSearchText.ts";
 import * as pageContent from "../content.ts";
 import * as pages from "../pages.ts";
 import { preparePublish, publish } from "../publish.ts";
@@ -6,6 +7,7 @@ import { purgeExpiredPages } from "../retention";
 import * as pageUploads from "../uploads.ts";
 
 export const pageServices = {
+	"pages.backfillSearch": prepared("mutation", prepareSearchBackfill, backfillSearchText),
 	"pages.retention": io("mutation", purgeExpiredPages),
 	"pages.list": core("read", pages.list),
 	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
