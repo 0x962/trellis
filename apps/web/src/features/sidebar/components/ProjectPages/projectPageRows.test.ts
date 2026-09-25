@@ -22,25 +22,24 @@ const activeLabels = (pathname: string) => {
 	return [...top, ...more].filter((row) => row.active).map((row) => row.label);
 };
 
-test("Epics, Pages, and Sessions stand under the project, and More holds Tickets and Diffs", () => {
+test("Epics and Sessions stand under the project, and More holds Tickets and Diffs", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
-	expect(labels(top)).toEqual(["Epics", "Pages", "Sessions"]);
+	expect(labels(top)).toEqual(["Epics", "Sessions"]);
 	expect(labels(more)).toEqual(["Tickets", "Diffs"]);
 });
 
-test("Epics and Pages print their counts", () => {
+test("Epics prints its count", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
-	expect(top.map((row) => row.trailing)).toEqual(["3", "2", null]);
+	expect(top.map((row) => row.trailing)).toEqual(["3", null]);
 	expect(more.map((row) => row.trailing)).toEqual([null, null]);
 });
 
-test("a project with no open epic or Page comment prints no count", () => {
+test("a project with no open epic prints no count", () => {
 	const { top } = projectPageRows({ ...project, openEpicCount: 0, openPageCommentCount: 0 }, "/p/TRL", 0);
 
 	expect(top[0]?.trailing).toBe(null);
-	expect(top[1]?.trailing).toBe(null);
 });
 
 test("each page of the project makes its own row active", () => {
@@ -49,9 +48,9 @@ test("each page of the project makes its own row active", () => {
 	expect(activeLabels("/p/TRL/settings")).toEqual(["Tickets"]);
 	expect(activeLabels("/p/TRL/epics")).toEqual(["Epics"]);
 	expect(activeLabels("/p/TRL/epics/routine-runtime")).toEqual(["Epics"]);
-	expect(activeLabels("/p/TRL/pages")).toEqual(["Pages"]);
-	expect(activeLabels("/p/TRL/pages/release-report")).toEqual(["Pages"]);
-	expect(activeLabels("/p/TRL/pages/diffs")).toEqual(["Pages"]);
+	expect(activeLabels("/p/TRL/pages")).toEqual([]);
+	expect(activeLabels("/p/TRL/pages/release-report")).toEqual([]);
+	expect(activeLabels("/p/TRL/pages/diffs")).toEqual([]);
 	expect(activeLabels("/p/TRL/diffs")).toEqual(["Diffs"]);
 	expect(activeLabels("/sessions/project/TRL")).toEqual(["Sessions"]);
 });
@@ -64,14 +63,14 @@ test("a page of another project leaves every row off", () => {
 test("the Sessions row carries the count of the active agents, and no other row does", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 2);
 
-	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 0, 2]);
+	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 2]);
 	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 0]);
 });
 
 test("a project with no active agent counts none", () => {
 	const { top } = projectPageRows(project, "/p/TRL", 0);
 
-	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 0, 0]);
+	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 0]);
 });
 
 test("the shut More row counts the agents of the rows it hides", () => {

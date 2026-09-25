@@ -32,6 +32,7 @@ import * as flowSave from "./flows/save.ts";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
+import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
@@ -198,6 +199,7 @@ export const services = {
 	"projects.delete": core("mutation", projects.delete),
 	"projects.repos": core("read", projects.projectRepos),
 	"projects.setRepos": core("mutation", projects.setRepos),
+	"internalLinks.resolve": core("read", internalLinks.resolve),
 	"statuses.list": core("read", statuses.list),
 	"statuses.create": core("mutation", statuses.create),
 	"statuses.update": core("mutation", statuses.update),

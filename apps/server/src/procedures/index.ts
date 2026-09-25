@@ -5,6 +5,7 @@ import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
+import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
 import { models } from "./models.ts";
@@ -32,6 +33,7 @@ export type { ProcedureContext } from "./base.ts";
 export const router = os.router({
 	models,
 	harnessAccounts,
+	internalLinks,
 	usage,
 	needsYou,
 	reviews,

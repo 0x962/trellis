@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ProjectRefStringSchema, TicketRefStringSchema } from "@trellis/api";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { InternalLinkSchema, ProjectRefStringSchema, TicketRefStringSchema } from "@trellis/api";
 import { Chip, EmptyState, Kbd } from "@trellis/ui";
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useState } from "react";
 import { searchDebounceMs } from "../features/command/hooks/useCommandSearch";
@@ -10,7 +10,7 @@ import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { useApp } from "../lib/appContext";
 
-type SearchRouteSearch = Partial<View> & { rankProject?: string };
+type SearchRouteSearch = Partial<View> & { rankProject?: string; internalLink?: string };
 
 const parseSearchRoute = (search: Record<string, unknown>): SearchRouteSearch => {
 	const parsed = stripDefaults(parseSearch(search));
@@ -20,14 +20,23 @@ const parseSearchRoute = (search: Record<string, unknown>): SearchRouteSearch =>
 		else parsed.q = q;
 	}
 	const rankProject = ProjectRefStringSchema.safeParse(search.rankProject);
-	return rankProject.success ? { ...parsed, rankProject: rankProject.data } : parsed;
+	const internalLink = InternalLinkSchema.safeParse(search.internalLink);
+	return {
+		...parsed,
+		...(rankProject.success ? { rankProject: rankProject.data } : {}),
+		...(internalLink.success ? { internalLink: internalLink.data } : {}),
+	};
 };
 
 // `q` lives in the URL, so a search is a link.
 export const Route = createFileRoute("/search")({
 	validateSearch: parseSearchRoute,
-	loaderDeps: ({ search }) => ({ q: search.q, rankProject: search.rankProject }),
+	loaderDeps: ({ search }) => ({ q: search.q, rankProject: search.rankProject, internalLink: search.internalLink }),
 	loader: async ({ context, deps }) => {
+		if (deps.internalLink !== undefined) {
+			const { path } = await context.client.internalLinks.resolve({ link: deps.internalLink });
+			throw redirect({ href: path, replace: true });
+		}
 		if (deps.q !== undefined) {
 			await context.queryClient.ensureQueryData(
 				context.orpc.search.query.queryOptions({ input: { q: deps.q, rankProject: deps.rankProject } }),
@@ -104,7 +113,7 @@ function SearchPage() {
 						<input
 							id={id}
 							type="search"
-							placeholder="Search tickets, Pages, and projects"
+							placeholder="Search tickets and projects"
 							value={draft}
 							// biome-ignore lint/a11y/noAutofocus: The field is the one control of the search page.
 							autoFocus
@@ -132,8 +141,8 @@ function SearchPage() {
 					{q === undefined ? (
 						<EmptyState
 							variant="page"
-							title="Search tickets, Pages, and projects"
-							description="A ticket ID such as CDE-42 opens the ticket. A word also matches Page text and project names."
+							title="Search tickets and projects"
+							description="A ticket ID such as CDE-42 opens the ticket. A word also matches ticket text and project names."
 						/>
 					) : (
 						<SearchResults q={q} filters={search} />
