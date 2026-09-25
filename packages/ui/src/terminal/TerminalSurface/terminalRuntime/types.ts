@@ -39,6 +39,7 @@ export type TerminalAppearance = {
 export type TerminalView = {
 	label: string;
 	readOnly: boolean;
+	getPathForFile?: (file: File) => string;
 	screenReaderMode: boolean;
 	onLeave: () => void;
 };

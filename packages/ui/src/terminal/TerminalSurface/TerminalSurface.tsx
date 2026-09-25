@@ -21,6 +21,7 @@ export type TerminalSurfaceProps = {
 	label: string;
 	stopped?: boolean;
 	readOnly?: boolean;
+	getPathForFile?: (file: File) => string;
 	screenReaderMode?: boolean;
 	autoFocus?: boolean;
 	autoFocusDelay?: number;
@@ -35,6 +36,7 @@ export function TerminalSurface({
 	label,
 	stopped = false,
 	readOnly = false,
+	getPathForFile,
 	screenReaderMode = true,
 	autoFocus = false,
 	autoFocusDelay = 0,
@@ -43,8 +45,8 @@ export function TerminalSurface({
 }: TerminalSurfaceProps) {
 	const container = useRef<HTMLDivElement>(null);
 	const runtime = useRef<TerminalRuntime | null>(null);
-	const view = useRef({ label, readOnly, screenReaderMode, onLeave });
-	view.current = { label, readOnly, screenReaderMode, onLeave };
+	const view = useRef({ label, readOnly, getPathForFile, screenReaderMode, onLeave });
+	view.current = { label, readOnly, getPathForFile, screenReaderMode, onLeave };
 	const focusRequest = useRef({ autoFocus, autoFocusDelay });
 	focusRequest.current = { autoFocus, autoFocusDelay };
 	const [state, setState] = useState<{ identity: string; snapshot: TerminalSnapshot }>({
@@ -57,8 +59,8 @@ export function TerminalSurface({
 		onConnectionChange?.(snapshot);
 	}, [onConnectionChange, snapshot]);
 	useEffect(() => {
-		runtime.current?.update({ label, readOnly, screenReaderMode, onLeave });
-	}, [label, readOnly, screenReaderMode, onLeave]);
+		runtime.current?.update({ label, readOnly, getPathForFile, screenReaderMode, onLeave });
+	}, [label, readOnly, getPathForFile, screenReaderMode, onLeave]);
 	useEffect(() => {
 		if (stopped) {
 			disposeTerminalIdentity(identity);

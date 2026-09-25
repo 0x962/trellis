@@ -1,3 +1,4 @@
+import { fileDrop } from "../../fileDrop";
 import { terminalInputSource } from "../terminalInputSource";
 import { makeSafeWebLinkHandler } from "../terminalLinks";
 import { terminalOutput } from "../terminalOutput";
@@ -59,6 +60,15 @@ export async function createTerminalRuntime(
 		publish({ connection: "closed", controllable: false, error: (failure as Error).message });
 		if (!view) dispose();
 	};
+	const drops = fileDrop(
+		() => ({ ...snapshot, view }),
+		(text) => {
+			void transport.send(text, true).catch(fail);
+			terminal.focus();
+		},
+	);
+	wrapper.addEventListener("dragover", drops.dragover, true);
+	wrapper.addEventListener("drop", drops.drop, true);
 	const resize = terminalResize(terminal, fit, (cols, rows) => {
 		if (view && !view.readOnly && snapshot.connection === "open" && snapshot.controllable && !snapshot.error)
 			void transport.resize(cols, rows).catch(fail);
@@ -114,6 +124,8 @@ export async function createTerminalRuntime(
 		connection?.abort();
 		view = null;
 		wrapper.removeEventListener("focusin", focus);
+		wrapper.removeEventListener("dragover", drops.dragover, true);
+		wrapper.removeEventListener("drop", drops.drop, true);
 		resize.dispose();
 		data.dispose();
 		source.dispose();

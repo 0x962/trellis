@@ -1,4 +1,4 @@
-import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
+import { contextBridge, type IpcRendererEvent, ipcRenderer, webUtils } from "electron";
 import type {
 	DesktopAction,
 	DesktopServiceStatus,
@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld(
 	"trellisDesktop",
 	Object.freeze({
 		platform: "darwin",
+		getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 		sessionVisible: (runId: string | null): Promise<void> => ipcRenderer.invoke("trellis:session-visible", runId),
 		previewNotification: (volume: number): Promise<void> => ipcRenderer.invoke("trellis:preview-notification", volume),
 		refreshThermalState,
