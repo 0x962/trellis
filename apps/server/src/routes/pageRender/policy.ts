@@ -17,10 +17,11 @@ export const guardHeaders = () => ({
 // inside it.
 export const originOf = (c: Context) => new URL(c.req.url).origin;
 
-export const framePolicy = (origin: string, root: string) =>
+export const framePolicy = (origin: string, root: string, nonce: string) =>
 	[
 		"default-src 'none'",
 		"style-src 'unsafe-inline'",
+		`script-src 'nonce-${nonce}'`,
 		`frame-src ${origin}${root}`,
 		"form-action 'none'",
 		"base-uri 'none'",

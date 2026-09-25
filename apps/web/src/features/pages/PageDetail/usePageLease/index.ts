@@ -1,0 +1,1 @@
+export { usePageLease } from "./usePageLease";

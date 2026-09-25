@@ -14,6 +14,7 @@ import { call, os, withIfMatch } from "./base.ts";
 
 const leaseReply = (lease: RenderLease): PageRenderLease => ({
 	id: lease.id,
+	nonce: lease.nonce,
 	frameUrl: renderFrameHref(lease.id),
 	contentRoot: renderContentRoot(lease.id),
 	pageId: lease.pageId,

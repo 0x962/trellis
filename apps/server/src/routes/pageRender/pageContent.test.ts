@@ -105,6 +105,8 @@ describe("the frame document", () => {
 		const policy = response.headers.get("content-security-policy")!;
 		expect(policy).toContain(`frame-src http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/`);
 		expect(policy).toContain("default-src 'none'");
+		expect(policy).toContain(`script-src 'nonce-${open.nonce}'`);
+		expect(policy).not.toContain("script-src 'unsafe-inline'");
 		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 		expect(response.headers.get("cache-control")).toBe("no-store");
 	});
@@ -117,11 +119,30 @@ describe("the frame document", () => {
 });
 
 describe("the page document and its assets", () => {
-	test("serves the stored bytes with the hash as the tag", async () => {
+	test("completes an HTTP response after runtime injection", async () => {
+		const open = lease();
+		const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: appOf().fetch });
+		try {
+			const response = await fetch(new URL(`${PAGE_RENDER_PREFIX}/${open.id}/`, server.url), {
+				signal: AbortSignal.timeout(2000),
+			});
+			expect(response.status).toBe(200);
+			const body = await response.text();
+			expect(body).toStartWith("<p>Forecast report</p>");
+			expect(body).toContain("page-ready");
+		} finally {
+			server.stop(true);
+		}
+	});
+
+	test("serves the document with its runtime and source hash", async () => {
 		const open = lease();
 		const response = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/`);
 		expect(response.status).toBe(200);
-		expect(await response.text()).toBe("<p>Forecast report</p>");
+		const body = await response.text();
+		expect(body).toStartWith("<p>Forecast report</p>");
+		expect(body).toContain("page-ready");
+		expect(body).toContain(open.nonce);
 		expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
 		expect(response.headers.get("etag")).toBe(`"${documentSha}"`);
 		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
@@ -135,7 +156,10 @@ describe("the page document and its assets", () => {
 		const open = lease();
 		const response = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/index.html`);
 		expect(response.status).toBe(200);
-		expect(await response.text()).toBe("<p>Forecast report</p>");
+		const body = await response.text();
+		expect(body).toStartWith("<p>Forecast report</p>");
+		expect(body).toContain("page-ready");
+		expect(body).toContain(open.nonce);
 	});
 
 	test("serves an asset with the type the version stored", async () => {

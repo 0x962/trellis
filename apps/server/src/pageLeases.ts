@@ -29,6 +29,7 @@ export const archiveFilename = (slug: string, version: number) => `${slug}-v${ve
 
 export type RenderLease = {
 	id: string;
+	nonce: string;
 	pageId: string;
 	version: number;
 	// The actor that asked for the lease, as `kind:name`. `pages.renewRenderLease`
@@ -76,6 +77,7 @@ export const createRenderLease = ({ pageId, version, actor, now }: CreateRenderL
 	sweep(renderLeases, (lease) => leaseExpired(lease, now));
 	const lease: RenderLease = {
 		id: secretId(),
+		nonce: secretId(),
 		pageId,
 		version,
 		actorKey: actorKey(actor),

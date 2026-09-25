@@ -24,6 +24,7 @@ export const PAGE_VERSION_ASSET_MAX_BYTES = 250 * 1024 * 1024;
 // ends whatever the viewer does.
 export const PAGE_RENDER_IDLE_MS = 30 * 60 * 1000;
 export const PAGE_RENDER_MAX_MS = 8 * 60 * 60 * 1000;
+export const PAGE_RENDER_RENEW_MS = 20 * 60 * 1000;
 
 // The time a download link from `pages.archive` works for.
 export const PAGE_ARCHIVE_TTL_MS = 5 * 60 * 1000;
@@ -141,6 +142,7 @@ export type PageRenderCreateInput = z.input<typeof PageRenderCreateInputSchema>;
 // address in the page document resolves under it.
 export const PageRenderLeaseSchema = z.object({
 	id: z.string().min(1),
+	nonce: z.string().min(1),
 	frameUrl: z.string().min(1),
 	contentRoot: z.string().min(1),
 	pageId: UlidSchema,
