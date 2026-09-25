@@ -13,6 +13,7 @@ import {
 	statusIconOnly,
 	type TableKind,
 } from "../columns";
+import { insetRowSelection } from "../insetRowState";
 import { TreeStem } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";
 import type { TicketDisclosure as TicketDisclosureState } from "../utils/flattenGroups";
@@ -261,10 +262,11 @@ export const Row = memo(function Row({
 				gridColumnsClass,
 				!hasChildLines && "border-b border-border",
 				density === "comfortable" ? "text-base" : "text-sm",
-				// The focus bar keeps its own layer, because the green band of a done
-				// row covers the left edge of the row while it passes.
-				"before:absolute before:top-1 before:bottom-1 before:left-0 before:z-10 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
-				"hover:bg-band data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
+				// The focus bar sits on the left edge of the inset state ground. Its
+				// layer keeps it visible while `DoneWash` crosses the row.
+				"before:absolute before:top-1 before:bottom-1 before:left-3 before:z-10 before:w-0.5 before:rounded-sm before:bg-accent before:opacity-0 before:content-[''] max-md:before:left-2",
+				insetRowSelection,
+				"data-focused:before:opacity-100",
 				top === undefined && "relative",
 			)}
 			onFocus={(event) => {

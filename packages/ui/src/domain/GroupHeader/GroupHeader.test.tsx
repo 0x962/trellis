@@ -28,7 +28,7 @@ describe("GroupHeader icon", () => {
 
 describe("GroupHeader appearance", () => {
 	test("the inset box holds a side margin, a rounded border and its own background", () => {
-		const html = markup({ appearance: "inset" });
+		const html = markup({});
 
 		expect(html).toContain("mx-3");
 		expect(html).toContain("rounded-sm");
@@ -37,15 +37,16 @@ describe("GroupHeader appearance", () => {
 	});
 
 	test("the inset box takes no full width, so its side margin holds", () => {
-		expect(markup({ appearance: "inset" })).not.toContain("w-full");
+		expect(markup({})).not.toContain("w-full");
 	});
 
-	test("a sticky inset box stops below the gap it holds above itself", () => {
-		expect(markup({ appearance: "inset", sticky: true })).toContain("sticky top-1");
+	test("a sticky inset box stops below its optional gap", () => {
+		expect(markup({ appearance: "inset", insetGap: true, sticky: true })).toContain("sticky top-1");
+		expect(markup({ appearance: "inset", sticky: true })).toContain("sticky top-0");
 	});
 
 	test("the band keeps the full width and the line above and below", () => {
-		const html = markup({});
+		const html = markup({ appearance: "band" });
 
 		expect(html).toContain("w-full");
 		expect(html).toContain("border-y");
@@ -54,7 +55,15 @@ describe("GroupHeader appearance", () => {
 	});
 
 	test("a sticky band stops at the top of its list", () => {
-		expect(markup({ sticky: true })).toContain("sticky top-0");
+		expect(markup({ appearance: "band", sticky: true })).toContain("sticky top-0");
+	});
+
+	test("a virtual inset box stays inside the header slot", () => {
+		const html = markup({ layout: "grid", top: 64 });
+
+		expect(html).toContain("absolute inset-x-0 top-0");
+		expect(html).not.toContain("my-1");
+		expect(html).toContain("translateY(64px)");
 	});
 
 	test("the sidebar box draws no border", () => {

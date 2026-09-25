@@ -1,6 +1,7 @@
 import type { TicketPr } from "@trellis/api";
 import { type Check, CheckRibbon, cx } from "@trellis/ui";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { insetRowControl } from "../insetRowState";
 import { PrCells } from "../PrCells";
 import { prRowHeight } from "../rowHeights";
 import { TreeBranch, TreeStem } from "../TreeLines";
@@ -43,7 +44,8 @@ export function PrRow({ pr, top, last, hasChildLines }: PrRowProps) {
 			data-pr-row={`${pr.owner}/${pr.repo}#${pr.number}`}
 			style={{ height: `${prRowHeight}px`, transform: `translateY(${top}px)` }}
 			className={cx(
-				"absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden pr-5 pl-19 text-left text-sm text-fg-muted transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+				"absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden pr-5 pl-19 text-left text-sm text-fg-muted transition-colors duration-hover",
+				insetRowControl,
 				last && !hasChildLines && "border-b border-border",
 			)}
 			onClick={() => pageSheetActions.openPullRequest(pr.url)}

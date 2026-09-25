@@ -143,6 +143,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 										expanded={expanded}
 										controls={controls}
 										appearance="inset"
+										insetGap
 										sticky
 										onToggle={() => toggle(group.key)}
 									/>

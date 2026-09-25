@@ -59,6 +59,13 @@ test("each group prints its file count and its line count", () => {
 	expect(html).toContain("20 lines added, 4 lines deleted");
 });
 
+test("each file group uses the rounded inset band", () => {
+	const html = render();
+
+	expect(html).toContain("mx-3");
+	expect(html).toContain("rounded-sm");
+});
+
 test("Noise starts collapsed and the other three groups start open", () => {
 	const html = render();
 

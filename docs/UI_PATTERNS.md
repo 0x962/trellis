@@ -150,7 +150,10 @@ Priority defaults to highest first, then oldest ticket. Its groups remain Needs 
 ## Group headers
 
 Use `GroupHeader` for groups of data rows. Use `SectionHeader` for sections in ticket details and settings.
-The data header has a band background, a collapse chevron, a label, and a muted count.
+The data header has a rounded inset band, a collapse chevron, a label, and a muted count.
+The band starts 12 px inside a desktop list and 8 px inside a phone list.
+Keep the label aligned with the rows by reducing the padding inside the band.
+Keep row borders full width. Give the row hover, focus, and selection grounds the same inset rounded boundary.
 The header is 32 px on desktop and 48 px on a phone. Its label button reports the expanded state.
 Keep group headers visible during scroll when the list permits it.
 Use the count of all matching items, including pages that have not loaded. An unloaded count stays blank.

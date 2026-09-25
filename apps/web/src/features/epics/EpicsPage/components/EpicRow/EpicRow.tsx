@@ -5,6 +5,7 @@ import { cx, Menu, StackedBar } from "@trellis/ui";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { epicSplat } from "../../../../../lib/projectUrl";
 import type { Density } from "../../../../../stores/uiStore";
+import { insetRowHover } from "../../../../table/insetRowState";
 import { rowHeights } from "../../../../table/rowHeights";
 import { epicProgressLabel, epicSegments } from "../../../epicBar";
 import { currentWaveLabel } from "../../../epicNext";
@@ -21,7 +22,7 @@ export type EpicRowProps = {
 
 // One epic as a dense row with the classes of the ticket table `Row`: the
 // height from `rowHeights[density]`, the text size of the density on the
-// row, the `hover:bg-band` band, the same padding and gaps, and muted
+// row, the inset hover band, the same padding and gaps, and muted
 // `text-sm tabular` numbers. The tracks are the `columnWidths` of the
 // ticket table: the bar takes the status track (140px), the progress takes
 // the sub-tickets track (48px), the time takes the updated track (48px),
@@ -41,7 +42,7 @@ export function EpicRow({ epic, density, readOnly, onEdit, onDelete }: EpicRowPr
 			className={cx(
 				"group/row grid w-full grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 transition-colors duration-hover max-md:grid-cols-[minmax(0,1fr)_48px_48px_28px] max-md:gap-2 max-md:px-4",
 				density === "comfortable" ? "text-base" : "text-sm",
-				"hover:bg-band",
+				insetRowHover,
 			)}
 		>
 			<Link

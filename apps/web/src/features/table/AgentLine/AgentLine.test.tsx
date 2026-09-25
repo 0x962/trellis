@@ -196,15 +196,17 @@ describe("AgentLine", () => {
 		expect(html).toContain('data-agent-line="message"');
 	});
 
-	test("is a control that opens the session of its run, with a hover band and a focus ring", () => {
+	test("is a control with a rounded inset hover band and focus ring", () => {
 		const html = renderToStaticMarkup(
 			<AgentLine line={ticketAgentLine("crisp-fjord: I rebased.")} top={0} depth={1} render={render} />,
 		);
 
 		expect(html).toContain('role="button"');
 		expect(html).toContain('tabindex="0"');
-		expect(html).toContain("hover:bg-band");
-		expect(html).toContain("focus-visible:outline-accent");
+		expect(html).toContain("after:inset-x-3");
+		expect(html).toContain("after:rounded-sm");
+		expect(html).toContain("hover:after:bg-band");
+		expect(html).toContain("focus-visible:after:outline-accent");
 	});
 
 	test("carries the index the virtualizer reads when it measures the line", () => {

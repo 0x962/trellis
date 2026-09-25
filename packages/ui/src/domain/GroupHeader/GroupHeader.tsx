@@ -41,11 +41,11 @@ export type GroupHeaderProps = {
 	sticky?: boolean;
 	controls?: string;
 	layout?: "grid" | "section";
-	// The box that the header draws around its label. `band` fills the width
-	// of the list and rules a line above and below. `inset` starts 12 px
-	// inside the list and draws a rounded box, so the list keeps a left edge
-	// beside the sidebar. `sidebar` draws no box. The inset box holds a
-	// margin outside its `height`, so a list that gives `top` uses `band`.
+	insetGap?: boolean;
+	// The box that the header draws around its label. `inset` starts 12 px
+	// inside the list and draws a rounded box. `insetGap` adds the vertical
+	// space used by the Epics list. `band` fills the list width, and `sidebar`
+	// draws no box.
 	appearance?: "band" | "inset" | "sidebar";
 };
 
@@ -57,14 +57,13 @@ export const phoneGroupHeaderHeight = 48;
 const revealOnHover =
 	"opacity-0 transition-opacity duration-hover group-hover/header:opacity-100 group-focus-within/header:opacity-100 [@media(hover:none)]:opacity-100";
 
-// The box of each appearance. The inset box holds 4 px above and below
-// itself, and its 12 px side margin plus its 8 px padding put the label
-// where the band appearance puts it. `bg-band` is one step from the page
-// behind the list in each theme: #FFFFFF on the #F7F7F8 light page, and
-// #111112 on the #070707 dark page.
+// The box of each appearance. The inset box's 12 px side margin plus its 8 px
+// padding put the label where the band appearance puts it. `bg-band` is one
+// step from the page behind the list in each theme: #FFFFFF on the #F7F7F8
+// light page, and #111112 on the #070707 dark page.
 const chrome = {
 	band: "w-full border-y border-border bg-band px-5 max-md:px-4",
-	inset: "mx-3 my-1 rounded-sm border border-border bg-band px-2 max-md:mx-2",
+	inset: "mx-3 rounded-sm border border-border bg-band px-2 max-md:mx-2",
 	sidebar: "w-full bg-bg px-4",
 } as const satisfies Record<NonNullable<GroupHeaderProps["appearance"]>, string>;
 
@@ -88,13 +87,15 @@ export function GroupHeader({
 	sticky,
 	controls,
 	layout = "section",
-	appearance = "band",
+	insetGap = false,
+	appearance = "inset",
 }: GroupHeaderProps) {
 	const Chevron = expanded ? CaretDown : CaretRight;
-	// The inset box leaves 4 px above itself, and the rows pass through that
-	// gap, so a sticky inset box stops 4 px below the top of the list.
-	const stop = appearance === "inset" ? "sticky top-1 z-10" : "sticky top-0 z-10";
-	const position = top === undefined ? (sticky ? stop : "relative") : "absolute top-0 left-0";
+	// The Epics list includes 4 px gaps in its normal layout. A virtual grid
+	// supplies an exact height and offset, so its inset box uses that full slot.
+	const flowGap = appearance === "inset" && layout === "section" && insetGap ? "my-1" : undefined;
+	const stop = flowGap ? "sticky top-1 z-10" : "sticky top-0 z-10";
+	const position = top === undefined ? (sticky ? stop : "relative") : "absolute inset-x-0 top-0";
 	return (
 		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: The virtual ticket grid exposes each row group's collapsed state.
 		<div
@@ -105,7 +106,7 @@ export function GroupHeader({
 				height: `${height}px`,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
-			className={cx("group/header flex items-center gap-2", chrome[appearance], position)}
+			className={cx("group/header flex items-center gap-2", chrome[appearance], flowGap, position)}
 		>
 			{collapsible ? (
 				<button

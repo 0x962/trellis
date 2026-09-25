@@ -151,6 +151,15 @@ describe("PhoneRow on another list", () => {
 		expect(html).toContain('data-column="priority"');
 		expect(html).toContain('data-line="title"');
 	});
+
+	test("uses the rounded inset boundary for focus and selection", () => {
+		const html = render(ticket(), "list");
+
+		expect(html).toContain("after:inset-x-3");
+		expect(html).toContain("after:rounded-sm");
+		expect(html).toContain("data-focused:after:bg-accent-soft/60");
+		expect(html).toContain("data-selected:after:bg-accent-soft");
+	});
 });
 
 describe("the green wash of a row that is marked done", () => {

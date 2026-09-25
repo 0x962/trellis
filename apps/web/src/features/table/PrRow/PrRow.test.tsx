@@ -174,6 +174,15 @@ describe("PrRow", () => {
 		expect(html).toContain("translateY(288px)");
 	});
 
+	test("uses the rounded inset boundary for hover and keyboard focus", () => {
+		const html = renderToStaticMarkup(<PrRow pr={prOf({})} top={0} last={false} hasChildLines={false} />);
+
+		expect(html).toContain("after:inset-x-3");
+		expect(html).toContain("after:rounded-sm");
+		expect(html).toContain("hover:after:bg-band");
+		expect(html).toContain("focus-visible:after:outline-accent");
+	});
+
 	test("starts under the ID column of the ticket row", () => {
 		const html = renderToStaticMarkup(<PrRow pr={prOf({})} top={0} last={false} hasChildLines={false} />);
 
