@@ -1,0 +1,1 @@
+export { makeSafeWebLinkHandler } from "./terminalLinks";
