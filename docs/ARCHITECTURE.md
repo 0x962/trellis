@@ -680,12 +680,12 @@ The worktree lives under `agents/<run id>/work` in the data home and starts from
 A session without a project uses `sessions/<name>`, a Git repository on `main` with one empty commit.
 The session name contains 1 to 60 characters. Two sessions can hold the same name.
 An omitted name starts as `New session`.
-After the first complete exchange, a separate agent writes a short title and the existing rename service saves it.
-The title request runs once and does not use the saved conversation.
+After the first complete exchange, a separate agent writes a short name and the existing rename service saves it.
+The name request runs once and does not use the saved conversation.
 A user rename before or during that request wins.
-The internal title state is `temporary`, `requested`, or `set`.
-This state makes two completion events claim one title request.
-It also keeps later messages, resumes, and server restarts from making another title.
+The internal name state is `temporary`, `requested`, or `set`.
+This state makes two completion events claim one name request.
+It also keeps later messages, resumes, and server restarts from making another name.
 The `sessions` row keeps the name, directory, harness, and run. The run holds the project, conversation, and process attempts.
 The launch accepts a harness, model, effort, account, prompt, and files. A project session receives the prompt that the person entered.
 Files live under `agents/<run id>/attachments/<content hash>/`. The agent receives their absolute paths.
@@ -1069,7 +1069,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
 | provider_models | provider_id (FK providers CASCADE), model_id (CHECK 1 to 200, no space or control character). PK (provider_id, model_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
-| sessions | id PK, name (CHECK trimmed, 1 to 60), title_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
+| sessions | id PK, name (CHECK trimmed, 1 to 60), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row

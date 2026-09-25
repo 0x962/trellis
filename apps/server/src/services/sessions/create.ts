@@ -50,8 +50,6 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 			return { replay: true as const, session };
 		}
 		const name = typed ?? temporarySessionName;
-		// Two sessions may hold one name, so the folder name comes from the
-		// name and takes a number when that folder is already there.
 		const folder = uniqueDirectoryName(
 			sessionSlug(name) || "new-session",
 			new Set([...diskNames, ...(await sessionDirectoryLeaves(tx))]),
@@ -75,7 +73,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		await tx.execute(sql`UPDATE agent_runs SET terminal_id = ${attempt.id} WHERE id = ${runId}`);
 		const [session] = await rows<Session>(
 			tx,
-			sql`INSERT INTO sessions (id, name, title_state, directory, harness, run_id, created_at, updated_at)
+			sql`INSERT INTO sessions (id, name, name_state, directory, harness, run_id, created_at, updated_at)
 			VALUES (${ulid()}, ${name}, ${typed === null ? "temporary" : "set"}, ${directory}, ${JSON.stringify(selected.config.harness)}::jsonb, ${runId}, ${ctx.now()}, ${ctx.now()})
 			RETURNING ${sessionColumns}`,
 		);

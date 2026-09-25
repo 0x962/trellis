@@ -201,6 +201,7 @@ export const createInlineTransport = ({
 				read: () => backgroundCall("agentRuns.activity", {}) as Promise<AgentActivity[]>,
 				client: nativeClient(config.home),
 				emit: (event) => bus.emit(event),
+				complete: (input) => backgroundCall("sessions.nameFirstExchange", input),
 				log: options.log,
 			});
 			flowReconcile = startNativeReconcile({

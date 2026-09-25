@@ -1,5 +1,5 @@
 import * as actors from "./actors.ts";
-import { activity as agentActivity } from "./agentRuns/activity.ts";
+import { activity as agentActivity } from "./agentActivity";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import { answerQuestion } from "./agentRuns/answerQuestion.ts";
 import * as agentAttention from "./agentRuns/attention.ts";
@@ -21,6 +21,7 @@ import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
+import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
 import { list as listFlowExecutions } from "./flowExecutions/list.ts";
 import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
@@ -97,6 +98,7 @@ export const services = {
 	"sessions.start": sessionMutation(startSession),
 	"sessions.move": core("mutation", moveSession),
 	"sessions.rename": core("mutation", renameSession),
+	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),

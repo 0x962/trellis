@@ -24,9 +24,9 @@ import { base } from "./base";
 
 const id = z.object({ id: z.string().min(1) });
 const pr = z.object({ pr: ReviewRefSchema });
-// A project narrows a list to the pull requests of that project: the ones
-// linked to a ticket of the project, and the ones in a repository of the
-// project.
+// A project narrows a list to all stored pull requests of that project: the
+// ones linked to a ticket of the project, and the ones in a repository of
+// the project.
 const project = z.object({ project: ProjectRefStringSchema.optional() });
 export const reviews = {
 	status: base
@@ -105,7 +105,7 @@ export const reviews = {
 		.input(pr)
 		.output(z.object({ id: UlidSchema, url: z.string() })),
 	prs: base
-		.route({ method: "GET", path: "/reviews/prs", summary: "List local PR reviews, or the PRs of one project" })
+		.route({ method: "GET", path: "/reviews/prs", summary: "List local PR reviews, or all stored PRs of one project" })
 		.input(project.extend({ all: z.boolean().optional() }))
 		.output(z.array(ReviewPrSchema)),
 	list: base
