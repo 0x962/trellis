@@ -4,7 +4,7 @@ import type { ServiceCtx } from "../context.ts";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import * as settings from "./settings.ts";
+import * as settings from "./settings/index.ts";
 
 // The actor row is rewritten at most once per this window. Between two
 // writes `last_seen_at` lags by at most this long.
@@ -55,9 +55,7 @@ export const list = async (_ctx: ServiceCtx, tx: Tx): Promise<Actor[]> => {
 // the kind is always human, because the header takes no system actor.
 // `stored` is true only when the settings table holds the name.
 const defaultActor = async (ctx: ServiceCtx, tx: Tx): Promise<DefaultActor> => {
-	const current = await settings.get(ctx, tx);
-	const found = await rows<{ key: string }>(tx, sql`SELECT key FROM settings WHERE key = 'defaultActorName'`);
-	return { name: current.defaultActorName, kind: "human", stored: found.length > 0 };
+	return { ...(await settings.defaultActorName(ctx, tx)), kind: "human" };
 };
 
 export { defaultActor as default };
