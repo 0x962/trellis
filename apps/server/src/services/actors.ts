@@ -55,9 +55,7 @@ export const list = async (_ctx: ServiceCtx, tx: Tx): Promise<Actor[]> => {
 // the kind is always human, because the header takes no system actor.
 // `stored` is true only when the settings table holds the name.
 const defaultActor = async (ctx: ServiceCtx, tx: Tx): Promise<DefaultActor> => {
-	const current = await settings.get(ctx, tx);
-	const found = await rows<{ key: string }>(tx, sql`SELECT key FROM settings WHERE key = 'defaultActorName'`);
-	return { name: current.defaultActorName, kind: "human", stored: found.length > 0 };
+	return { ...(await settings.defaultActorName(ctx, tx)), kind: "human" };
 };
 
 export { defaultActor as default };

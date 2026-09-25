@@ -25,5 +25,5 @@ export const SettingsSchema = z.object({
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
-export const SettingsSetInputSchema = z.strictObject(SettingsSchema.shape);
+export const SettingsSetInputSchema = z.strictObject(SettingsSchema.shape).partial();
 export type SettingsSetInput = z.input<typeof SettingsSetInputSchema>;

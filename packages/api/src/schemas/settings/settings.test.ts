@@ -10,7 +10,7 @@ const link = {
 
 test("menu links trim labels and preserve order and identity", () => {
 	const other = { ...link, id: "128f08be-daf8-4999-abcc-27e20a5d81bd", icon: "BookOpen" };
-	const parsed = SettingsSetInputSchema.parse({ defaultActorName: "test", menuLinks: [other, link] });
+	const parsed = SettingsSetInputSchema.parse({ menuLinks: [other, link] });
 	expect(parsed.menuLinks?.map((item) => item.id)).toEqual([other.id, link.id]);
 	expect(parsed.menuLinks?.[0]?.label).toBe("Actions");
 });

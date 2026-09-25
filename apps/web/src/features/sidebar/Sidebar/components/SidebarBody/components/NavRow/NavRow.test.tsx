@@ -5,8 +5,8 @@ import { uiActions, useUiStore } from "../../../../../../../stores/uiStore";
 import { menuLinkIcons } from "../../../../../../navRows";
 import { NavRow } from "./NavRow";
 
-const url = "https://github.com/0x962/trellis/actions";
-const props = { browserUrl: url, label: "Actions", icon: menuLinkIcons.GithubLogo };
+const actionsUrl = "https://github.com/0x962/trellis/actions";
+const actionsRowProps = { browserUrl: actionsUrl, label: "Actions", icon: menuLinkIcons.GithubLogo };
 afterEach(() => {
 	pageSheetActions.closeTicket();
 	uiActions.setMobileSidebarOpen(false);
@@ -27,9 +27,9 @@ test("collapsed rows keep an accessible label", () => {
 test("a click closes the phone menu and opens the browser over the current sheet", () => {
 	pageSheetActions.openTicket("TRL-475");
 	uiActions.setMobileSidebarOpen(true);
-	const row = NavRow(props);
+	const row = NavRow(actionsRowProps);
 	row.props.onClick();
 	expect(useUiStore.getState().mobileSidebarOpen).toBe(false);
-	expect(usePageSheetStore.getState().browser).toBe(url);
+	expect(usePageSheetStore.getState().browser).toBe(actionsUrl);
 	expect(usePageSheetStore.getState().ticket).toBe("TRL-475");
 });
