@@ -2,15 +2,15 @@ import { Plus } from "@phosphor-icons/react";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
 import { Tooltip, toast } from "@trellis/ui";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ArchivedBanner } from "../../project-actions";
-import { sessionComposerActions } from "../../sessions/sessionComposerStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { ProjectSectionMenu } from "../../shell/ProjectSectionMenu";
 import { failureKind } from "../../shell/RouteError";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
+import { CreatePageSheet } from "./components/CreatePageSheet";
 import { PageListBody } from "./components/PageListBody";
 import { PageListFilters } from "./components/PageListFilters";
 import { type PageSearch, pageListInput, pageRows, pageSearchIsFiltered } from "./pageSearch";
@@ -23,6 +23,7 @@ export type PageListProps = {
 
 export function PageList({ project, search, onSearchChange }: PageListProps) {
 	const { client, orpc, queryClient } = useApp();
+	const [createOpen, setCreateOpen] = useState(false);
 	useEffect(() => {
 		document.title = `${project.name} Pages · trellis`;
 	}, [project.name]);
@@ -39,15 +40,7 @@ export function PageList({ project, search, onSearchChange }: PageListProps) {
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.pages.key() }),
 		onError: (error) => toast.error("The Page pin did not change", { description: error.message }),
 	});
-	const create = () => {
-		sessionComposerActions.change({
-			project: project.key,
-			name: "Create a Page",
-			prompt:
-				"Create a Page for this project. Ask me what the Page must show. Create the HTML source, and publish it with `trellis page publish`.",
-		});
-		sessionComposerActions.open(project.key);
-	};
+	const create = () => setCreateOpen(true);
 	const createAction =
 		project.archivedAt === null ? (
 			<Tooltip content="Create Page">
@@ -85,6 +78,9 @@ export function PageList({ project, search, onSearchChange }: PageListProps) {
 					/>
 				</div>
 			</div>
+			{createOpen && (
+				<CreatePageSheet projectId={project.id} projectKey={project.key} onClose={() => setCreateOpen(false)} />
+			)}
 		</>
 	);
 }
