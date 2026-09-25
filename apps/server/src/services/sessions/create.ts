@@ -18,7 +18,7 @@ import { createSessionRepository, sessionDirectoryNames } from "./directory.ts";
 import { launchSession } from "./launchSession";
 import { holdSession } from "./operation.ts";
 import { sessionColumns, sessionDirectoryLeaves } from "./queries.ts";
-import { friendlySessionName, sessionSlug, uniqueDirectoryName } from "./sessionName.ts";
+import { sessionSlug, temporarySessionName, uniqueDirectoryName } from "./sessionName.ts";
 
 export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start: typeof startNative = startNative) => {
 	const typed = input.name === undefined ? null : input.name.trim();
@@ -35,7 +35,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 			}),
 		)
 		.digest("hex");
-	if (input.project) return createProjectSession(ctx, input, typed ?? friendlySessionName(), fingerprint, files, start);
+	if (input.project) return createProjectSession(ctx, input, typed ?? temporarySessionName, fingerprint, files, start);
 	const request = {
 		requestId: input.requestId,
 		target: { projectId: "", ticketId: null, newSession: true, sessionFingerprint: fingerprint },
@@ -49,11 +49,11 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 			if (!session) throw invalidInput("requestId", "This request created a deleted session. Use a new request ID.");
 			return { replay: true as const, session };
 		}
-		const name = typed ?? friendlySessionName();
+		const name = typed ?? temporarySessionName;
 		// Two sessions may hold one name, so the folder name comes from the
 		// name and takes a number when that folder is already there.
 		const folder = uniqueDirectoryName(
-			sessionSlug(name) || friendlySessionName(),
+			sessionSlug(name) || "new-session",
 			new Set([...diskNames, ...(await sessionDirectoryLeaves(tx))]),
 		);
 		const directory = join(ctx.home, "sessions", folder);
@@ -75,8 +75,8 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		await tx.execute(sql`UPDATE agent_runs SET terminal_id = ${attempt.id} WHERE id = ${runId}`);
 		const [session] = await rows<Session>(
 			tx,
-			sql`INSERT INTO sessions (id, name, directory, harness, run_id, created_at, updated_at)
-			VALUES (${ulid()}, ${name}, ${directory}, ${JSON.stringify(selected.config.harness)}::jsonb, ${runId}, ${ctx.now()}, ${ctx.now()})
+			sql`INSERT INTO sessions (id, name, title_state, directory, harness, run_id, created_at, updated_at)
+			VALUES (${ulid()}, ${name}, ${typed === null ? "temporary" : "set"}, ${directory}, ${JSON.stringify(selected.config.harness)}::jsonb, ${runId}, ${ctx.now()}, ${ctx.now()})
 			RETURNING ${sessionColumns}`,
 		);
 		await recordRequest(ctx.core, tx, { ...request, runId });
