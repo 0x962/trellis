@@ -34,6 +34,7 @@ export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	Pause: ["fill"],
 	Play: ["fill"],
 	PushPin: ["fill"],
+	PushPinSimple: ["fill"],
 	Robot: ["bold"],
 	Star: ["fill"],
 	Stop: ["fill"],

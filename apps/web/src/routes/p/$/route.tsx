@@ -1,6 +1,5 @@
-import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
@@ -13,7 +12,8 @@ import {
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
-import { PageListSkeleton } from "../../../features/pages/PageList/components/PageListSkeleton";
+import { PageDetailLoading } from "../../../features/pages/PageDetail/components/PageDetailLoading";
+import { type PageDetailSearch, parsePageDetailSearch } from "../../../features/pages/PageDetail/pageLink";
 import { isCanonicalPageSearch, type PageSearch, parsePageSearch } from "../../../features/pages/PageList/pageSearch";
 import { ArchivedBanner } from "../../../features/project-actions";
 import { projectSettingsSection } from "../../../features/project-settings";
@@ -24,16 +24,15 @@ import { PageTitle } from "../../../features/shell/PageTitle";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
-import { ListPending } from "../../../features/table/ListPending";
 import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectHref } from "../../../lib/projectUrl";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
-import { ProjectLoadError } from "./components/ProjectLoadError";
+import { PageListLoading } from "./components/PageListLoading";
+import { ProjectError } from "./components/ProjectError";
+import { ProjectLoading } from "./components/ProjectLoading";
 
-// The diffs screen and the epic screens load in their own chunks, so the
-// list views never pay for them.
 const ProjectDiffsPage = lazy(async () => ({
 	default: (await import("../../../features/reviews/ProjectDiffsPage")).ProjectDiffsPage,
 }));
@@ -47,11 +46,14 @@ const PageList = lazy(async () => ({
 	default: (await import("../../../features/pages/PageList")).PageList,
 }));
 
-type ProjectRouteSearch = Partial<View> & PageSearch;
+const PageDetail = lazy(async () => ({ default: (await import("../../../features/pages/PageDetail")).PageDetail }));
+
+type ProjectRouteSearch = Partial<View> & PageSearch & PageDetailSearch;
 
 const parseProjectSearch = (raw: Record<string, unknown>): ProjectRouteSearch => ({
 	...keepEpicPageChoices(raw, stripDefaults(parseSearch(raw))),
 	...parsePageSearch(raw),
+	...parsePageDetailSearch(raw),
 });
 
 const ticketSearchOf = ({
@@ -59,6 +61,7 @@ const ticketSearchOf = ({
 	watcher: _watcher,
 	comment: _comment,
 	pin: _pin,
+	version: _version,
 	...search
 }: ProjectRouteSearch) => search;
 
@@ -95,7 +98,14 @@ export const Route = createFileRoute("/p/$")({
 		// project.
 		const { ref, view } = parseProjectSplat(splat);
 		const ticketSearch = ticketSearchOf(search);
-		if (view === "pages" || view === "page") {
+		if (view === "page") {
+			const detailSearch = parsePageDetailSearch(search);
+			const canonical = detailSearch.version === undefined ? "" : `?version=${detailSearch.version}`;
+			if (location.searchStr !== canonical)
+				throw redirect({ to: "/p/$", params: { _splat: splat }, search: detailSearch, replace: true });
+			return;
+		}
+		if (view === "pages") {
 			const pageSearch = parsePageSearch(search);
 			if (!isCanonicalPageSearch(location.searchStr, pageSearch)) {
 				throw redirect({ to: "/p/$", params: { _splat: splat }, search: pageSearch, replace: true });
@@ -139,7 +149,7 @@ export const Route = createFileRoute("/p/$")({
 	// 200 ms, so a fast load never flashes it.
 	pendingMs: 300,
 	pendingMinMs: 200,
-	pendingComponent: ProjectPending,
+	pendingComponent: ProjectLoading,
 	errorComponent: ProjectError,
 	notFoundComponent: ProjectMissing,
 });
@@ -152,7 +162,7 @@ function ProjectPage() {
 	const navigate = useNavigate();
 	const context = useApp();
 	const storedDensity = useUiStore((state) => state.density);
-	const { ref, view, epic } = parseProjectSplat(_splat);
+	const { ref, view, epic, page } = parseProjectSplat(_splat);
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
 	const full = viewOf(search);
 	const routeKey = projectHref(ref);
@@ -162,9 +172,21 @@ function ProjectPage() {
 		enabled: view === "board" || view === "table",
 	}).data;
 
-	if (view === "pages" || view === "page") {
+	if (view === "page")
 		return (
-			<Suspense fallback={<PageListPending />}>
+			<Suspense fallback={<PageDetailLoading />}>
+				<PageDetail
+					key={`${project.id}/${page}`}
+					project={project}
+					slug={page!}
+					search={parsePageDetailSearch(routeSearch)}
+				/>
+			</Suspense>
+		);
+
+	if (view === "pages") {
+		return (
+			<Suspense fallback={<PageListLoading />}>
 				<PageList
 					key={project.id}
 					project={project}
@@ -272,46 +294,7 @@ function ProjectPage() {
 		</>
 	);
 }
-
-// The table or the board skeleton, from the view the splat names.
-function ProjectPending() {
-	const params = useParams({ strict: false });
-	const { view } = parseProjectSplat(params._splat ?? "");
-	if (view === "pages" || view === "page") return <PageListPending />;
-	return <ListPending view={view === "board" ? "board" : "table"} />;
-}
-
-function PageListPending() {
-	return (
-		<>
-			<Topbar>
-				<PageTitle title="Pages" />
-			</Topbar>
-			<div className="page-card flex flex-1 flex-col overflow-hidden">
-				<PageListSkeleton />
-			</div>
-		</>
-	);
-}
-
-// A splat that names no project.
 function ProjectMissing() {
 	const params = useParams({ strict: false });
 	return <NotFoundState ref={params._splat ?? ""} />;
-}
-
-// The API said no. NOT_FOUND names the ref; anything else shows its message.
-function ProjectError({ error }: ErrorComponentProps) {
-	if (error instanceof ORPCError && error.code === "NOT_FOUND") {
-		const { ref } = error.data as { ref: string };
-		return (
-			<>
-				<Topbar>
-					<PageTitle title={ref} />
-				</Topbar>
-				<NotFoundState ref={ref} />
-			</>
-		);
-	}
-	return <ProjectLoadError error={error} />;
 }

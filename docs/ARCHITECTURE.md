@@ -882,6 +882,28 @@ A human rejection or exhausted negative loop has `failureKind: "feedback"`.
 A completed gate decision can follow its NO path without an execution error.
 Only an execution error permits an automatic repeated start.
 
+## Page viewer
+
+The project route `/p/<KEY>/pages/<slug>` opens the current Page version.
+The `version` query selects an immutable historical version.
+The Page history and Share controls use sheets. Rename uses `InlineEdit` and the Page revision.
+Pull downloads the selected source archive. Delete shows retained metadata and a Restore action.
+
+The viewer mounts `frameUrl` with `sandbox="allow-scripts"` and no referrer.
+The frame response limits child navigation to the authorized content path.
+A nonce-authorized script relays messages between that child and the app.
+The content route adds the base runtime to HTML with `HTMLRewriter`; archives preserve the source bytes.
+The runtime reports scroll positions and link requests, and accepts the app theme and scroll position.
+The app checks the message schema, source window, and lease nonce.
+A frame message cannot authorize a mutation. A link request requires confirmation in the app dialog.
+
+The parent renews the render lease every 20 visible minutes and after the live connection returns.
+It replaces an expired lease with a lease for the same version.
+A hidden tab waits until it becomes visible. The eight-hour limit always requires a new lease.
+After a new lease loads, the parent restores the last reported scroll position without smooth motion.
+A polite live region announces "Page refreshed for security".
+Page routes and Share links contain no render lease.
+
 ## Web routes
 
 The routes are TanStack Router file routes under `apps/web/src/routes/`.
