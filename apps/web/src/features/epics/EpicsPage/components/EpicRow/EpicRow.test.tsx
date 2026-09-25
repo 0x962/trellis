@@ -48,9 +48,9 @@ const render = async () => {
 
 test("the static epic row contains its inset hover background", async () => {
 	const html = await render();
-	const row = html.match(/<li [^>]*data-epic="trellis-for-one-human-and-many-agents"[^>]*>/)?.[0] ?? "";
+	const rowOpenTag = html.match(/<li [^>]*data-epic="trellis-for-one-human-and-many-agents"[^>]*>/)?.[0] ?? "";
 
-	expect(row).toContain("relative");
-	expect(row).toContain("after:absolute");
-	expect(row).toContain("hover:after:bg-band");
+	expect(rowOpenTag).toContain("relative");
+	expect(rowOpenTag).toContain("after:absolute");
+	expect(rowOpenTag).toContain("hover:after:bg-band");
 });

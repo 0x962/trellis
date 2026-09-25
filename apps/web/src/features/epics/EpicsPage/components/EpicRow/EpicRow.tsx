@@ -34,6 +34,7 @@ export type EpicRowProps = {
 // keeps room.
 export function EpicRow({ epic, density, readOnly, onEdit, onDelete }: EpicRowProps) {
 	const wave = currentWaveLabel(epic);
+	// The `relative` class contains the absolute background from `insetRowHover` in this row.
 	return (
 		<li
 			data-epic={epic.slug}
