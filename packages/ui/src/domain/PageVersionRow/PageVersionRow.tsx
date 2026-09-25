@@ -1,5 +1,6 @@
 import { ArrowSquareOut } from "@phosphor-icons/react";
 import type { ReactElement, ReactNode } from "react";
+import { CodeText } from "../../primitives/CodeText";
 import { IconButton } from "../../primitives/IconButton";
 import { PropertyRow } from "../../primitives/PropertyRow";
 import { SectionHeader } from "../../primitives/SectionHeader";
@@ -50,7 +51,7 @@ export function PageVersionRow({
 					<span className="break-all">{sourcePath}</span>
 				</PropertyRow>
 				<PropertyRow label="SHA-256">
-					<span className="break-all font-mono text-xs">{sha256}</span>
+					<CodeText className="break-all text-xs">{sha256}</CodeText>
 				</PropertyRow>
 				<PropertyRow label="Size">
 					<span className="tabular">{bytes.toLocaleString()} bytes</span>

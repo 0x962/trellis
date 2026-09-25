@@ -2,7 +2,7 @@ import { Spinner } from "@trellis/ui";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { Topbar } from "../../../../shell/Topbar";
 
-export function PagePending() {
+export function PageDetailLoading() {
 	return (
 		<>
 			<Topbar>

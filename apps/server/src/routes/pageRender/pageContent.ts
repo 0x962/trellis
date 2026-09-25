@@ -6,9 +6,8 @@ import type { ServiceTransport } from "../../db/transport.ts";
 import type { Logger } from "../../log.ts";
 import { extendRenderLease, type PAGE_RENDER_PREFIX, renderContentRoot } from "../../pageLeases.ts";
 import { createDbTiming, serverTimingHeader } from "../../serverTiming.ts";
-import { pageObjectPath } from "../../storage/pageObjects.ts";
+import { renderPageBody } from "../../services/pages/renderPageBody";
 import { contentPolicy, errorBody, guardHeaders, originOf } from "./policy.ts";
-import { contentScript } from "./runtime";
 
 export type PageContentDeps = { config: Config; transport: ServiceTransport; log: Logger };
 
@@ -23,8 +22,6 @@ const decodedPath = (raw: string) => {
 	}
 };
 
-// Each lease serves one version. HTML also receives the scroll and link
-// runtime. The browser revalidates its source hash before each use.
 export const pageContentRoute =
 	({ config, transport, log }: PageContentDeps) =>
 	async (c: Context<Record<string, never>, `${typeof PAGE_RENDER_PREFIX}/:leaseId/*`>) => {
@@ -66,23 +63,13 @@ export const pageContentRoute =
 		const etag = `"${file.sha256}"`;
 		if (c.req.header("if-none-match") === etag)
 			return new Response(null, { status: 304, headers: { ...headers, etag } });
-		const object = Bun.file(pageObjectPath(config.home, file.sha256));
-		const isDocument = path === "" || path === "index.html";
-		const body = isDocument
-			? new HTMLRewriter()
-					.onDocument({
-						end: (document) => {
-							document.append(contentScript(lease.nonce), { html: true });
-						},
-					})
-					.transform(await object.text())
-			: object;
+		const { body, size } = await renderPageBody({ config }, { path, file, nonce: lease.nonce });
 		return new Response(body, {
 			headers: {
 				...headers,
 				etag,
 				"content-type": file.mime,
-				...(isDocument ? {} : { "content-length": String(file.size) }),
+				...(size === undefined ? {} : { "content-length": String(size) }),
 			},
 		});
 	};

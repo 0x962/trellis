@@ -1,1 +1,0 @@
-export { PagePending } from "./PagePending";

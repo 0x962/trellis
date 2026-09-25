@@ -2,7 +2,7 @@ import { PageListSkeleton } from "../../../../../features/pages/PageList/compone
 import { PageTitle } from "../../../../../features/shell/PageTitle";
 import { Topbar } from "../../../../../features/shell/Topbar";
 
-export function PageListPending() {
+export function PageListLoading() {
 	return (
 		<>
 			<Topbar>

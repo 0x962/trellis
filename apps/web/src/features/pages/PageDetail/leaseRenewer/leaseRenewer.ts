@@ -11,7 +11,7 @@ type Dependencies = {
 	onChange: (state: LeaseState) => void;
 };
 
-export const leaseController = (deps: Dependencies) => {
+export const leaseRenewer = (deps: Dependencies) => {
 	let state: LeaseState = { lease: null, error: null, refreshes: 0 };
 	let stopped = false;
 	let pending = false;
@@ -25,16 +25,16 @@ export const leaseController = (deps: Dependencies) => {
 		const remaining = Date.parse(state.lease.absoluteExpiresAt) - deps.now();
 		cancelTimer = deps.setTimer(
 			() => {
-				void check();
+				void ensureLease();
 			},
 			Math.max(0, Math.min(PAGE_RENDER_RENEW_MS, remaining)),
 		);
 	};
-	const create = async () => {
+	const createLease = async () => {
 		const lease = await deps.pages.createRenderLease({ page: deps.page, version: deps.version });
 		state = { lease, error: null, refreshes: state.refreshes + (state.lease === null ? 0 : 1) };
 	};
-	const check = async (replace = false) => {
+	const ensureLease = async (replace = false) => {
 		cancelTimer();
 		if (stopped || pending || !deps.visible()) return;
 		pending = true;
@@ -45,13 +45,13 @@ export const leaseController = (deps: Dependencies) => {
 				lease === null ||
 				Math.min(Date.parse(lease.idleExpiresAt), Date.parse(lease.absoluteExpiresAt)) <= deps.now()
 			) {
-				await create();
+				await createLease();
 			} else {
 				try {
 					state = { ...state, lease: await deps.pages.renewRenderLease({ leaseId: lease.id }), error: null };
 				} catch (error) {
 					if (!(error instanceof Error) || !("code" in error) || error.code !== "RENDER_LEASE_EXPIRED") throw error;
-					await create();
+					await createLease();
 				}
 			}
 		} catch (error) {
@@ -63,10 +63,10 @@ export const leaseController = (deps: Dependencies) => {
 		}
 	};
 	return {
-		check,
+		ensureLease,
 		visibilityChanged: () => {
 			cancelTimer();
-			if (deps.visible()) void check();
+			if (deps.visible()) void ensureLease();
 		},
 		stop: () => {
 			stopped = true;

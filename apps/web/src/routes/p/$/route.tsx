@@ -12,8 +12,8 @@ import {
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
-import { PagePending } from "../../../features/pages/PageDetail/components/PagePending";
-import { type PageDetailSearch, parsePageDetailSearch } from "../../../features/pages/PageDetail/pageLocation";
+import { PageDetailLoading } from "../../../features/pages/PageDetail/components/PageDetailLoading";
+import { type PageDetailSearch, parsePageDetailSearch } from "../../../features/pages/PageDetail/pageLink";
 import { isCanonicalPageSearch, type PageSearch, parsePageSearch } from "../../../features/pages/PageList/pageSearch";
 import { ArchivedBanner } from "../../../features/project-actions";
 import { projectSettingsSection } from "../../../features/project-settings";
@@ -29,9 +29,9 @@ import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectHref } from "../../../lib/projectUrl";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
-import { PageListPending } from "./components/PageListPending";
+import { PageListLoading } from "./components/PageListLoading";
 import { ProjectError } from "./components/ProjectError";
-import { ProjectPending } from "./components/ProjectPending";
+import { ProjectLoading } from "./components/ProjectLoading";
 
 const ProjectDiffsPage = lazy(async () => ({
 	default: (await import("../../../features/reviews/ProjectDiffsPage")).ProjectDiffsPage,
@@ -149,7 +149,7 @@ export const Route = createFileRoute("/p/$")({
 	// 200 ms, so a fast load never flashes it.
 	pendingMs: 300,
 	pendingMinMs: 200,
-	pendingComponent: ProjectPending,
+	pendingComponent: ProjectLoading,
 	errorComponent: ProjectError,
 	notFoundComponent: ProjectMissing,
 });
@@ -174,7 +174,7 @@ function ProjectPage() {
 
 	if (view === "page")
 		return (
-			<Suspense fallback={<PagePending />}>
+			<Suspense fallback={<PageDetailLoading />}>
 				<PageDetail
 					key={`${project.id}/${page}`}
 					project={project}
@@ -186,7 +186,7 @@ function ProjectPage() {
 
 	if (view === "pages") {
 		return (
-			<Suspense fallback={<PageListPending />}>
+			<Suspense fallback={<PageListLoading />}>
 				<PageList
 					key={project.id}
 					project={project}

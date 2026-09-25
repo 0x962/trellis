@@ -20,11 +20,11 @@ import { PageTitle } from "../../../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
 import { usePageActions } from "../../usePageActions";
-import { PageFrame } from "../PageFrame";
+import { LeasedPageViewer } from "../LeasedPageViewer";
 import { PageHistory } from "../PageHistory";
 import { PageShare } from "../PageShare";
 
-export function PageLoaded({
+export function PageDetailView({
 	page,
 	project,
 	historical,
@@ -91,7 +91,7 @@ export function PageLoaded({
 									label: "Pull source snapshot",
 									icon: <DownloadSimple />,
 									disabled: disconnected || deleted || mutation.isPending,
-									onSelect: () => mutation.mutate("pull"),
+									onSelect: () => mutation.mutate("download"),
 								},
 								deleted
 									? {
@@ -169,7 +169,7 @@ export function PageLoaded({
 						}
 					/>
 				) : (
-					<PageFrame
+					<LeasedPageViewer
 						key={`${page.id}/${page.requestedVersion.number}`}
 						page={page.ref}
 						version={page.requestedVersion.number}

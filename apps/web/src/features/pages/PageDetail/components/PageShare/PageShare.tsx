@@ -1,9 +1,9 @@
 import type { PageDetail as PageRecord } from "@trellis/api";
-import { Button, ChoiceGroup, Input, Sheet } from "@trellis/ui";
+import { Button, ChoiceGroup, Input, Sheet, SheetBody, SheetFooter } from "@trellis/ui";
 import type { RefObject } from "react";
 import { useState } from "react";
 import { copyText } from "../../../../../lib/clipboard";
-import { pageVersionHref } from "../../pageLocation";
+import { pageVersionHref } from "../../pageLink";
 
 export function PageShare({
 	page,
@@ -28,7 +28,7 @@ export function PageShare({
 				if (!open) onClose();
 			}}
 		>
-			<div className="flex flex-col gap-4 p-5">
+			<SheetBody>
 				<p className="text-sm text-fg-muted">This link requires access to the same Trellis server.</p>
 				<ChoiceGroup
 					label="Link target"
@@ -44,10 +44,10 @@ export function PageShare({
 					]}
 				/>
 				<Input label="Trellis link" value={href} readOnly />
-				<div className="flex justify-end">
-					<Button onClick={() => void copyText(href, "Page link copied")}>Copy link</Button>
-				</div>
-			</div>
+			</SheetBody>
+			<SheetFooter>
+				<Button onClick={() => void copyText(href, "Page link copied")}>Copy link</Button>
+			</SheetFooter>
 		</Sheet>
 	);
 }

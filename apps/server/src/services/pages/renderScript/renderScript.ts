@@ -1,5 +1,6 @@
-// Page scripts can forge every message this runtime sends. The app must ask
-// the person before it follows a link or changes a record.
+// Page scripts can send false page-ready, page-scroll, and page-link messages.
+// The app asks the person before it follows a link. Saved data changes only
+// through the controls of the app.
 const contentRuntime = (nonce: string) => {
 	const send = (message: object) => parent.postMessage({ ...message, nonce }, "*");
 	addEventListener("scroll", () => send({ type: "page-scroll", x: scrollX, y: scrollY }), { passive: true });
@@ -44,7 +45,7 @@ const frameRuntime = (nonce: string) => {
 	});
 };
 
-export const contentScript = (nonce: string) =>
+export const pageDocumentScript = (nonce: string) =>
 	`<script>(${contentRuntime.toString()})(${JSON.stringify(nonce)})</script>`;
-export const frameScript = (nonce: string) =>
+export const frameRelayScript = (nonce: string) =>
 	`<script nonce="${nonce}">(${frameRuntime.toString()})(${JSON.stringify(nonce)})</script>`;

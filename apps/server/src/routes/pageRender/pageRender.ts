@@ -1,8 +1,8 @@
 import type { Context } from "hono";
 import type { Logger } from "../../log.ts";
 import { extendRenderLease, type PAGE_RENDER_PREFIX, renderContentRoot } from "../../pageLeases.ts";
+import { frameRelayScript } from "../../services/pages/renderScript";
 import { errorBody, framePolicy, guardHeaders, originOf } from "./policy.ts";
-import { frameScript } from "./runtime";
 
 // A page holds untrusted HTML. Its own policy cannot stop its scripts from
 // sending the frame they run in to another site, and an address is enough to
@@ -18,7 +18,7 @@ const frameDocument = (root: string, nonce: string) =>
 	`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Page</title>` +
 	`<style>html,body{margin:0;height:100%;background:transparent}iframe{display:block;border:0;width:100%;height:100%}</style>` +
 	`</head><body><iframe src="${root}" sandbox="allow-scripts" referrerpolicy="no-referrer" ` +
-	`title="Page content"></iframe>${frameScript(nonce)}</body></html>`;
+	`title="Page content"></iframe>${frameRelayScript(nonce)}</body></html>`;
 
 // GET /api/page-render/{leaseId} draws the frame document.
 export const pageFrameRoute =

@@ -1,14 +1,14 @@
 import { useParams } from "@tanstack/react-router";
-import { PagePending } from "../../../../../features/pages/PageDetail/components/PagePending";
+import { PageDetailLoading } from "../../../../../features/pages/PageDetail/components/PageDetailLoading";
 import { ListPending } from "../../../../../features/table/ListPending";
 import { parseProjectSplat } from "../../../../../lib/projectUrl";
 
-import { PageListPending } from "../PageListPending";
+import { PageListLoading } from "../PageListLoading";
 
-export function ProjectPending() {
+export function ProjectLoading() {
 	const params = useParams({ strict: false });
 	const { view } = parseProjectSplat(params._splat ?? "");
-	if (view === "pages") return <PageListPending />;
-	if (view === "page") return <PagePending />;
+	if (view === "pages") return <PageListLoading />;
+	if (view === "page") return <PageDetailLoading />;
 	return <ListPending view={view === "board" ? "board" : "table"} />;
 }

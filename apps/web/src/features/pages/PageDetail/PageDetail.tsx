@@ -6,8 +6,8 @@ import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { failureKind } from "../../shell/RouteError";
 import { Topbar } from "../../shell/Topbar";
-import { PageLoaded } from "./components/PageLoaded";
-import type { PageDetailSearch } from "./pageLocation";
+import { PageDetailView } from "./components/PageDetailView";
+import type { PageDetailSearch } from "./pageLink";
 
 export function PageDetail({ project, slug, search }: { project: Project; slug: string; search: PageDetailSearch }) {
 	const { orpc } = useApp();
@@ -17,9 +17,9 @@ export function PageDetail({ project, slug, search }: { project: Project; slug: 
 		}),
 		retry: false,
 	});
-	if (query.data !== undefined)
+	if (query.data !== undefined && (query.error === null || failureKind(query.error) === "offline"))
 		return (
-			<PageLoaded
+			<PageDetailView
 				page={query.data}
 				project={project}
 				historical={search.version !== undefined}
@@ -41,13 +41,13 @@ export function PageDetail({ project, slug, search }: { project: Project; slug: 
 					<FailureState
 						variant="page"
 						title={
-							"code" in query.error && query.error.code === "NOT_FOUND"
+							"code" in query.error! && query.error!.code === "NOT_FOUND"
 								? "This Page does not exist"
 								: failureKind(query.error) === "refused"
 									? "Access to this Page was refused"
 									: "The Page did not load"
 						}
-						detail={query.error.message}
+						detail={query.error!.message}
 						action={
 							<Tooltip content="Retry">
 								<IconButton label="Retry" icon={<ArrowClockwise />} onClick={() => void query.refetch()} />

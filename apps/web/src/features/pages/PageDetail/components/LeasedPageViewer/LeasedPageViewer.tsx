@@ -6,16 +6,16 @@ import { openLink } from "../../../../../lib/openLink";
 import { useTheme } from "../../../../../lib/theme";
 import { failureKind } from "../../../../shell/RouteError";
 import { readFrameMessage } from "../../frameMessage";
-import { pageLinkTarget } from "../../pageLocation";
+import { classifyPageLink } from "../../pageLink";
 import { usePageLease } from "../../usePageLease";
 
-export function PageFrame({ page, version, title }: { page: string; version: number; title: string }) {
+export function LeasedPageViewer({ page, version, title }: { page: string; version: number; title: string }) {
 	const { lease, error, refreshes, retry } = usePageLease(page, version);
 	const frame = useRef<HTMLIFrameElement>(null);
 	const position = useRef({ x: 0, y: 0 });
 	const [readyLease, setReadyLease] = useState<string | null>(null);
 	const [timedOut, setTimedOut] = useState(false);
-	const [link, setLink] = useState<ReturnType<typeof pageLinkTarget>>(null);
+	const [link, setLink] = useState<ReturnType<typeof classifyPageLink>>(null);
 	const theme = useTheme();
 	const leaseId = lease?.id;
 	const nonce = lease?.nonce;
@@ -46,7 +46,8 @@ export function PageFrame({ page, version, title }: { page: string; version: num
 				sendState();
 			}
 			if (message.type === "page-scroll") position.current = { x: message.x, y: message.y };
-			if (message.type === "page-link") setLink((current) => current ?? pageLinkTarget(message.href, location.origin));
+			if (message.type === "page-link")
+				setLink((current) => current ?? classifyPageLink(message.href, location.origin));
 		};
 		window.addEventListener("message", receive);
 		sendState();
