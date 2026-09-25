@@ -32,6 +32,7 @@ export function startSessionMonitor(options: {
 	read: () => Promise<AgentActivity[]>;
 	client: Pick<RuntimeClient, "subscribeSession">;
 	emit: (event: TrellisEvent) => unknown;
+	complete: (input: { sessionId: string; runId: string; agentResponse: string }) => Promise<unknown>;
 	log: (message: string, fields?: Record<string, unknown>) => void;
 }) {
 	const subscriptions = new Map<string, { abort: AbortController; done: Promise<void> }>();
@@ -39,12 +40,25 @@ export function startSessionMonitor(options: {
 	const fingerprints = new Map<string, string>();
 	let stopped = false;
 	let initialized = false;
-	const publish = (session: AgentActivity, notify: boolean) => {
+	const publish = (session: AgentActivity, notify: boolean, completedEvent: boolean) => {
 		const key = `${session.run.id}:${session.run.terminalId}`;
 		const next = fingerprint(session);
 		if (fingerprints.get(key) === next) return;
 		fingerprints.set(key, next);
 		options.emit({ type: "agent-runs.status", activity: session, notify });
+		const agentResponse = session.run.observation?.lastMessage?.text;
+		if (
+			!completedEvent ||
+			session.sessionId === null ||
+			session.run.observation?.outcome !== "completed" ||
+			agentResponse === undefined
+		)
+			return;
+		const fields = { session: session.sessionId, run: session.run.id };
+		options.log("session name trigger", fields);
+		void options
+			.complete({ sessionId: session.sessionId, runId: session.run.id, agentResponse })
+			.catch((error) => options.log("session name failed", { ...fields, error: String(error) }));
 	};
 	const tick = async () => {
 		const entries = await options.read();
@@ -68,7 +82,7 @@ export function startSessionMonitor(options: {
 			)
 				entry = { ...entry, run: { ...previous.run, seenAttention: entry.run.seenAttention } };
 			sessions.set(id, entry);
-			publish(entry, initialized);
+			publish(entry, initialized, false);
 			if (entry.run.processStatus !== "running" || subscriptions.has(id)) continue;
 			const abort = new AbortController();
 			const done = (async () => {
@@ -82,7 +96,7 @@ export function startSessionMonitor(options: {
 						]);
 						const next = { ...current, run };
 						sessions.set(id, next);
-						publish(next, true);
+						publish(next, true, true);
 					}
 				} catch (error) {
 					if (!abort.signal.aborted) options.log("Session observation failed", { id, error: String(error) });

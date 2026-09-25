@@ -9,6 +9,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	let reads = 0;
 	let aborted = false;
 	const emitted: TrellisEvent[] = [];
+	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
 	let deliver!: (value: RuntimeProcessStatus) => void;
 	const next = new Promise<RuntimeProcessStatus>((resolve) => {
 		deliver = resolve;
@@ -36,6 +37,9 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 			},
 		},
 		emit: (event) => emitted.push(event),
+		complete: async (input) => {
+			completed.push(input);
+		},
 		log: () => {},
 	});
 	await monitor.tick();
@@ -61,6 +65,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 				failure: null,
 				requests: [],
 			},
+			lastMessage: { text: "First response", at: "2026-09-18T12:00:01.000Z" },
 		},
 	} as unknown as RuntimeProcessStatus);
 	await Bun.sleep(0);
@@ -69,6 +74,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 		notify: true,
 		activity: { run: { observation: { outcome: "completed" } } },
 	});
+	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id, agentResponse: "First response" }]);
 	const count = emitted.length;
 	await monitor.tick();
 	expect(emitted).toHaveLength(count);
@@ -80,19 +86,25 @@ test("the monitor emits when the last message or the shown tool changes, and not
 	const value = { run: session().run, sessionId: "session" };
 	value.run.processStatus = "exited";
 	const emitted: TrellisEvent[] = [];
+	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
 	const monitor = startSessionMonitor({
 		read: async () => [structuredClone(value)],
 		client: {
 			subscribeSession: async function* () {},
 		},
 		emit: (event) => emitted.push(event),
+		complete: async (input) => {
+			completed.push(input);
+		},
 		log: () => {},
 	});
 
 	await monitor.tick();
+	value.run.observation!.outcome = "completed";
 	value.run.observation!.lastMessage = { text: "First message", at: "2026-09-18T12:00:01.000Z" };
 	await monitor.tick();
 	expect(emitted).toHaveLength(2);
+	expect(completed).toEqual([]);
 
 	value.run.observation!.lastMessage = { text: "Changed text", at: "2026-09-18T12:00:01.000Z" };
 	await monitor.tick();

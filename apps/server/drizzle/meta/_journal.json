@@ -834,6 +834,13 @@
       "when": 1790368507806,
       "tag": "0121_mute_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1790369659823,
+      "tag": "0122_handy_beast",
+      "breakpoints": true
     }
   ]
 }
