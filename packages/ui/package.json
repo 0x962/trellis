@@ -31,6 +31,7 @@
 		"@pierre/trees": "1.0.0-beta.6",
 		"@primer/octicons-react": "19.38.0",
 		"@xterm/addon-fit": "0.11.0",
+		"@xterm/addon-web-links": "0.12.0",
 		"@xterm/addon-webgl": "0.20.0-beta.297",
 		"@xterm/xterm": "6.1.0-beta.302",
 		"cmdk": "1.1.1",

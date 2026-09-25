@@ -1,0 +1,1 @@
+export { terminalLinkHandler } from "./terminalLinks";

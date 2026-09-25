@@ -6,6 +6,12 @@ export const externalUrl = (url: string) => {
 	return ["http:", "https:"].includes(parsed.protocol) && !parsed.username && !parsed.password;
 };
 
+export const openExternalUrl = (url: string, open: (url: string) => unknown) => {
+	if (!externalUrl(url)) return false;
+	open(url);
+	return true;
+};
+
 export const deepLinkPath = (url: string) => {
 	if (!URL.canParse(url)) return null;
 	const parsed = new URL(url);

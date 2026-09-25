@@ -2,7 +2,7 @@ import { type BrowserWindow, shell } from "electron";
 import { isCopyLinkChord } from "../copyLinkChord/copyLinkChord.ts";
 import type { HostConnection } from "../host/host.ts";
 import { hostRequest } from "../hostRequest/hostRequest.ts";
-import { externalUrl, sameOrigin } from "../navigation/navigation.ts";
+import { openExternalUrl, sameOrigin } from "../navigation/navigation.ts";
 import { secureLinkBrowser } from "../secureLinkBrowser/secureLinkBrowser.ts";
 
 export function secureRenderer(window: BrowserWindow, connection: () => HostConnection) {
@@ -18,7 +18,7 @@ export function secureRenderer(window: BrowserWindow, connection: () => HostConn
 		});
 	});
 	window.webContents.setWindowOpenHandler(({ url }) => {
-		if (externalUrl(url)) void shell.openExternal(url);
+		openExternalUrl(url, (external) => shell.openExternal(external));
 		return { action: "deny" };
 	});
 	const rendererSession = window.webContents.session;
