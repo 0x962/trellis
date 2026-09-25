@@ -1,80 +1,38 @@
-import type { AgentActivity, GhStatus, TrellisEvent } from "@trellis/api";
+import type { AgentActivity, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
 import { startReviewDeliveryLoop } from "../agents/reviewDeliveryLoop.ts";
 import { startSessionMonitor } from "../agents/sessionMonitor/sessionMonitor.ts";
-import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
-import type { Bus } from "../events/bus.ts";
-import type { GhRunner } from "../gh/run.ts";
-import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
+import { type Jobs, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcBlobs } from "../services/blobs.ts";
-import { gcPageObjects } from "../services/pages/objects.ts";
+import { collectUnheldPageObjects } from "../services/pages/pages.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import type { IoCtx } from "../services/support.ts";
 import type { SweepResult } from "../services/sweep/prepareSweep.ts";
 import { createCache } from "./cache.ts";
-import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
 import { allResourceBlobShas } from "./queries/epicResources.ts";
 import { allPrFileBlobShas } from "./queries/prFiles.ts";
+import type { InlineTransport, InlineTransportOptions, JobsStart } from "./transportTypes";
 import { type Emit, type Tx, withTx } from "./tx.ts";
 import { warmWrites } from "./warmWrites.ts";
 
+export type {
+	InlineTransport,
+	InlineTransportOptions,
+	JobsStart,
+	Runtime,
+	ServiceTransport,
+	TransportStart,
+	WorkerTransportOptions,
+} from "./transportTypes";
 export { createWorkerTransport } from "./workerTransport.ts";
-
-// The facts of the running process a service reports or uses: the package
-// version, the boot id, the gh runner, the gh state the poller keeps, and
-// the URLs the listener answers on.
-export type Runtime = {
-	version: string;
-	bootId: string;
-	gh: GhRunner;
-	ghStatus: () => GhStatus;
-	addresses: () => Promise<string[]>;
-};
-
-// How the HTTP process reaches the services. `call` runs one service in
-// one transaction and resolves with its result, or rejects with the
-// contract error the service threw. `start` loads what the services need
-// before the first call. `close` waits for the calls in flight. The inline
-// implementation runs on the calling thread; the worker implementation
-// runs the same calls on a Worker and carries the same interface.
-// `start` with `jobs` also starts the poller and the maintenance timer in the
-// thread that owns the database. `close` then drains the poller first, for
-// up to 5 s, so no poller write runs after the database closes.
-// `timing` gains the database time of the call before the call settles.
-export type ServiceTransport = {
-	call: (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => Promise<unknown>;
-	start: (jobs?: JobsStart) => Promise<TransportStart>;
-	close: () => Promise<void>;
-};
-
-export type TransportStart = { applied: number; liveShas: string[] };
-
-export type JobsStart = { clockRate: number; log: JobsLog };
-
-// `log` receives the `long transaction` lines. A transport without it, as in
-// most tests, writes none. `longTransactionMs` is LONG_TRANSACTION_MS unless
-// a test sets it.
-export type InlineTransportOptions = {
-	db: Db;
-	bus: Bus;
-	config: Config;
-	runtime: Runtime;
-	applied?: number;
-	log?: JobsLog;
-	longTransactionMs?: number;
-};
-
-export type InlineTransport = ServiceTransport;
-
-export type WorkerTransportOptions = { bus: Bus; config: Config; runtime: Runtime };
 
 const MB = 1024 * 1024;
 
@@ -112,7 +70,7 @@ export const createInlineTransport = ({
 			tasks.push(() => gcBlobs({ home: config.home, newTx }, shas).then(() => undefined));
 		},
 		dropPageObjects: (shas: string[]) => {
-			tasks.push(() => gcPageObjects({ home: config.home, newTx }, shas).then(() => undefined));
+			tasks.push(() => collectUnheldPageObjects({ home: config.home, newTx }, shas).then(() => undefined));
 		},
 		publicUrl: config.publicUrl,
 	});

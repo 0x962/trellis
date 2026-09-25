@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { PageCleanupCtx } from "../context.ts";
-import { gcPageObjects } from "../services/pages/objects.ts";
+import { collectUnheldPageObjects } from "../services/pages/pages.ts";
 import { publish } from "../services/pages/publish.ts";
 import { prepareUpload, upload } from "../services/pages/uploads.ts";
 import type { IoCtx, PrepareCtx } from "../services/support.ts";
@@ -34,7 +34,7 @@ export const pageHomeFixture = async () => {
 		dropBlobs: () => {},
 		publicUrl: "http://trellis.test",
 		dropPageObjects: (shas) => {
-			tasks.push(() => gcPageObjects({ home, newTx }, shas).then(() => {}));
+			tasks.push(() => collectUnheldPageObjects({ home, newTx }, shas).then(() => {}));
 		},
 	};
 	const ctx: IoCtx & PrepareCtx = {

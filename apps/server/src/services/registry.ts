@@ -1,4 +1,3 @@
-import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
 import { activity as agentActivity } from "./agentRuns/activity.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
@@ -37,11 +36,7 @@ import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
-import * as pageContent from "./pages/content.ts";
-import * as pages from "./pages/pages.ts";
-import { publish as publishPage } from "./pages/publish.ts";
-import { retention as pageRetention } from "./pages/retention.ts";
-import * as pageUploads from "./pages/uploads.ts";
+import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import { prepareCheck } from "./providers/check.ts";
@@ -51,6 +46,7 @@ import { preparePublicModels } from "./providers/publicModels.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequestLocalState from "./pullRequestLocalState.ts";
 import * as pullRequests from "./pullRequests.ts";
+import { agentMutation, core, io, prepared, type ServiceEntry, sessionMutation } from "./registryEntry";
 import * as resourceComments from "./resources/resourceComments.ts";
 import * as resources from "./resources/resources.ts";
 import * as reviewApply from "./reviews/apply";
@@ -75,7 +71,6 @@ import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
 import * as statistics from "./statistics/statistics.ts";
 import * as statuses from "./statuses.ts";
-import type { IoCtx, PrepareCtx } from "./support.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } from "./systemUsage";
@@ -85,54 +80,7 @@ import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 import * as waves from "./waves/waves.ts";
 
-// The `family` selects the context shape. The `kind` sets the worker queue
-// priority before the service starts its transaction.
-// biome-ignore lint/suspicious/noExplicitAny: the core context comes from context.ts; the transport builds it.
-type CoreRun = (ctx: any, tx: Tx, input: any) => Promise<unknown>;
-// An `io` transaction gets an IoCtx, which has no gh runner. A run step that
-// asks for `gh` fails the typecheck here.
-// biome-ignore lint/suspicious/noExplicitAny: each service parses its own input.
-export type Run = (ctx: IoCtx, tx: Tx, input: any) => Promise<unknown>;
-// biome-ignore lint/suspicious/noExplicitAny: same as Run, for a service that yields lines.
-type Stream = (ctx: IoCtx, tx: Tx, input: any) => AsyncGenerator<string>;
-// `prepare` does the slow work outside the database, such as a gh call,
-// before the transaction of `run` opens. Its result is the input of `run`.
-// It reads the database through `ctx.newTx`, in short transactions of its
-// own, so other calls use the database while gh runs.
-// biome-ignore lint/suspicious/noExplicitAny: same as Run, with no transaction.
-type Prepare = (ctx: IoCtx & PrepareCtx, input: any) => Promise<unknown>;
-
-export type ServiceKind = "mutation" | "read" | "search";
-export type ServiceEntry =
-	| { family: "core"; kind: ServiceKind; run: CoreRun }
-	| { family: "io"; kind: ServiceKind; run: Run }
-	| { family: "io"; kind: ServiceKind; prepare: Prepare; run: Run }
-	| { family: "io"; kind: ServiceKind; stream: Stream };
-
-const core = (kind: ServiceKind, run: CoreRun): ServiceEntry => ({ family: "core", kind, run });
-const io = (kind: ServiceKind, run: Run): ServiceEntry => ({ family: "io", kind, run });
-const prepared = (kind: ServiceKind, prepare: Prepare, run: Run): ServiceEntry => ({
-	family: "io",
-	kind,
-	prepare,
-	run,
-});
-const agentMutation = (prepare: Prepare) =>
-	prepared(
-		"mutation",
-		async (ctx, input) => agentRuns.observeResult(ctx, (await prepare(ctx, input)) as { id: string }),
-		agentRuns.finish,
-	);
-
-// A session mutation that launches a harness answers before the launch ends,
-// so it reads the accepted state. `sessions.accepted` reports `starting` for a
-// launch that still runs, in place of a runtime read that finds no process.
-const sessionMutation = (prepare: Prepare) =>
-	prepared(
-		"mutation",
-		async (ctx, input) => sessions.accepted(ctx, (await prepare(ctx, input)) as { id: string }),
-		sessions.finish,
-	);
+export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
 export const services = {
 	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
@@ -280,18 +228,7 @@ export const services = {
 	"notes.create": core("mutation", notes.create),
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
-	"pages.retention": io("mutation", pageRetention),
-	"pages.list": core("read", pages.list),
-	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
-	"pages.get": core("read", pages.get),
-	"pages.publish": core("mutation", publishPage),
-	"pages.versions": core("read", pageContent.versions),
-	"pages.pull": core("read", pageContent.pull),
-	"pages.versionFile": core("read", pageContent.versionFile),
-	"pages.update": core("mutation", pages.update),
-	"pages.pin": core("mutation", pages.pin),
-	"pages.delete": core("mutation", pages.remove),
-	"pages.restore": core("mutation", pages.restore),
+	...pageServices,
 	"epics.list": core("read", epics.list),
 	"epics.get": core("read", epics.get),
 	"epics.create": core("mutation", epics.create),

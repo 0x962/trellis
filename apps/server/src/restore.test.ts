@@ -8,34 +8,33 @@ import { openDatabase } from "./db/open.ts";
 import { pageHomeFixture } from "./db/pageHomeFixture.ts";
 import { lockHome } from "./homeLock.ts";
 import { restoreHome } from "./restore.ts";
-import { pageObjects } from "./services/pages/objects.ts";
-import { remove } from "./services/pages/pages.ts";
+import { listHeldPageObjects, remove } from "./services/pages/pages.ts";
 import { archive, snapshot } from "./services/system.ts";
 import { BACKUP_MANIFEST, verifyPageObjects } from "./storage/backups.ts";
 import { blobPath } from "./storage/blobs.ts";
 import { pageObjectPath } from "./storage/pageObjects.ts";
 
-let h: Awaited<ReturnType<typeof pageHomeFixture>>;
+let fixture: Awaited<ReturnType<typeof pageHomeFixture>>;
 let root: string;
 let backup: string;
 let documentSha: string;
 let attachmentSha: string;
 
 beforeAll(async () => {
-	h = await pageHomeFixture();
+	fixture = await pageHomeFixture();
 	root = await mkdtemp(join(tmpdir(), "trellis-restore-proof-"));
-	await h.project("REST");
-	const page = await h.page("REST", "Restore", "<p>Restore</p>", "restore-css");
+	await fixture.project("REST");
+	const page = await fixture.page("REST", "Restore", "<p>Restore</p>", "restore-css");
 	documentSha = page.document.sha256;
-	await h.newTx((tx) => remove(h.core, tx, { page: page.page.id, expectedVersion: 1 }));
-	await h.stage("REST", "staged restore");
+	await fixture.newTx((tx) => remove(fixture.core, tx, { page: page.page.id, expectedVersion: 1 }));
+	await fixture.stage("REST", "staged restore");
 	attachmentSha = new Bun.CryptoHasher("sha256").update("attachment").digest("hex");
-	await Bun.write(blobPath(h.home, attachmentSha), "attachment");
-	backup = (await archive(await h.newTx((tx) => snapshot(h.ctx, tx, {})))).path;
-	await h.flush();
+	await Bun.write(blobPath(fixture.home, attachmentSha), "attachment");
+	backup = (await archive(await fixture.newTx((tx) => snapshot(fixture.ctx, tx, {})))).path;
+	await fixture.flush();
 }, 30_000);
 afterAll(async () => {
-	await h.close();
+	await fixture.close();
 	await rm(root, { recursive: true, force: true });
 });
 
@@ -58,7 +57,7 @@ test("restores and verifies real Page objects, retained rows, staged rows, and a
 	await restoreHome(home, backup);
 	const restored = await openDatabase(join(home, "db"));
 	try {
-		const objects = await restored.db.transaction(pageObjects);
+		const objects = await restored.db.transaction(listHeldPageObjects);
 		expect(objects).toHaveLength(3);
 		await verifyPageObjects(home, objects);
 		expect((await restored.db.execute(sql`SELECT deleted_at FROM pages`)).rows[0]!.deleted_at).not.toBeNull();
@@ -75,7 +74,7 @@ for (const failure of ["corrupt", "missing", "size", "capability", "database", "
 		const bad = await changedArchive(failure, async (path) => {
 			if (failure === "symlink") {
 				await rm(join(path, "db"), { recursive: true });
-				await symlink(join(h.home, "db"), join(path, "db"));
+				await symlink(join(fixture.home, "db"), join(path, "db"));
 			}
 			if (failure === "database") await rm(join(path, "db"), { recursive: true });
 			if (failure === "corrupt") await Bun.write(pageObjectPath(path, documentSha), "broken");

@@ -4,7 +4,7 @@ import { createMaintenance } from "./db/maintenance.ts";
 import { openDatabase } from "./db/open.ts";
 import { executionEnvironment } from "./executionEnvironment";
 import { type HomeLock, HomeLockedError, LOCK_FILE, lockHome } from "./homeLock.ts";
-import { pageObjects } from "./services/pages/objects.ts";
+import { listHeldPageObjects } from "./services/pages/pages.ts";
 import { readBackupManifest, verifyBackupLayout, verifyPageObjects } from "./storage/backups.ts";
 
 // `trellis restore` runs this script: `bun restore.ts <home> <archive>`. The
@@ -54,7 +54,7 @@ export const restoreHome = async (home: string, archive: string, now = new Date(
 		stagedLock = lockHome(staged, "restore", null);
 		const database = await openDatabase(join(staged, "db"));
 		try {
-			await verifyPageObjects(staged, await database.db.transaction(pageObjects));
+			await verifyPageObjects(staged, await database.db.transaction(listHeldPageObjects));
 			await createMaintenance(database.db).runNow();
 		} finally {
 			await database.close();

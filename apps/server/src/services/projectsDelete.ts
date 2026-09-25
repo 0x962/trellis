@@ -6,7 +6,7 @@ import { resourceBlobShasOfProjects } from "../db/queries/epicResources.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
-import { pageObjects } from "./pages/objects.ts";
+import { listHeldPageObjects } from "./pages/pages.ts";
 import { resolveMutableProject } from "./refs.ts";
 
 type ProjectDeleteOutput = z.infer<typeof ProjectDeleteOutputSchema>;
@@ -46,7 +46,7 @@ const remove = async (ctx: PageCleanupCtx, tx: Tx, input: ProjectDeleteInput): P
 		sql`SELECT DISTINCT a.sha256 FROM attachments a JOIN tickets t ON t.id = a.ticket_id
 			WHERE t.project_id = ANY(${scope})`,
 	);
-	const pageBlobs = await pageObjects(tx, project.id);
+	const pageObjects = await listHeldPageObjects(tx, project.id);
 	const resourceBlobs = await resourceBlobShasOfProjects(tx, [project.id]);
 	await tx.execute(sql`DELETE FROM tickets WHERE project_id = ANY(${scope})`);
 	ctx.dropBlobs([...blobs.map((blob) => blob.sha256), ...resourceBlobs]);
@@ -55,7 +55,7 @@ const remove = async (ctx: PageCleanupCtx, tx: Tx, input: ProjectDeleteInput): P
 			WHERE NOT pr.review_retained AND NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = pr.id)`,
 	);
 	await tx.execute(sql`DELETE FROM projects WHERE id = ANY(${scope})`);
-	ctx.dropPageObjects(pageBlobs.map((object) => object.sha256));
+	ctx.dropPageObjects(pageObjects.map((object) => object.sha256));
 	await ctx.cache.rebuild(tx);
 	ctx.emit({ type: "project.deleted", id: project.id });
 	// `project.deleted` refreshes no flow list, so an open flows page would

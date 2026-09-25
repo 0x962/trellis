@@ -2,7 +2,6 @@ import { constants, existsSync, lstatSync, readdirSync, rmSync } from "node:fs";
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "zod";
-import type { PageObject } from "../services/pages/objects.ts";
 import { hashFile, withHashLock } from "./hashStore.ts";
 import { pageObjectPath } from "./pageObjects.ts";
 
@@ -52,8 +51,12 @@ export const readBackupManifest = async (home: string) => {
 	if (existsSync(path)) manifestSchema.parse(await Bun.file(path).json());
 };
 
-// The caller holds the database transaction until every referenced object has a private copy.
-export const snapshotPageObjects = async (home: string, staged: string, objects: PageObject[]) => {
+// The caller keeps the database transaction open until the snapshot holds a copy of each object.
+export const snapshotPageObjects = async (
+	home: string,
+	staged: string,
+	objects: Array<{ sha256: string; size: number }>,
+) => {
 	await mkdir(join(staged, "pages", "objects"), { recursive: true });
 	for (const { sha256 } of objects) {
 		const source = pageObjectPath(home, sha256);
@@ -64,7 +67,7 @@ export const snapshotPageObjects = async (home: string, staged: string, objects:
 	await Bun.write(join(staged, BACKUP_MANIFEST), JSON.stringify({ version: 1, capabilities: ["pages-v1"] }));
 };
 
-export const verifyPageObjects = async (home: string, objects: PageObject[]) => {
+export const verifyPageObjects = async (home: string, objects: Array<{ sha256: string; size: number }>) => {
 	for (const object of objects) {
 		const stored = await hashFile(Bun.file(pageObjectPath(home, object.sha256)), () => {});
 		if (stored.sha256 !== object.sha256 || stored.size !== Number(object.size))

@@ -1,12 +1,12 @@
 import { sql } from "drizzle-orm";
-import { rows } from "../../db/queries/support.ts";
-import type { Tx } from "../../db/tx.ts";
-import { gcPageObjects as collect } from "../../storage/pageObjects.ts";
-import type { ServiceCtx } from "../support.ts";
+import { rows } from "../../../db/queries/support.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { gcPageObjects as gcStoredPageObjects } from "../../../storage/pageObjects.ts";
+import type { ServiceCtx } from "../../support.ts";
 
 export type PageObject = { sha256: string; size: number };
 
-export const pageObjects = (tx: Tx, projectId?: string) =>
+export const listHeldPageObjects = (tx: Tx, projectId?: string) =>
 	rows<PageObject>(
 		tx,
 		sql`
@@ -31,5 +31,5 @@ export const holdsPageObject = async (tx: Tx, sha256: string) => {
 	return row!.held;
 };
 
-export const gcPageObjects = (ctx: Pick<ServiceCtx, "home" | "newTx">, shas: string[]) =>
-	collect(ctx.home, shas, (sha256) => ctx.newTx((tx) => holdsPageObject(tx, sha256)));
+export const collectUnheldPageObjects = (ctx: Pick<ServiceCtx, "home" | "newTx">, shas: string[]) =>
+	gcStoredPageObjects(ctx.home, shas, (sha256) => ctx.newTx((tx) => holdsPageObject(tx, sha256)));

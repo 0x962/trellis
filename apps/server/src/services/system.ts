@@ -8,7 +8,7 @@ import { fail } from "../errors.ts";
 import { executionEnvironment } from "../executionEnvironment";
 import type { GhRunner } from "../gh/run.ts";
 import { BACKUP_MANIFEST, PARTIAL_SUFFIX, SNAPSHOT_PREFIX, snapshotPageObjects } from "../storage/backups.ts";
-import { pageObjects } from "./pages/objects.ts";
+import { listHeldPageObjects } from "./pages/pages.ts";
 import type { ServiceCtx } from "./support.ts";
 
 // The three answers a person needs about the running server: is it healthy,
@@ -68,8 +68,7 @@ const pruneArchives = (dir: string) => {
 	for (const archive of archives.slice(KEEP_ARCHIVES)) unlinkSync(join(dir, archive.name));
 };
 
-// A copy of the database and its objects under `backups/`, and the path its
-// archive gets.
+// `staging` is the copy under `backups/`. `path` is the archive file.
 export type Snapshot = { staging: string; path: string };
 
 // Runs a copy or an archive command. `cp` and `tar` are outside the server,
@@ -103,7 +102,7 @@ export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Prom
 	mkdirSync(staging, { recursive: true });
 	try {
 		await run([...copyArgs, join(ctx.home, "db"), join(ctx.home, "attachments"), staging]);
-		await snapshotPageObjects(ctx.home, staging, await pageObjects(tx));
+		await snapshotPageObjects(ctx.home, staging, await listHeldPageObjects(tx));
 	} catch (error) {
 		rmSync(staging, { recursive: true, force: true });
 		throw error;
@@ -111,12 +110,11 @@ export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Prom
 	return { staging, path: join(dir, `trellis-${stamp}.tar.gz`) };
 };
 
-// Compresses a snapshot into its archive, removes the snapshot, and keeps
-// the newest archives. It reads no database, so the HTTP process runs it and
-// no request waits for the compression. The archive is a data home again:
-// `db/`, `attachments/`, and `pages/` at its root. tar
-// writes the `.partial` name, and only an archive tar finished gets the
-// final name. A failed tar leaves neither the snapshot nor the partial file.
+// Build the archive from the snapshot. Then remove the snapshot. Keep the newest archives.
+// The archive function reads no database, so the HTTP process runs it.
+// The archive holds `db/`, `attachments/`, and `pages/` at its root.
+// Tar writes the `.partial` name first. The archive function renames it when tar exits 0.
+// A failed tar leaves neither the snapshot nor the partial file.
 export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
 	const partial = `${taken.path}${PARTIAL_SUFFIX}`;
 	try {

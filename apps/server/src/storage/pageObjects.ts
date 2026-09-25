@@ -167,7 +167,7 @@ export const gcPageObjects = async (
 	return { removed };
 };
 
-export const storedPageHashes = async (home: string) => {
+export const diskPageHashes = async (home: string) => {
 	await mkdir(pageObjectsDir(home), { recursive: true });
 	const hashes: string[] = [];
 	for await (const path of new Bun.Glob("[0-9a-f][0-9a-f]/*").scan(pageObjectsDir(home))) {
@@ -177,8 +177,8 @@ export const storedPageHashes = async (home: string) => {
 	return hashes;
 };
 
-// A stream keeps its stage until it ends. Completed stages expire after 24 hours,
-// so a request that stops before upload runs cannot retain its prepared file forever.
+// An active upload keeps its temp file. A completed upload keeps its temp file for 24 hours.
+// The sweep removes temp files that a previous process left behind.
 export const sweepPageTemp = async (home: string, now = Date.now()) => {
 	await mkdir(pageTempDir(home), { recursive: true });
 	let removed = 0;
