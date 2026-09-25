@@ -133,9 +133,9 @@ export async function submit(ctx: ServiceCtx, tx: Tx, input: ReviewSubmit) {
 export const actionResult = async (ctx: IoCtx, tx: Tx, input: PreparedAction) => {
 	return recordAction(ctx, tx, input);
 };
-// With a project, the search covers the repositories of that project and
-// its ancestors. A project with no repository has no pull request of its
-// own, so the search does not run.
+// With a project, the search covers the repositories of that project. A
+// project with no repository has no pull request of its own, so the search
+// does not run.
 export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string }) {
 	const project = input.project;
 	const repos = project === undefined ? [] : await ctx.newTx((tx) => projectRepos(ctx.core, tx, { project }));

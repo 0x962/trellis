@@ -9,6 +9,12 @@ import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
+import {
+	projectDiffEmptyState,
+	projectDiffQueryActivation,
+	projectDiffSources,
+	useProjectDiffSource,
+} from "./projectDiffSource";
 import "@trellis/ui/review.css";
 
 // `prStateWord` writes one lowercase word. The badge of the row prints it
@@ -29,22 +35,25 @@ const checkWords = (checks: readonly Check[]) => {
 		.join(" ");
 };
 
-// The pull requests of one project, grouped by repository. The Linked
+// The pull requests of one project, grouped by repository. The All PRs
 // source lists what Trellis holds for the project: a pull request linked
-// to a ticket of the project, or kept for a
-// review in a repository of the project or one of its ancestors. The My
-// open PRs source asks GitHub for the open pull requests of the signed-in
-// user in those repositories.
+// to a ticket of the project, or kept for a review in a repository of the
+// project. The My open PRs source asks GitHub for the open pull requests of
+// the signed-in user in those repositories.
 export function ProjectDiffsPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
+	const [source, setSource] = useProjectDiffSource(project.id);
+	const queryActivation = projectDiffQueryActivation(source);
 	const prsOptions = orpc.reviews.prs.queryOptions({ input: { project: project.key } });
-	const prs = useQuery(prsOptions);
-	const [source, setSource] = useState<"local" | "mine">("local");
+	const prs = useQuery({
+		...prsOptions,
+		enabled: queryActivation.all,
+	});
 	const mineOptions = orpc.reviews.mine.queryOptions({ input: { project: project.key } });
 	const mine = useQuery({
 		...mineOptions,
-		enabled: source === "mine",
+		enabled: queryActivation.mine,
 	});
 	const [openSheet, setOpenSheet] = useState(false);
 	const [value, setValue] = useState("");
@@ -70,7 +79,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 		}
 	};
 	const rows =
-		source === "local"
+		source === "all"
 			? (prs.data ?? []).map((pr) => ({
 					...pr,
 					repository: `${pr.owner}/${pr.repo}`,
@@ -96,20 +105,10 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 		return text.toLowerCase().includes(filter.toLowerCase());
 	});
 	const repositories = [...new Set(visible.map((pr) => pr.repository))].sort();
-	const query = source === "local" ? prs : mine;
-	const queryOptions = source === "local" ? prsOptions : mineOptions;
+	const query = source === "all" ? prs : mine;
+	const queryOptions = source === "all" ? prsOptions : mineOptions;
 	const failed = query.data === undefined && query.failureCount > 0;
-	const empty = filter
-		? { title: "No pull requests match", description: "Try another title, repository, or PR number." }
-		: source === "local"
-			? {
-					title: "No pull requests yet",
-					description: "Link a pull request to a ticket of this project, or open one for review with the plus button.",
-				}
-			: {
-					title: "No open PRs",
-					description: "You have no open pull request in the repositories of this project.",
-				};
+	const empty = projectDiffEmptyState(source, filter);
 	return (
 		<>
 			<Topbar
@@ -137,10 +136,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 						label="Pull request source"
 						value={source}
 						onValueChange={setSource}
-						options={[
-							{ value: "local", label: "Linked" },
-							{ value: "mine", label: "My open PRs" },
-						]}
+						options={projectDiffSources}
 					/>
 					<Input
 						label="Filter pull requests"

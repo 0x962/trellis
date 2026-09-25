@@ -14,8 +14,8 @@ export async function open(ctx: ServiceCtx, tx: Tx, input: { pr: string }) {
 	return pr;
 }
 
-// The pull requests of one project: the ones linked to a ticket of the
-// project, and the ones in a repository of the project.
+// All stored pull requests of one project: the ones linked to a ticket of
+// the project, and the ones in a repository of the project.
 const projectClause = async (ctx: IoCtx, tx: Tx, ref: string): Promise<SQL> => {
 	const project = await resolveProject(ctx.core, tx, ref);
 	return sql`(EXISTS (SELECT 1 FROM ticket_pull_requests l JOIN tickets t ON t.id = l.ticket_id
@@ -24,7 +24,7 @@ const projectClause = async (ctx: IoCtx, tx: Tx, ref: string): Promise<SQL> => {
 			WHERE r.project_id = ${project.id} AND r.owner = p.owner AND r.repo = p.repo))`;
 };
 
-// A project includes both linked changes and changes in its configured repositories.
+// A project includes linked pull requests and every stored pull request in its configured repositories.
 export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: boolean }) {
 	const where =
 		input.project === undefined
