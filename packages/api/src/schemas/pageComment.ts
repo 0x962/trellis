@@ -105,4 +105,4 @@ export const PageCommentEditInputSchema = z.strictObject({
 
 export const PageCommentIdInputSchema = z.strictObject({ id: UlidSchema });
 
-export const PageCommentRemoveOutputSchema = z.object({ deleted: UlidSchema });
+export const PageCommentDeleteOutputSchema = z.object({ deleted: UlidSchema });

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { PageCommentThread } from "@trellis/api";
-import { numberPageComments, pageCommentPins, pageCommentSearch, visiblePageComments } from "./commentRows";
+import { numberPageComments, pageCommentPins, pageCommentSearch, visiblePageComments } from "./pageCommentFilters";
 
 const thread = (id: string, version: number, resolved: boolean): PageCommentThread => ({
 	id,

@@ -1,6 +1,7 @@
 import { ArrowCounterClockwise, ArrowUp, Check } from "@phosphor-icons/react";
 import { type RefObject, useRef } from "react";
 import { IconButton } from "../../primitives/IconButton";
+import { Textarea } from "../../primitives/Textarea";
 import { Tooltip } from "../../primitives/Tooltip";
 import { commentKeySubmits } from "../commentSubmitKey";
 
@@ -51,9 +52,12 @@ export function ThreadReplyForm({
 				});
 			}}
 		>
-			<textarea
+			<Textarea
 				ref={replyInput}
-				aria-label="Reply"
+				label="Reply"
+				hideLabel
+				variant="composer"
+				wrapperClassName="min-w-0 flex-1"
 				placeholder="Leave a reply…"
 				disabled={readOnly}
 				value={reply}

@@ -1,9 +1,9 @@
 import { Checks } from "@phosphor-icons/react";
 import type { PageComment, PageCommentThread } from "@trellis/api";
-import { Badge, IconButton, Tooltip } from "@trellis/ui";
+import { Badge, EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { ReviewThreadCard } from "@trellis/ui/review";
 import "@trellis/ui/review.css";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { useActor } from "../../../lib/actor";
 import { errorMessage } from "../../../lib/conflict";
@@ -25,7 +25,7 @@ const cardThreadOf = (thread: PageCommentThread) => {
 	const [first, ...replies] = thread.comments;
 	return {
 		...messageOf(first!),
-		id: thread.id,
+		threadId: thread.id,
 		replies: replies.map(messageOf),
 		status: thread.resolved === null ? "open" : "resolved",
 		resolvedBy: thread.resolved === null ? null : (thread.resolved.actor.displayName ?? thread.resolved.actor.name),
@@ -39,7 +39,7 @@ export type PageCommentActions = {
 	reply: (thread: string, body: string) => Promise<void>;
 	resolve: (thread: string, resolved: boolean) => Promise<void>;
 	edit: (id: string, body: string) => Promise<void>;
-	remove: (id: string) => Promise<void>;
+	deleteComment: (id: string) => Promise<void>;
 };
 
 export function PageCommentThreads({
@@ -64,13 +64,33 @@ export function PageCommentThreads({
 	onShowResolved: (show: boolean) => void;
 }) {
 	const actor = useActor();
-	const resolvedCount = threads.filter(({ thread }) => thread.resolved !== null).length;
-	const rows = threads.filter(({ thread }) => showResolved || thread.resolved === null);
-	const comments = new Map(threads.flatMap(({ thread }) => thread.comments.map((comment) => [comment.id, comment])));
-	const ownIds = new Set(
-		[...comments.values()]
-			.filter((comment) => actor !== null && comment.actor.kind === actor.kind && comment.actor.name === actor.name)
-			.map((comment) => comment.id),
+	const resolvedCount = useMemo(() => threads.filter(({ thread }) => thread.resolved !== null).length, [threads]);
+	const visibleThreads = useMemo(
+		() => threads.filter(({ thread }) => showResolved || thread.resolved === null),
+		[showResolved, threads],
+	);
+	const comments = useMemo(
+		() => new Map(threads.flatMap(({ thread }) => thread.comments.map((comment) => [comment.id, comment]))),
+		[threads],
+	);
+	const ownIds = useMemo(
+		() =>
+			new Set(
+				[...comments.values()]
+					.filter((comment) => actor !== null && comment.actor.kind === actor.kind && comment.actor.name === actor.name)
+					.map((comment) => comment.id),
+			),
+		[actor, comments],
+	);
+	const threadViews = useMemo(
+		() =>
+			visibleThreads.map(({ number, thread }) => ({
+				number,
+				thread,
+				cardThread: cardThreadOf(thread),
+				anchor: anchorText(thread),
+			})),
+		[visibleThreads],
 	);
 	useEffect(() => {
 		if (selected === null) return;
@@ -79,39 +99,44 @@ export function PageCommentThreads({
 	}, [selected]);
 	return (
 		<section aria-label="Comments" className="flex flex-col gap-2">
-			<header className="flex h-8 items-center justify-between">
-				<h2 className="text-sm font-medium text-fg-muted">Comments</h2>
-				{resolvedCount > 0 && (
-					<Tooltip content={showResolved ? "Hide resolved threads" : `Show ${resolvedCount} resolved`}>
-						<IconButton
-							label={showResolved ? "Hide resolved threads" : "Show resolved threads"}
-							icon={<Checks />}
-							pressed={showResolved}
-							onClick={() => onShowResolved(!showResolved)}
-						/>
-					</Tooltip>
-				)}
-			</header>
+			<SectionHeader
+				title="Comments"
+				level={3}
+				actions={
+					resolvedCount > 0 ? (
+						<Tooltip content={showResolved ? "Hide resolved threads" : `Show ${resolvedCount} resolved`}>
+							<IconButton
+								label={showResolved ? "Hide resolved threads" : "Show resolved threads"}
+								icon={<Checks />}
+								pressed={showResolved}
+								onClick={() => onShowResolved(!showResolved)}
+							/>
+						</Tooltip>
+					) : undefined
+				}
+			/>
 			{loadError !== null && (
-				<p role="alert" className="text-sm text-danger">
-					Could not load the comments. {errorMessage(loadError)}
-				</p>
+				<FailureState title="The comments did not load" detail={errorMessage(loadError)} variant="section" />
 			)}
 			{loading && (
-				<p role="status" className="text-sm text-fg-faint">
-					Load comments
-				</p>
+				<div role="status" aria-label="Load comments">
+					<Skeleton lines={2} height="h-20" />
+				</div>
 			)}
-			{rows.length === 0 && !loading && loadError === null && (
-				<p className="text-sm text-fg-faint">
-					{resolvedCount > 0
-						? "Every thread is resolved."
-						: readOnly
-							? "Comments are read-only for this Page view."
-							: "Select text in the Page, or focus an element and press C, to add a comment."}
-				</p>
+			{visibleThreads.length === 0 && !loading && loadError === null && (
+				<EmptyState
+					image={null}
+					title={resolvedCount > 0 ? "Every thread is resolved" : "No comments"}
+					description={
+						resolvedCount > 0
+							? undefined
+							: readOnly
+								? "Comments are read-only for this Page view."
+								: "Select text in the Page, or focus an element and press C, to add a comment."
+					}
+				/>
 			)}
-			{rows.map(({ number, thread }) => (
+			{threadViews.map(({ number, thread, cardThread, anchor }) => (
 				<div
 					key={thread.id}
 					data-active={thread.id === selected}
@@ -122,9 +147,18 @@ export function PageCommentThreads({
 						<Badge>Version {thread.version}</Badge>
 					</div>
 					<ReviewThreadCard
-						thread={cardThreadOf(thread)}
+						thread={cardThread}
 						actor={actor?.name}
-						anchor={anchorText(thread)}
+						anchor={anchor}
+						anchorAction={
+							<button
+								type="button"
+								className="block w-full text-left text-xs text-fg-muted"
+								onClick={() => onSelect(thread.id)}
+							>
+								{anchor}
+							</button>
+						}
 						readOnly={readOnly}
 						submitRepliesOnEnter
 						deleteRootLabel="Delete comment"
@@ -132,15 +166,6 @@ export function PageCommentThreads({
 							const comment = comments.get(message.id)!;
 							return (
 								<>
-									{message.root && (
-										<button
-											type="button"
-											className="mb-2 block w-full text-left text-xs text-fg-muted"
-											onClick={() => onSelect(thread.id)}
-										>
-											{anchorText(thread)}
-										</button>
-									)}
 									{comment.deletedAt === null ? (
 										<ReadOnlyMarkdown markdown={body} className="text-sm" />
 									) : (
@@ -153,7 +178,7 @@ export function PageCommentThreads({
 						onReply={(body) => actions.reply(thread.id, body)}
 						onResolve={() => actions.resolve(thread.id, thread.resolved === null)}
 						onEdit={(id, body) => actions.edit(id, body)}
-						onDelete={(id) => actions.remove(id)}
+						onDelete={(id) => actions.deleteComment(id)}
 					/>
 				</div>
 			))}

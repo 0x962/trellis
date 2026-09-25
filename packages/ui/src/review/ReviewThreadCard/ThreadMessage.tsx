@@ -23,6 +23,7 @@ type Props = {
 	// True for the first message of the thread, the one that carries the
 	// anchor and any suggestion the thread applies.
 	root: boolean;
+	anchorAction?: ReactNode;
 	renderBody: (body: string, message: { id: string; root: boolean }) => ReactNode;
 	// True while a reply, an edit, a delete or a reaction of this card waits
 	// for the server.
@@ -46,6 +47,7 @@ type Props = {
 export function ThreadMessage({
 	message,
 	root,
+	anchorAction,
 	renderBody,
 	busy,
 	canChange,
@@ -107,6 +109,7 @@ export function ThreadMessage({
 					</Tooltip>
 				)}
 			</header>
+			{root && anchorAction !== undefined && <div className="review-thread-location">{anchorAction}</div>}
 			{edit?.id === message.id ? (
 				<form
 					onSubmit={(e) => {

@@ -1,6 +1,13 @@
 import { core, io, prepared } from "../../registryEntry";
 import { backfillSearchText, prepareSearchBackfill } from "../backfillSearchText.ts";
-import * as comments from "../comments.ts";
+import {
+	createPageComment,
+	deleteComment,
+	editPageComment,
+	listPageComments,
+	replyToPageComment,
+	setPageCommentResolved,
+} from "../comments";
 import * as pageContent from "../content.ts";
 import * as pages from "../pages.ts";
 import { preparePublish, publish } from "../publish.ts";
@@ -11,12 +18,12 @@ export const pageServices = {
 	"pages.backfillSearch": prepared("mutation", prepareSearchBackfill, backfillSearchText),
 	"pages.retention": io("mutation", purgeExpiredPages),
 	"pages.list": core("read", pages.list),
-	"pages.comments": core("read", comments.list),
-	"pages.comment": core("mutation", comments.create),
-	"pages.commentReply": core("mutation", comments.reply),
-	"pages.commentResolve": core("mutation", comments.resolve),
-	"pages.commentEdit": core("mutation", comments.edit),
-	"pages.commentDelete": core("mutation", comments.remove),
+	"pages.comments": core("read", listPageComments),
+	"pages.comment": core("mutation", createPageComment),
+	"pages.commentReply": core("mutation", replyToPageComment),
+	"pages.commentResolve": core("mutation", setPageCommentResolved),
+	"pages.commentEdit": core("mutation", editPageComment),
+	"pages.commentDelete": core("mutation", deleteComment),
 	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
 	"pages.get": core("read", pages.get),
 	"pages.publish": prepared("mutation", preparePublish, publish),

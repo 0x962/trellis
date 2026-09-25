@@ -38,7 +38,7 @@ export function usePageComments(page: string) {
 			await refresh();
 			setStatus("Comment saved");
 		},
-		remove: async (id: string) => {
+		deleteComment: async (id: string) => {
 			setStatus("");
 			await client.pages.commentDelete({ id });
 			await refresh();

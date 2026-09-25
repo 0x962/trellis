@@ -1,3 +1,5 @@
+import type { PageCommentAnchor } from "@trellis/api";
+
 // Page scripts can send false viewer and comment messages. The app asks the
 // person before it follows a link. A false comment anchor can only open the
 // parent composer. Saved data changes only through the controls of the app.
@@ -23,14 +25,15 @@ const contentRuntime = (nonce: string) => {
 	};
 	const selectedAnchor = () => {
 		const selection = getSelection();
-		if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) return null;
+		if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) return undefined;
 		const range = selection.getRangeAt(0);
 		const root =
 			range.commonAncestorContainer instanceof Element
 				? range.commonAncestorContainer
 				: range.commonAncestorContainer.parentElement;
 		const quote = selection.toString();
-		if (root === null || quote.trim() === "" || quote.length > 2000) return null;
+		if (root === null || quote.trim() === "") return undefined;
+		if (quote.length > 2000) return null;
 		const before = range.cloneRange();
 		before.selectNodeContents(root);
 		before.setEnd(range.startContainer, range.startOffset);
@@ -45,7 +48,12 @@ const contentRuntime = (nonce: string) => {
 		};
 	};
 	const reportAnchor = (element: Element | null) => {
-		const anchor = selectedAnchor() ?? (element === null ? null : { kind: "element", path: pathOf(element) });
+		const selection = selectedAnchor();
+		if (selection === null) {
+			send({ type: "page-comment-anchor-error", message: "Select 2,000 characters or fewer." });
+			return;
+		}
+		const anchor = selection ?? (element === null ? null : { kind: "element", path: pathOf(element) });
 		if (anchor !== null) send({ type: "page-comment-anchor", anchor });
 	};
 	const textRange = (element: Element, anchor: { quote: string; prefix: string; suffix: string }) => {
@@ -87,7 +95,7 @@ const contentRuntime = (nonce: string) => {
 	};
 	let comments = [] as {
 		thread: string;
-		anchor: { kind: string; path: string; quote?: string; prefix?: string; suffix?: string };
+		anchor: PageCommentAnchor;
 	}[];
 	let layoutFrame = 0;
 	const reportLayout = () => {
@@ -96,14 +104,7 @@ const contentRuntime = (nonce: string) => {
 		for (const comment of comments) {
 			const element = document.querySelector(comment.anchor.path);
 			if (element === null) continue;
-			const target =
-				comment.anchor.kind === "text"
-					? textRange(element, {
-							quote: comment.anchor.quote ?? "",
-							prefix: comment.anchor.prefix ?? "",
-							suffix: comment.anchor.suffix ?? "",
-						})
-					: element;
+			const target = comment.anchor.kind === "text" ? textRange(element, comment.anchor) : element;
 			if (target === null) continue;
 			const rect = target.getBoundingClientRect();
 			items.push({
@@ -122,7 +123,7 @@ const contentRuntime = (nonce: string) => {
 	addEventListener("resize", scheduleLayout, { passive: true });
 	addEventListener("load", () => send({ type: "page-ready" }), { once: true });
 	addEventListener("mouseup", () => {
-		if (selectedAnchor() !== null) reportAnchor(null);
+		if (selectedAnchor() !== undefined) reportAnchor(null);
 	});
 	addEventListener(
 		"contextmenu",

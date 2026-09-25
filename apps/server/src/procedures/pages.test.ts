@@ -210,11 +210,11 @@ describe("Page procedures", () => {
 			calls.push({ name, input });
 			return name === "pages.comments" ? [thread] : thread;
 		};
-		expect((await request("/page-comments/WRT/pages/stable", {}, call)).status).toBe(200);
+		expect((await request("/page-comment-threads/WRT/pages/stable", {}, call)).status).toBe(200);
 		expect(
 			(
 				await request(
-					"/page-comments/WRT/pages/stable",
+					"/page-comment-threads/WRT/pages/stable",
 					{
 						method: "POST",
 						...json({ version: 1, anchor: { kind: "element", path: "main" }, body: "Check this chart." }),
@@ -223,6 +223,19 @@ describe("Page procedures", () => {
 				)
 			).status,
 		).toBe(201);
+		expect(
+			(
+				await request(
+					`/page-comment-threads/${threadId}/replies`,
+					{ method: "POST", ...json({ body: "Reply." }) },
+					call,
+				)
+			).status,
+		).toBe(201);
+		expect(
+			(await request(`/page-comment-threads/${threadId}`, { method: "PATCH", ...json({ resolved: true }) }, call))
+				.status,
+		).toBe(200);
 		expect(calls).toEqual([
 			{ name: "pages.comments", input: { page: "WRT/pages/stable" } },
 			{
@@ -234,6 +247,8 @@ describe("Page procedures", () => {
 					body: "Check this chart.",
 				},
 			},
+			{ name: "pages.commentReply", input: { thread: threadId, body: "Reply." } },
+			{ name: "pages.commentResolve", input: { thread: threadId, resolved: true } },
 		]);
 	});
 

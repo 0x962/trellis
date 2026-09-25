@@ -6,9 +6,9 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { openLink } from "../../../../../lib/openLink";
 import { useTheme } from "../../../../../lib/theme";
 import { failureKind } from "../../../../shell/RouteError";
-import { readFrameMessage } from "../../frameMessage";
-import { classifyPageLink } from "../../pageLink";
-import { usePageLease } from "../../usePageLease";
+import { readFrameMessage } from "../../../PageDetail/frameMessage";
+import { classifyPageLink } from "../../../PageDetail/pageLink";
+import { usePageLease } from "../../../PageDetail/usePageLease";
 
 type NumberedThread = { number: number; thread: PageCommentThread };
 
@@ -27,6 +27,7 @@ export function LeasedPageViewer({
 	comments,
 	selectedThread,
 	onCommentAnchor,
+	onCommentAnchorError,
 	onOpenThread,
 }: {
 	page: string;
@@ -35,6 +36,7 @@ export function LeasedPageViewer({
 	comments: NumberedThread[];
 	selectedThread: string | null;
 	onCommentAnchor: (anchor: PageCommentThread["anchor"]) => void;
+	onCommentAnchorError: (message: string) => void;
 	onOpenThread: (thread: string) => void;
 }) {
 	const { lease, error, refreshes, retry } = usePageLease(page, version);
@@ -49,7 +51,10 @@ export function LeasedPageViewer({
 	const nonce = lease?.nonce;
 	const navigate = useNavigate();
 	const commentIds = useMemo(() => new Set(comments.map(({ thread }) => thread.id)), [comments]);
-	const commentRevision = comments.map(({ thread }) => `${thread.id}:${thread.updatedAt}`).join("/");
+	const commentRevision = useMemo(
+		() => comments.map(({ thread }) => `${thread.id}:${thread.updatedAt}`).join("/"),
+		[comments],
+	);
 	const sendState = useEffectEvent((resolved = theme.resolved) => {
 		if (lease === null) return;
 		const style = getComputedStyle(document.documentElement);
@@ -77,6 +82,7 @@ export function LeasedPageViewer({
 		frame.current?.contentWindow?.postMessage({ type: "page-comment-reveal", nonce: lease.nonce, thread }, "*");
 	});
 	const openComment = useEffectEvent(onCommentAnchor);
+	const reportCommentAnchorError = useEffectEvent(onCommentAnchorError);
 	const updateLayout = useEffectEvent((items: { thread: string; x: number; y: number }[]) => {
 		setPinPositions(
 			new Map(items.filter(({ thread }) => commentIds.has(thread)).map(({ thread, x, y }) => [thread, { x, y }])),
@@ -101,6 +107,7 @@ export function LeasedPageViewer({
 			if (message.type === "page-link")
 				setLink((current) => current ?? classifyPageLink(message.href, location.origin));
 			if (message.type === "page-comment-anchor") openComment(message.anchor);
+			if (message.type === "page-comment-anchor-error") reportCommentAnchorError(message.message);
 			if (message.type === "page-comment-layout") updateLayout(message.items);
 		};
 		window.addEventListener("message", receive);

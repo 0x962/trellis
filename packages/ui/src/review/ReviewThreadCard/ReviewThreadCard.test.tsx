@@ -50,6 +50,21 @@ test("an open thread of the current diff shows its messages", () => {
 	expect(html).not.toContain("aria-expanded");
 });
 
+test("keeps the thread address separate from the root message address", () => {
+	const html = render({
+		thread: { ...thread, id: "message-1", threadId: "thread-1" },
+		anchorAction: <button type="button">Open anchor</button>,
+		canChange: (id) => id === "message-1",
+		onDelete: async () => {},
+	});
+
+	expect(html).toContain('id="thread-thread-1"');
+	expect(html).toContain("Open anchor");
+	expect(html).toContain("This call has no timeout.");
+	expect(html).toContain('aria-label="Edit message"');
+	expect(html).toContain('aria-label="Delete thread"');
+});
+
 test("a resolved thread opens as one line with the author, the place and the first words", () => {
 	const html = render({
 		thread: { ...thread, status: "resolved", resolvedBy: "01M35RBM" },
@@ -100,7 +115,7 @@ test("a thread resolved a moment ago names no resolver until the server does", (
 test("a read-only thread disables its reply and resolve controls", () => {
 	const html = render({ readOnly: true, submitRepliesOnEnter: true });
 
-	expect(html).toContain('aria-label="Reply"');
+	expect(html).toContain(">Reply</label>");
 	expect(html).toContain('aria-label="Post reply"');
 	expect(html).toContain('aria-label="Resolve comment"');
 	expect(html.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(3);

@@ -7,16 +7,18 @@ export type TextareaProps = Omit<ComponentProps<"textarea">, "id"> & {
 	hideLabel?: boolean;
 	invalid?: boolean;
 	variant?: "default" | "composer";
+	// Classes for the label and textarea wrapper.
+	wrapperClassName?: string;
 };
 
 // The composer variant uses its parent for the border and focus treatment.
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-	{ label, hideLabel = false, invalid = false, variant = "default", className, ...props },
+	{ label, hideLabel = false, invalid = false, variant = "default", className, wrapperClassName, ...props },
 	ref,
 ) {
 	const id = useId();
 	return (
-		<div className="flex flex-col gap-1">
+		<div className={cx("flex flex-col gap-1", wrapperClassName)}>
 			<label htmlFor={id} className={cx("text-sm text-fg-muted", hideLabel && "sr-only")}>
 				{label}
 			</label>

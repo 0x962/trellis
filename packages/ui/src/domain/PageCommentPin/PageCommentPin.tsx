@@ -22,7 +22,7 @@ export function PageCommentPin({ number, label, x, y, resolved, selected, onClic
 				style={{ left: x, top: y }}
 				className={cx(
 					"pointer-events-auto absolute z-10 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border text-xs font-medium tabular shadow-sm",
-					"focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+					"focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
 					"max-md:size-11",
 					resolved
 						? "border-fg-muted bg-surface text-fg-muted hover:bg-control-hover"

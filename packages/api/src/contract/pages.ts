@@ -16,10 +16,10 @@ import {
 } from "../schemas/page.ts";
 import {
 	PageCommentCreateInputSchema,
+	PageCommentDeleteOutputSchema,
 	PageCommentEditInputSchema,
 	PageCommentIdInputSchema,
 	PageCommentListInputSchema,
-	PageCommentRemoveOutputSchema,
 	PageCommentReplyInputSchema,
 	PageCommentResolveInputSchema,
 	PageCommentThreadSchema,
@@ -59,14 +59,14 @@ export const pages = {
 		.output(PageListOutputSchema),
 	comments: base
 		.errors(pickErrors(["PAGE_DELETED"]))
-		.route({ method: "GET", path: "/page-comments/{+page}", summary: "List every comment thread of a page" })
+		.route({ method: "GET", path: "/page-comment-threads/{+page}", summary: "List every comment thread of a page" })
 		.input(PageCommentListInputSchema)
 		.output(z.array(PageCommentThreadSchema)),
 	comment: base
 		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
 		.route({
 			method: "POST",
-			path: "/page-comments/{+page}",
+			path: "/page-comment-threads/{+page}",
 			successStatus: 201,
 			summary: "Comment on one version of a page",
 		})
@@ -74,14 +74,19 @@ export const pages = {
 		.output(PageCommentThreadSchema),
 	commentReply: base
 		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
-		.route({ method: "POST", path: "/page-comment-threads/{thread}/replies", summary: "Reply to a page comment" })
+		.route({
+			method: "POST",
+			path: "/page-comment-threads/{thread}/replies",
+			successStatus: 201,
+			summary: "Reply to a page comment",
+		})
 		.input(PageCommentReplyInputSchema)
 		.output(PageCommentThreadSchema),
 	commentResolve: base
 		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
 		.route({
-			method: "POST",
-			path: "/page-comment-threads/{thread}/resolve",
+			method: "PATCH",
+			path: "/page-comment-threads/{thread}",
 			summary: "Resolve or reopen a page comment thread",
 		})
 		.input(PageCommentResolveInputSchema)
@@ -95,7 +100,7 @@ export const pages = {
 		.errors(pickErrors(["PROJECT_ARCHIVED", "PAGE_DELETED"]))
 		.route({ method: "DELETE", path: "/page-comments/{id}", summary: "Delete your own page comment" })
 		.input(PageCommentIdInputSchema)
-		.output(PageCommentRemoveOutputSchema),
+		.output(PageCommentDeleteOutputSchema),
 	publish: base
 		.errors(revisionErrors)
 		.errors(pickErrors(["DUPLICATE"]))

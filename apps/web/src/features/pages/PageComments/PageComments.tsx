@@ -6,9 +6,9 @@ import { ReviewCommentEditor } from "@trellis/ui/review";
 import { useMemo, useRef, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { errorMessage } from "../../../lib/conflict";
-import { LeasedPageViewer } from "../PageDetail/components/LeasedPageViewer";
-import { numberPageComments, pageCommentPins, pageCommentSearch } from "./commentRows";
+import { LeasedPageViewer } from "./components/LeasedPageViewer";
 import { PageCommentThreads } from "./PageCommentThreads";
+import { numberPageComments, pageCommentPins, pageCommentSearch } from "./pageCommentFilters";
 import { usePageComments } from "./usePageComments";
 
 const WIDE_QUERY = "(min-width: 80rem)";
@@ -38,13 +38,17 @@ export function PageComments({
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [showResolved, setShowResolved] = useState(false);
 	const [selected, setSelected] = useState<string | null>(null);
-	const [draft, setDraft] = useState<PageCommentAnchor | null>(null);
+	const [pendingAnchor, setPendingAnchor] = useState<PageCommentAnchor | null>(null);
+	const [anchorError, setAnchorError] = useState<string | null>(null);
 	const [body, setBody] = useState("");
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [warnCancel, setWarnCancel] = useState(false);
 	const numbered = useMemo(() => numberPageComments(comments.threads), [comments.threads]);
-	const currentPins = pageCommentPins(numbered, version, showResolved).slice(0, 500);
+	const currentPins = useMemo(
+		() => pageCommentPins(numbered, version, showResolved).slice(0, 500),
+		[numbered, showResolved, version],
+	);
 	const select = (id: string) => {
 		const target = numbered.find(({ thread }) => thread.id === id)?.thread;
 		if (target !== undefined && target.version !== version) {
@@ -59,26 +63,27 @@ export function PageComments({
 		setSelected(id);
 		if (!wide) setSheetOpen(true);
 	};
-	const openDraft = (anchor: PageCommentAnchor) => {
+	const openPendingAnchor = (anchor: PageCommentAnchor) => {
 		if (blocked || historical) return;
-		setDraft(anchor);
+		setPendingAnchor(anchor);
+		setAnchorError(null);
 		setSelected(null);
 		setSaveError(null);
 		if (!wide) setSheetOpen(true);
 	};
-	const closeDraft = () => {
-		setDraft(null);
+	const closePendingAnchor = () => {
+		setPendingAnchor(null);
 		setBody("");
 		setSaveError(null);
 		setWarnCancel(false);
 	};
-	const saveDraft = async () => {
-		if (draft === null) return;
+	const savePendingAnchor = async () => {
+		if (pendingAnchor === null) return;
 		setSaving(true);
 		setSaveError(null);
 		try {
-			const thread = await comments.create(version, draft, body.trim());
-			closeDraft();
+			const thread = await comments.create(version, pendingAnchor, body.trim());
+			closePendingAnchor();
 			setSelected(thread.id);
 		} catch (error) {
 			setSaveError(errorMessage(error));
@@ -88,20 +93,25 @@ export function PageComments({
 	};
 	const threadList = (
 		<div className="flex flex-col gap-3 px-3 py-3">
-			{draft !== null && (
+			{pendingAnchor !== null && (
 				<ReviewCommentEditor
 					body={body}
 					onChange={setBody}
-					onSave={() => void saveDraft()}
-					onCancel={closeDraft}
-					onEscape={() => (body.trim() === "" ? closeDraft() : setWarnCancel(true))}
+					onSave={() => void savePendingAnchor()}
+					onCancel={closePendingAnchor}
+					onEscape={() => (body.trim() === "" ? closePendingAnchor() : setWarnCancel(true))}
 					renderPreview={(markdown) => <ReadOnlyMarkdown markdown={markdown} className="text-sm" />}
 					saveLabel="Comment"
-					location={anchorLabel(draft)}
+					location={anchorLabel(pendingAnchor)}
 					pending={saving}
 					error={saveError}
 					submitOnEnter
 				/>
+			)}
+			{anchorError !== null && (
+				<p role="alert" className="text-sm text-danger">
+					{anchorError}
+				</p>
 			)}
 			<PageCommentThreads
 				threads={numbered}
@@ -128,7 +138,11 @@ export function PageComments({
 					title={title}
 					comments={currentPins}
 					selectedThread={selected}
-					onCommentAnchor={openDraft}
+					onCommentAnchor={openPendingAnchor}
+					onCommentAnchorError={(message) => {
+						setAnchorError(message);
+						if (!wide) setSheetOpen(true);
+					}}
 					onOpenThread={select}
 				/>
 				{wide ? (
@@ -143,12 +157,12 @@ export function PageComments({
 						<Sheet
 							open={sheetOpen}
 							onOpenChange={(open) => {
-								if (!open && draft !== null && body.trim() !== "") {
+								if (!open && pendingAnchor !== null && body.trim() !== "") {
 									setWarnCancel(true);
 									return;
 								}
 								setSheetOpen(open);
-								if (!open && draft !== null) closeDraft();
+								if (!open && pendingAnchor !== null) closePendingAnchor();
 							}}
 							title="Comments"
 							titleClassName="text-md font-medium"
@@ -168,7 +182,7 @@ export function PageComments({
 				confirmLabel="Discard"
 				danger
 				onCancel={() => setWarnCancel(false)}
-				onConfirm={closeDraft}
+				onConfirm={closePendingAnchor}
 			/>
 		</>
 	);

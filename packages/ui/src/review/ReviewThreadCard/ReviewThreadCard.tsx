@@ -34,6 +34,8 @@ type Props = {
 	readOnly?: boolean;
 	submitRepliesOnEnter?: boolean;
 	deleteRootLabel?: string;
+	// The control that reveals the thing the first message points to.
+	anchorAction?: ReactNode;
 };
 
 export function ReviewThreadCard({
@@ -51,11 +53,13 @@ export function ReviewThreadCard({
 	readOnly = false,
 	submitRepliesOnEnter = false,
 	deleteRootLabel,
+	anchorAction,
 }: Props) {
 	const root = useRef<HTMLElement>(null);
 	const foldedReopen = useRef<HTMLButtonElement>(null);
 	const formResolve = useRef<HTMLButtonElement>(null);
-	const draftKey = `trellis.review.reply:${actor}:${thread.id}`;
+	const threadId = thread.threadId ?? thread.id;
+	const draftKey = `trellis.review.reply:${actor}:${threadId}`;
 	const [reply, updateReply] = useState(() => localStorage.getItem(draftKey) ?? "");
 	const setReply = (body: string) => {
 		updateReply(body);
@@ -132,7 +136,7 @@ export function ReviewThreadCard({
 			ref={root}
 			tabIndex={-1}
 			className="review-thread"
-			id={`thread-${thread.id}`}
+			id={`thread-${threadId}`}
 			aria-label={`Thread by ${thread.author}`}
 			onPointerEnter={() => {
 				pointerInside.current = true;
@@ -187,6 +191,7 @@ export function ReviewThreadCard({
 							key={message.id}
 							message={message}
 							root={message.id === thread.id}
+							anchorAction={anchorAction}
 							renderBody={renderBody}
 							busy={busy}
 							canChange={!readOnly && canChange(message.id)}
