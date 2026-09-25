@@ -18,9 +18,8 @@ export type GroupHeaderProps = {
 	// the chevron and the icon alone.
 	labelField?: ReactNode;
 	// A band that only names its group. It draws no chevron and no collapse
-	// control, because nothing on the page opens or shuts it. The diff of a
-	// review draws one above the first file of each risk group, and the file
-	// tree beside it draws the collapsing kind for the same groups.
+	// control, because nothing on the page opens or shuts it. Another view can
+	// use the collapsing kind for the same groups.
 	collapsible?: boolean;
 	expanded?: boolean;
 	onToggle?: () => void;
@@ -41,11 +40,11 @@ export type GroupHeaderProps = {
 	sticky?: boolean;
 	controls?: string;
 	layout?: "grid" | "section";
-	insetGap?: boolean;
+	// Adds 4 px above and below the inset box in a normal list layout.
+	hasSectionGap?: boolean;
 	// The box that the header draws around its label. `inset` starts 12 px
-	// inside the list and draws a rounded box. `insetGap` adds the vertical
-	// space used by the Epics list. `band` fills the list width, and `sidebar`
-	// draws no box.
+	// inside its parent and draws a rounded box. `band` fills the parent width,
+	// and `sidebar` draws no box.
 	appearance?: "band" | "inset" | "sidebar";
 };
 
@@ -56,6 +55,21 @@ export const phoneGroupHeaderHeight = 48;
 // always on a touch screen.
 const revealOnHover =
 	"opacity-0 transition-opacity duration-hover group-hover/header:opacity-100 group-focus-within/header:opacity-100 [@media(hover:none)]:opacity-100";
+
+const insetRowGround =
+	"isolate after:pointer-events-none after:absolute after:inset-x-3 after:inset-y-px after:-z-10 after:rounded-sm after:transition-colors after:duration-hover after:ease-out after:content-[''] max-md:after:inset-x-2";
+
+export const insetRowHover = cx(insetRowGround, "hover:after:bg-band");
+
+export const insetRowControl = cx(
+	insetRowHover,
+	"focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-accent focus-visible:after:-outline-offset-2",
+);
+
+export const insetRowSelection = cx(
+	insetRowHover,
+	"data-focused:after:bg-accent-soft/60 data-selected:after:bg-accent-soft",
+);
 
 // The box of each appearance. The inset box's 12 px side margin plus its 8 px
 // padding put the label where the band appearance puts it. `bg-band` is one
@@ -87,17 +101,15 @@ export function GroupHeader({
 	sticky,
 	controls,
 	layout = "section",
-	insetGap = false,
+	hasSectionGap: sectionGapEnabled = false,
 	appearance = "inset",
 }: GroupHeaderProps) {
 	const Chevron = expanded ? CaretDown : CaretRight;
-	// The Epics list includes 4 px gaps in its normal layout. A virtual grid
-	// supplies an exact height and offset, so its inset box uses that full slot.
-	const flowGap = appearance === "inset" && layout === "section" && insetGap ? "my-1" : undefined;
-	const stop = flowGap ? "sticky top-1 z-10" : "sticky top-0 z-10";
+	const hasSectionGap = appearance === "inset" && layout === "section" && sectionGapEnabled;
+	const stop = hasSectionGap ? "sticky top-1 z-10" : "sticky top-0 z-10";
 	const position = top === undefined ? (sticky ? stop : "relative") : "absolute inset-x-0 top-0";
 	return (
-		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: The virtual ticket grid exposes each row group's collapsed state.
+		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: The virtual grid exposes each row group's collapsed state.
 		<div
 			role={layout === "grid" ? "rowgroup" : undefined}
 			data-group={group}
@@ -106,7 +118,7 @@ export function GroupHeader({
 				height: `${height}px`,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
-			className={cx("group/header flex items-center gap-2", chrome[appearance], flowGap, position)}
+			className={cx("group/header flex items-center gap-2", chrome[appearance], hasSectionGap && "my-1", position)}
 		>
 			{collapsible ? (
 				<button

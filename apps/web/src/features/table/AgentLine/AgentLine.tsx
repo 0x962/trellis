@@ -1,8 +1,7 @@
-import { cx } from "@trellis/ui";
+import { cx, insetRowControl } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, Ref } from "react";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AgentWords } from "../AgentWords";
-import { insetRowControl } from "../insetRowState";
 import { agentLineHeight } from "../rowHeights";
 import { TreeBranch, type TreeDepth, treeContentPad } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";

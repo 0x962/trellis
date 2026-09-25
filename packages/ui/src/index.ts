@@ -25,7 +25,15 @@ export {
 	flowStateLabels,
 } from "./domain/FlowRunTree";
 export { GithubMark, type GithubMarkProps } from "./domain/GithubMark";
-export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeaderHeight } from "./domain/GroupHeader";
+export {
+	GroupHeader,
+	type GroupHeaderProps,
+	groupHeaderHeight,
+	insetRowControl,
+	insetRowHover,
+	insetRowSelection,
+	phoneGroupHeaderHeight,
+} from "./domain/GroupHeader/GroupHeader";
 export * from "./domain/HarnessAccountForm";
 export * from "./domain/HarnessAccountNameForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";

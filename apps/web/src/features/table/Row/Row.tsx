@@ -1,5 +1,5 @@
 import type { EpicSummary, Label, Priority, StatusSummary, TicketSummary, WaveSummary } from "@trellis/api";
-import { cx, DoneWash, TicketId } from "@trellis/ui";
+import { cx, DoneWash, insetRowSelection, TicketId } from "@trellis/ui";
 import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
@@ -13,7 +13,6 @@ import {
 	statusIconOnly,
 	type TableKind,
 } from "../columns";
-import { insetRowSelection } from "../insetRowState";
 import { TreeStem } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";
 import type { TicketDisclosure as TicketDisclosureState } from "../utils/flattenGroups";
@@ -262,8 +261,8 @@ export const Row = memo(function Row({
 				gridColumnsClass,
 				!hasChildLines && "border-b border-border",
 				density === "comfortable" ? "text-base" : "text-sm",
-				// The focus bar sits on the left edge of the inset state ground. Its
-				// layer keeps it visible while `DoneWash` crosses the row.
+				// The focus bar sits at the left edge of the inset hover and selection
+				// background. Its own layer keeps it visible while `DoneWash` crosses the row.
 				"before:absolute before:top-1 before:bottom-1 before:left-3 before:z-10 before:w-0.5 before:rounded-sm before:bg-accent before:opacity-0 before:content-[''] max-md:before:left-2",
 				insetRowSelection,
 				"data-focused:before:opacity-100",

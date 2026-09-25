@@ -40,8 +40,8 @@ describe("GroupHeader appearance", () => {
 		expect(markup({})).not.toContain("w-full");
 	});
 
-	test("a sticky inset box stops below its optional gap", () => {
-		expect(markup({ appearance: "inset", insetGap: true, sticky: true })).toContain("sticky top-1");
+	test("a sticky inset box stops below its section gap", () => {
+		expect(markup({ appearance: "inset", hasSectionGap: true, sticky: true })).toContain("sticky top-1");
 		expect(markup({ appearance: "inset", sticky: true })).toContain("sticky top-0");
 	});
 

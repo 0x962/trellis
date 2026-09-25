@@ -1,12 +1,11 @@
 import type { TicketSummary } from "@trellis/api";
-import { cx, DoneWash, StatusIcon } from "@trellis/ui";
+import { cx, DoneWash, insetRowSelection, StatusIcon } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { pageSheetActions } from "../../../../../stores/pageSheetStore";
 import { statusIconProps } from "../../../../statusIconProps";
 import { AgentWords } from "../../../AgentWords";
 import type { TableKind } from "../../../columns";
-import { insetRowSelection } from "../../../insetRowState";
 import { PrCells } from "../../../PrCells";
 import { prPhoneCells } from "../../../PrRow/prRowText";
 import { phoneRowHeight } from "../../../rowHeights";

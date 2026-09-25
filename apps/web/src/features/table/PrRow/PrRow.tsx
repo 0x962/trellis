@@ -1,7 +1,6 @@
 import type { TicketPr } from "@trellis/api";
-import { type Check, CheckRibbon, cx } from "@trellis/ui";
+import { type Check, CheckRibbon, cx, insetRowControl } from "@trellis/ui";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { insetRowControl } from "../insetRowState";
 import { PrCells } from "../PrCells";
 import { prRowHeight } from "../rowHeights";
 import { TreeBranch, TreeStem } from "../TreeLines";
