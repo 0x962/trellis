@@ -1,9 +1,7 @@
-import type { PageDetail as PageRecord } from "@trellis/api";
-import { Button, ChoiceGroup, Input, Sheet, SheetBody, SheetFooter } from "@trellis/ui";
+import { internalLink, type PageDetail as PageRecord } from "@trellis/api";
+import { Button, Input, Sheet, SheetBody, SheetFooter } from "@trellis/ui";
 import type { RefObject } from "react";
-import { useState } from "react";
 import { copyText } from "../../../../../lib/clipboard";
-import { pageVersionHref } from "../../pageLink";
 
 export function PageShare({
 	page,
@@ -14,11 +12,7 @@ export function PageShare({
 	onClose: () => void;
 	finalFocus: RefObject<HTMLButtonElement | null>;
 }) {
-	const [choice, setChoice] = useState<"latest" | "version">("latest");
-	const href = new URL(
-		pageVersionHref(page.projectKey, page.slug, choice === "latest" ? undefined : page.requestedVersion.number),
-		location.origin,
-	).href;
+	const href = internalLink("page", page.id);
 	return (
 		<Sheet
 			finalFocus={finalFocus}
@@ -29,20 +23,7 @@ export function PageShare({
 			}}
 		>
 			<SheetBody>
-				<p className="text-sm text-fg-muted">This link requires access to the same Trellis server.</p>
-				<ChoiceGroup
-					label="Link target"
-					value={choice}
-					onValueChange={setChoice}
-					options={[
-						{ value: "latest", label: "Latest", description: "The link follows new versions." },
-						{
-							value: "version",
-							label: `Version ${page.requestedVersion.number}`,
-							description: "The link keeps the version on screen.",
-						},
-					]}
-				/>
+				<p className="text-sm text-fg-muted">This link follows the Page if its title, project, or address changes.</p>
 				<Input label="Trellis link" value={href} readOnly />
 			</SheetBody>
 			<SheetFooter>

@@ -18,7 +18,6 @@ export type PageListBodyProps = {
 	loadingMore: boolean;
 	pinningId: string | null;
 	onRetry: () => void;
-	onCreate: () => void;
 	onLoadMore: () => void;
 	onPin: (page: PageSummary) => void;
 };
@@ -38,7 +37,6 @@ export function PageListBody({
 	loadingMore,
 	pinningId,
 	onRetry,
-	onCreate,
 	onLoadMore,
 	onPin,
 }: PageListBodyProps) {
@@ -72,18 +70,7 @@ export function PageListBody({
 		return filtered ? (
 			<EmptyState variant="page" title="No Pages match" description="Change the search or remove a filter." />
 		) : (
-			<EmptyState
-				variant="page"
-				title="No Pages yet"
-				description="An agent publishes an HTML artifact as a Page."
-				action={
-					archived ? undefined : (
-						<Button variant="primary" size="md" onClick={onCreate}>
-							Create Page
-						</Button>
-					)
-				}
-			/>
+			<EmptyState variant="page" title="No Pages yet" description="An agent publishes an HTML artifact as a Page." />
 		);
 	}
 	return (
