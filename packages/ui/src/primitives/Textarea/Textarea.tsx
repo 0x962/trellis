@@ -5,6 +5,7 @@ import { Field, type FieldOptions } from "../Field";
 export type TextareaProps = Omit<ComponentProps<"textarea">, "id"> &
 	FieldOptions & {
 		variant?: "default" | "composer";
+		wrapperClassName?: string;
 	};
 
 // The composer variant uses its parent for the border and focus treatment.
@@ -21,12 +22,14 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 		trailingAction,
 		disabled,
 		className,
+		wrapperClassName,
 		...props
 	},
 	ref,
 ) {
 	return (
 		<Field
+			className={wrapperClassName}
 			label={label}
 			hideLabel={hideLabel}
 			hint={hint}

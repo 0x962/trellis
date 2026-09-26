@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EmptyState, PageRow, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
+import { EmptyState, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
 import { projectColorsByKey } from "../../../lib/projectChipColor";
@@ -31,11 +31,11 @@ const phoneLinkClass =
 export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const { orpc } = useApp();
 	const phone = useMediaQuery("(max-width: 767px)");
-	const { tickets, pages, projects } = useSuspenseQuery(
+	const { tickets, projects } = useSuspenseQuery(
 		orpc.search.query.queryOptions({ input: { q, rankProject: filters.rankProject } }),
 	).data;
-	// A ticket or Page row carries a project key without its color. The project
-	// list supplies that color.
+	// A ticket row carries a project key without its color. The project list
+	// supplies that color.
 	const colors = useQuery({
 		...orpc.projects.list.queryOptions({ input: {} }),
 		select: projectColorsByKey,
@@ -43,12 +43,12 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const visibleTickets = tickets.filter(
 		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
 	);
-	if (visibleTickets.length === 0 && pages.length === 0 && projects.length === 0) {
+	if (visibleTickets.length === 0 && projects.length === 0) {
 		return (
 			<EmptyState
 				variant="page"
 				title={`No results for '${q}'`}
-				description="No ticket, Page, or project holds this text. Check the spelling, or search for one word."
+				description="No ticket or project holds this text. Check the spelling, or search for one word."
 			/>
 		);
 	}
@@ -56,7 +56,6 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 		<div className="flex flex-col">
 			<p className="flex h-8 items-center px-5 text-sm text-fg-muted tabular">
 				{formatCount(visibleTickets.length)} {visibleTickets.length === 1 ? "ticket" : "tickets"}
-				{pages.length > 0 && ` · ${formatCount(pages.length)} ${pages.length === 1 ? "Page" : "Pages"}`}
 				{projects.length > 0 && ` · ${formatCount(projects.length)} ${projects.length === 1 ? "project" : "projects"}`}
 			</p>
 			{visibleTickets.length > 0 && (
@@ -107,38 +106,6 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									{compactRelativeTime(ticket.updatedAt)}
 								</td>
 							</tr>
-						);
-					})}
-				</ResultGroup>
-			)}
-			{pages.length > 0 && (
-				<ResultGroup label="Pages" count={pages.length} layout="list">
-					{pages.map((page) => {
-						const segments = page.projectKey.split(".");
-						const href = `${page.projectKey}/pages/${page.slug}`;
-						return (
-							<PageRow
-								key={page.id}
-								variant="search"
-								title={page.title}
-								titleContent={highlight(page.title, q)}
-								summary={page.summary}
-								latestVersion={page.latestVersion}
-								publishedBy={page.publishedBy.displayName ?? page.publishedBy.name}
-								publishedAt={page.publishedAt}
-								age={compactRelativeTime(page.publishedAt)}
-								watcher={page.watcher?.agent.name ?? null}
-								openThreadCount={page.openThreadCount}
-								pinned={page.pinned}
-								deleted={false}
-								project={
-									<span className="flex min-w-0 items-center gap-1.5">
-										<ProjectKey projectKey={segments[0]!} color={colors?.[segments[0]!] ?? null} />
-										{segments.length > 1 && <span className="truncate text-sm text-fg-muted">{segments.at(-1)}</span>}
-									</span>
-								}
-								link={<Link to="/p/$" params={{ _splat: href }} search={{}} />}
-							/>
 						);
 					})}
 				</ResultGroup>

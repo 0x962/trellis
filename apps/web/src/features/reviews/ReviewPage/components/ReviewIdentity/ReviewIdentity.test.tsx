@@ -54,6 +54,7 @@ test("the queued state has compact and tooltip words", () => {
 
 const revision = {
 	id: "01V",
+	prId: "01AAAAAAAAAAAAAAAAAAAAAAA3",
 	headSha: "abc",
 	meta: { state: "OPEN", isDraft: false },
 } as unknown as ReviewRevision;
@@ -101,7 +102,7 @@ const steps = {
 		},
 		isQueued: false,
 		linkedPr: {
-			id: "01P",
+			id: "01AAAAAAAAAAAAAAAAAAAAAAA3",
 			number: 370,
 			state: "open",
 			mergeable: "conflicting",
@@ -139,11 +140,11 @@ const headerHtml = (step: keyof typeof steps) =>
 	);
 
 test("the header holds every box from the first paint", () => {
-	expect(barSlots(headerHtml("firstPaint"))).toEqual(["github", "local-state", "glyph", "conflict"]);
+	expect(barSlots(headerHtml("firstPaint"))).toEqual(["github", "local-state", "internal-link", "glyph", "conflict"]);
 });
 
 test("each answer fills a box and leaves the order of the header as it was", () => {
-	const order = ["github", "local-state", "glyph", "conflict"];
+	const order = ["github", "local-state", "internal-link", "glyph", "conflict"];
 
 	expect(barSlots(headerHtml("revisionArrived"))).toEqual(order);
 	expect(barSlots(headerHtml("pollArrived"))).toEqual(order);
@@ -168,6 +169,11 @@ test("the ticket answer adds the ... menu without moving the GitHub button", () 
 	expect(headerHtml("ticketArrived")).toContain("Actions for PR #370");
 	expect(before.indexOf("github")).toBe(after.indexOf("github"));
 	expect(before).toEqual(after);
+});
+
+test("the stored revision adds the stable pull request link", () => {
+	expect(headerHtml("firstPaint")).not.toContain('aria-label="Copy Trellis link"');
+	expect(headerHtml("revisionArrived")).toContain('aria-label="Copy Trellis link"');
 });
 
 test("the merge conflict link arrives into the box that waited for it", () => {

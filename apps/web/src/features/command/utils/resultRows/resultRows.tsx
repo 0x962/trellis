@@ -1,5 +1,5 @@
-import { ArrowRight, FileHtml } from "@phosphor-icons/react";
-import type { PageSummary, TicketSummary } from "@trellis/api";
+import { ArrowRight } from "@phosphor-icons/react";
+import type { TicketSummary } from "@trellis/api";
 import { StatusIcon } from "@trellis/ui";
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import type { PaletteRow, RowDeps } from "../../rows";
@@ -19,19 +19,6 @@ export const ticketResultRows = (tickets: TicketSummary[], deps: RowDeps): Palet
 		icon: <StatusIcon category={ticket.status.category} />,
 		keywords: [ticket.identifier],
 		run: openTicket(deps, ticket.identifier),
-	}));
-
-export const pageResultRows = (pages: PageSummary[], deps: RowDeps): PaletteRow[] =>
-	pages.map((page) => ({
-		value: `page:${page.ref}`,
-		label: page.title,
-		prefix: page.projectKey,
-		icon: <FileHtml />,
-		keywords: [page.ref, page.summary],
-		run: () => {
-			deps.close();
-			deps.action.navigate(`/p/${page.ref}`);
-		},
 	}));
 
 // A typed `KEY-n` opens the ticket itself, so the palette answers before

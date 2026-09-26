@@ -13,7 +13,7 @@ import { useCommandSearch } from "../../../hooks/useCommandSearch";
 import type { PaletteGroup, PaletteRow, RowDeps, Submenu } from "../../../rows";
 import { paletteTypeahead } from "../../../typeahead";
 import { drawRows } from "../../../utils/drawRows";
-import { jumpRow, pageResultRows, ticketResultRows } from "../../../utils/resultRows";
+import { jumpRow, ticketResultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
 import { createRows, gotoProjectRows, gotoRows, viewRows } from "../../../utils/viewRows";
@@ -63,8 +63,8 @@ const selectionHeading = (count: number) => (
 // opens, so every keystroke it holds is gone the next time.
 //
 // With no query, the panel lists This ticket, Selection, Create, Go to,
-// and View. With a query, it lists matching tickets, Pages, commands, and
-// projects. A group with no match stays hidden. The panel filters the rows,
+// and View. With a query, it lists matching tickets, commands, and projects.
+// A group with no match stays hidden. The panel filters the rows,
 // because the cmdk rank would move tickets from the top.
 export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: PalettePanelProps) {
 	const { orpc } = useApp();
@@ -132,9 +132,6 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		if (results.tickets.length > 0) {
 			groups.push({ id: "results", heading: "Tickets", rows: ticketResultRows(results.tickets, deps) });
 		}
-		if (results.pages.length > 0) {
-			groups.push({ id: "pages", heading: "Pages", rows: pageResultRows(results.pages, deps) });
-		}
 		for (const group of commands) {
 			const rows = group.rows.filter((row) => rowMatches(row, typed));
 			if (rows.length > 0) groups.push({ ...group, rows });
@@ -155,14 +152,8 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		.flatMap((group) => group.rows)
 		.find((row) => rowMatches(row, typed));
 	// What Enter runs: the ticket an ID names, then a matching command, then
-	// the first ticket or Page result. An arrow key selects another row.
-	const best =
-		typed === ""
-			? undefined
-			: (results.jump ??
-				named?.value ??
-				results.tickets[0]?.identifier ??
-				(results.pages[0] === undefined ? undefined : `page:${results.pages[0].ref}`));
+	// the first ticket result. An arrow key selects another row.
+	const best = typed === "" ? undefined : (results.jump ?? named?.value ?? results.tickets[0]?.identifier);
 	const nothing = typed !== "" && submenu === null && results.jump === null && groups.length === 0;
 
 	useEffect(() => {

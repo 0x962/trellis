@@ -34,6 +34,7 @@ export const agentRuns = pgTable(
 		sessionId: text("session_id"),
 		// True while the last resume found no session.
 		sessionLost: boolean("session_lost").notNull().default(false),
+		activityAt: at("activity_at"),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
@@ -44,5 +45,6 @@ export const agentRuns = pgTable(
 			.where(sql`${t.kind} = 'agent' AND ${t.closedAt} IS NULL`),
 		index("agent_runs_pinned_at_idx").on(t.pinnedAt).where(sql`${t.pinnedAt} IS NOT NULL`),
 		index("agent_runs_created_at_idx").on(t.createdAt),
+		index("agent_runs_updated_at_idx").on(t.updatedAt),
 	],
 );
