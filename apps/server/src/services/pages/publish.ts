@@ -13,6 +13,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { pageObjectPath } from "../../storage/pageObjects.ts";
 import { upsert } from "../actors.ts";
+import { watchableAgent } from "../agentRuns.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
@@ -216,12 +217,11 @@ const publishWithText = async (
 	// A staged upload becomes the input of one version. The object file stays,
 	// because the new version row and its asset rows hold its hash.
 	await tx.execute(sql`DELETE FROM page_uploads WHERE id IN (${idList(uploadIds)})`);
-	if (actor.kind === "agent") {
+	if (actor.kind === "agent" && (await watchableAgent(ctx, tx, { id: actor.name, projectId }))) {
 		const assigned = await rows(
 			tx,
 			sql`INSERT INTO page_watches (page_id, agent_id, created_at, updated_at)
-			SELECT ${pageId}, id, ${ctx.now}, ${ctx.now} FROM agent_runs
-			WHERE id = ${actor.name} AND project_id = ${projectId} AND closed_at IS NULL AND runtime = 'native' AND kind <> 'flow'
+			VALUES (${pageId}, ${actor.name}, ${ctx.now}, ${ctx.now})
 			ON CONFLICT (page_id) DO NOTHING RETURNING page_id`,
 		);
 		if (assigned.length > 0) ctx.emit({ type: "page-watches.changed", projectId, pageId });

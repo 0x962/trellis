@@ -14,9 +14,11 @@ import * as pages from "../pages.ts";
 import { preparePublish, publish } from "../publish.ts";
 import { purgeExpiredPages } from "../retention";
 import * as pageUploads from "../uploads.ts";
-import { watch } from "../watches.ts";
+import { watcherOptions } from "../watcherOptions";
+import { watch } from "../watches";
 
 export const pageServices = {
+	"pages.watcherOptions": core("read", watcherOptions),
 	"pages.watch": core("mutation", watch),
 	"pages.dispatchWatches": prepared("mutation", prepareWatchDispatch, finishWatchDispatch),
 	"pages.backfillSearch": prepared("mutation", prepareSearchBackfill, backfillSearchText),

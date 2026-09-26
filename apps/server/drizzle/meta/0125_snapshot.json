@@ -1,5 +1,5 @@
 {
-  "id": "61244157-aec6-408b-b6e1-a902edd9d86b",
+  "id": "6a77ef65-dd13-4c82-b635-83577c427b21",
   "prevId": "d00cee2e-f5f7-43a5-aac6-d3709981a535",
   "version": "7",
   "dialect": "postgresql",
@@ -4097,7 +4097,7 @@
         },
         "page_watches_reservation_check": {
           "name": "page_watches_reservation_check",
-          "value": "(\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_expires_at\" IS NULL)\n\t\t\t\tAND (\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_end_at\" IS NULL)\n\t\t\t\tAND (\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_end_id\" IS NULL)"
+          "value": "(\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_expires_at\" IS NULL)\n\t\t\t\tAND (\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_end_at\" IS NULL)\n\t\t\t\tAND (\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_end_id\" IS NULL)\n\t\t\t\tAND (\"page_watches\".\"reservation_id\" IS NULL) = (\"page_watches\".\"reservation_payload\" IS NULL)"
         }
       },
       "isRLSEnabled": false

@@ -7,9 +7,8 @@ import type { Tx } from "../../../../db/tx.ts";
 import { fail, invalidInput } from "../../../../errors.ts";
 import { upsert } from "../../../actors.ts";
 import { lockPage } from "../../pages.ts";
+import { nextCommentCreatedAt } from "../nextCommentCreatedAt";
 import { assertPageCommentWritable, emitCommentsChanged, pageCommentThreadById } from "../support";
-
-import { commentTime } from "../support/commentTime.ts";
 
 export const createPageComment = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const input = PageCommentCreateInputSchema.parse(rawInput);
@@ -23,7 +22,7 @@ export const createPageComment = async (ctx: ServiceCtx, tx: Tx, rawInput: unkno
 	if (input.version !== page.latest_version) throw invalidInput("version", "Comment on the latest Page version.");
 	const actor = requireActor(ctx);
 	const id = ulid();
-	const createdAt = await commentTime(tx, page.id, ctx.now);
+	const createdAt = await nextCommentCreatedAt(tx, page.id, ctx.now);
 	await upsert(ctx, tx, actor);
 	await tx.execute(sql`INSERT INTO page_comment_threads (
 		id, page_id, version, anchor_kind, anchor, selected_text,

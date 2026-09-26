@@ -15,7 +15,7 @@ const render = (disabled: boolean, loaded: boolean) => {
 	const queryKey = ["watcher-agents"];
 	if (loaded) queryClient.setQueryData(queryKey, []);
 	const app = {
-		orpc: { agentRuns: { list: { queryOptions: () => ({ queryKey, queryFn: async () => [] }) } } },
+		orpc: { pages: { watcherOptions: { queryOptions: () => ({ queryKey, queryFn: async () => [] }) } } },
 	} as unknown as AppContext;
 	const html = renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>

@@ -11,29 +11,29 @@ import { openTestDb } from "../../../db/testDb.ts";
 import type { Tx } from "../../../db/tx.ts";
 import type { IoCtx } from "../../support.ts";
 import { createPageComment } from "../comments";
-import { reserveWatchBatch, WATCH_LEASE_MS } from "../watchBatch";
-import { watch } from "../watches.ts";
+import { COMMENT_BATCH_LEASE_MS, reserveCommentBatch } from "../watchBatch";
+import { watch } from "./watches";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let directory: string;
-const cache = createCache();
+const watchCache = createCache();
 const projectId = ulid();
 const agentId = ulid();
 const otherId = ulid();
-const at = new Date("2026-09-26T00:00:00Z");
+const watchAt = new Date("2026-09-26T00:00:00Z");
 const core: ServiceCtx = {
 	actor: { kind: "human", name: "reader" },
 	session: null,
 	reqId: "watch-test",
-	now: at,
-	cache,
+	now: watchAt,
+	cache: watchCache,
 	actorCache: new Map(),
 	emit: () => {},
 	dropBlobs: () => {},
 	publicUrl: "http://trellis.test",
 };
-const tx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
-const ctx = (now = at): IoCtx => ({
+const watchTx = <T>(fn: (watchTx: Tx) => Promise<T>) => db.transaction(fn);
+const watchCtx = (now = watchAt): IoCtx => ({
 	core,
 	actor: core.actor!,
 	session: null,
@@ -41,7 +41,7 @@ const ctx = (now = at): IoCtx => ({
 	home: directory,
 	publicUrl: core.publicUrl,
 	localUrl: core.publicUrl,
-	newTx: tx,
+	newTx: watchTx,
 	emit: () => {},
 	log: () => {},
 	afterCommit: () => {},
@@ -59,41 +59,61 @@ beforeAll(async () => {
 	db = await openTestDb();
 	directory = await mkdtemp(join(tmpdir(), "trellis-watches-"));
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES
-		('reader', 'human', ${at}, ${at}), (${agentId}, 'agent', ${at}, ${at}), (${otherId}, 'agent', ${at}, ${at})`);
+		('reader', 'human', ${watchAt}, ${watchAt}), (${agentId}, 'agent', ${watchAt}, ${watchAt}), (${otherId}, 'agent', ${watchAt}, ${watchAt})`);
 	await db.execute(
-		sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES (${projectId}, 'WAT', 'watch', 'Watch', ${at}, ${at})`,
+		sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES (${projectId}, 'WAT', 'watch', 'Watch', ${watchAt}, ${watchAt})`,
 	);
 	for (const id of [agentId, otherId])
 		await db.execute(sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_key, terminal_id, created_at, updated_at)
-		VALUES (${id}, ${id}, 'agent', 'Read comments', ${projectId}, 'WAT', ${id}, ${at}, ${at})`);
-	await tx(cache.rebuild);
+		VALUES (${id}, ${id}, 'agent', 'Read comments', ${projectId}, 'WAT', ${id}, ${watchAt}, ${watchAt})`);
+	await watchTx(watchCache.rebuild);
 }, 30_000);
 afterAll(async () => {
 	await db.$client.close();
 	await rm(directory, { recursive: true });
 });
 
-async function fixture() {
+async function pageWithWatcher() {
 	await db.execute(sql`DELETE FROM page_watches`);
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pages (id, project_id, slug, title, summary, version, latest_version,
 		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${id}, ${projectId}, ${id.toLowerCase()}, 'Report', '', 1, 1, ${agentId}, 'agent', ${agentId}, 'agent', ${at}, ${at})`);
+		VALUES (${id}, ${projectId}, ${id.toLowerCase()}, 'Report', '', 1, 1, ${agentId}, 'agent', ${agentId}, 'agent', ${watchAt}, ${watchAt})`);
 	await db.execute(sql`INSERT INTO page_versions (page_id, number, request_id, document_sha256, document_size, source_agent_id, source_path, actor_name, actor_kind, created_at)
-		VALUES (${id}, 1, ${randomUUID()}, ${"a".repeat(64)}, 1, ${agentId}, 'report/index.html', ${agentId}, 'agent', ${at})`);
-	await tx((t) => watch(core, t, { page: id, agentId }));
+		VALUES (${id}, 1, ${randomUUID()}, ${"a".repeat(64)}, 1, ${agentId}, 'report/index.html', ${agentId}, 'agent', ${watchAt})`);
+	await watchTx((t) => watch(core, t, { page: id, agentId }));
 	const comment = async (body: string, offset = 1, human = true) =>
-		tx((t) =>
+		watchTx((t) =>
 			createPageComment(
-				{ ...core, now: new Date(at.getTime() + offset), actor: human ? core.actor : { name: agentId, kind: "agent" } },
+				{
+					...core,
+					now: new Date(watchAt.getTime() + offset),
+					actor: human ? core.actor : { name: agentId, kind: "agent" },
+				},
 				t,
 				{ page: id, version: 1, anchor: { kind: "element", path: "html>body" }, body },
 			),
 		);
-	const reserve = (now = at) => tx((t) => reserveWatchBatch(t, { pageId: id, now, publicUrl: core.publicUrl }));
+	const reserve = (now = watchAt) =>
+		watchTx((t) => reserveCommentBatch(core, t, { pageId: id, now, publicUrl: core.publicUrl }));
 	return { id, comment, reserve };
 }
-const later = () => new Date(at.getTime() + WATCH_LEASE_MS + 1);
-const row = async (id: string) => (await db.execute(sql`SELECT * FROM page_watches WHERE page_id = ${id}`)).rows[0]!;
+const later = () => new Date(watchAt.getTime() + COMMENT_BATCH_LEASE_MS + 1);
+const watchRow = async (id: string) =>
+	(await db.execute(sql`SELECT * FROM page_watches WHERE page_id = ${id}`)).rows[0]!;
 
-export { agentId, at, cache, core, ctx, db, directory, fixture, later, otherId, projectId, row, tx };
+export {
+	agentId,
+	core,
+	db,
+	directory,
+	later,
+	otherId,
+	pageWithWatcher,
+	projectId,
+	watchAt,
+	watchCache,
+	watchCtx,
+	watchRow,
+	watchTx,
+};

@@ -199,8 +199,9 @@ export interface RuntimeNativeDelivery {
 }
 // The answer to "did this message reach this session?". `delivered` is true
 // when the session wrote the bytes or the agent confirmed the message.
-// `registered` also includes an uncertain send. Only an exited session with
-// registered=false proves that another attempt can safely receive the message.
+// `registered` is true after the runtime accepts the message, before the agent confirms it.
+// Send the same `messageId` to a new session only when the old session has
+// `status: "exited"` and `registered` is false.
 // `status` is the status of the session that holds the answer, so a caller
 // tells a message that is still on its way from a message that can never
 // arrive. A session the runtime has no record of produces no answer: the

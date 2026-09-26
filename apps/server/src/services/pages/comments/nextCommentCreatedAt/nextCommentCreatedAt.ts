@@ -4,7 +4,7 @@ import type { Tx } from "../../../../db/tx.ts";
 
 // Callers hold the Page row lock. Each new comment sorts after the earlier
 // comments of that Page, even when its request waits behind another request.
-export async function commentTime(tx: Tx, pageId: string, now: Date) {
+export async function nextCommentCreatedAt(tx: Tx, pageId: string, now: Date) {
 	const [row] = await rows<{ at: string }>(
 		tx,
 		sql`SELECT GREATEST(${now}::timestamptz,

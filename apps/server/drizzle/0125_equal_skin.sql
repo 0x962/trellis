@@ -1,1 +1,0 @@
-ALTER TABLE "page_watches" ADD COLUMN "reservation_payload" jsonb;

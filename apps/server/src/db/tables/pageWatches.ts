@@ -41,7 +41,8 @@ export const pageWatches = pgTable(
 			"page_watches_reservation_check",
 			sql`(${t.reservationId} IS NULL) = (${t.reservationExpiresAt} IS NULL)
 				AND (${t.reservationId} IS NULL) = (${t.reservationEndAt} IS NULL)
-				AND (${t.reservationId} IS NULL) = (${t.reservationEndId} IS NULL)`,
+				AND (${t.reservationId} IS NULL) = (${t.reservationEndId} IS NULL)
+				AND (${t.reservationId} IS NULL) = (${t.reservationPayload} IS NULL)`,
 		),
 		index("page_watches_agent_id_idx").on(t.agentId),
 		index("page_watches_reservation_expires_at_idx")

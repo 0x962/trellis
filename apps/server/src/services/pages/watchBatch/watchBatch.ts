@@ -1,35 +1,40 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
+import type { ServiceCtx } from "../../../context.ts";
 import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
+import { deliveryTarget } from "../../agentRuns.ts";
 
-export const WATCH_LEASE_MS = 30_000;
-export type WatchPayload = { text: string; terminalId: string; sessionId: string | null };
-export type WatchBatch = { pageId: string; agentId: string; messageId: string; payload: WatchPayload };
+export const COMMENT_BATCH_LEASE_MS = 30_000;
+export type CommentBatchPayload = { text: string; terminalId: string; sessionId: string | null };
+export type CommentBatch = { pageId: string; agentId: string; messageId: string; payload: CommentBatchPayload };
 type WatchRow = {
 	page_id: string;
 	agent_id: string;
 	cursor_at: string | null;
 	cursor_id: string | null;
 	reservation_id: string | null;
-	reservation_payload: WatchPayload | null;
+	reservation_payload: CommentBatchPayload | null;
 	reservation_end_at: string | null;
 	reservation_end_id: string | null;
-	terminal_id: string;
-	session_id: string | null;
 };
 
-export async function reserveWatchBatch(tx: Tx, input: { pageId: string; now: Date; publicUrl: string }) {
+export async function reserveCommentBatch(
+	ctx: ServiceCtx,
+	tx: Tx,
+	input: { pageId: string; now: Date; publicUrl: string },
+) {
 	const [watch] = await rows<WatchRow>(
 		tx,
-		sql`SELECT w.*, run.terminal_id, run.session_id
+		sql`SELECT w.*
 		FROM page_watches w JOIN pages p ON p.id = w.page_id
-		JOIN projects project ON project.id = p.project_id JOIN agent_runs run ON run.id = w.agent_id
+		JOIN projects project ON project.id = p.project_id
 		WHERE w.page_id = ${input.pageId} AND p.deleted_at IS NULL AND project.archived_at IS NULL
-		AND run.closed_at IS NULL AND run.terminal_id IS NOT NULL
 		AND (w.reservation_expires_at IS NULL OR w.reservation_expires_at <= ${input.now}) FOR UPDATE OF w`,
 	);
 	if (watch === undefined) return null;
+	const target = await deliveryTarget(ctx, tx, { id: watch.agent_id });
+	if (target === null) return null;
 	let payload = watch.reservation_payload;
 	let endAt = watch.reservation_end_at;
 	let endId = watch.reservation_end_id;
@@ -60,8 +65,8 @@ export async function reserveWatchBatch(tx: Tx, input: { pageId: string; now: Da
 		endAt = comments.at(-1)!.created_at;
 		endId = comments.at(-1)!.id;
 		payload = {
-			terminalId: watch.terminal_id,
-			sessionId: watch.session_id,
+			terminalId: target.terminalId,
+			sessionId: target.sessionId,
 			text: [
 				`Human comments on Page ${watch.page_id}.`,
 				`Read the Page with: trellis page show ${watch.page_id}`,
@@ -79,27 +84,27 @@ export async function reserveWatchBatch(tx: Tx, input: { pageId: string; now: Da
 	const messageId = watch.reservation_id ?? randomUUID();
 	await tx.execute(sql`UPDATE page_watches SET reservation_id = ${messageId}, reservation_payload = ${JSON.stringify(payload)}::jsonb,
 		reservation_end_at = ${endAt}::timestamptz, reservation_end_id = ${endId},
-		reservation_expires_at = ${new Date(input.now.getTime() + WATCH_LEASE_MS)} WHERE page_id = ${watch.page_id}`);
-	return { pageId: watch.page_id, agentId: watch.agent_id, messageId, payload } satisfies WatchBatch;
+		reservation_expires_at = ${new Date(input.now.getTime() + COMMENT_BATCH_LEASE_MS)} WHERE page_id = ${watch.page_id}`);
+	return { pageId: watch.page_id, agentId: watch.agent_id, messageId, payload } satisfies CommentBatch;
 }
 
-export async function completeWatchBatch(tx: Tx, batch: WatchBatch) {
+export async function completeCommentBatch(tx: Tx, batch: CommentBatch) {
 	await tx.execute(sql`UPDATE page_watches SET cursor_at = reservation_end_at, cursor_id = reservation_end_id,
 		last_completed_reservation_id = reservation_id, reservation_id = NULL, reservation_payload = NULL,
 		reservation_end_at = NULL, reservation_end_id = NULL, reservation_expires_at = NULL
 		WHERE page_id = ${batch.pageId} AND agent_id = ${batch.agentId} AND reservation_id = ${batch.messageId}`);
 }
 
-export async function retargetWatchBatch(tx: Tx, batch: WatchBatch, terminalId: string) {
-	const [updated] = await rows<{ payload: WatchPayload }>(
+export async function reassignCommentBatch(ctx: ServiceCtx, tx: Tx, batch: CommentBatch, terminalId: string) {
+	const target = await deliveryTarget(ctx, tx, { id: batch.agentId });
+	if (target?.terminalId !== terminalId) return null;
+	const [updated] = await rows<{ payload: CommentBatchPayload }>(
 		tx,
-		sql`UPDATE page_watches w
-		SET reservation_payload = jsonb_build_object('text', w.reservation_payload->>'text',
-			'terminalId', run.terminal_id, 'sessionId', run.session_id)
-		FROM agent_runs run WHERE w.page_id = ${batch.pageId} AND w.agent_id = ${batch.agentId}
-		AND w.reservation_id = ${batch.messageId} AND run.id = w.agent_id
-		AND run.closed_at IS NULL AND run.terminal_id = ${terminalId}
-		RETURNING w.reservation_payload AS payload`,
+		sql`UPDATE page_watches SET reservation_payload = jsonb_build_object(
+			'text', reservation_payload->>'text', 'terminalId', ${target.terminalId}::text,
+			'sessionId', ${target.sessionId}::text)
+		WHERE page_id = ${batch.pageId} AND agent_id = ${batch.agentId} AND reservation_id = ${batch.messageId}
+		RETURNING reservation_payload AS payload`,
 	);
 	return updated === undefined ? null : { ...batch, payload: updated.payload };
 }

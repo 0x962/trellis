@@ -1,0 +1,1 @@
+export { watcherOptions } from "./watcherOptions";

@@ -104,3 +104,21 @@ test("watch accepts a slash ref, validates an explicit agent, and requires an ac
 	);
 	expect(refused.status).toBe(400);
 });
+
+test("watcher options accept a slash ref and return only IDs and names", async () => {
+	const option = { id: ulid(), name: "Watcher" };
+	const response = await request(
+		"/pages/watcher-options/WRT/pages/stable",
+		{
+			method: "GET",
+			headers: { "x-trellis-actor": "human:navidkhan" },
+		},
+		async (name, _ctx, input) => {
+			expect(name).toBe("pages.watcherOptions");
+			expect(input).toEqual({ page: "WRT/pages/stable" });
+			return [option];
+		},
+	);
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual([option]);
+});

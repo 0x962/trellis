@@ -221,3 +221,6 @@ export const PageWatchInputSchema = z.strictObject({
 	page: PageRefStringSchema,
 	agentId: UlidSchema.nullable(),
 });
+
+export const PageWatcherOptionsInputSchema = z.strictObject({ page: PageRefStringSchema });
+export const PageWatcherOptionSchema = z.object({ id: UlidSchema, name: z.string() });

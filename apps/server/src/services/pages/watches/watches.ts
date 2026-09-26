@@ -1,13 +1,13 @@
 import { PageWatchInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { requireActor, type ServiceCtx } from "../../context.ts";
-import { rows } from "../../db/queries/support.ts";
-import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
-import { getRun } from "../agentRuns/queries.ts";
-import { assertProjectActive } from "../refs.ts";
-import { lockPage, pageById } from "./pages.ts";
-import { toSummary } from "./rows.ts";
+import { requireActor, type ServiceCtx } from "../../../context.ts";
+import { rows } from "../../../db/queries/support.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { invalidInput } from "../../../errors.ts";
+import { assertWatchable } from "../../agentRuns.ts";
+import { assertProjectActive } from "../../refs.ts";
+import { lockPage, pageById } from "../pages.ts";
+import { toSummary } from "../rows.ts";
 
 export const watch = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const input = PageWatchInputSchema.parse(rawInput);
@@ -34,9 +34,7 @@ export const watch = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	if (input.agentId === null) {
 		await tx.execute(sql`DELETE FROM page_watches WHERE page_id = ${page.id}`);
 	} else {
-		const run = await getRun(tx, input.agentId);
-		if (run.projectId !== page.project_id || run.closedAt !== null || run.runtime !== "native" || run.kind === "flow")
-			throw invalidInput("agentId", "Choose an assigned agent in this project.");
+		await assertWatchable(ctx, tx, { id: input.agentId, projectId: page.project_id });
 		if (current?.agent_id === input.agentId) return toSummary(page);
 		await tx.execute(sql`INSERT INTO page_watches (page_id, agent_id, created_at, updated_at)
 			VALUES (${page.id}, ${input.agentId}, ${ctx.now}, ${ctx.now})
