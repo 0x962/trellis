@@ -659,6 +659,9 @@ The renderer reads current project records, configured statuses, resources, epic
 It includes the user context that Trellis has and the current workspace and session identifiers.
 A session request or flow node instruction follows the common context.
 A ticket assignment uses its current title and description as the task.
+The common guide requires agents to keep the full current request in the ticket and verify each saved update.
+Authors, reviewers, and sessions must link an existing pull request or diff to the correct ticket before work.
+Agents select or create that ticket before they create a pull request, then link the pull request immediately.
 `assignmentInstruction` in `services/brief/brief.ts` saves a short assignment reference.
 Built-in harnesses and custom launch templates receive the same composed guide.
 A compatible resume preserves the provider conversation.

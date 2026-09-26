@@ -540,6 +540,7 @@ Unarchive it before you start its agent or move it to a project.
 | `trellis diff set-state <diff> not-ready` | Withdraw the local request for review. |
 
 `diff list` includes records without a linked ticket.
+Before work on an unlinked diff, link it to the correct ticket.
 Use `--project`, `--ticket`, `--state ready|not-ready`, or `--external-state open|closed|merged` to filter the list.
 Filters combine; one diff appears once.
 The default limit is 50. Use `--all` for every matching record.
@@ -596,7 +597,7 @@ Read each reported gap and address it.
 `set-state ready` requires the explanation and evidence for the current head.
 It also requires a data model diagram when the check detects a data model change.
 For an agent, it also requires a successful applicable flow.
-This requirement does not apply without a linked ticket or available flows.
+This flow requirement does not apply when no flows are available.
 A valid reason can record why none of the available flows fits.
 CI gaps, unresolved findings, and conflicts remain visible but do not block the local request for review.
 
@@ -871,14 +872,38 @@ Read the repository's own agent instructions before you change its files.
 
 # Rules and recommendations
 
+## Keep the full request in the ticket
+
+These rules apply to all projects and epics, including ticket agents, authors, reviewers, and sessions.
+
+Keep the full current request in your assigned ticket's description.
+Include subsequent clarifications, scope changes, constraints, and acceptance criteria.
+Before each update, read the current ticket with `trellis ticket show <ticket>`.
+Preserve relevant existing ticket content when you update the description with `trellis ticket edit <ticket> --description`.
+After each update, read the ticket again and verify the saved request.
+Fix any missing or incorrect request details before further work.
+
+## Keep pull requests linked to tickets
+
+Do not work on an existing pull request or diff until it has a link to the correct ticket.
+Before you create a pull request, select or create the correct ticket.
+If the ticket is absent, create it with the full request in the correct project, epic, and wave.
+Use the applicable epic and wave when the project has them.
+Keep every pull request or diff you work on linked to your assigned ticket at all times.
+For a session without an assigned ticket, use the selected ticket for this work.
+Apply the request rules above to that ticket.
+
+Immediately after you create a pull request, run `trellis diff link <diff-url> --ticket <ticket>` before further work on it.
+For an existing pull request or diff, use the same command if the required link is absent.
+Verify the link with `trellis diff list --ticket <ticket>` before you continue.
+If the link disappears, restore it before further work on the pull request or diff.
+
 ## Manage diffs
 
 Apply these instructions when your task includes a diff that you prepare for review.
-For a session without a ticket, follow the session request.
-Apply ticket and flow steps only when the task has a linked ticket.
 
 1. Follow the project's branch and diff conventions.
-2. Link the diff to its assigned ticket, when one exists.
+2. Verify that the diff stays linked to the ticket for this work.
 3. Write the overview for the human who uses Trellis.
 
 Use simple English in the explanation.
@@ -898,7 +923,7 @@ Choose the smallest aid that makes the change or its proof clear.
 The examples do not form a fixed evidence checklist.
 Choose any clear form of explanation or proof.
 
-4. For a linked ticket, read the available flows and existing runs.
+4. Read the available flows and existing runs for the linked ticket.
 5. Run each applicable flow once for this diff.
 6. Address its findings in the same diff.
 7. Read and answer the local review threads.
