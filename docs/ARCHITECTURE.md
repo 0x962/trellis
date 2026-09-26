@@ -972,6 +972,10 @@ time. The first section of each page carries no hash.
 `/settings` holds the actor name, theme, and desktop controls.
 Workflow contains Tickets, Statuses, and Labels. The ticket template saves when its field loses focus.
 Saved links for the template, statuses, and labels sections open Workflow.
+General contains one form. Text fields and the colour picker save when focus leaves the field.
+Repository add and remove actions use the same queued writes and status line.
+The key becomes read-only after the first ticket.
+A chosen directory returns focus to Local path and saves on its next blur.
 Project settings hold the repository directory and repository selection.
 They write `projects.directory` and the project repositories.
 
