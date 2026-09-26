@@ -24,7 +24,7 @@ export function TicketTemplateSettings({ project }: { project: Project }) {
 				onBlur={() => void saveField("ticketTemplate")}
 				hint="Use Markdown for headings, checklists, and instructions."
 			/>
-			<SettingsSaveStatus {...status} />
+			<SettingsSaveStatus status={status} />
 		</SettingsSection>
 	);
 }
