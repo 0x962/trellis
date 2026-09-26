@@ -4,6 +4,16 @@ A Page belongs to a project and holds an HTML document with its assets.
 The source stays in the agent workspace. Each publication stores an immutable version.
 The Page keeps its identity, address, comments, and history across publications.
 
+The shared agent prompt requires Pages for prototypes, dashboards, pages, insights, and other artifacts for the user.
+This applies to ticket assignments and sessions across projects.
+An explicit user request for another format or destination takes precedence.
+Otherwise, local-only presentation guidance does not replace publication.
+Agents keep the local source, publish to the correct project, and give the user the Page link.
+They also add the link to the relevant ticket and publish revisions as versions of the same Page.
+
+For a session without a project, establish the correct project before publication.
+A local file alone does not complete delivery.
+
 ## Publish and revise
 
 Publish one HTML file, or a directory with `index.html` and its assets:
