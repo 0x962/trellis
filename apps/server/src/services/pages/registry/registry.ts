@@ -9,12 +9,16 @@ import {
 	setPageCommentResolved,
 } from "../comments";
 import * as pageContent from "../content.ts";
+import { finishWatchDispatch, prepareWatchDispatch } from "../dispatchWatches";
 import * as pages from "../pages.ts";
 import { preparePublish, publish } from "../publish.ts";
 import { purgeExpiredPages } from "../retention";
 import * as pageUploads from "../uploads.ts";
+import { watch } from "../watches.ts";
 
 export const pageServices = {
+	"pages.watch": core("mutation", watch),
+	"pages.dispatchWatches": prepared("mutation", prepareWatchDispatch, finishWatchDispatch),
 	"pages.backfillSearch": prepared("mutation", prepareSearchBackfill, backfillSearchText),
 	"pages.retention": io("mutation", purgeExpiredPages),
 	"pages.list": core("read", pages.list),

@@ -216,6 +216,16 @@ const publishWithText = async (
 	// A staged upload becomes the input of one version. The object file stays,
 	// because the new version row and its asset rows hold its hash.
 	await tx.execute(sql`DELETE FROM page_uploads WHERE id IN (${idList(uploadIds)})`);
+	if (actor.kind === "agent") {
+		const assigned = await rows(
+			tx,
+			sql`INSERT INTO page_watches (page_id, agent_id, created_at, updated_at)
+			SELECT ${pageId}, id, ${ctx.now}, ${ctx.now} FROM agent_runs
+			WHERE id = ${actor.name} AND project_id = ${projectId} AND closed_at IS NULL AND runtime = 'native' AND kind <> 'flow'
+			ON CONFLICT (page_id) DO NOTHING RETURNING page_id`,
+		);
+		if (assigned.length > 0) ctx.emit({ type: "page-watches.changed", projectId, pageId });
+	}
 	ctx.emit({ type: "pages.changed", projectId, pageId });
 	return publishOutput(ctx, tx, pageId, number);
 };

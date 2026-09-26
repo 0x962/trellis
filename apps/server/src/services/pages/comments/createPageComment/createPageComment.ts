@@ -9,6 +9,8 @@ import { upsert } from "../../../actors.ts";
 import { lockPage } from "../../pages.ts";
 import { assertPageCommentWritable, emitCommentsChanged, pageCommentThreadById } from "../support";
 
+import { commentTime } from "../support/commentTime.ts";
+
 export const createPageComment = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const input = PageCommentCreateInputSchema.parse(rawInput);
 	const page = await lockPage(ctx, tx, input.page, true);
@@ -21,6 +23,7 @@ export const createPageComment = async (ctx: ServiceCtx, tx: Tx, rawInput: unkno
 	if (input.version !== page.latest_version) throw invalidInput("version", "Comment on the latest Page version.");
 	const actor = requireActor(ctx);
 	const id = ulid();
+	const createdAt = await commentTime(tx, page.id, ctx.now);
 	await upsert(ctx, tx, actor);
 	await tx.execute(sql`INSERT INTO page_comment_threads (
 		id, page_id, version, anchor_kind, anchor, selected_text,
@@ -28,11 +31,11 @@ export const createPageComment = async (ctx: ServiceCtx, tx: Tx, rawInput: unkno
 	) VALUES (
 		${id}, ${page.id}, ${input.version}, ${input.anchor.kind}, ${input.anchor},
 		${input.anchor.kind === "text" ? input.anchor.quote : null},
-		${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now}
+		${actor.name}, ${actor.kind}, ${createdAt}::timestamptz, ${createdAt}::timestamptz
 	)`);
 	await tx.execute(sql`INSERT INTO page_comments (
 		id, thread_id, body, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${ulid()}, ${id}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`);
+	) VALUES (${ulid()}, ${id}, ${input.body}, ${actor.name}, ${actor.kind}, ${createdAt}::timestamptz, ${createdAt}::timestamptz)`);
 	emitCommentsChanged(ctx, { project_id: page.project_id, page_id: page.id, version: input.version });
 	return pageCommentThreadById(tx, id);
 };

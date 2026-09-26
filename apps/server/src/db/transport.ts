@@ -2,6 +2,7 @@ import type { AgentActivity, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
+import { startRepeatingCall } from "../agents/repeatingCall.ts";
 import { startReviewDeliveryLoop } from "../agents/reviewDeliveryLoop.ts";
 import { startSessionMonitor } from "../agents/sessionMonitor/sessionMonitor.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
@@ -186,6 +187,7 @@ export const createInlineTransport = ({
 
 	let sessionMonitor: ReturnType<typeof startSessionMonitor> | null = null;
 	let jobs: Jobs | null = null;
+	let pageDelivery: ReturnType<typeof startRepeatingCall> | null = null;
 	let reviewDelivery: ReturnType<typeof startReviewDeliveryLoop> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let fileSweep: ReturnType<typeof startNativeReconcile> | null = null;
@@ -231,6 +233,12 @@ export const createInlineTransport = ({
 				log: options.log,
 				intervalMs: FILE_SWEEP_MS,
 			});
+			pageDelivery = startRepeatingCall({
+				clock,
+				log: options.log,
+				failureLogMessage: "Page comment delivery failed",
+				call: () => backgroundCall("pages.dispatchWatches", {}),
+			});
 			reviewDelivery = startReviewDeliveryLoop({
 				clock,
 				log: options.log,
@@ -256,6 +264,7 @@ export const createInlineTransport = ({
 	const close = async () => {
 		await sessionMonitor?.stop();
 		await reviewDelivery?.stop();
+		await pageDelivery?.stop();
 		await flowReconcile?.stop();
 		await fileSweep?.stop();
 		if (jobs !== null) await jobs.stop();

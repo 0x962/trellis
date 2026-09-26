@@ -23,6 +23,7 @@ import { PageComments } from "../../../PageComments";
 import { usePageActions } from "../../usePageActions";
 import { PageHistory } from "../PageHistory";
 import { PageShare } from "../PageShare";
+import { PageWatcher } from "../PageWatcher";
 
 export function PageDetailView({
 	page,
@@ -140,7 +141,7 @@ export function PageDetailView({
 						{historical ? ", read-only" : ""}
 					</Badge>
 					<span>{page.requestedVersion.actor.displayName ?? page.requestedVersion.actor.name}</span>
-					<span>{page.watcher?.agent.name ?? "No watcher"}</span>
+					<PageWatcher page={page} disabled={blocked || deleted || historical} />
 					<span className="tabular">{page.openThreadCount} open threads</span>
 					{historical && (
 						<Tooltip content="Back to current">
