@@ -37,7 +37,9 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 			queue = queue.then(async () => {
 				if (!Object.is(next, saved[key])) {
 					try {
-						await save({ [key]: next } as Partial<T>);
+						const patch: Partial<T> = {};
+						patch[key] = next;
+						await save(patch);
 						saved = { ...saved, [key]: next };
 						errors.delete(key);
 					} catch (error) {
