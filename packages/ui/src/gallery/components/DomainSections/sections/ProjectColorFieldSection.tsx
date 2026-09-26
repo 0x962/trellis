@@ -12,7 +12,7 @@ export function ProjectColorFieldSection() {
 	return (
 		<Section
 			name="ProjectColorField"
-			note="Open the picker to see the fixed palette. Faint colours belong to other projects."
+			note={`Open the picker to see ${projectColors.length} colours. The empty example shows every colour taken.`}
 			className="items-start"
 		>
 			<div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -21,7 +21,7 @@ export function ProjectColorFieldSection() {
 				<ProjectColorField
 					label="Colour"
 					value={color}
-					taken={projectColors.filter((_, index) => index % 4 === 1)}
+					taken={[]}
 					onValueChange={setColor}
 					onBlur={() => setBlurCount((count) => count + 1)}
 				/>
