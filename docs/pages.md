@@ -108,9 +108,12 @@ The API accepts `pages.watch({page, agentId})`; a null agent ID removes the watc
 
 Each reserved batch holds up to five human comments and has a 30-second lease.
 The saved batch keeps its message ID, prompt, end cursor, and original terminal and session.
-A repeated delivery uses those same values. Newer comments wait for a later batch.
+A repeated delivery keeps the message ID, prompt, and end cursor. Newer comments wait for a later batch.
+Delivery can use a resumed attempt only if the previous attempt stopped without a runtime record for that message.
+An uncertain send with a runtime record stays held for that attempt.
 Comment creation and replies serialize timestamps per Page, so a delayed request cannot fall behind the delivery cursor.
-The cursor advances after runtime acceptance. A stopped process keeps its assignment and receives queued comments after it resumes.
+The cursor advances after runtime acceptance. A stopped process keeps its assignment.
+Unsent comments can reach the resumed process after the receipt check.
 Runtime acceptance proves that Trellis accepts the message, not that the provider finishes the requested work.
 
 ## Pull the source
@@ -198,6 +201,9 @@ It verifies two assets, an empty asset, immutable source bytes, historical ancho
 `renderScript/renderMotion.test.ts` executes the injected runtime with both motion preferences.
 Route tests verify source downloads and the host-auth boundary.
 These tests do not prove a native desktop session.
+
+TRL-449 requires runtime protocol 13 for the receipt check after Stop and Resume.
+The release owner must install a matching host and runtime before the watch checks.
 
 Complete the release checks on an authorized installed release:
 
