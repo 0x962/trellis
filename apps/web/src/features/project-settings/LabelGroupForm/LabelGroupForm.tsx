@@ -45,17 +45,12 @@ export function LabelGroupForm({ project, onChanged, onCancel }: LabelGroupFormP
 				value={name}
 				maxLength={80}
 				autoFocus
-				invalid={message !== null}
+				error={message ?? undefined}
 				onChange={(event) => {
 					setName(event.target.value);
 					setMessage(null);
 				}}
 			/>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
 			<div className="status-row-editor-buttons justify-end">
 				<Button type="button" disabled={saving} onClick={onCancel}>
 					Cancel

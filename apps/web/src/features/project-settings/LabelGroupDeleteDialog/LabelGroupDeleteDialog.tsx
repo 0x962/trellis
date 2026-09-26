@@ -1,5 +1,5 @@
 import type { Label, LabelGroup } from "@trellis/api";
-import { ChoiceGroup, type ChoiceGroupOption, ConfirmDialog } from "@trellis/ui";
+import { ChoiceGroup, type ChoiceGroupOption, ConfirmDialog, FormStatus } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -83,11 +83,7 @@ export function LabelGroupDeleteDialog({ project, group, labels, onDeleted, onCl
 			{labelCount > 0 && (
 				<ChoiceGroup label="What happens to the labels" options={options} value={choice} onValueChange={setChoice} />
 			)}
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus status="error" message={message} />}
 		</ConfirmDialog>
 	);
 }

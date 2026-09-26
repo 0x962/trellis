@@ -1,5 +1,5 @@
 import type { StatusCategory } from "@trellis/api";
-import { Button, Input, Select } from "@trellis/ui";
+import { Button, FormStatus, Input, Select } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
@@ -48,11 +48,7 @@ export function StatusCreateForm({ project, initialCategory = "todo", onCreated,
 				<Input label="Status name" value={name} autoFocus onChange={(event) => setName(event.target.value)} />
 				<Select label="Category" items={categories} value={category} onValueChange={setCategory} />
 			</div>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus status="error" message={message} />}
 			<div className="flex justify-end gap-2">
 				<Button type="button" onClick={onCancel}>
 					Cancel

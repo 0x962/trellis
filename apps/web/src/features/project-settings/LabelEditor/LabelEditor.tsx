@@ -95,18 +95,13 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 					value={name}
 					maxLength={80}
 					autoFocus
-					invalid={message !== null}
+					error={message ?? undefined}
 					onChange={(event) => {
 						setName(event.target.value);
 						setMessage(null);
 					}}
 				/>
-				<div className="status-row-field">
-					<span aria-hidden="true" className="status-row-field-label">
-						Color
-					</span>
-					<Select label="Color" items={items} value={color} onValueChange={setColor} className="h-8" />
-				</div>
+				<Select label="Color" hideLabel={false} items={items} value={color} onValueChange={setColor} className="h-8" />
 			</div>
 			<Input
 				label="Description"
@@ -122,11 +117,6 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 					Save
 				</Button>
 			</div>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
 		</form>
 	);
 }

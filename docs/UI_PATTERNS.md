@@ -51,6 +51,41 @@ Each page supplies its data and available actions. It does not choose new contro
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
 | Anything that failed | `FailureState` | `packages/ui/src/domain/FailureState/FailureState.tsx` |
 
+## Form fields and type
+
+`Field` owns the label, control, trailing action, and one hint slot.
+`Input`, `Textarea`, and `Select` use it internally. `ProjectColorField` uses it around its control.
+A composed control inside an existing `Field` uses that field's label and description.
+The control receives the label ID, the hint ID, and the field state.
+A custom control must forward these props to its focusable element.
+
+| Form text | Token | Size |
+| --- | --- | --- |
+| Page title | `text-xl` (`--text-xl`) | 20 px |
+| Section title | `text-md` (`--text-md`) | 14 px |
+| Label and control value | `text-sm` (`--text-sm`) | 12 px |
+| Hint, page description, and save status | `text-xs` (`--text-xs`) | 11 px |
+
+A form uses these four sizes. `FieldHint` supplies the shared hint style for section descriptions.
+`Select` hides its label by default for compact controls. A form sets `hideLabel={false}`.
+
+| Field variant | Props | Hint slot |
+| --- | --- | --- |
+| Default | `label`, optional `hint` | What the value does |
+| Disabled | `disabled` | What the value does |
+| Invalid | `error` | The error message replaces the hint |
+| Read-only | `readOnly`, `readOnlyReason` | The reason replaces the hint |
+| Trailing action | `trailingAction` | What the value does |
+
+An error takes precedence over a read-only reason.
+A trailing icon action uses `IconButton` inside `Tooltip`.
+A read-only text value remains selectable and focusable.
+A hint states what the value does. For example, "Every ticket ID starts with OP."
+A field uses its hint slot for an error or reason, with no second message beneath it.
+`FormStatus` reports a save through `status` and optional `message`.
+Its states are `idle`, `saving`, `saved`, and `error`. It reserves one hint line in every state.
+The Field gallery section shows all five variants and the save states.
+
 ## Edit a short value in place
 
 Use `InlineEdit` wherever a person renames a thing without leaving the page.

@@ -1,7 +1,7 @@
 import { FolderOpen } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
-import { IconButton, Input, Tooltip, toast } from "@trellis/ui";
+import { FieldHint, FormStatus, IconButton, Input, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
@@ -32,51 +32,42 @@ export function ProjectDirectorySettings({ project }: ProjectDirectorySettingsPr
 	const invalidDirectory = directory !== "" && !directory.startsWith("/");
 	const dirty = directory !== project.directory;
 	const status = save.isPending
-		? { role: "status" as const, message: "Save in progress…" }
+		? { status: "saving" as const, message: "Save in progress" }
 		: save.error
-			? { role: "alert" as const, message: save.error.message }
+			? { status: "error" as const, message: save.error.message }
 			: dirty
-				? { role: "status" as const, message: "Unsaved changes" }
-				: { role: "status" as const, message: "All changes saved" };
+				? { status: "idle" as const, message: "Unsaved changes" }
+				: { status: "saved" as const, message: "Saved" };
 	return (
 		<section className="project-settings-group">
 			<div className="flex flex-col gap-1">
 				<h3 className="project-settings-group-title">Project directory</h3>
-				<p className="text-sm leading-relaxed text-fg-muted">
-					Choose the local repository that agents use for this project.
-				</p>
+				<FieldHint>Choose the local repository that agents use for this project.</FieldHint>
 			</div>
 			<div className="project-directory-field">
-				<div className="project-directory-row">
-					<Input
-						label="Local path"
-						placeholder="Choose a local repository"
-						value={directory}
-						onChange={(event) => setDirectory(event.target.value)}
-						onBlur={() => {
-							if (!invalidDirectory && directory !== project.directory) {
-								save.mutate(directory);
-							}
-						}}
-						invalid={invalidDirectory}
-					/>
-					<Tooltip content="Choose a directory on this machine">
-						<IconButton
-							label="Choose project directory"
-							icon={<FolderOpen />}
-							disabled={folder.isPending}
-							onClick={() => folder.mutate()}
-						/>
-					</Tooltip>
-				</div>
-				{invalidDirectory && (
-					<p role="alert" className="text-sm text-danger">
-						Use an absolute directory path.
-					</p>
-				)}
-				<p role={status.role} className="min-h-5 text-sm text-fg-muted">
-					{status.message}
-				</p>
+				<Input
+					label="Local path"
+					placeholder="Choose a local repository"
+					value={directory}
+					onChange={(event) => setDirectory(event.target.value)}
+					onBlur={() => {
+						if (!invalidDirectory && directory !== project.directory) {
+							save.mutate(directory);
+						}
+					}}
+					trailingAction={
+						<Tooltip content="Choose a directory on this machine">
+							<IconButton
+								label="Choose project directory"
+								icon={<FolderOpen />}
+								disabled={folder.isPending}
+								onClick={() => folder.mutate()}
+							/>
+						</Tooltip>
+					}
+					error={invalidDirectory ? "Use an absolute directory path." : undefined}
+				/>
+				<FormStatus status={status.status} message={status.message} />
 			</div>
 		</section>
 	);

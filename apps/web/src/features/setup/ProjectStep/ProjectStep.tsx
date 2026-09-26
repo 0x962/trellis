@@ -59,27 +59,24 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 				<Input
 					label="Project name"
 					value={name}
-					invalid={nameError !== null}
+					error={nameError ?? undefined}
 					autoFocus
 					autoComplete="off"
 					spellCheck={false}
 					onChange={(event) => setName(event.target.value)}
 				/>
-				{nameError !== null && <p className="text-xs text-danger">{nameError}</p>}
 			</div>
 			<div className="flex flex-col gap-1">
 				<Input
 					label="Key"
 					value={key}
-					invalid={keyError !== null}
+					error={keyError ?? undefined}
 					autoComplete="off"
 					spellCheck={false}
 					className="w-28 uppercase"
 					onChange={(event) => setEditedKey(event.target.value.toUpperCase())}
 				/>
-				{keyError !== null ? (
-					<p className="text-xs text-danger">{keyError}</p>
-				) : key === "" ? (
+				{keyError !== null ? null : key === "" ? (
 					<p className="text-xs text-fg-muted">trellis takes the key from the name. You can edit the key.</p>
 				) : (
 					<p data-key-preview="" className="flex items-center gap-1.5 text-xs text-fg-muted">
