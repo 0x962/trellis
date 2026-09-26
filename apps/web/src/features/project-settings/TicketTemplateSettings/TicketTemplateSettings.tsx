@@ -10,7 +10,7 @@ export function TicketTemplateSettings({ project }: { project: Project }) {
 	const { value, setField, saveField, status } = useSettingsSave({
 		initialValue: { ticketTemplate: project.ticketTemplate },
 		save: async (patch) => {
-			await client.projects.update({ project: project.key, ...patch });
+			await client.projects.update({ project: project.id, ...patch });
 			await queryClient.invalidateQueries({ queryKey: orpc.projects.get.key() });
 		},
 	});
