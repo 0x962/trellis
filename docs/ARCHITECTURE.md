@@ -896,6 +896,12 @@ Only an execution error permits an automatic repeated start.
 
 ## Page viewer
 
+The [Pages guide](pages.md) describes publication, source downloads, comments, retention, and the release checks.
+`pages` holds the stable identity and a revision for metadata changes.
+`page_versions` holds immutable content versions, and `page_assets` binds each path to one version.
+`page_comment_threads` binds an element or text anchor to one version.
+`page_comments` holds the replies. Pins belong to actors.
+
 The project route `/p/<KEY>/pages/<slug>` opens the current Page version.
 The `version` query selects an immutable historical version.
 The Page history and Share controls use sheets. Rename uses `InlineEdit` and the Page revision.
@@ -905,6 +911,8 @@ The viewer mounts `frameUrl` with `sandbox="allow-scripts"` and no referrer.
 The frame response limits child navigation to the authorized content path.
 A nonce-authorized script relays messages between that child and the app.
 The content route adds the base runtime to HTML with `HTMLRewriter`; archives preserve the source bytes.
+The CLI requests `?download=1` on the content route to receive exact source bytes as an attachment.
+That request keeps the render lease, deleted-Page check, and content policy.
 The runtime reports scroll positions and link requests, and accepts the app theme and scroll position.
 The app checks the message schema, source window, and lease nonce.
 A frame message cannot authorize a mutation. A link request requires confirmation in the app dialog.
@@ -915,6 +923,11 @@ A hidden tab waits until it becomes visible. The eight-hour limit always require
 After a new lease loads, the parent restores the last reported scroll position without smooth motion.
 A polite live region announces "Page refreshed for security".
 Page routes and Share links contain no render lease.
+Share copies `trellis://page/<id>`. The desktop resolves that ID to the current project route.
+The historical browser route retains its `version` query.
+
+The Page list and Search index the title, summary, and static text of the latest version.
+Search excludes deleted Pages. The index omits scripts, styles, templates, and hidden HTML elements.
 
 ## Web routes
 

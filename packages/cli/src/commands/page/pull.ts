@@ -61,7 +61,7 @@ export const pull = defineCommand({
 		const files = [PAGE_DOCUMENT_PATH, ...pulled.assets.map((asset) => asset.path)];
 		for (const path of files) {
 			const target = targetOf(args.out, path);
-			const response = await fetchFile(new Request(`${ctx.url}${lease.contentRoot}${encodePath(path)}`), {});
+			const response = await fetchFile(new Request(`${ctx.url}${lease.contentRoot}${encodePath(path)}?download=1`), {});
 			if (!response.ok) await throwErrorAnswer(response);
 			mkdirSync(dirname(target), { recursive: true });
 			await Bun.write(target, response);

@@ -162,6 +162,19 @@ describe("the page document and its assets", () => {
 		expect(body).toContain(open.nonce);
 	});
 
+	test("downloads the exact source bytes under the same lease and sandbox policy", async () => {
+		const open = lease();
+		const response = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/index.html?download=1`);
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("<p>Forecast report</p>");
+		expect(response.headers.get("content-disposition")).toBe("attachment");
+		expect(response.headers.get("content-length")).toBe("21");
+		expect(response.headers.get("content-security-policy")).toContain("connect-src 'none'");
+		clearPageLeases();
+		const expired = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/index.html?download=1`);
+		expect(expired.status).toBe(404);
+	});
+
 	test("serves an asset with the type the version stored", async () => {
 		const open = lease();
 		const response = await appOf().request(`http://trellis.test${PAGE_RENDER_PREFIX}/${open.id}/styles/main.css`);
