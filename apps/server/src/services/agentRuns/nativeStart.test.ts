@@ -57,7 +57,7 @@ const exitedProcess = (terminalId: string): RuntimeProcessStatus => ({
 	result: null,
 });
 
-const seed = async (kind: "session" | "flow") => {
+const seed = async (kind: "agent" | "session" | "flow") => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_key, harness, terminal_id, created_at, updated_at)
@@ -182,16 +182,18 @@ test("a resume receives only its new message", async () => {
 	);
 });
 
-test("an oversized flow prompt fails before launch and preserves its attempt and error", async () => {
-	const runId = await seed("flow");
-	const starts = start.mock.calls.length;
-	await expect(launch(runId, "x".repeat(200_001))).rejects.toThrow("200001 characters; the runtime limit is 200000");
-	expect(start.mock.calls.length).toBe(starts);
-	const run = await db.transaction((tx) => getRun(tx, runId));
-	expect(run.terminalId).not.toBeNull();
-	expect(run.closedAt).not.toBeNull();
-	expect(run.error).toContain("200001 characters");
-});
+for (const kind of ["agent", "session", "flow"] as const) {
+	test(`an oversized ${kind} prompt fails before launch and preserves its error`, async () => {
+		const runId = await seed(kind);
+		const starts = start.mock.calls.length;
+		await expect(launch(runId, "x".repeat(200_001))).rejects.toThrow("200001 characters; the runtime limit is 200000");
+		expect(start.mock.calls.length).toBe(starts);
+		const run = await db.transaction((tx) => getRun(tx, runId));
+		if (kind === "flow") expect(run.terminalId).not.toBeNull();
+		expect(run.closedAt).not.toBeNull();
+		expect(run.error).toContain("200001 characters");
+	});
+}
 
 test("a flow prompt at the runtime limit launches intact", async () => {
 	const runId = await seed("flow");

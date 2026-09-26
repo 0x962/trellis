@@ -4,12 +4,12 @@ type Options = {
 	clearTimer: (id: number) => void;
 	log: (message: string, fields?: Record<string, unknown>) => void;
 	intervalMs?: number;
-	overlap?: boolean;
+	allowConcurrentTicks?: boolean;
 };
 export function startNativeReconcile(options: Options) {
 	let stopped = false;
 	let timer: number | null = null;
-	const active = new Set<Promise<void>>();
+	const inflightTicks = new Set<Promise<void>>();
 	const schedule = () => {
 		if (stopped) return;
 		timer = options.setTimer(() => {
@@ -19,13 +19,13 @@ export function startNativeReconcile(options: Options) {
 	};
 	const tick = (): Promise<void> => {
 		if (stopped) return Promise.resolve();
-		if (!options.overlap && active.size > 0) return active.values().next().value!;
+		if (!options.allowConcurrentTicks && inflightTicks.size > 0) return inflightTicks.values().next().value!;
 		if (timer !== null) {
 			options.clearTimer(timer);
 			timer = null;
 		}
-		if (options.overlap) schedule();
-		const work = options
+		if (options.allowConcurrentTicks) schedule();
+		const tickRun = options
 			.tick()
 			.then(
 				() => {},
@@ -36,11 +36,11 @@ export function startNativeReconcile(options: Options) {
 				},
 			)
 			.finally(() => {
-				active.delete(work);
-				if (!options.overlap) schedule();
+				inflightTicks.delete(tickRun);
+				if (!options.allowConcurrentTicks) schedule();
 			});
-		active.add(work);
-		return work;
+		inflightTicks.add(tickRun);
+		return tickRun;
 	};
 	void tick();
 	return {
@@ -49,7 +49,7 @@ export function startNativeReconcile(options: Options) {
 			stopped = true;
 			if (timer !== null) options.clearTimer(timer);
 			timer = null;
-			await Promise.all(active);
+			await Promise.all(inflightTicks);
 		},
 	};
 }

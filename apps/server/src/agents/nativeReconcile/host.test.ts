@@ -1,14 +1,14 @@
 import { expect, test } from "bun:test";
 import { startNativeReconcile } from "./host.ts";
 
-for (const overlap of [false, true]) {
-	test(`the host ${overlap ? "scans during" : "waits for"} an active pass and drains work on stop`, async () => {
+for (const allowConcurrentTicks of [false, true]) {
+	test(`the host ${allowConcurrentTicks ? "scans during" : "waits for"} an active pass and drains work on stop`, async () => {
 		const held = Promise.withResolvers<void>();
 		const timers = new Map<number, () => unknown>();
 		let calls = 0;
 		let timerId = 0;
 		const host = startNativeReconcile({
-			overlap,
+			allowConcurrentTicks,
 			tick: async () => {
 				calls++;
 				await held.promise;
@@ -24,8 +24,8 @@ for (const overlap of [false, true]) {
 			log: () => {},
 		});
 		expect(calls).toBe(1);
-		expect(timers.size).toBe(overlap ? 1 : 0);
-		if (overlap) {
+		expect(timers.size).toBe(allowConcurrentTicks ? 1 : 0);
+		if (allowConcurrentTicks) {
 			const timer = timers.get(timerId)!;
 			timers.delete(timerId);
 			void timer();
@@ -41,7 +41,7 @@ for (const overlap of [false, true]) {
 		held.resolve();
 		await stop;
 		await host.tick();
-		expect(calls).toBe(overlap ? 2 : 1);
+		expect(calls).toBe(allowConcurrentTicks ? 2 : 1);
 		expect(timers.size).toBe(0);
 	});
 }

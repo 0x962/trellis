@@ -10,6 +10,7 @@ import { closeExitedAssignments } from "../agentRuns/closeExitedAssignments.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
+import { observeAttempt } from "../agentRuns/observeAttempt";
 import { getRun, type LaunchRun } from "../agentRuns/queries.ts";
 import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
 import { claimNext } from "./claimNext.ts";
@@ -46,17 +47,18 @@ export async function prepareFlowReconcile(
 		),
 	);
 	const pending = executions.filter((execution) => !active.has(`${ctx.home}:${execution.id}`));
-	const outcomes = await Promise.allSettled(
-		pending.map((execution) => {
-			const key = `${ctx.home}:${execution.id}`;
-			const work = reconcile(ctx, deps, execution.id).finally(() => active.delete(key));
-			active.set(key, work);
-			return work;
-		}),
-	);
-	const results = outcomes.map((outcome) => {
-		if (outcome.status === "rejected") throw outcome.reason;
-		return outcome.value;
+	const results = (
+		await Promise.allSettled(
+			pending.map((execution) => {
+				const key = `${ctx.home}:${execution.id}`;
+				const work = reconcile(ctx, deps, execution.id).finally(() => active.delete(key));
+				active.set(key, work);
+				return work;
+			}),
+		)
+	).map((result) => {
+		if (result.status === "rejected") throw result.reason;
+		return result.value;
 	});
 	return {
 		observed: pending.length,
@@ -75,7 +77,7 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies, executionId: string) 
 	);
 	// The tasks whose worker has read its first prompt. A time warning
 	// waits for that, so it never blocks the loop on a receipt.
-	const readers = new Set<string>();
+	const promptReadKeys = new Set<string>();
 	for (const task of tasks) {
 		const run = await ctx.newTx((tx) => getRun(tx, task.run_id));
 		let snapshot: HarnessSnapshot | null;
@@ -86,19 +88,26 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies, executionId: string) 
 			errors.push(error);
 			snapshot = { state: "unknown", sessionId: run.sessionId, result: null, acknowledgedMessageIds: [], error };
 		}
-		if (snapshot !== null)
+		if (snapshot !== null) {
+			const attempt = await observeAttempt(ctx, {
+				runId: run.id,
+				attemptId: task.attempt_id,
+				sessionId: snapshot.sessionId,
+			});
 			await ctx.newTx((tx) =>
 				recordTaskObservation(ctx.core, tx, {
 					id: executionId,
 					key: task.key,
 					attemptId: task.attempt_id,
 					snapshot,
+					attempt,
 				}),
 			);
+		}
 		if (run.harness?.preset === "custom" || snapshot?.acknowledgedMessageIds.includes(run.terminalId!))
-			readers.add(task.key);
+			promptReadKeys.add(task.key);
 	}
-	errors.push(...(await sendTimeWarnings(ctx, executionId, tasks, readers, deps.warn)));
+	errors.push(...(await sendTimeWarnings(ctx, executionId, tasks, promptReadKeys, deps.warn)));
 	const stopErrors = await drainFlowStops(ctx, executionId, deps.stop);
 	errors.push(...stopErrors);
 	if (stopErrors.length > 0) return { launched, errors };
@@ -124,7 +133,7 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies, executionId: string) 
 		errors.push(...(await drainFlowStops(ctx, executionId, deps.stop)));
 		return { launched, errors };
 	}
-	const outcomes = await Promise.allSettled(
+	const results = await Promise.allSettled(
 		claims.map(async (claim) => {
 			const current = await ctx.newTx((tx) => readExecution(tx, claim.id));
 			if (current.state.steps.find((step) => taskKey(step) === claim.key)?.state !== "running") return;
@@ -140,17 +149,23 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies, executionId: string) 
 				);
 		}),
 	);
-	for (const [index, result] of outcomes.entries())
+	for (const [index, result] of results.entries())
 		if (result.status === "rejected") {
 			const claim = claims[index]!;
 			const error = result.reason instanceof Error ? result.reason.message : String(result.reason);
 			const run = await ctx.newTx((tx) => getRun(tx, claim.run.id));
+			const attempt = await observeAttempt(ctx, {
+				runId: run.id,
+				attemptId: claim.attempt.id,
+				sessionId: run.sessionId,
+			});
 			errors.push(error);
 			await ctx.newTx((tx) =>
 				recordTaskObservation(ctx.core, tx, {
 					id: claim.id,
 					key: claim.key,
 					attemptId: claim.attempt.id,
+					attempt,
 					snapshot: {
 						state: run.closedAt === null ? "unknown" : "failed",
 						sessionId: run.sessionId,
@@ -172,14 +187,14 @@ async function sendTimeWarnings(
 	ctx: FlowCtx,
 	executionId: string,
 	tasks: readonly { key: string; run_id: string; attempt_id: string }[],
-	readers: ReadonlySet<string>,
+	promptReadKeys: ReadonlySet<string>,
 	warn: Dependencies["warn"],
 ) {
 	const errors: string[] = [];
 	const execution = await ctx.newTx((tx) => readExecution(tx, executionId));
 	const now = ctx.now().getTime();
 	for (const task of tasks) {
-		if (!readers.has(task.key)) continue;
+		if (!promptReadKeys.has(task.key)) continue;
 		const step = execution.state.steps.find((step) => taskKey(step) === task.key);
 		if (step?.state !== "running") continue;
 		const warning = timeWarning(boxClocks(execution.doc, execution.state, step), step, now);

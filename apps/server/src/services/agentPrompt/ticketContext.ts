@@ -118,17 +118,17 @@ export async function ticketContext(ctx: ServiceCtx, tx: Tx, ticket: Ticket) {
 				baseRef: pr.baseRef,
 				ciState: pr.ciState,
 				checks: pr.checks.reduce(
-					(counts, check) => {
-						counts[check.bucket]++;
-						return counts;
+					(checksByStatus, check) => {
+						checksByStatus[check.bucket]++;
+						return checksByStatus;
 					},
 					{ pass: 0, fail: 0, pending: 0, skipping: 0, cancel: 0 },
 				),
 				fetchedAt: pr.fetchedAt,
 				fetchError: pr.fetchError,
-				details: `trellis diff show ${pr.url} --json`,
+				detailsCommand: `trellis diff show ${pr.url} --json`,
 			})),
-			detailNotice: "Diffs contain summaries. Use each details command for all checks, files, and review gaps.",
+			detailsHint: "Diffs contain summaries. Use each detailsCommand for all checks, files, and review gaps.",
 			flows,
 			threads,
 		}),
