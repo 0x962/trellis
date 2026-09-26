@@ -100,6 +100,7 @@ export {
 	type ReviewStatusSummaryProps,
 } from "./domain/ReviewStatusSummary";
 export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from "./domain/RunLine";
+export * from "./domain/SettingsListRow";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
 export { StartControls, type StartControlsProps, type StartDependency } from "./domain/StartControls";

@@ -3,10 +3,8 @@ import type { Settings } from "@trellis/api";
 import { toast } from "@trellis/ui";
 import { useApp } from "../../../../lib/appContext";
 
-// The edits the page holds before a save, by field name. `settings.set`
-// replaces the whole record, so one save carries every field the page shows,
-// edited or not. The draft lives beside the saved settings and never
-// overwrites them, so a rejected save leaves each field on its saved value.
+// The draft holds edits apart from the saved settings. A rejected save
+// leaves each field on its saved value.
 const draftKey = ["settings", "draft"];
 
 const emptyDraft: Partial<Settings> = {};

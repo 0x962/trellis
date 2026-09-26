@@ -1001,10 +1001,13 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#desktop` in the macOS app |
+| `/settings` | Account (no hash), `#notifications`, `#menu-links`, `#desktop` in the macOS app |
 | `/p/<path>/settings` | General (no hash), `#notes`, `#template`, `#statuses`, `#labels`, `#archive` |
 
-`/settings` holds the actor name, theme, and desktop controls.
+`/settings` holds the actor name, theme, notifications, menu links, and desktop controls.
+Menu links stores an ordered list of labels, icons, and HTTPS URLs in the settings store.
+The sidebar shows each saved link after the fixed destinations.
+A custom link opens the browser sheet over the current page.
 Project settings hold the repository directory and repository selection.
 They write `projects.directory` and the project repositories.
 

@@ -6,6 +6,7 @@ import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { ActorNameField } from "../ActorNameField";
 import { DesktopSettings } from "../DesktopSettings";
+import { MenuLinks } from "../MenuLinks";
 import { NotificationSettings } from "../NotificationSettings";
 import type { SettingsSectionId } from "../settingsUrl";
 import { ThemeField } from "../ThemeField";
@@ -24,6 +25,7 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
+	{ id: "menu-links", title: "Menu links", hint: "Add HTTPS links to the workspace sidebar.", rows: <MenuLinks /> },
 	{
 		id: "notifications",
 		title: "Notifications",
