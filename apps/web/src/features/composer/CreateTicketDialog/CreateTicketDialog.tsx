@@ -9,6 +9,7 @@ import { UploadProgress } from "../../attachments/UploadProgress";
 import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";
+import { useCreatePlacement } from "../hooks/useCreatePlacement";
 import { useCreateTicket } from "../hooks/useCreateTicket";
 import { useLabelDraft } from "../hooks/useLabelDraft";
 import { ChipRow } from "./components/ChipRow";
@@ -29,8 +30,8 @@ export function CreateTicketDialog() {
 	const [status, setStatus] = useState<string | undefined>();
 	const [priority, setPriority] = useState<Priority | undefined>();
 	const [parent, setParent] = useState<TicketSummary | null | undefined>();
-	// An epic ref and a wave ref. `undefined` keeps the default of the
-	// page that opened the composer, and `null` is the choice of none.
+	// An undefined choice keeps the page context. A null choice clears
+	// that context so useCreatePlacement can require a new selection.
 	const [epic, setEpic] = useState<string | null | undefined>();
 	const [wave, setWave] = useState<string | null | undefined>();
 	const [editing, setEditing] = useState(draft.description !== "");
@@ -60,6 +61,7 @@ export function CreateTicketDialog() {
 	const chosenPriority = priority ?? defaults.priority;
 	const chosenEpic = (epic === undefined ? defaults.epic : epic) ?? undefined;
 	const chosenWave = (wave === undefined ? defaults.wave : wave) ?? undefined;
+	const placement = useCreatePlacement(chosenProject, chosenEpic, chosenWave);
 	const description = draft.description === "" ? defaults.template : draft.description;
 	const dirty =
 		draft.title.trim() !== "" ||
@@ -95,7 +97,7 @@ export function CreateTicketDialog() {
 			setProjectMissing(true);
 			return;
 		}
-		if (inFlight.current) return;
+		if (inFlight.current || (createdTicket === null && !placement.ready)) return;
 		setTitleMissing(false);
 		setProjectMissing(false);
 		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
@@ -111,8 +113,8 @@ export function CreateTicketDialog() {
 						status: chosenStatus?.slug,
 						priority: chosenPriority,
 						...(parentRef === undefined ? {} : { parent: parentRef }),
-						...(chosenEpic === undefined ? {} : { epic: chosenEpic }),
-						...(chosenWave === undefined ? {} : { wave: chosenWave }),
+						...(placement.epic === undefined ? {} : { epic: placement.epic }),
+						...(placement.wave === undefined ? {} : { wave: placement.wave }),
 						...(labelDraft.labels.length === 0 ? {} : { labels: labelDraft.labels.map((label) => label.id) }),
 						...(editing ? { description } : {}),
 					});
@@ -192,11 +194,13 @@ export function CreateTicketDialog() {
 							priority={chosenPriority}
 							parent={parent ?? null}
 							parentRef={parent === undefined ? defaults.parent : undefined}
-							epic={chosenEpic}
-							wave={chosenWave}
+							placement={placement}
 							labels={labelDraft.labels}
 							onProject={(next) => {
 								setProject(next);
+								setEpic(null);
+								setWave(null);
+								setParent(null);
 								setProjectMissing(false);
 							}}
 							onStatus={(next) => setStatus(next.slug)}
@@ -237,6 +241,7 @@ export function CreateTicketDialog() {
 								size="md"
 								kbd={phone ? undefined : "⌘↩"}
 								processing={creating}
+								disabled={createdTicket === null && !placement.ready}
 								onClick={() => void create(createMore)}
 							>
 								{createdTicket === null ? "Create ticket" : needsUpload ? "Retry attachments" : "Finish"}

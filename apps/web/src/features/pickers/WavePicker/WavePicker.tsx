@@ -55,6 +55,7 @@ export type WavePickerProps = {
 	// True when the picker writes to several tickets that hold different
 	// waves. No row then shows a check, so the list claims no shared value.
 	mixed?: boolean;
+	allowNone?: boolean;
 	// `null` clears the wave.
 	onPick: (wave: WaveSummary | null) => void;
 	// Adds the New wave option last. It receives the typed search text as
@@ -73,6 +74,7 @@ export function WavePicker({
 	epic,
 	value,
 	mixed = false,
+	allowNone = true,
 	onPick,
 	onCreate,
 	trigger,
@@ -104,7 +106,9 @@ export function WavePicker({
 			? []
 			: [
 					...waveItems(waves, { current: mixed ? undefined : value, picker: true }),
-					{ id: noneId, label: "No wave", current: none, trailing: createElement(RowMarks, { current: none }) },
+					...(allowNone
+						? [{ id: noneId, label: "No wave", current: none, trailing: createElement(RowMarks, { current: none }) }]
+						: []),
 				];
 	const newName = search.trim() === "" ? nextWaveName(waves) : search.trim();
 	if (onCreate !== undefined && loaded !== undefined) {
