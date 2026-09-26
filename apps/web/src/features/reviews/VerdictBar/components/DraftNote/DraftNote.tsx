@@ -51,15 +51,15 @@ export function DraftNote({
 					label="Note"
 					rows={4}
 					value={note}
-					invalid={refusal !== ""}
+					error={refusal || undefined}
 					onChange={(event) => {
 						onNote(event.target.value);
 						setRefusal("");
 					}}
 				/>
-				{(refusal || error) && (
+				{!refusal && error && (
 					<p role="alert" className="review-error">
-						{refusal || error}
+						{error}
 					</p>
 				)}
 			</div>

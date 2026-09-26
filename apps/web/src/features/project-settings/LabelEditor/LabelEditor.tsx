@@ -1,15 +1,6 @@
 import type { Label } from "@trellis/api";
 import { LabelDescriptionSchema, LabelNameSchema } from "@trellis/api";
-import {
-	Button,
-	FormStatus,
-	Input,
-	type LabelColor,
-	LabelDot,
-	labelColors,
-	Select,
-	type SelectItem,
-} from "@trellis/ui";
+import { Button, Input, type LabelColor, LabelDot, labelColors, Select, type SelectItem } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
@@ -104,7 +95,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 					value={name}
 					maxLength={80}
 					autoFocus
-					invalid={message !== null}
+					error={message ?? undefined}
 					onChange={(event) => {
 						setName(event.target.value);
 						setMessage(null);
@@ -126,7 +117,6 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 					Save
 				</Button>
 			</div>
-			{message !== null && <FormStatus state="error" message={message} />}
 		</form>
 	);
 }

@@ -1,5 +1,5 @@
 import { LabelGroupNameSchema } from "@trellis/api";
-import { Button, FormStatus, Input } from "@trellis/ui";
+import { Button, Input } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
@@ -45,13 +45,12 @@ export function LabelGroupForm({ project, onChanged, onCancel }: LabelGroupFormP
 				value={name}
 				maxLength={80}
 				autoFocus
-				invalid={message !== null}
+				error={message ?? undefined}
 				onChange={(event) => {
 					setName(event.target.value);
 					setMessage(null);
 				}}
 			/>
-			{message !== null && <FormStatus state="error" message={message} />}
 			<div className="status-row-editor-buttons justify-end">
 				<Button type="button" disabled={saving} onClick={onCancel}>
 					Cancel

@@ -1,14 +1,13 @@
 import { cloneElement, type ReactElement, type ReactNode, useContext, useId } from "react";
 import { cx } from "../../utils/cx";
 import { FieldHint } from "../FieldHint";
-import { type FieldControlProps, fieldContext } from "./fieldContext";
+import { FieldContext, type FieldControlProps } from "./fieldContext";
 
 export type FieldOptions = {
 	label: string;
 	hideLabel?: boolean;
 	hint?: ReactNode;
 	disabled?: boolean;
-	invalid?: boolean;
 	error?: string;
 	readOnly?: boolean;
 	readOnlyReason?: string;
@@ -27,7 +26,6 @@ export function Field({
 	hideLabel = false,
 	hint,
 	disabled,
-	invalid,
 	error,
 	readOnly,
 	readOnlyReason,
@@ -36,24 +34,23 @@ export function Field({
 	className,
 }: FieldProps) {
 	const generatedId = useId();
-	const parent = useContext(fieldContext);
+	const outerControlProps = useContext(FieldContext);
 	const controlId = id ?? children.props.id ?? generatedId;
 	const message = error ?? (readOnly ? (readOnlyReason ?? hint) : hint);
 	const hasMessage = message !== undefined && message !== null;
-	const controlProps: FieldControlProps = parent ?? {
+	const controlProps: FieldControlProps = outerControlProps ?? {
 		id: controlId,
 		"aria-labelledby":
 			children.props["aria-labelledby"] ?? (children.props["aria-label"] ? undefined : `${controlId}-label`),
 		"aria-describedby":
 			[children.props["aria-describedby"], hasMessage ? `${controlId}-hint` : undefined].filter(Boolean).join(" ") ||
 			undefined,
-		"aria-invalid": error !== undefined || invalid || children.props["aria-invalid"] || undefined,
+		"aria-invalid": error !== undefined || children.props["aria-invalid"] || undefined,
 		...(disabled === undefined ? {} : { disabled }),
 		...(readOnly === undefined ? {} : { readOnly }),
 	};
 	const control = cloneElement(children, controlProps);
-	// A composed control uses the outer Field label and description.
-	if (parent) return control;
+	if (outerControlProps) return control;
 	return (
 		<div className={cx("flex min-w-0 flex-col gap-1", className)}>
 			<label
@@ -65,7 +62,7 @@ export function Field({
 			</label>
 			<div className="flex min-w-0 items-center gap-2">
 				<div className="min-w-0 flex-1">
-					<fieldContext.Provider value={controlProps}>{control}</fieldContext.Provider>
+					<FieldContext.Provider value={controlProps}>{control}</FieldContext.Provider>
 				</div>
 				{trailingAction}
 			</div>

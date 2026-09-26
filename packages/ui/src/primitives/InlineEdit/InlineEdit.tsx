@@ -179,7 +179,7 @@ export function InlineEdit({
 							hideLabel
 							value={draft}
 							disabled={saving}
-							invalid={refusals > 0}
+							aria-invalid={refusals > 0 || undefined}
 							className={cx("min-w-0", inputClassName)}
 							onChange={(event) => {
 								setDraft(event.target.value);

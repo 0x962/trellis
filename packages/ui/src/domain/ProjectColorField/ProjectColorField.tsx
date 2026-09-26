@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Field } from "../../primitives/Field";
 import type { ProjectColor } from "../projectColors";
-import { ProjectColorControl } from "./components/ProjectColorControl";
+import { ProjectColorPicker } from "./components/ProjectColorPicker";
 
 export type ProjectColorFieldProps = {
 	value: ProjectColor | null;
@@ -22,7 +22,7 @@ export function ProjectColorField({
 }: ProjectColorFieldProps) {
 	return (
 		<Field label={label} hint={hint}>
-			<ProjectColorControl {...props} label={label} />
+			<ProjectColorPicker {...props} label={label} />
 		</Field>
 	);
 }

@@ -64,7 +64,7 @@ export function StatusDeleteDialog({ project, status, statuses, onDeleted, onClo
 			onConfirm={() => void remove()}
 			onCancel={close}
 		>
-			{message !== null && <FormStatus state="error" message={message} />}
+			{message !== null && <FormStatus status="error" message={message} />}
 			{moveTo !== null && (
 				<Select label="Move tickets to" items={alternatives} value={moveTo} onValueChange={setMoveTo} />
 			)}

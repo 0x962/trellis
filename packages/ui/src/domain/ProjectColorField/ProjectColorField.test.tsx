@@ -80,7 +80,10 @@ test("the closed field shows its label, colour and hint without the grid", () =>
 	expect(html).toContain("Identifies this project.");
 	expect(html).not.toContain('role="radiogroup"');
 	const controlId = html.match(/<label[^>]*for="([^"]+)"/)?.[1];
-	expect(html).toContain(`<button id="${controlId}"`);
+	const trigger = html.match(/<button[^>]*>/)?.[0];
+	expect(trigger).toContain(`id="${controlId}"`);
+	expect(trigger).toContain(`aria-describedby="${controlId}-hint"`);
+	expect(trigger).toContain(`aria-labelledby="${controlId}-label `);
 });
 test("an empty disabled field has a disabled None trigger", () => {
 	const html = renderToStaticMarkup(

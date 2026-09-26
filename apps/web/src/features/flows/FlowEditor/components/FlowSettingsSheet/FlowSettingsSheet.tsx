@@ -26,7 +26,8 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 	const [project, setProject] = useState(selectValueOfProjectKey(flow.project));
 	const [harness, setHarness] = useState(harnessOfFlow(flow.harness));
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const slugValid = FlowSlugSchema.safeParse(slug).success;
+	const parsedSlug = FlowSlugSchema.safeParse(slug);
+	const slugValid = parsedSlug.success;
 	const valid = name.trim() !== "" && slugValid;
 	const dirty =
 		project !== selectValueOfProjectKey(flow.project) ||
@@ -102,7 +103,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 							autoComplete="off"
 							maxLength={64}
 							disabled={pending}
-							invalid={!slugValid}
+							error={parsedSlug.success ? undefined : parsedSlug.error.issues[0]!.message}
 							value={slug}
 							onChange={(event) => setSlug(event.target.value)}
 						/>

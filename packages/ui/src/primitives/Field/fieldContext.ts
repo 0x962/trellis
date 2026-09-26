@@ -6,4 +6,4 @@ export type FieldControlProps = AriaAttributes & {
 	readOnly?: boolean;
 };
 
-export const fieldContext = createContext<FieldControlProps | null>(null);
+export const FieldContext = createContext<FieldControlProps | null>(null);
