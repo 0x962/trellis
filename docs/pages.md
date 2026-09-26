@@ -106,9 +106,10 @@ A publishing agent becomes the watcher when the Page has no watcher.
 A person can change the watcher. A publishing agent can manage its own watch but cannot replace another agent's watch.
 The API accepts `pages.watch({page, agentId})`; a null agent ID removes the watch.
 
-Each reserved batch holds up to 20 human comments and has a 30-second lease.
+Each reserved batch holds up to five human comments and has a 30-second lease.
 The saved batch keeps its message ID, prompt, end cursor, and original terminal and session.
 A repeated delivery uses those same values. Newer comments wait for a later batch.
+Comment creation and replies serialize timestamps per Page, so a delayed request cannot fall behind the delivery cursor.
 The cursor advances after runtime acceptance. A stopped process keeps its assignment and receives queued comments after it resumes.
 Runtime acceptance proves that Trellis accepts the message, not that the provider finishes the requested work.
 
