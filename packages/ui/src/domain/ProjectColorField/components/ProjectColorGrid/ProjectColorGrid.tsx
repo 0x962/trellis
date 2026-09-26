@@ -15,8 +15,8 @@ export function ProjectColorGrid({
 	taken,
 	onValueChange,
 	label = "Color",
-	selectedRef,
-}: ProjectColorFieldProps & { selectedRef?: Ref<HTMLSpanElement> }) {
+	selectedOptionRef,
+}: ProjectColorFieldProps & { selectedOptionRef?: Ref<HTMLSpanElement> }) {
 	const free = freeProjectColors(taken, value);
 	return (
 		<RadioGroup
@@ -30,12 +30,13 @@ export function ProjectColorGrid({
 				return (
 					<Radio.Root
 						key={color}
-						ref={value === color ? selectedRef : undefined}
+						ref={value === color ? selectedOptionRef : undefined}
 						value={color}
 						disabled={held}
 						data-project-color={color}
 						aria-label={held ? `${projectColorLabels[color]}, another project holds it` : projectColorLabels[color]}
 						onClick={() => {
+							// RadioGroup skips an unchanged colour. This call closes the popover after a click on the current choice.
 							if (color === value) onValueChange(color);
 						}}
 						className={cx(cellClass, "project-swatch border-transparent", held ? "opacity-30" : "cursor-pointer")}
@@ -48,9 +49,10 @@ export function ProjectColorGrid({
 			})}
 			<Radio.Root
 				value="none"
-				ref={value === null ? selectedRef : undefined}
+				ref={value === null ? selectedOptionRef : undefined}
 				aria-label="No color"
 				onClick={() => {
+					// RadioGroup skips an unchanged value. This call closes the popover when No color is already current.
 					if (value === null) onValueChange(null);
 				}}
 				className={cx(cellClass, "cursor-pointer border-border-strong bg-surface text-fg")}
