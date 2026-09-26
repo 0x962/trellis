@@ -1,9 +1,9 @@
 import { type BrowserWindow, shell } from "electron";
 import { isCopyLinkChord } from "../copyLinkChord/copyLinkChord.ts";
 import type { HostConnection } from "../host/host.ts";
-import { hostRequest } from "../hostRequest/hostRequest.ts";
 import { openSafeWebLink, sameOrigin } from "../navigation/navigation.ts";
 import { secureLinkBrowser } from "../secureLinkBrowser/secureLinkBrowser.ts";
+import { authorizedHostRequest } from "./authorizedHostRequest/authorizedHostRequest.ts";
 
 export function secureRenderer(window: BrowserWindow, connection: () => HostConnection) {
 	window.webContents.on("will-navigate", (event, url) => {
@@ -26,11 +26,7 @@ export function secureRenderer(window: BrowserWindow, connection: () => HostConn
 	rendererSession.setPermissionCheckHandler(() => false);
 	rendererSession.webRequest.onBeforeSendHeaders((details, callback) => {
 		const host = connection();
-		if (
-			!window.isDestroyed() &&
-			details.webContentsId === window.webContents.id &&
-			hostRequest(details.url, host.origin)
-		)
+		if (!window.isDestroyed() && authorizedHostRequest(details, window.webContents.id, host.origin))
 			details.requestHeaders.Authorization = `Bearer ${host.token}`;
 		else delete details.requestHeaders.Authorization;
 		callback({ requestHeaders: details.requestHeaders });
