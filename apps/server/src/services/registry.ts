@@ -3,6 +3,7 @@ import { activity as agentActivity } from "./agentActivity";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import { answerQuestion } from "./agentRuns/answerQuestion.ts";
 import * as agentAttention from "./agentRuns/attention.ts";
+import * as agentBroadcast from "./agentRuns/broadcast";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { setPinned as setAgentRunPinned } from "./agentRuns/pin.ts";
@@ -86,6 +87,12 @@ export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
 export const services = {
 	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
+	"agentRuns.broadcastRecipients": prepared(
+		"read",
+		agentBroadcast.prepareBroadcastRecipients,
+		agentBroadcast.broadcastRecipients,
+	),
+	"agentRuns.broadcast": prepared("mutation", agentBroadcast.prepareBroadcast, agentBroadcast.broadcast),
 	"agentRuns.seen": prepared("mutation", agentAttention.prepareSeen, agentAttention.seen),
 	"agentRuns.answer": prepared("mutation", answerQuestion, agentTerminal.result),
 	"sessions.activity": prepared("read", sessions.activity, agentTerminal.result),
