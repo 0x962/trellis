@@ -3,6 +3,11 @@ import { pickErrors } from "../errors.ts";
 import { ModelIdSchema } from "../models/models.ts";
 import { AgentActivitySchema } from "../schemas/agentActivity.ts";
 import {
+	AgentBroadcastCountsSchema,
+	AgentBroadcastInputSchema,
+	AgentBroadcastResultSchema,
+} from "../schemas/agentBroadcast.ts";
+import {
 	AgentRunListInputSchema,
 	AgentRunPinInputSchema,
 	AgentRunPinOutputSchema,
@@ -83,6 +88,24 @@ export const agentRuns = {
 		.route({ method: "GET", path: "/agent-runs/activity", summary: "Read activity for all agent terminals" })
 		.input(z.strictObject({}))
 		.output(AgentActivitySchema.array()),
+	broadcastRecipients: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "GET",
+			path: "/agent-runs/broadcast/recipients",
+			summary: "Count the working and idle agents that can receive a broadcast",
+		})
+		.input(z.strictObject({}))
+		.output(AgentBroadcastCountsSchema),
+	broadcast: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/broadcast",
+			summary: "Send one message to every eligible agent in an activity group",
+		})
+		.input(AgentBroadcastInputSchema)
+		.output(AgentBroadcastResultSchema),
 	seen: base
 		.errors(pickErrors(["SESSION_ATTENTION_CHANGED"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/seen", summary: "Acknowledge a session completion" })
