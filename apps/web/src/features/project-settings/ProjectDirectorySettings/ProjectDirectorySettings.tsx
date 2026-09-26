@@ -23,7 +23,7 @@ export function ProjectDirectorySettings({
 }: ProjectDirectorySettingsProps) {
 	const { client } = useApp();
 	const input = useRef<HTMLInputElement>(null);
-	const folder = useMutation({
+	const chooseFolder = useMutation({
 		mutationFn: () => {
 			onError(null);
 			const desktop = (window as Window & { trellisDesktop?: { chooseDirectory: () => Promise<string | null> } })
@@ -52,8 +52,8 @@ export function ProjectDirectorySettings({
 					<IconButton
 						label="Choose project directory"
 						icon={<FolderOpen />}
-						disabled={disabled || folder.isPending}
-						onClick={() => folder.mutate()}
+						disabled={disabled || chooseFolder.isPending}
+						onClick={() => chooseFolder.mutate()}
 					/>
 				</Tooltip>
 			}

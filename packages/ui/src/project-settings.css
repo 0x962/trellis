@@ -37,9 +37,6 @@
 @utility project-settings-fields {
 	@apply flex min-w-0 flex-col gap-5;
 }
-@utility project-settings-groups {
-	@apply flex min-w-0 flex-col gap-10;
-}
 @utility project-settings-group {
 	@apply flex min-w-0 flex-col gap-4;
 }
@@ -177,9 +174,6 @@
 	}
 }
 
-@utility project-directory-field {
-	@apply flex min-w-0 flex-col gap-2;
-}
 @utility project-directory-row {
 	@apply flex items-end gap-2;
 	& > :first-child {

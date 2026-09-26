@@ -3,13 +3,13 @@ export type SettingsSaveStatus = { pending: boolean; dirty: boolean; error: stri
 export function settingsSave<T extends object>(initialValue: T, save: (patch: Partial<T>) => Promise<void>) {
 	let value = initialValue;
 	let saved = initialValue;
-	let pending = 0;
-	let queue = Promise.resolve();
-	const queued = new Map<keyof T, { value: T[keyof T]; promise: Promise<void> }>();
+	let pendingCount = 0;
+	let writeTail = Promise.resolve();
+	const pendingByField = new Map<keyof T, { value: T[keyof T]; promise: Promise<void> }>();
 	const errors = new Map<keyof T, string>();
 	const listeners = new Set<() => void>();
 	const status = (): SettingsSaveStatus => ({
-		pending: pending > 0,
+		pending: pendingCount > 0,
 		dirty: (Object.keys(value) as (keyof T)[]).some((key) => !Object.is(value[key], saved[key])),
 		error: errors.values().next().value ?? null,
 	});
@@ -33,11 +33,13 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 		},
 		saveField: <K extends keyof T>(key: K) => {
 			const next = value[key];
-			const previous = queued.get(key);
+			const previous = pendingByField.get(key);
 			if (previous && Object.is(previous.value, next)) return previous.promise;
-			pending += 1;
+			const pendingWrite = { value: next, ...Promise.withResolvers<void>() };
+			pendingByField.set(key, pendingWrite);
+			pendingCount += 1;
 			publish();
-			queue = queue.then(async () => {
+			writeTail = writeTail.then(async () => {
 				if (!Object.is(next, saved[key])) {
 					try {
 						const patch: Partial<T> = {};
@@ -49,13 +51,12 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 						errors.set(key, (error as Error).message);
 					}
 				}
-				pending -= 1;
-				if (queued.get(key) === request) queued.delete(key);
+				pendingCount -= 1;
+				if (pendingByField.get(key) === pendingWrite) pendingByField.delete(key);
 				publish();
+				pendingWrite.resolve();
 			});
-			const request = { value: next, promise: queue };
-			queued.set(key, request);
-			return queue;
+			return pendingWrite.promise;
 		},
 	};
 }

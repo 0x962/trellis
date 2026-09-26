@@ -3,7 +3,7 @@ import type { Project } from "@trellis/api";
 import { Input, ProjectColorField, Textarea } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { takenColors } from "../../../lib/projectColors";
-import type { GeneralValues } from "../ProjectGeneralSettings/ProjectGeneralSettings";
+import type { GeneralValues } from "../generalValues";
 
 export type ProjectDetailsFormProps = {
 	project: Project;
@@ -52,7 +52,7 @@ export function ProjectDetailsForm({ project, value, onChange, onBlur, disabled 
 				value={value.color}
 				taken={taken}
 				disabled={disabled}
-				onValueChange={(value) => onChange("color", value)}
+				onValueChange={(nextColor) => onChange("color", nextColor)}
 				onBlur={() => onBlur("color")}
 			/>
 		</>

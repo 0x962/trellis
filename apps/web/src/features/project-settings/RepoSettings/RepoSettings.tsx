@@ -1,8 +1,9 @@
-import { Plus, Trash } from "@phosphor-icons/react";
-import { GithubMark, IconButton, Input, Tooltip } from "@trellis/ui";
+import { Plus } from "@phosphor-icons/react";
+import { IconButton, Input, RepositoryRow, Tooltip } from "@trellis/ui";
 import { useRef, useState } from "react";
 
-type Repo = { owner: string; repo: string };
+import type { Repo } from "../generalValues";
+
 export type RepoSettingsProps = {
 	repos: Repo[];
 	disabled: boolean;
@@ -19,13 +20,13 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 		currentRepos.current = next;
 		onChange(next);
 	};
-	const [value, setValue] = useState("");
+	const [draft, setDraft] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const addButton = useRef<HTMLButtonElement>(null);
-	const add = () => {
-		if (disabled || value.trim() === "") return;
+	const addRepo = () => {
+		if (disabled || draft.trim() === "") return;
 		const match = /^(?:https:\/\/github\.com\/)?([a-z0-9_.-]+)\/([a-z0-9_.-]+?)(?:\.git)?\/?$/.exec(
-			value.trim().toLowerCase(),
+			draft.trim().toLowerCase(),
 		);
 		if (match === null) {
 			const message = "Use a GitHub URL or owner/repository.";
@@ -36,7 +37,7 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 		const entry = { owner: match[1]!, repo: match[2]! };
 		if (!currentRepos.current.some((repo) => repo.owner === entry.owner && repo.repo === entry.repo))
 			changeRepos([...currentRepos.current, entry]);
-		setValue("");
+		setDraft("");
 		setError(null);
 		onError(null);
 		onDraftChange(false);
@@ -48,7 +49,7 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			className="flex min-w-0 flex-col gap-2"
 			onBlur={(event) => {
 				if (!event.currentTarget.contains(event.relatedTarget)) {
-					add();
+					addRepo();
 					onBlur();
 				}
 			}}
@@ -56,23 +57,23 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			<Input
 				label="Repositories"
 				placeholder="https://github.com/owner/repository"
-				value={value}
+				value={draft}
 				hint="Connect GitHub repositories to find pull requests for project tickets."
 				error={error ?? undefined}
 				disabled={disabled}
 				onChange={(event) => {
-					setValue(event.target.value);
+					setDraft(event.target.value);
 					setError(null);
 					onError(null);
 					onDraftChange(event.target.value !== "");
 				}}
 				onBlur={(event) => {
-					if (event.relatedTarget !== addButton.current) add();
+					if (event.relatedTarget !== addButton.current) addRepo();
 				}}
 				onKeyDown={(event) => {
 					if (event.key === "Enter") {
 						event.preventDefault();
-						add();
+						addRepo();
 					}
 				}}
 				trailingAction={
@@ -81,8 +82,8 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 							ref={addButton}
 							label="Add repository"
 							icon={<Plus />}
-							disabled={disabled || value.trim() === ""}
-							onClick={add}
+							disabled={disabled || draft.trim() === ""}
+							onClick={addRepo}
 						/>
 					</Tooltip>
 				}
@@ -90,34 +91,17 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			{repos.length > 0 && (
 				<ul aria-label="Connected repositories" className="flex flex-col gap-1">
 					{repos.map((repo) => (
-						<li
+						<RepositoryRow
 							key={`${repo.owner}/${repo.repo}`}
-							className="flex min-h-8 items-center rounded-md border border-border bg-surface px-2"
-						>
-							<a
-								href={`https://github.com/${repo.owner}/${repo.repo}`}
-								target="_blank"
-								rel="noreferrer"
-								className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-accent underline"
-							>
-								<GithubMark aria-hidden="true" className="size-3.5 shrink-0" />
-								<span className="truncate">
-									{repo.owner}/{repo.repo}
-								</span>
-							</a>
-							<Tooltip content={`Remove ${repo.owner}/${repo.repo}`}>
-								<IconButton
-									label={`Remove ${repo.owner}/${repo.repo}`}
-									icon={<Trash />}
-									disabled={disabled}
-									onClick={() =>
-										changeRepos(
-											currentRepos.current.filter((entry) => entry.owner !== repo.owner || entry.repo !== repo.repo),
-										)
-									}
-								/>
-							</Tooltip>
-						</li>
+							owner={repo.owner}
+							repo={repo.repo}
+							disabled={disabled}
+							onRemove={() =>
+								changeRepos(
+									currentRepos.current.filter((entry) => entry.owner !== repo.owner || entry.repo !== repo.repo),
+								)
+							}
+						/>
 					))}
 				</ul>
 			)}

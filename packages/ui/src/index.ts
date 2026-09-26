@@ -81,6 +81,7 @@ export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./doma
 export { type ProjectColor, projectColors } from "./domain/projectColors";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
+export { RepositoryRow, type RepositoryRowProps } from "./domain/RepositoryRow";
 export {
 	ResourceList,
 	type ResourceListProps,

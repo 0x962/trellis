@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import type { GeneralValues } from "../generalValues";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
 import { ProjectDirectorySettings } from "../ProjectDirectorySettings";
 import { RepoSettings } from "../RepoSettings";
@@ -10,9 +11,6 @@ import { SettingsSection } from "../SettingsSection";
 import { useSettingsSave } from "../useSettingsSave";
 
 export type ProjectGeneralSettingsProps = { project: Project };
-export type GeneralValues = Pick<Project, "name" | "key" | "description" | "color" | "directory"> & {
-	repos: { owner: string; repo: string }[];
-};
 
 export function ProjectGeneralSettings({ project }: ProjectGeneralSettingsProps) {
 	const { client, orpc, queryClient } = useApp();
@@ -44,7 +42,7 @@ export function ProjectGeneralSettings({ project }: ProjectGeneralSettingsProps)
 	const disabled = project.archivedAt !== null;
 	const invalidDirectory = form.value.directory !== "" && !form.value.directory.startsWith("/");
 	const directoryError = invalidDirectory ? "Use an absolute directory path." : null;
-	const saveField = (key: keyof GeneralValues) => {
+	const saveOnBlur = (key: keyof GeneralValues) => {
 		if (disabled || (key === "key" && project.ticketCounter > 0)) return;
 		if (key === "directory" && invalidDirectory) return;
 		if (key === "name") form.setField("name", form.value.name.trim());
@@ -65,7 +63,7 @@ export function ProjectGeneralSettings({ project }: ProjectGeneralSettingsProps)
 					project={project}
 					value={form.value}
 					onChange={form.setField}
-					onBlur={saveField}
+					onBlur={saveOnBlur}
 					disabled={disabled}
 				/>
 				<ProjectDirectorySettings
@@ -76,12 +74,12 @@ export function ProjectGeneralSettings({ project }: ProjectGeneralSettingsProps)
 						setFolderError(null);
 						form.setField("directory", value);
 					}}
-					onBlur={() => saveField("directory")}
+					onBlur={() => saveOnBlur("directory")}
 					onError={setFolderError}
 				/>
 				<RepoSettings
 					repos={form.value.repos}
-					onBlur={() => saveField("repos")}
+					onBlur={() => saveOnBlur("repos")}
 					disabled={disabled}
 					onDraftChange={setRepoDraft}
 					onError={setRepoError}
