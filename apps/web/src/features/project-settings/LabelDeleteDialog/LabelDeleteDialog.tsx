@@ -55,7 +55,7 @@ export function LabelDeleteDialog({ project, label, onDeleted, onClose }: LabelD
 			onConfirm={() => void remove()}
 			onCancel={close}
 		>
-			{message !== null && <FormStatus state="error" message={message} />}
+			{message !== null && <FormStatus status="error" message={message} />}
 		</ConfirmDialog>
 	);
 }

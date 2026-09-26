@@ -113,7 +113,7 @@ export function ControlSections() {
 			<Section name="Input" note="labeled, hidden label, invalid, disabled" className="items-start">
 				<Input label="Title" value={title} onChange={(event) => setTitle(event.target.value)} className="w-80" />
 				<Input label="Search" hideLabel placeholder="Search tickets" value="" onChange={() => {}} className="w-56" />
-				<Input label="Key" invalid value="cde" onChange={() => {}} className="w-40" />
+				<Input label="Key" error="Use uppercase letters." value="cde" onChange={() => {}} className="w-40" />
 				<Input label="Locked" disabled value="CDE" onChange={() => {}} className="w-40" />
 			</Section>
 			<Section name="Textarea" note="rows 3; disabled" className="items-start">

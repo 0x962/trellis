@@ -86,7 +86,7 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					</Button>
 				</div>
 			</div>
-			{message !== null && <FormStatus state="error" message={message} />}
+			{message !== null && <FormStatus status="error" message={message} />}
 		</form>
 	);
 }

@@ -36,7 +36,6 @@ export function Select<Value extends string>({
 	label,
 	hideLabel = true,
 	hint,
-	invalid,
 	error,
 	readOnly,
 	readOnlyReason,
@@ -63,7 +62,6 @@ export function Select<Value extends string>({
 				id={id}
 				hideLabel={hideLabel}
 				hint={hint}
-				invalid={invalid}
 				error={error}
 				readOnly={readOnly}
 				readOnlyReason={readOnlyReason}

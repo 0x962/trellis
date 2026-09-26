@@ -43,7 +43,7 @@ export function ProviderFields({
 				placeholder="Vercel"
 				autoFocus={!editing}
 				disabled={busy}
-				invalid={errorField === "name"}
+				error={errorField === "name" ? error : undefined}
 			/>
 			<Field label="Kind" hint={value.kind === "vercel-ai-gateway" ? "ai-gateway.vercel.sh" : undefined}>
 				{editing ? (
@@ -75,7 +75,7 @@ export function ProviderFields({
 					onChange={(event) => onChange({ ...value, baseUrl: event.target.value })}
 					required
 					disabled={busy}
-					invalid={errorField === "baseUrl"}
+					error={errorField === "baseUrl" ? error : undefined}
 				/>
 			)}
 			<Input
@@ -89,7 +89,7 @@ export function ProviderFields({
 				required={!editing}
 				maxLength={4000}
 				disabled={busy}
-				invalid={errorField === "apiKey"}
+				error={errorField === "apiKey" ? error : undefined}
 				placeholder={
 					editing
 						? keyLast4
@@ -115,7 +115,7 @@ export function ProviderFields({
 				onCheckedChange={(enabled) => onChange({ ...value, enabled })}
 				disabled={busy}
 			/>
-			{error && (
+			{error && errorField !== "name" && errorField !== "baseUrl" && errorField !== "apiKey" && (
 				<p role="alert" className="text-sm text-danger">
 					{error}
 				</p>

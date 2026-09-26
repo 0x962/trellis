@@ -1,21 +1,21 @@
 import { FieldHint } from "../FieldHint";
 
 export type FormStatusProps = {
-	state: "idle" | "saving" | "saved" | "error";
+	status: "idle" | "saving" | "saved" | "error";
 	message?: string;
 	className?: string;
 };
 
-const messages = { idle: "", saving: "Saving…", saved: "Saved.", error: "The save failed." };
+const messages = { idle: "", saving: "Save in progress", saved: "Saved", error: "The save failed." };
 
-export function FormStatus({ state, message, className }: FormStatusProps) {
+export function FormStatus({ status, message, className }: FormStatusProps) {
 	return (
 		<FieldHint
 			className={className}
-			role={state === "error" ? "alert" : "status"}
-			tone={state === "error" ? "danger" : "default"}
+			role={status === "error" ? "alert" : "status"}
+			tone={status === "error" ? "danger" : "default"}
 		>
-			{message ?? messages[state]}
+			{message ?? messages[status]}
 		</FieldHint>
 	);
 }
