@@ -48,7 +48,7 @@ export function StatusCreateForm({ project, initialCategory = "todo", onCreated,
 				<Input label="Status name" value={name} autoFocus onChange={(event) => setName(event.target.value)} />
 				<Select label="Category" items={categories} value={category} onValueChange={setCategory} />
 			</div>
-			{message !== null && <FormStatus state="error" message={message} />}
+			{message !== null && <FormStatus status="error" message={message} />}
 			<div className="flex justify-end gap-2">
 				<Button type="button" onClick={onCancel}>
 					Cancel

@@ -66,7 +66,7 @@ export function NodeInspector({
 								className="pointer-coarse:h-11"
 								required
 								maxLength={120}
-								invalid={fields.title.trim() === ""}
+								error={fields.title.trim() === "" ? "Enter a title." : undefined}
 								value={fields.title}
 								onChange={(event) => onChange({ title: event.target.value })}
 							/>

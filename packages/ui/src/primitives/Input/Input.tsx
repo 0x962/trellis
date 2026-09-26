@@ -13,7 +13,6 @@ export type InputProps = Omit<ComponentProps<typeof BaseInput>, "id" | "classNam
 export function Input({
 	label,
 	hideLabel = false,
-	invalid = false,
 	hint,
 	error,
 	readOnly,
@@ -28,7 +27,6 @@ export function Input({
 			label={label}
 			hideLabel={hideLabel}
 			hint={hint}
-			invalid={invalid}
 			error={error}
 			readOnly={readOnly}
 			readOnlyReason={readOnlyReason}
@@ -44,7 +42,7 @@ export function Input({
 					// the screen puts it back there. Without this rule the focus
 					// border replaces the danger border at that moment, and the
 					// person sees no sign of the refusal.
-					invalid || error !== undefined
+					error !== undefined
 						? "border-danger focus-visible:border-danger"
 						: "border-border enabled:hover:border-border-strong",
 					className,

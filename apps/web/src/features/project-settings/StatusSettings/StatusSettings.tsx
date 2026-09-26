@@ -1,7 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Project, Status, StatusCategory } from "@trellis/api";
-import { FormStatus, IconButton, Skeleton } from "@trellis/ui";
+import { FailureState, FormStatus, IconButton, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { SettingsSection } from "../SettingsSection";
@@ -51,7 +51,13 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 	if (query.error !== null || countsQuery.error !== null) {
 		return (
 			<SettingsSection title="Statuses">
-				<FormStatus state="error" message="Unable to load statuses. Refresh the page." />
+				<FailureState
+					variant="section"
+					title="The statuses did not load."
+					description="Refresh the page."
+					detail={query.error?.message ?? countsQuery.error?.message}
+				/>
+
 			</SettingsSection>
 		);
 	}
@@ -136,7 +142,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 					);
 				})}
 			</div>
-			{message !== null && <FormStatus state="error" message={message} />}
+			{message !== null && <FormStatus status="error" message={message} />}
 			<StatusDeleteDialog
 				project={project.key}
 				status={deleting}

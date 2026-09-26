@@ -8,6 +8,11 @@ import { Textarea } from "../../../../../primitives/Textarea";
 import { Tooltip } from "../../../../../primitives/Tooltip";
 import { Section } from "../../../Section";
 
+const priorities = [
+	{ value: "high", label: "High" },
+	{ value: "low", label: "Low" },
+];
+
 export function FieldSection() {
 	const [name, setName] = useState("Operator");
 	const [path, setPath] = useState("~/projects/operator");
@@ -39,10 +44,7 @@ export function FieldSection() {
 					label="Select"
 					hideLabel={false}
 					hint="The priority sets the ticket order."
-					items={[
-						{ value: "high", label: "High" },
-						{ value: "low", label: "Low" },
-					]}
+					items={priorities}
 					value={priority}
 					onValueChange={setPriority}
 					className="w-full h-8"
@@ -54,10 +56,10 @@ export function FieldSection() {
 					defaultValue="Check the arrival list."
 				/>
 				<div className="flex flex-col gap-1">
-					<FormStatus state="idle" message="Unsaved changes" />
-					<FormStatus state="saving" message="Save in progress" />
-					<FormStatus state="saved" message="Saved" />
-					<FormStatus state="error" message="The server refused the save." />
+					<FormStatus status="idle" message="Unsaved changes" />
+					<FormStatus status="saving" message="Save in progress" />
+					<FormStatus status="saved" message="Saved" />
+					<FormStatus status="error" message="The server refused the save." />
 				</div>
 			</div>
 		</Section>
