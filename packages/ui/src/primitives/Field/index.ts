@@ -1,1 +1,1 @@
-export { Field, type FieldProps } from "./Field";
+export { Field, type FieldOptions, type FieldProps } from "./Field";
