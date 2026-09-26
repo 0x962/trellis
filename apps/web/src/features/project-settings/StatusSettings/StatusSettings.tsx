@@ -57,7 +57,6 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 					description="Refresh the page."
 					detail={query.error?.message ?? countsQuery.error?.message}
 				/>
-
 			</SettingsSection>
 		);
 	}
