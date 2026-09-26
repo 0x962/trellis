@@ -23,6 +23,7 @@ type Props = {
 	// True for the first message of the thread, the one that carries the
 	// anchor and any suggestion the thread applies.
 	root: boolean;
+	anchorAction?: ReactNode;
 	renderBody: (body: string, message: { id: string; root: boolean }) => ReactNode;
 	// True while a reply, an edit, a delete or a reaction of this card waits
 	// for the server.
@@ -38,6 +39,7 @@ type Props = {
 	onEdit: (id: string, body: string, version: number) => Promise<unknown>;
 	// A card without it draws no delete button.
 	onDelete?: (id: string) => Promise<unknown>;
+	deleteRootLabel?: string;
 	// A card without it draws no reaction row.
 	onReaction?: (id: string, reaction: string, remove: boolean) => Promise<unknown>;
 };
@@ -45,6 +47,7 @@ type Props = {
 export function ThreadMessage({
 	message,
 	root,
+	anchorAction,
 	renderBody,
 	busy,
 	canChange,
@@ -54,6 +57,7 @@ export function ThreadMessage({
 	run,
 	onEdit,
 	onDelete,
+	deleteRootLabel,
 	onReaction,
 }: Props) {
 	return (
@@ -94,10 +98,10 @@ export function ThreadMessage({
 					</Tooltip>
 				)}
 				{onDelete !== undefined && canChange && (
-					<Tooltip content={root ? "Delete thread" : "Delete message"}>
+					<Tooltip content={root ? (deleteRootLabel ?? "Delete thread") : "Delete message"}>
 						<IconButton
 							className="review-message-action"
-							label={root ? "Delete thread" : "Delete message"}
+							label={root ? (deleteRootLabel ?? "Delete thread") : "Delete message"}
 							icon={<Trash />}
 							disabled={busy}
 							onClick={() => void run(() => onDelete(message.id))}
@@ -105,6 +109,7 @@ export function ThreadMessage({
 					</Tooltip>
 				)}
 			</header>
+			{root && anchorAction !== undefined && <div className="review-thread-location">{anchorAction}</div>}
 			{edit?.id === message.id ? (
 				<form
 					onSubmit={(e) => {

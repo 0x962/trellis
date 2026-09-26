@@ -1,0 +1,1 @@
+export { internalLinkUrl } from "./internalLinkUrl";

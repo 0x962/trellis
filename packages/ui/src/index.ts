@@ -1,5 +1,6 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
+export { ArchivedToggle, type ArchivedToggleProps } from "./domain/ArchivedToggle";
 export { CheckConfetti, type CheckConfettiProps, confettiMs } from "./domain/CheckConfetti";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
@@ -53,6 +54,7 @@ export {
 	type MergeConflictMarkProps,
 	type MergeConflictMarkSize,
 } from "./domain/MergeConflictMark";
+export { PageCommentPin, type PageCommentPinProps } from "./domain/PageCommentPin";
 export { PageRow, type PageRowProps } from "./domain/PageRow";
 export * from "./domain/PageVersionRow";
 export * from "./domain/PageViewer";

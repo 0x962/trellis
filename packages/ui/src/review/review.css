@@ -66,9 +66,9 @@
 /* One box per button of the row. The box is the size of an IconButton at
    size sm: 28 px, and 44 px where the pointer is coarse, which is the size
    the hit area gives that same button. Every box is drawn at the first
-   paint. The GitHub button waits for the stored revision and the ... menu
-   waits for the ticket, so each one arrives into a box that already holds
-   its place, and neither one moves the other. */
+   paint. The GitHub button and the internal link wait for the stored
+   revision. The ... menu waits for the ticket. Each control arrives in a box
+   that already holds its place, so no control moves another control. */
 .review-header-slot {
 	display: flex;
 	width: 28px;

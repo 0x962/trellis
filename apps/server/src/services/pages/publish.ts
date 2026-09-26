@@ -1,4 +1,5 @@
 import {
+	internalLink,
 	PAGE_DOCUMENT_MAX_BYTES,
 	PAGE_VERSION_ASSET_MAX_BYTES,
 	PagePublishInputSchema,
@@ -100,6 +101,7 @@ const sourceAgentId = async (ctx: ServiceCtx, tx: Tx) => {
 const publishOutput = async (ctx: ServiceCtx, tx: Tx, pageId: string, number: number): Promise<PagePublishOutput> => ({
 	page: toSummary(await pageById(ctx, tx, pageId)),
 	version: (await versionRow(tx, pageId, number))!,
+	link: internalLink("page", pageId),
 });
 
 // The upload row of `id`, whatever project or actor staged it. The repeat

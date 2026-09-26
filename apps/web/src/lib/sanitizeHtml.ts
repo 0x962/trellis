@@ -1,3 +1,5 @@
+import { parseInternalLink } from "@trellis/api";
+
 // The elements a rendered description or comment may hold, each with the
 // attributes it keeps. Every other element is unwrapped: its text stays,
 // the tag goes.
@@ -54,7 +56,10 @@ const dropped: ReadonlySet<string> = new Set([
 // point at the web, at the file of one attachment on this server, which is
 // the URL the attachment's markdown line names, or at the file of one
 // evidence record, which is the URL a pull request summary names.
-const safeHref = (value: string) => /^(https?:|mailto:)/i.test(value.trim()) || /^[/#]/.test(value.trim());
+export const safeHref = (value: string) => {
+	const href = value.trim();
+	return /^(https?:|mailto:)/i.test(href) || /^[/#]/.test(href) || parseInternalLink(value) !== null;
+};
 const storedFile = /^\/api\/(?:attachments|evidence)\/[0-9A-Z]{26}\/file$/;
 const safeSrc = (value: string) => /^https?:/i.test(value.trim()) || storedFile.test(value.trim());
 

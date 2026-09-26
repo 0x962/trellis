@@ -2,7 +2,7 @@ import { afterEach, expect, setSystemTime, test } from "bun:test";
 import {
 	isAutomaticallyArchived,
 	keptSessionRows,
-	nextSessionArchiveAt,
+	nextSessionArchiveTimeMs,
 	nextSessionRow,
 	selectedSession,
 	sessionGroups,
@@ -35,7 +35,7 @@ test("manual sessions and ticket agents share one list", () => {
 		run("ticket", { activityAt: hoursAgo(2) }),
 		run("manual", { kind: "session", ticketId: null, activityAt: hoursAgo(1) }),
 	];
-	expect(sessionGroups(runs, { search: "", archived: false }).runs.map((item) => item.id)).toEqual([
+	expect(sessionGroups(runs, { search: "", showArchived: false }).runs.map((item) => item.id)).toEqual([
 		"manual",
 		"ticket",
 	]);
@@ -54,7 +54,7 @@ test("an unpinned session moves to Archived at the 48-hour boundary", () => {
 test("the next archive time skips pinned sessions and sessions with no activity", () => {
 	setSystemTime(now);
 	expect(
-		nextSessionArchiveAt([
+		nextSessionArchiveTimeMs([
 			run("later", { activityAt: hoursAgo(46) }),
 			run("next", { activityAt: hoursAgo(47) }),
 			run("pinned", { activityAt: hoursAgo(47.5), pinnedAt: hoursAgo(1) }),
@@ -70,27 +70,27 @@ test("a pinned session stays current after 48 hours", () => {
 		run("pinned", { activityAt: hoursAgo(80), pinnedAt: hoursAgo(2) }),
 		run("old", { activityAt: hoursAgo(80) }),
 	];
-	expect(sessionGroups(runs, { search: "", archived: false }).runs.map((item) => item.id)).toEqual([
+	expect(sessionGroups(runs, { search: "", showArchived: false }).runs.map((item) => item.id)).toEqual([
 		"pinned",
 		"current",
 	]);
-	expect(sessionGroups(runs, { search: "", archived: true }).runs.map((item) => item.id)).toEqual(["old"]);
+	expect(sessionGroups(runs, { search: "", showArchived: true }).runs.map((item) => item.id)).toEqual(["old"]);
 });
 
 test("new activity returns an automatically archived session to the current list", () => {
 	setSystemTime(now);
 	const old = run("session", { activityAt: hoursAgo(49) });
-	expect(sessionGroups([old], { search: "", archived: true }).runs).toHaveLength(1);
+	expect(sessionGroups([old], { search: "", showArchived: true }).runs).toHaveLength(1);
 	const active = { ...old, activityAt: hoursAgo(1) };
-	expect(sessionGroups([active], { search: "", archived: false }).runs).toHaveLength(1);
-	expect(sessionGroups([active], { search: "", archived: true }).runs).toHaveLength(0);
+	expect(sessionGroups([active], { search: "", showArchived: false }).runs).toHaveLength(1);
+	expect(sessionGroups([active], { search: "", showArchived: true }).runs).toHaveLength(0);
 });
 
 test("the creation time cannot archive a session with no stored activity", () => {
 	setSystemTime(now);
 	const session = run("session", { activityAt: null, createdAt: hoursAgo(200) });
-	expect(sessionGroups([session], { search: "", archived: false }).runs).toHaveLength(1);
-	expect(sessionGroups([session], { search: "", archived: true }).runs).toHaveLength(0);
+	expect(sessionGroups([session], { search: "", showArchived: false }).runs).toHaveLength(1);
+	expect(sessionGroups([session], { search: "", showArchived: true }).runs).toHaveLength(0);
 });
 
 test("a refresh keeps the selected session when a pin changes the row order", () => {
@@ -105,9 +105,9 @@ test("search filters only the selected archive mode", () => {
 		run("old", { activityAt: hoursAgo(49) }),
 		run("current", { ticketIdentifier: "OP-21", ticketTitle: "Improve UI" }),
 	];
-	expect(sessionGroups(runs, { search: " DATABASE ", archived: false }).runs).toEqual([]);
-	expect(sessionGroups(runs, { search: "op-6", archived: true }).runs.map((item) => item.id)).toEqual(["old"]);
-	expect(sessionGroups(runs, { search: "missing", archived: true }).runs).toEqual([]);
+	expect(sessionGroups(runs, { search: " DATABASE ", showArchived: false }).runs).toEqual([]);
+	expect(sessionGroups(runs, { search: "op-6", showArchived: true }).runs.map((item) => item.id)).toEqual(["old"]);
+	expect(sessionGroups(runs, { search: "missing", showArchived: true }).runs).toEqual([]);
 });
 
 test("the drawn rows hold the selected row and the focused row", () => {

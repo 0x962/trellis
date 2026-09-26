@@ -5,6 +5,7 @@ import { IconButton } from "../../primitives/IconButton";
 import { Tabs } from "../../primitives/Tabs";
 import { Textarea } from "../../primitives/Textarea";
 import { Tooltip } from "../../primitives/Tooltip";
+import { commentKeySubmits } from "../commentSubmitKey";
 
 type Props = {
 	body: string;
@@ -16,6 +17,8 @@ type Props = {
 	location?: string;
 	pending?: boolean;
 	error?: string | null;
+	submitOnEnter?: boolean;
+	onEscape?: () => void;
 	// The suggestion block for the selected lines. The toolbar button and
 	// Cmd+G insert it at the caret. Null keeps the button off, with
 	// `suggestionUnavailable` as the reason.
@@ -46,6 +49,8 @@ export function ReviewCommentEditor({
 	location,
 	pending = false,
 	error = null,
+	submitOnEnter = false,
+	onEscape,
 	suggestionText,
 	suggestionUnavailable,
 }: Props) {
@@ -109,13 +114,32 @@ export function ReviewCommentEditor({
 									value={body}
 									onChange={(event) => onChange(event.target.value)}
 									onKeyDown={(event) => {
+										if (event.nativeEvent.isComposing) return;
+										if (event.key === "Escape" && onEscape !== undefined) {
+											event.preventDefault();
+											event.stopPropagation();
+											onEscape();
+											return;
+										}
 										const mod = event.metaKey || event.ctrlKey;
 										if (mod && event.key.toLowerCase() === "g" && suggestionText) {
 											event.preventDefault();
 											suggest();
 											return;
 										}
-										if (event.key === "Enter" && mod && body.trim()) {
+										if (
+											commentKeySubmits(
+												{
+													key: event.key,
+													shiftKey: event.shiftKey,
+													metaKey: event.metaKey,
+													ctrlKey: event.ctrlKey,
+													isComposing: event.nativeEvent.isComposing,
+												},
+												submitOnEnter,
+											) &&
+											body.trim()
+										) {
 											event.preventDefault();
 											event.currentTarget.form?.requestSubmit();
 										}
