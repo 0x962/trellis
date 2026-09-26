@@ -1,7 +1,7 @@
 /*
  * The color of a project.
  *
- * A project holds one of the 25 color names of `tokens.css`, and two
+ * A project holds one of the eight colour names of `tokens.css`, and two
  * projects never hold one name. `data-project-color="<name>"` on an element
  * resolves the two values of that name for the element and for everything
  * inside it, so one mark or one key chip stands for one project.

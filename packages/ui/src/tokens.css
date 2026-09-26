@@ -73,25 +73,13 @@
 	--label-blue: #2A80E2;
 	--label-purple: #9751D7;
 	--label-pink: #D84497;
-	/* The 25 project colors. A project holds one name, and two projects never
-	   hold one name, so a person tells two projects apart by color alone.
-	   `--project-<name>-solid` fills the ground of the mark of the project and
-	   writes the text of its key chip. `--project-<name>-soft` is the ground of
-	   that chip.
-	   `projectPalette.ts` holds the recipe of every value below, and it prints
-	   these lines again. The hues sit 14.4 degrees apart on one circle, and the
-	   first one is 8 degrees. A solid holds OKLCH lightness 0.500 in this block
-	   and 0.780 in the two dark blocks. A soft holds 0.965 here and 0.270
-	   there. Each value takes the largest chroma sRGB shows at that lightness,
-	   up to the cap of its role, which keeps one hue from shouting over the
-	   other 24.
-	   A project color draws the mark of a project and its key chip, and no
-	   other surface. It never draws a status, a check or a glyph of state. A
-	   status color and a project color never sit in one slot of one row. That
-	   rule keeps a project color apart from a status, because 25 hues cannot
-	   step around the 4 status hues.
-	   `projectColors.test.ts` measures every value: 3:1 for a graphic, and
-	   4.5:1 for the text on a chip, in both themes. */
+	/* projectPalette.ts defines eight named hues and generates these values.
+	   The solid colour fills the project mark and the text of its key chip.
+	   The soft colour fills the key chip.
+	   Each role uses one OKLCH lightness across all hues: solid 0.500 in light
+	   and 0.780 in dark; soft 0.965 in light and 0.270 in dark.
+	   Each value uses the largest chroma sRGB permits, up to the cap for its role.
+	   projectColors.test.ts checks the recipe and the contrast in both themes. */
 	--project-red-solid: #BC001D;
 	--project-red-soft: #FFEFEE;
 	--project-orange-solid: #974C00;

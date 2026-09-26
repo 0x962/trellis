@@ -176,7 +176,7 @@ before another agent can take the ticket.
   The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
 - Priority is none, urgent, high, medium, or low.
-- A project color is one of five names: orange, teal, blue, pink, and azure. One active project holds one name, and a project in the archive holds no name. A create with no color takes a free name at random, and it takes no color when the five names are taken.
+- A project color is one of eight names: red, orange, amber, green, teal, blue, violet, and pink. One active project holds one name, and a project in the archive holds no name. A create with no color takes a free name at random, and it takes no color when the eight names are taken.
 - A project owns its labels and its label groups.
 - A label takes one group or no group. A group is exclusive: a ticket holds one label of a group at most, so a second label of that group replaces the first one.
 - A label name is unique inside its group, or among the labels of the project that have no group, without regard to case. A name holds no comma and no slash, it is 1 to 80 characters, and it is never `none`.

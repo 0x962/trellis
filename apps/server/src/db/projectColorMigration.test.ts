@@ -29,6 +29,7 @@ const colorOf = async (key: string) => {
 
 beforeAll(async () => {
 	db = await openTestDb();
+	await db.$client.exec(await readFile(join(import.meta.dir, "../../drizzle/0113_project_color_palette.sql"), "utf8"));
 }, 60_000);
 
 afterAll(async () => {

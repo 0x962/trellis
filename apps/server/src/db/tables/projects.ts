@@ -9,7 +9,7 @@ import { at } from "./actors.ts";
 // place of the key. The check below rejects `board`, `pages`, and `settings`.
 // `reservedSlugs` in packages/api/src/schemas/primitives.ts holds the full
 // list that an API request must pass.
-// `color` is the name of one of the five color slots, and the index below
+// `color` is the name of one of the project colour slots, and the index below
 // gives a slot to one active project at a time. A project without a color
 // holds NULL, and any number of projects hold NULL. An archived project
 // holds no slot, as it holds no name.
