@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { freeProjectColors, type ProjectColor, projectColors } from "../projectColors";
+import { ProjectColorGrid } from "./components/ProjectColorGrid";
 import { ProjectColorField } from "./ProjectColorField";
 
 const field = (value: ProjectColor | null, taken: readonly ProjectColor[]) =>
-	renderToStaticMarkup(<ProjectColorField value={value} taken={taken} onValueChange={() => {}} />);
+	renderToStaticMarkup(<ProjectColorGrid value={value} taken={taken} onValueChange={() => {}} />);
 
 // The names in the order the grid draws them.
 const drawnOrder = (html: string) => [...html.matchAll(/data-project-color="([a-z]+)"/g)].map((match) => match[1]);
@@ -28,15 +29,14 @@ test("a color that another project holds is not free, and the own color stays fr
 	expect(freeProjectColors([], null)).toEqual([...projectColors]);
 });
 
-// Two projects never hold one color, so the 25 names are 25 slots.
-test("the names run out after 25 projects", () => {
+test("the names run out when every palette slot is taken", () => {
 	expect(freeProjectColors(projectColors, null)).toEqual([]);
-	expect(freeProjectColors(projectColors, "pine")).toEqual(["pine"]);
+	expect(freeProjectColors(projectColors, "green")).toEqual(["green"]);
 });
 
-test("the grid draws all 25 names in palette order whatever the taken set is", () => {
+test("the grid draws all names in palette order whatever the taken set is", () => {
 	expect(drawnOrder(field("blue", ["blue"]))).toEqual([...projectColors]);
-	expect(drawnOrder(field("blue", ["blue", "red", "teal", "rose"]))).toEqual([...projectColors]);
+	expect(drawnOrder(field("blue", ["blue", "red", "teal", "pink"]))).toEqual([...projectColors]);
 	expect(drawnOrder(field(null, projectColors))).toEqual([...projectColors]);
 });
 
@@ -60,8 +60,32 @@ test("the color of the project is the one that reads as current", () => {
 test("no color stays reachable when every name is gone", () => {
 	const html = field(null, projectColors);
 
-	expect(html).toContain("Every color belongs to another project. Take one back there to give this project a color.");
 	expect(html).toContain('aria-label="No color"');
 	expect(tagAt(html, 'aria-label="No color"')).toContain('aria-checked="true"');
 	expect(tagAt(html, 'aria-label="No color"')).not.toContain("aria-disabled");
+});
+
+test("the closed field shows its label, colour and hint without the grid", () => {
+	const html = renderToStaticMarkup(
+		<ProjectColorField
+			label="Project colour"
+			hint="Identifies this project."
+			value="blue"
+			taken={[]}
+			onValueChange={() => {}}
+		/>,
+	);
+	expect(html).toContain("Project colour");
+	expect(html).toContain("Blue");
+	expect(html).toContain("Identifies this project.");
+	expect(html).not.toContain('role="radiogroup"');
+	const controlId = html.match(/<label[^>]*for="([^"]+)"/)?.[1];
+	expect(html).toContain(`<button id="${controlId}"`);
+});
+test("an empty disabled field has a disabled None trigger", () => {
+	const html = renderToStaticMarkup(
+		<ProjectColorField value={null} taken={projectColors} onValueChange={() => {}} disabled />,
+	);
+	expect(html).toContain("None");
+	expect(html).toMatch(/<button[^>]*disabled=""/);
 });

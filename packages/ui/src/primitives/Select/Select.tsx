@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
+import { Field, type FieldOptions } from "../Field";
 
 export type SelectItem<Value extends string> = {
 	value: Value;
@@ -13,7 +14,7 @@ export type SelectItem<Value extends string> = {
 	icon?: ReactNode;
 };
 
-export type SelectProps<Value extends string> = {
+export type SelectProps<Value extends string> = FieldOptions & {
 	// The accessible name of the trigger.
 	label: string;
 	// The id of the trigger. A `Field` passes it, so its `<label htmlFor>`
@@ -33,6 +34,13 @@ export type SelectProps<Value extends string> = {
 // opens under it and follows the arrow keys.
 export function Select<Value extends string>({
 	label,
+	hideLabel = true,
+	hint,
+	invalid,
+	error,
+	readOnly,
+	readOnlyReason,
+	trailingAction,
 	id,
 	placeholder,
 	items,
@@ -48,35 +56,48 @@ export function Select<Value extends string>({
 			items={items}
 			value={value === "" ? null : value}
 			onValueChange={(next) => onValueChange(next as Value)}
-			disabled={disabled}
+			disabled={disabled || readOnly}
 		>
-			<BaseSelect.Trigger
+			<Field
+				label={label}
 				id={id}
-				aria-label={label}
-				aria-disabled={disabled || undefined}
-				className={cx(
-					"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border-strong bg-control pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
-					hitArea.box28Bordered,
-					"hover:bg-control-hover active:bg-control-active data-popup-open:bg-control-active",
-					"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-					"disabled:bg-surface disabled:border-border disabled:text-fg-faint disabled:pointer-events-none",
-					className,
-				)}
+				hideLabel={hideLabel}
+				hint={hint}
+				invalid={invalid}
+				error={error}
+				readOnly={readOnly}
+				readOnlyReason={readOnlyReason}
+				trailingAction={trailingAction}
+				disabled={disabled || readOnly}
 			>
-				{chosenIcon === undefined ? (
-					<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
-				) : (
-					<span className="flex min-w-0 items-center gap-1.5">
-						<span aria-hidden="true" className="inline-flex shrink-0 items-center">
-							{chosenIcon}
-						</span>
+				<BaseSelect.Trigger
+					id={id}
+					aria-label={label}
+					aria-disabled={disabled || undefined}
+					className={cx(
+						"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border-strong bg-control pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
+						hitArea.box28Bordered,
+						"hover:bg-control-hover active:bg-control-active data-popup-open:bg-control-active",
+						"aria-invalid:border-danger pointer-coarse:h-11 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+						"disabled:bg-surface disabled:border-border disabled:text-fg-faint disabled:pointer-events-none",
+						className,
+					)}
+				>
+					{chosenIcon === undefined ? (
 						<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
-					</span>
-				)}
-				<BaseSelect.Icon className="inline-flex size-3.5 shrink-0 text-fg-faint *:size-full">
-					<CaretDown />
-				</BaseSelect.Icon>
-			</BaseSelect.Trigger>
+					) : (
+						<span className="flex min-w-0 items-center gap-1.5">
+							<span aria-hidden="true" className="inline-flex shrink-0 items-center">
+								{chosenIcon}
+							</span>
+							<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
+						</span>
+					)}
+					<BaseSelect.Icon className="inline-flex size-3.5 shrink-0 text-fg-faint *:size-full">
+						<CaretDown />
+					</BaseSelect.Icon>
+				</BaseSelect.Trigger>
+			</Field>
 			<BaseSelect.Portal>
 				<BaseSelect.Positioner
 					alignItemWithTrigger={alignItemWithTrigger}

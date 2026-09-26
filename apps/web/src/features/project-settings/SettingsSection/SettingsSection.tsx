@@ -1,8 +1,9 @@
+import { FieldHint } from "@trellis/ui";
 import type { ReactNode } from "react";
 
 export type SettingsSectionProps = {
 	title: string;
-	hint: string;
+	hint?: string;
 	actions?: ReactNode;
 	children: ReactNode;
 };
@@ -13,7 +14,7 @@ export function SettingsSection({ title, hint, actions, children }: SettingsSect
 			<header className="project-settings-heading">
 				<div className="min-w-0">
 					<h2 className="text-xl font-semibold text-fg">{title}</h2>
-					<p className="mt-2 text-base leading-relaxed text-fg-muted text-pretty">{hint}</p>
+					{hint && <FieldHint className="mt-2">{hint}</FieldHint>}
 				</div>
 				{actions}
 			</header>

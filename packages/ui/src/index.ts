@@ -153,7 +153,9 @@ export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDial
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
-export { Field, type FieldProps } from "./primitives/Field";
+export { Field, type FieldOptions, type FieldProps } from "./primitives/Field";
+export { FieldHint, type FieldHintProps } from "./primitives/FieldHint";
+export { FormStatus, type FormStatusProps } from "./primitives/FormStatus";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
 export { InlineEdit, type InlineEditFocus, type InlineEditProps } from "./primitives/InlineEdit";
 export { Input, type InputProps } from "./primitives/Input";
