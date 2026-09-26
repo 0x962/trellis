@@ -31,6 +31,11 @@ type Props = {
 	// when Trellis kept the diff of that time no more. The card folds such a
 	// thread and prints those lines above it.
 	outdated?: { lines: string[] };
+	readOnly?: boolean;
+	submitRepliesOnEnter?: boolean;
+	deleteRootLabel?: string;
+	// The control that reveals the thing the first message points to.
+	anchorAction?: ReactNode;
 };
 
 export function ReviewThreadCard({
@@ -45,11 +50,16 @@ export function ReviewThreadCard({
 	actor,
 	anchor,
 	outdated,
+	readOnly = false,
+	submitRepliesOnEnter = false,
+	deleteRootLabel,
+	anchorAction,
 }: Props) {
 	const root = useRef<HTMLElement>(null);
 	const foldedReopen = useRef<HTMLButtonElement>(null);
 	const formResolve = useRef<HTMLButtonElement>(null);
-	const draftKey = `trellis.review.reply:${actor}:${thread.id}`;
+	const threadId = thread.threadId ?? thread.id;
+	const draftKey = `trellis.review.reply:${actor}:${threadId}`;
 	const [reply, updateReply] = useState(() => localStorage.getItem(draftKey) ?? "");
 	const setReply = (body: string) => {
 		updateReply(body);
@@ -87,7 +97,7 @@ export function ReviewThreadCard({
 	// before `onResolve` answers, so the only wait is the network, and a
 	// second click while the first call is out does nothing.
 	const toggleResolved = () => {
-		if (resolving) return;
+		if (readOnly || resolving) return;
 		if (pointerInside.current) setHoldOpen(true);
 		moveFocus.current = true;
 		setResolving(true);
@@ -126,7 +136,7 @@ export function ReviewThreadCard({
 			ref={root}
 			tabIndex={-1}
 			className="review-thread"
-			id={`thread-${thread.id}`}
+			id={`thread-${threadId}`}
 			aria-label={`Thread by ${thread.author}`}
 			onPointerEnter={() => {
 				pointerInside.current = true;
@@ -159,7 +169,7 @@ export function ReviewThreadCard({
 								ref={foldedReopen}
 								label="Reopen comment"
 								icon={<ArrowCounterClockwise />}
-								disabled={resolving}
+								disabled={readOnly || resolving}
 								// The button stays in the tab order while the call is out, so focus stays on it.
 								focusableWhenDisabled
 								onClick={toggleResolved}
@@ -181,15 +191,17 @@ export function ReviewThreadCard({
 							key={message.id}
 							message={message}
 							root={message.id === thread.id}
+							anchorAction={anchorAction}
 							renderBody={renderBody}
 							busy={busy}
-							canChange={canChange(message.id)}
+							canChange={!readOnly && canChange(message.id)}
 							actor={actor}
 							edit={edit}
 							setEdit={setEdit}
 							run={run}
 							onEdit={onEdit}
 							onDelete={onDelete}
+							deleteRootLabel={deleteRootLabel}
 							onReaction={onReaction}
 						/>
 					))}
@@ -199,6 +211,8 @@ export function ReviewThreadCard({
 						busy={busy}
 						resolving={resolving}
 						resolved={thread.status === "resolved"}
+						readOnly={readOnly}
+						submitOnEnter={submitRepliesOnEnter}
 						onReply={onReply}
 						run={run}
 						toggleResolved={toggleResolved}

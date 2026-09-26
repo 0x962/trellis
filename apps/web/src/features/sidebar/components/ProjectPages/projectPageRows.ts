@@ -42,8 +42,8 @@ export const projectPageRows = (
 	const view = current ? projectViewOfPathname(pathname) : null;
 	const diffs = view === "diffs";
 	const epics = view === "epics" || view === "epic";
-	const pages = view === "pages" || view === "page";
-	const tickets = view !== null && !diffs && !epics && !pages;
+	const pageView = view === "pages" || view === "page";
+	const tickets = view !== null && !diffs && !epics && !pageView;
 	const sessions = pathname.startsWith("/sessions/project/");
 	return {
 		top: [
@@ -53,13 +53,6 @@ export const projectPageRows = (
 				active: current && epics,
 				// The count of open epics of this project alone.
 				trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
-				activeAgentCount: 0,
-			},
-			{
-				label: "Pages",
-				suffix: "/pages",
-				active: current && pages,
-				trailing: project.openPageCommentCount > 0 ? formatCount(project.openPageCommentCount) : null,
 				activeAgentCount: 0,
 			},
 			{

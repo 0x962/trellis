@@ -1,5 +1,14 @@
-import { askedForReview, type LinkedPullRequest, missingPartsText, type ReviewRevision, reviewRef } from "@trellis/api";
-import { Badge, type BadgeTone, MergeConflictMark, PrGlyph, Tooltip } from "@trellis/ui";
+import { LinkSimple } from "@phosphor-icons/react";
+import {
+	askedForReview,
+	internalLink,
+	type LinkedPullRequest,
+	missingPartsText,
+	type ReviewRevision,
+	reviewRef,
+} from "@trellis/api";
+import { Badge, type BadgeTone, IconButton, MergeConflictMark, PrGlyph, Tooltip } from "@trellis/ui";
+import { copyText } from "../../../../../lib/clipboard";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 import { LocalStateMenu } from "./components/LocalStateMenu";
 
@@ -82,9 +91,9 @@ export function ReviewIdentity({
 		<div className="review-heading">
 			<div className="review-heading-title">
 				<h2>{pullRequest?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
-				{/* One box per button, both drawn at the first paint. The GitHub
-				    button appears when the stored revision arrives and the ...
-				    menu appears when the ticket arrives, seconds apart. Each one
+				{/* One box per button, all drawn at the first paint. The GitHub
+				    button and link appear when the stored revision arrives. The ...
+				    menu appears when the ticket arrives. Each control
 				    fills the box that waited for it, so neither one moves. */}
 				<div className="review-header-actions">
 					<div data-bar-slot="github" className="review-header-slot">
@@ -93,6 +102,18 @@ export function ReviewIdentity({
 					<div data-bar-slot="local-state" className="review-header-slot">
 						{linkedPr !== null && pullRequest?.state === "OPEN" && (
 							<LocalStateMenu id={linkedPr.id} number={linkedPr.number} localState={localState} />
+						)}
+					</div>
+					<div data-bar-slot="internal-link" className="review-header-slot">
+						{revision !== null && (
+							<Tooltip content="Copy Trellis link">
+								<IconButton
+									label="Copy Trellis link"
+									icon={<LinkSimple />}
+									variant="default"
+									onClick={() => void copyText(internalLink("pr", revision.prId), "Pull request link copied")}
+								/>
+							</Tooltip>
 						)}
 					</div>
 				</div>

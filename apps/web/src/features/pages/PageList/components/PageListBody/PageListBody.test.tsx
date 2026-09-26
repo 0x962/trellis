@@ -46,7 +46,6 @@ const defaults: PageListBodyProps = {
 	loadingMore: false,
 	pinningId: null,
 	onRetry: () => {},
-	onCreate: () => {},
 	onLoadMore: () => {},
 	onPin: () => {},
 };
@@ -71,7 +70,7 @@ test("draws stable skeleton rows while the list loads", async () => {
 
 test("distinguishes an empty project from an empty filter", async () => {
 	expect(await render()).toContain("No Pages yet");
-	expect(await render()).toContain("Create Page");
+	expect(await render()).not.toContain("Create Page");
 	expect(await render({ filtered: true })).toContain("No Pages match");
 	expect(await render({ filtered: true })).not.toContain("Create Page");
 });

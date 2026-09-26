@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PageTitle } from "../../shell/PageTitle";
@@ -13,7 +13,7 @@ import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
 import { SessionList } from "./components/SessionList";
-import { selectedSession, sessionGroups } from "./sessionGroups";
+import { nextSessionArchiveTimeMs, selectedSession, sessionGroups } from "./sessionGroups";
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
 	const { orpc, queryClient } = useApp();
@@ -24,7 +24,8 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const conversationHeading = useRef<HTMLHeadingElement>(null);
 	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
-	const [archived, setArchived] = useState(false);
+	const [showArchived, setShowArchived] = useState(false);
+	const [archiveClock, setArchiveClock] = useState(Date.now());
 	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
@@ -32,7 +33,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	// for a longer window only while a person reads it. Runtime events refresh
 	// the Archived list when new activity moves a run back to the current list.
 	const runsOptions = orpc.agentRuns.list.queryOptions({
-		input: archived
+		input: showArchived
 			? { project: project.id, includePinnedHistory: true, windowHours: 24 * 365, limit: 1000 }
 			: { project: project.id, includePinnedHistory: true, windowHours: 48, limit: 1000 },
 	});
@@ -40,7 +41,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({
 		...runsOptions,
-		refetchInterval: archived ? false : 2000,
+		refetchInterval: showArchived ? false : 2000,
 	});
 	const selectedRun = useQuery({ ...selectedRunOptions, enabled: Boolean(hash) });
 	const sessions = useQuery(sessionsOptions);
@@ -54,17 +55,29 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 		if (hash) void queryClient.resetQueries({ queryKey: selectedRunOptions.queryKey, exact: true });
 		void queryClient.resetQueries({ queryKey: sessionsOptions.queryKey, exact: true });
 	};
-	const listedRuns = runs.data ?? [];
 	const linkedRun = selectedRun.data?.[0];
-	const availableRuns =
-		linkedRun !== undefined && !listedRuns.some((run) => run.id === linkedRun.id)
-			? [...listedRuns, linkedRun]
-			: listedRuns;
-	const items = availableRuns.filter(
-		(run) =>
-			run.kind !== "flow" && (run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id)),
+	const items = useMemo(() => {
+		const listedRuns = runs.data ?? [];
+		const availableRuns =
+			linkedRun !== undefined && !listedRuns.some((run) => run.id === linkedRun.id)
+				? [...listedRuns, linkedRun]
+				: listedRuns;
+		const sessionRunIds = new Set(sessions.data?.map((session) => session.runId));
+		return availableRuns.filter((run) => run.kind !== "flow" && (run.kind !== "session" || sessionRunIds.has(run.id)));
+	}, [runs.data, linkedRun, sessions.data]);
+	useEffect(() => {
+		const nextArchiveTimeMs = nextSessionArchiveTimeMs(items, archiveClock);
+		if (nextArchiveTimeMs === null) return;
+		const timer = window.setTimeout(
+			() => setArchiveClock(Date.now()),
+			Math.min(nextArchiveTimeMs - Date.now() + 1, 2_147_483_647),
+		);
+		return () => window.clearTimeout(timer);
+	}, [items, archiveClock]);
+	const current = useMemo(
+		() => sessionGroups(items, { search: "", showArchived: false, now: archiveClock }),
+		[items, archiveClock],
 	);
-	const current = sessionGroups(items, { search: "", archived: false });
 	const selected = selectedSession(items, current.runs, hash, heldSelectedId);
 	useEffect(() => {
 		if (!hash && selected?.id !== heldSelectedId) setHeldSelectedId(selected?.id);
@@ -91,8 +104,9 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 				setListOpen(false);
 				if (!phone) conversationHeading.current?.focus();
 			}}
-			archived={archived}
-			onArchivedChange={setArchived}
+			showArchived={showArchived}
+			onShowArchivedChange={setShowArchived}
+			archiveClock={archiveClock}
 		/>
 	);
 	return (

@@ -1,5 +1,13 @@
 import { core, io, prepared } from "../../registryEntry";
 import { backfillSearchText, prepareSearchBackfill } from "../backfillSearchText.ts";
+import {
+	createPageComment,
+	deleteComment,
+	editPageComment,
+	listPageComments,
+	replyToPageComment,
+	setPageCommentResolved,
+} from "../comments";
 import * as pageContent from "../content.ts";
 import * as pages from "../pages.ts";
 import { preparePublish, publish } from "../publish.ts";
@@ -10,6 +18,12 @@ export const pageServices = {
 	"pages.backfillSearch": prepared("mutation", prepareSearchBackfill, backfillSearchText),
 	"pages.retention": io("mutation", purgeExpiredPages),
 	"pages.list": core("read", pages.list),
+	"pages.comments": core("read", listPageComments),
+	"pages.comment": core("mutation", createPageComment),
+	"pages.commentReply": core("mutation", replyToPageComment),
+	"pages.commentResolve": core("mutation", setPageCommentResolved),
+	"pages.commentEdit": core("mutation", editPageComment),
+	"pages.commentDelete": core("mutation", deleteComment),
 	"pages.upload": prepared("mutation", pageUploads.prepareUpload, pageUploads.upload),
 	"pages.get": core("read", pages.get),
 	"pages.publish": prepared("mutation", preparePublish, publish),

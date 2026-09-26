@@ -50,7 +50,7 @@ const defaultReply = (path: string): unknown => {
 		case "/rpc/pages/upload":
 			return { id: `01UPLOAD${uploadCount++}` };
 		case "/rpc/pages/publish":
-			return { page: summary, version };
+			return { page: summary, version, link: "trellis://page/01M3D3SJM6ZCR31JSN793PR52J" };
 		case "/rpc/pages/list":
 			return { items: [summary], nextCursor: null };
 		case "/rpc/pages/versions":
@@ -149,7 +149,11 @@ test("a first publication stages the document and names the project and the titl
 		expect((f.calls[1]!.input as { requestId: string }).requestId).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 		);
-		expect(JSON.parse(f.text())).toMatchObject({ page: { ref: "TRL/pages/forecast" }, version: { number: 2 } });
+		expect(JSON.parse(f.text())).toMatchObject({
+			link: "trellis://page/01M3D3SJM6ZCR31JSN793PR52J",
+			page: { ref: "TRL/pages/forecast" },
+			version: { number: 2 },
+		});
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

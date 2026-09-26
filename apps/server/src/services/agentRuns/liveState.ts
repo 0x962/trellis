@@ -169,7 +169,7 @@ const runtimeIds = (runs: StoredRun[], attemptIdsByRun: ReadonlyMap<string, stri
 export async function observeRuns(
 	ctx: Pick<ServiceCtx, "home">,
 	runs: StoredRun[],
-	readSessions: ReadRuntimeSessions = readRuntimeSessions,
+	readSessions: ReadRuntimeSessions = readRuntimeSessionsRequired,
 ): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
 	const ids = [...new Set(runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])))];

@@ -42,7 +42,7 @@ const appOf = (queryClient: QueryClient) =>
 		orpc: { resources: { list: { queryOptions: () => ({ queryKey, queryFn: () => resources }) } } },
 	}) as unknown as AppContext;
 
-const render = (props: { description?: string } = {}) => {
+const render = (props: { description?: string; resourceId?: string } = {}) => {
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(queryKey, resources);
 	return renderToStaticMarkup(
@@ -52,6 +52,7 @@ const render = (props: { description?: string } = {}) => {
 					epic={epic}
 					description={props.description ?? "# Routines E2E\n\nThe goal: settle every routine."}
 					readOnly={false}
+					resourceId={props.resourceId}
 				/>
 			</AppProvider>
 		</QueryClientProvider>,
@@ -79,6 +80,13 @@ describe("EpicResources", () => {
 
 		expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 		expect(current).toContain("Routines E2E");
+	});
+
+	test("selects the resource that an internal link names", () => {
+		const html = render({ resourceId: resources[1]!.id });
+		const current = html.slice(html.indexOf('aria-current="page"'));
+
+		expect(current).toContain("canary#55569");
 	});
 
 	test("offers New document, and no Add menu for links and files", () => {

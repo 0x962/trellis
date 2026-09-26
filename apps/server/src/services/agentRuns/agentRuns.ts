@@ -10,9 +10,8 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
-import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { listExecutionAttempts } from "../assignments.ts";
+import { latestAttemptActivityByRuns, listExecutionAttempts } from "../assignments.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { resolveTicketAge } from "../tickets.ts";
@@ -21,7 +20,7 @@ import { launchRun } from "./launchRun";
 import { launchState } from "./launchState";
 import { observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
-import { getRun, listColumns, type StoredRun } from "./queries.ts";
+import { getRun, listColumns, type StoredRun, storedRows } from "./queries.ts";
 import { reserve } from "./reserve.ts";
 import { aggregateTicketMetrics } from "./ticketMetrics.ts";
 
@@ -29,11 +28,28 @@ type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
 
 // The run list and the metrics route use the same ticket filters and order.
 const ticketRuns = (_ctx: CoreCtx, tx: Tx, ticketId: string, projectId: string | null) =>
-	rows<StoredRun>(
+	storedRows<StoredRun>(
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs WHERE ticket_id = ${ticketId} AND
 		${projectId === null ? sql`true` : sql`project_id = ${projectId}`} ORDER BY created_at DESC, id DESC`,
 	);
+
+const withAttemptActivity = async (tx: Tx, runs: StoredRun[]) => {
+	const attempts = new Map(
+		(
+			await latestAttemptActivityByRuns(
+				tx,
+				runs.map((run) => run.id),
+			)
+		).map((attempt) => [attempt.runId, attempt.activityAt]),
+	);
+	return runs.map((run) => {
+		const attemptAt = attempts.get(run.id);
+		return attemptAt !== undefined && (run.activityAt === null || attemptAt > run.activityAt)
+			? { ...run, activityAt: attemptAt }
+			: run;
+	});
+};
 
 // The window keeps every open run. It also keeps each closed run whose
 // `updated_at` value falls inside `windowHours`. A caller that names `ids`
@@ -66,8 +82,8 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
 	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}`;
 	const window = withinWindow(input, ticket === null ? null : ticket.id, ctx.now);
-	if (input.includePinnedHistory)
-		return rows<StoredRun>(
+	if (input.includePinnedHistory) {
+		const runs = await storedRows<StoredRun>(
 			tx,
 			sql`WITH pinned AS (
 					SELECT ${listColumns} FROM agent_runs
@@ -82,18 +98,29 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 				SELECT * FROM recent
 				ORDER BY "pinnedAt" DESC NULLS LAST, "createdAt" DESC, id DESC`,
 		);
-	return rows<StoredRun>(
+		return withAttemptActivity(tx, runs);
+	}
+	const runs = await storedRows<StoredRun>(
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${window}
 		ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}`,
 	);
+	return withAttemptActivity(tx, runs);
 };
 
-export const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[], home?: string) =>
+const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[], home?: string) =>
 	runs
 		.map((run) => projectRun(run, sessions, home))
 		.filter((run) => ["interrupted", "failed"].includes(run.state))
 		.map(({ id, state, error }) => ({ id, state, error }));
+
+export const listUnresolvedAttempts = async (tx: Tx, input: { sessions: RuntimeProcessStatus[]; home: string }) => {
+	const runs = await storedRows<StoredRun>(
+		tx,
+		sql`SELECT ${listColumns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
+	);
+	return projectUnresolvedAttempts(runs, input.sessions, input.home);
+};
 
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
