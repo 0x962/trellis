@@ -1,6 +1,15 @@
 import type { Label } from "@trellis/api";
 import { LabelDescriptionSchema, LabelNameSchema } from "@trellis/api";
-import { Button, Input, type LabelColor, LabelDot, labelColors, Select, type SelectItem } from "@trellis/ui";
+import {
+	Button,
+	FormStatus,
+	Input,
+	type LabelColor,
+	LabelDot,
+	labelColors,
+	Select,
+	type SelectItem,
+} from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
@@ -101,12 +110,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 						setMessage(null);
 					}}
 				/>
-				<div className="status-row-field">
-					<span aria-hidden="true" className="status-row-field-label">
-						Color
-					</span>
-					<Select label="Color" items={items} value={color} onValueChange={setColor} className="h-8" />
-				</div>
+				<Select label="Color" hideLabel={false} items={items} value={color} onValueChange={setColor} className="h-8" />
 			</div>
 			<Input
 				label="Description"
@@ -122,11 +126,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 					Save
 				</Button>
 			</div>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} />}
 		</form>
 	);
 }
