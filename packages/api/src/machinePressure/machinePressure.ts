@@ -1,6 +1,6 @@
-import type { MemoryPressureLevel, ThermalState } from "../schemas/system.ts";
+import type { DiskCapacity, MemoryPressureLevel, ThermalState } from "../schemas/system.ts";
 
-export const machinePressureSignalKeys = ["cpuLoad", "memory", "thermal", "temperature"] as const;
+export const machinePressureSignalKeys = ["cpuLoad", "memory", "thermal", "temperature", "disk"] as const;
 export type MachinePressureSignalKey = (typeof machinePressureSignalKeys)[number];
 export type MachinePressureTier = "normal" | "warning" | "danger";
 export type MachinePressureFreshness = "live" | "stale" | "unavailable" | "lost";
@@ -16,7 +16,10 @@ export type TemperatureReading = TimedReading<number> & {
 	readDurationMs: number;
 };
 
+export type DiskReading = TimedReading<Extract<DiskCapacity, { state: "available" }>>;
+
 export type MachinePressureReadings = {
+	disk: DiskReading | null;
 	cpuLoad: TimedReading<number> | null;
 	memory: TimedReading<MemoryPressureLevel> | null;
 	thermal: TimedReading<ThermalState> | null;
@@ -39,6 +42,18 @@ type NumericPolicy = {
 // These values control the Trellis indicator. They are operational display
 // thresholds, not processor throttle limits or native pressure levels.
 export const MACHINE_PRESSURE_POLICY = {
+	disk: {
+		// The score is negative available GiB, so less space raises the tier.
+		warningAt: -10,
+		dangerAt: -3,
+		warningDwellMs: 0,
+		dangerDwellMs: 0,
+		warningRecoveryBelow: -12,
+		dangerRecoveryBelow: -5,
+		recoveryDwellMs: 30_000,
+		staleAfterMs: 15_000,
+		lostAfterMs: 60_000,
+	},
 	cpuLoad: {
 		warningAt: 2,
 		dangerAt: 4,
@@ -93,6 +108,7 @@ export type MachinePressureSignalState<T> = {
 };
 
 export type MachinePressureState = {
+	disk: MachinePressureSignalState<DiskReading["value"]>;
 	cpuLoad: MachinePressureSignalState<number>;
 	memory: MachinePressureSignalState<MemoryPressureLevel>;
 	thermal: MachinePressureSignalState<ThermalState>;
@@ -228,6 +244,7 @@ const updateSignal = <T>(
 };
 
 export class MachinePressureMonitor {
+	private readonly disk = initialSignal<DiskReading["value"]>();
 	private readonly cpuLoad = initialSignal<number>();
 	private readonly memory = initialSignal<MemoryPressureLevel>();
 	private readonly thermal = initialSignal<ThermalState>();
@@ -237,6 +254,14 @@ export class MachinePressureMonitor {
 
 	update(readings: MachinePressureReadings, now: number): MachinePressureState {
 		return {
+			disk: updateSignal(
+				"disk",
+				this.disk,
+				readings.disk,
+				(value) => -value.availableBytes / 1024 ** 3,
+				now,
+				readings.disk === null ? "failed" : null,
+			),
 			cpuLoad: updateSignal("cpuLoad", this.cpuLoad, readings.cpuLoad, (value) => value, now),
 			memory: updateSignal("memory", this.memory, readings.memory, (value) => value, now),
 			thermal: updateSignal("thermal", this.thermal, readings.thermal, thermalScore, now),

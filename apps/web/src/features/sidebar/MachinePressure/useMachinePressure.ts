@@ -69,6 +69,8 @@ export function useMachinePressure(includeRuns: boolean) {
 		const sampledAt = Date.parse(sample.sampledAt);
 		const processorTemperature = sample.processorTemperature;
 		const readings: MachinePressureReadings = {
+			disk:
+				sample.disk.state === "available" ? { value: sample.disk, sampledAt: Date.parse(sample.disk.sampledAt) } : null,
 			cpuLoad: sample.loadPerCore === null ? null : { value: sample.loadPerCore, sampledAt },
 			memory: sample.memoryLevel === null ? null : { value: sample.memoryLevel, sampledAt },
 			thermal: thermalReadingForOrigin(thermalCycle.sample, window.location.origin),

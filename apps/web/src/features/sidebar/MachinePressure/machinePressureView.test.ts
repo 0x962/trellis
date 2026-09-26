@@ -18,6 +18,7 @@ const sample: MachinePressure = {
 		readDurationMs: 2.5,
 	},
 	runs: [],
+	disk: { state: "failed", path: "/agents" },
 };
 
 const readings = (at: number): MachinePressureReadings => ({
@@ -26,6 +27,7 @@ const readings = (at: number): MachinePressureReadings => ({
 	thermal: { value: "critical", sampledAt: at },
 	temperature: { value: 97, sampledAt: at, sensor: "PMU tdie6", readDurationMs: 2.5 },
 	temperatureReader: "available",
+	disk: null,
 });
 
 describe("thermalReadingForOrigin", () => {
@@ -78,4 +80,30 @@ describe("machinePressureView", () => {
 		expect(view.readings.every((reading) => reading.freshness === "stale")).toBe(true);
 		expect(view.ageText).toBe("Last read 34 s ago.");
 	});
+});
+
+test("disk details keep the host volume identity through failure and recovery", () => {
+	const monitor = new MachinePressureMonitor();
+	const disk = {
+		state: "available" as const,
+		path: "/remote/agents",
+		volumeId: "42",
+		sampledAt: sample.sampledAt,
+		availableBytes: 2 * 1024 ** 3,
+		totalBytes: 100 * 1024 ** 3,
+		usedPercent: 98,
+	};
+	const input = { ...readings(0), disk: { value: disk, sampledAt: 0 } };
+	const low = machinePressureView({ ...sample, hostname: "remote-host", disk }, monitor.update(input, 0), 0);
+	expect(low.name).toBe("remote-host");
+	expect(low.readings.find((s) => s.key === "disk")).toMatchObject({
+		value: "2.0 GiB",
+		unit: "available",
+		detail: "100.0 GiB total · 98.0% used. Volume 42 · /remote/agents",
+	});
+	expect(low.details).toEqual([]);
+	const stale = machinePressureView(sample, monitor.update(readings(1), 1), 1);
+	expect(stale.readings.find((s) => s.key === "disk")).toMatchObject({ value: "2.0 GiB", freshness: "stale" });
+	const lost = machinePressureView(sample, monitor.update(readings(60_000), 60_000), 60_000);
+	expect(lost.details).toMatchObject([{ key: "disk", value: "Unavailable", freshness: "lost" }]);
 });

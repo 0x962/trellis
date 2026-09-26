@@ -2,9 +2,11 @@ import { cpus, hostname, loadavg, platform } from "node:os";
 import type { MachinePressure, MachinePressureInput, PressureRun } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
+import { agentWorkspacesRoot } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { IoCtx } from "../support.ts";
+import { readDiskCapacity } from "./diskCapacity.ts";
 import { readMemoryPressureLevel } from "./memoryPressureLevel.ts";
 import { readProcessGroupMemory } from "./processGroupMemory.ts";
 import { readProcessorTemperature } from "./processorTemperature.ts";
@@ -42,9 +44,10 @@ export const heaviestRuns = (
 };
 
 export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureInput): Promise<MachinePressure> => {
-	const [memoryLevel, processorTemperature] = await Promise.all([
+	const [memoryLevel, processorTemperature, disk] = await Promise.all([
 		readMemoryPressureLevel(),
 		readProcessorTemperature(),
+		readDiskCapacity(agentWorkspacesRoot(ctx.home)),
 	]);
 	const sampledAt = ctx.now().toISOString();
 	const cpuCount = cpus().length;
@@ -57,6 +60,7 @@ export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureI
 		...hostLoad(hostPlatform, cpuCount, loadavg()[0]!),
 		memoryLevel,
 		processorTemperature,
+		disk,
 	};
 	if (!input.includeRuns) return { ...base, runs: [] };
 	const openRuns = await ctx.newTx((tx) =>
