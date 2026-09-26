@@ -4,11 +4,12 @@ type Options = {
 	clearTimer: (id: number) => void;
 	log: (message: string, fields?: Record<string, unknown>) => void;
 	intervalMs?: number;
+	overlap?: boolean;
 };
 export function startNativeReconcile(options: Options) {
 	let stopped = false;
 	let timer: number | null = null;
-	let active: Promise<void> | null = null;
+	const active = new Set<Promise<void>>();
 	const schedule = () => {
 		if (stopped) return;
 		timer = options.setTimer(() => {
@@ -18,12 +19,13 @@ export function startNativeReconcile(options: Options) {
 	};
 	const tick = (): Promise<void> => {
 		if (stopped) return Promise.resolve();
-		if (active) return active;
+		if (!options.overlap && active.size > 0) return active.values().next().value!;
 		if (timer !== null) {
 			options.clearTimer(timer);
 			timer = null;
 		}
-		active = options
+		if (options.overlap) schedule();
+		const work = options
 			.tick()
 			.then(
 				() => {},
@@ -34,10 +36,11 @@ export function startNativeReconcile(options: Options) {
 				},
 			)
 			.finally(() => {
-				active = null;
-				schedule();
+				active.delete(work);
+				if (!options.overlap) schedule();
 			});
-		return active;
+		active.add(work);
+		return work;
 	};
 	void tick();
 	return {
@@ -46,7 +49,7 @@ export function startNativeReconcile(options: Options) {
 			stopped = true;
 			if (timer !== null) options.clearTimer(timer);
 			timer = null;
-			await active;
+			await Promise.all(active);
 		},
 	};
 }

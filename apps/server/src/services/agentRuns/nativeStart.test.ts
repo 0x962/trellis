@@ -77,7 +77,7 @@ const closedAt = async (id: string) =>
 // attempt the runtime ended for idleness, which no test here does.
 const client = {} as RuntimeClient;
 
-const launch = async (runId: string) => {
+const launch = async (runId: string, prompt?: string) => {
 	const terminalId = crypto.randomUUID();
 	start.mockImplementation(async () => ({ process: exitedProcess(terminalId) }));
 	const run = await db.transaction((tx) => getRun(tx, runId));
@@ -94,7 +94,12 @@ const launch = async (runId: string) => {
 			resume: false,
 			attempt: { id: terminalId, generation: 1, token: "launch-token" },
 		},
-		{ workspace: async () => home, runtime: async () => client, env: {} },
+		{
+			workspace: async () => home,
+			runtime: async () => client,
+			env: {},
+			...(prompt === undefined ? {} : { guide: async () => prompt }),
+		},
 	);
 	return terminalId;
 };
@@ -175,4 +180,21 @@ test("a resume receives only its new message", async () => {
 	expect(await promptForLaunch(true, "Read this comment.", async () => "Do the saved assignment.")).toBe(
 		"Read this comment.",
 	);
+});
+
+test("an oversized flow prompt fails before launch and preserves its attempt and error", async () => {
+	const runId = await seed("flow");
+	const starts = start.mock.calls.length;
+	await expect(launch(runId, "x".repeat(200_001))).rejects.toThrow("200001 characters; the runtime limit is 200000");
+	expect(start.mock.calls.length).toBe(starts);
+	const run = await db.transaction((tx) => getRun(tx, runId));
+	expect(run.terminalId).not.toBeNull();
+	expect(run.closedAt).not.toBeNull();
+	expect(run.error).toContain("200001 characters");
+});
+
+test("a flow prompt at the runtime limit launches intact", async () => {
+	const runId = await seed("flow");
+	await launch(runId, "x".repeat(200_000));
+	expect(start.mock.calls.at(-1)![0].prompt).toHaveLength(200_000);
 });

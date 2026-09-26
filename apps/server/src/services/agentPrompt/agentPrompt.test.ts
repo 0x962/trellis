@@ -8,6 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 import { getRun, type LaunchRun } from "../agentRuns/queries.ts";
 import { create as createEpic } from "../epics/epics.ts";
 import { create as createNote } from "../notes/notes.ts";
+import { ensurePr } from "../reviews/queries.ts";
 import { create as createTicket } from "../tickets/create.ts";
 import { create as createWave } from "../waves/waves.ts";
 import { agentPrompt } from "./agentPrompt.ts";
@@ -188,4 +189,32 @@ test("flow instructions and session requests remain in the common guide", async 
 		expect(prompt).toContain("Continue the same conversation");
 		expect(prompt.match(/^# Trellis$/gm)).toHaveLength(1);
 	}
+});
+
+test("three pull requests with 225 CI checks use explicit summaries below the runtime limit", async () => {
+	const checks = Array.from({ length: 75 }, (_, index) => ({
+		name: `CI check ${index} ${"long job name ".repeat(12)}`,
+		workflow: "Canary checks",
+		bucket: ["pass", "fail", "pending", "skipping", "cancel"][index % 5],
+		link: `https://github.com/example/app/actions/runs/${index}`,
+		startedAt: at.toISOString(),
+		endedAt: at.toISOString(),
+	}));
+	for (let number = 1; number <= 3; number++) {
+		const pr = await tx((tx) => ensurePr(tx, `example/app#${number}`));
+		await db.execute(sql`UPDATE pull_requests SET checks=${JSON.stringify(checks)}::jsonb WHERE id=${pr.id}`);
+		await db.execute(
+			sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at) VALUES (${run.ticketId},${pr.id},'manual','Sam','human',${at})`,
+		);
+	}
+	const request = `Review responsibility. ${"Full task context. ".repeat(6000)}`;
+	const prompt = await tx((tx) => agentPrompt(ctx, tx, { ...input(), run: { ...run, kind: "flow" }, request }));
+	expect(prompt.length).toBeLessThan(200_000);
+	expect(prompt.length + JSON.stringify(checks, null, 2).length * 3).toBeGreaterThan(200_000);
+	expect(prompt).toContain(request);
+	expect(prompt).not.toContain(checks[0]!.name);
+	expect(prompt).toContain('"cancel": 15');
+	expect(prompt).toContain("Diffs contain summaries.");
+	for (let number = 1; number <= 3; number++)
+		expect(prompt).toContain(`trellis diff show https://github.com/example/app/pull/${number} --json`);
 });
