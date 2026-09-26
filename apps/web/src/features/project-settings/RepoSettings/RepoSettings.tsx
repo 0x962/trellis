@@ -19,13 +19,13 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 		currentRepos.current = next;
 		onChange(next);
 	};
-	const [value, setValue] = useState("");
+	const [draft, setDraft] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const addButton = useRef<HTMLButtonElement>(null);
-	const add = () => {
-		if (disabled || value.trim() === "") return;
+	const addRepo = () => {
+		if (disabled || draft.trim() === "") return;
 		const match = /^(?:https:\/\/github\.com\/)?([a-z0-9_.-]+)\/([a-z0-9_.-]+?)(?:\.git)?\/?$/.exec(
-			value.trim().toLowerCase(),
+			draft.trim().toLowerCase(),
 		);
 		if (match === null) {
 			const message = "Use a GitHub URL or owner/repository.";
@@ -36,7 +36,7 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 		const entry = { owner: match[1]!, repo: match[2]! };
 		if (!currentRepos.current.some((repo) => repo.owner === entry.owner && repo.repo === entry.repo))
 			changeRepos([...currentRepos.current, entry]);
-		setValue("");
+		setDraft("");
 		setError(null);
 		onError(null);
 		onDraftChange(false);
@@ -48,7 +48,7 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			className="flex min-w-0 flex-col gap-2"
 			onBlur={(event) => {
 				if (!event.currentTarget.contains(event.relatedTarget)) {
-					add();
+					addRepo();
 					onBlur();
 				}
 			}}
@@ -56,23 +56,23 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			<Input
 				label="Repositories"
 				placeholder="https://github.com/owner/repository"
-				value={value}
+				value={draft}
 				hint="Connect GitHub repositories to find pull requests for project tickets."
 				error={error ?? undefined}
 				disabled={disabled}
 				onChange={(event) => {
-					setValue(event.target.value);
+					setDraft(event.target.value);
 					setError(null);
 					onError(null);
 					onDraftChange(event.target.value !== "");
 				}}
 				onBlur={(event) => {
-					if (event.relatedTarget !== addButton.current) add();
+					if (event.relatedTarget !== addButton.current) addRepo();
 				}}
 				onKeyDown={(event) => {
 					if (event.key === "Enter") {
 						event.preventDefault();
-						add();
+						addRepo();
 					}
 				}}
 				trailingAction={
@@ -81,8 +81,8 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 							ref={addButton}
 							label="Add repository"
 							icon={<Plus />}
-							disabled={disabled || value.trim() === ""}
-							onClick={add}
+							disabled={disabled || draft.trim() === ""}
+							onClick={addRepo}
 						/>
 					</Tooltip>
 				}

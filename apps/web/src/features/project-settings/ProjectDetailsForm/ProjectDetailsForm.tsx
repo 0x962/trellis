@@ -52,7 +52,7 @@ export function ProjectDetailsForm({ project, value, onChange, onBlur, disabled 
 				value={value.color}
 				taken={taken}
 				disabled={disabled}
-				onValueChange={(value) => onChange("color", value)}
+				onValueChange={(nextColor) => onChange("color", nextColor)}
 				onBlur={() => onBlur("color")}
 			/>
 		</>
