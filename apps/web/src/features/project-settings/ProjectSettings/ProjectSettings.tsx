@@ -3,19 +3,15 @@ import { SettingsNav } from "@trellis/ui";
 import type { ReactNode } from "react";
 
 import { NotesSettings } from "../../notes/NotesSettings";
-import { LabelSettings } from "../LabelSettings";
 import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
 import { ProjectLifecycle } from "../ProjectLifecycle";
 import type { ProjectSettingsSectionId } from "../projectSettingsUrl";
-import { StatusSettings } from "../StatusSettings";
-import { TicketTemplateSettings } from "../TicketTemplateSettings";
+import { WorkflowSettings } from "../WorkflowSettings";
 
 const sections: readonly { id: ProjectSettingsSectionId; label: string }[] = [
 	{ id: "", label: "General" },
+	{ id: "workflow", label: "Workflow" },
 	{ id: "notes", label: "Notes" },
-	{ id: "template", label: "Ticket template" },
-	{ id: "statuses", label: "Statuses" },
-	{ id: "labels", label: "Labels" },
 	{ id: "archive", label: "Danger Zone" },
 ];
 
@@ -40,12 +36,8 @@ function ProjectSettingsContent({ project, section, onSectionChange }: ProjectSe
 				return <ProjectGeneralSettings project={project} />;
 			case "notes":
 				return section === "notes" ? <NotesSettings project={project} /> : null;
-			case "template":
-				return <TicketTemplateSettings project={project} />;
-			case "statuses":
-				return <StatusSettings project={project} />;
-			case "labels":
-				return <LabelSettings project={project} />;
+			case "workflow":
+				return <WorkflowSettings project={project} />;
 			case "archive":
 				return <ProjectLifecycle project={project} />;
 		}

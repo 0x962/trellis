@@ -50,7 +50,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 
 	if (query.error !== null || countsQuery.error !== null) {
 		return (
-			<SettingsSection title="Statuses" hint="Statuses define the workflow for tickets in this project.">
+			<SettingsSection title="Statuses">
 				<p role="alert" className="text-sm text-danger">
 					Unable to load statuses. Refresh the page.
 				</p>
@@ -60,7 +60,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 
 	if (data === undefined || counts === undefined) {
 		return (
-			<SettingsSection title="Statuses" hint="Statuses define the workflow for tickets in this project.">
+			<SettingsSection title="Statuses">
 				<Skeleton lines={5} height="h-14" />
 			</SettingsSection>
 		);
@@ -69,7 +69,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 	const countByStatus = new Map(counts.byStatus.map((entry) => [entry.statusId, entry.count]));
 
 	return (
-		<SettingsSection title="Statuses" hint="Statuses define the workflow for tickets in this project.">
+		<SettingsSection title="Statuses">
 			<div className="status-groups">
 				{categories.map((category) => {
 					const statuses = data.statuses.filter((status) => status.category === category.value);
