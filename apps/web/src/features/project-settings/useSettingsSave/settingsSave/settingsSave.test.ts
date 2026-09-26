@@ -63,3 +63,22 @@ test("an unchanged field sends no request", async () => {
 	await store.saveField("name");
 	expect(calls).toBe(0);
 });
+
+test("duplicate blur events share a pending write and do not retry its failure", async () => {
+	const response = Promise.withResolvers<void>();
+	let calls = 0;
+	const store = settingsSave({ repos: ["example/one"] }, async () => {
+		calls += 1;
+		await response.promise;
+	});
+	store.setField("repos", ["example/one", "example/two"]);
+	const first = store.saveField("repos");
+	const second = store.saveField("repos");
+	await Promise.resolve();
+	response.reject(new Error("Save failed"));
+	await Promise.all([first, second]);
+	expect(calls).toBe(1);
+	expect(store.getSnapshot().status).toEqual({ pending: false, dirty: true, error: "Save failed" });
+	await store.saveField("repos");
+	expect(calls).toBe(2);
+});

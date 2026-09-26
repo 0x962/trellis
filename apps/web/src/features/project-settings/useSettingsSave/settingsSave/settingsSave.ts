@@ -5,6 +5,7 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 	let saved = initialValue;
 	let pending = 0;
 	let queue = Promise.resolve();
+	const queued = new Map<keyof T, { value: T[keyof T]; promise: Promise<void> }>();
 	const errors = new Map<keyof T, string>();
 	const listeners = new Set<() => void>();
 	const status = (): SettingsSaveStatus => ({
@@ -32,6 +33,8 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 		},
 		saveField: <K extends keyof T>(key: K) => {
 			const next = value[key];
+			const previous = queued.get(key);
+			if (previous && Object.is(previous.value, next)) return previous.promise;
 			pending += 1;
 			publish();
 			queue = queue.then(async () => {
@@ -47,8 +50,11 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 					}
 				}
 				pending -= 1;
+				if (queued.get(key) === request) queued.delete(key);
 				publish();
 			});
+			const request = { value: next, promise: queue };
+			queued.set(key, request);
 			return queue;
 		},
 	};
