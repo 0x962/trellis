@@ -1,6 +1,7 @@
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Check } from "@phosphor-icons/react";
+import type { Ref } from "react";
 import { cx } from "../../../../utils/cx";
 import { ProjectMark } from "../../../ProjectMark";
 import { freeProjectColors, projectColorLabels, projectColors } from "../../../projectColors";
@@ -9,7 +10,13 @@ import type { ProjectColorFieldProps } from "../../ProjectColorField";
 const cellClass =
 	"group relative inline-flex size-7 shrink-0 items-center justify-center rounded-md border transition-opacity duration-hover pointer-coarse:size-11 max-sm:size-11 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 data-checked:outline-2 data-checked:outline-offset-2 data-checked:outline-fg";
 
-export function ProjectColorGrid({ value, taken, onValueChange, label = "Color" }: ProjectColorFieldProps) {
+export function ProjectColorGrid({
+	value,
+	taken,
+	onValueChange,
+	label = "Color",
+	selectedRef,
+}: ProjectColorFieldProps & { selectedRef?: Ref<HTMLSpanElement> }) {
 	const free = freeProjectColors(taken, value);
 	return (
 		<RadioGroup
@@ -23,6 +30,7 @@ export function ProjectColorGrid({ value, taken, onValueChange, label = "Color" 
 				return (
 					<Radio.Root
 						key={color}
+						ref={value === color ? selectedRef : undefined}
 						value={color}
 						disabled={held}
 						data-project-color={color}
@@ -40,6 +48,7 @@ export function ProjectColorGrid({ value, taken, onValueChange, label = "Color" 
 			})}
 			<Radio.Root
 				value="none"
+				ref={value === null ? selectedRef : undefined}
 				aria-label="No color"
 				onClick={() => {
 					if (value === null) onValueChange(null);
