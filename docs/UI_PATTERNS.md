@@ -86,6 +86,11 @@ A field uses its hint slot for an error or reason, with no second message beneat
 Its states are `idle`, `saving`, `saved`, and `error`. It reserves one hint line in every state.
 The Field gallery section shows all five variants and the save states.
 
+Use `ProjectColorField` for a project colour. Its trigger shows the current swatch and name, or the empty mark and None.
+The popover keeps every swatch in palette order and disables a colour held by another project.
+A selection closes the popover and returns focus to the trigger. Escape closes it without a change.
+The `onBlur` callback fires after focus leaves both the trigger and the popover.
+
 ## Edit a short value in place
 
 Use `InlineEdit` wherever a person renames a thing without leaving the page.
