@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
-import { Button, Textarea } from "@trellis/ui";
+import { Button, FormStatus, Textarea } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { SettingsSection } from "../SettingsSection";
@@ -22,27 +22,21 @@ export function TicketTemplateSettings({ project }: { project: Project }) {
 				<div className="project-settings-group">
 					<Textarea
 						label="Ticket template"
+						hint="Use Markdown for headings, checklists, and instructions."
 						rows={14}
 						value={template}
 						onChange={(event) => setTemplate(event.target.value)}
 					/>
-					<p className="text-sm text-fg-muted">Use Markdown for headings, checklists, and instructions.</p>
 				</div>
 				<div className="project-settings-save">
 					<Button type="submit" variant="primary" disabled={mutation.isPending}>
 						Save template
 					</Button>
-					{mutation.isSuccess && (
-						<p role="status" className="text-sm text-fg-muted">
-							Template saved.
-						</p>
-					)}
+					<FormStatus
+						status={mutation.isPending ? "saving" : mutation.error ? "error" : mutation.isSuccess ? "saved" : "idle"}
+						message={mutation.error?.message}
+					/>
 				</div>
-				{mutation.error && (
-					<p role="alert" className="text-sm text-danger">
-						{mutation.error.message}
-					</p>
-				)}
 			</SettingsSection>
 		</form>
 	);

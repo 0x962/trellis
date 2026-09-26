@@ -13,7 +13,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 	{
 		label,
 		hideLabel = false,
-		invalid = false,
 		variant = "default",
 		hint,
 		error,
@@ -33,7 +32,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 			label={label}
 			hideLabel={hideLabel}
 			hint={hint}
-			invalid={invalid}
 			error={error}
 			readOnly={readOnly}
 			readOnlyReason={readOnlyReason}
@@ -49,7 +47,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 						: "resize-y border bg-surface px-2.5 py-1.5 focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
 					"disabled:opacity-50 read-only:bg-bg aria-invalid:border-danger aria-invalid:focus-visible:border-danger",
 					variant === "default" &&
-						(invalid || error !== undefined ? "border-danger" : "border-border enabled:hover:border-border-strong"),
+						(error !== undefined ? "border-danger" : "border-border enabled:hover:border-border-strong"),
 					className,
 				)}
 				{...props}

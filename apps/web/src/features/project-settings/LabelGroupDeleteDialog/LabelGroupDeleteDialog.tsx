@@ -83,7 +83,7 @@ export function LabelGroupDeleteDialog({ project, group, labels, onDeleted, onCl
 			{labelCount > 0 && (
 				<ChoiceGroup label="What happens to the labels" options={options} value={choice} onValueChange={setChoice} />
 			)}
-			{message !== null && <FormStatus state="error" message={message} />}
+			{message !== null && <FormStatus status="error" message={message} />}
 		</ConfirmDialog>
 	);
 }
