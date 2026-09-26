@@ -130,6 +130,20 @@ export const PressureRunSchema = z.object({
 });
 export type PressureRun = z.infer<typeof PressureRunSchema>;
 
+export const DiskCapacitySchema = z.discriminatedUnion("state", [
+	z.object({
+		state: z.literal("available"),
+		path: z.string(),
+		volumeId: z.string(),
+		sampledAt: IsoDateTimeSchema,
+		availableBytes: CountSchema,
+		totalBytes: CountSchema,
+		usedPercent: z.number().min(0).max(100),
+	}),
+	z.object({ state: z.literal("failed"), path: z.string() }),
+]);
+export type DiskCapacity = z.infer<typeof DiskCapacitySchema>;
+
 // `loadPerCore` is the one-minute load average divided by the logical CPU
 // count. It is a ratio of queued processes, not a native pressure level.
 // Node reports a false zero load on Windows, so both load fields are null
@@ -146,6 +160,7 @@ export const MachinePressureSchema = z.object({
 	loadPerCore: z.number().nonnegative().nullable(),
 	memoryLevel: MemoryPressureLevelSchema.nullable(),
 	processorTemperature: ProcessorTemperatureSchema,
+	disk: DiskCapacitySchema,
 	runs: z.array(PressureRunSchema),
 });
 export type MachinePressure = z.infer<typeof MachinePressureSchema>;

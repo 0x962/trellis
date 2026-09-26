@@ -9,8 +9,8 @@ export type MachinePressureReadingView = {
 	label: string;
 	value: string;
 	unit?: string;
-	tone: "warning" | "danger";
-	freshness: "live" | "stale";
+	tone: "normal" | "warning" | "danger";
+	freshness: "live" | "stale" | "unavailable" | "lost";
 	detail?: string;
 };
 
@@ -18,6 +18,7 @@ export type MachinePressureMachineView = {
 	id: string;
 	name: string;
 	readings: MachinePressureReadingView[];
+	details?: MachinePressureReadingView[];
 	runs?: string[];
 	ageText?: string;
 };
@@ -57,13 +58,13 @@ function PressureDots({ machines, collapsed }: { machines: MachinePressureMachin
 		);
 	}
 	return (
-		<span className="sidebar-trailing w-10 gap-1 pointer-coarse:w-15" aria-hidden="true">
+		<span className="sidebar-trailing min-w-10 gap-1 pointer-coarse:min-w-15" aria-hidden="true">
 			{machines.flatMap((machine) =>
 				machine.readings.map((reading) => (
 					<AttentionDot
 						key={`${machine.id}:${reading.key}`}
 						label={`${reading.label} is ${reading.tone}`}
-						tone={reading.tone}
+						tone={reading.tone === "danger" ? "danger" : "warning"}
 						tooltip={false}
 						focusable={false}
 					/>
@@ -80,21 +81,26 @@ function MachinePanel({ machines, usageLink }: Pick<MachinePressureProps, "machi
 				<section key={machine.id} className={cx("p-3", index > 0 && "border-border border-t")}>
 					<p className="truncate text-xs text-fg-muted uppercase tracking-wide">Machine · {machine.name}</p>
 					<dl className="mt-3 flex flex-col gap-2">
-						{machine.readings.map((reading) => (
+						{[...machine.readings, ...(machine.details ?? [])].map((reading) => (
 							<div key={reading.key}>
 								<div className="flex min-w-0 items-baseline gap-3 text-sm">
 									<dt className="min-w-0 flex-1 text-fg">{reading.label}</dt>
 									<dd
 										className={cx(
 											"shrink-0 text-right font-medium tabular",
-											reading.tone === "danger" ? "text-danger" : "text-warning",
+											reading.tone === "danger"
+												? "text-danger"
+												: reading.tone === "warning"
+													? "text-warning"
+													: "text-fg-muted",
 										)}
 									>
 										{reading.value}
 										{reading.unit && <span className="font-normal text-fg-faint"> {reading.unit}</span>}
 									</dd>
 								</div>
-								{reading.detail && <p className="mt-1 text-xs text-fg-faint">{reading.detail}</p>}
+								{reading.freshness === "stale" && <p className="text-xs text-fg-muted">Stale reading</p>}
+								{reading.detail && <p className="mt-1 break-words text-xs text-fg-faint">{reading.detail}</p>}
 							</div>
 						))}
 					</dl>

@@ -12,6 +12,7 @@ const normal = (at: number): MachinePressureReadings => ({
 	thermal: { value: "nominal", sampledAt: at },
 	temperature: { value: 52, sampledAt: at, sensor: "PMU tdie6", readDurationMs: 2.5 },
 	temperatureReader: "available",
+	disk: null,
 });
 
 describe("MACHINE_PRESSURE_POLICY", () => {
@@ -123,6 +124,7 @@ describe("MachinePressureMonitor", () => {
 			thermal: { value: "critical", sampledAt: 0 },
 			temperature: { value: 97, sampledAt: 0, sensor: "PMU tdie6", readDurationMs: 2.5 },
 			temperatureReader: "available",
+			disk: null,
 		};
 		monitor.update(allHigh, 0);
 		const state = monitor.update(

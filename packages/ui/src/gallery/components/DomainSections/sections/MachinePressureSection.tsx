@@ -6,6 +6,15 @@ import {
 import { Section } from "../../Section";
 
 const readings = {
+	disk: {
+		key: "disk",
+		label: "Disk space",
+		value: "2.0 GiB",
+		unit: "available",
+		tone: "danger",
+		freshness: "live",
+		detail: "926.4 GiB total · 99.8% used. Volume 16777232 · /Users/navidkhan/.trellis/agents",
+	},
 	cpuLoad: {
 		key: "cpuLoad",
 		label: "CPU load",

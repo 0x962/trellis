@@ -74,7 +74,16 @@ An unconfirmed process prevents a successful stop.
 
 The verified host release contains a macOS processor temperature helper.
 The service passes its absolute release path to the server.
-The server owns CPU load, memory pressure, and processor temperature for one host.
+The server owns CPU load, memory pressure, processor temperature, and disk capacity for one host.
+Each five-second sample reads filesystem capacity for the resolved agent workspace root.
+The disk result identifies the host, the resolved path, and the filesystem device number.
+`statfs` supplies available bytes and total bytes. Used percentage is `(blocks - bfree) / blocks * 100`.
+APFS snapshots and shared container space can make this percentage differ from `df`.
+Disk space warns at 10 GiB or less and enters danger at 3 GiB or less, without a delay.
+Warning clears after 30 seconds above 12 GiB. Danger clears after 30 seconds above 5 GiB.
+These are display thresholds. They do not trigger cleanup or stop agents.
+A failed read retains the previous value as stale, then removes it at 60 seconds.
+A sample older than 15 seconds is stale. A failed first read shows no capacity value.
 Each pressure sample starts at most one helper process, with a two-second limit.
 The helper reads the highest `PMU tdie` event from the private `IOHIDEventSystemClient` interface.
 A missing helper, an unsupported sensor, or a failed process supplies no temperature value.
