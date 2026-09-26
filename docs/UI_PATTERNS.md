@@ -82,7 +82,7 @@ A trailing icon action uses `IconButton` inside `Tooltip`.
 A read-only text value remains selectable and focusable.
 A hint states what the value does. For example, "Every ticket ID starts with OP."
 A field uses its hint slot for an error or reason, with no second message beneath it.
-`FormStatus` reports a save through `state` and optional `message`.
+`FormStatus` reports a save through `status` and optional `message`.
 Its states are `idle`, `saving`, `saved`, and `error`. It reserves one hint line in every state.
 The Field gallery section shows all five variants and the save states.
 

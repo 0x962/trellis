@@ -41,7 +41,7 @@ export function ActorNameField() {
 					label="Your name"
 					hideLabel
 					value={value}
-					invalid={message !== null}
+					error={message ?? undefined}
 					autoComplete="off"
 					spellCheck={false}
 					className="max-w-64"
@@ -50,7 +50,6 @@ export function ActorNameField() {
 				/>
 				<SavedMark savedAt={savedAt} />
 			</div>
-			{message !== null && <p className="text-xs text-danger">{message}</p>}
 		</SettingsRow>
 	);
 }

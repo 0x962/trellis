@@ -25,7 +25,8 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 	const gh = useQuery(app.orpc.system.gh.queryOptions({})).data;
 	const [open, setOpen] = useState(false);
 	const [draft, setDraft] = useState(actor.name);
-	const valid = ActorHeaderSchema.safeParse(`human:${draft.trim()}`).success;
+	const parsedActor = ActorHeaderSchema.safeParse(`human:${draft.trim()}`);
+	const valid = parsedActor.success;
 	const ghWarning = gh !== undefined && !gh.ok;
 	const warningId = useId();
 
@@ -68,7 +69,12 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 				}
 			>
 				<form onSubmit={submit} className="flex w-56 flex-col gap-2">
-					<Input label="Name" value={draft} invalid={!valid} onChange={(event) => setDraft(event.target.value)} />
+					<Input
+						label="Name"
+						value={draft}
+						error={parsedActor.success ? undefined : parsedActor.error.issues[0]!.message}
+						onChange={(event) => setDraft(event.target.value)}
+					/>
 					<p className="text-xs text-fg-faint">trellis records this name as the actor of each change you make.</p>
 					<Button type="submit" variant="primary" disabled={!valid} className="self-end">
 						Rename

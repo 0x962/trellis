@@ -1,6 +1,6 @@
 import { Plus, Trash } from "@phosphor-icons/react";
 import type { Project } from "@trellis/api";
-import { Button, GithubMark, IconButton, Input } from "@trellis/ui";
+import { Button, FieldHint, GithubMark, IconButton, Input } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
@@ -43,14 +43,10 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 		<section className="project-settings-group">
 			<div className="flex flex-col gap-1">
 				<h3 className="project-settings-group-title">Repositories</h3>
-				<p className="text-sm leading-relaxed text-fg-muted">
-					Connect GitHub repositories to find pull requests that reference project tickets.
-				</p>
+				<FieldHint>Connect GitHub repositories to find pull requests that reference project tickets.</FieldHint>
 			</div>
 			{project.repos.length === 0 ? (
-				<p className="text-sm text-fg-muted">
-					No repositories connected. Add a repository to link its pull requests to tickets.
-				</p>
+				<FieldHint>No repositories connected. Add a repository to link its pull requests to tickets.</FieldHint>
 			) : (
 				<ul className="flex flex-col gap-1">
 					{project.repos.map((repo) => (
@@ -84,18 +80,13 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 					label="Repository"
 					placeholder="https://github.com/owner/repository"
 					value={value}
-					invalid={message !== null}
+					error={message ?? undefined}
 					onChange={(event) => setValue(event.target.value)}
 				/>
 				<Button type="submit" icon={<Plus />}>
 					Add repository
 				</Button>
 			</form>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
 		</section>
 	);
 }

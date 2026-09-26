@@ -110,7 +110,7 @@ export function StatusRow({
 					<StatusEditor project={project} status={status} onChanged={onChanged} onCancel={onCancel} />
 				</div>
 			)}
-			{message !== null && <FormStatus state="error" message={message} className="status-row-message" />}
+			{message !== null && <FormStatus status="error" message={message} className="status-row-message" />}
 		</li>
 	);
 }
