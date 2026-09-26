@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { ulid } from "ulid";
+import { hostAuth } from "../../auth/auth.ts";
 import type { Config } from "../../config.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { ServiceTransport } from "../../db/transport.ts";
@@ -68,8 +69,13 @@ test("stores a file in the shared blob store and serves it", async () => {
 
 	const app = new Hono();
 	const transport = { call: async () => stored } as unknown as ServiceTransport;
-	app.get("/:fileId", prFileRoute({ config: { home } as Config, transport }));
-	const response = await app.request(`/${fileId}`);
+	app.use("*", hostAuth("host-token"));
+	app.get("/api/evidence/:fileId/file", prFileRoute({ config: { home } as Config, transport }));
+	const unauthorized = await app.request(`/api/evidence/${fileId}/file`);
+	expect(unauthorized.status).toBe(401);
+	const response = await app.request(`/api/evidence/${fileId}/file`, {
+		headers: { authorization: "Bearer host-token" },
+	});
 	const etag = `"${stored.sha256}"`;
 	expect(response.headers.get("content-security-policy")).toBe("sandbox");
 	expect(response.headers.get("x-content-type-options")).toBe("nosniff");
@@ -77,7 +83,9 @@ test("stores a file in the shared blob store and serves it", async () => {
 	expect(response.headers.get("content-disposition")).toBe('inline; filename="overview.png"');
 	expect(response.headers.get("etag")).toBe(etag);
 	expect(await response.text()).toBe("picture");
-	const unchanged = await app.request(`/${fileId}`, { headers: { "if-none-match": etag } });
+	const unchanged = await app.request(`/api/evidence/${fileId}/file`, {
+		headers: { authorization: "Bearer host-token", "if-none-match": etag },
+	});
 	expect(unchanged.status).toBe(304);
 });
 
@@ -92,6 +100,16 @@ test("refuses a second upload that reuses a file id for other bytes", async () =
 		code: "DUPLICATE",
 		data: { field: "fileId" },
 	});
+});
+
+test("stores an animated image with its media type", async () => {
+	const fileId = ulid();
+	const file = new File(["GIF89a"], "states.gif", { type: "image/gif" });
+	const prepared = await prepareUpload(ctx(), { id: pullRequestId, fileId, file });
+	const stored = await inTx((tx) => upload(ctx(), tx, prepared));
+
+	expect(stored).toMatchObject({ filename: "states.gif", mime: "image/gif", size: 6 });
+	expect(existsSync(blobPath(home, stored.sha256))).toBe(true);
 });
 
 test("refuses a file over the upload cap", async () => {

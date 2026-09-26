@@ -2,6 +2,7 @@ import { cx, Dialog } from "@trellis/ui";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { renderMarkdown } from "../../lib/markdown";
 import { drawMermaidBlocks } from "./drawMermaidBlocks";
+import { imageForViewer, type ViewerImage } from "./imageForViewer/imageForViewer.ts";
 
 export type ReadOnlyMarkdownProps = {
 	markdown: string;
@@ -9,8 +10,6 @@ export type ReadOnlyMarkdownProps = {
 	// `render` overrides `renderMarkdown` and must sanitize its output.
 	render?: (markdown: string) => string;
 };
-
-type Shown = { src: string; alt: string };
 
 const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:border [&_img]:border-border";
 const diagramClass =
@@ -21,7 +20,7 @@ const diagramClass =
 // image, such as a pasted attachment, fits the column and opens large in a
 // lightbox on click. A ```mermaid code block draws as its diagram.
 export function ReadOnlyMarkdown({ markdown, className, render = renderMarkdown }: ReadOnlyMarkdownProps) {
-	const [shown, setShown] = useState<Shown | null>(null);
+	const [shown, setShown] = useState<ViewerImage | null>(null);
 	const root = useRef<HTMLDivElement>(null);
 
 	// React writes the inner HTML again whenever the object under
@@ -36,10 +35,11 @@ export function ReadOnlyMarkdown({ markdown, className, render = renderMarkdown 
 	}, [html]);
 
 	const onClick = (event: MouseEvent) => {
-		const target = event.target as HTMLElement;
-		if (!(target instanceof HTMLImageElement)) return;
+		if (!(event.target instanceof HTMLElement)) return;
+		const image = imageForViewer(event.target);
+		if (image === null) return;
 		event.stopPropagation();
-		setShown({ src: target.getAttribute("src") ?? "", alt: target.alt });
+		setShown(image);
 	};
 
 	return (
