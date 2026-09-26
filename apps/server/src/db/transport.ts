@@ -7,6 +7,7 @@ import { startSessionMonitor } from "../agents/sessionMonitor/sessionMonitor.ts"
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
 import { type Jobs, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
+import { recordObservedActivity } from "../services/agentRuns/activity.ts";
 import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcBlobs } from "../services/blobs.ts";
@@ -199,6 +200,7 @@ export const createInlineTransport = ({
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({
 				read: () => backgroundCall("agentRuns.activity", {}) as Promise<AgentActivity[]>,
+				record: (input) => db.transaction((tx) => recordObservedActivity(systemContext(), tx, input)),
 				client: nativeClient(config.home),
 				emit: (event) => bus.emit(event),
 				complete: (input) => backgroundCall("sessions.nameFirstExchange", input),

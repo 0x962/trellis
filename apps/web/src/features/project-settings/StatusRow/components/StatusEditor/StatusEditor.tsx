@@ -1,5 +1,5 @@
 import type { ColorToken } from "@trellis/api";
-import { Button, Checkbox, Input, Select, Textarea } from "@trellis/ui";
+import { Button, Checkbox, FormStatus, Input, Select, Textarea } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import type { StatusRowProps } from "../../StatusRow";
@@ -58,18 +58,14 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					autoFocus
 					onChange={(event) => setName(event.target.value)}
 				/>
-				<div className="status-row-field">
-					<span aria-hidden="true" className="status-row-field-label">
-						Color
-					</span>
-					<Select
-						label={`Color for ${status.name}`}
-						items={colors}
-						value={color}
-						onValueChange={setColor}
-						className="h-8"
-					/>
-				</div>
+				<Select
+					label={`Color for ${status.name}`}
+					hideLabel={false}
+					items={colors}
+					value={color}
+					onValueChange={setColor}
+					className="h-8"
+				/>
 			</div>
 			<Textarea
 				label="Description"
@@ -90,11 +86,7 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					</Button>
 				</div>
 			</div>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} />}
 		</form>
 	);
 }

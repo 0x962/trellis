@@ -1,6 +1,6 @@
 import { DotsThree, FolderSimple, PencilSimple, Trash } from "@phosphor-icons/react";
 import type { Label, LabelGroup } from "@trellis/api";
-import { IconButton, LabelDot, Menu, type MenuItem } from "@trellis/ui";
+import { FormStatus, IconButton, LabelDot, Menu, type MenuItem } from "@trellis/ui";
 import { useId, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -121,11 +121,7 @@ export function LabelRow({
 					/>
 				</div>
 			)}
-			{message !== null && (
-				<p role="alert" className="status-row-message">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} className="status-row-message" />}
 		</li>
 	);
 }

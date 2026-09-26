@@ -110,12 +110,6 @@
 @utility status-row-editor-grid {
 	@apply grid items-end gap-3 sm:grid-cols-2;
 }
-@utility status-row-field {
-	@apply flex flex-col gap-1;
-}
-@utility status-row-field-label {
-	@apply text-sm text-fg-muted;
-}
 @utility status-row-editor-actions {
 	@apply flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between;
 }
@@ -123,7 +117,7 @@
 	@apply flex items-center gap-2;
 }
 @utility status-row-message {
-	@apply border-t border-border px-3 py-2 text-sm text-danger;
+	@apply border-t border-border px-3 py-2;
 }
 @utility status-create-form {
 	@apply flex flex-col gap-3 rounded-lg border border-border bg-surface p-4;

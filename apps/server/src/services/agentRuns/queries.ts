@@ -23,14 +23,17 @@ export const listColumns = sql`id, jsonb_build_object('attemptId', seen_attempt_
 	(SELECT epics.project_id FROM tickets JOIN epics ON epics.id=tickets.epic_id WHERE tickets.id=agent_runs.ticket_id) AS "ticketEpicProjectId",
 	workspace_id AS "workspaceId", terminal_id AS "terminalId", url, error,
 	session_id AS "sessionId", session_lost AS "sessionLost",
-	${iso(sql`GREATEST((SELECT MAX(created_at) FROM agent_execution_attempts WHERE run_id=agent_runs.id), closed_at)`)} AS "activityAt",
+	${iso(sql`GREATEST(activity_at, closed_at)`)} AS "activityAt",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 export const columns = sql`${listColumns}, instruction`;
+
+export const storedRows = <T extends StoredRun>(tx: Tx, query: ReturnType<typeof sql>) => rows<T>(tx, query);
+
 export const getRun = async (tx: Tx, id: string) => {
-	const [run] = await rows<LaunchRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id = ${id}`);
+	const [run] = await storedRows<LaunchRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id = ${id}`);
 	if (run === undefined) throw fail("NOT_FOUND", { kind: "agent", ref: id });
 	return run;
 };
 
 export const listSessionRuns = (tx: Tx) =>
-	rows<StoredRun>(tx, sql`SELECT ${listColumns} FROM agent_runs WHERE id IN (SELECT run_id FROM sessions)`);
+	storedRows<StoredRun>(tx, sql`SELECT ${listColumns} FROM agent_runs WHERE id IN (SELECT run_id FROM sessions)`);

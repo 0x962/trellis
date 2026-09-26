@@ -31,7 +31,7 @@ const cardThreadOf = (thread: ResourceCommentThread) => {
 	const [first, ...replies] = thread.comments;
 	return {
 		...messageOf(first!),
-		id: thread.id,
+		threadId: thread.id,
 		replies: replies.map(messageOf),
 		status: thread.resolved === null ? "open" : "resolved",
 		resolvedBy: thread.resolved === null ? null : (thread.resolved.actor.displayName ?? thread.resolved.actor.name),
@@ -115,21 +115,17 @@ export function DocumentComments({ comments, titled }: { comments: Comments; tit
 					<ReviewThreadCard
 						thread={cardThreadOf(thread)}
 						actor={actor?.name}
-						renderBody={(body, message) => (
-							<>
-								{message.root && (
-									<button
-										type="button"
-										className="block w-full text-left"
-										disabled={textRemoved}
-										onClick={() => comments.reveal(thread.id)}
-									>
-										<QuotedText quote={thread.anchor.quote} textRemoved={textRemoved} />
-									</button>
-								)}
-								<ReadOnlyMarkdown markdown={body} className="text-sm" />
-							</>
-						)}
+						anchorAction={
+							<button
+								type="button"
+								className="block w-full text-left"
+								disabled={textRemoved}
+								onClick={() => comments.reveal(thread.id)}
+							>
+								<QuotedText quote={thread.anchor.quote} textRemoved={textRemoved} />
+							</button>
+						}
+						renderBody={(body) => <ReadOnlyMarkdown markdown={body} className="text-sm" />}
 						canChange={(id) => ownIds.has(id)}
 						onReply={(body) => comments.reply(thread.id, body)}
 						onResolve={() => comments.resolve(thread.id, thread.resolved === null)}

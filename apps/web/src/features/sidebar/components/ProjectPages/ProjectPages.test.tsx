@@ -48,8 +48,8 @@ const render = async (pathname: string, { activeAgentCount = 0, moreOpen = false
 
 const labels = (html: string) => [...html.matchAll(/class="sidebar-label">([^<]*)</g)].map((match) => match[1]);
 
-test("the project shows Epics, Pages, Sessions, then More", async () => {
-	expect(labels(await render("/p/TRL/epics"))).toEqual(["Epics", "Pages", "Sessions", "More"]);
+test("the project shows Epics, Sessions, then More", async () => {
+	expect(labels(await render("/p/TRL/epics"))).toEqual(["Epics", "Sessions", "More"]);
 });
 
 test("More is shut on a page it does not hold", async () => {
@@ -64,7 +64,7 @@ test("a project whose current page is Sessions renders with More shut", async ()
 	const html = await render("/sessions/project/TRL");
 
 	expect(html).toContain('aria-expanded="false"');
-	expect(labels(html)).toEqual(["Epics", "Pages", "Sessions", "More"]);
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More"]);
 	const sessions = html.match(/<a [^>]*>(?=<span class="sidebar-label">Sessions<)/)?.[0] ?? "";
 
 	expect(sessions).toContain('href="/sessions/project/TRL"');
@@ -76,21 +76,21 @@ test("a project whose current page is Diffs renders with More shut", async () =>
 	const html = await render("/p/TRL/diffs");
 
 	expect(html).toContain('aria-expanded="false"');
-	expect(labels(html)).toEqual(["Epics", "Pages", "Sessions", "More"]);
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More"]);
 });
 
 test("a project whose current page is Tickets renders with More shut", async () => {
 	const html = await render("/p/TRL");
 
 	expect(html).toContain('aria-expanded="false"');
-	expect(labels(html)).toEqual(["Epics", "Pages", "Sessions", "More"]);
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More"]);
 });
 
-test("an open More row shows the pages it holds", async () => {
+test("an open More row shows the views it holds", async () => {
 	const html = await render("/p/TRL/epics", { moreOpen: true });
 
 	expect(html).toContain('aria-expanded="true"');
-	expect(labels(html)).toEqual(["Epics", "Pages", "Sessions", "More", "Tickets", "Diffs"]);
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs"]);
 	const diffs = html.match(/<a [^>]*>(?=<span class="sidebar-label">Diffs<)/)?.[0] ?? "";
 
 	expect(diffs).toContain('href="/p/TRL/diffs"');
@@ -103,19 +103,18 @@ test("the rows under More indent one step past the rows above them", async () =>
 		null;
 
 	expect(indentOf("Epics")).toBe("pl-8");
-	expect(indentOf("Pages")).toBe("pl-8");
 	expect(indentOf("Sessions")).toBe("pl-8");
 	expect(indentOf("More")).toBe("pl-8");
 	expect(indentOf("Tickets")).toBe("pl-11");
 	expect(indentOf("Diffs")).toBe("pl-11");
 });
 
-test("the Epics and Pages rows print counts", async () => {
+test("the Epics row prints its count", async () => {
 	const html = await render("/p/TRL", { moreOpen: true });
 
 	const counts = [...html.matchAll(/<span class="[^"]*sidebar-trailing[^"]*">([^<]*)<\/span>/g)];
 
-	expect(counts.map((match) => match[1])).toEqual(["3", "2"]);
+	expect(counts.map((match) => match[1])).toEqual(["3"]);
 });
 
 test("the Sessions row shows a dot while agents of the project are active", async () => {

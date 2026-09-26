@@ -109,6 +109,7 @@ describe("a first publication", () => {
 			sourcePath: "reports/forecast/index.html",
 		});
 		expect(PagePublishOutputSchema.parse(created)).toBeDefined();
+		expect(created.link).toBe(`trellis://page/${created.page.id}`);
 		expect(created.page.ref).toBe("PUB/pages/forecast-report");
 		expect(created.page.latestVersion).toBe(1);
 		expect(created.page.revision).toBe(1);

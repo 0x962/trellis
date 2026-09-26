@@ -19,8 +19,8 @@ import { ArchivedBanner } from "../../../../project-actions";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
+import { PageComments } from "../../../PageComments";
 import { usePageActions } from "../../usePageActions";
-import { LeasedPageViewer } from "../LeasedPageViewer";
 import { PageHistory } from "../PageHistory";
 import { PageShare } from "../PageShare";
 
@@ -169,11 +169,14 @@ export function PageDetailView({
 						}
 					/>
 				) : (
-					<LeasedPageViewer
+					<PageComments
 						key={`${page.id}/${page.requestedVersion.number}`}
 						page={page.ref}
 						version={page.requestedVersion.number}
+						latestVersion={page.latestVersion}
 						title={page.title}
+						historical={historical}
+						blocked={blocked}
 					/>
 				)}
 			</div>

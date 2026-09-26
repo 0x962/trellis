@@ -699,6 +699,9 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 An archived session runs no agent and holds no project: `sessions.start` and `sessions.move` refuse it, and a session that holds a project cannot be archived.
 The sidebar draws the archived sessions under the session list, in an Archived group that opens on a press.
 Project Sessions puts project sessions and ticket agents in one list, in order of the latest stored process or conversation activity.
+`agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
+An attempt start and an assignment close also count as activity.
+The host monitor requires a complete execution service read before it stores new activity.
 After 48 hours without activity, an unpinned row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 A ticket row uses its identifier, and its terminal header uses the ticket title.

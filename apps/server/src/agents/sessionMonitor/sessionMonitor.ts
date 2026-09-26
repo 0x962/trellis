@@ -30,6 +30,7 @@ const fingerprint = (session: AgentActivity) =>
 
 export function startSessionMonitor(options: {
 	read: () => Promise<AgentActivity[]>;
+	record: (values: Array<{ id: string; activityAt: string }>) => Promise<unknown>;
 	client: Pick<RuntimeClient, "subscribeSession">;
 	emit: (event: TrellisEvent) => unknown;
 	complete: (input: { sessionId: string; runId: string; agentResponse: string }) => Promise<unknown>;
@@ -38,8 +39,20 @@ export function startSessionMonitor(options: {
 	const subscriptions = new Map<string, { abort: AbortController; done: Promise<void> }>();
 	const sessions = new Map<string, AgentActivity>();
 	const fingerprints = new Map<string, string>();
+	const recordedActivity = new Map<string, string>();
 	let stopped = false;
 	let initialized = false;
+	const record = async (entries: AgentActivity[]) => {
+		const values = entries.flatMap((entry) => {
+			const activityAt = entry.run.activityAt;
+			return activityAt !== null && activityAt > (recordedActivity.get(entry.run.id) ?? "")
+				? [{ id: entry.run.id, activityAt }]
+				: [];
+		});
+		if (values.length === 0) return;
+		await options.record(values);
+		for (const value of values) recordedActivity.set(value.id, value.activityAt);
+	};
 	const publish = (session: AgentActivity, notify: boolean, completedEvent: boolean) => {
 		const key = `${session.run.id}:${session.run.terminalId}`;
 		const next = fingerprint(session);
@@ -63,6 +76,7 @@ export function startSessionMonitor(options: {
 	};
 	const tick = async () => {
 		const entries = await options.read();
+		await record(entries);
 		if (stopped) return;
 		const ids = new Set(entries.map((session) => session.run.terminalId));
 		for (const [id, subscription] of subscriptions) {
@@ -96,6 +110,7 @@ export function startSessionMonitor(options: {
 							event.session,
 						]);
 						const next = { ...current, run };
+						await record([next]);
 						sessions.set(id, next);
 						publish(next, true, true);
 					}

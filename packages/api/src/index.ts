@@ -13,6 +13,7 @@ export * from "./flowGraph.ts";
 export * from "./ghCopy.ts";
 export * from "./harness/effort/effort.ts";
 export * from "./harness/harness.ts";
+export * from "./internalLink/index.ts";
 export * from "./linkBrowser/index.ts";
 export * from "./machinePressure/index.ts";
 export * from "./messageTarget/index.ts";

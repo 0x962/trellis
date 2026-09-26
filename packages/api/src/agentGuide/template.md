@@ -229,6 +229,11 @@ For example, `diff link` can save the link before a GitHub refresh fails.
 Quote a reference that contains spaces.
 Use full diff references when several repositories have the same diff number.
 
+An internal record link has the form `trellis://<type>/<id>`.
+The supported types are `page`, `pr`, `ticket`, `resource`, `epic`, and `session`.
+Use the record ID, not a title, slug, project, repository, or route.
+Trellis resolves the ID to the current route when a person opens the link.
+
 ## Projects, statuses, and labels
 
 | Command | Result |
@@ -402,6 +407,7 @@ Keep shell tracing and verbose HTTP logs off for this request.
 A page is an HTML artifact that a project owns.
 The source stays in your workspace.
 Trellis stores each published version and its assets.
+Agents publish Pages and place their internal links in the work that uses them.
 
 | Command | Purpose |
 | --- | --- |
@@ -422,7 +428,8 @@ The document answers to `index.html` in every version.
 
 The first publication creates the page.
 It needs `--project` and `--title`.
-It answers with the page ref, such as `DEMO/pages/forecast`, and the revision.
+It answers with the internal link, the page ref, and the revision.
+Share the `trellis://page/<id>` link with a person.
 Use that ref for every later command of the same page.
 
 ~~~sh
@@ -449,7 +456,7 @@ The server answers with the version the first call created, so a retry adds no s
 A retry that carries other bytes under the same identifier is refused.
 
 `rename` changes the title of the page, and `--summary` changes its summary.
-Neither one adds a version, and the address of a page never changes, so every saved link still opens it.
+Neither one adds a version. The internal link keeps the Page ID, so it follows the current route.
 A delete and a restore need a person, or `--force` from an agent.
 
 ## Agents and sessions
