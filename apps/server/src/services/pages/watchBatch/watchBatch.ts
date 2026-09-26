@@ -89,3 +89,17 @@ export async function completeWatchBatch(tx: Tx, batch: WatchBatch) {
 		reservation_end_at = NULL, reservation_end_id = NULL, reservation_expires_at = NULL
 		WHERE page_id = ${batch.pageId} AND agent_id = ${batch.agentId} AND reservation_id = ${batch.messageId}`);
 }
+
+export async function retargetWatchBatch(tx: Tx, batch: WatchBatch, terminalId: string) {
+	const [updated] = await rows<{ payload: WatchPayload }>(
+		tx,
+		sql`UPDATE page_watches w
+		SET reservation_payload = jsonb_build_object('text', w.reservation_payload->>'text',
+			'terminalId', run.terminal_id, 'sessionId', run.session_id)
+		FROM agent_runs run WHERE w.page_id = ${batch.pageId} AND w.agent_id = ${batch.agentId}
+		AND w.reservation_id = ${batch.messageId} AND run.id = w.agent_id
+		AND run.closed_at IS NULL AND run.terminal_id = ${terminalId}
+		RETURNING w.reservation_payload AS payload`,
+	);
+	return updated === undefined ? null : { ...batch, payload: updated.payload };
+}

@@ -119,7 +119,12 @@ export class SessionStore {
 	}
 	hasMessage({ id, messageId }: RuntimeMethods["hasMessage"]["params"]): RuntimeMessageState {
 		const record = this.get(id);
-		return { messageId, delivered: record.ledger.delivered(messageId), status: this.inspect(id).status };
+		return {
+			messageId,
+			registered: record.ledger.has(messageId),
+			delivered: record.ledger.delivered(messageId),
+			status: this.inspect(id).status,
+		};
 	}
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
 		return registerNativeDelivery(this.get(input.id), input);

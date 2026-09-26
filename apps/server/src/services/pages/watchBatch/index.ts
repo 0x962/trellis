@@ -1,1 +1,7 @@
-export { completeWatchBatch, reserveWatchBatch, WATCH_LEASE_MS, type WatchBatch } from "./watchBatch";
+export {
+	completeWatchBatch,
+	reserveWatchBatch,
+	retargetWatchBatch,
+	WATCH_LEASE_MS,
+	type WatchBatch,
+} from "./watchBatch";

@@ -1,4 +1,4 @@
-import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import type { RuntimeMessageState, RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../../../agents/native/connection.ts";
 import { rows } from "../../../db/queries/support.ts";
@@ -6,11 +6,11 @@ import type { Tx } from "../../../db/tx.ts";
 import { prepareSend } from "../../agentRuns/communication.ts";
 import { readRuntimeSessionsRequired } from "../../agentRuns/liveState.ts";
 import type { IoCtx } from "../../support.ts";
-import { completeWatchBatch, reserveWatchBatch } from "../watchBatch";
+import { completeWatchBatch, reserveWatchBatch, retargetWatchBatch } from "../watchBatch";
 
 type DispatchDeps = {
 	read: typeof readRuntimeSessionsRequired;
-	inspect: (id: string) => Promise<Pick<RuntimeProcessStatus, "acknowledgedMessageIds">>;
+	receipt: (id: string, messageId: string) => Promise<RuntimeMessageState>;
 	send: (ctx: IoCtx, input: Parameters<typeof prepareSend>[1]) => Promise<{ id: string; skipped?: boolean }>;
 };
 
@@ -19,7 +19,7 @@ export async function prepareWatchDispatch(
 	_input: Record<string, never>,
 	deps: DispatchDeps = {
 		read: readRuntimeSessionsRequired,
-		inspect: (id: string) => nativeClient(ctx.home).inspect(id),
+		receipt: (id: string, messageId: string) => nativeClient(ctx.home).hasMessage(id, messageId),
 		send: prepareSend,
 	},
 ) {
@@ -44,17 +44,21 @@ export async function prepareWatchDispatch(
 	for (const watch of watches) {
 		const process = live.get(watch.terminalId);
 		if (watch.reservedTerminalId === null && (process?.status !== "running" || !process.controllable)) continue;
-		const batch = await ctx.newTx((tx) =>
+		let batch = await ctx.newTx((tx) =>
 			reserveWatchBatch(tx, { pageId: watch.pageId, now: ctx.now(), publicUrl: ctx.publicUrl }),
 		);
 		if (batch === null) continue;
+		const messageId = batch.messageId;
 		try {
-			const prior = await deps.inspect(batch.payload.terminalId);
-			if (!prior.acknowledgedMessageIds.includes(batch.messageId)) {
-				if (batch.payload.terminalId !== watch.terminalId)
-					throw new Error(
-						"The previous watcher process has no receipt for this batch. Inspect that process before a resend.",
-					);
+			const prior = await deps.receipt(batch.payload.terminalId, batch.messageId);
+			if (!prior.delivered) {
+				if (batch.payload.terminalId !== watch.terminalId) {
+					if (prior.registered || prior.status !== "exited")
+						throw new Error("The previous watcher process has an uncertain send. Inspect it before a resend.");
+					const reserved = batch;
+					batch = await ctx.newTx((tx) => retargetWatchBatch(tx, reserved, watch.terminalId));
+					if (batch === null) continue;
+				}
 				if (process?.status !== "running" || !process.controllable) continue;
 				await deps.send(ctx, {
 					id: batch.agentId,
@@ -66,13 +70,14 @@ export async function prepareWatchDispatch(
 			}
 		} catch (error) {
 			ctx.log("Page comment delivery failed", {
-				pageId: batch.pageId,
-				messageId: batch.messageId,
+				pageId: watch.pageId,
+				messageId,
 				error: String(error),
 			});
 			continue;
 		}
-		await ctx.newTx((tx) => completeWatchBatch(tx, batch));
+		const completed = batch;
+		await ctx.newTx((tx) => completeWatchBatch(tx, completed));
 	}
 	return {};
 }

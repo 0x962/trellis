@@ -1,104 +1,29 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
+import { expect, test } from "bun:test";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import { ulid } from "ulid";
 import { InputLedger } from "../../../../runtime/src/inputLedger.ts";
-import type { ServiceCtx } from "../../context.ts";
-import { createCache } from "../../db/cache.ts";
-import { openTestDb } from "../../db/testDb.ts";
-import type { Tx } from "../../db/tx.ts";
 import type { IoCtx } from "../support.ts";
-import { createPageComment } from "./comments";
 import { prepareWatchDispatch } from "./dispatchWatches";
 import { remove } from "./pages.ts";
-import { completeWatchBatch, reserveWatchBatch, WATCH_LEASE_MS } from "./watchBatch";
+import { completeWatchBatch } from "./watchBatch";
 import { watch } from "./watches.ts";
-
-let db: Awaited<ReturnType<typeof openTestDb>>;
-let directory: string;
-const cache = createCache();
-const projectId = ulid();
-const agentId = ulid();
-const otherId = ulid();
-const at = new Date("2026-09-26T00:00:00Z");
-const core: ServiceCtx = {
-	actor: { kind: "human", name: "reader" },
-	session: null,
-	reqId: "watch-test",
-	now: at,
+import {
+	agentId,
+	at,
 	cache,
-	actorCache: new Map(),
-	emit: () => {},
-	dropBlobs: () => {},
-	publicUrl: "http://trellis.test",
-};
-const tx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
-const ctx = (now = at): IoCtx => ({
 	core,
-	actor: core.actor!,
-	session: null,
-	now: () => now,
-	home: directory,
-	publicUrl: core.publicUrl,
-	localUrl: core.publicUrl,
-	newTx: tx,
-	emit: () => {},
-	log: () => {},
-	afterCommit: () => {},
-	background: () => {},
-	vacuum: async () => {},
-	maxUploadBytes: 1000,
-	version: "test",
-	apiVersion: "1",
-	bootId: "test",
-	ghStatus: () => ({ ok: true, user: null, reason: null, message: null, checkedAt: null }),
-	addresses: async () => [],
-});
-
-beforeAll(async () => {
-	db = await openTestDb();
-	directory = await mkdtemp(join(tmpdir(), "trellis-watches-"));
-	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES
-		('reader', 'human', ${at}, ${at}), (${agentId}, 'agent', ${at}, ${at}), (${otherId}, 'agent', ${at}, ${at})`);
-	await db.execute(
-		sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES (${projectId}, 'WAT', 'watch', 'Watch', ${at}, ${at})`,
-	);
-	for (const id of [agentId, otherId])
-		await db.execute(sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_key, terminal_id, created_at, updated_at)
-		VALUES (${id}, ${id}, 'agent', 'Read comments', ${projectId}, 'WAT', ${id}, ${at}, ${at})`);
-	await tx(cache.rebuild);
-}, 30_000);
-afterAll(async () => {
-	await db.$client.close();
-	await rm(directory, { recursive: true });
-});
-
-async function fixture() {
-	await db.execute(sql`DELETE FROM page_watches`);
-	const id = ulid();
-	await db.execute(sql`INSERT INTO pages (id, project_id, slug, title, summary, version, latest_version,
-		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${id}, ${projectId}, ${id.toLowerCase()}, 'Report', '', 1, 1, ${agentId}, 'agent', ${agentId}, 'agent', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO page_versions (page_id, number, request_id, document_sha256, document_size, source_agent_id, source_path, actor_name, actor_kind, created_at)
-		VALUES (${id}, 1, ${randomUUID()}, ${"a".repeat(64)}, 1, ${agentId}, 'report/index.html', ${agentId}, 'agent', ${at})`);
-	await tx((t) => watch(core, t, { page: id, agentId }));
-	const comment = async (body: string, offset = 1, human = true) =>
-		tx((t) =>
-			createPageComment(
-				{ ...core, now: new Date(at.getTime() + offset), actor: human ? core.actor : { name: agentId, kind: "agent" } },
-				t,
-				{ page: id, version: 1, anchor: { kind: "element", path: "html>body" }, body },
-			),
-		);
-	const reserve = (now = at) => tx((t) => reserveWatchBatch(t, { pageId: id, now, publicUrl: core.publicUrl }));
-	return { id, comment, reserve };
-}
-const later = () => new Date(at.getTime() + WATCH_LEASE_MS + 1);
-const row = async (id: string) => (await db.execute(sql`SELECT * FROM page_watches WHERE page_id = ${id}`)).rows[0]!;
+	ctx,
+	db,
+	directory,
+	fixture,
+	later,
+	otherId,
+	projectId,
+	row,
+	tx,
+} from "./watchTestFixture";
 
 test("reserves human comments in cursor order and preserves bytes and boundary through edits and later arrivals", async () => {
 	const f = await fixture();
@@ -133,7 +58,12 @@ test("a crash after acceptance retries the persisted message ID through the real
 	let crash = true;
 	const deps = {
 		read: async () => [{ id: agentId, status: "running", controllable: true }] as RuntimeProcessStatus[],
-		inspect: async () => ({ acknowledgedMessageIds: [] }),
+		receipt: async (_id: string, messageId: string) => ({
+			messageId,
+			registered: false,
+			delivered: false,
+			status: "running" as const,
+		}),
 		send: async (_ctx: IoCtx, input: { id: string; text: string; messageId?: string }) => {
 			const sent = await ledger.deliver(input.messageId!, Buffer.from(input.text).toString("base64"), async () => {
 				writes++;
@@ -183,9 +113,14 @@ test("an acknowledged native delivery completes after a cursor transaction crash
 		{},
 		{
 			read: async () => [{ id: replacement, status: "running", controllable: true }] as RuntimeProcessStatus[],
-			inspect: async (id) => {
+			receipt: async (id, messageId) => {
 				expect(id).toBe(batch.payload.terminalId);
-				return { acknowledgedMessageIds: ledger.acknowledgedMessageIds() };
+				return {
+					messageId,
+					registered: ledger.has(messageId),
+					delivered: ledger.delivered(messageId),
+					status: "exited",
+				};
 			},
 			send: async () => {
 				throw new Error("Duplicate send");
@@ -207,7 +142,12 @@ test("a stopped watcher keeps queued comments and a busy resumed process accepts
 			[
 				{ id: agentId, status: running ? "running" : "exited", controllable: running, activity: { state: "working" } },
 			] as RuntimeProcessStatus[],
-		inspect: async () => ({ acknowledgedMessageIds: [] }),
+		receipt: async (_id: string, messageId: string) => ({
+			messageId,
+			registered: false,
+			delivered: false,
+			status: "running" as const,
+		}),
 		send: async (_ctx: IoCtx, input: { id: string; interrupt?: boolean }) => {
 			expect(input.interrupt).toBeUndefined();
 			sends++;
@@ -284,3 +224,44 @@ test("archive and an explicit unwatch stop dispatch, and a foreign project canno
 	await tx((t) => watch(core, t, { page: f.id, agentId: null }));
 	expect(await f.reserve()).toBeNull();
 });
+
+test.each([false, true])(
+	"a resumed watcher retargets only an unregistered batch (registered: %s)",
+	async (registered) => {
+		const f = await fixture();
+		await f.comment("Stopped after reservation");
+		const batch = (await f.reserve())!;
+		const replacement = randomUUID();
+		await db.execute(sql`UPDATE agent_runs SET terminal_id = ${replacement} WHERE id = ${agentId}`);
+		let sends = 0;
+		const errors: unknown[] = [];
+		const context = {
+			...ctx(later()),
+			log: (_message: string, detail?: Record<string, unknown>) => {
+				errors.push(detail);
+			},
+		};
+		await prepareWatchDispatch(
+			context,
+			{},
+			{
+				read: async () => [{ id: replacement, status: "running", controllable: true }] as RuntimeProcessStatus[],
+				receipt: async (id, messageId) => {
+					expect(id).toBe(agentId);
+					return { messageId, registered, delivered: false, status: "exited" };
+				},
+				send: async (_ctx, input) => {
+					expect(input.expectedTerminalId).toBe(replacement);
+					expect(input.messageId).toBe(batch.messageId);
+					expect(input.text).toBe(batch.payload.text);
+					sends++;
+					return { id: input.id };
+				},
+			},
+		);
+		expect(sends).toBe(registered ? 0 : 1);
+		expect(errors).toHaveLength(registered ? 1 : 0);
+		expect((await row(f.id)).cursor_id === null).toBe(registered);
+		await db.execute(sql`UPDATE agent_runs SET terminal_id = ${agentId} WHERE id = ${agentId}`);
+	},
+);
