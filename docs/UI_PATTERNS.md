@@ -53,6 +53,8 @@ Each page supplies its data and available actions. It does not choose new contro
 
 ## Form fields and type
 
+`RepositoryRow` draws a GitHub repository link and its remove action inside a list.
+
 `Field` owns the label, control, trailing action, and one hint slot.
 `Input`, `Textarea`, and `Select` use it internally. `ProjectColorField` uses it around its control.
 A composed control inside an existing `Field` uses that field's label and description.
@@ -85,6 +87,11 @@ A field uses its hint slot for an error or reason, with no second message beneat
 `FormStatus` reports a save through `status` and optional `message`.
 Its states are `idle`, `saving`, `saved`, and `error`. It reserves one hint line in every state.
 The Field gallery section shows all five variants and the save states.
+
+Use `ProjectColorField` for a project colour. Its trigger shows the current swatch and name, or the empty mark and None.
+The popover keeps every swatch in palette order and disables a colour held by another project.
+A selection closes the popover and returns focus to the trigger. Escape closes it without a change.
+The `onBlur` callback fires after focus leaves both the trigger and the popover.
 
 ## Edit a short value in place
 

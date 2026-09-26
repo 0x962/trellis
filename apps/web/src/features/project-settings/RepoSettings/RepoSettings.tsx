@@ -1,92 +1,110 @@
-import { Plus, Trash } from "@phosphor-icons/react";
-import type { Project } from "@trellis/api";
-import { Button, FieldHint, GithubMark, IconButton, Input } from "@trellis/ui";
-import { type FormEvent, useState } from "react";
-import { useApp } from "../../../lib/appContext";
+import { Plus } from "@phosphor-icons/react";
+import { IconButton, Input, RepositoryRow, Tooltip } from "@trellis/ui";
+import { useRef, useState } from "react";
+
+import type { Repo } from "../generalValues";
 
 export type RepoSettingsProps = {
-	project: Project;
+	repos: Repo[];
+	disabled: boolean;
+	onChange: (repos: Repo[]) => void;
+	onBlur: () => void;
+	onDraftChange: (dirty: boolean) => void;
+	onError: (error: string | null) => void;
 };
 
-export function RepoSettings({ project }: RepoSettingsProps) {
-	const { client, queryClient } = useApp();
-	const [value, setValue] = useState("");
-	const [message, setMessage] = useState<string | null>(null);
-
-	const save = async (repos: { owner: string; repo: string }[]) => {
-		try {
-			await client.projects.setRepos({ project: project.key, repos });
-			setMessage(null);
-			await queryClient.invalidateQueries();
-		} catch (error) {
-			setMessage((error as Error).message);
-		}
+export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange, onError }: RepoSettingsProps) {
+	const currentRepos = useRef(repos);
+	currentRepos.current = repos;
+	const changeRepos = (next: Repo[]) => {
+		currentRepos.current = next;
+		onChange(next);
 	};
-
-	const add = async (event: FormEvent) => {
-		event.preventDefault();
+	const [draft, setDraft] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	const addButton = useRef<HTMLButtonElement>(null);
+	const addRepo = () => {
+		if (disabled || draft.trim() === "") return;
 		const match = /^(?:https:\/\/github\.com\/)?([a-z0-9_.-]+)\/([a-z0-9_.-]+?)(?:\.git)?\/?$/.exec(
-			value.trim().toLowerCase(),
+			draft.trim().toLowerCase(),
 		);
 		if (match === null) {
-			setMessage("Use a GitHub URL or owner/repository.");
+			const message = "Use a GitHub URL or owner/repository.";
+			setError(message);
+			onError(message);
 			return;
 		}
-		await save([...project.repos.map(({ owner, repo }) => ({ owner, repo })), { owner: match[1]!, repo: match[2]! }]);
-		setValue("");
+		const entry = { owner: match[1]!, repo: match[2]! };
+		if (!currentRepos.current.some((repo) => repo.owner === entry.owner && repo.repo === entry.repo))
+			changeRepos([...currentRepos.current, entry]);
+		setDraft("");
+		setError(null);
+		onError(null);
+		onDraftChange(false);
 	};
-
-	const remove = (owner: string, repo: string) =>
-		save(project.repos.filter((entry) => entry.owner !== owner || entry.repo !== repo));
-
 	return (
-		<section className="project-settings-group">
-			<div className="flex flex-col gap-1">
-				<h3 className="project-settings-group-title">Repositories</h3>
-				<FieldHint>Connect GitHub repositories to find pull requests that reference project tickets.</FieldHint>
-			</div>
-			{project.repos.length === 0 ? (
-				<FieldHint>No repositories connected. Add a repository to link its pull requests to tickets.</FieldHint>
-			) : (
-				<ul className="flex flex-col gap-1">
-					{project.repos.map((repo) => (
-						<li
+		<fieldset
+			aria-label="Repositories"
+			disabled={disabled}
+			className="flex min-w-0 flex-col gap-2"
+			onBlur={(event) => {
+				if (!event.currentTarget.contains(event.relatedTarget)) {
+					addRepo();
+					onBlur();
+				}
+			}}
+		>
+			<Input
+				label="Repositories"
+				placeholder="https://github.com/owner/repository"
+				value={draft}
+				hint="Connect GitHub repositories to find pull requests for project tickets."
+				error={error ?? undefined}
+				disabled={disabled}
+				onChange={(event) => {
+					setDraft(event.target.value);
+					setError(null);
+					onError(null);
+					onDraftChange(event.target.value !== "");
+				}}
+				onBlur={(event) => {
+					if (event.relatedTarget !== addButton.current) addRepo();
+				}}
+				onKeyDown={(event) => {
+					if (event.key === "Enter") {
+						event.preventDefault();
+						addRepo();
+					}
+				}}
+				trailingAction={
+					<Tooltip content="Add repository">
+						<IconButton
+							ref={addButton}
+							label="Add repository"
+							icon={<Plus />}
+							disabled={disabled || draft.trim() === ""}
+							onClick={addRepo}
+						/>
+					</Tooltip>
+				}
+			/>
+			{repos.length > 0 && (
+				<ul aria-label="Connected repositories" className="flex flex-col gap-1">
+					{repos.map((repo) => (
+						<RepositoryRow
 							key={`${repo.owner}/${repo.repo}`}
-							className="flex h-8 items-center rounded-md border border-border bg-surface px-2"
-						>
-							<a
-								href={`https://github.com/${repo.owner}/${repo.repo}`}
-								target="_blank"
-								rel="noreferrer"
-								className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-accent underline"
-							>
-								<GithubMark aria-hidden="true" className="size-3.5 shrink-0" />
-								<span className="truncate">
-									{repo.owner}/{repo.repo}
-								</span>
-							</a>
-							<IconButton
-								size="xs"
-								label={`Remove ${repo.owner}/${repo.repo}`}
-								icon={<Trash />}
-								onClick={() => void remove(repo.owner, repo.repo)}
-							/>
-						</li>
+							owner={repo.owner}
+							repo={repo.repo}
+							disabled={disabled}
+							onRemove={() =>
+								changeRepos(
+									currentRepos.current.filter((entry) => entry.owner !== repo.owner || entry.repo !== repo.repo),
+								)
+							}
+						/>
 					))}
 				</ul>
 			)}
-			<form onSubmit={(event) => void add(event)} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-				<Input
-					label="Repository"
-					placeholder="https://github.com/owner/repository"
-					value={value}
-					error={message ?? undefined}
-					onChange={(event) => setValue(event.target.value)}
-				/>
-				<Button type="submit" icon={<Plus />}>
-					Add repository
-				</Button>
-			</form>
-		</section>
+		</fieldset>
 	);
 }

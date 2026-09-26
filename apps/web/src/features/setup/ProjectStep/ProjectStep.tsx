@@ -85,7 +85,7 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 					</p>
 				)}
 			</div>
-			<ProjectColorField value={color} taken={takenColors} onValueChange={setColor} />
+			<ProjectColorField label="Color" value={color} taken={takenColors} onValueChange={setColor} />
 			<Button type="submit" variant="primary" size="md" kbd="↵" disabled={!ready} className="w-full">
 				Create
 			</Button>

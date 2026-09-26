@@ -233,9 +233,9 @@ test("the settings of a project open over the ticket and leave it open", () => {
 
 test("another section keeps the settings of the project open", () => {
 	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
-	pageSheetActions.openProjectSettings({ project: "TRL", section: "labels" });
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "workflow" });
 
-	expect(state()).toEqual({ ...empty, projectSettings: { project: "TRL", section: "labels" } });
+	expect(state()).toEqual({ ...empty, projectSettings: { project: "TRL", section: "workflow" } });
 });
 
 test("closing the settings of a project asks GitHub about no pull request", () => {
@@ -249,9 +249,9 @@ test("closing the settings of a project asks GitHub about no pull request", () =
 });
 
 test("the same project and section keep the subject the sheet already holds", () => {
-	pageSheetActions.openProjectSettings({ project: "TRL", section: "labels" });
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "workflow" });
 	const first = state().projectSettings;
-	pageSheetActions.openProjectSettings({ project: "TRL", section: "labels" });
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "workflow" });
 
 	expect(state().projectSettings).toBe(first);
 
