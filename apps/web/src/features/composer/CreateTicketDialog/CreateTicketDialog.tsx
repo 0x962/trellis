@@ -9,7 +9,7 @@ import { UploadProgress } from "../../attachments/UploadProgress";
 import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";
-import { useCreatePlacement } from "../hooks/useCreatePlacement/useCreatePlacement";
+import { useCreatePlacement } from "../hooks/useCreatePlacement";
 import { useCreateTicket } from "../hooks/useCreateTicket";
 import { useLabelDraft } from "../hooks/useLabelDraft";
 import { ChipRow } from "./components/ChipRow";

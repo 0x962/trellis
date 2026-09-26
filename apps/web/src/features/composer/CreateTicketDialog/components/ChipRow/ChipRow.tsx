@@ -14,7 +14,7 @@ import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 import { WavePicker } from "../../../../pickers/WavePicker";
-import type { useCreatePlacement } from "../../../hooks/useCreatePlacement/useCreatePlacement";
+import type { useCreatePlacement } from "../../../hooks/useCreatePlacement";
 
 export type ChipRowProps = {
 	project: string | undefined;

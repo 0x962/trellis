@@ -8,7 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { assertProjectActive, resolveProject, resolveStatus, resolveTicket } from "../refs.ts";
-import { createPlacement } from "./createPlacement/createPlacement.ts";
+import { createPlacement } from "./createPlacement/index.ts";
 import { addDependencies } from "./deps.ts";
 import { createTicketLabels } from "./labels.ts";
 import { lastPosition } from "./position.ts";
