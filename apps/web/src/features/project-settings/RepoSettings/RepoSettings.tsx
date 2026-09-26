@@ -47,7 +47,10 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			disabled={disabled}
 			className="flex min-w-0 flex-col gap-2"
 			onBlur={(event) => {
-				if (!event.currentTarget.contains(event.relatedTarget)) onBlur();
+				if (!event.currentTarget.contains(event.relatedTarget)) {
+					add();
+					onBlur();
+				}
 			}}
 		>
 			<Input
