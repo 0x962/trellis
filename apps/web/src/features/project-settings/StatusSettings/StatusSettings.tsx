@@ -1,7 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Project, Status, StatusCategory } from "@trellis/api";
-import { IconButton, Skeleton } from "@trellis/ui";
+import { FormStatus, IconButton, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { SettingsSection } from "../SettingsSection";
@@ -51,9 +51,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 	if (query.error !== null || countsQuery.error !== null) {
 		return (
 			<SettingsSection title="Statuses" hint="Statuses define the workflow for tickets in this project.">
-				<p role="alert" className="text-sm text-danger">
-					Unable to load statuses. Refresh the page.
-				</p>
+				<FormStatus state="error" message="Unable to load statuses. Refresh the page." />
 			</SettingsSection>
 		);
 	}
@@ -138,11 +136,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 					);
 				})}
 			</div>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} />}
 			<StatusDeleteDialog
 				project={project.key}
 				status={deleting}
