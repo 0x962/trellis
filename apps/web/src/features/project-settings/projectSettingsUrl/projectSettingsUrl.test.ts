@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 
 test("the settings URL of a project opens the section its hash names", () => {
-	expect(projectSettingsSection("settings", "labels")).toBe("labels");
+	expect(projectSettingsSection("settings", "workflow")).toBe("workflow");
 });
 
 test("the settings URL of a project with no hash opens the general section", () => {
@@ -35,9 +35,16 @@ test("the notes URL of a project opens the notes section", () => {
 test("the settings URL opens the sheet over the project, and closing it leaves that page", () => {
 	pageSheetActions.openProjectSettings({ project: "TRL", section: projectSettingsSection("settings", "statuses") });
 
-	expect(usePageSheetStore.getState().projectSettings).toEqual({ project: "TRL", section: "statuses" });
+	expect(usePageSheetStore.getState().projectSettings).toEqual({ project: "TRL", section: "workflow" });
 
 	pageSheetActions.closeProjectSettings();
 
 	expect(usePageSheetStore.getState()).toEqual(closed);
 });
+
+for (const hash of ["template", "statuses", "labels"]) {
+	test(`the saved ${hash} link opens Workflow`, () => {
+		expect(projectSettingsSection("settings", hash)).toBe("workflow");
+		expect(projectSettingsSection("notes", hash)).toBe("notes");
+	});
+}
