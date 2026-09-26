@@ -1,8 +1,9 @@
-import { Plus, Trash } from "@phosphor-icons/react";
-import { GithubMark, IconButton, Input, Tooltip } from "@trellis/ui";
+import { Plus } from "@phosphor-icons/react";
+import { IconButton, Input, RepositoryRow, Tooltip } from "@trellis/ui";
 import { useRef, useState } from "react";
 
-type Repo = { owner: string; repo: string };
+import type { Repo } from "../generalValues";
+
 export type RepoSettingsProps = {
 	repos: Repo[];
 	disabled: boolean;
@@ -90,34 +91,17 @@ export function RepoSettings({ repos, disabled, onChange, onBlur, onDraftChange,
 			{repos.length > 0 && (
 				<ul aria-label="Connected repositories" className="flex flex-col gap-1">
 					{repos.map((repo) => (
-						<li
+						<RepositoryRow
 							key={`${repo.owner}/${repo.repo}`}
-							className="flex min-h-8 items-center rounded-md border border-border bg-surface px-2"
-						>
-							<a
-								href={`https://github.com/${repo.owner}/${repo.repo}`}
-								target="_blank"
-								rel="noreferrer"
-								className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-accent underline"
-							>
-								<GithubMark aria-hidden="true" className="size-3.5 shrink-0" />
-								<span className="truncate">
-									{repo.owner}/{repo.repo}
-								</span>
-							</a>
-							<Tooltip content={`Remove ${repo.owner}/${repo.repo}`}>
-								<IconButton
-									label={`Remove ${repo.owner}/${repo.repo}`}
-									icon={<Trash />}
-									disabled={disabled}
-									onClick={() =>
-										changeRepos(
-											currentRepos.current.filter((entry) => entry.owner !== repo.owner || entry.repo !== repo.repo),
-										)
-									}
-								/>
-							</Tooltip>
-						</li>
+							owner={repo.owner}
+							repo={repo.repo}
+							disabled={disabled}
+							onRemove={() =>
+								changeRepos(
+									currentRepos.current.filter((entry) => entry.owner !== repo.owner || entry.repo !== repo.repo),
+								)
+							}
+						/>
 					))}
 				</ul>
 			)}

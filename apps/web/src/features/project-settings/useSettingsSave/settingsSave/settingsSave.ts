@@ -3,13 +3,13 @@ export type SettingsSaveStatus = { pending: boolean; dirty: boolean; error: stri
 export function settingsSave<T extends object>(initialValue: T, save: (patch: Partial<T>) => Promise<void>) {
 	let value = initialValue;
 	let saved = initialValue;
-	let pending = 0;
+	let pendingCount = 0;
 	let writeTail = Promise.resolve();
 	const pendingByField = new Map<keyof T, { value: T[keyof T]; promise: Promise<void> }>();
 	const errors = new Map<keyof T, string>();
 	const listeners = new Set<() => void>();
 	const status = (): SettingsSaveStatus => ({
-		pending: pending > 0,
+		pending: pendingCount > 0,
 		dirty: (Object.keys(value) as (keyof T)[]).some((key) => !Object.is(value[key], saved[key])),
 		error: errors.values().next().value ?? null,
 	});
@@ -37,7 +37,7 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 			if (previous && Object.is(previous.value, next)) return previous.promise;
 			const pendingWrite = { value: next, ...Promise.withResolvers<void>() };
 			pendingByField.set(key, pendingWrite);
-			pending += 1;
+			pendingCount += 1;
 			publish();
 			writeTail = writeTail.then(async () => {
 				if (!Object.is(next, saved[key])) {
@@ -51,7 +51,7 @@ export function settingsSave<T extends object>(initialValue: T, save: (patch: Pa
 						errors.set(key, (error as Error).message);
 					}
 				}
-				pending -= 1;
+				pendingCount -= 1;
 				if (pendingByField.get(key) === pendingWrite) pendingByField.delete(key);
 				publish();
 				pendingWrite.resolve();

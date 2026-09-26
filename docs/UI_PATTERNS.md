@@ -53,6 +53,8 @@ Each page supplies its data and available actions. It does not choose new contro
 
 ## Form fields and type
 
+`RepositoryRow` draws a GitHub repository link and its remove action inside a list.
+
 `Field` owns the label, control, trailing action, and one hint slot.
 `Input`, `Textarea`, and `Select` use it internally. `ProjectColorField` uses it around its control.
 A composed control inside an existing `Field` uses that field's label and description.
