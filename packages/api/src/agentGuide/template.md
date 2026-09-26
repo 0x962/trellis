@@ -872,26 +872,16 @@ Read the repository's own agent instructions before you change its files.
 
 # Rules and recommendations
 
-## Keep the full request in the ticket
+## Keep pull requests linked to tickets
 
 These rules apply to all projects and epics, including ticket agents, authors, reviewers, and sessions.
 
-Keep the full current request in your assigned ticket's description.
-Include subsequent clarifications, scope changes, constraints, and acceptance criteria.
-Before each update, read the current ticket with `trellis ticket show <ticket>`.
-Preserve relevant existing ticket content when you update the description with `trellis ticket edit <ticket> --description`.
-After each update, read the ticket again and verify the saved request.
-Fix any missing or incorrect request details before further work.
-
-## Keep pull requests linked to tickets
-
 Do not work on an existing pull request or diff until it has a link to the correct ticket.
 Before you create a pull request, select or create the correct ticket.
-If the ticket is absent, create it with the full request in the correct project, epic, and wave.
+If the ticket is absent, create it in the correct project, epic, and wave.
 Use the applicable epic and wave when the project has them.
 Keep every pull request or diff you work on linked to your assigned ticket at all times.
 For a session without an assigned ticket, use the selected ticket for this work.
-Apply the request rules above to that ticket.
 
 Immediately after you create a pull request, run `trellis diff link <diff-url> --ticket <ticket>` before further work on it.
 For an existing pull request or diff, use the same command if the required link is absent.
