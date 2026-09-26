@@ -14,6 +14,7 @@ import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 import { WavePicker } from "../../../../pickers/WavePicker";
+import type { useCreatePlacement } from "../../../hooks/useCreatePlacement/useCreatePlacement";
 
 export type ChipRowProps = {
 	project: string | undefined;
@@ -24,12 +25,7 @@ export type ChipRowProps = {
 	priority: Priority;
 	parent: TicketSummary | null;
 	parentRef?: string;
-	// The ref of the epic the ticket joins. The page that opened the composer
-	// supplies it, so the row draws the Epic chip and the Wave chip only
-	// with it.
-	epic?: string;
-	// The ref of a wave of `epic`.
-	wave?: string;
+	placement: ReturnType<typeof useCreatePlacement>;
 	labels: readonly TicketLabel[];
 	onProject: (ref: string) => void;
 	onStatus: (status: Status) => void;
@@ -84,8 +80,7 @@ const chip = ({ label, icon, children, unset = false, invalid = false, disabled 
 );
 
 // The property chips under the description: project, status, priority,
-// parent, labels, and, for a ticket that joins an epic, the epic and the
-// wave. Each one opens the same picker the rail and the table
+// parent, labels, epic, and wave. Each one opens the same picker the rail and the table
 // use. The labels belong to a project, so the labels chip waits for a
 // project.
 export function ChipRow({
@@ -96,8 +91,7 @@ export function ChipRow({
 	priority,
 	parent,
 	parentRef,
-	epic,
-	wave,
+	placement,
 	labels,
 	onProject,
 	onStatus,
@@ -115,14 +109,7 @@ export function ChipRow({
 	);
 	const projectName = project === undefined ? "Choose a project" : project;
 	const parentName = parent?.identifier ?? parentRef;
-	// `epics.get` carries the epic name and the wave names of the chips.
-	const epicRecord = useQuery({
-		...orpc.epics.get.queryOptions({ input: { epic: epic ?? "" } }),
-		enabled: epic !== undefined,
-	}).data;
-	const epicName = epicRecord?.name ?? epic;
-	const waveName = epicRecord?.waves.find((entry) => entry.ref === wave)?.name ?? wave;
-	const waveLabel = waveName ?? "No wave";
+	const { epic, wave, epicName, waveName, newEpic, newWave } = placement;
 	return (
 		<div className="flex flex-col gap-1">
 			<div className="flex flex-wrap items-center gap-1.5">
@@ -171,25 +158,40 @@ export function ChipRow({
 						children: parentName ?? "Parent",
 					})}
 				/>
-				{project !== undefined && epic !== undefined && (
+				{project !== undefined && (
 					<>
-						<EpicPicker
-							project={project}
-							value={epic}
-							onPick={(next) => onEpic(next?.ref ?? null)}
-							trigger={chip({ label: `Epic: ${epicName}`, icon: <Stack />, children: epicName })}
-						/>
-						<WavePicker
-							epic={epic}
-							value={wave}
-							onPick={(next) => onWave(next?.ref ?? null)}
-							trigger={chip({
-								label: `Wave: ${waveLabel}`,
-								icon: <FlagBanner />,
-								unset: waveName === undefined,
-								children: waveLabel,
-							})}
-						/>
+						{newEpic ? (
+							chip({ label: `Epic: ${epicName}`, icon: <Stack />, children: epicName, disabled: true })
+						) : (
+							<EpicPicker
+								project={project}
+								value={epic}
+								allowNone={false}
+								onPick={(next) => onEpic(next?.ref ?? null)}
+								trigger={chip({
+									label: `Epic: ${epicName}`,
+									icon: <Stack />,
+									children: epicName,
+									unset: epic === undefined,
+								})}
+							/>
+						)}
+						{newWave || epic === undefined ? (
+							chip({ label: `Wave: ${waveName}`, icon: <FlagBanner />, children: waveName, disabled: true })
+						) : (
+							<WavePicker
+								epic={epic}
+								value={wave}
+								allowNone={false}
+								onPick={(next) => onWave(next?.ref ?? null)}
+								trigger={chip({
+									label: `Wave: ${waveName}`,
+									icon: <FlagBanner />,
+									children: waveName,
+									unset: wave === undefined,
+								})}
+							/>
+						)}
 					</>
 				)}
 				{project === undefined ? (
@@ -208,6 +210,11 @@ export function ChipRow({
 					/>
 				)}
 			</div>
+			{project !== undefined && placement.message && (
+				<p role="status" className="text-xs text-fg-muted">
+					{placement.message}
+				</p>
+			)}
 			{projectMissing && (
 				<p id="new-ticket-project-error" role="alert" className="text-xs text-danger">
 					Choose a project.

@@ -8,9 +8,9 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { assertProjectActive, resolveProject, resolveStatus, resolveTicket } from "../refs.ts";
+import { createPlacement } from "./createPlacement/createPlacement.ts";
 import { addDependencies } from "./deps.ts";
 import { createTicketLabels } from "./labels.ts";
-import { type Placement, resolvePlacement } from "./placement.ts";
 import { lastPosition } from "./position.ts";
 import { outsideProject } from "./rules.ts";
 
@@ -25,9 +25,6 @@ const nextNumber = async (tx: Tx, projectId: string) => {
 	);
 	return (found[0] as { ticket_counter: number }).ticket_counter;
 };
-
-// A new ticket starts outside every epic and every wave.
-const unplaced: Placement = { epicId: null, epicRef: null, waveId: null, waveRef: null };
 
 // The markdown a new ticket of this project starts with.
 const ticketTemplate = async (tx: Tx, projectId: string) => {
@@ -53,10 +50,10 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			: await resolveStatus(ctx, tx, { projectId: project.id, status: input.status });
 	const parent = input.parent === undefined ? null : await resolveTicket(ctx, tx, input.parent);
 	if (parent !== null && outsideProject(parent, project.id)) throw fail("CROSS_PROJECT_LINK");
-	const placement = await resolvePlacement(ctx, tx, project.id, unplaced, input);
+	const number = await nextNumber(tx, project.id);
+	const placement = await createPlacement(ctx, tx, project.id, input);
 
 	const batchId = ulid();
-	const number = await nextNumber(tx, project.id);
 	const position = await lastPosition(tx, status.id, null);
 	const id = ulid();
 	const description = input.description ?? (await ticketTemplate(tx, project.id));

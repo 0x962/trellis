@@ -39,6 +39,7 @@ export type EpicPickerProps = {
 	// True when the picker writes to several tickets that hold different
 	// epics. No row then shows a check, so the list claims no shared value.
 	mixed?: boolean;
+	allowNone?: boolean;
 	// `null` clears the epic.
 	onPick: (epic: EpicSummary | null) => void;
 	trigger: ReactElement;
@@ -55,6 +56,7 @@ export function EpicPicker({
 	project,
 	value,
 	mixed = false,
+	allowNone = true,
 	onPick,
 	trigger,
 	open,
@@ -83,7 +85,9 @@ export function EpicPicker({
 			? []
 			: [
 					...epicItems(epics, { current: mixed ? undefined : value, picker: true }),
-					{ id: noneId, label: "No epic", current: none, trailing: createElement(RowMarks, { current: none }) },
+					...(allowNone
+						? [{ id: noneId, label: "No epic", current: none, trailing: createElement(RowMarks, { current: none }) }]
+						: []),
 				];
 
 	return (

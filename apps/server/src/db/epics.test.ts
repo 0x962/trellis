@@ -145,7 +145,7 @@ test("a ticket epic change records the field epic with both refs", async () => {
 		{ field: "epic", from_value: "TST/routine-runtime", to_value: "TST/routine-runtime-2" },
 	]);
 	const event = events.find((item) => item.type === "ticket.updated");
-	expect(event).toMatchObject({ type: "ticket.updated", fields: ["epic"] });
+	expect(event).toMatchObject({ type: "ticket.updated", fields: ["epic", "wave"] });
 	const cleared = await run((tx) => updateTicket(ctx, tx, { ticket: "TST-1", epic: null }));
 	expect(cleared.epic).toBeNull();
 });
