@@ -44,7 +44,6 @@ export function ProjectDirectorySettings({
 			value={value}
 			hint="Agents use this directory for project work."
 			error={error ?? undefined}
-			invalid={error !== null}
 			disabled={disabled}
 			onChange={(event) => onChange(event.target.value)}
 			onBlur={onBlur}
