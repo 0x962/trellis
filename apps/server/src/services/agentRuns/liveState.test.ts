@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { AgentRunSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { projectRun } from "./liveState.ts";
+import { observeRuns, projectRun } from "./liveState.ts";
 import type { StoredRun } from "./queries.ts";
 
 const started = "2026-09-18T12:00:00.000Z";
@@ -92,4 +92,18 @@ test("projectRun forwards the last message and the last tool as its name, its ta
 	expect(projected.observation?.lastTool).not.toHaveProperty("input");
 	expect(projected.observation?.lastTool).not.toHaveProperty("output");
 	expect(AgentRunSchema.parse(projected)).toEqual(projected);
+});
+
+test("projectRun preserves stored activity when the execution service has no live process", () => {
+	const projected = projectRun({ ...run, activityAt: updated }, []);
+
+	expect(projected.activityAt).toBe(updated);
+});
+
+test("observeRuns reports an activity read failure", async () => {
+	const failure = new Error("execution service unavailable");
+	const readSessions = () => Promise.reject(failure);
+	const ctx = { home: "/tmp/trellis-live-state-test" };
+
+	await expect(observeRuns(ctx, [run], readSessions)).rejects.toBe(failure);
 });

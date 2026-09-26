@@ -7,6 +7,7 @@ import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
+import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
 import { models } from "./models.ts";
@@ -36,6 +37,7 @@ import { waves } from "./waves.ts";
 export const contract = {
 	models: oc.tag("models").router(models),
 	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
+	internalLinks: oc.tag("internal links").router(internalLinks),
 	usage: oc.tag("usage").router(usage),
 	needsYou: oc.tag("needs you").router(needsYou),
 	reviews: oc.tag("reviews").router(reviews),

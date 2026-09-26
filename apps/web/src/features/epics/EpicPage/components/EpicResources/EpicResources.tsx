@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { Resource } from "@trellis/api";
-import { useState } from "react";
+import { type Resource, UlidSchema } from "@trellis/api";
+import { useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
 import { PLAN_DOC_ID, planTitle } from "../../../epicDocs";
@@ -14,6 +14,8 @@ export type EpicResourcesProps = {
 	// The description of the epic, as markdown.
 	description: string;
 	readOnly: boolean;
+	// The resource ID in the route hash, when an internal link names one.
+	resourceId?: string;
 };
 
 const noResources: readonly Resource[] = [];
@@ -26,13 +28,18 @@ const noResources: readonly Resource[] = [];
 // resource and saves through `resources.update`. Links, images and files sit
 // in the same list under their own headings, and open in a sheet or download.
 // A document resource takes comments on its text; the description does not.
-export function EpicResources({ epic, description, readOnly }: EpicResourcesProps) {
+export function EpicResources({ epic, description, readOnly, resourceId }: EpicResourcesProps) {
 	const { client, orpc, queryClient } = useApp();
 	const list = useQuery(orpc.resources.list.queryOptions({ input: { epic } }));
 	const resources = list.data ?? noResources;
-	const [openDocId, setOpenDocId] = useState(PLAN_DOC_ID);
+	const [openDocId, setOpenDocId] = useState(() => UlidSchema.safeParse(resourceId).data ?? PLAN_DOC_ID);
+	useEffect(() => {
+		const linked = UlidSchema.safeParse(resourceId);
+		if (linked.success) setOpenDocId(linked.data);
+	}, [resourceId]);
 	// A removed document opens the description again.
 	const openDoc = resources.find((resource) => resource.id === openDocId && resource.kind === "doc") ?? null;
+	const selectedId = resources.some((resource) => resource.id === openDocId) ? openDocId : PLAN_DOC_ID;
 	const create = useMutation({
 		mutationFn: () => client.resources.add({ epic, kind: "doc", name: "", body: "" }),
 		onSuccess: async (created) => {
@@ -62,7 +69,7 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 				<ResourceList
 					resources={resources}
 					planTitle={planTitle(description)}
-					openDocId={openDoc?.id ?? PLAN_DOC_ID}
+					openDocId={selectedId}
 					onOpenDoc={setOpenDocId}
 					loading={list.isPending}
 					error={list.error === null ? null : errorMessage(list.error)}

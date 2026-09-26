@@ -1,5 +1,5 @@
 import type { Project } from "@trellis/api";
-import { Button } from "@trellis/ui";
+import { Button, FieldHint } from "@trellis/ui";
 import { useState } from "react";
 import { DeleteProjectDialog, useProjectActions } from "../../project-actions";
 import { SettingsSection } from "../SettingsSection";
@@ -22,11 +22,11 @@ export function ProjectLifecycle({ project }: ProjectLifecycleProps) {
 			<div className="project-settings-action-row">
 				<div className="project-settings-action-copy">
 					<h3 className="project-settings-group-title">{archived ? "Restore this project" : "Archive this project"}</h3>
-					<p className="text-sm text-fg-muted">
+					<FieldHint>
 						{archived
 							? "Make this project editable and return it to the active project list."
 							: "Keep the tickets and make the project read-only. You can restore it later."}
-					</p>
+					</FieldHint>
 				</div>
 				<Button onClick={() => void setArchived(project, !archived)}>
 					{archived ? "Unarchive project" : "Archive project"}
@@ -35,7 +35,7 @@ export function ProjectLifecycle({ project }: ProjectLifecycleProps) {
 			<div className="project-settings-action-row">
 				<div className="project-settings-action-copy">
 					<h3 className="project-settings-group-title">Delete this project</h3>
-					<p className="text-sm text-fg-muted">Permanently delete this project and all its tickets.</p>
+					<FieldHint>Permanently delete this project and all its tickets.</FieldHint>
 				</div>
 				<Button variant="danger-soft" onClick={() => setDeleteOpen(true)}>
 					Delete project…

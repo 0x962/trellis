@@ -6,7 +6,6 @@ import { ProviderIcon } from "../../../domain/ProviderIcon";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
 import { ChoiceBoxes } from "../../../primitives/ChoiceBoxes";
-import { Field } from "../../../primitives/Field";
 import { IconButton } from "../../../primitives/IconButton";
 import { Input } from "../../../primitives/Input";
 import { Segmented } from "../../../primitives/Segmented";
@@ -17,6 +16,7 @@ import { Tabs } from "../../../primitives/Tabs";
 import { Textarea } from "../../../primitives/Textarea";
 import { Section } from "../Section";
 import { InlineEditSection } from "./sections";
+import { FieldSection } from "./sections/FieldSection";
 
 const sizes = ["sm", "md"] as const;
 
@@ -132,27 +132,7 @@ export function ControlSections() {
 				<Select label="Locked" items={priorities} value="low" onValueChange={() => {}} disabled />
 				<Select label="Label color" items={hues} value={hue} onValueChange={setHue} />
 			</Section>
-			<Section name="Field" note="a hint; an error hint; no hint; a hidden label" className="items-start">
-				<Field label="Project" hint="Trellis asks this project for a flow run.">
-					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
-				</Field>
-				<Field
-					label="Project"
-					hint={
-						<span role="alert" className="text-danger">
-							Could not load the projects.
-						</span>
-					}
-				>
-					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
-				</Field>
-				<Field label="Project">
-					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
-				</Field>
-				<Field label="Project" hideLabel>
-					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
-				</Field>
-			</Section>
+			<FieldSection />
 			<Section name="Checkbox" note="unchecked, checked, mixed, disabled">
 				<Checkbox label="Done" checked={done} onCheckedChange={setDone} />
 				<Checkbox label="Checked" checked onCheckedChange={() => {}} />

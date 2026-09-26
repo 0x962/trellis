@@ -1,0 +1,1 @@
+export { setPageCommentResolved } from "./setPageCommentResolved";

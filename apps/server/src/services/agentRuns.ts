@@ -1,5 +1,5 @@
-export { activityRuns } from "./agentRuns/activity.ts";
-export { projectUnresolvedAttempts } from "./agentRuns/agentRuns.ts";
+export { activityRuns, recordObservedActivity } from "./agentRuns/activity.ts";
+export { listUnresolvedAttempts } from "./agentRuns/agentRuns.ts";
 export {
 	type RequestedSessionName,
 	type RequestSessionNameInput,

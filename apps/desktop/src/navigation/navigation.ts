@@ -1,3 +1,5 @@
+import { parseInternalLink } from "@trellis/api";
+
 export const sameOrigin = (url: string, origin: string) => URL.canParse(url) && new URL(url).origin === origin;
 
 export const isSafeWebLink = (url: string) => {
@@ -13,6 +15,7 @@ export const openSafeWebLink = (url: string, open: (url: string) => unknown) => 
 };
 
 export const deepLinkPath = (url: string) => {
+	if (parseInternalLink(url) !== null) return `/search?internalLink=${encodeURIComponent(url)}`;
 	if (!URL.canParse(url)) return null;
 	const parsed = new URL(url);
 	if (parsed.protocol !== "trellis:" || parsed.host !== "open" || parsed.username || parsed.password) return null;

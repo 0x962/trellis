@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import type { Status } from "@trellis/api";
 import { errors } from "@trellis/api";
-import { ConfirmDialog, Select } from "@trellis/ui";
+import { ConfirmDialog, FormStatus, Select } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
@@ -64,11 +64,7 @@ export function StatusDeleteDialog({ project, status, statuses, onDeleted, onClo
 			onConfirm={() => void remove()}
 			onCancel={close}
 		>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} />}
 			{moveTo !== null && (
 				<Select label="Move tickets to" items={alternatives} value={moveTo} onValueChange={setMoveTo} />
 			)}

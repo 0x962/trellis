@@ -70,6 +70,7 @@ export const versionList: ListSpec<PageVersion> = {
 // and the revision are what the next publication of this page needs.
 export const publishedRecord: RecordSpec<PagePublishOutput> = {
 	fields: [
+		{ name: "link", value: (result) => result.link },
 		{ name: "ref", value: (result) => result.page.ref },
 		{ name: "id", value: (result) => result.page.id },
 		{ name: "title", value: (result) => cell(result.page.title) },

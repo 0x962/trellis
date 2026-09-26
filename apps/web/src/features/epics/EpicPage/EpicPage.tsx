@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary, WaveSummary } from "@trellis/api";
 import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
@@ -68,6 +68,7 @@ const breadcrumbLinkClass =
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
+	const resourceId = useLocation({ select: (location) => location.hash });
 	const mutations = useTicketMutations();
 	const storedDensity = useUiStore((state) => state.density);
 	const ref = `${project.key}/${slug}`;
@@ -290,7 +291,12 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 							),
 							content:
 								tab === "resources" ? (
-									<EpicResources epic={record.ref} description={record.description} readOnly={readOnly} />
+									<EpicResources
+										epic={record.ref}
+										description={record.description}
+										readOnly={readOnly}
+										resourceId={resourceId}
+									/>
 								) : null,
 						},
 					]}

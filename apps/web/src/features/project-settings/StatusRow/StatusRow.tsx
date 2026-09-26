@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, CheckCircle, PencilSimple, Trash } from "@phosphor-icons/react";
 import type { ColorToken, Status } from "@trellis/api";
-import { Menu, StatusIcon } from "@trellis/ui";
+import { FormStatus, Menu, StatusIcon } from "@trellis/ui";
 import { useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -110,11 +110,7 @@ export function StatusRow({
 					<StatusEditor project={project} status={status} onChanged={onChanged} onCancel={onCancel} />
 				</div>
 			)}
-			{message !== null && (
-				<p role="alert" className="status-row-message">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} className="status-row-message" />}
 		</li>
 	);
 }

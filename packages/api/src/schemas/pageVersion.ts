@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { InternalLinkSchema } from "../internalLink";
 import { PageRefStringSchema, ProjectRefStringSchema } from "../refs.ts";
 import {
 	PAGE_TITLE_MAX,
@@ -83,6 +84,7 @@ export type PagePublishInput = z.input<typeof PagePublishInputSchema>;
 export const PagePublishOutputSchema = z.object({
 	page: PageSummarySchema,
 	version: PageVersionSchema,
+	link: InternalLinkSchema,
 });
 export type PagePublishOutput = z.infer<typeof PagePublishOutputSchema>;
 

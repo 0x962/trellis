@@ -2,30 +2,35 @@ import type { AgentRun } from "@trellis/api";
 
 export const SESSION_ARCHIVE_AFTER_MS = 48 * 60 * 60 * 1000;
 
+const descending = (left: string, right: string) => (left === right ? 0 : left > right ? -1 : 1);
+
 type GroupableRun = Pick<
 	AgentRun,
 	"id" | "name" | "kind" | "ticketId" | "ticketIdentifier" | "ticketTitle" | "pinnedAt" | "activityAt" | "createdAt"
 >;
 
-export const isAutomaticallyArchived = (run: Pick<GroupableRun, "pinnedAt" | "activityAt">) =>
-	run.pinnedAt === null &&
-	run.activityAt !== null &&
-	Date.now() - Date.parse(run.activityAt) >= SESSION_ARCHIVE_AFTER_MS;
+export const isAutomaticallyArchived = (run: Pick<GroupableRun, "pinnedAt" | "activityAt">, now = Date.now()) =>
+	run.pinnedAt === null && run.activityAt !== null && now - Date.parse(run.activityAt) >= SESSION_ARCHIVE_AFTER_MS;
 
-export const nextSessionArchiveAt = (runs: Array<Pick<GroupableRun, "pinnedAt" | "activityAt">>) => {
-	const now = Date.now();
+export const nextSessionArchiveTimeMs = (
+	runs: Array<Pick<GroupableRun, "pinnedAt" | "activityAt">>,
+	now = Date.now(),
+) => {
 	const times = runs.flatMap((run) => {
 		if (run.pinnedAt !== null || run.activityAt === null) return [];
-		const archiveAt = Date.parse(run.activityAt) + SESSION_ARCHIVE_AFTER_MS;
-		return archiveAt > now ? [archiveAt] : [];
+		const archiveTimeMs = Date.parse(run.activityAt) + SESSION_ARCHIVE_AFTER_MS;
+		return archiveTimeMs > now ? [archiveTimeMs] : [];
 	});
 	return times.length === 0 ? null : Math.min(...times);
 };
 
-export function sessionGroups<T extends GroupableRun>(runs: T[], options: { search: string; archived: boolean }) {
+export function sessionGroups<T extends GroupableRun>(
+	runs: T[],
+	options: { search: string; showArchived: boolean; now?: number },
+) {
 	const query = options.search.trim().toLocaleLowerCase();
 	const matches = runs
-		.filter((run) => isAutomaticallyArchived(run) === options.archived)
+		.filter((run) => isAutomaticallyArchived(run, options.now) === options.showArchived)
 		.filter((run) => {
 			if (!query) return true;
 			return [run.name, run.ticketIdentifier, run.ticketTitle, run.activityAt, run.createdAt].some((value) =>
@@ -35,8 +40,8 @@ export function sessionGroups<T extends GroupableRun>(runs: T[], options: { sear
 	matches.sort(
 		(a, b) =>
 			Number(b.pinnedAt !== null) - Number(a.pinnedAt !== null) ||
-			(b.activityAt ?? "").localeCompare(a.activityAt ?? "") ||
-			b.id.localeCompare(a.id),
+			descending(a.activityAt ?? "", b.activityAt ?? "") ||
+			descending(a.id, b.id),
 	);
 	return {
 		runs: matches,

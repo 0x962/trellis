@@ -51,7 +51,7 @@ export function SessionGroup({
 	selectedId,
 	onSelect,
 	searching = false,
-	header = true,
+	showHeader = true,
 }: {
 	group: string;
 	label: string;
@@ -63,11 +63,11 @@ export function SessionGroup({
 	selectedId?: string;
 	onSelect: (id: string) => void;
 	searching?: boolean;
-	header?: boolean;
+	showHeader?: boolean;
 }) {
 	const contentId = useId();
 	const routeKey = `/sessions/project/${projectKey}`;
-	const collapsed = useUiStore((state) => header && (state.collapsedGroups[routeKey]?.includes(group) ?? false));
+	const collapsed = useUiStore((state) => showHeader && (state.collapsedGroups[routeKey]?.includes(group) ?? false));
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	// The run whose row last took the keyboard focus, and the run the Tab
@@ -87,8 +87,8 @@ export function SessionGroup({
 	const [selectedIndex, focusedIndex] = keptSessionRows(runs, [selectedId, focusedId]);
 	const revealId = selectedIndex === -1 ? undefined : selectedId;
 	useEffect(() => {
-		if (header && (revealId || searching)) uiActions.setGroupCollapsed(routeKey, group, false);
-	}, [revealId, routeKey, group, searching, header]);
+		if (showHeader && (revealId || searching)) uiActions.setGroupCollapsed(routeKey, group, false);
+	}, [revealId, routeKey, group, searching, showHeader]);
 	useEffect(() => {
 		if (revealId && !collapsed) selectedButton.current?.scrollIntoView({ block: "nearest" });
 	}, [revealId, collapsed]);
@@ -115,7 +115,7 @@ export function SessionGroup({
 		rangeExtractor,
 		// A row that a key scrolls to lands under the header of its group,
 		// which stands at the top of the box while its rows pass.
-		scrollPaddingStart: header ? (phone ? phoneGroupHeaderHeight : groupHeaderHeight) : 0,
+		scrollPaddingStart: showHeader ? (phone ? phoneGroupHeaderHeight : groupHeaderHeight) : 0,
 		getItemKey: (index) => runs[index]!.id,
 	});
 	const drawn = virtualizer.getVirtualItems();
@@ -167,7 +167,7 @@ export function SessionGroup({
 	};
 	return (
 		<section aria-label={group === "sessions" ? "Sessions" : `${label} sessions`}>
-			{header && (
+			{showHeader && (
 				<GroupHeader
 					group={group}
 					label={label}

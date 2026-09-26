@@ -1,5 +1,5 @@
 import type { Label } from "@trellis/api";
-import { ConfirmDialog } from "@trellis/ui";
+import { ConfirmDialog, FormStatus } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
@@ -55,11 +55,7 @@ export function LabelDeleteDialog({ project, label, onDeleted, onClose }: LabelD
 			onConfirm={() => void remove()}
 			onCancel={close}
 		>
-			{message !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{message}
-				</p>
-			)}
+			{message !== null && <FormStatus state="error" message={message} />}
 		</ConfirmDialog>
 	);
 }
