@@ -91,7 +91,13 @@ describe("the Page routes of the whole app", () => {
 		expect(await frame.text()).toContain(`src="/api/page-render/${lease.id}/"`);
 		const page = await app.request(`${ORIGIN}/api/page-render/${lease.id}/`);
 		expect(page.status).toBe(200);
-		expect(await page.text()).toBe(document);
+		const rendered = await page.text();
+		expect(rendered).toStartWith(document);
+		expect(rendered).toContain("page-ready");
+		const source = await app.request(`${ORIGIN}/api/page-render/${lease.id}/index.html?download=1`);
+		expect(source.status).toBe(200);
+		expect(await source.text()).toBe(document);
+		expect(source.headers.get("content-disposition")).toBe("attachment");
 		const archive = await app.request(`${ORIGIN}/api/page-archive/${grant.id}`);
 		expect(archive.status).toBe(200);
 		expect(archive.headers.get("content-type")).toBe("application/zip");

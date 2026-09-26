@@ -96,6 +96,25 @@ The product keeps two shapes. What the control changes picks the shape, not the 
 
 A document of the Resources tab of an epic keeps its own shape. Its title and its body save while the person types, so it is no in-place edit of one value.
 
+## Project-owned HTML Pages
+
+The project Pages list uses `PageRow`, the shared filter controls, and keyset pagination.
+The Page detail uses `Topbar`, `InlineEdit`, `Menu`, `Sheet`, and `ConfirmDialog`.
+History uses `PageVersionRow`. Share copies the stable internal link.
+
+`PageViewer` holds the fixed wrapper URL for the selected version.
+The Page document stays inside its sandboxed child frame.
+`PageCommentPin` places comment numbers over the viewer without moving the document.
+`ReviewThreadCard` and `ReviewCommentEditor` supply the comment controls.
+
+At widths of 80 rem or more, comments occupy a right pane.
+Below that width, the circular Comments action opens the shared sheet.
+Historical views identify their version and show read-only comments.
+Lease refresh restores the scroll position immediately and announces its status through a polite live region.
+Comment reveal respects `prefers-reduced-motion`.
+
+The [Pages guide](pages.md) lists the release checks for phone widths, zoom, keyboard access, and desktop links.
+
 ## Pages in a sheet
 
 Use `PageSheet` to show a ticket or a pull request over the current page.

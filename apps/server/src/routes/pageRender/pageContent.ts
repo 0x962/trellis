@@ -60,10 +60,12 @@ export const pageContentRoute =
 			return c.json(errorBody("PAGE_DELETED"), 410, headers);
 		}
 		if (file.state === "missing") return missing("no file at this address");
+		const download = c.req.query("download") === "1";
+		if (download) headers["content-disposition"] = "attachment";
 		const etag = `"${file.sha256}"`;
 		if (c.req.header("if-none-match") === etag)
 			return new Response(null, { status: 304, headers: { ...headers, etag } });
-		const { body, size } = await renderPageBody({ config }, { path, file, nonce: lease.nonce });
+		const { body, size } = await renderPageBody({ config }, { path, file, nonce: lease.nonce, download });
 		return new Response(body, {
 			headers: {
 				...headers,

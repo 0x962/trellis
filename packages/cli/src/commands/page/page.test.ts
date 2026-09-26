@@ -92,6 +92,7 @@ const fixture = (reply: (path: string, input: unknown) => unknown = defaultReply
 			const path = new URL(request.url).pathname;
 			const headers = { "x-trellis-api-version": "1" };
 			if (request.method === "GET") {
+				expect(new URL(request.url).searchParams.get("download")).toBe("1");
 				calls.push({ path, input: null, files: [] });
 				return new Response(`bytes of ${path}`, { headers });
 			}

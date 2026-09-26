@@ -7,13 +7,17 @@ type Input = {
 	path: string;
 	file: Extract<PageContentFile, { state: "ok" }>;
 	nonce: string;
+	download: boolean;
 };
 
 // pageDocumentScript adds scroll reports and link requests to the HTML.
 // Assets keep their stored bytes.
-export const renderPageBody = async ({ config }: { config: Pick<Config, "home"> }, { path, file, nonce }: Input) => {
+export const renderPageBody = async (
+	{ config }: { config: Pick<Config, "home"> },
+	{ path, file, nonce, download }: Input,
+) => {
 	const object = Bun.file(pageObjectPath(config.home, file.sha256));
-	if (path !== "" && path !== PAGE_DOCUMENT_PATH) return { body: object, size: file.size };
+	if (download || (path !== "" && path !== PAGE_DOCUMENT_PATH)) return { body: object, size: file.size };
 	const body = new HTMLRewriter()
 		.onDocument({
 			end: (document) => {
