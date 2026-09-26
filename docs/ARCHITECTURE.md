@@ -236,6 +236,22 @@ The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
 invalidates every note query. The CLI verb is `trellis notes`, and the web route is `/p/<KEY>/notes`.
 Repository instructions describe note behavior. The ticket brief carries note content.
 
+### Ticket creation
+
+Every new ticket belongs to an epic and a wave in its project.
+The server applies this rule to UI, CLI, API, and sub-ticket requests.
+A selected wave determines the epic and must match any explicit epic or project.
+A sub-ticket uses the same selection rules as any new ticket.
+
+If the project has no epic, ticket creation creates a Default epic and a Default wave.
+If the selected epic has no wave, ticket creation creates a Default wave.
+Each default has the slug `default`.
+
+An omitted epic uses that default only when it is the sole epic in the project.
+An omitted wave uses that default only when it is the sole wave in the selected epic.
+Every other existing epic or wave requires explicit selection, even when it is the sole choice.
+The defaults and the ticket share one database transaction, so simultaneous requests reuse the same defaults.
+
 ### Epics
 
 `epics` holds one row per epic: `project_id`, `slug`, `name`,
@@ -247,7 +263,7 @@ numeric suffix from `-2`. An archived project serves reads and refuses every
 epic write (`PROJECT_ARCHIVED`).
 
 A ticket joins an epic through `epic` on `tickets.create`, `tickets.update`,
-and `tickets.updateMany`; `null` clears it. The service resolves the ref,
+and `tickets.updateMany`. An update with `null` clears it. The service resolves the ref,
 checks that the epic sits in the project of the ticket, and checks
 `PROJECT_ARCHIVED` on that project. A
 change of `epic` records field `epic` with the epic refs as `from_value` and
@@ -298,7 +314,7 @@ in the positions, and the order still holds. A wave write leaves
 epics (`PROJECT_ARCHIVED`).
 
 A ticket joins a wave through `wave` on `tickets.create`,
-`tickets.update`, and `tickets.updateMany`; `null` clears it, and the ticket
+`tickets.update`, and `tickets.updateMany`. An update with `null` clears it, and the ticket
 stays in its epic. The service resolves the ref, checks that the epic of the
 wave sits in the project of the ticket (`CROSS_PROJECT_LINK`), and checks
 `PROJECT_ARCHIVED` on that project.

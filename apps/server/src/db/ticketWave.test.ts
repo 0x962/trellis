@@ -96,14 +96,18 @@ test("a wave places the ticket in the epic of that wave in the same write", asyn
 		fields: ["title", "description", "priority", "status", "project", "epic", "wave"],
 	});
 
-	await run((tx) => createTicket(ctx, tx, { project: "TST", title: "Step 2", status: "done" }));
+	const setup = ctxAt("2026-09-18T10:03:50.000Z");
+	await run((tx) =>
+		createTicket(setup, tx, { project: "TST", title: "Step 2", status: "done", wave: "TST/plan/phase-2" }),
+	);
+	await run((tx) => updateTicket(setup, tx, { ticket: "TST-2", epic: null }));
 	events.length = 0;
 	const placed = await run((tx) => updateTicket(ctx, tx, { ticket: "TST-2", wave: "TST/plan/phase-2" }));
 	expect(placed.epic?.ref).toBe("TST/plan");
 	expect(placed.wave?.ref).toBe("TST/plan/phase-2");
 	expect(events[0]).toMatchObject({ type: "ticket.updated", fields: ["epic", "wave"] });
 	const activity = await db.execute(
-		sql`SELECT field, from_value, to_value FROM activity WHERE ticket_id = ${placed.id} AND field IN ('epic', 'wave') ORDER BY id`,
+		sql`SELECT field, from_value, to_value FROM activity WHERE ticket_id = ${placed.id} AND field IN ('epic', 'wave') AND created_at = ${ctx.now} ORDER BY id`,
 	);
 	expect(activity.rows).toEqual([
 		{ field: "epic", from_value: null, to_value: "TST/plan" },

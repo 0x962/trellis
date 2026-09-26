@@ -55,7 +55,8 @@ Do not assume that a wave starts agents or enforces those dependencies.
 
 A ticket describes a unit of work.
 It has an identifier, a title, a description, a status, and a priority.
-It can also have labels, dependencies, sub-tickets, attachments, diffs, an epic, and a wave.
+Every new ticket belongs to an epic and a wave.
+It can also have labels, dependencies, sub-tickets, attachments, and diffs.
 
 A ticket contract can define the result, file ownership, verification commands, and review focus.
 An outcome records what the work achieves.
@@ -288,8 +289,18 @@ Use `--all` when you need every matching ticket.
 The default list limit is 50.
 
 `ticket create` and `ticket edit` accept `--description`, `--priority`, `--epic`, and `--wave`.
+Every new ticket needs an epic and a wave, including a sub-ticket.
 A wave reference also selects its epic.
-Set the epic or wave explicitly when a new sub-ticket belongs to that plan.
+The server rejects a wave outside the selected epic or project.
+A sub-ticket uses the same selection rules as any new ticket.
+
+If the project has no epic, the server creates a Default epic and a Default wave with the ticket.
+If the selected epic has no wave, the server creates a Default wave with the ticket.
+Each default has the slug `default`.
+The server reuses an omitted epic or wave only when that default is the sole choice in its project or epic.
+Every other existing epic or wave requires a selection, even when it is the sole choice.
+A wave selection also selects its epic.
+The server creates the defaults and the ticket in one transaction, so simultaneous requests reuse the same defaults.
 
 `ticket edit --after` adds a dependency.
 `ticket edit --not-after` removes one.
@@ -1018,7 +1029,8 @@ Keep a small task in one agent when delegation adds more coordination than usefu
 
 Create sub-tickets for work that needs its own owner and result.
 Give each sub-ticket a clear task, acceptance criteria, files or interfaces, and verification steps.
-Set its epic and wave explicitly when they apply.
+Select its wave explicitly unless the default rules apply.
+The selected wave also selects its epic.
 Record dependencies with ticket links.
 
 Before you start a sub-agent, check existing assignments and host capacity.

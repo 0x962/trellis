@@ -54,7 +54,10 @@ const ticketRows = async (identifiers: string[]) => {
 const updatedEvents = () => emitted.filter((event) => event.type === "ticket.updated");
 
 // Three tickets for the batch test, two more for the delete test.
-const seedTicket = (title: string) => run((ctx, tx) => tickets.create(ctx, tx, { project: "TUM", title }));
+const seedTicket = async (title: string) => {
+	const created = await run((ctx, tx) => tickets.create(ctx, tx, { project: "TUM", title, epic: "TUM/bulk" }));
+	return run((ctx, tx) => tickets.update(ctx, tx, { ticket: created.identifier, epic: null }));
+};
 
 beforeAll(async () => {
 	db = await openTestDb();
@@ -97,7 +100,7 @@ test("one call changes the status, the epic, and the labels of three tickets und
 	expect(items.map((item) => item.status.slug)).toEqual(["done", "done", "done"]);
 	expect(items.map((item) => item.epic?.ref)).toEqual(["TUM/bulk", "TUM/bulk", "TUM/bulk"]);
 	expect(items.map((item) => item.labels.map((label) => label.name))).toEqual([["bug"], ["bug"], ["bug"]]);
-	expect((await ticketRows(["TUM-1", "TUM-2", "TUM-3"])).map((row) => row.version)).toEqual([2, 2, 2]);
+	expect((await ticketRows(["TUM-1", "TUM-2", "TUM-3"])).map((row) => row.version)).toEqual([3, 3, 3]);
 
 	// One ticket.updated for each ticket, and every event of the call carries
 	// the same batch id.
@@ -137,7 +140,7 @@ test("a ref that names no ticket rolls the whole batch back", async () => {
 	// TUM-4 sits before the refused ref in the list, and it keeps the status,
 	// the version, and the labels it had before the call.
 	const [row] = await ticketRows(["TUM-4"]);
-	expect(row).toMatchObject({ version: 1, status_id: todoId });
+	expect(row).toMatchObject({ version: 2, status_id: todoId });
 	const held = await db.execute(
 		sql`SELECT count(*)::int AS n FROM ticket_labels tl JOIN tickets t ON t.id = tl.ticket_id
 			WHERE t.project_id = ${rootId} AND t.number = 4`,
@@ -151,7 +154,7 @@ test("two refs that name one ticket are an input error", async () => {
 		run((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ["TUM-1", "tum-1"], priority: "high" })),
 	).rejects.toThrow("Name each ticket once.");
 	const [row] = await ticketRows(["TUM-1"]);
-	expect(row?.version).toBe(2);
+	expect(row?.version).toBe(3);
 });
 
 test("a batch of more than 200 refs is an input error", async () => {
