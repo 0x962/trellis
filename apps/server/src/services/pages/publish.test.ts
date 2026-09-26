@@ -112,6 +112,7 @@ describe("a first publication", () => {
 		expect(created.link).toBe(`trellis://page/${created.page.id}`);
 		expect(created.page.ref).toBe("PUB/pages/forecast-report");
 		expect(created.page.latestVersion).toBe(1);
+		expect(created.page.watcher?.agent.id).toBe(agentId);
 		expect(created.page.revision).toBe(1);
 		expect(created.page.summary).toBe("The forecast of this week.");
 		expect(created.version.number).toBe(1);

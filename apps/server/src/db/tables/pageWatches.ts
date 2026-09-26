@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text } from "drizzle-orm/pg-core";
+import { check, index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { pages } from "./pages.ts";
@@ -23,6 +23,11 @@ export const pageWatches = pgTable(
 		cursorAt: at("cursor_at"),
 		cursorId: text("cursor_id"),
 		reservationId: text("reservation_id"),
+		reservationPayload: jsonb("reservation_payload").$type<{
+			text: string;
+			terminalId: string;
+			sessionId: string | null;
+		}>(),
 		reservationExpiresAt: at("reservation_expires_at"),
 		reservationEndAt: at("reservation_end_at"),
 		reservationEndId: text("reservation_end_id"),
@@ -36,7 +41,8 @@ export const pageWatches = pgTable(
 			"page_watches_reservation_check",
 			sql`(${t.reservationId} IS NULL) = (${t.reservationExpiresAt} IS NULL)
 				AND (${t.reservationId} IS NULL) = (${t.reservationEndAt} IS NULL)
-				AND (${t.reservationId} IS NULL) = (${t.reservationEndId} IS NULL)`,
+				AND (${t.reservationId} IS NULL) = (${t.reservationEndId} IS NULL)
+				AND (${t.reservationId} IS NULL) = (${t.reservationPayload} IS NULL)`,
 		),
 		index("page_watches_agent_id_idx").on(t.agentId),
 		index("page_watches_reservation_expires_at_idx")

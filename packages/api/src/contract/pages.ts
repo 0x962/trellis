@@ -13,6 +13,9 @@ import {
 	PageUpdateInputSchema,
 	PageUploadInputSchema,
 	PageUploadSchema,
+	PageWatcherOptionSchema,
+	PageWatcherOptionsInputSchema,
+	PageWatchInputSchema,
 } from "../schemas/page.ts";
 import {
 	PageCommentCreateInputSchema,
@@ -42,6 +45,15 @@ import { base } from "./base.ts";
 const revisionErrors = pickErrors(["PROJECT_ARCHIVED", "PAGE_VERSION_CONFLICT"]);
 
 export const pages = {
+	watcherOptions: base
+		.route({ method: "GET", path: "/pages/watcher-options/{+page}", summary: "List up to 100 eligible Page watchers" })
+		.input(PageWatcherOptionsInputSchema)
+		.output(z.array(PageWatcherOptionSchema)),
+	watch: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({ method: "PUT", path: "/pages/watch/{+page}", summary: "Assign or remove the Page watcher" })
+		.input(PageWatchInputSchema)
+		.output(PageSummarySchema),
 	upload: base
 		.errors(pickErrors(["DUPLICATE", "PAYLOAD_TOO_LARGE", "PROJECT_ARCHIVED"]))
 		.route({

@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 12;
+export const RUNTIME_PROTOCOL_VERSION = 13;
 export type HarnessInputRequest = {
 	id: string;
 	kind: "question" | "permission" | "elicitation";
@@ -199,12 +199,16 @@ export interface RuntimeNativeDelivery {
 }
 // The answer to "did this message reach this session?". `delivered` is true
 // when the session wrote the bytes or the agent confirmed the message.
+// `registered` is true after the runtime accepts the message, before the agent confirms it.
+// Send the same `messageId` to a new session only when the old session has
+// `status: "exited"` and `registered` is false.
 // `status` is the status of the session that holds the answer, so a caller
 // tells a message that is still on its way from a message that can never
 // arrive. A session the runtime has no record of produces no answer: the
 // call fails with SESSION_NOT_FOUND.
 export interface RuntimeMessageState {
 	messageId: string;
+	registered: boolean;
 	delivered: boolean;
 	status: SessionStatus;
 }

@@ -415,12 +415,19 @@ Agents publish Pages and place their internal links in the work that uses them.
 | `trellis page show <page>` | Read one page, one version, and the current revision. |
 | `trellis page publish <path> --project <project> --title <text>` | Create a page from an HTML file or a directory. |
 | `trellis page publish <path> --page <page> --expected-version <n>` | Add a version to a page. |
+| `trellis page watch <page> --agent <id>` | Assign one agent to receive human comments. |
+| `trellis page unwatch <page>` | Remove the watcher. |
 | `trellis page versions <page>` | List the versions of a page, newest first. |
 | `trellis page pull <page> --out <dir> [--version <n>]` | Write the document and the assets of one version. |
 | `trellis page rename <page> <title> --expected-version <n>` | Change the title, and the summary with `--summary`. |
 | `trellis page pin <page>`, `trellis page unpin <page>` | Set or remove this actor's pin. |
 | `trellis page rm <page> --expected-version <n> --yes` | Delete a page and keep it for 30 days. |
 | `trellis page restore <page> --expected-version <n>` | Restore a deleted page during those 30 days. |
+
+A Page has one watcher. A person can assign any assigned agent in that project.
+A publishing agent can assign itself. A stopped process keeps its watch until removal, reassignment, or Page deletion.
+Publication assigns the publishing agent when the Page has no watcher.
+The watcher receives human comments in batches. Replies from agents do not return to the watcher.
 
 `publish` takes one `.html` file, or a directory that holds `index.html`.
 A directory publishes every other file under it as an asset at its own path.

@@ -216,3 +216,11 @@ export const PagePinInputSchema = z.strictObject({
 
 export const PagePinOutputSchema = z.object({ pageId: UlidSchema, pinned: z.boolean() });
 export type PagePinOutput = z.infer<typeof PagePinOutputSchema>;
+
+export const PageWatchInputSchema = z.strictObject({
+	page: PageRefStringSchema,
+	agentId: UlidSchema.nullable(),
+});
+
+export const PageWatcherOptionsInputSchema = z.strictObject({ page: PageRefStringSchema });
+export const PageWatcherOptionSchema = z.object({ id: UlidSchema, name: z.string() });

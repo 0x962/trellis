@@ -24,6 +24,8 @@ const leaseReply = (lease: RenderLease): PageRenderLease => ({
 });
 
 export const pages = os.pages.router({
+	watcherOptions: os.pages.watcherOptions.handler(({ context, input }) => call(context, "pages.watcherOptions", input)),
+	watch: os.pages.watch.handler(({ context, input }) => call(context, "pages.watch", input)),
 	upload: os.pages.upload.handler(({ context, input }) => call(context, "pages.upload", input)),
 	list: os.pages.list.handler(({ context, input }) => call(context, "pages.list", input)),
 	comments: os.pages.comments.handler(({ context, input }) => call(context, "pages.comments", input)),
