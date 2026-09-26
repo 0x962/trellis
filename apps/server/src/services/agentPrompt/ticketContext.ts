@@ -106,7 +106,32 @@ export async function ticketContext(ctx: ServiceCtx, tx: Tx, ticket: Ticket) {
 			})),
 			resources,
 		}),
-		"ticket.diffs_and_reviews": record({ diffs: ticket.prs, flows, threads }),
+		"ticket.diffs_and_reviews": record({
+			diffs: ticket.prs.map((pr) => ({
+				id: pr.id,
+				url: pr.url,
+				title: pr.title,
+				state: pr.state,
+				isDraft: pr.isDraft,
+				localState: pr.localState,
+				headRef: pr.headRef,
+				baseRef: pr.baseRef,
+				ciState: pr.ciState,
+				checks: pr.checks.reduce(
+					(checksByStatus, check) => {
+						checksByStatus[check.bucket]++;
+						return checksByStatus;
+					},
+					{ pass: 0, fail: 0, pending: 0, skipping: 0, cancel: 0 },
+				),
+				fetchedAt: pr.fetchedAt,
+				fetchError: pr.fetchError,
+				detailsCommand: `trellis diff show ${pr.url} --json`,
+			})),
+			detailsHint: "Diffs contain summaries. Use each detailsCommand for all checks, files, and review gaps.",
+			flows,
+			threads,
+		}),
 		"ticket.agents": record(agents.filter((agent) => agent.ticketId === ticket.id)),
 	};
 }

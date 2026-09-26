@@ -208,6 +208,7 @@ export const createInlineTransport = ({
 			});
 			flowReconcile = startNativeReconcile({
 				tick: () => backgroundCall("flowExecutions.reconcile", {}),
+				allowConcurrentTicks: true,
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,
 				log: options.log,

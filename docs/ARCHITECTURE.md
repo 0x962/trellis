@@ -133,7 +133,15 @@ Terminal instances retain their buffers and subscriptions across page switches. 
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
 `trellis doctor --json` reads runtime diagnostics without starting the runtime.
 
+Launch prompts summarize linked pull requests and count CI checks by status.
+Each summary gives a command to read all checks, files, and review gaps.
+A prompt above 200,000 characters fails before process launch with its measured size; Trellis does not truncate it.
+
 Native flows freeze the saved graph and inline node instructions for each execution.
+The host scans for flow work each second while earlier executions reconcile.
+Each execution has one active reconcile pass, so a slow launch does not hold new executions behind the full list.
+A late provider session identity attaches only to the current task attempt.
+A known session mismatch still refuses the result, and the matching attempt keeps its first saved process error.
 Each node occurrence binds to an ordinary agent attempt or a versioned human decision.
 Gate results use complete YES or NO responses. Skipped branches remain explicit, and joins wait for their incoming paths to settle.
 A box with a time limit starts its clock when the first worker process inside it starts. The deadline also reaches the runtime process as its timeout, so it remains effective after a host crash.
