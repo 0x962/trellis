@@ -1,5 +1,9 @@
 import { call, os } from "./base.ts";
 export const agentRuns = os.agentRuns.router({
+	broadcastRecipients: os.agentRuns.broadcastRecipients.handler(({ context, input }) =>
+		call(context, "agentRuns.broadcastRecipients", input),
+	),
+	broadcast: os.agentRuns.broadcast.handler(({ context, input }) => call(context, "agentRuns.broadcast", input)),
 	switchAccount: os.agentRuns.switchAccount.handler(({ context, input }) =>
 		call(context, "agentRuns.switchAccount", input),
 	),

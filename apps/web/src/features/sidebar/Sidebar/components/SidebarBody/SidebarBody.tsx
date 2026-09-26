@@ -1,4 +1,4 @@
-import { Plus, SidebarSimple } from "@phosphor-icons/react";
+import { Broadcast, Plus, SidebarSimple } from "@phosphor-icons/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useEffect } from "react";
@@ -7,6 +7,7 @@ import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { projectMoreActions } from "../../../../../stores/projectMoreStore";
 import { uiActions } from "../../../../../stores/uiStore";
+import { broadcastActions } from "../../../../agents/BroadcastDialog";
 import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
@@ -68,10 +69,23 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const needsYouMark = needsYouActive ? (
 		<ActivityDot label="Needs you has items" placement={collapsed ? "corner" : "inline"} tone="metal" />
 	) : undefined;
+	const broadcastButton = (
+		<Tooltip side="right" content="Broadcast a message">
+			<IconButton
+				label="Broadcast a message"
+				icon={<Broadcast />}
+				onClick={() => {
+					uiActions.setMobileSidebarOpen(false);
+					broadcastActions.open();
+				}}
+			/>
+		</Tooltip>
+	);
 
 	return (
 		<>
 			<div data-sidebar-toolbar="" className={`mb-1 flex h-13 shrink-0 items-center${collapsed ? "" : " justify-end"}`}>
+				{!collapsed && broadcastButton}
 				{onCollapse && (
 					<Tooltip
 						side="right"
@@ -94,6 +108,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					</Tooltip>
 				)}
 			</div>
+			{collapsed && <div className="mb-1 flex shrink-0 justify-center">{broadcastButton}</div>}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
 				{navRows.map((row) => (
 					<NavRow

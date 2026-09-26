@@ -218,3 +218,41 @@ test("three pull requests with 225 CI checks use explicit summaries below the ru
 	for (let number = 1; number <= 3; number++)
 		expect(prompt).toContain(`trellis diff show https://github.com/example/app/pull/${number} --json`);
 });
+
+for (const kind of ["agent", "session", "flow", "standalone-session"] as const) {
+	test(`${kind} launches require linked pull requests and diffs`, async () => {
+		const runtime = { core: ctx, now: () => at, newTx: tx } as Parameters<typeof launchGuide>[0];
+		const standalone = kind === "standalone-session";
+		const prompt = await launchGuide(runtime, {
+			run: {
+				...run,
+				kind: standalone ? "session" : kind,
+				projectId: standalone ? null : run.projectId,
+				ticketId: kind === "session" || standalone ? null : run.ticketId,
+				instruction: "Review the requested diff.",
+			},
+			workspace: "/not-a-repository",
+			attemptId: "request-rules",
+			env: {},
+		});
+		for (const rule of [
+			"These rules apply to all projects and epics, including ticket agents, authors, reviewers, and sessions.",
+			"Do not work on an existing pull request or diff until it has a link to the correct ticket.",
+			"Before you create a pull request, select or create the correct ticket.",
+			"If the ticket is absent, create it in the correct project, epic, and wave.",
+			"Keep every pull request or diff you work on linked to your assigned ticket at all times.",
+			"For a session without an assigned ticket, use the selected ticket for this work.",
+			"Immediately after you create a pull request, run `trellis diff link <diff-url> --ticket <ticket>` before further work on it.",
+			"Verify the link with `trellis diff list --ticket <ticket>` before you continue.",
+			"If the link disappears, restore it before further work on the pull request or diff.",
+		])
+			expect(prompt).toContain(rule);
+		for (const exception of [
+			"For a session without a ticket, follow the session request.",
+			"Apply ticket and flow steps only when the task has a linked ticket.",
+			"Link the diff to its assigned ticket, when one exists.",
+			"This requirement does not apply without a linked ticket or available flows.",
+		])
+			expect(prompt).not.toContain(exception);
+	});
+}

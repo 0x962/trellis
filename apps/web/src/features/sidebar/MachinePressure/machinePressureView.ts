@@ -16,7 +16,23 @@ export const thermalReadingForOrigin = (
 
 const titleCase = (value: string) => `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 
+const diskView = (signal: MachinePressureState["disk"], path: string): MachinePressureReadingView => {
+	const disk = signal.reading?.value;
+	return {
+		key: "disk",
+		label: "Disk space",
+		value: disk ? `${(disk.availableBytes / 1024 ** 3).toFixed(1)} GiB` : "Unavailable",
+		unit: disk ? "available" : undefined,
+		tone: signal.tier,
+		freshness: signal.freshness,
+		detail: disk
+			? `${(disk.totalBytes / 1024 ** 3).toFixed(1)} GiB total · ${disk.usedPercent.toFixed(1)}% used. Volume ${disk.volumeId} · ${disk.path}`
+			: `Workspace volume · ${path}`,
+	};
+};
+
 const readingView = (signal: ReturnType<typeof activeMachinePressureSignals>[number]): MachinePressureReadingView => {
+	if (signal.key === "disk") return diskView(signal as MachinePressureState["disk"], "");
 	const freshness = signal.freshness === "stale" ? "stale" : "live";
 	const tone = signal.tier === "danger" ? "danger" : "warning";
 	if (signal.key === "cpuLoad")
@@ -75,6 +91,7 @@ export const machinePressureView = (
 	id: "server",
 	name: sample.hostname,
 	readings: activeMachinePressureSignals(state).map(readingView),
+	details: state.disk.tier === "normal" ? [diskView(state.disk, sample.disk.path)] : [],
 	runs: sample.runs.map((run) => `${run.ticketIdentifier ?? run.name} ${formatBytes(run.memoryBytes)}`),
 	ageText: ageText(state, now),
 });
