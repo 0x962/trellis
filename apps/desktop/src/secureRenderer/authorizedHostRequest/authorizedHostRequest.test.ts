@@ -16,7 +16,7 @@ describe("authorizedHostRequest", () => {
 				{
 					url: `${origin}/api/evidence/file-id/file`,
 					resourceType: "image",
-					initiatorOrigin: origin,
+					frame: { url: `${origin}/reviews/0x962/trellis/469` },
 				},
 				42,
 				origin,
@@ -30,11 +30,17 @@ describe("authorizedHostRequest", () => {
 				{
 					url: `${origin}/api/evidence/file-id/file`,
 					resourceType: "image",
-					initiatorOrigin: "https://example.com",
+					frame: { url: "https://example.com" },
 				},
 				42,
 				origin,
 			),
+		).toBe(false);
+	});
+
+	test("refuses a host image without a requesting frame", () => {
+		expect(
+			authorizedHostRequest({ url: `${origin}/api/evidence/file-id/file`, resourceType: "image" }, 42, origin),
 		).toBe(false);
 	});
 
