@@ -2,7 +2,7 @@ import { cx, Dialog } from "@trellis/ui";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { renderMarkdown } from "../../lib/markdown";
 import { drawMermaidBlocks } from "./drawMermaidBlocks";
-import { imageForViewer, type ViewerImage } from "./imageForViewer/imageForViewer.ts";
+import { imageForViewer, type ViewerImage } from "./imageForViewer";
 
 export type ReadOnlyMarkdownProps = {
 	markdown: string;
