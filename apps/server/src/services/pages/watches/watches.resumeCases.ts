@@ -19,6 +19,8 @@ export function registerResumeCases() {
 			const context = {
 				...watchCtx(later()),
 				log: (_message: string, detail?: Record<string, unknown>) => {
+					expect(detail).toMatchObject({ pageId: f.id, agentId, messageId: batch.messageId });
+					expect(detail).toHaveProperty("terminalId");
 					if (_message === "Page comment delivery held") errors.push(detail);
 				},
 			};
