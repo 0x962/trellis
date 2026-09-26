@@ -1,30 +1,21 @@
 /*
- * The recipe that makes the project colors.
- *
- * `tokens.css` holds the hex value of every project color, and this file holds
- * the numbers those values come from. `projectColors.test.ts` runs the recipe
- * again and compares it to the file, so a hand-written hex value fails the
- * test.
- *
- * The 25 colors sit on one circle of hues, one step apart. Each role below
- * fixes one OKLCH lightness for all 25, and a color takes the largest chroma
- * that lightness and that hue still show, up to the chroma cap of the role.
- * One fixed lightness is what makes 25 hues read as one family: no color is
- * heavier or lighter than its neighbour. The chroma has to bend, because sRGB
- * holds far more chroma at some hues (magenta) than at others (cyan), and one
- * chroma for every hue pulls the whole set down to the weakest hue. The cap
- * holds the other end, where sRGB is generous and one hue would shout over its
- * neighbours.
+ * Each project colour uses one named hue and the same lightness in each role.
+ * The chroma cap limits vividness; the sRGB gamut can require a lower chroma.
+ * projectColors.test.ts compares this recipe with every value in tokens.css.
  */
 
-import { projectColors } from "./projectColors";
+import { type ProjectColor, projectColors } from "./projectColors";
 
-// Where the hues start, and how far apart they sit. 25 colors over the whole
-// circle give a step of 14.4 degrees. The start turns the circle so that each
-// of the 25 lands near a hue a person has an ordinary word for, which
-// `projectColorLabels` in `projectColors.ts` holds.
-export const hueStart = 8;
-export const hueStep = 14.4;
+export const projectHues: Record<ProjectColor, number> = {
+	red: 25,
+	orange: 55,
+	amber: 95,
+	green: 145,
+	teal: 195,
+	blue: 255,
+	violet: 295,
+	pink: 335,
+};
 
 // The OKLCH lightness of each role. `solid` fills the ground of the project
 // mark and writes the key of the project. `soft` is the ground of the key
@@ -36,12 +27,7 @@ export const roleLightness = {
 	darkSoft: 0.27,
 } as const;
 
-// The largest chroma each role takes. sRGB is far more generous at some hues
-// than at others, so without a cap one hue shouts over the other 24. At the
-// lightness of a solid value it shows a violet at three times the chroma of a
-// teal. At the lightness of a light soft value it shows a yellow at five times
-// the chroma of a blue, which makes one key chip a neon field beside 24 pale
-// washes.
+// The cap limits vividness where sRGB permits more chroma at a hue.
 export const roleChromaCap = {
 	lightSolid: 0.21,
 	lightSoft: 0.045,
@@ -50,7 +36,7 @@ export const roleChromaCap = {
 } as const;
 
 // The hue of the color at this place in the list.
-export const hueAt = (index: number) => (hueStart + index * hueStep) % 360;
+export const hueAt = (index: number) => projectHues[projectColors[index]!];
 
 // OKLab to linear sRGB, then linear sRGB to sRGB: the matrices and the
 // transfer function of CSS Color 4.
@@ -139,11 +125,8 @@ export const bindingLines = () =>
 		)
 		.join("\n");
 
-// Print every line the two CSS files need. Run this after a color goes on the
-// end of `projectColors`, and paste each block over the block it replaces:
-// `bun packages/ui/src/domain/projectPalette.ts`. `tokens.css` carries the
-// dark block twice, once under the media query and once under the theme
-// attribute, and both copies take the same lines.
+// Run `bun packages/ui/src/domain/projectPalette.ts` after a hue or name changes.
+// Copy the output into tokens.css and project-color.css. Both dark blocks use the same values.
 if (import.meta.main) {
 	console.log(`/* tokens.css, the :root block */\n${tokenLines("light")}`);
 	console.log(`\n/* tokens.css, both dark blocks */\n${tokenLines("dark")}`);

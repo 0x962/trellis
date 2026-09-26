@@ -27,9 +27,9 @@ test("a full set of slots gives no color", () => {
 	expect(pickColor(PROJECT_COLORS)).toBeNull();
 });
 
-// A person who makes 25 projects fills every slot, and the 26th holds none.
-test("the names run out after 25 projects", () => {
-	expect(PROJECT_COLORS).toHaveLength(25);
+// A person who makes 8 projects fills every slot, and the 9th holds none.
+test("the names run out after 8 projects", () => {
+	expect(PROJECT_COLORS).toHaveLength(8);
 	expect(freeColors(PROJECT_COLORS)).toEqual([]);
 });
 

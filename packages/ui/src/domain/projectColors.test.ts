@@ -48,9 +48,9 @@ const ratio = (one: string, two: string) => {
 	return (high + 0.05) / (low + 0.05);
 };
 
-test("the list holds 25 names, each one once, and each one with a label", () => {
-	expect(projectColors).toHaveLength(25);
-	expect(new Set(projectColors).size).toBe(25);
+test("the list holds 8 names, each one once, and each one with a label", () => {
+	expect(projectColors).toHaveLength(8);
+	expect(new Set(projectColors).size).toBe(8);
 	for (const color of projectColors) {
 		expect(projectColorLabels[color]).toBeString();
 	}
