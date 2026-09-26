@@ -37,14 +37,11 @@
 @utility project-settings-fields {
 	@apply flex min-w-0 flex-col gap-5;
 }
-@utility project-settings-group {
-	@apply flex min-w-0 flex-col gap-4;
+@utility project-settings-sections {
+	@apply flex min-w-0 flex-col gap-10;
 }
 @utility project-settings-group-title {
 	@apply text-md font-medium text-fg;
-}
-@utility project-settings-save {
-	@apply flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5;
 }
 @utility project-settings-action-row {
 	@apply flex flex-col items-start gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between;

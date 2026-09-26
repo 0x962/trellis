@@ -99,7 +99,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 
 	if (query.error !== null) {
 		return (
-			<SettingsSection title="Labels" hint="A label marks a ticket for search and for filters.">
+			<SettingsSection title="Labels">
 				<div role="alert">
 					<EmptyState
 						title="The labels did not load."
@@ -113,7 +113,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 
 	if (query.data === undefined) {
 		return (
-			<SettingsSection title="Labels" hint="A label marks a ticket for search and for filters.">
+			<SettingsSection title="Labels">
 				<div role="status" className="status-group">
 					<span className="sr-only">Load the labels</span>
 					<ul className="status-group-list">
@@ -139,7 +139,6 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 	return (
 		<SettingsSection
 			title="Labels"
-			hint="A label marks a ticket for search and for filters."
 			actions={
 				<div className="flex items-center gap-2">
 					<Tooltip content="New group">

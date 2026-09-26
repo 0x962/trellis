@@ -970,9 +970,11 @@ time. The first section of each page carries no hash.
 | page | sections |
 |---|---|
 | `/settings` | Account (no hash), `#desktop` in the macOS app |
-| `/p/<path>/settings` | General (no hash), `#notes`, `#template`, `#statuses`, `#labels`, `#archive` |
+| `/p/<path>/settings` | General (no hash), `#workflow`, `#notes`, `#archive` |
 
 `/settings` holds the actor name, theme, and desktop controls.
+Workflow contains Tickets, Statuses, and Labels. The ticket template saves when its field loses focus.
+Saved links for the template, statuses, and labels sections open Workflow.
 General contains one form. Text fields and the colour picker save when focus leaves the field.
 Repository add and remove actions use the same queued writes and status line.
 The key becomes read-only after the first ticket.
