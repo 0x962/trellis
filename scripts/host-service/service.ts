@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import {
-	foregroundLinuxService,
+	createForegroundLinuxServiceCommand,
 	installLinuxService,
 	startLinuxService,
 	statusLinuxService,
@@ -36,7 +36,7 @@ if (!action || !["install", "status", "start", "stop", "uninstall", "foreground"
 const selection = (values.service ?? "all") as LinuxServiceSelection;
 if (!(["all", "host", "runtime"] as string[]).includes(selection))
 	throw new Error("--service must be all, host, or runtime.");
-const releaseRoot = () => {
+const requireReleaseRoot = () => {
 	if (!values.release) throw new Error(`The ${action} action requires --release.`);
 	return resolve(values.release);
 };
@@ -78,7 +78,7 @@ const input = {
 };
 
 if (action === "install") {
-	const installation = await installLinuxService({ ...input, releaseRoot: releaseRoot() }, deps);
+	const installation = await installLinuxService({ ...input, releaseRoot: requireReleaseRoot() }, deps);
 	process.stdout.write(`${JSON.stringify(installation, null, 2)}\n`);
 } else if (action === "status") {
 	process.stdout.write(`${JSON.stringify(await statusLinuxService(deps), null, 2)}\n`);
@@ -96,8 +96,8 @@ if (action === "install") {
 		selection === "host"
 			? (await readFile(resolve(values["auth-token-file"]!), "utf8")).trim()
 			: undefined;
-	const command = await foregroundLinuxService(
-		{ ...input, releaseRoot: releaseRoot(), service: selection as LinuxServiceName, authToken },
+	const command = await createForegroundLinuxServiceCommand(
+		{ ...input, releaseRoot: requireReleaseRoot(), service: selection as LinuxServiceName, authToken },
 		deps,
 	);
 	process.umask(0o077);

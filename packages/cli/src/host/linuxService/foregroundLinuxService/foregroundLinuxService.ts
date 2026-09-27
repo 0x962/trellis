@@ -1,15 +1,15 @@
 import { join, resolve } from "node:path";
-import { hostEnvironment } from "./configuration.ts";
-import { linuxServicePaths } from "./paths.ts";
-import { readLinuxRelease } from "./release.ts";
+import { hostEnvironment } from "../configuration/index.ts";
+import { linuxServicePaths } from "../paths/index.ts";
+import { readLinuxRelease } from "../release/index.ts";
 import type {
 	LinuxForegroundCommand,
 	LinuxForegroundInput,
 	LinuxServiceDependencies,
 	LinuxServiceInstallation,
-} from "./types.ts";
+} from "../types/index.ts";
 
-export const foregroundLinuxService = async (
+export const createForegroundLinuxServiceCommand = async (
 	input: LinuxForegroundInput,
 	deps: Pick<LinuxServiceDependencies, "platform" | "arch" | "home" | "env" | "preflight">,
 ): Promise<LinuxForegroundCommand> => {

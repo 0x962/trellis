@@ -4,9 +4,12 @@ import type {
 	LinuxServiceName,
 	LinuxServiceProcessStatus,
 	LinuxServiceSelection,
-} from "./types.ts";
+} from "../types/index.ts";
 
-export const unitsFor = (selection: LinuxServiceSelection, order: "start" | "stop" = "start"): LinuxServiceName[] => {
+export const orderedServicesFor = (
+	selection: LinuxServiceSelection,
+	order: "start" | "stop" = "start",
+): LinuxServiceName[] => {
 	if (selection !== "all") return [selection];
 	return order === "start" ? ["runtime", "host"] : ["host", "runtime"];
 };

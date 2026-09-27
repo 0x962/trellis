@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeHostReleaseManifest } from "../host-release/manifest/index.ts";
+import { writeHostReleaseManifest } from "../host-release/index.ts";
 import { hostServicePreflight } from "./preflight.ts";
 
 const releaseFixture = async () => {

@@ -1,5 +1,5 @@
-import { parseSystemdStatus, runSystemctl } from "./systemctl.ts";
-import type { LinuxServiceDependencies, LinuxServiceName, LinuxServiceStatus } from "./types.ts";
+import { parseSystemdStatus, runSystemctl } from "../systemctl/index.ts";
+import type { LinuxServiceDependencies, LinuxServiceName, LinuxServiceStatus } from "../types/index.ts";
 
 const statusOf = async (service: LinuxServiceName, deps: Pick<LinuxServiceDependencies, "run">) => {
 	const result = await runSystemctl(deps, [

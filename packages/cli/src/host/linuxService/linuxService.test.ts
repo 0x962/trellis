@@ -3,14 +3,16 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostReleaseManifest } from "@trellis/api";
-import { foregroundLinuxService } from "./foregroundLinuxService.ts";
-import { installLinuxService } from "./installLinuxService.ts";
-import { linuxServicePaths } from "./paths.ts";
-import { startLinuxService } from "./startLinuxService.ts";
-import { statusLinuxService } from "./statusLinuxService.ts";
-import { stopLinuxService } from "./stopLinuxService.ts";
-import type { LinuxServiceDependencies } from "./types.ts";
-import { uninstallLinuxService } from "./uninstallLinuxService.ts";
+import {
+	createForegroundLinuxServiceCommand,
+	installLinuxService,
+	linuxServicePaths,
+	startLinuxService,
+	statusLinuxService,
+	stopLinuxService,
+	type LinuxServiceDependencies,
+	uninstallLinuxService,
+} from "./index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -58,7 +60,11 @@ test("installs independent user units and preserves data during uninstall", asyn
 		platform: "linux",
 		arch: "x64",
 		home,
-		env: { PATH: "/usr/bin", SHELL: "/bin/bash" },
+		env: {
+			PATH: "/usr/bin",
+			SHELL: "/bin/bash",
+			TRELLIS_EXECUTION_SHELL: "/usr/bin/fish",
+		},
 		randomToken: () => "secret-token",
 		preflight: async (release, context) => {
 			preflights.push([release, context]);
@@ -85,6 +91,9 @@ test("installs independent user units and preserves data during uninstall", asyn
 	expect(await readFile(paths.hostUnit, "utf8")).not.toContain("PartOf=");
 	expect((await stat(join(dataHome, "runtime"))).mode & 0o777).toBe(0o700);
 	expect((await stat(paths.environment)).mode & 0o777).toBe(0o600);
+	const hostEnvironmentFile = await readFile(paths.environment, "utf8");
+	expect(hostEnvironmentFile).toContain('TRELLIS_EXECUTION_SHELL="/usr/bin/fish"');
+	expect(hostEnvironmentFile).toContain('TRELLIS_RUNTIME_MODE="supervised"');
 	expect(calls).toEqual([
 		["systemctl", "--user", "daemon-reload"],
 		["systemctl", "--user", "enable", "trellis-runtime.service", "trellis-host.service"],
@@ -120,14 +129,18 @@ test("returns separate foreground commands for the runtime and host", async () =
 		platform: "linux" as const,
 		arch: "x64",
 		home: join(root, "home"),
-		env: { PATH: "/usr/bin", SHELL: "/bin/bash" },
+		env: {
+			PATH: "/usr/bin",
+			SHELL: "/bin/bash",
+			TRELLIS_EXECUTION_SHELL: "/missing/shell",
+		},
 		preflight: async (_release, context) => {
 			expect(context).toBe("foreground");
 		},
 	};
 
-	const runtime = await foregroundLinuxService({ releaseRoot, service: "runtime" }, deps);
-	const host = await foregroundLinuxService(
+	const runtime = await createForegroundLinuxServiceCommand({ releaseRoot, service: "runtime" }, deps);
+	const host = await createForegroundLinuxServiceCommand(
 		{ releaseRoot, service: "host", authToken: "secret-token" },
 		deps,
 	);
@@ -137,4 +150,6 @@ test("returns separate foreground commands for the runtime and host", async () =
 	expect(host.executable).toBe(join(releaseRoot, "bin/trellis-server"));
 	expect(host.env.TRELLIS_AUTH_TOKEN).toBe("secret-token");
 	expect(host.env.TRELLIS_RUNTIME_NODE).toBe(join(releaseRoot, "bin/node"));
+	expect(host.env.TRELLIS_EXECUTION_SHELL).toBe("/missing/shell");
+	expect(host.env.TRELLIS_RUNTIME_MODE).toBe("supervised");
 });

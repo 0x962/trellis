@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { LinuxRelease, LinuxServiceInstallation } from "./types.ts";
+import type { LinuxRelease, LinuxServiceInstallation } from "../types/index.ts";
 
 const quote = (value: string) => `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 

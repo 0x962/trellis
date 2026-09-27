@@ -1,17 +1,17 @@
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { hostEnvironment, environmentFile } from "./configuration.ts";
-import { linuxServicePaths } from "./paths.ts";
-import { readLinuxRelease } from "./release.ts";
-import { hostSystemdUnit, runtimeSystemdUnit } from "./systemdUnits.ts";
-import { runSystemctl } from "./systemctl.ts";
+import { environmentFileText, hostEnvironment } from "../configuration/index.ts";
+import { linuxServicePaths } from "../paths/index.ts";
+import { readLinuxRelease } from "../release/index.ts";
+import { runSystemctl } from "../systemctl/index.ts";
+import { hostSystemdUnit, runtimeSystemdUnit } from "../systemdUnits/index.ts";
 import type {
 	LinuxServiceDependencies,
 	LinuxServiceInstallation,
 	LinuxServiceInstallInput,
-} from "./types.ts";
+} from "../types/index.ts";
 
-const tokenOf = async (path: string, randomToken: () => string) => {
+const readOrCreateAuthToken = async (path: string, randomToken: () => string) => {
 	try {
 		return (await readFile(path, "utf8")).trim();
 	} catch (error) {
@@ -35,7 +35,7 @@ export const installLinuxService = async (
 		host: input.host ?? "127.0.0.1",
 		port: input.port ?? 4521,
 	};
-	const authToken = await tokenOf(paths.token, deps.randomToken);
+	const authToken = await readOrCreateAuthToken(paths.token, deps.randomToken);
 	await mkdir(paths.configRoot, { recursive: true, mode: 0o700 });
 	await chmod(paths.configRoot, 0o700);
 	await mkdir(paths.unitRoot, { recursive: true });
@@ -45,7 +45,7 @@ export const installLinuxService = async (
 	await chmod(resolve(installation.dataHome, "runtime"), 0o700);
 	await writeFile(paths.token, `${authToken}\n`, { mode: 0o600 });
 	await chmod(paths.token, 0o600);
-	await writeFile(paths.environment, environmentFile(hostEnvironment(release, installation, authToken, deps.env)), {
+	await writeFile(paths.environment, environmentFileText(hostEnvironment(release, installation, authToken, deps.env)), {
 		mode: 0o600,
 	});
 	await chmod(paths.environment, 0o600);

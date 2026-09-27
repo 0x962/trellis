@@ -1,20 +1,14 @@
-export { foregroundLinuxService } from "./foregroundLinuxService.ts";
-export { installLinuxService } from "./installLinuxService.ts";
-export { linuxServicePaths } from "./paths.ts";
-export { startLinuxService } from "./startLinuxService.ts";
-export { statusLinuxService } from "./statusLinuxService.ts";
-export { stopLinuxService } from "./stopLinuxService.ts";
+export { createForegroundLinuxServiceCommand } from "./foregroundLinuxService/index.ts";
+export { installLinuxService } from "./installLinuxService/index.ts";
+export { linuxServicePaths } from "./paths/index.ts";
+export { startLinuxService } from "./startLinuxService/index.ts";
+export { statusLinuxService } from "./statusLinuxService/index.ts";
+export { stopLinuxService } from "./stopLinuxService/index.ts";
 export type {
 	LinuxCommandResult,
-	LinuxForegroundCommand,
-	LinuxForegroundInput,
 	LinuxServiceDependencies,
-	LinuxServiceInstallInput,
-	LinuxServiceInstallation,
 	LinuxServiceName,
 	LinuxServicePreflightContext,
-	LinuxServiceProcessStatus,
 	LinuxServiceSelection,
-	LinuxServiceStatus,
-} from "./types.ts";
-export { uninstallLinuxService } from "./uninstallLinuxService.ts";
+} from "./types/index.ts";
+export { uninstallLinuxService } from "./uninstallLinuxService/index.ts";

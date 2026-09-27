@@ -4,7 +4,7 @@ import type {
 	LinuxCommandResult,
 	LinuxServicePreflightContext,
 } from "../../packages/cli/src/host/linuxService/index.ts";
-import { readHostReleaseManifest, verifyHostRelease } from "../host-release/manifest/index.ts";
+import { readHostReleaseManifest, verifyHostRelease } from "../host-release/index.ts";
 
 export type HostServicePreflightInput = {
 	releaseRoot: string;

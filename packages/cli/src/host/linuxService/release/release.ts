@@ -1,7 +1,7 @@
 import { readFile, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { HostReleaseManifestSchema } from "@trellis/api";
-import type { LinuxRelease } from "./types.ts";
+import type { LinuxRelease } from "../types/index.ts";
 
 export const readLinuxRelease = async (
 	releaseRoot: string,
