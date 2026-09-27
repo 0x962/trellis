@@ -32,10 +32,11 @@ function operations(overrides: Partial<LinuxProcessOperations> = {}): LinuxProce
 			if (path === "/proc/sys/kernel/random/boot_id") return "boot-a\n";
 			if (path === "/proc/stat") return "cpu 1 2 3\nbtime 1000\n";
 			if (path === "/proc/42/stat") return processStat();
+			if (path === "/proc/42/task/42/stat") return processStat();
 			throw Object.assign(new Error("not found"), { code: "ENOENT" });
 		},
 		readLink: () => "/usr/bin/agent",
-		readDirectory: () => ["self", "42"],
+		readDirectory: (path) => (path === "/proc/42/task" ? ["42"] : ["self", "42"]),
 		clockTicks: 100,
 		...overrides,
 	};
@@ -123,6 +124,107 @@ test("a proc permission error produces an unknown observation", () => {
 		kind: "unknown",
 		error: "Cannot read /proc/42/stat: EPERM: permission denied",
 	});
+});
+
+for (const state of ["X", "x"]) {
+	test(`a ${state} process is absent on the first process read`, () => {
+		const inspector = createLinuxProcessInspector(
+			operations({
+				readFile(path) {
+					if (path === "/proc/42/stat" || path === "/proc/42/task/42/stat") return processStat({ state });
+					return operations().readFile(path);
+				},
+			}),
+		);
+		expect(inspector.inspectProcess(42)).toEqual({ kind: "missing" });
+	});
+
+	test(`a ${state} process is absent on the second process read`, () => {
+		let reads = 0;
+		const inspector = createLinuxProcessInspector(
+			operations({
+				readFile(path) {
+					if (path === "/proc/42/stat") return processStat({ state: reads++ === 0 ? "S" : state });
+					if (path === "/proc/42/task/42/stat") return processStat({ state });
+					return operations().readFile(path);
+				},
+			}),
+		);
+		expect(inspector.inspectProcess(42)).toEqual({ kind: "missing" });
+	});
+
+	test(`a ${state} process is absent from the session scan`, () => {
+		const inspector = createLinuxProcessInspector(
+			operations({
+				readFile(path) {
+					if (path === "/proc/42/stat" || path === "/proc/42/task/42/stat") return processStat({ state });
+					return operations().readFile(path);
+				},
+			}),
+		);
+		expect(inspector.inspectProcessSession(42)).toEqual({ kind: "empty" });
+	});
+}
+
+test("a terminal main thread with a live sibling produces an unknown process observation", () => {
+	const inspector = createLinuxProcessInspector(
+		operations({
+			readDirectory: (path) => (path === "/proc/42/task" ? ["42", "43"] : ["42"]),
+			readFile(path) {
+				if (path === "/proc/42/stat" || path === "/proc/42/task/42/stat") return processStat({ state: "Z" });
+				if (path === "/proc/42/task/43/stat") return processStat({ pid: 43, state: "S" });
+				return operations().readFile(path);
+			},
+		}),
+	);
+	expect(inspector.inspectProcess(42)).toEqual({ kind: "unknown", error: "Process 42 has live thread 43" });
+});
+
+test("a terminal main thread with a live sibling produces an unknown session observation", () => {
+	const inspector = createLinuxProcessInspector(
+		operations({
+			readDirectory: (path) => (path === "/proc/42/task" ? ["42", "43"] : ["42"]),
+			readFile(path) {
+				if (path === "/proc/42/stat" || path === "/proc/42/task/42/stat") return processStat({ state: "Z" });
+				if (path === "/proc/42/task/43/stat") return processStat({ pid: 43, state: "S" });
+				return operations().readFile(path);
+			},
+		}),
+	);
+	expect(inspector.inspectProcessSession(42)).toEqual({
+		kind: "unknown",
+		error: "Process 42 has live thread 43",
+	});
+});
+
+test("a terminal main thread stays unknown when the task directory is unavailable", () => {
+	const inspector = createLinuxProcessInspector(
+		operations({
+			readDirectory(path) {
+				if (path === "/proc/42/task") throw Object.assign(new Error("not found"), { code: "ENOENT" });
+				return ["42"];
+			},
+			readFile(path) {
+				if (path === "/proc/42/stat") return processStat({ state: "Z" });
+				return operations().readFile(path);
+			},
+		}),
+	);
+	expect(inspector.inspectProcess(42)).toEqual({
+		kind: "unknown",
+		error: "Cannot confirm that process 42 exited",
+	});
+});
+
+test("an unavailable exe link stays unknown while the process has a live thread", () => {
+	const inspector = createLinuxProcessInspector(
+		operations({
+			readLink() {
+				throw Object.assign(new Error("not found"), { code: "ENOENT" });
+			},
+		}),
+	);
+	expect(inspector.inspectProcess(42)).toEqual({ kind: "unknown", error: "Process 42 has live thread 42" });
 });
 
 test("Linux session inspection lists live members and skips vanished entries", () => {

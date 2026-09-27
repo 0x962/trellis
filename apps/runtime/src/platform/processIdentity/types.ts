@@ -10,7 +10,7 @@ export type ProcessSessionObservation =
 	| { kind: "live"; pids: number[] }
 	| { kind: "unknown"; error: string };
 
-export type ProcessIdentityInspector = {
+export type ProcessInspector = {
 	inspectProcess: (pid: number) => ProcessObservation;
 	inspectProcessSession: (sessionId: number) => ProcessSessionObservation;
 };

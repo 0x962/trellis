@@ -8,7 +8,8 @@ const sessionOf = library.func("int getsid(int pid)");
 const pidInfo = library.func("int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize)");
 const pidPath = library.func("int proc_pidpath(int pid, void *buffer, uint32_t buffersize)");
 
-// sys/proc_info.h defines proc_bsdinfo as 136 bytes. The start timestamp identifies a reused PID.
+// sys/proc_info.h defines proc_bsdinfo as 136 bytes.
+// The start timestamp distinguishes processes that receive the same PID at different times.
 const infoSize = 136;
 const identity = (pid: number, info: Buffer) => `${pid}:${info.readBigUInt64LE(120)}:${info.readBigUInt64LE(128)}`;
 const failed = (operation: string): ProcessObservation => {

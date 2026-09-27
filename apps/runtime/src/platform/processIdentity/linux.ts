@@ -1,7 +1,8 @@
-import type { ProcessIdentityInspector } from "./types.ts";
+import type { ProcessInspector } from "./types.ts";
 
 const bootIdPath = "/proc/sys/kernel/random/boot_id";
 const systemStatPath = "/proc/stat";
+const terminalProcessStates = new Set(["Z", "X", "x"]);
 
 export type LinuxProcessIdentity = {
 	bootId: string;
@@ -84,7 +85,35 @@ const bootTime = (value: string): number => {
 	return Number(match[1]);
 };
 
-export function createLinuxProcessInspector(operations: LinuxProcessOperations): ProcessIdentityInspector {
+const confirmProcessAbsent = (
+	pid: number,
+	operations: LinuxProcessOperations,
+): { kind: "missing" } | Unknown => {
+	const taskPath = `/proc/${pid}/task`;
+	const entries = readProcessEntry(() => operations.readDirectory(taskPath), `Cannot read ${taskPath}`);
+	if (entries.kind === "missing")
+		return { kind: "unknown", error: `Cannot confirm that process ${pid} exited` };
+	if (entries.kind === "unknown") return entries;
+	let found = false;
+	for (const entry of entries.value) {
+		if (!/^\d+$/.test(entry)) continue;
+		const threadId = Number(entry);
+		const statPath = `${taskPath}/${threadId}/stat`;
+		const statText = readProcessEntry(() => operations.readFile(statPath), `Cannot read ${statPath}`);
+		if (statText.kind === "missing") continue;
+		if (statText.kind === "unknown") return statText;
+		const stat = parsedStat(statText.value, statPath);
+		if (stat.kind === "unknown") return stat;
+		if (stat.value.pid !== threadId)
+			return { kind: "unknown", error: `${statPath} describes thread ${stat.value.pid}` };
+		found = true;
+		if (!terminalProcessStates.has(stat.value.state))
+			return { kind: "unknown", error: `Process ${pid} has live thread ${threadId}` };
+	}
+	return found ? { kind: "missing" } : { kind: "unknown", error: `Cannot confirm that process ${pid} exited` };
+};
+
+export function createLinuxProcessInspector(operations: LinuxProcessOperations): ProcessInspector {
 	return {
 		inspectProcess(pid) {
 			const firstBoot = readSystem(() => operations.readFile(bootIdPath).trim(), `Cannot read ${bootIdPath}`);
@@ -96,10 +125,11 @@ export function createLinuxProcessInspector(operations: LinuxProcessOperations):
 			if (firstStat.kind === "unknown") return firstStat;
 			if (firstStat.value.pid !== pid)
 				return { kind: "unknown", error: `${statPath} describes process ${firstStat.value.pid}` };
-			if (firstStat.value.state === "Z") return { kind: "missing" };
+			if (terminalProcessStates.has(firstStat.value.state)) return confirmProcessAbsent(pid, operations);
 			const executablePath = `/proc/${pid}/exe`;
 			const executable = readProcessEntry(() => operations.readLink(executablePath), `Cannot read ${executablePath}`);
-			if (executable.kind !== "value") return executable;
+			if (executable.kind === "missing") return confirmProcessAbsent(pid, operations);
+			if (executable.kind === "unknown") return executable;
 			const systemStat = readSystem(() => operations.readFile(systemStatPath), `Cannot read ${systemStatPath}`);
 			if (systemStat.kind === "unknown") return systemStat;
 			let startedAt: string;
@@ -118,7 +148,7 @@ export function createLinuxProcessInspector(operations: LinuxProcessOperations):
 			if (secondStat.kind === "unknown") return secondStat;
 			if (secondStat.value.pid !== pid)
 				return { kind: "unknown", error: `${statPath} describes process ${secondStat.value.pid}` };
-			if (secondStat.value.state === "Z") return { kind: "missing" };
+			if (terminalProcessStates.has(secondStat.value.state)) return confirmProcessAbsent(pid, operations);
 			const firstIdentity = linuxProcessIdentity({
 				bootId: firstBoot.value,
 				pid,
@@ -159,7 +189,13 @@ export function createLinuxProcessInspector(operations: LinuxProcessOperations):
 				const stat = parsedStat(statText.value, statPath);
 				if (stat.kind === "unknown") return stat;
 				if (stat.value.pid !== pid) return { kind: "unknown", error: `${statPath} describes process ${stat.value.pid}` };
-				if (stat.value.sessionId === sessionId && stat.value.state !== "Z") members.push(pid);
+				if (stat.value.sessionId !== sessionId) continue;
+				if (terminalProcessStates.has(stat.value.state)) {
+					const absence = confirmProcessAbsent(pid, operations);
+					if (absence.kind === "unknown") return absence;
+					continue;
+				}
+				members.push(pid);
 			}
 			const secondBoot = readSystem(() => operations.readFile(bootIdPath).trim(), `Cannot read ${bootIdPath}`);
 			if (secondBoot.kind === "unknown") return secondBoot;
