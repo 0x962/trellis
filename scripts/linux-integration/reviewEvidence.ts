@@ -9,6 +9,8 @@ export type FindingPlan = {
 export type IntegratedInputPlan = {
 	ticketIdentifier?: string;
 	ticketId?: string;
+	checkpointTicketIdentifier: string;
+	checkpointTicketId: string;
 	diffUrl?: string;
 	reviewedHead?: string;
 	sourceHead?: string;
@@ -44,6 +46,8 @@ export type LaneReviewCoverage = {
 export type IntegratedInputEvidence = {
 	ticketIdentifier: string;
 	ticketId: string;
+	checkpointTicketIdentifier: string;
+	checkpointTicketId: string;
 	diffUrl: string;
 	reviewedHead: string;
 	sourceHead: string;
@@ -96,6 +100,8 @@ export function verifyIntegratedInput(
 	const required = [
 		input.ticketIdentifier,
 		input.ticketId,
+		input.checkpointTicketIdentifier,
+		input.checkpointTicketId,
 		input.diffUrl,
 		input.reviewedHead,
 		input.sourceHead,
@@ -136,6 +142,8 @@ export function verifyIntegratedInput(
 	return {
 		ticketIdentifier: input.ticketIdentifier ?? "",
 		ticketId: input.ticketId ?? "",
+		checkpointTicketIdentifier: input.checkpointTicketIdentifier ?? "",
+		checkpointTicketId: input.checkpointTicketId ?? "",
 		diffUrl: input.diffUrl ?? "",
 		reviewedHead: input.reviewedHead ?? "",
 		sourceHead: input.sourceHead ?? "",

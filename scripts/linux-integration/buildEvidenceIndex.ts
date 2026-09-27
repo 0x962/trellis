@@ -202,14 +202,14 @@ const markdown = [
 	"",
 	"## Integrated inputs",
 	"",
-	"| Ticket | Ticket ID | Diff | Reviewed head | Source head | Lane commit | Review run | Review result | Findings | Lane coverage | Verification | Reason |",
-	"|---|---|---|---|---|---|---|---|---|---|---|---|",
+	"| Feature ticket | Feature ticket ID | Checkpoint ticket | Checkpoint ticket ID | Diff | Reviewed head | Source head | Lane commit | Review run | Review result | Findings | Lane coverage | Verification | Reason |",
+	"|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
 	...integratedInputs.map((input) => {
 		const findings =
 			input.findings
 				.map((finding) => `${finding.id}: ${finding.status}: ${finding.resolution}`)
 				.join("; ") || "none";
-		return `| ${input.ticketIdentifier} | ${input.ticketId} | ${input.diffUrl} | ${input.reviewedHead} | ${input.sourceHead} | ${input.laneCommit} | ${input.reviewRunId} | ${input.reviewResult} | ${findings} | ${input.laneReviewCoverage?.verification ?? "none"} | ${input.verification} | ${input.reason ?? ""} |`;
+		return `| ${input.ticketIdentifier} | ${input.ticketId} | ${input.checkpointTicketIdentifier} | ${input.checkpointTicketId} | ${input.diffUrl} | ${input.reviewedHead} | ${input.sourceHead} | ${input.laneCommit} | ${input.reviewRunId} | ${input.reviewResult} | ${findings} | ${input.laneReviewCoverage?.verification ?? "none"} | ${input.verification} | ${input.reason ?? ""} |`;
 	}),
 	"",
 	"## Integration gaps",

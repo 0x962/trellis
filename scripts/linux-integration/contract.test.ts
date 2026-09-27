@@ -34,6 +34,8 @@ function reviewedFeature(reviewResult = "succeeded") {
 	return {
 		ticketIdentifier: "TRL-523",
 		ticketId: "ticket-id",
+		checkpointTicketIdentifier: "TRL-550",
+		checkpointTicketId: "checkpoint-ticket-id",
 		diffUrl: "https://github.com/0x962/trellis/pull/523",
 		reviewedHead: "43ecea683",
 		sourceHead: "69926b75f",
@@ -69,6 +71,8 @@ describe("Linux integration workflow contract", () => {
 		expect(input.reviewedHead).toBe("43ecea683");
 		expect(input.sourceHead).toBe("69926b75f");
 		expect(input.laneCommit).toBe("5257adfbc");
+		expect(input.checkpointTicketIdentifier).toBe("TRL-550");
+		expect(input.checkpointTicketId).toBe("checkpoint-ticket-id");
 		expect(input).not.toHaveProperty("commit");
 		expect(input.verification).toBe("passed");
 	});
@@ -94,6 +98,8 @@ describe("Linux integration workflow contract", () => {
 			{
 				ticketIdentifier: "TRL-513",
 				ticketId: "ticket-id",
+				checkpointTicketIdentifier: "TRL-551",
+				checkpointTicketId: "checkpoint-ticket-id",
 				diffUrl: "https://github.com/0x962/trellis/pull/495",
 				sourceHead: "source",
 				laneCommit: "lane",
@@ -127,6 +133,8 @@ describe("Linux integration workflow contract", () => {
 			{
 				ticketIdentifier: "TRL-513",
 				ticketId: "ticket-id",
+				checkpointTicketIdentifier: "TRL-551",
+				checkpointTicketId: "checkpoint-ticket-id",
 				diffUrl: "https://github.com/0x962/trellis/pull/495",
 				sourceHead: "feature-source",
 				laneCommit: "lane-commit",
@@ -148,6 +156,13 @@ describe("Linux integration workflow contract", () => {
 		);
 		expect(verifyLaneReviewCoverage(laneReview, true)?.verification).toBe("passed");
 		expect(feature.verification).toBe("unverified");
+	});
+
+	test("keeps a missing checkpoint ticket identity unverified", () => {
+		const feature = reviewedFeature();
+		feature.checkpointTicketId = "";
+
+		expect(verifyIntegratedInput(feature, passedProof).verification).toBe("unverified");
 	});
 
 	test("keeps an empty integrated input list unverified", () => {

@@ -9,7 +9,8 @@ A missing command records an unverified result and a reason.
 
 Add each reviewed lane input under `integratedInputs`.
 Each lane plan requires at least one integrated input.
-Record the ticket, diff, reviewed head, source head, lane commit, review run, review result, and findings.
+Record the parent feature ticket and the checkpoint ticket that links the merged diff.
+Record the diff, reviewed head, source head, lane commit, review run, review result, and findings.
 Copy the raw Trellis flow status into `reviewResult`.
 Only `succeeded` is a successful review result.
 Resolve every finding before the input can pass.
