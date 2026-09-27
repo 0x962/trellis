@@ -1,14 +1,14 @@
 import { constants } from "node:os";
 import { errno, load } from "koffi";
+import { stopLinuxProcessTree } from "./platform/linuxLifecycle/index.ts";
 import { processSnapshot } from "./processSnapshot/index.ts";
 import { terminateSession } from "./terminateSession.ts";
 
-const library = load(null);
-const sessionOf = library.func("int getsid(int pid)");
-const listPids = library.func("int proc_listpids(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize)");
-const pidInfo = library.func("int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize)");
-
-export async function stopProcessTree(sessionId: number) {
+const stopDarwinProcessTree = async (sessionId: number) => {
+	const library = load(null);
+	const sessionOf = library.func("int getsid(int pid)");
+	const listPids = library.func("int proc_listpids(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize)");
+	const pidInfo = library.func("int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize)");
 	return terminateSession(sessionId, {
 		processes: () => processSnapshot({ listPids, pidInfo, errno }),
 		sessionOf: (pid) => {
@@ -28,4 +28,10 @@ export async function stopProcessTree(sessionId: number) {
 		now: () => performance.now(),
 		wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 	});
+};
+
+export async function stopProcessTree(sessionId: number) {
+	if (process.platform === "linux") return stopLinuxProcessTree(sessionId);
+	if (process.platform === "darwin") return stopDarwinProcessTree(sessionId);
+	throw new Error(`Process stop does not support ${process.platform}`);
 }

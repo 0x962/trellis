@@ -1,5 +1,6 @@
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import { inspectProcess } from "../inspectProcess.ts";
+import { prepareLinuxAttempt, type LinuxAttempt } from "../platform/linuxLifecycle/index.ts";
 import { createProcessHandle } from "../processHandle.ts";
 import type { SessionRecord } from "../sessionRecord.ts";
 import { stopAttempt } from "../stopAttempt.ts";
@@ -10,6 +11,7 @@ import { stopAttempt } from "../stopAttempt.ts";
 export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () => void, onExit: () => void) {
 	const { session, log, stderr } = record;
 	let cleanupError: string | null = null;
+	let attempt: LinuxAttempt | undefined;
 	const resume = () => {
 		if (log.writable && stderr.writable) record.process?.resumeOutput();
 	};
@@ -35,9 +37,28 @@ export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () 
 		if (log.complete && stderr.complete) finish();
 		else void drained.then(finish);
 	};
+	const unconfirmed = (error: Error) => {
+		clearTimeout(record.timer);
+		session.status = "unknown";
+		cleanupError = `Process cleanup is unconfirmed: ${error.message}`;
+		session.error = cleanupError;
+		save();
+		record.resolveStop(error);
+		Object.assign(record, stopAttempt());
+	};
+	const launchFailed = (error: Error) => {
+		try {
+			attempt?.discard();
+		} catch (cleanupFailure) {
+			unconfirmed(cleanupFailure as Error);
+			return;
+		}
+		exit(null, error.message);
+	};
 	try {
+		attempt = process.platform === "linux" ? prepareLinuxAttempt(spec.id, spec) : undefined;
 		record.process = createProcessHandle(
-			spec,
+			attempt?.spec ?? spec,
 			(data) => {
 				if (!log.append(data)) record.process!.pauseOutput();
 			},
@@ -45,23 +66,16 @@ export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () 
 				if (!stderr.append(data)) record.process!.pauseOutput();
 			},
 			(code) => exit(code),
-			(error) => exit(null, error.message),
-			(error) => {
-				clearTimeout(record.timer);
-				session.status = "unknown";
-				cleanupError = `Process cleanup is unconfirmed: ${error.message}`;
-				session.error = cleanupError;
-				save();
-				record.resolveStop(error);
-				Object.assign(record, stopAttempt());
-			},
+			launchFailed,
+			unconfirmed,
 			(error) => {
 				session.error = `Input delivery is unconfirmed: ${error.message}`;
 				save();
 			},
 		);
+		if (attempt !== undefined && record.process.pid > 0) attempt.register(record.process.pid);
 	} catch (error) {
-		exit(null, (error as Error).message);
+		launchFailed(error as Error);
 		return;
 	}
 	session.pid = record.process.pid > 0 ? record.process.pid : null;

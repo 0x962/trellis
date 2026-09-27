@@ -2,24 +2,25 @@ import { closeSync } from "node:fs";
 import { constants } from "node:os";
 import { errno, load } from "koffi";
 
-const library = load(null);
-const kqueue = library.func("int kqueue(void)");
-const kevent = library.func(
-	"int kevent(int kq, void *changes, int nchanges, void *events, int nevents, void *timeout)",
-);
-// macOS sys/event.h defines the 32-byte kevent layout used by the native calls.
-const KEVENT_SIZE = 32;
-const EVENT_CAPACITY = 64;
-const EVFILT_PROC = -5;
-const EVFILT_USER = -10;
-const EV_ADD = 0x01;
-const EV_ONESHOT = 0x10;
-const EV_CLEAR = 0x20;
-const NOTE_EXIT = 0x80000000;
-const NOTE_TRIGGER = 0x01000000;
+type ExitWatcher = {
+	watch: (pid: number, listener: () => void) => void;
+	close: () => void;
+};
 
-const event = (pid: number, filter: number, flags: number, options: number) => {
-	const bytes = Buffer.alloc(KEVENT_SIZE);
+type NativeFunction = ReturnType<ReturnType<typeof load>["func"]>;
+
+const keventSize = 32;
+const eventCapacity = 64;
+const eventFilterProcess = -5;
+const eventFilterUser = -10;
+const eventAdd = 0x01;
+const eventOneShot = 0x10;
+const eventClear = 0x20;
+const noteExit = 0x80000000;
+const noteTrigger = 0x01000000;
+
+const darwinEvent = (pid: number, filter: number, flags: number, options: number) => {
+	const bytes = Buffer.alloc(keventSize);
 	bytes.writeBigUInt64LE(BigInt(pid), 0);
 	bytes.writeInt16LE(filter, 8);
 	bytes.writeUInt16LE(flags, 10);
@@ -27,23 +28,43 @@ const event = (pid: number, filter: number, flags: number, options: number) => {
 	return bytes;
 };
 
-export class ProcessExitWatcher {
+class DarwinProcessExitWatcher implements ExitWatcher {
 	private descriptor: number | undefined;
 	private waiting = false;
 	private closing = false;
 	private readonly listeners = new Map<number, Set<() => void>>();
+	private readonly kqueue: NativeFunction;
+	private readonly kevent: NativeFunction;
+
+	constructor() {
+		const library = load(null);
+		this.kqueue = library.func("int kqueue(void)");
+		this.kevent = library.func(
+			"int kevent(int kq, void *changes, int nchanges, void *events, int nevents, void *timeout)",
+		);
+	}
+
 	watch(pid: number, listener: () => void) {
 		if (this.descriptor === undefined) {
-			const descriptor: number = kqueue();
+			const descriptor: number = this.kqueue();
 			if (descriptor < 0) throw new Error(`kqueue failed with errno ${errno()}`);
 			this.descriptor = descriptor;
-			if (kevent(this.descriptor, event(0, EVFILT_USER, EV_ADD | EV_CLEAR, 0), 1, null, 0, null) < 0)
+			if (this.kevent(this.descriptor, darwinEvent(0, eventFilterUser, eventAdd | eventClear, 0), 1, null, 0, null) < 0)
 				throw new Error(`Cannot register process watcher shutdown: errno ${errno()}`);
 		}
 		const listeners = this.listeners.get(pid) ?? new Set();
 		listeners.add(listener);
 		this.listeners.set(pid, listeners);
-		if (kevent(this.descriptor, event(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT), 1, null, 0, null) < 0) {
+		if (
+			this.kevent(
+				this.descriptor,
+				darwinEvent(pid, eventFilterProcess, eventAdd | eventOneShot, noteExit),
+				1,
+				null,
+				0,
+				null,
+			) < 0
+		) {
 			this.listeners.delete(pid);
 			if (errno() !== constants.errno.ESRCH) throw new Error(`Cannot watch process ${pid}: errno ${errno()}`);
 			queueMicrotask(() => {
@@ -52,6 +73,7 @@ export class ProcessExitWatcher {
 		}
 		if (!this.waiting) this.wait();
 	}
+
 	private wait() {
 		if (this.listeners.size === 0 || this.closing) {
 			closeSync(this.descriptor!);
@@ -61,13 +83,13 @@ export class ProcessExitWatcher {
 			return;
 		}
 		this.waiting = true;
-		const events = Buffer.alloc(KEVENT_SIZE * EVENT_CAPACITY);
-		kevent.async(this.descriptor, null, 0, events, EVENT_CAPACITY, null, (error: Error | null, count: number) => {
+		const events = Buffer.alloc(keventSize * eventCapacity);
+		this.kevent.async(this.descriptor, null, 0, events, eventCapacity, null, (error: Error | null, count: number) => {
 			if (error) throw error;
 			if (count < 0) throw new Error("The process exit watcher failed");
 			for (let index = 0; index < count; index++) {
-				const offset = index * KEVENT_SIZE;
-				if (events.readInt16LE(offset + 8) !== EVFILT_PROC) continue;
+				const offset = index * keventSize;
+				if (events.readInt16LE(offset + 8) !== eventFilterProcess) continue;
 				const pid = Number(events.readBigUInt64LE(offset));
 				const listeners = this.listeners.get(pid);
 				this.listeners.delete(pid);
@@ -76,12 +98,39 @@ export class ProcessExitWatcher {
 			this.wait();
 		});
 	}
+
 	close() {
 		this.closing = true;
 		if (
 			this.descriptor !== undefined &&
-			kevent(this.descriptor, event(0, EVFILT_USER, 0, NOTE_TRIGGER), 1, null, 0, null) < 0
+			this.kevent(this.descriptor, darwinEvent(0, eventFilterUser, 0, noteTrigger), 1, null, 0, null) < 0
 		)
 			throw new Error(`Cannot stop process exit watcher: errno ${errno()}`);
+	}
+}
+
+const LinuxProcessExitWatcher =
+	process.platform === "linux"
+		? (await import("./platform/linuxLifecycle/linuxProcessExitWatcher.ts")).LinuxProcessExitWatcher
+		: undefined;
+
+export class ProcessExitWatcher implements ExitWatcher {
+	private readonly watcher: ExitWatcher;
+
+	constructor() {
+		if (process.platform === "darwin") this.watcher = new DarwinProcessExitWatcher();
+		else if (process.platform === "linux")
+			this.watcher = new (
+				LinuxProcessExitWatcher as typeof import("./platform/linuxLifecycle/linuxProcessExitWatcher.ts").LinuxProcessExitWatcher
+			)();
+		else throw new Error(`Process exit observation does not support ${process.platform}`);
+	}
+
+	watch(pid: number, listener: () => void) {
+		this.watcher.watch(pid, listener);
+	}
+
+	close() {
+		this.watcher.close();
 	}
 }
