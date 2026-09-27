@@ -42,6 +42,19 @@ const render = (loadFile?: (path: string, side: "old" | "new") => Promise<string
 		/>,
 	);
 
+const maximumButtonDepth = (html: string) => {
+	let depth = 0;
+	let maximum = 0;
+	for (const match of html.matchAll(/<\/?button\b[^>]*>/g)) {
+		if (match[0].startsWith("</")) depth -= 1;
+		else {
+			depth += 1;
+			maximum = Math.max(maximum, depth);
+		}
+	}
+	return maximum;
+};
+
 // The text of each column of each `.review-diff-split-row`, as [left, right].
 const splitColumns = (html: string) =>
 	[...html.matchAll(/<div class="review-diff-split-row"><div>(.*?)<\/div><div>(.*?)<\/div><\/div>/g)].map((match) =>
@@ -69,6 +82,14 @@ test("split mode draws an added or a deleted file in one column", () => {
 test("a diff that reads the file draws the expand controls, and one that does not draws none", () => {
 	expect(render(async () => "")).toContain('aria-label="Expand down"');
 	expect(render()).not.toContain('aria-label="Expand down"');
+});
+
+test("a diff line uses separate buttons for line selection and comments", () => {
+	const html = render();
+
+	expect(html).toContain('aria-label="Select line 1"');
+	expect(html).toContain('aria-label="Add line comment"');
+	expect(maximumButtonDepth(html)).toBe(1);
 });
 
 // GitHub writes this one line in place of the hunks of a file that holds
