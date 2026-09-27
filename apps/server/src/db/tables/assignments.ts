@@ -1,4 +1,5 @@
-import { integer, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, integer, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 
@@ -14,7 +15,12 @@ export const agentStartRequests = pgTable(
 		target: jsonb().notNull(),
 		createdAt: at("created_at").notNull(),
 	},
-	(t) => [primaryKey({ columns: [t.actorKind, t.actorName, t.requestId] })],
+	(t) => [
+		primaryKey({ columns: [t.actorKind, t.actorName, t.requestId] }),
+		index("agent_start_requests_latest_switch_idx")
+			.on(t.runId, t.createdAt.desc())
+			.where(sql`${t.target}->>'switchedTo' IS NOT NULL`),
+	],
 );
 
 export const agentExecutionAttempts = pgTable(
