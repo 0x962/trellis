@@ -83,12 +83,12 @@ for (const scope of ["ticket", "project session", "standalone session", "flow"] 
 				"Keep the local source available for later edits.",
 				"trellis page publish <path> --project <project> --title <text>",
 				"Give the user the returned `trellis://page/<id>` link.",
-				"add the page link to that ticket's description",
-				"Preserve the existing request and other ticket content.",
-				"Verify the saved link with `trellis ticket show <ticket>`.",
+				"record the page link in that ticket's outcome",
+				"Preserve the result already recorded in the outcome.",
+				"Verify the saved link with `trellis ticket outcome show <ticket>`.",
 				"publish a new version of the existing page",
 				"`--page` and `--expected-version`",
-				"Keep the same page link in the ticket and your reply.",
+				"Keep the same page link in the outcome and your reply.",
 			])
 				expect(delivery).toContain(text);
 			if (message !== undefined) expect(prompt).toContain(message);
