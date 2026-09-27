@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHostProfileStore } from "./profileStore.ts";
@@ -59,6 +59,21 @@ test("reads profiles without a host connection", async () => {
 	const profiles = await storeFor(home).list();
 
 	expect(profiles).toEqual([added]);
+});
+
+test("returns an empty profile list when the profile file is missing", async () => {
+	const home = await installationHome();
+
+	expect(await storeFor(home).list()).toEqual([]);
+});
+
+test("propagates profile file access failures", async () => {
+	const home = await installationHome();
+	const path = join(home, "host-profiles.json");
+	await writeFile(path, '{"version":1,"profiles":[]}');
+	await chmod(path, 0o000);
+
+	await expect(storeFor(home).list()).rejects.toMatchObject({ code: "EACCES" });
 });
 
 test("requires an existing directory for a local profile", async () => {

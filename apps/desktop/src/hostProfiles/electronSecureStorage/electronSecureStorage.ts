@@ -1,10 +1,10 @@
 import { safeStorage } from "electron";
-import type { SecureStorage } from "./credentialStore.ts";
-import { secureStorageIsAvailable } from "./secureStoragePolicy.ts";
+import type { SecureStorage } from "../credentialStore/index.ts";
+import { isSecureStorageAvailable } from "../secureStoragePolicy/index.ts";
 
 export const createElectronSecureStorage = (platform = process.platform): SecureStorage => ({
-	available: () =>
-		secureStorageIsAvailable(
+	isAvailable: () =>
+		isSecureStorageAvailable(
 			platform,
 			safeStorage.isEncryptionAvailable(),
 			platform === "linux" ? safeStorage.getSelectedStorageBackend() : "unknown",

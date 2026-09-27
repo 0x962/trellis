@@ -1,8 +1,10 @@
 import { afterEach, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { HostCredentialReferenceSchema } from "@trellis/api";
 import { createHostCredentialStore, type SecureStorage } from "./credentialStore.ts";
 
 const directories: string[] = [];
@@ -17,11 +19,13 @@ const installationHome = async () => {
 	return directory;
 };
 
-const secureStorage = (available = true): SecureStorage => ({
-	available: () => available,
+const secureStorage = (isAvailable = true): SecureStorage => ({
+	isAvailable: () => isAvailable,
 	encrypt: (value) => Buffer.from(value).map((byte) => byte ^ 0x5a),
 	decrypt: (value) => Buffer.from(value.map((byte) => byte ^ 0x5a)).toString(),
 });
+
+const credentialReference = () => HostCredentialReferenceSchema.parse(randomUUID());
 
 test("persists only encrypted credential bytes", async () => {
 	const home = await installationHome();
@@ -34,6 +38,23 @@ test("persists only encrypted credential bytes", async () => {
 	expect(file).not.toContain(credential.privateKey);
 	expect(file).not.toContain(credential.passphrase);
 	expect(await store.read(saved.reference)).toEqual(credential);
+});
+
+test("returns no credential when the credential file is missing", async () => {
+	const home = await installationHome();
+
+	expect(await createHostCredentialStore(home, secureStorage()).read(credentialReference())).toBeNull();
+});
+
+test("propagates credential file access failures", async () => {
+	const home = await installationHome();
+	const path = join(home, "host-credentials.json");
+	await writeFile(path, '{"version":1,"credentials":{}}');
+	await chmod(path, 0o000);
+
+	await expect(createHostCredentialStore(home, secureStorage()).read(credentialReference())).rejects.toMatchObject({
+		code: "EACCES",
+	});
 });
 
 test("serializes concurrent credential saves", async () => {
@@ -81,7 +102,7 @@ test("does not put a secret in a decryption error", async () => {
 		persistence: "secure",
 	});
 	const broken: SecureStorage = {
-		available: () => true,
+		isAvailable: () => true,
 		encrypt: (value) => Buffer.from(value),
 		decrypt: () => {
 			throw new Error("PRIVATE KEY SECRET");
@@ -96,7 +117,7 @@ test("does not put a secret in a decryption error", async () => {
 test("does not put a secret in an encryption error", async () => {
 	const home = await installationHome();
 	const broken: SecureStorage = {
-		available: () => true,
+		isAvailable: () => true,
 		encrypt: () => {
 			throw new Error("PRIVATE KEY SECRET");
 		},

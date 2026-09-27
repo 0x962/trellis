@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DataHomeIdSchema, HostIdSchema } from "../hostIdentity/hostIdentity.ts";
+import { DataHomeIdSchema, HostIdSchema } from "../hostIdentity/index.ts";
 
 const LabelSchema = z
 	.string()

@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { HostCredentialReferenceSchema, type HostCredentialReference } from "@trellis/api";
-import { writeAtomicJson } from "./atomicJson.ts";
-import { serializerFor } from "./serialize.ts";
+import { writeAtomicJson } from "../atomicJson/index.ts";
+import { operationQueueFor } from "../operationQueue/index.ts";
 
 export type HostCredential =
 	| { kind: "password"; password: string }
@@ -12,7 +11,7 @@ export type HostCredential =
 	| { kind: "token"; token: string };
 
 export type SecureStorage = {
-	available: () => boolean;
+	isAvailable: () => boolean;
 	encrypt: (value: string) => Buffer;
 	decrypt: (value: Buffer) => string;
 };
@@ -59,10 +58,16 @@ export type HostCredentialStore = {
 };
 
 const readStored = async (path: string): Promise<StoredCredentials> => {
-	if (!existsSync(path)) return { version: 1, credentials: {} };
+	let source: string;
+	try {
+		source = await readFile(path, "utf8");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, credentials: {} };
+		throw error;
+	}
 	let parsed: unknown;
 	try {
-		parsed = JSON.parse(await readFile(path, "utf8"));
+		parsed = JSON.parse(source);
 	} catch {
 		throw new Error("The stored host credentials are invalid.");
 	}
@@ -83,11 +88,11 @@ const readStored = async (path: string): Promise<StoredCredentials> => {
 export const createHostCredentialStore = (installationHome: string, secureStorage: SecureStorage): HostCredentialStore => {
 	const path = join(installationHome, "host-credentials.json");
 	const session = new Map<HostCredentialReference, HostCredential>();
-	const serialize = serializerFor(path);
+	const enqueue = operationQueueFor(path);
 
 	return {
 		save: (input) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const reference = HostCredentialReferenceSchema.parse(input.reference ?? randomUUID());
 				if (input.persistence !== "secure" && input.persistence !== "session")
 					throw new Error("Choose secure or session-only credential storage.");
@@ -101,7 +106,7 @@ export const createHostCredentialStore = (installationHome: string, secureStorag
 					}
 					return { reference, persistence: input.persistence };
 				}
-				if (!secureStorage.available())
+				if (!secureStorage.isAvailable())
 					throw new Error("Secure credential storage is unavailable. Use a session-only credential.");
 				try {
 					stored.credentials[reference] = secureStorage.encrypt(JSON.stringify(credential)).toString("base64");
@@ -113,7 +118,7 @@ export const createHostCredentialStore = (installationHome: string, secureStorag
 				return { reference, persistence: input.persistence };
 			}),
 		read: (reference) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const parsedReference = HostCredentialReferenceSchema.parse(reference);
 				const inSession = session.get(parsedReference);
 				if (inSession !== undefined) return inSession;
@@ -127,7 +132,7 @@ export const createHostCredentialStore = (installationHome: string, secureStorag
 				}
 			}),
 		remove: (reference) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const parsedReference = HostCredentialReferenceSchema.parse(reference);
 				session.delete(parsedReference);
 				const stored = await readStored(path);

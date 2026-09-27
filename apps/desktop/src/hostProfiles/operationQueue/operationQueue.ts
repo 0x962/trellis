@@ -1,8 +1,8 @@
-type Serializer = <T>(operation: () => Promise<T>) => Promise<T>;
+type EnqueueOperation = <T>(operation: () => Promise<T>) => Promise<T>;
 
-const serializers = new Map<string, Serializer>();
+const operationQueues = new Map<string, EnqueueOperation>();
 
-const createSerializer = (): Serializer => {
+const createOperationQueue = (): EnqueueOperation => {
 	let tail = Promise.resolve();
 	return async <T>(operation: () => Promise<T>): Promise<T> => {
 		let release = () => {};
@@ -20,10 +20,10 @@ const createSerializer = (): Serializer => {
 	};
 };
 
-export const serializerFor = (path: string): Serializer => {
-	const existing = serializers.get(path);
+export const operationQueueFor = (path: string): EnqueueOperation => {
+	const existing = operationQueues.get(path);
 	if (existing !== undefined) return existing;
-	const created = createSerializer();
-	serializers.set(path, created);
+	const created = createOperationQueue();
+	operationQueues.set(path, created);
 	return created;
 };

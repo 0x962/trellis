@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -18,8 +17,8 @@ import {
 	type HostProfileTrustKeyInput,
 	type SshHostKeyPin,
 } from "@trellis/api";
-import { writeAtomicJson } from "./atomicJson.ts";
-import { serializerFor } from "./serialize.ts";
+import { writeAtomicJson } from "../atomicJson/index.ts";
+import { operationQueueFor } from "../operationQueue/index.ts";
 
 export type HostProfileStore = {
 	list: () => Promise<HostProfile[]>;
@@ -35,10 +34,16 @@ type Options = {
 };
 
 const readProfiles = async (path: string): Promise<HostProfile[]> => {
-	if (!existsSync(path)) return [];
+	let source: string;
+	try {
+		source = await readFile(path, "utf8");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+		throw error;
+	}
 	let stored: unknown;
 	try {
-		stored = JSON.parse(await readFile(path, "utf8"));
+		stored = JSON.parse(source);
 	} catch {
 		throw new Error("The stored host profiles are invalid.");
 	}
@@ -54,7 +59,7 @@ const readProfiles = async (path: string): Promise<HostProfile[]> => {
 	const parsed = HostProfileListSchema.safeParse(stored.profiles);
 	if (stored.version !== 1 || !parsed.success) throw new Error("The stored host profiles are invalid.");
 	for (const profile of parsed.data) {
-		if (profile.kind === "ssh") verifiedHostKey(profile.hostKey);
+		if (profile.kind === "ssh") verifyHostKey(profile.hostKey);
 	}
 	return parsed.data;
 };
@@ -68,13 +73,13 @@ const findIndex = (profiles: HostProfile[], id: HostProfileId): number => {
 	return index;
 };
 
-const canonicalDataHome = async (path: string): Promise<string> => {
+const resolveDataHomePath = async (path: string): Promise<string> => {
 	const canonical = await realpath(path);
 	if (!(await stat(canonical)).isDirectory()) throw new Error("The local data home must be a directory.");
 	return canonical;
 };
 
-const verifiedHostKey = (pin: SshHostKeyPin): SshHostKeyPin => {
+const verifyHostKey = (pin: SshHostKeyPin): SshHostKeyPin => {
 	const publicKey = Buffer.from(pin.publicKey, "base64");
 	if (publicKey.length < 4) throw new Error("The SSH host key is invalid.");
 	const algorithmLength = publicKey.readUInt32BE(0);
@@ -87,12 +92,12 @@ const verifiedHostKey = (pin: SshHostKeyPin): SshHostKeyPin => {
 
 export const createHostProfileStore = (installationHome: string, options: Options): HostProfileStore => {
 	const path = join(installationHome, "host-profiles.json");
-	const serialize = serializerFor(path);
+	const enqueue = operationQueueFor(path);
 
 	return {
-		list: () => serialize(() => readProfiles(path)),
+		list: () => enqueue(() => readProfiles(path)),
 		add: (input) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const parsed = HostProfileAddInputSchema.parse(input);
 				let sanitized: HostProfile;
 				if (parsed.kind === "ssh") {
@@ -100,20 +105,20 @@ export const createHostProfileStore = (installationHome: string, options: Option
 					sanitized = HostProfileSchema.parse({
 						...fields,
 						id: randomUUID(),
-						hostKey: verifiedHostKey(trustedHostKey),
+						hostKey: verifyHostKey(trustedHostKey),
 					});
 				} else
 					sanitized = HostProfileSchema.parse({
 						...parsed,
 						id: randomUUID(),
-						dataHome: await canonicalDataHome(parsed.dataHome),
+						dataHome: await resolveDataHomePath(parsed.dataHome),
 					});
 				const profiles = await readProfiles(path);
 				await writeProfiles(path, [...profiles, sanitized]);
 				return sanitized;
 			}),
 		edit: (input) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const parsed = HostProfileEditInputSchema.parse(input);
 				const profiles = await readProfiles(path);
 				const index = findIndex(profiles, parsed.id);
@@ -123,7 +128,7 @@ export const createHostProfileStore = (installationHome: string, options: Option
 					...current,
 					...parsed,
 					...(parsed.kind === "local" && parsed.dataHome !== undefined
-						? { dataHome: await canonicalDataHome(parsed.dataHome) }
+						? { dataHome: await resolveDataHomePath(parsed.dataHome) }
 						: {}),
 				});
 				profiles[index] = updated;
@@ -131,19 +136,19 @@ export const createHostProfileStore = (installationHome: string, options: Option
 				return updated;
 			}),
 		trustKey: (input) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const parsed = HostProfileTrustKeyInputSchema.parse(input);
 				const profiles = await readProfiles(path);
 				const index = findIndex(profiles, parsed.id);
 				const current = profiles[index]!;
 				if (current.kind !== "ssh") throw new Error("A local host profile has no SSH host key.");
-				const updated = { ...current, hostKey: verifiedHostKey(parsed.trustedHostKey) };
+				const updated = { ...current, hostKey: verifyHostKey(parsed.trustedHostKey) };
 				profiles[index] = updated;
 				await writeProfiles(path, profiles);
 				return updated;
 			}),
 		remove: (input) =>
-			serialize(async () => {
+			enqueue(async () => {
 				const parsed = HostProfileRemoveInputSchema.parse(input);
 				const profiles = await readProfiles(path);
 				const index = findIndex(profiles, parsed.id);
