@@ -17,8 +17,8 @@ import { type ServiceEntry, type ServiceName, services } from "../services/regis
 import type { IoCtx } from "../services/support.ts";
 import type { SweepResult } from "../services/sweep/prepareSweep.ts";
 import { createCache } from "./cache.ts";
+import { createMeasuredTransaction } from "./createMeasuredTransaction";
 import { createMaintenance } from "./maintenance.ts";
-import { measureTransactions } from "./measureTransactions";
 import { pullStream } from "./pullStream.ts";
 import { allResourceBlobShas } from "./queries/epicResources.ts";
 import { allPrFileBlobShas } from "./queries/prFiles.ts";
@@ -121,7 +121,7 @@ export const createInlineTransport = ({
 	// writes that its own short transactions committed, so they reach the bus
 	// also when the call throws.
 	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, timing?: DbTiming) => {
-		const transaction = measureTransactions(db, { name, log, longTransactionMs, timing });
+		const transaction = createMeasuredTransaction(db, { name, reqId: ctx.reqId, log, longTransactionMs, timing });
 		const entry: ServiceEntry = services[name];
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];

@@ -94,7 +94,12 @@ test("HTTP timings sum preparation, guard, final, and cleanup transactions but e
 	expect(response.headers.get("server-timing")).toBe("db;dur=534.00, lock;dur=28.00, queue;dur=0.00");
 	expect(lines.find((line) => line.msg === "request")).toMatchObject({ ms: 2562, dbMs: 534, lockMs: 28, queueMs: 0 });
 	expect(lines.filter((line) => line.msg === "long transaction")).toEqual([
-		expect.objectContaining({ service: "agentRuns.list", heldMs: 503, lockMs: 7 }),
+		expect.objectContaining({
+			service: "agentRuns.list",
+			reqId: response.headers.get("x-request-id"),
+			heldMs: 503,
+			lockMs: 7,
+		}),
 	]);
 });
 

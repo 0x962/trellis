@@ -1,7 +1,7 @@
-// Request totals in milliseconds. `queueMs` counts the wait in the worker queue.
+// DbTiming holds request totals in milliseconds. `queueMs` counts the wait in the worker queue.
 // `lockMs` sums each transaction's wait for the database lock. `ms` sums the time
 // each transaction holds that lock, through commit or rollback. These totals
-// include preparation and after-commit transactions. External calls outside
+// include transactions in `prepare` and `afterCommit`. External calls outside
 // transactions contribute only to the total request duration.
 export type DbTiming = { ms: number; lockMs: number; queueMs: number };
 
