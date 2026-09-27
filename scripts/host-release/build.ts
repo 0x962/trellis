@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { HOST_RELEASE_SUPPORT, type HostReleaseTarget } from "@trellis/api";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
-import { buildHostRelease } from "./buildHostRelease.ts";
+import { buildHostRelease } from "./buildHostRelease/index.ts";
 
 const { values } = parseArgs({
 	options: {

@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { evaluateHostReleasePreflight } from "@trellis/api";
-import { readHostReleaseManifest, verifyHostRelease } from "./manifest.ts";
-import { observeHost } from "./observeHost.ts";
+import { readHostReleaseManifest, verifyHostRelease } from "./manifest/index.ts";
+import { observeHost } from "./observeHost/index.ts";
 
 const { values } = parseArgs({ options: { release: { type: "string" } } });
 if (!values.release) throw new Error("--release is required");

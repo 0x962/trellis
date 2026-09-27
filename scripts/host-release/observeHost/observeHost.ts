@@ -1,21 +1,32 @@
-import { constants } from "node:fs";
+import { closeSync, constants } from "node:fs";
 import { access, readFile, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { release } from "node:os";
 import {
-	compareHostVersions,
 	type HostReleaseArch,
 	type HostReleaseObservation,
 	type HostReleasePlatform,
 } from "@trellis/api";
+import { errno, load } from "koffi";
 
 const command = (args: string[]): string => {
-	try {
-		const result = Bun.spawnSync(args);
-		return result.exitCode === 0 ? result.stdout.toString().trim() : "";
-	} catch {
-		return "";
-	}
+	const result = Bun.spawnSync(args);
+	if (result.exitCode !== 0)
+		throw new Error(
+			`${args.join(" ")} failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
+		);
+	return result.stdout.toString().trim();
+};
+
+const PIDFD_OPEN_SYSCALL = 434;
+
+const pidfdObservation = (): Pick<HostReleaseObservation, "pidfd" | "pidfdError"> => {
+	const library = load(null);
+	const syscall = library.func("long syscall(long number, int pid, unsigned int flags)");
+	const descriptor: number = syscall(PIDFD_OPEN_SYSCALL, process.pid, 0);
+	if (descriptor < 0) return { pidfd: false, pidfdError: `pidfd_open failed with errno ${errno()}` };
+	closeSync(descriptor);
+	return { pidfd: true };
 };
 
 const linuxLibrary = (name: string, libraries: string): string | null => {
@@ -44,15 +55,14 @@ const linuxObservation = async (arch: HostReleaseArch): Promise<HostReleaseObser
 	const libstdcxx = linuxLibrary("libstdc++.so.6", libraries);
 	const libstdcxxRealPath = libstdcxx ? await realpath(libstdcxx) : null;
 	const libstdcxxVersion = libstdcxxRealPath?.match(/libstdc\+\+\.so\.(.+)$/)?.[1] ?? null;
-	const kernel = release();
 	return {
 		platform: "linux",
 		arch,
-		osVersion: kernel,
+		osVersion: release(),
 		libc: libcOutput.startsWith("glibc ") ? { family: "glibc", version: libcOutput.slice(6) } : null,
 		libstdcxxVersion,
 		libatomic: linuxLibrary("libatomic.so.1", libraries) !== null,
-		pidfd: compareHostVersions(kernel, "5.3") >= 0,
+		...pidfdObservation(),
 		cgroupV2Delegated: await cgroupV2Delegated(),
 	};
 };

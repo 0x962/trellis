@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HOST_RELEASE_SUPPORT, type HostReleaseTarget } from "@trellis/api";
 import { buildHostRelease } from "./buildHostRelease.ts";
-import { verifyHostRelease } from "./manifest.ts";
+import { verifyHostRelease } from "../manifest/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -35,6 +35,11 @@ describe("buildHostRelease", () => {
 		roots.push(fixture);
 		const repositoryRoot = join(fixture, "repository");
 		const outputRoot = join(fixture, "release");
+		await mkdir(join(repositoryRoot, "apps/server/drizzle/meta"), { recursive: true });
+		await writeFile(
+			join(repositoryRoot, "apps/server/drizzle/meta/_journal.json"),
+			JSON.stringify({ entries: [{ tag: "0126_material_mandrill" }] }),
+		);
 		for (const [path, name] of [
 			["apps/server", "@trellis/server"],
 			["packages/api", "@trellis/api"],
@@ -73,7 +78,7 @@ describe("buildHostRelease", () => {
 			compatibility: {
 				api: { min: "1", max: "1" },
 				runtime: { protocol: 13 },
-				database: { min: "0126", max: "0126" },
+				database: { min: "0126_material_mandrill", max: "0126_material_mandrill" },
 			},
 			bun: { executable: bun, version: "1.3.13" },
 			node: { executable: node, version: "26.8.2", abi: "141" },
@@ -89,5 +94,41 @@ describe("buildHostRelease", () => {
 		expect(manifest.nativeModules.map(({ name }) => name)).toEqual(["node-pty", "fs-ext", "koffi"]);
 		expect(manifest.files.some(({ path }) => path.includes("electron"))).toBe(false);
 		expect(await verifyHostRelease(outputRoot)).toMatchObject({ ok: true, issues: [] });
+	});
+
+	test("rejects a stale database compatibility maximum", async () => {
+		const fixture = await mkdtemp(join(tmpdir(), "trellis-host-release-"));
+		roots.push(fixture);
+		const repositoryRoot = join(fixture, "repository");
+		await mkdir(join(repositoryRoot, "apps/server/drizzle/meta"), { recursive: true });
+		await writeFile(
+			join(repositoryRoot, "apps/server/drizzle/meta/_journal.json"),
+			JSON.stringify({ entries: [{ tag: "0125_previous" }, { tag: "0126_current" }] }),
+		);
+		const target: HostReleaseTarget =
+			process.platform === "linux"
+				? {
+						platform: "linux",
+						arch: process.arch as "x64" | "arm64",
+						libc: { family: "glibc", version: HOST_RELEASE_SUPPORT.linux.libc.minVersion },
+					}
+				: { platform: "darwin", arch: process.arch as "x64" | "arm64", libc: null };
+
+		await expect(
+			buildHostRelease({
+				repositoryRoot,
+				outputRoot: join(fixture, "release"),
+				version: "1.0.0",
+				sourceCommit: "0123456789abcdef",
+				target,
+				compatibility: {
+					api: { min: "1", max: "1" },
+					runtime: { protocol: 13 },
+					database: { min: "0125_previous", max: "0125_previous" },
+				},
+				bun: { executable: join(fixture, "bun"), version: "1.3.13" },
+				node: { executable: join(fixture, "node"), version: "26.8.2", abi: "141" },
+			}),
+		).rejects.toThrow("The database compatibility maximum must match the latest journal tag 0126_current.");
 	});
 });

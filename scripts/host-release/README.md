@@ -38,3 +38,5 @@ Build and check these target tuples in hosted integration jobs:
 - macOS x64 or arm64 at the supported deployment floor
 
 Do not use one target dependency tree for another target. Each job builds `node-pty`, `fs-ext`, and `koffi` for its pinned Node ABI.
+
+Start the server with a `PATH` that contains no system Node. Verify that the runtime and the Codex and Muse bridges use the bundled Node.

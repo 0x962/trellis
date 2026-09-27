@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, readdir, realpath, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import {
 	HOST_RELEASE_MANIFEST_VERSION,
@@ -6,8 +6,8 @@ import {
 	type HostReleaseManifest,
 	type HostReleaseTarget,
 } from "@trellis/api";
-import { writeHostReleaseManifest } from "./manifest.ts";
-import { type StagedPackage, stagePackageClosure } from "./packageClosure.ts";
+import { verifyHostRelease, writeHostReleaseManifest } from "../manifest/index.ts";
+import { type StagedPackage, stagePackageClosure } from "../packageClosure/index.ts";
 
 const workspacePaths = [
 	"apps/server",
@@ -17,6 +17,8 @@ const workspacePaths = [
 	"packages/runtime-protocol",
 ];
 const nativeModuleNames = ["node-pty", "fs-ext", "koffi"];
+
+type DrizzleJournal = { entries: { tag: string }[] };
 
 export type BuildHostReleaseInput = {
 	repositoryRoot: string;
@@ -59,11 +61,30 @@ const nativeModuleOf = async (
 	return { name, version: staged.version, nodeAbi, path: relative(outputRoot, staged.path) };
 };
 
+const validateDatabaseCompatibility = async (
+	repositoryRoot: string,
+	compatibility: HostReleaseCompatibility["database"],
+) => {
+	const journal: DrizzleJournal = JSON.parse(
+		await readFile(join(repositoryRoot, "apps/server/drizzle/meta/_journal.json"), "utf8"),
+	);
+	const tags = journal.entries.map(({ tag }) => tag);
+	for (const version of [compatibility.min, compatibility.max]) {
+		if (!tags.includes(version)) throw new Error(`The database journal does not contain ${version}.`);
+	}
+	const latest = tags.at(-1)!;
+	if (compatibility.max !== latest)
+		throw new Error(`The database compatibility maximum must match the latest journal tag ${latest}.`);
+	if (tags.indexOf(compatibility.min) > tags.indexOf(compatibility.max))
+		throw new Error("The database compatibility minimum follows its maximum.");
+};
+
 export const buildHostRelease = async (input: BuildHostReleaseInput): Promise<HostReleaseManifest> => {
 	if (input.target.platform !== process.platform || input.target.arch !== process.arch)
 		throw new Error(
 			`Build ${input.target.platform}-${input.target.arch} on its target. This process is ${process.platform}-${process.arch}.`,
 		);
+	await validateDatabaseCompatibility(input.repositoryRoot, input.compatibility.database);
 	await mkdir(input.outputRoot);
 	await mkdir(join(input.outputRoot, "bin"));
 	const packages = await stagePackageClosure(input.repositoryRoot, input.outputRoot, workspacePaths);
@@ -72,7 +93,7 @@ export const buildHostRelease = async (input: BuildHostReleaseInput): Promise<Ho
 	await cp(input.node.executable, join(input.outputRoot, "bin/node"));
 	await executable(
 		join(input.outputRoot, "bin/trellis-server"),
-		'#!/bin/sh\nroot=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\nexport TRELLIS_WEB_DIST="$root/apps/web/dist"\nexec "$root/bin/bun" "$root/apps/server/src/index.ts" "$@"\n',
+		'#!/bin/sh\nroot=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\nexport TRELLIS_WEB_DIST="$root/apps/web/dist"\nexport TRELLIS_RUNTIME_NODE="$root/bin/node"\nexec "$root/bin/bun" "$root/apps/server/src/index.ts" "$@"\n',
 	);
 	await executable(
 		join(input.outputRoot, "bin/trellis-runtime"),
@@ -86,7 +107,7 @@ export const buildHostRelease = async (input: BuildHostReleaseInput): Promise<Ho
 	const nativeModules = await Promise.all(
 		nativeModuleNames.map((name) => nativeModuleOf(packages, name, input.outputRoot, input.node.abi)),
 	);
-	return writeHostReleaseManifest(input.outputRoot, {
+	const manifest = await writeHostReleaseManifest(input.outputRoot, {
 		schemaVersion: HOST_RELEASE_MANIFEST_VERSION,
 		version: input.version,
 		sourceCommit: input.sourceCommit,
@@ -102,4 +123,8 @@ export const buildHostRelease = async (input: BuildHostReleaseInput): Promise<Ho
 		},
 		nativeModules,
 	});
+	const verification = await verifyHostRelease(input.outputRoot);
+	if (!verification.ok)
+		throw new Error(`Host release verification failed: ${JSON.stringify(verification.issues)}`);
+	return manifest;
 };

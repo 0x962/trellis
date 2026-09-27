@@ -18,13 +18,13 @@ export const stagePackageClosure = async (
 	targetRoot: string,
 	workspacePaths: string[],
 ): Promise<StagedPackage[]> => {
-	const copies = new Map<string, StagedPackage>();
-	const optionalPeers: { source: string; name: string; destination: string }[] = [];
+	const stagedPackagesBySource = new Map<string, StagedPackage>();
+	const optionalPeerLinks: { source: string; name: string; destination: string }[] = [];
 	const workspaceDestinations = new Map(
 		workspacePaths.map((path) => [join(repositoryRoot, path), join(targetRoot, path)]),
 	);
 
-	const packageAt = async (from: string, name: string, optional = false): Promise<string | undefined> => {
+	const resolvePackageRoot = async (from: string, name: string, optional = false): Promise<string | undefined> => {
 		let directory = from;
 		while (true) {
 			const path = join(directory, "node_modules", name);
@@ -38,24 +38,28 @@ export const stagePackageClosure = async (
 		}
 	};
 
-	const link = async (source: string, destination: string) => {
+	const linkPackageDependency = async (source: string, destination: string) => {
 		await mkdir(dirname(destination), { recursive: true });
 		await symlink(relative(dirname(destination), source), destination);
 	};
 
-	const copyPackage = async (source: string, destination?: string): Promise<StagedPackage> => {
+	const stagePackage = async (source: string, destination?: string): Promise<StagedPackage> => {
 		const canonical = await realpath(source);
-		const existing = copies.get(canonical);
+		const existing = stagedPackagesBySource.get(canonical);
 		if (existing) return existing;
 		const manifest: PackageManifest = JSON.parse(await readFile(join(canonical, "package.json"), "utf8"));
 		if (manifest.name === "electron") throw new Error("A standalone host release cannot contain Electron.");
-		const output =
+		const packageOutput =
 			destination ??
 			workspaceDestinations.get(canonical) ??
-			join(targetRoot, "modules", `${manifest.name.replaceAll("/", "_")}@${manifest.version}_${copies.size}`);
-		const staged = { name: manifest.name, version: manifest.version, path: output };
-		copies.set(canonical, staged);
-		await cp(canonical, output, {
+			join(
+				targetRoot,
+				"modules",
+				`${manifest.name.replaceAll("/", "_")}@${manifest.version}_${stagedPackagesBySource.size}`,
+			);
+		const staged = { name: manifest.name, version: manifest.version, path: packageOutput };
+		stagedPackagesBySource.set(canonical, staged);
+		await cp(canonical, packageOutput, {
 			recursive: true,
 			verbatimSymlinks: true,
 			filter: (path) => {
@@ -76,25 +80,25 @@ export const stagePackageClosure = async (
 				!manifest.optionalDependencies?.[name] &&
 				manifest.peerDependenciesMeta?.[name]?.optional === true
 			) {
-				optionalPeers.push({ source: canonical, name, destination: join(output, "node_modules", name) });
+				optionalPeerLinks.push({ source: canonical, name, destination: join(packageOutput, "node_modules", name) });
 				continue;
 			}
-			const path = await packageAt(canonical, name, Boolean(manifest.optionalDependencies?.[name]));
+			const path = await resolvePackageRoot(canonical, name, Boolean(manifest.optionalDependencies?.[name]));
 			if (!path) continue;
-			const dependency = await copyPackage(path);
-			await link(dependency.path, join(output, "node_modules", name));
+			const dependency = await stagePackage(path);
+			await linkPackageDependency(dependency.path, join(packageOutput, "node_modules", name));
 		}
 		return staged;
 	};
 
-	for (const path of workspacePaths) await copyPackage(join(repositoryRoot, path), join(targetRoot, path));
-	for (const peer of optionalPeers) {
+	for (const path of workspacePaths) await stagePackage(join(repositoryRoot, path), join(targetRoot, path));
+	for (const peer of optionalPeerLinks) {
 		let directory = peer.source;
 		while (true) {
 			const candidate = join(directory, "node_modules", peer.name);
 			if (existsSync(join(candidate, "package.json"))) {
-				const dependency = copies.get(await realpath(candidate));
-				if (dependency) await link(dependency.path, peer.destination);
+				const dependency = stagedPackagesBySource.get(await realpath(candidate));
+				if (dependency) await linkPackageDependency(dependency.path, peer.destination);
 				break;
 			}
 			const parent = dirname(directory);
@@ -103,5 +107,5 @@ export const stagePackageClosure = async (
 		}
 	}
 
-	return [...copies.values()];
+	return [...stagedPackagesBySource.values()];
 };

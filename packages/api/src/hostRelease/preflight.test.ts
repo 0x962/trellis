@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-	evaluateHostReleasePreflight,
-	type HostReleaseObservation,
-	type HostReleaseTarget,
-} from "./hostRelease.ts";
+import type { HostReleaseObservation, HostReleaseTarget } from "./hostRelease.ts";
+import { evaluateHostReleasePreflight } from "./preflight.ts";
 
 const linuxTarget: HostReleaseTarget = {
 	platform: "linux",
@@ -36,6 +33,7 @@ describe("host release preflight", () => {
 			libstdcxxVersion: "6.0.24",
 			libatomic: false,
 			pidfd: false,
+			pidfdError: "pidfd_open failed with errno 1",
 			cgroupV2Delegated: false,
 		});
 
@@ -50,6 +48,7 @@ describe("host release preflight", () => {
 			"pidfd",
 			"cgroup-v2-delegated",
 		]);
+		expect(result.requirements.find(({ id }) => id === "pidfd")?.actual).toBe("pidfd_open failed with errno 1");
 	});
 
 	test("accepts macOS 13.5 and rejects an older version", () => {

@@ -1,4 +1,4 @@
-export { buildHostRelease, type BuildHostReleaseInput } from "./buildHostRelease.ts";
+export { buildHostRelease, type BuildHostReleaseInput } from "./buildHostRelease/index.ts";
 export {
 	collectHostReleaseFiles,
 	HOST_RELEASE_MANIFEST_FILE,
@@ -8,4 +8,4 @@ export {
 	type HostReleaseVerificationIssue,
 	verifyHostRelease,
 	writeHostReleaseManifest,
-} from "./manifest.ts";
+} from "./manifest/index.ts";
