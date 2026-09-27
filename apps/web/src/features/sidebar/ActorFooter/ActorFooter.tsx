@@ -1,7 +1,7 @@
-import { GearSix } from "@phosphor-icons/react";
+import { GearSix, Megaphone } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { ActorHeaderSchema } from "@trellis/api";
-import { Avatar, Button, IconButton, Input, Popover, Tooltip, toast } from "@trellis/ui";
+import { Avatar, Button, cx, IconButton, Input, Popover, Tooltip, toast } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
@@ -9,6 +9,8 @@ import { ghCopy } from "../../../lib/ghCopy";
 import { saveActorName } from "../../../lib/identity";
 import { opensSheet } from "../../../lib/opensSheet";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { uiActions } from "../../../stores/uiStore";
+import { broadcastActions } from "../../agents/BroadcastDialog";
 
 // The bottom of the sidebar: who you are and the settings. The actor chip
 // opens a rename popover; Enter stores the new name on the server and in
@@ -51,7 +53,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 	};
 
 	return (
-		<div data-sidebar-actor-footer="" className="flex shrink-0 items-center gap-1 pt-2">
+		<div data-sidebar-actor-footer="" className={cx("flex shrink-0 items-center gap-1 pt-2", collapsed && "flex-col")}>
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
@@ -81,6 +83,16 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 					</Button>
 				</form>
 			</Popover>
+			<Tooltip content="Broadcast a message">
+				<IconButton
+					label="Broadcast a message"
+					icon={<Megaphone />}
+					onClick={() => {
+						uiActions.setMobileSidebarOpen(false);
+						broadcastActions.open();
+					}}
+				/>
+			</Tooltip>
 			{!collapsed && (
 				<span className="relative">
 					<Tooltip content="Settings">
