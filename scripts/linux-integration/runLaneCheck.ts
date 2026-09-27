@@ -1,14 +1,14 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir } from "node:fs/promises";
+import { readWorkflowIdentity, requiredVariable, writeResult, writeStepOutputs } from "./checkResult";
 import {
+	type CommandPlan,
 	laneForBranch,
 	missingRequiredPaths,
-	readLanePlans,
-	type CommandPlan,
 	type Result,
+	readLanePlans,
 	type SmokePlan,
 } from "./contract";
-import { readWorkflowIdentity, requiredVariable, writeResult, writeStepOutputs } from "./checkResult";
 import { buildIntegratedCommitProof } from "./integratedCommitProof";
 import { verifyIntegratedInput } from "./reviewEvidence";
 
@@ -46,15 +46,10 @@ if (!commandPlan) {
 }
 
 const requiredInput = commandPlan.integratedInputTicketIdentifier
-	? lanePlan.integratedInputs.find(
-			(input) => input.ticketIdentifier === commandPlan.integratedInputTicketIdentifier,
-		)
+	? lanePlan.integratedInputs.find((input) => input.ticketIdentifier === commandPlan.integratedInputTicketIdentifier)
 	: undefined;
 const inputEvidence = requiredInput
-	? verifyIntegratedInput(
-			requiredInput,
-			await buildIntegratedCommitProof(requiredInput, workflowIdentity.commit),
-		)
+	? verifyIntegratedInput(requiredInput, await buildIntegratedCommitProof(requiredInput, workflowIdentity.commit))
 	: undefined;
 const missingPaths = missingRequiredPaths(commandPlan.requiredPaths ?? [], existsSync);
 if (

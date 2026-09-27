@@ -140,22 +140,20 @@ export function packageArtifactName(input: {
 	return `trellis-package-${input.lane}-${input.commit}-${input.runId}-${input.runAttempt}-${input.platform}`;
 }
 
-export function evidenceArtifactName(input: {
-	lane: Lane;
-	commit: string;
-	runId: string;
-	runAttempt: string;
-}): string {
+export function evidenceArtifactName(input: { lane: Lane; commit: string; runId: string; runAttempt: string }): string {
 	return `trellis-evidence-${input.lane}-${input.commit}-${input.runId}-${input.runAttempt}`;
 }
 
-export function missingRequiredPaths(
-	paths: string[],
-	exists: (path: string) => boolean,
-): string[] {
+export function missingRequiredPaths(paths: string[], exists: (path: string) => boolean): string[] {
 	return paths.filter((path) => !exists(path));
 }
 
 export async function readLanePlans(): Promise<LanePlans> {
-	return (await Bun.file(new URL("./lanes.json", import.meta.url)).json()) as LanePlans;
+	const entries = await Promise.all(
+		Object.values(integrationBranches).map(async (lane) => {
+			const plan = (await Bun.file(new URL(`./lanes/${lane}.json`, import.meta.url)).json()) as LanePlan;
+			return [lane, plan] as const;
+		}),
+	);
+	return { schemaVersion: 1, lanes: Object.fromEntries(entries) as Record<Lane, LanePlan> };
 }
