@@ -19,7 +19,11 @@ let now = 0;
 let clock: ReturnType<typeof spyOn>;
 let transaction: ReturnType<typeof spyOn>;
 const lines: LogRecord[] = [];
-const config = loadConfig({ TRELLIS_PORT: "0" });
+const config = loadConfig({
+	TRELLIS_INSTALLATION_HOME: "/tmp/trellis-transport-installation",
+	TRELLIS_RELEASE_ID: "release-test",
+	TRELLIS_PORT: "0",
+});
 const log = createLogger({
 	level: "debug",
 	env: {},
@@ -87,7 +91,7 @@ test("HTTP timings sum preparation, guard, final, and cleanup transactions but e
 			return [];
 		},
 	);
-	const { app } = createApp({ config, log, bus, runtime, transport: transport() });
+	const { app } = createApp({ config, log, bus, runtime, transport: transport(), browserSessionAccess: null });
 	const response = await app.request("http://localhost/api/agent-runs");
 	expect(response.status).toBe(200);
 	expect(await response.json()).toEqual([]);

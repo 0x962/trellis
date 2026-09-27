@@ -22,7 +22,7 @@ const frameDocument = (root: string, nonce: string) =>
 
 // GET /api/page-render/{leaseId} draws the frame document.
 export const pageFrameRoute =
-	({ log }: { log: Logger }) =>
+	({ log, browserOrigin }: { log: Logger; browserOrigin: string | null }) =>
 	async (c: Context<Record<string, never>, `${typeof PAGE_RENDER_PREFIX}/:leaseId`>) => {
 		const lease = extendRenderLease(c.req.param("leaseId"), new Date());
 		if (lease === undefined) {
@@ -33,6 +33,6 @@ export const pageFrameRoute =
 		return c.html(frameDocument(root, lease.nonce), 200, {
 			...guardHeaders(),
 			"cache-control": "no-store",
-			"content-security-policy": framePolicy(originOf(c), root, lease.nonce),
+			"content-security-policy": framePolicy(browserOrigin ?? originOf(c), root, lease.nonce),
 		});
 	};

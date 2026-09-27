@@ -43,6 +43,8 @@ export type ServiceCtx = {
 // The context of an `io` service inside its transaction.
 export type IoCtx = ServiceCtx & {
 	core: CoreCtx;
+	// This directory stays outside the data home, so a data restore cannot replace the host identity.
+	installationHome: string;
 	localUrl: string;
 	publicUrl: string;
 	// background starts immediately. Call it after the database writes that authorize the task commit.
@@ -54,7 +56,7 @@ export type IoCtx = ServiceCtx & {
 // holds it. A gh call can take seconds, so it runs before the transaction
 // opens. The context of a transaction has no `gh`, so a gh call there fails
 // the typecheck.
-export type PrepareCtx = ServiceCtx & { gh: GhRunner };
+export type PrepareCtx = ServiceCtx & { gh: GhRunner; releaseId: string };
 
 export type { TrellisEvent };
 

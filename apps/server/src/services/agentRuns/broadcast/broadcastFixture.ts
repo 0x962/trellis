@@ -191,6 +191,7 @@ export async function broadcastFixture() {
 		actor: { kind: "human", name: "qa" },
 		session: null,
 		home: "/nowhere",
+		installationHome: "/nowhere",
 		maxUploadBytes: 1024,
 		version: "test",
 		apiVersion: "1",

@@ -9,7 +9,6 @@ import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
@@ -18,15 +17,12 @@ import type { GhAccess } from "./ghState.ts";
 import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
 import { chooseDirectory } from "./native/chooseDirectory";
-import { PAGE_ARCHIVE_PREFIX, PAGE_RENDER_PREFIX } from "./pageLeases.ts";
 import { type ProcedureContext, router } from "./procedures/index.ts";
+import { type BrowserSessionAccess, registerBrowserRoutes } from "./routes/registerBrowserRoutes/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
-import { pageArchiveRoute } from "./routes/pageArchive/pageArchive.ts";
-import { pageContentRoute } from "./routes/pageRender/pageContent.ts";
-import { pageFrameRoute } from "./routes/pageRender/pageRender.ts";
 import { prFileRoute } from "./routes/prFile.ts";
 import { resourceBlobRoute } from "./routes/resourceBlob.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
@@ -42,6 +38,7 @@ export type AppOptions = {
 	transport: ServiceTransport;
 	bus: Bus;
 	runtime: Runtime;
+	browserSessionAccess: BrowserSessionAccess | null;
 	clock?: Clock;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
@@ -99,17 +96,13 @@ const deleteWithQuery = (request: Request) => {
 	return new Request(url, { method: "DELETE", headers, body: JSON.stringify(Object.fromEntries(url.searchParams)) });
 };
 
-// The middleware chain: request id, the request log line and the api
-// version header, the Host check, cors, the body limits on upload
-// paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
-// routes, a JSON 404 under the two mounts, and the web app for everything
-// else.
 export const createApp = ({
 	config,
 	log,
 	transport,
 	bus,
 	runtime,
+	browserSessionAccess,
 	clock = realClock,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
@@ -159,20 +152,7 @@ export const createApp = ({
 		await next();
 	});
 
-	// Three routes: the frame document, the files of the page inside it, and
-	// one download.
-	//
-	// They answer before the host token check, because a browser sends no
-	// header of its own on a frame load, on a request the page makes from
-	// inside that frame, or on a download. Each address carries its own
-	// authorization: 128 random bits that `pages.createRenderLease` and
-	// `pages.archive` mint for one page version, and that end within minutes
-	// or hours.
-	app.get(`${PAGE_RENDER_PREFIX}/:leaseId`, pageFrameRoute({ log }));
-	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
-	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config, transport, log }));
-
-	app.use(hostAuth(config.authToken));
+	registerBrowserRoutes({ app, config, transport, log, browserSessionAccess });
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
 
@@ -271,7 +251,14 @@ export const createApp = ({
 	app.get("/api/resources/:id/blob", resourceBlobRoute({ config, transport }));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
-	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
+	app.get(
+		"/api/agent-runs/:id/terminal/socket",
+		terminalSocketRoute(config, transport, {
+			origin: browserSessionAccess?.origin ?? null,
+			sessions: browserSessionAccess?.sessions ?? null,
+			log,
+		}),
+	);
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);
