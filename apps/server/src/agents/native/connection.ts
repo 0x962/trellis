@@ -9,7 +9,7 @@ export const nativeClient = (home: string) => new RuntimeClient(join(home, "runt
 
 type NativeRuntimeMode = "self-start" | "supervised";
 
-const start = async (home: string, mode: NativeRuntimeMode) => {
+const connectOrStart = async (home: string, mode: NativeRuntimeMode) => {
 	const client = nativeClient(home);
 	try {
 		await client.hello();
@@ -55,7 +55,7 @@ export const ensureNativeRuntime = (
 	const key = `${mode}:${home}`;
 	const current = pending.get(key);
 	if (current) return current;
-	const promise = start(home, mode).finally(() => pending.delete(key));
+	const promise = connectOrStart(home, mode).finally(() => pending.delete(key));
 	pending.set(key, promise);
 	return promise;
 };

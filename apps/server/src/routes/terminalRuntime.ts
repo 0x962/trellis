@@ -4,11 +4,11 @@ import { ensureNativeRuntime } from "../agents/native/connection.ts";
 
 export const terminalStreamRuntime = async (
 	home: string,
-	connect: typeof ensureNativeRuntime = ensureNativeRuntime,
+	ensureRuntime: typeof ensureNativeRuntime = ensureNativeRuntime,
 ) => {
 	let client: Awaited<ReturnType<typeof ensureNativeRuntime>>;
 	try {
-		client = await connect(home);
+		client = await ensureRuntime(home);
 	} catch (error) {
 		if (!["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
 		throw new ORPCError("RUNNER_UNAVAILABLE", {
