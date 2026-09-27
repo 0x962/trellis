@@ -1,14 +1,35 @@
 import { ORPCError } from "@orpc/server";
 import { errors } from "@trellis/api";
 import { ensureNativeRuntime } from "../agents/native/connection.ts";
+import type { Logger } from "../log.ts";
 
-// Starts the native runtime process and returns its client, for a route
-// that reads the output of a terminal. A runtime binary that was built
-// before the `terminal-stream` capability cannot send that output. The
-// request itself is correct, so the answer names the runtime and not the
-// input.
-export const terminalStreamRuntime = async (home: string) => {
-	const client = await ensureNativeRuntime(home);
+export type TerminalStreamRuntimeOptions = {
+	home: string;
+	reqId: string;
+	log: Pick<Logger, "warn">;
+	ensureRuntime?: typeof ensureNativeRuntime;
+};
+
+export const terminalStreamRuntime = async ({
+	home,
+	reqId,
+	log,
+	ensureRuntime = ensureNativeRuntime,
+}: TerminalStreamRuntimeOptions) => {
+	let client: Awaited<ReturnType<typeof ensureNativeRuntime>>;
+	try {
+		client = await ensureRuntime(home);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code ?? "";
+		if (!["ENOENT", "ECONNREFUSED"].includes(code)) throw error;
+		log.warn("supervised runtime unavailable", { reqId, runtimeMode: "supervised", code });
+		throw new ORPCError("RUNNER_UNAVAILABLE", {
+			defined: true,
+			status: errors.RUNNER_UNAVAILABLE.status,
+			message: "The supervised execution service is stopped.",
+			data: { reason: "host" },
+		});
+	}
 	if (!(await client.hello()).capabilities?.includes("terminal-stream"))
 		throw new ORPCError("RUNNER_UNAVAILABLE", {
 			defined: true,

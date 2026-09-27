@@ -3,13 +3,14 @@ import type { Context } from "hono";
 import type { Config } from "../config.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { invalidInput } from "../errors.ts";
+import type { Logger } from "../log.ts";
 import { terminalStreamRuntime } from "./terminalRuntime.ts";
 
 const encoder = new TextEncoder();
 const frame = (type: string, data: unknown) => encoder.encode(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
 const eventFrame = ({ type, ...data }: RuntimeOutputEvent) => frame(type, data);
 
-export const terminalStreamRoute = (config: Config, transport: ServiceTransport) => async (c: Context) => {
+export const terminalStreamRoute = (config: Config, transport: ServiceTransport, log: Logger) => async (c: Context) => {
 	const attemptId = c.req.query("attemptId");
 	if (!attemptId || !/^[a-zA-Z0-9_-]{1,128}$/.test(attemptId))
 		throw invalidInput("attemptId", "Use the terminal attempt identifier.");
@@ -31,7 +32,7 @@ export const terminalStreamRoute = (config: Config, transport: ServiceTransport)
 			expectedSessionId: c.req.query("sessionId"),
 		},
 	)) as { terminalId: string; sessionId: string | null };
-	const client = await terminalStreamRuntime(config.home);
+	const client = await terminalStreamRuntime({ home: config.home, reqId: c.get("requestId"), log });
 	const abort = new AbortController();
 	const cancel = () => abort.abort();
 	if (c.req.raw.signal.aborted) cancel();

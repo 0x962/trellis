@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { HOST_RELEASE_MANIFEST_VERSION, type HostReleaseManifestSource } from "@trellis/api";
 import { verifyHostRelease, writeHostReleaseManifest } from "./manifest.ts";
 
@@ -35,6 +35,10 @@ describe("host release manifest", () => {
 	test("detects missing, altered, and unexpected files", async () => {
 		const root = await mkdtemp(join(tmpdir(), "trellis-host-release-"));
 		roots.push(root);
+		for (const path of Object.values(source().entrypoints)) {
+			await mkdir(dirname(join(root, path)), { recursive: true });
+			await writeFile(join(root, path), path, { mode: 0o755 });
+		}
 		await writeFile(join(root, "missing"), "present at manifest time");
 		await writeFile(join(root, "altered"), "original");
 		await writeHostReleaseManifest(root, source());
@@ -47,6 +51,24 @@ describe("host release manifest", () => {
 			{ path: "altered", kind: "altered" },
 			{ path: "missing", kind: "missing" },
 			{ path: "unexpected", kind: "unexpected" },
+		]);
+	});
+
+	test("rejects an entrypoint outside the recorded files", async () => {
+		const root = await mkdtemp(join(tmpdir(), "trellis-host-release-"));
+		roots.push(root);
+		const manifestSource = source();
+		manifestSource.entrypoints.runtime = "apps/runtime/dist/missing.js";
+		for (const path of Object.values(manifestSource.entrypoints).filter(
+			(path) => path !== manifestSource.entrypoints.runtime,
+		)) {
+			await mkdir(dirname(join(root, path)), { recursive: true });
+			await writeFile(join(root, path), path, { mode: 0o755 });
+		}
+		await writeHostReleaseManifest(root, manifestSource);
+
+		expect((await verifyHostRelease(root)).issues).toEqual([
+			{ path: "apps/runtime/dist/missing.js", kind: "missing" },
 		]);
 	});
 });
