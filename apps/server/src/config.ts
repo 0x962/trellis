@@ -8,6 +8,7 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 // files, the archives, and the rotating log.
 export type Config = {
 	home: string;
+	installationHome: string;
 	authToken: string | null;
 	// The address the server binds. 127.0.0.1 keeps it on this machine; a
 	// network address or 0.0.0.0 lets a phone reach it.
@@ -87,10 +88,12 @@ const originOf = (value: string) => value.replace(/\/+$/, "");
 
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
+	const installationHome = resolve(expandHome(env.TRELLIS_INSTALLATION_HOME ?? "~/.config/trellis"));
 	const host = env.TRELLIS_HOST ?? "127.0.0.1";
 	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
+		installationHome,
 		authToken: env.TRELLIS_AUTH_TOKEN ?? null,
 		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
