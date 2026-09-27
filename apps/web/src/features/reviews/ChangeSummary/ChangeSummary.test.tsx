@@ -26,18 +26,13 @@ describe("ChangeSummary", () => {
 		expect(html).not.toContain("one revision behind");
 	});
 
-	test("reads a summary of an earlier head SHA as one revision behind", () => {
+	test("keeps the explanation after the pull request gets a new commit", () => {
 		const html = renderToStaticMarkup(
 			<ChangeSummary summary={summary} headSha="db837a0155e1c8f47a0b2d6e39c15b8a7f420d3c" render={render} />,
 		);
 
-		expect(html).toContain("The summary is one revision behind.");
-	});
-
-	test("reads a short head SHA as one revision behind", () => {
-		const html = renderToStaticMarkup(<ChangeSummary summary={summary} headSha="9bf82d2a" render={render} />);
-
-		expect(html).toContain("The summary is one revision behind.");
+		expect(html).toContain("Give the Operator message post a timeout.");
+		expect(html).not.toContain("one revision behind");
 	});
 
 	test("prints one faint line when the pull request carries no summary", () => {

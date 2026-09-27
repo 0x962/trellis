@@ -78,9 +78,9 @@ const linkAs = (actor: ActorRef, ticket: string, number: number) =>
 const agent: ActorRef = { kind: "agent", name: "claude-code" };
 const person: ActorRef = { kind: "human", name: "dana" };
 
-// The commit the pull request points at, and the parts the agent writes for
-// that commit. `reviewGaps` reads all of them, so a test takes one away to
-// see the pull request go back to not ready for review.
+// The pull request head, its explanation, and its evidence document.
+// `reviewGaps` reads these parts, so a test removes one to make the pull
+// request not ready for review.
 const writeParts = async (id: string, headSha: string) => {
 	await db.execute(sql`UPDATE pull_requests SET head_sha = ${headSha}, ci_state = 'pass' WHERE id = ${id}`);
 	await db.execute(sql`INSERT INTO pr_summaries (pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
@@ -90,9 +90,8 @@ const writeParts = async (id: string, headSha: string) => {
 		VALUES (${id}, ${headSha}, 'Proof.', 'claude-code', 'agent', ${at}, ${at})`);
 };
 
-// One ticket, its pull request, and the parts of the commit `head`, with the
-// agent asking for review. Every test that watches a ready pull request go
-// back starts here.
+// One ticket and one pull request with all required review material.
+// The agent asks for review before each test changes one readiness fact.
 const readyPullRequest = async (title: string, number: number) => {
 	const ticket = await newTicket(title);
 	const linked = await linkAs(agent, ticket.identifier, number);
@@ -195,8 +194,8 @@ test("the ask stamps the moment the wait started and writes the timeline row", a
 	]);
 });
 
-// A push means the explanation of the new commit is missing, so the person
-// waits for nothing and the stored moment would measure a wait that ended.
+// A push makes the evidence document old, so the person waits for nothing.
+// The stored moment would measure a wait that ended.
 test("a new head commit clears the moment the wait started", async () => {
 	const { id } = await readyPullRequest("Push after the ask", 112);
 
@@ -233,22 +232,18 @@ test("a failed check takes a ready pull request back, and a pass brings it again
 	expect(await inboxOf()).toContain(ticket.identifier);
 });
 
-// The explanation and the evidence document both name the commit they cover,
-// so a push takes both away and the agent writes both again.
-test("a new commit takes the explanation and the evidence away until the agent writes them again", async () => {
-	const { ticket, id } = await readyPullRequest("Write the explanation again", 107);
+// The explanation describes the pull request until its meaning changes. The
+// evidence document names the commit it proves, so a push takes only the
+// evidence document away.
+test("a new commit keeps the explanation and takes the evidence away", async () => {
+	const { ticket, id } = await readyPullRequest("Keep the explanation", 107);
 
 	await db.execute(sql`UPDATE pull_requests SET head_sha = 'newsha' WHERE id = ${id}`);
 	const pushed = await gapsOf(ticket.id);
 
-	await db.execute(sql`INSERT INTO pr_summaries (pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
-		VALUES (${id}, 'newsha', 'It adds the rule.', 'The glyph lied.', 'nothing', ${at}, ${at})`);
-	const explained = await gapsOf(ticket.id);
-
 	await db.execute(sql`UPDATE pr_evidence_documents SET head_sha = 'newsha' WHERE pull_request_id = ${id}`);
 
-	expect(pushed).toEqual(["explanation", "evidence"]);
-	expect(explained).toEqual(["evidence"]);
+	expect(pushed).toEqual(["evidence"]);
 	expect(await gapsOf(ticket.id)).toEqual([]);
 });
 

@@ -95,7 +95,7 @@ const reviewReply = (path: string) => {
 			};
 		case "/rpc/reviews/status":
 			return { headRefOid: "commit", ticket: { identifier: "DEMO-1" } };
-		case "/rpc/pullRequests/readSummaryHead":
+		case "/rpc/pullRequests/readSummary":
 			return { headline: "Fix the label.", why: "The label has a typo.", watch: "nothing" };
 		case "/rpc/pullRequests/readEvidence":
 			return { headSha: "commit", body: "The label has the correct text." };
@@ -118,7 +118,7 @@ test("diff check reports the missing local request without a state mutation", as
 		"/rpc/pullRequests/resolve",
 		"/rpc/pullRequests/refresh",
 		"/rpc/reviews/status",
-		"/rpc/pullRequests/readSummaryHead",
+		"/rpc/pullRequests/readSummary",
 		"/rpc/pullRequests/readEvidence",
 		"/rpc/flows/list",
 	]);
