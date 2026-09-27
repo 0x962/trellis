@@ -12,7 +12,7 @@ describe("host auth", () => {
 		for (const path of ["/api/health", "/api/host-identity"]) {
 			const unauthorized = await app.request(path);
 			expect(unauthorized.status).toBe(401);
-			expect(unauthorized.headers.get("WWW-Authenticate")).toBe("Bearer");
+			expect(unauthorized.headers.get("WWW-Authenticate")).toBe('Bearer realm="Trellis"');
 			expect((await app.request(path, { headers: { authorization: "Bearer host-token" } })).status).toBe(200);
 		}
 	});

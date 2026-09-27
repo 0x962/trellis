@@ -13,7 +13,7 @@ export const hostAuth =
 		const actual = Buffer.from(c.req.header("authorization") ?? "");
 		const expected = Buffer.from(`Bearer ${token}`);
 		if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
-			c.header("WWW-Authenticate", "Bearer");
+			c.header("www-authenticate", 'Bearer realm="Trellis"');
 			return c.json(
 				{
 					defined: false,
