@@ -101,10 +101,7 @@ const cgroupDirectories = (root: string, path: string) => {
 	return directories;
 };
 
-const readLimits = async (
-	deps: CgroupLimitReaderDeps,
-	failures: Map<string, string>,
-): Promise<CgroupLimits> => {
+const readLimits = async (deps: CgroupLimitReaderDeps, failures: Map<string, string>): Promise<CgroupLimits> => {
 	const membership = await readOptional(deps, failures, "/proc/self/cgroup");
 	const path = membership === null ? null : parseCgroupPath(membership);
 	if (path === null) return unavailableLimits();
@@ -145,11 +142,7 @@ const readLimits = async (
 	const cpuSetCount = cpuSetKnown
 		? limitsByDirectory.reduce<number | null>(
 				(value, limit) =>
-					limit.cpuSetCount === null
-						? value
-						: value === null
-							? limit.cpuSetCount
-							: Math.min(value, limit.cpuSetCount),
+					limit.cpuSetCount === null ? value : value === null ? limit.cpuSetCount : Math.min(value, limit.cpuSetCount),
 				null,
 			)
 		: null;
