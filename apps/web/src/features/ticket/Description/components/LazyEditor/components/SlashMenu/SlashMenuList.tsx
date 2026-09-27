@@ -2,7 +2,7 @@ import { cx } from "@trellis/ui";
 import { useEffect, useRef } from "react";
 import { useSlashMenuStore } from "./SlashMenu";
 
-export const scrollSlashMenu = (
+export const scrollHighlightedItemIntoView = (
 	list: HTMLDivElement | null,
 	open: boolean,
 	itemCount: number,
@@ -19,7 +19,7 @@ export function SlashMenuList() {
 	const list = useRef<HTMLDivElement>(null);
 	// The list scrolls, so the arrow keys keep the highlighted block in view.
 	useEffect(() => {
-		scrollSlashMenu(list.current, open, items.length, highlighted);
+		scrollHighlightedItemIntoView(list.current, open, items.length, highlighted);
 	}, [highlighted, items.length, open]);
 	if (!open) return null;
 	return (
