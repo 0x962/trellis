@@ -7,6 +7,7 @@ import { rows } from "../../db/queries/support.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { IoCtx } from "../support.ts";
 import { readDiskCapacity } from "./diskCapacity.ts";
+import { readCurrentLinuxHostMetrics } from "./linux/hostMetrics.ts";
 import { readMemoryPressureLevel } from "./memoryPressureLevel.ts";
 import { readProcessGroupMemory } from "./processGroupMemory.ts";
 import { readProcessorTemperature } from "./processorTemperature.ts";
@@ -44,20 +45,24 @@ export const heaviestRuns = (
 };
 
 export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureInput): Promise<MachinePressure> => {
+	const hostPlatform = platform();
+	const workspaceRoot = agentWorkspacesRoot(ctx.home);
+	const linuxMetrics = hostPlatform === "linux" ? readCurrentLinuxHostMetrics(workspaceRoot) : null;
 	const [memoryLevel, processorTemperature, disk] = await Promise.all([
 		readMemoryPressureLevel(),
 		readProcessorTemperature(),
-		readDiskCapacity(agentWorkspacesRoot(ctx.home)),
+		linuxMetrics?.then((metrics) => metrics.disk) ?? readDiskCapacity(workspaceRoot),
 	]);
-	const sampledAt = ctx.now().toISOString();
-	const cpuCount = cpus().length;
-	const hostPlatform = platform();
+	const metrics = await linuxMetrics;
+	const sampledAt = metrics?.sampledAt ?? ctx.now().toISOString();
+	const cpuCount = metrics?.cpu.logicalCount ?? cpus().length;
+	const loadAverage1m = metrics?.cpu.loadAverage1m ?? loadavg()[0]!;
 	const base = {
 		sampledAt,
 		hostname: hostname(),
 		platform: hostPlatform,
 		cpuCount,
-		...hostLoad(hostPlatform, cpuCount, loadavg()[0]!),
+		...hostLoad(hostPlatform, metrics?.cpu.effectiveCount ?? cpuCount, loadAverage1m),
 		memoryLevel,
 		processorTemperature,
 		disk,
