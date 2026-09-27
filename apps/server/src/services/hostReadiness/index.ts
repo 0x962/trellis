@@ -1,2 +1,2 @@
 export * from "./hostReadiness.ts";
-export * from "./provisionRepositories.ts";
+export * from "./components/provisionRepositories/index.ts";

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { hostReadinessText } from "./hostReadinessText.ts";
+import { hostReadinessText } from "./hostReadiness.ts";
 
 test("renders satisfied and missing host prerequisites", () => {
 	const text = hostReadinessText({

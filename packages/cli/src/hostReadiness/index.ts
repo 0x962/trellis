@@ -1,1 +1,1 @@
-export * from "./hostReadinessText.ts";
+export * from "./hostReadiness.ts";

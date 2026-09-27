@@ -74,7 +74,7 @@ export type HostReadinessReport = {
 	missing: HostReadinessPrerequisite[];
 };
 
-const projectDirectory = (project: HostProjectInput): HostReadinessPrerequisite => ({
+const toProjectDirectoryPrerequisite = (project: HostProjectInput): HostReadinessPrerequisite => ({
 	id: `project:${project.id}`,
 	kind: "project-directory",
 	name: `${project.key}: ${project.name}`,
@@ -89,7 +89,7 @@ const projectDirectory = (project: HostProjectInput): HostReadinessPrerequisite 
 	providerIds: [],
 });
 
-const repository = (input: HostRepositoryInput): HostReadinessPrerequisite => ({
+const toRepositoryPrerequisite = (input: HostRepositoryInput): HostReadinessPrerequisite => ({
 	id: `repository:${input.id}`,
 	kind: "repository",
 	name: input.name,
@@ -102,7 +102,7 @@ const repository = (input: HostRepositoryInput): HostReadinessPrerequisite => ({
 	providerIds: [],
 });
 
-const workRoot = (input: HostWorkRootInput): HostReadinessPrerequisite => {
+const toWorkRootPrerequisite = (input: HostWorkRootInput): HostReadinessPrerequisite => {
 	const ready = input.present && input.writable;
 	const detail = !input.present
 		? "The work root is missing from the selected host."
@@ -121,7 +121,7 @@ const workRoot = (input: HostWorkRootInput): HostReadinessPrerequisite => {
 	};
 };
 
-const executable = (
+const toExecutablePrerequisite = (
 	input: HostExecutableInput,
 	providers: readonly HostProviderInput[],
 ): HostReadinessPrerequisite => {
@@ -141,7 +141,7 @@ const executable = (
 	};
 };
 
-const providerCredential = (provider: HostProviderInput): HostReadinessPrerequisite => {
+const toProviderCredentialPrerequisite = (provider: HostProviderInput): HostReadinessPrerequisite => {
 	const ready = provider.account?.credentialPresent === true;
 	return {
 		id: `provider-credential:${provider.id}`,
@@ -160,13 +160,13 @@ const providerCredential = (provider: HostProviderInput): HostReadinessPrerequis
 	};
 };
 
-export function hostReadiness(input: HostReadinessInput): HostReadinessReport {
+export function createHostReadinessReport(input: HostReadinessInput): HostReadinessReport {
 	const prerequisites = [
-		...input.executables.map((item) => executable(item, input.providers)),
-		...input.projects.map(projectDirectory),
-		...input.repositories.map(repository),
-		...input.workRoots.map(workRoot),
-		...input.providers.map(providerCredential),
+		...input.executables.map((item) => toExecutablePrerequisite(item, input.providers)),
+		...input.projects.map(toProjectDirectoryPrerequisite),
+		...input.repositories.map(toRepositoryPrerequisite),
+		...input.workRoots.map(toWorkRootPrerequisite),
+		...input.providers.map(toProviderCredentialPrerequisite),
 	];
 	const satisfied = prerequisites.filter((item) => item.instruction === null);
 	const missing = prerequisites.filter((item) => item.instruction !== null);

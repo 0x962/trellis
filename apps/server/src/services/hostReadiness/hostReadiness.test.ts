@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { hostReadiness, type HostReadinessInput } from "./hostReadiness.ts";
+import { createHostReadinessReport, type HostReadinessInput } from "./hostReadiness.ts";
 
 const cleanLinuxHome: HostReadinessInput = {
 	executables: [
@@ -60,7 +60,7 @@ const cleanLinuxHome: HostReadinessInput = {
 };
 
 test("lists every missing prerequisite in a clean Linux home", () => {
-	const report = hostReadiness(cleanLinuxHome);
+	const report = createHostReadinessReport(cleanLinuxHome);
 	expect(report.ready).toBeFalse();
 	expect(report.satisfied).toEqual([]);
 	expect(report.missing.map((item) => item.id)).toEqual([
@@ -92,7 +92,7 @@ test("permits a fictional repository launch after host setup", () => {
 			account: item.account === null ? null : { ...item.account, credentialPresent: true },
 		})),
 	};
-	const report = hostReadiness(readyInput);
+	const report = createHostReadinessReport(readyInput);
 	const launches: string[] = [];
 	if (report.ready) launches.push(readyInput.repositories[0]!.hostPath);
 	expect(report.missing).toEqual([]);
@@ -106,7 +106,7 @@ test("returns no secret values or client paths from extra input fields", () => {
 		clientPath: "/Users/client/projects/fictional",
 		credentialValue: "secret-token",
 	};
-	const text = JSON.stringify(hostReadiness(input));
+	const text = JSON.stringify(createHostReadinessReport(input));
 	expect(text).not.toContain("/Users/client");
 	expect(text).not.toContain("secret-token");
 });
