@@ -58,8 +58,6 @@ export type DesktopBridgeWindow = Window & { trellisDesktop?: Partial<DesktopBri
 export const readDesktopBridge = (target: DesktopBridgeWindow = window as DesktopBridgeWindow) =>
 	target.trellisDesktop;
 
-// A desktop renderer has window.trellisDesktop. A browser window does not.
-// isDesktopApp returns true only when the web app can call the desktop process.
 export const isDesktopApp = () => readDesktopBridge() !== undefined;
 
 export type DesktopSettingsBridge = Pick<DesktopBridge, "status" | "setOpenAtLogin" | "run">;
