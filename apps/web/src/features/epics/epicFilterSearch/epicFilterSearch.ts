@@ -15,6 +15,7 @@ type Input = {
 	phone: boolean;
 };
 
+// An empty filter set restores saved filters after a page load or an epic switch, but clears filters on the same epic.
 export function syncEpicFilterSearch({ splat, search, searchStr, cause, preload, phone }: Input) {
 	const { ref, epic } = parseProjectSplat(splat);
 	if (epic === undefined) {

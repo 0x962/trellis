@@ -23,8 +23,7 @@ export type UiData = {
 };
 
 export type UiState = UiData & {
-	// syncEpicFilterSearch compares this project-and-epic key with the URL.
-	// A different key restores saved filters. The same key saves an empty filter set.
+	// The project ref and epic slug of the current epic page, such as QA/alpha.
 	activeEpicFilterKey: string | null;
 	// The sidebar sheet on a phone. It is never stored, so a reload opens
 	// the page with the sheet closed.
