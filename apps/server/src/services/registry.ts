@@ -34,6 +34,7 @@ import * as flowSave from "./flows/save.ts";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
+import * as hostIdentity from "./hostIdentity";
 import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
@@ -114,6 +115,7 @@ export const services = {
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
+	"hostIdentity.describe": prepared("read", hostIdentity.prepareDescribe, hostIdentity.describe),
 	"providers.models": prepared("read", prepareModels, agentTerminal.result),
 	"providers.publicModels": prepared("read", preparePublicModels, agentTerminal.result),
 	"providers.check": prepared("read", prepareCheck, agentTerminal.result),
