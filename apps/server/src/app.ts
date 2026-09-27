@@ -270,8 +270,8 @@ export const createApp = ({
 	app.get("/api/evidence/:fileId/file", prFileRoute({ config, transport }));
 	app.get("/api/resources/:id/blob", resourceBlobRoute({ config, transport }));
 	app.get("/api/events", events.handler);
-	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
-	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
+	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport, log));
+	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport, log));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);

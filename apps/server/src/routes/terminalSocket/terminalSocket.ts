@@ -2,10 +2,11 @@ import { upgradeWebSocket } from "hono/bun";
 import type { Config } from "../../config.ts";
 import type { ServiceTransport } from "../../db/transport.ts";
 import { invalidInput } from "../../errors.ts";
+import type { Logger } from "../../log.ts";
 import { terminalStreamRuntime } from "../terminalRuntime.ts";
 import { terminalConnection } from "./terminalConnection.ts";
 
-export const terminalSocketRoute = (config: Config, transport: ServiceTransport) =>
+export const terminalSocketRoute = (config: Config, transport: ServiceTransport, log: Logger) =>
 	upgradeWebSocket(async (c) => {
 		const origin = c.req.header("origin");
 		if (origin !== undefined && origin !== new URL(c.req.url).origin)
@@ -31,7 +32,7 @@ export const terminalSocketRoute = (config: Config, transport: ServiceTransport)
 				expectedSessionId: c.req.query("sessionId"),
 			},
 		)) as { terminalId: string; sessionId: string | null };
-		const client = await terminalStreamRuntime(config.home);
+		const client = await terminalStreamRuntime({ home: config.home, reqId: c.get("requestId"), log });
 		const binaryChannel = (await client.hello()).capabilities?.includes("terminal-channel") === true;
 		return terminalConnection(client, target.terminalId, offset, binaryChannel, c.req.query("ack") === "1");
 	});
