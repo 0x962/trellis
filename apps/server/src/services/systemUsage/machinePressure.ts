@@ -55,14 +55,14 @@ export const prepareMachinePressure = async (ctx: IoCtx, input: MachinePressureI
 	]);
 	const metrics = await linuxMetrics;
 	const sampledAt = metrics?.sampledAt ?? ctx.now().toISOString();
-	const cpuCount = metrics?.cpu.logicalCount ?? cpus().length;
+	const cpuCount = metrics?.cpu.effectiveCount ?? cpus().length;
 	const loadAverage1m = metrics?.cpu.loadAverage1m ?? loadavg()[0]!;
 	const base = {
 		sampledAt,
 		hostname: hostname(),
 		platform: hostPlatform,
 		cpuCount,
-		...hostLoad(hostPlatform, metrics?.cpu.effectiveCount ?? cpuCount, loadAverage1m),
+		...hostLoad(hostPlatform, cpuCount, loadAverage1m),
 		memoryLevel,
 		processorTemperature,
 		disk,

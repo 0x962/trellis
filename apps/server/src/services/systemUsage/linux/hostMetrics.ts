@@ -66,7 +66,7 @@ export const readLinuxHostMetrics = async (
 		sampledAt: deps.now().toISOString(),
 		cpu: {
 			logicalCount,
-			effectiveCount: cpuLimit ?? logicalCount,
+			effectiveCount: Math.ceil(cpuLimit ?? logicalCount),
 			loadAverage1m: deps.loadAverage1m(),
 			limitCores: cpuLimit,
 		},

@@ -78,6 +78,24 @@ describe("readLinuxHostMetrics", () => {
 		expect(result.cpu).toEqual({ logicalCount: 16, effectiveCount: 3, loadAverage1m: 4, limitCores: 3 });
 	});
 
+	test("keeps the exact quota beside an integer effective count", async () => {
+		const result = await readLinuxHostMetrics(
+			"/srv/trellis/agents",
+			fixture({
+				"/proc/self/cgroup": "0::/trellis\n",
+				"/sys/fs/cgroup/trellis/cpu.max": "150000 100000\n",
+				"/sys/fs/cgroup/trellis/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/trellis/memory.max": "max\n",
+				"/sys/fs/cgroup/trellis/memory.current": "12000\n",
+				"/sys/fs/cgroup/cpu.max": "max 100000\n",
+				"/sys/fs/cgroup/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/memory.max": "max\n",
+				"/sys/fs/cgroup/memory.current": "24000\n",
+			}),
+		);
+		expect(result.cpu).toEqual({ logicalCount: 16, effectiveCount: 2, loadAverage1m: 4, limitCores: 1.5 });
+	});
+
 	test("keeps host readings when proc and cgroup files are unavailable", async () => {
 		const result = await readLinuxHostMetrics("/srv/trellis/agents", fixture({}));
 		expect(result.cpu).toEqual({ logicalCount: 16, effectiveCount: 16, loadAverage1m: 4, limitCores: null });
