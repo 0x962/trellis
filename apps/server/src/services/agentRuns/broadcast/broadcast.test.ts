@@ -48,7 +48,7 @@ test("refreshes the group before it sends and excludes stopped, failed, and arch
 	expect(calls).toEqual([
 		{
 			id: fixture.ids.workingFlow,
-			text: "Status check",
+			text: "This is a broadcast from the user.\n\nStatus check",
 			messageId: `request-working-${fixture.ids.workingFlow}`,
 			expectedTerminalId: fixture.terminals.workingFlow,
 			expectedSessionId: `provider-${fixture.ids.workingFlow}`,

@@ -517,6 +517,7 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis agent list --ticket <ticket>` | Find agents assigned to a ticket. |
 | `trellis agent start --ticket <ticket> [options]` | Assign an agent to the ticket. |
 | `trellis agent send <agent-id> --text <text>` | Send a direct message. |
+| `trellis agent broadcast --group <group> --text <text>` | Send a user broadcast to the working or idle group. |
 | `trellis agent output <agent-id>` | Read that agent's terminal output. |
 | `trellis agent refresh <agent-id>` | Refresh its observed state. |
 | `trellis agent interrupt <agent-id>` | Interrupt its current turn while its session remains. |
