@@ -1,8 +1,8 @@
 import { stat } from "node:fs/promises";
 import type { AgentWorkspaceSummary, ReadyWorkspaceSummary } from "@trellis/api";
 import { workspaceBaseRef } from "../../../agents/native/workspaceBase.ts";
+import { runGit } from "../../../git/index.ts";
 import { getRun } from "../queries.ts";
-import { git } from "./git.ts";
 import { changeStats } from "./lineStats.ts";
 import type { WorkspaceCtx } from "./types.ts";
 
@@ -13,14 +13,14 @@ export type SummaryTarget = { runId: string; workspace: string; scratch: boolean
 // `workspaceBaseRef`. A scratch repository has no such ref, so it starts
 // from its first commit, which holds no files.
 const startCommit = async ({ workspace, scratch }: SummaryTarget) => {
-	if (!scratch) return (await git(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
-	return (await git(workspace, ["rev-list", "--max-parents=0", "HEAD"])).trim().split("\n").at(-1)!;
+	if (!scratch) return (await runGit(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
+	return (await runGit(workspace, ["rev-list", "--max-parents=0", "HEAD"])).trim().split("\n").at(-1)!;
 };
 
 const uncommittedFiles = async (workspace: string) => {
 	const [changed, untracked] = await Promise.all([
-		git(workspace, ["diff", "--name-only", "-z", "HEAD", "--"]),
-		git(workspace, ["ls-files", "--others", "--exclude-standard", "-z"]),
+		runGit(workspace, ["diff", "--name-only", "-z", "HEAD", "--"]),
+		runGit(workspace, ["ls-files", "--others", "--exclude-standard", "-z"]),
 	]);
 	const count = (text: string) => text.split("\0").filter((path) => path !== "" && !path.endsWith("/")).length;
 	return count(changed) + count(untracked);
@@ -33,10 +33,10 @@ export const readWorkspace = async (target: SummaryTarget): Promise<ReadyWorkspa
 	// ref points at the branch `main`. It prints the name of the base ref
 	// itself when that ref holds a commit.
 	const [branch, head, baseRef, commits, stats, uncommitted] = await Promise.all([
-		git(workspace, ["branch", "--show-current"]),
-		git(workspace, ["rev-parse", "--short", "HEAD"]),
-		scratch ? "" : git(workspace, ["rev-parse", "--symbolic-full-name", workspaceBaseRef]),
-		git(workspace, ["rev-list", "--left-right", "--count", `${start}...HEAD`]),
+		runGit(workspace, ["branch", "--show-current"]),
+		runGit(workspace, ["rev-parse", "--short", "HEAD"]),
+		scratch ? "" : runGit(workspace, ["rev-parse", "--symbolic-full-name", workspaceBaseRef]),
+		runGit(workspace, ["rev-list", "--left-right", "--count", `${start}...HEAD`]),
 		changeStats(workspace, start),
 		uncommittedFiles(workspace),
 	]);
