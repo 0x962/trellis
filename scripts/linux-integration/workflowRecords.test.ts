@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { readWorkflowIdentity } from "./checkResult";
-import { type CheckRecord, expectedChecks, missingRequiredPaths, resultArtifactName, toEvidenceCheck } from "./contract";
+import {
+	type CheckRecord,
+	expectedChecks,
+	missingRequiredPaths,
+	resultArtifactName,
+	toEvidenceCheck,
+} from "./contract";
 import { applyJobConclusions, type JobConclusions, verifyCheckRecord } from "./evidenceVerification";
 
 describe("Linux integration workflow records", () => {

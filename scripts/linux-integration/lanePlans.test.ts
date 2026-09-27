@@ -24,11 +24,7 @@ describe("Linux integration lane plans", () => {
 
 	test("records the reviewed operations inputs and focused commands", async () => {
 		const plan = (await readLanePlans()).lanes.operations;
-		expect(plan.integratedInputs.map((input) => input.ticketIdentifier)).toEqual([
-			"TRL-523",
-			"TRL-533",
-			"TRL-539",
-		]);
+		expect(plan.integratedInputs.map((input) => input.ticketIdentifier)).toEqual(["TRL-523", "TRL-533", "TRL-539"]);
 		expect(plan.focusedTests["linux-x64"]?.integratedInputTicketIdentifier).toBe("TRL-539");
 		expect(plan.focusedTests["linux-x64"]?.requiredPaths).toContain("packages/api/src/schemas/system.ts");
 		expect(plan.focusedTests["linux-x64"]?.requiredPaths).toContain(
