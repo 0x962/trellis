@@ -134,6 +134,7 @@ const start = async (
 		const limitMs = Math.min(remainingMs, input.budgetMs ?? Infinity);
 		const timeoutMs = Number.isFinite(limitMs) ? limitMs : undefined;
 		let session: RuntimeProcessStatus;
+		let resolvedShell: string | undefined;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
 				run,
@@ -150,6 +151,7 @@ const start = async (
 				env,
 				timeoutMs,
 			});
+			resolvedShell = spec.command;
 			if (
 				!(await ctx.newTx((tx) =>
 					launchAllowed(tx, {
@@ -240,6 +242,7 @@ const start = async (
 			run: run.id,
 			ticket: run.ticketIdentifier,
 			harness: config.harness.preset,
+			...(resolvedShell === undefined ? {} : { shell: resolvedShell }),
 			waitMs: Date.parse(session.startedAt) - Date.parse(run.createdAt),
 		});
 		await ctx.newTx((tx) =>

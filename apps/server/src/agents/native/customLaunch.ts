@@ -1,14 +1,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
+import { resolveHostShell } from "../../hostShell";
 
 export const customLaunch = async (
 	home: string,
 	spec: Omit<LaunchSpec, "command" | "args" | "mode"> & { command: string },
 ): Promise<LaunchSpec> => {
+	const shell = await resolveHostShell(spec.env ?? {});
 	const launch: LaunchSpec = {
 		...spec,
-		command: "/bin/zsh",
+		command: shell,
 		args: ["-f", "-c", spec.command],
 		mode: "pty",
 		cols: 120,
