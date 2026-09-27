@@ -1,5 +1,5 @@
-import { HostDescriptorSchema } from "../hostIdentity/hostIdentity.ts";
-import { base } from "./base.ts";
+import { HostDescriptorSchema } from "../../hostIdentity/index.ts";
+import { base } from "../base.ts";
 
 export const hostIdentity = {
 	describe: base

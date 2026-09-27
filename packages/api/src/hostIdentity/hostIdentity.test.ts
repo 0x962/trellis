@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { hostCompatibility } from "./hostCompatibility.ts";
+import { hostCompatibility } from "./hostCompatibility/index.ts";
 import { HostDescriptorSchema } from "./hostIdentity.ts";
 
 const descriptor = () =>

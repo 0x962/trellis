@@ -52,7 +52,7 @@ const defaultWebDist = join(import.meta.dir, "..", "..", "web", "dist");
 
 const expandHome = (path: string) => (path.startsWith("~") ? join(homedir(), path.slice(1)) : path);
 
-const requiredOf = (name: string, value: string | undefined) => {
+const requiredEnvironmentValue = (name: string, value: string | undefined) => {
 	if (value === undefined || value.trim() === "") throw new Error(`${name} is required.`);
 	return value;
 };
@@ -100,8 +100,10 @@ const originOf = (value: string) => value.replace(/\/+$/, "");
 
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
-	const installationHome = resolve(expandHome(requiredOf("TRELLIS_INSTALLATION_HOME", env.TRELLIS_INSTALLATION_HOME)));
-	const releaseId = requiredOf("TRELLIS_RELEASE_ID", env.TRELLIS_RELEASE_ID);
+	const installationHome = resolve(
+		expandHome(requiredEnvironmentValue("TRELLIS_INSTALLATION_HOME", env.TRELLIS_INSTALLATION_HOME)),
+	);
+	const releaseId = requiredEnvironmentValue("TRELLIS_RELEASE_ID", env.TRELLIS_RELEASE_ID);
 	const host = env.TRELLIS_HOST ?? "127.0.0.1";
 	const authToken = env.TRELLIS_AUTH_TOKEN ?? null;
 	if (authToken !== null && authToken.trim() === "") {

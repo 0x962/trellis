@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx, PrepareCtx, ServiceCtx } from "../support.ts";
-import { readIdentity, readOrCreateIdentity } from "./identityStore.ts";
+import { readIdentity } from "./identityStore.ts";
 
 export const HOST_IDENTITY_FILE = "host-identity";
 export const DATA_HOME_IDENTITY_FILE = "data-home-identity";
@@ -23,11 +23,6 @@ export const hostIdentityPaths = (ctx: Pick<HostIdentityContext, "home" | "insta
 	host: join(ctx.installationHome, HOST_IDENTITY_FILE),
 	dataHome: join(ctx.home, DATA_HOME_IDENTITY_FILE),
 });
-
-export const initializeHostIdentity = async (ctx: Pick<HostIdentityContext, "home" | "installationHome">) => {
-	const paths = hostIdentityPaths(ctx);
-	await Promise.all([readOrCreateIdentity(paths.host), readOrCreateIdentity(paths.dataHome)]);
-};
 
 export const readHostDescriptor = async (ctx: HostIdentityContext, deps: HostIdentityDependencies) => {
 	const paths = hostIdentityPaths(ctx);

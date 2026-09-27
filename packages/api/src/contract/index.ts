@@ -7,7 +7,7 @@ import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
-import { hostIdentity } from "./hostIdentity.ts";
+import { hostIdentity } from "./hostIdentity/index.ts";
 import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";

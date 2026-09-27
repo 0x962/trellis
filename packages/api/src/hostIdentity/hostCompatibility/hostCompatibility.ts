@@ -1,4 +1,4 @@
-import type { HostDescriptor } from "./hostIdentity.ts";
+import type { HostDescriptor } from "../hostIdentity.ts";
 
 export type HostCompatibility =
 	| { compatible: true }

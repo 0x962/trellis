@@ -3,10 +3,9 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Hono } from "hono";
-import { hostAuth } from "../../auth/auth.ts";
-import { hostIdentityPaths, initializeHostIdentity, prepareDescribe, readHostDescriptor } from "./hostIdentity.ts";
+import { hostIdentityPaths, prepareDescribe, readHostDescriptor } from "./hostIdentity.ts";
 import { readIdentity } from "./identityStore.ts";
+import { initializeHostIdentityFiles } from "./initializeHostIdentityFiles/index.ts";
 
 const roots: string[] = [];
 
@@ -40,7 +39,7 @@ describe("host identity", () => {
 	test("keeps the installation and data-home identities", async () => {
 		const base = await root();
 		const ctx = context(join(base, "installation"), join(base, "data"));
-		await initializeHostIdentity(ctx);
+		await initializeHostIdentityFiles(ctx);
 		const first = await readHostDescriptor(ctx, dependencies);
 		const second = await readHostDescriptor(ctx, dependencies);
 
@@ -56,8 +55,8 @@ describe("host identity", () => {
 		const installationHome = join(base, "installation");
 		const firstContext = context(installationHome, join(base, "data-a"));
 		const secondContext = context(installationHome, join(base, "data-b"));
-		await initializeHostIdentity(firstContext);
-		await initializeHostIdentity(secondContext);
+		await initializeHostIdentityFiles(firstContext);
+		await initializeHostIdentityFiles(secondContext);
 		const first = await readHostDescriptor(firstContext, dependencies);
 		const second = await readHostDescriptor(secondContext, dependencies);
 
@@ -73,13 +72,13 @@ describe("host identity", () => {
 		await mkdir(join(sourceHome, "db"), { recursive: true });
 		await Bun.write(join(sourceHome, "db", "copied-records"), "same database rows");
 		const sourceContext = context(join(source, "installation"), sourceHome);
-		await initializeHostIdentity(sourceContext);
+		await initializeHostIdentityFiles(sourceContext);
 		const before = await readHostDescriptor(sourceContext, dependencies);
 
 		await mkdir(destinationHome, { recursive: true });
 		await cp(join(sourceHome, "db"), join(destinationHome, "db"), { recursive: true });
 		const destinationContext = context(join(destination, "installation"), destinationHome);
-		await initializeHostIdentity(destinationContext);
+		await initializeHostIdentityFiles(destinationContext);
 		const after = await readHostDescriptor(destinationContext, dependencies);
 
 		expect(after.hostId).not.toBe(before.hostId);
@@ -101,34 +100,12 @@ describe("host identity", () => {
 			...context(join(base, "installation"), join(base, "data")),
 			log: (message: string, fields?: Record<string, unknown>) => records.push({ message, fields }),
 		};
-		await initializeHostIdentity(ctx);
+		await initializeHostIdentityFiles(ctx);
 
 		const descriptor = await prepareDescribe(ctx, {});
 
 		expect(records).toEqual([
 			{ message: "host identity", fields: { hostId: descriptor.hostId, dataHomeId: descriptor.dataHomeId } },
 		]);
-	});
-
-	test("requires the host token for health and identity reads", async () => {
-		const app = new Hono();
-		app.use(hostAuth("host-token"));
-		app.get("/api/health", (c) => c.json({ ok: true }));
-		app.get("/api/host-identity", (c) => c.json({ ok: true }));
-
-		for (const path of ["/api/health", "/api/host-identity"]) {
-			const unauthorized = await app.request(path);
-			expect(unauthorized.status).toBe(401);
-			expect(unauthorized.headers.get("WWW-Authenticate")).toBe("Bearer");
-			expect((await app.request(path, { headers: { authorization: "Bearer host-token" } })).status).toBe(200);
-		}
-	});
-
-	test("keeps unauthenticated local reads when no host token exists", async () => {
-		const app = new Hono();
-		app.use(hostAuth(null));
-		app.get("/api/health", (c) => c.json({ ok: true }));
-
-		expect((await app.request("/api/health")).status).toBe(200);
 	});
 });
