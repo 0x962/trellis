@@ -1514,6 +1514,10 @@ typecheck. `system.gh` and `system.checkGh` run in the HTTP process and never
 reach the worker. The server logs `long transaction` with the service name
 when a transaction holds the lock for 250 ms or more. Server-Timing and the
 request log split the database time into `queue`, `lock`, and `db`.
+The `lock` and `db` totals cover every request transaction, including preparation and after-commit transactions.
+Each transaction contributes its lock wait and its duration through commit or rollback.
+External calls outside transactions contribute only to the total request duration.
+Detached background tasks use separate transactions and contribute no time to the initiating request.
 A search request carries a client id, and a newer request drops a superseded one
 before it runs. Lists carry `TicketSummary` and never the description. The board
 and the counts replace a total and a large limit. Events patch first and carry a

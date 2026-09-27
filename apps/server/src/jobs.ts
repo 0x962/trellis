@@ -14,7 +14,7 @@ import type { GhRunner } from "./gh/run.ts";
 // maintenance timer vacuums the busy tables when more than 1000 writes
 // happened since the last vacuum, because PGlite runs no autovacuum.
 
-type Db = Parameters<typeof withTx>[0];
+type Db = Parameters<typeof withTx>[0] & Parameters<typeof createMaintenance>[0];
 
 // `setTimer` and `clearTimer` stand in for setTimeout and clearTimeout, so a
 // test moves the clock by hand.

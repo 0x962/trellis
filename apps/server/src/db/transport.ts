@@ -18,6 +18,7 @@ import type { IoCtx } from "../services/support.ts";
 import type { SweepResult } from "../services/sweep/prepareSweep.ts";
 import { createCache } from "./cache.ts";
 import { createMaintenance } from "./maintenance.ts";
+import { measureTransactions } from "./measureTransactions";
 import { pullStream } from "./pullStream.ts";
 import { allResourceBlobShas } from "./queries/epicResources.ts";
 import { allPrFileBlobShas } from "./queries/prFiles.ts";
@@ -41,12 +42,6 @@ const MB = 1024 * 1024;
 // The time between two sweeps of finished agent files.
 export const FILE_SWEEP_MS = 60 * 60 * 1000;
 
-// Two clock readings of one service call, from `performance.now()`. 0 means
-// the call has not reached that point.
-type Span = { opened: number; locked: number };
-
-const roundMs = (ms: number) => Math.round(ms * 10) / 10;
-
 export const createInlineTransport = ({
 	db,
 	bus,
@@ -63,24 +58,24 @@ export const createInlineTransport = ({
 
 	const newTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-	const coreCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
+	const coreCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>, transaction = newTx) => ({
 		...ctx,
 		emit,
 		cache,
 		actorCache,
 		dropBlobs: (shas: string[]) => {
-			tasks.push(() => gcBlobs({ home: config.home, newTx }, shas).then(() => undefined));
+			tasks.push(() => gcBlobs({ home: config.home, newTx: transaction }, shas).then(() => undefined));
 		},
 		dropPageObjects: (shas: string[]) => {
-			tasks.push(() => collectUnheldPageObjects({ home: config.home, newTx }, shas).then(() => undefined));
+			tasks.push(() => collectUnheldPageObjects({ home: config.home, newTx: transaction }, shas).then(() => undefined));
 		},
 		publicUrl: config.publicUrl,
 	});
 
 	// An `io` read never writes the actor, so a request without the header
 	// carries the system actor there.
-	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>): IoCtx => ({
-		core: coreCtx(ctx, emit, tasks),
+	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>, transaction = newTx): IoCtx => ({
+		core: coreCtx(ctx, emit, tasks, transaction),
 		localUrl: config.agentsUrl,
 		publicUrl: config.publicUrl,
 		actor: ctx.actor ?? SYSTEM_ACTOR,
@@ -112,7 +107,7 @@ export const createInlineTransport = ({
 			backgroundTasks.add(work);
 		},
 		newTx: <T>(fn: (tx: Tx) => Promise<T>) =>
-			newTx(async (tx) => {
+			transaction(async (tx) => {
 				await assertCurrentAttempt(ctx, tx);
 				return fn(tx);
 			}),
@@ -125,39 +120,32 @@ export const createInlineTransport = ({
 	// and none of its events reach the bus. The events of `prepare` describe
 	// writes that its own short transactions committed, so they reach the bus
 	// also when the call throws.
-	// `span` records when the call asked for its transaction and when the
-	// transaction got the database lock. A transaction that holds the lock
-	// for `longTransactionMs` or more writes one log line with the service
-	// name, because every other call waited for it.
-	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, span: Span) => {
+	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, timing?: DbTiming) => {
+		const transaction = measureTransactions(db, { name, log, longTransactionMs, timing });
 		const entry: ServiceEntry = services[name];
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
 		try {
-			if (entry.kind === "mutation" && "prepare" in entry) await newTx((tx) => assertCurrentAttempt(ctx, tx));
+			if (entry.kind === "mutation" && "prepare" in entry) await transaction((tx) => assertCurrentAttempt(ctx, tx));
 			const input =
 				"prepare" in entry
-					? await entry.prepare({ ...ioCtx(ctx, (event) => void early.push(event), tasks), gh: runtime.gh }, rawInput)
+					? await entry.prepare(
+							{ ...ioCtx(ctx, (event) => void early.push(event), tasks, transaction), gh: runtime.gh },
+							rawInput,
+						)
 					: rawInput;
-			span.opened = performance.now();
 			if ("stream" in entry) {
 				return pullStream((push) =>
-					withTx(db, async (tx, emit) => {
-						span.locked = performance.now();
-						for await (const line of entry.stream(ioCtx(ctx, emit, tasks), tx, input)) await push(line);
+					withTx({ transaction }, async (tx, emit) => {
+						for await (const line of entry.stream(ioCtx(ctx, emit, tasks, transaction), tx, input)) await push(line);
 					}).then(() => undefined),
 				);
 			}
-			const { result, events } = await withTx(db, async (tx, emit) => {
-				span.locked = performance.now();
+			const { result, events } = await withTx({ transaction }, async (tx, emit) => {
 				if (entry.kind === "mutation") await assertCurrentAttempt(ctx, tx);
-				if (entry.family === "core") return entry.run(coreCtx(ctx, emit, tasks), tx, input);
-				return entry.run(ioCtx(ctx, emit, tasks), tx, input);
+				if (entry.family === "core") return entry.run(coreCtx(ctx, emit, tasks, transaction), tx, input);
+				return entry.run(ioCtx(ctx, emit, tasks, transaction), tx, input);
 			});
-			const heldMs = performance.now() - span.locked;
-			if (heldMs >= longTransactionMs) {
-				log("long transaction", { service: name, heldMs: roundMs(heldMs), lockMs: roundMs(span.locked - span.opened) });
-			}
 			for (const task of tasks) await task();
 			for (const event of [...early.splice(0), ...events]) bus.emit(event, ctx.actor);
 			return result;
@@ -167,17 +155,8 @@ export const createInlineTransport = ({
 		}
 	};
 
-	// `timing` gains the wait for the lock, then the time from the lock to the
-	// end of the after-commit work. A call that rejects inside its transaction
-	// counts as well. A call that fails before its transaction opens counts
-	// nothing.
 	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
-		const span: Span = { opened: 0, locked: 0 };
-		const promise = run(name, ctx, input, span).finally(() => {
-			if (timing === undefined || span.locked === 0) return;
-			timing.lockMs += span.locked - span.opened;
-			timing.ms += performance.now() - span.locked;
-		});
+		const promise = run(name, ctx, input, timing);
 		inFlight.add(promise);
 		promise.finally(() => inFlight.delete(promise)).catch(() => undefined);
 		return promise;
