@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx, PrepareCtx, ServiceCtx } from "../support.ts";
-import { readIdentity } from "./identityStore.ts";
+import { readIdentity } from "./identityStore/index.ts";
 
 export const HOST_IDENTITY_FILE = "host-identity";
 export const DATA_HOME_IDENTITY_FILE = "data-home-identity";

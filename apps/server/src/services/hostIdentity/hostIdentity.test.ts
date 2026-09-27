@@ -4,7 +4,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { hostIdentityPaths, prepareDescribe, readHostDescriptor } from "./hostIdentity.ts";
-import { readIdentity } from "./identityStore.ts";
+import { readIdentity } from "./identityStore/index.ts";
 import { initializeHostIdentityFiles } from "./initializeHostIdentityFiles/index.ts";
 
 const roots: string[] = [];

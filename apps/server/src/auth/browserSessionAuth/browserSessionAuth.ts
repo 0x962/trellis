@@ -1,6 +1,7 @@
 import type { Context, MiddlewareHandler } from "hono";
 import type { Logger } from "../../log.ts";
 import {
+	authenticateBrowserRequest,
 	type BrowserSession,
 	type BrowserSessionStore,
 	readBrowserSessionCookie,
@@ -15,31 +16,38 @@ export type BrowserSessionAuthOptions = {
 
 const requestSessions = new WeakMap<Request, BrowserSession>();
 
-const unauthorized = (c: Context) => {
-	c.header("www-authenticate", 'Bearer realm="Trellis", TrellisSession realm="Trellis"');
+const unauthorized = (c: Context, credential: "bearer" | "session") => {
+	c.header(
+		"www-authenticate",
+		credential === "bearer" ? 'Bearer realm="Trellis"' : 'Bearer realm="Trellis", TrellisSession realm="Trellis"',
+	);
 	return c.json(
 		{
 			defined: false,
 			code: "UNAUTHORIZED",
 			status: 401,
-			message: "The Trellis browser session is missing or expired.",
+			message:
+				credential === "bearer"
+					? "The Trellis host token is missing or incorrect."
+					: "The Trellis browser session is missing or expired.",
 		},
 		401,
 	);
 };
 
-const forbidden = (c: Context) =>
+const forbidden = (c: Context, credential: "bearer" | "session") =>
 	c.json(
 		{
 			defined: false,
 			code: "FORBIDDEN",
 			status: 403,
-			message: "This origin cannot use the Trellis browser session.",
+			message:
+				credential === "bearer"
+					? "This origin cannot access the Trellis host."
+					: "This origin cannot use the Trellis browser session.",
 		},
 		403,
 	);
-
-export const requestHasBrowserOrigin = (c: Context, origin: string) => c.req.header("origin") === origin;
 
 export const browserSessionForRequest = (request: Request) => requestSessions.get(request) ?? null;
 
@@ -65,39 +73,23 @@ export const browserSessionAuth = (
 	if (options === null) return hostAuth(hostToken);
 	if (hostToken === null || hostToken.trim() === "") throw new Error("Browser sessions require a host token.");
 	const origin = browserSessionOrigin(options.origin);
-	const bearerAuth = hostAuth(hostToken);
-	const authentication = (c: Context, sessionId: string | null, result: string) =>
-		options.log.info("browser session security", {
-			hostId: options.sessions.hostId,
-			reqId: c.get("requestId") ?? null,
-			sessionId,
-			action: "session.authenticate",
-			result,
-		});
 	return async (c, next) => {
-		if (c.req.header("authorization") !== undefined) {
-			const response = await bearerAuth(c, next);
-			authentication(c, null, response === undefined ? "bearer-accepted" : "bearer-rejected");
-			return response;
-		}
-		const token = readBrowserSessionCookie(c.req.header("cookie"));
-		if (token === null) {
-			authentication(c, null, "cookie-missing");
-			return unauthorized(c);
-		}
-		const session = options.sessions.authenticate(token);
-		if (session === null) {
-			authentication(c, null, "cookie-rejected");
-			return unauthorized(c);
-		}
-		const websocket = c.req.header("upgrade")?.toLowerCase() === "websocket";
-		const mutation = !["GET", "HEAD", "OPTIONS"].includes(c.req.method);
-		if ((websocket || mutation) && !requestHasBrowserOrigin(c, origin)) {
-			authentication(c, session.id, "origin-rejected");
-			return forbidden(c);
-		}
-		requestSessions.set(c.req.raw, session);
-		authentication(c, session.id, "cookie-accepted");
+		const result = authenticateBrowserRequest({
+			authorization: c.req.header("authorization"),
+			origin: c.req.header("origin"),
+			expectedOrigin: origin,
+			requestUrl: c.req.url,
+			method: c.req.method,
+			websocket: c.req.header("upgrade")?.toLowerCase() === "websocket",
+			token: readBrowserSessionCookie(c.req.header("cookie")),
+			hostToken,
+			reqId: c.get("requestId") ?? null,
+			sessions: options.sessions,
+			log: options.log,
+		});
+		if (result.kind === "unauthorized") return unauthorized(c, result.credential);
+		if (result.kind === "forbidden") return forbidden(c, result.credential);
+		if (result.session !== null) requestSessions.set(c.req.raw, result.session);
 		await next();
 	};
 };

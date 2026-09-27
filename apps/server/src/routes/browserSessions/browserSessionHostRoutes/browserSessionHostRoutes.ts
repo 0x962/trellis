@@ -1,7 +1,11 @@
-import { type Context, Hono } from "hono";
+import { Hono } from "hono";
 import { hostAuth } from "../../../auth/auth.ts";
 import type { Logger } from "../../../log.ts";
-import type { BrowserSessionStore } from "../../../services/browserSessions/index.ts";
+import {
+	type BrowserSessionStore,
+	issueBrowserSessionCode,
+	revokeBrowserSession,
+} from "../../../services/browserSessions/index.ts";
 import { noStore } from "../response/index.ts";
 
 export type BrowserSessionHostRoutesOptions = {
@@ -13,17 +17,12 @@ export type BrowserSessionHostRoutesOptions = {
 export const browserSessionHostRoutes = (options: BrowserSessionHostRoutesOptions) => {
 	if (options.hostToken.trim() === "") throw new Error("Browser sessions require a host token.");
 	const app = new Hono();
-	const securityEvent = (c: Context, sessionId: string | null, action: string, result: string) =>
-		options.log.info("browser session security", {
-			hostId: options.sessions.hostId,
-			reqId: c.get("requestId") ?? null,
-			sessionId,
-			action,
-			result,
-		});
 	app.post("/api/browser-session-codes", hostAuth(options.hostToken), (c) => {
-		const issued = options.sessions.issueCode();
-		securityEvent(c, null, "code.issue", "issued");
+		const issued = issueBrowserSessionCode({
+			reqId: c.get("requestId") ?? null,
+			sessions: options.sessions,
+			log: options.log,
+		});
 		const response = c.json(
 			{ id: issued.id, code: issued.code, expiresAt: new Date(issued.expiresAt).toISOString() },
 			201,
@@ -33,8 +32,12 @@ export const browserSessionHostRoutes = (options: BrowserSessionHostRoutesOption
 	});
 	app.delete("/api/browser-sessions/:sessionId", hostAuth(options.hostToken), (c) => {
 		const sessionId = c.req.param("sessionId");
-		const revoked = options.sessions.revoke(sessionId);
-		securityEvent(c, sessionId, "session.revoke", revoked ? "revoked" : "not-found");
+		revokeBrowserSession({
+			sessionId,
+			reqId: c.get("requestId") ?? null,
+			sessions: options.sessions,
+			log: options.log,
+		});
 		return noStore(c.body(null, 204));
 	});
 	return app;

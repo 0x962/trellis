@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { browserSessionAuth } from "../../../auth/browserSessionAuth/index.ts";
 import type { Fields, Logger } from "../../../log.ts";
 import { BROWSER_SESSION_COOKIE, BrowserSessionStore } from "../../../services/browserSessions/index.ts";
-import { browserSessionBrowserRoutes } from "./browserSessionBrowserRoutes.ts";
+import { browserSessionRoutes } from "./browserSessionRoutes.ts";
 
 const origin = "https://trellis.example.com";
 const hostToken = "host-token";
@@ -18,7 +18,7 @@ const fixture = () => {
 	const { log, records } = logger();
 	const sessions = new BrowserSessionStore({ hostId: "host-a", log });
 	const routes = new Hono();
-	routes.route("/", browserSessionBrowserRoutes({ origin, sessions, log }));
+	routes.route("/", browserSessionRoutes({ origin, sessions, log }));
 	const protectedApp = new Hono();
 	protectedApp.use(browserSessionAuth(hostToken, { origin, sessions, log }));
 	protectedApp.post("/api/write", (c) => c.text("written"));
@@ -54,7 +54,7 @@ describe("browser session browser routes", () => {
 		const { log } = logger();
 		const sessions = new BrowserSessionStore({ hostId: "host-a", log, guessLimit: 1 });
 		const routes = new Hono();
-		routes.route("/", browserSessionBrowserRoutes({ origin, sessions, log }));
+		routes.route("/", browserSessionRoutes({ origin, sessions, log }));
 		const request = () => createSession(routes, "unknown.secret");
 		expect((await request()).status).toBe(401);
 		const limited = await request();
@@ -139,7 +139,12 @@ describe("browser session browser routes", () => {
 		expect(serialized).not.toContain(issued.code);
 		expect(serialized).not.toContain(cookie.split("=")[1]!);
 		expect(records).toContainEqual(
-			expect.objectContaining({ hostId: "host-a", action: "code.redeem", result: "redeemed" }),
+			expect.objectContaining({
+				hostId: "host-a",
+				action: "code.redeem",
+				result: "redeemed",
+				codeId: issued.id,
+			}),
 		);
 		expect(records).toContainEqual(
 			expect.objectContaining({ hostId: "host-a", action: "session.authenticate", result: "cookie-accepted" }),
@@ -152,6 +157,6 @@ describe("browser session browser routes", () => {
 	test("refuses a non-HTTPS browser origin", () => {
 		const { log } = logger();
 		const sessions = new BrowserSessionStore({ hostId: "host-a", log });
-		expect(() => browserSessionBrowserRoutes({ origin: "http://trellis.example.com", sessions, log })).toThrow();
+		expect(() => browserSessionRoutes({ origin: "http://trellis.example.com", sessions, log })).toThrow();
 	});
 });
