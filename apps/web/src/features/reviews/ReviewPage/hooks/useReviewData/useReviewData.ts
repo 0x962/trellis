@@ -14,7 +14,6 @@ export const useReviewData = (pr: string) => {
 	);
 	const status = useQuery({
 		...orpc.reviews.status.queryOptions({ input: { pr } }),
-		enabled: revision !== null,
 		refetchInterval: 45000,
 		refetchOnWindowFocus: "always",
 	});
