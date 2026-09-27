@@ -1,7 +1,7 @@
-import type { Logger } from "../../../log.ts";
-import type { BrowserSessionStore } from "../browserSessions.ts";
+import type { Logger } from "../../../../log.ts";
+import type { BrowserSessionStore } from "../../browserSessions.ts";
 
-export type BrowserSessionSecurityEventOptions = {
+export type LogBrowserSessionSecurityEventInput = {
 	sessions: BrowserSessionStore;
 	log: Logger;
 	reqId: string | null;
@@ -11,7 +11,7 @@ export type BrowserSessionSecurityEventOptions = {
 	codeId?: string;
 };
 
-export const browserSessionSecurityEvent = ({
+export const logBrowserSessionSecurityEvent = ({
 	sessions,
 	log,
 	reqId,
@@ -19,7 +19,7 @@ export const browserSessionSecurityEvent = ({
 	action,
 	result,
 	codeId,
-}: BrowserSessionSecurityEventOptions) =>
+}: LogBrowserSessionSecurityEventInput) =>
 	log.info("browser session security", {
 		hostId: sessions.hostId,
 		reqId,

@@ -12,6 +12,7 @@ export type Config = {
 	installationHome: string;
 	releaseId: string;
 	authToken: string | null;
+	browserOrigin: string | null;
 	// The address the server binds. 127.0.0.1 keeps it on this machine; a
 	// network address or 0.0.0.0 lets a phone reach it.
 	host: string;
@@ -98,6 +99,22 @@ const isLoopbackHost = (host: string) => host === "127.0.0.1" || host === "::1" 
 // A trailing slash would double the slash in `${publicUrl}/t/KEY-1`.
 const originOf = (value: string) => value.replace(/\/+$/, "");
 
+const browserOriginOf = (value: string) => {
+	if (!URL.canParse(value)) throw new Error("TRELLIS_BROWSER_ORIGIN must be an HTTPS origin.");
+	const url = new URL(value);
+	if (
+		url.protocol !== "https:" ||
+		url.username !== "" ||
+		url.password !== "" ||
+		url.pathname !== "/" ||
+		url.search !== "" ||
+		url.hash !== ""
+	) {
+		throw new Error("TRELLIS_BROWSER_ORIGIN must be an HTTPS origin.");
+	}
+	return url.origin;
+};
+
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	const installationHome = resolve(
@@ -112,12 +129,18 @@ export const loadConfig = (env: Env): Config => {
 	if (!isLoopbackHost(host) && authToken === null) {
 		throw new Error("TRELLIS_AUTH_TOKEN is required when TRELLIS_HOST is not a loopback address.");
 	}
+	const browserOrigin =
+		env.TRELLIS_BROWSER_ORIGIN === undefined ? null : browserOriginOf(env.TRELLIS_BROWSER_ORIGIN);
+	if (browserOrigin !== null && authToken === null) {
+		throw new Error("TRELLIS_AUTH_TOKEN is required when TRELLIS_BROWSER_ORIGIN is set.");
+	}
 	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
 		installationHome,
 		releaseId,
 		authToken,
+		browserOrigin,
 		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port,

@@ -4,17 +4,22 @@ import {
 	authenticateBrowserRequest,
 	type BrowserSession,
 	type BrowserSessionStore,
+	logBrowserSessionSecurityEvent,
 	readBrowserSessionCookie,
 } from "../../services/browserSessions/index.ts";
 import { hostAuth } from "../auth.ts";
+
+declare module "hono" {
+	interface ContextVariableMap {
+		browserSession: BrowserSession | undefined;
+	}
+}
 
 export type BrowserSessionAuthOptions = {
 	origin: string;
 	sessions: BrowserSessionStore;
 	log: Logger;
 };
-
-const requestSessions = new WeakMap<Request, BrowserSession>();
 
 const unauthorized = (c: Context, credential: "bearer" | "session") => {
 	c.header(
@@ -49,7 +54,7 @@ const forbidden = (c: Context, credential: "bearer" | "session") =>
 		403,
 	);
 
-export const browserSessionForRequest = (request: Request) => requestSessions.get(request) ?? null;
+export const browserSessionFromContext = (context: Context) => context.get("browserSession") ?? null;
 
 export const browserSessionOrigin = (value: string) => {
 	const url = new URL(value);
@@ -73,23 +78,37 @@ export const browserSessionAuth = (
 	if (options === null) return hostAuth(hostToken);
 	if (hostToken === null || hostToken.trim() === "") throw new Error("Browser sessions require a host token.");
 	const origin = browserSessionOrigin(options.origin);
+	const authenticateBearer = hostAuth(hostToken);
 	return async (c, next) => {
+		if (c.req.header("authorization") !== undefined) {
+			let accepted = false;
+			const response = await authenticateBearer(c, async () => {
+				accepted = true;
+				await next();
+			});
+			logBrowserSessionSecurityEvent({
+				sessions: options.sessions,
+				log: options.log,
+				reqId: c.get("requestId") ?? null,
+				sessionId: null,
+				action: "session.authenticate",
+				result: accepted ? "bearer-accepted" : response?.status === 403 ? "origin-rejected" : "bearer-rejected",
+			});
+			return response;
+		}
 		const result = authenticateBrowserRequest({
-			authorization: c.req.header("authorization"),
 			origin: c.req.header("origin"),
 			expectedOrigin: origin,
-			requestUrl: c.req.url,
 			method: c.req.method,
 			websocket: c.req.header("upgrade")?.toLowerCase() === "websocket",
 			token: readBrowserSessionCookie(c.req.header("cookie")),
-			hostToken,
 			reqId: c.get("requestId") ?? null,
 			sessions: options.sessions,
 			log: options.log,
 		});
-		if (result.kind === "unauthorized") return unauthorized(c, result.credential);
-		if (result.kind === "forbidden") return forbidden(c, result.credential);
-		if (result.session !== null) requestSessions.set(c.req.raw, result.session);
+		if (result.kind === "unauthorized") return unauthorized(c, "session");
+		if (result.kind === "forbidden") return forbidden(c, "session");
+		c.set("browserSession", result.session);
 		await next();
 	};
 };

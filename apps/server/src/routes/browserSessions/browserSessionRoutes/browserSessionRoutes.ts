@@ -9,7 +9,7 @@ import {
 	endBrowserSession,
 	expiredBrowserSessionCookie,
 	readBrowserSessionCookie,
-	recordBrowserSessionRequestFailure,
+	recordOversizedBrowserSessionRequest,
 } from "../../../services/browserSessions/index.ts";
 import { errorResponse, noStore, unauthorizedResponse } from "../response/index.ts";
 
@@ -36,9 +36,8 @@ export const browserSessionRoutes = (options: BrowserSessionRoutesOptions) => {
 		bodyLimit({
 			maxSize: 1024,
 			onError: (c) => {
-				recordBrowserSessionRequestFailure({
+				recordOversizedBrowserSessionRequest({
 					reqId: c.get("requestId") ?? null,
-					result: "payload-too-large",
 					sessions: options.sessions,
 					log: options.log,
 				});

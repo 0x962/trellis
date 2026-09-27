@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import type { Fields, Logger } from "../../log.ts";
 import { BrowserSessionStore, browserSessionCookie } from "../../services/browserSessions/index.ts";
-import { browserSessionAuth, browserSessionForRequest, browserSessionOrigin } from "./browserSessionAuth.ts";
+import { browserSessionAuth, browserSessionFromContext, browserSessionOrigin } from "./browserSessionAuth.ts";
 
 const origin = "https://trellis.example.com";
 const log = { info: () => {} } as unknown as Logger;
@@ -81,7 +81,7 @@ describe("browser session auth", () => {
 		const fixture = sessionFixture();
 		const app = new Hono();
 		app.use(browserSessionAuth("host-token", { origin, sessions: fixture.sessions, log }));
-		app.get("/session", (c) => c.json(browserSessionForRequest(c.req.raw)));
+		app.get("/session", (c) => c.json(browserSessionFromContext(c)));
 		const response = await app.request("/session", { headers: { cookie: fixture.cookie } });
 		expect(await response.json()).toEqual({ id: fixture.session.id, expiresAt: fixture.session.expiresAt });
 	});
@@ -135,6 +135,27 @@ describe("browser session auth", () => {
 			}),
 		);
 		expect(JSON.stringify(records)).not.toContain(login.session.token);
+	});
+
+	test("logs bearer results after host authentication", async () => {
+		const records: Fields[] = [];
+		const eventLog = {
+			info: (_message: string, fields?: Fields) => records.push(fields ?? {}),
+		} as unknown as Logger;
+		const sessions = new BrowserSessionStore({ hostId: "host-a", log: eventLog });
+		const app = new Hono();
+		app.use(browserSessionAuth("host-token", { origin, sessions, log: eventLog }));
+		app.get("/read", (c) => c.text("read"));
+
+		await app.request("/read", { headers: { authorization: "Bearer host-token" } });
+		await app.request("/read", { headers: { authorization: "Bearer wrong" } });
+		await app.request("/read", {
+			headers: { authorization: "Bearer host-token", origin: "https://foreign.example" },
+		});
+
+		expect(records).toContainEqual(expect.objectContaining({ hostId: "host-a", result: "bearer-accepted" }));
+		expect(records).toContainEqual(expect.objectContaining({ hostId: "host-a", result: "bearer-rejected" }));
+		expect(records).toContainEqual(expect.objectContaining({ hostId: "host-a", result: "origin-rejected" }));
 	});
 
 	test("uses the bearer-only middleware when browser sessions are off", async () => {

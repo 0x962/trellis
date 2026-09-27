@@ -9,7 +9,12 @@ import { createDbTiming, serverTimingHeader } from "../../serverTiming.ts";
 import { renderPageBody } from "../../services/pages/renderPageBody";
 import { contentPolicy, errorBody, guardHeaders, originOf } from "./policy.ts";
 
-export type PageContentDeps = { config: Config; transport: ServiceTransport; log: Logger };
+export type PageContentDeps = {
+	config: Config;
+	transport: ServiceTransport;
+	log: Logger;
+	browserOrigin: string | null;
+};
 
 // A page address arrives percent-encoded. A malformed escape names no asset,
 // so it reads as an address the version does not hold.
@@ -23,7 +28,7 @@ const decodedPath = (raw: string) => {
 };
 
 export const pageContentRoute =
-	({ config, transport, log }: PageContentDeps) =>
+	({ config, transport, log, browserOrigin }: PageContentDeps) =>
 	async (c: Context<Record<string, never>, `${typeof PAGE_RENDER_PREFIX}/:leaseId/*`>) => {
 		const now = new Date();
 		const reqId = c.get("requestId");
@@ -38,7 +43,7 @@ export const pageContentRoute =
 			...guardHeaders(),
 			"server-timing": serverTimingHeader(timing),
 			"cache-control": "private, no-cache",
-			"content-security-policy": contentPolicy(originOf(c), root),
+			"content-security-policy": contentPolicy(browserOrigin ?? originOf(c), root),
 		};
 		const raw = new URL(c.req.url).pathname.slice(root.length);
 		const path = decodedPath(raw);

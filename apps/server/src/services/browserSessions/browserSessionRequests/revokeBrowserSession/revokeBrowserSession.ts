@@ -1,6 +1,6 @@
-import type { Logger } from "../../../log.ts";
-import type { BrowserSessionStore } from "../browserSessions.ts";
-import { browserSessionSecurityEvent } from "./securityEvent.ts";
+import type { Logger } from "../../../../log.ts";
+import type { BrowserSessionStore } from "../../browserSessions.ts";
+import { logBrowserSessionSecurityEvent } from "../logBrowserSessionSecurityEvent/index.ts";
 
 export type RevokeBrowserSessionInput = {
 	sessionId: string;
@@ -16,7 +16,7 @@ export const revokeBrowserSession = ({
 	log,
 }: RevokeBrowserSessionInput): void => {
 	const revoked = sessions.revoke(sessionId);
-	browserSessionSecurityEvent({
+	logBrowserSessionSecurityEvent({
 		sessions,
 		log,
 		reqId,
