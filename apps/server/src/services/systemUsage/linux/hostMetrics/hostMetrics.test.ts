@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { DiskCapacity } from "@trellis/api";
-import {
-	createLinuxHostMetricsReader,
-	readLinuxHostMetrics,
-	type LinuxHostMetricsReaderDeps,
-} from "./hostMetrics.ts";
+import { createLinuxHostMetricsReader, readLinuxHostMetrics, type LinuxHostMetricsReaderDeps } from "./hostMetrics.ts";
 
 const disk: DiskCapacity = {
 	state: "available",
