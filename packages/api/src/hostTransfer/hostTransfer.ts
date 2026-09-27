@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-export const HostTransferClassificationSchema = z.enum([
-	"portable",
-	"remappable",
-	"reauthenticated",
-	"unsupported",
-]);
+export const HostTransferClassificationSchema = z.enum(["portable", "remappable", "reauthenticated", "unsupported"]);
 export type HostTransferClassification = z.infer<typeof HostTransferClassificationSchema>;
 
 export const HostTransferObjectKindSchema = z.enum([
@@ -22,10 +17,7 @@ export const HostTransferObjectKindSchema = z.enum([
 ]);
 export type HostTransferObjectKind = z.infer<typeof HostTransferObjectKindSchema>;
 
-export const HostTransferAbsolutePathSchema = z
-	.string()
-	.min(1)
-	.regex(/^\//, "Enter a POSIX absolute path.");
+export const HostTransferAbsolutePathSchema = z.string().min(1).regex(/^\//, "Enter a POSIX absolute path.");
 
 export const HostTransferDestinationSchema = z.discriminatedUnion("state", [
 	z.strictObject({
