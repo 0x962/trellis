@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, readlink, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { tempDirs } from "../../../tempDir.ts";
-import { inventoryHostTransfer, type HostTransferInventoryInput } from "./inventory.ts";
+import { type HostTransferInventoryInput, inventoryHostTransfer } from "./inventory.ts";
 
 const tempDir = tempDirs();
 
