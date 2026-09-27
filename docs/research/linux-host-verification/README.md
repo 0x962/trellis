@@ -81,6 +81,21 @@ An unavailable platform stays unverified.
 The evidence job does not convert either state to passed.
 The evidence job fails while a required result is failed or unverified.
 
+The JSON document also contains `integratedInputs`.
+Each entry records these fields for one integrated feature result:
+
+- `ticketIdentifier`
+- `ticketId`
+- `diffUrl`
+- `commit`
+- `reviewRunId`
+- `reviewResult`
+- `findings`
+
+Each finding records its ID, status, and resolution text.
+An integrated input passes only when its review passes and every finding has the `resolved` status.
+The input commit must equal the commit that the review and checks cover.
+
 ## Platform gaps
 
 The hosted matrix covers Linux x64, Linux arm64, macOS x64, and macOS arm64.
