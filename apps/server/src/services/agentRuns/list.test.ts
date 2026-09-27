@@ -113,3 +113,22 @@ test("stored process activity survives a missing runtime record", async () => {
 
 	expect(projectRun(stored, []).activityAt).toBe(hoursAgo(1));
 });
+
+test("the indexed lookup keeps the latest switch and ignores later requests without a switch", async () => {
+	await db.execute(sql`INSERT INTO agent_start_requests (request_id, actor_name, actor_kind, run_id, target, created_at)
+		SELECT 'noise-' || n, 'dana', 'human', ${oldRun}, jsonb_build_object('switchedTo', 'other'), ${hoursAgo(4)}
+		FROM generate_series(1, 2000) AS n`);
+	await db.execute(sql`INSERT INTO agent_start_requests (request_id, actor_name, actor_kind, run_id, target, created_at) VALUES
+		('switch-old', 'dana', 'human', ${openRun}, '{"switchedTo":"first"}', ${hoursAgo(3)}),
+		('switch-new', 'dana', 'human', ${openRun}, '{"switchedTo":"second"}', ${hoursAgo(2)}),
+		('resume', 'dana', 'human', ${openRun}, '{}', ${hoursAgo(1)})`);
+	await db.execute(sql`ANALYZE agent_start_requests`);
+	const rows = await listRuns({ ids: [openRun, freshRun] });
+	expect(rows.find((row) => row.id === openRun)?.switchedTo).toBe("second");
+	expect(rows.find((row) => row.id === freshRun)?.switchedTo).toBeNull();
+	const plan = await db.execute(sql`EXPLAIN (FORMAT JSON)
+		SELECT target->>'switchedTo' FROM agent_start_requests
+		WHERE run_id = ${openRun} AND target->>'switchedTo' IS NOT NULL
+		ORDER BY created_at DESC LIMIT 1`);
+	expect(JSON.stringify(plan.rows)).toContain("agent_start_requests_latest_switch_idx");
+});

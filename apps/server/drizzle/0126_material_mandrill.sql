@@ -1,0 +1,1 @@
+CREATE INDEX "agent_start_requests_latest_switch_idx" ON "agent_start_requests" USING btree ("run_id","created_at" DESC NULLS LAST) WHERE "agent_start_requests"."target"->>'switchedTo' IS NOT NULL;
