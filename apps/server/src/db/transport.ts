@@ -76,6 +76,7 @@ export const createInlineTransport = ({
 	// carries the system actor there.
 	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>, transaction = newTx): IoCtx => ({
 		core: coreCtx(ctx, emit, tasks, transaction),
+		installationHome: config.installationHome,
 		localUrl: config.agentsUrl,
 		publicUrl: config.publicUrl,
 		actor: ctx.actor ?? SYSTEM_ACTOR,

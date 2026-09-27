@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { UlidSchema } from "../schemas/primitives.ts";
+import { DataHomeIdSchema, HostIdSchema } from "../hostIdentity/hostIdentity.ts";
 
 const LabelSchema = z.string().trim().min(1, "Enter a host name.").max(80, "Enter a host name of 80 characters or less.");
-const IdentitySchema = UlidSchema.nullable();
 const PortSchema = z.number().int().min(1).max(65_535);
 const LoopbackPortSchema = z.number().int().min(1_024).max(65_535);
 const AddressSchema = z
@@ -32,8 +31,8 @@ export const SshHostKeyPinSchema = z.strictObject({
 export type SshHostKeyPin = z.infer<typeof SshHostKeyPinSchema>;
 
 const IdentityFields = {
-	expectedHostId: IdentitySchema,
-	expectedDataHomeId: IdentitySchema,
+	expectedHostId: HostIdSchema.nullable(),
+	expectedDataHomeId: DataHomeIdSchema.nullable(),
 };
 
 export const LocalHostProfileSchema = z.strictObject({
@@ -100,8 +99,8 @@ export const LocalHostProfileEditInputSchema = z.strictObject({
 	kind: z.literal("local"),
 	label: LabelSchema.optional(),
 	dataHome: LocalHostProfileSchema.shape.dataHome.optional(),
-	expectedHostId: IdentitySchema.optional(),
-	expectedDataHomeId: IdentitySchema.optional(),
+	expectedHostId: HostIdSchema.nullable().optional(),
+	expectedDataHomeId: DataHomeIdSchema.nullable().optional(),
 });
 
 export const SshHostProfileEditInputSchema = z.strictObject({
@@ -114,8 +113,8 @@ export const SshHostProfileEditInputSchema = z.strictObject({
 	credentialRef: HostCredentialReferenceSchema.optional(),
 	credentialPersistence: SshHostProfileSchema.shape.credentialPersistence.optional(),
 	allocatedPort: LoopbackPortSchema.optional(),
-	expectedHostId: IdentitySchema.optional(),
-	expectedDataHomeId: IdentitySchema.optional(),
+	expectedHostId: HostIdSchema.nullable().optional(),
+	expectedDataHomeId: DataHomeIdSchema.nullable().optional(),
 });
 
 export const HostProfileEditInputSchema = z.discriminatedUnion("kind", [

@@ -43,6 +43,7 @@ export type ServiceCtx = {
 // The context of an `io` service inside its transaction.
 export type IoCtx = ServiceCtx & {
 	core: CoreCtx;
+	installationHome: string;
 	localUrl: string;
 	publicUrl: string;
 	// background starts immediately. Call it after the database writes that authorize the task commit.

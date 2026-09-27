@@ -1,4 +1,5 @@
 import { oc } from "@orpc/contract";
+import { hostIdentity } from "../hostIdentity/contract.ts";
 import { actors } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
@@ -37,6 +38,7 @@ import { waves } from "./waves.ts";
 export const contract = {
 	models: oc.tag("models").router(models),
 	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
+	hostIdentity: oc.tag("host identity").router(hostIdentity),
 	internalLinks: oc.tag("internal links").router(internalLinks),
 	usage: oc.tag("usage").router(usage),
 	needsYou: oc.tag("needs you").router(needsYou),

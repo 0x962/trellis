@@ -28,6 +28,7 @@ const start = async () => {
 		TRELLIS_EXECUTION_SHELL: userInfo().shell!,
 		TRELLIS_EXECUTION_BIN: join(root, "bin"),
 		TRELLIS_HOME: home,
+		TRELLIS_INSTALLATION_HOME: userData,
 		TRELLIS_RELEASE_ID: release.manifest.id,
 		TRELLIS_HOST: "127.0.0.1",
 		TRELLIS_PORT: owner?.role === "server" && owner.port ? String(owner.port) : "0",
