@@ -58,7 +58,7 @@ export function SessionActionsMenu({
 	const pin = useSessionPin();
 	const name = session?.name ?? run!.name;
 	const archived = isSessionArchived(session);
-	const pinned = (run?.pinnedAt ?? session?.pinnedAt) !== null;
+	const pinned = (run ? run.pinnedAt : session!.pinnedAt) !== null;
 	const pinTarget = { id: run?.id ?? session!.runId, name };
 	const items: MenuItem[] = [];
 	if (onSessionDetails) items.push({ label: "Session details", icon: <Info />, onSelect: onSessionDetails });
