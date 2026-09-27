@@ -1,11 +1,8 @@
-// The time one HTTP request spent on the database, in milliseconds, in three
-// parts. `queueMs` is the wait in the queue of the database worker, which
-// runs one call at a time. `lockMs` is the wait for the database lock after
-// the call left the queue: the database has one lock, and a call that runs
-// beside the queue or a background job can hold it. `ms` is the time from
-// the moment the transaction got the lock to the end of its after-commit
-// work. A `prepare` step runs gh before the transaction and counts in none
-// of the three. A batch reports the sum of its calls.
+// DbTiming holds request totals in milliseconds. `queueMs` counts the wait in the worker queue.
+// `lockMs` sums each transaction's wait for the database lock. `ms` sums the time
+// each transaction holds that lock, through commit or rollback. These totals
+// include transactions in `prepare` and `afterCommit`. External calls outside
+// transactions contribute only to the total request duration.
 export type DbTiming = { ms: number; lockMs: number; queueMs: number };
 
 export const createDbTiming = (): DbTiming => ({ ms: 0, lockMs: 0, queueMs: 0 });

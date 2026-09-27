@@ -14,7 +14,11 @@ export type EventSink = (events: TrellisEvent[]) => void | Promise<void>;
 // collector. The events reach `sink` after the commit and never before: a
 // client that refetches on an event must see the committed rows. A throw
 // rolls the transaction back and drops the queued events.
-export const withTx = async <T>(db: Db, fn: (tx: Tx, emit: Emit) => Promise<T>, sink?: EventSink) => {
+export const withTx = async <T>(
+	db: Pick<Db, "transaction">,
+	fn: (tx: Tx, emit: Emit) => Promise<T>,
+	sink?: EventSink,
+) => {
 	const events: TrellisEvent[] = [];
 	const emit: Emit = (event) => {
 		events.push(event);
