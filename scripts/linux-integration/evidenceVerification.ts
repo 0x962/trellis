@@ -1,11 +1,5 @@
-import {
-	type CheckRecord,
-	expectedChecks,
-	type Lane,
-	resultArtifactName,
-	type Result,
-} from "./contract";
 import type { WorkflowIdentity } from "./checkResult";
+import { type CheckRecord, type expectedChecks, type Lane, type Result, resultArtifactName } from "./contract";
 
 export type JobConclusions = {
 	plan: string;
@@ -87,22 +81,14 @@ function conclusionForCheck(check: string, conclusions: JobConclusions): string 
 	return conclusions.latitude;
 }
 
-export function applyJobConclusions(
-	records: CheckRecord[],
-	conclusions: JobConclusions,
-): CheckRecord[] {
+export function applyJobConclusions(records: CheckRecord[], conclusions: JobConclusions): CheckRecord[] {
 	return records.map((record) => {
 		const conclusion = conclusionForCheck(record.check, conclusions);
 		if (conclusion === "success") return record;
 		return {
 			...record,
 			result: conclusion === "failure" ? "failed" : "unverified",
-			reason: [
-				`GitHub reported ${conclusion} for the ${record.check} job.`,
-				record.reason,
-			]
-				.filter(Boolean)
-				.join(" "),
+			reason: [`GitHub reported ${conclusion} for the ${record.check} job.`, record.reason].filter(Boolean).join(" "),
 		};
 	});
 }
