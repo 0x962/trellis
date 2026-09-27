@@ -1,0 +1,47 @@
+{
+	"schemaVersion": 1,
+	"lanes": {
+		"host": {
+			"integratedInputs": [],
+			"focusedTests": {},
+			"packages": {},
+			"smoke": {},
+			"latitude": {}
+		},
+		"connection": {
+			"integratedInputs": [],
+			"focusedTests": {},
+			"packages": {},
+			"smoke": {},
+			"latitude": {}
+		},
+		"client": {
+			"integratedInputs": [],
+			"focusedTests": {},
+			"packages": {},
+			"smoke": {},
+			"latitude": {}
+		},
+		"operations": {
+			"integratedInputs": [],
+			"focusedTests": {},
+			"packages": {},
+			"smoke": {},
+			"latitude": {}
+		},
+		"verification": {
+			"integratedInputs": [],
+			"focusedTests": {},
+			"packages": {},
+			"smoke": {},
+			"latitude": {}
+		},
+		"system": {
+			"integratedInputs": [],
+			"focusedTests": {},
+			"packages": {},
+			"smoke": {},
+			"latitude": {}
+		}
+	}
+}
