@@ -19,8 +19,14 @@ export function useWorkspaceSummary(run: WorkspaceSummaryRun, options: { enabled
 	const { orpc } = useApp();
 	const working = isAgentWorking(run);
 	const enabled = (options.enabled ?? true) && run.runtime === "native" && run.workspaceId !== null;
+	const queryOptions = orpc.agentRuns.workspaceSummary.queryOptions({ input: { runId: run.id } });
 	const query = useQuery({
-		...orpc.agentRuns.workspaceSummary.queryOptions({ input: { runId: run.id } }),
+		...queryOptions,
+		// Git reads share one connection across tabs, so page requests can reach the host.
+		queryFn: (context) =>
+			navigator.locks.request("trellis-workspace-summary", { signal: context.signal }, () =>
+				queryOptions.queryFn(context),
+			),
 		enabled,
 		refetchInterval: working ? 15000 : false,
 		staleTime: options.focus ? 30000 : 60000,

@@ -38,6 +38,8 @@ const unbatched = new Set([
 	"reviews.file",
 	"reviews.metadata",
 	"reviews.mine",
+	// The workspace lock covers one response, so Git reads need separate requests.
+	"agentRuns.workspaceSummary",
 ]);
 
 // The typed client, the TanStack Query utils over it, and a QueryClient.
