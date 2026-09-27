@@ -250,7 +250,7 @@ export const services = {
 	"waves.reorder": core("mutation", waves.reorder),
 	"waves.delete": core("mutation", waves.remove),
 	"attachments.list": io("read", attachments.list),
-	"attachments.upload": io("mutation", attachments.upload),
+	"attachments.upload": prepared("mutation", attachments.prepareUpload, attachments.upload),
 	"attachments.get": io("read", attachments.get),
 	"attachments.delete": io("mutation", attachments.remove),
 	"pullRequests.list": io("read", pullRequests.list),
