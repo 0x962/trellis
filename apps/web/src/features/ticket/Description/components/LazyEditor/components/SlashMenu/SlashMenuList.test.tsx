@@ -1,48 +1,22 @@
-import { afterEach, expect, test } from "bun:test";
-import { renderToStaticMarkup } from "react-dom/server";
-import { useSlashMenuStore } from "./SlashMenu";
-import { SlashMenuList } from "./SlashMenuList";
-import { blocks } from "./blocks";
+import { expect, mock, test } from "bun:test";
+import { scrollSlashMenu } from "./SlashMenuList";
 
-const closeMenu = () =>
-	useSlashMenuStore.setState({
-		open: false,
-		items: [],
-		highlighted: 0,
-		left: 0,
-		top: 0,
-		pick: () => {},
-	});
+test("scrolls when the menu opens and when its highlight moves", () => {
+	const firstScroll = mock(() => {});
+	const secondScroll = mock(() => {});
+	const options = [{ scrollIntoView: firstScroll }, { scrollIntoView: secondScroll }];
+	const children = {
+		length: options.length,
+		item: (index: number) => options[index] ?? null,
+	} as unknown as HTMLCollection;
+	const list = { children } as unknown as HTMLDivElement;
 
-const openMenu = (highlighted: number) =>
-	useSlashMenuStore.setState({
-		open: true,
-		items: blocks.slice(0, 2),
-		highlighted,
-		left: 40,
-		top: 80,
-		pick: () => {},
-	});
+	scrollSlashMenu(list, false, children.length, 0);
+	expect(firstScroll).not.toHaveBeenCalled();
 
-const selectedOption = () =>
-	renderToStaticMarkup(<SlashMenuList />).match(
-		/<button[^>]*aria-selected="true"[^>]*>.*?<\/button>/,
-	)?.[0] ?? "";
+	scrollSlashMenu(list, true, children.length, 0);
+	expect(firstScroll).toHaveBeenCalledWith({ block: "nearest" });
 
-afterEach(closeMenu);
-
-test("opening the menu selects its first block", () => {
-	closeMenu();
-	expect(renderToStaticMarkup(<SlashMenuList />)).toBe("");
-
-	openMenu(0);
-	expect(selectedOption()).toContain("Text");
-});
-
-test("moving the highlight selects the next block", () => {
-	openMenu(0);
-	expect(selectedOption()).toContain("Text");
-
-	openMenu(1);
-	expect(selectedOption()).toContain("Heading 1");
+	scrollSlashMenu(list, true, children.length, 1);
+	expect(secondScroll).toHaveBeenCalledWith({ block: "nearest" });
 });
