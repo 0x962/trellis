@@ -64,7 +64,6 @@ const deps: LinuxServiceDependencies = {
 		hostServicePreflight({
 			releaseRoot,
 			context,
-			executable: process.execPath,
 			preflightScript: resolve(import.meta.dir, "../host-release/preflight.ts"),
 			run,
 		}),

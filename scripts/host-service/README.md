@@ -14,6 +14,8 @@ The install action runs the release preflight in a transient user unit. That uni
 
 The foreground action runs the preflight in the supervisor process. The supervisor must receive delegated cgroup v2 from its own service manager.
 
+The installer verifies the release before it starts bundled code. The source preflight script then runs with the verified release Bun.
+
 Use an unprivileged dedicated user. Do not share its data home with another host process.
 
 ## User service
