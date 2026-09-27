@@ -1,6 +1,6 @@
-import type { Logger } from "../../../log.ts";
-import type { BrowserSessionStore, IssuedBrowserLoginCode } from "../browserSessions.ts";
-import { browserSessionSecurityEvent } from "./securityEvent.ts";
+import type { Logger } from "../../../../log.ts";
+import type { BrowserSessionStore, IssuedBrowserLoginCode } from "../../browserSessions.ts";
+import { logBrowserSessionSecurityEvent } from "../logBrowserSessionSecurityEvent/index.ts";
 
 export type IssueBrowserSessionCodeInput = {
 	reqId: string | null;
@@ -14,7 +14,7 @@ export const issueBrowserSessionCode = ({
 	log,
 }: IssueBrowserSessionCodeInput): IssuedBrowserLoginCode => {
 	const issued = sessions.issueCode();
-	browserSessionSecurityEvent({
+	logBrowserSessionSecurityEvent({
 		sessions,
 		log,
 		reqId,

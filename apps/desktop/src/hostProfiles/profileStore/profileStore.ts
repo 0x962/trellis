@@ -154,8 +154,12 @@ export const createHostProfileStore = (installationHome: string, options: Option
 				const index = findIndex(profiles, parsed.id);
 				const profile = profiles[index]!;
 				await options.disconnect(profile.id);
-				if (profile.kind === "ssh") await options.removeCredential(profile.credentialRef);
 				profiles.splice(index, 1);
+				if (
+					profile.kind === "ssh" &&
+					!profiles.some((candidate) => candidate.kind === "ssh" && candidate.credentialRef === profile.credentialRef)
+				)
+					await options.removeCredential(profile.credentialRef);
 				await writeProfiles(path, profiles);
 			}),
 	};

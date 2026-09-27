@@ -160,3 +160,21 @@ test("disconnects and removes credentials without deleting host data", async () 
 	expect(await readFile(join(dataHome, "kept.txt"), "utf8")).toBe("host data");
 	expect(await store.list()).toEqual([]);
 });
+
+test("keeps a credential until the last profile reference is removed", async () => {
+	const home = await installationHome();
+	const removedCredentials: string[] = [];
+	const store = storeFor(home, [], removedCredentials);
+	const sharedCredential = randomUUID();
+	const first = await store.add({ ...sshInput("Workshop", 24_521), credentialRef: sharedCredential });
+	const second = await store.add({ ...sshInput("Office", 24_522), credentialRef: sharedCredential });
+
+	await store.remove({ id: first.id });
+
+	expect(removedCredentials).toEqual([]);
+	expect(await store.list()).toEqual([second]);
+
+	await store.remove({ id: second.id });
+
+	expect(removedCredentials).toEqual([sharedCredential]);
+});

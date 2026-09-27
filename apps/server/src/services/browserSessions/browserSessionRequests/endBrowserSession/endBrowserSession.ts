@@ -1,7 +1,7 @@
-import type { Logger } from "../../../log.ts";
-import type { BrowserSessionStore } from "../browserSessions.ts";
-import { logoutBrowserSession } from "../logoutBrowserSession/index.ts";
-import { browserSessionSecurityEvent } from "./securityEvent.ts";
+import type { Logger } from "../../../../log.ts";
+import type { BrowserSessionStore } from "../../browserSessions.ts";
+import { logoutBrowserSession } from "../../logoutBrowserSession/index.ts";
+import { logBrowserSessionSecurityEvent } from "../logBrowserSessionSecurityEvent/index.ts";
 
 export type EndBrowserSessionInput = {
 	origin: string | undefined;
@@ -13,7 +13,7 @@ export type EndBrowserSessionInput = {
 };
 
 export type EndBrowserSessionResult =
-	| { kind: "ended"; sessionId: string }
+	| { kind: "ended" }
 	| { kind: "forbidden" }
 	| { kind: "unauthorized" };
 
@@ -26,7 +26,7 @@ export const endBrowserSession = ({
 	log,
 }: EndBrowserSessionInput): EndBrowserSessionResult => {
 	if (origin !== expectedOrigin) {
-		browserSessionSecurityEvent({
+		logBrowserSessionSecurityEvent({
 			sessions,
 			log,
 			reqId,
@@ -38,7 +38,7 @@ export const endBrowserSession = ({
 	}
 	const logout = logoutBrowserSession(sessions, token);
 	if (logout.kind === "unauthorized") {
-		browserSessionSecurityEvent({
+		logBrowserSessionSecurityEvent({
 			sessions,
 			log,
 			reqId,
@@ -48,7 +48,7 @@ export const endBrowserSession = ({
 		});
 		return logout;
 	}
-	browserSessionSecurityEvent({
+	logBrowserSessionSecurityEvent({
 		sessions,
 		log,
 		reqId,
@@ -56,5 +56,5 @@ export const endBrowserSession = ({
 		action: "session.logout",
 		result: "logged-out",
 	});
-	return { kind: "ended", sessionId: logout.sessionId };
+	return { kind: "ended" };
 };

@@ -73,23 +73,22 @@ export const browserSessionAuth = (
 	if (options === null) return hostAuth(hostToken);
 	if (hostToken === null || hostToken.trim() === "") throw new Error("Browser sessions require a host token.");
 	const origin = browserSessionOrigin(options.origin);
+	const authenticateBearer = hostAuth(hostToken);
 	return async (c, next) => {
+		if (c.req.header("authorization") !== undefined) return authenticateBearer(c, next);
 		const result = authenticateBrowserRequest({
-			authorization: c.req.header("authorization"),
 			origin: c.req.header("origin"),
 			expectedOrigin: origin,
-			requestUrl: c.req.url,
 			method: c.req.method,
 			websocket: c.req.header("upgrade")?.toLowerCase() === "websocket",
 			token: readBrowserSessionCookie(c.req.header("cookie")),
-			hostToken,
 			reqId: c.get("requestId") ?? null,
 			sessions: options.sessions,
 			log: options.log,
 		});
-		if (result.kind === "unauthorized") return unauthorized(c, result.credential);
-		if (result.kind === "forbidden") return forbidden(c, result.credential);
-		if (result.session !== null) requestSessions.set(c.req.raw, result.session);
+		if (result.kind === "unauthorized") return unauthorized(c, "session");
+		if (result.kind === "forbidden") return forbidden(c, "session");
+		requestSessions.set(c.req.raw, result.session);
 		await next();
 	};
 };

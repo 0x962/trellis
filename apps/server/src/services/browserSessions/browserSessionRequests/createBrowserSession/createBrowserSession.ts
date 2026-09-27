@@ -1,6 +1,6 @@
-import type { Logger } from "../../../log.ts";
-import type { BrowserSessionStore, RedeemedBrowserSession } from "../browserSessions.ts";
-import { browserSessionSecurityEvent } from "./securityEvent.ts";
+import type { Logger } from "../../../../log.ts";
+import type { BrowserSessionStore, RedeemedBrowserSession } from "../../browserSessions.ts";
+import { logBrowserSessionSecurityEvent } from "../logBrowserSessionSecurityEvent/index.ts";
 
 export type CreateBrowserSessionInput = {
 	origin: string | undefined;
@@ -27,7 +27,7 @@ export const createBrowserSession = ({
 	log,
 }: CreateBrowserSessionInput): CreateBrowserSessionResult => {
 	if (origin !== expectedOrigin) {
-		browserSessionSecurityEvent({
+		logBrowserSessionSecurityEvent({
 			sessions,
 			log,
 			reqId,
@@ -38,7 +38,7 @@ export const createBrowserSession = ({
 		return { kind: "forbidden" };
 	}
 	if (code === null) {
-		browserSessionSecurityEvent({
+		logBrowserSessionSecurityEvent({
 			sessions,
 			log,
 			reqId,
@@ -50,7 +50,7 @@ export const createBrowserSession = ({
 	}
 	const login = sessions.redeemCode(code);
 	if (login.kind === "rate-limited") {
-		browserSessionSecurityEvent({
+		logBrowserSessionSecurityEvent({
 			sessions,
 			log,
 			reqId,
@@ -61,7 +61,7 @@ export const createBrowserSession = ({
 		return login;
 	}
 	if (login.kind === "invalid") {
-		browserSessionSecurityEvent({
+		logBrowserSessionSecurityEvent({
 			sessions,
 			log,
 			reqId,
@@ -71,7 +71,7 @@ export const createBrowserSession = ({
 		});
 		return login;
 	}
-	browserSessionSecurityEvent({
+	logBrowserSessionSecurityEvent({
 		sessions,
 		log,
 		reqId,
