@@ -1,1 +1,0 @@
-export { linkedResourceOpener } from "./linkedResourceOpener";

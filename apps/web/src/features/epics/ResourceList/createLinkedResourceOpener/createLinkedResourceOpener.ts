@@ -1,6 +1,6 @@
 import type { Resource } from "@trellis/api";
 
-export const linkedResourceOpener = () => {
+export const createLinkedResourceOpener = () => {
 	let opened: string | undefined;
 	return (id: string | undefined, resources: readonly Resource[], open: (id: string) => void) => {
 		if (id === undefined || id === "") {

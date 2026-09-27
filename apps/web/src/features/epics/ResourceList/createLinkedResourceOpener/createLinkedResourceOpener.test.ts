@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { Resource } from "@trellis/api";
-import { linkedResourceOpener } from "./linkedResourceOpener";
+import { createLinkedResourceOpener } from "./createLinkedResourceOpener";
 
 const resources = [
 	{ id: "file", kind: "file" },
@@ -9,7 +9,7 @@ const resources = [
 ] as Resource[];
 
 test("opens a linked file after its epic resources arrive, once per visit", () => {
-	const update = linkedResourceOpener();
+	const update = createLinkedResourceOpener();
 	const opened: string[] = [];
 	const open = (id: string) => opened.push(id);
 	update("file", [], open);
@@ -23,7 +23,7 @@ test("opens a linked file after its epic resources arrive, once per visit", () =
 });
 
 test("follows a new target in the same epic without reopening a document", () => {
-	const update = linkedResourceOpener();
+	const update = createLinkedResourceOpener();
 	const opened: string[] = [];
 	const open = (id: string) => opened.push(id);
 	update("file", resources, open);

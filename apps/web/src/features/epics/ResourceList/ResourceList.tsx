@@ -5,7 +5,7 @@ import { isDesktopApp } from "../../../lib/desktopBridge";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { docTitle, PLAN_DOC_ID } from "../epicDocs";
 import { ImageSheet } from "./components/ImageSheet";
-import { linkedResourceOpener } from "./linkedResourceOpener";
+import { createLinkedResourceOpener } from "./createLinkedResourceOpener";
 import { resourceDetail } from "./resourceDetail";
 import { resourceOpenAction } from "./resourceOpenAction";
 import { resourceUrl } from "./resourceUrl";
@@ -84,11 +84,11 @@ export function ResourceList({
 			}
 		}
 	};
-	const openLinked = useEffectEvent(onOpen);
-	const [openLink] = useState(linkedResourceOpener);
+	const openResource = useEffectEvent(onOpen);
+	const [openLinkedResource] = useState(createLinkedResourceOpener);
 	useEffect(() => {
-		openLink(linkedResourceId, resources, openLinked);
-	}, [linkedResourceId, resources, openLink]);
+		openLinkedResource(linkedResourceId, resources, openResource);
+	}, [linkedResourceId, resources, openLinkedResource]);
 	return (
 		<>
 			<ResourceListView
