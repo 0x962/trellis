@@ -45,7 +45,8 @@ export const scanPath = async (root: string, excludedPaths: ReadonlySet<string> 
 			const bytes = Buffer.byteLength(target);
 			const sha256 = digest(["symlink", relativePath, mode, target]);
 			symlinks.push({ relativePath, target, bytes, sha256 });
-			// A directory excludes link bytes because the manifest records each symbolic link as a separate object.
+			// scanPath lists each symbolic link in `symlinks`.
+			// Exclude its bytes from the directory total to prevent a duplicate count.
 			return { bytes: 0, sha256 };
 		}
 		if (info.isFile()) {

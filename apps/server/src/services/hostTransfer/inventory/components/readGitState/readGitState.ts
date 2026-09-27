@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from "node:path";
-import { git } from "../../agentRuns/workspace/git.ts";
+import { runGit } from "../../../../../git/index.ts";
 
 export type GitState = {
 	commonDirectory: string;
@@ -25,7 +25,7 @@ const dirtyPathsOf = (output: string) => {
 	return [...new Set(paths)].sort();
 };
 
-export const readGitState = async (workspace: string, readGit: GitReader = git): Promise<GitState> => {
+export const readGitState = async (workspace: string, readGit: GitReader = runGit): Promise<GitState> => {
 	const [commonDirectoryText, status] = await Promise.all([
 		readGit(workspace, ["rev-parse", "--path-format=absolute", "--git-common-dir"]),
 		readGit(workspace, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]),

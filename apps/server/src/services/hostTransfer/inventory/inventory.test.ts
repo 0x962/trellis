@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readlink, symlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, readlink, rm, symlink, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
 import { tempDirs } from "../../../tempDir.ts";
 import { inventoryHostTransfer, type HostTransferInventoryInput } from "./inventory.ts";
 
@@ -18,6 +18,7 @@ const fixture = async () => {
 	const gitCommonDirectory = join(repository, ".git");
 	const profile = join(sourceHome, ".codex-work");
 	const transcript = join(dataHome, "agents", "RUN", "output-attempt.txt");
+	const escapedProfileLink = join(worktree, "profile-relative-link");
 	await Promise.all([
 		mkdir(join(dataHome, "db"), { recursive: true }),
 		mkdir(join(dataHome, "attachments"), { recursive: true }),
@@ -43,6 +44,7 @@ const fixture = async () => {
 		symlink("blob.txt", join(dataHome, "attachments", "latest")),
 		symlink(repository, join(worktree, "repository-link")),
 		symlink(profile, join(worktree, "profile-link")),
+		symlink(relative(dirname(escapedProfileLink), join(profile, "auth.json")), escapedProfileLink),
 		symlink("/Volumes/private/provider", join(worktree, "unsupported-link")),
 	]);
 
@@ -103,7 +105,7 @@ const fixture = async () => {
 				secret: false,
 			},
 		],
-		providerResume: [
+		providerResumeCompatibility: [
 			{
 				assignmentId: "RUN",
 				provider: "codex",
@@ -183,7 +185,15 @@ test("describes every portable host object without copying it", async () => {
 		),
 	).toBeTrue();
 	expect(links.some((link) => link.target.startsWith("/Volumes/") && link.destination.state === "excluded")).toBeTrue();
-	expect(manifest.providerResume).toEqual(prepared.input.providerResume);
+	expect(
+		links.some(
+			(link) =>
+				link.target.endsWith(".codex-work/auth.json") &&
+				link.destination.state === "excluded" &&
+				link.destinationTarget === null,
+		),
+	).toBeTrue();
+	expect(manifest.providerResumeCompatibility).toEqual(prepared.input.providerResumeCompatibility);
 	expect(manifest.objects.find((object) => object.kind === "database")?.secret).toBeTrue();
 	expect(manifest.totals.objectCount).toBe(manifest.objects.length);
 	expect(existsSync(prepared.destinationHome)).toBeFalse();
@@ -199,4 +209,25 @@ test("changes a directory checksum when a dirty file changes", async () => {
 	expect(first.objects.find((object) => object.id === "repository:trellis")?.sha256).not.toBe(
 		second.objects.find((object) => object.id === "repository:trellis")?.sha256,
 	);
+});
+
+test("rejects an inventory when the source database is absent", async () => {
+	const prepared = await fixture();
+	await rm(join(prepared.input.source.dataHome, "db"), { recursive: true });
+	await expect(inventoryHostTransfer(prepared.input, { git: prepared.git })).rejects.toThrow("ENOENT");
+});
+
+test("records absent optional data directories", async () => {
+	const prepared = await fixture();
+	await Promise.all([
+		rm(join(prepared.input.source.dataHome, "attachments"), { recursive: true }),
+		rm(join(prepared.input.source.dataHome, "pages"), { recursive: true }),
+	]);
+	const manifest = await inventoryHostTransfer(prepared.input, { git: prepared.git });
+	for (const kind of ["attachments", "pages"] as const) {
+		const object = manifest.objects.find((entry) => entry.kind === kind);
+		expect(object?.classification).toBe("unsupported");
+		expect(object?.destination.state).toBe("excluded");
+		expect(object?.bytes).toBe(0);
+	}
 });

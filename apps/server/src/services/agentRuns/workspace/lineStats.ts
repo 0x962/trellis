@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { workspaceBaseRef } from "../../../agents/native/workspaceBase.ts";
 import { rows, textArray } from "../../../db/queries/support.ts";
-import { git } from "./git.ts";
+import { runGit } from "../../../git/index.ts";
 import type { WorkspaceCtx } from "./types.ts";
 
 type Target = { ticketId: string; workspace: string };
@@ -51,9 +51,9 @@ const lineCount = async (path: string) => {
 // repository as a path that ends in a slash. That path is not a file.
 export const changeStats = async (workspace: string, base: string) => {
 	const tracked = numstat(
-		await git(workspace, ["diff", "--merge-base", "--numstat", "-z", "--find-renames", base, "--"]),
+		await runGit(workspace, ["diff", "--merge-base", "--numstat", "-z", "--find-renames", base, "--"]),
 	);
-	const untracked = (await git(workspace, ["ls-files", "--others", "--exclude-standard", "-z"]))
+	const untracked = (await runGit(workspace, ["ls-files", "--others", "--exclude-standard", "-z"]))
 		.split("\0")
 		.filter(Boolean);
 	let additions = tracked.additions;
@@ -66,7 +66,7 @@ export const changeStats = async (workspace: string, base: string) => {
 };
 
 export const countWorkspace = async (workspace: string) => {
-	const base = (await git(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
+	const base = (await runGit(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
 	const { additions, deletions } = await changeStats(workspace, base);
 	return { additions, deletions };
 };

@@ -1,5 +1,4 @@
-import { existsSync } from "node:fs";
-import { realpath } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
 	HostTransferManifestSchema,
@@ -9,10 +8,12 @@ import {
 	type HostTransferEndpoint,
 	type HostTransferManifest,
 	type HostTransferObject,
-	type ProviderResumeResult,
-} from "../../../../../../packages/api/src/hostTransfer/index.ts";
-import { type GitReader, readGitState } from "./gitState.ts";
-import { appendScannedObject, checksum, destinationForPath } from "./objects.ts";
+	type ProviderResumeCompatibility,
+} from "@trellis/api";
+import { appendScannedObjects } from "./components/appendScannedObjects/index.ts";
+import { checksum } from "./components/checksum/index.ts";
+import { destinationForPath } from "./components/destinationForPath/index.ts";
+import { type GitReader, readGitState } from "./components/readGitState/index.ts";
 
 type PlannedDestination = HostTransferDestination;
 
@@ -58,13 +59,22 @@ export type HostTransferInventoryInput = {
 	accountProfiles: AccountProfileInput[];
 	transcripts: TranscriptInput[];
 	absolutePaths: AbsolutePathInput[];
-	providerResume: ProviderResumeResult[];
+	providerResumeCompatibility: ProviderResumeCompatibility[];
 };
 
 type InventoryDependencies = {
 	git: GitReader;
 	now: () => Date;
 };
+
+const isMissing = (path: string) =>
+	lstat(path).then(
+		() => false,
+		(error: NodeJS.ErrnoException) => {
+			if (error.code === "ENOENT") return true;
+			throw error;
+		},
+	);
 
 export const inventoryHostTransfer = async (
 	input: HostTransferInventoryInput,
@@ -93,15 +103,47 @@ export const inventoryHostTransfer = async (
 			},
 		})),
 	];
-	const fixedRoots = [
-		{ id: "data:database", kind: "database", name: "db" },
+	const database = { id: "data:database", kind: "database" as const, name: "db" };
+	await appendScannedObjects(
+		objects,
+		{
+			id: database.id,
+			kind: database.kind,
+			sourcePath: join(input.source.dataHome, database.name),
+			classification: "portable",
+			secret: true,
+			destination: { state: "mapped", path: join(input.destination.dataHome, database.name) },
+		},
+		mappings,
+		symlinkSources,
+	);
+
+	const optionalRoots = [
 		{ id: "data:attachments", kind: "attachments", name: "attachments" },
 		{ id: "data:pages", kind: "pages", name: "pages" },
 	] as const;
-	for (const root of fixedRoots) {
+	for (const root of optionalRoots) {
 		const sourcePath = join(input.source.dataHome, root.name);
-		if (!existsSync(sourcePath)) continue;
-		await appendScannedObject(
+		if (await isMissing(sourcePath)) {
+			const absent = `absent\0${root.kind}\0${sourcePath}`;
+			objects.push(
+				HostTransferObjectSchema.parse({
+					id: root.id,
+					kind: root.kind,
+					sourcePath,
+					classification: "unsupported",
+					bytes: 0,
+					sha256: checksum(absent),
+					secret: true,
+					destination: {
+						state: "excluded",
+						reason: `The source host has no ${root.name} directory.`,
+					},
+				}),
+			);
+			continue;
+		}
+		await appendScannedObjects(
 			objects,
 			{
 				id: root.id,
@@ -136,7 +178,7 @@ export const inventoryHostTransfer = async (
 	}
 	for (const [sourcePath, common] of [...commonDirectories].sort(([left], [right]) => left.localeCompare(right))) {
 		const destination = destinationForPath(sourcePath, mappings);
-		await appendScannedObject(
+		await appendScannedObjects(
 			objects,
 			{
 				id: common.id,
@@ -157,7 +199,7 @@ export const inventoryHostTransfer = async (
 	for (const entry of gitInputs) {
 		const state = gitStates.get(entry.id)!;
 		const common = commonDirectories.get(state.commonDirectory)!;
-		await appendScannedObject(
+		await appendScannedObjects(
 			objects,
 			{
 				id: entry.id,
@@ -177,7 +219,7 @@ export const inventoryHostTransfer = async (
 	}
 
 	for (const account of [...input.accountProfiles].sort((left, right) => left.id.localeCompare(right.id)))
-		await appendScannedObject(
+		await appendScannedObjects(
 			objects,
 			{
 				id: `account:${account.id}`,
@@ -196,7 +238,7 @@ export const inventoryHostTransfer = async (
 			symlinkSources,
 		);
 	for (const transcript of [...input.transcripts].sort((left, right) => left.id.localeCompare(right.id)))
-		await appendScannedObject(
+		await appendScannedObjects(
 			objects,
 			{
 				id: transcript.id,
@@ -211,24 +253,24 @@ export const inventoryHostTransfer = async (
 			mappings,
 			symlinkSources,
 		);
-	for (const path of [...input.absolutePaths].sort((left, right) => left.id.localeCompare(right.id))) {
-		const value = `${path.field}\0${path.path}`;
+	for (const absolutePathEntry of [...input.absolutePaths].sort((left, right) => left.id.localeCompare(right.id))) {
+		const value = `${absolutePathEntry.field}\0${absolutePathEntry.path}`;
 		objects.push(
 			HostTransferObjectSchema.parse({
-				id: path.id,
+				id: absolutePathEntry.id,
 				kind: "absolute-path",
-				field: path.field,
-				sourcePath: path.path,
-				classification: path.classification,
+				field: absolutePathEntry.field,
+				sourcePath: absolutePathEntry.path,
+				classification: absolutePathEntry.classification,
 				bytes: Buffer.byteLength(value),
 				sha256: checksum(value),
-				secret: path.secret,
-				destination: path.destination,
+				secret: absolutePathEntry.secret,
+				destination: absolutePathEntry.destination,
 			}),
 		);
 	}
 
-	const providerResume = [...input.providerResume].sort((left, right) =>
+	const providerResumeCompatibility = [...input.providerResumeCompatibility].sort((left, right) =>
 		left.assignmentId.localeCompare(right.assignmentId),
 	);
 	return HostTransferManifestSchema.parse({
@@ -237,7 +279,7 @@ export const inventoryHostTransfer = async (
 		source: input.source,
 		destination: input.destination,
 		objects,
-		providerResume,
+		providerResumeCompatibility,
 		totals: {
 			objectCount: objects.length,
 			bytes: objects.reduce((total, object) => total + object.bytes, 0),

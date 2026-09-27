@@ -25,7 +25,7 @@ export type HostTransferObjectKind = z.infer<typeof HostTransferObjectKindSchema
 export const HostTransferAbsolutePathSchema = z
 	.string()
 	.min(1)
-	.regex(/^(?:\/|[a-z]:[\\/])/i, "Enter an absolute path.");
+	.regex(/^\//, "Enter a POSIX absolute path.");
 
 export const HostTransferDestinationSchema = z.discriminatedUnion("state", [
 	z.strictObject({
@@ -71,13 +71,13 @@ export const HostTransferObjectSchema = z.discriminatedUnion("kind", [
 	HostTransferObjectBaseSchema.extend({
 		kind: z.literal("repository"),
 		gitCommonDirectoryId: z.string().min(1),
-		dirtyPaths: z.array(z.string()).default([]),
+		dirtyPaths: z.array(z.string()),
 	}),
 	HostTransferObjectBaseSchema.extend({
 		kind: z.literal("worktree"),
 		repositoryId: z.string().min(1),
 		gitCommonDirectoryId: z.string().min(1),
-		dirtyPaths: z.array(z.string()).default([]),
+		dirtyPaths: z.array(z.string()),
 	}),
 	HostTransferObjectBaseSchema.extend({
 		kind: z.literal("git-common-directory"),
@@ -91,7 +91,7 @@ export const HostTransferObjectSchema = z.discriminatedUnion("kind", [
 ]);
 export type HostTransferObject = z.infer<typeof HostTransferObjectSchema>;
 
-export const ProviderResumeResultSchema = z.discriminatedUnion("state", [
+export const ProviderResumeCompatibilitySchema = z.discriminatedUnion("state", [
 	z.strictObject({
 		assignmentId: z.string().min(1),
 		provider: z.string().min(1),
@@ -107,15 +107,19 @@ export const ProviderResumeResultSchema = z.discriminatedUnion("state", [
 		reason: z.string().min(1),
 	}),
 ]);
-export type ProviderResumeResult = z.infer<typeof ProviderResumeResultSchema>;
+export type ProviderResumeCompatibility = z.infer<typeof ProviderResumeCompatibilitySchema>;
 
-export const HostTransferEndpointSchema = z.strictObject({
+const HostTransferEndpointBaseSchema = z.strictObject({
 	hostId: z.string().min(1),
 	dataHome: HostTransferAbsolutePathSchema,
 	homeDirectory: HostTransferAbsolutePathSchema,
-	platform: z.string().min(1),
-	arch: z.string().min(1),
+	arch: z.enum(["x64", "arm64"]),
 });
+
+export const HostTransferEndpointSchema = z.discriminatedUnion("platform", [
+	HostTransferEndpointBaseSchema.extend({ platform: z.literal("darwin") }),
+	HostTransferEndpointBaseSchema.extend({ platform: z.literal("linux") }),
+]);
 export type HostTransferEndpoint = z.infer<typeof HostTransferEndpointSchema>;
 
 export const HostTransferManifestSchema = z
@@ -125,7 +129,7 @@ export const HostTransferManifestSchema = z
 		source: HostTransferEndpointSchema,
 		destination: HostTransferEndpointSchema,
 		objects: z.array(HostTransferObjectSchema),
-		providerResume: z.array(ProviderResumeResultSchema),
+		providerResumeCompatibility: z.array(ProviderResumeCompatibilitySchema),
 		totals: z.strictObject({
 			objectCount: z.number().int().nonnegative(),
 			bytes: z.number().int().nonnegative(),

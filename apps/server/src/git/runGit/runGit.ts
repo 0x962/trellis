@@ -1,4 +1,4 @@
-import { executionEnvironment } from "../../../executionEnvironment";
+import { executionEnvironment } from "../../executionEnvironment/index.ts";
 
 const read = async (stream: ReadableStream<Uint8Array>, limit: number) => {
 	const chunks: Uint8Array[] = [];
@@ -10,12 +10,10 @@ const read = async (stream: ReadableStream<Uint8Array>, limit: number) => {
 	return { text: Buffer.concat(chunks).toString("utf8"), size };
 };
 
-// A Git call that runs for 30 s is stuck, and a stuck call would hold a
-// request open until the server stops. Bun kills the process at the limit,
-// and the call fails.
+// A Git call that runs for 30 s is stuck. Bun stops the process so the Git call cannot hold a server request open.
 const timeoutMs = 30000;
 
-export const git = async (workspace: string, args: string[], options = { limit: 16777216, truncate: false }) => {
+export const runGit = async (workspace: string, args: string[], options = { limit: 16777216, truncate: false }) => {
 	const child = Bun.spawn(["git", "-c", "core.fsmonitor=false", "-C", workspace, ...args], {
 		env: await executionEnvironment(),
 		stdout: "pipe",
