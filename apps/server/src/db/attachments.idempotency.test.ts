@@ -4,11 +4,35 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { upload } from "../services/attachments.ts";
+import { prepareUpload, upload } from "../services/attachments.ts";
 import type { ServiceCtx } from "../services/support.ts";
 import { withTx } from "./tx.ts";
 
 const at = new Date("2026-09-17T06:00:00.000Z");
+
+const pausedFile = (body: string, name: string, type: string) => {
+	const bytes = new TextEncoder().encode(body);
+	const started = Promise.withResolvers<void>();
+	const release = Promise.withResolvers<void>();
+	const file = new File([bytes], name, { type });
+	Object.defineProperty(file, "stream", {
+		value: () => {
+			let sent = false;
+			return new ReadableStream<Uint8Array>({
+				pull(controller) {
+					if (!sent) {
+						sent = true;
+						controller.enqueue(bytes);
+						started.resolve();
+						return;
+					}
+					return release.promise.then(() => controller.close());
+				},
+			});
+		},
+	});
+	return { file, started: started.promise, release: release.resolve };
+};
 
 describe("attachments.upload idempotency", () => {
 	test("one client attachment id creates one row across a repeated request", async () => {
@@ -53,13 +77,32 @@ describe("attachments.upload idempotency", () => {
 				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
 				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
+			const paused = pausedFile("same bytes", "plan.txt", "text/plain");
 			const input = {
 				id: uploadId,
 				ticket: ticketId,
-				file: new File(["same bytes"], "plan.txt", { type: "text/plain" }),
+				file: paused.file,
 			};
-			const first = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, input));
-			const retry = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, input));
+			const preparing = prepareUpload(ctx, input);
+			await paused.started;
+			const concurrentDatabaseWork = Promise.all([
+				db.execute(sql`SELECT count(*) FROM agent_runs`),
+				db.execute(sql`UPDATE tickets SET title=title WHERE id=${ticketId}`),
+			]);
+			const completedWhileFileWasPaused = await Promise.race([
+				concurrentDatabaseWork.then(() => true),
+				new Promise<false>((resolve) => setTimeout(() => resolve(false), 500)),
+			]);
+			paused.release();
+			await concurrentDatabaseWork;
+			expect(completedWhileFileWasPaused).toBe(true);
+			const firstInput = await preparing;
+			const first = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, firstInput));
+			const retryInput = await prepareUpload(ctx, {
+				...input,
+				file: new File(["same bytes"], "plan.txt", { type: "text/plain" }),
+			});
+			const retry = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, retryInput));
 			const attachments = await db.execute(sql`SELECT id FROM attachments`);
 			const activity = await db.execute(sql`SELECT id FROM activity WHERE action = 'attachment.created'`);
 			const tickets = await db.execute(sql`SELECT version FROM tickets WHERE id = ${ticketId}`);
@@ -128,11 +171,10 @@ describe("attachments.upload idempotency", () => {
 				...firstInput,
 				file: new File(["other data"], "plan.txt", { type: "text/plain" }),
 			};
-			await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, firstInput));
+			const preparedFirst = await prepareUpload(ctx, firstInput);
+			await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, preparedFirst));
 
-			await expect(withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, mismatchInput))).rejects.toThrow(
-				"This id already identifies another attachment.",
-			);
+			await expect(prepareUpload(ctx, mismatchInput)).rejects.toThrow("This id already identifies another attachment.");
 			const attachments = await db.execute(sql`SELECT id FROM attachments`);
 			const activity = await db.execute(sql`SELECT id FROM activity WHERE action = 'attachment.created'`);
 			const tickets = await db.execute(sql`SELECT version FROM tickets WHERE id = ${ticketId}`);

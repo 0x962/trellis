@@ -284,11 +284,21 @@ describe("agentLinesByTicket", () => {
 		expect(agentLinesByTicket([loose])).toEqual({});
 	});
 
-	test("leaves out an idle run with nothing to say", () => {
+	test("keeps a session link for an idle run with no message", () => {
 		const idle = runOf();
 		idle.observation!.activity = { state: "idle", updatedAt: at };
 
-		expect(agentLinesByTicket([idle])).toEqual({});
+		expect(agentLinesByTicket([idle])).toEqual({
+			"ticket-a": ticketAgentLine("crisp-fjord: idle"),
+		});
+	});
+
+	test("keeps a session link when the runtime has no live record", () => {
+		const interrupted = runOf({ processStatus: null, observation: null });
+
+		expect(agentLinesByTicket([interrupted])).toEqual({
+			"ticket-a": ticketAgentLine("crisp-fjord: did not run: Trellis cannot find a live execution record"),
+		});
 	});
 
 	test("keeps the request of one run when a later run of the same ticket only speaks", () => {
@@ -311,6 +321,14 @@ describe("agentLinesByTicket", () => {
 			working: false,
 			runId: "run",
 		});
+	});
+
+	test("takes the assigned run over a prior run that still holds a request", () => {
+		const prior = asking("amber-quarry");
+		prior.assigned = false;
+		const current = speaking();
+
+		expect(agentLinesByTicket([prior, current])["ticket-a"]).toEqual(workingLine("I rebased onto master."));
 	});
 
 	// Two runs of one ticket, the older one with an earlier message and a
