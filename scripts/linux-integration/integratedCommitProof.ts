@@ -5,14 +5,23 @@ import type {
 } from "./reviewEvidence";
 
 async function isAncestor(ancestor: string, descendant: string): Promise<boolean> {
-	const process = Bun.spawn(["git", "merge-base", "--is-ancestor", ancestor, descendant], {
+	const command = ["git", "merge-base", "--is-ancestor", ancestor, descendant];
+	const process = Bun.spawn(command, {
 		stdout: "ignore",
-		stderr: "ignore",
+		stderr: "pipe",
 	});
-	return (await process.exited) === 0;
+	const [exitCode, stderr] = await Promise.all([
+		process.exited,
+		new Response(process.stderr).text(),
+	]);
+	if (exitCode === 0) return true;
+	if (exitCode === 1) return false;
+	throw new Error(
+		`The command ${command.join(" ")} failed with exit code ${exitCode}: ${stderr.trim()}`,
+	);
 }
 
-export async function readIntegratedCommitProof(
+export async function buildIntegratedCommitProof(
 	input: IntegratedInputPlan | LaneReviewPlan | null,
 	workflowHead: string,
 ): Promise<IntegratedCommitProof> {
@@ -32,7 +41,7 @@ export async function readIntegratedCommitProof(
 	};
 }
 
-export async function readLaneReviewCoverageProof(
+export async function buildLaneReviewCoverageProof(
 	input: IntegratedInputPlan,
 	laneReview: LaneReviewPlan | null,
 ): Promise<boolean | null> {
