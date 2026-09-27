@@ -12,8 +12,9 @@ import { CountSchema, IsoDateTimeSchema, KeySchema, slugPattern, UlidSchema } fr
 // results.
 //
 // - `agent` runs one agent and returns its result.
-// - `gate` asks an agent or Jev for a decision. Its `yes` edges run on YES,
-//   and its `no` edges run on NO.
+// - `gate` gets a YES or NO decision. A gate with `reviewArea` classifies
+//   review relevance; otherwise, its harness runs an agent. Its `yes` edges
+//   run on YES, and its `no` edges run on NO.
 // - `human` waits until a person approves or rejects its input.
 // - `group` holds steps. `parallel` starts all children together; otherwise
 //   edges set their order. Optional `minutes` limits the whole group.

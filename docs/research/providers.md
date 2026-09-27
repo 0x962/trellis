@@ -473,11 +473,11 @@ Each item below is a ticket of a later wave. None is in the CRUD tickets.
 
 ### 4.1 The Jev call
 
-TRL-509 uses `services/providers/reviewRelevance/reviewRelevance.ts` for the review gates.
+TRL-509 uses `services/providers/evaluate/evaluate.ts` for the review gates.
 It selects the oldest enabled Vercel provider that offers `typesafe-ai/jev` and reads its key through `keyOf`.
 It posts the complete changed file list to `<baseUrl>/v1/evaluate` outside a database transaction.
-One choice question returns frontend, backend, both, or neither.
-The client validates the response and returns independent frontend and backend flags.
+The client accepts state and named choice questions, then validates each choice against its supplied criteria.
+The flow builds the review question and maps its answer to independent frontend and backend flags.
 A missing provider, failed request, or invalid response fails the gate.
 The client keeps keys and remote error bodies out of the saved error.
 

@@ -22,7 +22,7 @@ const query = `query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
 	} }
 }`;
 
-export async function reviewPaths(
+export async function pullRequestChangedFilePaths(
 	pull: { owner: string; repo: string; number: number; headSha: string },
 	gh: GhRunner = createGhRunner(),
 ): Promise<string[]> {
@@ -45,9 +45,12 @@ export async function reviewPaths(
 			...(cursor === null ? [] : ["-f", `cursor=${cursor}`]),
 		]);
 		if (!result.ok) throw new Error("GitHub could not return the changed file list for the Jev gate.");
-		const page: z.infer<typeof pageSchema>["data"]["repository"]["pullRequest"] = pageSchema.parse(
-			JSON.parse(result.stdout),
-		).data.repository.pullRequest;
+		let page: z.infer<typeof pageSchema>["data"]["repository"]["pullRequest"];
+		try {
+			page = pageSchema.parse(JSON.parse(result.stdout)).data.repository.pullRequest;
+		} catch {
+			throw new Error("GitHub returned an invalid changed file response for the Jev gate.");
+		}
 		if (
 			page.headRefOid !== pull.headSha ||
 			(base !== undefined && base !== page.baseRefOid) ||

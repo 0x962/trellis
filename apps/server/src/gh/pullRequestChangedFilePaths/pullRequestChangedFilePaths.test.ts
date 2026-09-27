@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { GhRunner } from "../run.ts";
-import { reviewPaths } from "./reviewPaths.ts";
+import { pullRequestChangedFilePaths } from "./pullRequestChangedFilePaths.ts";
 
 const pull = { owner: "example", repo: "app", number: 12, headSha: "reviewed" };
 const page = (paths: string[], total: number, next: string | null, head = "reviewed", base = "base") => ({
@@ -29,7 +29,7 @@ const runner = (read: (args: string[]) => unknown) =>
 test("reads all pages and retains names and extensions", async () => {
 	const paths = Array.from({ length: 251 }, (_, i) => `src/a ${i}.tsx`);
 	let calls = 0;
-	const result = await reviewPaths(
+	const result = await pullRequestChangedFilePaths(
 		pull,
 		runner((args) => {
 			const index = calls++;
@@ -43,13 +43,13 @@ test("reads all pages and retains names and extensions", async () => {
 
 test("refuses truncated or duplicate paths instead of classifying a partial diff", async () => {
 	await expect(
-		reviewPaths(
+		pullRequestChangedFilePaths(
 			pull,
 			runner(() => page(["a.ts"], 2, null)),
 		),
 	).rejects.toThrow("incomplete");
 	await expect(
-		reviewPaths(
+		pullRequestChangedFilePaths(
 			pull,
 			runner(() => page(["a.ts", "a.ts"], 2, null)),
 		),
@@ -58,14 +58,14 @@ test("refuses truncated or duplicate paths instead of classifying a partial diff
 
 test("refuses a changed head or base during pagination", async () => {
 	await expect(
-		reviewPaths(
+		pullRequestChangedFilePaths(
 			pull,
 			runner(() => page([], 0, null, "new-head")),
 		),
 	).rejects.toThrow("pull request changed");
 	let calls = 0;
 	await expect(
-		reviewPaths(
+		pullRequestChangedFilePaths(
 			pull,
 			runner(() => (calls++ === 0 ? page(["a.ts"], 2, "next") : page(["b.ts"], 2, null, "reviewed", "new-base"))),
 		),
