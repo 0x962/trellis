@@ -109,7 +109,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		lock.setPort(server.port!);
 		Object.assign(config, loadConfig({ ...env, TRELLIS_PORT: String(server.port) }));
 		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
-		const identities = await initializeHostIdentityFiles(config);
+		const hostId = await initializeHostIdentityFiles(config);
 		const leftovers = sweepBackups(config.backupsDir);
 		if (leftovers.length > 0) log.info("backup sweep", { removed: leftovers });
 
@@ -158,15 +158,23 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			clearTimer: pageClock.clearTimer,
 			log: (message, fields) => log.info(message, fields),
 		});
-		const browserAccess =
+		const browserSessionAccess =
 			config.browserOrigin === null
 				? null
 				: {
 						origin: config.browserOrigin,
 						hostToken: config.authToken!,
-						sessions: new BrowserSessionStore({ hostId: identities.hostId, log }),
+						sessions: new BrowserSessionStore({ hostId, log }),
 					};
-		const { app, bye } = createApp({ config, log, transport, bus, runtime, browserAccess, gh: ghState });
+		const { app, bye } = createApp({
+			config,
+			log,
+			transport,
+			bus,
+			runtime,
+			browserSessionAccess,
+			gh: ghState,
+		});
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();

@@ -10,53 +10,61 @@ import { pageArchiveRoute } from "../pageArchive/pageArchive.ts";
 import { pageContentRoute } from "../pageRender/pageContent.ts";
 import { pageFrameRoute } from "../pageRender/pageRender.ts";
 
-export type BrowserAccess = {
+export type BrowserSessionAccess = {
 	origin: string;
 	hostToken: string;
 	sessions: BrowserSessionStore;
 };
 
-export type BrowserAccessOptions = {
+export type RegisterBrowserRoutesOptions = {
 	app: Hono;
 	config: Config;
 	transport: ServiceTransport;
 	log: Logger;
-	browserAccess: BrowserAccess | null;
+	browserSessionAccess: BrowserSessionAccess | null;
 };
 
-export const registerBrowserAccess = ({
+export const registerBrowserRoutes = ({
 	app,
 	config,
 	transport,
 	log,
-	browserAccess,
-}: BrowserAccessOptions): void => {
-	// A browser sends no ambient credential on a frame file or archive download.
-	// Each Page address carries a short-lived lease or grant that authorizes one version.
-	app.get(`${PAGE_RENDER_PREFIX}/:leaseId`, pageFrameRoute({ log, browserOrigin: browserAccess?.origin ?? null }));
+	browserSessionAccess,
+}: RegisterBrowserRoutesOptions): void => {
+	// Each lease ID or grant ID authorizes one Page version for a limited time.
+	// These routes must precede browserSessionAuth.
+	app.get(
+		`${PAGE_RENDER_PREFIX}/:leaseId`,
+		pageFrameRoute({ log, browserOrigin: browserSessionAccess?.origin ?? null }),
+	);
 	app.get(
 		`${PAGE_RENDER_PREFIX}/:leaseId/*`,
-		pageContentRoute({ config, transport, log, browserOrigin: browserAccess?.origin ?? null }),
+		pageContentRoute({ config, transport, log, browserOrigin: browserSessionAccess?.origin ?? null }),
 	);
 	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config, transport, log }));
 
-	if (browserAccess !== null) {
-		// The login route creates the ambient credential. The host route checks its own bearer credential.
+	if (browserSessionAccess !== null) {
+		// browserSessionRoutes sets the browser session cookie.
+		// browserSessionHostRoutes requires the host bearer token.
 		app.route(
 			"/",
-			browserSessionRoutes({ origin: browserAccess.origin, sessions: browserAccess.sessions, log }),
+			browserSessionRoutes({ origin: browserSessionAccess.origin, sessions: browserSessionAccess.sessions, log }),
 		);
 		app.route(
 			"/",
-			browserSessionHostRoutes({ hostToken: browserAccess.hostToken, sessions: browserAccess.sessions, log }),
+			browserSessionHostRoutes({
+				hostToken: browserSessionAccess.hostToken,
+				sessions: browserSessionAccess.sessions,
+				log,
+			}),
 		);
 	}
 	app.use(
 		browserSessionAuth(
 			config.authToken,
-			browserAccess === null
+			browserSessionAccess === null
 				? null
-				: { origin: browserAccess.origin, sessions: browserAccess.sessions, log },
+				: { origin: browserSessionAccess.origin, sessions: browserSessionAccess.sessions, log },
 		),
 	);
 };

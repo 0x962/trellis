@@ -91,7 +91,7 @@ test("HTTP timings sum preparation, guard, final, and cleanup transactions but e
 			return [];
 		},
 	);
-	const { app } = createApp({ config, log, bus, runtime, transport: transport(), browserAccess: null });
+	const { app } = createApp({ config, log, bus, runtime, transport: transport(), browserSessionAccess: null });
 	const response = await app.request("http://localhost/api/agent-runs");
 	expect(response.status).toBe(200);
 	expect(await response.json()).toEqual([]);

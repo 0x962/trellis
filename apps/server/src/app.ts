@@ -18,7 +18,7 @@ import { isAllowedHost } from "./hostCheck.ts";
 import type { Logger } from "./log.ts";
 import { chooseDirectory } from "./native/chooseDirectory";
 import { type ProcedureContext, router } from "./procedures/index.ts";
-import { type BrowserAccess, registerBrowserAccess } from "./routes/browserAccess/index.ts";
+import { type BrowserSessionAccess, registerBrowserRoutes } from "./routes/registerBrowserRoutes/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
@@ -38,7 +38,7 @@ export type AppOptions = {
 	transport: ServiceTransport;
 	bus: Bus;
 	runtime: Runtime;
-	browserAccess: BrowserAccess | null;
+	browserSessionAccess: BrowserSessionAccess | null;
 	clock?: Clock;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
@@ -96,18 +96,13 @@ const deleteWithQuery = (request: Request) => {
 	return new Request(url, { method: "DELETE", headers, body: JSON.stringify(Object.fromEntries(url.searchParams)) });
 };
 
-// The middleware chain: request id, the request log line and the api
-// version header, the Host check, cors, the body limits on upload
-// paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
-// routes, a JSON 404 under the two mounts, and the web app for everything
-// else.
 export const createApp = ({
 	config,
 	log,
 	transport,
 	bus,
 	runtime,
-	browserAccess,
+	browserSessionAccess,
 	clock = realClock,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
@@ -157,7 +152,7 @@ export const createApp = ({
 		await next();
 	});
 
-	registerBrowserAccess({ app, config, transport, log, browserAccess });
+	registerBrowserRoutes({ app, config, transport, log, browserSessionAccess });
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
 
@@ -259,8 +254,9 @@ export const createApp = ({
 	app.get(
 		"/api/agent-runs/:id/terminal/socket",
 		terminalSocketRoute(config, transport, {
-			origin: browserAccess?.origin ?? null,
-			sessions: browserAccess?.sessions ?? null,
+			origin: browserSessionAccess?.origin ?? null,
+			sessions: browserSessionAccess?.sessions ?? null,
+			log,
 		}),
 	);
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));

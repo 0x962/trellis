@@ -10,7 +10,7 @@ import type { Runtime, ServiceTransport } from "./db/transport.ts";
 import type { Bus } from "./events/bus.ts";
 import type { Logger } from "./log.ts";
 import { clearPageLeases, createArchiveGrant, createRenderLease } from "./pageLeases.ts";
-import type { BrowserAccess } from "./routes/browserAccess/index.ts";
+import type { BrowserSessionAccess } from "./routes/registerBrowserRoutes/index.ts";
 import { BrowserSessionStore } from "./services/browserSessions/index.ts";
 import { pageObjectPath } from "./storage/pageObjects.ts";
 
@@ -53,12 +53,12 @@ const transport = {
 const log = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger;
 
 // The app with a host token set, the way the desktop host runs it.
-const appOf = (browserAccess: BrowserAccess | null = null) =>
+const appOf = (browserSessionAccess: BrowserSessionAccess | null = null) =>
 	createApp({
 		config: {
 			home,
 			authToken: TOKEN,
-			browserOrigin: browserAccess?.origin ?? null,
+			browserOrigin: browserSessionAccess?.origin ?? null,
 			host: "127.0.0.1",
 			allowedHosts: [],
 			port: 4521,
@@ -69,7 +69,7 @@ const appOf = (browserAccess: BrowserAccess | null = null) =>
 		transport,
 		bus: {} as Bus,
 		runtime: { version: "0.0.0", bootId: ulid() } as Runtime,
-		browserAccess,
+		browserSessionAccess,
 	}).app;
 
 beforeAll(async () => {
@@ -143,12 +143,12 @@ describe("browser access of the whole app", () => {
 	});
 
 	test("registers the host session route before global authentication", async () => {
-		const browserAccess = {
+		const browserSessionAccess = {
 			origin: "https://trellis.example.com",
 			hostToken: TOKEN,
 			sessions: new BrowserSessionStore({ hostId: ulid(), log }),
 		};
-		const response = await appOf(browserAccess).request(`${ORIGIN}/api/browser-session-codes`, {
+		const response = await appOf(browserSessionAccess).request(`${ORIGIN}/api/browser-session-codes`, {
 			method: "POST",
 			headers: { authorization: `Bearer ${TOKEN}` },
 		});

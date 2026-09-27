@@ -1,4 +1,5 @@
 import type { WSContext, WSEvents } from "hono/ws";
+import type { Logger } from "../../../log.ts";
 import type {
 	BrowserSession,
 	BrowserSessionInvalidation,
@@ -8,6 +9,10 @@ import type {
 export type BrowserSessionTerminalEventsOptions = {
 	session: BrowserSession;
 	sessions: Pick<BrowserSessionStore, "onInvalidated">;
+	log: Pick<Logger, "info">;
+	reqId: string;
+	runId: string;
+	attemptId: string;
 	setup: () => Promise<WSEvents>;
 };
 
@@ -17,14 +22,28 @@ const closeReason = (reason: BrowserSessionInvalidation) =>
 export const browserSessionTerminalEvents = async ({
 	session,
 	sessions,
+	log,
+	reqId,
+	runId,
+	attemptId,
 	setup,
 }: BrowserSessionTerminalEventsOptions): Promise<WSEvents> => {
 	let socket: WSContext | null = null;
 	let invalidated: BrowserSessionInvalidation | null = null;
+	const close = (target: WSContext, reason: BrowserSessionInvalidation) => {
+		log.info("browser terminal session closed", {
+			reqId,
+			sessionId: session.id,
+			runId,
+			attemptId,
+			reason,
+		});
+		target.close(4401, closeReason(reason));
+	};
 	let removeInvalidation = () => {};
 	removeInvalidation = sessions.onInvalidated(session.id, (reason) => {
 		invalidated = reason;
-		socket?.close(4401, closeReason(reason));
+		if (socket !== null) close(socket, reason);
 	});
 
 	let events: WSEvents;
@@ -40,7 +59,7 @@ export const browserSessionTerminalEvents = async ({
 		onOpen: (event, ws) => {
 			socket = ws;
 			if (invalidated !== null) {
-				ws.close(4401, closeReason(invalidated));
+				close(ws, invalidated);
 				return;
 			}
 			events.onOpen?.(event, ws);

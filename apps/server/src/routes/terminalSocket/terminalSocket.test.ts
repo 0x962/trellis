@@ -1,16 +1,16 @@
 import { expect, test } from "bun:test";
-import { terminalOriginAccepted } from "./terminalSocket.ts";
+import { isTerminalOriginAllowed } from "./terminalSocket.ts";
 
 test("uses the configured HTTPS origin behind a proxy", () => {
 	expect(
-		terminalOriginAccepted(
+		isTerminalOriginAllowed(
 			"https://trellis.example.com",
 			"http://127.0.0.1/api/agent-runs/run/terminal/socket",
 			"https://trellis.example.com",
 		),
 	).toBe(true);
 	expect(
-		terminalOriginAccepted(
+		isTerminalOriginAllowed(
 			"http://127.0.0.1",
 			"http://127.0.0.1/api/agent-runs/run/terminal/socket",
 			"https://trellis.example.com",
@@ -20,14 +20,14 @@ test("uses the configured HTTPS origin behind a proxy", () => {
 
 test("uses the request origin when browser access is disabled", () => {
 	expect(
-		terminalOriginAccepted(
+		isTerminalOriginAllowed(
 			"http://127.0.0.1",
 			"http://127.0.0.1/api/agent-runs/run/terminal/socket",
 			null,
 		),
 	).toBe(true);
 	expect(
-		terminalOriginAccepted(
+		isTerminalOriginAllowed(
 			"https://foreign.example",
 			"http://127.0.0.1/api/agent-runs/run/terminal/socket",
 			null,
@@ -37,7 +37,7 @@ test("uses the request origin when browser access is disabled", () => {
 
 test("accepts a bearer client without an Origin header", () => {
 	expect(
-		terminalOriginAccepted(
+		isTerminalOriginAllowed(
 			undefined,
 			"http://127.0.0.1/api/agent-runs/run/terminal/socket",
 			"https://trellis.example.com",
