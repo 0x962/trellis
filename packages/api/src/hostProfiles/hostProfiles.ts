@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { UlidSchema } from "../schemas/primitives.ts";
 
-const LabelSchema = z.string().trim().min(1, "Enter a host name.").max(80, "Enter a host name of 80 characters or less.");
+const LabelSchema = z
+	.string()
+	.trim()
+	.min(1, "Enter a host name.")
+	.max(80, "Enter a host name of 80 characters or less.")
+	.regex(/^[^\p{Cc}]+$/u, "Enter a host name without control characters.");
 const IdentitySchema = UlidSchema.nullable();
 const PortSchema = z.number().int().min(1).max(65_535);
 const LoopbackPortSchema = z.number().int().min(1_024).max(65_535);
@@ -10,13 +15,13 @@ const AddressSchema = z
 	.trim()
 	.min(1, "Enter a host address.")
 	.max(255, "Enter a host address of 255 characters or less.")
-	.regex(/^[^\s/\p{Cc}]+$/u, "Enter a host name or an IP address.");
+	.regex(/^(?!-)[A-Za-z0-9_.:%-]+$/, "Enter a host name or an IP address.");
 const UsernameSchema = z
 	.string()
 	.trim()
 	.min(1, "Enter an SSH user name.")
 	.max(255, "Enter an SSH user name of 255 characters or less.")
-	.regex(/^[^\s\p{Cc}]+$/u, "Enter an SSH user name without spaces.");
+	.regex(/^[A-Za-z_][A-Za-z0-9_.-]*\$?$/, "Enter a valid SSH user name.");
 
 export const HostProfileIdSchema = z.uuid();
 export type HostProfileId = z.infer<typeof HostProfileIdSchema>;
@@ -40,7 +45,13 @@ export const LocalHostProfileSchema = z.strictObject({
 	id: HostProfileIdSchema,
 	kind: z.literal("local"),
 	label: LabelSchema,
-	dataHome: z.string().trim().min(1).max(4_096).startsWith("/", "Enter an absolute data directory."),
+	dataHome: z
+		.string()
+		.trim()
+		.min(1)
+		.max(4_096)
+		.startsWith("/", "Enter an absolute data directory.")
+		.regex(/^[^\p{Cc}]+$/u, "Enter a data directory without control characters."),
 	...IdentityFields,
 });
 export type LocalHostProfile = z.infer<typeof LocalHostProfileSchema>;
