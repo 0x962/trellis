@@ -149,5 +149,11 @@ export function missingRequiredPaths(paths: string[], exists: (path: string) => 
 }
 
 export async function readLanePlans(): Promise<LanePlans> {
-	return (await Bun.file(new URL("./lanes.json", import.meta.url)).json()) as LanePlans;
+	const entries = await Promise.all(
+		Object.values(integrationBranches).map(async (lane) => {
+			const plan = (await Bun.file(new URL(`./lanes/${lane}.json`, import.meta.url)).json()) as LanePlan;
+			return [lane, plan] as const;
+		}),
+	);
+	return { schemaVersion: 1, lanes: Object.fromEntries(entries) as Record<Lane, LanePlan> };
 }
