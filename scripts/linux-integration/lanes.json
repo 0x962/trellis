@@ -94,7 +94,7 @@
 			"focusedTests": {
 				"linux-x64": {
 					"command": "bun test scripts/linux-integration/contract.test.ts",
-					"integratedInput": "TRL-517",
+					"integratedInputTicketIdentifier": "TRL-517",
 					"requiredPaths": [
 						"scripts/linux-integration/contract.test.ts",
 						"scripts/linux-integration/contract.ts",
@@ -107,7 +107,7 @@
 				},
 				"linux-arm64": {
 					"command": "bun test scripts/linux-integration/contract.test.ts",
-					"integratedInput": "TRL-517",
+					"integratedInputTicketIdentifier": "TRL-517",
 					"requiredPaths": [
 						"scripts/linux-integration/contract.test.ts",
 						"scripts/linux-integration/contract.ts",
@@ -120,7 +120,7 @@
 				},
 				"macos-x64": {
 					"command": "bun test scripts/linux-integration/contract.test.ts",
-					"integratedInput": "TRL-517",
+					"integratedInputTicketIdentifier": "TRL-517",
 					"requiredPaths": [
 						"scripts/linux-integration/contract.test.ts",
 						"scripts/linux-integration/contract.ts",
@@ -133,7 +133,7 @@
 				},
 				"macos-arm64": {
 					"command": "bun test scripts/linux-integration/contract.test.ts",
-					"integratedInput": "TRL-517",
+					"integratedInputTicketIdentifier": "TRL-517",
 					"requiredPaths": [
 						"scripts/linux-integration/contract.test.ts",
 						"scripts/linux-integration/contract.ts",

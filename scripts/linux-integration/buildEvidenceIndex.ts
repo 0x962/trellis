@@ -17,8 +17,8 @@ import {
 	verifyCheckRecord,
 } from "./evidenceVerification";
 import {
-	readIntegratedCommitProof,
-	readLaneReviewCoverageProof,
+	buildIntegratedCommitProof,
+	buildLaneReviewCoverageProof,
 } from "./integratedCommitProof";
 import {
 	findIntegratedInputGaps,
@@ -58,18 +58,18 @@ const lanePlans = await readLanePlans();
 const lanePlan = lanePlans.lanes[lane];
 const laneReview = verifyLaneReview(
 	lanePlan.laneReview,
-	await readIntegratedCommitProof(lanePlan.laneReview, workflowIdentity.commit),
+	await buildIntegratedCommitProof(lanePlan.laneReview, workflowIdentity.commit),
 );
 const integratedInputs = await Promise.all(
 	lanePlan.integratedInputs.map(async (input) =>
 		({
 			...verifyIntegratedInput(
 				input,
-				await readIntegratedCommitProof(input, workflowIdentity.commit),
+				await buildIntegratedCommitProof(input, workflowIdentity.commit),
 			),
 			laneReviewCoverage: verifyLaneReviewCoverage(
 				laneReview,
-				await readLaneReviewCoverageProof(input, lanePlan.laneReview),
+				await buildLaneReviewCoverageProof(input, lanePlan.laneReview),
 			),
 		}),
 	),

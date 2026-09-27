@@ -9,23 +9,23 @@ export const integrationBranches = {
 	"integration/linux-system": "system",
 } as const;
 
-export type IntegrationBranch = keyof typeof integrationBranches;
+type IntegrationBranch = keyof typeof integrationBranches;
 export type Lane = (typeof integrationBranches)[IntegrationBranch];
 export type Result = "passed" | "failed" | "unverified";
 
 export type CommandPlan = {
 	command: string;
-	integratedInput?: string;
+	integratedInputTicketIdentifier?: string;
 	requiredPaths?: string[];
 };
 
-export type PackagePlan = CommandPlan;
+type PackagePlan = CommandPlan;
 
 export type SmokePlan = CommandPlan & {
 	image: string;
 };
 
-export type LanePlan = {
+type LanePlan = {
 	integratedInputs: IntegratedInputPlan[];
 	laneReview: LaneReviewPlan | null;
 	focusedTests: Partial<Record<string, CommandPlan>>;
@@ -34,7 +34,7 @@ export type LanePlan = {
 	latitude: Partial<Record<string, CommandPlan>>;
 };
 
-export type LanePlans = {
+type LanePlans = {
 	schemaVersion: 1;
 	lanes: Record<Lane, LanePlan>;
 };
@@ -61,7 +61,7 @@ export type CheckRecord = {
 	createdAt: string;
 };
 
-export type EvidenceCheck = {
+type EvidenceCheck = {
 	name: string;
 	platform: string;
 	runner: string;
@@ -81,20 +81,20 @@ export function toEvidenceCheck(record: CheckRecord): EvidenceCheck {
 	};
 }
 
-export const hostedPlatforms = [
+const hostedPlatforms = [
 	{ platform: "linux-x64", runner: "ubuntu-24.04", os: "Linux", architecture: "x64" },
 	{ platform: "linux-arm64", runner: "ubuntu-24.04-arm", os: "Linux", architecture: "arm64" },
 	{ platform: "macos-x64", runner: "macos-15-intel", os: "macOS", architecture: "x64" },
 	{ platform: "macos-arm64", runner: "macos-15", os: "macOS", architecture: "arm64" },
 ] as const;
 
-export const smokePlatforms = [
+const smokePlatforms = [
 	{ platform: "debian-x64", runner: "ubuntu-24.04", os: "Linux", architecture: "x64" },
 	{ platform: "rocky-x64", runner: "ubuntu-24.04", os: "Linux", architecture: "x64" },
 	{ platform: "alpine-x64", runner: "ubuntu-24.04", os: "Linux", architecture: "x64" },
 ] as const;
 
-export const latitudePlatform = {
+const latitudePlatform = {
 	platform: "protected-x64",
 	runner: "self-hosted,linux,x64,trellis-latitude",
 	os: "Linux",

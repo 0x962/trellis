@@ -17,6 +17,7 @@ import {
 	type JobConclusions,
 	verifyCheckRecord,
 } from "./evidenceVerification";
+import { buildIntegratedCommitProof } from "./integratedCommitProof";
 import {
 	findIntegratedInputGaps,
 	verifyIntegratedInput,
@@ -54,9 +55,10 @@ describe("Linux integration workflow contract", () => {
 		expect(() => laneForBranch("trellis/trl-517-feature")).toThrow("not a Linux integration branch");
 	});
 
-	test("keeps every lane command inactive", async () => {
+	test("keeps lanes without approved plans inactive", async () => {
 		const plans = await readLanePlans();
-		for (const plan of Object.values(plans.lanes)) {
+		for (const [lane, plan] of Object.entries(plans.lanes)) {
+			if (lane === "verification") continue;
 			expect(plan.integratedInputs).toEqual([]);
 			expect(plan.focusedTests).toEqual({});
 			expect(plan.packages).toEqual({});
@@ -64,6 +66,44 @@ describe("Linux integration workflow contract", () => {
 			expect(plan.latitude).toEqual({});
 			expect(plan.laneReview).toBeNull();
 		}
+	});
+
+	test("records the reviewed verification input and focused command", async () => {
+		const plan = (await readLanePlans()).lanes.verification;
+		expect(plan.integratedInputs[0]?.ticketIdentifier).toBe("TRL-517");
+		expect(plan.focusedTests["linux-x64"]?.integratedInputTicketIdentifier).toBe("TRL-517");
+		expect(plan.packages).toEqual({});
+		expect(plan.smoke).toEqual({});
+		expect(plan.latitude).toEqual({});
+	});
+
+	test("returns false only for a valid negative ancestry result", async () => {
+		const proof = await buildIntegratedCommitProof(
+			{
+				reviewedHead: "HEAD",
+				sourceHead: "HEAD^",
+				laneCommit: "HEAD^",
+			},
+			"HEAD^",
+		);
+		expect(proof.reviewedHeadInSource).toBe(false);
+		expect(proof.sourceHeadInLaneCommit).toBe(true);
+		expect(proof.laneCommitInWorkflowHead).toBe(true);
+	});
+
+	test("reports an invalid ancestry command with its failure details", async () => {
+		expect(
+			buildIntegratedCommitProof(
+				{
+					reviewedHead: "missing-linux-integration-reference",
+					sourceHead: "HEAD",
+					laneCommit: "HEAD",
+				},
+				"HEAD",
+			),
+		).rejects.toThrow(
+			"The command git merge-base --is-ancestor missing-linux-integration-reference HEAD failed with exit code 128:",
+		);
 	});
 
 	test("keeps reviewed, source, and lane commits as separate ancestry identities", () => {

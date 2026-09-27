@@ -1,6 +1,6 @@
 import type { Result } from "./contract";
 
-export type FindingPlan = {
+type FindingPlan = {
 	id?: string;
 	status?: string;
 	resolution?: string;
@@ -37,13 +37,13 @@ export type IntegratedCommitProof = {
 	laneCommitInWorkflowHead: boolean | null;
 };
 
-export type LaneReviewCoverage = {
+type LaneReviewCoverage = {
 	featureSourceInLaneReviewedHead: boolean | null;
 	verification: Result;
 	reason?: string;
 };
 
-export type IntegratedInputEvidence = {
+type IntegratedInputEvidence = {
 	ticketIdentifier: string;
 	ticketId: string;
 	checkpointTicketIdentifier: string;
@@ -66,7 +66,7 @@ export type IntegratedInputEvidence = {
 	reason?: string;
 };
 
-export type LaneReviewEvidence = {
+type LaneReviewEvidence = {
 	diffUrl: string;
 	reviewedHead: string;
 	sourceHead: string;
@@ -83,7 +83,7 @@ export type LaneReviewEvidence = {
 	reason?: string;
 };
 
-export type IntegrationGap = {
+type IntegrationGap = {
 	verification: Exclude<Result, "passed">;
 	reason: string;
 };
