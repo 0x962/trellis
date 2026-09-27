@@ -31,9 +31,11 @@ COPY --from=source /scripts/host-release/preflightResult/ /opt/trellis/source/sc
 
 RUN printf '%s\n' 'trellis:x:10001:10001:Trellis:/var/lib/trellis/home:/bin/sh' >> /etc/passwd \
 	&& printf '%s\n' 'trellis:x:10001:' >> /etc/group \
-	&& mkdir -p /var/lib/trellis /opt/trellis/source \
+	&& mkdir -p /var/lib/trellis /opt/trellis/source/node_modules/@trellis \
 	&& chown -R 10001:10001 /var/lib/trellis \
-	&& ln -s /opt/trellis/release/node_modules /opt/trellis/source/node_modules \
+	&& ln -s /opt/trellis/release/packages/api /opt/trellis/source/node_modules/@trellis/api \
+	&& ln -s /opt/trellis/release/packages/runtime-protocol /opt/trellis/source/node_modules/@trellis/runtime-protocol \
+	&& ln -s /opt/trellis/release/apps/runtime/node_modules/koffi /opt/trellis/source/node_modules/koffi \
 	&& chmod -R a-w /opt/trellis/source
 
 ENV HOME=/var/lib/trellis/home
@@ -46,4 +48,4 @@ VOLUME ["/var/lib/trellis"]
 EXPOSE 4521
 STOPSIGNAL SIGUSR2
 
-ENTRYPOINT ["/opt/trellis/release/bin/bun", "/opt/trellis/source/deploy/linux-container/src/supervisor.ts"]
+ENTRYPOINT ["/opt/trellis/release/bin/bun", "/opt/trellis/source/deploy/linux-container/src/supervisor/index.ts"]

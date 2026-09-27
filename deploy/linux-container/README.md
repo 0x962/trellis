@@ -54,6 +54,8 @@ deploy/linux-container/trellis-container.sh start
 
 The manager binds `127.0.0.1:14521` on the outer host. Use an SSH tunnel to forward that address. Do not publish the container port on a public interface.
 
+The manager claims one writer guard inside the data directory. A different container name cannot claim the same data directory. The `remove` action releases the guard after it removes the container.
+
 The supervisor writes these owner-only files:
 
 - `/srv/trellis/container/bootstrap.json`

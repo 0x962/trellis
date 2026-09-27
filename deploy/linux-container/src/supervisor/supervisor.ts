@@ -1,8 +1,10 @@
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { ContainerLifecycle, stateWriter, type ManagedProcess } from "./lifecycle.ts";
-import { readAndVerifyRelease, runContainerPreflight } from "./preflight.ts";
-import { prepareContainerState, writePrivateJson } from "./state.ts";
+import { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { ContainerLifecycle, createLifecycleStateWriter, type ManagedProcess } from "../lifecycle/index.ts";
+import { createContainerLogger } from "../logger/index.ts";
+import { readAndVerifyRelease, runContainerPreflight } from "../preflight/index.ts";
+import { prepareContainerState, writePrivateJson } from "../state/index.ts";
 
 process.umask(0o077);
 
@@ -13,16 +15,17 @@ if (!Number.isInteger(forwardedPort) || forwardedPort < 1 || forwardedPort > 655
 	throw new Error("TRELLIS_FORWARD_PORT must be an integer from 1 through 65535.");
 
 const manifest = await readAndVerifyRelease(releaseRoot);
-const preflight = await runContainerPreflight(dataHome, manifest);
-const state = await prepareContainerState(dataHome, forwardedPort, manifest.releaseId);
-process.stdout.write(`${JSON.stringify(preflight)}\n`);
+await runContainerPreflight(dataHome, manifest);
+const installation = await prepareContainerState(dataHome, forwardedPort, manifest.releaseId);
+const log = createContainerLogger(manifest.releaseId, installation.metadata.installationId);
+log({ event: "preflight_completed" });
 
 const commonEnvironment = {
 	...Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)),
-	HOME: state.paths.home,
-	XDG_CONFIG_HOME: join(state.paths.home, ".config"),
-	XDG_CACHE_HOME: join(state.paths.home, ".cache"),
-	XDG_DATA_HOME: join(state.paths.home, ".local", "share"),
+	HOME: installation.paths.home,
+	XDG_CONFIG_HOME: join(installation.paths.home, ".config"),
+	XDG_CACHE_HOME: join(installation.paths.home, ".cache"),
+	XDG_DATA_HOME: join(installation.paths.home, ".local", "share"),
 	PATH: `${join(releaseRoot, "bin")}:${process.env.PATH ?? "/usr/bin:/bin"}`,
 	TRELLIS_RELEASE_ID: manifest.releaseId,
 };
@@ -37,7 +40,7 @@ const spawn = (service: "runtime" | "host"): ManagedProcess => {
 					TRELLIS_HOME: dataHome,
 					TRELLIS_HOST: "0.0.0.0",
 					TRELLIS_PORT: "4521",
-					TRELLIS_AUTH_TOKEN: state.authToken,
+					TRELLIS_AUTH_TOKEN: installation.authToken,
 					TRELLIS_WEB_DIST: join(releaseRoot, "apps/web/dist"),
 					TRELLIS_RUNTIME_NODE: join(releaseRoot, manifest.entrypoints.node),
 					TRELLIS_RUNTIME_SCRIPT: join(releaseRoot, "apps/runtime/dist/index.js"),
@@ -48,7 +51,7 @@ const spawn = (service: "runtime" | "host"): ManagedProcess => {
 					TRELLIS_MUSE_BRIDGE: join(releaseRoot, "apps/server/dist/muse-bridge.js"),
 				};
 	const child = Bun.spawn({
-		cmd: service === "runtime" ? [executable, "--home", state.paths.runtime] : [executable],
+		cmd: service === "runtime" ? [executable, "--home", installation.paths.runtime] : [executable],
 		env: environment,
 		stdin: "inherit",
 		stdout: "inherit",
@@ -58,30 +61,38 @@ const spawn = (service: "runtime" | "host"): ManagedProcess => {
 };
 
 const waitForRuntime = async () => {
-	const socket = join(state.paths.runtime, "runtime.sock");
+	const socket = join(installation.paths.runtime, "runtime.sock");
+	const client = new RuntimeClient(socket, 250);
 	for (let attempt = 0; attempt < 200; attempt += 1) {
-		if (await Bun.file(socket).exists()) return;
+		try {
+			await client.hello();
+			return;
+		} catch (error) {
+			const code = (error as NodeJS.ErrnoException).code;
+			if (!["ENOENT", "ECONNREFUSED", "ECONNRESET", "RUNTIME_TIMEOUT"].includes(code ?? "")) throw error;
+		}
 		await delay(50);
 	}
-	throw new Error(`The runtime did not create ${socket}.`);
+	throw new Error(`The runtime did not answer hello on ${socket}.`);
 };
 
 const lifecycle = new ContainerLifecycle({
 	spawn,
 	waitForRuntime,
-	writeState: stateWriter(state.paths),
+	writeState: createLifecycleStateWriter(installation.paths),
 	markReplacementReady: async () =>
-		writePrivateJson(state.paths.replacementReady, {
+		writePrivateJson(installation.paths.replacementReady, {
 			schemaVersion: 1,
-			installationId: state.metadata.installationId,
+			installationId: installation.metadata.installationId,
 			stoppedAt: new Date().toISOString(),
 		}),
+	log,
 	exit: (code) => process.exit(code),
 });
 
 process.on("SIGUSR1", () => void lifecycle.restartHost());
 process.on("SIGUSR2", () => void lifecycle.stopForReplacement());
-process.on("SIGTERM", () => process.stderr.write("Send SIGUSR2 to stop the runtime before container replacement.\n"));
-process.on("SIGINT", () => process.stderr.write("Send SIGUSR2 to stop the runtime before container replacement.\n"));
+process.on("SIGTERM", () => log({ event: "replacement_stop_required" }));
+process.on("SIGINT", () => log({ event: "replacement_stop_required" }));
 
 await lifecycle.start();

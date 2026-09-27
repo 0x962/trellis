@@ -2,10 +2,10 @@ import { constants } from "node:fs";
 import { access, mkdir, readFile, realpath, rmdir, stat } from "node:fs/promises";
 import { join, posix } from "node:path";
 import type { HostReleaseManifest } from "@trellis/api";
-import { readHostReleaseManifest } from "../../../scripts/host-release/manifest/index.ts";
-import { hostReleasePreflightResult } from "../../../scripts/host-release/preflightResult/index.ts";
+import { readHostReleaseManifest } from "../../../../scripts/host-release/manifest/index.ts";
+import { hostReleasePreflightResult } from "../../../../scripts/host-release/preflightResult/index.ts";
 
-export type ReleaseManifest = HostReleaseManifest;
+type ReleaseManifest = HostReleaseManifest;
 
 const decodeMountPath = (value: string) =>
 	value.replace(/\\([0-7]{3})/g, (_match, digits: string) => String.fromCharCode(Number.parseInt(digits, 8)));
@@ -16,7 +16,7 @@ export const readAndVerifyRelease = async (root: string): Promise<ReleaseManifes
 	return readHostReleaseManifest(root);
 };
 
-export const cgroupRoot = (membership: string, mountInfo: string): string => {
+export const currentCgroupPath = (membership: string, mountInfo: string): string => {
 	const cgroup = membership
 		.split("\n")
 		.map((line) => line.split(":"))
@@ -54,27 +54,25 @@ export const filesystemForPath = (path: string, mountInfo: string): string => {
 };
 
 const verifyDelegation = async (): Promise<string> => {
-	const root = cgroupRoot(
+	const cgroupPath = currentCgroupPath(
 		await readFile("/proc/self/cgroup", "utf8"),
 		await readFile("/proc/self/mountinfo", "utf8"),
 	);
-	await access(join(root, "cgroup.subtree_control"), constants.W_OK);
-	const probe = join(root, `trellis-preflight-${process.pid}`);
+	await access(join(cgroupPath, "cgroup.subtree_control"), constants.W_OK);
+	const probe = join(cgroupPath, `trellis-preflight-${process.pid}`);
 	await mkdir(probe);
 	try {
 		for (const name of ["cgroup.procs", "cgroup.freeze", "cgroup.kill"]) await access(join(probe, name), constants.W_OK);
 	} finally {
 		await rmdir(probe);
 	}
-	return root;
+	return cgroupPath;
 };
 
-export const runContainerPreflight = async (
-	dataHome: string,
-	manifest: ReleaseManifest,
-) => {
+export const runContainerPreflight = async (dataHome: string, manifest: ReleaseManifest) => {
 	if (process.platform !== "linux") throw new Error(`The Linux container cannot run on ${process.platform}.`);
-	if (process.arch !== "x64" && process.arch !== "arm64") throw new Error(`The Linux container cannot run on ${process.arch}.`);
+	if (process.arch !== "x64" && process.arch !== "arm64")
+		throw new Error(`The Linux container cannot run on ${process.arch}.`);
 	if (process.getuid?.() === 0) throw new Error("The Trellis container refuses to run as root.");
 	const data = await realpath(dataHome);
 	const dataStat = await stat(data);
