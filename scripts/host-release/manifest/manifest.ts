@@ -110,6 +110,11 @@ export const verifyHostRelease = async (root: string): Promise<HostReleaseVerifi
 	for (const file of actualFiles) {
 		if (!expected.has(file.path)) issues.push({ path: file.path, kind: "unexpected" });
 	}
+	for (const path of Object.values(manifest.entrypoints)) {
+		const file = expected.get(path);
+		if (!file) issues.push({ path, kind: "missing" });
+		else if (file.type !== "file" || !file.executable) issues.push({ path, kind: "altered" });
+	}
 	const { releaseId, ...source } = manifest;
 	if (hostReleaseId(source) !== releaseId)
 		issues.push({ path: HOST_RELEASE_MANIFEST_FILE, kind: "altered" });

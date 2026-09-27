@@ -17,6 +17,7 @@ const workspacePaths = [
 	"packages/runtime-protocol",
 ];
 const nativeModuleNames = ["node-pty", "fs-ext", "koffi"];
+const entrypointPayloads = ["apps/server/src/index.ts", "apps/runtime/dist/index.js", "packages/cli/src/index.ts"];
 
 type DrizzleJournal = { entries: { tag: string }[] };
 
@@ -104,6 +105,10 @@ export const buildHostRelease = async (input: BuildHostReleaseInput): Promise<Ho
 		'#!/bin/sh\nroot=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\nexec "$root/bin/bun" "$root/packages/cli/src/index.ts" "$@"\n',
 	);
 	await writeFile(join(input.outputRoot, "package.json"), `${JSON.stringify({ private: true, type: "module" })}\n`);
+	for (const path of entrypointPayloads) {
+		const stat = await lstat(join(input.outputRoot, path));
+		if (!stat.isFile()) throw new Error(`The host release entrypoint payload is not a file: ${path}`);
+	}
 	const nativeModules = await Promise.all(
 		nativeModuleNames.map((name) => nativeModuleOf(packages, name, input.outputRoot, input.node.abi)),
 	);
