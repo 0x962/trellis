@@ -7,6 +7,7 @@ import {
 	laneForBranch,
 	readLanePlans,
 	resultArtifactName,
+	toEvidenceCheck,
 	type Result,
 } from "./contract";
 import {
@@ -145,6 +146,7 @@ const jobConclusions: JobConclusions = {
 	latitude: requiredVariable(process.env, "LATITUDE_RESULT"),
 };
 const checks = applyJobConclusions(recordedChecks, jobConclusions);
+const evidenceChecks = checks.map(toEvidenceCheck);
 const platforms = [...new Set(checks.map((check) => check.platform))].map((platform) => {
 	const platformChecks = checks.filter((check) => check.platform === platform);
 	return {
@@ -172,7 +174,7 @@ const index = {
 	laneReview,
 	integratedInputs,
 	integrationGaps,
-	checks,
+	checks: evidenceChecks,
 	platforms,
 };
 

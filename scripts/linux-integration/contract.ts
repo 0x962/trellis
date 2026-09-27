@@ -61,6 +61,26 @@ export type CheckRecord = {
 	createdAt: string;
 };
 
+export type EvidenceCheck = {
+	name: string;
+	platform: string;
+	runner: string;
+	command: string;
+	conclusion: Result;
+	artifactName: string;
+};
+
+export function toEvidenceCheck(record: CheckRecord): EvidenceCheck {
+	return {
+		name: record.check,
+		platform: record.platform,
+		runner: record.runner,
+		command: record.command,
+		conclusion: record.result,
+		artifactName: record.artifactName,
+	};
+}
+
 export const hostedPlatforms = [
 	{ platform: "linux-x64", runner: "ubuntu-24.04", os: "Linux", architecture: "x64" },
 	{ platform: "linux-arm64", runner: "ubuntu-24.04-arm", os: "Linux", architecture: "arm64" },

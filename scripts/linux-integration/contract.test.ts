@@ -10,6 +10,7 @@ import {
 	packageArtifactName,
 	readLanePlans,
 	resultArtifactName,
+	toEvidenceCheck,
 } from "./contract";
 import {
 	applyJobConclusions,
@@ -213,6 +214,29 @@ describe("Linux integration workflow contract", () => {
 			latitude: "success",
 		};
 		expect(applyJobConclusions([record], conclusions)[0]?.result).toBe("failed");
+	});
+
+	test("serializes the public evidence check schema", () => {
+		const record = {
+			check: "package",
+			platform: "linux-x64",
+			runner: "ubuntu-24.04",
+			command: "bun scripts/host-release/build.ts",
+			result: "unverified",
+			artifactName: "trellis-ci-verification-commit-123-1-package-linux-x64",
+		} as CheckRecord;
+		const serialized = JSON.parse(JSON.stringify(toEvidenceCheck(record)));
+
+		expect(serialized).toEqual({
+			name: "package",
+			platform: "linux-x64",
+			runner: "ubuntu-24.04",
+			command: "bun scripts/host-release/build.ts",
+			conclusion: "unverified",
+			artifactName: "trellis-ci-verification-commit-123-1-package-linux-x64",
+		});
+		expect(serialized).not.toHaveProperty("check");
+		expect(serialized).not.toHaveProperty("result");
 	});
 
 	test("reports a required source path that is absent", () => {

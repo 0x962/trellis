@@ -41,7 +41,7 @@ Set the `TRELLIS_LATITUDE_ENABLED` repository variable to enable the job.
 
 The integration owner verifies the change through GitHub Actions. Do not run these commands in a ticket worktree.
 
-1. Push the reviewed commit to its integration branch.
+1. Merge the ticket-linked pull request into its lane with a merge commit.
 2. Confirm that the plan names the exact branch and commit.
 3. Read each matrix check and its result artifact.
 4. Download `trellis-evidence-<lane>-<sha>-<run-id>-<attempt>`.
