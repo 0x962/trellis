@@ -9,7 +9,7 @@ import {
 	type SmokePlan,
 } from "./contract";
 import { readWorkflowIdentity, requiredVariable, writeResult, writeStepOutputs } from "./checkResult";
-import { readIntegratedCommitProof } from "./integratedCommitProof";
+import { buildIntegratedCommitProof } from "./integratedCommitProof";
 import { verifyIntegratedInput } from "./reviewEvidence";
 
 type Check = "lint-repository" | "typecheck" | "focused-tests" | "package" | "smoke" | "latitude";
@@ -20,7 +20,7 @@ const lane = laneForBranch(workflowIdentity.branch);
 const plans = await readLanePlans();
 const lanePlan = plans.lanes[lane];
 
-const selected: CommandPlan | SmokePlan | undefined = (() => {
+const commandPlan: CommandPlan | SmokePlan | undefined = (() => {
 	if (check === "lint-repository") return { command: "bun run lint" };
 	if (check === "typecheck") return { command: "bun run typecheck && bun run typecheck:repo" };
 	if (check === "focused-tests") return lanePlan.focusedTests[platform];
@@ -29,7 +29,7 @@ const selected: CommandPlan | SmokePlan | undefined = (() => {
 	return lanePlan.latitude[platform];
 })();
 
-if (!selected) {
+if (!commandPlan) {
 	const record = await writeResult(
 		{
 			check,
@@ -45,26 +45,31 @@ if (!selected) {
 	process.exit(1);
 }
 
-const requiredInput = selected.integratedInput
-	? lanePlan.integratedInputs.find((input) => input.ticketIdentifier === selected.integratedInput)
+const requiredInput = commandPlan.integratedInputTicketIdentifier
+	? lanePlan.integratedInputs.find(
+			(input) => input.ticketIdentifier === commandPlan.integratedInputTicketIdentifier,
+		)
 	: undefined;
 const inputEvidence = requiredInput
 	? verifyIntegratedInput(
 			requiredInput,
-			await readIntegratedCommitProof(requiredInput, workflowIdentity.commit),
+			await buildIntegratedCommitProof(requiredInput, workflowIdentity.commit),
 		)
 	: undefined;
-const missingPaths = missingRequiredPaths(selected.requiredPaths ?? [], existsSync);
-if ((selected.integratedInput && inputEvidence?.verification !== "passed") || missingPaths.length > 0) {
+const missingPaths = missingRequiredPaths(commandPlan.requiredPaths ?? [], existsSync);
+if (
+	(commandPlan.integratedInputTicketIdentifier && inputEvidence?.verification !== "passed") ||
+	missingPaths.length > 0
+) {
 	const reason = missingPaths.length
 		? `The approved command requires missing paths: ${missingPaths.join(", ")}.`
-		: `The approved command requires a passed integrated input for ${selected.integratedInput}.`;
+		: `The approved command requires a passed integrated input for ${commandPlan.integratedInputTicketIdentifier}.`;
 	const record = await writeResult(
 		{
 			check,
 			platform,
 			runner,
-			command: selected.command,
+			command: commandPlan.command,
 			result: "unverified",
 			reason,
 		},
@@ -93,12 +98,12 @@ const command =
 				"--tmpfs=/tmp:rw,nosuid,nodev,size=256m",
 				`--volume=${requiredVariable(process.env, "GITHUB_WORKSPACE")}:/workspace:ro`,
 				"--workdir=/workspace",
-				(selected as SmokePlan).image,
+				(commandPlan as SmokePlan).image,
 				"sh",
 				"-lc",
-				selected.command,
+				commandPlan.command,
 			]
-		: ["sh", "-lc", selected.command];
+		: ["sh", "-lc", commandPlan.command];
 
 const child = Bun.spawn(command, {
 	stdout: "inherit",
@@ -109,7 +114,7 @@ const child = Bun.spawn(command, {
 	},
 });
 const exitCode = await child.exited;
-const executedCommand = check === "smoke" ? JSON.stringify(command) : selected.command;
+const executedCommand = check === "smoke" ? JSON.stringify(command) : commandPlan.command;
 
 let result: Result = exitCode === 0 ? "passed" : "failed";
 let reason = exitCode === 0 ? undefined : `The command exited with code ${exitCode}.`;

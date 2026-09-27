@@ -6,7 +6,7 @@ import {
 	type Result,
 } from "./contract";
 
-export type ResultInput = {
+type ResultInput = {
 	check: string;
 	platform: string;
 	runner: string;

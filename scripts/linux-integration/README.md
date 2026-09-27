@@ -27,7 +27,7 @@ Add a focused test command under `focusedTests.<platform>`.
 Add a package command under `packages.<platform>`.
 The package command writes all package files to `$TRELLIS_PACKAGE_OUTPUT`.
 
-Use `integratedInput` to bind a command to its reviewed ticket input.
+Use `integratedInputTicketIdentifier` to bind a command to its reviewed ticket input.
 Use `requiredPaths` to name every source path that the command needs.
 A missing input or path records an unverified result and fails the check.
 
