@@ -442,13 +442,13 @@ A local file alone does not complete delivery.
    Keep the local source available for later edits.
 3. Publish the artifact with `trellis page publish <path> --project <project> --title <text>`.
 4. Give the user the returned `trellis://page/<id>` link.
-5. When a ticket covers the work, add the page link to that ticket's description.
-   Preserve the existing request and other ticket content.
-   Verify the saved link with `trellis ticket show <ticket>`.
+5. When a ticket covers the work, record the page link in that ticket's outcome.
+   Preserve the result already recorded in the outcome.
+   Verify the saved link with `trellis ticket outcome show <ticket>`.
 
 For a revision to the same artifact, publish a new version of the existing page.
 Use its page ref and current revision with `--page` and `--expected-version`, as described below.
-Keep the same page link in the ticket and your reply.
+Keep the same page link in the outcome and your reply.
 
 ### Page commands
 
@@ -1022,6 +1022,37 @@ Keep assigned worktrees, uncommitted changes, and conversations intact.
 A stopped agent can still need its workspace.
 Do not remove another agent's files or stop its processes to free resources.
 
+## Write tickets and plan waves
+
+Tickets are for human readers.
+Use simple language in their titles and descriptions.
+These rules apply to every ticket, including a sub-ticket.
+
+Put only requirements in the description.
+State the purpose, required behavior, scope, constraints, and acceptance criteria.
+Keep coordination notes, current status, progress reports, results, and Git references out of the description.
+Use the status field for current status and the outcome for results and links to delivered artifacts.
+Link pull requests with `trellis diff link`; put test results in diff evidence.
+Use direct messages for coordination and project notes or resources for durable decisions.
+Update the description only when the requirements change.
+
+Give each ticket one small result that is easy to review and leads to a small pull request.
+Split a broad change into small tickets with clear boundaries.
+Every ticket must be self-contained.
+Summarize the relevant design details in the description; a link to a design document is not enough.
+Name each required service or component, explain why it is needed, and state what it must do.
+Include the relevant inputs, outputs, interfaces, and acceptance criteria so an agent can work from the ticket alone.
+
+Plan waves and tickets so several agents can work at the same time.
+Define shared interfaces and separate ownership before parallel work starts.
+Avoid one ticket that blocks many others.
+Split broad prerequisites into smaller results so independent work can proceed.
+Keep only dependencies on results that the work actually needs; do not remove a real dependency to claim concurrency.
+
+Every ticket must always belong to an epic and a wave.
+Select both when you create a ticket, including a sub-ticket, using the default rules where they apply.
+Keep both associations when you edit or move the ticket.
+
 ## Use sub-agents
 
 Delegate when separate work can improve the result or provide an independent check.
@@ -1071,7 +1102,8 @@ Check its reply or result.
 Continue independent work while you wait for an answer.
 
 Use direct messages for coordination.
-Record durable decisions in the ticket, project notes, or the relevant document.
+Record durable decisions in project notes or the relevant document.
+Update a ticket's description only when its requirements change.
 
 ## Keep resources and documents current
 

@@ -20,6 +20,19 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 - Each ticket agent completes its assigned work and records the result.
 - A ticket agent keeps its assignment until a person removes it.
 
+## Tickets and waves
+
+- Write tickets for human readers. Use simple language.
+- Put only requirements in the description. Keep coordination notes, current status, results, and Git references in their own records.
+- Give each ticket one small result that is easy to review and leads to a small pull request.
+- Make each ticket self-contained. Summarize the relevant design details, purpose, behavior, interfaces, and acceptance criteria in the description.
+- A link to a design document supplements the requirements; it never replaces them.
+- Plan waves so several agents can work at the same time. Define shared interfaces and separate ownership before parallel work starts.
+- Avoid one ticket that blocks many others. Split broad prerequisites and retain only dependencies on results that the work actually needs.
+- Every ticket, including a sub-ticket, must always belong to an epic and a wave.
+
+The shared agent guide in `packages/api/src/agentGuide/template.md` gives the rules for each record and the CLI commands.
+
 ## Desktop install
 
 Release workers coordinate directly so one SRE owns each shared release cycle. Group eligible tickets into one merge, check, build, install, and restart cycle.
