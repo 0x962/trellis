@@ -7,13 +7,16 @@ import { RuntimeClient } from "@trellis/runtime-protocol/client";
 const pending = new Map<string, Promise<RuntimeClient>>();
 export const nativeClient = (home: string) => new RuntimeClient(join(home, "runtime", "runtime.sock"));
 
-const start = async (home: string) => {
+type NativeRuntimeMode = "self-start" | "supervised";
+
+const start = async (home: string, mode: NativeRuntimeMode) => {
 	const client = nativeClient(home);
 	try {
 		await client.hello();
 		return client;
 	} catch (error) {
 		if (!["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
+		if (mode === "supervised") throw error;
 	}
 	const directory = join(home, "runtime");
 	mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -45,10 +48,14 @@ const start = async (home: string) => {
 	throw new Error(`The execution service did not start. Read ${join(directory, "runtime.log")}.`);
 };
 
-export const ensureNativeRuntime = (home: string) => {
-	const current = pending.get(home);
+export const ensureNativeRuntime = (
+	home: string,
+	mode: NativeRuntimeMode = process.env.TRELLIS_RUNTIME_MODE === "supervised" ? "supervised" : "self-start",
+) => {
+	const key = `${mode}:${home}`;
+	const current = pending.get(key);
 	if (current) return current;
-	const promise = start(home).finally(() => pending.delete(home));
-	pending.set(home, promise);
+	const promise = start(home, mode).finally(() => pending.delete(key));
+	pending.set(key, promise);
 	return promise;
 };
