@@ -1,7 +1,7 @@
 export { activityRuns, recordObservedActivity } from "./agentRuns/activity.ts";
 export { listUnresolvedAttempts } from "./agentRuns/agentRuns.ts";
 export { prepareSend as send } from "./agentRuns/communication.ts";
-export { readRuntimeSessionsRequired as deliveryProcesses } from "./agentRuns/liveState.ts";
+export { readRuntimeSessions, readRuntimeSessionsRequired as deliveryProcesses } from "./agentRuns/liveState.ts";
 export {
 	type RequestedSessionName,
 	type RequestSessionNameInput,
