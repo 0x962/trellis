@@ -25,7 +25,7 @@ const issueCode = async (app: Hono) => {
 
 describe("browser session host routes", () => {
 	test("issues a login code only to a bearer client", async () => {
-		const { routes } = fixture();
+		const { routes, records } = fixture();
 		const refused = await routes.request("/api/browser-session-codes", { method: "POST" });
 		expect(refused.status).toBe(401);
 		expect(refused.headers.get("www-authenticate")).toBe('Bearer realm="Trellis"');
@@ -35,6 +35,9 @@ describe("browser session host routes", () => {
 		expect(response.headers.get("location")).toBe(`/api/browser-session-codes/${body.id}`);
 		expect(body.code).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
 		expect(response.headers.get("location")).not.toContain(body.code);
+		expect(records).toContainEqual(
+			expect.objectContaining({ action: "code.issue", result: "issued", codeId: body.id }),
+		);
 	});
 
 	test("revokes a session and logs no credential", async () => {

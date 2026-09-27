@@ -38,7 +38,7 @@ export type RedeemedBrowserSession = BrowserSession & {
 };
 
 export type BrowserLoginResult =
-	| { kind: "session"; session: RedeemedBrowserSession }
+	| { kind: "session"; codeId: string; session: RedeemedBrowserSession }
 	| { kind: "invalid" }
 	| { kind: "rate-limited"; retryAt: number };
 
@@ -61,8 +61,8 @@ const LOGIN_CODE_PATTERN = /^[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{43}$/;
 
 const encode = (bytes: Buffer) => bytes.toString("base64url");
 
-const hash = (hostId: string, value: string) =>
-	createHash("sha256").update(hostId).update("\0").update(value).digest();
+const hashBrowserSecret = (hostId: string, secret: string) =>
+	createHash("sha256").update(hostId).update("\0").update(secret).digest();
 
 const equalHash = (left: Buffer, right: Buffer) => timingSafeEqual(left, right);
 
@@ -111,7 +111,12 @@ export class BrowserSessionStore {
 		const id = encode(this.random(CODE_ID_BYTES));
 		const secret = encode(this.random(SECRET_BYTES));
 		const expiresAt = now + this.codeTtlMs;
-		this.codes.set(id, { id, secretHash: hash(this.hostId, secret), expiresAt, failedAttempts: 0 });
+		this.codes.set(id, {
+			id,
+			secretHash: hashBrowserSecret(this.hostId, secret),
+			expiresAt,
+			failedAttempts: 0,
+		});
 		return { id, code: `${id}.${secret}`, expiresAt };
 	}
 
@@ -123,7 +128,11 @@ export class BrowserSessionStore {
 		}
 		const [id, secret, extra] = LOGIN_CODE_PATTERN.test(code) ? code.split(".") : [];
 		const record = extra === undefined && id !== undefined ? this.codes.get(id) : undefined;
-		if (record === undefined || secret === undefined || !equalHash(record.secretHash, hash(this.hostId, secret))) {
+		if (
+			record === undefined ||
+			secret === undefined ||
+			!equalHash(record.secretHash, hashBrowserSecret(this.hostId, secret))
+		) {
 			this.failedGuesses.push(now);
 			if (record !== undefined) {
 				record.failedAttempts += 1;
@@ -137,16 +146,16 @@ export class BrowserSessionStore {
 		this.sessions.set(session.id, {
 			id: session.id,
 			expiresAt: session.expiresAt,
-			tokenHash: hash(this.hostId, token),
+			tokenHash: hashBrowserSecret(this.hostId, token),
 			cancelExpiry: this.schedule(() => this.invalidate(session.id, "expired"), this.sessionTtlMs),
 		});
-		return { kind: "session", session };
+		return { kind: "session", codeId: record.id, session };
 	}
 
 	authenticate(token: string): BrowserSession | null {
 		const now = this.now();
 		this.prune(now);
-		const tokenHash = hash(this.hostId, token);
+		const tokenHash = hashBrowserSecret(this.hostId, token);
 		for (const session of this.sessions.values()) {
 			if (equalHash(session.tokenHash, tokenHash)) return { id: session.id, expiresAt: session.expiresAt };
 		}
@@ -158,7 +167,7 @@ export class BrowserSessionStore {
 	}
 
 	revokeToken(token: string): void {
-		const tokenHash = hash(this.hostId, token);
+		const tokenHash = hashBrowserSecret(this.hostId, token);
 		for (const session of this.sessions.values()) {
 			if (equalHash(session.tokenHash, tokenHash)) {
 				this.invalidate(session.id, "revoked");
