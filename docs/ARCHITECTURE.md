@@ -413,8 +413,9 @@ the headline.
 The server compares a write with the head that GitHub reports before it opens
 the transaction. It applies the STE check to all three fields. A refusal stores
 nothing, and a warning returns with the stored summary. A rewrite keeps
-`created_at`. `readSummary` sorts by that value, so a rewrite of an older head
-does not make it newest.
+`created_at` and updates `updated_at`. `readSummary` sorts by `updated_at`, so it
+returns the last explanation that an agent wrote. An equal time selects the
+current head. `readSummaryHead` keeps earlier text available by its head SHA.
 
 The API is `pullRequests.readSummary`, `pullRequests.readSummaryHead`, and
 `pullRequests.writeSummary`. Their routes are `GET /api/prs/{id}/summary`,
@@ -427,9 +428,8 @@ The CLI accepts a pull request number, a GitHub URL, or
 can also open one match from the signed-in GitHub account.
 The CLI verb is `trellis summary` with `write`, `show`, and `body`.
 
-The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on
-its Overview tab. It shows a revision warning when the stored head SHA differs
-from the displayed revision.
+The web route `/reviews/<owner>/<repo>/<number>` shows the saved explanation
+first on its Overview tab. A new commit keeps that explanation visible.
 
 ### Pull request evidence
 
@@ -461,7 +461,8 @@ A write reads Markdown from a file or stdin, uploads local images, and replaces 
 
 `trellis diff link <url> --ticket <ticket>` records the link and refreshes its GitHub data.
 `trellis diff check <diff>` reads the review requirements without a local state change.
-`trellis diff set-state <diff> ready` requires the current-head summary and evidence document.
+`trellis diff set-state <diff> ready` requires a saved explanation and the
+current-head evidence document.
 For an agent, it also requires a completed applicable flow or a recorded reason that no flow fits.
 Ticket statuses come from project configuration.
 `trellis ticket set-status` passes the requested status to the server's ticket transition rules.
@@ -484,8 +485,8 @@ payload carries it as `readyForReviewAt`.
 
 A pull request is ready for review only when every one of these holds: the
 agent asked for review, no check failed and none is pending, a flow run for that diff succeeded or the agent recorded why no
-flow fits, no review finding is open, the pull request merges cleanly, and the
-explanation of the current head and the evidence document exist. A flow is
+flow fits, no review finding is open, the pull request merges cleanly, and a
+saved explanation and the current-head evidence document exist. A flow is
 machine review and it asks the person nothing, so a flow run that stopped and
 waits counts as a run that did not finish. `reviewGaps`
 in `packages/api/src/reviewReady` is that rule. It takes the stored facts and

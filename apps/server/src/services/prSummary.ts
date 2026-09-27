@@ -19,8 +19,8 @@ const summaryColumns = sql`
 	pull_request_id AS "pullRequestId", head_sha AS "headSha", headline, why, watch
 `;
 
-// updated_at selects the explanation that the agent most recently confirmed.
-// An equal time selects the current head. Earlier text remains available by head SHA.
+// `read` selects the explanation with the latest `updated_at`. For equal times,
+// it selects the current head. `readHead` reads text by its head SHA.
 export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PullRequestSummary | null> => {
 	const input = PullRequestIdInputSchema.parse(rawInput);
 	const pullRequest = await findPullRequestRow(tx, input.id);
