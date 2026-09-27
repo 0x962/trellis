@@ -19,9 +19,8 @@ const summaryColumns = sql`
 	pull_request_id AS "pullRequestId", head_sha AS "headSha", headline, why, watch
 `;
 
-// created_at records when each head first received a summary. An update keeps
-// that value, so a rewrite of an older head does not make it newest. The caller
-// compares headSha with the current pull request head before it shows the text.
+// `read` selects the explanation with the latest `updated_at`. For equal times,
+// it selects the current head. `readHead` reads text by its head SHA.
 export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PullRequestSummary | null> => {
 	const input = PullRequestIdInputSchema.parse(rawInput);
 	const pullRequest = await findPullRequestRow(tx, input.id);
@@ -29,7 +28,9 @@ export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise
 		tx,
 		sql`SELECT ${summaryColumns} FROM pr_summaries
 			WHERE pull_request_id = ${pullRequest.id}
-			ORDER BY created_at DESC, head_sha DESC LIMIT 1`,
+			ORDER BY updated_at DESC,
+				(head_sha = (SELECT head_sha FROM pull_requests WHERE id = ${pullRequest.id})) DESC NULLS LAST,
+				created_at DESC, head_sha DESC LIMIT 1`,
 	);
 	return summary ?? null;
 };

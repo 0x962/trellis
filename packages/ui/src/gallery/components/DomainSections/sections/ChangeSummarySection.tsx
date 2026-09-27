@@ -9,15 +9,12 @@ const writtenSummary = {
 
 export function ChangeSummarySection() {
 	return (
-		<Section name="ChangeSummary" note="written, one revision behind, not written" className="items-start">
+		<Section name="ChangeSummary" note="written, not written" className="items-start">
 			<div className="min-w-64 flex-1">
-				<ChangeSummary summary={writtenSummary} headShaMoved={false} />
+				<ChangeSummary summary={writtenSummary} />
 			</div>
 			<div className="min-w-64 flex-1">
-				<ChangeSummary summary={writtenSummary} headShaMoved={true} />
-			</div>
-			<div className="min-w-64 flex-1">
-				<ChangeSummary summary={null} headShaMoved={false} />
+				<ChangeSummary summary={null} />
 			</div>
 		</Section>
 	);

@@ -98,7 +98,7 @@ test("tells the agent that a linked pull request waits until trellis ready", () 
 const clientWith = ({
 	evidence,
 	files,
-	summaryHead,
+	summary,
 	flows = [],
 	runs = [],
 	evidenceHead = "abc123",
@@ -108,7 +108,7 @@ const clientWith = ({
 	// test uses unless a test states an older one.
 	evidenceHead?: string;
 	files: Array<{ path: string; change: "change"; additions: number; deletions: number }> | null;
-	summaryHead: { headline: string; why: string; watch: string } | null;
+	summary: { headline: string; why: string; watch: string } | null;
 	flows?: Array<{ slug: string; name: string; description: string }>;
 	// `headSha` is the commit the run read. A run of an older commit answers
 	// the check the same way a run of the current head does.
@@ -119,7 +119,7 @@ const clientWith = ({
 			refresh: async () => ({ number: 131, files, isDraft: false, reviewGaps: [{ kind: "not-asked", count: 1 }] }),
 			readEvidence: async () => (evidence === null ? null : { ...evidence, headSha: evidenceHead }),
 			readFlowWaiver: async () => null,
-			readSummaryHead: async () => summaryHead,
+			readSummary: async () => summary,
 		},
 		reviews: { status: async () => ({ headRefOid: "abc123", ticket: { identifier: "OP-74" } }) },
 		flows: { list: async () => flows },
@@ -138,7 +138,7 @@ test("requires an ER diagram when the pull request changes a data model", async 
 		clientWith({
 			evidence: { body: "Proof." },
 			files: [{ path: "db/migrations/202609221628_add_briefings.sql", change: "change", additions: 8, deletions: 0 }],
-			summaryHead: { headline: "Add briefings.", why: "The table stores them.", watch: "db/migrations" },
+			summary: { headline: "Add briefings.", why: "The table stores them.", watch: "db/migrations" },
 		}),
 		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
 		{ checkFlows: false },
@@ -153,7 +153,7 @@ test("accepts an ER diagram in the explanation or the evidence document", async 
 		clientWith({
 			evidence: { body: "```mermaid\nerDiagram\n  BRIEFING ||--o{ MESSAGE : has\n```" },
 			files: [{ path: "backend/operator/models.py", change: "change", additions: 8, deletions: 0 }],
-			summaryHead: { headline: "Add briefings.", why: "The table stores them.", watch: "backend/operator/models.py" },
+			summary: { headline: "Add briefings.", why: "The table stores them.", watch: "backend/operator/models.py" },
 		}),
 		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
 		{ checkFlows: false },
@@ -165,7 +165,7 @@ test("accepts an ER diagram in the explanation or the evidence document", async 
 const written = {
 	evidence: { body: "Proof." },
 	files: [{ path: "docs/README.md", change: "change" as const, additions: 1, deletions: 0 }],
-	summaryHead: { headline: "Add the step.", why: "The agent skipped it.", watch: "nothing" },
+	summary: { headline: "Add the step.", why: "The agent skipped it.", watch: "nothing" },
 };
 
 test("asks an agent for a flow run when the server holds a flow", async () => {
@@ -222,8 +222,8 @@ test("asks a caller that checks no flow for nothing new", async () => {
 	expect(result.ready).toBe(true);
 });
 
-// The evidence document names the commit it proves. A push takes it away the
-// way it takes the explanation away.
+// The evidence document names the commit it proves. A push takes it away and
+// keeps the explanation.
 test("asks for the evidence document again after a push", async () => {
 	const result = await pullRequestReadiness(
 		clientWith({ ...written, evidenceHead: "older" }),
@@ -232,6 +232,16 @@ test("asks for the evidence document again after a push", async () => {
 	);
 
 	expect(result.missing).toEqual(["evidence"]);
+});
+
+test("asks for an explanation when the pull request has none", async () => {
+	const result = await pullRequestReadiness(
+		clientWith({ ...written, summary: null }),
+		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
+		{ checkFlows: false },
+	);
+
+	expect(result.missing).toEqual(["explanation"]);
 });
 
 test("refuses a run that stopped and waits", async () => {

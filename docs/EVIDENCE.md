@@ -3,7 +3,8 @@
 Navid, 2026-09-21: "diffs are diffs. they are not evidence. evidence shows me that the change was completed in the product."
 
 Each pull request carries two documents that the agent writes: the explanation and the evidence document. The Overview tab of the review page shows the explanation first and the evidence document under it.
-Both documents belong to the current head. Rewrite both documents after each push.
+The explanation remains valid across commits while its meaning stays the same. Update it when the scope or product behavior changes.
+The evidence document belongs to the current head. Rewrite the evidence document after each push.
 
 Use any aid that helps the human understand the change and decide quickly.
 Examples include charts, graphs, screenshots, videos, code snippets, diagrams, tables, and short definitions.
@@ -41,7 +42,7 @@ Run the product from your own worktree, on your own port, with your own data hom
 
 ## The rule
 
-`trellis pr add` and `trellis ready <pr>` check each linked pull request for the explanation of its current head and for the evidence document. While one is missing, they print it with the command that writes it, and they exit with code 1 for an agent. `trellis move <ticket> human-review` applies the same check to each open pull request of the ticket.
+`trellis pr add` and `trellis ready <pr>` check each linked pull request for an explanation and for the evidence document of its current head. While one is missing, they print it with the command that writes it, and they exit with code 1 for an agent. `trellis move <ticket> human-review` applies the same check to each open pull request of the ticket.
 
 `trellis ready <pr>` and `trellis move <ticket> human-review` also ask an agent for a flow run. A flow is a saved set of agent steps that Trellis runs against a pull request. List the flows with `trellis flows list`, pick every flow that fits the change, and start each one with `trellis flows run <pr> --flow <slug>`. The command waits for the result. A run counts when it succeeds, and also when it stops at a step that only a person answers. When no flow fits the change, record the reason with `trellis ready <pr> --flow-does-not-apply "<reason>"`. Trellis keeps that reason with the pull request for the current head, and the person reads it beside the change. While a pull request has none of those three, both commands name the flows with the command that starts each, and they exit with code 1 for an agent. A flow belongs to one project, or to every project. Both commands ask a pull request for the flows of its ticket's project only, and a project with no flow of its own and no flow of every project asks for no run.
 

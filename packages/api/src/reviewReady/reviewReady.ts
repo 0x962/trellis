@@ -113,7 +113,7 @@ const DESCRIBED_GAP_KINDS: ReviewGapKind[] = ["explanation", "evidence", "flow-r
 // part from these words.
 export const reviewGapText = (gap: ReviewGap): string => {
 	if (gap.kind === "not-asked") return "the agent has not asked for review";
-	if (gap.kind === "explanation") return "no explanation for this commit";
+	if (gap.kind === "explanation") return "no explanation";
 	if (gap.kind === "evidence") return "no evidence document";
 	if (gap.kind === "flow-run") return "no flow run finished for this pull request";
 	if (gap.kind === "checks-failed") return `${gap.count} ${checkWord(gap.count)} failed`;
@@ -127,9 +127,8 @@ export const reviewGapText = (gap: ReviewGap): string => {
 // under its own words, so a pull request that the agent handed over still
 // names a missing evidence document.
 //
-// A push takes the explanation and the evidence of the older commit away and
-// leaves the review flag at `ready`, so the glyph alone states nothing about
-// that loss.
+// A push takes the evidence of the older commit away and leaves the review
+// flag at `ready`. The glyph alone states nothing about that loss.
 export const missingPartsText = (pr: { reviewGaps: ReviewGap[] }): string | null => {
 	const parts = pr.reviewGaps.filter((gap) => DESCRIBED_GAP_KINDS.includes(gap.kind));
 	return parts.length === 0 ? null : parts.map(reviewGapText).join(", ");

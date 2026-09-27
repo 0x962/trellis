@@ -37,8 +37,9 @@ export type PullRequestReadiness = {
 	storedGaps: ReviewGap[];
 };
 
-// The explanation and evidence describe the current head commit.
-// An agent also needs a completed flow or a reason that no flow fits.
+// The explanation describes the pull request until its meaning changes. The
+// evidence proves the current head commit. An agent also needs a completed
+// flow or a reason that no flow fits.
 export const pullRequestReadiness = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
@@ -46,7 +47,7 @@ export const pullRequestReadiness = async (
 ): Promise<PullRequestReadiness> => {
 	const head = await currentHead(client, ref);
 	const [summary, evidence] = await Promise.all([
-		client.pullRequests.readSummaryHead({ id: ref.id, headSha: head.sha }),
+		client.pullRequests.readSummary({ id: ref.id }),
 		client.pullRequests.readEvidence({ id: ref.id }),
 	]);
 	const flows = checkFlows
