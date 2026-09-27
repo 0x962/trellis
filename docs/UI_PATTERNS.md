@@ -196,6 +196,10 @@ The first wave that is not done carries the `Badge` Current after its label. An 
 When the view names one epic, the wave groups hold the Done and Canceled tickets too, last in each group under the default sort. A done wave starts collapsed, and Show completed turns the closed rows off.
 New ticket in this wave in the Wave actions `Menu` of such a group, and the `c` key, create a ticket inside the epic. The menu item also sets the wave of the group.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
+Each epic saves its filters in local storage on the current device.
+An epic link without filters restores that epic's saved filters into the URL.
+Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
+Tabs, sort, and display options keep their existing behavior.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
 Needs you filters Active, Snoozed, or Ignored items. Its sort fields are Priority, Created, Updated, and Title.
