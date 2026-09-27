@@ -2,6 +2,7 @@ export {
 	canOpenDesktopSettingsBeforeSetup,
 	type DesktopAction,
 	type DesktopBridge,
+	type DesktopBridgeWindow,
 	type DesktopServiceStatus,
 	type DesktopSettingsBridge,
 	type DesktopStatus,
@@ -11,4 +12,5 @@ export {
 	desktopErrorMessage,
 	desktopSettingsBridge,
 	isDesktopApp,
+	readDesktopBridge,
 } from "./desktopBridge.ts";

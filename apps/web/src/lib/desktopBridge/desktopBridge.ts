@@ -6,8 +6,8 @@ export type DesktopThermalSample = {
 	hostOrigin: string;
 };
 
-// apps/desktop/src/preload.ts exposes window.trellisDesktop in the macOS app.
-// These types copy the desktop IPC contract because the web app cannot import
+// apps/desktop/src/preload.ts exposes window.trellisDesktop in a desktop renderer.
+// These types state the desktop IPC contract because the web app cannot import
 // the desktop package.
 export type DesktopAction =
 	| "chooseDataDirectory"
@@ -53,10 +53,14 @@ export type DesktopBridge = {
 	onNavigate?: (listener: (path: string) => void) => () => void;
 };
 
-// The macOS app exposes window.trellisDesktop in the renderer. The browser
-// build leaves it undefined, so this answers whether the app draws a webview
-// and reaches the operating system.
-export const isDesktopApp = () => (window as Window & { trellisDesktop?: unknown }).trellisDesktop !== undefined;
+export type DesktopBridgeWindow = Window & { trellisDesktop?: Partial<DesktopBridge> };
+
+export const readDesktopBridge = (target: DesktopBridgeWindow = window as DesktopBridgeWindow) =>
+	target.trellisDesktop;
+
+// A desktop renderer has window.trellisDesktop. A browser window does not.
+// isDesktopApp returns true only when the web app can call the desktop process.
+export const isDesktopApp = () => readDesktopBridge() !== undefined;
 
 export type DesktopSettingsBridge = Pick<DesktopBridge, "status" | "setOpenAtLogin" | "run">;
 
