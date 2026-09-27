@@ -1,0 +1,217 @@
+[
+	{
+		"ticketIdentifier": "TRL-514",
+		"ticketId": "01M3J6SZSJYM6E26ENPY2CJB2X",
+		"checkpointTicketIdentifier": "TRL-548",
+		"checkpointTicketId": "01M3J8B40B5ASEGB8HK8BT7E48",
+		"diffUrl": "https://github.com/0x962/trellis/pull/491",
+		"reviewedHead": "6d16094cb5adc6774c244587092ad967d1fe7db0",
+		"sourceHead": "7995bcc3cc6f34843d93490f2cae9b2716d19ab8",
+		"laneCommit": "6b55428a91f82d475906fe88628907f1f053aa77",
+		"reviewRunId": "01M3J7MPXSDT88TFQ95ZC9Q7P5",
+		"reviewResult": "succeeded",
+		"findings": [
+			{
+				"id": "01M3J7Q86N5CP1352F0ZXT6193",
+				"status": "resolved",
+				"resolution": "The start timestamp distinguishes processes that receive the same PID at different times."
+			},
+			{
+				"id": "01M3J7QB5GZ939S2ZPVF320FPD",
+				"status": "resolved",
+				"resolution": "The inspector treats Z, X, and x as terminal states after it confirms all thread states."
+			},
+			{
+				"id": "01M3J7QJ8X115TH61RWJRJ31AM",
+				"status": "resolved",
+				"resolution": "The public Linux process inspection exports remain for TRL-519."
+			},
+			{
+				"id": "01M3J7SMQPRCGS5K3QYANM8M38",
+				"status": "resolved",
+				"resolution": "A terminal main thread triggers a task scan, and unavailable task or executable data stays unknown."
+			},
+			{
+				"id": "01M3J7SCCZJNXFG7GZPY1KM111",
+				"status": "resolved",
+				"resolution": "The internal interface uses ProcessInspector while the contracted folder keeps processIdentity."
+			},
+			{
+				"id": "01M3J7R9MFDA5KF0KA5K01VVPZ",
+				"status": "resolved",
+				"resolution": "processIdentity.ts owns platform selection and the public process functions."
+			}
+		]
+	},
+	{
+		"ticketIdentifier": "TRL-515",
+		"ticketId": "01M3J6T0363WD5TWQZM1N9S8EP",
+		"checkpointTicketIdentifier": "TRL-551",
+		"checkpointTicketId": "01M3J8EBK2A5CGFSHSYJFE79Y0",
+		"diffUrl": "https://github.com/0x962/trellis/pull/493",
+		"reviewedHead": "e24048f814cdfd1399e6833bcb490eacf4901691",
+		"sourceHead": "9f7a210d924215da7fb2c2293cfc9a96a77a63bb",
+		"laneCommit": "a39a69e27e81c1cbbe677dccdfab244c006db61c",
+		"reviewRunId": "01M3J7PZXP8ZR930CMEJQVC6N2",
+		"reviewResult": "succeeded",
+		"findings": [
+			{
+				"id": "01M3J7V54NRHQPQS1QWXTTPGCG",
+				"status": "resolved",
+				"resolution": "The builder validates both database bounds against the journal and requires the latest maximum."
+			},
+			{
+				"id": "01M3J7V5WEAH96RRMN4QVJ08HX",
+				"status": "resolved",
+				"resolution": "The Linux probe calls pidfd_open under the runtime policy and records a refused call as failed."
+			},
+			{
+				"id": "01M3J7SRFSCV8FJ2BV7WTE9GKC",
+				"status": "resolved",
+				"resolution": "Host release policy and preflight evaluation live in preflight.ts."
+			},
+			{
+				"id": "01M3J7VFVBF6KEBQS7DC43YQPQ",
+				"status": "resolved",
+				"resolution": "The package staging names state their roles."
+			},
+			{
+				"id": "01M3J7VANMNBH0Y6092CP39TQ0",
+				"status": "resolved",
+				"resolution": "Each host release script module uses its own folder and index."
+			},
+			{
+				"id": "01M3J7SZCEQQESBVV0AEPJKMQM",
+				"status": "resolved",
+				"resolution": "A failed command probe throws with the command, exit code, and stderr."
+			},
+			{
+				"id": "01M3J7X602YNY734JGCP7V0C8G",
+				"status": "resolved",
+				"resolution": "The server wrapper exports the bundled Node path for the runtime and bridges."
+			},
+			{
+				"id": "01M3J806WVS0CQT4J2THR4604V",
+				"status": "resolved",
+				"resolution": "buildHostRelease verifies the bundle before it returns the manifest."
+			},
+			{
+				"id": "01M3J7W6H3X5Y3ENSASBWNJ73H",
+				"status": "resolved",
+				"resolution": "buildHostRelease remains the public owner of the host bundle policy."
+			}
+		]
+	},
+	{
+		"ticketIdentifier": "TRL-518",
+		"ticketId": "01M3J6T1XAR4AM6N56EVKHRAAQ",
+		"checkpointTicketIdentifier": "TRL-556",
+		"checkpointTicketId": "01M3J9D1FT2BMMWX8KTHMWR1BA",
+		"diffUrl": "https://github.com/0x962/trellis/pull/503",
+		"reviewedHead": "e15221762594a2c89e20e91b6a77057221f1d93e",
+		"sourceHead": "fde8b937d905e80633df5459b845f3b90e4ac971",
+		"laneCommit": "efb312b8c96adae4668a0e98ff8dece3ba789c1d",
+		"reviewRunId": "01M3J92X8CM727C197AR1413GV",
+		"reviewResult": "succeeded",
+		"findings": [
+			{
+				"id": "01M3J95MJ7R3VEVVXFBK0VR542",
+				"status": "resolved",
+				"resolution": "Custom launches record the resolved shell without the tool command or environment."
+			},
+			{
+				"id": "01M3J95XYSCCJKP9856MY1ZPJE",
+				"status": "resolved",
+				"resolution": "The fixtures use temporaryHomes and createExecutableShellFixture."
+			},
+			{
+				"id": "01M3J95ZZM33DAZG71RX3AQD8T",
+				"status": "resolved",
+				"resolution": "Shell tests stay with hostShell, and launch descriptor tests stay with customLaunch."
+			}
+		]
+	},
+	{
+		"ticketIdentifier": "TRL-519",
+		"ticketId": "01M3J6T3057BS2RKAQNTAD3PYT",
+		"checkpointTicketIdentifier": "TRL-563",
+		"checkpointTicketId": "01M3JAQJEPGPW7PVRR6K7A59JY",
+		"diffUrl": "https://github.com/0x962/trellis/pull/505",
+		"reviewedHead": "44864ba001c881e809708c658288c0452f6ce81a",
+		"sourceHead": "19bd73063d01ca598b9c1f6fd5148ddf41fa02fa",
+		"laneCommit": "b95b2c663a3e5f807f733731afe6de558f140014",
+		"reviewRunId": "01M3J9TC3JSSCXYK32N96Q72Q2",
+		"reviewResult": "succeeded",
+		"findings": [
+			{
+				"id": "01M3J9XBSTPW2YQXNSXK69Q13J",
+				"status": "resolved",
+				"resolution": "The shared dispatcher imports the Linux watcher from the public service entry point."
+			},
+			{
+				"id": "01M3J9WJSE21QMGY31ACESRTCQ",
+				"status": "resolved",
+				"resolution": "Darwin lifecycle implementations live in the Darwin platform folder."
+			},
+			{
+				"id": "01M3J9XK4WCRAHKRE0PW5HE0H6",
+				"status": "resolved",
+				"resolution": "The controller restores attempt ownership from the cgroup tree after a runtime restart."
+			},
+			{
+				"id": "01M3J9XYARD11H8T6Q4JPJWSVS",
+				"status": "resolved",
+				"resolution": "prepareLinuxAttempt returns plain data, and public operations own registration and cleanup."
+			},
+			{
+				"id": "01M3J9XTXGGNA7T7KFEMQ01KGK",
+				"status": "resolved",
+				"resolution": "Lifecycle transitions emit JSON events with the attempt, process, cgroup, operation, outcome, and error."
+			},
+			{
+				"id": "01M3J9Y2D7DR1QB45WH6XH56HM",
+				"status": "resolved",
+				"resolution": "The controller operation uses confirmJoinedAndUnfreeze."
+			},
+			{
+				"id": "01M3J9YXEGKZFZQVN5KJ7JHNWZ",
+				"status": "resolved",
+				"resolution": "The adapter and fixture bind the Node timer functions."
+			},
+			{
+				"id": "01M3J9YXAGCEMSF5V580RP85RS",
+				"status": "resolved",
+				"resolution": "A bare command requires PATH while empty entries still select the current directory."
+			},
+			{
+				"id": "01M3J9ZES03RP1YJ8R2D0TSE7C",
+				"status": "resolved",
+				"resolution": "The source removes the unused launcher default, barrel exports, and fixture hook."
+			}
+		]
+	},
+	{
+		"ticketIdentifier": "TRL-536",
+		"ticketId": "01M3J6T9P0CD36FD9S6DJ541AQ",
+		"checkpointTicketIdentifier": "TRL-568",
+		"checkpointTicketId": "01M3JB14TZ18Y0WBCV7JVGQMFF",
+		"diffUrl": "https://github.com/0x962/trellis/pull/512",
+		"reviewedHead": "2618fe4ee9dfff113afb1ba7d2079ef2ca4fe533",
+		"sourceHead": "4177c8f86c3acbdb9c751fb718a9866206544969",
+		"laneCommit": "9fa3a1358b46408f46f46f0778324b249410abe2",
+		"reviewRunId": "01M3JB9XEBJ7ZE2ATKRSDSQJ06",
+		"reviewResult": "succeeded",
+		"findings": [
+			{
+				"id": "01M3JBCB5V02EWJZM62NZ1DX4P",
+				"status": "resolved",
+				"resolution": "The helper uses connectOrStart, and the injected dependency uses ensureRuntime."
+			},
+			{
+				"id": "01M3JBCXVESJD26CZ1JDZ6Z13C",
+				"status": "resolved",
+				"resolution": "Both terminal routes pass the request ID and logger for the supervised runtime warning."
+			}
+		]
+	}
+]

@@ -12,7 +12,7 @@ describe("Linux integration lane plans", () => {
 	test("keeps lanes without approved plans inactive", async () => {
 		const plans = await readLanePlans();
 		for (const [lane, plan] of Object.entries(plans.lanes)) {
-			if (lane === "operations" || lane === "verification") continue;
+			if (lane === "host" || lane === "operations" || lane === "verification") continue;
 			expect(plan.integratedInputs).toEqual([]);
 			expect(plan.focusedTests).toEqual({});
 			expect(plan.packages).toEqual({});
@@ -20,6 +20,24 @@ describe("Linux integration lane plans", () => {
 			expect(plan.latitude).toEqual({});
 			expect(plan.laneReview).toBeNull();
 		}
+	});
+
+	test("records the reviewed host inputs and focused commands", async () => {
+		const plan = (await readLanePlans()).lanes.host;
+		expect(plan.integratedInputs.map((input) => input.ticketIdentifier)).toEqual([
+			"TRL-514",
+			"TRL-515",
+			"TRL-518",
+			"TRL-519",
+			"TRL-536",
+		]);
+		expect(plan.focusedTests["linux-x64"]?.integratedInputTicketIdentifier).toBe("TRL-536");
+		expect(plan.focusedTests["linux-x64"]?.requiredPaths).toContain(
+			"apps/server/src/routes/terminalRuntime.test.ts",
+		);
+		expect(plan.packages).toEqual({});
+		expect(plan.smoke).toEqual({});
+		expect(plan.latitude).toEqual({});
 	});
 
 	test("records the reviewed operations inputs and focused commands", async () => {
