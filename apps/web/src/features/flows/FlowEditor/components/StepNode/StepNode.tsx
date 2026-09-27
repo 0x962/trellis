@@ -16,11 +16,13 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 	const meta = flowKinds[fields.kind];
 	const issue = issues.get(id);
 	const detail =
-		fields.kind === "human"
-			? "A person decides"
-			: fields.instruction.trim() === ""
-				? "No instruction"
-				: "Instruction ready";
+		fields.reviewArea != null
+			? `Jev: ${fields.reviewArea} relevance`
+			: fields.kind === "human"
+				? "A person decides"
+				: fields.instruction.trim() === ""
+					? "No instruction"
+					: "Instruction ready";
 	return (
 		<div
 			title={issue}

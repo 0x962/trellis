@@ -20,7 +20,10 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const execution = await readExecution(tx, input.id, true);
 	const state = advanceFlow(execution.doc, execution.state, { type: "tick" }, ctx.now.getTime());
 	await saveState(ctx, tx, execution, state);
-	const actions = pendingFlowActions(execution.doc, state).filter((action) => action.type === "agent");
+	const actions = pendingFlowActions(execution.doc, state).filter(
+		(action) =>
+			action.type === "agent" && execution.doc.nodes.find((node) => node.id === action.nodeId)!.reviewArea == null,
+	);
 	if (actions.length === 0) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
 	const action = actions[0]!;

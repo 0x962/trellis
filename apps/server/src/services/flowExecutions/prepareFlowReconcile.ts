@@ -16,6 +16,7 @@ import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
 import { claimNext } from "./claimNext.ts";
 import { drainFlowStops } from "./drainFlowStops.ts";
 import { readExecution } from "./queries.ts";
+import { reconcileReviewGates } from "./reconcileReviewGates";
 import { recordFlowFailure } from "./recordFlowFailure.ts";
 import { recordTaskLaunch } from "./recordTaskLaunch.ts";
 import { recordTaskObservation } from "./recordTaskObservation.ts";
@@ -111,6 +112,7 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies, executionId: string) 
 	const stopErrors = await drainFlowStops(ctx, executionId, deps.stop);
 	errors.push(...stopErrors);
 	if (stopErrors.length > 0) return { launched, errors };
+	await reconcileReviewGates(ctx, executionId);
 	const claims: Claim[] = [];
 	let claimFailed = false;
 	while (true) {

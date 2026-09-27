@@ -95,7 +95,10 @@ export function settleFlow(doc: FlowDoc, state: FlowExecution, now: number): Flo
 	if (state.status === "failed" || state.status === "canceled") {
 		for (const step of state.steps) {
 			if (terminal.has(step.state)) continue;
-			step.needsStop = (step.state === "running" || step.state === "unknown") && step.phase !== "children";
+			step.needsStop =
+				nodes.get(step.nodeId)!.reviewArea == null &&
+				(step.state === "running" || step.state === "unknown") &&
+				step.phase !== "children";
 			step.state = "canceled";
 		}
 	} else {

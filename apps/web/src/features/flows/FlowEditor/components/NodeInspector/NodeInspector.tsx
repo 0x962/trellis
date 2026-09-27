@@ -1,5 +1,5 @@
 import { type FlowNodeKind, flowAgentKinds } from "@trellis/api";
-import { Button, Input, Sheet, SheetBody, SheetFooter, SheetSection, Switch, Textarea } from "@trellis/ui";
+import { Button, Input, Select, Sheet, SheetBody, SheetFooter, SheetSection, Switch, Textarea } from "@trellis/ui";
 import { useState } from "react";
 import { LaunchFields } from "../../../../agents/LaunchFields";
 import { flowHarnessOf, harnessOfFlow } from "../../../flowHarness";
@@ -71,7 +71,23 @@ export function NodeInspector({
 								onChange={(event) => onChange({ title: event.target.value })}
 							/>
 						</SheetSection>
-						{promptLabel !== null && (
+						{fields.kind === "gate" && (
+							<SheetSection title="Decision" divided>
+								<Select<"agent" | "frontend" | "backend">
+									label="Decision source"
+									hideLabel={false}
+									value={fields.reviewArea ?? "agent"}
+									items={[
+										{ value: "agent", label: "Agent question" },
+										{ value: "frontend", label: "Jev: frontend relevance" },
+										{ value: "backend", label: "Jev: backend relevance" },
+									]}
+									onValueChange={(value) => onChange({ reviewArea: value === "agent" ? null : value, harness: null })}
+									hint="Jev reads every changed file path. A mixed change selects both review branches."
+								/>
+							</SheetSection>
+						)}
+						{promptLabel !== null && fields.reviewArea == null && (
 							<SheetSection title="Instructions" divided>
 								<Textarea
 									label={promptLabel}
@@ -83,7 +99,7 @@ export function NodeInspector({
 								/>
 							</SheetSection>
 						)}
-						{flowAgentKinds.has(fields.kind) && (
+						{flowAgentKinds.has(fields.kind) && fields.reviewArea == null && (
 							<SheetSection title="Agent" divided>
 								<LaunchFields
 									allowDefault="Flow default"

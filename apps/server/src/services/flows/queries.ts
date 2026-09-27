@@ -40,7 +40,7 @@ export const flowProjectIdOf = async (tx: Tx, id: string): Promise<string | null
 };
 
 const nodeColumns = sql`id, parent_id AS "parentId", kind, title, instruction,
-	parallel, minutes, max_rounds AS "maxRounds", harness, x, y, width, height`;
+	review_area AS "reviewArea", parallel, minutes, max_rounds AS "maxRounds", harness, x, y, width, height`;
 
 const edgeColumns = sql`id, from_node_id AS "fromNodeId", to_node_id AS "toNodeId", branch`;
 
