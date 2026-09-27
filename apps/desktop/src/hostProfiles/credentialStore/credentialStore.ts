@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { HostCredentialReferenceSchema, type HostCredentialReference } from "@trellis/api";
+import { HostCredentialRefSchema, type HostCredentialRef } from "@trellis/api";
 import { writeAtomicJson } from "../atomicJson/index.ts";
 import { operationQueueFor } from "../operationQueue/index.ts";
 
@@ -49,12 +49,12 @@ const parseCredential = (value: unknown): HostCredential => {
 
 export type HostCredentialStore = {
 	save: (input: {
-		reference?: HostCredentialReference;
+		reference?: HostCredentialRef;
 		credential: HostCredential;
 		persistence: CredentialPersistence;
-	}) => Promise<{ reference: HostCredentialReference; persistence: CredentialPersistence }>;
-	read: (reference: HostCredentialReference) => Promise<HostCredential | null>;
-	remove: (reference: HostCredentialReference) => Promise<void>;
+	}) => Promise<{ reference: HostCredentialRef; persistence: CredentialPersistence }>;
+	read: (reference: HostCredentialRef) => Promise<HostCredential | null>;
+	remove: (reference: HostCredentialRef) => Promise<void>;
 };
 
 const readStored = async (path: string): Promise<StoredCredentials> => {
@@ -79,7 +79,7 @@ const readStored = async (path: string): Promise<StoredCredentials> => {
 	)
 		throw new Error("The stored host credentials are invalid.");
 	for (const [reference, encrypted] of Object.entries(parsed.credentials)) {
-		if (!HostCredentialReferenceSchema.safeParse(reference).success || typeof encrypted !== "string")
+		if (!HostCredentialRefSchema.safeParse(reference).success || typeof encrypted !== "string")
 			throw new Error("The stored host credentials are invalid.");
 	}
 	return { version: 1, credentials: parsed.credentials as Record<string, string> };
@@ -87,13 +87,13 @@ const readStored = async (path: string): Promise<StoredCredentials> => {
 
 export const createHostCredentialStore = (installationHome: string, secureStorage: SecureStorage): HostCredentialStore => {
 	const path = join(installationHome, "host-credentials.json");
-	const session = new Map<HostCredentialReference, HostCredential>();
+	const session = new Map<HostCredentialRef, HostCredential>();
 	const enqueue = operationQueueFor(path);
 
 	return {
 		save: (input) =>
 			enqueue(async () => {
-				const reference = HostCredentialReferenceSchema.parse(input.reference ?? randomUUID());
+				const reference = HostCredentialRefSchema.parse(input.reference ?? randomUUID());
 				if (input.persistence !== "secure" && input.persistence !== "session")
 					throw new Error("Choose secure or session-only credential storage.");
 				const credential = parseCredential(input.credential);
@@ -119,7 +119,7 @@ export const createHostCredentialStore = (installationHome: string, secureStorag
 			}),
 		read: (reference) =>
 			enqueue(async () => {
-				const parsedReference = HostCredentialReferenceSchema.parse(reference);
+				const parsedReference = HostCredentialRefSchema.parse(reference);
 				const inSession = session.get(parsedReference);
 				if (inSession !== undefined) return inSession;
 				const encrypted = (await readStored(path)).credentials[parsedReference];
@@ -133,7 +133,7 @@ export const createHostCredentialStore = (installationHome: string, secureStorag
 			}),
 		remove: (reference) =>
 			enqueue(async () => {
-				const parsedReference = HostCredentialReferenceSchema.parse(reference);
+				const parsedReference = HostCredentialRefSchema.parse(reference);
 				session.delete(parsedReference);
 				const stored = await readStored(path);
 				if (stored.credentials[parsedReference] === undefined) return;

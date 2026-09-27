@@ -25,8 +25,8 @@ const UsernameSchema = z
 export const HostProfileIdSchema = z.uuid();
 export type HostProfileId = z.infer<typeof HostProfileIdSchema>;
 
-export const HostCredentialReferenceSchema = z.uuid();
-export type HostCredentialReference = z.infer<typeof HostCredentialReferenceSchema>;
+export const HostCredentialRefSchema = z.uuid();
+export type HostCredentialRef = z.infer<typeof HostCredentialRefSchema>;
 
 export const SshHostKeyPinSchema = z.strictObject({
 	algorithm: z.string().trim().min(1).max(100).regex(/^\S+$/),
@@ -35,7 +35,7 @@ export const SshHostKeyPinSchema = z.strictObject({
 });
 export type SshHostKeyPin = z.infer<typeof SshHostKeyPinSchema>;
 
-const IdentityFields = {
+const expectedIdentityFields = {
 	expectedHostId: HostIdSchema.nullable(),
 	expectedDataHomeId: DataHomeIdSchema.nullable(),
 };
@@ -51,7 +51,7 @@ export const LocalHostProfileSchema = z.strictObject({
 		.max(4_096)
 		.startsWith("/", "Enter an absolute data directory.")
 		.regex(/^[^\p{Cc}]+$/u, "Enter a data directory without control characters."),
-	...IdentityFields,
+	...expectedIdentityFields,
 });
 export type LocalHostProfile = z.infer<typeof LocalHostProfileSchema>;
 
@@ -62,11 +62,11 @@ export const SshHostProfileSchema = z.strictObject({
 	address: AddressSchema,
 	port: PortSchema,
 	username: UsernameSchema,
-	credentialRef: HostCredentialReferenceSchema,
+	credentialRef: HostCredentialRefSchema,
 	credentialPersistence: z.enum(["secure", "session"]),
 	hostKey: SshHostKeyPinSchema,
-	allocatedPort: LoopbackPortSchema,
-	...IdentityFields,
+	loopbackPort: LoopbackPortSchema,
+	...expectedIdentityFields,
 });
 export type SshHostProfile = z.infer<typeof SshHostProfileSchema>;
 
@@ -81,13 +81,13 @@ export const HostProfileListSchema = z.array(HostProfileSchema).superRefine((pro
 			ctx.addIssue({ code: "custom", path: [index, "id"], message: "Each host profile needs a unique ID." });
 		ids.add(profile.id);
 		if (profile.kind !== "ssh") continue;
-		if (ports.has(profile.allocatedPort))
+		if (ports.has(profile.loopbackPort))
 			ctx.addIssue({
 				code: "custom",
-				path: [index, "allocatedPort"],
+				path: [index, "loopbackPort"],
 				message: "Each SSH profile needs a unique loopback port.",
 			});
-		ports.add(profile.allocatedPort);
+		ports.add(profile.loopbackPort);
 	}
 });
 
@@ -121,9 +121,9 @@ export const SshHostProfileEditInputSchema = z.strictObject({
 	address: AddressSchema.optional(),
 	port: PortSchema.optional(),
 	username: UsernameSchema.optional(),
-	credentialRef: HostCredentialReferenceSchema.optional(),
+	credentialRef: HostCredentialRefSchema.optional(),
 	credentialPersistence: SshHostProfileSchema.shape.credentialPersistence.optional(),
-	allocatedPort: LoopbackPortSchema.optional(),
+	loopbackPort: LoopbackPortSchema.optional(),
 	expectedHostId: HostIdSchema.nullable().optional(),
 	expectedDataHomeId: DataHomeIdSchema.nullable().optional(),
 });

@@ -13,6 +13,7 @@ export const hostAuth =
 		const actual = Buffer.from(c.req.header("authorization") ?? "");
 		const expected = Buffer.from(`Bearer ${token}`);
 		if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+			c.header("WWW-Authenticate", "Bearer");
 			return c.json(
 				{
 					defined: false,

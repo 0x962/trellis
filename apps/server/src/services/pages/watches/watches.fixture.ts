@@ -39,6 +39,7 @@ const watchCtx = (now = watchAt): IoCtx => ({
 	session: null,
 	now: () => now,
 	home: directory,
+	installationHome: directory,
 	publicUrl: core.publicUrl,
 	localUrl: core.publicUrl,
 	newTx: watchTx,

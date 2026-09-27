@@ -3,6 +3,9 @@ import { dirname } from "node:path";
 import { UlidSchema } from "@trellis/api/schemas";
 import { ulid } from "ulid";
 
+export const readIdentity = async (path: string): Promise<string> =>
+	UlidSchema.parse((await readFile(path, "utf8")).trim());
+
 export const readOrCreateIdentity = async (path: string): Promise<string> => {
 	await mkdir(dirname(path), { recursive: true });
 	const id = ulid();
@@ -11,6 +14,6 @@ export const readOrCreateIdentity = async (path: string): Promise<string> => {
 		return id;
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-		return UlidSchema.parse((await readFile(path, "utf8")).trim());
+		return readIdentity(path);
 	}
 };

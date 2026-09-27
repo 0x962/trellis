@@ -8,7 +8,9 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 // files, the archives, and the rotating log.
 export type Config = {
 	home: string;
+	// This directory stays outside the data home, so a data restore cannot replace the host identity.
 	installationHome: string;
+	releaseId: string;
 	authToken: string | null;
 	// The address the server binds. 127.0.0.1 keeps it on this machine; a
 	// network address or 0.0.0.0 lets a phone reach it.
@@ -50,6 +52,11 @@ const defaultWebDist = join(import.meta.dir, "..", "..", "web", "dist");
 
 const expandHome = (path: string) => (path.startsWith("~") ? join(homedir(), path.slice(1)) : path);
 
+const requiredOf = (name: string, value: string | undefined) => {
+	if (value === undefined || value.trim() === "") throw new Error(`${name} is required.`);
+	return value;
+};
+
 // A variable that is not a number is a typo in a shell profile, so the
 // error names the variable and the value.
 const numberOf = (name: string, value: string) => {
@@ -86,26 +93,28 @@ const agentsHost = (host: string) => {
 	return reachable.includes(":") ? `[${reachable}]` : reachable;
 };
 
-const loopbackHost = (host: string) => host === "127.0.0.1" || host === "::1" || host === "localhost";
+const isLoopbackHost = (host: string) => host === "127.0.0.1" || host === "::1" || host === "localhost";
 
 // A trailing slash would double the slash in `${publicUrl}/t/KEY-1`.
 const originOf = (value: string) => value.replace(/\/+$/, "");
 
 export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
-	const installationHome = resolve(expandHome(env.TRELLIS_INSTALLATION_HOME ?? "~/.config/trellis"));
+	const installationHome = resolve(expandHome(requiredOf("TRELLIS_INSTALLATION_HOME", env.TRELLIS_INSTALLATION_HOME)));
+	const releaseId = requiredOf("TRELLIS_RELEASE_ID", env.TRELLIS_RELEASE_ID);
 	const host = env.TRELLIS_HOST ?? "127.0.0.1";
 	const authToken = env.TRELLIS_AUTH_TOKEN ?? null;
 	if (authToken !== null && authToken.trim() === "") {
 		throw new Error("TRELLIS_AUTH_TOKEN must not be empty.");
 	}
-	if (!loopbackHost(host) && authToken === null) {
+	if (!isLoopbackHost(host) && authToken === null) {
 		throw new Error("TRELLIS_AUTH_TOKEN is required when TRELLIS_HOST is not a loopback address.");
 	}
 	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
 		installationHome,
+		releaseId,
 		authToken,
 		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),

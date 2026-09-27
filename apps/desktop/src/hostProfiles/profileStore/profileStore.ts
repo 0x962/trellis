@@ -8,7 +8,7 @@ import {
 	HostProfileRemoveInputSchema,
 	HostProfileSchema,
 	HostProfileTrustKeyInputSchema,
-	type HostCredentialReference,
+	type HostCredentialRef,
 	type HostProfile,
 	type HostProfileAddInput,
 	type HostProfileEditInput,
@@ -30,7 +30,7 @@ export type HostProfileStore = {
 
 type Options = {
 	disconnect: (id: HostProfileId) => Promise<void>;
-	removeCredential: (reference: HostCredentialReference) => Promise<void>;
+	removeCredential: (reference: HostCredentialRef) => Promise<void>;
 };
 
 const readProfiles = async (path: string): Promise<HostProfile[]> => {

@@ -128,6 +128,7 @@ test("a write refuses a SHA that is not the current pull request head", async ()
 		...ctx,
 		newTx: inTx,
 		gh,
+		releaseId: "release-test",
 	};
 	const attempt = prepareWrite(prepareCtx, {
 		id: pullRequestId,

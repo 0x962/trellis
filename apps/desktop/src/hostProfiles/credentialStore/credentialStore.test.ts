@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HostCredentialReferenceSchema } from "@trellis/api";
+import { HostCredentialRefSchema } from "@trellis/api";
 import { createHostCredentialStore, type SecureStorage } from "./credentialStore.ts";
 
 const directories: string[] = [];
@@ -25,7 +25,7 @@ const secureStorage = (isAvailable = true): SecureStorage => ({
 	decrypt: (value) => Buffer.from(value.map((byte) => byte ^ 0x5a)).toString(),
 });
 
-const credentialReference = () => HostCredentialReferenceSchema.parse(randomUUID());
+const credentialReference = () => HostCredentialRefSchema.parse(randomUUID());
 
 test("persists only encrypted credential bytes", async () => {
 	const home = await installationHome();

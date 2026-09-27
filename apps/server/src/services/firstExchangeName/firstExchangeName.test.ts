@@ -31,6 +31,7 @@ const nameContext = (): IoCtx => {
 		...core,
 		core,
 		home: "/tmp/trellis-session-name-test",
+		installationHome: "/tmp/trellis-session-name-test",
 		maxUploadBytes: 1,
 		version: "test",
 		apiVersion: "1",

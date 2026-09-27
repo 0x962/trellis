@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HostDescriptorSchema, hostCompatibility } from "./hostIdentity.ts";
+import { hostCompatibility } from "./hostCompatibility.ts";
+import { HostDescriptorSchema } from "./hostIdentity.ts";
 
 const descriptor = () =>
 	HostDescriptorSchema.parse({

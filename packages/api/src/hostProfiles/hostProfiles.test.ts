@@ -15,7 +15,7 @@ const remoteProfile = {
 		publicKey: "AAAAC3NzaC1lZDI1NTE5AAAAIE5vdEFQcm9kdWN0aW9uS2V5",
 		fingerprint: "SHA256:ZmFrZUZpbmdlcnByaW50Rm9yVGVzdHM",
 	},
-	allocatedPort: 24_521,
+	loopbackPort: 24_521,
 	expectedHostId: "01M3J6CCTAGW0685MPGF1MXWDW",
 	expectedDataHomeId: null,
 };
