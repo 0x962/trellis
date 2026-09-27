@@ -38,6 +38,7 @@ export async function fixture() {
 	await db.transaction((tx) => cache.rebuild(tx));
 	const ctx: IoCtx = {
 		home,
+		installationHome: home,
 		actor: { kind: "human", name: "qa" },
 		session: null,
 		maxUploadBytes: 1024,

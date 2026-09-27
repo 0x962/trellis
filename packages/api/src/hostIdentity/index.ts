@@ -1,2 +1,2 @@
-export * from "./contract.ts";
+export * from "./hostCompatibility/index.ts";
 export * from "./hostIdentity.ts";

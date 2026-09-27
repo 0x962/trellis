@@ -19,7 +19,11 @@ let now = 0;
 let clock: ReturnType<typeof spyOn>;
 let transaction: ReturnType<typeof spyOn>;
 const lines: LogRecord[] = [];
-const config = loadConfig({ TRELLIS_PORT: "0" });
+const config = loadConfig({
+	TRELLIS_INSTALLATION_HOME: "/tmp/trellis-transport-installation",
+	TRELLIS_RELEASE_ID: "release-test",
+	TRELLIS_PORT: "0",
+});
 const log = createLogger({
 	level: "debug",
 	env: {},

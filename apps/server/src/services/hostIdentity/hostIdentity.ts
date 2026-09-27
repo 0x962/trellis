@@ -1,18 +1,18 @@
 import { join } from "node:path";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import type { Tx } from "../../db/tx.ts";
-import type { IoCtx, ServiceCtx } from "../support.ts";
-import { readOrCreateIdentity } from "./identityStore.ts";
+import type { IoCtx, PrepareCtx, ServiceCtx } from "../support.ts";
+import { readIdentity } from "./identityStore.ts";
 
 export const HOST_IDENTITY_FILE = "host-identity";
 export const DATA_HOME_IDENTITY_FILE = "data-home-identity";
 export const HOST_IDENTITY_CAPABILITIES = ["host-identity"] as const;
 
-export type HostIdentityContext = Pick<IoCtx, "apiVersion" | "home" | "installationHome" | "version">;
+export type HostIdentityContext = Pick<IoCtx, "apiVersion" | "home" | "installationHome" | "log"> &
+	Pick<PrepareCtx, "releaseId">;
 
 export type HostIdentityDependencies = {
 	readIdentity: (path: string) => Promise<string>;
-	releaseId: string;
 	runtimeProtocol: number;
 	platform: "darwin" | "linux";
 	arch: "x64" | "arm64";
@@ -32,22 +32,24 @@ export const readHostDescriptor = async (ctx: HostIdentityContext, deps: HostIde
 		dataHomeId,
 		apiVersion: ctx.apiVersion,
 		runtimeProtocol: deps.runtimeProtocol,
-		releaseId: deps.releaseId,
+		releaseId: ctx.releaseId,
 		platform: deps.platform,
 		arch: deps.arch,
 		capabilities: [...deps.capabilities],
 	};
 };
 
-export const prepareDescribe = async (ctx: HostIdentityContext, _input: Record<string, never>) =>
-	readHostDescriptor(ctx, {
-		readIdentity: readOrCreateIdentity,
-		releaseId: process.env.TRELLIS_RELEASE_ID ?? ctx.version,
+export const prepareDescribe = async (ctx: HostIdentityContext, _input: Record<string, never>) => {
+	const descriptor = await readHostDescriptor(ctx, {
+		readIdentity,
 		runtimeProtocol: RUNTIME_PROTOCOL_VERSION,
 		platform: process.platform as "darwin" | "linux",
 		arch: process.arch as "x64" | "arm64",
 		capabilities: HOST_IDENTITY_CAPABILITIES,
 	});
+	ctx.log("host identity", { hostId: descriptor.hostId, dataHomeId: descriptor.dataHomeId });
+	return descriptor;
+};
 
 export const describe = async (_ctx: ServiceCtx, _tx: Tx, descriptor: Awaited<ReturnType<typeof prepareDescribe>>) =>
 	descriptor;

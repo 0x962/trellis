@@ -27,7 +27,7 @@ const hostKey = (publicKey: string) => ({
 		.replace(/=+$/, "")}`,
 });
 
-const sshInput = (label: string, allocatedPort: number) => ({
+const sshInput = (label: string, loopbackPort: number) => ({
 	kind: "ssh" as const,
 	label,
 	address: `${label.toLowerCase()}.example.com`,
@@ -36,7 +36,7 @@ const sshInput = (label: string, allocatedPort: number) => ({
 	credentialRef: randomUUID(),
 	credentialPersistence: "secure" as const,
 	trustedHostKey: hostKey("AAAAC3NzaC1lZDI1NTE5AAAAIE5vdEFQcm9kdWN0aW9uS2V5"),
-	allocatedPort,
+	loopbackPort,
 	expectedHostId: null,
 	expectedDataHomeId: null,
 });

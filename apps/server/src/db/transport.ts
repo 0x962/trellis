@@ -131,7 +131,11 @@ export const createInlineTransport = ({
 			const input =
 				"prepare" in entry
 					? await entry.prepare(
-							{ ...ioCtx(ctx, (event) => void early.push(event), tasks, transaction), gh: runtime.gh },
+							{
+								...ioCtx(ctx, (event) => void early.push(event), tasks, transaction),
+								gh: runtime.gh,
+								releaseId: config.releaseId,
+							},
 							rawInput,
 						)
 					: rawInput;

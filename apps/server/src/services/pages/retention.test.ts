@@ -141,7 +141,12 @@ test("the transport collects Page objects after project deletion commits", async
 	const transport = createInlineTransport({
 		db: fixture.db,
 		bus: createBus({ bootId: fixture.ctx.bootId }),
-		config: loadConfig({ TRELLIS_HOME: fixture.home, TRELLIS_PORT: "0" }),
+		config: loadConfig({
+			TRELLIS_HOME: fixture.home,
+			TRELLIS_INSTALLATION_HOME: fixture.home,
+			TRELLIS_RELEASE_ID: "release-test",
+			TRELLIS_PORT: "0",
+		}),
 		runtime: {
 			version: "test",
 			bootId: fixture.ctx.bootId,

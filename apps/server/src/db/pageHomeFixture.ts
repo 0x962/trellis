@@ -42,6 +42,8 @@ export const pageHomeFixture = async () => {
 		actor,
 		session: null,
 		home,
+		installationHome: home,
+		releaseId: "release-test",
 		now: () => core.now,
 		newTx,
 		maxUploadBytes: 100 * 1024 * 1024,

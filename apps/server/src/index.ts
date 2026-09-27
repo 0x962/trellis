@@ -15,6 +15,7 @@ import { lockHome } from "./homeLock.ts";
 import { scaledClock } from "./jobs.ts";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
+import { initializeHostIdentityFiles } from "./services/hostIdentity/index.ts";
 import { startPageRetention } from "./services/pages/retention/startPageRetention";
 import { startSearchBackfill } from "./services/pages/startSearchBackfill";
 import { assertStandaloneHandoffReady } from "./standaloneHandoff/bootGuard.ts";
@@ -107,6 +108,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		lock.setPort(server.port!);
 		Object.assign(config, loadConfig({ ...env, TRELLIS_PORT: String(server.port) }));
 		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
+		await initializeHostIdentityFiles(config);
 		const leftovers = sweepBackups(config.backupsDir);
 		if (leftovers.length > 0) log.info("backup sweep", { removed: leftovers });
 
