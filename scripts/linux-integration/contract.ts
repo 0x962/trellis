@@ -34,6 +34,11 @@ type LanePlan = {
 	latitude: Partial<Record<string, CommandPlan>>;
 };
 
+type StoredLanePlan = Omit<LanePlan, "integratedInputs"> & {
+	integratedInputs?: IntegratedInputPlan[];
+	integratedInputsFile?: string;
+};
+
 type LanePlans = {
 	schemaVersion: 1;
 	lanes: Record<Lane, LanePlan>;
@@ -148,10 +153,25 @@ export function missingRequiredPaths(paths: string[], exists: (path: string) => 
 	return paths.filter((path) => !exists(path));
 }
 
+async function readIntegratedInputs(file: string): Promise<IntegratedInputPlan[]> {
+	return (await Bun.file(new URL(`./lanes/${file}`, import.meta.url)).json()) as IntegratedInputPlan[];
+}
+
 export async function readLanePlans(): Promise<LanePlans> {
 	const entries = await Promise.all(
 		Object.values(integrationBranches).map(async (lane) => {
-			const plan = (await Bun.file(new URL(`./lanes/${lane}.json`, import.meta.url)).json()) as LanePlan;
+			const storedPlan = (await Bun.file(new URL(`./lanes/${lane}.json`, import.meta.url)).json()) as StoredLanePlan;
+			const integratedInputs = storedPlan.integratedInputsFile
+				? await readIntegratedInputs(storedPlan.integratedInputsFile)
+				: storedPlan.integratedInputs!;
+			const plan: LanePlan = {
+				integratedInputs,
+				laneReview: storedPlan.laneReview,
+				focusedTests: storedPlan.focusedTests,
+				packages: storedPlan.packages,
+				smoke: storedPlan.smoke,
+				latitude: storedPlan.latitude,
+			};
 			return [lane, plan] as const;
 		}),
 	);
