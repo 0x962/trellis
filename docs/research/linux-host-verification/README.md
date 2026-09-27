@@ -86,15 +86,23 @@ Each entry records these fields for one integrated feature result:
 
 - `ticketIdentifier`
 - `ticketId`
+- `checkpointTicketIdentifier`
+- `checkpointTicketId`
 - `diffUrl`
-- `commit`
+- `reviewedHead`
+- `sourceHead`
+- `laneCommit`
 - `reviewRunId`
 - `reviewResult`
 - `findings`
 
 Each finding records its ID, status, and resolution text.
-An integrated input passes only when its review passes and every finding has the `resolved` status.
-The input commit must equal the commit that the review and checks cover.
+An integrated input passes only when its Review result is `succeeded` and every finding has the `resolved` status.
+The reviewed head must be an ancestor of the source head.
+The source head must be an ancestor of the lane commit.
+The lane commit must be an ancestor of the workflow commit.
+A missing, running, pending, or queued Review result stays unverified.
+A waived Review does not count as a passed Review.
 
 ## Platform gaps
 
