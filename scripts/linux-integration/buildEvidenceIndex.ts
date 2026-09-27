@@ -5,21 +5,13 @@ import {
 	evidenceArtifactName,
 	expectedChecks,
 	laneForBranch,
+	type Result,
 	readLanePlans,
 	resultArtifactName,
 	toEvidenceCheck,
-	type Result,
 } from "./contract";
-import {
-	allJobsSucceeded,
-	applyJobConclusions,
-	type JobConclusions,
-	verifyCheckRecord,
-} from "./evidenceVerification";
-import {
-	buildIntegratedCommitProof,
-	buildLaneReviewCoverageProof,
-} from "./integratedCommitProof";
+import { allJobsSucceeded, applyJobConclusions, type JobConclusions, verifyCheckRecord } from "./evidenceVerification";
+import { buildIntegratedCommitProof, buildLaneReviewCoverageProof } from "./integratedCommitProof";
 import {
 	findIntegratedInputGaps,
 	verifyIntegratedInput,
@@ -61,18 +53,13 @@ const laneReview = verifyLaneReview(
 	await buildIntegratedCommitProof(lanePlan.laneReview, workflowIdentity.commit),
 );
 const integratedInputs = await Promise.all(
-	lanePlan.integratedInputs.map(async (input) =>
-		({
-			...verifyIntegratedInput(
-				input,
-				await buildIntegratedCommitProof(input, workflowIdentity.commit),
-			),
-			laneReviewCoverage: verifyLaneReviewCoverage(
-				laneReview,
-				await buildLaneReviewCoverageProof(input, lanePlan.laneReview),
-			),
-		}),
-	),
+	lanePlan.integratedInputs.map(async (input) => ({
+		...verifyIntegratedInput(input, await buildIntegratedCommitProof(input, workflowIdentity.commit)),
+		laneReviewCoverage: verifyLaneReviewCoverage(
+			laneReview,
+			await buildLaneReviewCoverageProof(input, lanePlan.laneReview),
+		),
+	})),
 );
 const integrationGaps = [
 	...findIntegratedInputGaps(integratedInputs),
@@ -86,14 +73,9 @@ const integrationGaps = [
 			reason: `${input.ticketIdentifier || "An integrated input"}: ${input.reason ?? "Review proof is incomplete."}`,
 		})),
 	...integratedInputs
-		.filter(
-			(input) => input.laneReviewCoverage && input.laneReviewCoverage.verification !== "passed",
-		)
+		.filter((input) => input.laneReviewCoverage && input.laneReviewCoverage.verification !== "passed")
 		.map((input) => ({
-			verification:
-				input.laneReviewCoverage?.verification === "failed"
-					? ("failed" as const)
-					: ("unverified" as const),
+			verification: input.laneReviewCoverage?.verification === "failed" ? ("failed" as const) : ("unverified" as const),
 			reason: `${input.ticketIdentifier}: ${input.laneReviewCoverage?.reason ?? "Lane review coverage is incomplete."}`,
 		})),
 ];
@@ -160,9 +142,7 @@ const complete =
 	allJobsSucceeded(jobConclusions) &&
 	integratedInputs.length > 0 &&
 	(!laneReview || laneReview.verification === "passed") &&
-	integratedInputs.every(
-		(input) => !input.laneReviewCoverage || input.laneReviewCoverage.verification === "passed",
-	) &&
+	integratedInputs.every((input) => !input.laneReviewCoverage || input.laneReviewCoverage.verification === "passed") &&
 	checks.every((check) => check.result === "passed") &&
 	integratedInputs.every((input) => input.verification === "passed");
 const index = {
@@ -179,9 +159,8 @@ const index = {
 };
 
 const laneFindings =
-	(laneReview?.findings ?? [])
-		.map((finding) => `${finding.id}: ${finding.status}: ${finding.resolution}`)
-		.join("; ") || "none";
+	(laneReview?.findings ?? []).map((finding) => `${finding.id}: ${finding.status}: ${finding.resolution}`).join("; ") ||
+	"none";
 const markdown = [
 	"# Linux host integration evidence",
 	"",
@@ -206,17 +185,13 @@ const markdown = [
 	"|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
 	...integratedInputs.map((input) => {
 		const findings =
-			input.findings
-				.map((finding) => `${finding.id}: ${finding.status}: ${finding.resolution}`)
-				.join("; ") || "none";
+			input.findings.map((finding) => `${finding.id}: ${finding.status}: ${finding.resolution}`).join("; ") || "none";
 		return `| ${input.ticketIdentifier} | ${input.ticketId} | ${input.checkpointTicketIdentifier} | ${input.checkpointTicketId} | ${input.diffUrl} | ${input.reviewedHead} | ${input.sourceHead} | ${input.laneCommit} | ${input.reviewRunId} | ${input.reviewResult} | ${findings} | ${input.laneReviewCoverage?.verification ?? "none"} | ${input.verification} | ${input.reason ?? ""} |`;
 	}),
 	"",
 	"## Integration gaps",
 	"",
-	...(integrationGaps.length > 0
-		? integrationGaps.map((gap) => `- ${gap.verification}: ${gap.reason}`)
-		: ["- none"]),
+	...(integrationGaps.length > 0 ? integrationGaps.map((gap) => `- ${gap.verification}: ${gap.reason}`) : ["- none"]),
 	"",
 	"## Checks",
 	"",

@@ -1,5 +1,5 @@
-import { laneForBranch, readLanePlans } from "./contract";
 import { readWorkflowIdentity, writeResult, writeStepOutputs } from "./checkResult";
+import { laneForBranch, readLanePlans } from "./contract";
 
 const workflowIdentity = readWorkflowIdentity();
 const lane = laneForBranch(workflowIdentity.branch);

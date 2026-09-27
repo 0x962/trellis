@@ -1,0 +1,148 @@
+{
+	"integratedInputs": [
+		{
+			"ticketIdentifier": "TRL-517",
+			"ticketId": "01M3J6T1NBR98J9WMKMM561Q96",
+			"checkpointTicketIdentifier": "TRL-558",
+			"checkpointTicketId": "01M3J9Y112S6PZTJZS3YBNGPR3",
+			"diffUrl": "https://github.com/0x962/trellis/pull/497",
+			"reviewedHead": "e5c4fb2e70ddb808148da41b23b20cea1dd20e1c",
+			"sourceHead": "89bd0814034f705864276f3816713c13c3a14429",
+			"laneCommit": "0d79d7b7503c522b11a575ef8ff2246771e5e39f",
+			"reviewRunId": "01M3J7ZFMZ7WASTSCGA1955MWP",
+			"reviewResult": "succeeded",
+			"findings": [
+				{
+					"id": "01M3J82RSS477C35M47TQMBWBX",
+					"status": "resolved",
+					"resolution": "Moved repeated setup and upload steps into composite actions. The workflow now contains only job wiring and is 300 lines."
+				},
+				{
+					"id": "01M3J82Y8B2Z3NYMW5E1SKR3NA",
+					"status": "resolved",
+					"resolution": "checkResult.ts now prints one JSON record with the lane, commit, check, platform, result, reason, and artifact name."
+				},
+				{
+					"id": "01M3J83J27P5M5QWS72H12MQMF",
+					"status": "resolved",
+					"resolution": "Removed the unused plan output from the workflow and recordLanePlan.ts."
+				},
+				{
+					"id": "01M3J83EWS9FGK6EQBJWNQH71J",
+					"status": "resolved",
+					"resolution": "The index now applies every GitHub job conclusion to its records and completion result. The regression case covers a passed package record with a failed package job."
+				},
+				{
+					"id": "01M3J8493B8KW7BEN2R0H1RP99",
+					"status": "resolved",
+					"resolution": "Renamed all four helpers and updated their call sites."
+				},
+				{
+					"id": "01M3J8465P6CG2QHCV4JWAH93B",
+					"status": "resolved",
+					"resolution": "Required CI values now use requiredVariable and fail with the missing variable name. The missing-commit regression case prevents a passed record."
+				},
+				{
+					"id": "01M3J84937MJKBY61VSKEYM2E9",
+					"status": "resolved",
+					"resolution": "Renamed the function to readWorkflowIdentity and renamed each local value to workflowIdentity."
+				},
+				{
+					"id": "01M3J8493KFDB0WYXJW0KW7P6D",
+					"status": "resolved",
+					"resolution": "Renamed all four scripts and updated workflow commands and imports."
+				}
+			]
+		}
+	],
+	"laneReview": null,
+	"focusedTests": {
+		"linux-x64": {
+			"command": "bun test scripts/linux-integration/lanePlans.test.ts scripts/linux-integration/reviewEvidence.test.ts scripts/linux-integration/workflowRecords.test.ts scripts/linux-integration/artifactNames.test.ts",
+			"integratedInputTicketIdentifier": "TRL-517",
+			"requiredPaths": [
+				"scripts/linux-integration/lanePlans.test.ts",
+				"scripts/linux-integration/reviewEvidence.test.ts",
+				"scripts/linux-integration/workflowRecords.test.ts",
+				"scripts/linux-integration/artifactNames.test.ts",
+				"scripts/linux-integration/contract.ts",
+				"scripts/linux-integration/checkResult.ts",
+				"scripts/linux-integration/evidenceVerification.ts",
+				"scripts/linux-integration/integratedCommitProof.ts",
+				"scripts/linux-integration/reviewEvidence.ts",
+				"scripts/linux-integration/lanes/host.json",
+				"scripts/linux-integration/lanes/connection.json",
+				"scripts/linux-integration/lanes/client.json",
+				"scripts/linux-integration/lanes/operations.json",
+				"scripts/linux-integration/lanes/verification.json",
+				"scripts/linux-integration/lanes/system.json"
+			]
+		},
+		"linux-arm64": {
+			"command": "bun test scripts/linux-integration/lanePlans.test.ts scripts/linux-integration/reviewEvidence.test.ts scripts/linux-integration/workflowRecords.test.ts scripts/linux-integration/artifactNames.test.ts",
+			"integratedInputTicketIdentifier": "TRL-517",
+			"requiredPaths": [
+				"scripts/linux-integration/lanePlans.test.ts",
+				"scripts/linux-integration/reviewEvidence.test.ts",
+				"scripts/linux-integration/workflowRecords.test.ts",
+				"scripts/linux-integration/artifactNames.test.ts",
+				"scripts/linux-integration/contract.ts",
+				"scripts/linux-integration/checkResult.ts",
+				"scripts/linux-integration/evidenceVerification.ts",
+				"scripts/linux-integration/integratedCommitProof.ts",
+				"scripts/linux-integration/reviewEvidence.ts",
+				"scripts/linux-integration/lanes/host.json",
+				"scripts/linux-integration/lanes/connection.json",
+				"scripts/linux-integration/lanes/client.json",
+				"scripts/linux-integration/lanes/operations.json",
+				"scripts/linux-integration/lanes/verification.json",
+				"scripts/linux-integration/lanes/system.json"
+			]
+		},
+		"macos-x64": {
+			"command": "bun test scripts/linux-integration/lanePlans.test.ts scripts/linux-integration/reviewEvidence.test.ts scripts/linux-integration/workflowRecords.test.ts scripts/linux-integration/artifactNames.test.ts",
+			"integratedInputTicketIdentifier": "TRL-517",
+			"requiredPaths": [
+				"scripts/linux-integration/lanePlans.test.ts",
+				"scripts/linux-integration/reviewEvidence.test.ts",
+				"scripts/linux-integration/workflowRecords.test.ts",
+				"scripts/linux-integration/artifactNames.test.ts",
+				"scripts/linux-integration/contract.ts",
+				"scripts/linux-integration/checkResult.ts",
+				"scripts/linux-integration/evidenceVerification.ts",
+				"scripts/linux-integration/integratedCommitProof.ts",
+				"scripts/linux-integration/reviewEvidence.ts",
+				"scripts/linux-integration/lanes/host.json",
+				"scripts/linux-integration/lanes/connection.json",
+				"scripts/linux-integration/lanes/client.json",
+				"scripts/linux-integration/lanes/operations.json",
+				"scripts/linux-integration/lanes/verification.json",
+				"scripts/linux-integration/lanes/system.json"
+			]
+		},
+		"macos-arm64": {
+			"command": "bun test scripts/linux-integration/lanePlans.test.ts scripts/linux-integration/reviewEvidence.test.ts scripts/linux-integration/workflowRecords.test.ts scripts/linux-integration/artifactNames.test.ts",
+			"integratedInputTicketIdentifier": "TRL-517",
+			"requiredPaths": [
+				"scripts/linux-integration/lanePlans.test.ts",
+				"scripts/linux-integration/reviewEvidence.test.ts",
+				"scripts/linux-integration/workflowRecords.test.ts",
+				"scripts/linux-integration/artifactNames.test.ts",
+				"scripts/linux-integration/contract.ts",
+				"scripts/linux-integration/checkResult.ts",
+				"scripts/linux-integration/evidenceVerification.ts",
+				"scripts/linux-integration/integratedCommitProof.ts",
+				"scripts/linux-integration/reviewEvidence.ts",
+				"scripts/linux-integration/lanes/host.json",
+				"scripts/linux-integration/lanes/connection.json",
+				"scripts/linux-integration/lanes/client.json",
+				"scripts/linux-integration/lanes/operations.json",
+				"scripts/linux-integration/lanes/verification.json",
+				"scripts/linux-integration/lanes/system.json"
+			]
+		}
+	},
+	"packages": {},
+	"smoke": {},
+	"latitude": {}
+}

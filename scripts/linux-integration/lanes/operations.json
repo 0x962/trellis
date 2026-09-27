@@ -1,0 +1,252 @@
+{
+	"integratedInputs": [
+		{
+			"ticketIdentifier": "TRL-523",
+			"ticketId": "01M3J6T4PGMB581NC8Y9FAPYHE",
+			"checkpointTicketIdentifier": "TRL-549",
+			"checkpointTicketId": "01M3J8DXDKZPJPMDD59WW0MCRS",
+			"diffUrl": "https://github.com/0x962/trellis/pull/494",
+			"reviewedHead": "2179559c86b800554f69bc0e9944fac2b2c13f77",
+			"sourceHead": "f5d273b687415772b674bf1955f6303bc4e09e6d",
+			"laneCommit": "aa0908407cb1454bb787129d2f1b3d1c0855ecb1",
+			"reviewRunId": "01M3J7V6K9XPNJQ93ZF31FF62Q",
+			"reviewResult": "succeeded",
+			"findings": [
+				{
+					"id": "01M3J7Y911DKKVSW118FSC60H4",
+					"status": "resolved",
+					"resolution": "PR 504 adds optional effectiveCpuCount as a finite positive value or null. Linux loadPerCore uses that value."
+				},
+				{
+					"id": "01M3J7YPVXYT9DQ070Y6N4WRZ6",
+					"status": "resolved",
+					"resolution": "PR 504 maps the Linux CPU and memory values into the machine pressure response."
+				},
+				{
+					"id": "01M3J7YX2MMY137KB7P6DX5P7J",
+					"status": "resolved",
+					"resolution": "PR 504 adds typed memory fields and preserves each cgroup read state. Linux memoryLevel stays null."
+				},
+				{
+					"id": "01M3J7TZPZ4AFPDHJ782YB3B0T",
+					"status": "resolved",
+					"resolution": "PR 504 keeps cpuCount logical and adds effectiveCpuCount for Linux loadPerCore."
+				},
+				{
+					"id": "01M3J7ZC810F39DCW4316942QJ",
+					"status": "resolved",
+					"resolution": "The exported dependency types are CgroupLimitReaderDeps and LinuxHostMetricsReaderDeps."
+				},
+				{
+					"id": "01M3J7XK91RQ4J9VRDFEVNQ5DE",
+					"status": "resolved",
+					"resolution": "cgroup and hostMetrics use their own module folders and index files. The hostMetrics test moved with its module."
+				},
+				{
+					"id": "01M3J7YQ96FAFF9YY2XFWA0YJ9",
+					"status": "resolved",
+					"resolution": "The Linux unsupported-platform case sits in processorTemperature.test.ts beside the reader tests."
+				},
+				{
+					"id": "01M3J7ZCDZ753YF76E17ZQPRN1",
+					"status": "resolved",
+					"resolution": "The cgroup aggregation uses limitsByDirectory and strictestMemoryLimit."
+				},
+				{
+					"id": "01M3J7XMT9FK77AEK0AGT69S6H",
+					"status": "resolved",
+					"resolution": "Changed cgroup read failures log the path and error once per failure state. Partial read failures keep unknown values."
+				},
+				{
+					"id": "01M3J8PTD9190EVB4GCNKGE9C4",
+					"status": "resolved",
+					"resolution": "memoryUsedBytes comes only from memory.current. An unreadable usage stays unknown for an unlimited cgroup."
+				}
+			]
+		},
+		{
+			"ticketIdentifier": "TRL-533",
+			"ticketId": "01M3J6T88KADS8RM13X3RED3ET",
+			"checkpointTicketIdentifier": "TRL-550",
+			"checkpointTicketId": "01M3J8DXKA3YPN9QKKWTERQT2B",
+			"diffUrl": "https://github.com/0x962/trellis/pull/499",
+			"reviewedHead": "ba518a1c88d39d94570bd640f7a2002411a94a97",
+			"sourceHead": "577027c154b0c07ddeacaffc7ee698cc8578fd9d",
+			"laneCommit": "b26a4d93ae44238dfe57ef6f422eaa3bef6b9262",
+			"reviewRunId": "01M3J87ZR9P4FDDY1KJGG4RD3R",
+			"reviewResult": "succeeded",
+			"findings": [
+				{
+					"id": "01M3J89TECE6EYCYDR00TR0Q2K",
+					"status": "resolved",
+					"resolution": "The scanner resolves each symbolic-link target and excludes escaped or unmapped targets."
+				},
+				{
+					"id": "01M3J8AKE9A210G1PEFMFEM8JT",
+					"status": "resolved",
+					"resolution": "The comment names scanPath and symlinks and explains the duplicate byte count."
+				},
+				{
+					"id": "01M3J8AXW964DV4751V7HS15WF",
+					"status": "resolved",
+					"resolution": "The Git executor lives in apps/server/src/git/runGit and exports runGit for both services."
+				},
+				{
+					"id": "01M3J89TSN5R7NZ6EPARNZM6K0",
+					"status": "resolved",
+					"resolution": "The API root exports the host transfer contract. The server imports it from @trellis/api."
+				},
+				{
+					"id": "01M3J8C6H5PBCTCG1RDYSH17EP",
+					"status": "resolved",
+					"resolution": "The loop variable uses absolutePathEntry."
+				},
+				{
+					"id": "01M3J8CAR75127VK1EAJQPA6GG",
+					"status": "resolved",
+					"resolution": "A missing database fails the inventory. Missing optional directories become explicit exclusions."
+				},
+				{
+					"id": "01M3J8BTNPBYASAYA07KMPWHDD",
+					"status": "resolved",
+					"resolution": "The endpoint schema accepts Darwin and Linux on x64 and arm64 and requires POSIX absolute paths."
+				},
+				{
+					"id": "01M3J8C6BGQAFNJY7DPA6D0G6A",
+					"status": "resolved",
+					"resolution": "The schema and fields use ProviderResumeCompatibility and providerResumeCompatibility."
+				},
+				{
+					"id": "01M3J8CB31A0WNPQVQ5V2NW1EG",
+					"status": "resolved",
+					"resolution": "Both Git object schemas require dirtyPaths."
+				},
+				{
+					"id": "01M3J8C6E81YH6VQQ767KEDJ4N",
+					"status": "resolved",
+					"resolution": "The service and its folder use the plural name appendScannedObjects."
+				},
+				{
+					"id": "01M3J8BZB7KY9G3EMQER8Q15DH",
+					"status": "resolved",
+					"resolution": "The inventory helpers use named folders. scanPath is nested under appendScannedObjects."
+				}
+			]
+		},
+		{
+			"ticketIdentifier": "TRL-539",
+			"ticketId": "01M3J6TA0KZ3SB9Z4JH3GG7CF2",
+			"checkpointTicketIdentifier": "TRL-555",
+			"checkpointTicketId": "01M3J9AT6BBYWBM49K27DNC7V7",
+			"diffUrl": "https://github.com/0x962/trellis/pull/504",
+			"reviewedHead": "52accdfebc4a932582cda28895641f2d04fc7ecb",
+			"sourceHead": "aa5aa6c837ffa4489d1c1d2213f3404187bb7353",
+			"laneCommit": "d50debe3329ea37c28c1af7b9c814d41d442d506",
+			"reviewRunId": "01M3J9J5C04TA9ZRZQ71XG1PZP",
+			"reviewResult": "succeeded",
+			"findings": [
+				{
+					"id": "01M3J9MWG6EE3ETTSGZP79YQX1",
+					"status": "resolved",
+					"resolution": "The schema comment defines a failed limit read and a known unlimited cgroup."
+				},
+				{
+					"id": "01M3J9NJ368AWAZ81SK3B0BMG6",
+					"status": "resolved",
+					"resolution": "hostLoad names its second parameter effectiveCpuCount and uses it as the divisor."
+				},
+				{
+					"id": "01M3J9NN9GFTCT1QX3RBMRZ2S2",
+					"status": "resolved",
+					"resolution": "services/agentRuns.ts exports readRuntimeSessions for the machine pressure service."
+				}
+			]
+		}
+	],
+	"laneReview": null,
+	"focusedTests": {
+		"linux-x64": {
+			"command": "bun test apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts apps/server/src/services/systemUsage/machinePressure.test.ts apps/server/src/services/systemUsage/processorTemperature.test.ts && bun test apps/server/src/services/hostTransfer/inventory/inventory.test.ts packages/api/src/hostTransfer/hostTransfer.test.ts && bun test apps/server/src/services/agentRuns/workspace/lineStats.test.ts apps/server/src/services/agentRuns/workspace/summary.test.ts && bun test apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+			"integratedInputTicketIdentifier": "TRL-539",
+			"requiredPaths": [
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.ts",
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts",
+				"apps/server/src/services/systemUsage/machinePressure.ts",
+				"apps/server/src/services/systemUsage/machinePressure.test.ts",
+				"apps/server/src/services/systemUsage/processorTemperature.test.ts",
+				"packages/api/src/schemas/system.ts",
+				"apps/server/src/services/agentRuns.ts",
+				"apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+				"apps/server/src/services/hostTransfer/inventory/inventory.test.ts",
+				"packages/api/src/hostTransfer/hostTransfer.ts",
+				"packages/api/src/hostTransfer/hostTransfer.test.ts",
+				"apps/server/src/git/runGit/runGit.ts",
+				"apps/server/src/services/agentRuns/workspace/lineStats.test.ts",
+				"apps/server/src/services/agentRuns/workspace/summary.test.ts"
+			]
+		},
+		"linux-arm64": {
+			"command": "bun test apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts apps/server/src/services/systemUsage/machinePressure.test.ts apps/server/src/services/systemUsage/processorTemperature.test.ts && bun test apps/server/src/services/hostTransfer/inventory/inventory.test.ts packages/api/src/hostTransfer/hostTransfer.test.ts && bun test apps/server/src/services/agentRuns/workspace/lineStats.test.ts apps/server/src/services/agentRuns/workspace/summary.test.ts && bun test apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+			"integratedInputTicketIdentifier": "TRL-539",
+			"requiredPaths": [
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.ts",
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts",
+				"apps/server/src/services/systemUsage/machinePressure.ts",
+				"apps/server/src/services/systemUsage/machinePressure.test.ts",
+				"apps/server/src/services/systemUsage/processorTemperature.test.ts",
+				"packages/api/src/schemas/system.ts",
+				"apps/server/src/services/agentRuns.ts",
+				"apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+				"apps/server/src/services/hostTransfer/inventory/inventory.test.ts",
+				"packages/api/src/hostTransfer/hostTransfer.ts",
+				"packages/api/src/hostTransfer/hostTransfer.test.ts",
+				"apps/server/src/git/runGit/runGit.ts",
+				"apps/server/src/services/agentRuns/workspace/lineStats.test.ts",
+				"apps/server/src/services/agentRuns/workspace/summary.test.ts"
+			]
+		},
+		"macos-x64": {
+			"command": "bun test apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts apps/server/src/services/systemUsage/machinePressure.test.ts apps/server/src/services/systemUsage/processorTemperature.test.ts && bun test apps/server/src/services/hostTransfer/inventory/inventory.test.ts packages/api/src/hostTransfer/hostTransfer.test.ts && bun test apps/server/src/services/agentRuns/workspace/lineStats.test.ts apps/server/src/services/agentRuns/workspace/summary.test.ts && bun test apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+			"integratedInputTicketIdentifier": "TRL-539",
+			"requiredPaths": [
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.ts",
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts",
+				"apps/server/src/services/systemUsage/machinePressure.ts",
+				"apps/server/src/services/systemUsage/machinePressure.test.ts",
+				"apps/server/src/services/systemUsage/processorTemperature.test.ts",
+				"packages/api/src/schemas/system.ts",
+				"apps/server/src/services/agentRuns.ts",
+				"apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+				"apps/server/src/services/hostTransfer/inventory/inventory.test.ts",
+				"packages/api/src/hostTransfer/hostTransfer.ts",
+				"packages/api/src/hostTransfer/hostTransfer.test.ts",
+				"apps/server/src/git/runGit/runGit.ts",
+				"apps/server/src/services/agentRuns/workspace/lineStats.test.ts",
+				"apps/server/src/services/agentRuns/workspace/summary.test.ts"
+			]
+		},
+		"macos-arm64": {
+			"command": "bun test apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts apps/server/src/services/systemUsage/machinePressure.test.ts apps/server/src/services/systemUsage/processorTemperature.test.ts && bun test apps/server/src/services/hostTransfer/inventory/inventory.test.ts packages/api/src/hostTransfer/hostTransfer.test.ts && bun test apps/server/src/services/agentRuns/workspace/lineStats.test.ts apps/server/src/services/agentRuns/workspace/summary.test.ts && bun test apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+			"integratedInputTicketIdentifier": "TRL-539",
+			"requiredPaths": [
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.ts",
+				"apps/server/src/services/systemUsage/linux/hostMetrics/hostMetrics.test.ts",
+				"apps/server/src/services/systemUsage/machinePressure.ts",
+				"apps/server/src/services/systemUsage/machinePressure.test.ts",
+				"apps/server/src/services/systemUsage/processorTemperature.test.ts",
+				"packages/api/src/schemas/system.ts",
+				"apps/server/src/services/agentRuns.ts",
+				"apps/web/src/features/sidebar/MachinePressure/machinePressureView.test.ts",
+				"apps/server/src/services/hostTransfer/inventory/inventory.test.ts",
+				"packages/api/src/hostTransfer/hostTransfer.ts",
+				"packages/api/src/hostTransfer/hostTransfer.test.ts",
+				"apps/server/src/git/runGit/runGit.ts",
+				"apps/server/src/services/agentRuns/workspace/lineStats.test.ts",
+				"apps/server/src/services/agentRuns/workspace/summary.test.ts"
+			]
+		}
+	},
+	"packages": {},
+	"smoke": {},
+	"latitude": {}
+}
