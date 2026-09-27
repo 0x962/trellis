@@ -11,8 +11,9 @@ export type TicketAgentLine = {
 	runId: string;
 } & ({ working: true; spans: readonly RunLineSpan[] } | { working: false });
 
-// The words a ticket row shows on its own line, or null when the run has
-// neither an open request nor a message.
+// The words a ticket row shows on its own line. A run with no open request
+// or message shows its current state, so the line still opens the retained
+// session and terminal output.
 //
 // The line shows the open request and not the last message, because a
 // person reads the line to find what to answer.
@@ -54,7 +55,13 @@ export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 			runId: run.id,
 		};
 	}
-	if (line.lastMessage === null) return null;
+	if (line.lastMessage === null)
+		return {
+			words: `${run.name}: ${line.words}`,
+			asks: false,
+			working: false,
+			runId: run.id,
+		};
 	return {
 		words: line.lastMessage.words,
 		asks: false,
@@ -63,11 +70,9 @@ export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	};
 };
 
-// The agent line of each ticket that holds an assigned agent run, keyed by
-// ticket id. The input is the result of `agentRuns.list { assigned: true }`,
-// the query that the actor cell of every row reads, so the lines of a whole
-// table cost no request of their own. The run kind is `agent`, the kind the
-// actor cell shows.
+// The agent line of each ticket that has an agent run, keyed by ticket id.
+// The epic page combines the open runs with the prior runs of its project.
+// The run kind is `agent`, which is the kind the actor cell shows.
 //
 // The result is a plain object, not a Map. React Query compares a query
 // result with `replaceEqualDeep`, which walks a plain object and returns
@@ -75,10 +80,10 @@ export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 // which would give the table a new identity every 2 s and redraw every
 // visible row.
 //
-// Two agent runs can sit on one ticket, after a retry or a follow-up, and the
-// server names no order for them. The line of one run wins over the line of
-// another in this order: an open request, because a person must answer it;
-// then a live run over a stopped or finished one; then the later activity.
+// Two agent runs can sit on one ticket after a person removes one assignment
+// and starts another. The assigned run wins over the prior runs. Among runs
+// with the same assignment state, an open request wins, then a live run,
+// then the later activity.
 export const agentLinesByTicket = (runs: readonly AgentRun[]): Readonly<Record<string, TicketAgentLine>> => {
 	const lines: Record<string, TicketAgentLine> = {};
 	const winners: Record<string, AgentRun> = {};
@@ -95,6 +100,7 @@ export const agentLinesByTicket = (runs: readonly AgentRun[]): Readonly<Record<s
 };
 
 const beats = (run: AgentRun, line: TicketAgentLine, heldRun: AgentRun, held: TicketAgentLine) => {
+	if (run.assigned !== heldRun.assigned) return run.assigned;
 	if (line.asks !== held.asks) return line.asks;
 	if (isLive(run) !== isLive(heldRun)) return isLive(run);
 	return lastActiveAt(run) >= lastActiveAt(heldRun);

@@ -95,14 +95,19 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
 		[assignedRunsQuery.status, assignedRuns],
 	);
-	// The same `agentRuns.list` query as `assignedRuns` above, with another
-	// `select`. A ticket row whose run holds an open request or a last
-	// message is followed by one line.
-	const agentLines = useQuery({
-		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
-		select: agentLinesByTicket,
+	// Prior runs keep their line after a person removes the assignment. The
+	// full history stays on the ticket page. This query matches the one-year
+	// archive window of the project session list.
+	const priorRunsQuery = useQuery({
+		...orpc.agentRuns.list.queryOptions({
+			input: { project: project.id, assigned: false, windowHours: 24 * 365, limit: 1000 },
+		}),
 		refetchOnWindowFocus: "always",
-	}).data;
+	});
+	const agentLines = useMemo(
+		() => agentLinesByTicket([...(assignedRuns ?? noRuns), ...(priorRunsQuery.data ?? noRuns)]),
+		[assignedRuns, priorRunsQuery.data],
+	);
 
 	const waveEditing = useWaveEditing({
 		epicRef: ref,
