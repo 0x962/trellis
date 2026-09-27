@@ -2,6 +2,16 @@ import { cx } from "@trellis/ui";
 import { useEffect, useRef } from "react";
 import { useSlashMenuStore } from "./SlashMenu";
 
+export const scrollSlashMenu = (
+	list: HTMLDivElement | null,
+	open: boolean,
+	itemCount: number,
+	highlighted: number,
+) => {
+	if (!open || itemCount === 0) return;
+	list?.children.item(highlighted)?.scrollIntoView({ block: "nearest" });
+};
+
 // The block menu under the caret. It reads the plugin's state and hands a
 // click back to the plugin's command.
 export function SlashMenuList() {
@@ -9,8 +19,8 @@ export function SlashMenuList() {
 	const list = useRef<HTMLDivElement>(null);
 	// The list scrolls, so the arrow keys keep the highlighted block in view.
 	useEffect(() => {
-		list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-	}, [highlighted, open]);
+		scrollSlashMenu(list.current, open, items.length, highlighted);
+	}, [highlighted, items.length, open]);
 	if (!open) return null;
 	return (
 		<div
