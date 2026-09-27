@@ -1,5 +1,6 @@
 import { accessSync, constants, mkdirSync, readFileSync, readdirSync, rmdirSync, watch, writeFileSync } from "node:fs";
 import { createLinuxCgroupController } from "./cgroup.ts";
+import { logLinuxLifecycle } from "./logLinuxLifecycle.ts";
 
 const sleepState = new Int32Array(new SharedArrayBuffer(4));
 
@@ -19,8 +20,8 @@ export const linuxCgroupController = createLinuxCgroupController({
 		watcher.once("error", failure);
 		return watcher;
 	},
-	setTimer,
-	clearTimer,
+	setTimer: setTimeout,
+	clearTimer: clearTimeout,
 	now: () => performance.now(),
 	waitSync(milliseconds) {
 		Atomics.wait(sleepState, 0, 0, milliseconds);
@@ -38,4 +39,5 @@ export const linuxCgroupController = createLinuxCgroupController({
 			}
 		},
 	},
+	log: logLinuxLifecycle,
 });

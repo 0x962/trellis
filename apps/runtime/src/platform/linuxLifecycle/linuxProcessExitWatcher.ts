@@ -1,6 +1,7 @@
 import { closeSync, writeSync } from "node:fs";
 import { constants } from "node:os";
 import { errno, load } from "koffi";
+import type { LinuxAttemptIdentity, LinuxLifecycleEvent } from "./cgroup.ts";
 
 export type LinuxExitWatcherOperations = {
 	createQueue: () => { queue: number; wake: number };
@@ -94,10 +95,34 @@ export class LinuxProcessExitWatcher {
 	private wakeDescriptor: number | undefined;
 	private waiting = false;
 	private closing = false;
-	private readonly byPid = new Map<number, { descriptor: number; listeners: Set<() => void> }>();
+	private readonly byPid = new Map<
+		number,
+		{ descriptor: number; listeners: Set<() => void>; identity: LinuxAttemptIdentity }
+	>();
 	private readonly byDescriptor = new Map<number, number>();
+	private closingAttempts: LinuxAttemptIdentity[] = [];
 
-	constructor(private readonly operations: LinuxExitWatcherOperations = nodeOperations()) {}
+	constructor(
+		private readonly operations: LinuxExitWatcherOperations,
+		private readonly resolveAttempt: (pid: number) => LinuxAttemptIdentity,
+		private readonly log: (event: LinuxLifecycleEvent) => void,
+	) {}
+
+	private record(
+		identity: LinuxAttemptIdentity,
+		operation: LinuxLifecycleEvent["operation"],
+		outcome: LinuxLifecycleEvent["outcome"],
+		error: Error | null = null,
+	) {
+		this.log({
+			attemptId: identity.attemptId,
+			pid: identity.pid,
+			cgroupPath: identity.path,
+			operation,
+			outcome,
+			error: error?.message ?? null,
+		});
+	}
 
 	watch(pid: number, listener: () => void) {
 		const existing = this.byPid.get(pid);
@@ -105,23 +130,32 @@ export class LinuxProcessExitWatcher {
 			existing.listeners.add(listener);
 			return;
 		}
-		this.ensureQueue();
-		const descriptor = this.operations.openProcess(pid);
-		if (descriptor < 0) {
-			queueMicrotask(listener);
-			if (this.byPid.size === 0) this.finish();
-			return;
-		}
+		const identity = this.resolveAttempt(pid);
+		this.record(identity, "pidfd-watch", "started");
 		try {
-			this.operations.add(this.queue!, descriptor);
+			this.ensureQueue();
+			const descriptor = this.operations.openProcess(pid);
+			if (descriptor < 0) {
+				queueMicrotask(listener);
+				if (this.byPid.size === 0) this.finish();
+				this.record(identity, "pidfd-watch", "succeeded");
+				return;
+			}
+			try {
+				this.operations.add(this.queue!, descriptor);
+			} catch (error) {
+				this.operations.close(descriptor);
+				if (this.byPid.size === 0) this.finish();
+				throw error;
+			}
+			this.byPid.set(pid, { descriptor, listeners: new Set([listener]), identity });
+			this.byDescriptor.set(descriptor, pid);
+			if (!this.waiting) void this.wait();
+			this.record(identity, "pidfd-watch", "succeeded");
 		} catch (error) {
-			this.operations.close(descriptor);
-			if (this.byPid.size === 0) this.finish();
+			this.record(identity, "pidfd-watch", "failed", error as Error);
 			throw error;
 		}
-		this.byPid.set(pid, { descriptor, listeners: new Set([listener]) });
-		this.byDescriptor.set(descriptor, pid);
-		if (!this.waiting) void this.wait();
 	}
 
 	private ensureQueue() {
@@ -140,6 +174,8 @@ export class LinuxProcessExitWatcher {
 		this.wakeDescriptor = undefined;
 		this.queue = undefined;
 		this.waiting = false;
+		for (const identity of this.closingAttempts) this.record(identity, "watcher-close", "succeeded");
+		this.closingAttempts = [];
 	}
 
 	private async wait() {
@@ -148,7 +184,13 @@ export class LinuxProcessExitWatcher {
 			return;
 		}
 		this.waiting = true;
-		const descriptors = await this.operations.wait(this.queue!);
+		let descriptors: number[];
+		try {
+			descriptors = await this.operations.wait(this.queue!);
+		} catch (error) {
+			for (const { identity } of this.byPid.values()) this.record(identity, "pidfd-watch", "failed", error as Error);
+			throw error;
+		}
 		if (descriptors.includes(this.wakeDescriptor!)) {
 			this.finish();
 			return;
@@ -167,7 +209,20 @@ export class LinuxProcessExitWatcher {
 
 	close() {
 		this.closing = true;
-		if (!this.waiting) this.finish();
-		else if (this.wakeDescriptor !== undefined) this.operations.wake(this.wakeDescriptor);
+		this.closingAttempts = [...this.byPid.values()].map(({ identity }) => identity);
+		for (const identity of this.closingAttempts) this.record(identity, "watcher-close", "started");
+		try {
+			if (!this.waiting) this.finish();
+			else if (this.wakeDescriptor !== undefined) this.operations.wake(this.wakeDescriptor);
+		} catch (error) {
+			for (const identity of this.closingAttempts) this.record(identity, "watcher-close", "failed", error as Error);
+			this.closingAttempts = [];
+			throw error;
+		}
 	}
 }
+
+export const createNodeLinuxProcessExitWatcher = (
+	resolveAttempt: (pid: number) => LinuxAttemptIdentity,
+	log: (event: LinuxLifecycleEvent) => void,
+) => new LinuxProcessExitWatcher(nodeOperations(), resolveAttempt, log);

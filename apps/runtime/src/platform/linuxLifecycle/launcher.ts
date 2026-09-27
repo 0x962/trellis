@@ -1,4 +1,3 @@
-import { accessSync, constants } from "node:fs";
 import { delimiter, isAbsolute, resolve } from "node:path";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 
@@ -7,29 +6,16 @@ export type LinuxLaunchOperations = {
 	canExecute: (path: string) => boolean;
 };
 
-const nodeLaunchOperations: LinuxLaunchOperations = {
-	executable: process.execPath,
-	canExecute(path) {
-		try {
-			accessSync(path, constants.X_OK);
-			return true;
-		} catch (error) {
-			const code = (error as NodeJS.ErrnoException).code;
-			if (code === "EACCES" || code === "ENOENT" || code === "ENOTDIR") return false;
-			throw error;
-		}
-	},
-};
-
 export function resolveLinuxExecutable(
 	command: string,
 	cwd: string,
 	environment: NodeJS.ProcessEnv,
-	operations: LinuxLaunchOperations = nodeLaunchOperations,
+	operations: LinuxLaunchOperations,
 ): string {
 	if (isAbsolute(command)) return command;
 	if (command.includes("/")) return resolve(cwd, command);
-	for (const entry of (environment.PATH ?? "").split(delimiter)) {
+	if (environment.PATH === undefined) throw new Error(`PATH is required to find executable ${command}`);
+	for (const entry of environment.PATH.split(delimiter)) {
 		const candidate = resolve(entry || cwd, command);
 		if (operations.canExecute(candidate)) return candidate;
 	}
@@ -39,7 +25,7 @@ export function resolveLinuxExecutable(
 export function linuxLaunchSpec(
 	spec: LaunchSpec,
 	cgroupProcsPath: string,
-	operations: LinuxLaunchOperations = nodeLaunchOperations,
+	operations: LinuxLaunchOperations,
 ): LaunchSpec {
 	const environment = { ...process.env, ...spec.env };
 	const executable = resolveLinuxExecutable(spec.command, spec.cwd, environment, operations);

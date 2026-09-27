@@ -1,9 +1,11 @@
 import { expect, test } from "bun:test";
+import type { LinuxLifecycleEvent } from "./cgroup.ts";
 import { LinuxProcessExitWatcher, type LinuxExitWatcherOperations } from "./linuxProcessExitWatcher.ts";
 
 function fixture() {
 	const closed: number[] = [];
 	const opened: number[] = [];
+	const events: LinuxLifecycleEvent[] = [];
 	let nextDescriptor = 100;
 	let release: ((descriptors: number[]) => void) | undefined;
 	const operations: LinuxExitWatcherOperations = {
@@ -21,13 +23,20 @@ function fixture() {
 		operations,
 		opened,
 		closed,
+		events,
 		exit: (descriptor: number) => release?.([descriptor]),
+		watcher: () =>
+			new LinuxProcessExitWatcher(
+				operations,
+				(pid) => ({ attemptId: "attempt-one", pid, path: "/sys/fs/cgroup/attempt-one" }),
+				(event) => events.push(event),
+			),
 	};
 }
 
 test("pidfd observation follows the opened process across PID reuse", async () => {
 	const state = fixture();
-	const watcher = new LinuxProcessExitWatcher(state.operations);
+	const watcher = state.watcher();
 	let first = 0;
 	watcher.watch(42, () => first++);
 	state.exit(100);
@@ -47,7 +56,7 @@ test("pidfd observation follows the opened process across PID reuse", async () =
 test("a missing process notifies its listener without a poll", async () => {
 	const state = fixture();
 	state.operations.openProcess = () => -1;
-	const watcher = new LinuxProcessExitWatcher(state.operations);
+	const watcher = state.watcher();
 	let notifications = 0;
 	watcher.watch(42, () => notifications++);
 	await Promise.resolve();
@@ -57,10 +66,18 @@ test("a missing process notifies its listener without a poll", async () => {
 
 test("close wakes epoll and closes each pidfd", async () => {
 	const state = fixture();
-	const watcher = new LinuxProcessExitWatcher(state.operations);
+	const watcher = state.watcher();
 	watcher.watch(42, () => {});
 	watcher.close();
 	await Promise.resolve();
 	await Promise.resolve();
 	expect(state.closed).toEqual([100, 11, 10]);
+	expect(state.events).toContainEqual({
+		attemptId: "attempt-one",
+		pid: 42,
+		cgroupPath: "/sys/fs/cgroup/attempt-one",
+		operation: "watcher-close",
+		outcome: "succeeded",
+		error: null,
+	});
 });

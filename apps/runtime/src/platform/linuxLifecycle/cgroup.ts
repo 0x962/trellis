@@ -1,9 +1,23 @@
-import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import { linuxLaunchSpec, type LinuxLaunchOperations } from "./launcher.ts";
 
 export type LinuxCgroupWatcher = { close: () => void };
+
+export type LinuxAttemptIdentity = {
+	attemptId: string;
+	pid: number;
+	path: string;
+};
+
+export type LinuxLifecycleEvent = {
+	attemptId: string;
+	pid: number | null;
+	cgroupPath: string;
+	operation: "prepare" | "register" | "stop" | "pidfd-watch" | "watcher-close";
+	outcome: "started" | "succeeded" | "failed";
+	error: string | null;
+};
 
 export type LinuxCgroupOperations = {
 	readFile: (path: string) => string;
@@ -17,22 +31,26 @@ export type LinuxCgroupOperations = {
 	now: () => number;
 	waitSync: (milliseconds: number) => void;
 	launch: LinuxLaunchOperations;
+	log: (event: LinuxLifecycleEvent) => void;
 };
 
 export type LinuxAttempt = {
+	attemptId: string;
 	path: string;
 	spec: LaunchSpec;
-	register: (pid: number) => void;
-	discard: () => void;
 };
 
 export type LinuxCgroupController = {
 	prepare: (attemptId: string, spec: LaunchSpec) => LinuxAttempt;
+	confirmJoinedAndUnfreeze: (attemptId: string, pid: number) => void;
+	discard: (attemptId: string) => void;
 	stop: (pid: number) => Promise<void>;
+	attemptForPid: (pid: number) => LinuxAttemptIdentity;
 };
 
 const cleanupTimeoutMs = 10_000;
 const joinTimeoutMs = 2_000;
+const attemptPrefix = "attempt-";
 
 const decodeMountPath = (value: string) =>
 	value.replace(/\\([0-7]{3})/g, (_match, digits: string) => String.fromCharCode(Number.parseInt(digits, 8)));
@@ -64,10 +82,35 @@ const populated = (value: string): boolean => {
 	return match[1] === "1";
 };
 
-const attemptName = (attemptId: string) => `attempt-${createHash("sha256").update(attemptId).digest("hex")}`;
+const attemptName = (attemptId: string) => `${attemptPrefix}${Buffer.from(attemptId).toString("base64url")}`;
+
+const attemptIdFromName = (name: string) => Buffer.from(name.slice(attemptPrefix.length), "base64url").toString();
 
 export function createLinuxCgroupController(operations: LinuxCgroupOperations): LinuxCgroupController {
-	const attempts = new Map<number, string>();
+	const attempts = new Map<number, LinuxAttemptIdentity>();
+
+	const attemptsRoot = () =>
+		posix.join(
+			linuxCgroupRoot(operations.readFile("/proc/self/cgroup"), operations.readFile("/proc/self/mountinfo")),
+			"trellis-attempts",
+		);
+
+	const pathForAttempt = (attemptId: string) => posix.join(attemptsRoot(), attemptName(attemptId));
+
+	const log = (
+		identity: { attemptId: string; pid: number | null; path: string },
+		operation: LinuxLifecycleEvent["operation"],
+		outcome: LinuxLifecycleEvent["outcome"],
+		error: Error | null = null,
+	) =>
+		operations.log({
+			attemptId: identity.attemptId,
+			pid: identity.pid,
+			cgroupPath: identity.path,
+			operation,
+			outcome,
+			error: error?.message ?? null,
+		});
 
 	const removeTree = (path: string) => {
 		for (const child of operations.listDirectories(path)) removeTree(posix.join(path, child));
@@ -103,54 +146,87 @@ export function createLinuxCgroupController(operations: LinuxCgroupOperations): 
 		});
 	};
 
+	const attemptForPid = (pid: number): LinuxAttemptIdentity => {
+		const known = attempts.get(pid);
+		if (known !== undefined) return known;
+		const root = attemptsRoot();
+		for (const name of operations.listDirectories(root)) {
+			if (!name.startsWith(attemptPrefix)) continue;
+			const path = posix.join(root, name);
+			const pids = operations.readFile(posix.join(path, "cgroup.procs")).split(/\s+/);
+			if (!pids.includes(String(pid))) continue;
+			const recovered = { attemptId: attemptIdFromName(name), pid, path };
+			attempts.set(pid, recovered);
+			return recovered;
+		}
+		throw new Error(`Process ${pid} has no attempt cgroup`);
+	};
+
 	return {
 		prepare(attemptId, spec) {
-			const delegated = linuxCgroupRoot(
-				operations.readFile("/proc/self/cgroup"),
-				operations.readFile("/proc/self/mountinfo"),
-			);
-			const attemptsRoot = posix.join(delegated, "trellis-attempts");
-			const path = posix.join(attemptsRoot, attemptName(attemptId));
-			const launchSpec = linuxLaunchSpec(spec, posix.join(path, "cgroup.procs"), operations.launch);
-			operations.makeDirectory(attemptsRoot, true);
-			operations.makeDirectory(path, false);
+			const path = pathForAttempt(attemptId);
+			const identity = { attemptId, pid: null, path };
+			log(identity, "prepare", "started");
 			try {
-				operations.writeFile(posix.join(path, "cgroup.freeze"), "1");
+				const launchSpec = linuxLaunchSpec(spec, posix.join(path, "cgroup.procs"), operations.launch);
+				operations.makeDirectory(attemptsRoot(), true);
+				operations.makeDirectory(path, false);
+				try {
+					operations.writeFile(posix.join(path, "cgroup.freeze"), "1");
+				} catch (error) {
+					operations.removeDirectory(path);
+					throw error;
+				}
+				log(identity, "prepare", "succeeded");
+				return { attemptId, path, spec: launchSpec };
 			} catch (error) {
-				operations.removeDirectory(path);
+				log(identity, "prepare", "failed", error as Error);
 				throw error;
 			}
-			return {
-				path,
-				spec: launchSpec,
-				register(pid) {
-					const procsPath = posix.join(path, "cgroup.procs");
-					const deadline = operations.now() + joinTimeoutMs;
-					while (!operations.readFile(procsPath).split(/\s+/).includes(String(pid))) {
-						if (operations.now() >= deadline) throw new Error(`Process ${pid} did not join the attempt cgroup`);
-						operations.waitSync(1);
-					}
-					if (attempts.has(pid)) {
-						operations.writeFile(posix.join(path, "cgroup.kill"), "1");
-						throw new Error(`Process ${pid} already has an attempt cgroup`);
-					}
-					attempts.set(pid, path);
-					operations.writeFile(posix.join(path, "cgroup.freeze"), "0");
-				},
-				discard() {
-					if (populated(operations.readFile(posix.join(path, "cgroup.events"))))
-						throw new Error(`The cgroup ${path} contains a process`);
-					removeTree(path);
-				},
-			};
+		},
+		confirmJoinedAndUnfreeze(attemptId, pid) {
+			const path = pathForAttempt(attemptId);
+			const identity = { attemptId, pid, path };
+			log(identity, "register", "started");
+			try {
+				const procsPath = posix.join(path, "cgroup.procs");
+				const deadline = operations.now() + joinTimeoutMs;
+				while (!operations.readFile(procsPath).split(/\s+/).includes(String(pid))) {
+					if (operations.now() >= deadline) throw new Error(`Process ${pid} did not join the attempt cgroup`);
+					operations.waitSync(1);
+				}
+				if (attempts.has(pid)) {
+					operations.writeFile(posix.join(path, "cgroup.kill"), "1");
+					throw new Error(`Process ${pid} already has an attempt cgroup`);
+				}
+				attempts.set(pid, identity);
+				operations.writeFile(posix.join(path, "cgroup.freeze"), "0");
+				log(identity, "register", "succeeded");
+			} catch (error) {
+				log(identity, "register", "failed", error as Error);
+				throw error;
+			}
+		},
+		discard(attemptId) {
+			const path = pathForAttempt(attemptId);
+			if (populated(operations.readFile(posix.join(path, "cgroup.events"))))
+				throw new Error(`The cgroup ${path} contains a process`);
+			removeTree(path);
 		},
 		async stop(pid) {
-			const path = attempts.get(pid);
-			if (path === undefined) throw new Error(`Process ${pid} has no attempt cgroup`);
-			operations.writeFile(posix.join(path, "cgroup.kill"), "1");
-			await confirmEmpty(path);
-			removeTree(path);
-			attempts.delete(pid);
+			const identity = attemptForPid(pid);
+			log(identity, "stop", "started");
+			try {
+				operations.writeFile(posix.join(identity.path, "cgroup.kill"), "1");
+				await confirmEmpty(identity.path);
+				removeTree(identity.path);
+				attempts.delete(pid);
+				log(identity, "stop", "succeeded");
+			} catch (error) {
+				log(identity, "stop", "failed", error as Error);
+				throw error;
+			}
 		},
+		attemptForPid,
 	};
 }

@@ -1,18 +1,17 @@
 import type { LaunchSpec } from "@trellis/runtime-protocol";
-import type { LinuxAttempt } from "./cgroup.ts";
 import { linuxCgroupController } from "./linuxCgroupNode.ts";
+import { createNodeLinuxProcessExitWatcher } from "./linuxProcessExitWatcher.ts";
+import { logLinuxLifecycle } from "./logLinuxLifecycle.ts";
 
-export const prepareLinuxAttempt = (attemptId: string, spec: LaunchSpec): LinuxAttempt =>
+export const prepareLinuxAttempt = (attemptId: string, spec: LaunchSpec) =>
 	linuxCgroupController.prepare(attemptId, spec);
+
+export const registerLinuxAttempt = (attemptId: string, pid: number) =>
+	linuxCgroupController.confirmJoinedAndUnfreeze(attemptId, pid);
+
+export const discardLinuxAttempt = (attemptId: string) => linuxCgroupController.discard(attemptId);
 
 export const stopLinuxProcessTree = async (pid: number): Promise<void> => linuxCgroupController.stop(pid);
 
-export type {
-	LinuxAttempt,
-	LinuxCgroupController,
-	LinuxCgroupOperations,
-	LinuxCgroupWatcher,
-} from "./cgroup.ts";
-export { createLinuxCgroupController, linuxCgroupRoot } from "./cgroup.ts";
-export type { LinuxLaunchOperations } from "./launcher.ts";
-export { linuxLaunchSpec, resolveLinuxExecutable } from "./launcher.ts";
+export const createLinuxProcessExitWatcher = () =>
+	createNodeLinuxProcessExitWatcher((pid) => linuxCgroupController.attemptForPid(pid), logLinuxLifecycle);

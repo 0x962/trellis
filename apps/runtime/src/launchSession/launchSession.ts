@@ -1,6 +1,6 @@
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import { inspectProcess } from "../inspectProcess.ts";
-import { prepareLinuxAttempt, type LinuxAttempt } from "../platform/linuxLifecycle/index.ts";
+import { discardLinuxAttempt, prepareLinuxAttempt, registerLinuxAttempt } from "../platform/linuxLifecycle/index.ts";
 import { createProcessHandle } from "../processHandle.ts";
 import type { SessionRecord } from "../sessionRecord.ts";
 import { stopAttempt } from "../stopAttempt.ts";
@@ -11,7 +11,7 @@ import { stopAttempt } from "../stopAttempt.ts";
 export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () => void, onExit: () => void) {
 	const { session, log, stderr } = record;
 	let cleanupError: string | null = null;
-	let attempt: LinuxAttempt | undefined;
+	let attempt: ReturnType<typeof prepareLinuxAttempt> | undefined;
 	const resume = () => {
 		if (log.writable && stderr.writable) record.process?.resumeOutput();
 	};
@@ -48,7 +48,7 @@ export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () 
 	};
 	const launchFailed = (error: Error) => {
 		try {
-			attempt?.discard();
+			if (attempt !== undefined) discardLinuxAttempt(attempt.attemptId);
 		} catch (cleanupFailure) {
 			unconfirmed(cleanupFailure as Error);
 			return;
@@ -73,7 +73,7 @@ export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () 
 				save();
 			},
 		);
-		if (attempt !== undefined && record.process.pid > 0) attempt.register(record.process.pid);
+		if (attempt !== undefined && record.process.pid > 0) registerLinuxAttempt(attempt.attemptId, record.process.pid);
 	} catch (error) {
 		launchFailed(error as Error);
 		return;

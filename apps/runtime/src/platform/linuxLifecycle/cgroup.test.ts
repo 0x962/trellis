@@ -1,6 +1,11 @@
 import { expect, test } from "bun:test";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
-import { createLinuxCgroupController, linuxCgroupRoot, type LinuxCgroupOperations } from "./cgroup.ts";
+import {
+	createLinuxCgroupController,
+	linuxCgroupRoot,
+	type LinuxCgroupOperations,
+	type LinuxLifecycleEvent,
+} from "./cgroup.ts";
 
 const spec: LaunchSpec = {
 	id: "attempt-one",
@@ -17,8 +22,8 @@ function fixture() {
 	]);
 	const directories = new Set<string>();
 	const writes: { path: string; value: string }[] = [];
+	const events: LinuxLifecycleEvent[] = [];
 	let change = () => {};
-	let failure = (_error: Error) => {};
 	let now = 0;
 	const operations: LinuxCgroupOperations = {
 		readFile(path) {
@@ -47,13 +52,12 @@ function fixture() {
 		removeDirectory(path) {
 			directories.delete(path);
 		},
-		watchFile(_path, listener, onError) {
+		watchFile(_path, listener) {
 			change = listener;
-			failure = onError;
 			return { close: () => {} };
 		},
 		setTimer: (listener, milliseconds) => setTimeout(listener, milliseconds),
-		clearTimer,
+		clearTimer: clearTimeout,
 		now: () => now,
 		waitSync(milliseconds) {
 			now += milliseconds;
@@ -62,14 +66,15 @@ function fixture() {
 			executable: "/release/bin/node",
 			canExecute: (path) => path === "/bin/agent",
 		},
+		log: (event) => events.push(event),
 	};
 	return {
 		files,
 		directories,
 		writes,
+		events,
 		operations,
 		change: () => change(),
-		failure: (error: Error) => failure(error),
 	};
 }
 
@@ -92,8 +97,16 @@ test("the launch wrapper joins a frozen attempt cgroup before it executes the pa
 	expect(attempt.spec.args.at(-1)).toBe("--work");
 	expect(attempt.spec.args.join(" ")).toContain(`${attempt.path}/cgroup.procs`);
 	state.files.set(`${attempt.path}/cgroup.procs`, "42\n");
-	attempt.register(42);
+	controller.confirmJoinedAndUnfreeze(attempt.attemptId, 42);
 	expect(state.writes.at(-1)).toEqual({ path: `${attempt.path}/cgroup.freeze`, value: "0" });
+	expect(state.events).toContainEqual({
+		attemptId: "attempt-one",
+		pid: 42,
+		cgroupPath: attempt.path,
+		operation: "register",
+		outcome: "succeeded",
+		error: null,
+	});
 });
 
 test("cgroup.kill waits for concurrent descendants before it removes the cgroup tree", async () => {
@@ -102,7 +115,7 @@ test("cgroup.kill waits for concurrent descendants before it removes the cgroup 
 	const attempt = controller.prepare("attempt-one", { ...spec, env: { PATH: "/bin" } });
 	state.files.set(`${attempt.path}/cgroup.procs`, "42\n");
 	state.files.set(`${attempt.path}/cgroup.events`, "populated 1\nfrozen 0\n");
-	attempt.register(42);
+	controller.confirmJoinedAndUnfreeze(attempt.attemptId, 42);
 	state.directories.add(`${attempt.path}/child`);
 	state.directories.add(`${attempt.path}/child/grandchild`);
 	const stopped = controller.stop(42);
@@ -126,7 +139,7 @@ test("a failed cgroup kill retains the attempt for a later stop", async () => {
 	const controller = createLinuxCgroupController(state.operations);
 	const attempt = controller.prepare("attempt-one", { ...spec, env: { PATH: "/bin" } });
 	state.files.set(`${attempt.path}/cgroup.procs`, "42\n");
-	attempt.register(42);
+	controller.confirmJoinedAndUnfreeze(attempt.attemptId, 42);
 	await expect(controller.stop(42)).rejects.toThrow("denied");
 	failKill = false;
 	await controller.stop(42);
@@ -138,11 +151,25 @@ test("a reused PID cannot replace an attempt cgroup", () => {
 	const controller = createLinuxCgroupController(state.operations);
 	const first = controller.prepare("attempt-one", { ...spec, env: { PATH: "/bin" } });
 	state.files.set(`${first.path}/cgroup.procs`, "42\n");
-	first.register(42);
+	controller.confirmJoinedAndUnfreeze(first.attemptId, 42);
 	const second = controller.prepare("attempt-two", { ...spec, id: "attempt-two", env: { PATH: "/bin" } });
 	state.files.set(`${second.path}/cgroup.procs`, "42\n");
-	expect(() => second.register(42)).toThrow("Process 42 already has an attempt cgroup");
+	expect(() => controller.confirmJoinedAndUnfreeze(second.attemptId, 42)).toThrow(
+		"Process 42 already has an attempt cgroup",
+	);
 	expect(state.writes).toContainEqual({ path: `${second.path}/cgroup.kill`, value: "1" });
+});
+
+test("a runtime restart recovers a live PTY attempt from the cgroup tree", async () => {
+	const state = fixture();
+	const firstController = createLinuxCgroupController(state.operations);
+	const attempt = firstController.prepare("attempt-one", { ...spec, mode: "pty", env: { PATH: "/bin" } });
+	state.files.set(`${attempt.path}/cgroup.procs`, "42\n");
+	firstController.confirmJoinedAndUnfreeze(attempt.attemptId, 42);
+	const restartedController = createLinuxCgroupController(state.operations);
+	await restartedController.stop(42);
+	expect(state.writes).toContainEqual({ path: `${attempt.path}/cgroup.kill`, value: "1" });
+	expect(state.directories.has(attempt.path)).toBe(false);
 });
 
 test("a duplicate attempt cannot reuse an existing cgroup", () => {
