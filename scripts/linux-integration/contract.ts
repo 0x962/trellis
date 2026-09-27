@@ -1,3 +1,5 @@
+import type { IntegratedInputPlan, LaneReviewPlan } from "./reviewEvidence";
+
 export const integrationBranches = {
 	"integration/linux-host": "host",
 	"integration/linux-connection": "connection",
@@ -23,51 +25,13 @@ export type SmokePlan = CommandPlan & {
 	image: string;
 };
 
-export type FindingPlan = {
-	id?: string;
-	status?: string;
-	resolution?: string;
-};
-
-export type IntegratedInputPlan = {
-	ticketIdentifier?: string;
-	ticketId?: string;
-	diffUrl?: string;
-	commit?: string;
-	integratedCommit?: string;
-	reviewRunId?: string;
-	reviewResult?: string;
-	findings?: FindingPlan[];
-};
-
 export type LanePlan = {
 	integratedInputs: IntegratedInputPlan[];
+	laneReview: LaneReviewPlan | null;
 	focusedTests: Partial<Record<string, CommandPlan>>;
 	packages: Partial<Record<string, PackagePlan>>;
 	smoke: Partial<Record<string, SmokePlan>>;
 	latitude: Partial<Record<string, CommandPlan>>;
-};
-
-export type IntegratedInputEvidence = {
-	ticketIdentifier: string;
-	ticketId: string;
-	diffUrl: string;
-	commit: string;
-	integratedCommit: string;
-	reviewRunId: string;
-	reviewResult: string;
-	findings: Array<{
-		id: string;
-		status: string;
-		resolution: string;
-	}>;
-	verification: Result;
-	reason?: string;
-};
-
-export type IntegrationGap = {
-	verification: "unverified";
-	reason: string;
 };
 
 export type LanePlans = {
@@ -163,63 +127,6 @@ export function evidenceArtifactName(input: {
 	runAttempt: string;
 }): string {
 	return `trellis-evidence-${input.lane}-${input.commit}-${input.runId}-${input.runAttempt}`;
-}
-
-export function integratedInputEvidence(input: IntegratedInputPlan): IntegratedInputEvidence {
-	const findings = (input.findings ?? []).map((finding) => ({
-		id: finding.id ?? "",
-		status: finding.status ?? "",
-		resolution: finding.resolution ?? "",
-	}));
-	const required = [
-		input.ticketIdentifier,
-		input.ticketId,
-		input.diffUrl,
-		input.commit,
-		input.integratedCommit,
-		input.reviewRunId,
-		input.reviewResult,
-	];
-	const missingFindingField = findings.some(
-		(finding) => !finding.id || !finding.status || !finding.resolution,
-	);
-	let verification: Result = "passed";
-	let reason: string | undefined;
-	if (required.some((value) => !value) || !input.findings || missingFindingField) {
-		verification = "unverified";
-		reason = "The integrated input has a missing required field.";
-	} else if (input.reviewResult !== "succeeded") {
-		verification = "failed";
-		reason = "The saved Trellis flow did not succeed.";
-	} else if (findings.some((finding) => finding.status !== "resolved")) {
-		verification = "failed";
-		reason = "The review has an unresolved finding.";
-	} else if (input.commit !== input.integratedCommit) {
-		verification = "failed";
-		reason = "The reviewed commit does not equal the integrated commit.";
-	}
-	return {
-		ticketIdentifier: input.ticketIdentifier ?? "",
-		ticketId: input.ticketId ?? "",
-		diffUrl: input.diffUrl ?? "",
-		commit: input.commit ?? "",
-		integratedCommit: input.integratedCommit ?? "",
-		reviewRunId: input.reviewRunId ?? "",
-		reviewResult: input.reviewResult ?? "",
-		findings,
-		verification,
-		reason,
-	};
-}
-
-export function integratedInputGaps(inputs: IntegratedInputEvidence[]): IntegrationGap[] {
-	if (inputs.length > 0) return [];
-	return [
-		{
-			verification: "unverified",
-			reason: "The lane plan has no integrated ticket or diff input.",
-		},
-	];
 }
 
 export function missingRequiredPaths(

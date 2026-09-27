@@ -9,11 +9,18 @@ A missing command records an unverified result and a reason.
 
 Add each reviewed lane input under `integratedInputs`.
 Each lane plan requires at least one integrated input.
-Record the ticket, diff, reviewed commit, integrated commit, review run, review result, and findings.
+Record the ticket, diff, reviewed head, source head, lane commit, review run, review result, and findings.
 Copy the raw Trellis flow status into `reviewResult`.
 Only `succeeded` is a successful review result.
 Resolve every finding before the input can pass.
-The reviewed commit and the integrated commit must match.
+Prove ancestry from the reviewed head to the source head, lane commit, and workflow head.
+A missing feature flow stays unverified.
+A review waiver does not supply a successful feature flow.
+
+Add an optional complete-lane Review under `laneReview`.
+Keep its diff, commit identities, raw result, and findings separate from each feature input.
+The lane Review can add coverage for a feature source.
+It cannot change the feature review result.
 
 Add a focused test command under `focusedTests.<platform>`.
 Add a package command under `packages.<platform>`.

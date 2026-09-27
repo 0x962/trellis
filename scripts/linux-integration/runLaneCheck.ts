@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir } from "node:fs/promises";
 import {
-	integratedInputEvidence,
 	laneForBranch,
 	missingRequiredPaths,
 	readLanePlans,
@@ -9,13 +8,15 @@ import {
 	type Result,
 	type SmokePlan,
 } from "./contract";
-import { workflowEnvironment, writeResult, writeStepOutputs } from "./result";
+import { readWorkflowIdentity, requiredVariable, writeResult, writeStepOutputs } from "./checkResult";
+import { readIntegratedCommitProof } from "./integratedCommitProof";
+import { verifyIntegratedInput } from "./reviewEvidence";
 
 type Check = "lint-repository" | "typecheck" | "focused-tests" | "package" | "smoke" | "latitude";
 
 const [check, platform, runner] = Bun.argv.slice(2) as [Check, string, string];
-const environment = workflowEnvironment();
-const lane = laneForBranch(environment.branch);
+const workflowIdentity = readWorkflowIdentity();
+const lane = laneForBranch(workflowIdentity.branch);
 const plans = await readLanePlans();
 const lanePlan = plans.lanes[lane];
 
@@ -47,7 +48,12 @@ if (!selected) {
 const requiredInput = selected.integratedInput
 	? lanePlan.integratedInputs.find((input) => input.ticketIdentifier === selected.integratedInput)
 	: undefined;
-const inputEvidence = requiredInput ? integratedInputEvidence(requiredInput) : undefined;
+const inputEvidence = requiredInput
+	? verifyIntegratedInput(
+			requiredInput,
+			await readIntegratedCommitProof(requiredInput, workflowIdentity.commit),
+		)
+	: undefined;
 const missingPaths = missingRequiredPaths(selected.requiredPaths ?? [], existsSync);
 if ((selected.integratedInput && inputEvidence?.verification !== "passed") || missingPaths.length > 0) {
 	const reason = missingPaths.length
@@ -85,7 +91,7 @@ const command =
 				"--network=none",
 				"--read-only",
 				"--tmpfs=/tmp:rw,nosuid,nodev,size=256m",
-				`--volume=${process.env.GITHUB_WORKSPACE ?? process.cwd()}:/workspace:ro`,
+				`--volume=${requiredVariable(process.env, "GITHUB_WORKSPACE")}:/workspace:ro`,
 				"--workdir=/workspace",
 				(selected as SmokePlan).image,
 				"sh",

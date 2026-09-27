@@ -25,30 +25,26 @@ jobs:
     name: Plan / Select integration lane
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    outputs:
-      lane: ${{ steps.plan.outputs.lane }}
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: plan
         name: Select the lane and record identity
-        run: bun scripts/linux-integration/plan.ts
+        run: bun scripts/linux-integration/recordLanePlan.ts
       - name: Upload the plan result
         if: ${{ always() && steps.plan.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.plan.outputs.result_artifact }}
           path: |
             evidence/plan.json
             evidence/results/plan-identity-linux-x64.json
-          if-no-files-found: error
-          retention-days: 14
 
   lint:
     name: Lint / Repository
@@ -58,23 +54,21 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: check
         name: Run the repository lint
-        run: bun scripts/linux-integration/run.ts lint-repository linux-x64 ubuntu-24.04
+        run: bun scripts/linux-integration/runLaneCheck.ts lint-repository linux-x64 ubuntu-24.04
       - name: Upload the lint result
         if: ${{ always() && steps.check.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.result_artifact }}
           path: evidence/results/lint-repository-linux-x64.json
-          if-no-files-found: error
-          retention-days: 14
 
   typecheck:
     name: Typecheck / ${{ matrix.platform }}
@@ -97,23 +91,21 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: check
         name: Run both type checks
-        run: bun scripts/linux-integration/run.ts typecheck ${{ matrix.platform }} ${{ matrix.runner }}
+        run: bun scripts/linux-integration/runLaneCheck.ts typecheck ${{ matrix.platform }} ${{ matrix.runner }}
       - name: Upload the typecheck result
         if: ${{ always() && steps.check.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.result_artifact }}
           path: evidence/results/typecheck-${{ matrix.platform }}.json
-          if-no-files-found: error
-          retention-days: 14
 
   focused_tests:
     name: Test / ${{ matrix.platform }}
@@ -136,23 +128,21 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: check
         name: Run the approved focused tests
-        run: bun scripts/linux-integration/run.ts focused-tests ${{ matrix.platform }} ${{ matrix.runner }}
+        run: bun scripts/linux-integration/runLaneCheck.ts focused-tests ${{ matrix.platform }} ${{ matrix.runner }}
       - name: Upload the focused test result
         if: ${{ always() && steps.check.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.result_artifact }}
           path: evidence/results/focused-tests-${{ matrix.platform }}.json
-          if-no-files-found: error
-          retention-days: 14
 
   package:
     name: Package / ${{ matrix.platform }}
@@ -175,31 +165,27 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: check
         name: Run the approved package command
-        run: bun scripts/linux-integration/run.ts package ${{ matrix.platform }} ${{ matrix.runner }}
+        run: bun scripts/linux-integration/runLaneCheck.ts package ${{ matrix.platform }} ${{ matrix.runner }}
       - name: Upload the package result
         if: ${{ always() && steps.check.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.result_artifact }}
           path: evidence/results/package-${{ matrix.platform }}.json
-          if-no-files-found: error
-          retention-days: 14
       - name: Upload the package files
         if: ${{ always() && steps.check.outputs.verified == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.package_artifact }}
           path: evidence/package/${{ matrix.platform }}
-          if-no-files-found: error
-          retention-days: 14
 
   smoke:
     name: Smoke / ${{ matrix.platform }}
@@ -217,23 +203,21 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: check
         name: Run the approved bounded container smoke check
-        run: bun scripts/linux-integration/run.ts smoke ${{ matrix.platform }} ubuntu-24.04
+        run: bun scripts/linux-integration/runLaneCheck.ts smoke ${{ matrix.platform }} ubuntu-24.04
       - name: Upload the smoke result
         if: ${{ always() && steps.check.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.result_artifact }}
           path: evidence/results/smoke-${{ matrix.platform }}.json
-          if-no-files-found: error
-          retention-days: 14
 
   latitude:
     name: Latitude / protected-x64
@@ -249,23 +233,21 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - id: check
         name: Run the approved Latitude command
-        run: bun scripts/linux-integration/run.ts latitude protected-x64 self-hosted-linux-x64-trellis-latitude
+        run: bun scripts/linux-integration/runLaneCheck.ts latitude protected-x64 self-hosted,linux,x64,trellis-latitude
       - name: Upload the Latitude result
         if: ${{ always() && steps.check.outputs.result_artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.check.outputs.result_artifact }}
           path: evidence/results/latitude-protected-x64.json
-          if-no-files-found: error
-          retention-days: 14
 
   evidence:
     name: Evidence / Index
@@ -283,13 +265,14 @@ jobs:
     steps:
       - name: Check out the exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          fetch-depth: 0
+      - name: Set up locked dependencies
+        uses: ./scripts/linux-integration/actions/setup
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
       - name: Download each result artifact
+        continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: trellis-ci-*-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-*
@@ -305,15 +288,13 @@ jobs:
           PACKAGE_RESULT: ${{ needs.package.result }}
           SMOKE_RESULT: ${{ needs.smoke.result }}
           LATITUDE_RESULT: ${{ needs.latitude.result }}
-        run: bun scripts/linux-integration/index.ts evidence/downloaded evidence/index
+        run: bun scripts/linux-integration/buildEvidenceIndex.ts evidence/downloaded evidence/index
       - name: Upload the full evidence index
         if: ${{ always() && steps.index.outputs.artifact != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.index.outputs.artifact }}
           path: evidence/index
-          if-no-files-found: error
-          retention-days: 14
       - name: Keep proof gaps release-blocking
         if: ${{ steps.index.outputs.complete != 'true' }}
         run: exit 1
