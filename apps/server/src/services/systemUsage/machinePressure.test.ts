@@ -37,7 +37,7 @@ describe("hostLoad", () => {
 		expect(hostLoad("win32", 16, 0)).toEqual({ loadAverage1m: null, loadPerCore: null });
 	});
 
-	test("does not divide a load by an unavailable logical CPU count", () => {
+	test("does not divide a load by an unavailable usable CPU count", () => {
 		expect(hostLoad("darwin", 0, 4)).toEqual({ loadAverage1m: null, loadPerCore: null });
 	});
 });

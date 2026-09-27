@@ -4,7 +4,7 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { agentWorkspacesRoot } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
-import { readRuntimeSessions } from "../agentRuns/liveState.ts";
+import { readRuntimeSessions } from "../agentRuns.ts";
 import type { IoCtx } from "../support.ts";
 import { readDiskCapacity } from "./diskCapacity.ts";
 import { type LinuxHostMetrics, readCurrentLinuxHostMetrics } from "./linux/hostMetrics/index.ts";
@@ -16,10 +16,10 @@ const HEAVIEST_LIMIT = 3;
 
 export type OpenRun = { id: string; name: string; ticketIdentifier: string | null; terminalId: string };
 
-export const hostLoad = (hostPlatform: string, cpuCount: number | null, loadAverage1m: number) => {
-	if (hostPlatform === "win32" || cpuCount === 0) return { loadAverage1m: null, loadPerCore: null };
-	if (cpuCount === null) return { loadAverage1m, loadPerCore: null };
-	return { loadAverage1m, loadPerCore: loadAverage1m / cpuCount };
+export const hostLoad = (hostPlatform: string, effectiveCpuCount: number | null, loadAverage1m: number) => {
+	if (hostPlatform === "win32" || effectiveCpuCount === 0) return { loadAverage1m: null, loadPerCore: null };
+	if (effectiveCpuCount === null) return { loadAverage1m, loadPerCore: null };
+	return { loadAverage1m, loadPerCore: loadAverage1m / effectiveCpuCount };
 };
 
 export const hostMemory = (

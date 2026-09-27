@@ -152,8 +152,8 @@ export type DiskCapacity = z.infer<typeof DiskCapacitySchema>;
 // Node reports a false zero load on Windows, so both load fields are null there.
 // `memoryTotalBytes` holds physical memory. `memoryUsedBytes` holds cgroup
 // memory use on Linux and physical memory use on other platforms.
-// A true `memoryLimitKnown` value with a null `memoryLimitBytes` value means
-// that the host has no cgroup memory limit.
+// A false `memoryLimitKnown` value means that the cgroup limit read failed.
+// A true value with a null `memoryLimitBytes` value means no cgroup limit.
 // `processorTemperature` holds the hottest measured PMU processor-die sensor
 // and the full process cost. `runs` holds the agent runs that use the most
 // memory, largest first.
