@@ -19,6 +19,7 @@ export type ResourceListProps = {
 	// The id of the document open beside the list.
 	openDocId: string;
 	linkedResourceId?: string;
+	linkedResource?: Resource;
 	// Opens a document beside the list: `PLAN_DOC_ID` or a resource id.
 	onOpenDoc: (id: string) => void;
 	loading: boolean;
@@ -35,14 +36,15 @@ export function ResourceList({
 	planTitle,
 	openDocId,
 	linkedResourceId,
+	linkedResource,
 	onOpenDoc,
 	loading,
 	error,
 	onNewDocument,
 	newDocumentPending,
 }: ResourceListProps) {
-	const [imageId, setImageId] = useState<string | null>(null);
-	const image = resources.find((resource) => resource.id === imageId) ?? null;
+	const [image, setImage] = useState<Resource | null>(null);
+	const byId = useMemo(() => new Map(resources.map((resource) => [resource.id, resource])), [resources]);
 	const rows = useMemo<ResourceListRow[]>(
 		() => [
 			{ id: PLAN_DOC_ID, kind: "doc", name: planTitle, detail: "The epic description", pullRequest: null, plan: true },
@@ -56,12 +58,7 @@ export function ResourceList({
 		],
 		[resources, planTitle],
 	);
-	const onOpen = (id: string) => {
-		if (id === PLAN_DOC_ID) {
-			onOpenDoc(id);
-			return;
-		}
-		const opened = resources.find((resource) => resource.id === id)!;
+	const open = (opened: Resource) => {
 		const desktop = isDesktopApp();
 		switch (resourceOpenAction(opened, desktop)) {
 			case "doc":
@@ -71,7 +68,7 @@ export function ResourceList({
 				pageSheetActions.openBrowser(resourceUrl(opened));
 				return;
 			case "image-sheet":
-				setImageId(opened.id);
+				setImage(opened);
 				return;
 			case "new-tab":
 				window.open(resourceUrl(opened), "_blank", "noopener,noreferrer");
@@ -84,11 +81,15 @@ export function ResourceList({
 			}
 		}
 	};
-	const openResource = useEffectEvent(onOpen);
+	const onOpen = (id: string) => {
+		if (id === PLAN_DOC_ID) onOpenDoc(id);
+		else open(byId.get(id)!);
+	};
+	const openResource = useEffectEvent(open);
 	const [openLinkedResource] = useState(createLinkedResourceOpener);
 	useEffect(() => {
-		openLinkedResource(linkedResourceId, resources, openResource);
-	}, [linkedResourceId, resources, openLinkedResource]);
+		openLinkedResource(linkedResourceId, linkedResource, openResource);
+	}, [linkedResourceId, linkedResource, openLinkedResource]);
 	return (
 		<>
 			<ResourceListView
@@ -100,7 +101,7 @@ export function ResourceList({
 				onNewDocument={onNewDocument}
 				newDocumentPending={newDocumentPending}
 			/>
-			{image !== null && <ImageSheet name={image.name} url={resourceUrl(image)} onClose={() => setImageId(null)} />}
+			{image !== null && <ImageSheet name={image.name} url={resourceUrl(image)} onClose={() => setImage(null)} />}
 		</>
 	);
 }

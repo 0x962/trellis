@@ -270,6 +270,7 @@ export const services = {
 	"pullRequests.readFile": io("read", prFiles.read),
 	"pullRequests.uploadFile": prepared("mutation", prFiles.prepareUpload, prFiles.upload),
 	"resources.add": io("mutation", resources.add),
+	"resources.get": io("read", resources.get),
 	"resources.list": io("read", resources.list),
 	"resources.update": io("mutation", resources.update),
 	"resources.remove": io("mutation", resources.remove),

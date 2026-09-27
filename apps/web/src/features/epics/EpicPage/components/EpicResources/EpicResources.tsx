@@ -1,6 +1,8 @@
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type Resource, UlidSchema } from "@trellis/api";
-import { useEffect, useState } from "react";
+import { IconButton, Tooltip } from "@trellis/ui";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
 import { PLAN_DOC_ID, planTitle } from "../../../epicDocs";
@@ -30,16 +32,22 @@ const noResources: readonly Resource[] = [];
 // A document resource takes comments on its text; the description does not.
 export function EpicResources({ epic, description, readOnly, resourceId }: EpicResourcesProps) {
 	const { client, orpc, queryClient } = useApp();
-	const list = useQuery(orpc.resources.list.queryOptions({ input: { epic } }));
-	const resources = list.data ?? noResources;
+	const [page, setPage] = useState({ epic, offset: 0 });
+	const offset = page.epic === epic ? page.offset : 0;
+	const list = useQuery(orpc.resources.list.queryOptions({ input: { epic, limit: 51, offset } }));
+	const resources = useMemo(() => list.data?.slice(0, 50) ?? noResources, [list.data]);
 	const [openDocId, setOpenDocId] = useState(() => UlidSchema.safeParse(resourceId).data ?? PLAN_DOC_ID);
 	useEffect(() => {
 		const linked = UlidSchema.safeParse(resourceId);
 		if (linked.success) setOpenDocId(linked.data);
 	}, [resourceId]);
-	// A removed document opens the description again.
-	const openDoc = resources.find((resource) => resource.id === openDocId && resource.kind === "doc") ?? null;
-	const selectedId = resources.some((resource) => resource.id === openDocId) ? openDocId : PLAN_DOC_ID;
+	const target = useQuery(
+		orpc.resources.get.queryOptions({
+			input: { id: openDocId },
+			enabled: openDocId !== PLAN_DOC_ID,
+		}),
+	);
+	const openDoc = target.data?.kind === "doc" ? target.data : null;
 	const create = useMutation({
 		mutationFn: () => client.resources.add({ epic, kind: "doc", name: "", body: "" }),
 		onSuccess: async (created) => {
@@ -69,14 +77,41 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 				<ResourceList
 					resources={resources}
 					planTitle={planTitle(description)}
-					openDocId={selectedId}
+					openDocId={openDocId}
 					linkedResourceId={resourceId}
+					linkedResource={target.data}
 					onOpenDoc={setOpenDocId}
 					loading={list.isPending}
 					error={list.error === null ? null : errorMessage(list.error)}
 					onNewDocument={readOnly ? undefined : () => create.mutate()}
 					newDocumentPending={create.isPending}
 				/>
+				{(offset > 0 || (list.data?.length ?? 0) > 50) && (
+					<div className="flex items-center justify-between py-2">
+						<Tooltip content="Previous resources">
+							<IconButton
+								label="Previous resources"
+								icon={<ArrowLeft />}
+								disabled={offset === 0 || list.isPending}
+								onClick={() => setPage({ epic, offset: offset - 50 })}
+							/>
+						</Tooltip>
+						<span className="text-xs text-fg-muted tabular-nums">Page {offset / 50 + 1}</span>
+						<Tooltip content="Next resources">
+							<IconButton
+								label="Next resources"
+								icon={<ArrowRight />}
+								disabled={(list.data?.length ?? 0) <= 50 || list.isPending}
+								onClick={() => setPage({ epic, offset: offset + 50 })}
+							/>
+						</Tooltip>
+					</div>
+				)}
+				{target.isError && (
+					<p role="alert" className="px-2 text-sm text-danger">
+						{errorMessage(target.error)}
+					</p>
+				)}
 				{create.isError && (
 					<p role="alert" className="px-2 text-sm text-danger">
 						Could not create the document. {create.error.message}

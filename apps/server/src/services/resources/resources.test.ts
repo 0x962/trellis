@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { ResourceAddInputSchema, ResourceUpdateInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -12,12 +13,15 @@ import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { ServiceTransport } from "../../db/transport.ts";
 import type { Tx } from "../../db/tx.ts";
+import type { ProcedureContext } from "../../procedures/base.ts";
+import { resources as procedures } from "../../procedures/resources.ts";
 import { resourceBlobRoute } from "../../routes/resourceBlob.ts";
+import { createDbTiming } from "../../serverTiming.ts";
 import { blobPath, tempDir } from "../../storage/blobs.ts";
 import { gcBlobs } from "../blobs.ts";
 import { epicView } from "../epics/epics.ts";
 import type { IoCtx } from "../support.ts";
-import { add, list, readBlob, remove, update } from "./resources.ts";
+import { add, get, list, readBlob, remove, update } from "./resources.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let home: string;
@@ -211,4 +215,52 @@ test("stores and removes a file", async () => {
 	expect(await inTx((tx) => remove(context, tx, { id: resource.id }))).toEqual({ deleted: resource.id });
 	for (const task of afterCommit.splice(0)) await task();
 	expect(existsSync(path)).toBe(false);
+});
+
+test("pages resources in stable order and reads a target outside the page by ID", async () => {
+	const target = await inTx((tx) =>
+		add(context, tx, { epic: epicId, kind: "file", name: "target.txt", file: new File(["target"], "target.txt") }),
+	);
+	const all = await inTx((tx) => list(context, tx, { epic: epicId }));
+	const first = await inTx((tx) => list(context, tx, { epic: epicId, limit: 1, offset: 0 }));
+	const second = await inTx((tx) => list(context, tx, { epic: epicId, limit: 1, offset: 1 }));
+	expect(first).toEqual(all.slice(0, 1));
+	expect(second).toEqual(all.slice(1, 2));
+	expect(first.some((resource) => resource.id === target.id)).toBe(false);
+	expect(await inTx((tx) => get(context, tx, { id: target.id }))).toEqual(target);
+	await expect(inTx((tx) => get(context, tx, { id: ulid() }))).rejects.toMatchObject({ code: "NOT_FOUND" });
+});
+
+test("serves a resource link target and a bounded list through the HTTP routes", async () => {
+	const resource = await inTx((tx) =>
+		add(context, tx, { epic: epicId, kind: "doc", name: "Route target", body: "Target document" }),
+	);
+	const handler = new OpenAPIHandler({ resources: procedures });
+	const request = async (path: string) => {
+		const raw = new Request(`http://trellis.test/api${path}`);
+		const result = await handler.handle(raw, {
+			prefix: "/api",
+			context: {
+				headers: raw.headers,
+				reqId: ulid(),
+				actor: null,
+				timing: createDbTiming(),
+				transport: {
+					call: (name: string, _ctx: unknown, input: unknown) => {
+						if (name === "resources.get") return inTx((tx) => get(context, tx, input));
+						if (name === "resources.list") return inTx((tx) => list(context, tx, input));
+						throw new Error(name);
+					},
+				},
+			} as ProcedureContext,
+		});
+		return result.response!;
+	};
+	const response = await request(`/resources/${resource.id}`);
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual(resource);
+	const page = await request(`/resources?epic=${epicId}&limit=1&offset=1`);
+	expect(page.status).toBe(200);
+	expect(await page.json()).toHaveLength(1);
+	expect((await request(`/resources/${ulid()}`)).status).toBe(404);
 });

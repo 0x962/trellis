@@ -131,6 +131,12 @@ export const add = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resour
 	return (await toResources(tx, epic.id, [await find(tx, id)]))[0]!;
 };
 
+export const get = async (_ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resource> => {
+	const { id } = ResourceIdInputSchema.parse(rawInput);
+	const row = await find(tx, id);
+	return (await toResources(tx, row.epic_id, [row]))[0]!;
+};
+
 export const list = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resource[]> => {
 	const input = ResourceListInputSchema.parse(rawInput);
 	const epic = await resolveEpic(ctx.core, tx, input.epic);
@@ -138,7 +144,9 @@ export const list = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resou
 		tx,
 		sql`${resourceSelect} WHERE er.epic_id = ${epic.id}
 			ORDER BY CASE er.kind WHEN 'doc' THEN 0 WHEN 'link' THEN 1 WHEN 'image' THEN 2 ELSE 3 END,
-				er.created_at, er.id`,
+				er.created_at, er.id
+			${input.limit === undefined ? sql`` : sql`LIMIT ${input.limit}`}
+			${input.offset === undefined ? sql`` : sql`OFFSET ${input.offset}`}`,
 	);
 	return toResources(tx, epic.id, found);
 };

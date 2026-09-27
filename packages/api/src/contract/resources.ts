@@ -11,6 +11,10 @@ import {
 import { base } from "./base.ts";
 
 export const resources = {
+	get: base
+		.route({ method: "GET", path: "/resources/{id}", summary: "Read a resource" })
+		.input(ResourceIdInputSchema)
+		.output(ResourceSchema),
 	add: base
 		.errors(pickErrors(["PAYLOAD_TOO_LARGE", "PROJECT_ARCHIVED"]))
 		.route({ method: "POST", path: "/resources", successStatus: 201, summary: "Add a resource to an epic" })

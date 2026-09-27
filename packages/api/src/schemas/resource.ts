@@ -71,6 +71,8 @@ export const ResourceAddInputSchema = z.discriminatedUnion("kind", [
 
 export const ResourceListInputSchema = z.strictObject({
 	epic: EpicRefStringSchema,
+	limit: z.coerce.number().int().min(1).max(100).optional(),
+	offset: z.coerce.number().int().nonnegative().optional(),
 });
 
 export const ResourceIdInputSchema = z.strictObject({

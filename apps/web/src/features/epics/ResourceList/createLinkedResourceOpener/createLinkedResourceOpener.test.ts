@@ -8,27 +8,27 @@ const resources = [
 	{ id: "image", kind: "image" },
 ] as Resource[];
 
-test("opens a linked file after its epic resources arrive, once per visit", () => {
+test("opens a linked file after its direct lookup completes, once per visit", () => {
 	const update = createLinkedResourceOpener();
 	const opened: string[] = [];
-	const open = (id: string) => opened.push(id);
-	update("file", [], open);
+	const open = (resource: Resource) => opened.push(resource.id);
+	update("file", undefined, open);
 	expect(opened).toEqual([]);
-	update("file", resources, open);
-	update("file", [...resources], open);
+	update("file", resources[0], open);
+	update("file", { ...resources[0]! }, open);
 	expect(opened).toEqual(["file"]);
-	update(undefined, resources, open);
-	update("file", resources, open);
+	update(undefined, resources[0], open);
+	update("file", resources[0], open);
 	expect(opened).toEqual(["file", "file"]);
 });
 
 test("follows a new target in the same epic without reopening a document", () => {
 	const update = createLinkedResourceOpener();
 	const opened: string[] = [];
-	const open = (id: string) => opened.push(id);
-	update("file", resources, open);
-	update("document", resources, open);
-	update("image", resources, open);
-	update("missing", resources, open);
+	const open = (resource: Resource) => opened.push(resource.id);
+	update("file", resources[0], open);
+	update("document", resources[1], open);
+	update("image", resources[2], open);
+	update("missing", resources[2], open);
 	expect(opened).toEqual(["file", "image"]);
 });
