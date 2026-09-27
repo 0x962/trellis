@@ -1,3 +1,5 @@
-import { call, type ProcedureContext } from "./base.ts";
+import { call, os } from "./base.ts";
 
-export const describeHostIdentity = (context: ProcedureContext) => call(context, "hostIdentity.describe", {});
+export const hostIdentity = os.hostIdentity.router({
+	describe: os.hostIdentity.describe.handler(({ context }) => call(context, "hostIdentity.describe", {})),
+});

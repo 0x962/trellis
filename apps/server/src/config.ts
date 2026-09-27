@@ -81,7 +81,12 @@ const hostnamesOf = (value: string) =>
 		});
 
 // A server bound to every address answers on the loopback address too.
-const agentsHost = (host: string) => (host === "0.0.0.0" ? "127.0.0.1" : host);
+const agentsHost = (host: string) => {
+	const reachable = host === "0.0.0.0" ? "127.0.0.1" : host;
+	return reachable.includes(":") ? `[${reachable}]` : reachable;
+};
+
+const loopbackHost = (host: string) => host === "127.0.0.1" || host === "::1" || host === "localhost";
 
 // A trailing slash would double the slash in `${publicUrl}/t/KEY-1`.
 const originOf = (value: string) => value.replace(/\/+$/, "");
@@ -90,11 +95,18 @@ export const loadConfig = (env: Env): Config => {
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	const installationHome = resolve(expandHome(env.TRELLIS_INSTALLATION_HOME ?? "~/.config/trellis"));
 	const host = env.TRELLIS_HOST ?? "127.0.0.1";
+	const authToken = env.TRELLIS_AUTH_TOKEN ?? null;
+	if (authToken !== null && authToken.trim() === "") {
+		throw new Error("TRELLIS_AUTH_TOKEN must not be empty.");
+	}
+	if (!loopbackHost(host) && authToken === null) {
+		throw new Error("TRELLIS_AUTH_TOKEN is required when TRELLIS_HOST is not a loopback address.");
+	}
 	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
 		installationHome,
-		authToken: env.TRELLIS_AUTH_TOKEN ?? null,
+		authToken,
 		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port,

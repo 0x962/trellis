@@ -1,16 +1,14 @@
 import { join } from "node:path";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import type { Tx } from "../../db/tx.ts";
-import type { ServiceCtx } from "../support.ts";
+import type { IoCtx, ServiceCtx } from "../support.ts";
 import { readOrCreateIdentity } from "./identityStore.ts";
 
 export const HOST_IDENTITY_FILE = "host-identity";
 export const DATA_HOME_IDENTITY_FILE = "data-home-identity";
 export const HOST_IDENTITY_CAPABILITIES = ["host-identity"] as const;
 
-export type HostIdentityContext = Pick<ServiceCtx, "apiVersion" | "home" | "version"> & {
-	installationHome: string;
-};
+export type HostIdentityContext = Pick<IoCtx, "apiVersion" | "home" | "installationHome" | "version">;
 
 export type HostIdentityDependencies = {
 	readIdentity: (path: string) => Promise<string>;
