@@ -55,3 +55,14 @@ test("rejects two SSH profiles with the same loopback port", () => {
 test("rejects secrets and unknown fields", () => {
 	expect(() => HostProfileListSchema.parse([{ ...remoteProfile, privateKey: "secret" }])).toThrow();
 });
+
+test("rejects SSH option injection in connection fields", () => {
+	const { id: _id, hostKey, ...input } = remoteProfile;
+
+	expect(() =>
+		HostProfileAddInputSchema.parse({ ...input, address: "-oProxyCommand=bad", trustedHostKey: hostKey }),
+	).toThrow();
+	expect(() =>
+		HostProfileAddInputSchema.parse({ ...input, username: "-oProxyCommand", trustedHostKey: hostKey }),
+	).toThrow();
+});

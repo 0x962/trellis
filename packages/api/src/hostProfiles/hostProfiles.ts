@@ -1,7 +1,12 @@
 import { z } from "zod";
-import { DataHomeIdSchema, HostIdSchema } from "../hostIdentity/hostIdentity.ts";
+import { DataHomeIdSchema, HostIdSchema } from "../hostIdentity/index.ts";
 
-const LabelSchema = z.string().trim().min(1, "Enter a host name.").max(80, "Enter a host name of 80 characters or less.");
+const LabelSchema = z
+	.string()
+	.trim()
+	.min(1, "Enter a host name.")
+	.max(80, "Enter a host name of 80 characters or less.")
+	.regex(/^[^\p{Cc}]+$/u, "Enter a host name without control characters.");
 const PortSchema = z.number().int().min(1).max(65_535);
 const LoopbackPortSchema = z.number().int().min(1_024).max(65_535);
 const AddressSchema = z
@@ -9,13 +14,13 @@ const AddressSchema = z
 	.trim()
 	.min(1, "Enter a host address.")
 	.max(255, "Enter a host address of 255 characters or less.")
-	.regex(/^[^\s/\p{Cc}]+$/u, "Enter a host name or an IP address.");
+	.regex(/^(?!-)[A-Za-z0-9_.:%-]+$/, "Enter a host name or an IP address.");
 const UsernameSchema = z
 	.string()
 	.trim()
 	.min(1, "Enter an SSH user name.")
 	.max(255, "Enter an SSH user name of 255 characters or less.")
-	.regex(/^[^\s\p{Cc}]+$/u, "Enter an SSH user name without spaces.");
+	.regex(/^[A-Za-z_][A-Za-z0-9_.-]*\$?$/, "Enter a valid SSH user name.");
 
 export const HostProfileIdSchema = z.uuid();
 export type HostProfileId = z.infer<typeof HostProfileIdSchema>;
@@ -39,7 +44,13 @@ export const LocalHostProfileSchema = z.strictObject({
 	id: HostProfileIdSchema,
 	kind: z.literal("local"),
 	label: LabelSchema,
-	dataHome: z.string().trim().min(1).max(4_096).startsWith("/", "Enter an absolute data directory."),
+	dataHome: z
+		.string()
+		.trim()
+		.min(1)
+		.max(4_096)
+		.startsWith("/", "Enter an absolute data directory.")
+		.regex(/^[^\p{Cc}]+$/u, "Enter a data directory without control characters."),
 	...IdentityFields,
 });
 export type LocalHostProfile = z.infer<typeof LocalHostProfileSchema>;
@@ -81,18 +92,18 @@ export const HostProfileListSchema = z.array(HostProfileSchema).superRefine((pro
 });
 
 export const LocalHostProfileAddInputSchema = LocalHostProfileSchema.omit({ id: true });
-export type LocalHostProfileAddInput = z.infer<typeof LocalHostProfileAddInputSchema>;
+export type LocalHostProfileAddInput = z.input<typeof LocalHostProfileAddInputSchema>;
 
 export const SshHostProfileAddInputSchema = SshHostProfileSchema.omit({ id: true, hostKey: true }).extend({
 	trustedHostKey: SshHostKeyPinSchema,
 });
-export type SshHostProfileAddInput = z.infer<typeof SshHostProfileAddInputSchema>;
+export type SshHostProfileAddInput = z.input<typeof SshHostProfileAddInputSchema>;
 
 export const HostProfileAddInputSchema = z.discriminatedUnion("kind", [
 	LocalHostProfileAddInputSchema,
 	SshHostProfileAddInputSchema,
 ]);
-export type HostProfileAddInput = z.infer<typeof HostProfileAddInputSchema>;
+export type HostProfileAddInput = z.input<typeof HostProfileAddInputSchema>;
 
 export const LocalHostProfileEditInputSchema = z.strictObject({
 	id: HostProfileIdSchema,
@@ -121,7 +132,7 @@ export const HostProfileEditInputSchema = z.discriminatedUnion("kind", [
 	LocalHostProfileEditInputSchema,
 	SshHostProfileEditInputSchema,
 ]);
-export type HostProfileEditInput = z.infer<typeof HostProfileEditInputSchema>;
+export type HostProfileEditInput = z.input<typeof HostProfileEditInputSchema>;
 
 export const HostProfileTrustKeyInputSchema = z.strictObject({
 	id: HostProfileIdSchema,
