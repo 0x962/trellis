@@ -1,4 +1,11 @@
-import { AGENT_RUN_LIST_LIMIT, AGENT_RUN_LIST_WINDOW_HOURS, type AgentRun, HarnessSchema } from "@trellis/api";
+import {
+	AGENT_RUN_LIST_LIMIT,
+	AGENT_RUN_LIST_WINDOW_HOURS,
+	AgentBroadcastGroupSchema,
+	type AgentBroadcastResult,
+	type AgentRun,
+	HarnessSchema,
+} from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
@@ -33,6 +40,16 @@ const agentRecord: RecordSpec<AgentRun> = {
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.id,
+};
+
+const broadcastRecord: RecordSpec<AgentBroadcastResult> = {
+	fields: [
+		{ name: "group", value: (row) => row.group },
+		{ name: "recipients", value: (row) => String(row.recipientCount) },
+		{ name: "accepted", value: (row) => String(row.acceptedCount) },
+		{ name: "failed", value: (row) => String(row.failures.length) },
+	],
+	identifier: (row) => row.group,
 };
 
 const list = defineCommand({
@@ -222,6 +239,25 @@ const send = defineCommand({
 	},
 });
 
+const broadcast = defineCommand({
+	meta: { name: "broadcast", description: "Send a user broadcast to working or idle agents" },
+	args: {
+		group: { type: "string", required: true, description: "Recipient group: working or idle" },
+		text: { type: "string", required: true, description: "Broadcast text, or - for stdin" },
+		"request-id": { type: "string", description: "Stable request ID for a retry" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const { args } = context;
+		const result = await clientOf(ctx).agentRuns.broadcast({
+			group: AgentBroadcastGroupSchema.parse(args.group),
+			text: await readText(ctx, args.text),
+			requestId: args["request-id"] ?? crypto.randomUUID(),
+		});
+		printRecord(ctx.out, ctx.format, result, broadcastRecord);
+	},
+});
+
 // Terminal text prints verbatim on a TTY and on a pipe.
 const output = defineCommand({
 	meta: { name: "output", description: "Print the terminal output of an agent" },
@@ -239,5 +275,5 @@ const output = defineCommand({
 
 export default defineCommand({
 	meta: { name: "agents", description: "List, start, refresh, interrupt, stop, or talk to agents" },
-	subCommands: { list, start, resume, model, account, refresh, interrupt, stop, send, output },
+	subCommands: { list, start, resume, model, account, refresh, interrupt, stop, send, broadcast, output },
 });
