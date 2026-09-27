@@ -1082,6 +1082,10 @@ picker of the focused row or of the selection, and the picker of the bulk bar of
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
 `waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the New wave
 and the Add tickets buttons of the `Topbar`.
+Each epic saves its filters in local storage on the current device.
+An epic link without filters restores that epic's saved filters into the URL.
+Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
+Tabs, sort, and display options keep their existing behavior.
 The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
 The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
 waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The
