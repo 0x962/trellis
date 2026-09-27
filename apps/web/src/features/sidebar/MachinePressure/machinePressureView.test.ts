@@ -10,6 +10,10 @@ const sample: MachinePressure = {
 	loadAverage1m: 68.8,
 	loadPerCore: 4.3,
 	memoryLevel: 4,
+	memoryUsedBytes: 44 * 1024 ** 3,
+	memoryTotalBytes: 64 * 1024 ** 3,
+	memoryLimitBytes: null,
+	memoryLimitKnown: true,
 	processorTemperature: {
 		state: "available",
 		celsius: 97,

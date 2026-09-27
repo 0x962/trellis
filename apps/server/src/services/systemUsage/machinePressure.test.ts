@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { heaviestRuns, hostLoad, type OpenRun } from "./machinePressure.ts";
+import { heaviestRuns, hostLoad, hostMemory, type OpenRun } from "./machinePressure.ts";
 import { parseProcessGroupMemory } from "./processGroupMemory.ts";
 
 const run = (id: string, terminalId: string): OpenRun => ({
@@ -29,7 +29,7 @@ describe("parseProcessGroupMemory", () => {
 });
 
 describe("hostLoad", () => {
-	test("reports the one-minute load per logical CPU", () => {
+	test("reports the one-minute load per usable CPU", () => {
 		expect(hostLoad("darwin", 16, 68.8)).toEqual({ loadAverage1m: 68.8, loadPerCore: 4.3 });
 	});
 
@@ -39,6 +39,44 @@ describe("hostLoad", () => {
 
 	test("does not divide a load by an unavailable logical CPU count", () => {
 		expect(hostLoad("darwin", 0, 4)).toEqual({ loadAverage1m: null, loadPerCore: null });
+	});
+});
+
+describe("hostMemory", () => {
+	test("preserves an unknown Linux usage with a known limit", () => {
+		expect(
+			hostMemory({
+				sampledAt: "2026-09-27T20:00:00.000Z",
+				logicalCpuCount: 16,
+				effectiveCpuCount: 1.5,
+				loadAverage1m: 3,
+				memoryUsedBytes: null,
+				memoryTotalBytes: 64 * 1024 ** 3,
+				memoryLimitBytes: 8 * 1024 ** 3,
+				memoryLimitKnown: true,
+				disk: { state: "failed", path: "/agents" },
+			}),
+		).toEqual({
+			memoryUsedBytes: null,
+			memoryTotalBytes: 64 * 1024 ** 3,
+			memoryLimitBytes: 8 * 1024 ** 3,
+			memoryLimitKnown: true,
+		});
+	});
+
+	test("reports physical memory use without a cgroup limit", () => {
+		expect(
+			hostMemory(
+				null,
+				() => 64 * 1024 ** 3,
+				() => 20 * 1024 ** 3,
+			),
+		).toEqual({
+			memoryUsedBytes: 44 * 1024 ** 3,
+			memoryTotalBytes: 64 * 1024 ** 3,
+			memoryLimitBytes: null,
+			memoryLimitKnown: true,
+		});
 	});
 });
 

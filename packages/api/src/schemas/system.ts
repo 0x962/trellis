@@ -144,10 +144,16 @@ export const DiskCapacitySchema = z.discriminatedUnion("state", [
 ]);
 export type DiskCapacity = z.infer<typeof DiskCapacitySchema>;
 
-// `loadPerCore` is the one-minute load average divided by the logical CPU
-// count. It is a ratio of queued processes, not a native pressure level.
-// Node reports a false zero load on Windows, so both load fields are null
-// there and when the host reports no logical CPU count.
+// `cpuCount` holds the logical CPU count. On Linux, `effectiveCpuCount`
+// holds the usable cgroup CPU capacity, which can contain a fraction.
+// Linux `loadPerCore` uses `effectiveCpuCount` and becomes null when the
+// cgroup capacity is unknown. Other platforms use `cpuCount`.
+// `loadPerCore` is a ratio of queued processes, not a native pressure level.
+// Node reports a false zero load on Windows, so both load fields are null there.
+// `memoryTotalBytes` holds physical memory. `memoryUsedBytes` holds cgroup
+// memory use on Linux and physical memory use on other platforms.
+// A true `memoryLimitKnown` value with a null `memoryLimitBytes` value means
+// that the host has no cgroup memory limit.
 // `processorTemperature` holds the hottest measured PMU processor-die sensor
 // and the full process cost. `runs` holds the agent runs that use the most
 // memory, largest first.
@@ -156,9 +162,14 @@ export const MachinePressureSchema = z.object({
 	hostname: z.string(),
 	platform: z.string(),
 	cpuCount: CountSchema,
+	effectiveCpuCount: z.number().finite().positive().nullable().optional(),
 	loadAverage1m: z.number().nonnegative().nullable(),
 	loadPerCore: z.number().nonnegative().nullable(),
 	memoryLevel: MemoryPressureLevelSchema.nullable(),
+	memoryUsedBytes: CountSchema.nullable(),
+	memoryTotalBytes: CountSchema,
+	memoryLimitBytes: CountSchema.nullable(),
+	memoryLimitKnown: z.boolean(),
 	processorTemperature: ProcessorTemperatureSchema,
 	disk: DiskCapacitySchema,
 	runs: z.array(PressureRunSchema),
