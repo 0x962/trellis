@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { cpus, freemem, loadavg, totalmem } from "node:os";
+import { cpus, loadavg, totalmem } from "node:os";
 import type { DiskCapacity } from "@trellis/api";
 import { readDiskCapacity } from "../../diskCapacity.ts";
 import { createCgroupLimitReader } from "../cgroup/index.ts";
@@ -22,7 +22,6 @@ export type LinuxHostMetricsReaderDeps = {
 	cpuCount: () => number;
 	loadAverage1m: () => number;
 	totalMemoryBytes: () => number;
-	freeMemoryBytes: () => number;
 	now: () => Date;
 	cgroupRoot: string;
 	log: (message: string, fields?: Record<string, unknown>) => void;
@@ -34,7 +33,6 @@ const nativeDeps = {
 	cpuCount: () => cpus().length,
 	loadAverage1m: () => loadavg()[0]!,
 	totalMemoryBytes: totalmem,
-	freeMemoryBytes: freemem,
 	now: () => new Date(),
 	cgroupRoot: "/sys/fs/cgroup",
 };
@@ -51,17 +49,12 @@ const collectLinuxHostMetrics = async (
 		limits.cpuLimitKnown && limits.cpuSetKnown
 			? Math.min(logicalCpuCount, limits.cpuCores ?? logicalCpuCount, limits.cpuSetCount ?? logicalCpuCount)
 			: null;
-	const memoryUsedBytes = !limits.memoryLimitKnown
-		? null
-		: limits.memoryBytes !== null && limits.memoryBytes < memoryTotalBytes
-			? limits.memoryUsedBytes
-			: memoryTotalBytes - deps.freeMemoryBytes();
 	return {
 		sampledAt: deps.now().toISOString(),
 		logicalCpuCount,
 		effectiveCpuCount,
 		loadAverage1m: deps.loadAverage1m(),
-		memoryUsedBytes,
+		memoryUsedBytes: limits.memoryUsedBytes,
 		memoryTotalBytes,
 		memoryLimitBytes: limits.memoryBytes,
 		memoryLimitKnown: limits.memoryLimitKnown,

@@ -167,7 +167,10 @@ const readLimits = async (
 		cpuSetKnown,
 		memoryBytes: strictestMemoryLimit?.memoryBytes ?? null,
 		memoryLimitKnown,
-		memoryUsedBytes: strictestMemoryLimit?.memoryUsedBytes ?? null,
+		memoryUsedBytes:
+			strictestMemoryLimit === undefined
+				? (limitsByDirectory[0]?.memoryUsedBytes ?? null)
+				: strictestMemoryLimit.memoryUsedBytes,
 	};
 };
 

@@ -26,7 +26,6 @@ const fixture = (files: Record<string, string>): LinuxHostMetricsReaderDeps => (
 	cpuCount: () => 16,
 	loadAverage1m: () => 4,
 	totalMemoryBytes: () => 64_000,
-	freeMemoryBytes: () => 16_000,
 	now: () => new Date("2026-09-27T20:00:01.000Z"),
 	cgroupRoot: "/sys/fs/cgroup",
 	log: () => {},
@@ -81,7 +80,7 @@ describe("readLinuxHostMetrics", () => {
 			}),
 		);
 		expect(result.effectiveCpuCount).toBe(3);
-		expect(result.memoryUsedBytes).toBe(48_000);
+		expect(result.memoryUsedBytes).toBe(12_000);
 		expect(result.memoryLimitBytes).toBeNull();
 		expect(result.memoryLimitKnown).toBe(true);
 	});
@@ -147,6 +146,25 @@ describe("readLinuxHostMetrics", () => {
 		);
 		expect(result.memoryUsedBytes).toBeNull();
 		expect(result.memoryLimitBytes).toBe(32_000);
+		expect(result.memoryLimitKnown).toBe(true);
+	});
+
+	test("reports unknown memory use when an unlimited cgroup usage file is unavailable", async () => {
+		const result = await readLinuxHostMetrics(
+			"/srv/trellis/agents",
+			fixture({
+				"/proc/self/cgroup": "0::/trellis\n",
+				"/sys/fs/cgroup/trellis/cpu.max": "max 100000\n",
+				"/sys/fs/cgroup/trellis/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/trellis/memory.max": "max\n",
+				"/sys/fs/cgroup/cpu.max": "max 100000\n",
+				"/sys/fs/cgroup/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/memory.max": "max\n",
+				"/sys/fs/cgroup/memory.current": "24000\n",
+			}),
+		);
+		expect(result.memoryUsedBytes).toBeNull();
+		expect(result.memoryLimitBytes).toBeNull();
 		expect(result.memoryLimitKnown).toBe(true);
 	});
 
