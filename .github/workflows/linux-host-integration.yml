@@ -42,9 +42,7 @@ jobs:
         uses: ./scripts/linux-integration/actions/upload
         with:
           name: ${{ steps.plan.outputs.result_artifact }}
-          path: |
-            evidence/plan.json
-            evidence/results/plan-identity-linux-x64.json
+          path: evidence/results/plan-identity-linux-x64.json
 
   lint:
     name: Lint / Repository

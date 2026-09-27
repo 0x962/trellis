@@ -1,9 +1,8 @@
 import { readWorkflowIdentity, writeResult, writeStepOutputs } from "./checkResult";
-import { laneForBranch, readLanePlans } from "./contract";
+import { laneForBranch } from "./contract";
 
 const workflowIdentity = readWorkflowIdentity();
 const lane = laneForBranch(workflowIdentity.branch);
-const plans = await readLanePlans();
 const record = await writeResult(
 	{
 		check: "plan-identity",
@@ -13,10 +12,5 @@ const record = await writeResult(
 		result: "passed",
 	},
 	lane,
-);
-
-await Bun.write(
-	"evidence/plan.json",
-	`${JSON.stringify({ schemaVersion: plans.schemaVersion, ...workflowIdentity, lane, plan: plans.lanes[lane] }, null, 2)}\n`,
 );
 await writeStepOutputs(record, true);
