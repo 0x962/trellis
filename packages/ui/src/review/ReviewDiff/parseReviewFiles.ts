@@ -52,9 +52,7 @@ const decodeGitPath = (value: string) => {
 		}
 		const escapeCharacter = quoted[++index]!;
 		if (/[0-7]/.test(escapeCharacter)) {
-			const octal = `${escapeCharacter}${quoted[index + 1] ?? ""}${quoted[index + 2] ?? ""}`.match(
-				/^[0-7]{1,3}/,
-			)![0];
+			const octal = `${escapeCharacter}${quoted[index + 1] ?? ""}${quoted[index + 2] ?? ""}`.match(/^[0-7]{1,3}/)![0];
 			bytes.push(Number.parseInt(octal, 8));
 			index += octal.length - 1;
 			continue;
