@@ -1,13 +1,13 @@
 import { lstat, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
-	HostTransferManifestSchema,
-	HostTransferObjectSchema,
 	type HostTransferClassification,
 	type HostTransferDestination,
 	type HostTransferEndpoint,
 	type HostTransferManifest,
+	HostTransferManifestSchema,
 	type HostTransferObject,
+	HostTransferObjectSchema,
 	type ProviderResumeCompatibility,
 } from "@trellis/api";
 import { appendScannedObjects } from "./components/appendScannedObjects/index.ts";

@@ -1,9 +1,9 @@
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
-	HostTransferObjectSchema,
 	type HostTransferClassification,
 	type HostTransferDestination,
 	type HostTransferObject,
+	HostTransferObjectSchema,
 } from "@trellis/api";
 import { checksum } from "../checksum/index.ts";
 import { destinationForPath, type PathMapping } from "../destinationForPath/index.ts";
@@ -16,10 +16,7 @@ export type ObjectDraft = Record<string, unknown> & {
 	destination: HostTransferDestination;
 };
 
-const childDestination = (
-	destination: HostTransferDestination,
-	relativePath: string,
-): HostTransferDestination =>
+const childDestination = (destination: HostTransferDestination, relativePath: string): HostTransferDestination =>
 	destination.state === "excluded"
 		? destination
 		: { state: "mapped", path: relativePath === "" ? destination.path : join(destination.path, relativePath) };
@@ -79,11 +76,10 @@ const symlinkObject = (
 		return HostTransferObjectSchema.parse({
 			...base,
 			classification: "unsupported",
-			destination:
-				targetDestination ?? {
-					state: "excluded",
-					reason: `The symlink target has no destination mapping: ${target}`,
-				},
+			destination: targetDestination ?? {
+				state: "excluded",
+				reason: `The symlink target has no destination mapping: ${target}`,
+			},
 			destinationTarget: null,
 		});
 
