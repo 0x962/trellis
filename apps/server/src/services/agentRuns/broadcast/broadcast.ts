@@ -29,6 +29,8 @@ type BroadcastDeps = {
 	) => Promise<unknown>;
 };
 
+const messageText = (text: string) => `This is a broadcast from the user.\n\n${text}`;
+
 const depsOf = (ctx: IoCtx): BroadcastDeps => ({
 	read: readRuntimeSessionsRequired,
 	send: prepareSend,
@@ -115,7 +117,7 @@ export async function prepareBroadcast(
 		selected.map((target) =>
 			deps.send(ctx, {
 				id: target.run.id,
-				text: input.text,
+				text: messageText(input.text),
 				messageId: `${input.requestId}-${target.run.id}`,
 				expectedTerminalId: target.run.terminalId,
 				expectedSessionId: target.run.sessionId,
