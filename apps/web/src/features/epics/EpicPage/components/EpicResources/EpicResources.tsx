@@ -70,6 +70,7 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 					resources={resources}
 					planTitle={planTitle(description)}
 					openDocId={selectedId}
+					linkedResourceId={resourceId}
 					onOpenDoc={setOpenDocId}
 					loading={list.isPending}
 					error={list.error === null ? null : errorMessage(list.error)}

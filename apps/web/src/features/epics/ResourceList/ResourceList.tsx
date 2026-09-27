@@ -1,10 +1,11 @@
 import type { Resource } from "@trellis/api";
 import { type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
-import { useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { isDesktopApp } from "../../../lib/desktopBridge";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { docTitle, PLAN_DOC_ID } from "../epicDocs";
 import { ImageSheet } from "./components/ImageSheet";
+import { linkedResourceOpener } from "./linkedResourceOpener";
 import { resourceDetail } from "./resourceDetail";
 import { resourceOpenAction } from "./resourceOpenAction";
 import { resourceUrl } from "./resourceUrl";
@@ -17,6 +18,7 @@ export type ResourceListProps = {
 	planTitle: string;
 	// The id of the document open beside the list.
 	openDocId: string;
+	linkedResourceId?: string;
 	// Opens a document beside the list: `PLAN_DOC_ID` or a resource id.
 	onOpenDoc: (id: string) => void;
 	loading: boolean;
@@ -32,6 +34,7 @@ export function ResourceList({
 	resources,
 	planTitle,
 	openDocId,
+	linkedResourceId,
 	onOpenDoc,
 	loading,
 	error,
@@ -81,6 +84,11 @@ export function ResourceList({
 			}
 		}
 	};
+	const openLinked = useEffectEvent(onOpen);
+	const [openLink] = useState(linkedResourceOpener);
+	useEffect(() => {
+		openLink(linkedResourceId, resources, openLinked);
+	}, [linkedResourceId, resources, openLink]);
 	return (
 		<>
 			<ResourceListView

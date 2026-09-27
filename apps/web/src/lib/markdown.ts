@@ -1,3 +1,4 @@
+import { parseInternalLink } from "@trellis/api";
 import { Marked, type Tokens } from "marked";
 import { sanitizeHtml } from "./sanitizeHtml";
 
@@ -18,6 +19,18 @@ const ticketIdExtension = {
 	renderer: (token: Tokens.Generic) => `<a href="/t/${token.text}">${token.text}</a>`,
 };
 
+const internalLinkExtension = {
+	name: "internalLink",
+	level: "inline" as const,
+	start: (src: string) => src.indexOf("trellis://"),
+	tokenizer: (src: string): TicketIdToken | undefined => {
+		const href = /^trellis:\/\/[^\s<>]+/.exec(src)?.[0].replace(/[.,;:!?)\]]+$/, "");
+		if (href === undefined || parseInternalLink(href) === null) return undefined;
+		return { type: "internalLink", raw: href, text: href };
+	},
+	renderer: (token: Tokens.Generic) => `<a href="${token.text}">${token.text}</a>`,
+};
+
 // An http(s) link opens a new tab without an opener or a referrer. Every
 // other href is left for the sanitizer, which drops the unsafe schemes.
 const renderer = {
@@ -35,7 +48,7 @@ const renderer = {
 export const createMarkdownParser = () => {
 	const marked = new Marked({
 		gfm: true,
-		extensions: [ticketIdExtension],
+		extensions: [ticketIdExtension, internalLinkExtension],
 		renderer,
 	});
 	return (markdown: string): string => marked.parse(markdown, { async: false });
