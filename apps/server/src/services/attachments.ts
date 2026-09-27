@@ -120,42 +120,87 @@ const emitCount = async (ctx: ServiceCtx, tx: Tx, ticketId: string) =>
 
 export type UploadInput = { id?: string; ticket: string; file: File; name?: string };
 
-export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promise<AttachmentUploadOutput> => {
-	const ticket = await resolveTicket(tx, input.ticket);
-	assertProjectActive(ticket);
+type PreparedUpload = {
+	id?: string;
+	ticket: string;
+	filename: string;
+	mime: string;
+	size: number;
+	sha256: string;
+};
+
+const assertMatchingAttachment = (existing: AttachmentRow, input: PreparedUpload, actor: ServiceCtx["actor"]) => {
+	if (
+		existing.ticket_id !== input.ticket ||
+		existing.filename !== input.filename ||
+		existing.mime !== input.mime ||
+		existing.size !== input.size ||
+		existing.actor_name !== actor.name ||
+		existing.actor_kind !== actor.kind ||
+		existing.sha256 !== input.sha256
+	)
+		throw invalidInput("id", "This id already identifies another attachment.");
+};
+
+export const prepareUpload = async (ctx: ServiceCtx, input: UploadInput): Promise<PreparedUpload> => {
 	if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
 	const filename = input.name ?? input.file.name;
 	const mime = storedMime(input.file.type);
+	const { ticket, existing } = await ctx.newTx(async (tx) => {
+		const ticket = await resolveTicket(tx, input.ticket);
+		assertProjectActive(ticket);
+		return {
+			ticket,
+			existing: input.id === undefined ? undefined : await findAttachmentIfExists(tx, input.id),
+		};
+	});
+	if (input.id !== undefined) {
+		if (existing !== undefined) {
+			const prepared = {
+				id: input.id,
+				ticket: ticket.id,
+				filename,
+				mime,
+				size: input.file.size,
+				sha256: await sha256OfFile(input.file),
+			};
+			assertMatchingAttachment(existing, prepared, ctx.actor);
+			await storeFile(ctx.home, input.file);
+			return prepared;
+		}
+	}
+	const stored = await storeFile(ctx.home, input.file);
+	return { ...(input.id === undefined ? {} : { id: input.id }), ticket: ticket.id, filename, mime, ...stored };
+};
+
+export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Promise<AttachmentUploadOutput> => {
+	const ticket = await resolveTicket(tx, input.ticket);
+	assertProjectActive(ticket);
 	if (input.id !== undefined) {
 		const existing = await findAttachmentIfExists(tx, input.id);
 		if (existing !== undefined) {
-			if (
-				existing.ticket_id !== ticket.id ||
-				existing.filename !== filename ||
-				existing.mime !== mime ||
-				existing.size !== input.file.size ||
-				existing.actor_name !== ctx.actor.name ||
-				existing.actor_kind !== ctx.actor.kind ||
-				existing.sha256 !== (await sha256OfFile(input.file))
-			)
-				throw invalidInput("id", "This id already identifies another attachment.");
+			assertMatchingAttachment(existing, { ...input, ticket: ticket.id }, ctx.actor);
 			const attachment = toAttachment(existing);
 			return { attachment, url: attachment.url, markdown: markdownFor(attachment) };
 		}
 	}
-	const stored = await storeFile(ctx.home, input.file);
 	const at = ctx.now();
 	const id = input.id ?? ulid();
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
 		VALUES (
-			${id}, ${ticket.id}, ${filename}, ${mime}, ${stored.size}, ${stored.sha256},
+			${id}, ${ticket.id}, ${input.filename}, ${input.mime}, ${input.size}, ${input.sha256},
 			${ctx.actor.name}, ${ctx.actor.kind}, ${at}
 		)
 	`);
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });
-	await writeActivity(ctx, tx, { ticket, action: "attachment.created", meta: { filename, attachmentId: id }, at });
+	await writeActivity(ctx, tx, {
+		ticket,
+		action: "attachment.created",
+		meta: { filename: input.filename, attachmentId: id },
+		at,
+	});
 	ctx.emit({ type: "attachment.created", id, ticketId: ticket.id, projectId: ticket.project_id });
 	await emitCount(ctx, tx, ticket.id);
 	const attachment = toAttachment(await findAttachment(tx, id));
