@@ -1,10 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { DiskCapacity } from "@trellis/api";
-import { runProcessorTemperatureReader } from "../processorTemperature.ts";
 import {
 	createLinuxHostMetricsReader,
 	readLinuxHostMetrics,
-	type LinuxHostMetricDeps,
+	type LinuxHostMetricsReaderDeps,
 } from "./hostMetrics.ts";
 
 const disk: DiskCapacity = {
@@ -17,7 +16,7 @@ const disk: DiskCapacity = {
 	usedPercent: 60,
 };
 
-const fixture = (files: Record<string, string>): LinuxHostMetricDeps => ({
+const fixture = (files: Record<string, string>): LinuxHostMetricsReaderDeps => ({
 	readFile: async (path) => {
 		const value = files[path];
 		if (value === undefined) throw new Error(`No fixture for ${path}`);
@@ -30,6 +29,7 @@ const fixture = (files: Record<string, string>): LinuxHostMetricDeps => ({
 	freeMemoryBytes: () => 16_000,
 	now: () => new Date("2026-09-27T20:00:01.000Z"),
 	cgroupRoot: "/sys/fs/cgroup",
+	log: () => {},
 });
 
 describe("readLinuxHostMetrics", () => {
@@ -54,8 +54,13 @@ describe("readLinuxHostMetrics", () => {
 		);
 		expect(result).toEqual({
 			sampledAt: "2026-09-27T20:00:01.000Z",
-			cpu: { logicalCount: 16, effectiveCount: 2, loadAverage1m: 4, limitCores: 2 },
-			memory: { usedBytes: 12_000, totalBytes: 64_000, limitBytes: 32_000 },
+			logicalCpuCount: 16,
+			effectiveCpuCount: 2,
+			loadAverage1m: 4,
+			memoryUsedBytes: 12_000,
+			memoryTotalBytes: 64_000,
+			memoryLimitBytes: 32_000,
+			memoryLimitKnown: true,
 			disk,
 		});
 	});
@@ -75,10 +80,13 @@ describe("readLinuxHostMetrics", () => {
 				"/sys/fs/cgroup/memory.current": "24000\n",
 			}),
 		);
-		expect(result.cpu).toEqual({ logicalCount: 16, effectiveCount: 3, loadAverage1m: 4, limitCores: 3 });
+		expect(result.effectiveCpuCount).toBe(3);
+		expect(result.memoryUsedBytes).toBe(48_000);
+		expect(result.memoryLimitBytes).toBeNull();
+		expect(result.memoryLimitKnown).toBe(true);
 	});
 
-	test("keeps the exact quota beside an integer effective count", async () => {
+	test("keeps a fractional CPU quota", async () => {
 		const result = await readLinuxHostMetrics(
 			"/srv/trellis/agents",
 			fixture({
@@ -93,13 +101,53 @@ describe("readLinuxHostMetrics", () => {
 				"/sys/fs/cgroup/memory.current": "24000\n",
 			}),
 		);
-		expect(result.cpu).toEqual({ logicalCount: 16, effectiveCount: 2, loadAverage1m: 4, limitCores: 1.5 });
+		expect(result.logicalCpuCount).toBe(16);
+		expect(result.effectiveCpuCount).toBe(1.5);
 	});
 
-	test("keeps host readings when proc and cgroup files are unavailable", async () => {
+	test("reports unknown cgroup readings without host fallbacks", async () => {
 		const result = await readLinuxHostMetrics("/srv/trellis/agents", fixture({}));
-		expect(result.cpu).toEqual({ logicalCount: 16, effectiveCount: 16, loadAverage1m: 4, limitCores: null });
-		expect(result.memory).toEqual({ usedBytes: 48_000, totalBytes: 64_000, limitBytes: null });
+		expect(result.effectiveCpuCount).toBeNull();
+		expect(result.memoryUsedBytes).toBeNull();
+		expect(result.memoryTotalBytes).toBe(64_000);
+		expect(result.memoryLimitBytes).toBeNull();
+		expect(result.memoryLimitKnown).toBe(false);
+	});
+
+	test("reports unknown CPU capacity when one quota file is unavailable", async () => {
+		const result = await readLinuxHostMetrics(
+			"/srv/trellis/agents",
+			fixture({
+				"/proc/self/cgroup": "0::/trellis\n",
+				"/sys/fs/cgroup/trellis/cpuset.cpus.effective": "0-3\n",
+				"/sys/fs/cgroup/trellis/memory.max": "max\n",
+				"/sys/fs/cgroup/trellis/memory.current": "12000\n",
+				"/sys/fs/cgroup/cpu.max": "max 100000\n",
+				"/sys/fs/cgroup/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/memory.max": "max\n",
+				"/sys/fs/cgroup/memory.current": "24000\n",
+			}),
+		);
+		expect(result.effectiveCpuCount).toBeNull();
+	});
+
+	test("keeps a known memory limit when its usage file is unavailable", async () => {
+		const result = await readLinuxHostMetrics(
+			"/srv/trellis/agents",
+			fixture({
+				"/proc/self/cgroup": "0::/trellis\n",
+				"/sys/fs/cgroup/trellis/cpu.max": "max 100000\n",
+				"/sys/fs/cgroup/trellis/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/trellis/memory.max": "32000\n",
+				"/sys/fs/cgroup/cpu.max": "max 100000\n",
+				"/sys/fs/cgroup/cpuset.cpus.effective": "0-15\n",
+				"/sys/fs/cgroup/memory.max": "max\n",
+				"/sys/fs/cgroup/memory.current": "24000\n",
+			}),
+		);
+		expect(result.memoryUsedBytes).toBeNull();
+		expect(result.memoryLimitBytes).toBe(32_000);
+		expect(result.memoryLimitKnown).toBe(true);
 	});
 
 	test("reads disk capacity from the workspace filesystem", async () => {
@@ -111,6 +159,16 @@ describe("readLinuxHostMetrics", () => {
 		};
 		await readLinuxHostMetrics("/mnt/workspaces/agents", deps);
 		expect(diskPath).toBe("/mnt/workspaces/agents");
+	});
+
+	test("logs one warning while the same cgroup read failure continues", async () => {
+		const warnings: Array<Record<string, unknown> | undefined> = [];
+		const deps = fixture({});
+		deps.log = (_message, fields) => warnings.push(fields);
+		const read = createLinuxHostMetricsReader(deps);
+		await read("/srv/trellis/agents");
+		await read("/srv/trellis/agents");
+		expect(warnings).toEqual([{ path: "/proc/self/cgroup", error: "No fixture for /proc/self/cgroup" }]);
 	});
 
 	test("shares one active read between concurrent requests", async () => {
@@ -132,22 +190,5 @@ describe("readLinuxHostMetrics", () => {
 		release();
 		await first;
 		expect(procReads).toBe(1);
-	});
-
-	test("does not start a temperature reader on Linux", async () => {
-		let started = false;
-		const result = await runProcessorTemperatureReader({
-			platform: "linux",
-			path: "/release/bin/processor-temperature",
-			exists: () => true,
-			spawn: () => {
-				started = true;
-				throw new Error("unexpected helper");
-			},
-			now: () => 0,
-			deadline: () => ({ wait: new Promise<"timeout">(() => {}), cancel: () => {} }),
-		});
-		expect(result).toEqual({ state: "unavailable", reason: "unsupported-platform", readDurationMs: 0 });
-		expect(started).toBe(false);
 	});
 });
