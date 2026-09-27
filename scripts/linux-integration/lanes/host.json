@@ -1,0 +1,77 @@
+{
+	"integratedInputsFile": "host-inputs.json",
+	"laneReview": null,
+	"focusedTests": {
+		"linux-x64": {
+			"command": "bun test apps/runtime/src/platform/processIdentity packages/api/src/hostRelease scripts/host-release && bun test apps/server/src/hostShell/hostShell.test.ts apps/server/src/agents/native/customLaunch.test.ts && bun test apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts apps/runtime/src/platform/linuxLifecycle/launcher.test.ts apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts apps/runtime/src/processCompletion.test.ts && bun test apps/server/src/agents/native/connection.test.ts apps/server/src/routes/terminalRuntime.test.ts scripts/host-release",
+			"integratedInputTicketIdentifier": "TRL-536",
+			"requiredPaths": [
+				"apps/runtime/src/platform/processIdentity",
+				"packages/api/src/hostRelease",
+				"scripts/host-release",
+				"apps/server/src/hostShell/hostShell.test.ts",
+				"apps/server/src/agents/native/customLaunch.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/launcher.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts",
+				"apps/runtime/src/processCompletion.test.ts",
+				"apps/server/src/agents/native/connection.test.ts",
+				"apps/server/src/routes/terminalRuntime.test.ts"
+			]
+		},
+		"linux-arm64": {
+			"command": "bun test apps/runtime/src/platform/processIdentity packages/api/src/hostRelease scripts/host-release && bun test apps/server/src/hostShell/hostShell.test.ts apps/server/src/agents/native/customLaunch.test.ts && bun test apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts apps/runtime/src/platform/linuxLifecycle/launcher.test.ts apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts apps/runtime/src/processCompletion.test.ts && bun test apps/server/src/agents/native/connection.test.ts apps/server/src/routes/terminalRuntime.test.ts scripts/host-release",
+			"integratedInputTicketIdentifier": "TRL-536",
+			"requiredPaths": [
+				"apps/runtime/src/platform/processIdentity",
+				"packages/api/src/hostRelease",
+				"scripts/host-release",
+				"apps/server/src/hostShell/hostShell.test.ts",
+				"apps/server/src/agents/native/customLaunch.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/launcher.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts",
+				"apps/runtime/src/processCompletion.test.ts",
+				"apps/server/src/agents/native/connection.test.ts",
+				"apps/server/src/routes/terminalRuntime.test.ts"
+			]
+		},
+		"macos-x64": {
+			"command": "bun test apps/runtime/src/platform/processIdentity packages/api/src/hostRelease scripts/host-release && bun test apps/server/src/hostShell/hostShell.test.ts apps/server/src/agents/native/customLaunch.test.ts && bun test apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts apps/runtime/src/platform/linuxLifecycle/launcher.test.ts apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts apps/runtime/src/processCompletion.test.ts && bun test apps/server/src/agents/native/connection.test.ts apps/server/src/routes/terminalRuntime.test.ts scripts/host-release",
+			"integratedInputTicketIdentifier": "TRL-536",
+			"requiredPaths": [
+				"apps/runtime/src/platform/processIdentity",
+				"packages/api/src/hostRelease",
+				"scripts/host-release",
+				"apps/server/src/hostShell/hostShell.test.ts",
+				"apps/server/src/agents/native/customLaunch.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/launcher.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts",
+				"apps/runtime/src/processCompletion.test.ts",
+				"apps/server/src/agents/native/connection.test.ts",
+				"apps/server/src/routes/terminalRuntime.test.ts"
+			]
+		},
+		"macos-arm64": {
+			"command": "bun test apps/runtime/src/platform/processIdentity packages/api/src/hostRelease scripts/host-release && bun test apps/server/src/hostShell/hostShell.test.ts apps/server/src/agents/native/customLaunch.test.ts && bun test apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts apps/runtime/src/platform/linuxLifecycle/launcher.test.ts apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts apps/runtime/src/processCompletion.test.ts && bun test apps/server/src/agents/native/connection.test.ts apps/server/src/routes/terminalRuntime.test.ts scripts/host-release",
+			"integratedInputTicketIdentifier": "TRL-536",
+			"requiredPaths": [
+				"apps/runtime/src/platform/processIdentity",
+				"packages/api/src/hostRelease",
+				"scripts/host-release",
+				"apps/server/src/hostShell/hostShell.test.ts",
+				"apps/server/src/agents/native/customLaunch.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/cgroup.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/launcher.test.ts",
+				"apps/runtime/src/platform/linuxLifecycle/linuxProcessExitWatcher.test.ts",
+				"apps/runtime/src/processCompletion.test.ts",
+				"apps/server/src/agents/native/connection.test.ts",
+				"apps/server/src/routes/terminalRuntime.test.ts"
+			]
+		}
+	},
+	"packages": {},
+	"smoke": {},
+	"latitude": {}
+}
