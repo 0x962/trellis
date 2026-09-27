@@ -109,9 +109,7 @@ export function verifyIntegratedInput(
 		input.reviewRunId,
 		input.reviewResult,
 	];
-	const missingFindingField = findings.some(
-		(finding) => !finding.id || !finding.status || !finding.resolution,
-	);
+	const missingFindingField = findings.some((finding) => !finding.id || !finding.status || !finding.resolution);
 	let verification: Result = "passed";
 	let reason: string | undefined;
 	if (required.some((value) => !value) || !input.findings || missingFindingField) {

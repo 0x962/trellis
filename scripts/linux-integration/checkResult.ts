@@ -1,10 +1,5 @@
 import { appendFile, mkdir } from "node:fs/promises";
-import {
-	type CheckRecord,
-	packageArtifactName,
-	resultArtifactName,
-	type Result,
-} from "./contract";
+import { type CheckRecord, packageArtifactName, type Result, resultArtifactName } from "./contract";
 
 type ResultInput = {
 	check: string;
@@ -25,18 +20,13 @@ export type WorkflowIdentity = {
 	runAttempt: string;
 };
 
-export function requiredVariable(
-	variables: Record<string, string | undefined>,
-	name: string,
-): string {
+export function requiredVariable(variables: Record<string, string | undefined>, name: string): string {
 	const value = variables[name];
 	if (!value) throw new Error(`The CI variable ${name} is required.`);
 	return value;
 }
 
-export function readWorkflowIdentity(
-	variables: Record<string, string | undefined> = process.env,
-): WorkflowIdentity {
+export function readWorkflowIdentity(variables: Record<string, string | undefined> = process.env): WorkflowIdentity {
 	return {
 		repository: requiredVariable(variables, "GITHUB_REPOSITORY"),
 		workflow: requiredVariable(variables, "GITHUB_WORKFLOW"),

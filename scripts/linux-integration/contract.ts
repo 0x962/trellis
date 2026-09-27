@@ -140,19 +140,11 @@ export function packageArtifactName(input: {
 	return `trellis-package-${input.lane}-${input.commit}-${input.runId}-${input.runAttempt}-${input.platform}`;
 }
 
-export function evidenceArtifactName(input: {
-	lane: Lane;
-	commit: string;
-	runId: string;
-	runAttempt: string;
-}): string {
+export function evidenceArtifactName(input: { lane: Lane; commit: string; runId: string; runAttempt: string }): string {
 	return `trellis-evidence-${input.lane}-${input.commit}-${input.runId}-${input.runAttempt}`;
 }
 
-export function missingRequiredPaths(
-	paths: string[],
-	exists: (path: string) => boolean,
-): string[] {
+export function missingRequiredPaths(paths: string[], exists: (path: string) => boolean): string[] {
 	return paths.filter((path) => !exists(path));
 }
 

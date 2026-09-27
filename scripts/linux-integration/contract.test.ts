@@ -12,11 +12,7 @@ import {
 	resultArtifactName,
 	toEvidenceCheck,
 } from "./contract";
-import {
-	applyJobConclusions,
-	type JobConclusions,
-	verifyCheckRecord,
-} from "./evidenceVerification";
+import { applyJobConclusions, type JobConclusions, verifyCheckRecord } from "./evidenceVerification";
 import { buildIntegratedCommitProof } from "./integratedCommitProof";
 import {
 	findIntegratedInputGaps,
@@ -58,7 +54,7 @@ describe("Linux integration workflow contract", () => {
 	test("keeps lanes without approved plans inactive", async () => {
 		const plans = await readLanePlans();
 		for (const [lane, plan] of Object.entries(plans.lanes)) {
-			if (lane === "verification") continue;
+			if (lane === "operations" || lane === "verification") continue;
 			expect(plan.integratedInputs).toEqual([]);
 			expect(plan.focusedTests).toEqual({});
 			expect(plan.packages).toEqual({});
@@ -66,6 +62,23 @@ describe("Linux integration workflow contract", () => {
 			expect(plan.latitude).toEqual({});
 			expect(plan.laneReview).toBeNull();
 		}
+	});
+
+	test("records the reviewed operations inputs and focused commands", async () => {
+		const plan = (await readLanePlans()).lanes.operations;
+		expect(plan.integratedInputs.map((input) => input.ticketIdentifier)).toEqual([
+			"TRL-523",
+			"TRL-533",
+			"TRL-539",
+		]);
+		expect(plan.focusedTests["linux-x64"]?.integratedInputTicketIdentifier).toBe("TRL-539");
+		expect(plan.focusedTests["linux-x64"]?.requiredPaths).toContain("packages/api/src/schemas/system.ts");
+		expect(plan.focusedTests["linux-x64"]?.requiredPaths).toContain(
+			"apps/server/src/services/agentRuns/workspace/lineStats.test.ts",
+		);
+		expect(plan.packages).toEqual({});
+		expect(plan.smoke).toEqual({});
+		expect(plan.latitude).toEqual({});
 	});
 
 	test("records the reviewed verification input and focused command", async () => {
@@ -118,9 +131,7 @@ describe("Linux integration workflow contract", () => {
 	});
 
 	test("keeps a running feature flow unverified", () => {
-		expect(verifyIntegratedInput(reviewedFeature("running"), passedProof).verification).toBe(
-			"unverified",
-		);
+		expect(verifyIntegratedInput(reviewedFeature("running"), passedProof).verification).toBe("unverified");
 	});
 
 	test("fails a succeeded feature flow with an open finding", () => {
@@ -228,9 +239,7 @@ describe("Linux integration workflow contract", () => {
 	});
 
 	test("rejects a record from the wrong runner architecture", () => {
-		const expected = expectedChecks.find(
-			(check) => check.check === "typecheck" && check.platform === "linux-arm64",
-		)!;
+		const expected = expectedChecks.find((check) => check.check === "typecheck" && check.platform === "linux-arm64")!;
 		const identity = {
 			repository: "0x962/trellis",
 			workflow: "Linux host integration",
@@ -314,8 +323,6 @@ describe("Linux integration workflow contract", () => {
 		expect(packageArtifactName({ ...identity, platform: "linux-x64" })).toBe(
 			`trellis-package-verification-${"a".repeat(40)}-123-2-linux-x64`,
 		);
-		expect(evidenceArtifactName(identity)).toBe(
-			`trellis-evidence-verification-${"a".repeat(40)}-123-2`,
-		);
+		expect(evidenceArtifactName(identity)).toBe(`trellis-evidence-verification-${"a".repeat(40)}-123-2`);
 	});
 });
