@@ -7,10 +7,12 @@ import { useSlashMenuStore } from "./SlashMenu";
 export function SlashMenuList() {
 	const { open, items, highlighted, left, top, pick } = useSlashMenuStore();
 	const list = useRef<HTMLDivElement>(null);
+	const scrollIndex = open && items.length > 0 ? highlighted : null;
 	// The list scrolls, so the arrow keys keep the highlighted block in view.
 	useEffect(() => {
-		list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-	}, [highlighted, open]);
+		if (scrollIndex === null) return;
+		list.current?.children.item(scrollIndex)?.scrollIntoView({ block: "nearest" });
+	}, [scrollIndex]);
 	if (!open) return null;
 	return (
 		<div

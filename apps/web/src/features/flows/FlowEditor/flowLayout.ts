@@ -33,7 +33,12 @@ const rankRows = (list: CanvasNode[], edges: CanvasEdge[]): CanvasNode[][] => {
 		}
 	}
 	const rows: CanvasNode[][] = [];
-	for (const node of list) (rows[rank.get(node.id)!] ??= []).push(node);
+	for (const node of list) {
+		const nodeRank = rank.get(node.id)!;
+		const row = rows[nodeRank];
+		if (row === undefined) rows[nodeRank] = [node];
+		else row.push(node);
+	}
 	return rows;
 };
 
