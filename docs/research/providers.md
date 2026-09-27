@@ -473,13 +473,28 @@ Each item below is a ticket of a later wave. None is in the CRUD tickets.
 
 ### 4.1 The Jev call
 
-`apps/server/src/services/providers/evaluate.ts` exports `evaluate(ctx, tx, { state, questions })`. It picks the first enabled `vercel-ai-gateway` provider whose models hold `typesafe-ai/jev`, reads the key with `keyOf`, and posts to `<baseUrl>/v1/evaluate`. The answer returns as sent, plus `providerId` and the cost. No provider means `NO_EVALUATION_PROVIDER`, a new 409 code with a CLI exit code row. The call runs in a `prepare` step, never inside a transaction.
+TRL-509 uses `services/providers/reviewRelevance/reviewRelevance.ts` for the review gates.
+It selects the oldest enabled Vercel provider that offers `typesafe-ai/jev` and reads its key through `keyOf`.
+It posts the complete changed file list to `<baseUrl>/v1/evaluate` outside a database transaction.
+One choice question returns frontend, backend, both, or neither.
+The client validates the response and returns independent frontend and backend flags.
+A missing provider, failed request, or invalid response fails the gate.
+The client keeps keys and remote error bodies out of the saved error.
 
-Every call writes one row to `evaluations`: id, provider_id, model, purpose, state hash, questions, answers, input tokens, output tokens, cost, created_at. The Usage page prints the cost of evaluations as one line under the provider card. The rows are the reviewer labels that Vercel recommends: a later ticket compares the answers with what the person did.
+The request and response follow the [Vercel evaluation API](https://vercel.com/docs/ai-gateway/modalities/evaluation).
+Evaluation cost records remain later work.
 
 ### 4.2 A flow gate that Jev answers
 
-`FlowNodeKindSchema` gains `evaluate`. An evaluate node holds an instruction, which is the question, and a threshold, default 0.8. At run time the state is the outputs of the earlier steps of the box, the question is the instruction, and the answer is a boolean probability. A probability at or above the threshold is YES, at or below one minus the threshold is NO, and anything between waits for a person, which is today's `waiting_human` state with the probability printed on the step. The step records the probability and the cost. The canvas draws the node in the gate shape with the Jev mark and prints the threshold. This replaces a full harness process that starts to say one word.
+The existing gate kind accepts an optional `reviewArea`: frontend or backend.
+The gate inspector exposes these choices in the Decision source selector.
+Jev gates need no agent harness or custom question.
+The flow execution saves one classification and uses it for both gates.
+A mixed change runs both review branches. Neither skips both review branches.
+The host fetches all file pages and checks the reviewed commit, base commit, and total file count.
+A request that ends without a saved result reports an execution error after a host restart.
+The Review migration preserves the gate IDs, edges, and other nodes.
+General evaluation gates and probability thresholds remain later work.
 
 ### 4.3 Evidence and the agent turn
 

@@ -38,6 +38,7 @@ export interface FlowExecution {
 	error: string | null;
 	steps: FlowStep[];
 	failureKind?: "error" | "feedback";
+	reviewRelevance?: { frontend: boolean; backend: boolean };
 }
 export type FlowEvent =
 	| { type: "started"; key: string }

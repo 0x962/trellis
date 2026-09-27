@@ -858,7 +858,17 @@ editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
 
 A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
-answers YES or NO. A `human` node waits for a person. A `group` and a `loop`
+answers YES or NO. A gate can instead select a Jev frontend or backend review area.
+Jev receives every changed file path from the linked diff, with its file name and extension.
+The host checks the reviewed commit and the complete file count before classification.
+One classification per flow execution gives independent frontend and backend decisions.
+A mixed change selects both review branches. The neither result skips both review branches.
+The host uses the oldest enabled Vercel provider that offers `typesafe-ai/jev` and reads its stored key.
+GitHub and Jev requests run outside database transactions. A failed request fails the gate.
+A host interruption before the result is saved also fails the gate.
+The gate inspector exposes a Decision source selector. Jev gates launch no agent process.
+Migration 0127 selects Jev for the Frontend relevant and Backend relevant gates of the Review flow.
+A `human` node waits for a person. A `group` and a `loop`
 are boxes that hold other nodes. A group has a `parallel` switch and optional
 `minutes`. A loop runs its nodes again up to its round limit. An agent, a gate, and a loop
 take an instruction. A human node also takes an instruction. The
@@ -1117,7 +1127,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
-| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
 | providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |

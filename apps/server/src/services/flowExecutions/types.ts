@@ -5,6 +5,8 @@ import type { ServiceCtx } from "../support.ts";
 export type FlowCtx = ServiceCtx & { core: CoreCtx; localUrl: string };
 export interface StoredExecution {
 	id: string;
+	diff_id: string | null;
+	head_sha: string | null;
 	flow_id: string;
 	ticket_id: string;
 	project_id: string;

@@ -12,7 +12,7 @@ import { CountSchema, IsoDateTimeSchema, KeySchema, slugPattern, UlidSchema } fr
 // results.
 //
 // - `agent` runs one agent and returns its result.
-// - `gate` runs one agent that answers YES or NO. Its `yes` edges run on YES,
+// - `gate` asks an agent or Jev for a decision. Its `yes` edges run on YES,
 //   and its `no` edges run on NO.
 // - `human` waits until a person approves or rejects its input.
 // - `group` holds steps. `parallel` starts all children together; otherwise
@@ -85,6 +85,8 @@ const numbersMatchKind = (node: {
 	(node.kind === "group" || (node.minutes === null && !node.parallel)) &&
 	(node.kind === "loop") === (node.maxRounds !== null);
 
+const ReviewAreaSchema = z.enum(["frontend", "backend"]).nullable().optional();
+
 export const FlowNodeInputSchema = z
 	.strictObject({
 		id: UlidSchema,
@@ -100,7 +102,12 @@ export const FlowNodeInputSchema = z
 		width: SizeSchema.nullable(),
 		height: SizeSchema.nullable(),
 		harness: FlowHarnessSchema.nullable().default(null),
+		reviewArea: ReviewAreaSchema,
 	})
+	.refine(
+		(node) => node.reviewArea == null || (node.kind === "gate" && node.harness === null),
+		"Only a gate without an agent harness takes a Jev review area.",
+	)
 	.refine(numbersMatchKind, "Only a group takes minutes or parallel mode. A loop requires maxRounds.")
 	.refine(harnessMatchesKind, "Only an agent, a gate, or a loop takes a harness.");
 export type FlowNodeInput = z.input<typeof FlowNodeInputSchema>;
@@ -127,6 +134,7 @@ export const FlowNodeSchema = z.object({
 	width: z.number().nullable(),
 	height: z.number().nullable(),
 	harness: FlowHarnessSchema.nullable(),
+	reviewArea: ReviewAreaSchema,
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 
