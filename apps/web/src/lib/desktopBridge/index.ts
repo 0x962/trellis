@@ -14,3 +14,10 @@ export {
 	isDesktopApp,
 	readDesktopBridge,
 } from "./desktopBridge.ts";
+export {
+	type DesktopHostConnection,
+	type DesktopHostSelectionBridge,
+	type DesktopHostSelectionWindow,
+	type DesktopHostState,
+	readDesktopHostSelection,
+} from "./desktopHostSelection.ts";
