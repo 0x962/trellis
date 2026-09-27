@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/query-core";
 import { dropTicketQueries } from "./dropTicketQueries.ts";
+import { eventInvalidations } from "./eventInvalidations";
 import { EventSchema, type TrellisEvent } from "./events.ts";
 import {
 	createInvalidationCoalescer,
@@ -204,104 +205,14 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "ticket.deleted":
 				applyTicketEvent(event);
 				return;
-			case "attachment.created":
-			case "attachment.deleted":
-				enqueue([forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);
-				return;
-			case "notes.changed":
-				enqueue([family("notes")]);
-				return;
-			// A ticket row copies the name and the ref of its epic and of its
-			// wave, and the projects list carries `openEpicCount`. No
-			// ticket event follows a change of an epic or of a wave, so
-			// every query that holds a ticket row refetches.
-			case "epics.changed":
-				enqueue([family("epics"), family("tickets"), family("projects", "list")]);
-				return;
-			case "pages.changed":
-				enqueue([family("pages"), family("projects", "list"), family("search")]);
-				return;
-			case "providers.changed":
-				enqueue([family("providers")]);
-				return;
-			case "page-comments.changed":
-				enqueue([family("pages"), family("pageComments"), family("needsYou"), family("projects", "list")]);
-				return;
-			case "page-watches.changed":
-				enqueue([family("pages"), family("pageWatches")]);
-				return;
-			case "page-pins.changed":
-				enqueue([family("pages"), family("pagePins")]);
-				return;
-			case "resource-comments.changed":
-				enqueue([family("resourceComments")]);
-				return;
-			// The Diffs page of a project lists pull requests by their ticket
-			// links, so a link change refetches that list too.
-			case "pr.linked":
-			case "pr.unlinked":
-			case "pr.updated":
-				enqueue([
-					...event.ticketIds.flatMap((ticketId) => [
-						forTicket(["pullRequests", "list"], ticketId),
-						...ticketDetail(ticketId),
-					]),
-					family("tickets", "list"),
-					family("tickets", "board"),
-					family("reviews", "prs"),
-					family("reviews", "status"),
-					family("reviews", "metadata"),
-				]);
-				return;
-			// Every cached summary holds the name, the color, and the group name
-			// of each label on its ticket. A rename, a new color, a move to a
-			// group, or a delete alters those values, and no ticket row changes,
-			// so no ticket event follows. So every query that holds a summary
-			// refetches with the label list.
-			case "labels.changed":
-				enqueue([family("labels"), family("tickets"), family("search"), family("needsYou")]);
-				return;
-			// A status rename or a color change alters the `status` inside
-			// every cached summary. No ticket row changes, so no ticket event
-			// follows. A project rename alters
-			// `project.path` the same way. So every query that holds a summary
-			// refetches.
-			case "statuses.changed":
-			case "project.created":
-			case "project.updated":
-			case "project.deleted":
-			case "project.moved":
-				enqueue([family("statuses"), family("projects"), family("tickets"), family("search"), family("needsYou")]);
-				return;
-			case "needs-you.changed":
-				enqueue([family("needsYou")]);
-				return;
-			case "gh.status":
-				enqueue([family("system", "gh")]);
-				return;
-			// A session detail carries the state of its run, so a run change
-			// refetches the sessions with the runs.
-			case "agent-runs.status":
-			case "agent-runs.changed":
-				enqueue([family("agentRuns"), family("sessions")]);
-				return;
-			case "sessions.changed":
-				enqueue([family("sessions")]);
-				return;
-			case "reviews.changed":
-				enqueue([family("reviews")]);
-				return;
-			// A flow run stores its state under flowExecutions, and every state
-			// write emits flows.changed with the flow id.
-			case "flows.changed":
-				enqueue([family("flows"), family("flowExecutions")]);
-				return;
 			case "reset":
 				invalidateAll();
 				return;
 			case "ready":
 			case "bye":
 				return;
+			default:
+				enqueue(eventInvalidations(event));
 		}
 	};
 
