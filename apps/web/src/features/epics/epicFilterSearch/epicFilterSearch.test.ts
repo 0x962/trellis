@@ -4,10 +4,10 @@ import { parseSearchString, stringifySearchObject } from "../../../lib/searchPar
 import { useUiStore } from "../../../stores/uiStore";
 import { parseSearch, stripDefaults } from "../../filters/grammar";
 import { keepEpicPageChoices } from "../epicSearch";
-import { loadEpicFilterSearch } from "./epicFilterSearch";
+import { syncEpicFilterSearch } from "./epicFilterSearch";
 
 const initial = useUiStore.getState();
-beforeEach(() => useUiStore.setState({ epicFilters: {}, activeEpicFilters: null }));
+beforeEach(() => useUiStore.setState({ epicFilters: {}, activeEpicFilterKey: null }));
 afterEach(() => useUiStore.setState(initial, true));
 
 const makeRouter = (href: string) => {
@@ -17,7 +17,7 @@ const makeRouter = (href: string) => {
 		path: "/p/$",
 		validateSearch: (raw) => keepEpicPageChoices(raw, stripDefaults(parseSearch(raw))),
 		beforeLoad: ({ params, search, location, cause, preload }) => {
-			loadEpicFilterSearch({
+			syncEpicFilterSearch({
 				splat: params._splat!,
 				search,
 				searchStr: location.searchStr,

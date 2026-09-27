@@ -15,19 +15,19 @@ type Input = {
 	phone: boolean;
 };
 
-// An entry without URL filters restores the epic's device preferences.
-// A change within the open epic saves the URL filters, including an empty set.
-export function loadEpicFilterSearch({ splat, search, searchStr, cause, preload, phone }: Input) {
+export function syncEpicFilterSearch({ splat, search, searchStr, cause, preload, phone }: Input) {
 	const { ref, epic } = parseProjectSplat(splat);
 	if (epic === undefined) {
-		if (!preload && useUiStore.getState().activeEpicFilters !== null) useUiStore.setState({ activeEpicFilters: null });
+		if (!preload && useUiStore.getState().activeEpicFilterKey !== null)
+			useUiStore.setState({ activeEpicFilterKey: null });
 		return;
 	}
-	const key = `${ref.toUpperCase()}/${epic}`;
+	const epicFilterKey = `${ref.toUpperCase()}/${epic}`;
 	const store = useUiStore.getState();
 	const filters = filtersOf(search);
-	const restore = (cause !== "stay" || store.activeEpicFilters !== key) && Object.keys(filters).length === 0;
-	const selected = restore ? { ...filtersOf(parseSearch(store.epicFilters[key] ?? {})), ...search } : search;
+	const restore =
+		(cause !== "stay" || store.activeEpicFilterKey !== epicFilterKey) && Object.keys(filters).length === 0;
+	const selected = restore ? { ...filtersOf(parseSearch(store.epicFilters[epicFilterKey] ?? {})), ...search } : search;
 	if (!isCanonicalEpicSearch(searchStr, selected, phone)) {
 		throw redirect({
 			to: "/p/$",
@@ -37,7 +37,7 @@ export function loadEpicFilterSearch({ splat, search, searchStr, cause, preload,
 		});
 	}
 	if (!preload) {
-		useUiStore.setState({ activeEpicFilters: key });
-		store.setEpicFilters(key, filtersOf(selected));
+		useUiStore.setState({ activeEpicFilterKey: epicFilterKey });
+		store.setEpicFilters(epicFilterKey, filtersOf(selected));
 	}
 }

@@ -3,7 +3,7 @@ import { createFileRoute, redirect, useNavigate, useParams } from "@tanstack/rea
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
-import { loadEpicFilterSearch } from "../../../features/epics/epicFilterSearch";
+import { syncEpicFilterSearch } from "../../../features/epics/epicFilterSearch";
 import { keepEpicPageChoices } from "../../../features/epics/epicSearch";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -94,7 +94,7 @@ export const Route = createFileRoute("/p/$")({
 		// project.
 		const { ref, view } = parseProjectSplat(splat);
 		const ticketSearch = ticketSearchOf(search);
-		loadEpicFilterSearch({
+		syncEpicFilterSearch({
 			splat,
 			search: ticketSearch,
 			searchStr: location.searchStr,

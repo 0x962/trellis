@@ -23,8 +23,9 @@ export type UiData = {
 };
 
 export type UiState = UiData & {
-	// The open epic ref distinguishes an epic switch from a filter change on the shared project route.
-	activeEpicFilters: string | null;
+	// syncEpicFilterSearch compares this project-and-epic key with the URL.
+	// A different key restores saved filters. The same key saves an empty filter set.
+	activeEpicFilterKey: string | null;
 	// The sidebar sheet on a phone. It is never stored, so a reload opens
 	// the page with the sheet closed.
 	mobileSidebarOpen: boolean;
@@ -32,7 +33,7 @@ export type UiState = UiData & {
 	toggleSidebar: () => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setDensity: (density: Density) => void;
-	setEpicFilters: (epic: string, filters: Partial<View>) => void;
+	setEpicFilters: (epicFilterKey: string, filters: Partial<View>) => void;
 	toggleProject: (id: string) => void;
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
@@ -57,9 +58,9 @@ const defaults: UiData = {
 // `useUiStore` when a component calls `uiActions`.
 const updates = {
 	setEpicFilters:
-		(epic: string, filters: Partial<View>) =>
+		(epicFilterKey: string, filters: Partial<View>) =>
 		(state: UiData): Partial<UiData> => ({
-			epicFilters: { ...state.epicFilters, [epic]: filters },
+			epicFilters: { ...state.epicFilters, [epicFilterKey]: filters },
 		}),
 	toggleSidebar: (state: UiData): Partial<UiData> => ({ sidebarCollapsed: !state.sidebarCollapsed }),
 	setSidebarCollapsed: (sidebarCollapsed: boolean) => (): Partial<UiData> => ({ sidebarCollapsed }),
@@ -133,8 +134,8 @@ export const createUiStore = () =>
 		persist(
 			(set) => ({
 				...defaults,
-				activeEpicFilters: null,
-				setEpicFilters: (epic, filters) => set(updates.setEpicFilters(epic, filters)),
+				activeEpicFilterKey: null,
+				setEpicFilters: (epicFilterKey, filters) => set(updates.setEpicFilters(epicFilterKey, filters)),
 				mobileSidebarOpen: false,
 				setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),

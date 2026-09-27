@@ -1,1 +1,1 @@
-export { loadEpicFilterSearch } from "./epicFilterSearch";
+export { syncEpicFilterSearch } from "./epicFilterSearch";
