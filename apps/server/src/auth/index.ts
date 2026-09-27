@@ -1,2 +1,2 @@
 export { hostAuth } from "./auth.ts";
-export * from "./browserSessionAuth.ts";
+export * from "./browserSessionAuth/index.ts";

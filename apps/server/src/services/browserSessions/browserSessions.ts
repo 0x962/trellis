@@ -1,9 +1,10 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import type { Logger } from "../../log.ts";
 
 export const BROWSER_SESSION_COOKIE = "__Host-trellis-session";
 export const BROWSER_LOGIN_CODE_TTL_MS = 2 * 60 * 1000;
 export const BROWSER_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-export const BROWSER_LOGIN_CODE_ATTEMPTS = 5;
+export const BROWSER_LOGIN_CODE_ATTEMPT_LIMIT = 5;
 export const BROWSER_LOGIN_GUESS_LIMIT = 20;
 export const BROWSER_LOGIN_GUESS_WINDOW_MS = 60 * 1000;
 
@@ -27,6 +28,7 @@ type StoredBrowserSession = BrowserSession & {
 export type BrowserSessionInvalidation = "expired" | "revoked";
 
 export type IssuedBrowserLoginCode = {
+	id: string;
 	code: string;
 	expiresAt: number;
 };
@@ -42,12 +44,13 @@ export type BrowserLoginResult =
 
 export type BrowserSessionStoreOptions = {
 	hostId: string;
+	log: Logger;
 	now?: () => number;
 	random?: (size: number) => Buffer;
 	schedule?: (action: () => void, delayMs: number) => () => void;
 	codeTtlMs?: number;
 	sessionTtlMs?: number;
-	codeAttempts?: number;
+	codeAttemptLimit?: number;
 	guessLimit?: number;
 	guessWindowMs?: number;
 };
@@ -73,11 +76,12 @@ export class BrowserSessionStore {
 	readonly hostId: string;
 	readonly codeTtlMs: number;
 	readonly sessionTtlMs: number;
-	readonly codeAttempts: number;
+	readonly codeAttemptLimit: number;
 	readonly guessLimit: number;
 	readonly guessWindowMs: number;
 
 	private readonly now: () => number;
+	private readonly log: Logger;
 	private readonly random: (size: number) => Buffer;
 	private readonly schedule: (action: () => void, delayMs: number) => () => void;
 	private readonly codes = new Map<string, LoginCode>();
@@ -90,12 +94,13 @@ export class BrowserSessionStore {
 
 	constructor(options: BrowserSessionStoreOptions) {
 		this.hostId = options.hostId;
+		this.log = options.log;
 		this.now = options.now ?? Date.now;
 		this.random = options.random ?? ((size) => randomBytes(size));
 		this.schedule = options.schedule ?? schedule;
 		this.codeTtlMs = options.codeTtlMs ?? BROWSER_LOGIN_CODE_TTL_MS;
 		this.sessionTtlMs = options.sessionTtlMs ?? BROWSER_SESSION_TTL_MS;
-		this.codeAttempts = options.codeAttempts ?? BROWSER_LOGIN_CODE_ATTEMPTS;
+		this.codeAttemptLimit = options.codeAttemptLimit ?? BROWSER_LOGIN_CODE_ATTEMPT_LIMIT;
 		this.guessLimit = options.guessLimit ?? BROWSER_LOGIN_GUESS_LIMIT;
 		this.guessWindowMs = options.guessWindowMs ?? BROWSER_LOGIN_GUESS_WINDOW_MS;
 	}
@@ -107,7 +112,7 @@ export class BrowserSessionStore {
 		const secret = encode(this.random(SECRET_BYTES));
 		const expiresAt = now + this.codeTtlMs;
 		this.codes.set(id, { id, secretHash: hash(this.hostId, secret), expiresAt, failedAttempts: 0 });
-		return { code: `${id}.${secret}`, expiresAt };
+		return { id, code: `${id}.${secret}`, expiresAt };
 	}
 
 	redeemCode(code: string): BrowserLoginResult {
@@ -122,7 +127,7 @@ export class BrowserSessionStore {
 			this.failedGuesses.push(now);
 			if (record !== undefined) {
 				record.failedAttempts += 1;
-				if (record.failedAttempts >= this.codeAttempts) this.codes.delete(record.id);
+				if (record.failedAttempts >= this.codeAttemptLimit) this.codes.delete(record.id);
 			}
 			return { kind: "invalid" };
 		}
@@ -148,8 +153,8 @@ export class BrowserSessionStore {
 		return null;
 	}
 
-	revoke(id: string): void {
-		this.invalidate(id, "revoked");
+	revoke(id: string): boolean {
+		return this.invalidate(id, "revoked");
 	}
 
 	revokeToken(token: string): void {
@@ -190,15 +195,21 @@ export class BrowserSessionStore {
 		this.failedGuesses = this.failedGuesses.filter((at) => at > now - this.guessWindowMs);
 	}
 
-	private invalidate(id: string, reason: BrowserSessionInvalidation): void {
+	private invalidate(id: string, reason: BrowserSessionInvalidation): boolean {
 		const session = this.sessions.get(id);
-		if (session === undefined) return;
+		if (session === undefined) return false;
 		session.cancelExpiry();
 		this.sessions.delete(id);
 		const listeners = this.invalidationListeners.get(id);
 		this.invalidationListeners.delete(id);
+		this.log.info("browser session security", {
+			hostId: this.hostId,
+			reqId: null,
+			sessionId: id,
+			action: "session.invalidate",
+			result: reason,
+		});
 		for (const listener of listeners ?? []) listener(reason);
+		return true;
 	}
 }
-
-export const createBrowserSessionStore = (options: BrowserSessionStoreOptions) => new BrowserSessionStore(options);

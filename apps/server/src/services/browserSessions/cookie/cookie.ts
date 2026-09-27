@@ -1,4 +1,4 @@
-import { BROWSER_SESSION_COOKIE } from "./browserSessions.ts";
+import { BROWSER_SESSION_COOKIE } from "../browserSessions.ts";
 
 export const readBrowserSessionCookie = (header: string | undefined): string | null => {
 	if (header === undefined) return null;

@@ -1,20 +1,23 @@
 import type { Context, MiddlewareHandler } from "hono";
+import type { Logger } from "../../log.ts";
 import {
 	type BrowserSession,
 	type BrowserSessionStore,
 	readBrowserSessionCookie,
-} from "../services/browserSessions/index.ts";
-import { hostAuth } from "./auth.ts";
+} from "../../services/browserSessions/index.ts";
+import { hostAuth } from "../auth.ts";
 
 export type BrowserSessionAuthOptions = {
 	origin: string;
 	sessions: BrowserSessionStore;
+	log: Logger;
 };
 
 const requestSessions = new WeakMap<Request, BrowserSession>();
 
-const unauthorized = (c: Context) =>
-	c.json(
+const unauthorized = (c: Context) => {
+	c.header("www-authenticate", 'Bearer realm="Trellis", TrellisSession realm="Trellis"');
+	return c.json(
 		{
 			defined: false,
 			code: "UNAUTHORIZED",
@@ -23,6 +26,7 @@ const unauthorized = (c: Context) =>
 		},
 		401,
 	);
+};
 
 const forbidden = (c: Context) =>
 	c.json(
@@ -35,7 +39,7 @@ const forbidden = (c: Context) =>
 		403,
 	);
 
-export const requireBrowserOrigin = (c: Context, origin: string) => c.req.header("origin") === origin;
+export const requestHasBrowserOrigin = (c: Context, origin: string) => c.req.header("origin") === origin;
 
 export const browserSessionForRequest = (request: Request) => requestSessions.get(request) ?? null;
 
@@ -62,16 +66,38 @@ export const browserSessionAuth = (
 	if (hostToken === null || hostToken.trim() === "") throw new Error("Browser sessions require a host token.");
 	const origin = browserSessionOrigin(options.origin);
 	const bearerAuth = hostAuth(hostToken);
+	const authentication = (c: Context, sessionId: string | null, result: string) =>
+		options.log.info("browser session security", {
+			hostId: options.sessions.hostId,
+			reqId: c.get("requestId") ?? null,
+			sessionId,
+			action: "session.authenticate",
+			result,
+		});
 	return async (c, next) => {
-		if (c.req.header("authorization") !== undefined) return bearerAuth(c, next);
+		if (c.req.header("authorization") !== undefined) {
+			const response = await bearerAuth(c, next);
+			authentication(c, null, response === undefined ? "bearer-accepted" : "bearer-rejected");
+			return response;
+		}
 		const token = readBrowserSessionCookie(c.req.header("cookie"));
-		if (token === null) return unauthorized(c);
+		if (token === null) {
+			authentication(c, null, "cookie-missing");
+			return unauthorized(c);
+		}
 		const session = options.sessions.authenticate(token);
-		if (session === null) return unauthorized(c);
+		if (session === null) {
+			authentication(c, null, "cookie-rejected");
+			return unauthorized(c);
+		}
 		const websocket = c.req.header("upgrade")?.toLowerCase() === "websocket";
 		const mutation = !["GET", "HEAD", "OPTIONS"].includes(c.req.method);
-		if ((websocket || mutation) && !requireBrowserOrigin(c, origin)) return forbidden(c);
+		if ((websocket || mutation) && !requestHasBrowserOrigin(c, origin)) {
+			authentication(c, session.id, "origin-rejected");
+			return forbidden(c);
+		}
 		requestSessions.set(c.req.raw, session);
+		authentication(c, session.id, "cookie-accepted");
 		await next();
 	};
 };

@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { BrowserSessionStore, browserSessionCookie } from "../services/browserSessions/index.ts";
+import type { Fields, Logger } from "../../log.ts";
+import { BrowserSessionStore, browserSessionCookie } from "../../services/browserSessions/index.ts";
 import { browserSessionAuth, browserSessionForRequest, browserSessionOrigin } from "./browserSessionAuth.ts";
 
 const origin = "https://trellis.example.com";
+const log = { info: () => {} } as unknown as Logger;
 
 const sessionFixture = () => {
-	const sessions = new BrowserSessionStore({ hostId: "host-a" });
+	const sessions = new BrowserSessionStore({ hostId: "host-a", log });
 	const login = sessions.redeemCode(sessions.issueCode().code);
 	if (login.kind !== "session") throw new Error("The browser session fixture failed.");
 	return {
@@ -19,7 +21,7 @@ const sessionFixture = () => {
 const protectedApp = () => {
 	const fixture = sessionFixture();
 	const app = new Hono();
-	app.use(browserSessionAuth("host-token", { origin, sessions: fixture.sessions }));
+	app.use(browserSessionAuth("host-token", { origin, sessions: fixture.sessions, log }));
 	app.get("/download", (c) => c.text("download"));
 	app.get("/socket", (c) => c.text("socket"));
 	app.post("/write", (c) => c.text("write"));
@@ -78,7 +80,7 @@ describe("browser session auth", () => {
 	test("exposes the cookie session to a protected route", async () => {
 		const fixture = sessionFixture();
 		const app = new Hono();
-		app.use(browserSessionAuth("host-token", { origin, sessions: fixture.sessions }));
+		app.use(browserSessionAuth("host-token", { origin, sessions: fixture.sessions, log }));
 		app.get("/session", (c) => c.json(browserSessionForRequest(c.req.raw)));
 		const response = await app.request("/session", { headers: { cookie: fixture.cookie } });
 		expect(await response.json()).toEqual({ id: fixture.session.id, expiresAt: fixture.session.expiresAt });
@@ -98,15 +100,41 @@ describe("browser session auth", () => {
 
 	test("rejects expired and revoked cookies", async () => {
 		let now = 1_000;
-		const sessions = new BrowserSessionStore({ hostId: "host-a", now: () => now, sessionTtlMs: 100 });
+		const sessions = new BrowserSessionStore({ hostId: "host-a", log, now: () => now, sessionTtlMs: 100 });
 		const login = sessions.redeemCode(sessions.issueCode().code);
 		if (login.kind !== "session") throw new Error("The browser session fixture failed.");
 		const cookie = browserSessionCookie(login.session.token, login.session.expiresAt).split(";", 1)[0]!;
 		const app = new Hono();
-		app.use(browserSessionAuth("host-token", { origin, sessions }));
+		app.use(browserSessionAuth("host-token", { origin, sessions, log }));
 		app.get("/read", (c) => c.text("read"));
 		now += 100;
-		expect((await app.request("/read", { headers: { cookie } })).status).toBe(401);
+		const response = await app.request("/read", { headers: { cookie } });
+		expect(response.status).toBe(401);
+		expect(response.headers.get("www-authenticate")).toContain('TrellisSession realm="Trellis"');
+	});
+
+	test("logs authentication without the cookie token", async () => {
+		const records: Fields[] = [];
+		const eventLog = {
+			info: (_message: string, fields?: Fields) => records.push(fields ?? {}),
+		} as unknown as Logger;
+		const sessions = new BrowserSessionStore({ hostId: "host-a", log: eventLog });
+		const login = sessions.redeemCode(sessions.issueCode().code);
+		if (login.kind !== "session") throw new Error("The browser session fixture failed.");
+		const cookie = browserSessionCookie(login.session.token, login.session.expiresAt).split(";", 1)[0]!;
+		const app = new Hono();
+		app.use(browserSessionAuth("host-token", { origin, sessions, log: eventLog }));
+		app.get("/read", (c) => c.text("read"));
+		expect((await app.request("/read", { headers: { cookie } })).status).toBe(200);
+		expect(records).toContainEqual(
+			expect.objectContaining({
+				hostId: "host-a",
+				sessionId: login.session.id,
+				action: "session.authenticate",
+				result: "cookie-accepted",
+			}),
+		);
+		expect(JSON.stringify(records)).not.toContain(login.session.token);
 	});
 
 	test("uses the bearer-only middleware when browser sessions are off", async () => {
@@ -126,7 +154,7 @@ describe("browser session auth", () => {
 	});
 
 	test("requires bearer authentication when browser sessions are on", () => {
-		const sessions = new BrowserSessionStore({ hostId: "host-a" });
-		expect(() => browserSessionAuth(null, { origin, sessions })).toThrow();
+		const sessions = new BrowserSessionStore({ hostId: "host-a", log });
+		expect(() => browserSessionAuth(null, { origin, sessions, log })).toThrow();
 	});
 });
