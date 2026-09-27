@@ -10,6 +10,8 @@ import type { Runtime, ServiceTransport } from "./db/transport.ts";
 import type { Bus } from "./events/bus.ts";
 import type { Logger } from "./log.ts";
 import { clearPageLeases, createArchiveGrant, createRenderLease } from "./pageLeases.ts";
+import type { BrowserAccess } from "./routes/browserAccess/index.ts";
+import { BrowserSessionStore } from "./services/browserSessions/index.ts";
 import { pageObjectPath } from "./storage/pageObjects.ts";
 
 const TOKEN = "host-token-of-this-machine";
@@ -48,22 +50,26 @@ const transport = {
 	call: async (name: string) => (name === "pages.pull" ? content : file),
 } as unknown as ServiceTransport;
 
+const log = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger;
+
 // The app with a host token set, the way the desktop host runs it.
-const appOf = () =>
+const appOf = (browserAccess: BrowserAccess | null = null) =>
 	createApp({
 		config: {
 			home,
 			authToken: TOKEN,
+			browserOrigin: browserAccess?.origin ?? null,
 			host: "127.0.0.1",
 			allowedHosts: [],
 			port: 4521,
 			maxUploadMb: 50,
 			webDist: join(home, "web"),
 		} as unknown as Config,
-		log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger,
+		log,
 		transport,
 		bus: {} as Bus,
 		runtime: { version: "0.0.0", bootId: ulid() } as Runtime,
+		browserAccess,
 	}).app;
 
 beforeAll(async () => {
@@ -124,5 +130,29 @@ describe("the Page routes of the whole app", () => {
 			headers: { host: "pages.example.com" },
 		});
 		expect(response.status).toBe(403);
+	});
+});
+
+describe("browser access of the whole app", () => {
+	test("keeps browser session routes disabled without a configured origin", async () => {
+		const response = await appOf().request(`${ORIGIN}/api/browser-session-codes`, {
+			method: "POST",
+			headers: { authorization: `Bearer ${TOKEN}` },
+		});
+		expect(response.status).toBe(404);
+	});
+
+	test("registers the host session route before global authentication", async () => {
+		const browserAccess = {
+			origin: "https://trellis.example.com",
+			hostToken: TOKEN,
+			sessions: new BrowserSessionStore({ hostId: ulid(), log }),
+		};
+		const response = await appOf(browserAccess).request(`${ORIGIN}/api/browser-session-codes`, {
+			method: "POST",
+			headers: { authorization: `Bearer ${TOKEN}` },
+		});
+		expect(response.status).toBe(201);
+		expect(await response.json()).toMatchObject({ code: expect.any(String) });
 	});
 });

@@ -4,5 +4,9 @@ import { readOrCreateIdentity } from "../identityStore/index.ts";
 
 export const initializeHostIdentityFiles = async (ctx: Pick<IoCtx, "home" | "installationHome">) => {
 	const paths = hostIdentityPaths(ctx);
-	await Promise.all([readOrCreateIdentity(paths.host), readOrCreateIdentity(paths.dataHome)]);
+	const [hostId, dataHomeId] = await Promise.all([
+		readOrCreateIdentity(paths.host),
+		readOrCreateIdentity(paths.dataHome),
+	]);
+	return { hostId, dataHomeId };
 };

@@ -57,7 +57,7 @@ const writeObject = async (sha256: string, body: string) => {
 	await writeFile(path, body);
 };
 
-const appOf = () => {
+const appOf = (browserOrigin: string | null = null) => {
 	const app = new Hono();
 	app.use(async (c, next) => {
 		c.set("requestId", ulid());
@@ -65,8 +65,8 @@ const appOf = () => {
 	});
 	const config = { home } as Config;
 	const log = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger;
-	app.get(`${PAGE_RENDER_PREFIX}/:leaseId`, pageFrameRoute({ log }));
-	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
+	app.get(`${PAGE_RENDER_PREFIX}/:leaseId`, pageFrameRoute({ log, browserOrigin }));
+	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log, browserOrigin }));
 	return app;
 };
 
@@ -116,6 +116,16 @@ describe("the frame document", () => {
 		expect(response.status).toBe(404);
 		expect(await response.json()).toMatchObject({ code: "RENDER_LEASE_EXPIRED" });
 	});
+
+	test("uses the configured HTTPS origin behind a proxy", async () => {
+		const open = lease();
+		const response = await appOf("https://trellis.example.com").request(
+			`http://127.0.0.1${PAGE_RENDER_PREFIX}/${open.id}`,
+		);
+		expect(response.headers.get("content-security-policy")).toContain(
+			`frame-src https://trellis.example.com${PAGE_RENDER_PREFIX}/${open.id}/`,
+		);
+	});
 });
 
 describe("the page document and its assets", () => {
@@ -150,6 +160,16 @@ describe("the page document and its assets", () => {
 		// The browser keeps the bytes and asks the server on every request, so
 		// the tag below can answer 304.
 		expect(response.headers.get("cache-control")).toBe("private, no-cache");
+	});
+
+	test("uses the configured HTTPS origin for page resources behind a proxy", async () => {
+		const open = lease();
+		const response = await appOf("https://trellis.example.com").request(
+			`http://127.0.0.1${PAGE_RENDER_PREFIX}/${open.id}/`,
+		);
+		expect(response.headers.get("content-security-policy")).toContain(
+			`script-src https://trellis.example.com${PAGE_RENDER_PREFIX}/${open.id}/`,
+		);
 	});
 
 	test("names index.html as the document", async () => {
