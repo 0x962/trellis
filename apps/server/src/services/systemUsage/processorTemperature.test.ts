@@ -75,6 +75,22 @@ describe("parseProcessorTemperatureOutput", () => {
 });
 
 describe("runProcessorTemperatureReader", () => {
+	test("does not start a helper on Linux", async () => {
+		let started = false;
+		const input = deps({});
+		input.platform = "linux";
+		input.spawn = () => {
+			started = true;
+			throw new Error("unexpected helper");
+		};
+		await expect(runProcessorTemperatureReader(input)).resolves.toEqual({
+			state: "unavailable",
+			reason: "unsupported-platform",
+			readDurationMs: 0,
+		});
+		expect(started).toBe(false);
+	});
+
 	test("reports the sensor and the full helper process cost", async () => {
 		const input = deps({
 			stdout:
