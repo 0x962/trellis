@@ -26,6 +26,20 @@ describe("sessionPane", () => {
 		expect(sessionPane(run({ state: "starting", processStatus: null }), false).kind).toBe("terminal");
 	});
 
+	test("draws the startup state while a first launch waits for the server", () => {
+		expect(sessionPane(run({ terminalId: null, processStatus: null }), false, true).kind).toBe("terminal");
+	});
+
+	test("draws the startup state while a resume replaces a stopped attempt", () => {
+		expect(sessionPane(run({ state: "stopped", processStatus: "exited" }), false, true).kind).toBe("terminal");
+	});
+
+	test("does not show the prior failure while a new attempt starts", () => {
+		expect(sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine }), false, true).kind).toBe(
+			"terminal",
+		);
+	});
+
 	test("draws the terminal for a runtime that trellis does not start", () => {
 		expect(sessionPane(run({ runtime: "superset", processStatus: "exited" }), false).kind).toBe("terminal");
 	});
@@ -79,7 +93,10 @@ describe("sessionPane", () => {
 	});
 
 	test("keeps a failed process out of the paused words", () => {
-		expect(sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine }), false).kind).toBe("failed");
+		const pane = sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine }), false);
+
+		expect(pane.kind).toBe("failed");
+		expect(pane).toMatchObject({ detail: exitLine });
 	});
 });
 

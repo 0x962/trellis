@@ -4,8 +4,8 @@ import { Avatar, Button, EmptyState, FailureState, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
+import { agentMarkState } from "../../agents/agentMarkState";
 import { agentProfileOf } from "../../agents/agentProfileOf";
-import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
@@ -95,7 +95,7 @@ export function SessionConversation({
 			{name}
 		</h2>
 	);
-	const pane = sessionPane(run, archived);
+	const pane = sessionPane(run, archived, start.isPending);
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -104,8 +104,8 @@ export function SessionConversation({
 					name={name}
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
-					state={isAgentWorking(run) ? "working" : "static"}
-					status={sessionStatus(run)}
+					state={start.isPending ? "starting" : agentMarkState(run)}
+					status={start.isPending ? "starting" : sessionStatus(run)}
 					className="size-7 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">

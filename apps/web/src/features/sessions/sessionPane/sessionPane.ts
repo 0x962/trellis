@@ -31,7 +31,7 @@ export const canArchiveSession = (session: Session | undefined) => session !== u
 // The archived block carries Unarchive, which changes the state of the
 // session and starts no process. No other block carries a button: the
 // conversation header holds the one control that starts the process again.
-export function sessionPane(run: AgentRun, archived: boolean): SessionPane {
+export function sessionPane(run: AgentRun, archived: boolean, startPending = false): SessionPane {
 	if (archived)
 		return {
 			kind: "archived",
@@ -39,7 +39,8 @@ export function sessionPane(run: AgentRun, archived: boolean): SessionPane {
 			description:
 				"Trellis keeps the workspace, every file in it, and the conversation. Unarchive the session to start its agent again.",
 		};
-	if (run.runtime !== "native" || run.state === "starting" || hasAssignedProcess(run)) return { kind: "terminal" };
+	if (startPending || run.runtime !== "native" || run.state === "starting" || hasAssignedProcess(run))
+		return { kind: "terminal" };
 	if (run.state === "failed" || run.error !== null)
 		return {
 			kind: "failed",
