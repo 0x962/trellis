@@ -91,19 +91,21 @@ The desktop supplies thermal state through the trusted preload bridge.
 The renderer combines that state only when the desktop host origin exactly matches the page origin.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 12. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 15. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
-The runtime keeps idle attempt records on disk until a successful resume, explicit stop, or session deletion releases them. Other unsubscribed exited records remain for up to seven days, with a limit of 500. It caches eight records on demand.
+The runtime keeps up to 20 idle attempt records for resume. Other unsubscribed exited records remain for up to two days, with limits of 200 records and 256 MiB. It caches eight records on demand.
+Small exit receipts outlive terminal logs and prevent a delayed start from launching a closed attempt again.
 Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
 A runtime restart never substitutes a new process for an unresolved attempt.
 Natural leader exit stops the remaining members of its OS session. Explicit stop also includes descendant sessions observed while the leader remains live.
 The runtime reports exit only after cleanup and output completion. Failed cleanup records an unknown result.
-A descendant that leaves its session and loses its parent before inspection requires separate process inspection.
+Resume and stop reconcile missing or uncontrolled attempts through the runtime. Recovery checks kernel process identities and the inherited attempt and runtime directory markers. It stops orphaned process trees before it records the exit.
+The host resumes the provider conversation from the saved assignment and launch descriptor after terminal records expire.
 
 Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
 Ticket, flow, and session agents use native permission bypass settings.

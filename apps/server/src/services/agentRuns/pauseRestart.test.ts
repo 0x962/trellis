@@ -2,7 +2,6 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
@@ -14,18 +13,10 @@ import { prepareStart } from "../sessions/start.ts";
 import type { IoCtx } from "../support.ts";
 import { attemptCapturePath } from "./attemptCapture.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
+import { pauseRestartFixture } from "./pauseRestartFixture";
 import { getRun } from "./queries.ts";
 import { stopRunProcess } from "./stopRunProcess.ts";
 
-// What a pause leaves behind, and what a restart of the execution service
-// takes away.
-//
-// A pause stops the process and keeps the run open. The execution service
-// keeps the record of an exited terminal in memory alone, so after it starts
-// again it answers `null` for that terminal. Every test here drives that
-// state: the runtime double answers `null`, and the only difference between
-// a paused attempt and a launch nobody can vouch for is the output file that
-// `stopNative` wrote after the service confirmed the exit.
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let ctx: IoCtx;
 let home: string;
@@ -45,8 +36,6 @@ const seed = async (fields: { terminalId: string | null; sessionId: string | nul
 	return { runId, sessionRowId };
 };
 
-// The file `stopNative` writes after the execution service confirms that the
-// process of this attempt ended.
 const writeCapture = async (runId: string, terminalId: string) => {
 	const capture = attemptCapturePath(home, runId, terminalId);
 	await mkdir(dirname(capture), { recursive: true });
@@ -62,34 +51,10 @@ const closedAt = async (runId: string) =>
 		)
 	)[0]!.closed_at;
 
-// The execution service after a restart: it holds no record of any terminal.
 const forgotten = async () => null;
 
-// The record the execution service holds for a process that ended on its
-// own, with no pause. `stopReason` is absent, because no idle rule ended it.
-const exitedOnItsOwn = (terminalId: string): RuntimeProcessStatus => ({
-	id: terminalId,
-	daemonId: "test",
-	pid: null,
-	mode: "pty",
-	status: "exited",
-	startedAt: at.toISOString(),
-	endedAt: at.toISOString(),
-	exitCode: 0,
-	error: null,
-	checkedAt: at.toISOString(),
-	elapsedMs: 0,
-	controllable: false,
-	process: null,
-	launch: { command: "claude", args: [], cwd: "/nowhere" },
-	agent: null,
-	activity: null,
-	acknowledgedMessageIds: [],
-	result: null,
-});
+const exitedOnItsOwn = (terminalId: string) => pauseRestartFixture(terminalId, at);
 
-// The reconciliation that `agentRuns.list` runs, reading one exited process
-// and the output that the execution service still holds for it.
 const reconcile = (terminalId: string) =>
 	closeExitedAssignments(
 		ctx,
@@ -146,21 +111,35 @@ afterAll(async () => {
 	await db.$client.close();
 });
 
-test("a start refuses an attempt that no capture and no runtime record vouch for", async () => {
-	const { runId, sessionRowId } = await seed({ terminalId: crypto.randomUUID(), sessionId: providerSessionId });
-
-	await expect(
-		prepareStart(
-			ctx,
-			{ id: sessionRowId },
-			{ process: forgotten, start: async () => ({ id: runId }), preset: async () => "claude" },
-		),
-	).rejects.toThrow("The prior launch is not confirmed");
+test("Resume recovers a missing attempt and preserves its conversation", async () => {
+	const terminalId = crypto.randomUUID();
+	const { runId, sessionRowId } = await seed({ terminalId, sessionId: providerSessionId });
+	const recovered: string[] = [];
+	const launches: Parameters<typeof startNative>[1][] = [];
+	pending = [];
+	await prepareStart(
+		ctx,
+		{ id: sessionRowId },
+		{
+			process: forgotten,
+			recover: async (_ctx, id) => {
+				recovered.push(id);
+				return exitedOnItsOwn(id);
+			},
+			start: async (_ctx, input) => {
+				launches.push(input);
+				return { id: runId };
+			},
+			preset: async () => "claude",
+		},
+	);
+	await Promise.all(pending);
+	expect(recovered).toEqual([terminalId]);
+	expect(launches).toHaveLength(1);
+	expect(launches[0]).toMatchObject({ resume: true, previousAttemptId: terminalId });
+	expect((await storedRun(runId)).sessionId).toBe(providerSessionId);
 });
 
-// The proof that a pause survives a restart of the execution service. The
-// launch takes `resume` and the attempt it continues, and the run keeps the
-// provider conversation it held.
 test("a start after a restart resumes the provider conversation of a paused session", async () => {
 	const terminalId = crypto.randomUUID();
 	const { runId, sessionRowId } = await seed({ terminalId, sessionId: providerSessionId });
@@ -190,8 +169,6 @@ test("a start after a restart resumes the provider conversation of a paused sess
 	expect(stored.closedAt).toBeNull();
 });
 
-// An attempt that never confirmed a provider conversation has none to keep,
-// so the session starts fresh in the same directory.
 test("a start after a restart keeps no conversation the run never held", async () => {
 	const terminalId = crypto.randomUUID();
 	const { runId, sessionRowId } = await seed({ terminalId, sessionId: null });
@@ -216,23 +193,20 @@ test("a start after a restart keeps no conversation the run never held", async (
 	expect(launches[0]).toMatchObject({ resume: false, previousAttemptId: null });
 });
 
-test("an archive refuses an attempt that no capture and no runtime record vouch for", async () => {
+test("archive sends a missing attempt through process recovery", async () => {
 	const terminalId = crypto.randomUUID();
 	const { runId } = await seed({ terminalId, sessionId: providerSessionId });
-	const run = await storedRun(runId);
-
-	await expect(
-		stopRunProcess(ctx, run, {
-			process: forgotten,
-			stop: async () => {
-				throw new Error("the service stopped a process it could not read");
-			},
-		}),
-	).rejects.toThrow("The prior launch is not confirmed");
+	const stopped: string[] = [];
+	await stopRunProcess(ctx, await storedRun(runId), {
+		process: forgotten,
+		stop: async (_ctx, run) => {
+			stopped.push(run.terminalId!);
+			return { id: run.id };
+		},
+	});
+	expect(stopped).toEqual([terminalId]);
 });
 
-// The proof that an archive of a paused session works after a restart. It
-// stops nothing, because the process already ended, and it closes the run.
 test("an archive after a restart closes the run of a paused session", async () => {
 	const terminalId = crypto.randomUUID();
 	const { runId } = await seed({ terminalId, sessionId: providerSessionId });
@@ -249,10 +223,6 @@ test("an archive after a restart closes the run of a paused session", async () =
 	expect(await closedAt(runId)).not.toBeNull();
 });
 
-// A process that ends on its own writes no capture of its own, and the run
-// stays open. The reconciliation records the exit while the execution
-// service can still answer for the terminal, so the two tests below reach
-// the same place as a pause.
 test("a session that ended on its own resumes after a restart", async () => {
 	const terminalId = crypto.randomUUID();
 	const { runId, sessionRowId } = await seed({ terminalId, sessionId: providerSessionId });
@@ -295,10 +265,7 @@ test("a session that ended on its own archives after a restart", async () => {
 	expect(await closedAt(runId)).not.toBeNull();
 });
 
-// The reconciliation records an exit one time. A terminal whose output the
-// execution service can no longer read stays unrecorded, so the guards keep
-// refusing an outcome nobody confirmed.
-test("an exit the execution service cannot read stays unrecorded", async () => {
+test("Resume recovers an exit even when its output is unavailable", async () => {
 	const terminalId = crypto.randomUUID();
 	const { runId, sessionRowId } = await seed({ terminalId, sessionId: providerSessionId });
 	await closeExitedAssignments(
@@ -308,12 +275,21 @@ test("an exit the execution service cannot read stays unrecorded", async () => {
 			throw new Error("the execution service dropped this terminal");
 		},
 	);
-
-	await expect(
-		prepareStart(
-			ctx,
-			{ id: sessionRowId },
-			{ process: forgotten, start: async () => ({ id: runId }), preset: async () => "claude" },
-		),
-	).rejects.toThrow("The prior launch is not confirmed");
+	const recovered: string[] = [];
+	pending = [];
+	await prepareStart(
+		ctx,
+		{ id: sessionRowId },
+		{
+			process: forgotten,
+			recover: async (_ctx, id) => {
+				recovered.push(id);
+				return exitedOnItsOwn(id);
+			},
+			start: async () => ({ id: runId }),
+			preset: async () => "claude",
+		},
+	);
+	await Promise.all(pending);
+	expect(recovered).toEqual([terminalId]);
 });

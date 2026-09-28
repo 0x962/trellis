@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
+import { ExitReceipts } from "../exitReceipts";
 import { exitedRecordsToRemove, type RetainOptions, resumableRecordsToRemove } from "../retainExited.ts";
 import { sessionFileSuffixes, sessionFiles } from "../sessionFiles.ts";
 import type { SessionRecord } from "../sessionRecord.ts";
@@ -31,9 +32,14 @@ export class SessionRecords {
 	private readonly index = new Map<string, IndexEntry>();
 	private readonly operations = new WeakMap<SessionRecord, number>();
 	private sequence = 0;
-	constructor(private readonly home: string) {}
+	private readonly receipts: ExitReceipts;
+	constructor(private readonly home: string) {
+		this.receipts = new ExitReceipts(home);
+	}
 	private read(id: string): SavedRecord {
-		return JSON.parse(readFileSync(sessionFiles(this.home, id).session, "utf8"));
+		const path = sessionFiles(this.home, id).session;
+		if (existsSync(path)) return JSON.parse(readFileSync(path, "utf8"));
+		return { session: this.receipts.read(id)!, fingerprint: null, identity: null, launch: null };
 	}
 	private restoreRecord(saved: SavedRecord): SessionRecord {
 		const record: SessionRecord = {
@@ -83,7 +89,7 @@ export class SessionRecords {
 		}
 	}
 	has(id: string) {
-		return this.index.has(id);
+		return this.index.has(id) || this.receipts.read(id) !== undefined;
 	}
 	set(id: string, record: SessionRecord) {
 		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
@@ -93,7 +99,12 @@ export class SessionRecords {
 	get(id: string): SessionRecord | undefined {
 		const active = this.active.get(id);
 		if (active) return active;
-		if (!this.index.has(id)) return undefined;
+		if (!this.index.has(id)) {
+			const session = this.receipts.read(id);
+			if (!session) return;
+			this.remember(session);
+			this.history.set(id, this.restoreRecord({ session, fingerprint: null, identity: null, launch: null }));
+		}
 		const record = this.history.get(id) ?? this.restoreRecord(this.read(id));
 		this.history.delete(id);
 		this.history.set(id, record);
@@ -144,6 +155,7 @@ export class SessionRecords {
 		this.release(record);
 	}
 	save(record: SessionRecord) {
+		this.receipts.write(record.session);
 		const path = sessionFiles(this.home, record.session.id).session;
 		writeFileSync(
 			`${path}.tmp`,
@@ -178,6 +190,7 @@ export class SessionRecords {
 		return bytes;
 	}
 	private remove(id: string) {
+		this.receipts.write(this.read(id).session);
 		this.index.delete(id);
 		this.history.delete(id);
 		for (const path of Object.values(sessionFiles(this.home, id))) rmSync(path, { force: true });

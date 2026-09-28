@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 14;
+export const RUNTIME_PROTOCOL_VERSION = 15;
 export type HarnessInputRequest = {
 	id: string;
 	kind: "question" | "permission" | "elicitation";
@@ -242,6 +242,7 @@ export interface RuntimeMethods {
 		result: RuntimeProcessStatus;
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };
+	recover: { params: { id: string }; result: RuntimeProcessStatus };
 	hasMessage: { params: { id: string; messageId: string }; result: RuntimeMessageState };
 	subscribe: {
 		params: { id: string; offset: number; stream?: RuntimeStream; output?: boolean };

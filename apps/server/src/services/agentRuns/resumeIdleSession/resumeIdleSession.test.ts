@@ -6,6 +6,7 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
+import * as connection from "../../../agents/native/connection.ts";
 import { createCache } from "../../../db/cache.ts";
 import { openTestDb } from "../../../db/testDb.ts";
 import type { IoCtx } from "../../support.ts";
@@ -19,11 +20,14 @@ import { resumeIdleSession } from "./resumeIdleSession.ts";
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let ctx: IoCtx;
 let home: string;
+const recover = spyOn(HarnessHost.prototype, "recover");
+const ensure = spyOn(connection, "ensureNativeRuntime");
 const status = spyOn(HarnessHost.prototype, "status");
 const waitFor = spyOn(HarnessHost.prototype, "waitFor");
 const at = new Date("2026-09-23T12:00:00Z");
 
 beforeAll(async () => {
+	ensure.mockImplementation(async (home) => connection.nativeClient(home));
 	db = await openTestDb();
 	home = await mkdtemp(join(tmpdir(), "trellis-idle-resume-test-"));
 	const cache = createCache();
@@ -61,10 +65,10 @@ beforeAll(async () => {
 	};
 }, 30_000);
 
-// Remove the temporary directory before the call to db.$client.close().
-// A close that throws would otherwise leave the directory on disk.
 afterAll(async () => {
 	status.mockRestore();
+	recover.mockRestore();
+	ensure.mockRestore();
 	waitFor.mockRestore();
 	await rm(home, { recursive: true, force: true });
 	await db.$client.close();
@@ -117,6 +121,7 @@ async function fixture() {
 		waits = 0;
 	let prompt: string | undefined;
 	status.mockImplementation(async () => saved);
+	recover.mockImplementation(async () => saved);
 	waitFor.mockImplementation(async (_id, matches) => {
 		waits++;
 		expect(matches(saved)).toBe(true);
@@ -171,11 +176,6 @@ async function fixture() {
 	};
 }
 
-// A session keeps its assignment through every exit, so a follow-up resumes
-// the saved conversation and the session keeps its place in the session
-// list. A person ends it with an archive or a delete. The reason the
-// process ended changes nothing here: the third call reports an exit that
-// the runtime did not make for idleness.
 test("a session keeps its assignment through both exit reconciliation paths", async () => {
 	const f = await fixture();
 	await closeExitedAssignments(ctx, async () => [f.saved]);
@@ -282,4 +282,19 @@ test.each([false, true])("a confirmed message cannot repeat after expiry (delive
 	} else f.setCurrent(acknowledged);
 	await prepareSend(ctx, { id: f.id, text: "Already delivered", messageId }, f.deps);
 	expect(f.stats().launches).toBe(0);
+});
+
+test("an expired runtime record resumes with the saved conversation and launch directory", async () => {
+	const f = await fixture();
+	await writeFile(
+		join(home, "harness-attempts", f.terminalId, "launch.json"),
+		JSON.stringify({
+			harness: "claude",
+			spec: { cwd: f.saved.launch!.cwd },
+		}),
+	);
+	recover.mockImplementation(async () => ({ ...f.saved, agent: null, launch: null }));
+	await prepareSend(ctx, { id: f.id, text: "Continue the saved work" }, f.deps);
+	expect(f.stats().launches).toBe(1);
+	expect(f.stats().prompt).toBe("Continue the saved work");
 });

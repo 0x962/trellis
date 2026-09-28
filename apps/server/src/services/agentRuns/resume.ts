@@ -18,6 +18,7 @@ import type { IoCtx, ServiceCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
+import { recoverPreviousAttempt } from "./recoverPreviousAttempt";
 import { reserveResume } from "./reserveResume.ts";
 
 export type ResumeCtx = ServiceCtx & Pick<IoCtx, "core" | "localUrl">;
@@ -69,14 +70,17 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 			"This assignment has another attempt. Read its current session before you resume it.",
 		);
 	const host = nativeHost(ctx.home);
-	let previous = await host.status(input.expectedTerminalId);
+	let previous = await recoverPreviousAttempt(ctx, input.expectedTerminalId);
+	if (previous.status === "running" && previous.controllable && !switchRunning) return { id: run.id };
 	if (previous.status !== "exited" && !switchRunning)
-		throw invalidInput("id", "Stop the prior process and confirm it exited before you resume the session.");
-	if (!previous.agent?.sessionId || !previous.launch)
-		throw invalidInput("id", "The prior attempt has no confirmed provider session to resume.");
+		throw invalidInput("id", "Trellis could not recover this agent. Try Resume again.");
 	const descriptor: HarnessDescriptor = JSON.parse(
 		await readFile(join(ctx.home, "harness-attempts", input.expectedTerminalId, "launch.json"), "utf8"),
 	);
+	const providerSessionId = previous.agent?.sessionId ?? run.sessionId ?? descriptor.sessionId;
+	if (!providerSessionId)
+		throw invalidInput("id", "This agent has no saved conversation. Start a new session in its workspace.");
+	const workspace = previous.launch?.cwd ?? descriptor.spec.cwd;
 	if (input.accountId) {
 		const account = await ctx.newTx((tx) => getAccount(tx, { id: input.accountId! }));
 		if (account.harness !== descriptor.harness)
@@ -103,8 +107,8 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 					runId: run.id,
 					previousAttemptId: input.expectedTerminalId,
 					attempt: { id: input.expectedTerminalId, token: "" },
-					providerSessionId: previous.agent!.sessionId!,
-					workspace: previous.launch!.cwd,
+					providerSessionId,
+					workspace,
 					harness: descriptor.harness,
 					effort: input.model === undefined ? descriptor.effort : undefined,
 					model,
@@ -142,7 +146,7 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 		const config =
 			run.kind !== "session" && run.projectId
 				? await projectLaunchConfig(tx, { projectId: run.projectId, harness })
-				: { directory: previous.launch!.cwd, harness, accountId: null };
+				: { directory: workspace, harness, accountId: null };
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? run.accountId,
 			config,
@@ -158,8 +162,8 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 				runId: run.id,
 				previousAttemptId: input.expectedTerminalId,
 				attempt: { id: randomUUID(), token: randomBytes(32).toString("base64url") },
-				providerSessionId: previous.agent!.sessionId!,
-				workspace: previous.launch!.cwd,
+				providerSessionId,
+				workspace,
 				harness: descriptor.harness,
 				effort: input.model === undefined ? descriptor.effort : undefined,
 				model,

@@ -142,6 +142,9 @@ export class HarnessHost {
 	status(id: string) {
 		return this.options.runtime.inspect(id);
 	}
+	recover(id: string) {
+		return this.options.runtime.recover(id);
+	}
 	list(input: RuntimeListInput = {}) {
 		return this.options.runtime.list(input);
 	}

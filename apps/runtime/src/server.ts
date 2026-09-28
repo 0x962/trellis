@@ -53,6 +53,8 @@ export async function startRuntime(home: string) {
 				return hello;
 			case "inspect":
 				return store.inspect((request.params as RuntimeMethods["inspect"]["params"]).id);
+			case "recover":
+				return store.recover((request.params as RuntimeMethods["recover"]["params"]).id);
 			case "hasMessage":
 				return store.hasMessage(request.params as RuntimeMethods["hasMessage"]["params"]);
 			case "registerNativeDelivery":

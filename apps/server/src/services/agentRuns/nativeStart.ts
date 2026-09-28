@@ -20,7 +20,6 @@ import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
 import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
-import { attemptStopped } from "./attemptCapture.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
 import { launchedHarness } from "./launchedHarness";
@@ -174,23 +173,10 @@ const start = async (
 			if (resume) {
 				if (!input.previousAttemptId)
 					throw new Error("This assignment has no prior native attempt. Start a new session.");
-				// The runtime keeps the record of an exited attempt in memory and
-				// forgets it when it starts again. Three facts outlive it: the
-				// output file that `stopNative` wrote after the runtime confirmed
-				// the exit, `agent_runs.session_id`, which holds the provider
-				// conversation of the last confirmed launch, and `launch.json`,
-				// which holds the harness, the directory and the environment. So
-				// a resume after a restart of the runtime keeps the conversation.
-				const previous = await host.status(input.previousAttemptId).catch((error: NodeJS.ErrnoException) => {
-					if (error.code !== "SESSION_NOT_FOUND") throw error;
-					return null;
-				});
-				retireIdleAttempt = previous?.stopReason === "idle";
-				if (previous === null) {
-					if (!(await attemptStopped(ctx.home, run.id, input.previousAttemptId)))
-						throw new Error("The prior process is not confirmed stopped. Inspect the agent before you resume it.");
-				} else if (previous.status !== "exited")
-					throw new Error("Confirm the prior process stopped before you resume its session.");
+				// Recovery stops orphaned processes and keeps a receipt before this attempt resumes the conversation.
+				const previous = await host.recover(input.previousAttemptId);
+				retireIdleAttempt = previous.stopReason === "idle";
+				if (previous.status !== "exited") throw new Error("This conversation already has an active agent.");
 				const identity = previous?.agent?.sessionId ?? run.sessionId;
 				if (identity == null || (await nativePreset(ctx.home, input.previousAttemptId)) !== config.harness.preset)
 					throw new MissingNativeSessionIdentity(

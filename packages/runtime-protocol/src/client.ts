@@ -110,6 +110,9 @@ export class RuntimeClient {
 	inspect(id: string) {
 		return this.call("inspect", { id });
 	}
+	recover(id: string) {
+		return this.call("recover", { id });
+	}
 	hasMessage(id: string, messageId: string) {
 		return this.call("hasMessage", { id, messageId });
 	}

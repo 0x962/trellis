@@ -119,7 +119,7 @@ test("keeps seven-day history and protects subscribed old attempts", () => {
 	old.listeners.delete(listener);
 	records.release(old);
 	records.removeExpired(now, retain({}));
-	expect(records.has("old")).toBe(false);
+	expect(records.get("old")!.session.status).toBe("exited");
 	expect(existsSync(sessionFiles(home, "old").session)).toBe(false);
 	expect(records.has("recent")).toBe(true);
 	expect(existsSync(sessionFiles(home, "recent").session)).toBe(true);
@@ -179,7 +179,8 @@ test("keeps an idle conversation across restart and releases it after resume or 
 	stopped.retainForResume = false;
 	restarted.save(stopped);
 	restarted.removeExpired(now, retain({ retentionMs: day, maxExitedRecords: 0 }));
-	expect(restarted.has("idle")).toBe(false);
+	expect(restarted.get("idle")!.session.status).toBe("exited");
+	expect(existsSync(sessionFiles(home, "idle").session)).toBe(false);
 });
 
 test("the newest idle conversations stay and the older ones leave", () => {
@@ -204,7 +205,8 @@ test("the oldest exits leave when their files pass the byte budget", () => {
 	writeFileSync(sessionFiles(home, "large").outputBytes, Buffer.alloc(4096));
 	const records = restore();
 	records.removeExpired(now, retain({ maxExitedBytes: 2048 }));
-	expect(records.has("large")).toBe(false);
+	expect(records.get("large")!.session.status).toBe("exited");
+	expect(existsSync(sessionFiles(home, "large").session)).toBe(false);
 	expect(records.has("small")).toBe(true);
 });
 
@@ -223,4 +225,16 @@ test("a finalized exit answers from its saved agent state after its event log is
 	records.release(record);
 	rmSync(sessionFiles(home, "done").eventsBytes, { force: true });
 	expect(records.get("done")!.observations.agent!.sessionId).toBe("provider-conversation");
+});
+
+test("exit receipts survive log cleanup, restart, and history cache eviction", () => {
+	for (let index = 0; index < 12; index++) seed(`pruned-${index}`);
+	const records = restore();
+	records.removeExpired(Date.now(), retain({ maxExitedRecords: 0 }));
+	const restarted = restore();
+	for (let index = 0; index < 12; index++) {
+		expect(existsSync(sessionFiles(home, `pruned-${index}`).session)).toBe(false);
+		expect(restarted.get(`pruned-${index}`)!.session.status).toBe("exited");
+	}
+	expect(restarted.get("pruned-0")!.session.status).toBe("exited");
 });

@@ -14,6 +14,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		[
 			"start",
 			"inspect",
+			"recover",
 			"hasMessage",
 			"registerNativeDelivery",
 			"observe",
@@ -46,6 +47,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "shutdown":
 		case "hello":
 		case "inspect":
+		case "recover":
 		case "stop":
 			break;
 		case "list":

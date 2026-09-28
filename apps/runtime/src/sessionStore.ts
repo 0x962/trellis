@@ -13,7 +13,6 @@ import type {
 import { acceptSessionInput } from "./acceptSessionInput";
 import { assertExpectedTurn } from "./assertExpectedTurn.ts";
 import { authenticateSession } from "./authenticateSession.ts";
-import { canceledSession } from "./canceledSession";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
 import { expireIdleSessions } from "./idleCleanup";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
@@ -22,6 +21,7 @@ import { matchesProcessFilters } from "./matchesProcessFilters.ts";
 import { observeHarness } from "./observeHarness.ts";
 import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
+import { recoverAttemptRecord } from "./recoverAttemptRecord";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
 import { defaultRetainOptions, type RetainOptions } from "./retainExited.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
@@ -39,6 +39,7 @@ export class SessionStore {
 	private readonly exits = new ProcessExitWatcher();
 	private readonly idleSweeper: ReturnType<typeof setInterval>;
 	private readonly sweeper: ReturnType<typeof setInterval>;
+	private readonly recoveries = new Map<string, ReturnType<typeof recoverAttemptRecord>>();
 	constructor(
 		private readonly home: string,
 		private readonly daemonId: string,
@@ -116,6 +117,15 @@ export class SessionStore {
 		const session = inspectSessionRecord(record);
 		if (session.status === "exited") this.records.finalize(record);
 		return session;
+	}
+	recover(id: string) {
+		const existing = this.recoveries.get(id);
+		if (existing) return existing;
+		const recovery = recoverAttemptRecord(this.home, this.daemonId, id, this.records).finally(() =>
+			this.recoveries.delete(id),
+		);
+		this.recoveries.set(id, recovery);
+		return recovery;
 	}
 	hasMessage({ id, messageId }: RuntimeMethods["hasMessage"]["params"]): RuntimeMessageState {
 		const record = this.get(id);
@@ -239,11 +249,7 @@ export class SessionStore {
 		return null;
 	}
 	async stop(id: string) {
-		if (!this.records.has(id)) {
-			const record = canceledSession(this.home, this.daemonId, id);
-			this.records.set(id, record);
-			this.save(record);
-		}
+		await this.recover(id);
 		const record = this.get(id);
 		if (record.retainForResume) {
 			record.retainForResume = false;
