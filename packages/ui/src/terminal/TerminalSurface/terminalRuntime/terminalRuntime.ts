@@ -1,6 +1,5 @@
 import { fileDrop } from "../../fileDrop";
 import { terminalInputSource } from "../terminalInputSource";
-import { makeSafeWebLinkHandler } from "../terminalLinks";
 import { terminalOutput } from "../terminalOutput";
 import { terminalResize } from "../terminalResize";
 import { terminalWebgl } from "../terminalWebgl";
@@ -29,24 +28,41 @@ export async function createTerminalRuntime(
 	const wrapper = document.createElement("div");
 	wrapper.className = "terminal-host";
 	parking.append(wrapper);
+	let view: TerminalView | null = null;
+	const activate = (_event: MouseEvent, url: string) => {
+		view?.onOpenLink(url);
+	};
+	const hover = (_event: MouseEvent, url: string) => {
+		wrapper.title = url;
+	};
+	const leave = () => {
+		wrapper.removeAttribute("title");
+	};
 	const terminal = new Terminal({
 		fontFamily: appearance.fontFamily,
 		fontSize: appearance.fontSize,
 		convertEol: false,
 		scrollback: 5000,
 		screenReaderMode: true,
+		linkHandler: { activate, hover, leave, allowNonHttpProtocols: true },
 		theme: { background: appearance.background, foreground: appearance.foreground, cursor: appearance.foreground },
 	});
 	const fit = new FitAddon();
 	terminal.loadAddon(fit);
-	terminal.loadAddon(new WebLinksAddon(makeSafeWebLinkHandler()));
+	terminal.loadAddon(new WebLinksAddon(activate, { hover, leave }));
+	terminal.loadAddon(
+		new WebLinksAddon(activate, {
+			urlRegex: /trellis:\/\/[^\s"'!*(){}|\\^<>`]*[^\s"':,.;!?{}|\\^~[\]`()<>]/,
+			hover,
+			leave,
+		}),
+	);
 	terminal.open(wrapper);
 	const transport = createTransport();
 	const wheel = terminalWheel(terminal);
 	const source = terminalInputSource(wrapper);
 	const listeners = new Set<() => void>();
 	let snapshot = initialTerminalSnapshot;
-	let view: TerminalView | null = null;
 	let disposeWebgl: (() => void) | null = null;
 	let connection: AbortController;
 	let disposed = false;

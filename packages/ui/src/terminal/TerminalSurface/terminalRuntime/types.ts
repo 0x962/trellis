@@ -42,4 +42,5 @@ export type TerminalView = {
 	getPathForFile?: (file: File) => string;
 	screenReaderMode: boolean;
 	onLeave: () => void;
+	onOpenLink: (url: string) => void;
 };

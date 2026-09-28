@@ -27,6 +27,7 @@ export type TerminalSurfaceProps = {
 	autoFocusDelay?: number;
 	onConnectionChange?: (state: TerminalConnectionState) => void;
 	onLeave: () => void;
+	onOpenLink: (url: string) => void;
 };
 
 export function TerminalSurface({
@@ -42,11 +43,12 @@ export function TerminalSurface({
 	autoFocusDelay = 0,
 	onConnectionChange,
 	onLeave,
+	onOpenLink,
 }: TerminalSurfaceProps) {
 	const container = useRef<HTMLDivElement>(null);
 	const runtime = useRef<TerminalRuntime | null>(null);
-	const view = useRef({ label, readOnly, getPathForFile, screenReaderMode, onLeave });
-	view.current = { label, readOnly, getPathForFile, screenReaderMode, onLeave };
+	const view = useRef({ label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink });
+	view.current = { label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink };
 	const focusRequest = useRef({ autoFocus, autoFocusDelay });
 	focusRequest.current = { autoFocus, autoFocusDelay };
 	const [state, setState] = useState<{ identity: string; snapshot: TerminalSnapshot }>({
@@ -59,8 +61,8 @@ export function TerminalSurface({
 		onConnectionChange?.(snapshot);
 	}, [onConnectionChange, snapshot]);
 	useEffect(() => {
-		runtime.current?.update({ label, readOnly, getPathForFile, screenReaderMode, onLeave });
-	}, [label, readOnly, getPathForFile, screenReaderMode, onLeave]);
+		runtime.current?.update({ label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink });
+	}, [label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink]);
 	useEffect(() => {
 		if (stopped) {
 			disposeTerminalIdentity(identity);

@@ -742,6 +742,9 @@ After 48 hours without activity, an unpinned row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
+Terminal links include plain addresses and labeled OSC 8 hyperlinks.
+Trellis record links resolve through `internalLinks.resolve` and open in the app router.
+HTTP and HTTPS links use `openLink`. The terminal refuses other schemes and web addresses with credentials.
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
