@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3K38TXH3GKXC0T5Z544XT4N",
+  "session_id": "01a0e631-9898-7432-b790-7d83a6a6f8bf",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-28T04:09:51.137039Z",
+  "branch": "fix/runtime-list-startup",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/server/src/services/agentRuns/liveState.runtime.test.ts",
+    "apps/server/src/services/agentRuns/liveState.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "7183b6ca0103",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 136398,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1772032,
+    "output_tokens": 7174,
+    "api_call_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-28T04:09:51.070021Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 1,
+    "total_committed": 0,
+    "total_lines_changed": 1,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 494,
+      "user_lines_removed": 1,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".codex/hooks.json": 88,
+        ".opencode/plugins/entire.ts": 269,
+        "apps/server/src/services/agentRuns/liveState.runtime.test.ts": 44,
+        "apps/server/src/services/agentRuns/liveState.ts": 3
+      },
+      "user_removed_per_file": {
+        "apps/server/src/services/agentRuns/liveState.ts": 1
+      }
+    }
+  ]
+}

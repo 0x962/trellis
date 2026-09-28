@@ -1,0 +1,5 @@
+Trellis is broken after the last build. Agents don't load, sessions don't load, etc.
+
+---
+
+After that, why does starting an agent sometimes say "the prior launch is not confirmed, inspect before start... etc"?
