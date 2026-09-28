@@ -1,5 +1,1 @@
-After that, why does starting an agent sometimes say "the prior launch is not confirmed, inspect before start... etc"?
-
----
-
 How do we fix this? This is a band-aid. A user cannot be shown this message. The user is just stuck and cannot do anything. Trellis will have to figure it out.
