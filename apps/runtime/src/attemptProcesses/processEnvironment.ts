@@ -1,6 +1,6 @@
 import { constants } from "node:os";
 import { errno, load } from "koffi";
-import { inspectProcess } from "../inspectProcess.ts";
+import { processIdentity } from "../processIdentity";
 import { environmentFromArgs } from "./environmentFromArgs.ts";
 
 const library = load(null);
@@ -15,13 +15,14 @@ export function processEnvironmentReader() {
 	if (sysctl(new Int32Array([1, 8]), 2, maximum, size, null, 0) !== 0)
 		throw new Error(`Cannot read the process argument limit: errno ${errno()}`);
 	const data = Buffer.alloc(maximum.readInt32LE(0));
-	return (pid: number): string[] => {
+	return (pid: number): { executable: string; environment: string[] } | null => {
 		size.writeBigUInt64LE(BigInt(data.length));
 		if (sysctl(new Int32Array([1, 49, pid]), 3, data, size, null, 0) !== 0) {
 			const failure = errno();
-			if (failure === constants.errno.ESRCH || inspectProcess(pid).kind === "missing") return [];
+			if (failure === constants.errno.ESRCH || processIdentity(pid).kind === "missing") return null;
 			throw new Error(`Cannot inspect process ${pid}: errno ${failure}`);
 		}
-		return environmentFromArgs(data.subarray(0, Number(size.readBigUInt64LE())));
+		const args = data.subarray(0, Number(size.readBigUInt64LE()));
+		return { executable: args.subarray(4, args.indexOf(0, 4)).toString(), environment: environmentFromArgs(args) };
 	};
 }

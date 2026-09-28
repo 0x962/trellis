@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { type ChildProcess, spawn } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
@@ -20,10 +20,10 @@ const waitFor = async (condition: () => boolean) => {
 		await setTimeout(20);
 	}
 };
-const orphan = (id: string, code: string) => {
-	const child = spawn(process.execPath, ["--input-type=module", "--eval", code], {
+const orphan = (id: string, code: string, command = process.execPath) => {
+	const child = spawn(command, ["--input-type=module", "--eval", code], {
 		detached: true,
-		stdio: "ignore",
+		stdio: ["ignore", "ignore", "inherit"],
 		env: { ...process.env, TRELLIS_ATTEMPT_ID: id, TRELLIS_RUNTIME_HOME: runtimeHome },
 	});
 	children.push(child);
@@ -48,6 +48,23 @@ try {
 	assert.equal(inspectProcess(unrelated.pid!).kind, "live");
 	await client.stop("other");
 	assert.equal(inspectProcess(unrelated.pid!).kind, "missing");
+
+	const executable = join(home, "unlinked-agent");
+	execFileSync("cc", ["-x", "c", "-o", executable, "-"], { input: "#include <unistd.h>\nint main() { sleep(60); }\n" });
+	const appDirectory = join(home, "Trellis.app/Contents/MacOS");
+	mkdirSync(appDirectory, { recursive: true });
+	const appExecutable = join(appDirectory, "Trellis");
+	copyFileSync(executable, appExecutable);
+	const desktop = orphan("unlinked", "", appExecutable);
+	const unlinked = orphan("unlinked", "", executable);
+	await waitFor(() => {
+		const observed = inspectProcess(unlinked.pid!);
+		return observed.kind === "live" && observed.process.executable.endsWith("/unlinked-agent");
+	});
+	unlinkSync(executable);
+	assert.equal(inspectProcess(unlinked.pid!).kind, "unknown");
+	assert.equal((await client.recover("unlinked")).status, "exited");
+	assert.equal(inspectProcess(desktop.pid!).kind, "live");
 
 	const flag = join(home, "duplicate");
 	const delayed = await client.start({

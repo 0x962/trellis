@@ -1,5 +1,5 @@
 import { load } from "koffi";
-import { inspectProcess } from "../inspectProcess.ts";
+import { processIdentity } from "../processIdentity";
 import { stopProcessTree } from "../stopProcessTree.ts";
 import { attemptProcesses } from "./attemptProcesses.ts";
 
@@ -12,7 +12,7 @@ export async function stopAttemptProcesses(home: string, id: string) {
 		if (processes.length === 0) return;
 		if (Date.now() >= deadline) throw new Error("Trellis could not stop the previous agent. Try Resume again.");
 		for (const saved of processes) {
-			const current = inspectProcess(saved.pid);
+			const current = processIdentity(saved.pid);
 			if (current.kind === "missing") continue;
 			if (current.kind === "unknown") throw new Error(current.error);
 			if (current.process.identity !== saved.identity) continue;
