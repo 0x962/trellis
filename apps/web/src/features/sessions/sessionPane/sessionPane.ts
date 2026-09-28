@@ -3,6 +3,7 @@ import { type AgentRun, hasAssignedProcess, type Session } from "@trellis/api";
 // The block that the conversation pane draws under its header.
 export type SessionPane =
 	| { kind: "terminal" }
+	| { kind: "starting"; title: string; description: string }
 	// The process ended before the agent finished its work. `detail` holds
 	// the line that the execution service recorded, such as the path of the
 	// binary and the exit code it returned.
@@ -23,10 +24,11 @@ export const isSessionArchived = (session: Session | undefined) => session?.arch
 // the sessions page of that project.
 export const canArchiveSession = (session: Session | undefined) => session !== undefined && session.projectId === null;
 
-// A terminal draws the output of a live process. A process that ended
-// takes its buffer with it, so the pane says why the process is gone. A run
-// that another runtime owns keeps its own view, because trellis starts no
-// process for it.
+// The startup block stays visible until Trellis confirms that the new attempt
+// runs or fails. A live process draws its terminal. A process that ended takes
+// its buffer with it, so the pane says why the process is gone. A run that
+// another runtime owns keeps its own view, because Trellis starts no process
+// for it.
 //
 // The archived block carries Unarchive, which changes the state of the
 // session and starts no process. No other block carries a button: the
@@ -39,8 +41,13 @@ export function sessionPane(run: AgentRun, archived: boolean, startPending = fal
 			description:
 				"Trellis keeps the workspace, every file in it, and the conversation. Unarchive the session to start its agent again.",
 		};
-	if (startPending || run.runtime !== "native" || run.state === "starting" || hasAssignedProcess(run))
-		return { kind: "terminal" };
+	if (startPending || run.state === "starting")
+		return {
+			kind: "starting",
+			title: "The agent is starting",
+			description: "Trellis waits for the new attempt to run or fail.",
+		};
+	if (run.runtime !== "native" || hasAssignedProcess(run)) return { kind: "terminal" };
 	if (run.state === "failed" || run.error !== null)
 		return {
 			kind: "failed",

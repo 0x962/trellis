@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, Button, EmptyState, FailureState, toast } from "@trellis/ui";
+import { Avatar, Button, EmptyState, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -11,6 +11,7 @@ import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
 import { isSessionArchived, sessionPane } from "../sessionPane";
+import { SessionPaneState } from "../sessionPane/SessionPaneState";
 import { useSessionArchive } from "../useSessionArchive";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
@@ -145,9 +146,7 @@ export function SessionConversation({
 			)}
 			<PendingQuestions run={run} readOnly={readOnly} />
 			<div className="flex min-h-0 flex-1 flex-col">
-				{pane.kind === "failed" ? (
-					<FailureState variant="page" title={pane.title} description={pane.description} detail={pane.detail} />
-				) : pane.kind === "archived" ? (
+				{pane.kind === "archived" ? (
 					<EmptyState
 						variant="page"
 						image={null}
@@ -163,10 +162,8 @@ export function SessionConversation({
 							</Button>
 						}
 					/>
-				) : pane.kind === "paused" ? (
-					// The page variant draws the picture that every page-level state
-					// of the app draws. A pause is no failure, so the block keeps it.
-					<EmptyState variant="page" title={pane.title} description={pane.description} />
+				) : pane.kind !== "terminal" ? (
+					<SessionPaneState pane={pane} />
 				) : run.terminalId ? (
 					<NativeTerminal
 						key={run.terminalId}

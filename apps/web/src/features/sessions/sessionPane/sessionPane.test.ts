@@ -23,20 +23,20 @@ describe("sessionPane", () => {
 	});
 
 	test("draws the terminal while the process starts", () => {
-		expect(sessionPane(run({ state: "starting", processStatus: null }), false).kind).toBe("terminal");
+		expect(sessionPane(run({ state: "starting", processStatus: null }), false).kind).toBe("starting");
 	});
 
 	test("draws the startup state while a first launch waits for the server", () => {
-		expect(sessionPane(run({ terminalId: null, processStatus: null }), false, true).kind).toBe("terminal");
+		expect(sessionPane(run({ terminalId: null, processStatus: null }), false, true).kind).toBe("starting");
 	});
 
 	test("draws the startup state while a resume replaces a stopped attempt", () => {
-		expect(sessionPane(run({ state: "stopped", processStatus: "exited" }), false, true).kind).toBe("terminal");
+		expect(sessionPane(run({ state: "stopped", processStatus: "exited" }), false, true).kind).toBe("starting");
 	});
 
 	test("does not show the prior failure while a new attempt starts", () => {
 		expect(sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine }), false, true).kind).toBe(
-			"terminal",
+			"starting",
 		);
 	});
 
