@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3K6VR6AKBTXY5G34G4269HJ",
+  "strategy": "manual-commit",
+  "branch": "fix/recover-unlinked-processes",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/runtime/src/attemptProcesses/attemptProcesses.ts",
+    "apps/runtime/src/attemptProcesses/processEnvironment.ts",
+    "apps/runtime/src/attemptProcesses/stopAttemptProcesses.ts",
+    "apps/runtime/src/processIdentity/index.ts",
+    "apps/runtime/src/processIdentity/processIdentity.ts",
+    "apps/runtime/src/recoverAttemptRecord/recoverAttemptRecord.fixture.ts",
+    "apps/runtime/src/recoverAttemptRecord/recoverAttemptRecord.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 68310,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6068352,
+    "output_tokens": 16262,
+    "api_call_count": 40
+  }
+}
