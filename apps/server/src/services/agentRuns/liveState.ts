@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { type AgentRun, errors, type TicketMetrics, toolTarget } from "@trellis/api";
 import type { RuntimeListInput, RuntimeProcessStatus, RuntimeSessionList } from "@trellis/runtime-protocol";
+import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
@@ -35,7 +36,8 @@ export async function readRuntimeSessionsRequired(
 	input: RuntimeListInput,
 ): Promise<RuntimeProcessStatus[]> {
 	try {
-		return requireComplete(await nativeHost(home).list(input));
+		const runtime = await ensureNativeRuntime(home);
+		return requireComplete(await nativeHost(home, undefined, runtime).list(input));
 	} catch (error) {
 		throw new ORPCError("RUNNER_UNAVAILABLE", {
 			defined: true,
