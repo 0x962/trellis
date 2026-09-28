@@ -9,8 +9,6 @@ import { epicProgress } from "../epicBar";
 // holds a slash, so no epic takes this id.
 export const allEpicsId = "all-epics";
 
-// The switcher lists the open epics from `epics.list`, then the All epics row.
-// Each epic row has its progress circle and a check when it is the current epic.
 export const epicSwitcherItems = (epics: readonly EpicSummary[], current: string): CommandItem[] => {
 	const openEpics = epics.filter((epic) => epic.state === "open");
 	return [
