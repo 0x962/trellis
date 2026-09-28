@@ -413,8 +413,9 @@ the headline.
 The server compares a write with the head that GitHub reports before it opens
 the transaction. It applies the STE check to all three fields. A refusal stores
 nothing, and a warning returns with the stored summary. A rewrite keeps
-`created_at`. `readSummary` sorts by that value, so a rewrite of an older head
-does not make it newest.
+`created_at` and updates `updated_at`. `readSummary` sorts by `updated_at`, so it
+returns the last explanation that an agent wrote. An equal time selects the
+current head. `readSummaryHead` keeps earlier text available by its head SHA.
 
 The API is `pullRequests.readSummary`, `pullRequests.readSummaryHead`, and
 `pullRequests.writeSummary`. Their routes are `GET /api/prs/{id}/summary`,
@@ -427,9 +428,8 @@ The CLI accepts a pull request number, a GitHub URL, or
 can also open one match from the signed-in GitHub account.
 The CLI verb is `trellis summary` with `write`, `show`, and `body`.
 
-The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on
-its Overview tab. It shows a revision warning when the stored head SHA differs
-from the displayed revision.
+The web route `/reviews/<owner>/<repo>/<number>` shows the saved explanation
+first on its Overview tab. A new commit keeps that explanation visible.
 
 ### Pull request evidence
 
@@ -461,7 +461,8 @@ A write reads Markdown from a file or stdin, uploads local images, and replaces 
 
 `trellis diff link <url> --ticket <ticket>` records the link and refreshes its GitHub data.
 `trellis diff check <diff>` reads the review requirements without a local state change.
-`trellis diff set-state <diff> ready` requires the current-head summary and evidence document.
+`trellis diff set-state <diff> ready` requires a saved explanation and the
+current-head evidence document.
 For an agent, it also requires a completed applicable flow or a recorded reason that no flow fits.
 Ticket statuses come from project configuration.
 `trellis ticket set-status` passes the requested status to the server's ticket transition rules.
@@ -484,8 +485,8 @@ payload carries it as `readyForReviewAt`.
 
 A pull request is ready for review only when every one of these holds: the
 agent asked for review, no check failed and none is pending, a flow run for that diff succeeded or the agent recorded why no
-flow fits, no review finding is open, the pull request merges cleanly, and the
-explanation of the current head and the evidence document exist. A flow is
+flow fits, no review finding is open, the pull request merges cleanly, and a
+saved explanation and the current-head evidence document exist. A flow is
 machine review and it asks the person nothing, so a flow run that stopped and
 waits counts as a run that did not finish. `reviewGaps`
 in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
@@ -858,7 +859,17 @@ editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
 
 A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
-answers YES or NO. A `human` node waits for a person. A `group` and a `loop`
+answers YES or NO. A gate can instead select a Jev frontend or backend review area.
+Jev receives every changed file path from the linked diff, with its file name and extension.
+The host checks the reviewed commit and the complete file count before classification.
+One classification per flow execution gives independent frontend and backend decisions.
+A mixed change selects both review branches. The neither result skips both review branches.
+The host uses the oldest enabled Vercel provider that offers `typesafe-ai/jev` and reads its stored key.
+GitHub and Jev requests run outside database transactions. A failed request fails the gate.
+A host interruption before the result is saved also fails the gate.
+The gate inspector exposes a Decision source selector. Jev gates launch no agent process.
+Migration 0127 selects Jev for the Frontend relevant and Backend relevant gates of the Review flow.
+A `human` node waits for a person. A `group` and a `loop`
 are boxes that hold other nodes. A group has a `parallel` switch and optional
 `minutes`. A loop runs its nodes again up to its round limit. An agent, a gate, and a loop
 take an instruction. A human node also takes an instruction. The
@@ -1082,6 +1093,10 @@ picker of the focused row or of the selection, and the picker of the bulk bar of
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
 `waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the New wave
 and the Add tickets buttons of the `Topbar`.
+Each epic saves its filters in local storage on the current device.
+An epic link without filters restores that epic's saved filters into the URL.
+Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
+Tabs, sort, and display options keep their existing behavior.
 The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
 The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
 waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The
@@ -1117,7 +1132,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
-| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
 | providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
@@ -1514,6 +1529,10 @@ typecheck. `system.gh` and `system.checkGh` run in the HTTP process and never
 reach the worker. The server logs `long transaction` with the service name
 when a transaction holds the lock for 250 ms or more. Server-Timing and the
 request log split the database time into `queue`, `lock`, and `db`.
+The `lock` and `db` totals cover every request transaction, including preparation and after-commit transactions.
+Each transaction contributes its lock wait and its duration through commit or rollback.
+External calls outside transactions contribute only to the total request duration.
+Detached background tasks use separate transactions and contribute no time to the initiating request.
 A search request carries a client id, and a newer request drops a superseded one
 before it runs. Lists carry `TicketSummary` and never the description. The board
 and the counts replace a total and a large limit. Events patch first and carry a

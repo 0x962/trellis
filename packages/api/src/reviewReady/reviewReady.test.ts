@@ -86,7 +86,7 @@ test("the words count what is missing", () => {
 	expect(reviewGapText({ kind: "findings", count: 3 })).toBe("3 review findings open");
 	expect(reviewGapText({ kind: "findings", count: 1 })).toBe("1 review finding open");
 	expect(reviewGapText({ kind: "evidence", count: 1 })).toBe("no evidence document");
-	expect(reviewGapText({ kind: "explanation", count: 1 })).toBe("no explanation for this commit");
+	expect(reviewGapText({ kind: "explanation", count: 1 })).toBe("no explanation");
 	expect(reviewGapText({ kind: "flow-run", count: 1 })).toBe("no flow run finished for this pull request");
 	expect(reviewGapText({ kind: "not-asked", count: 1 })).toBe("the agent has not asked for review");
 	expect(reviewGapText({ kind: "conflict", count: 1 })).toBe("the pull request conflicts with its base branch");
@@ -152,16 +152,16 @@ test("the missing parts name the review material and not the checks", () => {
 	expect(parts({ hasEvidence: false })).toBe("no evidence document");
 	expect(parts({ openFindings: 2 })).toBe("2 review findings open");
 	expect(parts({ hasExplanation: false, hasEvidence: false, flowAnswered: false })).toBe(
-		"no explanation for this commit, no evidence document, no flow run finished for this pull request",
+		"no explanation, no evidence document, no flow run finished for this pull request",
 	);
 });
 
-// A push takes the explanation and the evidence of the older commit away and
-// leaves the local review state at `ready`.
-test("a pull request with stale evidence stays asked for review and names the parts", () => {
-	const afterAPush = { reviewGaps: reviewGaps({ ...ready, hasExplanation: false, hasEvidence: false }) };
+// A push takes the evidence of the older commit away and leaves the saved
+// explanation and the local review state at `ready`.
+test("a pull request with old evidence keeps its explanation", () => {
+	const afterAPush = { reviewGaps: reviewGaps({ ...ready, hasExplanation: true, hasEvidence: false }) };
 
 	expect(askedForReview(afterAPush)).toBe(true);
 	expect(readyForReview(afterAPush)).toBe(false);
-	expect(missingPartsText(afterAPush)).toBe("no explanation for this commit, no evidence document");
+	expect(missingPartsText(afterAPush)).toBe("no evidence document");
 });

@@ -37,15 +37,14 @@ export const flowAnsweredSql = (p: SQL) => sql`(
 	)
 )`;
 
-// The agent writes the explanation for one commit, so a push takes it away.
+// One saved explanation answers the human overview requirement until the agent updates its meaning.
 export const hasExplanationSql = (p: SQL) => sql`EXISTS (
 	SELECT 1 FROM pr_summaries summary
-	WHERE summary.pull_request_id = ${p}.id AND summary.head_sha = ${p}.head_sha
+	WHERE summary.pull_request_id = ${p}.id
 )`;
 
 // One evidence document per pull request, and a new write replaces it. The
-// document names the commit it proves, so a push takes it away the way it
-// takes the explanation away.
+// document names the commit it proves, so a push takes it away.
 export const hasEvidenceSql = (p: SQL) => sql`EXISTS (
 	SELECT 1 FROM pr_evidence_documents document
 	WHERE document.pull_request_id = ${p}.id AND document.head_sha = ${p}.head_sha

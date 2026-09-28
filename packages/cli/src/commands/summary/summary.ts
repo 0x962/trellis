@@ -26,7 +26,7 @@ const summaryText = (summary: PullRequestSummary): string =>
 const ref = { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" } as const;
 
 const write = defineCommand({
-	meta: { name: "write", description: "Write a plain explanation for the current pull request head" },
+	meta: { name: "write", description: "Write or update a plain pull request explanation" },
 	args: {
 		ref,
 		headline: { type: "string", required: true, description: "One spoken sentence about the change" },
@@ -80,15 +80,15 @@ const show = defineCommand({
 });
 
 const body = defineCommand({
-	meta: { name: "body", description: "Print the GitHub body for the current pull request head" },
+	meta: { name: "body", description: "Print the GitHub body from the saved explanation" },
 	args: { ref },
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
 		const resolved = await resolvePullRequest(client, context.args.ref, false);
 		const head = await currentHead(client, resolved);
-		const summary = await client.pullRequests.readSummaryHead({ id: resolved.id, headSha: head.sha });
-		if (summary === null) throw notFound("summary for pull request head", context.args.ref);
+		const summary = await client.pullRequests.readSummary({ id: resolved.id });
+		if (summary === null) throw notFound("summary for pull request", context.args.ref);
 		const text = githubBody(summary, head.pullRequest, reviewUrl(ctx.publicUrl, resolved.url));
 		ctx.out.write(wantsJson(ctx) ? json({ body: text }) : text);
 	},

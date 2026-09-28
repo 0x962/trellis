@@ -49,7 +49,7 @@ test("the worked summary stores for its head SHA", async () => {
 	expect(await inTx((tx) => readHead(ctx, tx, { id: pullRequestId, headSha: input.headSha }))).toEqual(output.summary);
 });
 
-test("a rewrite of an older head does not make that head newest", async () => {
+test("a meaningful update replaces the newest explanation", async () => {
 	now = new Date("2026-09-20T10:02:00Z");
 	const next = await inTx((tx) =>
 		write(ctx, tx, {
@@ -60,8 +60,7 @@ test("a rewrite of an older head does not make that head newest", async () => {
 			watch: "nothing",
 		}),
 	);
-	now = new Date("2026-09-20T10:03:00Z");
-	await inTx((tx) =>
+	const updated = await inTx((tx) =>
 		write(ctx, tx, {
 			id: pullRequestId,
 			headSha: "abc123",
@@ -70,7 +69,8 @@ test("a rewrite of an older head does not make that head newest", async () => {
 			watch: "nothing",
 		}),
 	);
-	expect(await inTx((tx) => read(ctx, tx, { id: pullRequestId }))).toEqual(next.summary);
+	expect(updated.summary).not.toEqual(next.summary);
+	expect(await inTx((tx) => read(ctx, tx, { id: pullRequestId }))).toEqual(updated.summary);
 });
 
 test("one STE refusal stores nothing", async () => {

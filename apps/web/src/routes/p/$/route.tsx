@@ -3,12 +3,8 @@ import { createFileRoute, redirect, useNavigate, useParams } from "@tanstack/rea
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
-import {
-	epicPageSearch,
-	epicUrlSearch,
-	isCanonicalEpicSearch,
-	keepEpicPageChoices,
-} from "../../../features/epics/epicSearch";
+import { syncEpicFilterSearch } from "../../../features/epics/epicFilterSearch";
+import { keepEpicPageChoices } from "../../../features/epics/epicSearch";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
@@ -85,7 +81,7 @@ export const Route = createFileRoute("/p/$")({
 	// search keeps them. On every other view `beforeLoad` redirects them away
 	// as written defaults.
 	validateSearch: parseProjectSearch,
-	beforeLoad: ({ location, params, search }) => {
+	beforeLoad: ({ location, params, search, cause, preload }) => {
 		// The board is the bare path now. An older link that ends in /board
 		// still works: it lands on the same view with the segment dropped.
 		const splat = params._splat ?? "";
@@ -98,6 +94,14 @@ export const Route = createFileRoute("/p/$")({
 		// project.
 		const { ref, view } = parseProjectSplat(splat);
 		const ticketSearch = ticketSearchOf(search);
+		syncEpicFilterSearch({
+			splat,
+			search: ticketSearch,
+			searchStr: location.searchStr,
+			cause,
+			preload,
+			phone: window.matchMedia("(max-width: 767px)").matches,
+		});
 		if (view === "page") {
 			const detailSearch = parsePageDetailSearch(search);
 			const canonical = detailSearch.version === undefined ? "" : `?version=${detailSearch.version}`;
@@ -116,14 +120,7 @@ export const Route = createFileRoute("/p/$")({
 			pageSheetActions.openProjectSettings({ project: ref, section: projectSettingsSection(view, location.hash) });
 			throw redirect({ to: "/p/$", params: { _splat: ref }, search: ticketSearch, replace: true });
 		}
-		if (view === "epic") {
-			const phone = window.matchMedia("(max-width: 767px)").matches;
-			if (!isCanonicalEpicSearch(location.searchStr, ticketSearch, phone)) {
-				const canonical = epicUrlSearch(epicPageSearch(ticketSearch, "", phone), phone);
-				throw redirect({ to: "/p/$", params: { _splat: splat }, search: canonical, replace: true });
-			}
-			return;
-		}
+		if (view === "epic") return;
 		// What a row waits for reads its pull requests, its dependencies and
 		// the agent run that works on it, which the epic page alone loads. An
 		// old link with `group=waiting` on a board or a table drops the param, so

@@ -18,30 +18,21 @@ const summary: PullRequestSummary = {
 
 describe("ChangeSummary", () => {
 	test("prints the headline and plain explanation", () => {
-		const html = renderToStaticMarkup(<ChangeSummary summary={summary} headSha={headSha} render={render} />);
+		const html = renderToStaticMarkup(<ChangeSummary summary={summary} render={render} />);
 
 		expect(html).toContain("Give the Operator message post a timeout.");
 		expect(html).toContain("postMessage has no timeout, so a stalled post leaves the dialog with both buttons greyed.");
 		expect(html).not.toContain("Watch this: ");
-		expect(html).not.toContain("one revision behind");
 	});
 
-	test("reads a summary of an earlier head SHA as one revision behind", () => {
-		const html = renderToStaticMarkup(
-			<ChangeSummary summary={summary} headSha="db837a0155e1c8f47a0b2d6e39c15b8a7f420d3c" render={render} />,
-		);
+	test("keeps the explanation after the pull request gets a new commit", () => {
+		const html = renderToStaticMarkup(<ChangeSummary summary={summary} render={render} />);
 
-		expect(html).toContain("The summary is one revision behind.");
-	});
-
-	test("reads a short head SHA as one revision behind", () => {
-		const html = renderToStaticMarkup(<ChangeSummary summary={summary} headSha="9bf82d2a" render={render} />);
-
-		expect(html).toContain("The summary is one revision behind.");
+		expect(html).toContain("Give the Operator message post a timeout.");
 	});
 
 	test("prints one faint line when the pull request carries no summary", () => {
-		const html = renderToStaticMarkup(<ChangeSummary summary={null} headSha={headSha} />);
+		const html = renderToStaticMarkup(<ChangeSummary summary={null} />);
 
 		expect(html).toContain("The agent has not written a summary yet.");
 		expect(html).not.toContain("Watch this: ");
@@ -58,9 +49,7 @@ describe("ChangeSummary", () => {
 			"  agent --> summary --> overview",
 			"```",
 		].join("\n");
-		const html = renderToStaticMarkup(
-			<ChangeSummary summary={{ ...summary, why }} headSha={headSha} render={render} />,
-		);
+		const html = renderToStaticMarkup(<ChangeSummary summary={{ ...summary, why }} render={render} />);
 
 		expect(html).toContain("<p>The Overview tab now opens with the explanation.</p>");
 		expect(html).toContain(

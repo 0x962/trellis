@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { View } from "../../features/filters/grammar";
 
 export type Density = "comfortable" | "compact";
 
@@ -7,6 +8,7 @@ export const uiStorageKey = "trellis-ui";
 
 // The persisted values.
 export type UiData = {
+	epicFilters: Record<string, Partial<View>>;
 	sidebarCollapsed: boolean;
 	density: Density;
 	// The collapsed group names per route: `{"/p/CDE": ["done"]}`. A route
@@ -21,6 +23,8 @@ export type UiData = {
 };
 
 export type UiState = UiData & {
+	// The project ref and epic slug of the current epic page, such as QA/alpha.
+	activeEpicFilterKey: string | null;
 	// The sidebar sheet on a phone. It is never stored, so a reload opens
 	// the page with the sheet closed.
 	mobileSidebarOpen: boolean;
@@ -28,6 +32,7 @@ export type UiState = UiData & {
 	toggleSidebar: () => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setDensity: (density: Density) => void;
+	setEpicFilters: (epicFilterKey: string, filters: Partial<View>) => void;
 	toggleProject: (id: string) => void;
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
@@ -37,6 +42,7 @@ export type UiState = UiData & {
 };
 
 const defaults: UiData = {
+	epicFilters: {},
 	sidebarCollapsed: false,
 	density: "comfortable",
 	collapsedGroups: {},
@@ -50,6 +56,11 @@ const defaults: UiData = {
 // replaces the store's state with another instance's state still changes
 // `useUiStore` when a component calls `uiActions`.
 const updates = {
+	setEpicFilters:
+		(epicFilterKey: string, filters: Partial<View>) =>
+		(state: UiData): Partial<UiData> => ({
+			epicFilters: { ...state.epicFilters, [epicFilterKey]: filters },
+		}),
 	toggleSidebar: (state: UiData): Partial<UiData> => ({ sidebarCollapsed: !state.sidebarCollapsed }),
 	setSidebarCollapsed: (sidebarCollapsed: boolean) => (): Partial<UiData> => ({ sidebarCollapsed }),
 	setDensity: (density: Density) => (): Partial<UiData> => ({ density }),
@@ -122,6 +133,8 @@ export const createUiStore = () =>
 		persist(
 			(set) => ({
 				...defaults,
+				activeEpicFilterKey: null,
+				setEpicFilters: (epicFilterKey, filters) => set(updates.setEpicFilters(epicFilterKey, filters)),
 				mobileSidebarOpen: false,
 				setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),
@@ -137,6 +150,7 @@ export const createUiStore = () =>
 				name: uiStorageKey,
 				storage: createJSONStorage(() => browserStorage),
 				partialize: (state) => ({
+					epicFilters: state.epicFilters,
 					sidebarCollapsed: state.sidebarCollapsed,
 					density: state.density,
 					collapsedGroups: state.collapsedGroups,

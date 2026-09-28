@@ -517,6 +517,7 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis agent list --ticket <ticket>` | Find agents assigned to a ticket. |
 | `trellis agent start --ticket <ticket> [options]` | Assign an agent to the ticket. |
 | `trellis agent send <agent-id> --text <text>` | Send a direct message. |
+| `trellis agent broadcast --group <group> --text <text>` | Send a user broadcast to the working or idle group. |
 | `trellis agent output <agent-id>` | Read that agent's terminal output. |
 | `trellis agent refresh <agent-id>` | Refresh its observed state. |
 | `trellis agent interrupt <agent-id>` | Interrupt its current turn while its session remains. |
@@ -573,7 +574,7 @@ Unarchive it before you start its agent or move it to a project.
 | `trellis diff unlink <diff> --ticket <ticket>` | Remove the relationship with that ticket. |
 | `trellis diff refresh <diff>` | Fetch the latest diff state. |
 | `trellis diff patch <diff>` | Read the code patch. The output has a 1 MB limit. |
-| `trellis diff summary write <diff> --headline <text> --why <text> --watch <text>` | Write the explanation for the current head commit. |
+| `trellis diff summary write <diff> --headline <text> --why <text> --watch <text>` | Write or update the human explanation. |
 | `trellis diff summary show <diff>` | Read the stored explanation. |
 | `trellis diff summary export <diff>` | Print a GitHub pull request body from the explanation. |
 | `trellis diff evidence write <diff> --body <file-or-dash>` | Write the evidence document for the current head commit. |
@@ -632,12 +633,14 @@ A link does not require completed review material.
 Use `trellis diff check <diff>` to read the review gaps.
 Write the required material on the linked diff.
 
-The explanation and evidence belong to the current head.
-Rewrite both documents after each push.
+The explanation remains valid across commits while its meaning stays the same.
+Update it when the scope or product behavior changes.
+The evidence document belongs to the current head.
+Rewrite the evidence document after each push.
 The readiness check can also require an ER diagram for detected data-model changes.
 Read each reported gap and address it.
 
-`set-state ready` requires the explanation and evidence for the current head.
+`set-state ready` requires an explanation. It also requires evidence for the current head.
 It also requires a data model diagram when the check detects a data model change.
 For an agent, it also requires a successful applicable flow.
 This flow requirement does not apply when no flows are available.

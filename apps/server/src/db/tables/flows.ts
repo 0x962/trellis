@@ -64,6 +64,7 @@ export const flowNodes = pgTable(
 			.notNull()
 			.references(() => flows.id, { onDelete: "cascade" }),
 		parentId: text("parent_id"),
+		reviewArea: text("review_area"),
 		kind: text().notNull(),
 		title: text().notNull(),
 		instruction: text().notNull().default(""),
@@ -84,6 +85,10 @@ export const flowNodes = pgTable(
 			columns: [t.parentId, t.flowId],
 			foreignColumns: [t.id, t.flowId],
 		}).onDelete("cascade"),
+		check(
+			"flow_nodes_review_area_check",
+			sql`${t.reviewArea} IS NULL OR (${t.kind} = 'gate' AND ${t.harness} IS NULL AND ${t.reviewArea} IN ('frontend', 'backend'))`,
+		),
 		check("flow_nodes_parent_check", sql`${t.parentId} <> ${t.id}`),
 		checkIn(t.kind, FLOW_NODE_KINDS),
 		check("flow_nodes_title_check", sql`length(${t.title}) <= 120`),

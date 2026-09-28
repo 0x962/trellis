@@ -134,9 +134,12 @@ test("the common guide defines the overview for the human", async () => {
 		"Choose the smallest aid that makes the change or its proof clear.",
 		"The examples do not form a fixed evidence checklist.",
 		"Choose any clear form of explanation or proof.",
-		"Rewrite both documents after each push.",
+		"The explanation remains valid across commits while its meaning stays the same.",
+		"Update it when the scope or product behavior changes.",
+		"Rewrite the evidence document after each push.",
 	])
 		expect(prompt).toContain(text);
+	expect(prompt).not.toContain("Rewrite both documents after each push.");
 });
 
 test("a later launch reads current ticket data and retains the specific request", async () => {

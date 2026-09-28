@@ -1,6 +1,7 @@
 import { call, os } from "./base.ts";
 
 export const resources = os.resources.router({
+	get: os.resources.get.handler(({ context, input }) => call(context, "resources.get", input)),
 	add: os.resources.add.handler(({ context, input }) => call(context, "resources.add", input)),
 	list: os.resources.list.handler(({ context, input }) => call(context, "resources.list", input)),
 	update: os.resources.update.handler(({ context, input }) => call(context, "resources.update", input)),

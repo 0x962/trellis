@@ -118,7 +118,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	// A file-list choice overrides the path of a linked thread.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
 	const selectedPath = pickedPath !== "" ? pickedPath : (pickedAnchor?.path ?? deepLinkPath ?? "");
-	const headSha = revision?.headSha ?? "";
 	const allSubmissions = submissions.data ?? noSubmissions;
 	const summaryRow = summary.data ?? null;
 	const metadata = useQuery({
@@ -205,7 +204,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										</section>
 									) : (
 										<>
-											{linkedPr !== null && <ChangeSummary summary={summaryRow} headSha={headSha} />}
+											{linkedPr !== null && <ChangeSummary summary={summaryRow} />}
 											{linkedPr !== null && <EvidenceDocument evidence={evidence.data ?? null} />}
 											<ReviewFindings
 												threads={allThreads}

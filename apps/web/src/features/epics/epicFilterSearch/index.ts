@@ -1,0 +1,1 @@
+export { syncEpicFilterSearch } from "./epicFilterSearch";

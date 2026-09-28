@@ -34,17 +34,26 @@ const resources: Resource[] = [
 
 const queryKey = ["resources", "list", epic];
 
-// The section reads one procedure. The stand-in returns the key that the test
-// seeds, so a row of the list comes from the query cache.
 const appOf = (queryClient: QueryClient) =>
 	({
 		queryClient,
-		orpc: { resources: { list: { queryOptions: () => ({ queryKey, queryFn: () => resources }) } } },
+		orpc: {
+			resources: {
+				list: { queryOptions: () => ({ queryKey, queryFn: () => resources }) },
+				get: {
+					queryOptions: ({ input, enabled }: { input: { id: string }; enabled: boolean }) => ({
+						queryKey: ["resources", "get", input.id],
+						queryFn: () => resources.find((r) => r.id === input.id),
+						enabled,
+					}),
+				},
+			},
+		},
 	}) as unknown as AppContext;
 
-const render = (props: { description?: string; resourceId?: string } = {}) => {
+const render = (props: { description?: string; resourceId?: string; list?: Resource[] } = {}) => {
 	const queryClient = new QueryClient();
-	queryClient.setQueryData(queryKey, resources);
+	queryClient.setQueryData(queryKey, props.list ?? resources);
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={appOf(queryClient)}>
@@ -95,4 +104,16 @@ describe("EpicResources", () => {
 		expect(html).toContain('aria-label="New document"');
 		expect(html).not.toContain('aria-label="Add a resource"');
 	});
+});
+
+test("bounds resource rows while a linked target is outside the page", () => {
+	const many = Array.from({ length: 51 }, (_, index) => ({
+		...resources[1]!,
+		id: `row-${index}`,
+		name: `Link ${index}`,
+	}));
+	const html = render({ list: many, resourceId: resources[1]!.id });
+	expect(html).toContain("Link 49");
+	expect(html).not.toContain("Link 50");
+	expect(html).toContain('aria-label="Next resources"');
 });

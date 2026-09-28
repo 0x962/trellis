@@ -36,3 +36,14 @@ test("a flow harness names a native preset and an effort its model supports", ()
 		FlowHarnessSchema.safeParse({ preset: "claude", model: "anthropic/claude-opus-5", effort: "high" }).success,
 	).toBe(true);
 });
+
+test("only a gate without a harness takes a Jev review area", () => {
+	expect(FlowNodeInputSchema.safeParse({ ...step, kind: "gate", reviewArea: "frontend" }).success).toBe(true);
+	expect(FlowNodeInputSchema.safeParse({ ...step, kind: "gate", reviewArea: "backend" }).success).toBe(true);
+	expect(FlowNodeInputSchema.safeParse({ ...step, reviewArea: "frontend" }).success).toBe(false);
+	expect(FlowNodeInputSchema.safeParse({ ...step, kind: "gate", reviewArea: "both" }).success).toBe(false);
+	expect(
+		FlowNodeInputSchema.safeParse({ ...step, kind: "gate", reviewArea: "frontend", harness: { preset: "codex" } })
+			.success,
+	).toBe(false);
+});
