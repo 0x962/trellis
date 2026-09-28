@@ -4,7 +4,7 @@ import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 // One row of `agent_runs` as the server reads it. `instruction` is the full
-// prompt the harness launches with, up to 200000 characters. `listColumns`
+// prompt the harness launches with. `listColumns`
 // leaves it out, so a row that a list query read carries no instruction and
 // the type marks it optional.
 export type StoredRun = Omit<AgentRun, "assigned" | "state" | "processStatus" | "observation"> & {

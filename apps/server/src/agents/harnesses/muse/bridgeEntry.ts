@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { chmod, mkdir, rm } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
@@ -42,7 +42,7 @@ const launch = z
 		model: z.string().optional(),
 		sessionId: z.string().optional(),
 	})
-	.parse(JSON.parse(process.argv[2]!));
+	.parse(JSON.parse(await readFile(process.argv[2]!, "utf8")));
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_MUSE_CONTROL_SOCKET);
 await mkdir(directory, { mode: 0o700 });

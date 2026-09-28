@@ -27,8 +27,6 @@ import { launchedHarness } from "./launchedHarness";
 import type { LaunchRun } from "./queries.ts";
 
 class MissingNativeSessionIdentity extends Error {}
-class LaunchPromptTooLarge extends Error {}
-
 type Dependencies = {
 	workspace: typeof nativeWorkspace;
 	runtime: typeof ensureNativeRuntime;
@@ -113,10 +111,6 @@ const start = async (
 				env: baseEnv,
 			}),
 		);
-		if (prompt.length > 200_000)
-			throw new LaunchPromptTooLarge(
-				`The launch prompt contains ${prompt.length} characters; the runtime limit is 200000. Reduce the ticket or project context.`,
-			);
 		const env = {
 			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
@@ -254,7 +248,7 @@ const start = async (
 				sql`UPDATE agent_runs SET account_id = ${!launchSubmitted && resume && input.previousAccountId !== undefined ? input.previousAccountId : (run.accountId ?? null)}, terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure || run.kind === "flow" ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
-		if (launchSubmitted || run.kind === "flow" || error instanceof LaunchPromptTooLarge)
+		if (launchSubmitted || run.kind === "flow")
 			throw new ORPCError("RUNNER_UNAVAILABLE", {
 				defined: true,
 				status: 503,

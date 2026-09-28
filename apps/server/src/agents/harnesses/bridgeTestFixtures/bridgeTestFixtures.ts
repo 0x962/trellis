@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
@@ -72,7 +73,9 @@ export function spawnBridge(options: {
 	launch: Record<string, unknown>;
 	withTerminal?: boolean;
 }) {
-	const command = [process.execPath, options.entry, JSON.stringify(options.launch)];
+	const launchPath = join(options.launch.cwd as string, "bridge-launch.json");
+	writeFileSync(launchPath, JSON.stringify(options.launch), { mode: 0o600 });
+	const command = [process.execPath, options.entry, launchPath];
 	const child = Bun.spawn(options.withTerminal ? ["script", "-q", "/dev/null", ...command] : command, {
 		env: { PATH: process.env.PATH ?? "", ...options.env },
 		stdout: "pipe",

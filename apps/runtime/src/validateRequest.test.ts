@@ -22,3 +22,14 @@ test("listPage rejects invalid cursors at the socket boundary", () => {
 		);
 	expect(() => validateRequest(request({ ids: ["../attempt"] }))).toThrow("Session identifiers");
 });
+
+test("accepts a full large turn result", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "turn",
+		params: { id: "attempt", token: "token", event: "Stop", result: "x".repeat(2_100_000) },
+	};
+	expect(validateRequest(value) === value).toBe(true);
+	expect(() => validateRequest({ ...value, params: { ...value.params, result: 12 } })).toThrow("must be a string");
+});
