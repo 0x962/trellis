@@ -1,0 +1,1 @@
+How do we fix this? This is a band-aid. A user cannot be shown this message. The user is just stuck and cannot do anything. Trellis will have to figure it out.
