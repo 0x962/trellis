@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
-import { chmod, mkdir, rm } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
@@ -36,7 +36,7 @@ const launch = z
 		effort: z.string().optional(),
 		sessionId: z.string().optional(),
 	})
-	.parse(JSON.parse(process.argv[2]!));
+	.parse(JSON.parse(await readFile(process.argv[2]!, "utf8")));
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_CODEX_ENGINE_SOCKET);
 await mkdir(directory, { mode: 0o700 });

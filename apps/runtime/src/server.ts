@@ -91,10 +91,6 @@ export async function startRuntime(home: string) {
 		let buffer = Buffer.alloc(0);
 		const request = async (chunk: Buffer) => {
 			buffer = Buffer.concat([buffer, chunk]);
-			if (buffer.length > 2_000_000) {
-				socket.destroy();
-				return;
-			}
 			const end = buffer.indexOf(10);
 			if (end < 0) return;
 			socket.pause();

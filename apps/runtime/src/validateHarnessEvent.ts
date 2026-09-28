@@ -20,8 +20,8 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 	)
 		throw new Error("Unknown provider event kind");
 	for (const field of ["requestId", "sessionId", "model", "prompt", "result", "error", "turnId"])
-		if (event[field] !== undefined && (typeof event[field] !== "string" || (event[field] as string).length > 200000))
-			throw new Error(`Provider ${field} must be a string of at most 200000 characters`);
+		if (event[field] !== undefined && typeof event[field] !== "string")
+			throw new Error(`Provider ${field} must be a string`);
 	if (event.kind === "input-request") {
 		const request = event.inputRequest as Record<string, unknown> | undefined;
 		if (
@@ -76,8 +76,7 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 	if (event.kind === "error" && typeof event.error !== "string") throw new Error("A provider error is required");
 	if (event.kind === "message" || event.message !== undefined) {
 		const message = event.message as Record<string, unknown> | undefined;
-		if (!message || typeof message.text !== "string" || message.text.length > 200000)
-			throw new Error("A provider message requires text of at most 200000 characters");
+		if (!message || typeof message.text !== "string") throw new Error("A provider message requires text");
 		if (message.at !== undefined && (typeof message.at !== "string" || !Number.isFinite(Date.parse(message.at))))
 			throw new Error("A provider message timestamp must be a date string");
 	}

@@ -96,8 +96,8 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("An attempt token is required");
 			if (!["SessionStart", "UserPromptSubmit", "Stop"].includes(params.event as string))
 				throw new Error("Unknown turn event");
-			if (params.result !== undefined && (typeof params.result !== "string" || params.result.length > 200000))
-				throw new Error("A turn result must be a string of at most 200000 characters");
+			if (params.result !== undefined && typeof params.result !== "string")
+				throw new Error("A turn result must be a string");
 			if (
 				params.messageId !== undefined &&
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))

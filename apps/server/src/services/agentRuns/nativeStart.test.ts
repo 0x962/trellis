@@ -183,20 +183,12 @@ test("a resume receives only its new message", async () => {
 });
 
 for (const kind of ["agent", "session", "flow"] as const) {
-	test(`an oversized ${kind} prompt fails before launch and preserves its error`, async () => {
+	test(`a large ${kind} prompt launches intact`, async () => {
 		const runId = await seed(kind);
-		const starts = start.mock.calls.length;
-		await expect(launch(runId, "x".repeat(200_001))).rejects.toThrow("200001 characters; the runtime limit is 200000");
-		expect(start.mock.calls.length).toBe(starts);
+		const prompt = "x".repeat(206_410);
+		await launch(runId, prompt);
+		expect(start.mock.calls.at(-1)![0].prompt).toBe(prompt);
 		const run = await db.transaction((tx) => getRun(tx, runId));
-		if (kind === "flow") expect(run.terminalId).not.toBeNull();
-		expect(run.closedAt).not.toBeNull();
-		expect(run.error).toContain("200001 characters");
+		expect(run.error).toBeNull();
 	});
 }
-
-test("a flow prompt at the runtime limit launches intact", async () => {
-	const runId = await seed("flow");
-	await launch(runId, "x".repeat(200_000));
-	expect(start.mock.calls.at(-1)![0].prompt).toHaveLength(200_000);
-});

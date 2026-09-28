@@ -144,7 +144,7 @@ The terminal sends keyboard input and resize events to the runtime. An explicit 
 
 Launch prompts summarize linked pull requests and count CI checks by status.
 Each summary gives a command to read all checks, files, and review gaps.
-A prompt above 200,000 characters fails before process launch with its measured size; Trellis does not truncate it.
+Trellis passes the full launch prompt and provider message text through the runtime.
 
 Native flows freeze the saved graph and inline node instructions for each execution.
 The host scans for flow work each second while earlier executions reconcile.
