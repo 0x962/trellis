@@ -13,7 +13,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/decisions.py b/src/ba
          await _call_fault(fault, "before_transaction")
          async with self._open_session() as session:
              job = (await session.exec(select(Job).where(Job.job_id == engine_job_id).with_for_update())).first()
-+            from langflow.services.trellis_v1.engine_api import require_authority
++            from langflow.services.trellis_v1.authority import require_authority
 +
 +            binding = await require_authority(
 +                session,
