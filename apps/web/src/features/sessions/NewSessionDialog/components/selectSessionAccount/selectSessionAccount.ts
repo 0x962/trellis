@@ -14,7 +14,8 @@ const available = (quota: HarnessAccountQuota | undefined) =>
 export function selectSessionAccount({ harness, accountId, accounts, quotas }: Input): string {
 	const compatible = accounts.filter((account) => account.harness === harness.preset && account.capabilities.launch);
 	const previous = compatible.find((account) => account.id === accountId);
-	const candidates = compatible.filter((account) => available(quotas.find((quota) => quota.accountId === account.id)));
+	const quotasByAccount = new Map(quotas.map((quota) => [quota.accountId, quota]));
+	const candidates = compatible.filter((account) => available(quotasByAccount.get(account.id)));
 	return (
 		candidates.find((account) => account.id === previous?.id)?.id ??
 		candidates.find((account) => account.isDefault)?.id ??

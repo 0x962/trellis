@@ -140,3 +140,70 @@ bun test --config apps/server/src/langflowContracts/fixtures/bunfig.toml integra
 Review v71 fixtures read the private export through `TRELLIS_REVIEW_V71_RUN`.
 The repository retains only the existing public digest manifest.
 Fixture proof covers export retention and loss reports; ENG-F8 runtime parity and complete ENG-F15 migration remain separate requirements.
+
+# Concrete compiler
+
+`createConversionProducer(input, validate)` supplies initial compilation and edit regeneration.
+Both operations call `compileFlow` with the exact retained source.
+The factory captures copies of the catalog, templates, and explicit native policies.
+Its input requires these fields:
+
+- `catalogBytes`, `frontendTemplateBytes`, and `componentManifestHash`
+- `enginePackageDigest`, `engineCommit`, and `engineOverlayHash`
+- `nativePolicies`, keyed by original source node ID
+
+The package owner supplies verified artifact bytes and identities.
+Each native policy retains `sourceHarness` and its resolved `harness`.
+The compiler compares every explicit source harness value without normalization.
+The resolved harness must contain original commands, model, and effort.
+An absent policy remains unresolved.
+The source export has no account binding, so the compiler emits no account selection.
+
+`compile({sourceBytes})` returns `ConversionCompileResult`:
+
+```ts
+type ConversionCompileResult =
+  | { state: "blocked"; diagnostics: FlowDiagnosticV1[]; candidate: ConversionExpansionV1 | null }
+  | { state: "generated"; expansion: ConversionExpansionV1 };
+```
+
+The generated expansion contains graph nodes, edges, and static source associations.
+Generation alone grants no publication authority.
+The domain retains the exact original export before compilation.
+It passes that export and expansion through `inspectConversionGraph` to create immutable provenance.
+The final transaction compares the captured source and installed identities again.
+`validate({content,sourceBytes})` is the captured domain adapter to the installed publisher.
+It validates the actual candidate snapshot and its next revision.
+
+`regenerate({editedSourceBytes,previousGraphDocument})` calls the same compiler.
+It first reads the verified edit history and preserves node identities, hierarchy, order, and edges.
+`prepareConversionEdit` owns deterministic intent application and the derived provenance envelope.
+The atomic save adapter owns metadata, revision, and receipt writes.
+
+The compiler clones the complete `to_frontend_node` export for each installed class.
+It changes only instance identity, position, and declared field values.
+It preserves installed code, output types, methods, and template metadata.
+Edges retain parsed native handles and the pinned sorted JSON serialization with U+0153 escapes.
+Original coordinates, hierarchy, sizes, instructions, briefing, and all optional fields remain in `trellisSource`.
+Canvas positions use the sum of original parent-relative coordinates.
+
+Native gates use a native result vertex and a separate YES/NO decision vertex.
+Group settlement reads the common native result, while explicit source branches select their output ports.
+Nested groups expose distinct input and output vertices.
+Groups retain source child order and explicit internal edges in `scope_definition`.
+The scope entry also precedes the output of an empty group.
+Loops connect their body scope, native condition, feedback handle, and done output.
+Their positive round count remains a component value.
+Runtime controls own feedback bytes, occurrence identities, deadlines, and receipt order.
+
+Current catalog diagnostics keep every compilation blocked.
+Missing templates yield a null candidate.
+Nested entry loops require the declared `scope_entry` input, separate from their predecessor `seed` input.
+Missing group settlement support, timed scope qualification, native policy, and engine traces retain explicit blockers.
+A complete candidate is evidence for inspection, not an executable document.
+
+`integrations/langflow/tests/conversion/compilerScenarios` supplies synthetic source scenarios for the combined batch.
+Positive compiler fixtures require the matched catalog and actual engine template export.
+Set `TRELLIS_CONVERSION_CATALOG`, `TRELLIS_CONVERSION_TEMPLATES`, and `TRELLIS_CONVERSION_PACKAGE_DIGEST` for that batch.
+The fixture harness policy is synthetic and grants no execution authority.
+Private Review exports remain outside these fixtures.
