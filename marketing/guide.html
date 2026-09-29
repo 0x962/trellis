@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<meta name="theme-color" content="#f4f4f1">
+		<title>A task through Trellis · Workflow guide</title>
+		<link rel="icon" href="mark.svg">
+		<link rel="stylesheet" href="style.css">
+		<link rel="stylesheet" href="layout.css">
+		<link rel="stylesheet" href="identity.css">
+	</head>
+	<body id="top" class="guide-page">
+		<a href="#main" class="skip">Skip to content</a>
+		<header class="header">
+			<div class="header-inner">
+				<a class="brand" href="index.html" aria-label="Trellis home"
+					><img src="mark-bare.svg" alt="">
+					<svg class="wordmark" viewBox="0 0 128 32" aria-hidden="true">
+						<title>Trellis workflow illustration</title>
+						<g fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="square" stroke-linejoin="round">
+							<path d="M8 5v17q0 5 6 4M2 12h14" />
+							<path d="M24 27V12m0 6q0-7 9-6" />
+							<path d="M57 23q-3 5-9 4q-8-1-8-8q0-8 8-8q9 0 9 9H40" />
+							<path d="M67 4v19q0 4 4 4M81 4v19q0 4 4 4M95 12v15" />
+							<path d="M122 13q-4-3-9-1q-7 4 1 7l5 1q7 3 2 6q-5 3-12-1" />
+						</g>
+						<path d="m95 1 3.2 3.2L95 7.4l-3.2-3.2Z" fill="currentColor" />
+					</svg></a
+				><a class="secondary" href="index.html#workspace">Explore the example <span aria-hidden="true">↗</span></a>
+			</div>
+		</header>
+		<main id="main" class="guide-main">
+			<a class="guide-back" href="index.html"><span aria-hidden="true">←</span> Back to Trellis</a>
+			<div class="eyebrow">THE WORKFLOW GUIDE</div>
+			<h1>One task.<br>From plan to review.</h1>
+			<p class="guide-intro">
+				Trellis keeps the task, the agent’s session, and the resulting diff connected. Here is how those pieces fit
+				together.
+			</p>
+			<div class="guide-note">
+				These commands require an installed Trellis CLI connected to your Trellis instance. Replace the fictional
+				project, ticket, and repository values with your own. Use <code>trellis --help</code> to inspect available
+				commands.
+			</div>
+			<section class="guide-step">
+				<span class="guide-step-number">01</span>
+				<div>
+					<h2>Read the project.</h2>
+					<p>
+						A project holds repositories, tickets, notes, and its workflow statuses. Read its configured statuses before
+						you move a ticket.
+					</p>
+					<div class="guide-code">
+						<code>trellis project list<br>trellis project show ACM<br>trellis project status list ACM</code>
+					</div>
+				</div>
+			</section>
+			<section class="guide-step">
+				<span class="guide-step-number">02</span>
+				<div>
+					<h2>Make the task concrete.</h2>
+					<p>
+						Put the intended result, file ownership, and verification steps in the ticket. Group the ticket into an epic
+						and a wave. Add dependencies when it needs another ticket’s result.
+					</p>
+					<p>Set the contract on an existing ticket. This command changes the ticket.</p>
+					<div class="guide-code">
+						<code
+							>trellis ticket contract set ACM-12 \<br>
+							--result "Save a valid email address." \<br>
+							--file account/email.ts \<br>
+							--file account/email.test.ts \<br>
+							--verify "npm run test:account"</code
+						>
+					</div>
+					<p>Then read the saved contract and dependencies.</p>
+					<div class="guide-code">
+						<code>trellis ticket contract show ACM-12<br>trellis ticket dependency list ACM-12</code>
+					</div>
+					<a class="inline-link" href="index.html#assignment"
+						>See an example assignment <span aria-hidden="true">→</span></a
+					>
+				</div>
+			</section>
+			<section class="guide-step">
+				<span class="guide-step-number">03</span>
+				<div>
+					<h2>Assign an agent.</h2>
+					<p>
+						Check the current assignment before you start another agent. An assignment identifies the task. Its session
+						holds the conversation and workspace.
+					</p>
+					<div class="guide-code"><code>trellis agent list --ticket ACM-12</code></div>
+					<p>
+						To start a new assignment, use <code>trellis agent start --ticket ACM-12</code>. This command starts an
+						agent; the website example does not.
+					</p>
+					<p>
+						You can send instructions, pause work, and resume the same session. A stopped agent keeps its conversation
+						and workspace.
+					</p>
+				</div>
+			</section>
+			<section class="guide-step">
+				<span class="guide-step-number">04</span>
+				<div>
+					<h2>Connect the result.</h2>
+					<p>
+						Trellis represents a GitHub pull request as a diff. Link the diff to its ticket. Give the reviewer an
+						explanation and evidence of the tests.
+					</p>
+					<p>Link an existing pull request. This command changes its relationship in Trellis.</p>
+					<div class="guide-code">
+						<code
+							>trellis diff link https://github.com/acme/app/pull/42 \<br>
+							--ticket ACM-12</code
+						>
+					</div>
+					<p>Inspect the linked diff and its saved evidence.</p>
+					<div class="guide-code">
+						<code>trellis diff show acme/app#42<br>trellis diff evidence show acme/app#42</code>
+					</div>
+					<p>The GitHub pull request, the ticket status, and the local request for review have separate states.</p>
+				</div>
+			</section>
+			<section class="guide-step">
+				<span class="guide-step-number">05</span>
+				<div>
+					<h2>Inspect the review gaps.</h2>
+					<p>
+						A review flow gives agents defined responsibilities and records their findings. Read those findings and the
+						remaining checks before you decide what ships.
+					</p>
+					<div class="guide-code">
+						<code>trellis diff comment list acme/app#42<br>trellis diff check acme/app#42</code>
+					</div>
+					<p>
+						The check reports review gaps without a state change. A successful run does not mean that every finding is
+						resolved.
+					</p>
+					<a class="inline-link" href="index.html#finding"
+						>Inspect the example finding <span aria-hidden="true">→</span></a
+					>
+				</div>
+			</section>
+			<div class="guide-footer">
+				<span>Based on the Trellis CLI guide.<br>Commands use fictional identifiers.</span
+				><a class="button" href="index.html#workspace">Explore the example <span aria-hidden="true">↗</span></a>
+			</div>
+		</main>
+	</body>
+</html>

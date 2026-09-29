@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="theme-color" content="#f4f4f1">
+		<meta
+			name="description"
+			content="Trellis connects projects, tickets, coding agents, worktrees, diffs and reviews. A workspace for the whole task."
+		>
+		<title>Trellis · A workspace for agent work</title>
+		<link rel="icon" href="mark.svg" type="image/svg+xml">
+		<link rel="stylesheet" href="style.css">
+		<link rel="stylesheet" href="layout.css">
+		<link rel="stylesheet" href="identity.css">
+	</head>
+	<body id="top" class="home-page">
+		<a class="skip" href="#main">Skip to content</a>
+		<div class="masthead">
+			Trellis connects the task, the agent, and the result. <a href="guide.html">Read the workflow guide ↗</a>
+		</div>
+		<header class="header">
+			<div class="header-inner">
+				<a class="brand" href="#top" aria-label="Trellis home"
+					><img src="mark-bare.svg" alt="">
+					<svg class="wordmark" viewBox="0 0 128 32" aria-hidden="true">
+						<title>Trellis workflow illustration</title>
+						<g fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="square" stroke-linejoin="round">
+							<path d="M8 5v17q0 5 6 4M2 12h14" />
+							<path d="M24 27V12m0 6q0-7 9-6" />
+							<path d="M57 23q-3 5-9 4q-8-1-8-8q0-8 8-8q9 0 9 9H40" />
+							<path d="M67 4v19q0 4 4 4M81 4v19q0 4 4 4M95 12v15" />
+							<path d="M122 13q-4-3-9-1q-7 4 1 7l5 1q7 3 2 6q-5 3-12-1" />
+						</g>
+						<path d="m95 1 3.2 3.2L95 7.4l-3.2-3.2Z" fill="currentColor" />
+					</svg></a
+				><button type="button" class="menu" aria-expanded="false" aria-controls="navigation">
+					Menu <span aria-hidden="true">+</span>
+				</button>
+				<nav id="navigation" aria-label="Main navigation">
+					<a href="#workspace">Workspace</a><a href="#review">Review</a><a href="#cli">CLI</a
+					><a href="#questions">Questions</a>
+				</nav>
+				<a class="header-cta" href="guide.html">Workflow guide <span aria-hidden="true">↗</span></a>
+			</div>
+		</header>
+		<div class="site-grid">
+			<aside class="reference-rail" aria-label="Trellis reference">
+				<div class="rail-sticky">
+					<section>
+						<h2>The workspace</h2>
+						<a href="#assignment">Projects &amp; tickets <span>↗</span></a
+						><a href="#sessions">Agent sessions <span>↗</span></a
+						><a href="#review">Diffs &amp; reviews <span>↗</span></a
+						><a href="#capabilities">Pages &amp; resources <span>↗</span></a>
+					</section>
+					<section>
+						<h2>The workflow</h2>
+						<a href="guide.html">From task to review<small>A practical guide</small></a
+						><a href="#workspace">Explore a project<small>Interactive example</small></a
+						><a href="#cli">Work from the terminal<small>Trellis CLI</small></a>
+					</section>
+					<section>
+						<h2>Built around your work</h2>
+						<p>You define the result.<br>Assign the agent.<br>Review what changed.</p>
+					</section>
+					<div class="rail-foot"><img src="mark-bare.svg" alt=""><span>People + coding agents</span></div>
+				</div>
+			</aside>
+			<div class="center-column">
+				<main id="main">
+					<section id="overview" class="hero shell" aria-labelledby="hero-title">
+						<div class="hero-grid" aria-hidden="true"></div>
+						<div class="hero-kicker corner-frame">
+							Projects <span>·</span> Tickets <span>·</span> Agents <span>·</span> Reviews
+						</div>
+						<h1 id="hero-title">
+							<mark>A workspace</mark><br><mark>for people &amp;</mark><br><mark>coding agents.</mark>
+						</h1>
+						<p>
+							Trellis connects your tickets, agent sessions, worktrees, and pull requests.<br class="desktop-break">
+							Set the direction. Follow the work through review.
+						</p>
+						<div class="hero-actions">
+							<a class="button" href="#workspace">Explore a project <span aria-hidden="true">↓</span></a
+							><a class="secondary" href="guide.html">Read the workflow guide <span aria-hidden="true">↗</span></a>
+						</div>
+						<div class="hero-caption corner-frame">
+							<span>Define the task</span><span aria-hidden="true">→</span><span>Assign the agent</span
+							><span aria-hidden="true">→</span><span>Review the result</span>
+						</div>
+					</section>
+					<section id="workspace" class="product-section shell" aria-labelledby="workspace-heading">
+						<h2 id="workspace-heading" class="sr-only">Explore an example project</h2>
+						<div class="product-frame corner-frame">
+							<div class="product-bar">
+								<img class="app-logo" src="mark.svg" alt=""><span>Acme <i>/</i> Account settings</span
+								><span class="example-label">INTERACTIVE EXAMPLE</span>
+							</div>
+							<div class="product-body">
+								<aside class="app-sidebar" aria-label="Example project context">
+									<div class="workspace-name">
+										<span class="project-avatar">A</span>Acme <span class="chevron" aria-hidden="true">⌄</span>
+									</div>
+									<div class="sidebar-label">PROJECT</div>
+									<div class="side-row selected"><span aria-hidden="true">▦</span> Account settings</div>
+									<div class="side-row"><span aria-hidden="true">◇</span> Shared notes</div>
+									<div class="side-row"><span aria-hidden="true">▤</span> Resources</div>
+									<div class="sidebar-label lower">WAVES</div>
+									<div class="side-row"><span class="wave-dot"></span> Foundation</div>
+									<div class="side-row"><span class="wave-dot active"></span> Interface</div>
+									<div class="side-row"><span class="wave-dot"></span> Verification</div>
+									<div class="sidebar-bottom">
+										<span class="avatar">Y</span><span>Your workspace<small>2 repositories</small></span>
+									</div>
+								</aside>
+								<div class="app-main">
+									<div class="app-heading">
+										<div>
+											<div class="breadcrumb">PROJECT / ACCOUNT SETTINGS</div>
+											<h3 id="app-title">A clear path to the result.</h3>
+										</div>
+										<span class="project-count">4 tickets</span>
+									</div>
+									<div role="tablist" aria-label="Explore a task" class="app-tabs">
+										<button type="button" role="tab" id="tab-plan" aria-selected="true" aria-controls="panel-plan">
+											<span aria-hidden="true">▦</span>
+											Plan
+										</button><button
+											type="button"
+											role="tab"
+											id="tab-session"
+											aria-selected="false"
+											aria-controls="panel-session"
+											tabindex="-1"
+										>
+											<span aria-hidden="true">⌘</span>
+											Session
+										</button><button
+											type="button"
+											role="tab"
+											id="tab-diff"
+											aria-selected="false"
+											aria-controls="panel-diff"
+											tabindex="-1"
+										>
+											<span aria-hidden="true">⑂</span>
+											Review
+										</button><span class="tab-hint">Choose a view</span>
+									</div>
+									<div id="panel-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="0" class="app-panel">
+										<div class="board">
+											<div class="board-column">
+												<div class="column-title"><span class="status-dot gray"></span> Todo <span>1</span></div>
+												<button type="button" class="ticket-card" data-ticket="13">
+													<span class="ticket-id">ACM-13 <span aria-hidden="true">↗</span></span
+													><strong>Build the email form</strong>
+													<p>Add the field, validation,<br>and saved state.</p>
+													<span class="dependency">⑂ Depends on ACM-12</span
+													><span class="card-bottom"
+														><span class="tag">Interface</span><span class="mini-avatar">B</span></span
+													>
+												</button>
+											</div>
+											<div class="board-column">
+												<div class="column-title">
+													<span class="status-dot orange"></span>
+													In progress <span>1</span>
+												</div>
+												<button type="button" class="ticket-card" data-ticket="14">
+													<span class="ticket-id">ACM-14 <span aria-hidden="true">↗</span></span
+													><strong>Update the confirmation email</strong>
+													<p>Reflect the new address<br>in the confirmation.</p>
+													<span class="agent-label"><span class="status-dot orange"></span> Agent assigned</span
+													><span class="card-bottom"
+														><span class="tag">Interface</span><span class="mini-avatar">C</span></span
+													>
+												</button>
+											</div>
+											<div class="board-column">
+												<div class="column-title"><span class="status-dot purple"></span> Review <span>2</span></div>
+												<button type="button" class="ticket-card featured" data-ticket="12">
+													<span class="ticket-id">ACM-12 <span aria-hidden="true">↗</span></span
+													><strong>Add the email endpoint</strong>
+													<p>Save a valid address.<br>Reject an empty value.</p>
+													<span class="agent-label green"><span aria-hidden="true">✓</span> Checks passed</span
+													><span class="card-bottom"
+														><span class="tag">Foundation</span><span class="mini-avatar">A</span></span
+													>
+												</button><button type="button" class="ticket-card compact" data-ticket="15">
+													<span class="ticket-id">ACM-15 <span aria-hidden="true">↗</span></span
+													><strong>Verify the account flow</strong
+													><span class="card-bottom"
+														><span class="tag">Verification</span><span class="mini-avatar">D</span></span
+													>
+												</button>
+											</div>
+										</div>
+										<div class="panel-foot">
+											<span><span class="status-dot orange"></span> Select a ticket to inspect its context.</span
+											><span>Fictional project</span>
+										</div>
+									</div>
+									<div
+										id="panel-session"
+										role="tabpanel"
+										aria-labelledby="tab-session"
+										tabindex="0"
+										class="app-panel"
+										hidden
+									>
+										<div class="session-layout">
+											<div class="conversation">
+												<div class="session-meta">
+													<span class="mini-avatar">A</span><strong>ACM-12</strong><span>Agent session</span
+													><span class="session-state">Stopped</span>
+												</div>
+												<div class="message person">
+													<span class="message-author">YOU</span>
+													<p>
+														Add an endpoint to update the account email. Reject blank addresses and keep the existing
+														access checks.
+													</p>
+												</div>
+												<div class="message agent">
+													<span class="message-author"><span class="status-dot orange"></span> ASSIGNED AGENT</span>
+													<p>
+														The endpoint and tests are ready for review. The diff includes input validation and the
+														existing access checks.
+													</p>
+													<div class="file-list">
+														<span><b>⑂</b> account/email.ts <i>+18 −4</i></span
+														><span><b>⑂</b> account/email.test.ts <i>+26</i></span>
+													</div>
+												</div>
+												<div class="session-input">
+													The conversation stays with this session.<span aria-hidden="true">↵</span>
+												</div>
+											</div>
+											<aside class="session-context">
+												<span class="sidebar-label">ASSIGNMENT</span>
+												<h4>Add the email endpoint</h4>
+												<dl>
+													<dt>Ticket</dt>
+													<dd>ACM-12</dd>
+													<dt>Workspace</dt>
+													<dd>Separate worktree</dd>
+													<dt>Diff</dt>
+													<dd>acme/app#42</dd>
+												</dl>
+												<div class="context-note">Stop the agent.<br>Keep the conversation<br>and workspace.</div>
+												<button type="button" class="inline-link" data-jump="diff">
+													Inspect the result <span aria-hidden="true">→</span>
+												</button>
+											</aside>
+										</div>
+									</div>
+									<div id="panel-diff" role="tabpanel" aria-labelledby="tab-diff" tabindex="0" class="app-panel" hidden>
+										<div class="diff-layout">
+											<div class="diff-main">
+												<div class="diff-title">
+													<span class="merge-icon" aria-hidden="true">⑂</span>
+													<div><strong>Add the email endpoint</strong><small>acme/app#42 · ACM-12</small></div>
+													<span class="diff-badge">Open</span>
+												</div>
+												<p class="diff-explanation">
+													The endpoint saves a valid email address and rejects an empty value. Existing access checks
+													still apply.
+												</p>
+												<div class="code-diff">
+													<div class="code-file">account/email.ts <span>+18 −4</span></div>
+													<div class="code-line"><span>12</span><code>const email = input.email.trim();</code></div>
+													<div class="code-line added"><span>13</span><code>+ if (!email) {</code></div>
+													<div class="code-line added">
+														<span>14</span><code>+ return invalid("email_required");</code>
+													</div>
+													<div class="code-line added"><span>15</span><code>+ }</code></div>
+													<div class="code-line"><span>16</span><code>await account.update({ email });</code></div>
+												</div>
+											</div>
+											<aside class="diff-checks">
+												<span class="sidebar-label">REVIEW CONTEXT</span>
+												<div class="check-item"><span>Explanation</span><b>Present</b></div>
+												<div class="check-item"><span>Evidence</span><b>Present</b></div>
+												<div class="check-item"><span>CI</span><b>Passed</b></div>
+												<div class="check-item pending"><span>Open findings</span><b>1</b></div>
+												<div class="review-note"><span class="status-dot orange"></span> A review gap remains.</div>
+												<a class="inline-link" href="#finding">Inspect the finding <span aria-hidden="true">→</span></a>
+											</aside>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="product-caption">
+							<span>ONE PROJECT, FROM ASSIGNMENT TO REVIEW</span><span>Illustrative interface · Fictional data</span>
+						</div>
+					</section>
+					<section class="intro-strip shell" id="how-it-works" aria-label="The Trellis workflow">
+						<div>
+							<span class="step-no">01</span><strong>Define the work</strong>
+							<p>Give the task a clear result.</p>
+						</div>
+						<span class="step-arrow" aria-hidden="true">→</span>
+						<div>
+							<span class="step-no">02</span><strong>Assign an agent</strong>
+							<p>Keep its session with the task.</p>
+						</div>
+						<span class="step-arrow" aria-hidden="true">→</span>
+						<div>
+							<span class="step-no">03</span><strong>Review the result</strong>
+							<p>Read the diff and the evidence.</p>
+						</div>
+					</section>
+					<section id="sessions" class="parallel-section" aria-labelledby="parallel-title">
+						<div class="shell parallel-grid">
+							<div class="parallel-copy">
+								<div class="eyebrow">CONNECTED WORK</div>
+								<h2 id="parallel-title">Separate tasks. <mark>Shared direction.</mark></h2>
+								<p>
+									Assign distinct tasks to agents. Follow their sessions and the results each task needs, all within the
+									project.
+								</p>
+								<div class="parallel-fact">
+									<span class="small-cross" aria-hidden="true">+</span><span>Send instructions to an agent.</span>
+								</div>
+								<div class="parallel-fact">
+									<span class="small-cross" aria-hidden="true">+</span><span>Pause work and resume the session.</span>
+								</div>
+								<div class="parallel-fact">
+									<span class="small-cross" aria-hidden="true">+</span
+									><span>Keep the workspace with the conversation.</span>
+								</div>
+							</div>
+							<div class="structure-figure">
+								<div class="figure-top">
+									<span>THE STRUCTURE OF A PROJECT</span><span class="live-dot" aria-hidden="true"></span>
+								</div>
+								<canvas id="structure" aria-hidden="true"></canvas>
+								<div class="structure-legend">
+									<div><i class="legend-project" aria-hidden="true"></i><span>Project</span></div>
+									<div><i class="legend-session" aria-hidden="true"></i><span>Agent sessions</span></div>
+									<div><i class="legend-result" aria-hidden="true"></i><span>Diffs + reviews</span></div>
+								</div>
+								<p class="scene-hint">Select a card or a node to inspect the work.</p>
+								<div class="scene-nodes" role="group" aria-label="Project nodes">
+									<button type="button" data-node="0" aria-pressed="false">Project</button
+									><button type="button" data-node="1" aria-pressed="false">Endpoint</button
+									><button type="button" data-node="2" aria-pressed="false">Email form</button
+									><button type="button" data-node="3" aria-pressed="false">Verify</button
+									><button type="button" data-node="4" aria-pressed="false">Diff #42</button
+									><button type="button" data-node="5" aria-pressed="false">Review</button>
+								</div>
+								<div class="scene-stages" role="group" aria-label="Explore the connected work">
+									<button type="button" data-stage="0" aria-pressed="true"><span>01</span> Define</button
+									><button type="button" data-stage="1" aria-pressed="false"><span>02</span> Assign</button
+									><button type="button" data-stage="2" aria-pressed="false"><span>03</span> Review</button>
+								</div>
+								<div class="scene-caption">
+									<strong id="scene-stage-title">A project gives the work context.</strong
+									><span id="scene-stage-copy">The tickets hold each task and its dependencies.</span>
+								</div>
+								<div class="figure-bottom">
+									<span>Illustrative workflow · Fictional tasks</span
+									><button type="button" id="motion" aria-pressed="false">Pause motion</button>
+								</div>
+							</div>
+						</div>
+					</section>
+					<section class="capabilities shell" id="capabilities">
+						<div class="section-heading">
+							<h2>The parts of <mark>one workspace.</mark></h2>
+							<p>Connect the plan, the work, and the result.<br>Each part keeps the context the next person needs.</p>
+						</div>
+						<div class="capability-grid">
+							<article class="capability corner-frame">
+								<h3>Projects & tickets</h3>
+								<p>Group the work into epics and waves. Set the result and the dependencies.</p>
+								<div class="mini-diagram" aria-hidden="true">
+									<svg viewBox="0 0 250 155" fill="#52524a">
+										<title>Trellis workflow illustration</title>
+										<defs>
+											<pattern id="feature-grid-0" width="22" height="22" patternUnits="userSpaceOnUse">
+												<path d="M22 0H0V22" fill="none" stroke="#c9c9ba" stroke-width=".5" />
+											</pattern>
+										</defs>
+										<rect width="250" height="155" fill="url(#feature-grid-0)" opacity=".45" />
+										<g transform="translate(1 11) rotate(-7 125 77)" font-family="JetBrains Mono,monospace">
+											<path d="M42 52v30h135M104 82v16M177 82v16" fill="none" stroke="#b4b4a5" />
+											<path d="M25 52v4h99v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="25" y="20" width="99" height="32" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="34" y="37" font-size="9" fill="#52524a">Account settings</text>
+											<path d="M25 127v4h89v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="25" y="94" width="89" height="33" fill="#cee5dc" stroke="#a6a69a" />
+											<text x="34" y="111" font-size="9" fill="#52524a">ACM-12</text>
+											<text x="34" y="125" font-size="7" fill="#87877b">Endpoint</text>
+											<path d="M129 127v4h87v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="129" y="94" width="87" height="33" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="138" y="111" font-size="9" fill="#52524a">ACM-13</text>
+											<text x="138" y="125" font-size="7" fill="#87877b">Email form</text>
+											<text x="73" y="77" font-size="7" fill="#888879">Foundation → Interface</text>
+										</g>
+									</svg>
+								</div>
+								<div class="diagram-controls" role="group" aria-label="Explore projects">
+									<button type="button" data-demo="0" data-state="0" aria-pressed="true">Foundation</button
+									><button type="button" data-demo="0" data-state="1" aria-pressed="false">Interface</button>
+								</div>
+								<p class="diagram-detail" aria-live="polite">The endpoint gives the interface a result to build on.</p>
+							</article>
+							<article class="capability corner-frame">
+								<h3>Agent sessions</h3>
+								<p>Keep the conversation and workspace with the agent’s assignment.</p>
+								<div class="mini-diagram" aria-hidden="true">
+									<svg viewBox="0 0 250 155" fill="#52524a">
+										<title>Trellis workflow illustration</title>
+										<defs>
+											<pattern id="feature-grid-1" width="22" height="22" patternUnits="userSpaceOnUse">
+												<path d="M22 0H0V22" fill="none" stroke="#c9c9ba" stroke-width=".5" />
+											</pattern>
+										</defs>
+										<rect width="250" height="155" fill="url(#feature-grid-1)" opacity=".45" />
+										<g transform="translate(1 11) rotate(-7 125 77)" font-family="JetBrains Mono,monospace">
+											<path d="M26 128v4h188v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="26" y="17" width="188" height="111" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="35" y="34" font-size="9" fill="#52524a">Agent session · ACM-12</text>
+											<path d="M27 43h186" stroke="#cdcdc0" />
+											<text x="38" y="61" font-size="8">› Add the email endpoint.</text>
+											<path d="M39 73h148M39 79h119" stroke="#bdbdb1" />
+											<rect x="38" y="92" width="162" height="23" fill="#cee5dc" />
+											<text x="46" y="107" font-size="7">⑂ account/email.ts +18 −4</text>
+										</g>
+									</svg>
+								</div>
+								<div class="diagram-controls" role="group" aria-label="Explore sessions">
+									<button type="button" data-demo="1" data-state="0" aria-pressed="true">Conversation</button
+									><button type="button" data-demo="1" data-state="1" aria-pressed="false">Files</button>
+								</div>
+								<p class="diagram-detail" aria-live="polite">The session keeps the instructions with the assignment.</p>
+							</article>
+							<article class="capability corner-frame">
+								<h3>Diffs & reviews</h3>
+								<p>Connect the pull request, checks, explanation, evidence, and findings.</p>
+								<div class="mini-diagram" aria-hidden="true">
+									<svg viewBox="0 0 250 155" fill="#52524a">
+										<title>Trellis workflow illustration</title>
+										<defs>
+											<pattern id="feature-grid-2" width="22" height="22" patternUnits="userSpaceOnUse">
+												<path d="M22 0H0V22" fill="none" stroke="#c9c9ba" stroke-width=".5" />
+											</pattern>
+										</defs>
+										<rect width="250" height="155" fill="url(#feature-grid-2)" opacity=".45" />
+										<g transform="translate(1 11) rotate(-7 125 77)" font-family="JetBrains Mono,monospace">
+											<path d="M25 130v4h188v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="25" y="18" width="188" height="112" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="34" y="35" font-size="9" fill="#52524a">account/email.ts</text>
+											<path d="M26 43h186" stroke="#cdcdc0" />
+											<rect x="26" y="56" width="186" height="18" fill="#e7efd8" />
+											<rect x="26" y="75" width="186" height="18" fill="#e7efd8" />
+											<g font-size="7">
+												<text x="37" y="53">12 const email = input.email.trim();</text>
+												<text x="37" y="68">13 + if (!email) {</text>
+												<text x="37" y="87">14 + return invalid();</text>
+												<text x="37" y="108">15 + }</text>
+											</g>
+										</g>
+									</svg>
+								</div>
+								<div class="diagram-controls" role="group" aria-label="Explore diffs">
+									<button type="button" data-demo="2" data-state="0" aria-pressed="true">Before</button
+									><button type="button" data-demo="2" data-state="1" aria-pressed="false">After</button>
+								</div>
+								<p class="diagram-detail" aria-live="polite">Inspect the code before and after the proposed change.</p>
+							</article>
+							<article class="capability corner-frame">
+								<h3>Review flows</h3>
+								<p>Give agents separate review responsibilities. Inspect each result.</p>
+								<div class="mini-diagram" aria-hidden="true">
+									<svg viewBox="0 0 250 155" fill="#52524a">
+										<title>Trellis workflow illustration</title>
+										<defs>
+											<pattern id="feature-grid-3" width="22" height="22" patternUnits="userSpaceOnUse">
+												<path d="M22 0H0V22" fill="none" stroke="#c9c9ba" stroke-width=".5" />
+											</pattern>
+										</defs>
+										<rect width="250" height="155" fill="url(#feature-grid-3)" opacity=".45" />
+										<g transform="translate(1 11) rotate(-7 125 77)" font-family="JetBrains Mono,monospace">
+											<path d="M48 41h66v63h70M114 41v-3h70" stroke="#98988a" fill="none" />
+											<path d="M16 54v4h65v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="16" y="26" width="65" height="28" fill="#cee5dc" stroke="#a6a69a" />
+											<text x="25" y="43" font-size="9" fill="#52524a">Diff #42</text>
+											<path d="M139 52v4h91v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="139" y="17" width="91" height="35" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="148" y="34" font-size="9" fill="#52524a">Correctness</text>
+											<text x="148" y="48" font-size="7" fill="#87877b">Complete ✓</text>
+											<path d="M139 118v4h91v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="139" y="83" width="91" height="35" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="148" y="100" font-size="9" fill="#52524a">Test coverage</text>
+											<text x="148" y="114" font-size="7" fill="#87877b">1 finding</text>
+											<circle cx="114" cy="41" r="3" fill="#237d70" />
+										</g>
+									</svg>
+								</div>
+								<div class="diagram-controls" role="group" aria-label="Explore reviews">
+									<button type="button" data-demo="3" data-state="0" aria-pressed="true">Correctness</button
+									><button type="button" data-demo="3" data-state="1" aria-pressed="false">Coverage</button>
+								</div>
+								<p class="diagram-detail" aria-live="polite">Each reviewer has a separate responsibility.</p>
+							</article>
+							<article class="capability corner-frame">
+								<h3>Notes & resources</h3>
+								<p>Keep shared facts, documents, and files with the work.</p>
+								<div class="mini-diagram" aria-hidden="true">
+									<svg viewBox="0 0 250 155" fill="#52524a">
+										<title>Trellis workflow illustration</title>
+										<defs>
+											<pattern id="feature-grid-4" width="22" height="22" patternUnits="userSpaceOnUse">
+												<path d="M22 0H0V22" fill="none" stroke="#c9c9ba" stroke-width=".5" />
+											</pattern>
+										</defs>
+										<rect width="250" height="155" fill="url(#feature-grid-4)" opacity=".45" />
+										<g transform="translate(1 11) rotate(-7 125 77)" font-family="JetBrains Mono,monospace">
+											<path d="M32 122v4h162v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="32" y="14" width="162" height="108" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="41" y="31" font-size="9" fill="#52524a">Project notes</text>
+											<path d="M44 47h112M44 54h128M44 61h98" stroke="#c3c3b6" />
+											<path d="M59 129v4h162v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="59" y="76" width="162" height="53" fill="#cee5dc" stroke="#a6a69a" />
+											<text x="68" y="93" font-size="9" fill="#52524a">API contract</text>
+											<text x="68" y="107" font-size="7" fill="#87877b">Resource attached to epic</text>
+											<path d="M72 112h113" stroke="#8aaea2" />
+										</g>
+									</svg>
+								</div>
+								<div class="diagram-controls" role="group" aria-label="Explore resources">
+									<button type="button" data-demo="4" data-state="0" aria-pressed="true">Project note</button
+									><button type="button" data-demo="4" data-state="1" aria-pressed="false">API contract</button>
+								</div>
+								<p class="diagram-detail" aria-live="polite">Shared context stays close to the work.</p>
+							</article>
+							<article class="capability corner-frame">
+								<h3>Pages</h3>
+								<p>Publish HTML artifacts. Keep the page link and its version history.</p>
+								<div class="mini-diagram" aria-hidden="true">
+									<svg viewBox="0 0 250 155" fill="#52524a">
+										<title>Trellis workflow illustration</title>
+										<defs>
+											<pattern id="feature-grid-5" width="22" height="22" patternUnits="userSpaceOnUse">
+												<path d="M22 0H0V22" fill="none" stroke="#c9c9ba" stroke-width=".5" />
+											</pattern>
+										</defs>
+										<rect width="250" height="155" fill="url(#feature-grid-5)" opacity=".45" />
+										<g transform="translate(1 11) rotate(-7 125 77)" font-family="JetBrains Mono,monospace">
+											<path d="M24 107v4h166v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="24" y="18" width="166" height="89" fill="#fafaf5" stroke="#a6a69a" />
+											<text x="33" y="35" font-size="9" fill="#52524a">Page / workflow</text>
+											<path d="M25 42h165" stroke="#c3c3b6" />
+											<rect x="36" y="53" width="61" height="8" fill="#acd9c9" />
+											<path d="M36 72h126M36 79h98" stroke="#c3c3b6" />
+											<path d="M109 128v4h113v-4" fill="#e2e2d8" stroke="#b6b6aa" />
+											<rect x="109" y="85" width="113" height="43" fill="#cee5dc" stroke="#a6a69a" />
+											<text x="118" y="102" font-size="9" fill="#52524a">v1 → v2</text>
+											<text x="118" y="116" font-size="7" fill="#87877b">Same page link</text>
+										</g>
+									</svg>
+								</div>
+								<div class="diagram-controls" role="group" aria-label="Explore pages">
+									<button type="button" data-demo="5" data-state="0" aria-pressed="true">Version 1</button
+									><button type="button" data-demo="5" data-state="1" aria-pressed="false">Version 2</button>
+								</div>
+								<p class="diagram-detail" aria-live="polite">One page link can hold more than one version.</p>
+							</article>
+						</div>
+					</section>
+					<section class="feature-section shell" id="assignment" aria-labelledby="assignment-title">
+						<div class="section-heading">
+							<div class="eyebrow">THE ASSIGNMENT</div>
+							<h2 id="assignment-title">Good work starts with <mark>a clear task.</mark></h2>
+							<p>
+								Define the result, the files, and the checks. Attach the context.<br class="desktop-break">
+								The next agent starts with the task you actually assigned.
+							</p>
+						</div>
+						<div class="assignment-grid">
+							<div class="ticket-document corner-frame">
+								<div class="document-top"><span class="status-dot purple"></span> ACM-12 <span>FOUNDATION</span></div>
+								<h3>Add the email endpoint</h3>
+								<p class="document-lead">Let a person update the email on their account.</p>
+								<div class="contract-row">
+									<span>RESULT</span>
+									<p>Save a valid address.<br>Reject a blank address.</p>
+								</div>
+								<div class="contract-row">
+									<span>FILES</span>
+									<p><code>account/email.ts</code><br><code>account/email.test.ts</code></p>
+								</div>
+								<div class="contract-row">
+									<span>VERIFY</span>
+									<p><code>npm run test:account</code></p>
+								</div>
+								<div class="document-footer">
+									<span class="mini-avatar">A</span>Assigned agent<span class="tag">Review</span>
+								</div>
+							</div>
+							<div class="assignment-copy">
+								<article>
+									<div class="feature-number">a.</div>
+									<div>
+										<h3>A goal with a plan.</h3>
+										<p>
+											Group related tickets into epics and waves. Set dependencies when one task needs another task’s
+											result.
+										</p>
+									</div>
+								</article>
+								<article>
+									<div class="feature-number">b.</div>
+									<div>
+										<h3>Context that stays close.</h3>
+										<p>
+											Keep shared facts in project notes. Attach documents and files as resources. Publish HTML in Pages
+											with version history.
+										</p>
+									</div>
+								</article>
+								<article>
+									<div class="feature-number">c.</div>
+									<div>
+										<h3>A place for each agent.</h3>
+										<p>
+											The assignment identifies the work. The session keeps the conversation and workspace, even when
+											the agent stops.
+										</p>
+									</div>
+								</article>
+							</div>
+						</div>
+					</section>
+
+					<section class="review-section shell" id="review" aria-labelledby="review-title">
+						<div class="section-heading">
+							<div class="eyebrow">THE REVIEW</div>
+							<h2 id="review-title">The code is only <mark>part of the result.</mark></h2>
+							<p>
+								Read what changed, how it was tested, and what still needs attention.<br class="desktop-break">
+								Keep the explanation, evidence, and findings with the diff.
+							</p>
+						</div>
+						<div class="review-workbench corner-frame">
+							<div class="review-workbench-top">
+								<div>
+									<span class="merge-icon" aria-hidden="true">⑂</span><strong>Add the email endpoint</strong
+									><span class="quiet">acme/app#42</span>
+								</div>
+								<span class="review-gap">1 open finding</span>
+							</div>
+							<div class="review-workbench-body">
+								<div class="review-flow">
+									<span class="sidebar-label">EXAMPLE REVIEW FLOW</span>
+									<div class="flow-node">
+										<span class="flow-icon">01</span>
+										<div><strong>Correctness</strong><small>Checks behavior and edge cases</small></div>
+										<span class="flow-status" role="img" aria-label="Complete">✓</span>
+									</div>
+									<div class="flow-node">
+										<span class="flow-icon">02</span>
+										<div><strong>Security</strong><small>Checks access and input boundaries</small></div>
+										<span class="flow-status" role="img" aria-label="Complete">✓</span>
+									</div>
+									<div class="flow-node">
+										<span class="flow-icon">03</span>
+										<div><strong>Test coverage</strong><small>Checks what the tests prove</small></div>
+										<span class="flow-status warn" role="img" aria-label="One finding">1</span>
+									</div>
+									<p>Each agent has a defined responsibility.<br>Trellis records its result and findings.</p>
+								</div>
+								<div class="review-detail" id="finding">
+									<div class="review-detail-tabs" role="tablist" aria-label="Inspect review material">
+										<button
+											type="button"
+											id="tab-finding"
+											role="tab"
+											aria-selected="true"
+											aria-controls="panel-finding"
+										>
+											Finding <span>1</span>
+										</button><button
+											type="button"
+											id="tab-evidence"
+											role="tab"
+											aria-selected="false"
+											aria-controls="panel-evidence"
+											tabindex="-1"
+										>
+											Evidence
+										</button>
+									</div>
+									<div id="panel-finding" role="tabpanel" aria-labelledby="tab-finding" tabindex="0">
+										<div class="finding-path">account/email.test.ts <span>line 24</span></div>
+										<div class="finding-author">
+											<span class="reviewer-avatar">T</span>
+											<div><strong>Test coverage</strong><small>Review agent</small></div>
+											<span class="unresolved">Open</span>
+										</div>
+										<h3>Cover an address with only spaces.</h3>
+										<p>
+											The test checks an empty string. Add a case with spaces to verify that the endpoint rejects the
+											value after it trims it.
+										</p>
+										<div class="finding-end">
+											<span class="status-dot orange"></span>
+											The finding stays open until addressed.
+										</div>
+									</div>
+									<div id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" tabindex="0" hidden>
+										<div class="evidence-label">TEST EVIDENCE</div>
+										<h3>Account endpoint tests</h3>
+										<div class="evidence-command"><code>$ npm run test:account</code></div>
+										<div class="evidence-result">
+											<span>✓</span>
+											<div><strong>12 tests passed</strong><small>Fictional result for this example</small></div>
+										</div>
+										<p>
+											Tests cover a valid address, a blank value, and account access. The open finding identifies the
+											missing spaces-only case.
+										</p>
+									</div>
+								</div>
+							</div>
+							<div class="review-workbench-foot">
+								<span>CI passed</span><span>Review flow complete</span
+								><span class="open-finding">1 finding unresolved</span><strong>You decide what ships.</strong>
+							</div>
+						</div>
+						<div class="review-principles">
+							<p><strong>A run can finish.</strong><br>A finding can still remain.</p>
+							<p><strong>A diff can request review.</strong><br>Its checks can still be pending.</p>
+							<p><strong>States stay distinct.</strong><br>The remaining gaps stay visible.</p>
+						</div>
+					</section>
+					<section class="cli-section shell" id="cli" aria-labelledby="cli-title">
+						<div class="cli-copy">
+							<div class="eyebrow">THE COMMAND LINE</div>
+							<h2 id="cli-title">The same context.<br>From your terminal.</h2>
+							<p>Read a ticket, find its agent, or check a diff.<br>The CLI works with the same project records.</p>
+							<span class="cli-footnote">Actual CLI syntax. Fictional ticket and repository.</span>
+						</div>
+						<div class="terminal corner-frame">
+							<div class="terminal-header">
+								<span class="terminal-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>trellis / CLI</span>
+							</div>
+							<div class="terminal-content">
+								<p>Read the task and its context</p>
+								<code><b>$</b> trellis ticket brief <span>ACM-12</span></code>
+								<p>Find the assigned agent</p>
+								<code><b>$</b> trellis agent list <span>--ticket ACM-12</span></code>
+								<p>Inspect the gaps before review</p>
+								<code><b>$</b> trellis diff check <span>acme/app#42</span></code>
+							</div>
+						</div>
+					</section>
+					<section class="questions-section shell" id="questions" aria-labelledby="questions-title">
+						<div>
+							<div class="eyebrow">A FEW DETAILS</div>
+							<h2 id="questions-title">Questions &amp;<br>answers</h2>
+						</div>
+						<div class="questions">
+							<details>
+								<summary>What is Trellis?<span aria-hidden="true">+</span></summary>
+								<p>
+									Trellis is an app for people who work with coding agents. It connects projects, tickets, agent
+									sessions, worktrees, diffs, and reviews.
+								</p>
+							</details>
+							<details>
+								<summary>Can I start without a ticket?<span aria-hidden="true">+</span></summary>
+								<p>
+									Yes. A session can exist without a project or ticket. Its conversation and workspace remain when the
+									agent stops.
+								</p>
+							</details>
+							<details>
+								<summary>How does Trellis use GitHub?<span aria-hidden="true">+</span></summary>
+								<p>
+									Trellis represents a GitHub pull request as a diff. Link it to a ticket to track checks, review
+									findings, an explanation, and evidence.
+								</p>
+							</details>
+							<details>
+								<summary>What is a review flow?<span aria-hidden="true">+</span></summary>
+								<p>
+									A flow connects agents with defined responsibilities. A review flow can assign separate agents to
+									correctness, security, and test coverage. Trellis records their results and findings.
+								</p>
+							</details>
+							<details>
+								<summary>Does a wave start agents automatically?<span aria-hidden="true">+</span></summary>
+								<p>
+									A wave groups tickets in the plan. Wave order does not start agents or enforce dependencies. You
+									assign the work.
+								</p>
+							</details>
+						</div>
+					</section>
+					<section class="closing shell">
+						<div class="closing-mark" aria-hidden="true"><img src="mark-bare.svg" alt=""></div>
+						<div>
+							<h2><mark>The whole task.</mark><br>In one place.</h2>
+							<p>Take a task from its assignment to its review.</p>
+						</div>
+						<a class="button" href="guide.html">Read the workflow guide <span aria-hidden="true">↗</span></a>
+					</section>
+				</main>
+				<footer class="footer shell">
+					<a class="brand" href="#top" aria-label="Trellis home"
+						><img src="mark-bare.svg" alt="">
+						<svg class="wordmark" viewBox="0 0 128 32" aria-hidden="true">
+							<title>Trellis workflow illustration</title>
+							<g fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="square" stroke-linejoin="round">
+								<path d="M8 5v17q0 5 6 4M2 12h14" />
+								<path d="M24 27V12m0 6q0-7 9-6" />
+								<path d="M57 23q-3 5-9 4q-8-1-8-8q0-8 8-8q9 0 9 9H40" />
+								<path d="M67 4v19q0 4 4 4M81 4v19q0 4 4 4M95 12v15" />
+								<path d="M122 13q-4-3-9-1q-7 4 1 7l5 1q7 3 2 6q-5 3-12-1" />
+							</g>
+							<path d="m95 1 3.2 3.2L95 7.4l-3.2-3.2Z" fill="currentColor" />
+						</svg></a
+					><span>A workspace for agent work.</span>
+					<div><a href="#workspace">Workspace</a><a href="guide.html">Workflow guide</a><a href="#cli">CLI</a></div>
+					<small>Website concept · Illustrative product views · Fictional data</small>
+				</footer>
+			</div>
+			<aside class="contents-rail" aria-label="On this page">
+				<div class="rail-sticky">
+					<h2>On this page</h2>
+					<nav>
+						<a href="#overview" aria-current="location">Overview</a><a href="#workspace">The workspace</a
+						><a href="#sessions">Connected work</a><a href="#capabilities">Platform features</a
+						><a href="#assignment">A clear assignment</a><a href="#review">Review the result</a
+						><a href="#cli">The CLI</a><a href="#questions">Questions &amp; answers</a>
+					</nav>
+					<a class="rail-guide" href="guide.html">Workflow guide <span>↗</span></a>
+				</div>
+			</aside>
+		</div>
+		<dialog id="ticket-dialog" aria-labelledby="dialog-title">
+			<div class="dialog-head">
+				<span id="dialog-id">ACM-12</span><button type="button" id="close-dialog" aria-label="Close ticket">×</button>
+			</div>
+			<div class="dialog-body">
+				<span class="eyebrow">EXAMPLE TICKET</span>
+				<h2 id="dialog-title">Add the email endpoint</h2>
+				<p id="dialog-description"></p>
+				<dl id="dialog-meta"></dl>
+				<button type="button" class="button" id="dialog-session">
+					Explore this session <span aria-hidden="true">→</span>
+				</button>
+				<p class="dialog-note">Fictional example. This website does not start an agent.</p>
+			</div>
+		</dialog>
+		<script src="vendor/three.min.js"></script>
+		<script src="vendor/motion.js"></script>
+		<script type="module" src="app.js"></script>
+	</body>
+</html>
