@@ -8,6 +8,7 @@ import { protocolDigest } from "../../langflowContracts";
 import { ExecutionAuthority, type RenewalInput, type TakeoverInput } from "../authority";
 import type { LiveOwnership, SidecarIdentity, SupervisorDependencies } from "../contracts";
 import { PrivateState } from "../privateState";
+import { authenticateEngine } from "./components/authenticateEngine";
 
 export class LangflowSupervisor {
 	private busy = false;
@@ -66,6 +67,17 @@ export class LangflowSupervisor {
 
 	async withHealthyEngine<T>(operation: (observation: LiveOwnership) => Promise<T>) {
 		return this.exclusive(async () => operation(await this.live()));
+	}
+
+	async withAuthenticatedEngine<T>(
+		authorization: string | null,
+		operation: (observation: LiveOwnership) => Promise<T>,
+	) {
+		return this.exclusive(async () => {
+			if (!this.identity) throw new Error("sidecar_unavailable");
+			await authenticateEngine(this.state.authenticationFile(this.identity), authorization);
+			return operation(await this.live());
+		});
 	}
 
 	async renew(input: RenewalInput) {
