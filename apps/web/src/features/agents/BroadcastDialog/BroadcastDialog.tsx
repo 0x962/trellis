@@ -132,7 +132,6 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 							ref={message}
 							label="Message"
 							rows={6}
-							maxLength={20000}
 							value={text}
 							onChange={(event) => setText(event.target.value)}
 						/>
