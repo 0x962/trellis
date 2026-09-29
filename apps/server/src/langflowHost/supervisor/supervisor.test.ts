@@ -122,7 +122,11 @@ test("a direct macOS or unverified package cannot acquire the home", async () =>
 	try {
 		for (const candidate of [
 			{ ...manifest, qualification: "candidate" },
-			{ ...manifest, target: { kind: "darwin", architecture: "arm64", minimumVersion: "26" } },
+			{
+				...manifest,
+				health: { ...manifest.health, path: "/health_check" },
+				target: { kind: "darwin", architecture: "arm64", minimumVersion: "26" },
+			},
 		]) {
 			await expect(
 				LangflowSupervisor.open({
