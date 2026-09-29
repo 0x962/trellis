@@ -21,10 +21,8 @@ type Props = {
 	onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
 };
 
-// One tab of the strip. A pinned tab is narrow and draws no close button, so
-// a slip of the pointer cannot close it. Its full name reaches a reader
-// through the accessible name and the tooltip. The menu, the Delete key, and
-// the middle button of a normal tab close a tab.
+// One tab of the strip. Pinned tabs require deliberate closure to prevent
+// accidental clicks in the narrow tab area.
 export function PageTab({
 	tab,
 	index,
@@ -53,8 +51,7 @@ export function PageTab({
 		<div
 			role="presentation"
 			className={cx(
-				"group flex h-9 items-center rounded-t-lg border-x border-t max-sm:h-11 pointer-coarse:h-11",
-				tab.pinned ? "relative w-24 shrink-0" : "absolute top-0 left-0",
+				"group absolute top-0 left-0 flex h-9 items-center rounded-t-lg border-x border-t max-sm:h-11 pointer-coarse:h-11",
 				active ? "z-10 border-border bg-bg text-fg" : "border-transparent text-fg-muted hover:bg-fg/6 hover:text-fg",
 				separator && "after:absolute after:right-0 after:top-2.5 after:h-4 after:w-px after:bg-border",
 			)}
