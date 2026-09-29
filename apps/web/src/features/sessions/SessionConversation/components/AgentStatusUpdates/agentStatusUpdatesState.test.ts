@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { generateOperationKey } from "@orpc/tanstack-query";
-import { QueryClient, InfiniteQueryObserver } from "@tanstack/react-query";
+import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
 import { type AgentRun, createEventApplier } from "@trellis/api";
 import type { LinkPress, SessionUpdates } from "@trellis/ui";
 import type { Orpc } from "../../../../../lib/orpc";

@@ -36,6 +36,15 @@ export function runChecks(add: () => void) {
 	assert(document.activeElement === tree.firstElementChild, "Home reaches first day");
 	flushSync(() => row("update-0").click());
 	const viewport = tree.closest<HTMLElement>(".overflow-auto")!;
+	assert(
+		viewport.scrollHeight > viewport.clientHeight && viewport.clientHeight <= 520,
+		"Long content stays in the scroll pane",
+	);
+	const selectedHead = row("update-0").querySelector("[data-row-head]")!;
+	assert(
+		selectedHead.getBoundingClientRect().top >= document.querySelector(".sticky")!.getBoundingClientRect().bottom,
+		"Keyboard target clears the sticky header",
+	);
 	viewport.scrollTop = 180;
 	const oldTop = row("update-0").getBoundingClientRect().top;
 	const oldFocus = document.activeElement;

@@ -1,12 +1,12 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { ServiceCtx } from "../../../context";
 import { lockExecution } from "../../../db/queries/langflowExecution/executions";
 import { recordCompletion, updateNativeHandle } from "../../../db/queries/langflowExecution/native";
-import { rows } from "../../../db/queries/support";
 import { langflowCompletions } from "../../../db/tables/langflowExecution";
 import type { Tx } from "../../../db/tx";
 import { NativeHandleV1Schema } from "../../../langflowContracts";
+import { recordAttemptObservation } from "../../agentRuns";
 import { readReservation } from "../readReservation";
 import { observedCompletion } from "./components/observedCompletion";
 
@@ -31,6 +31,13 @@ export async function recordNativeObservation(
 	const reserved = await readReservation(tx, input);
 	const runtime = input.runtime;
 	if (runtime.id !== reserved.attemptId) throw new Error("native_attempt_conflict");
+	const sessionId = runtime.agent?.sessionId ?? null;
+	if (
+		reserved.handle.providerSessionId !== null &&
+		sessionId !== null &&
+		reserved.handle.providerSessionId !== sessionId
+	)
+		throw new Error("native_session_conflict");
 	const [prior] = await tx.select().from(langflowCompletions).where(eq(langflowCompletions.stepId, reserved.stepId));
 	if (prior) {
 		if (
@@ -40,20 +47,12 @@ export async function recordNativeObservation(
 			throw new Error("identity_conflict");
 		return { handle: reserved.handle, completion: prior, reason: null };
 	}
-	const sessionId = runtime.agent?.sessionId ?? null;
-	if (
-		reserved.handle.providerSessionId !== null &&
-		sessionId !== null &&
-		reserved.handle.providerSessionId !== sessionId
-	)
-		throw new Error("native_session_conflict");
-	const [run] = await rows<{ id: string; terminalId: string; sessionId: string | null; workspacePath: string | null }>(
-		tx,
-		sql`UPDATE agent_runs SET session_id=COALESCE(session_id,${sessionId})
-		WHERE id=${reserved.agentRunId} AND terminal_id=${reserved.attemptId}
-		AND (${sessionId}::text IS NULL OR session_id IS NULL OR session_id=${sessionId})
-		RETURNING id,terminal_id AS "terminalId",session_id AS "sessionId",workspace_id AS "workspacePath"`,
-	);
+
+	const run = await recordAttemptObservation(ctx, tx, {
+		runId: reserved.agentRunId,
+		attemptId: reserved.attemptId,
+		sessionId,
+	});
 	if (!run) throw new Error("native_attempt_conflict");
 	// agent_runs retains the local path. The protocol uses the stable run identity to reference that workspace.
 	const workspaceId = run.workspacePath === null ? null : `workspace:${run.id}`;

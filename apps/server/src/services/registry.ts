@@ -80,7 +80,7 @@ import * as statuses from "./statuses.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } from "./systemUsage";
-import * as tickets from "./tickets.ts";
+import { ticketServices } from "./tickets/registry";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
@@ -210,21 +210,7 @@ export const services = {
 	"statuses.update": core("mutation", statuses.update),
 	"statuses.reorder": core("mutation", statuses.reorder),
 	"statuses.delete": core("mutation", statuses.delete),
-	"tickets.list": core("read", tickets.list),
-	"tickets.counts": core("read", tickets.counts),
-	"tickets.board": core("read", tickets.board),
-	"tickets.get": core("read", tickets.get),
-	"tickets.create": core("mutation", tickets.create),
-	"tickets.update": core("mutation", tickets.update),
-	"tickets.move": core("mutation", tickets.move),
-	"tickets.updateMany": core("mutation", tickets.updateMany),
-	"tickets.deleteMany": core("mutation", tickets.deleteMany),
-	"tickets.delete": core("mutation", tickets.delete),
-	"tickets.importContract": core("mutation", tickets.importContract),
-	"tickets.importDependencies": core("mutation", tickets.importDependencies),
-	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
-	"tickets.setContract": core("mutation", tickets.setContract),
-	"tickets.setOutcome": core("mutation", tickets.setOutcome),
+	...ticketServices,
 	"timeline.list": core("read", timeline.list),
 	"statistics.get": prepared("read", statistics.prepare, statistics.get),
 	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),

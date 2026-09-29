@@ -51,12 +51,14 @@ export type SidecarDriver = {
 };
 
 export type OwnershipSnapshot = {
+	canceled: boolean;
 	authority: DeliveryAuthorityV1;
 	admission: AdmissionStateV1;
 };
 
 export type AuthorityCommit = {
 	requestBytes: string;
+	authorityBytes: string;
 	receipt: RenewalReceiptV1 | TakeoverReceiptV1;
 	observation: LiveOwnership;
 	revocation: OwnerRevocation | null;

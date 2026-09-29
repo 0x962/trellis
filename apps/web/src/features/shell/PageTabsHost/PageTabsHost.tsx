@@ -2,6 +2,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { type PageTabItem, PageTabs } from "@trellis/ui";
 import { useCallback, useEffect, useMemo } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import type { DesktopBridge } from "../../../lib/desktopBridge";
 import {
 	type PageTab,
 	pageTabsActions,
@@ -9,12 +10,18 @@ import {
 	pageTabsUiProjection,
 	usePageTabsStore,
 } from "../../../stores/pageTabsStore";
+import { onPageTabCommand, type PageTabCommand } from "../../command/pageTabCommands";
 import { pageTabTitle } from "./pageTabTitle";
 
 const pageTabItemsEqual = (left: readonly PageTab[], right: readonly PageTab[]) =>
 	left === right ||
 	(left.length === right.length &&
-		left.every((tab, index) => tab.id === right[index]!.id && tab.title === right[index]!.title));
+		left.every(
+			(tab, index) =>
+				tab.id === right[index]!.id &&
+				tab.title === right[index]!.title &&
+				tab.customTitle === right[index]!.customTitle,
+		));
 
 const activeTab = () => {
 	const state = usePageTabsStore.getState();
@@ -75,6 +82,36 @@ export function PageTabsHost() {
 	);
 
 	useEffect(() => {
+		const execute = (command: PageTabCommand) => {
+			const state = usePageTabsStore.getState();
+			switch (command) {
+				case "new":
+					state.addTab({ url: "/needs-you", title: "Needs you" });
+					break;
+				case "close":
+					state.closeTab(state.activeId);
+					break;
+				case "reopen":
+					if (state.closedTabs.length === 0) return;
+					state.reopenClosedTab();
+					break;
+				case "next":
+				case "previous":
+					state.selectAdjacentTab(command === "next" ? 1 : -1);
+					break;
+			}
+			showActiveTab(true);
+		};
+		const unsubscribe = onPageTabCommand(execute);
+		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+		const unsubscribeDesktop = desktop?.onTabCommand?.(execute);
+		return () => {
+			unsubscribe();
+			unsubscribeDesktop?.();
+		};
+	}, [showActiveTab]);
+
+	useEffect(() => {
 		const saveTitle = () => {
 			if (activeTab().url === resolvedHref) pageTabsActions.setTitle(pageTabTitle(document.title));
 		};
@@ -85,6 +122,14 @@ export function PageTabsHost() {
 	}, [resolvedHref]);
 
 	return (
-		<PageTabs tabs={pageTabsView.tabs} activeId={pageTabsView.activeId} onAdd={add} onSelect={select} onClose={close} />
+		<PageTabs
+			tabs={pageTabsView.tabs}
+			activeId={pageTabsView.activeId}
+			onAdd={add}
+			onSelect={select}
+			onClose={close}
+			onMove={pageTabsActions.moveTab}
+			onRename={pageTabsActions.renameTab}
+		/>
 	);
 }
