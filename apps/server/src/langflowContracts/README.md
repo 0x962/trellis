@@ -36,6 +36,9 @@ An equal duplicate returns the saved receipt without another effect.
 | Native result | completionId; also exact attemptId and resultId/resultVersion | Original NativeResultV1 bytes |
 | Human decision | decisionId; also engineJobId and engineRequestId | Original HumanDecisionReceiptV1 bytes |
 | Engine acceptance | decisionId | Same payloadDigest and human wait |
+| Review classification | executionId and classificationRequestId | Canonical saved gates and review input |
+| Review visit | engineJobId and engineRequestId | Original ReviewClassificationVisitV1 bytes |
+| Review acceptance | engineJobId and engineRequestId | Exact terminal result and review wait |
 | Ownership transfer | executionId, requestId | Original TakeoverRequestV1 bytes |
 | Source event | engineJobId, sourceEventId | Original SourceEventV1 bytes |
 
@@ -110,6 +113,26 @@ Only `accepted` with the exact decision, digest, job, and request confirms deliv
 An upstream HTTP 409 does not confirm acceptance.
 `recorded`, `pending`, and `unknown` retain null acceptance.
 Expiry and engine restart never approve a human request.
+
+## Review classification
+
+`ReviewClassificationRequestV1` contains the canonical classification input for one engine job.
+The host reconstructs its sorted gate list from the retained publication snapshot.
+The engine sends only the digest of those bytes.
+An engine gate list cannot authorize a classification.
+
+`ReviewClassificationVisitV1` identifies one engine occurrence that needs the shared result.
+`ReviewWaitV1` binds that visit to its action, review area, and deadline references.
+The original engine epoch remains in the visit after a takeover.
+
+A claimed result keeps the review wait pending and releases the worker.
+Only a succeeded or failed result can enter `ReviewClassificationDeliveryV1`.
+The delivery requires `classification.deliver` authority for the exact job and publication.
+
+The engine stores the exact result bytes, a RESUME signal, and a queue obligation in one transaction.
+Concurrent review gates rerun through the same Langflow continuation after a result arrives.
+Each rerun receives a result bound to its visit and the same classification receipt.
+The saved classification prevents another provider call after restart or a lost response.
 
 ## Execution ownership
 
