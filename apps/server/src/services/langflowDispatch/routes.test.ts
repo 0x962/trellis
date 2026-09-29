@@ -3,6 +3,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ResponseHeadersPlugin } from "@orpc/server/plugins";
 import { FlowDocumentV1Schema, FlowExecutionViewV1Schema } from "@trellis/api";
+import { sql } from "drizzle-orm";
 import type { ServiceTransport } from "../../db/transport.ts";
 import type { GhAccess } from "../../ghState.ts";
 import { type ProcedureContext, router } from "../../procedures/index.ts";
@@ -60,12 +61,26 @@ test("the shared HTTP router calls the registered document and immutable executi
 	const index = await request("/flow-executions/index-v1?limit=501");
 	expect(index.status).toBe(200);
 	expect(await index.json()).toEqual([
-		{ id: h.view.id, engine: "langflow" },
-		{ id: h.legacy.id, engine: "legacy" },
+		{ id: h.view.id, engine: "langflow", flowId: h.view.flowId, status: h.view.status, pendingSubmission: false },
+		{
+			id: h.legacy.id,
+			engine: "legacy",
+			flowId: h.legacy.flowId,
+			status: h.legacy.state.status,
+			pendingSubmission: false,
+		},
 	]);
 	const next = await request("/flow-executions/index-v1?limit=501&offset=1");
 	expect(next.status).toBe(200);
-	expect(await next.json()).toEqual([{ id: h.legacy.id, engine: "legacy" }]);
+	expect(await next.json()).toEqual([
+		{
+			id: h.legacy.id,
+			engine: "legacy",
+			flowId: h.legacy.flowId,
+			status: h.legacy.state.status,
+			pendingSubmission: false,
+		},
+	]);
 	for (const query of [
 		"limit=0",
 		"limit=1.5",
@@ -169,5 +184,32 @@ test("the RPC handler rejects pagination types that are not integers or decimal 
 			true,
 		);
 		expect(response.status).toBe(200);
+	}
+});
+
+test("retained output requires the exact archived attempt and result", async () => {
+	const binding = {
+		executionId: h.legacy.id,
+		stepId: h.legacy.state.steps[0]!.actionKey!,
+		agentRunId: "00000000000000000000000042",
+		attemptId: "archived-attempt",
+		resultId: "archived-result",
+	};
+	await h.db.execute(sql`INSERT INTO flow_execution_tasks VALUES (
+		${binding.executionId}, ${binding.stepId}, ${binding.agentRunId}, ${binding.attemptId}, ${binding.resultId}, now()
+	)`);
+	for (const input of [
+		binding,
+		{ ...binding, attemptId: "another-attempt" },
+		{ ...binding, resultId: "another-result" },
+	]) {
+		const query = new URLSearchParams(input);
+		query.delete("executionId");
+		const response = await request(`/flow-executions/${input.executionId}/output-v1?${query}`);
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({
+			...input,
+			output: input === binding ? h.legacy.state.steps[0]!.output : null,
+		});
 	}
 });

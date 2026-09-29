@@ -1,0 +1,43 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/external_waits.py b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+--- a/src/backend/base/langflow/services/trellis_v1/external_waits.py
++++ b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+@@ -21,6 +21,12 @@
+     queueClaimed: bool
+ 
+ 
++class _CompletionEnvelope(TypedDict):
++    waitBytes: str
++    deliveryBytes: str
++    receiptBytes: str
++
++
+ class TrellisExternalWaitBroker:
+     """Keep exact completion bytes while Langflow retains graph ownership."""
+ 
+@@ -31,15 +37,23 @@
+     def completion_kind(wait_id: str) -> str:
+         return f"trellis-completion-v1:{wait_id}"
+ 
+-    async def receipt_for(self, graph: Graph, wait_bytes: str) -> str | None:
++    async def _completion_envelope(self, graph: Graph, wait_bytes: str) -> _CompletionEnvelope | None:
+         wait_id = json.loads(wait_bytes)["waitId"]
+         envelope_bytes = await self._jobs.load_checkpoint(UUID(graph.job_id), self.completion_kind(wait_id))
+         if envelope_bytes is None:
+             return None
+-        envelope = json.loads(envelope_bytes)
++        envelope: _CompletionEnvelope = json.loads(envelope_bytes)
+         if envelope["waitBytes"] != wait_bytes:
+             raise RuntimeError("external_wait_identity_conflict")
+-        return envelope["receiptBytes"]
++        return envelope
++
++    async def receipt_for(self, graph: Graph, wait_bytes: str) -> str | None:
++        envelope = await self._completion_envelope(graph, wait_bytes)
++        return None if envelope is None else envelope["receiptBytes"]
++
++    async def delivery_for(self, graph: Graph, wait_bytes: str) -> str | None:
++        envelope = await self._completion_envelope(graph, wait_bytes)
++        return None if envelope is None else envelope["deliveryBytes"]
+ 
+     async def save_completion(
+         self,

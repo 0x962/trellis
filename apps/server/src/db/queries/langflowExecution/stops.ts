@@ -64,9 +64,16 @@ export async function cancelExecution(tx: Tx, input: { intent: CancelIntentV1; o
 	const stops = await tx.select().from(langflowStops).where(eq(langflowStops.executionId, row.executionId));
 	if (native.some((handle) => !stops.some((stop) => stop.attemptId === handle.attemptId)))
 		throw new Error("missing_stop_obligation");
+	const admission =
+		row.admission.state === "closed" ? row.admission : { state: "closed" as const, barrierId: input.intent.requestId };
 	await tx
 		.update(langflowExecutions)
-		.set({ cancelIntent: input.intent, revision: row.revision + 1 })
+		.set({
+			cancelIntent: input.intent,
+			admission,
+			submission: { ...row.submission, admission, revision: row.submission.revision + 1 },
+			revision: row.revision + 1,
+		})
 		.where(eq(langflowExecutions.executionId, row.executionId));
 	await tx.insert(langflowOutbox).values({
 		id: input.intent.requestId,

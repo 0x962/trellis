@@ -1,10 +1,12 @@
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { protocolDigest } from "../../langflowContracts";
+import { type DeliveryAuthorityV1, DeliveryAuthorityV1Schema, protocolDigest } from "../../langflowContracts";
+import type { DispatchEffects } from "../dispatchEffects";
 import type { DispatchBlock, DispatchPermit, ReconciliationReceipt, TerminalReceipt } from "../dispatchGate";
-import { LangflowHostControl } from "../hostControl";
-import { ReceiptObjectStore } from "./objectStore/objectStore";
+import { type HostControlIdentity, LangflowHostControl } from "../hostControl";
+import { ReceiptObjectStore } from "../objectStore";
 import {
+	AuthorityArchiveSchema,
 	NativeSnapshotSchema,
 	ReconciliationArchiveSchema,
 	type ReconciliationSources,
@@ -13,17 +15,66 @@ import {
 	type ValidationSource,
 } from "./schema";
 
+type ArchiveControl = { identity: HostControlIdentity; gate: Pick<DispatchEffects, "read"> };
+
 export class DispatchReceiptArchive {
 	private constructor(
-		private readonly control: LangflowHostControl,
+		private readonly control: ArchiveControl,
 		private readonly objects: ReceiptObjectStore,
 	) {}
 
-	static open(control: LangflowHostControl) {
+	static open(control: ArchiveControl) {
 		return new DispatchReceiptArchive(
 			control,
 			new ReceiptObjectStore(join(LangflowHostControl.directory(control.identity.home), "receipts")),
 		);
+	}
+
+	writeAuthority(input: { authorityBytes: string; issuanceReceiptId: string }) {
+		const record = AuthorityArchiveSchema.parse({
+			kind: "authority",
+			dataHomeId: this.control.identity.dataHomeId,
+			...input,
+		});
+		this.authorityGrant(record);
+		const id = this.objects.write(JSON.stringify(record));
+		this.objects.bind(this.authorityKey(record), id);
+		this.objects.bind(this.capabilityKey(this.authorityGrant(record).authority.capabilityId), id);
+		return { id, ...this.authorityGrant(record) };
+	}
+
+	readAuthority(receiptId: string) {
+		const record = AuthorityArchiveSchema.parse(JSON.parse(this.objects.read(receiptId)));
+		if (this.objects.readBinding(this.authorityKey(record)) !== receiptId)
+			throw new Error("receipt_authority_not_issued");
+		return { id: receiptId, ...this.authorityGrant(record) };
+	}
+
+	readAuthorityBytes(authority: DeliveryAuthorityV1): string {
+		const receipt = this.readAuthority(this.objects.readBinding(this.capabilityKey(authority.capabilityId)));
+		if (!isDeepStrictEqual(receipt.authority, authority)) throw new Error("receipt_authority_binding_conflict");
+		return receipt.authorityBytes;
+	}
+
+	private capabilityKey(capabilityId: string) {
+		return JSON.stringify(["authority-capability", this.control.identity.dataHomeId, capabilityId]);
+	}
+
+	private authorityKey(record: ReturnType<typeof AuthorityArchiveSchema.parse>) {
+		return JSON.stringify(["authority", record.dataHomeId, record.issuanceReceiptId]);
+	}
+
+	private authorityGrant(record: ReturnType<typeof AuthorityArchiveSchema.parse>) {
+		const authority = DeliveryAuthorityV1Schema.parse(JSON.parse(record.authorityBytes));
+		if (record.dataHomeId !== this.control.identity.dataHomeId || authority.hostId !== this.control.identity.hostId) {
+			throw new Error("receipt_authority_home_mismatch");
+		}
+		return {
+			authority,
+			authorityBytes: record.authorityBytes,
+			authorityDigest: protocolDigest(record.authorityBytes),
+			issuanceReceiptId: record.issuanceReceiptId,
+		};
 	}
 
 	writeTerminal(input: {
@@ -78,7 +129,7 @@ export class DispatchReceiptArchive {
 
 	private assertPermit(permit: DispatchPermit) {
 		if (permit.dataHomeId !== this.control.identity.dataHomeId) throw new Error("receipt_home_mismatch");
-		const entry = this.control.gate.recoverPermit(permit.binding);
+		const entry = this.control.gate.read().permits.find((item) => item.permit.id === permit.id);
 		if (!entry || !isDeepStrictEqual(entry.permit, permit)) throw new Error("receipt_permit_unknown");
 	}
 

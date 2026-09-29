@@ -28,8 +28,7 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => withTx(db, fn).then(({ result }) 
 beforeAll(async () => {
 	const migrationsDir = join(import.meta.dir, "../../drizzle");
 	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8"));
-	const migrationIndex = journal.entries.findIndex((entry: { tag: string }) => entry.tag.endsWith("_ticket_titles"));
-	const entries = journal.entries.slice(0, migrationIndex);
+	const entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 138);
 	const directory = await mkdtemp(join(tmpdir(), "trellis-ticket-title-"));
 	await mkdir(join(directory, "meta"));
 	await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));

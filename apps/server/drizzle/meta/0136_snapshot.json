@@ -1,5 +1,5 @@
 {
-  "id": "0a9629f0-590c-453c-92f2-93c7535f7d79",
+  "id": "3c04ddf4-b68e-4857-ab43-933c49f8984b",
   "prevId": "9f26ff6c-5a23-4f7a-905a-c8506c623f6b",
   "version": "7",
   "dialect": "postgresql",
@@ -1531,7 +1531,7 @@
         },
         "tickets_title_check": {
           "name": "tickets_title_check",
-          "value": "\"tickets\".\"title\" = btrim(\"tickets\".\"title\") AND length(\"tickets\".\"title\") >= 1"
+          "value": "\"tickets\".\"title\" = btrim(\"tickets\".\"title\") AND length(\"tickets\".\"title\") BETWEEN 1 AND 500"
         },
         "tickets_files_check": {
           "name": "tickets_files_check",
@@ -8095,6 +8095,106 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.langflow_action_receipts": {
+      "name": "langflow_action_receipts",
+      "schema": "",
+      "columns": {
+        "permit_id": {
+          "name": "permit_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "effect_id": {
+          "name": "effect_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permit": {
+          "name": "permit",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_bytes": {
+          "name": "request_bytes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_digest": {
+          "name": "request_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "execution_id": {
+          "name": "execution_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_revision": {
+          "name": "view_revision",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receipt_id": {
+          "name": "receipt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_bytes": {
+          "name": "source_bytes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_digest": {
+          "name": "source_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "langflow_action_effect": {
+          "name": "langflow_action_effect",
+          "nullsNotDistinct": false,
+          "columns": [
+            "effect_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "langflow_action_request_digest": {
+          "name": "langflow_action_request_digest",
+          "value": "\"langflow_action_receipts\".\"request_digest\" = encode(sha256(convert_to(\"langflow_action_receipts\".\"request_bytes\", 'UTF8')), 'hex')"
+        },
+        "langflow_action_source_digest": {
+          "name": "langflow_action_source_digest",
+          "value": "\"langflow_action_receipts\".\"source_digest\" = encode(sha256(convert_to(\"langflow_action_receipts\".\"source_bytes\", 'UTF8')), 'hex')"
+        },
+        "langflow_action_permit_binding": {
+          "name": "langflow_action_permit_binding",
+          "value": "\"langflow_action_receipts\".\"permit\"->>'id' = \"langflow_action_receipts\".\"permit_id\" AND \"langflow_action_receipts\".\"permit\"->'binding'->>'effectId' = \"langflow_action_receipts\".\"effect_id\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.langflow_classifications": {
