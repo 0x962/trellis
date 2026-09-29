@@ -58,7 +58,7 @@ test("migration 0129 preserves published versions and removes their size ceiling
 		'existing search text', true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
 	)`);
 
-	expect(await migrate(db)).toBe(1);
+	expect(await migrate(db)).toBe(journal.entries.length - earlierEntries.length);
 	const existing = await db.execute(sql`SELECT request_id, document_size, search_text FROM page_versions
 		WHERE page_id = ${pageId} AND number = 1`);
 	expect(existing.rows).toEqual([{ request_id: requestId, document_size: 1, search_text: "existing search text" }]);
