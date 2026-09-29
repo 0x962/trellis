@@ -4,6 +4,7 @@ import { Button, FailureState, FlowDecisionContext, Textarea } from "@trellis/ui
 import { useMemo, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
 import { useFlowActionRequest } from "../../../../useFlowActionRequest";
+import { useFlowRecovery } from "../../../../useFlowRecovery";
 import { FlowActionDialog } from "../../../FlowActionDialog";
 import { decisionView } from "./decisionView";
 
@@ -12,19 +13,18 @@ export function FlowDecisionDialog({
 	actionKey,
 	onClose,
 	recoveryBlocked,
-	onDecideV1,
 }: {
 	execution: FlowExecutionRecord | FlowExecutionViewV1;
 	actionKey: string;
 	onClose: () => void;
 	recoveryBlocked?: boolean;
-	onDecideV1?: (input: FlowExecutionDecisionInput) => Promise<FlowExecutionViewV1>;
 }) {
 	const { client, queryClient } = useApp();
-	const recovery = recoveryBlocked ?? "schemaVersion" in execution;
+	const { blocked: recovery } = useFlowRecovery(recoveryBlocked);
 	const decide = useFlowActionRequest<FlowExecutionDecisionInput, FlowExecutionRecord | FlowExecutionViewV1>(
 		["decision", execution.id, actionKey],
-		(input) => ("schemaVersion" in execution ? onDecideV1!(input) : client.flowExecutions.decide(input)),
+		(input) =>
+			"schemaVersion" in execution ? client.flowExecutionsV1.decision(input) : client.flowExecutions.decide(input),
 	);
 	const [preview, setPreview] = useState(execution);
 	const [previewKey] = useState(actionKey);
@@ -42,8 +42,7 @@ export function FlowDecisionDialog({
 	const view = useMemo(() => decisionView(current, actionKey), [current, actionKey]);
 	const shown = useMemo(() => decisionView(preview, previewKey), [preview, previewKey]);
 	const changed = actionKey !== previewKey || execution.id !== preview.id || execution.revision !== preview.revision;
-	const unavailable = "schemaVersion" in execution && !onDecideV1;
-	const blocked = recovery || unavailable || changed || !view.waiting || !!view.delivery || !!decide.request;
+	const blocked = recovery || changed || !view.waiting || !!view.delivery || !!decide.request;
 	const send = (approved: boolean) => {
 		if (blocked) return;
 		decide.submit({ id: preview.id, key: previewKey, expectedRevision: preview.revision, output, approved });
@@ -91,7 +90,6 @@ export function FlowDecisionDialog({
 				</>
 			)}
 			{recovery && <p role="status">Recovery blocks changes to this run.</p>}
-			{unavailable && <p role="status">Decision transport is unavailable.</p>}
 			{view.delivery && (
 				<p role="status">
 					Decision {view.delivery.approved ? "approval" : "rejection"}: {view.delivery.state}.
