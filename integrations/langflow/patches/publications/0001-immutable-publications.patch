@@ -1,0 +1,392 @@
+diff --git a/src/backend/base/langflow/alembic/versions/8c0f2d5b3e7a_trellis_publications.py b/src/backend/base/langflow/alembic/versions/8c0f2d5b3e7a_trellis_publications.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/alembic/versions/8c0f2d5b3e7a_trellis_publications.py
+@@ -0,0 +1,54 @@
++"""Retain immutable Trellis publications and their engine flows."""
++import sqlalchemy as sa
++from alembic import op
++
++revision = "8c0f2d5b3e7a"
++down_revision = "7b9e1c4a2d6f"
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    op.create_table(
++        "trellis_document_publications",
++        sa.Column("flow_id", sa.Text(), nullable=False),
++        sa.Column("revision", sa.Integer(), nullable=False),
++        sa.Column("engine_flow_id", sa.Uuid(), nullable=False),
++        sa.Column("request_bytes", sa.LargeBinary(), nullable=False),
++        sa.Column("receipt", sa.JSON(), nullable=False),
++        sa.PrimaryKeyConstraint("flow_id", "revision"),
++        sa.UniqueConstraint("engine_flow_id"),
++        sa.ForeignKeyConstraint(["engine_flow_id"], ["flow.id"], ondelete="RESTRICT"),
++        sa.CheckConstraint("revision > 0"),
++    )
++    if op.get_bind().dialect.name == "sqlite":
++        for action in ("UPDATE", "DELETE"):
++            op.execute(f"""CREATE TRIGGER trellis_publication_{action.lower()} BEFORE {action}
++                ON trellis_document_publications BEGIN SELECT RAISE(ABORT, 'publication_immutable'); END""")
++            op.execute(f"""CREATE TRIGGER trellis_published_flow_{action.lower()} BEFORE {action} ON flow
++                WHEN EXISTS(SELECT 1 FROM trellis_document_publications WHERE engine_flow_id=OLD.id)
++                BEGIN SELECT RAISE(ABORT, 'published_flow_immutable'); END""")
++    else:
++        op.execute("""CREATE FUNCTION trellis_publication_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
++            BEGIN RAISE EXCEPTION 'publication_immutable'; END; $$""")
++        op.execute("""CREATE TRIGGER trellis_publication_immutable BEFORE UPDATE OR DELETE
++            ON trellis_document_publications FOR EACH ROW EXECUTE FUNCTION trellis_publication_immutable()""")
++        op.execute("""CREATE FUNCTION trellis_published_flow_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
++            BEGIN IF EXISTS(SELECT 1 FROM trellis_document_publications WHERE engine_flow_id=OLD.id)
++            THEN RAISE EXCEPTION 'published_flow_immutable'; END IF;
++            IF TG_OP='DELETE' THEN RETURN OLD; END IF; RETURN NEW; END; $$""")
++        op.execute("""CREATE TRIGGER trellis_published_flow_immutable BEFORE UPDATE OR DELETE ON flow
++            FOR EACH ROW EXECUTE FUNCTION trellis_published_flow_immutable()""")
++
++
++def downgrade():
++    if op.get_bind().dialect.name == "sqlite":
++        for action in ("update", "delete"):
++            op.execute(f"DROP TRIGGER trellis_published_flow_{action}")
++            op.execute(f"DROP TRIGGER trellis_publication_{action}")
++    else:
++        op.execute("DROP TRIGGER trellis_published_flow_immutable ON flow")
++        op.execute("DROP TRIGGER trellis_publication_immutable ON trellis_document_publications")
++        op.execute("DROP FUNCTION trellis_published_flow_immutable()")
++        op.execute("DROP FUNCTION trellis_publication_immutable()")
++    op.drop_table("trellis_document_publications")
+diff --git a/src/backend/base/langflow/api/v1/trellis_publications.py b/src/backend/base/langflow/api/v1/trellis_publications.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/api/v1/trellis_publications.py
+@@ -0,0 +1,56 @@
++import hmac
++import os
++import stat
++from typing import Annotated
++
++from fastapi import APIRouter, Depends, Header, HTTPException, Request
++from pydantic import ValidationError
++
++from langflow.services.trellis_publications import ledger
++from langflow.services.trellis_publications.contracts import InstalledPublicationPackage, PublicationRequest
++from langflow.services.trellis_publications.validation import validate
++
++router = APIRouter(prefix="/trellis/publications", tags=["Trellis publications"])
++
++
++def installed(request: Request, authorization: Annotated[str | None, Header()] = None) -> InstalledPublicationPackage:
++    package = getattr(request.app.state, "trellis_publication_package", None)
++    if not isinstance(package, InstalledPublicationPackage):
++        raise HTTPException(503, "publication_package_unavailable")
++    descriptor = os.open(package.authentication_file, os.O_RDONLY | os.O_NOFOLLOW)
++    with os.fdopen(descriptor) as file:
++        metadata = os.fstat(file.fileno())
++        if not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o600:
++            raise HTTPException(503, "publication_authentication_unavailable")
++        token = file.read()
++    if not token or not hmac.compare_digest(authorization or "", f"Bearer {token}"):
++        raise HTTPException(401, "publication_authentication_required")
++    return package
++
++
++async def payload(request: Request) -> tuple[PublicationRequest, bytes]:
++    raw = await request.body()
++    try:
++        parsed = PublicationRequest.model_validate_json(raw)
++        parsed.source()
++    except (ValidationError, ValueError, TypeError, KeyError):
++        raise HTTPException(422, "publication_request_invalid") from None
++    return parsed, raw
++
++
++@router.post("/validate")
++async def validate_document(request: Request, package: Annotated[InstalledPublicationPackage, Depends(installed)]):
++    parsed, _ = await payload(request)
++    return {"diagnostics": validate(parsed, package)}
++
++
++@router.post("")
++async def publish_document(request: Request, package: Annotated[InstalledPublicationPackage, Depends(installed)]):
++    parsed, raw = await payload(request)
++    return await ledger.publish(parsed, raw, package)
++
++
++@router.get("/{flow_id}/{revision}")
++async def read_publication(flow_id: str, revision: int,
++                           package: Annotated[InstalledPublicationPackage, Depends(installed)]):
++    return await ledger.read(flow_id, revision)
+diff --git a/src/backend/base/langflow/services/trellis_publications/__init__.py b/src/backend/base/langflow/services/trellis_publications/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/src/backend/base/langflow/services/trellis_publications/catalog.py b/src/backend/base/langflow/services/trellis_publications/catalog.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_publications/catalog.py
+@@ -0,0 +1,31 @@
++import hashlib
++import json
++from pathlib import Path
++
++from .contracts import InstalledPublicationPackage
++
++
++def catalog_of(package: InstalledPublicationPackage) -> dict:
++    raw = package.catalog_path.read_bytes()
++    if hashlib.sha256(raw).hexdigest() != package.component_manifest_hash:
++        raise ValueError("publication_catalog_digest")
++    catalog = json.loads(raw)
++    if catalog["schemaVersion"] != 1 or catalog["engine"]["commit"] != package.engine_commit:
++        raise ValueError("publication_catalog_engine")
++    for definition in catalog["definitions"]:
++        for source in [definition["source"], *definition["sourceDependencies"]]:
++            source_bytes(package, source)
++    return catalog
++
++
++def source_bytes(package: InstalledPublicationPackage, source: dict) -> bytes:
++    roots = {"trellis": package.trellis_root, "engine": package.engine_root}
++    root = roots[source["root"]].resolve()
++    relative = Path(source["path"])
++    path = (root / relative).resolve()
++    if relative.is_absolute() or not path.is_relative_to(root):
++        raise ValueError("publication_source_path")
++    raw = path.read_bytes()
++    if hashlib.sha256(raw).hexdigest() != source["sha256"]:
++        raise ValueError("publication_component_digest")
++    return raw
+diff --git a/src/backend/base/langflow/services/trellis_publications/contracts.py b/src/backend/base/langflow/services/trellis_publications/contracts.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_publications/contracts.py
+@@ -0,0 +1,42 @@
++import base64
++import hashlib
++import json
++from pathlib import Path
++from typing import Any
++
++from pydantic import BaseModel, ConfigDict, Field
++
++
++class PublicationRequest(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    enginePackageDigest: str = Field(pattern=r"^[a-f0-9]{64}$")
++    snapshot: dict[str, Any]
++    sourceBytes: str
++
++    def source(self) -> bytes:
++        source = base64.b64decode(self.sourceBytes, validate=True)
++        snapshot = self.snapshot
++        if snapshot["engine"] != "langflow" or snapshot["schemaVersion"] != 1:
++            raise ValueError("publication_document_format")
++        if type(snapshot["revision"]) is not int or snapshot["revision"] < 1:
++            raise ValueError("publication_revision")
++        if snapshot["flow"]["version"] != snapshot["revision"]:
++            raise ValueError("publication_revision")
++        if hashlib.sha256(source).hexdigest() != snapshot["documentHash"]:
++            raise ValueError("publication_document_hash")
++        content = {key: snapshot[key] for key in ("engine", "schemaVersion", "graphDocument", "componentManifestHash")}
++        if json.loads(source) != content:
++            raise ValueError("publication_source_conflict")
++        return source
++
++
++class InstalledPublicationPackage(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True)
++    engine_package_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
++    component_manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
++    engine_commit: str = Field(pattern=r"^[a-f0-9]{40}$")
++    catalog_path: Path
++    trellis_root: Path
++    engine_root: Path
++    authentication_file: Path
++    user_id: str
+diff --git a/src/backend/base/langflow/services/trellis_publications/ledger.py b/src/backend/base/langflow/services/trellis_publications/ledger.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_publications/ledger.py
+@@ -0,0 +1,84 @@
++import hashlib
++from datetime import datetime, timezone
++from uuid import NAMESPACE_URL, UUID, uuid5
++
++import sqlalchemy as sa
++from fastapi import HTTPException
++from sqlalchemy.exc import IntegrityError
++
++from langflow.services.database.models.flow.model import Flow
++from langflow.services.deps import session_scope
++
++from .contracts import InstalledPublicationPackage, PublicationRequest
++from .validation import validate
++
++metadata = sa.MetaData()
++publications = sa.Table(
++    "trellis_document_publications", metadata,
++    sa.Column("flow_id", sa.Text, primary_key=True),
++    sa.Column("revision", sa.Integer, primary_key=True),
++    sa.Column("engine_flow_id", sa.Uuid, nullable=False, unique=True),
++    sa.Column("request_bytes", sa.LargeBinary, nullable=False),
++    sa.Column("receipt", sa.JSON, nullable=False),
++)
++
++
++def replay(row, raw: bytes) -> dict:
++    if bytes(row.request_bytes) != raw:
++        raise HTTPException(409, "publication_request_conflict")
++    return row.receipt
++
++
++async def read(flow_id: str, revision: int) -> dict:
++    async with session_scope() as session:
++        row = (await session.execute(sa.select(publications).where(
++            publications.c.flow_id == flow_id, publications.c.revision == revision))).first()
++        if row is None:
++            raise HTTPException(404, "publication_not_found")
++        request = PublicationRequest.model_validate_json(row.request_bytes)
++        return {"publication": row.receipt, "snapshot": request.snapshot, "sourceBytes": request.sourceBytes,
++                "requestDigest": hashlib.sha256(row.request_bytes).hexdigest()}
++
++
++async def publish(request: PublicationRequest, raw: bytes, package: InstalledPublicationPackage) -> dict:
++    source = request.source()
++    snapshot = request.snapshot
++    key = (snapshot["flow"]["id"], snapshot["revision"])
++    predicate = sa.and_(publications.c.flow_id == key[0], publications.c.revision == key[1])
++    async with session_scope() as session:
++        prior = (await session.execute(sa.select(publications).where(predicate))).first()
++        if prior is not None:
++            return replay(prior, raw)
++    diagnostics = validate(request, package)
++    if diagnostics:
++        raise HTTPException(422, {"diagnostics": diagnostics})
++    identity = f"trellis-publication:{key[0]}:{key[1]}"
++    engine_id = uuid5(NAMESPACE_URL, identity)
++    number = int.from_bytes(hashlib.sha256(identity.encode()).digest()[:16], "big")
++    alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
++    publication_id = "".join(alphabet[(number >> (5 * index)) & 31] for index in range(25, -1, -1))
++    receipt = {
++        "publicationId": publication_id, "flowId": key[0], "revision": key[1],
++        "documentHash": hashlib.sha256(source).hexdigest(), "engineFlowId": str(engine_id),
++        "enginePackageDigest": request.enginePackageDigest,
++        "componentManifestHash": snapshot["componentManifestHash"],
++        "publishedAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
++        "conversion": None,
++    }
++    try:
++        async with session_scope() as session:
++            flow = Flow(id=engine_id, name=identity, data=snapshot["graphDocument"],
++                        user_id=UUID(package.user_id), locked=True)
++            session.add(flow)
++            await session.flush()
++            await session.execute(publications.insert().values(
++                flow_id=key[0], revision=key[1], engine_flow_id=engine_id, request_bytes=raw, receipt=receipt))
++            await session.commit()
++    except IntegrityError:
++        # A concurrent request can commit the same immutable flow before this transaction.
++        async with session_scope() as session:
++            prior = (await session.execute(sa.select(publications).where(predicate))).first()
++            if prior is None:
++                raise
++            return replay(prior, raw)
++    return receipt
+diff --git a/src/backend/base/langflow/services/trellis_publications/validation.py b/src/backend/base/langflow/services/trellis_publications/validation.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_publications/validation.py
+@@ -0,0 +1,77 @@
++import copy
++import math
++
++from lfx.graph.graph.base import Graph
++
++from .catalog import catalog_of, source_bytes
++from .contracts import InstalledPublicationPackage, PublicationRequest
++
++
++def error(code: str, path: list | None = None) -> dict:
++    return {"code": code, "message": "The installed engine cannot publish this document.",
++            "severity": "error", "path": [] if path is None else path}
++
++
++def validate(request: PublicationRequest, package: InstalledPublicationPackage) -> list[dict]:
++    request.source()
++    if request.enginePackageDigest != package.engine_package_digest:
++        return [error("publication_package_mismatch")]
++    if request.snapshot["componentManifestHash"] != package.component_manifest_hash:
++        return [error("publication_manifest_mismatch")]
++    catalog = catalog_of(package)
++    definitions = {entry["className"]: entry for entry in catalog["definitions"]}
++    graph = request.snapshot["graphDocument"]
++    if not isinstance(graph, dict) or not isinstance(graph.get("nodes"), list) or not isinstance(graph.get("edges"), list):
++        return [error("publication_graph_shape")]
++    if not graph["nodes"]:
++        return [error("publication_empty_graph")]
++    diagnostics = []
++    ids = set()
++    for index, node in enumerate(graph["nodes"]):
++        path = ["graphDocument", "nodes", index]
++        if not isinstance(node, dict) or not isinstance(node.get("id"), str) or node["id"] in ids:
++            diagnostics.append(error("publication_node_identity", path))
++            continue
++        ids.add(node["id"])
++        data = node.get("data", {})
++        definition = definitions.get(data.get("type")) if isinstance(data, dict) else None
++        if definition is None or not definition["allowedForPublication"] or definition["frontendTemplate"] is None:
++            diagnostics.append(error("publication_component_not_approved", path))
++            continue
++        installed = definition["frontendTemplate"]
++        supplied = data.get("node", {})
++        template = supplied.get("template", {})
++        if template.get("code", {}).get("value") != source_bytes(package, definition["source"]).decode("utf-8"):
++            diagnostics.append(error("publication_component_code", path))
++            continue
++        # Only declared input values may differ from the installed executable template.
++        normalized = copy.deepcopy(supplied)
++        for name, spec in installed["template"].items():
++            if name == "code" or not isinstance(spec, dict):
++                continue
++            if name in normalized.get("template", {}) and isinstance(normalized["template"][name], dict):
++                value = normalized["template"][name].get("value")
++                if name in ("minutes", "max_rounds") and value is not None:
++                    if type(value) is not int or value <= 0:
++                        diagnostics.append(error("publication_deadline", path + [name]))
++                normalized["template"][name]["value"] = spec.get("value")
++        if normalized != installed:
++            diagnostics.append(error("publication_component_template", path))
++        position = node.get("position", {})
++        if any(type(position.get(axis)) not in (int, float) or not math.isfinite(position[axis]) for axis in ("x", "y")):
++            diagnostics.append(error("publication_geometry", path))
++    for index, edge in enumerate(graph["edges"]):
++        if not isinstance(edge, dict) or edge.get("source") not in ids or edge.get("target") not in ids:
++            diagnostics.append(error("publication_edge_identity", ["graphDocument", "edges", index]))
++    if diagnostics:
++        return diagnostics
++    payload = copy.deepcopy(graph)
++    try:
++        parsed = Graph.from_payload(payload, user_id=package.user_id,
++                                    instantiate_components=False, emit_extension_events=False)
++        parsed.sort_vertices()
++    except (ValueError, TypeError, KeyError):
++        return [error("publication_engine_graph")]
++    if payload != graph:
++        return [error("publication_engine_rewrite")]
++    return []
+diff --git a/src/backend/base/langflow/api/router.py b/src/backend/base/langflow/api/router.py
+--- a/src/backend/base/langflow/api/router.py
++++ b/src/backend/base/langflow/api/router.py
+@@ -67,6 +67,9 @@
+         target_router.include_router(deployment_router)
+-
++
+-
++
++from langflow.api.v1.trellis_publications import router as trellis_publications_router
++
++router_v1.include_router(trellis_publications_router)
+ router_v1.include_router(chat_router)
+ router_v1.include_router(endpoints_router)
+ router_v1.include_router(validate_router)

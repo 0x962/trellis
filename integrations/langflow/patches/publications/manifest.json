@@ -1,0 +1,7 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "after": "7b9e1c4a2d6f",
+  "migration": "8c0f2d5b3e7a",
+  "patch": "integrations/langflow/patches/publications/0001-immutable-publications.patch",
+  "sha256": "14352788aba1988e31564839b5f19406312696f79b585b6fe7c33ce884459b35"
+}
