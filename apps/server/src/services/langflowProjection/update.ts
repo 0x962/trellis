@@ -93,6 +93,7 @@ export async function update(ctx: ServiceCtx, tx: Tx, input: ProjectionUpdate) {
 	await commitProjection(tx, {
 		executionId: input.executionId,
 		expectedRevision: stored.view.revision,
+		checkpoint: input.observation.checkpoint,
 		view,
 		event,
 		sourceBytes: input.sourceBytes,

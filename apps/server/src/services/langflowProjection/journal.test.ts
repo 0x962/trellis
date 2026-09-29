@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { readProjection, retainEvents } from "../../db/queries/langflowExecution";
+import { readCheckpoint, readProjection, retainEvents } from "../../db/queries/langflowExecution";
 import { databaseFixture } from "./databaseFixture.ts";
 import { getView } from "./getView.ts";
 import { replay } from "./replay.ts";
@@ -33,6 +33,8 @@ const input = (sourceBytes: string | null) => ({
 test("journal replay, revision conflicts, retention and rollback share the real storage transaction", async () => {
 	const first = await h.call((ctx, tx) => update(ctx, tx, input(event("first"))));
 	expect(first.result.event!.seq).toBe(1);
+	const checkpoint = await h.call((_ctx, tx) => readCheckpoint(tx, { executionId: h.f.view.id }));
+	expect(checkpoint.result).toEqual(h.f.observed.checkpoint);
 	expect(first.events).toEqual([{ type: "flows.changed", id: h.f.view.flowId }]);
 	const duplicate = await h.call((ctx, tx) =>
 		update(ctx, tx, { ...input(event("first")), authority: { ...h.authority, engineEpoch: 2 } }),
