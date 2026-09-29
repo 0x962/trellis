@@ -1,10 +1,10 @@
 import { afterEach, expect, test } from "bun:test";
 import { chmod, readFile, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { packageFixture } from "../fixtures/packageFixture";
 import { inspectPackage } from "../inspectPackage";
 import { loadCandidatePackage } from "../loadCandidatePackage";
 import { verifyPackage } from "../verifyPackage";
+import { packageFixture } from "./components/packageFixture";
 import { sealPackage } from "./sealPackage";
 
 const roots: string[] = [];

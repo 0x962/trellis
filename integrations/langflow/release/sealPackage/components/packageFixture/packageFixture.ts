@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { canonicalBytes } from "../canonicalBytes";
-import type { PackageRecipe } from "../packageRecipe";
+import { canonicalBytes } from "../../../canonicalBytes";
+import type { PackageRecipe } from "../../../packageRecipe";
 
 export async function packageFixture(architecture: "arm64" | "x86_64" = "arm64") {
 	const root = await mkdtemp(join(tmpdir(), "trellis-package-"));
