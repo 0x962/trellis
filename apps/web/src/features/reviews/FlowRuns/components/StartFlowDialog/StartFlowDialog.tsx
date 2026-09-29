@@ -195,7 +195,12 @@ export function StartFlowDialog({
 			)}
 			{flows.isPending && <p role="status">Load flows…</p>}
 			{(flows.error || start.request?.error) && (
-				<FailureState title="The flow request did not complete" detail={flows.error?.message ?? start.request?.error} />
+				<div role="alert">
+					<FailureState
+						title="The flow request did not complete"
+						detail={flows.error?.message ?? start.request?.error}
+					/>
+				</div>
 			)}
 		</FlowActionDialog>
 	);
