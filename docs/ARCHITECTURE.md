@@ -1159,9 +1159,9 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
+| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (nonempty), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
-| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
+| statuses | id PK, project_id (CASCADE), name (nonempty), description, slug, category (CHECK set), color, position, is_default, created_at, updated_at. Hash equality exclusion constraints on project-scoped name and slug. Partial UNIQUE (project_id) WHERE is_default. |
 | label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
