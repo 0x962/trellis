@@ -3,6 +3,7 @@ import type { ActorRef, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createCache } from "../../db/cache.ts";
+import { resourceComments } from "../../db/tables/resourceComments.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx } from "../support.ts";
@@ -103,6 +104,65 @@ test("an anchor move stores the new text and the text removed flag, and refuses 
 			anchors(asHuman, tx, { resource: other.id, anchors: [{ thread: thread.id, anchor, textRemoved: false }] }),
 		),
 	).rejects.toThrow();
+});
+
+test("501 anchor moves preserve thread identities, other anchors, and transaction rollback", async () => {
+	const doc = await newDoc();
+	const other = await newDoc();
+	const untouched = await inTx((tx) => create(asHuman, tx, { resource: doc.id, anchor, body: "Keep this." }));
+	const foreign = await inTx((tx) => create(asHuman, tx, { resource: other.id, anchor, body: "Other document." }));
+	const ids = Array.from({ length: 501 }, () => ulid());
+	await inTx((tx) =>
+		tx.insert(resourceComments).values(
+			ids.map((id) => ({
+				id,
+				threadId: id,
+				resourceId: doc.id,
+				body: `Comment ${id}`,
+				...anchor,
+				actorName: human.name,
+				actorKind: human.kind,
+				createdAt: now,
+				updatedAt: now,
+			})),
+		),
+	);
+	await inTx((tx) => reply(asAgent, tx, { thread: ids[500]!, body: "Keep the reply." }));
+	const before = await inTx((tx) => list(asHuman, tx, { resource: doc.id }));
+	const moved = ids.map((thread, index) => ({
+		thread,
+		anchor: { quote: `Moved quote ${index}`, prefix: "New prefix ", suffix: " new suffix" },
+		textRemoved: index % 2 === 0,
+	}));
+	events.length = 0;
+	const saved = await inTx((tx) => anchors(asHuman, tx, { resource: doc.id, anchors: moved }));
+	const byId = new Map(moved.map((move) => [move.thread, move]));
+	expect(saved).toEqual(
+		before.map((thread) => {
+			const move = byId.get(thread.id);
+			return move === undefined ? thread : { ...thread, anchor: move.anchor, textRemoved: move.textRemoved };
+		}),
+	);
+	expect(saved.find((thread) => thread.id === untouched.id)).toEqual(untouched);
+	expect(events).toEqual([{ type: "resource-comments.changed", projectId, resourceId: doc.id }]);
+	expect(await inTx((tx) => list(asHuman, tx, { resource: doc.id }))).toEqual(saved);
+	expect(await inTx((tx) => list(asHuman, tx, { resource: other.id }))).toEqual([foreign]);
+
+	events.length = 0;
+	await expect(
+		inTx((tx) =>
+			anchors(asHuman, tx, {
+				resource: doc.id,
+				anchors: [
+					...ids.map((thread) => ({ thread, anchor, textRemoved: false })),
+					{ thread: foreign.id, anchor, textRemoved: false },
+				],
+			}),
+		),
+	).rejects.toThrow();
+	expect(await inTx((tx) => list(asHuman, tx, { resource: doc.id }))).toEqual(saved);
+	expect(await inTx((tx) => list(asHuman, tx, { resource: other.id }))).toEqual([foreign]);
+	expect(events).toEqual([]);
 });
 
 test("a person edits and deletes their own comment only, and the first comment takes its thread", async () => {

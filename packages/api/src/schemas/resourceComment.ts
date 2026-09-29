@@ -57,9 +57,9 @@ export const ResourceCommentCreateInputSchema = z.strictObject({
 // the resource that the list leaves out keeps its anchor.
 export const ResourceCommentAnchorsInputSchema = z.strictObject({
 	resource: UlidSchema,
-	anchors: z
-		.array(z.strictObject({ thread: UlidSchema, anchor: ResourceCommentAnchorSchema, textRemoved: z.boolean() }))
-		.max(500),
+	anchors: z.array(
+		z.strictObject({ thread: UlidSchema, anchor: ResourceCommentAnchorSchema, textRemoved: z.boolean() }),
+	),
 });
 
 export const ResourceCommentReplyInputSchema = z.strictObject({
