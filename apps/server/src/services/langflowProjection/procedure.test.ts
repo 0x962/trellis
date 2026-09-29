@@ -4,22 +4,22 @@ import { executionViewV1Example } from "@trellis/api";
 import type { ServiceTransport } from "../../db/transport.ts";
 import type { GhAccess } from "../../ghState.ts";
 import type { ProcedureContext } from "../../procedures/base.ts";
-import { createFlowExecutionViewV1 } from "../../procedures/flowExecutionViewsV1.ts";
+import { router } from "../../procedures/index.ts";
 import { createDbTiming } from "../../serverTiming.ts";
 
 test("invalid execution IDs return the declared HTTP validation error", async () => {
 	let reads = 0;
-	const handler = new OpenAPIHandler({
-		view: createFlowExecutionViewV1(async () => {
-			reads += 1;
-			return executionViewV1Example;
-		}),
-	});
+	const handler = new OpenAPIHandler(router);
 	const request = new Request("http://trellis.test/api/flow-executions/not-a-ulid/view-v1");
 	const context: ProcedureContext = {
 		headers: request.headers,
 		reqId: "validation",
-		transport: {} as ServiceTransport,
+		transport: {
+			call: async () => {
+				reads += 1;
+				return executionViewV1Example;
+			},
+		} as ServiceTransport,
 		actor: null,
 		timing: createDbTiming(),
 		chooseDirectory: async () => null,

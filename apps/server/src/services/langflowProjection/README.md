@@ -4,7 +4,7 @@
 `initialize(ctx, tx, { executionId })` copies the immutable execution metadata into the first view.
 Both services use the execution storage from `db/queries/langflowExecution`.
 The shared registry selects the engine before it calls this reader.
-`createFlowExecutionViewV1` accepts that shared reader for the versioned HTTP procedure.
+The shared HTTP router calls that reader through `flowDocuments.view`.
 
 `update` requires the system actor, current delivery authority, and an authoritative engine observation.
 The private transport authenticates the sender before it creates this system context.
