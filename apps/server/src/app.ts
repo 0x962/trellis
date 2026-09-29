@@ -46,6 +46,7 @@ export type AppOptions = {
 	clock?: Clock;
 	editor?: EditorGatewayConfiguration;
 	nativeReservations?: NativeReservationTransport;
+	groupDeadlines?: (request: Request) => Promise<Response>;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
 	chooseDirectory?: () => Promise<string | null>;
@@ -114,6 +115,7 @@ export const createApp = ({
 	clock = realClock,
 	editor,
 	nativeReservations,
+	groupDeadlines,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
 }: AppOptions) => {
@@ -183,6 +185,7 @@ export const createApp = ({
 			return editorSessions.fetch(c.req.raw, { reqId: c.get("requestId"), timing });
 		});
 	if (nativeReservations) app.route("/", langflowNativeReservations(nativeReservations));
+	if (groupDeadlines) app.post("/api/langflow-private/v1/group-deadlines", (c) => groupDeadlines(c.req.raw));
 	app.use(hostAuth(config.authToken));
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));

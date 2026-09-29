@@ -12,6 +12,7 @@ import { composeLangflowBootstrap } from "./compose";
 import { readLangflowBootstrapConfiguration } from "./configuration";
 import { createLangflowConnections } from "./connections";
 import { readEngineConfiguration } from "./engineConfiguration";
+import { groupDeadlines } from "./groupDeadlines";
 import { nativeReservations } from "./nativeReservations";
 
 export async function startLangflowBootstrap(config: Config, transport: ServiceTransport, log: JobsLog) {
@@ -56,14 +57,16 @@ export async function startLangflowBootstrap(config: Config, transport: ServiceT
 		supervisor: composed.supervisor,
 		archive: actionControl(config.home).archive,
 	});
+	const deadlines = groupDeadlines({ home: config.home, transport: liveTransport, supervisor: composed.supervisor });
 	return {
 		...composed,
 		lifecycle,
 		transport: liveTransport,
 		nativeReservations: native.transport,
+		groupDeadlines: deadlines.handle,
 		stop: async () => {
 			await lifecycle.stop();
-			await native.stop();
+			await Promise.all([native.stop(), deadlines.stop()]);
 			await composed.stop();
 		},
 	};
