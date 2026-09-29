@@ -3,37 +3,26 @@ import type { FlowExecutionRecord, FlowExecutionViewV1, FlowOccurrenceV1 } from 
 import { failureKind } from "./failureKind.ts";
 import { occurrences } from "./occurrences.ts";
 
-const time = (value: number) => new Date(value).toISOString();
-
 export const projectView = (record: FlowExecutionRecord, sourceDocument: string): FlowExecutionViewV1 => {
 	const { doc, state, tasks: _tasks, headSha, ...identity } = record;
-	const nodes = new Map(doc.nodes.map((node) => [node.id, node]));
-	const deadlines = state.steps.flatMap((step) => {
-		const node = nodes.get(step.nodeId)!;
-		if (step.deadlineAt === null || node.minutes === null) return [];
-		return [
-			{
-				deadlineId: step.key,
-				groupOccurrenceKey: step.key,
-				launchedAt: time(step.deadlineAt - node.minutes * 60_000),
-				deadlineAt: time(step.deadlineAt),
-			},
-		];
-	});
-	const projected = occurrences(record, new Set(deadlines.map((deadline) => deadline.deadlineId)));
-	const diagnostics = state.steps.flatMap((step, index) =>
-		step.needsStop
-			? [
-					{
-						code: "LEGACY_STOP_TIME_UNKNOWN",
-						message:
-							"This occurrence requires a stop. The legacy record retains needsStop but has no stop request time.",
-						severity: "warning" as const,
-						path: ["state", "steps", index, "needsStop"],
-					},
-				]
-			: [],
-	);
+	const projected = occurrences(record);
+	const diagnostics: FlowExecutionViewV1["snapshot"]["diagnostics"] = [];
+	for (const [index, step] of state.steps.entries()) {
+		if (step.needsStop)
+			diagnostics.push({
+				code: "LEGACY_STOP_TIME_UNKNOWN",
+				message: "This occurrence requires a stop. The legacy record retains needsStop but has no stop request time.",
+				severity: "warning",
+				path: ["state", "steps", index, "needsStop"],
+			});
+		if (step.deadlineAt != null)
+			diagnostics.push({
+				code: "LEGACY_DEADLINE_START_UNKNOWN",
+				message: `The legacy deadline is ${new Date(step.deadlineAt).toISOString()}. The record has no separate first-launch receipt.`,
+				severity: "warning",
+				path: ["state", "steps", index, "deadlineAt"],
+			});
+	}
 	return {
 		...identity,
 		schemaVersion: 1,
@@ -57,7 +46,7 @@ export const projectView = (record: FlowExecutionRecord, sourceDocument: string)
 		error: state.error,
 		lastEventSeq: 0,
 		occurrences: projected,
-		deadlines,
+		deadlines: [],
 		stopObligations: [],
 		decisionDeliveries: [],
 	};

@@ -3,7 +3,7 @@ import { actionKey } from "./actionKey.ts";
 
 const time = (value: number | null | undefined) => (value == null ? null : new Date(value).toISOString());
 
-export const occurrences = (record: FlowExecutionRecord, deadlineIds: Set<string>): FlowOccurrenceV1[] => {
+export const occurrences = (record: FlowExecutionRecord): FlowOccurrenceV1[] => {
 	const nodes = new Map(record.doc.nodes.map((node) => [node.id, node]));
 	const steps = new Map(record.state.steps.map((step) => [step.key, step]));
 	const tasks = new Map<string, FlowExecutionRecord["tasks"]>();
@@ -16,16 +16,13 @@ export const occurrences = (record: FlowExecutionRecord, deadlineIds: Set<string
 	return record.state.steps.map((step) => {
 		const node = nodes.get(step.nodeId)!;
 		const iterationPath: FlowOccurrenceV1["iterationPath"] = [];
-		const deadlineRefs: string[] = [];
 		let child = step;
 		if (node.kind === "loop") iterationPath.push({ loopNodeId: node.id, round: step.round });
-		if (deadlineIds.has(step.key)) deadlineRefs.push(step.key);
 		while (child.parentKey !== null) {
 			const parent = steps.get(child.parentKey)!;
 			if (nodes.get(parent.nodeId)!.kind === "loop") {
 				iterationPath.unshift({ loopNodeId: parent.nodeId, round: child.iteration });
 			}
-			if (deadlineIds.has(parent.key)) deadlineRefs.unshift(parent.key);
 			child = parent;
 		}
 		const result = (tasks.get(step.key) ?? []).find((task) => task.key === actionKey(step));
@@ -56,7 +53,7 @@ export const occurrences = (record: FlowExecutionRecord, deadlineIds: Set<string
 			skipReason: null,
 			startedAt: time(step.startedAt),
 			endedAt: time(step.endedAt),
-			deadlineRefs,
+			deadlineRefs: [],
 			attempts: (tasks.get(step.key) ?? []).map((task) => ({
 				stepId: task.key,
 				agentRunId: task.runId,

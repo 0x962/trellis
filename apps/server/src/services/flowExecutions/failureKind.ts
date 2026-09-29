@@ -1,1 +1,1 @@
-export { failureKind } from "../legacyFlowHistory/failureKind.ts";
+export { failureKind } from "../legacyFlowHistory/index.ts";

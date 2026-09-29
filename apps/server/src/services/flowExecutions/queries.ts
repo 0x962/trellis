@@ -2,10 +2,10 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
-import { normalizeDoc } from "../legacyFlowHistory/normalizeDoc.ts";
+import { normalizeDoc } from "../legacyFlowHistory/index.ts";
 import type { StoredExecution } from "./types.ts";
 
-export { get, getMany } from "../legacyFlowHistory/queries.ts";
+export { get, getMany } from "../legacyFlowHistory/index.ts";
 
 export const readExecution = async (tx: Tx, id: string, lock = false) => {
 	const [row] = await rows<StoredExecution>(

@@ -63,7 +63,7 @@ test("keeps all condition task links after a loop advances beyond former round c
 	expect(FlowExecutionViewV1Schema.safeParse(view).success).toBe(true);
 });
 
-test("uses each child's retained iteration for nested loops and keeps group deadlines", () => {
+test("uses retained iterations and reports deadline times without a launch receipt", () => {
 	const record = fixture();
 	const outer = record.state.steps[0]!;
 	const outerNode = record.doc.nodes[0]!;
@@ -97,8 +97,10 @@ test("uses each child's retained iteration for nested loops and keeps group dead
 		{ loopNodeId: outerNode.id, round: 51 },
 		{ loopNodeId: innerNode.id, round: 60 },
 	]);
-	expect(view.occurrences[2]!.deadlineRefs).toEqual([outer.key]);
-	expect(view.deadlines[0]!.launchedAt).toBe(record.createdAt);
+	expect(view.occurrences[2]!.deadlineRefs).toEqual([]);
+	expect(view.deadlines).toEqual([]);
+	expect(view.snapshot.diagnostics[0]).toMatchObject({ code: "LEGACY_DEADLINE_START_UNKNOWN" });
+	expect(view.snapshot.diagnostics[0]!.message).toContain(new Date(outer.deadlineAt).toISOString());
 	expect(FlowExecutionViewV1Schema.safeParse(view).success).toBe(true);
 });
 
