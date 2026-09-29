@@ -65,7 +65,6 @@ export function NodeInspector({
 								label="Title"
 								className="pointer-coarse:h-11"
 								required
-								maxLength={120}
 								error={fields.title.trim() === "" ? "Enter a title." : undefined}
 								value={fields.title}
 								onChange={(event) => onChange({ title: event.target.value })}
@@ -92,7 +91,6 @@ export function NodeInspector({
 								<Textarea
 									label={promptLabel}
 									rows={14}
-									maxLength={200000}
 									value={fields.instruction}
 									onChange={(event) => onChange({ instruction: event.target.value })}
 									placeholder="Write what this step does."
@@ -136,7 +134,6 @@ export function NodeInspector({
 											className="tabular-nums pointer-coarse:h-11"
 											type="number"
 											min={1}
-											max={1440}
 											value={Number.isFinite(fields.minutes) ? String(fields.minutes) : ""}
 											onChange={(event) =>
 												onChange({ minutes: event.target.value === "" ? 0 : event.target.valueAsNumber })
@@ -153,7 +150,6 @@ export function NodeInspector({
 									className="tabular-nums pointer-coarse:h-11"
 									type="number"
 									min={1}
-									max={50}
 									value={String(fields.maxRounds)}
 									onChange={(event) => onChange({ maxRounds: event.target.valueAsNumber })}
 								/>

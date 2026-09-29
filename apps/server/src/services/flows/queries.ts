@@ -10,8 +10,7 @@ import { fail } from "../../errors.ts";
 const summaryColumns = sql`f.id, p.key AS "project", f.slug, f.name, f.description, f.harness, f.version,
 	${iso(sql`f.created_at`)} AS "createdAt", ${iso(sql`f.updated_at`)} AS "updatedAt"`;
 
-// A summary leaves the briefing out, because a briefing holds up to 200,000
-// characters and a list draws none of it.
+// A summary leaves the briefing out because a list draws none of it.
 const flowColumns = sql`${summaryColumns}, f.briefing`;
 
 const fromFlowsLeftJoinProjects = sql`FROM flows f LEFT JOIN projects p ON p.id = f.project_id`;
