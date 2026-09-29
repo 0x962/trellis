@@ -1,13 +1,13 @@
-import { tableSql } from "../../../../db/queries/langflowExecution/fixtures/schema.ts";
-import { langflowDocumentPublications, langflowDocumentRevisions } from "../../../../db/tables/langflowDocuments";
+import { tableSql } from "../../../../../db/queries/langflowExecution/fixtures/schema.ts";
+import { langflowDocumentPublications, langflowDocumentRevisions } from "../../../../../db/tables/langflowDocuments";
 import {
 	langflowClassifications,
 	langflowExecutionProjections,
 	langflowExecutions,
 	langflowNativeHandles,
 	langflowStops,
-} from "../../../../db/tables/langflowExecution";
-import type { testFixture } from "../../../flowExecutions/testFixture";
+} from "../../../../../db/tables/langflowExecution";
+import type { testFixture } from "../../../../flowExecutions/testFixture";
 
 export async function createTables(db: Awaited<ReturnType<typeof testFixture>>["db"]) {
 	for (const table of [
