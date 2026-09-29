@@ -66,7 +66,7 @@ The test kills a child process after each flushed row and after the transaction 
 
 The standalone test does not consume the queue obligation.
 
-Run the composed ENG-F20 fixture after the immutable TRL-669 patch and component are present:
+Run the composed ENG-F20 fixture in its own pytest process after the immutable TRL-669 patch and component are present:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 \
@@ -77,6 +77,8 @@ PYTHONPATH="$LANGFLOW_SOURCE/src/backend/base:$LANGFLOW_SOURCE/src/lfx/src" \
 -c "$LANGFLOW_SOURCE/pyproject.toml" \
 integrations/langflow/tests/decisions/test_decision_continuation.py
 ```
+
+The separate process lets Langflow finish its migrations before the fixture registers the feasibility tables. The fixture then creates those tables on the same real database engine.
 
 The composed fixture uses `BackgroundExecutionService.accept_trellis_human_decision` and its lookup wrapper. It recovers through `sweep_orphans_on_startup`, the queue lease, the in-process executor, and `JobRunner`.
 
