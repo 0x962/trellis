@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, ValidationError
 
 from integrations.langflow.components.catalog import export_frontend_templates
 
@@ -14,6 +15,7 @@ ENGINE = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
 MANIFEST = ROOT / "integrations/langflow/components/catalog/manifest.v1.json"
 ENGINE_COMMIT = "fec71dca901949c09ed4d63315804337cd2eb13d"
 EXPORT_MODULE = "integrations.langflow.components.catalog.exportTemplates.exportTemplates"
+SCHEMA = ROOT / "integrations/langflow/components/catalog/exportTemplates/frontend-templates.schema.v1.json"
 
 
 def export_bytes():
@@ -27,6 +29,9 @@ def test_complete_exports_match_engine_code_defaults_and_ports():
 	manifest_bytes = MANIFEST.read_bytes()
 	manifest = json.loads(manifest_bytes)
 	exported = json.loads(export_bytes())
+	schema = json.loads(SCHEMA.read_bytes())
+	Draft202012Validator.check_schema(schema)
+	Draft202012Validator(schema).validate(exported)
 	assert exported["kind"] == "trellis-frontend-templates"
 	assert exported["schemaVersion"] == 1
 	assert exported["componentManifestHash"] == hashlib.sha256(manifest_bytes).hexdigest()
@@ -59,6 +64,19 @@ def test_complete_exports_match_engine_code_defaults_and_ports():
 			root / declaration["source"]["path"]
 		).read_text(encoding="utf-8")
 	assert MANIFEST.read_bytes() == manifest_bytes
+
+
+@pytest.mark.parametrize("change", ["catalog", "overlay", "template"])
+def test_schema_rejects_malformed_export_identity_or_template(change):
+	exported = json.loads(export_bytes())
+	if change == "catalog":
+		exported["componentManifestHash"] = "not-a-digest"
+	elif change == "overlay":
+		del exported["engineOverlayHash"]
+	else:
+		exported["definitions"][0]["frontendTemplate"] = None
+	with pytest.raises(ValidationError):
+		Draft202012Validator(json.loads(SCHEMA.read_bytes())).validate(exported)
 
 
 @pytest.mark.parametrize("target,error", [

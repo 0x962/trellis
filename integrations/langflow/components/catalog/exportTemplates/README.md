@@ -25,6 +25,10 @@ It preserves the complete returned object, including defaults and engine metadat
 
 The export has this shape:
 
+`frontend-templates.schema.v1.json` defines the envelope with JSON Schema 2020-12.
+It permits the complete native node metadata inside `frontendTemplate`.
+The package still verifies exact bytes and source identities before it exposes the export.
+
 ```text
 {
   schemaVersion: 1,
@@ -59,7 +63,10 @@ The final package seals the exact export bytes, catalog bytes, and applied overl
 The export binds the source catalog hash rather than the final package digest to avoid a digest cycle.
 Consumers compare `componentManifestHash` and `engineOverlayHash` with that verified package before they use any template.
 Consumers match definitions by `id` and retain all unavailable mappings and blocker descriptions.
-The public endpoint must supply this export separately from the source manifest.
+The scoped `component-manifest` response retains the source manifest and adds `frontendTemplates: envelope | null`.
+TRL-696 owns this gateway and its installed provider.
+The provider supplies only package-verified bytes with matching catalog and overlay hashes.
+An absent export remains null.
 
 The command writes a new file outside both source roots.
 Its caller configures imports from the same matched roots before Python starts.
