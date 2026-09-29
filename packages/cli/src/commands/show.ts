@@ -4,6 +4,7 @@ import { clientOf } from "../client.ts";
 import { contextOf } from "../context.ts";
 import { heading, json, type ListSpec, renderRecord, renderTable, ticketRecord } from "../output.ts";
 import { renderActivity } from "../timeline.ts";
+import { activityPages } from "./activity.ts";
 
 export const prList: ListSpec<LinkedPullRequest> = {
 	columns: [
@@ -36,9 +37,16 @@ export default defineCommand({
 		const client = clientOf(ctx);
 		const ticket = await client.tickets.get({ ticket: args.ticket });
 		const wantsTimeline = args.activity === true;
-		const timeline: TimelineListOutput | undefined = wantsTimeline
-			? await client.timeline.list({ ticket: args.ticket })
-			: undefined;
+		let timeline: TimelineListOutput | undefined;
+		if (wantsTimeline) {
+			const items = [];
+			for await (const page of activityPages(args.ticket, Number.POSITIVE_INFINITY, (input) =>
+				client.timeline.list(input),
+			)) {
+				items.push(...page);
+			}
+			timeline = { items, nextCursor: null };
+		}
 		const { mode, color } = ctx.format;
 		if (mode === "quiet") {
 			ctx.out.write(`${ticket.identifier}\n`);
