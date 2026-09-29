@@ -1,15 +1,10 @@
-import { Plus } from "@phosphor-icons/react";
 import { type CSSProperties, useMemo, useRef, useState } from "react";
-import { IconButton } from "../../primitives/IconButton";
 import { TabsList, TabsRoot } from "../../primitives/Tabs";
-import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 import { moveKeys, moveTargetForKey } from "./components/moveTargets";
 import { PageTab } from "./components/PageTab";
-import { TabActions } from "./components/TabActions";
 import { TabGroupHeader } from "./components/TabGroupHeader";
-import { TabGroupPicker } from "./components/TabGroupPicker";
-import { TabPicker } from "./components/TabPicker";
+import { TabStripControls } from "./components/TabStripControls";
 import { dropTargetId, slotIndexOf } from "./components/tabSlots";
 import { useFocusAfterChange } from "./components/useFocusAfterChange";
 import { useTabDrag } from "./components/useTabDrag";
@@ -203,7 +198,11 @@ export function PageTabs({
 				>
 					<div
 						ref={pinnedLayout.ref}
-						className={cx(regionClass, "mr-1 max-w-1/2 shrink-0 border-r border-border pr-1", pinnedCount === 0 && "hidden")}
+						className={cx(
+							regionClass,
+							"mr-1 max-w-1/2 shrink-0 border-r border-border pr-1",
+							pinnedCount === 0 && "hidden",
+						)}
 						onScroll={pinnedLayout.onScroll}
 						{...pinnedDrag.listHandlers}
 					>
@@ -260,45 +259,31 @@ export function PageTabs({
 					</div>
 				</TabsList>
 			</TabsRoot>
-			<div className="relative flex h-9 shrink-0 items-center gap-1 px-1 max-sm:h-11 pointer-coarse:h-11">
-				<Tooltip content="Add tab">
-					<IconButton
-						ref={addButton}
-						label="Add tab"
-						icon={<Plus />}
-						onClick={onAdd}
-						className="max-sm:h-11 max-sm:min-w-11"
-					/>
-				</Tooltip>
-				<TabPicker tabs={tabs} activeId={activeId} onSelect={onSelect} />
-				{canPickGroup && (
-					<TabGroupPicker
-						groups={otherGroups}
-						open={groupPickerOpen}
-						onOpenChange={setGroupPickerOpen}
-						onSelect={(groupId) => onSetTabGroup!(activeId, groupId)}
-					/>
-				)}
-				{tabs.length > 0 && (onMove || onRename || onPin || onSort || onSetTabGroup) && (
-					<TabActions
-						tabs={tabs}
-						activeIndex={activeIndex}
-						regionStart={regionStart}
-						regionEnd={regionEnd}
-						onMove={onMove ? move : undefined}
-						onSort={onSort ? sort : undefined}
-						onPin={onPin}
-						onRename={onRename ? () => setEditingId(activeId) : undefined}
-						onRestore={onRename ? () => onRename(activeId, null) : undefined}
-						onCreateGroup={
-							onCreateGroup && onSetTabGroup ? () => setEditingGroupId(onCreateGroup("New group", activeId)) : undefined
-						}
-						onPickGroup={canPickGroup ? () => setGroupPickerOpen(true) : undefined}
-						onLeaveGroup={onSetTabGroup && activeGroupId !== null ? () => onSetTabGroup(activeId, null) : undefined}
-						onClose={() => close(activeId)}
-					/>
-				)}
-			</div>
+			<TabStripControls
+				tabs={tabs}
+				activeId={activeId}
+				activeIndex={activeIndex}
+				regionStart={regionStart}
+				regionEnd={regionEnd}
+				otherGroups={otherGroups}
+				activeGroupId={activeGroupId}
+				canPickGroup={canPickGroup}
+				groupPickerOpen={groupPickerOpen}
+				onGroupPickerOpenChange={setGroupPickerOpen}
+				addButton={addButton}
+				onAdd={onAdd}
+				onSelect={onSelect}
+				onMove={onMove ? move : undefined}
+				onSort={onSort ? sort : undefined}
+				onPin={onPin}
+				onRename={onRename ? () => setEditingId(activeId) : undefined}
+				onRestore={onRename ? () => onRename(activeId, null) : undefined}
+				onCreateGroup={
+					onCreateGroup && onSetTabGroup ? () => setEditingGroupId(onCreateGroup("New group", activeId)) : undefined
+				}
+				onSetTabGroup={onSetTabGroup}
+				onClose={() => close(activeId)}
+			/>
 			<span role="status" aria-live="polite" className="sr-only">
 				{announcement}
 			</span>

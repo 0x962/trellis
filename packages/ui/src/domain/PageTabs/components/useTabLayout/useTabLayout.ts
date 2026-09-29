@@ -2,15 +2,14 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 // Scrolls the tab at `left` into view. If a tab exceeds the visible width,
 // keep its left edge visible so the start of its name remains readable.
-export const revealTab = (element: HTMLElement, left: number, width: number) => {
+const revealTab = (element: HTMLElement, left: number, width: number) => {
 	if (left + width > element.scrollLeft + element.clientWidth) element.scrollLeft = left + width - element.clientWidth;
 	if (left < element.scrollLeft) element.scrollLeft = left;
 };
 
-// The boxes of one scrolling region that are worth a mount: the boxes near
-// the viewport plus the active one. Every box of the region has the same
-// width. A `fixedWidth` keeps that width; without one the width follows the
-// viewport, between 132 and 240 px.
+// Keep the active tab mounted so keyboard navigation can focus it outside
+// the visible range. A `fixedWidth` overrides the width that follows the
+// viewport.
 export function useTabLayout(tabs: readonly unknown[], activeIndex: number, fixedWidth?: number) {
 	const count = tabs.length;
 	const ref = useRef<HTMLDivElement>(null);
