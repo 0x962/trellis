@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { FlowExecutionViewV1Schema, missingPartsText } from "@trellis/api";
+import { FlowExecutionListV1InputSchema, FlowExecutionViewV1Schema, missingPartsText } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { sql } from "drizzle-orm";
 import { flowReadiness } from "../../../../../packages/cli/src/commands/ready/flowReadiness.ts";
@@ -37,7 +37,7 @@ afterAll(async () => {
 const client = {
 	flows: { list: (input) => db.transaction((tx) => listFlows(ctx, tx, input)) },
 	flowDocumentsV1: {
-		list: (input) => db.transaction((tx) => list(ctx, tx, input)),
+		list: (input) => db.transaction((tx) => list(ctx, tx, FlowExecutionListV1InputSchema.parse(input))),
 		view: (input) => db.transaction(async (tx) => FlowExecutionViewV1Schema.parse(await getView(ctx, tx, input))),
 	},
 	pullRequests: { readFlowWaiver: async () => null },
@@ -57,7 +57,8 @@ for (const engine of ["legacy", "langflow"] as const) {
 			const row = ticket.prRows[0]!;
 			expect(cli.satisfied).toBe(expected);
 			expect(row.reviewGaps.some((gap) => gap.kind === "flow-run")).toBe(!expected);
-			expect(missingPartsText(row).includes("flow")).toBe(!expected);
+			if (expected) expect(missingPartsText(row)).not.toContain("flow");
+			else expect(missingPartsText(row)).toContain("flow");
 		};
 		await f.insertRun(engine, "waiting");
 		await check(false);
