@@ -1,5 +1,5 @@
 export {
+	type LangflowBootstrapConfiguration,
 	LangflowBootstrapConfigurationSchema,
 	readLangflowBootstrapConfiguration,
-	type LangflowBootstrapConfiguration,
 } from "./configuration";

@@ -19,18 +19,22 @@ const EngineConfigurationSchema = z.strictObject({
 	exportRoot: absolutePath,
 	nativeReservationOrigin: z.url().refine((value) => {
 		const url = new URL(value);
-		return ["http:", "https:"].includes(url.protocol) &&
-			(value === url.origin || value === `${url.origin}/`);
+		return ["http:", "https:"].includes(url.protocol) && (value === url.origin || value === `${url.origin}/`);
 	}),
 	nativeReservationAuthenticationFile: absolutePath,
 });
 
-export async function readEngineConfiguration(filePath: string, qualified: {
-	candidate: CandidatePackage;
-	manifest: LangflowSidecarManifestV1;
-}) {
+export async function readEngineConfiguration(
+	filePath: string,
+	qualified: {
+		candidate: CandidatePackage;
+		manifest: LangflowSidecarManifestV1;
+	},
+) {
 	const sourceBytes = await readPrivateConfiguration(filePath);
-	const configuration = EngineConfigurationSchema.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(sourceBytes)));
+	const configuration = EngineConfigurationSchema.parse(
+		JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(sourceBytes)),
+	);
 	const { candidate, manifest } = qualified;
 	if (
 		configuration.enginePackageDigest !== candidate.enginePackageDigest ||

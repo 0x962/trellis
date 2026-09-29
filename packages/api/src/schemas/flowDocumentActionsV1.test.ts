@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
 	ActivateConversionV1InputSchema,
+	type ConversionEditIntentV1,
 	ConversionEditIntentV1Schema,
 	FlowDocumentActionResultV1Schema,
 	PublishDocumentV1InputSchema,
@@ -25,7 +26,7 @@ test("publication and conversion bind a stable flow and exact package identities
 });
 
 test("all six explicit edit kinds preserve original text", () => {
-	const input = {
+	const input: ConversionEditIntentV1 = {
 		...identity,
 		schemaVersion: 1,
 		edits: [
@@ -40,18 +41,29 @@ test("all six explicit edit kinds preserve original text", () => {
 	expect(ConversionEditIntentV1Schema.parse(input)).toEqual(input);
 	expect(ConversionEditIntentV1Schema.safeParse({ ...input, specHash: "d".repeat(64) }).success).toBe(false);
 	expect(ConversionEditIntentV1Schema.safeParse({ ...input, edits: [] }).success).toBe(false);
-	expect(ConversionEditIntentV1Schema.safeParse({
-		...input, edits: [{ kind: "nodeInstruction", sourceNodeId: identity.flowId, instruction: "text" }],
-	}).success).toBe(false);
+	expect(
+		ConversionEditIntentV1Schema.safeParse({
+			...input,
+			edits: [{ kind: "nodeInstruction", sourceNodeId: identity.flowId, instruction: "text" }],
+		}).success,
+	).toBe(false);
 });
 
 test("pending and blocked results cannot carry a fabricated committed receipt", () => {
 	expect(FlowDocumentActionResultV1Schema.parse({ state: "pending", requestId: identity.requestId })).toEqual({
-		state: "pending", requestId: identity.requestId,
+		state: "pending",
+		requestId: identity.requestId,
 	});
 	expect(FlowDocumentActionResultV1Schema.parse({ state: "blocked", diagnostics: [] })).toEqual({
-		state: "blocked", diagnostics: [],
+		state: "blocked",
+		diagnostics: [],
 	});
-	expect(FlowDocumentActionResultV1Schema.safeParse({ state: "pending", requestId: identity.requestId, document: null }).success).toBe(false);
-	expect(FlowDocumentActionResultV1Schema.safeParse({ state: "blocked", requestId: identity.requestId, diagnostics: [] }).success).toBe(false);
+	expect(
+		FlowDocumentActionResultV1Schema.safeParse({ state: "pending", requestId: identity.requestId, document: null })
+			.success,
+	).toBe(false);
+	expect(
+		FlowDocumentActionResultV1Schema.safeParse({ state: "blocked", requestId: identity.requestId, diagnostics: [] })
+			.success,
+	).toBe(false);
 });

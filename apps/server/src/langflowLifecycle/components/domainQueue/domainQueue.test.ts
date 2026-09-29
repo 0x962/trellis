@@ -5,10 +5,20 @@ test("a committed execution waits behind recovery and repeated queued notices co
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
 	const calls: string[] = [];
-	const queue = domainQueue("admission", {
-		recover: async () => { calls.push("recover"); entered.resolve(); await release.promise; },
-		committed: async ({ executionId }) => { calls.push(executionId); },
-	}, () => {});
+	const queue = domainQueue(
+		"admission",
+		{
+			recover: async () => {
+				calls.push("recover");
+				entered.resolve();
+				await release.promise;
+			},
+			committed: async ({ executionId }) => {
+				calls.push(executionId);
+			},
+		},
+		() => {},
+	);
 	const recovering = queue.recover();
 	await entered.promise;
 	const first = queue.committed("one");
@@ -24,16 +34,26 @@ test("a committed execution waits behind recovery and repeated queued notices co
 test("a failed domain call logs the failure and leaves later retained work callable", async () => {
 	const logs: unknown[] = [];
 	const calls: string[] = [];
-	const queue = domainQueue("decisions", {
-		recover: async () => { calls.push("recover"); },
-		committed: async () => { throw new Error("remote_outcome_unknown"); },
-	}, (message, fields) => logs.push({ message, fields }));
+	const queue = domainQueue(
+		"decisions",
+		{
+			recover: async () => {
+				calls.push("recover");
+			},
+			committed: async () => {
+				throw new Error("remote_outcome_unknown");
+			},
+		},
+		(message, fields) => logs.push({ message, fields }),
+	);
 	await queue.committed("one");
 	await queue.recover();
-	expect(logs).toEqual([{
-		message: "Langflow domain work failed",
-		fields: { domain: "decisions", work: "execution:one", error: "remote_outcome_unknown" },
-	}]);
+	expect(logs).toEqual([
+		{
+			message: "Langflow domain work failed",
+			fields: { domain: "decisions", work: "execution:one", error: "remote_outcome_unknown" },
+		},
+	]);
 	expect(calls).toEqual(["recover"]);
 	await queue.stop();
 });
@@ -42,19 +62,27 @@ test("stop awaits the active effect and leaves queued obligations for the next h
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
 	const calls: string[] = [];
-	const queue = domainQueue("native", {
-		recover: async () => { calls.push("recover"); },
-		committed: async ({ executionId }) => {
-			calls.push(executionId);
-			entered.resolve();
-			await release.promise;
+	const queue = domainQueue(
+		"native",
+		{
+			recover: async () => {
+				calls.push("recover");
+			},
+			committed: async ({ executionId }) => {
+				calls.push(executionId);
+				entered.resolve();
+				await release.promise;
+			},
 		},
-	}, () => {});
+		() => {},
+	);
 	const active = queue.committed("active");
 	await entered.promise;
 	const queued = queue.committed("queued");
 	let stopped = false;
-	const closing = queue.stop().then(() => { stopped = true; });
+	const closing = queue.stop().then(() => {
+		stopped = true;
+	});
 	await queue.committed("after-stop");
 	expect(stopped).toBe(false);
 	release.resolve();
@@ -65,10 +93,18 @@ test("stop awaits the active effect and leaves queued obligations for the next h
 
 test("pause retains queued notices until resume", async () => {
 	const calls: string[] = [];
-	const queue = domainQueue("projection", {
-		recover: async () => { calls.push("recover"); },
-		committed: async ({ executionId }) => { calls.push(executionId); },
-	}, () => {});
+	const queue = domainQueue(
+		"projection",
+		{
+			recover: async () => {
+				calls.push("recover");
+			},
+			committed: async ({ executionId }) => {
+				calls.push(executionId);
+			},
+		},
+		() => {},
+	);
 	await queue.pause();
 	await queue.committed("one");
 	await queue.committed("one");

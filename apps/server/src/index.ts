@@ -165,7 +165,12 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		});
 		const langflow = await startLangflowBootstrap(config, transport, (message, fields) => log.info(message, fields));
 		const { app, bye } = createApp({
-			config, log, transport: langflow?.transport ?? transport, bus, runtime, gh: ghState,
+			config,
+			log,
+			transport: langflow?.transport ?? transport,
+			bus,
+			runtime,
+			gh: ghState,
 			editor: langflow?.editor,
 			nativeReservations: langflow?.nativeReservations,
 		});

@@ -21,11 +21,13 @@ export function langflowNativeReservations(transport: NativeReservationTransport
 		} catch {
 			throw new ORPCError("BAD_REQUEST", { status: 400, message: "The request must contain valid UTF-8." });
 		}
-		const handleBytes = await transport.reserve({ authorization, capabilityId, requestBytes }).catch((error: unknown) => {
-			if (error instanceof Error && error.message === "authentication_denied")
-				throw new ORPCError("UNAUTHORIZED", { status: 401 });
-			throw error;
-		});
+		const handleBytes = await transport
+			.reserve({ authorization, capabilityId, requestBytes })
+			.catch((error: unknown) => {
+				if (error instanceof Error && error.message === "authentication_denied")
+					throw new ORPCError("UNAUTHORIZED", { status: 401 });
+				throw error;
+			});
 		return new Response(handleBytes, {
 			status: 200,
 			headers: { "content-type": "application/json", "cache-control": "no-store" },

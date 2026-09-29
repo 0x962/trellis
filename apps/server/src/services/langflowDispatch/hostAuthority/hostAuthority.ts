@@ -1,4 +1,4 @@
-import { createAuthorityPort, type AuthorityPort, type InitialBindingPort } from "../../../langflowHost";
+import { type AuthorityPort, createAuthorityPort, type InitialBindingPort } from "../../../langflowHost";
 import type { IoCtx } from "../../support";
 import { actionControl } from "../actionControl";
 

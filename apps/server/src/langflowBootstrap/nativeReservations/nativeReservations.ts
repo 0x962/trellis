@@ -19,9 +19,11 @@ export function nativeReservations(options: {
 		reserve: (input) => {
 			if (stopped) return Promise.reject(new Error("langflow_runtime_stopping"));
 			const work = options.supervisor.withAuthenticatedNativeReservation(input.authorization, async (observation) => {
-				const state = await options.transport.call("langflowNative.reservationState", systemContext(), {
-					requestBytes: input.requestBytes, capabilityId: input.capabilityId, observation,
-				}) as Awaited<ReturnType<typeof nativeReservationState>>;
+				const state = (await options.transport.call("langflowNative.reservationState", systemContext(), {
+					requestBytes: input.requestBytes,
+					capabilityId: input.capabilityId,
+					observation,
+				})) as Awaited<ReturnType<typeof nativeReservationState>>;
 				if (state.request.state === "reserved") return JSON.stringify(state.request.handle);
 				if (state.request.cancelIntent !== null) throw new Error("execution_canceled");
 				const client = createEngineClient({
@@ -35,8 +37,11 @@ export function nativeReservations(options: {
 					signal: controller.signal,
 				});
 				return options.transport.call("langflowNative.reserve", systemContext(), {
-					requestBytes: input.requestBytes, capabilityId: input.capabilityId,
-					observation, authority: state.authority, visit,
+					requestBytes: input.requestBytes,
+					capabilityId: input.capabilityId,
+					observation,
+					authority: state.authority,
+					visit,
 				}) as Promise<string>;
 			});
 			active.add(work);

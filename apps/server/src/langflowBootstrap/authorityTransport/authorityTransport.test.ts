@@ -22,9 +22,11 @@ test("internal authority calls retain identity and use the system context", asyn
 	};
 	const request = { dataHomeId: identity.dataHomeId, hostId: identity.hostId, ownerId: "owner" };
 	expect(await authorityTransport(transport, identity).readRevocation(request)).toBe(revocation);
-	expect(calls).toEqual([{
-		name: "langflowHost.authority",
-		actor: { kind: "system", name: "trellis" },
-		input: { hostId: identity.hostId, dataHomeId: identity.dataHomeId, operation: "readRevocation", input: request },
-	}]);
+	expect(calls).toEqual([
+		{
+			name: "langflowHost.authority",
+			actor: { kind: "system", name: "trellis" },
+			input: { hostId: identity.hostId, dataHomeId: identity.dataHomeId, operation: "readRevocation", input: request },
+		},
+	]);
 });

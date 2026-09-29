@@ -1,1 +1,1 @@
-export { nativeAuthority, type NativeAuthorityInput } from "./nativeAuthority";
+export { type NativeAuthorityInput, nativeAuthority } from "./nativeAuthority";
