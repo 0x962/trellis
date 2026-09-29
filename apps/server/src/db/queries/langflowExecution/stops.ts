@@ -32,14 +32,12 @@ export async function recordStop(tx: Tx, input: { obligation: StopObligationV1 }
 		);
 	if (existing) return existing.obligation;
 	if (obligation.state !== "pending") throw new Error("stop_state_conflict");
-	await tx
-		.insert(langflowStops)
-		.values({
-			obligationId: obligation.obligationId,
-			executionId: obligation.executionId,
-			attemptId: obligation.attemptId,
-			obligation,
-		});
+	await tx.insert(langflowStops).values({
+		obligationId: obligation.obligationId,
+		executionId: obligation.executionId,
+		attemptId: obligation.attemptId,
+		obligation,
+	});
 	return obligation;
 }
 export async function cancelExecution(tx: Tx, input: { intent: CancelIntentV1; obligations: StopObligationV1[] }) {
@@ -107,13 +105,11 @@ export async function recordDeadline(tx: Tx, input: { executionId: string; deadl
 		if (row.deadline.launchedAt !== null || deadline.launchedAt === null) return row.deadline;
 		await tx.update(langflowDeadlines).set({ deadline }).where(eq(langflowDeadlines.id, row.id));
 	} else
-		await tx
-			.insert(langflowDeadlines)
-			.values({
-				id: deadline.deadlineId,
-				executionId: input.executionId,
-				groupOccurrenceKey: deadline.groupOccurrenceKey,
-				deadline,
-			});
+		await tx.insert(langflowDeadlines).values({
+			id: deadline.deadlineId,
+			executionId: input.executionId,
+			groupOccurrenceKey: deadline.groupOccurrenceKey,
+			deadline,
+		});
 	return deadline;
 }

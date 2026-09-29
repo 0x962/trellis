@@ -67,15 +67,13 @@ export async function transferOwnership(
 				admission.receipt.submissionDigest !== protocolDigest(row.submissionBytes)))
 	)
 		throw new Error("admission_conflict");
-	await tx
-		.insert(langflowOwnershipReceipts)
-		.values({
-			id: takeover ? receipt.transferId : receipt.renewalId,
-			executionId: row.executionId,
-			requestId: receipt.request.requestId,
-			requestBytes: input.requestBytes,
-			receipt,
-		});
+	await tx.insert(langflowOwnershipReceipts).values({
+		id: takeover ? receipt.transferId : receipt.renewalId,
+		executionId: row.executionId,
+		requestId: receipt.request.requestId,
+		requestBytes: input.requestBytes,
+		receipt,
+	});
 	await tx
 		.update(langflowExecutions)
 		.set({
@@ -86,13 +84,11 @@ export async function transferOwnership(
 		})
 		.where(eq(langflowExecutions.executionId, row.executionId));
 	if (takeover && admission.state === "open")
-		await tx
-			.insert(langflowOutbox)
-			.values({
-				id: admission.receipt.admissionId,
-				executionId: row.executionId,
-				kind: "admission",
-				payloadBytes: JSON.stringify(admission.receipt),
-			});
+		await tx.insert(langflowOutbox).values({
+			id: admission.receipt.admissionId,
+			executionId: row.executionId,
+			kind: "admission",
+			payloadBytes: JSON.stringify(admission.receipt),
+		});
 	return receipt;
 }
