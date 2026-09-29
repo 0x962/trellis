@@ -18,6 +18,24 @@ export type SetSessionObserverEnabledResult = {
 	requestInitialGeneration: boolean;
 };
 
+export type DisableSessionObserverForDeletionResult = {
+	observerRunId: string | null;
+	cancelGeneration: boolean;
+};
+
+export const disableSessionObserverForDeletion = async (
+	tx: Tx,
+	input: { runId: string; now: Date },
+): Promise<DisableSessionObserverForDeletionResult> => {
+	const observer = await sessionObserverByRun(tx, { runId: input.runId, lock: true });
+	if (observer === null) return { observerRunId: null, cancelGeneration: false };
+	const cancelGeneration = observer.enabled && observer.generationState === "generating";
+	await tx.execute(sql`UPDATE session_observers SET enabled=false, generation_state='idle',
+		generation_claim_id=NULL, generation_cursor=NULL, updated_at=${input.now}
+		WHERE run_id=${input.runId}`);
+	return { observerRunId: observer.observerRunId, cancelGeneration };
+};
+
 export const setEnabled = async (
 	ctx: ServiceCtx,
 	tx: Tx,
@@ -41,20 +59,24 @@ export const setEnabled = async (
 			requestInitialGeneration: true,
 		};
 	}
-	const becameEnabled = input.enabled && !existing.enabled;
-	const cancelGeneration = existing.enabled && existing.generationState === "generating" && !input.enabled;
-	await tx.execute(sql`UPDATE session_observers SET enabled=${input.enabled},
+	if (!input.enabled) {
+		const disabled = await disableSessionObserverForDeletion(tx, { runId: owner.runId, now: ctx.now });
+		return {
+			observer: await readSessionObserver(tx, owner.runId),
+			cancelGeneration: disabled.cancelGeneration,
+			requestInitialGeneration: false,
+		};
+	}
+	const becameEnabled = !existing.enabled;
+	await tx.execute(sql`UPDATE session_observers SET enabled=true,
 		activity_threshold=${input.activityThreshold ?? existing.activityThreshold},
 		last_attempted_cursor=CASE WHEN ${becameEnabled} THEN NULL ELSE last_attempted_cursor END,
 		error_code=CASE WHEN ${becameEnabled} THEN NULL ELSE error_code END,
 		error=CASE WHEN ${becameEnabled} THEN NULL ELSE error END,
-		generation_state=CASE WHEN ${input.enabled} THEN generation_state ELSE 'idle' END,
-		generation_claim_id=CASE WHEN ${input.enabled} THEN generation_claim_id ELSE NULL END,
-		generation_cursor=CASE WHEN ${input.enabled} THEN generation_cursor ELSE NULL END,
 		updated_at=${ctx.now} WHERE run_id=${owner.runId}`);
 	return {
 		observer: await readSessionObserver(tx, owner.runId),
-		cancelGeneration,
+		cancelGeneration: false,
 		requestInitialGeneration: becameEnabled,
 	};
 };
