@@ -587,7 +587,7 @@ Separate several HTML file paths with commas.
 | `trellis diff show <diff>` | Read identity, branches, external state, local state, CI, and review gaps. |
 | `trellis diff unlink <diff> --ticket <ticket>` | Remove the relationship with that ticket. |
 | `trellis diff refresh <diff>` | Fetch the latest diff state. |
-| `trellis diff patch <diff>` | Read the code patch. The output has a 1 MB limit. |
+| `trellis diff patch <diff>` | Read the complete code patch. |
 | `trellis diff summary write <diff> --headline <text> --why <text> --watch <text>` | Write or update the human explanation. |
 | `trellis diff summary show <diff>` | Read the stored explanation. |
 | `trellis diff summary export <diff>` | Print a GitHub pull request body from the explanation. |
