@@ -22,10 +22,12 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 	const root = await mkdtemp(join(tmpdir(), "trellis-oci-driver-"));
 	const data = join(root, "data");
 	const authentication = join(root, "secrets", `${identity.instanceId}.token`);
+	const captureIssuer = join(root, "capture-issuer.key");
 	await mkdir(join(root, "secrets"), { recursive: true, mode: 0o700 });
 	await mkdir(data, { recursive: true, mode: 0o700 });
 	await chmod(data, 0o700);
 	await writeFile(authentication, "exact-private-bearer", { mode: 0o600 });
+	await writeFile(captureIssuer, "exact-capture-issuer", { mode: 0o600 });
 	let network = false;
 	const volumes = new Map<string, VolumeInspection>();
 	let container: ReturnType<typeof containerInspection> | null = null;
@@ -79,6 +81,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		manifest,
 		imageConfigDigest: configDigest,
 		privateRoot: root,
+		captureIssuerFile: captureIssuer,
 		dependencies: {
 			run,
 			fetch: async (input, init) => {
@@ -109,6 +112,8 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		]);
 		expect(provision).toContain(configDigest);
 		expect(provision.at(-1)).toContain("-m 0600 /input/authentication /secrets/authentication");
+		expect(provision).toContain(`type=bind,src=${captureIssuer},dst=/input/capture-issuer,readonly`);
+		expect(provision.at(-1)).toContain("-m 0400 /input/capture-issuer /secrets/capture-issuer");
 		const observation = await driver.observe({
 			identity,
 			challenge: "00000000-0000-4000-8000-000000000002",
@@ -167,6 +172,7 @@ function containerInspection(running: boolean) {
 			User: "10001:10001",
 			Env: [
 				"TRELLIS_AUTHENTICATION_FILE=/run/trellis-secrets/authentication",
+				"TRELLIS_CAPTURE_ISSUER_FILE=/run/trellis-secrets/capture-issuer",
 				"LANGFLOW_SECRET_KEY_FILE=/run/trellis-secrets/engine-secret",
 				`TRELLIS_DATA_HOME_ID=${identity.dataHomeId}`,
 				`TRELLIS_HOST_ID=${identity.hostId}`,
@@ -203,7 +209,7 @@ function containerInspection(running: boolean) {
 	};
 }
 
-function volumeInspection(root: string, kind: "data" | "secrets") {
+function volumeInspection(root: string, kind: "data" | "secrets"): VolumeInspection {
 	return {
 		Name: storageNames(identity)[kind],
 		Driver: "local",

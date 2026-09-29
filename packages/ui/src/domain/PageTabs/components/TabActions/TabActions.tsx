@@ -14,6 +14,7 @@ type Props = {
 	onPin: PageTabsProps["onPin"];
 	onRename?: () => void;
 	onRestore?: () => void;
+	onSort: PageTabsProps["onSort"];
 	onClose: () => void;
 };
 export function TabActions({
@@ -23,6 +24,7 @@ export function TabActions({
 	regionEnd,
 	onMove,
 	onPin,
+	onSort,
 	onRename,
 	onRestore,
 	onClose,
@@ -63,6 +65,11 @@ export function TabActions({
 				disabled: activeIndex === regionEnd,
 				onSelect: () => onMove(tab.id, tabs[regionEnd + 1]?.id ?? null),
 			},
+		);
+	if (onSort)
+		items.push(
+			{ label: "Sort tabs A to Z", disabled: tabs.length < 2, onSelect: () => onSort("ascending") },
+			{ label: "Sort tabs Z to A", disabled: tabs.length < 2, onSelect: () => onSort("descending") },
 		);
 	items.push({ label: "Close tab", kbd: "Delete", onSelect: onClose });
 	return (

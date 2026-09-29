@@ -1227,6 +1227,13 @@ An exact legacy request replay retains its original result after a document conv
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
 
+The versioned start, decision, and cancel routes acquire a durable permit before their database action.
+The action and its immutable receipt commit together. A known refusal rolls back its savepoint before the outer transaction stores the error bytes.
+The external receipt archive retains the committed receipt before the host gate settles its permit.
+An exact replay reads that receipt and the current view. Changed request bytes return `FLOW_REQUEST_CONFLICT`.
+A permit without a receipt returns `FLOW_ACTION_PENDING` and stays pending until reconciliation.
+These local action permits do not settle the separate permits for engine delivery or native processes.
+
 `flowDocumentsV1.editorSession` issues an editor grant through
 `POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
 editor configuration with the host identity, separate origins, and installed
@@ -1234,6 +1241,12 @@ component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE
 The issuer requires the host bearer, the exact parent Origin, and a stored
 `defaultActorName`. An actor header identifies a request; it does not authenticate a person.
 The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+The HTTP adapter calls the plain issuer, sets the credential cookie, and returns the session.
+Its service calls retain the request ID and database timing collector.
+`flowDocumentsV1.editorHost` reads the current host and data-home identifiers from the host control directory.
+It returns their combined identity, or `null` when the editor has no configuration.
+Grant operations reject a changed host identity.
+Version conflicts return 412, concurrent channel saves return 409, and an unconfigured actor returns 503.
 
 A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
 The grant service holds the channel until the actual document transaction returns.
@@ -1288,7 +1301,7 @@ returns one canonical spelling.
 | tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same project; `wave` joins a wave and its epic |
 | tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic and the wave; `wave: null` clears the wave |
 | tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
-| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
+| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | all supplied refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project; open first, then done, then by updated desc |
 | epics.get | GET /api/epics/{epic} | the summary, its waves in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |

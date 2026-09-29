@@ -4,7 +4,7 @@ import { ids, now } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import { openTestDbFromArchive } from "../../db/testDb";
 import type { Tx } from "../../db/tx";
-import { recordExpiredStops } from "../langflowClocks/recordExpiredStops";
+import { recordExpiredStops } from "../langflowClocks";
 import { stopFixture } from "../langflowTestFixture";
 import { assertExecutionNotCanceled } from "./assertExecutionNotCanceled";
 import { cancelExecution } from "./cancelExecution";
