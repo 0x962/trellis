@@ -68,8 +68,16 @@ beforeAll(async () => {
 	}
 	db = await openDb(":memory:");
 	await runMigrations(db, { migrationsFolder: fixtureDirectory });
-	await withTx(db, (tx) => cache.rebuild(tx));
-	const original = await createProject("OLD", "Existing project");
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES ('01J00000000000000000000100', 'OLD', 'old', 'Existing project', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO statuses
+		(id, project_id, name, description, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES ('01J00000000000000000000101', '01J00000000000000000000100',
+			'Todo', 'Existing status.', 'todo', 'todo', 'muted', 0, true, ${at}, ${at})`);
+	const originalProject = (await db.execute(sql`SELECT * FROM projects WHERE key = 'OLD'`)).rows;
+	const originalStatuses = (
+		await db.execute(sql`SELECT * FROM statuses WHERE project_id = '01J00000000000000000000100' ORDER BY id`)
+	).rows;
 	expect(await migrate(db)).toBe(journal.entries.length - prior.length);
 	expect(
 		(
@@ -80,7 +88,12 @@ beforeAll(async () => {
 		{ conname: "statuses_project_name_equality", contype: "x" },
 		{ conname: "statuses_project_slug_equality", contype: "x" },
 	]);
-	expect(await getProject("OLD")).toEqual(original);
+	expect((await db.execute(sql`SELECT * FROM projects WHERE key = 'OLD'`)).rows).toEqual(originalProject);
+	expect(
+		(await db.execute(sql`SELECT * FROM statuses WHERE project_id = '01J00000000000000000000100' ORDER BY id`)).rows,
+	).toEqual(originalStatuses);
+	await withTx(db, (tx) => cache.rebuild(tx));
+	expect(await getProject("OLD")).toMatchObject({ id: "01J00000000000000000000100", name: "Existing project" });
 }, 60_000);
 
 afterAll(async () => {
