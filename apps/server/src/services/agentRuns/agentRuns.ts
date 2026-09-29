@@ -80,7 +80,8 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 					)})`;
 	const assignedWhere =
 		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
-	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}`;
+	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}
+		AND NOT EXISTS (SELECT 1 FROM session_observers o WHERE o.observer_id=agent_runs.id)`;
 	const window = withinWindow(input, ticket === null ? null : ticket.id, ctx.now);
 	if (input.includePinnedHistory) {
 		const runs = await storedRows<StoredRun>(

@@ -22,8 +22,14 @@ export const listUsageRuns = async (tx: Tx, home: string, cutoff: Date): Promise
 		tx,
 		sql`SELECT r.id, r.kind, r.name, r.ticket_identifier AS "ticketIdentifier",
 			t.title AS "ticketTitle", r.project_key AS "projectKey", coalesce(p.name, r.project_key) AS "projectName",
-			a.name AS "accountName", r.session_id AS "sessionId"
+			a.name AS "accountName", identities.session_id AS "sessionId"
 		FROM agent_runs r
+		LEFT JOIN LATERAL (
+			SELECT r.session_id
+			UNION
+			SELECT target->>'providerSessionId' FROM agent_start_requests
+			WHERE run_id=r.id AND actor_kind='system' AND actor_name='session-observer'
+		) identities ON true
 		LEFT JOIN tickets t ON t.id = r.ticket_id
 		LEFT JOIN projects p ON p.id = r.project_id
 		LEFT JOIN harness_accounts a ON a.id = r.account_id
