@@ -11,8 +11,8 @@ import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
 import { FlowSettingsSheet } from "../../../FlowEditor/components/FlowSettingsSheet";
 import { useDocumentAutosave } from "../../../FlowEditor/hooks/useFlowAutosave";
 import { createDocumentRecovery } from "../../../langflowDrafts/documentRecovery";
-import { DocumentDraftDialog, type DocumentDraftCopy } from "../DocumentDraftDialog";
 import { LangflowEditor, type LangflowEditorHandle, type LangflowEditorSession } from "../../LangflowEditor";
+import { type DocumentDraftCopy, DocumentDraftDialog } from "../DocumentDraftDialog";
 
 type Props = {
 	document: Extract<FlowDocumentV1, { engine: "langflow" }>;

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { FlowSummary } from "@trellis/api";
+import type { FlowExecutionViewV1, FlowSummary } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import {
 	type FlowReadiness,
@@ -26,7 +26,14 @@ const ref = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/tr
 
 const clientWith = (
 	flows: FlowSummary[],
-	records: Array<{ slug: string; name: string; status: string; flowId?: string; diffId?: string }>,
+	records: Array<{
+		slug: string;
+		name: string;
+		status: string;
+		detail?: FlowExecutionViewV1["detail"];
+		flowId?: string;
+		diffId?: string;
+	}>,
 	waiver: { headSha: string; reason: string } | null = null,
 ) => {
 	const sent: unknown[] = [];
@@ -52,6 +59,7 @@ const clientWith = (
 					flowId: record.flowId ?? `flow:${record.slug}`,
 					diffId: record.diffId ?? ref.id,
 					status: record.status,
+					detail: record.detail,
 					failureKind: null,
 				};
 			},
@@ -246,3 +254,18 @@ test("a newer failure keeps an older success for the same diff and applicable fl
 	);
 	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(true);
 });
+
+for (const detail of ["waiting_human", "waiting_native", "unknown"] as const) {
+	test(`retains ${detail} in the missing review explanation`, async () => {
+		const { client } = clientWith(
+			[flow("review", "Review", "")],
+			[{ slug: "review", name: "Review", status: "waiting", detail }],
+		);
+		const result = await flowReadiness(client, ref, "TRL-1");
+		expect(result.satisfied).toBe(false);
+		expect(result.runs[0]?.detail).toBe(detail);
+		const lines = flowRunMissingLines(result, 131).join("\n");
+		expect(lines.includes("Ask the user")).toBe(detail === "waiting_human");
+		expect(lines.includes("native attempt")).toBe(detail === "waiting_native");
+	});
+}

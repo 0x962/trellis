@@ -1,1 +1,1 @@
-from .nativeDecision import TrellisNativeDecisionV1
+from .nativeDecision import TrellisNativeDecisionV1 as TrellisNativeDecisionV1

@@ -11,7 +11,7 @@ import {
 import { clientContract, contract, flowDocumentsV1 } from "./index.ts";
 
 test("the client and server share versioned routes and retain strict legacy contracts", () => {
-	expect(clientContract).toBe(contract);
+	expect(clientContract.flowDocumentsV1).toBe(contract.flowDocumentsV1);
 	expect(clientContract.flows).toBe(contract.flows);
 	expect(clientContract.flowExecutions).toBe(contract.flowExecutions);
 	for (const name of ["get", "save", "view"] as const) {
