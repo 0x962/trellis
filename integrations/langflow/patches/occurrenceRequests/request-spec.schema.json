@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:trellis:request-spec:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodeId", "taskKeyBase", "name", "instruction", "harness"],
+  "properties": {
+    "nodeId": {"type": "string"},
+    "taskKeyBase": {"type": "string"},
+    "name": {"type": "string"},
+    "instruction": {"type": "string"},
+    "accountId": {"type": "string"},
+    "harness": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["preset", "startCommand", "resumeCommand"],
+          "properties": {
+            "preset": {"enum": ["claude", "codex", "opencode", "pi", "muse", "custom"]},
+            "startCommand": {"type": "string"},
+            "resumeCommand": {"type": "string"},
+            "model": {"type": "string"},
+            "effort": {"type": "string"}
+          }
+        }
+      ]
+    }
+  }
+}
