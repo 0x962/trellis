@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { FlowEdgeSchema, FlowNodeSchema, FlowRefSchema, FlowSchema } from "./flow.ts";
+import {
+	FlowEdgeInputSchema,
+	FlowEdgeSchema,
+	FlowNodeInputSchema,
+	FlowNodeSchema,
+	FlowRefSchema,
+	FlowSchema,
+} from "./flow.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const FlowDigestV1Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -124,10 +131,16 @@ const save = {
 	requestId: z.uuid().describe("Equal request bytes return the original save receipt. Changed bytes conflict."),
 };
 export const FlowDocumentSaveV1InputSchema = z.discriminatedUnion("engine", [
-	legacyContent.extend(save),
+	legacyContent.extend({
+		...save,
+		graphDocument: z.strictObject({
+			nodes: z.array(FlowNodeInputSchema),
+			edges: z.array(FlowEdgeInputSchema),
+		}),
+	}),
 	langflowContent.extend(save),
 ]);
-export type FlowDocumentSaveV1Input = z.infer<typeof FlowDocumentSaveV1InputSchema>;
+export type FlowDocumentSaveV1Input = z.input<typeof FlowDocumentSaveV1InputSchema>;
 
 export const FlowUnsupportedFormatV1Schema = z.strictObject({
 	flowId: UlidSchema,

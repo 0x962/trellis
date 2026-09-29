@@ -100,7 +100,11 @@ test("nested rounds and condition phases preserve the occurrence identity", () =
 	};
 	expect(FlowOccurrenceIdentityV1Schema.parse(identity)).toEqual(identity);
 	expect(
-		FlowOccurrenceIdentityV1Schema.safeParse({ ...identity, iterationPath: [{ loopNodeId: "outer", round: 51 }] })
+		FlowOccurrenceIdentityV1Schema.parse({ ...identity, iterationPath: [{ loopNodeId: "outer", round: 51 }] })
+			.iterationPath[0]?.round,
+	).toBe(51);
+	expect(
+		FlowOccurrenceIdentityV1Schema.safeParse({ ...identity, iterationPath: [{ loopNodeId: "outer", round: 0 }] })
 			.success,
 	).toBe(false);
 });
@@ -154,4 +158,24 @@ test("decision and cancellation preserve expectedRevision for the service stale-
 test("legacy execution filters retain pagination beyond 500 results", () => {
 	const input = { flow: "review", ticket: "TRL-665", diffId: flowV1Id, limit: 500, offset: 500 };
 	expect(FlowExecutionListInputSchema.parse(input)).toEqual(input);
+});
+
+test("reviewedHead preserves legacy caller values while workspace commits remain exact", () => {
+	for (const reviewedHead of ["6830428", "refs/heads/main", "f".repeat(40), "a".repeat(64), null]) {
+		expect(FlowExecutionViewV1Schema.parse({ ...executionViewV1Example, reviewedHead }).reviewedHead).toBe(
+			reviewedHead,
+		);
+	}
+	const attempt = occurrenceV1Example.attempts[0];
+	const occurrence = { ...occurrenceV1Example, attempts: [{ ...attempt, workspaceCommit: "6830428" }] };
+	expect(FlowExecutionViewV1Schema.safeParse({ ...executionViewV1Example, occurrences: [occurrence] }).success).toBe(
+		false,
+	);
+	for (const workspaceCommit of ["f".repeat(40), "a".repeat(64), null]) {
+		const value = FlowExecutionViewV1Schema.parse({
+			...executionViewV1Example,
+			occurrences: [{ ...occurrence, attempts: [{ ...attempt, workspaceCommit }] }],
+		});
+		expect(value.occurrences[0]?.attempts[0]?.workspaceCommit).toBe(workspaceCommit);
+	}
 });

@@ -16,7 +16,7 @@ export const FlowOccurrenceIdentityV1Schema = z.strictObject({
 	occurrenceKey: opaqueId,
 	parentOccurrenceKey: opaqueId.nullable(),
 	phase: z.enum(["step", "children", "condition"]),
-	iterationPath: z.array(z.strictObject({ loopNodeId: opaqueId, round: z.number().int().min(1).max(50) })),
+	iterationPath: z.array(z.strictObject({ loopNodeId: opaqueId, round: z.number().int().positive() })),
 });
 export type FlowOccurrenceIdentityV1 = z.infer<typeof FlowOccurrenceIdentityV1Schema>;
 
@@ -135,9 +135,9 @@ export const FlowExecutionViewV1Schema = FlowExecutionSchema.omit({
 	.extend({
 		schemaVersion: z.literal(1),
 		engine: FlowEngineV1Schema,
-		reviewedHead: commit
-			.nullable()
-			.describe("The caller names this review target. It does not identify a workspace checkout."),
+		reviewedHead: FlowExecutionSchema.shape.headSha.describe(
+			"The caller names this review target. It does not identify a workspace checkout.",
+		),
 		snapshot: FlowDocumentSnapshotV1Schema,
 		publication: FlowPublicationV1Schema.nullable(),
 		submission: FlowSubmissionV1Schema.nullable(),

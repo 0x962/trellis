@@ -126,3 +126,116 @@ test("versioned route exports do not register services in the live contract", ()
 	expect(flowDocumentsV1.view["~orpc"].route).toMatchObject({ method: "GET", path: "/flow-executions/{id}/view-v1" });
 	expect(contract).not.toHaveProperty("flowDocumentsV1");
 });
+
+test("legacy saves reject unknown node and edge bytes", () => {
+	const node = {
+		id: flowV1Id,
+		parentId: null,
+		kind: "agent",
+		title: "Review",
+		instruction: "Read the diff.",
+		minutes: null,
+		maxRounds: null,
+		x: 0,
+		y: 0,
+		width: null,
+		height: null,
+	};
+	const edge = { id: flowV1Id, fromNodeId: flowV1Id, toNodeId: flowV1Id, branch: "out" };
+	const input = {
+		...save,
+		engine: "legacy",
+		componentManifestHash: null,
+		graphDocument: { nodes: [node], edges: [edge] },
+	};
+	expect(FlowDocumentSaveV1InputSchema.safeParse(input).success).toBe(true);
+	for (const unknown of ["first", "changed"]) {
+		expect(
+			FlowDocumentSaveV1InputSchema.safeParse({
+				...input,
+				graphDocument: { nodes: [{ ...node, unknown }], edges: [edge] },
+			}).success,
+		).toBe(false);
+		expect(
+			FlowDocumentSaveV1InputSchema.safeParse({
+				...input,
+				graphDocument: { nodes: [node], edges: [{ ...edge, unknown }] },
+			}).success,
+		).toBe(false);
+	}
+});
+
+test("legacy saves enforce node kinds while snapshots retain the read schema", () => {
+	const node = {
+		id: flowV1Id,
+		parentId: null,
+		kind: "loop",
+		title: "Review",
+		instruction: "Read the diff.",
+		minutes: null,
+		maxRounds: null,
+		x: 0,
+		y: 0,
+		width: null,
+		height: null,
+		parallel: false,
+		harness: null,
+	};
+	const input = { ...save, engine: "legacy", componentManifestHash: null, graphDocument: { nodes: [node], edges: [] } };
+	expect(FlowDocumentSaveV1InputSchema.safeParse(input).success).toBe(false);
+	expect(
+		FlowDocumentV1Schema.safeParse({ ...legacyDocumentV1Example, graphDocument: input.graphDocument }).success,
+	).toBe(true);
+	for (const change of [{ maxRounds: 3 }, { kind: "agent" }]) {
+		expect(
+			FlowDocumentSaveV1InputSchema.safeParse({
+				...input,
+				graphDocument: { nodes: [{ ...node, ...change }], edges: [] },
+			}).success,
+		).toBe(true);
+	}
+	for (const change of [
+		{ kind: "human", harness: { preset: "codex" } },
+		{ kind: "agent", minutes: 5 },
+		{ kind: "agent", parallel: true },
+	]) {
+		expect(
+			FlowDocumentSaveV1InputSchema.safeParse({
+				...input,
+				graphDocument: { nodes: [{ ...node, ...change }], edges: [] },
+			}).success,
+		).toBe(false);
+	}
+});
+
+test("versioned legacy saves accept dense graph fixtures without graph-size ceilings", () => {
+	const nodes = Array.from({ length: 501 }, (_, index) => ({
+		id: String(index).padStart(26, "0"),
+		parentId: null,
+		kind: "agent",
+		title: "Review",
+		instruction: "Read the diff.",
+		minutes: null,
+		maxRounds: null,
+		x: 0,
+		y: 0,
+		width: null,
+		height: null,
+	}));
+	const edges = Array.from({ length: 2001 }, (_, index) => ({
+		id: String(index).padStart(26, "0"),
+		fromNodeId: nodes[index % 501]?.id,
+		toNodeId: nodes[(index + 1) % 501]?.id,
+		branch: "out",
+	}));
+	const value = FlowDocumentSaveV1InputSchema.parse({
+		...save,
+		engine: "legacy",
+		componentManifestHash: null,
+		graphDocument: { nodes, edges },
+	});
+	expect(value.engine).toBe("legacy");
+	if (value.engine !== "legacy") throw new Error("Expected a legacy fixture.");
+	expect(value.graphDocument.nodes).toHaveLength(501);
+	expect(value.graphDocument.edges).toHaveLength(2001);
+});
