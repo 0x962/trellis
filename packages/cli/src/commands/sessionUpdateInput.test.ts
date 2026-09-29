@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import type { CliContext } from "../context.ts";
-import { sessionStatusInput } from "./sessionStatusInput.ts";
+import { sessionUpdateInput } from "./sessionUpdateInput.ts";
 
 const context = (stdin: string): CliContext => ({ deps: { stdin: () => Promise.resolve(stdin) } }) as CliContext;
 
 test("reads Markdown from standard input and HTML from each embed file", async () => {
 	const paths: string[] = [];
-	const input = await sessionStatusInput(
+	const input = await sessionUpdateInput(
 		context("The agent update."),
 		{
 			session: "session-id",

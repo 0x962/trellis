@@ -3,7 +3,7 @@ import type { CliContext } from "../context.ts";
 import { readText, splitList } from "../context.ts";
 import { fileAt } from "../file.ts";
 
-export const sessionStatusInput = async (
+export const sessionUpdateInput = async (
 	ctx: CliContext,
 	args: { session: string; body: string; requestId?: string; embed?: string },
 	readFile: (path: string) => File = fileAt,

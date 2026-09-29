@@ -71,7 +71,7 @@ import { prepareDelete as deleteSession } from "./sessions/remove.ts";
 import { rename as renameSession } from "./sessions/rename.ts";
 import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
-import * as sessionUpdates from "./sessionUpdates/sessionUpdates.ts";
+import { sessionUpdateServices } from "./sessionUpdates/registry";
 import * as settings from "./settings/index.ts";
 import * as statistics from "./statistics/statistics.ts";
 import * as statuses from "./statuses.ts";
@@ -110,8 +110,7 @@ export const services = {
 	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
-	"sessionUpdates.get": core("read", sessionUpdates.get),
-	"sessionUpdates.write": core("mutation", sessionUpdates.write),
+	...sessionUpdateServices,
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
@@ -168,7 +167,6 @@ export const services = {
 	"reviews.submit": io("mutation", reviewRemote.submit),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
 	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
-
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),

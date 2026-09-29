@@ -1,4 +1,5 @@
 export {
+	assertCurrentAttempt,
 	type ExecutionAttemptRecord,
 	type LatestAttemptActivity,
 	latestAttemptActivityByRuns,

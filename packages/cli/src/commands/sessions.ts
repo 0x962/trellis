@@ -11,7 +11,7 @@ import { clientOf } from "../client.ts";
 import { compact, contextOf } from "../context.ts";
 import { usageError } from "../errors.ts";
 import { cell, type ListSpec, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
-import { sessionStatusInput } from "./sessionStatusInput.ts";
+import { sessionUpdateInput } from "./sessionUpdateInput.ts";
 
 const sessionRecord: RecordSpec<Session> = {
 	fields: [
@@ -163,7 +163,7 @@ const statusWrite = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const update = await clientOf(ctx).sessionUpdates.write(
-			await sessionStatusInput(ctx, {
+			await sessionUpdateInput(ctx, {
 				session: context.args.session,
 				body: context.args.body,
 				requestId: context.args["request-id"],

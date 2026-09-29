@@ -1,3 +1,4 @@
+import { pickErrors } from "../errors.ts";
 import {
 	SessionUpdateSchema,
 	SessionUpdatesGetInputSchema,
@@ -12,10 +13,10 @@ export const sessionUpdates = {
 		.input(SessionUpdatesGetInputSchema)
 		.output(SessionUpdatesSchema),
 	write: base
+		.errors(pickErrors(["SESSION_UPDATE_FORBIDDEN"]))
 		.route({
 			method: "POST",
 			path: "/session-updates/{sessionId}",
-			successStatus: 201,
 			summary: "Save a status update from the agent of a session",
 		})
 		.input(SessionUpdatesWriteInputSchema)

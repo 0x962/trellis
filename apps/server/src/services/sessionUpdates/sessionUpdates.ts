@@ -10,9 +10,9 @@ import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
-import { assertCurrentAttempt } from "../assignments/attempts.ts";
-import { resolveSession } from "../sessions/queries.ts";
+import { fail, invalidInput } from "../../errors.ts";
+import { assertCurrentAttempt } from "../assignments.ts";
+import { resolveSession } from "../sessions/index.ts";
 import { getSessionUpdates, sessionUpdateByRequest } from "./queries.ts";
 
 export const get = async (_ctx: ServiceCtx, tx: Tx, value: SessionUpdatesGetInput) => {
@@ -24,8 +24,7 @@ export const get = async (_ctx: ServiceCtx, tx: Tx, value: SessionUpdatesGetInpu
 export const write = async (ctx: ServiceCtx, tx: Tx, value: SessionUpdatesWriteInput): Promise<SessionUpdate> => {
 	const input = SessionUpdatesWriteInputSchema.parse(value);
 	const session = await resolveSession(tx, input.sessionId);
-	if (ctx.actor?.kind !== "agent" || ctx.actor.name !== session.runId)
-		throw invalidInput("sessionId", "An agent can write updates to its own session only.");
+	if (ctx.actor?.kind !== "agent" || ctx.actor.name !== session.runId) throw fail("SESSION_UPDATE_FORBIDDEN");
 	await assertCurrentAttempt(ctx, tx);
 	if (input.requestId !== undefined) {
 		const [request] = await rows<{ sessionId: string }>(

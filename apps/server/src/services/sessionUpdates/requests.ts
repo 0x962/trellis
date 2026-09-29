@@ -58,9 +58,12 @@ export const setSessionUpdateRequestState = async (
 		throw invalidInput("error", "A sent status request has no error.");
 	const [request] = await rows<SessionUpdateRequest>(
 		tx,
-		sql`UPDATE session_update_requests SET state=${input.state}, error=${input.error ?? null}
+		sql`UPDATE session_update_requests SET
+		state=CASE WHEN state='answered' THEN state ELSE ${input.state} END,
+		error=CASE WHEN state='answered' THEN error ELSE ${input.error ?? null} END
 		WHERE session_id=${input.sessionId} AND request_id=${input.requestId}
-		AND (state='pending' OR state=${input.state}) RETURNING ${columns}`,
+		AND (state='pending' OR state='answered' OR state=${input.state}
+			OR (state='sent' AND ${input.state}='failed')) RETURNING ${columns}`,
 	);
 	if (request === undefined) throw invalidInput("requestId", "This status request is not pending for the session.");
 	ctx.emit({ type: "session-updates.changed", id: input.sessionId });

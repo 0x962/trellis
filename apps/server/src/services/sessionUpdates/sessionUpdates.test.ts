@@ -65,10 +65,6 @@ test("saves replies once and reads the latest and previous replies", async () =>
 	expect(
 		await inTx((tx) => beginSessionUpdateRequest(ctx, tx, { sessionId, requestId: crypto.randomUUID() })),
 	).toBeNull();
-	expect(
-		(await inTx((tx) => setSessionUpdateRequestState(ctx, tx, { sessionId, requestId, state: "sent" }))).state,
-	).toBe("sent");
-
 	const first = await inTx((tx) =>
 		write(ctx, tx, {
 			sessionId,
@@ -81,6 +77,9 @@ test("saves replies once and reads the latest and previous replies", async () =>
 		write(ctx, tx, { sessionId, requestId, body: "A duplicate body must not replace the first body." }),
 	);
 	expect(duplicate).toEqual(first);
+	expect(
+		(await inTx((tx) => setSessionUpdateRequestState(ctx, tx, { sessionId, requestId, state: "sent" }))).state,
+	).toBe("answered");
 
 	const second = await inTx((tx) =>
 		write(context({ now: new Date(at.getTime() + 1) }), tx, { sessionId, body: "I will add the CLI next." }),
@@ -98,6 +97,7 @@ test("keeps the latest reply when the next request fails", async () => {
 	const requestId = crypto.randomUUID();
 	const ctx = context({ now: new Date(at.getTime() + 5 * 60 * 1000) });
 	await inTx((tx) => beginSessionUpdateRequest(ctx, tx, { sessionId, requestId }));
+	await inTx((tx) => setSessionUpdateRequestState(ctx, tx, { sessionId, requestId, state: "sent" }));
 	await inTx((tx) =>
 		setSessionUpdateRequestState(ctx, tx, { sessionId, requestId, state: "failed", error: "No side channel." }),
 	);
@@ -106,10 +106,14 @@ test("keeps the latest reply when the next request fails", async () => {
 	expect(saved.request).toMatchObject({ requestId, state: "failed", error: "No side channel." });
 });
 
-test("refuses another agent and a stale execution attempt", async () => {
-	await expect(
-		inTx((tx) => write(context({ actor: { kind: "agent", name: ulid() } }), tx, { sessionId, body: "Wrong owner." })),
-	).rejects.toThrow("An agent can write updates to its own session only.");
+test("refuses a human, another agent, and a stale execution attempt", async () => {
+	for (const actor of [
+		{ kind: "human" as const, name: "Navid" },
+		{ kind: "agent" as const, name: ulid() },
+	])
+		await expect(
+			inTx((tx) => write(context({ actor }), tx, { sessionId, body: "Wrong owner." })),
+		).rejects.toMatchObject({ code: "SESSION_UPDATE_FORBIDDEN", status: 403 });
 	await expect(
 		inTx((tx) => write(context({ attemptToken: oldToken }), tx, { sessionId, body: "Stale attempt." })),
 	).rejects.toThrow("This agent execution attempt cannot change Trellis.");
