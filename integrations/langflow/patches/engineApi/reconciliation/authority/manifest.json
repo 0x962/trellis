@@ -1,26 +1,26 @@
 {
-  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
-  "patch": "0002-read-authority-under-lease.patch",
-  "sha256": "7c8abf00c49127a996e35f4dc45ad94a5e4b1bb6367072a85b698865b11a3cca",
-  "after": {
-    "path": "integrations/langflow/patches/engineApi/reconciliation/0001-hold-engine-reconciliation-lease.patch",
-    "sha256": "0a5a23b18a8c367ce81d8bd43333298bf551fed7d231b1778074985a20638fe4"
-  },
-  "baseFiles": {
-    "capture_boundary.py": "f28fd4df9d7379891f39b64ccf5cb8ab9bb909dd3a03b7f12b70b3db6d229ab2",
-    "reconciliation_reader.py": "b00ac6334ef180fb7b0001096c11844f50bc84c54d0f0429c6df82f348d3bca0",
-    "reconciliation_router.py": "64d4d1777a043f7131f0e3b4b39f75efc382f761523c19135b1a730ffa47b794"
-  },
-  "files": {
-    "src/backend/base/langflow/services/trellis_v1/capture_boundary.py": "b8b3b4f664f5dac4d44bb28bb1763fdc42174cda52aa40bf0c822fdb8675b540",
-    "src/backend/base/langflow/services/trellis_v1/reconciliation_reader.py": "61ded40d3e7d73627760992ed9084f28224abe2be3a63f20e3d7c40f283436f6",
-    "src/backend/base/langflow/services/trellis_v1/reconciliation_router.py": "aa685314f90b977ad49d8e090e6b6a8654d6a16014d7bef30db130a35fbd3870"
-  },
-  "requires": [
-    "the configured SQLite engine database",
-    "the shared capture-writers flock",
-    "an exact active durable reconciliation lease",
-    "the normal private engine bearer",
-    "the reconciliation issuer credential"
-  ]
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"patch": "0002-read-authority-under-lease.patch",
+	"sha256": "7c8abf00c49127a996e35f4dc45ad94a5e4b1bb6367072a85b698865b11a3cca",
+	"after": {
+		"path": "integrations/langflow/patches/engineApi/reconciliation/0001-hold-engine-reconciliation-lease.patch",
+		"sha256": "0a5a23b18a8c367ce81d8bd43333298bf551fed7d231b1778074985a20638fe4"
+	},
+	"baseFiles": {
+		"capture_boundary.py": "f28fd4df9d7379891f39b64ccf5cb8ab9bb909dd3a03b7f12b70b3db6d229ab2",
+		"reconciliation_reader.py": "b00ac6334ef180fb7b0001096c11844f50bc84c54d0f0429c6df82f348d3bca0",
+		"reconciliation_router.py": "64d4d1777a043f7131f0e3b4b39f75efc382f761523c19135b1a730ffa47b794"
+	},
+	"files": {
+		"src/backend/base/langflow/services/trellis_v1/capture_boundary.py": "b8b3b4f664f5dac4d44bb28bb1763fdc42174cda52aa40bf0c822fdb8675b540",
+		"src/backend/base/langflow/services/trellis_v1/reconciliation_reader.py": "61ded40d3e7d73627760992ed9084f28224abe2be3a63f20e3d7c40f283436f6",
+		"src/backend/base/langflow/services/trellis_v1/reconciliation_router.py": "aa685314f90b977ad49d8e090e6b6a8654d6a16014d7bef30db130a35fbd3870"
+	},
+	"requires": [
+		"the configured SQLite engine database",
+		"the shared capture-writers flock",
+		"an exact active durable reconciliation lease",
+		"the normal private engine bearer",
+		"the reconciliation issuer credential"
+	]
 }
