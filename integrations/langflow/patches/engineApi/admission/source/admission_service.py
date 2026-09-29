@@ -23,14 +23,22 @@ from langflow.services.trellis_v1.correlation import (
 
 from .admission_lookup import actor_key, read_correlation
 from .admission_models import Absent, Admitted, EngineKey, Found, Pending, SubmissionPayload
+from .admission_request import submission_request
+from .admission_store import AuthorizedCorrelationStore
 
 
 class AdmissionService:
-    def __init__(self, *, jobs, background, host_id: str, dispatch_submission):
+    def __init__(self, *, jobs, background, host_id: str):
         self.jobs = jobs
         self.background = background
         self.host_id = host_id
-        self.dispatch_submission = dispatch_submission
+
+    async def dispatch_submission(self, record):
+        job = await self.jobs.get_job_by_job_id(record.job_id)
+        return await self.background.enqueue_trellis_submission(
+            engine_job_id=record.job_id, flow_id=job.flow_id, user_id=job.user_id,
+            request_bytes=submission_request(job.flow_id, record.engine_session_id),
+        )
 
     def require_host(self, host_id: str) -> None:
         if host_id != self.host_id:
@@ -82,49 +90,50 @@ class AdmissionService:
         await self.dispatch_submission(record)
         return Found(receiptBytes=receipt_bytes.decode("utf-8"))
 
-    async def open(self, receipt_bytes: bytes, authority) -> Admitted | Pending:
+    async def open(self, receipt_bytes: bytes, authority_bytes: bytes, *, require_authority) -> Admitted | Pending:
         receipt = _admission(_read(receipt_bytes, "admission"))
-        self.require_host(authority.hostId)
-        if any(receipt[name] != getattr(authority, name) for name in (
-            "executionId", "publicationId", "engineJobId", "engineEpoch"
-        )):
-            raise ProtocolConflict("admission_authority_binding_conflict")
         row = await read_correlation(self.host_id, receipt["executionId"])
         if row is None:
             raise CorrelationUnknown(receipt["executionId"])
         if row.admission_receipt_bytes is not None:
-            if bytes(row.admission_receipt_bytes) != receipt_bytes:
-                raise ProtocolConflict("admission_identity_conflict")
-            if row.enqueue_obligation_consumed_at is None:
-                await self.background._consume_trellis_admission_obligation(AdmissionEnqueueObligation(
-                    engine_job_id=row.engine_job_id, engine_request_id=row.continuation_engine_request_id,
-                    signal_id=row.continuation_signal_id, enqueue_obligation_id=row.enqueue_obligation_id,
-                    continuation_receipt_bytes=bytes(row.continuation_receipt_bytes),
-                ))
-            return Admitted(receiptBytes=bytes(row.admission_receipt_bytes).decode("utf-8"))
-        checkpoint_bytes = await self.jobs.load_checkpoint(row.engine_job_id, "graph")
-        if checkpoint_bytes is None:
-            return Pending()
-        checkpoint = GraphCheckpoint.model_validate_json(checkpoint_bytes)
-        waits = [json.loads(raw) for raw in checkpoint.external_waits.values()]
-        matches = [wait for wait in waits if wait.get("kind") == "admission" and wait.get("barrierId") == row.barrier_id]
-        if not matches:
-            return Pending()
-        if len(matches) != 1:
-            raise ProtocolConflict("admission_wait_identity_conflict")
-        wait_id = matches[0]["waitId"]
-        identity = f"trellis-admission:{row.engine_job_id}:{wait_id}"
-        continuation = AdmissionContinuation(
-            engine_request_id=wait_id, signal_id=uuid5(NAMESPACE_URL, f"{identity}:signal"),
-            enqueue_obligation_id=uuid5(NAMESPACE_URL, f"{identity}:enqueue"),
-        )
+            continuation = AdmissionContinuation(
+                engine_request_id=row.continuation_engine_request_id,
+                signal_id=row.continuation_signal_id, enqueue_obligation_id=row.enqueue_obligation_id,
+            )
+        else:
+            checkpoint_bytes = await self.jobs.load_checkpoint(row.engine_job_id, "graph")
+            if checkpoint_bytes is None:
+                return Pending()
+            checkpoint = GraphCheckpoint.model_validate_json(checkpoint_bytes)
+            waits = [json.loads(raw) for raw in checkpoint.external_waits.values()]
+            matches = [wait for wait in waits if wait.get("kind") == "admission" and wait.get("barrierId") == row.barrier_id]
+            if not matches:
+                return Pending()
+            if len(matches) != 1:
+                raise ProtocolConflict("admission_wait_identity_conflict")
+            wait_id = matches[0]["waitId"]
+            identity = f"trellis-admission:{row.engine_job_id}:{wait_id}"
+            continuation = AdmissionContinuation(
+                engine_request_id=wait_id, signal_id=uuid5(NAMESPACE_URL, f"{identity}:signal"),
+                enqueue_obligation_id=uuid5(NAMESPACE_URL, f"{identity}:enqueue"),
+            )
+
+        async def verify(session):
+            binding = await require_authority(
+                session, authority_bytes, "native.reserve",
+                execution_id=receipt["executionId"], publication_id=receipt["publicationId"],
+                engine_job_id=UUID(receipt["engineJobId"]),
+            )
+            if binding.engine_epoch != receipt["engineEpoch"] or binding.authority.host_id != self.host_id:
+                raise ProtocolConflict("admission_authority_binding_conflict")
+
         job = await self.jobs.get_job_by_job_id(row.engine_job_id)
-        coordinator = CorrelationCoordinator(JobServiceCorrelationStore(
-            self.jobs, flow_id=job.flow_id, user_id=job.user_id,
+        coordinator = CorrelationCoordinator(AuthorizedCorrelationStore(
+            self.jobs, flow_id=job.flow_id, user_id=job.user_id, require_authority=verify,
         ))
         commit = await coordinator.open_admission(actor_key(row), receipt_bytes, continuation)
         await self.background._consume_trellis_admission_obligation(AdmissionEnqueueObligation(
-            engine_job_id=row.engine_job_id, engine_request_id=wait_id,
+            engine_job_id=row.engine_job_id, engine_request_id=continuation.engine_request_id,
             signal_id=continuation.signal_id, enqueue_obligation_id=continuation.enqueue_obligation_id,
             continuation_receipt_bytes=commit.continuation_receipt_bytes,
         ))

@@ -20,4 +20,8 @@ name = "0001-private-admission-routes.patch"
     "patch": name,
     "sha256": hashlib.sha256(patch).hexdigest(),
     "files": files,
+    "transactionPatch": {
+        "patch": "0002-authorize-admission-transaction.patch",
+        "sha256": hashlib.sha256((root / "0002-authorize-admission-transaction.patch").read_bytes()).hexdigest(),
+    },
 }, indent=2) + "\n")
