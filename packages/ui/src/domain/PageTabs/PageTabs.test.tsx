@@ -48,6 +48,15 @@ test("bounds the mounted controls and keeps the active tab", () => {
 	expect(html.match(/role="tab"/g)?.length).toBeLessThan(10);
 	expect(html).toContain('data-page-tab-id="tab-999"');
 	expect(html).not.toContain('data-page-tab-id="tab-0"');
+
+	const manyPinned = manyTabs.map((tab) => ({ ...tab, pinned: true }));
+	const pinnedHtml = renderToStaticMarkup(
+		<PageTabs tabs={manyPinned} activeId="tab-999" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} />,
+	);
+
+	expect(pinnedHtml.match(/role="tab"/g)?.length).toBeLessThan(10);
+	expect(pinnedHtml).toContain('data-page-tab-id="tab-999"');
+	expect(pinnedHtml).not.toContain('data-page-tab-id="tab-0"');
 });
 
 test("a pinned tab keeps its full name in the accessible name and has no close button", () => {

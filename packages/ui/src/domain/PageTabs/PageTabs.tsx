@@ -1,21 +1,14 @@
 import { Plus } from "@phosphor-icons/react";
-import {
-	type CSSProperties,
-	type PointerEvent,
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { TabsList, TabsRoot } from "../../primitives/Tabs";
 import { Tooltip } from "../../primitives/Tooltip";
+import { cx } from "../../utils/cx";
 import { PageTab } from "./components/PageTab";
 import { TabActions } from "./components/TabActions";
 import { TabPicker } from "./components/TabPicker";
-import { revealTab, useTabLayout } from "./components/useTabLayout";
+import { useTabDrag } from "./components/useTabDrag";
+import { useTabLayout } from "./components/useTabLayout";
 
 export type PageTabItem = { id: string; title: string; pinned: boolean };
 export type PageTabsProps = {
@@ -32,8 +25,15 @@ export type PageTabsProps = {
 	"aria-label"?: string;
 };
 
-// The width of one pinned tab, the `w-24` of PageTab.
 const pinnedWidth = 96;
+
+const regionClass =
+	"relative h-full overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+
+// The mounted tabs of one region: the tabs near its viewport, plus the tab
+// under a drag so its control keeps the pointer capture.
+const withDragged = (indexes: number[], dragged: number) =>
+	dragged >= 0 && !indexes.includes(dragged) ? [...indexes, dragged].sort((a, b) => a - b) : indexes;
 
 export function PageTabs({
 	tabs,
@@ -49,33 +49,17 @@ export function PageTabs({
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
 	const pinnedCount = tabs.filter((tab) => tab.pinned).length;
+	const pinnedTabs = useMemo(() => tabs.slice(0, pinnedCount), [tabs, pinnedCount]);
 	const unpinnedTabs = useMemo(() => tabs.slice(pinnedCount), [tabs, pinnedCount]);
 	const activePinned = activeIndex >= 0 && activeIndex < pinnedCount;
 	const regionStart = activePinned ? 0 : pinnedCount;
 	const regionEnd = activePinned ? pinnedCount - 1 : tabs.length - 1;
+	const pinnedLayout = useTabLayout(pinnedTabs, activePinned ? activeIndex : -1, pinnedWidth);
 	const layout = useTabLayout(unpinnedTabs, activeIndex - pinnedCount);
-	const { ref: tabListRef, width: tabWidth } = layout;
 	const listRef = useRef<HTMLDivElement>(null);
-	const pinnedRef = useRef<HTMLDivElement>(null);
 	const focusAfterChange = useRef(false);
 	const addButton = useRef<HTMLButtonElement>(null);
-	const dragged = useRef<string | null>(null);
-	const [draggedId, setDraggedId] = useState<string | null>(null);
-	const dragX = useRef(0);
-	const pointerStart = useRef<{ id: string; x: number } | null>(null);
-	const suppressClick = useRef(false);
-	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [announcement, setAnnouncement] = useState("");
-	const draggedIndex = useMemo(
-		() => (draggedId === null ? -1 : tabs.findIndex((tab) => tab.id === draggedId)),
-		[tabs, draggedId],
-	);
-	const draggedPinned = draggedIndex >= 0 && draggedIndex < pinnedCount;
-	const draggedUnpinnedIndex = draggedIndex - pinnedCount;
-	const renderedIndexes =
-		draggedUnpinnedIndex >= 0 && !layout.indexes.includes(draggedUnpinnedIndex)
-			? [...layout.indexes, draggedUnpinnedIndex].sort((a, b) => a - b)
-			: layout.indexes;
 	const items = useMemo(() => tabs.map((tab) => ({ value: tab.id })), [tabs]);
 	const focusActive = () => {
 		const tab = Array.from(listRef.current!.querySelectorAll<HTMLElement>('[role="tab"]')).find(
@@ -89,11 +73,6 @@ export function PageTabs({
 			focusAfterChange.current = false;
 		}
 	});
-	// The pinned region scrolls on its own, so a narrow strip keeps the
-	// active pinned tab in view.
-	useLayoutEffect(() => {
-		if (activePinned) revealTab(pinnedRef.current!, activeIndex * pinnedWidth, pinnedWidth);
-	}, [activePinned, activeIndex]);
 	const close = (id: string) => {
 		focusAfterChange.current = listRef.current!.contains(document.activeElement);
 		onClose(id);
@@ -110,69 +89,13 @@ export function PageTabs({
 		focusAfterChange.current = true;
 		onSelect(id);
 	};
-	// The drop position of a drag, as an index into `tabs`. A drag stays in
-	// the region its tab started in.
-	const positionFor = useCallback(
-		(clientX: number, pinned: boolean) => {
-			const element = (pinned ? pinnedRef : tabListRef).current!;
-			const width = pinned ? pinnedWidth : tabWidth;
-			const count = pinned ? pinnedCount : tabs.length - pinnedCount;
-			const offset = pinned ? 0 : pinnedCount;
-			return (
-				offset +
-				Math.max(
-					0,
-					Math.min(
-						count,
-						Math.floor((clientX - element.getBoundingClientRect().left + element.scrollLeft + width / 2) / width),
-					),
-				)
-			);
-		},
-		[tabListRef, tabWidth, tabs.length, pinnedCount],
-	);
-	const pointerDown = (id: string, event: PointerEvent<HTMLButtonElement>) => {
-		if (!onMove || event.button !== 0 || event.pointerType === "touch") return;
-		pointerStart.current = { id, x: event.clientX };
-		event.currentTarget.setPointerCapture(event.pointerId);
-	};
-	const pointerMove = (event: PointerEvent) => {
-		const start = pointerStart.current;
-		if (!start || (Math.abs(event.clientX - start.x) < 6 && dragged.current === null)) return;
-		dragged.current = start.id;
-		setDraggedId(start.id);
-		dragX.current = event.clientX;
-		setDropIndex(positionFor(event.clientX, tabs.find((tab) => tab.id === start.id)!.pinned));
-	};
-	const pointerEnd = (event: PointerEvent) => {
-		pointerStart.current = null;
-		if (dragged.current === null) return;
-		const id = dragged.current,
-			index = positionFor(event.clientX, tabs.find((tab) => tab.id === id)!.pinned),
-			before = tabs[index]?.id ?? null;
-		dragged.current = null;
-		setDraggedId(null);
-		setDropIndex(null);
-		suppressClick.current = true;
-		if (before !== id && tabs[index - 1]?.id !== id) move(id, before);
-	};
-
-	useEffect(() => {
-		if (dropIndex === null) return;
-		let frame: number;
-		const scroll = () => {
-			const element = (draggedPinned ? pinnedRef : tabListRef).current!;
-			const bounds = element.getBoundingClientRect();
-			const delta = dragX.current < bounds.left + 28 ? -12 : dragX.current > bounds.right - 28 ? 12 : 0;
-			if (delta) {
-				element.scrollLeft += delta;
-				setDropIndex(positionFor(dragX.current, draggedPinned));
-			}
-			frame = requestAnimationFrame(scroll);
-		};
-		frame = requestAnimationFrame(scroll);
-		return () => cancelAnimationFrame(frame);
-	}, [dropIndex, draggedPinned, tabListRef, positionFor]);
+	const drag = useTabDrag({
+		tabs,
+		pinned: { ref: pinnedLayout.ref, width: pinnedWidth, offset: 0, count: pinnedCount },
+		unpinned: { ref: layout.ref, width: layout.width, offset: pinnedCount, count: unpinnedTabs.length },
+		enabled: onMove !== undefined,
+		move,
+	});
 	const pageTab = (index: number, style: CSSProperties) => {
 		const tab = tabs[index]!;
 		return (
@@ -193,13 +116,15 @@ export function PageTabs({
 					focusAfterChange.current = focus;
 				}}
 				onRename={(title) => onRename!(tab.id, title)}
-				onPointerDown={(event) => pointerDown(tab.id, event)}
+				onPointerDown={(event) => drag.pointerDown(tab.id, event)}
 			/>
 		);
 	};
 	const dropMarker = (left: number) => (
 		<div className="pointer-events-none absolute inset-y-1 z-20 w-0.5 rounded-round bg-accent" style={{ left }} />
 	);
+	const pinnedIndexes = withDragged(pinnedLayout.indexes, drag.draggedPinned ? drag.draggedIndex : -1);
+	const unpinnedIndexes = withDragged(layout.indexes, drag.draggedPinned ? -1 : drag.draggedIndex - pinnedCount);
 	return (
 		<div className="relative flex min-w-0 items-end bg-surface px-1 pt-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
 			<TabsRoot
@@ -235,48 +160,34 @@ export function PageTabs({
 						const target = targets[event.key];
 						if (target !== undefined) move(activeId, target);
 					}}
-					onPointerDownCapture={() => {
-						suppressClick.current = false;
-					}}
-					onPointerMove={pointerMove}
-					onPointerUp={pointerEnd}
-					onPointerCancel={() => {
-						pointerStart.current = null;
-						dragged.current = null;
-						setDraggedId(null);
-						setDropIndex(null);
-					}}
-					onClickCapture={(event) => {
-						if (suppressClick.current) {
-							event.preventDefault();
-							event.stopPropagation();
-							suppressClick.current = false;
-						}
-					}}
+					{...drag.listHandlers}
 				>
-					{pinnedCount > 0 && (
-						<div
-							ref={pinnedRef}
-							className="relative flex h-full max-w-1/2 shrink-0 overflow-x-auto overscroll-x-contain border-r border-border pr-1 mr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-						>
-							{Array.from({ length: pinnedCount }, (_, index) => pageTab(index, {}))}
-							{dropIndex !== null &&
-								draggedPinned &&
-								dropMarker(Math.min(dropIndex * pinnedWidth, pinnedCount * pinnedWidth - 2))}
-						</div>
-					)}
 					<div
-						ref={layout.ref}
-						className="relative h-full min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-						onScroll={layout.onScroll}
+						ref={pinnedLayout.ref}
+						className={cx(
+							regionClass,
+							"mr-1 max-w-1/2 shrink-0 border-r border-border pr-1",
+							pinnedCount === 0 && "hidden",
+						)}
+						onScroll={pinnedLayout.onScroll}
 					>
+						<div className="relative h-full" style={{ width: pinnedCount * pinnedWidth }}>
+							{pinnedIndexes.map((index) => pageTab(index, { left: index * pinnedWidth, width: pinnedWidth }))}
+							{drag.dropIndex !== null &&
+								drag.draggedPinned &&
+								dropMarker(Math.min(drag.dropIndex * pinnedWidth, pinnedCount * pinnedWidth - 2))}
+						</div>
+					</div>
+					<div ref={layout.ref} className={cx(regionClass, "min-w-0 flex-1")} onScroll={layout.onScroll}>
 						<div className="relative h-full" style={{ width: unpinnedTabs.length * layout.width }}>
-							{renderedIndexes.map((index) =>
+							{unpinnedIndexes.map((index) =>
 								pageTab(pinnedCount + index, { left: index * layout.width, width: layout.width }),
 							)}
-							{dropIndex !== null &&
-								!draggedPinned &&
-								dropMarker(Math.min((dropIndex - pinnedCount) * layout.width, unpinnedTabs.length * layout.width - 2))}
+							{drag.dropIndex !== null &&
+								!drag.draggedPinned &&
+								dropMarker(
+									Math.min((drag.dropIndex - pinnedCount) * layout.width, unpinnedTabs.length * layout.width - 2),
+								)}
 						</div>
 					</div>
 				</TabsList>
