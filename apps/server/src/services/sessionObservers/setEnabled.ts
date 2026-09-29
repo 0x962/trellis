@@ -20,13 +20,12 @@ export type SetSessionObserverEnabledResult = {
 	requestInitialGeneration: boolean;
 };
 
-const providerError = `Configure an enabled Vercel AI Gateway provider that offers ${SESSION_OBSERVER_MODEL_ID}.`;
+const providerError = "Configure an enabled Vercel AI Gateway provider.";
 
 const observerProvider = async (tx: Tx): Promise<string | null> => {
 	const [provider] = await rows<{ id: string }>(
 		tx,
-		sql`SELECT p.id FROM providers p JOIN provider_models m ON m.provider_id=p.id
-		WHERE p.enabled AND p.kind='vercel-ai-gateway' AND m.model_id=${SESSION_OBSERVER_MODEL_ID}
+		sql`SELECT p.id FROM providers p WHERE p.enabled AND p.kind='vercel-ai-gateway'
 		ORDER BY p.created_at, p.id LIMIT 1`,
 	);
 	return provider?.id ?? null;

@@ -7,7 +7,7 @@ const observerColumns = sql`run_id AS "runId", enabled, observer_id AS "observer
 	model_id AS "modelId", activity_threshold AS "activityThreshold", generation_state AS "generationState",
 	generation, last_consumed_cursor AS "lastConsumedCursor", error`;
 
-const messageColumns = sql`id, observer_id AS "observerId", generation, role, body,
+const messageColumns = sql`id, observer_id AS "observerId", generation, position, role, body,
 	${iso(sql`created_at`)} AS "createdAt"`;
 
 export type StoredSessionObserver = Omit<SessionObserver, "messages" | "observerId" | "providerId" | "modelId"> & {
@@ -38,7 +38,7 @@ export const sessionObserverMessages = async (
 	rows<SessionObserverMessage>(
 		tx,
 		sql`SELECT ${messageColumns} FROM session_observer_messages WHERE observer_id=${input.observerId}
-		ORDER BY created_at, id`,
+		ORDER BY generation, position`,
 	);
 
 export const emptySessionObserver = (runId: string): SessionObserver => ({

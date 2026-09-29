@@ -68,12 +68,12 @@ export const appendSessionObserverMessages = async (
 	input: AppendSessionObserverMessagesInput,
 ): Promise<SessionObserverMessage[]> => {
 	const saved: SessionObserverMessage[] = [];
-	for (const message of input.messages) {
+	for (const [position, message] of input.messages.entries()) {
 		const [row] = await rows<SessionObserverMessage>(
 			tx,
-			sql`INSERT INTO session_observer_messages (id, observer_id, generation, role, body, created_at)
-			VALUES (${ulid()}, ${input.observerId}, ${input.generation}, ${message.role}, ${message.body}, ${input.createdAt})
-			RETURNING id, observer_id AS "observerId", generation, role, body,
+			sql`INSERT INTO session_observer_messages (id, observer_id, generation, position, role, body, created_at)
+			VALUES (${ulid()}, ${input.observerId}, ${input.generation}, ${position}, ${message.role}, ${message.body}, ${input.createdAt})
+			RETURNING id, observer_id AS "observerId", generation, position, role, body,
 			${iso(sql`created_at`)} AS "createdAt"`,
 		);
 		saved.push(row!);

@@ -37,6 +37,7 @@ test("accepts ordered observer messages and a readable error", () => {
 				id: "01M3NVQ8K3ZBWDFDZ406A4M1DC",
 				observerId,
 				generation: 1,
+				position: 0,
 				role: "assistant",
 				body: "The source checks pass.",
 				createdAt: "2026-09-29T16:00:00.000Z",

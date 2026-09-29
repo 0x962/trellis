@@ -45,13 +45,15 @@ export const sessionObserverMessages = pgTable(
 			.notNull()
 			.references(() => sessionObservers.observerId, { onDelete: "cascade" }),
 		generation: integer().notNull(),
+		position: integer().notNull(),
 		role: text().notNull(),
 		body: text().notNull(),
 		createdAt: at("created_at").notNull(),
 	},
 	(t) => [
-		index("session_observer_messages_history_idx").on(t.observerId, t.createdAt, t.id),
+		unique("session_observer_messages_position_unique").on(t.observerId, t.generation, t.position),
 		check("session_observer_messages_generation_check", sql`${t.generation} > 0`),
+		check("session_observer_messages_position_check", sql`${t.position} >= 0`),
 		check("session_observer_messages_role_check", sql`${t.role} IN ('user', 'assistant')`),
 		check("session_observer_messages_body_check", sql`length(${t.body}) > 0`),
 	],

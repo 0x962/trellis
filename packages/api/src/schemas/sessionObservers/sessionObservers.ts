@@ -13,6 +13,7 @@ export const SessionObserverMessageSchema = z.strictObject({
 	id: UlidSchema,
 	observerId: UlidSchema,
 	generation: z.number().int().positive(),
+	position: z.number().int().nonnegative(),
 	role: z.enum(["user", "assistant"]),
 	body: z.string().min(1),
 	createdAt: IsoDateTimeSchema,

@@ -113,7 +113,7 @@ test("enables one durable observer and reuses it after disablement", async () =>
 	}
 });
 
-test("saves a configuration error and makes no candidate when the gateway lacks the model", async () => {
+test("retains the selected gateway when its model list lacks Sonnet", async () => {
 	const value = await seed();
 	try {
 		await value.db.execute(sql`DELETE FROM provider_models WHERE provider_id=${value.providerId}`);
@@ -121,14 +121,22 @@ test("saves a configuration error and makes no candidate when the gateway lacks 
 			setEnabled(context([]), tx, { sessionId: value.ticketRunId, enabled: true }),
 		);
 		expect(result).toMatchObject({
-			requestInitialGeneration: false,
+			requestInitialGeneration: true,
 			observer: {
 				enabled: true,
-				providerId: null,
-				error: "Configure an enabled Vercel AI Gateway provider that offers anthropic/claude-sonnet-5.5.",
+				providerId: value.providerId,
+				modelId: "anthropic/claude-sonnet-5.5",
+				error: null,
 			},
 		});
-		expect(await value.db.transaction((tx) => listSessionObserverCandidates(tx))).toEqual([]);
+		expect(await value.db.transaction((tx) => listSessionObserverCandidates(tx))).toEqual([
+			{
+				runId: value.ticketRunId,
+				lastConsumedCursor: null,
+				hasInitialUpdate: false,
+				activityThreshold: 20,
+			},
+		]);
 	} finally {
 		await value.db.$client.close();
 	}
