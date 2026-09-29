@@ -56,6 +56,7 @@ export {
 } from "./domain/MergeConflictMark";
 export { PageCommentPin, type PageCommentPinProps } from "./domain/PageCommentPin";
 export { PageRow, type PageRowProps } from "./domain/PageRow";
+export { type PageTabItem, PageTabs, type PageTabsProps } from "./domain/PageTabs";
 export * from "./domain/PageVersionRow";
 export * from "./domain/PageViewer";
 export { PinMark, type PinMarkProps } from "./domain/PinMark";
@@ -180,7 +181,16 @@ export { Skeleton, type SkeletonProps } from "./primitives/Skeleton";
 export { Spinner, type SpinnerProps } from "./primitives/Spinner";
 export { StatTile, type StatTileProps } from "./primitives/StatTile";
 export { Switch, type SwitchProps } from "./primitives/Switch";
-export { type TabItem, Tabs, type TabsProps } from "./primitives/Tabs";
+export {
+	type TabItem,
+	Tabs,
+	TabsList,
+	type TabsListItem,
+	type TabsListProps,
+	type TabsProps,
+	TabsRoot,
+	TabsTab,
+} from "./primitives/Tabs";
 export { Textarea, type TextareaProps } from "./primitives/Textarea";
 export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
