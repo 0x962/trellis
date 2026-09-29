@@ -7,10 +7,10 @@ import { documentBytes } from "../../flowDocuments";
 import { promptFixture } from "../assembleNativePrompt/fixture";
 import type { NativeVisit } from "../nativeVisit";
 
-export async function occurrenceFixture(omitModel = false) {
+export async function occurrenceFixture(omitModel = false, harnessOverride?: Record<string, string>) {
 	const { db, input, authority } = await receiptFixture();
 	const source = promptFixture();
-	const harness = { ...source.approved.harness };
+	const harness = harnessOverride ? { ...harnessOverride } : { ...source.approved.harness };
 	if (omitModel) delete harness.model;
 	const spec = {
 		nodeId: nativeRequest.nodeId,
