@@ -6,6 +6,7 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
+import * as connection from "../../../agents/native/connection.ts";
 import { createCache } from "../../../db/cache.ts";
 import { rows } from "../../../db/queries/support.ts";
 import { openTestDb } from "../../../db/testDb.ts";
@@ -106,6 +107,14 @@ export async function fixture() {
 	const prompts: string[] = [];
 	const messages: { terminalId: string; text: string; messageId: string }[] = [];
 	const status = spyOn(HarnessHost.prototype, "status").mockImplementation(async () => saved);
+	const ensure = spyOn(connection, "ensureNativeRuntime").mockImplementation(async (runtimeHome) => {
+		expect(runtimeHome).toBe(home);
+		return connection.nativeClient(runtimeHome);
+	});
+	const recover = spyOn(HarnessHost.prototype, "recover").mockImplementation(async (attemptId) => {
+		expect(attemptId).toBe(terminalId);
+		return saved;
+	});
 	const waitFor = spyOn(HarnessHost.prototype, "waitFor").mockImplementation(async (_id, matches) => {
 		expect(matches(saved)).toBe(true);
 		return saved;
@@ -207,6 +216,8 @@ export async function fixture() {
 		// A close that throws would otherwise leave the directory on disk.
 		close: async () => {
 			status.mockRestore();
+			recover.mockRestore();
+			ensure.mockRestore();
 			waitFor.mockRestore();
 			await rm(home, { recursive: true, force: true });
 			await db.$client.close();
