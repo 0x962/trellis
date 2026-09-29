@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { check, foreignKey, index, integer, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, actors, at } from "./actors.ts";
 import { pageVersions } from "./pageVersions.ts";
 
@@ -14,6 +14,7 @@ export const pageCommentThreads = pgTable(
 		selectedText: text("selected_text"),
 		...actorColumns(),
 		resolvedAt: at("resolved_at"),
+		resolvedById: uuid("resolved_by_id"),
 		resolvedByName: text("resolved_by_name"),
 		resolvedByKind: text("resolved_by_kind"),
 		createdAt: at("created_at").notNull(),
@@ -30,27 +31,27 @@ export const pageCommentThreads = pgTable(
 		actorFk("page_comment_threads_actor_fk", t),
 		foreignKey({
 			name: "page_comment_threads_resolved_by_fk",
-			columns: [t.resolvedByName, t.resolvedByKind],
-			foreignColumns: [actors.name, actors.kind],
+			columns: [t.resolvedById],
+			foreignColumns: [actors.id],
 		}),
 		check("page_comment_threads_anchor_kind_check", sql`${t.anchorKind} IN ('element', 'text')`),
 		check(
 			"page_comment_threads_anchor_check",
 			sql`jsonb_typeof(${t.anchor}) = 'object'
 				AND ${t.anchor}->>'kind' IS NOT NULL
-				AND ${t.anchor}->>'kind' = ${t.anchorKind}
-				AND octet_length(${t.anchor}::text) <= 16384`,
+				AND ${t.anchor}->>'kind' = ${t.anchorKind}`,
 		),
 		check(
 			"page_comment_threads_selected_text_check",
 			sql`(${t.anchorKind} = 'element' AND ${t.selectedText} IS NULL)
 				OR (${t.anchorKind} = 'text' AND ${t.selectedText} IS NOT NULL
-					AND length(${t.selectedText}) BETWEEN 1 AND 2000)`,
+					AND length(${t.selectedText}) >= 1)`,
 		),
 		check(
 			"page_comment_threads_resolved_check",
 			sql`(${t.resolvedAt} IS NULL) = (${t.resolvedByName} IS NULL)
-				AND (${t.resolvedAt} IS NULL) = (${t.resolvedByKind} IS NULL)`,
+				AND (${t.resolvedAt} IS NULL) = (${t.resolvedByKind} IS NULL)
+				AND (${t.resolvedAt} IS NULL) = (${t.resolvedById} IS NULL)`,
 		),
 		index("page_comment_threads_page_version_created_idx").on(t.pageId, t.version, t.createdAt, t.id),
 		index("page_comment_threads_open_idx").on(t.pageId, t.createdAt, t.id).where(sql`${t.resolvedAt} IS NULL`),
@@ -72,7 +73,7 @@ export const pageComments = pgTable(
 	},
 	(t) => [
 		actorFk("page_comments_actor_fk", t),
-		check("page_comments_body_check", sql`length(${t.body}) BETWEEN 1 AND 10000`),
+		check("page_comments_body_check", sql`length(${t.body}) >= 1`),
 		index("page_comments_thread_created_idx").on(t.threadId, t.createdAt, t.id),
 	],
 );

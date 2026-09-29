@@ -9,11 +9,13 @@ import {
 import { langflowExecutions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
+import { assertOwnerActive } from "./ownerFence";
 export async function bindExecution(
 	tx: Tx,
 	input: { executionId: string; correlation: CorrelationReceiptV1; authority: DeliveryAuthorityV1 },
 ) {
 	const row = await lockExecution(tx, input);
+	await assertOwnerActive(tx, row.authority ?? input.authority);
 	if (row.correlation) {
 		if (!isDeepStrictEqual(row.correlation, input.correlation)) throw new Error("identity_conflict");
 		return row;

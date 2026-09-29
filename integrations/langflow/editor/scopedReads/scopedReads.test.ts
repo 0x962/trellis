@@ -84,12 +84,30 @@ test("rejects another document scope and retains blocked catalog entries", async
 	f.next({
 		schemaVersion: 1,
 		catalogId: "trellis-components-v1",
-		engine: { name: "langflow", version: "1.12.3", commit: "pinned" },
-		definitions: [{ id: "native", className: "Native", allowedForPublication: false, frontendTemplate: null }],
+		engine: { name: "langflow", version: "1.12.3", commit: "f".repeat(40) },
+		allowedForPublication: false,
+		supportedMappings: [],
+		legacyMappings: [],
+		blockers: {},
+		frontendTemplates: null,
+		definitions: [
+			{
+				id: "native",
+				version: 1,
+				className: "Native",
+				qualification: "source-only",
+				source: { root: "trellis", path: "native.py", sha256: "a".repeat(64) },
+				allowedForPublication: false,
+				frontendTemplate: null,
+			},
+		],
 	});
 	const catalog = await reads.catalog();
 	expect(catalog.definitions[0]).toEqual({
 		id: "native",
+		version: 1,
+		qualification: "source-only",
+		source: { root: "trellis", path: "native.py", sha256: "a".repeat(64) },
 		className: "Native",
 		allowedForPublication: false,
 		frontendTemplate: null,

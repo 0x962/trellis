@@ -4,9 +4,16 @@ import type { SidecarIdentity } from "../../contracts";
 import { missingOciObject, type OciRun } from "../process/process";
 
 const labelPrefix = "io.trellis.langflow";
+const engineApiConfigLabel = `${labelPrefix}.engine-api-config-digest`;
+const nativeReservationAuthenticationLabel = `${labelPrefix}.native-reservation-authentication-sha256`;
 export const containerPort = "7860/tcp";
+export const containerDataDirectory = "/data";
 export const containerAuthenticationFile = "/run/trellis-secrets/authentication";
+export const containerCaptureIssuerFile = "/run/trellis-secrets/capture-issuer";
+export const containerEngineApiConfigFile = "/run/trellis-secrets/engine-api.json";
 export const containerEncryptionFile = "/run/trellis-secrets/engine-secret";
+export const containerNativeReservationAuthenticationFile =
+	"/run/trellis-secrets/native-reservations.token";
 
 export const HealthSchema = z.strictObject({
 	status: z.literal("healthy"),
@@ -111,6 +118,26 @@ export function labels(identity: SidecarIdentity) {
 	};
 }
 
+export function containerLabels(
+	identity: SidecarIdentity,
+	engineApiConfigDigest: string | null,
+	nativeReservationAuthenticationDigest: string,
+) {
+	return {
+		...labels(identity),
+		...(engineApiConfigDigest ? { [engineApiConfigLabel]: engineApiConfigDigest } : {}),
+		[nativeReservationAuthenticationLabel]: nativeReservationAuthenticationDigest,
+	};
+}
+
+export function readNativeReservationAuthenticationDigest(container: ContainerInspection) {
+	const digest = container.Config.Labels?.[nativeReservationAuthenticationLabel];
+	if (!digest || !/^[0-9a-f]{64}$/.test(digest)) {
+		throw new Error("sidecar_native_reservation_authentication_digest_invalid");
+	}
+	return digest;
+}
+
 export function assertNetwork(network: NetworkInspection, identity: SidecarIdentity) {
 	if (!isDeepStrictEqual(network.Labels, labels(identity))) throw new Error("sidecar_network_identity_conflict");
 }
@@ -120,6 +147,8 @@ export function assertContainer(
 	identity: SidecarIdentity,
 	image: { reference: string; configDigest: string },
 	storage?: { data: string; secrets: string },
+	engineApiConfigDigest: string | null = null,
+	nativeReservationAuthenticationDigest = readNativeReservationAuthenticationDigest(container),
 ) {
 	const expectedNames = names(identity);
 	const tmpfsOptions = new Set(container.HostConfig.Tmpfs?.["/tmp"]?.split(","));
@@ -129,7 +158,10 @@ export function assertContainer(
 		container.Name !== `/${expectedNames.container}` ||
 		container.Config.Image !== image.reference ||
 		container.Image !== image.configDigest ||
-		!isDeepStrictEqual(container.Config.Labels, labels(identity)) ||
+		!isDeepStrictEqual(
+			container.Config.Labels,
+			containerLabels(identity, engineApiConfigDigest, nativeReservationAuthenticationDigest),
+		) ||
 		container.HostConfig.NetworkMode !== expectedNames.network ||
 		!container.HostConfig.CapDrop?.includes("ALL") ||
 		!container.HostConfig.SecurityOpt?.includes("no-new-privileges") ||
@@ -141,6 +173,9 @@ export function assertContainer(
 		!tmpfsSize ||
 		!tmpfsMode ||
 		!container.Config.Env.includes(`TRELLIS_AUTHENTICATION_FILE=${containerAuthenticationFile}`) ||
+		!container.Config.Env.includes(`TRELLIS_CAPTURE_ISSUER_FILE=${containerCaptureIssuerFile}`) ||
+		container.Config.Env.includes(`TRELLIS_ENGINE_API_CONFIG_FILE=${containerEngineApiConfigFile}`) !==
+			(engineApiConfigDigest !== null) ||
 		!container.Config.Env.includes(`LANGFLOW_SECRET_KEY_FILE=${containerEncryptionFile}`) ||
 		!container.Config.Env.includes(`TRELLIS_DATA_HOME_ID=${identity.dataHomeId}`) ||
 		!container.Config.Env.includes(`TRELLIS_HOST_ID=${identity.hostId}`) ||
@@ -151,7 +186,7 @@ export function assertContainer(
 		throw new Error("sidecar_container_identity_conflict");
 	if (!storage) return;
 	const expectedMounts = [
-		{ Name: storage.data, Destination: "/data", RW: true },
+		{ Name: storage.data, Destination: containerDataDirectory, RW: true },
 		{ Name: storage.secrets, Destination: "/run/trellis-secrets", RW: false },
 	];
 	if (container.Mounts.length !== expectedMounts.length) throw new Error("sidecar_mount_conflict");

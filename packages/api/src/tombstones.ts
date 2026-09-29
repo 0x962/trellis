@@ -7,6 +7,7 @@ export const TOMBSTONE_MS = 60_000;
 
 export type Tombstones = {
 	add: (id: string) => void;
+	addMany: (ids: readonly string[]) => void;
 	has: (id: string) => boolean;
 };
 
@@ -20,11 +21,11 @@ export const createTombstones = (scheduler: Scheduler): Tombstones => {
 		return deletedAt !== undefined && scheduler.now() - deletedAt < TOMBSTONE_MS;
 	};
 
-	const add = (id: string) => {
+	const addMany = (ids: readonly string[]) => {
 		const now = scheduler.now();
 		for (const [other, deletedAt] of deletedAtById) if (now - deletedAt >= TOMBSTONE_MS) deletedAtById.delete(other);
-		deletedAtById.set(id, now);
+		for (const id of ids) deletedAtById.set(id, now);
 	};
 
-	return { add, has };
+	return { add: (id) => addMany([id]), addMany, has };
 };

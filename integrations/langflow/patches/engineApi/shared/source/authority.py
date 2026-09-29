@@ -16,9 +16,11 @@ Permission = Literal[
     "native.reserve",
     "native.read",
     "completion.deliver",
+    "classification.deliver",
     "decision.deliver",
     "events.append",
     "execution.cancel",
+    "review.classify",
 ]
 REFERENCE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]*$"
 

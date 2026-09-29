@@ -6,12 +6,17 @@ import { ReviewGapSchema } from "./reviewReady.ts";
 import { TicketIdentifierSchema } from "./ticket";
 import { TicketPrSchema } from "./ticketPr";
 
-export const ReviewRefSchema = z.string().min(1).max(2048);
-export const ReviewBodySchema = z
+export const ReviewRefSchema = z.string().min(1);
+export const ReviewBodySchema = z.string().trim().min(1, "Enter a review comment.");
+export const ReviewPathSchema = z
 	.string()
-	.trim()
-	.min(1, "Enter a review comment of 1 to 200,000 characters.")
-	.max(200_000, "Enter a review comment of 1 to 200,000 characters.");
+	.min(1)
+	.refine(
+		(value) =>
+			!value.includes("\0") &&
+			value.split("/").every((segment) => segment !== "" && segment !== "." && segment !== ".."),
+		"Enter a relative file path without empty, dot, or parent segments.",
+	);
 export const ReactionKeySchema = z.enum(["+1", "-1", "laugh", "hooray", "confused", "heart", "rocket", "eyes"]);
 export const ReviewReactionSchema = z.object({
 	reaction: ReactionKeySchema,
@@ -79,7 +84,7 @@ export type ReviewThread = z.infer<typeof ReviewThreadSchema>;
 export type ReviewReply = z.infer<typeof ReviewReplySchema>;
 export const ReviewAnchorSchema = z
 	.object({
-		path: z.string().min(1).max(4096),
+		path: ReviewPathSchema,
 		side: z.enum(["old", "new"]).default("new"),
 		line: z.number().int().positive(),
 		startLine: z.number().int().positive().optional(),
@@ -88,7 +93,7 @@ export const ReviewAnchorSchema = z
 		// The text of the anchor lines, for a suggestion on lines outside
 		// the hunks of the patch. The server reads lines inside a hunk from
 		// the patch itself.
-		original: z.array(z.string()).max(10_000).optional(),
+		original: z.array(z.string()).optional(),
 	})
 	.refine((v) => v.startLine === undefined || v.startLine <= v.line, {
 		path: ["startLine"],
@@ -163,10 +168,10 @@ export const ReviewSubmitSchema = z
 		pr: ReviewRefSchema,
 		headSha: z.string().min(1),
 		verdict: z.enum(["comment", "approve", "request_changes"]),
-		body: z.string().trim().max(200_000).default(""),
+		body: z.string().trim().default(""),
 		// The local threads that this verdict gives to the agent. A thread can
 		// belong to an older revision of the same pull request.
-		threadIds: z.array(UlidSchema).max(200).default([]),
+		threadIds: z.array(UlidSchema).default([]),
 	})
 	.refine((value) => value.verdict === "approve" || value.body.length > 0, {
 		path: ["body"],
@@ -193,9 +198,9 @@ export type ReviewSubmitResult = z.infer<typeof ReviewSubmitResultSchema>;
 // One commit on the head branch takes the suggestions of these threads.
 export const ReviewApplySchema = z.strictObject({
 	pr: ReviewRefSchema,
-	threadIds: z.array(UlidSchema).min(1).max(50),
+	threadIds: z.array(UlidSchema).min(1),
 	headSha: z.string().min(1),
-	message: z.string().trim().max(10_000).optional(),
+	message: z.string().trim().optional(),
 });
 export type ReviewApply = z.output<typeof ReviewApplySchema>;
 export const ReviewApplyResultSchema = z.object({

@@ -39,3 +39,8 @@ test("menu links reject empty labels, unknown icons, invalid IDs, and duplicate 
 test("older settings clients can omit menu links", () => {
 	expect(SettingsSetInputSchema.safeParse({ defaultActorName: "test" }).success).toBe(true);
 });
+
+test("menu links preserve complete long labels", () => {
+	const label = "Release documentation ".repeat(100).trim();
+	expect(MenuLinkSchema.parse({ ...link, label: `  ${label}  ` }).label).toBe(label);
+});

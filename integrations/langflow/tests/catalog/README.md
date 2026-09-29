@@ -13,11 +13,36 @@ PYTHONDONTWRITEBYTECODE=1 "$LANGFLOW_PYTHON" -m pytest -q \
   "$TRELLIS_ROOT/integrations/langflow/tests/catalog"
 ```
 
-The caller supplies `TRELLIS_ROOT`, `LANGFLOW_SOURCE_ROOT`, `LANGFLOW_PYTHON`, and `LANGFLOW_RUN_ROOT`.
+The caller supplies `TRELLIS_ROOT`, `LANGFLOW_SOURCE_ROOT`, `LANGFLOW_PYTHON`, `LANGFLOW_RUN_ROOT`, and `LANGFLOW_OVERLAY_SHA256`.
 The run root must exist and belong to this batch.
-The fixtures export `catalog-frontend-templates.json` under that root.
-The export contains actual engine templates, including the complete component code.
-It contains synthetic configuration only.
+`LANGFLOW_OVERLAY_SHA256` identifies the verified applied patch series.
+`CATALOG_MANIFEST_SHA256` comes from the reviewed source handoff or verified package.
+Do not derive an expected digest from unverified files.
+
+TRL-667 supplies the existing CPython 3.12.12 executable and the matched engine roots.
+The exact merged Trellis snapshot must include every source that the catalog names.
+Set the import paths before either deferred command:
+
+```sh
+export PYTHONPATH="$TRELLIS_ROOT:$LANGFLOW_SOURCE_ROOT/src/backend:$LANGFLOW_SOURCE_ROOT/src/backend/base:$LANGFLOW_SOURCE_ROOT/src/lfx/src"
+```
+
+After the capacity hold ends, run the public exporter in that matched environment:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 "$LANGFLOW_PYTHON" -m integrations.langflow.components.catalog.exportTemplates \
+  --trellis-root "$TRELLIS_ROOT" \
+  --engine-root "$LANGFLOW_SOURCE_ROOT" \
+  --manifest-sha256 "$CATALOG_MANIFEST_SHA256" \
+  --engine-commit fec71dca901949c09ed4d63315804337cd2eb13d \
+  --engine-overlay-sha256 "$LANGFLOW_OVERLAY_SHA256" \
+  --output "$LANGFLOW_RUN_ROOT/frontend-templates.v1.json"
+```
+
+The export retains real engine templates, including the full component code and defaults.
+The final package must seal these bytes before an installed consumer uses them.
+The template fixtures compare every full engine result and retain each publication blocker.
+They reject a different import path, substituted code, an output overwrite, and aliases into source roots.
 
 The graph cases exercise the actual Langflow graph and the catalog component classes.
 They check branch exclusion, original result identity, source order, empty text, and retained output references.

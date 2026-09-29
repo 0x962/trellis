@@ -4,7 +4,7 @@ import { type DeliveryAuthorityV1, DeliveryAuthorityV1Schema, protocolDigest } f
 import type { DispatchEffects } from "../dispatchEffects";
 import type { DispatchBlock, DispatchPermit, ReconciliationReceipt, TerminalReceipt } from "../dispatchGate";
 import { type HostControlIdentity, LangflowHostControl } from "../hostControl";
-import { ReceiptObjectStore } from "./objectStore/objectStore";
+import { ReceiptObjectStore } from "../objectStore";
 import {
 	AuthorityArchiveSchema,
 	NativeSnapshotSchema,

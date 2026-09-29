@@ -1,1 +1,1 @@
-export { insertRow, patchRows, readRow, rowsOf } from "./cacheRows";
+export { insertRow, insertRows, patchRows, readRow, readRows, rowsOf } from "./cacheRows";

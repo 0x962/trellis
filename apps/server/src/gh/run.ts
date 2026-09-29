@@ -19,7 +19,7 @@ export type GhSuccess = { ok: true; code: number; stdout: string; stderr: string
 
 // `missing`: the binary is not on disk. `unauthenticated`: nobody is signed
 // in, or GitHub rejected the stored token. `error`: any other non-zero exit,
-// or the timeout.
+// cancellation, or a caller-selected timeout.
 export type GhFailure =
 	| { ok: false; reason: Extract<GhReason, "missing" | "unauthenticated">; message: string }
 	| { ok: false; reason: Extract<GhReason, "error">; message: string; code: number | null; stdout: string };
@@ -28,10 +28,8 @@ export type GhResult = GhSuccess | GhFailure;
 
 export type GhRunner = ((slot: GhSlot, args: string[]) => Promise<GhResult>) & {
 	bin: string;
-	timeoutMs: number;
+	timeoutMs: number | undefined;
 };
-
-export const DEFAULT_TIMEOUT_MS = 30_000;
 
 class Semaphore {
 	private free: number;
@@ -43,9 +41,24 @@ class Semaphore {
 
 	// Resolves with the release function once a slot is free. A released slot
 	// passes straight to the oldest waiter, so waiters run in call order.
-	async acquire(): Promise<() => void> {
+	async acquire(signal?: AbortSignal): Promise<(() => void) | null> {
+		if (signal?.aborted) return null;
 		if (this.free > 0) this.free--;
-		else await new Promise<void>((resolve) => this.waiters.push(resolve));
+		else {
+			const acquired = await new Promise<boolean>((resolve) => {
+				const ready = () => {
+					signal?.removeEventListener("abort", abort);
+					resolve(true);
+				};
+				const abort = () => {
+					this.waiters.splice(this.waiters.indexOf(ready), 1);
+					resolve(false);
+				};
+				this.waiters.push(ready);
+				signal?.addEventListener("abort", abort, { once: true });
+			});
+			if (!acquired) return null;
+		}
 		return () => {
 			const next = this.waiters.shift();
 			if (next === undefined) this.free++;
@@ -70,9 +83,11 @@ const SIGN_IN_NEEDED = /gh auth login|HTTP 401|Bad credentials/;
 const spawnGh = async (
 	bin: string,
 	args: string[],
-	timeoutMs: number,
+	timeoutMs: number | undefined,
 	env: ExecutionEnvironment,
+	signal?: AbortSignal,
 ): Promise<GhResult> => {
+	if (signal?.aborted) return canceled();
 	let proc: ReturnType<typeof Bun.spawn>;
 	try {
 		proc = Bun.spawn([bin, ...args], {
@@ -91,16 +106,23 @@ const spawnGh = async (
 		throw error;
 	}
 	let timedOut = false;
-	const timer = setTimeout(() => {
-		timedOut = true;
-		proc.kill("SIGKILL");
-	}, timeoutMs);
+	const timer =
+		timeoutMs === undefined
+			? undefined
+			: setTimeout(() => {
+					timedOut = true;
+					proc.kill("SIGKILL");
+				}, timeoutMs);
+	const abort = () => proc.kill("SIGKILL");
+	signal?.addEventListener("abort", abort, { once: true });
 	const [stdout, stderr, code] = await Promise.all([
 		new Response(proc.stdout as ReadableStream).text(),
 		new Response(proc.stderr as ReadableStream).text(),
 		proc.exited,
 	]);
 	clearTimeout(timer);
+	signal?.removeEventListener("abort", abort);
+	if (signal?.aborted) return canceled(stdout);
 	if (timedOut) {
 		const message = `gh did not finish before the timeout of ${timeoutMs} ms: ${bin} ${args.join(" ")}`;
 		return { ok: false, reason: "error", message, code: null, stdout };
@@ -111,22 +133,32 @@ const spawnGh = async (
 	return { ok: false, reason: "error", message, code, stdout };
 };
 
+const canceled = (stdout = ""): GhFailure => ({
+	ok: false,
+	reason: "error",
+	message: "The caller canceled the gh command.",
+	code: null,
+	stdout,
+});
+
 export const createGhRunner = (
-	options: { timeoutMs?: number; environment?: () => Promise<ExecutionEnvironment> } = {},
+	options: { timeoutMs?: number; signal?: AbortSignal; environment?: () => Promise<ExecutionEnvironment> } = {},
 ): GhRunner => {
 	const configuredBin = process.env.TRELLIS_GH_BIN;
 	const bin = configuredBin ?? "gh";
-	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+	const timeoutMs = options.timeoutMs;
 	const run = async (slot: GhSlot, args: string[]): Promise<GhResult> => {
+		if (options.signal?.aborted) return canceled();
 		let env: ExecutionEnvironment;
 		try {
 			env = await (options.environment ?? executionEnvironment)();
 		} catch (error) {
 			return { ok: false, reason: "error", message: (error as Error).message, code: null, stdout: "" };
 		}
-		const release = await slots[slot].acquire();
+		const release = await slots[slot].acquire(options.signal);
+		if (!release) return canceled();
 		try {
-			return await spawnGh(configuredBin ?? env.TRELLIS_GH_BIN ?? "gh", args, timeoutMs, env);
+			return await spawnGh(configuredBin ?? env.TRELLIS_GH_BIN ?? "gh", args, timeoutMs, env, options.signal);
 		} finally {
 			release();
 		}

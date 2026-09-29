@@ -40,7 +40,6 @@ export function HarnessAccountForm({
 					value={name}
 					onChange={(event) => setName(event.target.value)}
 					required
-					maxLength={120}
 					placeholder="Work"
 					autoFocus
 				/>

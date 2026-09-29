@@ -23,6 +23,9 @@ class CancelActor(StrictModel):
     kind: Literal["human"]
     name: str = Field(min_length=1)
 
+    def structlog_log_context(self) -> dict[str, object]:
+        return {"actor_kind": self.kind}
+
 
 class CancelIntent(StrictModel):
     version: Literal[1]
@@ -31,6 +34,9 @@ class CancelIntent(StrictModel):
     actor: CancelActor
     expected_revision: int = Field(alias="expectedRevision", ge=1)
     requested_at: datetime = Field(alias="requestedAt")
+
+    def structlog_log_context(self) -> dict[str, object]:
+        return {"execution_id": self.execution_id, "request_id": str(self.request_id)}
 
     @model_validator(mode="after")
     def validate_timestamp(self) -> CancelIntent:
@@ -46,6 +52,13 @@ class CancellationInput(StrictModel):
     request_id: UUID = Field(alias="requestId")
     cancel_intent_bytes: str = Field(alias="cancelIntentBytes", min_length=1)
     authority_bytes: str = Field(alias="authorityBytes", min_length=1)
+
+    def structlog_log_context(self) -> dict[str, object]:
+        return {
+            "execution_id": self.execution_id,
+            "request_id": str(self.request_id),
+            "engine_job_id": str(self.engine_job_id),
+        }
 
     @model_validator(mode="after")
     def validate_intent(self) -> CancellationInput:
@@ -67,7 +80,18 @@ class CancellationReceipt(StrictModel):
     cancel_intent_digest: str = Field(alias="cancelIntentDigest")
     accepted_at: datetime = Field(alias="acceptedAt")
 
+    def structlog_log_context(self) -> dict[str, object]:
+        return {
+            "execution_id": self.execution_id,
+            "request_id": str(self.request_id),
+            "engine_job_id": str(self.engine_job_id),
+            "receipt_id": str(self.receipt_id),
+        }
+
 
 class CancellationRecord(StrictModel):
     request_bytes: str = Field(alias="requestBytes")
     receipt: CancellationReceipt
+
+    def structlog_log_context(self) -> dict[str, object]:
+        return self.receipt.structlog_log_context()

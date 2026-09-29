@@ -5,6 +5,8 @@ import { openTestDb } from "../testDb.ts";
 import { openFlowRuns, stuckReviewMessages } from "./statisticsFaults.ts";
 import { loopBill, loopTotals } from "./statisticsLoop.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Navid'])`;
+
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const root = ulid();
 const status = ulid();
@@ -49,8 +51,8 @@ const addPullRequest = async (
 		${readyAt === null ? null : new Date(readyAt)}, ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticketId}, ${id}, 'manual', 'Navid', 'human', ${at})`);
+		ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${id}, 'manual', ${actorId}, 'Navid', 'human', ${at})`);
 };
 
 const addThread = async (prId: string, kind: string) =>

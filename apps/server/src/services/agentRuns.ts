@@ -12,10 +12,4 @@ export {
 	type RequestSessionNameInput,
 	requestSessionName,
 } from "./agentRuns/sessionNameAgent";
-export {
-	requestStatusAtTurnBoundary,
-	type StatusRequestRun,
-	statusRequestProcesses,
-	statusRequestRuns,
-} from "./agentRuns/statusRequests";
 export { assertWatchable, deliveryTarget, watchableAgent, watchableAgents } from "./agentRuns/watchable";

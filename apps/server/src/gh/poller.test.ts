@@ -6,6 +6,8 @@ import { openTestDb } from "../db/testDb.ts";
 import { start } from "./poller.ts";
 import type { GhRunner } from "./run.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana'])`;
+
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let cache: ProjectCache;
 
@@ -45,8 +47,8 @@ test("a poller tick moves a ticket whose linked pull requests are already termin
 		(id, owner, repo, number, url, state, is_draft, fetched_at, created_at, updated_at, merged_at)
 		VALUES (${prId}, 'acme', 'app', 8, 'https://github.com/acme/app/pull/8', 'merged', false, ${old}, ${old}, ${old}, ${old})`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests
-		(ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticketId}, ${prId}, 'manual', 'dana', 'human', ${old})`);
+		(ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${ticketId}, ${prId}, 'manual', ${actorId}, 'dana', 'human', ${old})`);
 	const gh = Object.assign(async () => ({ ok: true, code: 0, stdout: "", stderr: "" }), {
 		bin: "gh",
 		timeoutMs: 1000,

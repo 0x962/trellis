@@ -44,7 +44,6 @@ export function MenuLinkEditor({
 				<Input
 					label="Label"
 					value={label}
-					maxLength={80}
 					autoFocus
 					disabled={busy}
 					onChange={(event) => setLabel(event.target.value)}

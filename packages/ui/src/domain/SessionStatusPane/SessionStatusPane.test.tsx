@@ -153,3 +153,24 @@ describe("SessionStatusPane", () => {
 		expect(html).toContain("A paused session receives no update.");
 	});
 });
+
+test("exposes a failed refresh and retry after an empty history read", () => {
+	const html = render({
+		updates: { latest: null, previous: null, request: null, history: [] },
+		historyControl: { hasMore: false, loading: false, error: true, load() {}, retry() {} },
+	});
+	expect(html).toContain("The update history did not load");
+	expect(html).toContain('aria-label="Retry history"');
+});
+
+test("mounts a row window from a thousand retained updates", () => {
+	const history = Array.from({ length: 1000 }, (_, index) => ({
+		...latest,
+		id: `history-${index}`,
+		createdAt: new Date(Date.parse(latest.createdAt) - index * 60_000).toISOString(),
+	}));
+	const html = render({ updates: { ...baseUpdates, history } });
+	expect(html.match(/data-update-id=/g)!.length).toBeLessThan(100);
+	expect(html).toContain('data-update-id="history-0"');
+	expect(html).toContain('aria-level="2"');
+});

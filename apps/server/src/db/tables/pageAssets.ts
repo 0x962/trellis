@@ -35,7 +35,7 @@ export const pageAssets = pgTable(
 		),
 		check("page_assets_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 		check("page_assets_size_check", sql`${t.size} >= 0`),
-		check("page_assets_mime_check", sql`length(${t.mime}) BETWEEN 1 AND 255 AND ${t.mime} !~ '[[:cntrl:]]'`),
+		check("page_assets_mime_check", sql`length(${t.mime}) >= 1 AND ${t.mime} !~ '[[:cntrl:]]'`),
 		index("page_assets_sha256_idx").on(t.sha256),
 	],
 );

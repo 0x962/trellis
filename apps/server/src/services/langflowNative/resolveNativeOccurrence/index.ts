@@ -1,0 +1,1 @@
+export { resolveNativeOccurrence } from "./resolveNativeOccurrence";

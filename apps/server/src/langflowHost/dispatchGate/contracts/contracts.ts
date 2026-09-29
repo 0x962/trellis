@@ -1,6 +1,16 @@
+import type { CaptureRecord } from "../../captureAuthority";
+
 export type EffectBinding = {
 	effectId: string;
-	kind: "admission" | "publication" | "recovery" | "native-dispatch" | "engine-delivery" | "decision" | "cancellation";
+	kind:
+		| "admission"
+		| "publication"
+		| "recovery"
+		| "native-dispatch"
+		| "engine-delivery"
+		| "decision"
+		| "cancellation"
+		| "review-classification";
 	executionId: string | null;
 	attemptId: string | null;
 	jobId: string | null;
@@ -69,4 +79,5 @@ export type DispatchState = {
 	block: DispatchBlock | null;
 	permits: { permit: DispatchPermit; terminal: TerminalReceipt | null }[];
 	reconciliations: ReconciliationReceipt[];
+	captureGrants: CaptureRecord[];
 };

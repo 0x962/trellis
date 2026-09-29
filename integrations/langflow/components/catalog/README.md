@@ -59,7 +59,10 @@ Executable native reservation, human request creation, and Jev invocation remain
 Group scope expansion and the child-then-condition loop remain dependencies.
 
 `template` records the source input declarations and their payload contracts.
-`frontendTemplate` stays null until the merged engine batch exports and checks the complete engine template.
+`frontendTemplate` is null in these source declarations.
+`pythonModule` names the module that defines each engine class.
+`exportTemplates.export_frontend_templates` exports complete templates to a separate versioned document.
+The [export contract](exportTemplates/README.md) defines its inputs, identity, and consumer fields.
 The catalog cannot authorize editor publication while `allowedForPublication` is false.
 Consumers must not treat source presence, a port match, or a metadata destination as a supported mapping.
 

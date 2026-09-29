@@ -1,5 +1,6 @@
 import type { APIObjectType } from "@/types/api";
 import type { FlowType } from "@/types/flow";
+import { editorPalette } from "../../editorPalette";
 import { createFrameDriver } from "../../frameDriver";
 import type { EditorContent } from "../../protocol";
 import { openEditorReads } from "../../scopedReads";
@@ -69,12 +70,5 @@ export async function loadEditorFlow(flowId: string): Promise<FlowType> {
 }
 
 export async function loadEditorPalette(): Promise<APIObjectType> {
-	const catalog = await reads.catalog();
-	const definitions = catalog.definitions.filter(
-		(item) => item.allowedForPublication && item.frontendTemplate !== null,
-	);
-	if (definitions.length === 0) throw new Error("The installed catalog has no approved editor components.");
-	return {
-		trellis: Object.fromEntries(definitions.map((item) => [item.className, item.frontendTemplate])),
-	} as APIObjectType;
+	return editorPalette(await reads.catalog()) as APIObjectType;
 }

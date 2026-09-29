@@ -12,8 +12,10 @@ export type EngineResponse =
 	| { state: "received"; status: number; contentType: string | null; bytes: Uint8Array }
 	| { state: "unknown" };
 
+export type EngineFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+
 export type EngineClientDependencies = {
-	fetch: typeof fetch;
+	fetch: EngineFetch;
 	readAuthenticationFile(path: string): Promise<string>;
 };
 

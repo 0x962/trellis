@@ -7,6 +7,8 @@ import { createCache, type ProjectCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { openTestDb } from "./testDb.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test'])`;
+
 // One root TST with one status, one epic `TST/plan`, and three tickets:
 // TST-1 and TST-3 in the epic, TST-2 outside every epic.
 let db: Db;
@@ -30,8 +32,8 @@ beforeAll(async () => {
 	const status = ulid();
 	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${status}, ${tst}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${epic}, ${tst}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, description, actor_id, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${epic}, ${tst}, 'plan', 'Plan', '', ${actorId}, 'Test', 'human', ${at}, ${at})`);
 	await insertTicket(ulid(), 1, status, epic);
 	await insertTicket(ulid(), 2, status, null);
 	await insertTicket(ulid(), 3, status, epic);

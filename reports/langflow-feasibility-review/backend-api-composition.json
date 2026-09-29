@@ -1,0 +1,221 @@
+{
+	"version": 1,
+	"sourceBase": "75965cac6ddba2bbe52a41860761c9d321c6c2cb",
+	"upstream": {
+		"version": "1.12.3",
+		"commit": "fec71dca901949c09ed4d63315804337cd2eb13d",
+		"tree": "e6ac634257b30645b6c35bcc707ed271789877d6"
+	},
+	"patchOrder": [
+		{
+			"name": "backend",
+			"path": "reports/langflow-feasibility-review/backend-source-assembly.a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85.patch",
+			"sha256": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
+			"directory": "."
+		},
+		{
+			"name": "backend-delivery-reader",
+			"path": "reports/langflow-feasibility-review/backend-delivery-reader.patch",
+			"sha256": "4860d0768a44e0779ae569640c9e74b33c0916b19efb14a5071560da6dae835c",
+			"directory": "."
+		},
+		{
+			"name": "backend-queue-transactions",
+			"path": "integrations/langflow/patches/externalWaits/0002-queue-bootstrap-and-completion-transactions.patch",
+			"sha256": "4e6430b4dc0afdf1eeb9bf8abd6225ca0399cdd244299f5a429f482d9c3a6310",
+			"directory": "."
+		},
+		{
+			"name": "backend-schema",
+			"path": "integrations/langflow/patches/schema/0001-trellis-feasibility-tables.patch",
+			"sha256": "ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6",
+			"directory": "."
+		},
+		{
+			"name": "backend-publications",
+			"path": "integrations/langflow/patches/publications/0001-immutable-publications.patch",
+			"sha256": "b3e863aaa70eead267947af2cad9bf5eeb75abcb56ff66294f76e4e6bb8f2815",
+			"directory": "."
+		},
+		{
+			"name": "backend-private-authority",
+			"path": "integrations/langflow/patches/engineApi/shared/0001-shared-engine-api.patch",
+			"sha256": "b977c5cb008efcb5f259328be5b156afcd69c49054f7ee2c192f749df52345b5",
+			"directory": "."
+		},
+		{
+			"name": "backend-cancellation-api",
+			"path": "integrations/langflow/patches/engineApi/control/0001-private-engine-cancellation.patch",
+			"sha256": "30f3ae50f9ab42fcb6cfc4b5ca7b4fe4a7be3a156eedf0d286110c46831a81cd",
+			"directory": "."
+		},
+		{
+			"name": "backend-native-api",
+			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
+			"sha256": "3ca06f1b27d1744ad6c767e8eca624a8540cb0138d27f339e3f2d1f95c2d19d6",
+			"directory": "."
+		},
+		{
+			"name": "backend-admission-api",
+			"path": "integrations/langflow/patches/engineApi/admission/0001-private-admission-routes.patch",
+			"sha256": "cf9dcae728c9470ac2c89d61984d34124e8ec62d92d7e2b26c569f5c36c5045c",
+			"directory": "."
+		},
+		{
+			"name": "backend-admission-authority",
+			"path": "integrations/langflow/patches/engineApi/admission/0002-authorize-admission-transaction.patch",
+			"sha256": "572248b1306a3ae5c04cfa88b8594d6b51cdffa40c451587a23ad9f7e2431c09",
+			"directory": "."
+		},
+		{
+			"name": "backend-decision-api",
+			"path": "integrations/langflow/patches/engineApi/decisions/0001-decision-http-routes.patch",
+			"sha256": "9930e526514b34da3e23771ee18851862840c5528082141ba11120fd58a2dbc7",
+			"directory": "."
+		},
+		{
+			"name": "backend-decision-authority",
+			"path": "integrations/langflow/patches/engineApi/decisions/0002-require-decision-authority.patch",
+			"sha256": "e56e96b366a1514d59663d2a34bb00fcb78691c4556944a411ae63731851e1d6",
+			"directory": "."
+		},
+		{
+			"name": "backend-control-guards",
+			"path": "reports/langflow-feasibility-review/backend-control-guards.patch",
+			"sha256": "5aa40ed0654467d9f3d4a74538b07cfed065487c1a32a2062b7c80509b4b5b0a",
+			"directory": "."
+		},
+		{
+			"name": "backend-native-consumer",
+			"path": "integrations/langflow/patches/externalWaits/0003-native-completion-obligation-consumer.patch",
+			"sha256": "5074d3dd02aec5839033e2a384e7af30da1e6e39069069deeb818f92a64ad32d",
+			"directory": "."
+		},
+		{
+			"name": "backend-cancellation-order",
+			"path": "integrations/langflow/patches/externalWaits/0004-cancellation-ordered-dispatch.patch",
+			"sha256": "9f06043e01bd3e0e463c65cff84e8fc01741ec683d8fa32a52f47cf9eccbeb72",
+			"directory": "."
+		},
+		{
+			"name": "backend-backup",
+			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
+			"sha256": "659e9d3f6f56af961c2e0d15261d655232f8fd0c3c526678f1db933f72fda04c",
+			"directory": "."
+		},
+		{
+			"name": "editor",
+			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
+			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
+			"directory": "src/frontend"
+		}
+	],
+	"controlGuards": {
+		"authorPath": "integrations/langflow/patches/engineApi/control/assembly-guards.patch",
+		"authorSha256": "e76e88971f8cb10f4994b14e4317e61151e1534e6cb94407a93441ec5cabe83d",
+		"composedPath": "reports/langflow-feasibility-review/backend-control-guards.patch",
+		"composedSha256": "5aa40ed0654467d9f3d4a74538b07cfed065487c1a32a2062b7c80509b4b5b0a",
+		"change": "The admission hunk retains the authority callback as context before the cancellation guard. Other guard bytes match the author fragment.",
+		"applicationCount": 1,
+		"rawAuthorPatchInSeries": false
+	},
+	"sourceProof": {
+		"patches": 17,
+		"files": 59,
+		"sourceHashes": {
+			"src/backend/base/langflow/alembic/versions/7b9e1c4a2d6f_add_trellis_feasibility_tables.py": "d535a2d6809b36c632ecd73d746aa1120c547fe19bc5a2f2dfd6cb6c1feb41a0",
+			"src/backend/base/langflow/alembic/versions/8c0f2d5b3e7a_trellis_publications.py": "06956dd42115f4b494dc1cd92d3aa7e1ee5013bc4df6366b738379e2f62ac03c",
+			"src/backend/base/langflow/alembic/versions/9d1a3e6c4f8b_add_trellis_delivery_authorities.py": "21ecad2ad14fd0e2083c42428b6918cada9b8bb26e44edd176e466e27f513a2b",
+			"src/backend/base/langflow/api/build.py": "1bafc40b7b42e6cd5a7066109f4c2c8b06950b2a983f9195dffc594863f2fbb0",
+			"src/backend/base/langflow/api/v1/trellis_publications.py": "5f746927c83a817f17895ba7312f93c827ad2ff1ff123745bd5b7ddba2a422aa",
+			"src/backend/base/langflow/services/background_execution/runner.py": "0406b38e6aa8670aba671e1376b6208780bbe68f39afd2c87d1253cda4f9112f",
+			"src/backend/base/langflow/services/background_execution/service.py": "ff5b23add89080ac474dee12d5ad5375b7f610431edbd98cf28fb9353be7ed23",
+			"src/backend/base/langflow/services/jobs/service.py": "939f252607efd474d3ba18a9c86c22de13e88478fc406db06171cbfb7209bfcf",
+			"src/backend/base/langflow/services/trellis_publications/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"src/backend/base/langflow/services/trellis_publications/catalog.py": "56c61f2ff0667102822db3bd743052b279b82e6074537bc6d68f68ee7c8747a3",
+			"src/backend/base/langflow/services/trellis_publications/contracts.py": "43a4bc9edb8d951d359a90feaf694eff17a51002737f4d94368f9c38dcac7c75",
+			"src/backend/base/langflow/services/trellis_publications/ledger.py": "200ae9792356d638a5d24b869eb786ad0dd3c35f5e11f021c68820c414b1a605",
+			"src/backend/base/langflow/services/trellis_publications/validation.py": "80a74c368b71caa4a57d282d4b478f59b23bdff42324428d7c530118b012ef32",
+			"src/backend/base/langflow/services/trellis_v1/admission_lookup.py": "f0e4c5f49470d3f3fb29ff94916e72cf795ae5c81abcd2287c880c2fef03b6f3",
+			"src/backend/base/langflow/services/trellis_v1/admission_models.py": "2b6d500229238917aa18d8985e229600b8f55a606cbb41c3bac2acc9acb9637c",
+			"src/backend/base/langflow/services/trellis_v1/admission_request.py": "6febb882021089874f89e860d6ce28a7ea5db20d6c33c204558cdc2d84ac6eb5",
+			"src/backend/base/langflow/services/trellis_v1/admission_router.py": "a029bde08ba9432afe62171374a1c60e2381af19fe8fe2f1d8c6670d1b4cdf3e",
+			"src/backend/base/langflow/services/trellis_v1/admission_service.py": "680c5a3de7f3c233e56d2a67ffc09738b2e74a17b93d5741193f8632abfaa8ce",
+			"src/backend/base/langflow/services/trellis_v1/admission_store.py": "3cb5db6d113bf120459da7d32baf60e5c7982d8f0ce9f8e2413fbccb2b143e51",
+			"src/backend/base/langflow/services/trellis_v1/authority.py": "65f690f6f78347b01f3b582f08502632f4bd81b17ec5e10281947a59701d87c9",
+			"src/backend/base/langflow/services/trellis_v1/backup.py": "64a3f01883af8df5f00dcd792f0203037fa73dd0529e9a4e9cb739a10e65de53",
+			"src/backend/base/langflow/services/trellis_v1/backup_router.py": "c4736c913e6b2b2aaa5e38aa80168dda3b974d2876c6881a5b5d36b20f56cbe6",
+			"src/backend/base/langflow/services/trellis_v1/cancellation.py": "3f34aec74141a10d3080bcfeaa668864308b48d64e1692a330bcb7e063da7cf4",
+			"src/backend/base/langflow/services/trellis_v1/cancellation_effects.py": "cb49720324b1b9ce92442d449d04c5e3e74115b7885d47c299d97d68ca1b93b9",
+			"src/backend/base/langflow/services/trellis_v1/cancellation_models.py": "48d9de9ae966673e40563c8dd34acd7087b309118bbca86b3a82ec136e51d1c3",
+			"src/backend/base/langflow/services/trellis_v1/cancellation_router.py": "1560ec3c276bc90fed1dfc49a685b9b9f50bf4f53067f3137bfe351b993a8c27",
+			"src/backend/base/langflow/services/trellis_v1/capture_boundary.py": "562e99e5e87a79e42b3007d1f4c47fb8df36e04eccb51a7e34f03e554c9a8c6a",
+			"src/backend/base/langflow/services/trellis_v1/capture_grants.py": "9d54e01bf793679d38035f7ab70412a64a282c041f4c20d7eee61332cc649b60",
+			"src/backend/base/langflow/services/trellis_v1/capture_router.py": "496025b29089e3b62aaf8f37cc452eb1a50f840a2cd448b780d6d26cf5dc163e",
+			"src/backend/base/langflow/services/trellis_v1/capture_store.py": "5f4340dfd1313a919979e89543fd242de01ce2dafbc6cd78a6cc326921ce7c9c",
+			"src/backend/base/langflow/services/trellis_v1/capture_tasks.py": "a42326a23d7eef71db42e0eea0c88dde5a853bf558e6e601e0c6c934805855bd",
+			"src/backend/base/langflow/services/trellis_v1/correlation.py": "46522bedeaa315b3476f32757ebd2bd52d3eebc3d779a84c2f15211efebdc1d5",
+			"src/backend/base/langflow/services/trellis_v1/decision_api.py": "33a9a9b17bd7ca2122ca172c0bb76f331a7093bc61ae4de559f096027d67cf12",
+			"src/backend/base/langflow/services/trellis_v1/decision_api_models.py": "73ce23e0b1f3a7970d462875ec3138dfa6ec08a2877ba484fe79c0d7b7c17e30",
+			"src/backend/base/langflow/services/trellis_v1/decisions.py": "e5d38e51169752a8e7bf3b50eaba08aa6b53bd8eecfb07b1f9ff2ed816f29b4f",
+			"src/backend/base/langflow/services/trellis_v1/engine_api.py": "43e1b7c18e2c81c1f97806d6273701fec61b38c824bcc57eb2635e40d0e01b10",
+			"src/backend/base/langflow/services/trellis_v1/external_waits.py": "d414d9c34b42955dc27ad92b7c030362c6e4188a764fd7781f0e3bf50d56983b",
+			"src/backend/base/langflow/services/trellis_v1/native_ledger.py": "9f135f6a0c5233b25b47d299499ecb4165749b46f33e5a3757fa688bce801d36",
+			"src/backend/base/langflow/services/trellis_v1/native_protocol.py": "103c5cee778846342b0c7ead8ee20babc3b5299646ae780b34778db0bc355fdf",
+			"src/backend/base/langflow/services/trellis_v1/native_records.py": "421b92a54571fbb0d9ef53e11b479b7e7b35ffb385f53346620ed12eccb3dbfe",
+			"src/backend/base/langflow/services/trellis_v1/native_router.py": "aaadcac970e2600a492056910cc1e99c734341387910a72ee089ddaf991190b5",
+			"src/frontend/src/components/core/flowToolbarComponent/index.tsx": "6bf3600850710979a3c69e86424153da0c443f70a5e063ddb770af36d8928de1",
+			"src/frontend/src/controllers/API/queries/_builds/use-get-builds.ts": "717b716a1f1f17fb3a552fc41b0ddbc0f30c19c6cd6256e626a09873bb73730d",
+			"src/frontend/src/controllers/API/queries/flows/use-get-flow.ts": "bd45e82dba16f299182a3af68428ba945ff0f030b4d6ba6c1462a6f70c5d07c7",
+			"src/frontend/src/controllers/API/queries/flows/use-patch-update-flow.ts": "325b967039ea6c83fb31da9b6720c35353facfcf98885ac3b1418a31e142bbd3",
+			"src/frontend/src/customization/trellis-editor-canvas.ts": "b83a29263e8e768de95a88c34b8749dcbad57568ab9dd42215086ca0bf746c7e",
+			"src/frontend/src/customization/trellis-editor-probe.ts": "c1f21fbdc6e215269048dbd163925070c36d2538d35b340c2126ade841026cd9",
+			"src/frontend/src/customization/trellis-editor-save.ts": "b0ee71961d4f6e04f06a09088dfd792acb940b4b5be7215e498e4e073e46aff5",
+			"src/frontend/src/pages/DashboardWrapperPage/index.tsx": "2bf88c456e0b8eb05da61c7dc5edec3af617fa22836be593e44b14ffdbaa4ddd",
+			"src/frontend/src/pages/FlowPage/components/PageComponent/index.tsx": "a3da4fe0b90394dc0be73c38ac8a2c321cf167b4093e79b26d83d29e15e8d2eb",
+			"src/frontend/src/pages/FlowPage/index.tsx": "fa40fddd30603afd5d4a44cd30fc6953edee2a3a06cb944ce6cd409e74fc70e1",
+			"src/frontend/vite.config.mts": "5dfdfb6c45b984b88114b9544dc0035c47b7d9e2cfc8d0f6b8de9c1f851c7ec4",
+			"src/lfx/src/lfx/graph/checkpoint/builder.py": "da4c3af5552e688ad6214ad7ea5ba973eb2c4f0aa56260992b3e30879c2f35de",
+			"src/lfx/src/lfx/graph/checkpoint/resume.py": "f6e9b34395e082657d9b082ca02c0f431d2592139014df3b3c3eb46a4c4e00e2",
+			"src/lfx/src/lfx/graph/checkpoint/schema.py": "0bc940a3708cf1ec81c6682b706a69d1ba59dcde35a071617c7f03de2f490d6d",
+			"src/lfx/src/lfx/graph/external_wait.py": "3b195e160b4d585f433ec0e18ff9fac5de19bccc785ca206fc6ad49304dfdc85",
+			"src/lfx/src/lfx/graph/graph/base.py": "b09df208321834faa311dbf90228bc256c4f0642164a965587f1fee2370406b9",
+			"src/lfx/src/lfx/graph/vertex/base.py": "510ad689f6547deef6542a010788a7070cbaa663ac6f3d0a40ec208e80c5bb89",
+			"src/lfx/src/lfx/services/settings/auth.py": "c8d1c6f83253d955a3bea8a66ff8c78b88373cb7fc23bfabb0573896a2a46bde"
+		},
+		"aggregateSha256": "10407d5f49f743163180e3f052028779b434bbcd25510f19309bf223c4379f1d",
+		"runtimeVerified": false
+	},
+	"fixtureHashes": {
+		"integrations/langflow/tests/restore/test_capture_boundary.py": "4a792b4439617012c359c4891bdcfe31021629930918bc244c678e8d92b70d3a",
+		"integrations/langflow/tests/restore/test_capture_router.py": "d39855d16b822052206da95ab910596963980556e2430689a9688d763f400a48",
+		"integrations/langflow/tests/restore/test_capture_store.py": "83a91b17b0a2e692e6ec40086767c85f7093d8d39b49f18ce97d6f78c0d6dd7f",
+		"integrations/langflow/tests/restore/test_engine_snapshot.py": "e4daf1ad4321f6e741d4dcf9fbd68afd99db393ac8100db6747d4fac163e00b6",
+		"integrations/langflow/patches/engineApi/shared/tests/test_engine_api.py": "e518159480faabe6d71e52778d0d98886aeb6325dacd38a19403452ae16732c0",
+		"integrations/langflow/patches/engineApi/control/tests/conftest.py": "137124f7d44b9f73dfe72b920a7ba07f061244849c7fb2719e100b74deb3ff6b",
+		"integrations/langflow/patches/engineApi/control/tests/test_cancellation.py": "6bec2a8ceb5dbee0357412fee7760a0161257dbc558180b09b29cf7918845756",
+		"integrations/langflow/patches/engineApi/control/tests/test_cancellation_logging.py": "4540abf685093a0d37606dc0e8909473de613296be35c1f23dcc96c2d7447f03",
+		"integrations/langflow/patches/engineApi/control/tests/test_cancellation_router.py": "f1e67e0bf59bc0503d15753614d81392e98c1e36c252547cb29705167beb3804",
+		"integrations/langflow/patches/engineApi/control/tests/test_expired_recovery.py": "689b8411aedc232c63de1ae4b427b89400fc091147c287c9558965d4b7aa777f",
+		"integrations/langflow/patches/engineApi/native/tests/test_native_ledger.py": "95257bc0292bd960a7f02811e4014ca74d31d0704b04490566546c4e0b6e545a",
+		"integrations/langflow/patches/engineApi/native/tests/test_native_protocol.py": "42625585f7a0bc18745775486dd2f044a7d01676376501863c214321dbde3ab2",
+		"integrations/langflow/patches/engineApi/native/tests/test_native_router.py": "dc3aa0dd826766d0bd547112a9353a38b753cad64431178210aa152b6a0a29a9",
+		"integrations/langflow/patches/engineApi/admission/tests/test_admission_router.py": "8300ff3d62ffddd297b3b463c4456c3e0b42437c5f07f244579d141f6cb5309b",
+		"integrations/langflow/patches/engineApi/admission/tests/test_admission_store.py": "0c5f92f07e65928cdf5096042d89d3ee1aa9ce0aacc3c3f109096b8afff61c7b",
+		"integrations/langflow/patches/engineApi/decisions/tests/test_decision_api.py": "f518c3004c676c719b2223ef223fd34fc3d9bcacf28c6e55690a6bfa57636381",
+		"integrations/langflow/patches/engineApi/decisions/tests/test_decision_api_models.py": "c7dfb73cb4de00de8d8e93fd82caa265fe9af4195347e49df7aaea0f7593832c",
+		"integrations/langflow/patches/engineApi/decisions/tests/test_decision_authority.py": "056edf06fe84652b69209fa0784109d62c368753485d73ce42b9ca9f6d890270"
+	},
+	"fixtureAggregateSha256": "1c32886c1c9b3fa1a48a85114262754be5433e05578f75b04b6e4d729443d230",
+	"migrationOrder": ["7b9e1c4a2d6f", "8c0f2d5b3e7a", "9d1a3e6c4f8b"],
+	"gaps": [
+		"No combined imports or runtime checks ran.",
+		"Private router registration and replay hooks remain outside this checkpoint.",
+		"Capture coverage still requires every writer and the startup hooks.",
+		"The package requires matching component catalog and editor assets.",
+		"CPU saturation defers engine probes, builds, and Review."
+	],
+	"packageExportApproved": false,
+	"technicalAcceptance": false,
+	"productionApproval": false
+}

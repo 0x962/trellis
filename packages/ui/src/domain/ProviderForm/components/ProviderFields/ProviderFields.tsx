@@ -39,7 +39,6 @@ export function ProviderFields({
 				value={value.name}
 				onChange={(event) => onChange({ ...value, name: event.target.value })}
 				required
-				maxLength={120}
 				placeholder="Vercel"
 				autoFocus={!editing}
 				disabled={busy}
@@ -87,7 +86,6 @@ export function ProviderFields({
 				value={value.apiKey}
 				onChange={(event) => onChange({ ...value, apiKey: event.target.value })}
 				required={!editing}
-				maxLength={4000}
 				disabled={busy}
 				error={errorField === "apiKey" ? error : undefined}
 				placeholder={

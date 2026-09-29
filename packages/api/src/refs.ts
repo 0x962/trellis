@@ -154,8 +154,8 @@ const pageRef = defineRef(
 	formatPageRef,
 );
 
-// A status name is 1 to 40 characters. The colon is reserved for the
-// `category:` form, so a name never contains one.
+// The colon in a status reference selects the `category:` form.
+// A status name reference must be nonempty and contain no colon.
 const parseStatusRef = (value: string): StatusRef | undefined => {
 	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
 	const colon = value.indexOf(":");
@@ -165,7 +165,7 @@ const parseStatusRef = (value: string): StatusRef | undefined => {
 		if (!category.success) return undefined;
 		return { kind: "category", category: category.data };
 	}
-	if (value.length < 1 || value.length > 40) return undefined;
+	if (value.length < 1) return undefined;
 	return { kind: "identifier", value };
 };
 
@@ -223,8 +223,8 @@ const labelGroupRef = defineRef(
 	formatLabelGroupRef,
 );
 
-// The name is printable ASCII (0x20 to 0x7E) without the colon, 1 to 64 chars.
-const actorHeaderPattern = /^(human|agent):([\x20-\x39\x3B-\x7E]{1,64})$/;
+// The actor name uses printable ASCII so it can travel in an HTTP header.
+const actorHeaderPattern = /^(human|agent):([\x20-\x39\x3B-\x7E]+)(?![\s\S])/;
 
 const parseActorHeader = (value: string): ActorHeader | undefined => {
 	const match = actorHeaderPattern.exec(value);
@@ -235,7 +235,7 @@ const parseActorHeader = (value: string): ActorHeader | undefined => {
 const formatActorHeader = (actor: ActorHeader) => `${actor.kind}:${actor.name}`;
 
 export const actorHeaderGrammar =
-	"Expected x-trellis-actor: <human|agent>:<name>, the name 1 to 64 printable ASCII characters without a colon.";
+	"Expected x-trellis-actor: <human|agent>:<name>, with a nonempty name of printable ASCII characters without a colon.";
 
 const actorHeader = defineRef(actorHeaderGrammar, parseActorHeader, formatActorHeader);
 

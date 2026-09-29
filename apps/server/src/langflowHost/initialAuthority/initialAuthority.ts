@@ -5,8 +5,8 @@ import { type DeliveryAuthorityV1, DeliveryAuthorityV1Schema } from "../../langf
 import type { LiveOwnership } from "../contracts";
 import type { DispatchEffects } from "../dispatchEffects";
 import { type HostControlIdentity, LangflowHostControl } from "../hostControl";
+import { ReceiptObjectStore } from "../objectStore";
 import type { DispatchReceiptArchive } from "../receiptArchive";
-import { ReceiptObjectStore } from "../receiptArchive/objectStore/objectStore";
 import type { LangflowSupervisor } from "../supervisor";
 import {
 	type InitialAuthorityInput,

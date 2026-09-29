@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -9,6 +9,7 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 export type Config = {
 	home: string;
 	authToken: string | null;
+	langflowConfigFile?: string;
 	// The address the server binds. 127.0.0.1 keeps it on this machine; a
 	// network address or 0.0.0.0 lets a phone reach it.
 	host: string;
@@ -85,12 +86,16 @@ const agentsHost = (host: string) => (host === "0.0.0.0" ? "127.0.0.1" : host);
 const originOf = (value: string) => value.replace(/\/+$/, "");
 
 export const loadConfig = (env: Env): Config => {
+	const langflowConfigFile = env.TRELLIS_LANGFLOW_CONFIG_FILE;
+	if (langflowConfigFile !== undefined && !isAbsolute(langflowConfigFile))
+		throw new Error("TRELLIS_LANGFLOW_CONFIG_FILE must be an absolute path.");
 	const home = resolve(expandHome(env.TRELLIS_HOME ?? "~/.trellis"));
 	const host = env.TRELLIS_HOST ?? "127.0.0.1";
 	const port = env.TRELLIS_PORT === undefined ? 4521 : numberOf("TRELLIS_PORT", env.TRELLIS_PORT);
 	return {
 		home,
 		authToken: env.TRELLIS_AUTH_TOKEN ?? null,
+		langflowConfigFile,
 		host,
 		allowedHosts: env.TRELLIS_ALLOWED_HOSTS === undefined ? [] : hostnamesOf(env.TRELLIS_ALLOWED_HOSTS),
 		port,

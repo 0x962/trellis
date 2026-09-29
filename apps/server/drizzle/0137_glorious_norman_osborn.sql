@@ -1,0 +1,6 @@
+ALTER TABLE "langflow_action_receipts" ALTER COLUMN "execution_id" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "langflow_action_receipts" ALTER COLUMN "view_revision" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "langflow_action_receipts" ADD COLUMN "outcome" text DEFAULT 'completed' NOT NULL;--> statement-breakpoint
+ALTER TABLE "langflow_action_receipts" ADD COLUMN "error_code" text;--> statement-breakpoint
+ALTER TABLE "langflow_action_receipts" ADD COLUMN "error_bytes" text;--> statement-breakpoint
+ALTER TABLE "langflow_action_receipts" ADD CONSTRAINT "langflow_action_outcome" CHECK (("langflow_action_receipts"."outcome" = 'completed' AND "langflow_action_receipts"."execution_id" IS NOT NULL AND "langflow_action_receipts"."view_revision" IS NOT NULL AND "langflow_action_receipts"."error_code" IS NULL AND "langflow_action_receipts"."error_bytes" IS NULL) OR ("langflow_action_receipts"."outcome" = 'refused' AND "langflow_action_receipts"."execution_id" IS NULL AND "langflow_action_receipts"."view_revision" IS NULL AND "langflow_action_receipts"."error_code" IS NOT NULL AND length("langflow_action_receipts"."error_code") > 0 AND "langflow_action_receipts"."error_bytes" IS NOT NULL AND length("langflow_action_receipts"."error_bytes") > 0));

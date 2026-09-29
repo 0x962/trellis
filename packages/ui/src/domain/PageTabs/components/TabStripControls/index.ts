@@ -1,0 +1,1 @@
+export { TabStripControls } from "./TabStripControls";

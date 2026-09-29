@@ -16,6 +16,16 @@ import { flowDocumentV1Errors } from "./flowDocumentsV1.ts";
 
 export const flowActionV1Errors = {
 	...pickErrors(["FLOW_VERSION_CONFLICT"]),
+	FLOW_REQUEST_CONFLICT: {
+		status: 409,
+		message: "This request ID already identifies different action bytes.",
+		data: z.strictObject({ requestId: z.string() }),
+	},
+	FLOW_ACTION_PENDING: {
+		status: 409,
+		message: "The flow action has no confirmed receipt. Read its current view before another action.",
+		data: z.strictObject({ requestId: z.string() }),
+	},
 	FLOW_RUNTIME_UNAVAILABLE: {
 		status: 503,
 		message: "The flow runtime is unavailable.",

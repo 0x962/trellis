@@ -1,0 +1,660 @@
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+index dfebc1f..af41915 100644
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -947,9 +947,14 @@ class JobService(Service):
+     async def load_checkpoint(self, job_id: UUID, kind: str) -> str | None:
+         """Return the stored checkpoint blob for ``(job_id, kind)``, or None if absent."""
+         async with session_scope() as session:
+-            stmt = select(JobCheckpoint).where(JobCheckpoint.job_id == job_id).where(JobCheckpoint.kind == kind)
+-            row = (await session.exec(stmt)).first()
+-            return row.blob if row is not None else None
++            return await self.load_checkpoint_in_session(session, job_id, kind)
++
++    @staticmethod
++    async def load_checkpoint_in_session(session: AsyncSession, job_id: UUID, kind: str) -> str | None:
++        """Return one checkpoint inside the caller transaction."""
++        stmt = select(JobCheckpoint).where(JobCheckpoint.job_id == job_id).where(JobCheckpoint.kind == kind)
++        row = (await session.exec(stmt)).first()
++        return row.blob if row is not None else None
+ 
+     async def delete_checkpoint(self, job_id: UUID, kind: str) -> None:
+         """Delete the checkpoint for ``(job_id, kind)``; no-op when none exists."""
+@@ -1084,6 +1089,52 @@ class JobService(Service):
+             await session.flush()
+             return len(rows)
+ 
++    async def begin_execution_unless_cancelled(self, job_id: UUID) -> bool:
++        """Set a queued job to IN_PROGRESS only when no cancellation record exists."""
++        from langflow.services.trellis_v1.cancellation import read_cancellation
++
++        async with session_scope() as session:
++            statement = select(Job).where(Job.job_id == job_id).with_for_update()
++            job = (await session.exec(statement)).one()
++            if await read_cancellation(session, job_id) is not None:
++                return False
++            job.status = JobStatus.IN_PROGRESS
++            session.add(job)
++            await session.flush()
++            return True
++
++    async def reconcile_stop(self, job_id: UUID) -> bool:
++        """Consume a STOP and preserve any terminal status already saved for the job."""
++        from langflow.services.trellis_v1.cancellation import read_cancellation
++
++        async with session_scope() as session:
++            statement = select(Job).where(Job.job_id == job_id).with_for_update()
++            job = (await session.exec(statement)).one()
++            signal_statement = (
++                select(ExecutionSignal)
++                .where(ExecutionSignal.job_id == job_id)
++                .where(ExecutionSignal.signal_type == SignalType.STOP)
++                .where(col(ExecutionSignal.consumed_at).is_(None))
++            )
++            signals = list((await session.exec(signal_statement)).all())
++            if not signals and await read_cancellation(session, job_id) is None:
++                return False
++            now = datetime.now(timezone.utc)
++            for signal in signals:
++                signal.consumed_at = now
++                session.add(signal)
++            if job.status not in {
++                JobStatus.COMPLETED,
++                JobStatus.FAILED,
++                JobStatus.CANCELLED,
++                JobStatus.TIMED_OUT,
++            }:
++                job.status = JobStatus.CANCELLED
++                job.finished_timestamp = now
++                session.add(job)
++            await session.flush()
++            return True
++
+     async def heartbeat(self, job_id: UUID, owner: str) -> None:
+         """Stamp the running owner + a fresh heartbeat on the job row.
+ 
+@@ -1194,49 +1245,42 @@ class JobService(Service):
+         lease_ttl_s: float,
+         heartbeat_at: str | None = None,
+     ) -> bool:
+-        """Lease-claim a QUEUED row WITHOUT flipping its status. Returns True if won.
+-
+-        Single-flight ownership for the default re-enqueue path that, unlike
+-        ``claim_queued_job``, does NOT move the row to IN_PROGRESS. Keeping the
+-        row QUEUED means a re-enqueue that crashes before the runner emits its
+-        first transition leaves the job re-runnable (the sweep never fails QUEUED
+-        rows, and the next boot re-claims it once this lease goes stale) instead
+-        of becoming a stranded IN_PROGRESS that gets failed worker_lost. The
+-        runner's ``execute_with_status`` performs the real QUEUED->IN_PROGRESS
+-        flip when it actually starts.
+-
+-        The claim succeeds only when the row is QUEUED and its current lease is
+-        absent or stale, and the conditional UPDATE matches the EXACT prior
+-        ``heartbeat_at`` we read, so two workers racing the same stale row see
+-        only one ``rowcount == 1``. A caller-supplied ``heartbeat_at`` becomes
+-        the claim token for a later guarded release or terminalization. Portable
+-        across SQLite and Postgres.
+-        """
+-        from sqlmodel import update
++        """Claim a queued lease without changing the job status.
+ 
+-        hb_expr = col(Job.job_metadata)["heartbeat_at"].as_string()
+-        claim_heartbeat = heartbeat_at or datetime.now(timezone.utc).isoformat()
++        The Job row lock selects one caller. The runner changes the status to
++        IN_PROGRESS when it starts. A crash before that change leaves the job
++        queued for a later claim after the lease expires.
++        """
+         async with session_scope() as session:
+-            job = await session.get(Job, job_id)
+-            if job is None or job.status != JobStatus.QUEUED:
+-                return False
+-            meta = job.job_metadata or {}
+-            prior_hb = meta.get("heartbeat_at")
+-            # A fresh lease means another worker already owns this claim window.
+-            if not self.is_lease_stale(job, lease_ttl_s=lease_ttl_s):
+-                return False
+-            merged = {**meta, "owner": owner, "heartbeat_at": claim_heartbeat}
+-            # Guard on the exact prior heartbeat so a concurrent claimer that
+-            # already stamped its own loses the conditional UPDATE.
+-            guard = hb_expr.is_(None) if prior_hb is None else hb_expr == prior_hb
+-            stmt = (
+-                update(Job)
+-                .where(Job.job_id == job_id, Job.status == JobStatus.QUEUED, guard)
+-                .values(job_metadata=merged)
++            return await self.claim_queued_lease_in_session(
++                session,
++                job_id,
++                owner=owner,
++                lease_ttl_s=lease_ttl_s,
++                heartbeat_at=heartbeat_at,
+             )
+-            result = await session.exec(stmt)  # type: ignore[call-overload]
+-            await session.flush()
+-            return result.rowcount == 1
++
++    async def claim_queued_lease_in_session(
++        self,
++        session: AsyncSession,
++        job_id: UUID,
++        *,
++        owner: str,
++        lease_ttl_s: float,
++        heartbeat_at: str | None = None,
++    ) -> bool:
++        """Claim a queued lease while the caller holds the Job lock."""
++        statement = select(Job).where(Job.job_id == job_id).with_for_update()
++        job = (await session.exec(statement)).one()
++        if job.status != JobStatus.QUEUED:
++            return False
++        if not self.is_lease_stale(job, lease_ttl_s=lease_ttl_s):
++            return False
++        claim_heartbeat = heartbeat_at or datetime.now(timezone.utc).isoformat()
++        job.job_metadata = {**(job.job_metadata or {}), "owner": owner, "heartbeat_at": claim_heartbeat}
++        session.add(job)
++        await session.flush()
++        return True
+ 
+     async def release_queued_lease(self, job_id: UUID, *, owner: str, heartbeat_at: str) -> bool:
+         """Release this owner's QUEUED lease without clearing a newer claim.
+@@ -1646,9 +1690,11 @@ class JobService(Service):
+         await logger.ainfo(f"Starting job execution: job_id={job_id}")
+ 
+         try:
+-            # Update to IN_PROGRESS
+             await logger.adebug(f"Updating job {job_id} status to IN_PROGRESS")
+-            await self.update_job_status(job_id, JobStatus.IN_PROGRESS)
++            if not await self.begin_execution_unless_cancelled(job_id):
++                cancelled = asyncio.CancelledError()
++                cancelled.args = ("LANGFLOW_USER_CANCELLED",)
++                raise cancelled
+ 
+             # Execute the wrapped function
+             await logger.ainfo(f"Executing job function for job_id={job_id}")
+diff --git a/src/backend/base/langflow/services/background_execution/runner.py b/src/backend/base/langflow/services/background_execution/runner.py
+index 3c62624..d4bf571 100644
+--- a/src/backend/base/langflow/services/background_execution/runner.py
++++ b/src/backend/base/langflow/services/background_execution/runner.py
+@@ -163,7 +163,7 @@ class JobRunner:
+             if not paused:  # a suspended run is resumable: keep the bus open, skip terminal reconcile
+                 with contextlib.suppress(Exception):
+                     if await asyncio.shield(self._reconcile_stop(job_id)):
+-                        await logger.adebug(f"Background job {job_id} reconciled to CANCELLED after a racing stop")
++                        await logger.adebug(f"Background job {job_id} reconciled a racing stop")
+                 with contextlib.suppress(Exception):
+                     await asyncio.shield(self._finalize_terminal_event(job_id))
+                 await self._bus.close(str(job_id))
+@@ -246,19 +246,8 @@ class JobRunner:
+             await task
+ 
+     async def _reconcile_stop(self, job_id: UUID) -> bool:
+-        """Force CANCELLED when a STOP signal exists. Returns True if it acted.
+-
+-        Also stamps the STOP signal ``consumed_at`` so it does not linger: an
+-        unconsumed STOP would grow the signals table and make a later re-enqueued
+-        run of the same job self-cancel off the stale signal. This runs in the
+-        runner's ``finally`` (shielded), so it is the single point where a stop is
+-        finalized — the right place to mark it consumed.
+-        """
+-        if not await self._stop_requested(job_id):
+-            return False
+-        await self._jobs.update_job_status(job_id, JobStatus.CANCELLED, finished_timestamp=True)
+-        await self._jobs.consume_signals(job_id, SignalType.STOP)
+-        return True
++        """Consume a STOP without replacing a completed, failed, or timed-out status."""
++        return await self._jobs.reconcile_stop(job_id)
+ 
+     async def _drive(self, *, job_id: UUID, source_kwargs: dict[str, Any]) -> None:
+         """The wrapped coroutine: stream frames, persist, publish, finalize result/error."""
+diff --git a/src/backend/base/langflow/services/background_execution/service.py b/src/backend/base/langflow/services/background_execution/service.py
+index 1208905..65bd158 100644
+--- a/src/backend/base/langflow/services/background_execution/service.py
++++ b/src/backend/base/langflow/services/background_execution/service.py
+@@ -25,7 +25,7 @@ import os
+ import tempfile
+ from datetime import datetime, timezone
+ from pathlib import Path
+-from typing import TYPE_CHECKING, Any, Literal
++from typing import TYPE_CHECKING, Any, Literal, cast
+ from uuid import uuid4
+ 
+ from filelock import FileLock, Timeout
+@@ -44,6 +44,7 @@ if TYPE_CHECKING:
+     from uuid import UUID
+ 
+     from lfx.services.settings.service import SettingsService
++    from sqlmodel.ext.asyncio.session import AsyncSession
+ 
+     from langflow.services.database.models.jobs.model import Job, JobEvent
+     from langflow.services.database.models.user.model import UserRead
+@@ -753,43 +754,13 @@ class BackgroundExecutionService(Service):
+                 raise RuntimeError("trellis_submission_job_missing")
+             if job.flow_id != flow_id or job.user_id != user_id:
+                 raise RuntimeError("trellis_submission_job_conflict")
+-        dispatch_kind = "trellis-submission-dispatch-v1"
+-        dispatch_receipt = await job_service.load_checkpoint(engine_job_id, dispatch_kind)
+-        if dispatch_receipt is not None:
+-            if dispatch_receipt != request_digest:
+-                raise RuntimeError("trellis_submission_dispatch_conflict")
+-            return "dispatched"
+-        if job.status == JobStatus.CANCELLED:
+-            return "cancelled"
+-        if job.status in {
+-            JobStatus.IN_PROGRESS,
+-            JobStatus.SUSPENDED,
+-            JobStatus.COMPLETED,
+-            JobStatus.FAILED,
+-            JobStatus.TIMED_OUT,
+-        }:
+-            return "execution_proven"
+-        if job.status != JobStatus.QUEUED:
+-            raise RuntimeError("trellis_submission_dispatch_state_conflict")
+-        if self._scaled:
+-            await self._backend.enqueue(str(engine_job_id))
+-            await job_service.save_checkpoint_once(engine_job_id, dispatch_kind, request_digest)
+-            return "dispatched"
+-        lease_heartbeat = datetime.now(timezone.utc).isoformat()
+-        if not await job_service.claim_queued_lease(
+-            engine_job_id,
+-            owner=self._owner,
+-            lease_ttl_s=self._settings.background_lease_ttl_s,
+-            heartbeat_at=lease_heartbeat,
+-        ):
+-            refreshed = await job_service.get_job_by_job_id(engine_job_id)
+-            if refreshed is None:
+-                raise RuntimeError("trellis_submission_job_missing")
+-            if refreshed.status == JobStatus.CANCELLED:
+-                return "cancelled"
+-            if refreshed.status != JobStatus.QUEUED:
+-                return "execution_proven"
+-
++        disposition = await self._enqueue_trellis_job(
++            engine_job_id=engine_job_id,
++            request=request,
++            dispatch_kind="trellis-submission-dispatch-v1",
++            dispatch_receipt=request_digest,
++        )
++        if disposition == "pending_lease":
+             async def retry() -> None:
+                 await self.enqueue_trellis_submission(
+                     engine_job_id=engine_job_id,
+@@ -799,23 +770,62 @@ class BackgroundExecutionService(Service):
+                 )
+ 
+             self._schedule_trellis_lease_retry(f"submission:{engine_job_id}", retry)
+-            return "pending_lease"
+-        try:
+-            await self._enqueue(
+-                job_id=engine_job_id,
+-                flow_id=flow_id,
+-                request=request,
+-                user=self._user_stub(user_id),
+-            )
+-            await job_service.save_checkpoint_once(engine_job_id, dispatch_kind, request_digest)
+-        except Exception:
+-            await job_service.release_queued_lease(
+-                engine_job_id,
+-                owner=self._owner,
+-                heartbeat_at=lease_heartbeat,
+-            )
+-            raise
+-        return "dispatched"
++        return disposition
++
++    async def _enqueue_trellis_job(
++        self,
++        *,
++        engine_job_id: UUID,
++        request: dict[str, Any],
++        dispatch_kind: str | None = None,
++        dispatch_receipt: str | None = None,
++    ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
++        """Submit one queued job while cancellation and the dispatch receipt share its Job lock."""
++        from langflow.services.database.models.jobs.model import Job
++        from langflow.services.deps import session_scope
++        from langflow.services.trellis_v1.cancellation import read_cancellation
++
++        job_service = get_job_service()
++        async with session_scope() as session:
++            job = await session.get(Job, engine_job_id, with_for_update=True)
++            if job is None:
++                raise RuntimeError("trellis_dispatch_job_missing")
++            exact_dispatch_receipt = cast(str, dispatch_receipt)
++            if dispatch_kind is not None:
++                saved_dispatch = await job_service.load_checkpoint_in_session(session, engine_job_id, dispatch_kind)
++                if saved_dispatch is not None:
++                    if saved_dispatch != exact_dispatch_receipt:
++                        raise RuntimeError("trellis_dispatch_identity_conflict")
++                    return "dispatched"
++            if await read_cancellation(session, engine_job_id) is not None or job.status == JobStatus.CANCELLED:
++                return "cancelled"
++            if job.status != JobStatus.QUEUED:
++                return "execution_proven"
++            if self._scaled:
++                await self._backend.enqueue(str(engine_job_id))
++            else:
++                claimed = await job_service.claim_queued_lease_in_session(
++                    session,
++                    engine_job_id,
++                    owner=self._owner,
++                    lease_ttl_s=self._settings.background_lease_ttl_s,
++                )
++                if not claimed:
++                    return "pending_lease"
++                await self._enqueue(
++                    job_id=engine_job_id,
++                    flow_id=job.flow_id,
++                    request=request,
++                    user=self._user_stub(job.user_id),
++                )
++            if dispatch_kind is not None:
++                await job_service.save_checkpoint_once_in_session(
++                    session,
++                    engine_job_id,
++                    dispatch_kind,
++                    exact_dispatch_receipt,
++                )
++            return "dispatched"
+ 
+     async def accept_trellis_human_decision(
+         self,
+@@ -1018,86 +1028,86 @@ class BackgroundExecutionService(Service):
+         continuation_receipt_bytes: bytes,
+     ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
+         """Dispatch one bound continuation or report its exact durable state."""
++        from langflow.services.database.models.jobs.model import Job
++        from langflow.services.deps import session_scope
++        from langflow.services.trellis_v1.cancellation import read_cancellation
++
+         job_service = get_job_service()
+         continuation_kind = f"trellis-continuation-v1:{enqueue_obligation_id}"
+-        saved_receipt = await job_service.load_checkpoint(engine_job_id, continuation_kind)
+-        if saved_receipt is None or saved_receipt.encode() != continuation_receipt_bytes:
+-            raise RuntimeError("continuation_obligation_conflict")
+         dispatch_kind = f"trellis-dispatch-v1:{enqueue_obligation_id}"
+-        dispatch_receipt = await job_service.load_checkpoint(engine_job_id, dispatch_kind)
+-        if dispatch_receipt is not None:
+-            if dispatch_receipt.encode() != continuation_receipt_bytes:
+-                raise RuntimeError("continuation_dispatch_conflict")
+-            return "dispatched"
+-        job = await job_service.get_job_by_job_id(engine_job_id)
+-        if job is None:
+-            raise RuntimeError("continuation_job_missing")
+-        proof = await self._continuation_execution_proof(job, continuation_receipt_bytes)
+-        if proof is not None:
+-            return proof
+-        if job.status != JobStatus.QUEUED:
+-            raise RuntimeError("continuation_dispatch_state_conflict")
+-        if self._scaled:
+-            await self._backend.enqueue(str(engine_job_id))
+-            await job_service.save_checkpoint_once(
+-                engine_job_id,
+-                dispatch_kind,
+-                continuation_receipt_bytes.decode(),
+-            )
+-            return "dispatched"
+-        lease_heartbeat = datetime.now(timezone.utc).isoformat()
+-        if not await job_service.claim_queued_lease(
+-            engine_job_id,
+-            owner=self._owner,
+-            lease_ttl_s=self._settings.background_lease_ttl_s,
+-            heartbeat_at=lease_heartbeat,
+-        ):
+-            refreshed = await job_service.get_job_by_job_id(engine_job_id)
+-            if refreshed is None:
++        pending_lease = False
++        async with session_scope() as session:
++            job = await session.get(Job, engine_job_id, with_for_update=True)
++            if job is None:
+                 raise RuntimeError("continuation_job_missing")
+-            proof = await self._continuation_execution_proof(refreshed, continuation_receipt_bytes)
++            saved_receipt = await job_service.load_checkpoint_in_session(session, engine_job_id, continuation_kind)
++            if saved_receipt is None or saved_receipt.encode() != continuation_receipt_bytes:
++                raise RuntimeError("continuation_obligation_conflict")
++            dispatch_receipt = await job_service.load_checkpoint_in_session(session, engine_job_id, dispatch_kind)
++            if dispatch_receipt is not None:
++                if dispatch_receipt.encode() != continuation_receipt_bytes:
++                    raise RuntimeError("continuation_dispatch_conflict")
++                return "dispatched"
++            if await read_cancellation(session, engine_job_id) is not None:
++                return "cancelled"
++            proof = await self._continuation_execution_proof(session, job, continuation_receipt_bytes)
+             if proof is not None:
+                 return proof
++            if job.status != JobStatus.QUEUED:
++                raise RuntimeError("continuation_dispatch_state_conflict")
++            if self._scaled:
++                await self._backend.enqueue(str(engine_job_id))
++            else:
++                claimed = await job_service.claim_queued_lease_in_session(
++                    session,
++                    engine_job_id,
++                    owner=self._owner,
++                    lease_ttl_s=self._settings.background_lease_ttl_s,
++                )
++                if not claimed:
++                    pending_lease = True
++                else:
++                    request = self._reconstruct_request(job)
++                    await self._enqueue(
++                        job_id=engine_job_id,
++                        flow_id=job.flow_id,
++                        request=request,
++                        user=self._user_stub(job.user_id),
++                    )
++            if not pending_lease:
++                await job_service.save_checkpoint_once_in_session(
++                    session,
++                    engine_job_id,
++                    dispatch_kind,
++                    continuation_receipt_bytes.decode(),
++                )
++                return "dispatched"
++        if pending_lease:
+             self._schedule_trellis_obligation_retry(
+                 engine_job_id=engine_job_id,
+                 enqueue_obligation_id=enqueue_obligation_id,
+                 continuation_receipt_bytes=continuation_receipt_bytes,
+             )
+             return "pending_lease"
+-        try:
+-            request = self._reconstruct_request(job)
+-            await self._enqueue(
+-                job_id=engine_job_id,
+-                flow_id=job.flow_id,
+-                request=request,
+-                user=self._user_stub(job.user_id),
+-            )
+-            await job_service.save_checkpoint_once(
+-                engine_job_id,
+-                dispatch_kind,
+-                continuation_receipt_bytes.decode(),
+-            )
+-        except Exception:
+-            await job_service.release_queued_lease(
+-                engine_job_id,
+-                owner=self._owner,
+-                heartbeat_at=lease_heartbeat,
+-            )
+-            raise
+-        return "dispatched"
++        raise RuntimeError("continuation_dispatch_state_conflict")
+ 
+     async def _continuation_execution_proof(
+         self,
++        session: AsyncSession,
+         job: Job,
+         continuation_receipt_bytes: bytes,
+     ) -> Literal["execution_proven", "cancelled"] | None:
+         """Bind execution proof to the saved continuation receipt and exact signal."""
++        from uuid import UUID
++
++        from langflow.services.database.models.jobs.model import ExecutionSignal
++
+         receipt = json.loads(continuation_receipt_bytes)
+         signal_id = receipt["signalId"]
+         if (job.job_metadata or {}).get("continuation_signal_id") != signal_id:
+             return None
+-        signals = await get_job_service().unconsumed_signals(job.job_id)
+-        signal_is_pending = any(str(signal.id) == signal_id for signal in signals)
++        signal = cast(ExecutionSignal, await session.get(ExecutionSignal, UUID(signal_id)))
++        signal_is_pending = signal.consumed_at is None
+         if job.status == JobStatus.CANCELLED and signal_is_pending:
+             return "cancelled"
+         if job.status == JobStatus.IN_PROGRESS:
+@@ -1106,7 +1116,7 @@ class BackgroundExecutionService(Service):
+             return "execution_proven"
+         if job.status != JobStatus.SUSPENDED:
+             return None
+-        checkpoint_bytes = await get_job_service().load_checkpoint(job.job_id, "graph")
++        checkpoint_bytes = await get_job_service().load_checkpoint_in_session(session, job.job_id, "graph")
+         if checkpoint_bytes is None:
+             return None
+         waits = json.loads(checkpoint_bytes).get("external_waits", {})
+@@ -1252,37 +1262,27 @@ class BackgroundExecutionService(Service):
+         except Timeout:
+             # Another worker is running the reconcile; skip ours.
+             await logger.adebug("Another worker is sweeping orphans, skipping")
+-        # Re-enqueue QUEUED workflow rows (at-least-once for not-yet-started work).
+-        # Each row is LEASE-claimed (single-flight) WITHOUT flipping it to
+-        # IN_PROGRESS, so two workers booting against the same DB cannot both
+-        # re-run it (only the claim whose rowcount==1 enqueues), AND a re-enqueue
+-        # that crashes before the runner starts leaves the row QUEUED and
+-        # re-runnable on the next boot rather than a stranded IN_PROGRESS the next
+-        # sweep would fail worker_lost. The runner's execute_with_status performs
+-        # the real QUEUED->IN_PROGRESS flip once it actually starts emitting.
++        # The Job row lock lets one startup worker claim and submit each queued
++        # job. The runner changes the status to IN_PROGRESS when it starts.
++        # A crash before that change leaves the job queued for the next lease.
+         for job in await self._queued_workflow_jobs():
+-            lease_heartbeat = datetime.now(timezone.utc).isoformat()
+-            if not await job_service.claim_queued_lease(
+-                job.job_id,
+-                owner=self._owner,
+-                lease_ttl_s=lease_ttl,
+-                heartbeat_at=lease_heartbeat,
+-            ):
+-                self._schedule_trellis_lease_retry(
+-                    f"queued-job:{job.job_id}",
+-                    self.sweep_orphans_on_startup,
+-                )
+-                continue
+             try:
+                 request_dict = self._reconstruct_request(job)
+             except RequestOverridesCorruptedError:
+-                await job_service.fail_queued_job(
++                lease_heartbeat = datetime.now(timezone.utc).isoformat()
++                if await job_service.claim_queued_lease(
+                     job.job_id,
+                     owner=self._owner,
++                    lease_ttl_s=lease_ttl,
+                     heartbeat_at=lease_heartbeat,
+-                    error=dict(_REQUEST_OVERRIDES_ERROR),
+-                    event_type="run_failed",
+-                )
++                ):
++                    await job_service.fail_queued_job(
++                        job.job_id,
++                        owner=self._owner,
++                        heartbeat_at=lease_heartbeat,
++                        error=dict(_REQUEST_OVERRIDES_ERROR),
++                        event_type="run_failed",
++                    )
+                 continue
+             except RequestOverridesUnavailableError as exc:
+                 await logger.aerror(
+@@ -1292,19 +1292,17 @@ class BackgroundExecutionService(Service):
+                     stage="startup_restore",
+                     error_type=type(exc).__name__,
+                 )
+-                await job_service.release_queued_lease(
+-                    job.job_id,
+-                    owner=self._owner,
+-                    heartbeat_at=lease_heartbeat,
+-                )
+                 continue
+-            user = self._user_stub(job.user_id)
++            disposition = None
+             with contextlib.suppress(Exception):
+-                await self._enqueue(
+-                    job_id=job.job_id,
+-                    flow_id=job.flow_id,
++                disposition = await self._enqueue_trellis_job(
++                    engine_job_id=job.job_id,
+                     request=request_dict,
+-                    user=user,
++                )
++            if disposition == "pending_lease":
++                self._schedule_trellis_lease_retry(
++                    f"queued-job:{job.job_id}",
++                    self.sweep_orphans_on_startup,
+                 )
+         # Give up on runs that have sat suspended past their human-input deadline.
+         with contextlib.suppress(Exception):
+diff --git a/src/backend/base/langflow/services/trellis_v1/external_waits.py b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+index b40c53a..18384e6 100644
+--- a/src/backend/base/langflow/services/trellis_v1/external_waits.py
++++ b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+@@ -65,14 +65,18 @@ class TrellisExternalWaitBroker:
+         delivery_bytes: str,
+         receipt_bytes: str,
+     ) -> str:
+-        kind, envelope_bytes = self._completion_blob(
+-            authority_epoch=authority_epoch,
+-            wait_bytes=wait_bytes,
+-            delivery_bytes=delivery_bytes,
+-            receipt_bytes=receipt_bytes,
+-        )
+-        saved = await self._jobs.save_checkpoint_once(job_id, kind, envelope_bytes)
+-        return json.loads(saved)["receiptBytes"]
++        from langflow.services.deps import session_scope
++
++        async with session_scope() as session:
++            saved = await self.save_completion_in_session(
++                session,
++                job_id=job_id,
++                authority_epoch=authority_epoch,
++                wait_bytes=wait_bytes.encode(),
++                delivery_bytes=delivery_bytes.encode(),
++                receipt_bytes=receipt_bytes.encode(),
++            )
++        return saved.decode()
+ 
+     async def save_completion_in_session(
+         self,
+@@ -85,20 +89,32 @@ class TrellisExternalWaitBroker:
+         receipt_bytes: bytes,
+     ) -> bytes:
+         """Store one completion envelope inside the caller transaction."""
+-        from langflow.services.database.models.jobs.model import Job
++        from langflow.services.database.models.jobs.model import Job, JobStatus
+         from langflow.services.trellis_v1.cancellation import assert_not_cancelled
+ 
+-        await session.get(Job, job_id, with_for_update=True)
+-        await assert_not_cancelled(session, job_id)
++        job = await session.get(Job, job_id, with_for_update=True)
+         kind, envelope_bytes = self._completion_blob(
+             authority_epoch=authority_epoch,
+             wait_bytes=wait_bytes.decode(),
+             delivery_bytes=delivery_bytes.decode(),
+             receipt_bytes=receipt_bytes.decode(),
+         )
++        existing = await self._jobs.load_checkpoint_in_session(session, job_id, kind)
++        if existing is not None:
++            if existing != envelope_bytes:
++                raise RuntimeError("checkpoint_identity_conflict")
++            return json.loads(existing)["receiptBytes"].encode()
++        await assert_not_cancelled(session, job_id)
++        if job.status in {
++            JobStatus.COMPLETED,
++            JobStatus.FAILED,
++            JobStatus.CANCELLED,
++            JobStatus.TIMED_OUT,
++        }:
++            raise RuntimeError("completion_job_terminal")
+         saved = await self._jobs.save_checkpoint_once_in_session(session, job_id, kind, envelope_bytes)
+         return json.loads(saved)["receiptBytes"].encode()
+-
++
+     def _completion_blob(
+         self,
+         *,

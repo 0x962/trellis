@@ -74,20 +74,20 @@ test("migration 0129 preserves published versions and removes their size ceiling
 	const uploadId = ulid();
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size,
-		search_text, search_indexed, source_path, actor_name, actor_kind, created_at
+		search_text, search_indexed, source_path, actor_name, actor_kind, created_at, actor_id
 	) VALUES (
 		${pageId}, 2, ${crypto.randomUUID()}, ${sha256}, ${documentSize},
-		${searchText}, true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
-	)`);
+		${searchText}, true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt},
+		(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[]))`);
 	await db.execute(sql`INSERT INTO page_assets (page_id, version, path, sha256, size, mime)
 		VALUES (${pageId}, 2, 'large.bin', ${sha256}, ${assetSize}, 'application/octet-stream')`);
 	await db.execute(sql`INSERT INTO page_uploads (
 		id, project_id, sha256, size, mime, original_name,
-		actor_name, actor_kind, created_at, expires_at
+		actor_name, actor_kind, created_at, expires_at, actor_id
 	) VALUES (
 		${uploadId}, ${projectId}, ${sha256}, ${assetSize}, 'application/octet-stream', 'large.bin',
-		${actor.name}, ${actor.kind}, ${createdAt}, ${new Date(createdAt.getTime() + 60_000)}
-	)`);
+		${actor.name}, ${actor.kind}, ${createdAt}, ${new Date(createdAt.getTime() + 60_000)},
+		(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[]))`);
 
 	expect(
 		PageVersionSchema.shape.documentSize.parse(

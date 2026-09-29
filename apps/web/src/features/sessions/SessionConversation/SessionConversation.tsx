@@ -16,10 +16,11 @@ import { SessionPaneState } from "../sessionPane/SessionPaneState";
 import { useSessionArchive } from "../useSessionArchive";
 import { useSessionRestart } from "../useSessionRestart";
 import { useSessionRestartState } from "../useSessionRestartState";
-import { AgentStatusUpdates, useSessionStatusObserver } from "./components/AgentStatusUpdates";
-import { sessionObserverEnabled } from "./components/AgentStatusUpdates/sessionObserverState";
+import { AgentStatusUpdates } from "./components/AgentStatusUpdates";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
+import { sessionObserverEnabled } from "./sessionObserverState";
+import { useSessionStatusObserver } from "./useSessionStatusObserver";
 
 export function SessionConversation({
 	run: observedRun,

@@ -1,0 +1,51 @@
+[
+  {
+    "name": "absent-account",
+    "spec": {
+      "nodeId": "node-雪",
+      "taskKeyBase": "révision",
+      "name": "Review 雪",
+      "instruction": "  café\n\n雪  ",
+      "harness": {
+        "preset": "codex",
+        "model": " exact model ",
+        "effort": "high",
+        "startCommand": "exact-start",
+        "resumeCommand": "exact-resume"
+      }
+    },
+    "canonical": "{\"harness\":{\"effort\":\"high\",\"model\":\" exact model \",\"preset\":\"codex\",\"resumeCommand\":\"exact-resume\",\"startCommand\":\"exact-start\"},\"instruction\":\"  café\\n\\n雪  \",\"name\":\"Review 雪\",\"nodeId\":\"node-雪\",\"taskKeyBase\":\"révision\"}",
+    "sha256": "bf9a2299c04a728d79d37bb20d1fc9649db842e396d6e94f9f2097b4ea27b033"
+  },
+  {
+    "name": "explicit-account",
+    "spec": {
+      "nodeId": "node-雪",
+      "taskKeyBase": "révision",
+      "name": "Review 雪",
+      "instruction": "  café\n\n雪  ",
+      "harness": {
+        "preset": "codex",
+        "model": " exact model ",
+        "effort": "high",
+        "startCommand": "exact-start",
+        "resumeCommand": "exact-resume"
+      },
+      "accountId": "account-é"
+    },
+    "canonical": "{\"accountId\":\"account-é\",\"harness\":{\"effort\":\"high\",\"model\":\" exact model \",\"preset\":\"codex\",\"resumeCommand\":\"exact-resume\",\"startCommand\":\"exact-start\"},\"instruction\":\"  café\\n\\n雪  \",\"name\":\"Review 雪\",\"nodeId\":\"node-雪\",\"taskKeyBase\":\"révision\"}",
+    "sha256": "3ce5a6aade439e5f7ac4f4ee3a3df465ac30f0b2c6e99eaecb7a4e72973891ee"
+  },
+  {
+    "name": "human-null",
+    "spec": {
+      "nodeId": "node-雪",
+      "taskKeyBase": "révision",
+      "name": "Review 雪",
+      "instruction": "  café\n\n雪  ",
+      "harness": null
+    },
+    "canonical": "{\"harness\":null,\"instruction\":\"  café\\n\\n雪  \",\"name\":\"Review 雪\",\"nodeId\":\"node-雪\",\"taskKeyBase\":\"révision\"}",
+    "sha256": "3e2f438c96ff3cdea94afd512bdf67112a934a78baffcef2ce1d94982bd833d5"
+  }
+]

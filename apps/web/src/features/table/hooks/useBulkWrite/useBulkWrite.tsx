@@ -56,9 +56,8 @@ const noRowPatch: RowPatcher = {};
 const plural = (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`;
 
 // The one path of every bulk write in the web app. It skips the tickets of
-// an archived project, asks before a large write, sends the rest in runs of
-// 200 through the optimistic machinery of `useTicketMutations`, and reports
-// what it changed.
+// an archived project and asks before a large write. `useTicketMutations`
+// sends the complete writable selection in one transaction.
 //
 // One rule decides the path of a write: a change over a selection comes
 // here, a selection of one row included, and it sends no expected version,

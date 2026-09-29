@@ -11,7 +11,7 @@ export async function readCompletionDelivery(
 	input: { executionId: string; completionId: string },
 ) {
 	const execution = await lockExecution(tx, input);
-	assertAuthority(execution, ctx.nativeAuthority, "completion.deliver", ctx.now);
+	await assertAuthority(tx, execution, ctx.nativeAuthority, "completion.deliver", ctx.now);
 	if (execution.cancelIntent) throw new Error("execution_canceled");
 	const [row] = await tx
 		.select()

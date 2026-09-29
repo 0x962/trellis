@@ -12,6 +12,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const FlowDigestV1Schema = z.string().regex(/^[a-f0-9]{64}$/);
 export const FlowRevisionV1Schema = z.number().int().positive();
 export const FlowEngineV1Schema = z.enum(["legacy", "langflow"]);
+export type FlowEngineV1 = z.infer<typeof FlowEngineV1Schema>;
 export const FlowDiagnosticV1Schema = z.strictObject({
 	code: z.string().min(1),
 	message: z.string().min(1),

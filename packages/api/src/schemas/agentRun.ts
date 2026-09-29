@@ -79,7 +79,6 @@ export const AgentRunStartInputSchema = z
 		requestId: z
 			.string()
 			.min(1)
-			.max(200)
 			.regex(/^[\x21-\x7e]+$/)
 			.optional(),
 		ticket: z.string().min(1),
@@ -89,7 +88,7 @@ export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;
 export const AgentRunRetryInputSchema = z.strictObject({
 	id: UlidSchema,
 	expectedTerminalId: z.string().min(1),
-	requestId: z.string().min(1).max(200),
+	requestId: z.string().min(1),
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
 export const AGENT_RUN_LIST_WINDOW_HOURS = 24;

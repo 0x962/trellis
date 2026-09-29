@@ -13,13 +13,13 @@ export async function startLegacy(ctx: ServiceCtx, tx: Tx, input: FlowExecutionS
 	const [previous] = await rows<{ id: string }>(
 		tx,
 		sql`SELECT id FROM flow_executions
-		WHERE actor_kind=${actor.kind} AND actor_name=${actor.name} AND request_id=${input.requestId}`,
+		WHERE ARRAY[actor_kind,actor_name,request_id]=ARRAY[${actor.kind},${actor.name},${input.requestId}]`,
 	);
 	if (previous) return start(ctx, tx, input);
 	const [replacement] = await rows<{ id: string }>(
 		tx,
 		sql`SELECT execution_id AS id FROM langflow_executions
-		WHERE actor_kind=${actor.kind} AND actor_name=${actor.name} AND request_id=${input.requestId}`,
+		WHERE ARRAY[actor_kind,actor_name,request_id]=ARRAY[${actor.kind},${actor.name},${input.requestId}]`,
 	);
 	if (replacement) {
 		const execution = await readExecution(tx, { executionId: replacement.id });

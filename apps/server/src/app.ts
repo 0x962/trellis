@@ -12,6 +12,7 @@ import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
+import { type EditorGatewayConfiguration, editorGateway } from "./editorGateway";
 import type { Bus } from "./events/bus.ts";
 import type { GhAccess } from "./ghState.ts";
 import { isAllowedHost } from "./hostCheck.ts";
@@ -33,7 +34,6 @@ import { staticRoute } from "./routes/static.ts";
 import { terminalSocketRoute } from "./routes/terminalSocket/terminalSocket.ts";
 import { terminalStreamRoute } from "./routes/terminalStream.ts";
 import { createDbTiming, type DbTiming, serverTimingHeader } from "./serverTiming.ts";
-import { type EditorGatewayConfiguration, editorGateway } from "./services/langflowDispatch/editorGateway";
 import { checkGh } from "./services/system.ts";
 
 export type AppOptions = {
@@ -173,7 +173,12 @@ export const createApp = ({
 	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
 	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config, transport, log }));
 
-	if (editorSessions) app.all("/api/trellis-editor/v1/*", (c) => editorSessions.fetch(c.req.raw));
+	if (editorSessions)
+		app.all("/api/trellis-editor/v1/*", (c) => {
+			const timing = createDbTiming();
+			timings.set(c.req.raw, timing);
+			return editorSessions.fetch(c.req.raw, { reqId: c.get("requestId"), timing });
+		});
 	app.use(hostAuth(config.authToken));
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));

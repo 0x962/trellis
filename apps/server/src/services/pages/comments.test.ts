@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { ActorRef, TrellisEvent } from "@trellis/api";
+import { type ActorRef, PageCommentThreadSchema, type TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
@@ -20,9 +20,11 @@ const cache = createCache();
 const events: TrellisEvent[] = [];
 const at = new Date("2026-09-25T20:00:00.000Z");
 const human = { name: "Navid", kind: "human" as const };
+const humanActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${human.kind}, ${human.name}]::text[])`;
 const other = { name: "Reader", kind: "human" as const };
 const agentId = ulid();
 const agent = { name: agentId, kind: "agent" as const };
+const agentActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${agent.kind}, ${agent.name}]::text[])`;
 const project = { id: ulid(), key: "CMT", slug: "page-comments" };
 const archivedProject = { id: ulid(), key: "ARC", slug: "archived-comments" };
 const pageId = ulid();
@@ -51,20 +53,18 @@ const insertPage = async (id: string, projectId: string, slug: string, deleted =
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
 		creator_actor_name, creator_actor_kind, actor_name, actor_kind,
-		created_at, updated_at, deleted_at, deleted_actor_name, deleted_actor_kind
+		created_at, updated_at, deleted_at, deleted_actor_name, deleted_actor_kind, actor_id, creator_actor_id, deleted_actor_id
 	) VALUES (
 		${id}, ${projectId}, ${slug}, 'Review', '', ${deleted ? 3 : 2}, 2,
 		${agent.name}, ${agent.kind}, ${deleted ? human.name : agent.name}, ${deleted ? human.kind : agent.kind},
-		${at}, ${at}, ${deleted ? at : null}, ${deleted ? human.name : null}, ${deleted ? human.kind : null}
-	)`);
+		${at}, ${at}, ${deleted ? at : null}, ${deleted ? human.name : null}, ${deleted ? human.kind : null}, ${deleted ? humanActorId : agentActorId}, ${agentActorId}, ${deleted ? humanActorId : null})`);
 	for (const number of [1, 2]) {
 		await db.execute(sql`INSERT INTO page_versions (
 			page_id, number, request_id, document_sha256, document_size, search_text,
-			source_agent_id, source_path, actor_name, actor_kind, created_at
+			source_agent_id, source_path, actor_name, actor_kind, created_at, actor_id
 		) VALUES (
 			${id}, ${number}, ${crypto.randomUUID()}, ${String(number).repeat(64)}, 100, '',
-			${agentId}, 'report/index.html', ${agent.name}, ${agent.kind}, ${at}
-		)`);
+			${agentId}, 'report/index.html', ${agent.name}, ${agent.kind}, ${at}, ${agentActorId})`);
 	}
 };
 
@@ -147,14 +147,13 @@ describe("Page comments", () => {
 		const commentId = ulid();
 		await db.execute(sql`INSERT INTO page_comment_threads (
 			id, page_id, version, anchor_kind, anchor, selected_text,
-			actor_name, actor_kind, created_at, updated_at
+			actor_name, actor_kind, created_at, updated_at, actor_id
 		) VALUES (
 			${threadId}, ${pageId}, 1, 'element', ${{ kind: "element", path: "main" }}, NULL,
-			${human.name}, ${human.kind}, ${at}, ${at}
-		)`);
+			${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
 		await db.execute(sql`INSERT INTO page_comments (
-			id, thread_id, body, actor_name, actor_kind, created_at, updated_at
-		) VALUES (${commentId}, ${threadId}, 'Review version one.', ${human.name}, ${human.kind}, ${at}, ${at})`);
+			id, thread_id, body, actor_name, actor_kind, created_at, updated_at, actor_id
+		) VALUES (${commentId}, ${threadId}, 'Review version one.', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
 		const thread = (await inTx((tx) => listPageComments(contextOf(null), tx, { page: pageId }))).find(
 			(candidate) => candidate.id === threadId,
 		)!;
@@ -243,5 +242,30 @@ describe("Page comments", () => {
 		await expect(inTx((tx) => listPageComments(contextOf(null), tx, { page: deletedPageId }))).rejects.toMatchObject({
 			code: "PAGE_DELETED",
 		});
+	});
+	test("preserves large comments and selections through create, reply, edit, and read", async () => {
+		const quote = "Selected 界\n".repeat(3000);
+		const body = "Complete comment 界\n".repeat(2000).trim();
+		const anchor = { kind: "text" as const, path: "main", quote, prefix: "", suffix: "" };
+		const thread = await inTx((tx) =>
+			createPageComment(contextOf(human), tx, { page: pageId, version: 2, anchor, body }),
+		);
+		expect(PageCommentThreadSchema.parse(thread)).toMatchObject({ anchor, selectedText: quote });
+		expect(thread.comments[0]!.body).toBe(body);
+		const reply = `${body} Reply`;
+		await inTx((tx) => replyToPageComment(contextOf(agent), tx, { thread: thread.id, body: reply }));
+		const edited = `${body} Edited`;
+		await expect(
+			inTx((tx) => editPageComment(contextOf(other), tx, { id: thread.comments[0]!.id, body: edited })),
+		).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+		await expect(
+			inTx((tx) => createPageComment(contextOf(null), tx, { page: pageId, version: 2, anchor, body })),
+		).rejects.toMatchObject({ code: "ACTOR_REQUIRED" });
+		await inTx((tx) => editPageComment(contextOf(human), tx, { id: thread.comments[0]!.id, body: edited }));
+		const saved = (await inTx((tx) => listPageComments(contextOf(null), tx, { page: pageId }))).find(
+			(item) => item.id === thread.id,
+		)!;
+		expect(PageCommentThreadSchema.parse(saved)).toMatchObject({ anchor, selectedText: quote });
+		expect(saved.comments.map((comment) => comment.body)).toEqual([edited, reply]);
 	});
 });

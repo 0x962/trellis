@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { projects } from "./projects.ts";
 export const nativeMigrations = pgTable(
@@ -18,7 +18,7 @@ export const nativeMigrations = pgTable(
 		rolledBackAt: at("rolled_back_at"),
 	},
 	(t) => [
-		uniqueIndex("native_migrations_request_idx").on(t.actorName, t.requestId),
+		index("native_migrations_request_identity").using("hash", sql`ARRAY[${t.actorName}, ${t.requestId}]`),
 		uniqueIndex("native_migrations_active_project_idx").on(t.projectId).where(sql`${t.rolledBackAt} IS NULL`),
 	],
 );

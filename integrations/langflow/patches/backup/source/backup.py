@@ -12,6 +12,8 @@ from uuid import UUID
 import aiosqlite
 from pydantic import BaseModel, ConfigDict, Field
 
+from langflow.services.trellis_v1.capture_tasks import finish_capture_task
+
 
 class SnapshotConflict(ValueError):
     pass
@@ -134,8 +136,10 @@ async def capture_engine_snapshot(database, settings, root: Path, binding: Snaps
                                   data_home_id: str, host_id: str,
                                   snapshot_boundary: Callable[[SnapshotBinding], AbstractAsyncContextManager]) -> EngineSnapshotReceipt:
     async with snapshot_boundary(binding):
-        return await _export_engine_snapshot(database, settings, root, binding, package_digest=package_digest,
-                                            data_home_id=data_home_id, host_id=host_id)
+        return await finish_capture_task(_export_engine_snapshot(
+            database, settings, root, binding, package_digest=package_digest,
+            data_home_id=data_home_id, host_id=host_id,
+        ))
 
 
 def snapshot_file(root: Path, snapshot_id: UUID, part: str) -> Path:

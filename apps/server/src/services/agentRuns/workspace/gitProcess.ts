@@ -7,23 +7,37 @@ const readError = async (stream: ReadableStream<Uint8Array>) => {
 	return text + decoder.decode();
 };
 
-// Git calls use a 30-second process deadline. Bun sends SIGKILL when the
-// deadline expires, and runGit returns the process error.
-const timeoutMs = 30000;
-
 export const runGit = async <T>(
 	workspace: string,
 	args: string[],
+	signal: AbortSignal | undefined,
 	readOutput: (stream: ReadableStream<Uint8Array>) => Promise<T>,
 ) => {
+	signal?.throwIfAborted();
+	const env = await executionEnvironment();
+	signal?.throwIfAborted();
 	const child = Bun.spawn(["git", "-c", "core.fsmonitor=false", "-C", workspace, ...args], {
-		env: await executionEnvironment(),
+		env,
+		detached: true,
 		stdout: "pipe",
 		stderr: "pipe",
-		timeout: timeoutMs,
-		killSignal: "SIGKILL",
 	});
-	const [output, stderr, code] = await Promise.all([readOutput(child.stdout), readError(child.stderr), child.exited]);
-	if (code !== 0) throw new Error(stderr.trim() || `git ${args[0]} stopped with code ${code}`);
-	return output;
+	const stop = () => {
+		try {
+			process.kill(-child.pid, "SIGKILL");
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+		}
+	};
+	signal?.addEventListener("abort", stop, { once: true });
+	try {
+		const [output, stderr, code] = await Promise.all([readOutput(child.stdout), readError(child.stderr), child.exited]);
+		signal?.throwIfAborted();
+		if (code !== 0) throw new Error(stderr.trim() || `git ${args[0]} stopped with code ${code}`);
+		return output;
+	} finally {
+		signal?.removeEventListener("abort", stop);
+		stop();
+		await child.exited;
+	}
 };

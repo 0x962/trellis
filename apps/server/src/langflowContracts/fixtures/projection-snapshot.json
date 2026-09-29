@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "executionId": "execution-1",
+  "publicationId": "publication-1",
+  "engineJobId": "00000000-0000-4000-8000-000000000001",
+  "engineEpoch": 1,
+  "sourceCursor": 1,
+  "capturedAt": "2026-09-29T06:00:00.000Z",
+  "checkpointBytes": "{\"version\":1,\"executionId\":\"execution-1\",\"publicationId\":\"publication-1\",\"engineJobId\":\"00000000-0000-4000-8000-000000000001\",\"engineEpoch\":1,\"checkpointId\":\"checkpoint-1\",\"revision\":1,\"continuationRef\":\"engine-continuation-1\",\"waits\":[]}",
+  "graphCheckpointBytes": "{\"external_waits\":{},\"vertices\":{}}",
+  "occurrenceJournalBytes": " {\"revision\":1,\"visits\":{}} ",
+  "jobStatus": "completed",
+  "jobOutcomeBytes": "{\"version\":1,\"executionId\":\"execution-1\",\"publicationId\":\"publication-1\",\"engineJobId\":\"00000000-0000-4000-8000-000000000001\",\"engineEpoch\":1,\"status\":\"succeeded\",\"failure\":null}"
+}

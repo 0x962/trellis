@@ -2,7 +2,7 @@
 // so an agent that reads /api/openapi.json alone can work.
 
 export const ACTOR_HEADER_DESCRIPTION =
-	"Who acts, as <human|agent>:<name>. The name is 1 to 64 printable ASCII characters without a colon. Required on every request whose method is not GET.";
+	"Who acts, as <human|agent>:<name>. The name is nonempty and uses printable ASCII characters without a colon. Required on every request whose method is not GET.";
 
 export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 

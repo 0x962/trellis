@@ -1,0 +1,1 @@
+export { readPrivateFile } from "./readPrivateFile";

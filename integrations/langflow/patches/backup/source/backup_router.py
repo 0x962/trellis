@@ -16,6 +16,7 @@ from langflow.services.trellis_v1.backup import (
     capture_engine_snapshot,
     snapshot_file,
 )
+from langflow.services.trellis_v1.capture_grants import CaptureConflict
 
 
 def create_backup_router(*, database, settings, export_root: Path, authentication_file: Path,
@@ -42,7 +43,7 @@ def create_backup_router(*, database, settings, export_root: Path, authenticatio
                 package_digest=package_digest, data_home_id=data_home_id, host_id=host_id,
                 snapshot_boundary=snapshot_boundary,
             )
-        except SnapshotConflict as error:
+        except (SnapshotConflict, CaptureConflict) as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
     @router.get("/{snapshot_id}/{part}")

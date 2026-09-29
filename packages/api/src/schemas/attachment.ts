@@ -8,7 +8,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const AttachmentSchema = z.object({
 	id: UlidSchema,
 	ticketId: UlidSchema,
-	filename: z.string().min(1).max(255),
+	filename: z.string().min(1),
 	mime: z.string().min(1),
 	size: z.number().int().positive(),
 	sha256: z.string().regex(/^[0-9a-f]{64}$/),
@@ -28,7 +28,7 @@ export const AttachmentUploadInputSchema = z.strictObject({
 	id: UlidSchema.optional(),
 	ticket: TicketRefStringSchema,
 	file: z.file(),
-	name: z.string().min(1).max(255).optional(),
+	name: z.string().min(1).optional(),
 });
 export type AttachmentUploadInput = z.input<typeof AttachmentUploadInputSchema>;
 

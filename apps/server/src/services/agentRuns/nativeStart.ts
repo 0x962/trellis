@@ -17,7 +17,7 @@ import type { ExecutionAttempt } from "../assignments/attempts.ts";
 import { readHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
-import { transferSession } from "../harnessAccounts/transferSession.ts";
+import { transferSession } from "../harnessAccounts/transferSession";
 import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";

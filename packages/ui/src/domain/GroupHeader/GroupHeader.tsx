@@ -44,8 +44,10 @@ export type GroupHeaderProps = {
 	hasSectionGap?: boolean;
 	// The box that the header draws around its label. `inset` starts 12 px
 	// inside its parent and draws a rounded box. `band` fills the parent width,
-	// and `sidebar` draws no box.
-	appearance?: "band" | "inset" | "sidebar";
+	// and `sidebar` draws no box. `strip` draws no box either, fills the height
+	// of its parent, and prints no Show action, for a header inside the tab
+	// strip.
+	appearance?: "band" | "inset" | "sidebar" | "strip";
 };
 
 export const groupHeaderHeight = 32;
@@ -79,6 +81,7 @@ const chrome = {
 	band: "w-full border-y border-border bg-band px-5 max-md:px-4",
 	inset: "mx-3 rounded-sm border border-border bg-band px-2 max-md:mx-2",
 	sidebar: "w-full bg-bg px-4",
+	strip: "h-full w-full px-1",
 } as const satisfies Record<NonNullable<GroupHeaderProps["appearance"]>, string>;
 
 export function GroupHeader({
@@ -115,7 +118,7 @@ export function GroupHeader({
 			data-group={group}
 			aria-expanded={layout === "grid" ? expanded : undefined}
 			style={{
-				height: `${height}px`,
+				height: appearance === "strip" ? undefined : `${height}px`,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx("group/header flex items-center gap-2", chrome[appearance], hasSectionGap && "my-1", position)}
@@ -130,7 +133,8 @@ export function GroupHeader({
 					onKeyDown={onKeyDown}
 					className={cx(
 						"-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11",
-						appearance === "sidebar" ? "text-xs" : "text-sm",
+						appearance === "sidebar" || appearance === "strip" ? "text-xs" : "text-sm",
+						appearance === "strip" && "min-w-0 flex-1",
 					)}
 				>
 					<Chevron aria-hidden="true" className="size-3 shrink-0 text-fg-faint" />
@@ -154,12 +158,15 @@ export function GroupHeader({
 			{labelField}
 			<span
 				data-count=""
-				className={cx("shrink-0 text-fg-faint tabular", appearance === "sidebar" ? "text-xs" : "text-sm")}
+				className={cx(
+					"shrink-0 text-fg-faint tabular",
+					appearance === "sidebar" || appearance === "strip" ? "text-xs" : "text-sm",
+				)}
 			>
 				{count}
 			</span>
 			<span className="ml-auto flex shrink-0 items-center gap-1">
-				{collapsible && !expanded && appearance !== "sidebar" && (
+				{collapsible && !expanded && appearance !== "sidebar" && appearance !== "strip" && (
 					<button
 						type="button"
 						onClick={onToggle}

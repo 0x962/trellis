@@ -9,12 +9,13 @@ export type ActionReceiptInput = {
 	permit: DispatchPermit;
 	requestBytes: string;
 	requestDigest: string;
-	executionId: string;
-	viewRevision: number;
 	receiptId: string;
 	recordedAt: string;
 	sourceBytes: string;
-};
+} & (
+	| { outcome: "completed"; executionId: string; viewRevision: number; errorCode: null; errorBytes: null }
+	| { outcome: "refused"; executionId: null; viewRevision: null; errorCode: string; errorBytes: string }
+);
 export async function readActionReceipt(tx: Tx, input: { permitId: string }) {
 	const [row] = await tx
 		.select()

@@ -14,7 +14,6 @@ export const NoteAudienceSchema = z.enum(["all", "worker"]);
 export type NoteAudience = z.infer<typeof NoteAudienceSchema>;
 
 export const NOTE_TITLE_MAX = 120;
-export const NOTE_BODY_MAX = 4000;
 
 // Two notes of one project never share a title, compared without case, so a
 // writer that repeats a title gets DUPLICATE and updates the note instead.
@@ -23,11 +22,7 @@ export const NoteTitleSchema = z
 	.trim()
 	.min(1, `Enter a note title of 1 to ${NOTE_TITLE_MAX} characters.`)
 	.max(NOTE_TITLE_MAX, `Enter a note title of 1 to ${NOTE_TITLE_MAX} characters.`);
-export const NoteBodySchema = z
-	.string()
-	.trim()
-	.min(1, `Enter a note body of 1 to ${NOTE_BODY_MAX} characters.`)
-	.max(NOTE_BODY_MAX, `Enter a note body of 1 to ${NOTE_BODY_MAX} characters.`);
+export const NoteBodySchema = z.string().trim().min(1, "Enter a note body.");
 
 // `expiresAt` marks a note about a passing state, such as free disk or an
 // active release. An expired note leaves every list and every launch

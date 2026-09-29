@@ -102,10 +102,9 @@ export async function broadcastFixture() {
 		(${statuses.activeA}, ${projects.activeA}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${at}, ${at}),
 		(${statuses.activeB}, ${projects.activeB}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at
-	) VALUES
-		(${epics.activeA}, ${projects.activeA}, 'first-plan', 'First plan', 'qa', 'human', ${at}, ${at}),
-		(${epics.activeB}, ${projects.activeB}, 'second-plan', 'Second plan', 'qa', 'human', ${at}, ${at})`);
+		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id) VALUES
+		(${epics.activeA}, ${projects.activeA}, 'first-plan', 'First plan', 'qa', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[])),
+		(${epics.activeB}, ${projects.activeB}, 'second-plan', 'Second plan', 'qa', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[]))`);
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, number, title, status_id, epic_id, position, created_at, updated_at
 	) VALUES

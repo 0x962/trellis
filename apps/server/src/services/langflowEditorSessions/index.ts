@@ -6,6 +6,8 @@ export type {
 	EditorDocumentRead,
 	EditorDocumentSave,
 	EditorParentSave,
+	EditorSessionIssueInput,
+	EditorSessionIssueResult,
 	EditorSessionOptions,
 	InstalledEditorManifest,
 } from "./types";

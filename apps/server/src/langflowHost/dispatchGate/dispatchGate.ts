@@ -99,6 +99,8 @@ export class DispatchGate extends DispatchEffects {
 			this.store.mutate((state) => {
 				if (!isDeepStrictEqual(state.block, block)) throw new Error("dispatch_block_changed");
 				if (state.permits.some((entry) => !entry.terminal)) throw new Error("dispatch_effects_pending");
+				if (state.captureGrants.some((entry) => entry.phase !== "revoked" || entry.receipt?.state !== "revoked"))
+					throw new Error("dispatch_capture_not_revoked");
 				state.reconciliations.push(receipt);
 				state.block = null;
 				state.generation += 1;

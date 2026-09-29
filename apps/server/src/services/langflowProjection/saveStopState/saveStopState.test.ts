@@ -7,9 +7,8 @@ import {
 } from "../../../db/queries/langflowExecution";
 import { ids, now } from "../../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../../db/queries/langflowExecution/fixtures/native";
-import { cancelView } from "../../langflowStops/cancelView";
-import { drainStops } from "../../langflowStops/drainStops";
-import { stopFixture } from "../../langflowStops/testFixture";
+import { cancelView, drainStops } from "../../langflowStops";
+import { stopFixture } from "../../langflowTestFixture";
 import { saveStopState } from "./saveStopState";
 
 let fixture: Awaited<ReturnType<typeof stopFixture>>;

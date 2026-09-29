@@ -7,9 +7,9 @@ import {
 	reserveWarning,
 } from "../../../db/queries/langflowExecution";
 import type { IoCtx } from "../../support.ts";
-import { deliverWarning } from "../deliverWarning";
-import { observeWarning } from "../observeWarning";
 import { timeWarning } from "../timeWarning";
+import { deliverWarning } from "./components/deliverWarning";
+import { runWarningOperation } from "./components/runWarningOperation";
 
 export async function sendWarnings(
 	ctx: Pick<IoCtx, "newTx" | "home" | "now" | "log">,
@@ -20,7 +20,7 @@ export async function sendWarnings(
 	for (const native of facts.native) {
 		if (native.launchReceipt === null) continue;
 		const attemptId = native.handle.attemptId;
-		const status = await observeWarning(ctx.log, { ...input, attemptId }, () => host.status(attemptId));
+		const status = await runWarningOperation(ctx.log, { ...input, attemptId }, () => host.status(attemptId));
 		if (status === null) continue;
 		if (status.id !== attemptId || status.status !== "running" || !status.controllable) continue;
 		await ctx.newTx(async (tx) => {

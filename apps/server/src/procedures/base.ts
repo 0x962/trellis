@@ -2,10 +2,10 @@ import { implement, ORPCError, ValidationError } from "@orpc/server";
 import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "@trellis/api";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
+import type { editorGateway } from "../editorGateway";
 import { fail, type InputIssue, invalidInput, invalidIssues } from "../errors.ts";
 import type { GhAccess } from "../ghState.ts";
 import type { DbTiming } from "../serverTiming.ts";
-import type { editorGateway } from "../services/langflowDispatch/editorGateway";
 import type { ServiceName } from "../services/registry.ts";
 
 // What the HTTP layer hands every procedure. `actor` is null until the

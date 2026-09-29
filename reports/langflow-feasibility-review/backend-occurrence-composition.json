@@ -1,0 +1,78 @@
+{
+	"version": 1,
+	"sourceBase": "667ac57f92225619088f514cf97e6665639b4599",
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"priorComposition": {
+		"mergeCommit": "1156b3ed39d53061ade1a98b5290340600bdc43a",
+		"manifest": "reports/langflow-feasibility-review/backend-capture-composition.json",
+		"aggregateSha256": "a2c393012d584e855d715e92fcde67c59fa27f9bdf62bc3b41b76f93d4a8b902"
+	},
+	"insertAfter": "backend-capture-writers",
+	"sharedAuthorityRevision": {
+		"mergeCommit": "667ac57f92225619088f514cf97e6665639b4599",
+		"path": "integrations/langflow/patches/engineApi/shared/0001-shared-engine-api.patch",
+		"sha256": "baf63c24ffc0932432379a61d3d8ab158dcc6bd3b59875c73e7dfa93159f3497",
+		"position": "backend-private-authority",
+		"permissions": ["review.classify", "classification.deliver"]
+	},
+	"patchOrder": [
+		{
+			"name": "backend-occurrence-requests",
+			"sourceCommit": "e4b09e09c65ab18bcf3287bdb5c78c8281d99afa",
+			"mergeCommit": "e2d61c16276d895b33f5f66ac1e37c2e661570da",
+			"path": "integrations/langflow/patches/occurrenceRequests/0001-engine-occurrence-requests.patch",
+			"sha256": "615191dc9bd2c64eb42387024ce30fb67c6c229e09331c84ebece37ef51e45d5",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/manifest.json",
+			"directory": "."
+		},
+		{
+			"name": "backend-private-startup",
+			"mergeCommit": "8549deede99e1727c84512aaf9790df298ac2d2a",
+			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
+			"sha256": "83dddae445eb1cc22ed2053c8ea903a01c2228a21f4e174c910e334ff9605ee4",
+			"manifest": "integrations/langflow/patches/engineApi/startup/manifest.json",
+			"directory": "."
+		}
+	],
+	"sourceComposition": {
+		"method": "Compose the ordered patches against pinned Git blobs in memory with checkSeries.apply_patch; hash the source bytes without imports or runtime execution.",
+		"patches": 20,
+		"files": 69,
+		"aggregateSha256": "534d3f94d43a20011faddc00a0e85936baaac711130407fa7dcf97a02c844fe3",
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"changedSourceHashes": {
+			"src/backend/base/langflow/services/trellis_v1/authority.py": "ca64937030ce2062619e4e738871fb3f1c0440bef7de4ec187cfb88bf68c82e7",
+			"src/backend/base/langflow/services/trellis_v1/occurrence_handle.py": "1e6cb3ebb3ce219bc85e3c54092964734bf479fe89e9eb40f88eddeaff0503e8",
+			"src/backend/base/langflow/services/trellis_v1/occurrence_journal.py": "b36ec042754998d63349a59af3ba19f681a2934617eeb3337a3fa39437bb4a15",
+			"src/backend/base/langflow/services/trellis_v1/occurrence_models.py": "07652bcc9e730b0c8caa3e29a02ec71f97577f9c4325838a0f4e89ce88cf83f4",
+			"src/backend/base/langflow/services/trellis_v1/occurrence_requests.py": "2f5571fceea09a9d4a7abbffd3017077f94a36518160d1878c69bc0871bba6d6",
+			"src/backend/base/langflow/services/trellis_v1/occurrence_store.py": "8693c2a3210866461450128478bd3f18f98f77000a0eb64f24bf2b85936c8903",
+			"src/backend/base/langflow/services/trellis_v1/occurrence_transport.py": "9179085d7cdac6fabb04e98783696562ed619104410100e3a31ab2be137fa19d",
+			"src/backend/base/langflow/services/trellis_v1/startup.py": "cbe0250c91e40644be726365cf288ff80ff360d4c812273cee7813891e56a0c8"
+		},
+		"authorPatchBytesChanged": false,
+		"candidateMutated": false
+	},
+	"fixtureHashes": {
+		"integrations/langflow/patches/engineApi/shared/tests/test_engine_api.py": "8894cd47956971b45fe5a6b33d912fcb6637f159d0f085c6066ac8e8a634c216",
+		"integrations/langflow/tests/occurrenceRequests/test_occurrence_journal.py": "256ceed2ac63d7016c797874005af94346353ded2a80b10915477ad66986f607",
+		"integrations/langflow/tests/occurrenceRequests/spec-hash-cases.json": "046b7a2f3d330a3842e3faef88c0bbc0c57de9dbd3eb8e12345dc7bd391c9ea7",
+		"integrations/langflow/patches/engineApi/startup/tests/test_startup.py": "c030027877ebd0cc3b44abebb7421c6c260cc6946048a1a214234d03ab060197",
+		"integrations/langflow/patches/occurrenceRequests/request-spec.schema.json": "fc00465b9e66a6762976fd548b61f1f0fa00fd02bf8474a1df43aff86e69e29c"
+	},
+	"startupRequirements": [
+		"Explicit nativeReservationOrigin and nativeReservationAuthenticationFile configuration.",
+		"Call install_request_transport with keyword arguments before recovery."
+	],
+	"remainingProof": [
+		"Component entry hooks, root scope, and input receipt provenance remain incomplete.",
+		"Prompt composition and fixed publication defaults remain incomplete.",
+		"Recovery from an uncertain response before the native handle requires runner integration.",
+		"Group scopes, loop control, and pending review classification retain separate source owners.",
+		"Tests, linters, runtime checks, and Review remain deferred to the complete batch."
+	],
+	"nativeHumanCatalogPublicationApproved": false,
+	"packageExportApproved": false,
+	"technicalAcceptance": false,
+	"productionApproval": false
+}

@@ -1,0 +1,41 @@
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -1,3 +1,7 @@
+         """Claim one saved continuation inside the caller transaction."""
++        from langflow.services.trellis_v1.cancellation import assert_not_cancelled
++
+         await session.flush()
++        job = await session.get(Job, engine_job_id, with_for_update=True)
++        await assert_not_cancelled(session, engine_job_id)
+         kind = f"trellis-continuation-v1:{enqueue_obligation_id}"
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -1,3 +1,2 @@
+             return existing.blob.encode()
+-        job = await session.get(Job, engine_job_id)
+         signal = await session.get(ExecutionSignal, signal_id)
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -1,5 +1,8 @@
+                 correlation.engine_job_id,
+                 with_for_update=True,
+             )
+             await require_authority(session)
++            from langflow.services.trellis_v1.cancellation import assert_not_cancelled
++
++            await assert_not_cancelled(session, correlation.engine_job_id)
+             if correlation.admission_receipt_bytes is None:
+diff --git a/src/backend/base/langflow/services/trellis_v1/external_waits.py b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+--- a/src/backend/base/langflow/services/trellis_v1/external_waits.py
++++ b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+@@ -1,2 +1,7 @@
+         """Store one completion envelope inside the caller transaction."""
++        from langflow.services.database.models.jobs.model import Job
++        from langflow.services.trellis_v1.cancellation import assert_not_cancelled
++
++        await session.get(Job, job_id, with_for_update=True)
++        await assert_not_cancelled(session, job_id)
+         kind, envelope_bytes = self._completion_blob(

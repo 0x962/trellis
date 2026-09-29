@@ -9,6 +9,8 @@ import { reviewFixture } from "./reviewReady.fixtures.ts";
 import { flowAnsweredSql, notReadyForReviewSql } from "./reviewReady.ts";
 import { linkedPullRequests, ticketSummary } from "./ticketGet.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Policy'])`;
+
 let db: Db;
 beforeAll(async () => {
 	db = await openTestDb();
@@ -80,8 +82,8 @@ for (const engine of ["legacy", "langflow"] as const) {
 			await f.insertRun(engine, "waiting");
 			expect(await answered(f.pull)).toBe(false);
 			await db.execute(sql`INSERT INTO pr_flow_waivers
-				(pull_request_id,head_sha,reason,actor_name,actor_kind,created_at,updated_at)
-				VALUES (${f.pull},'old-head','This change needs no flow.','Policy','human',${f.at},${f.at})`);
+				(pull_request_id,head_sha,reason,actor_id,actor_name,actor_kind,created_at,updated_at)
+				VALUES (${f.pull},'old-head','This change needs no flow.',${actorId},'Policy','human',${f.at},${f.at})`);
 			await db.execute(sql`UPDATE pull_requests SET head_sha = 'new-head' WHERE id = ${f.pull}`);
 			expect(await answered(f.pull)).toBe(true);
 			await db.execute(sql`DELETE FROM pr_flow_waivers WHERE pull_request_id = ${f.pull}`);
