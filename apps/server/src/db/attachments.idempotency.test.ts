@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { prepareUpload, upload } from "../services/attachments.ts";
-import type { ServiceCtx } from "../services/support.ts";
+import type { IoCtx } from "../services/support.ts";
 import { blobPath } from "../storage/blobs.ts";
 import { withTx } from "./tx.ts";
 
@@ -45,7 +45,8 @@ describe("attachments.upload idempotency", () => {
 		const statusId = ulid();
 		const ticketId = ulid();
 		const uploadId = ulid();
-		const ctx: ServiceCtx = {
+		const ctx: IoCtx = {
+			core: { now: at, actorCache: new Map() } as IoCtx["core"],
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,

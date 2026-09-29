@@ -6,7 +6,7 @@ import type { Tx } from "../db/tx.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
 import { linkScope } from "./pullRequestScope.ts";
 import { announcePullRequestUpdate } from "./pullRequests.ts";
-import { type ServiceCtx, type TicketRow, writeActivity } from "./support.ts";
+import { type IoCtx, type TicketRow, writeActivity } from "./support.ts";
 
 type TimelineTicket = Pick<TicketRow, "id" | "project_id">;
 
@@ -15,7 +15,7 @@ export type SetLocalStateInput = { id: string; localState: LocalPrState };
 // One timeline row per ticket that links the pull request. The timeline
 // belongs to a ticket, so a pull request that two tickets link writes two
 // rows, and each ticket shows the moment its own wait started.
-const writeTimeline = async (ctx: ServiceCtx, tx: Tx, input: { id: string; localState: LocalPrState; at: Date }) => {
+const writeTimeline = async (ctx: IoCtx, tx: Tx, input: { id: string; localState: LocalPrState; at: Date }) => {
 	const scope = await linkScope(tx, input.id);
 	if (scope.ticketIds.length === 0) return;
 	const tickets = await rows<TimelineTicket>(
@@ -49,7 +49,7 @@ const writeTimeline = async (ctx: ServiceCtx, tx: Tx, input: { id: string; local
 //
 // The update event bumps the version of every linked ticket, so each open
 // page reads the new glyph.
-export const setLocalState = async (ctx: ServiceCtx, tx: Tx, input: SetLocalStateInput): Promise<PullRequest> => {
+export const setLocalState = async (ctx: IoCtx, tx: Tx, input: SetLocalStateInput): Promise<PullRequest> => {
 	const row = await findPullRequestRow(tx, input.id);
 	const asksAgain = input.localState === "ready" && row.ready_for_review_at === null;
 	if (row.local_state === input.localState && !asksAgain) return toPullRequest(row);

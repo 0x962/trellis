@@ -15,9 +15,11 @@ const later = new Date("2026-09-20T13:00:00.000Z");
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
+const actorCache = new Map<string, number>();
 const ctx = (at = now) =>
 	({
 		actor,
+		core: { now: at, actorCache } as IoCtx["core"],
 		now: () => at,
 		emit: () => {},
 		gh: async () => ({ ok: true as const, code: 0, stdout: JSON.stringify({ headRefOid: headSha }), stderr: "" }),

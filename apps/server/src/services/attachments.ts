@@ -7,13 +7,14 @@ import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { invalidInput } from "../errors.ts";
 import { sha256OfFile, storedMime, storeFile } from "../storage/blobs.ts";
+import { resolveActorId } from "./actorIdentity/index.ts";
 import { gcBlobs } from "./blobs.ts";
 import {
 	assertProjectActive,
+	type IoCtx,
 	notFound,
 	resolveTicket,
 	type ServiceCtx,
-	touchActor,
 	touchTicket,
 	writeActivity,
 } from "./support.ts";
@@ -171,7 +172,7 @@ export const prepareUpload = async (ctx: ServiceCtx, input: UploadInput): Promis
 	return { ...(input.id === undefined ? {} : { id: input.id }), ticket: ticket.id, filename, mime, ...stored };
 };
 
-export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Promise<AttachmentUploadOutput> => {
+export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise<AttachmentUploadOutput> => {
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
 	if (input.id !== undefined) {
@@ -184,7 +185,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Pr
 	}
 	const at = ctx.now();
 	const id = input.id ?? ulid();
-	const actorId = await touchActor(tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_id, actor_name, actor_kind, created_at)
 		VALUES (
@@ -218,7 +219,7 @@ const findAttachmentIfExists = async (tx: Tx, id: string): Promise<AttachmentRow
 
 export type IdInput = { id: string };
 
-export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
+export const remove = async (ctx: IoCtx, tx: Tx, input: IdInput) => {
 	const row = await findAttachment(tx, input.id);
 	const ticket = await resolveTicket(tx, row.ticket_id);
 	assertProjectActive(ticket);

@@ -99,7 +99,7 @@ const threadsForSubmission = async (tx: Tx, input: ReviewSubmit, prId: string) =
 	return threads;
 };
 
-export async function submit(ctx: ServiceCtx, tx: Tx, input: ReviewSubmit) {
+export async function submit(ctx: IoCtx, tx: Tx, input: ReviewSubmit) {
 	const ref = parseRef(input.pr);
 	const [pr] = await rows<SubmissionPullRequest>(
 		tx,

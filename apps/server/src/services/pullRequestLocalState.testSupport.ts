@@ -10,7 +10,7 @@ import { upsertPullRequests } from "../gh/pollerWrite.ts";
 import { candidates } from "./needsYou/candidates.ts";
 import { setLocalState } from "./pullRequestLocalState.ts";
 import { link } from "./pullRequests.ts";
-import type { ServiceCtx } from "./support.ts";
+import type { IoCtx } from "./support.ts";
 
 export const openPullRequestLocalStateTest = async () => {
 	const db = await openTestDb();
@@ -34,11 +34,12 @@ export const openPullRequestLocalStateTest = async () => {
 	const ctxOf = (actor: ActorRef, now: Date = at) =>
 		({
 			actor,
+			core: { actor, now, actorCache: new Map() } as IoCtx["core"],
 			now: () => now,
 			emit: (event: { type: string }) => {
 				events.push(event);
 			},
-		}) as unknown as ServiceCtx;
+		}) as unknown as IoCtx;
 
 	const newTicket = async (title: string) => {
 		ticketNumber += 1;
