@@ -30,7 +30,6 @@ export const epics = pgTable(
 		index("epics_project_slug_equality").using("hash", sql`(${t.projectId} || '/' || ${t.slug})`),
 		check("epics_slug_check", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
 		check("epics_name_check", sql`${t.name} = btrim(${t.name}) AND length(${t.name}) >= 1`),
-		check("epics_description_check", sql`length(${t.description}) <= 200000`),
 		index("epics_project_id_idx").on(t.projectId),
 	],
 );
