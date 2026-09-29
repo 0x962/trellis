@@ -49,6 +49,9 @@ export const contract = {
 	flows: oc.tag("flows").router(flows),
 	flowDocumentsV1: oc.tag("flow documents v1").router({ ...flowDocumentsV1, list: flowExecutionIndexV1 }),
 	flowExecutions: oc.tag("flow executions").router(flowExecutions),
+	flowExecutionsV1: oc
+		.tag("flow executions v1")
+		.router({ recovery: flowExecutionsV1.recovery, output: flowExecutionsV1.output }),
 	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),

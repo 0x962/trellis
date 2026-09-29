@@ -1,0 +1,338 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/admission_lookup.py b/src/backend/base/langflow/services/trellis_v1/admission_lookup.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/admission_lookup.py
+@@ -0,0 +1,20 @@
++from __future__ import annotations
++
++from uuid import UUID
++
++from sqlmodel import select
++
++from langflow.services.deps import session_scope
++from langflow.services.trellis_v1.correlation import CorrelationKey, TrellisJobCorrelation
++
++
++async def read_correlation(host_id: str, execution_id: str) -> TrellisJobCorrelation | None:
++    async with session_scope() as session:
++        return (await session.exec(select(TrellisJobCorrelation).where(
++            TrellisJobCorrelation.host_id == host_id,
++            TrellisJobCorrelation.execution_id == execution_id,
++        ))).first()
++
++
++def actor_key(row: TrellisJobCorrelation) -> CorrelationKey:
++    return CorrelationKey(actor_kind=row.actor_kind, actor_name=row.actor_name, request_id=UUID(str(row.request_id)))
+diff --git a/src/backend/base/langflow/services/trellis_v1/admission_models.py b/src/backend/base/langflow/services/trellis_v1/admission_models.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/admission_models.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++from datetime import datetime
++from typing import Annotated, Literal
++
++from pydantic import BaseModel, ConfigDict, Field, model_validator
++
++from langflow.services.trellis_v1.correlation import _timestamp, _uuid
++
++Reference = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")]
++Digest = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
++Revision = Annotated[int, Field(gt=0)]
++
++
++class StrictModel(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++
++
++class EngineKey(StrictModel):
++    version: Literal[1]
++    hostId: Reference
++    executionId: Reference
++
++
++class SubmitRequest(StrictModel):
++    envelopeBytes: str
++    payloadBytes: str
++
++
++class SubmissionPayload(StrictModel):
++    publication: dict
++    snapshot: dict
++
++
++class DeliveryAuthority(StrictModel):
++    version: Literal[1]
++    executionId: Reference
++    publicationId: Reference
++    engineJobId: str
++    engineEpoch: Revision
++    hostId: Reference
++    projectId: Reference
++    publicationDigest: Digest
++    ownerId: Reference
++    ownershipRevision: Revision
++    capabilityId: Reference
++    permissions: list[Literal[
++        "native.reserve", "native.read", "completion.deliver", "decision.deliver", "events.append"
++    ]] = Field(min_length=1)
++    issuedAt: str
++    expiresAt: str
++
++    @model_validator(mode="after")
++    def valid_identity(self):
++        _uuid(self.engineJobId, "engineJobId")
++        _timestamp(self.issuedAt, "issuedAt")
++        _timestamp(self.expiresAt, "expiresAt")
++        if datetime.fromisoformat(self.expiresAt) <= datetime.fromisoformat(self.issuedAt):
++            raise ValueError("authority_expiry_order")
++        return self
++
++
++class OpenRequest(StrictModel):
++    receiptBytes: str
++    authority: DeliveryAuthority
++
++
++class Found(StrictModel):
++    state: Literal["found"] = "found"
++    receiptBytes: str
++
++
++class Absent(StrictModel):
++    state: Literal["absent"] = "absent"
++    key: EngineKey
++    authoritative: Literal[True] = True
++
++
++class Unknown(StrictModel):
++    state: Literal["unknown"] = "unknown"
++    key: EngineKey
++
++
++class Admitted(StrictModel):
++    state: Literal["admitted"] = "admitted"
++    receiptBytes: str
++
++
++class Pending(StrictModel):
++    state: Literal["pending"] = "pending"
++
++
++class AdmissionUnknown(StrictModel):
++    state: Literal["unknown"] = "unknown"
+diff --git a/src/backend/base/langflow/services/trellis_v1/admission_router.py b/src/backend/base/langflow/services/trellis_v1/admission_router.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/admission_router.py
+@@ -0,0 +1,73 @@
++from __future__ import annotations
++
++import hmac
++from contextlib import AbstractAsyncContextManager
++from pathlib import Path
++from typing import Annotated, Protocol
++
++from fastapi import APIRouter, Depends, Header, HTTPException
++from pydantic import ValidationError
++
++from langflow.services.trellis_v1.correlation import CorrelationUnknown, ProtocolConflict, _submission
++
++from .admission_models import (
++    Absent, Admitted, AdmissionUnknown, EngineKey, Found,
++    OpenRequest, Pending, SubmitRequest, Unknown,
++)
++from .admission_service import AdmissionService
++
++
++class AdmissionAuthority(Protocol):
++    def guard(self, authority: dict, *, permission: str) -> AbstractAsyncContextManager[None]:
++        """Hold the current owner, epoch, and capability valid through the admission commit."""
++        ...
++
++
++def create_admission_router(*, authentication_file: Path, service: AdmissionService,
++                            authority: AdmissionAuthority) -> APIRouter:
++    token = authentication_file.read_bytes()
++    if not token:
++        raise ValueError("admission_authentication_missing")
++
++    async def authenticate(authorization: Annotated[str | None, Header()] = None) -> None:
++        if authorization is None or not hmac.compare_digest(authorization.encode("utf-8"), b"Bearer " + token):
++            raise HTTPException(401, "admission_unauthorized", headers={"WWW-Authenticate": "Bearer"})
++
++    router = APIRouter(prefix="/trellis-v1/admission", dependencies=[Depends(authenticate)])
++
++    @router.post("/lookup", response_model=Found | Absent | Unknown)
++    async def lookup(key: EngineKey):
++        try:
++            return await service.lookup(key)
++        except CorrelationUnknown:
++            return Unknown(key=key)
++        except ProtocolConflict as error:
++            raise HTTPException(409, str(error)) from error
++
++    @router.post("/submit", response_model=Found | Unknown)
++    async def submit(request: SubmitRequest):
++        try:
++            envelope = request.envelopeBytes.encode("utf-8")
++            submission = _submission(envelope)
++            key = EngineKey(version=1, hostId=submission["hostId"], executionId=submission["executionId"])
++            return await service.submit(envelope, request.payloadBytes.encode("utf-8"))
++        except CorrelationUnknown:
++            return Unknown(key=key)
++        except ProtocolConflict as error:
++            raise HTTPException(409, str(error)) from error
++        except (ValidationError, UnicodeEncodeError) as error:
++            raise HTTPException(422, "admission_request_invalid") from error
++
++    @router.post("/open", response_model=Admitted | Pending | AdmissionUnknown)
++    async def open_admission(request: OpenRequest):
++        try:
++            async with authority.guard(request.authority.model_dump(), permission="native.reserve"):
++                return await service.open(request.receiptBytes.encode("utf-8"), request.authority)
++        except CorrelationUnknown:
++            return AdmissionUnknown()
++        except ProtocolConflict as error:
++            raise HTTPException(409, str(error)) from error
++        except UnicodeEncodeError as error:
++            raise HTTPException(422, "admission_request_invalid") from error
++
++    return router
+diff --git a/src/backend/base/langflow/services/trellis_v1/admission_service.py b/src/backend/base/langflow/services/trellis_v1/admission_service.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/admission_service.py
+@@ -0,0 +1,131 @@
++from __future__ import annotations
++
++import hashlib
++import json
++from datetime import datetime, timezone
++from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
++
++from lfx.graph.checkpoint.schema import GraphCheckpoint
++from langflow.services.deps import session_scope
++from langflow.services.trellis_publications.ledger import resolve_publication
++from langflow.services.trellis_v1.correlation import (
++    AdmissionContinuation,
++    AdmissionEnqueueObligation,
++    CorrelationCoordinator,
++    CorrelationKey,
++    CorrelationUnknown,
++    JobServiceCorrelationStore,
++    ProtocolConflict,
++    _admission,
++    _read,
++    _submission,
++)
++
++from .admission_lookup import actor_key, read_correlation
++from .admission_models import Absent, Admitted, EngineKey, Found, Pending, SubmissionPayload
++
++
++class AdmissionService:
++    def __init__(self, *, jobs, background, host_id: str, dispatch_submission):
++        self.jobs = jobs
++        self.background = background
++        self.host_id = host_id
++        self.dispatch_submission = dispatch_submission
++
++    def require_host(self, host_id: str) -> None:
++        if host_id != self.host_id:
++            raise ProtocolConflict("admission_host_conflict")
++
++    async def lookup(self, key: EngineKey) -> Found | Absent:
++        self.require_host(key.hostId)
++        row = await read_correlation(key.hostId, key.executionId)
++        if row is None:
++            return Absent(key=key)
++        return Found(receiptBytes=bytes(row.correlation_receipt_bytes).decode("utf-8"))
++
++    async def submit(self, envelope_bytes: bytes, payload_bytes: bytes) -> Found:
++        submission = _submission(envelope_bytes)
++        self.require_host(submission["hostId"])
++        if hashlib.sha256(payload_bytes).hexdigest() != submission["submissionDigest"]:
++            raise ProtocolConflict("submission_payload_digest_conflict")
++        key = CorrelationKey(
++            actor_kind=submission["actor"]["kind"], actor_name=submission["actor"]["name"],
++            request_id=UUID(submission["requestId"]),
++        )
++        prior = await self.jobs.lookup_trellis_correlation(key)
++        if prior is not None:
++            if prior.submission_bytes != envelope_bytes:
++                raise ProtocolConflict("submission_identity_conflict")
++            if prior.terminal_state is None:
++                await self.dispatch_submission(prior)
++            return Found(receiptBytes=prior.correlation_receipt_bytes.decode("utf-8"))
++        payload = SubmissionPayload.model_validate_json(payload_bytes)
++        if payload.publication.get("publicationId") != submission["publicationId"]:
++            raise ProtocolConflict("submission_publication_conflict")
++        async with session_scope() as session:
++            publication = await resolve_publication(session, payload.snapshot, payload.publication)
++        coordinator = CorrelationCoordinator(JobServiceCorrelationStore(
++            self.jobs, flow_id=publication["flow_id"], user_id=publication["user_id"],
++        ))
++        job_id = uuid4()
++        receipt = {
++            "version": 1, "hostId": self.host_id, "executionId": submission["executionId"],
++            "publicationId": submission["publicationId"], "submissionDigest": submission["submissionDigest"],
++            "engineJobId": str(job_id), "engineSessionId": str(uuid4()),
++            "recordedAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
++        }
++        receipt_bytes = await coordinator.accept_submission(
++            envelope_bytes, job_id=job_id,
++            correlation_receipt_bytes=json.dumps(receipt, separators=(",", ":")).encode("utf-8"),
++        )
++        record = await self.jobs.lookup_trellis_correlation(key)
++        await self.dispatch_submission(record)
++        return Found(receiptBytes=receipt_bytes.decode("utf-8"))
++
++    async def open(self, receipt_bytes: bytes, authority) -> Admitted | Pending:
++        receipt = _admission(_read(receipt_bytes, "admission"))
++        self.require_host(authority.hostId)
++        if any(receipt[name] != getattr(authority, name) for name in (
++            "executionId", "publicationId", "engineJobId", "engineEpoch"
++        )):
++            raise ProtocolConflict("admission_authority_binding_conflict")
++        row = await read_correlation(self.host_id, receipt["executionId"])
++        if row is None:
++            raise CorrelationUnknown(receipt["executionId"])
++        if row.admission_receipt_bytes is not None:
++            if bytes(row.admission_receipt_bytes) != receipt_bytes:
++                raise ProtocolConflict("admission_identity_conflict")
++            if row.enqueue_obligation_consumed_at is None:
++                await self.background._consume_trellis_admission_obligation(AdmissionEnqueueObligation(
++                    engine_job_id=row.engine_job_id, engine_request_id=row.continuation_engine_request_id,
++                    signal_id=row.continuation_signal_id, enqueue_obligation_id=row.enqueue_obligation_id,
++                    continuation_receipt_bytes=bytes(row.continuation_receipt_bytes),
++                ))
++            return Admitted(receiptBytes=bytes(row.admission_receipt_bytes).decode("utf-8"))
++        checkpoint_bytes = await self.jobs.load_checkpoint(row.engine_job_id, "graph")
++        if checkpoint_bytes is None:
++            return Pending()
++        checkpoint = GraphCheckpoint.model_validate_json(checkpoint_bytes)
++        waits = [json.loads(raw) for raw in checkpoint.external_waits.values()]
++        matches = [wait for wait in waits if wait.get("kind") == "admission" and wait.get("barrierId") == row.barrier_id]
++        if not matches:
++            return Pending()
++        if len(matches) != 1:
++            raise ProtocolConflict("admission_wait_identity_conflict")
++        wait_id = matches[0]["waitId"]
++        identity = f"trellis-admission:{row.engine_job_id}:{wait_id}"
++        continuation = AdmissionContinuation(
++            engine_request_id=wait_id, signal_id=uuid5(NAMESPACE_URL, f"{identity}:signal"),
++            enqueue_obligation_id=uuid5(NAMESPACE_URL, f"{identity}:enqueue"),
++        )
++        job = await self.jobs.get_job_by_job_id(row.engine_job_id)
++        coordinator = CorrelationCoordinator(JobServiceCorrelationStore(
++            self.jobs, flow_id=job.flow_id, user_id=job.user_id,
++        ))
++        commit = await coordinator.open_admission(actor_key(row), receipt_bytes, continuation)
++        await self.background._consume_trellis_admission_obligation(AdmissionEnqueueObligation(
++            engine_job_id=row.engine_job_id, engine_request_id=wait_id,
++            signal_id=continuation.signal_id, enqueue_obligation_id=continuation.enqueue_obligation_id,
++            continuation_receipt_bytes=commit.continuation_receipt_bytes,
++        ))
++        return Admitted(receiptBytes=commit.record.admission_receipt_bytes.decode("utf-8"))

@@ -32,3 +32,10 @@ export const StopSnapshotSchema = z.object({
 	records: z.array(z.object({ stops: z.array(z.object({ state: z.string() })) })),
 });
 export const NativeSnapshotSchema = z.object({ ready: z.literal(true), unavailable: z.array(z.unknown()).length(0) });
+
+export const AuthorityArchiveSchema = z.strictObject({
+	kind: z.literal("authority"),
+	dataHomeId: z.string().min(1),
+	issuanceReceiptId: z.string().min(1),
+	authorityBytes: z.string().min(1),
+});

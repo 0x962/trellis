@@ -1,4 +1,5 @@
 export type { RenewalInput, TakeoverInput } from "./authority";
+export { readIssuedAuthority } from "./authority/issuedBytes";
 export type * from "./contracts";
 export { DispatchGate } from "./dispatchGate";
 export type * from "./dispatchGate/contracts";

@@ -18,6 +18,7 @@ export async function inspectPackage(root: string, input: unknown) {
 		recipe.license.file,
 		...recipe.patchSet.patches,
 		...recipe.components.entries.map((entry) => entry.source),
+		...(recipe.componentSupportFiles ?? []),
 		...recipe.editor.assets,
 	];
 	for (const reference of references) {
