@@ -21,6 +21,15 @@ The catalog contains these source definitions:
 - `ordered-output-v1`: child outputs in source order, with two newline separators.
 - `stock-loop`: the pinned Langflow loop, with its own item and done ports.
 
+`nativeRequest.request_native_attempt` sends original UTF-8 request bytes to the private native-reservation endpoint.
+Trusted bootstrap supplies `origin`, `authentication_file`, and `capability_id`.
+The function returns the original UTF-8 response text.
+It disables ambient proxies and redirects and makes one request.
+The caller retains the request identity after an unknown result.
+
+Credentials are runtime arguments, separate from saved component fields.
+The engine occurrence producer must call this client before it creates the native wait.
+
 `native-completion-v1` accepts exact prebuilt native `ExternalWaitV1` bytes.
 It requires the request job to match `graph.job_id`.
 `Graph.await_external_completion` owns suspension.
