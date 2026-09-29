@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PageSummary, PageWatcherOptionsOutput } from "@trellis/api";
 import { act } from "react";
@@ -20,6 +20,15 @@ async function settle() {
 }
 
 async function mount(read: (cursor?: string) => Promise<PageWatcherOptionsOutput>) {
+	const observe = ResizeObserver.prototype.observe;
+	const observer = spyOn(ResizeObserver.prototype, "observe").mockImplementation(function (
+		this: ResizeObserver,
+		element,
+		options,
+	) {
+		if (!(element instanceof Element)) throw new TypeError("ResizeObserver requires an Element");
+		observe.call(this, element, options);
+	});
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
@@ -63,6 +72,7 @@ async function mount(read: (cursor?: string) => Promise<PageWatcherOptionsOutput
 			await act(async () => root.unmount());
 			client.clear();
 			container.remove();
+			observer.mockRestore();
 		},
 	};
 }
@@ -90,6 +100,8 @@ domTest("1000 eligible watchers mount only visible rows and allow a distant sele
 		await settle();
 		const list = document.querySelector<HTMLElement>("[role='listbox']")!;
 		expect(list).not.toBeNull();
+		expect(document.activeElement).toBe(list);
+		expect(list.scrollTop).toBeGreaterThan(0);
 		expect(document.querySelectorAll("[role='option']").length).toBeLessThanOrEqual(14);
 		await act(async () => {
 			list.scrollTop = 990 * 28;

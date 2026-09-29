@@ -1,6 +1,6 @@
 import { Combobox } from "@base-ui/react/combobox";
 import { CaretDown, Check } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMediaQuery } from "../../../../hooks/useMediaQuery";
 import { cx } from "../../../../utils/cx";
 import { hitArea } from "../../../../utils/hitArea";
@@ -26,7 +26,7 @@ export function VirtualSelect<Value extends string>({
 }: SelectProps<Value>) {
 	const coarse = useMediaQuery("(pointer: coarse)");
 	const rowHeight = coarse ? 44 : 28;
-	const list = useRef<HTMLDivElement | null>(null);
+	const [list, setList] = useState<HTMLDivElement | null>(null);
 	const [open, setOpen] = useState(false);
 	const [viewport, setViewport] = useState({ top: 0, height: 280 });
 	const values = useMemo(() => items.map((item) => item.value), [items]);
@@ -34,7 +34,7 @@ export function VirtualSelect<Value extends string>({
 	const chosen = byValue.get(value);
 	const reveal = useCallback(
 		(index: number) => {
-			const element = list.current;
+			const element = list;
 			if (element === null || index < 0) return;
 			const top = index * rowHeight;
 			if (top < element.scrollTop) element.scrollTop = top;
@@ -42,17 +42,17 @@ export function VirtualSelect<Value extends string>({
 				element.scrollTop = top + rowHeight - element.clientHeight;
 			setViewport({ top: element.scrollTop, height: element.clientHeight });
 		},
-		[rowHeight],
+		[list, rowHeight],
 	);
 	useEffect(() => {
-		if (!open) return;
-		const element = list.current!;
+		if (!open || list === null) return;
+		const element = list;
 		const update = () => setViewport({ top: element.scrollTop, height: element.clientHeight });
 		reveal(values.indexOf(value));
 		const observer = new ResizeObserver(update);
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, [open, reveal, value, values]);
+	}, [list, open, reveal, value, values]);
 	const start = Math.max(0, Math.floor(viewport.top / rowHeight) - 2);
 	const end = Math.min(items.length, Math.ceil((viewport.top + viewport.height) / rowHeight) + 2);
 	return (
@@ -102,14 +102,15 @@ export function VirtualSelect<Value extends string>({
 			<Combobox.Portal>
 				<Combobox.Positioner sideOffset={4} className="z-50 outline-none select-none">
 					<Combobox.Popup
+						initialFocus={() => list}
 						className={cx(
-							"min-w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
+							"w-64 min-w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
 							popupMotion,
 							"duration-popover",
 						)}
 					>
 						<Combobox.List
-							ref={list}
+							ref={setList}
 							className="max-h-(--available-height) overflow-y-auto"
 							style={{ height: Math.min(items.length, 10) * rowHeight }}
 							onScroll={(event) =>
