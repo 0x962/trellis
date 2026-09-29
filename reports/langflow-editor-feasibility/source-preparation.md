@@ -92,9 +92,9 @@ The separate editor needs an estimated 6 to 12 integration files. It retains the
 
 ## Source fixture checks
 
-The worktree reuses dependencies from the canonical checkout because both lock files have SHA256 `ceeb63317e0c76a91eebea2e94615bca1e4b18c32f4c73cb80bdb73d393229ce`.
+The source fixture checks reused dependencies from the canonical checkout. Both lock files then had SHA256 `ceeb63317e0c76a91eebea2e94615bca1e4b18c32f4c73cb80bdb73d393229ce`.
 
-`Bun.resolveSync` resolves `@trellis/api` to this worktree at `packages/api/src/index.ts`. It resolves Zod to the canonical matching dependency.
+`Bun.resolveSync` resolved `@trellis/api` to this worktree at `packages/api/src/index.ts`. It resolved Zod to the canonical matching dependency.
 
 | Command | Result |
 | --- | --- |
@@ -118,7 +118,9 @@ The gateway binds the submitted component manifest hash to the pinned hash. It r
 
 The prior editor patch has SHA256 `a5f94d6e207b98be2a2a44e1e26b4d8d25f6b327108ebe8817ca639224941ab2`. The prior gateway source manifest has SHA256 `57852bd56f93a89b8bae795bd827ab3bd68d81b5c1d61744cb9dd027942d3a81`. The prior HTTP fixture manifest has SHA256 `17f4b2a0959b4a2a0b4190412870a4ced724b512a40a371deaaebd824bf73ca6`. TRL-667 retains those bytes in the `editor-a5f94d6e-snapshot` evidence directory.
 
-The corrected gateway source manifest has SHA256 `f12c2c85903be8fb3fefb2807e5603c8507bea57dc04101bc6c19dfebd70fe99`. The corrected HTTP fixture manifest has SHA256 `c4e0c7d6e824e38d875fe8d0ed61697be5bf57c3d68b8bf73a1a9ba095765a39`.
+The corrected gateway source manifest has SHA256 `951fa6d0ca520f14e48a0af29996655aee0dc77cb57ebd5c0160ae05c25bede7`. The corrected HTTP fixture manifest has SHA256 `c4e0c7d6e824e38d875fe8d0ed61697be5bf57c3d68b8bf73a1a9ba095765a39`.
+
+The current worktree, canonical checkout, and merged editor repair contain the same lock file, with SHA256 `bff164db008eb9d1143f74f510c83ab5a40787b19726052eaa998758a5c3b87d`. The gateway manifest records this hash. `shasum -a 256 -c integrations/langflow/editor-probe/manifests/gateway-source.sha256` accepts all 14 records. This metadata check does not verify installed dependencies or runtime behavior.
 
 Integrated verification starts after the repaired source merges. No candidate process or listener runs during this repair.
 
