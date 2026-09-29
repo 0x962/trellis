@@ -24,18 +24,27 @@ The next host uses that reservation instead of an unrecorded replacement.
 ## Driver boundary
 
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
-Its `start` uses the exact saved instance identifier as the OCI container identity.
-It must reuse that identity after an uncertain response and never create another container for it.
-Its `observe` obtains fresh container identity and an authenticated health response for the supplied challenge.
-It must report `unknown` when the container manager cannot establish absence or identity.
+`createOciDriver` binds the manifest image digest and the separate image config digest to the saved instance.
+`start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
+It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
+`observe` checks those current objects before it requests authenticated health for the supplied challenge.
+It reports `unknown` when the container manager cannot establish the complete retained state.
 An absent PID, a cached health response, or a copied challenge does not prove current ownership.
-Its `stop` targets that exact instance and leaves native attempts under the native runtime's control.
+`stop` checks the same state, removes the exact container and network, and retains the labeled storage volumes.
 
-The driver must bind the authenticated listener to loopback and enforce the approved isolation profile.
-It mounts only the supplied private data and required secret files.
-It enforces the manifest's health timeouts and preserves the engine encryption secret across restarts.
+The runtime uses a read-only root, UID 10001, no added capabilities, no new privileges, and a bounded private tmpfs.
+An internal bridge denies external routes, and the published engine port binds only to `127.0.0.1`.
+The runtime mounts one writable data volume and one read-only secrets volume.
+The storage labels bind both volumes to the data home, host, and a digest of the private host root.
+The restricted provisioner copies the exact mode-0600 bearer for UID 10001 and creates the persistent encryption secret.
+The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
+
+`createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
+It reads the exact bearer file for each operation, refuses redirects, preserves request and response bytes, and returns unknown network results.
+Mutation recovery uses one read-only lookup before the mutation and one read-only lookup after an unknown response.
+
 TRL-667 proves isolation; TRL-685 supplies the sealed package adapter.
-This module contains no OCI adapter or production registration.
+The focused source fixtures do not prove Docker isolation, authenticated runtime behavior, external egress denial, restart recovery, or volume restore.
 
 ## Authority boundary
 
