@@ -1,10 +1,13 @@
 export { assembleNativePrompt } from "./assembleNativePrompt";
+export { createNativeDispatchGate } from "./createNativeDispatchGate";
 export { dispatchNative } from "./dispatchNative";
 export { readLaunchSnapshot } from "./launchSnapshot";
 export type { NativeVisit } from "./nativeVisit";
 export { observeNativeAttempt } from "./observeNativeAttempt";
 export { readCompletionDelivery } from "./readCompletionDelivery";
+export { readNativeDispatchEvidence } from "./readNativeDispatchEvidence";
 export { readNativeOutput } from "./readNativeOutput";
+export { readNativeRequest } from "./readNativeRequest";
 export { readNativeSnapshotManifest } from "./readNativeSnapshotManifest";
 export { readNativeVisit } from "./readNativeVisit";
 export type { NativePromptReceipt } from "./readPromptInputs";
