@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PageTabs } from "./PageTabs";
 
 const tabs = [
-	{ id: "tickets", title: "Tickets" },
-	{ id: "review", title: "Review the tab component" },
+	{ id: "tickets", title: "Tickets", pinned: false },
+	{ id: "review", title: "Review the tab component", pinned: false },
 ];
 
 test("renders the controlled tab state and actions", () => {
@@ -36,7 +36,11 @@ test("accepts a label for the tab list", () => {
 });
 
 test("bounds the mounted controls and keeps the active tab", () => {
-	const manyTabs = Array.from({ length: 1_000 }, (_, index) => ({ id: `tab-${index}`, title: `Page ${index}` }));
+	const manyTabs = Array.from({ length: 1_000 }, (_, index) => ({
+		id: `tab-${index}`,
+		title: `Page ${index}`,
+		pinned: false,
+	}));
 	const html = renderToStaticMarkup(
 		<PageTabs tabs={manyTabs} activeId="tab-999" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} />,
 	);
@@ -44,4 +48,20 @@ test("bounds the mounted controls and keeps the active tab", () => {
 	expect(html.match(/role="tab"/g)?.length).toBeLessThan(10);
 	expect(html).toContain('data-page-tab-id="tab-999"');
 	expect(html).not.toContain('data-page-tab-id="tab-0"');
+});
+
+test("a pinned tab keeps its full name in the accessible name and has no close button", () => {
+	const pinned = [
+		{ id: "home", title: "Needs you for the whole team", pinned: true },
+		{ id: "tickets", title: "Tickets", pinned: false },
+	];
+	const html = renderToStaticMarkup(
+		<PageTabs tabs={pinned} activeId="home" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} onPin={() => {}} />,
+	);
+
+	expect(html).toContain('aria-label="Pinned: Needs you for the whole team"');
+	expect(html).toContain('data-pinned="true"');
+	expect(html).not.toContain('aria-label="Close Needs you for the whole team"');
+	expect(html).toContain('aria-label="Close Tickets"');
+	expect(html).toContain('aria-label="Tab actions"');
 });
