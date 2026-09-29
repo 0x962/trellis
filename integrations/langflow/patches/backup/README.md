@@ -21,7 +21,9 @@ The receipt identifies both exported files by SHA256 and size, and retains the c
 `engineDatabaseVersion` joins the sorted Alembic revision IDs with commas.
 PostgreSQL requires a separate producer; this exporter rejects it.
 
-The required `snapshot_boundary(binding)` context manager validates the durable grant and holds engine writers closed during export.
+The service `capture_engine_snapshot` requires `snapshot_boundary(binding)` to validate the durable grant and hold engine writers closed during export.
+The context exit keeps the outer host block closed.
+Only reconciliation with the completed seal receipt can reopen that block.
 The trusted host holds the same coordinated pause across this operation, the Trellis snapshot, all native exports, and manifest completion.
 A request field cannot grant that pause.
 TRL-849 supplies durable host exclusion; TRL-696 supplies its composition and router registration.
