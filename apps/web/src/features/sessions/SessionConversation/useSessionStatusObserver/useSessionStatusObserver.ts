@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { toast } from "@trellis/ui";
-import { useApp } from "../../../../../lib/appContext";
-import { sessionObserverInput, sessionObserverPollInterval } from "./sessionObserverState";
+import { useApp } from "../../../../lib/appContext";
+import { sessionObserverInput, sessionObserverPollInterval } from "../sessionObserverState";
 
 export function useSessionStatusObserver(run: Pick<AgentRun, "id">) {
 	const { client, orpc, queryClient } = useApp();
