@@ -65,6 +65,9 @@ erDiagram
     tickets ||--o{ langflow_executions : owns
     projects ||--o{ langflow_executions : owns
     langflow_document_publications |o--o{ langflow_executions : catalog_link
+    langflow_executions |o--o{ langflow_start_receipts : aliases
+    flow_executions |o--o{ langflow_start_receipts : aliases
+    langflow_executions ||--o{ langflow_warnings : delivers
     langflow_executions ||--o{ langflow_native_handles : reserves
     langflow_native_handles ||--o{ langflow_completions : retains
     langflow_executions ||--o{ langflow_decisions : records
@@ -93,3 +96,8 @@ The start service retains the legacy selection policy and serializes flow select
 `commitProjection` accepts an optional original EngineCheckpointV1 as checkpoint and writes it with the view.
 `readCheckpoint` reads that exact stored checkpoint. A smaller revision or changed equal revision conflicts.
 `readDecision(tx, {executionId, decisionId})` returns original payloadBytes and the stored delivery state.
+
+Graph keys and source event IDs retain their full text. SHA256 columns provide fixed-size keys for their unique constraints.
+Database checks bind each digest to its original text. Receipt queries compare the original bytes before they accept a replay.
+`saveStartRequest` permits both Langflow and legacy execution aliases. Separate nullable foreign keys preserve their respective deletion cascades.
+`confirmAdmission(tx, {executionId, receipt})` closes the outbox item only for the exact retained admission receipt.

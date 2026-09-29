@@ -1,5 +1,7 @@
-import { type KeyboardEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useVirtualRows } from "../../hooks/useVirtualRows";
 import { FlowRunRow } from "./components/FlowRunRow";
+import { MeasuredRunRow } from "./components/MeasuredRunRow";
 import type { FlowRunRow as Row } from "./types";
 import { visibleRows } from "./visibleRows";
 
@@ -9,6 +11,7 @@ export type FlowRunTreeState = {
 	outputKeys: readonly string[];
 	scrollTop: number;
 	scrollLeft: number;
+	rowHeights?: Readonly<Record<string, number>>;
 };
 
 export type FlowRunTreeProps = {
@@ -23,6 +26,7 @@ export type FlowRunTreeProps = {
 	state?: FlowRunTreeState;
 	onStateChange?: (state: FlowRunTreeState) => void;
 	restoreFocus?: boolean;
+	onViewportChange?: (state: FlowRunTreeState) => void;
 };
 
 // The steps of one flow run as a tree. A box row collapses its descendants.
@@ -38,6 +42,7 @@ export function FlowRunTree({
 	state,
 	onStateChange,
 	restoreFocus = false,
+	onViewportChange,
 }: FlowRunTreeProps) {
 	const [localState, setLocalState] = useState<FlowRunTreeState>(() => ({
 		collapsed: rows.filter((row) => row.hasChildren && row.state === "skipped").map((row) => row.key),
@@ -52,17 +57,38 @@ export function FlowRunTree({
 	const initialView = useRef(view);
 	const initialFocus = useRef(restoreFocus);
 	const viewport = useRef<HTMLDivElement>(null);
+	const [heights, setHeights] = useState<Readonly<Record<string, number>>>(() => view.rowHeights ?? {});
+	const onMeasure = useCallback((key: string, height: number) => {
+		if (height > 0) setHeights((current) => (current[key] === height ? current : { ...current, [key]: height }));
+	}, []);
 	const collapsed = useMemo(() => new Set(view.collapsed), [view.collapsed]);
 	const outputKeys = useMemo(() => new Set(view.outputKeys), [view.outputKeys]);
 	const focusKey = view.selectedKey;
 	const update = (change: Partial<FlowRunTreeState>) => {
-		const next = { ...currentView.current, ...change };
+		const next = {
+			...currentView.current,
+			rowHeights: heights,
+			scrollTop: viewport.current!.scrollTop,
+			scrollLeft: viewport.current!.scrollLeft,
+			...change,
+		};
 		currentView.current = next;
 		setLocalState(next);
 		onStateChange?.(next);
 	};
 	const elements = useRef(new Map<string, HTMLDivElement>());
 	const visible = useMemo(() => visibleRows(rows, collapsed), [rows, collapsed]);
+	const sizes = useMemo(() => visible.map((row) => heights[row.key] ?? 64), [visible, heights]);
+	const virtual = useVirtualRows(viewport, sizes);
+	const offsets = useMemo(() => {
+		const result = [0];
+		for (const size of sizes) result.push(result.at(-1)! + size);
+		return result;
+	}, [sizes]);
+	const selectedIndex = visible.findIndex((row) => row.key === focusKey);
+	const indexes = new Set(Array.from({ length: virtual.end - virtual.start }, (_, i) => virtual.start + i));
+	if (visible.length > 0) indexes.add(selectedIndex >= 0 ? selectedIndex : 0);
+	const rendered = [...indexes].sort((a, b) => a - b);
 	useLayoutEffect(() => {
 		const element = viewport.current!;
 		element.scrollTop = initialView.current.scrollTop;
@@ -70,6 +96,14 @@ export function FlowRunTree({
 		if (initialFocus.current && initialView.current.selectedKey !== null)
 			elements.current.get(initialView.current.selectedKey)?.focus({ preventScroll: true });
 	}, []);
+	useLayoutEffect(() => {
+		onViewportChange?.({
+			...currentView.current,
+			scrollTop: viewport.current!.scrollTop,
+			scrollLeft: viewport.current!.scrollLeft,
+			rowHeights: heights,
+		});
+	}, [heights, onViewportChange]);
 	const toggle = (key: string) => {
 		const next = new Set(collapsed);
 		if (next.has(key)) next.delete(key);
@@ -78,7 +112,13 @@ export function FlowRunTree({
 	};
 	const focus = (key: string | undefined) => {
 		if (key === undefined) return;
-		elements.current.get(key)?.focus();
+		const element = elements.current.get(key);
+		if (element) element.focus();
+		else {
+			update({ selectedKey: key });
+			virtual.scrollToIndex(visible.findIndex((row) => row.key === key));
+			requestAnimationFrame(() => elements.current.get(key)?.focus({ preventScroll: true }));
+		}
 	};
 	const keyDown = (event: KeyboardEvent<HTMLDivElement>, row: Row, index: number) => {
 		if (event.target !== event.currentTarget) return;
@@ -103,37 +143,52 @@ export function FlowRunTree({
 			ref={viewport}
 			role="tree"
 			aria-label={label}
-			className="flex max-h-160 flex-col overflow-auto overscroll-contain"
-			onScroll={(event) =>
-				update({ scrollTop: event.currentTarget.scrollTop, scrollLeft: event.currentTarget.scrollLeft })
-			}
+			className="max-h-160 overflow-auto overscroll-contain"
+			onScroll={(event) => {
+				const offsets = {
+					scrollTop: event.currentTarget.scrollTop,
+					scrollLeft: event.currentTarget.scrollLeft,
+					rowHeights: heights,
+				};
+				currentView.current = { ...currentView.current, ...offsets };
+				onViewportChange?.(currentView.current);
+			}}
 		>
-			{visible.map((row, index) => (
-				<FlowRunRow
-					key={row.key}
-					row={row}
-					now={now}
-					expanded={row.hasChildren ? !collapsed.has(row.key) : undefined}
-					tabIndex={row.key === current ? 0 : -1}
-					ref={(element) => {
-						if (element) elements.current.set(row.key, element);
-						else elements.current.delete(row.key);
-					}}
-					onToggle={() => toggle(row.key)}
-					onKeyDown={(event) => keyDown(event, row, index)}
-					onFocus={() => update({ selectedKey: row.key })}
-					selected={row.key === focusKey}
-					outputExpanded={outputKeys.has(row.key)}
-					onOutputToggle={(expanded) => {
-						if (expanded === outputKeys.has(row.key)) return;
-						update({
-							outputKeys: expanded ? [...view.outputKeys, row.key] : view.outputKeys.filter((key) => key !== row.key),
-						});
-					}}
-					onDecide={() => onDecide(row.key)}
-					onOpenTerminal={() => onOpenTerminal(row.key)}
-				/>
-			))}
+			<div role="presentation" className="relative" style={{ height: offsets.at(-1) }}>
+				{rendered.map((index) => {
+					const row = visible[index]!;
+					return (
+						<MeasuredRunRow key={row.key} rowKey={row.key} top={offsets[index]!} onMeasure={onMeasure}>
+							<FlowRunRow
+								key={row.key}
+								row={row}
+								now={now}
+								expanded={row.hasChildren ? !collapsed.has(row.key) : undefined}
+								tabIndex={row.key === current ? 0 : -1}
+								ref={(element) => {
+									if (element) elements.current.set(row.key, element);
+									else elements.current.delete(row.key);
+								}}
+								onToggle={() => toggle(row.key)}
+								onKeyDown={(event) => keyDown(event, row, index)}
+								onFocus={() => update({ selectedKey: row.key })}
+								selected={row.key === focusKey}
+								outputExpanded={outputKeys.has(row.key)}
+								onOutputToggle={(expanded) => {
+									if (expanded === outputKeys.has(row.key)) return;
+									update({
+										outputKeys: expanded
+											? [...view.outputKeys, row.key]
+											: view.outputKeys.filter((key) => key !== row.key),
+									});
+								}}
+								onDecide={() => onDecide(row.key)}
+								onOpenTerminal={() => onOpenTerminal(row.key)}
+							/>
+						</MeasuredRunRow>
+					);
+				})}
+			</div>
 		</div>
 	);
 }

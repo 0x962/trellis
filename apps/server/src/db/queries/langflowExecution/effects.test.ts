@@ -1,12 +1,13 @@
 import { afterEach, expect, test } from "bun:test";
-import type { Db } from "../../client";
 import type { HumanDecisionReceiptV1, StopObligationV1 } from "../../../langflowContracts";
+import type { Db } from "../../client";
 import { recordDecision, updateDecisionDelivery } from "./decisions";
 import { readProjectionFacts } from "./facts";
 import { ids, now, receiptFixture } from "./fixtures/fixture";
 import { handle, nativeRequest } from "./fixtures/native";
 import { reserveNative } from "./native";
 import { cancelExecution, recordDeadline, updateStop } from "./stops";
+
 let db: Db;
 afterEach(async () => {
 	await db.$client.close();
@@ -78,6 +79,16 @@ test("records one decision per exact wait and requires exact acceptance", async 
 		}),
 	);
 	expect(confirmed.state).toBe("confirmed");
+	await expect(
+		db.transaction((tx) =>
+			updateDecisionDelivery(tx, {
+				executionId: ids.execution,
+				decisionId: decision.decisionId,
+				state: "confirmed",
+				acceptance: { ...acceptance, engineRequestId: "other" },
+			}),
+		),
+	).rejects.toThrow("decision_acceptance_conflict");
 	expect(
 		await db.transaction((tx) =>
 			updateDecisionDelivery(tx, { executionId: ids.execution, decisionId: decision.decisionId, state: "unknown" }),

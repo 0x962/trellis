@@ -13,6 +13,19 @@ import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../../../lib/appContext";
 
 mock.module("@trellis/ui", () => ({
+	PropertyRow: ({ label, children }: { label: string; children: ReactNode }) => (
+		<div>
+			<dt>{label}</dt>
+			<dd>{children}</dd>
+		</div>
+	),
+	FailureState: ({ title, detail }: { title: string; detail: string }) => (
+		<section>
+			{title}
+			{detail}
+		</section>
+	),
+	OutputBlock: ({ text }: { text: string }) => <pre>{text}</pre>,
 	Dialog: ({ children }: { children: ReactNode }) => <section>{children}</section>,
 	Button: (props: ComponentProps<"button">) => <button {...props} />,
 	IconButton: ({ label, onClick }: { label: string; onClick: () => void }) => (
@@ -167,7 +180,8 @@ test("cancellation retains an unconfirmed worker stop", async () => {
 test("start refuses a changed head before the mutation", async () => {
 	let starts = 0;
 	const f = fixture({
-		pullRequests: { refresh: async () => ({ headSha: "b".repeat(40), fetchError: null }) },
+		pullRequests: { refresh: async () => ({ url: "https://github.com/example/repo/pull/1", fetchError: null }) },
+		reviews: { refresh: async () => ({ headSha: "b".repeat(40) }) },
 		flows: { get: async () => ({ flow: publishedDocumentV1Example.flow }) },
 		flowExecutions: {
 			start: async () => {
@@ -210,8 +224,24 @@ test("a replacement attempt detaches the terminal and reads only the retained ta
 	);
 	await flush();
 	expect(f.text()).not.toContain("replacement");
+	for (let tick = 0; tick < 50 && !f.text().includes("retained text"); tick += 1) await flush();
 	expect(f.text()).toContain("retained text");
 	expect(f.text()).toContain("Unknown");
 	expect(targets).toEqual([{ runId: task.runId, attemptId: task.attemptId, resultId: null }]);
+	await f.close();
+});
+
+test("unsubmitted notes survive close and reopen", async () => {
+	const f = fixture();
+	const render = () => <FlowDecisionDialog execution={execution} actionKey="review-37" onClose={() => {}} />;
+	await f.render(render());
+	await act(async () =>
+		f.root.container
+			.queryAll((node) => node.type === "textarea")[0]!
+			.props.onChange({ target: { value: "Keep my draft" } }),
+	);
+	await f.render(<div />);
+	await f.render(render());
+	expect(f.root.container.queryAll((node) => node.type === "textarea")[0]!.props.value).toBe("Keep my draft");
 	await f.close();
 });

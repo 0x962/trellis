@@ -32,7 +32,8 @@ Execution services retain that snapshot and publication for the life of the run.
 It parses the actor header before each handler.
 The composition owner supplies transport handlers and registers the router after the document migration.
 The execution projection owner supplies view.
-The legacy graph routes refuse a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
+`legacyServices` supplies get, save, and update adapters for registration after the document migration.
+Its graph adapters refuse a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 Metadata updates and legacy graph saves preserve immutable revisions through the same version counter.
 
 The focused fixtures use in-memory storage and an injected engine client.

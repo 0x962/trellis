@@ -1,19 +1,19 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq, or } from "drizzle-orm";
 import {
-	NativeRequestV1Schema,
-	NativeResultV1Schema,
-	protocolDigest,
-	readProtocolBytes,
+	type CompletionReceiptV1,
 	type DeliveryAuthorityV1,
 	type NativeCompletionV1,
 	type NativeHandleV1,
 	type NativeLaunchReceiptV1,
-	type CompletionReceiptV1,
+	NativeRequestV1Schema,
+	NativeResultV1Schema,
+	protocolDigest,
+	readProtocolBytes,
 } from "../../../langflowContracts";
 import {
-	langflowNativeHandles as handles,
 	langflowCompletions as completions,
+	langflowNativeHandles as handles,
 	langflowOutbox,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
@@ -38,9 +38,9 @@ export async function reserveNative(
 			and(
 				eq(handles.executionId, request.executionId),
 				or(
-					eq(handles.semanticKey, semanticKey),
+					eq(handles.semanticDigest, protocolDigest(semanticKey)),
 					eq(handles.requestId, request.requestId),
-					eq(handles.occurrenceKey, request.occurrenceKey),
+					eq(handles.occurrenceDigest, protocolDigest(request.occurrenceKey)),
 				),
 			),
 		);
@@ -72,6 +72,9 @@ export async function reserveNative(
 			stepId: input.handle.stepId,
 			executionId: request.executionId,
 			taskKey: input.taskKey,
+			taskDigest: protocolDigest(input.taskKey),
+			semanticDigest: protocolDigest(semanticKey),
+			occurrenceDigest: protocolDigest(request.occurrenceKey),
 			semanticKey,
 			occurrenceKey: request.occurrenceKey,
 			requestId: request.requestId,

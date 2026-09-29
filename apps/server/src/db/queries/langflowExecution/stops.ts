@@ -1,11 +1,16 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq } from "drizzle-orm";
-import type { CancelIntentV1, GroupDeadlineV1, StopObligationV1 } from "../../../langflowContracts";
+import {
+	type CancelIntentV1,
+	type GroupDeadlineV1,
+	protocolDigest,
+	type StopObligationV1,
+} from "../../../langflowContracts";
 import {
 	langflowDeadlines,
 	langflowExecutions,
-	langflowOutbox,
 	langflowNativeHandles,
+	langflowOutbox,
 	langflowStops,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
@@ -103,11 +108,15 @@ export async function recordDeadline(tx: Tx, input: { executionId: string; deadl
 		.where(
 			and(
 				eq(langflowDeadlines.executionId, input.executionId),
-				eq(langflowDeadlines.groupOccurrenceKey, deadline.groupOccurrenceKey),
+				eq(langflowDeadlines.groupDigest, protocolDigest(deadline.groupOccurrenceKey)),
 			),
 		);
 	if (row) {
-		if (row.deadline.budgetMs !== deadline.budgetMs || row.id !== deadline.deadlineId)
+		if (
+			row.groupOccurrenceKey !== deadline.groupOccurrenceKey ||
+			row.deadline.budgetMs !== deadline.budgetMs ||
+			row.id !== deadline.deadlineId
+		)
 			throw new Error("deadline_conflict");
 		if (row.deadline.launchedAt !== null || deadline.launchedAt === null) return row.deadline;
 		await tx.update(langflowDeadlines).set({ deadline }).where(eq(langflowDeadlines.id, row.id));
@@ -116,6 +125,7 @@ export async function recordDeadline(tx: Tx, input: { executionId: string; deadl
 			id: deadline.deadlineId,
 			executionId: input.executionId,
 			groupOccurrenceKey: deadline.groupOccurrenceKey,
+			groupDigest: protocolDigest(deadline.groupOccurrenceKey),
 			deadline,
 		});
 	return deadline;

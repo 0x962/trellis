@@ -49,11 +49,13 @@ class RecordedGate(Component):
 	def yes(self) -> Data:
 		if self.decision != "yes":
 			self.stop("yes")
+			self.graph.exclude_branch_conditionally(self.node_id, "yes")
 		return _data(self.node_id, self.recorded_output)
 
 	def no(self) -> Data:
 		if self.decision != "no":
 			self.stop("no")
+			self.graph.exclude_branch_conditionally(self.node_id, "no")
 		return _data(self.node_id, self.recorded_output)
 
 
@@ -121,26 +123,27 @@ def _assert_private_trace(run: dict[str, Any]) -> None:
 class ReviewGraph:
 	def __init__(self, run: dict[str, Any]) -> None:
 		self.nodes = {node["id"]: node for node in run["doc"]["nodes"]}
+		self.steps = run["state"]["steps"]
 		self.outputs = {step["nodeId"]: step.get("output") for step in run["state"]["steps"]}
 		self.decisions = {step["nodeId"]: step.get("decision") for step in run["state"]["steps"]}
 		self.edges = run["doc"]["edges"]
 		self.graph = Graph()
 		self._add_components()
 		self._wire_groups()
-		self._wire_order()
+		self._wire_edges()
 
-	def _children(self, parent_id: str | None, *, top_level: bool = False) -> list[dict[str, Any]]:
-		children = [node for node in self.nodes.values() if node.get("parentId") == parent_id]
-		key = (lambda node: (node["x"], node["y"], node["id"])) if top_level else (
-			lambda node: (node["y"], node["x"], node["id"])
-		)
-		return sorted(children, key=key)
+	def _children(self, parent_id: str | None) -> list[dict[str, Any]]:
+		return [node for node in self.nodes.values() if node.get("parentId") == parent_id]
+
+	def _settled_child_ids(self, node_id: str) -> list[str]:
+		group_step = next(step for step in self.steps if step["nodeId"] == node_id)
+		return [step["nodeId"] for step in self.steps if step.get("parentKey") == group_step["key"]]
 
 	def _add_components(self) -> None:
 		for node_id, node in self.nodes.items():
 			if node["kind"] == "group":
 				component = RecordedJoin(_id=node_id)
-				component.child_ids = [child["id"] for child in self._children(node_id)]
+				component.child_ids = self._settled_child_ids(node_id)
 			elif node["kind"] == "gate":
 				component = RecordedGate(_id=node_id)
 				component.decision = self.decisions[node_id]
@@ -158,8 +161,13 @@ class ReviewGraph:
 		if node["kind"] != "group":
 			return [node_id]
 		children = self._children(node_id)
-		selected = children if node["parallel"] else children[:1]
-		return [entry for child in selected for entry in self._entries(child["id"])]
+		child_ids = {child["id"] for child in children}
+		targets = {
+			edge["toNodeId"]
+			for edge in self.edges
+			if edge["fromNodeId"] in child_ids
+		}
+		return [entry for child in children if child["id"] not in targets for entry in self._entries(child["id"])]
 
 	def _connect(self, source_id: str, output_name: str, target_id: str) -> None:
 		for entry in self._entries(target_id):
@@ -172,24 +180,16 @@ class ReviewGraph:
 			for child in self._children(node_id):
 				self.graph.add_component_edge(child["id"], (self._source_output(child["id"]), "items"), node_id)
 
-	def _wire_order(self) -> None:
-		explicit = {(edge["fromNodeId"], edge["toNodeId"]): edge for edge in self.edges}
+	def _wire_edges(self) -> None:
 		for edge in self.edges:
 			self._connect(edge["fromNodeId"], edge["branch"], edge["toNodeId"])
-		containers = [node for node in self.nodes.values() if node["kind"] == "group" and not node["parallel"]]
-		orders = [self._children(node["id"]) for node in containers]
-		orders.append(self._children(None, top_level=True))
-		for children in orders:
-			for source, target in zip(children, children[1:], strict=False):
-				if (source["id"], target["id"]) in explicit:
-					continue
-				self._connect(source["id"], self._source_output(source["id"]), target["id"])
 
 
 async def test_review_v71_runs_with_exact_branches_groups_and_output_bytes() -> None:
 	run = _load_run()
 	_assert_private_trace(run)
 	review = ReviewGraph(run)
+	review.graph.prepare()
 	await review.graph.process(fallback_to_env_vars=False)
 
 	for node_id, node in review.nodes.items():
@@ -199,4 +199,4 @@ async def test_review_v71_runs_with_exact_branches_groups_and_output_bytes() -> 
 			assert vertex.built is False
 			continue
 		output_name = "trace" if node["kind"] == "gate" else "result"
-		assert vertex.results[output_name].data == {"nodeId": node_id, "text": expected}
+		assert vertex.built_object[output_name].data == {"nodeId": node_id, "text": expected}
