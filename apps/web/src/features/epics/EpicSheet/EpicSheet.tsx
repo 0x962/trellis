@@ -1,11 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import {
-	type Epic,
-	type EpicCreateInput,
-	EpicCreateInputSchema,
-	type EpicSummary,
-	type Project,
-} from "@trellis/api";
+import { type Epic, type EpicCreateInput, EpicCreateInputSchema, type EpicSummary, type Project } from "@trellis/api";
 import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
