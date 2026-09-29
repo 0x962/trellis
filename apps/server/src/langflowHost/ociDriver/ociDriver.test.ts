@@ -209,7 +209,7 @@ function containerInspection(running: boolean) {
 	};
 }
 
-function volumeInspection(root: string, kind: "data" | "secrets") {
+function volumeInspection(root: string, kind: "data" | "secrets"): VolumeInspection {
 	return {
 		Name: storageNames(identity)[kind],
 		Driver: "local",
