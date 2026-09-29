@@ -27,8 +27,9 @@ async def request_native(graph, vertex_id: str, scope: VisitScope) -> str:
                 session, job_id, request_kind(visit["waitId"]), visit["requestBytes"],
             )
             await save_reservation_obligation(session, job_id, visit, scope.identity(vertex_id))
-            await save_journal(session, job_id, journal)
             wait_bytes = external_wait(visit) if visit["handleBytes"] is not None else reservation_wait(visit)
+            visit["waitBytes"] = wait_bytes
+            await save_journal(session, job_id, journal)
             waits = await save_wait(session, job_id, graph, wait_bytes)
             await session.commit()
         apply_waits(graph, waits)
@@ -61,6 +62,7 @@ async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_round
             if "terminalError" in visit:
                 raise HumanRoundLimit(visit["terminalError"])
             wait_bytes = external_wait(visit)
+            visit["waitBytes"] = wait_bytes
             request = json.loads(visit["requestBytes"])
             decision = getattr(graph, "human_input_decisions", {}).get(request["engineRequestId"])
             if decision is not None and decision["wait"] != request:
@@ -79,6 +81,7 @@ async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_round
                 visit["maxRounds"] = max_rounds
                 visit.setdefault("feedbackReceiptIds", []).append(feedback_receipt["receiptId"])
                 wait_bytes = external_wait(visit)
+            visit["waitBytes"] = wait_bytes
             await save_journal(session, job_id, journal)
             waits = await save_wait(session, job_id, graph, wait_bytes, replacing=replacing)
             await session.commit()

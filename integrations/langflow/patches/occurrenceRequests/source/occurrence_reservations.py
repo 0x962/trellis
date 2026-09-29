@@ -93,6 +93,7 @@ async def retain_reserved_handle(graph, obligation, handle_bytes):
                 raise OccurrenceConflict("native_handle_replay_conflict")
             visit["handleBytes"] = handle_bytes
             wait_bytes = external_wait(visit)
+            visit["waitBytes"] = wait_bytes
             graph_row = await checkpoint(session, job_id, "graph")
             snapshot = json.loads(graph_row.blob)
             waits = snapshot["external_waits"]
