@@ -2,8 +2,8 @@ import { z } from "zod";
 import { AdmissionReceiptV1Schema } from "../correlation";
 import { GroupDeadlineV1Schema } from "../deadlines";
 import {
-	BindingV1Schema,
 	DigestSchema,
+	EngineJobBindingV1Schema,
 	OccurrenceV1Schema,
 	ReferenceSchema,
 	RevisionSchema,
@@ -13,7 +13,7 @@ import {
 export const NativeRequestV1Schema = z
 	.strictObject({
 		version: z.literal(1),
-		...BindingV1Schema.shape,
+		...EngineJobBindingV1Schema.shape,
 		...OccurrenceV1Schema.shape,
 		admissionReceipt: AdmissionReceiptV1Schema,
 		requestId: z.uuid(),

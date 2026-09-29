@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { HumanWaitV1Schema } from "../human";
 import { NativeHandleV1Schema, NativeRequestV1Schema } from "../native";
-import { BindingV1Schema, ReferenceSchema, RevisionSchema } from "../primitives";
+import { EngineJobBindingV1Schema, ReferenceSchema, RevisionSchema } from "../primitives";
 
 export const ExternalWaitV1Schema = z.discriminatedUnion("kind", [
 	z.strictObject({
@@ -16,7 +16,7 @@ export const ExternalWaitV1Schema = z.discriminatedUnion("kind", [
 export const EngineCheckpointV1Schema = z
 	.strictObject({
 		version: z.literal(1),
-		...BindingV1Schema.shape,
+		...EngineJobBindingV1Schema.shape,
 		checkpointId: ReferenceSchema,
 		revision: RevisionSchema,
 		continuationRef: ReferenceSchema,

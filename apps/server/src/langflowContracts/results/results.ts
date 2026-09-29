@@ -1,13 +1,19 @@
 import { z } from "zod";
 import { DeliveryAuthorityV1Schema } from "../authority";
 import { NativeHandleV1Schema, NativeLaunchProvenanceV1Schema } from "../native";
-import { BindingV1Schema, DigestSchema, ReferenceSchema, RevisionSchema, TimestampSchema } from "../primitives";
+import {
+	DigestSchema,
+	EngineJobBindingV1Schema,
+	ReferenceSchema,
+	RevisionSchema,
+	TimestampSchema,
+} from "../primitives";
 import { protocolDigest } from "../protocolBytes";
 
 export const NativeResultV1Schema = z
 	.strictObject({
 		version: z.literal(1),
-		launchBinding: BindingV1Schema,
+		launchBinding: EngineJobBindingV1Schema,
 		requestDigest: DigestSchema,
 		completionId: ReferenceSchema,
 		stepId: ReferenceSchema,

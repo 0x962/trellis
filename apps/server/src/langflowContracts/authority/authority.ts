@@ -1,11 +1,17 @@
 import { z } from "zod";
 import { AdmissionStateV1Schema } from "../correlation";
-import { BindingV1Schema, DigestSchema, ReferenceSchema, RevisionSchema, TimestampSchema } from "../primitives";
+import {
+	DigestSchema,
+	EngineJobBindingV1Schema,
+	ReferenceSchema,
+	RevisionSchema,
+	TimestampSchema,
+} from "../primitives";
 
 export const DeliveryAuthorityV1Schema = z
 	.strictObject({
 		version: z.literal(1),
-		...BindingV1Schema.shape,
+		...EngineJobBindingV1Schema.shape,
 		hostId: ReferenceSchema,
 		projectId: ReferenceSchema,
 		publicationDigest: DigestSchema,
