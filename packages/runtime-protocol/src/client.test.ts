@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { getEventListeners } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
@@ -11,7 +12,7 @@ afterEach(async () => {
 	for (const cleanup of cleanups.splice(0)) await cleanup();
 });
 
-async function runtime(reply: (request: RuntimeRequest) => unknown) {
+async function runtime(reply: (request: RuntimeRequest, socket: Socket) => unknown) {
 	const home = await mkdtemp(join(tmpdir(), "trellis-list-"));
 	const path = join(home, "s");
 	const requests: RuntimeRequest[] = [];
@@ -21,12 +22,12 @@ async function runtime(reply: (request: RuntimeRequest) => unknown) {
 		socket.once("close", () => sockets.delete(socket));
 		let buffer = "";
 		socket.setEncoding("utf8");
-		socket.on("data", (chunk) => {
+		socket.on("data", async (chunk) => {
 			buffer += chunk;
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer) as RuntimeRequest;
 			requests.push(request);
-			const result = reply(request);
+			const result = await reply(request, socket);
 			// A reply of undefined leaves the request open, so the caller reaches
 			// its own deadline with no answer.
 			if (result === undefined) return;
@@ -136,4 +137,79 @@ test("an explicit hello refreshes paging support after a runtime replacement", a
 	await client.hello();
 	await client.list();
 	expect(requests.map((request) => request.method)).toEqual(["hello", "list", "hello", "listPage"]);
+});
+
+test("a default call completes after the former ten-second idle timeout", async () => {
+	const result = session("slow");
+	const { client } = await runtime(async () => {
+		await Bun.sleep(10_100);
+		return result;
+	});
+	expect(await client.inspect("slow")).toEqual(result);
+}, 15_000);
+
+test("a canceled signal prevents a connection", async () => {
+	const client = new RuntimeClient("/not-a-runtime-socket");
+	const reason = new Error("Caller canceled");
+	await expect(client.call("hello", {}, AbortSignal.abort(reason))).rejects.toBe(reason);
+});
+
+test("cancellation closes the request socket and removes its listener", async () => {
+	const received = Promise.withResolvers<void>();
+	const closed = Promise.withResolvers<void>();
+	const { client } = await runtime((_request, socket) => {
+		socket.once("end", () => closed.resolve());
+		received.resolve();
+	});
+	const controller = new AbortController();
+	const reason = new Error("Caller canceled");
+	const call = client.call("hello", {}, controller.signal);
+	const rejection = call.catch((error: unknown) => error);
+	await received.promise;
+	controller.abort(reason);
+	expect(await rejection).toBe(reason);
+	await closed.promise;
+	expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
+});
+
+test("a caller deadline cancels its own call", async () => {
+	const { client } = await runtime(() => undefined);
+	await expect(client.call("hello", {}, AbortSignal.timeout(100))).rejects.toMatchObject({ name: "TimeoutError" });
+});
+
+test.each(["hello", "listPage"])("list cancellation rejects during %s", async (method) => {
+	const received = Promise.withResolvers<void>();
+	const { client, requests } = await runtime((request) => {
+		if (request.method === method) {
+			received.resolve();
+			return undefined;
+		}
+		return { capabilities: ["list-pages"] };
+	});
+	const controller = new AbortController();
+	const reason = new Error("List canceled");
+	const rejection = client.list({}, controller.signal).catch((error: unknown) => error);
+	await received.promise;
+	controller.abort(reason);
+	expect(await rejection).toBe(reason);
+	expect(requests.at(-1)?.method).toBe(method);
+	expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
+});
+
+test("a disconnect rejects an unanswered call and removes its listener", async () => {
+	const { client } = await runtime((_request, socket) => {
+		socket.end();
+	});
+	const controller = new AbortController();
+	await expect(client.call("hello", {}, controller.signal)).rejects.toThrow("response is unknown: connection closed");
+	expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
+});
+
+test("a successful call removes its cancellation listener", async () => {
+	const { client } = await runtime(() => session("done"));
+	const controller = new AbortController();
+	expect(await client.call("inspect", { id: "done" }, controller.signal)).toEqual(session("done"));
+	expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
+	controller.abort();
+	expect(await client.inspect("done")).toEqual(session("done"));
 });
