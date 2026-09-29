@@ -6,7 +6,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { openTestDb, openTestDbFromArchive } from "../../db/testDb.ts";
 import { fixture } from "./fixture.ts";
 import { getView } from "./getView.ts";
-import { get, getMany } from "./queries.ts";
+import { get, getMany } from "./index.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const record = fixture();

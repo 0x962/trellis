@@ -3,7 +3,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { projectView } from "./projectView.ts";
-import { get } from "./queries.ts";
+import { get } from "./get.ts";
 
 export const getView = async (ctx: ServiceCtx, tx: Tx, input: { id: string }) => {
 	const record = await get(ctx, tx, input);

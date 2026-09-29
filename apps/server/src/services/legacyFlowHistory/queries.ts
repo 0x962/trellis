@@ -1,9 +1,7 @@
 import type { FlowExecutionRecord } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import type { ServiceCtx } from "../../context.ts";
 import { iso, rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { fail } from "../../errors.ts";
 import { actionKey } from "./actionKey.ts";
 import { failureKind } from "./failureKind.ts";
 import { normalizeDoc } from "./normalizeDoc.ts";
@@ -11,7 +9,7 @@ import { normalizeDoc } from "./normalizeDoc.ts";
 type StoredRecord = Omit<FlowExecutionRecord, "tasks">;
 type StoredTask = FlowExecutionRecord["tasks"][number] & { executionId: string };
 
-const recordsById = async (tx: Tx, ids: string[]) => {
+export const recordsById = async (tx: Tx, ids: string[]) => {
 	if (ids.length === 0) return new Map<string, FlowExecutionRecord>();
 	const records = await rows<StoredRecord>(
 		tx,
@@ -48,18 +46,4 @@ const recordsById = async (tx: Tx, ids: string[]) => {
 			},
 		]),
 	);
-};
-
-export const getMany = async (_ctx: ServiceCtx, tx: Tx, ids: string[]): Promise<FlowExecutionRecord[]> => {
-	const byId = await recordsById(tx, ids);
-	return ids.flatMap((id) => {
-		const record = byId.get(id);
-		return record === undefined ? [] : [record];
-	});
-};
-
-export const get = async (ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<FlowExecutionRecord> => {
-	const [record] = await getMany(ctx, tx, [input.id]);
-	if (record === undefined) throw fail("NOT_FOUND", { kind: "flow execution", ref: input.id });
-	return record;
 };
