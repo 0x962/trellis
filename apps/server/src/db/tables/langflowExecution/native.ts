@@ -27,11 +27,13 @@ export const langflowNativeHandles = pgTable(
 		attemptId: text("attempt_id").notNull(),
 		requestBytes: text("request_bytes").notNull(),
 		requestDigest: text("request_digest").notNull(),
+		launchSnapshotDigest: text("launch_snapshot_digest"),
 		provenance: jsonb().$type<NativeLaunchProvenanceV1>().notNull(),
 		handle: jsonb().$type<NativeHandleV1>().notNull(),
 		launchReceipt: jsonb("launch_receipt").$type<NativeLaunchReceiptV1>(),
 	},
 	(t) => [
+		check("langflow_native_snapshot_digest", sql`${t.launchSnapshotDigest} ~ '^[0-9a-f]{64}$'`),
 		unique("langflow_native_semantic").on(t.executionId, t.semanticDigest),
 		unique("langflow_native_occurrence").on(t.executionId, t.occurrenceDigest),
 		unique("langflow_native_request").on(t.executionId, t.requestId),

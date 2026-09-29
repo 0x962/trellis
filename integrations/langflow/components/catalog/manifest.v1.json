@@ -1,0 +1,248 @@
+{
+	"schemaVersion": 1,
+	"catalogId": "trellis-components-v1",
+	"engine": {
+		"name": "langflow",
+		"version": "1.12.3",
+		"commit": "fec71dca901949c09ed4d63315804337cd2eb13d"
+	},
+	"digestAlgorithm": "sha256-original-utf8-bytes",
+	"allowedForPublication": false,
+	"supportedMappings": [],
+	"definitions": [
+		{"id": "native-completion-v1", "version": 1, "className": "TrellisNativeCompletionV1", "source": {"root": "trellis", "path": "integrations/langflow/components/catalog/nativeCompletion/nativeCompletion.py", "sha256": "fc3578ff95c57980cca17d09c3bf1feb09efad1cb55fb46ab9b94bc96ff8831b"}, "sourceDependencies": [{"root": "trellis", "path": "integrations/langflow/patches/externalWaits/0001-durable-external-waits.patch", "sha256": "dd756b42bfd408ad6f5d3132cd37209b316bfdebeccda8ec749051a9ab7c86cb"}], "qualification": "source-only", "allowedForPublication": false, "template": {"inputs": [{"name": "wait_bytes", "class": "MultilineInput", "fieldType": "str", "inputTypes": ["Message"], "required": true, "isList": false, "payload": "Exact prebuilt native ExternalWaitV1 JSON bytes"}], "outputs": [{"name": "result", "method": "wait_result", "types": ["Data"], "groupOutputs": false, "allowsLoop": false}]}, "frontendTemplate": null, "inputPorts": [{"name": "wait_bytes", "class": "MultilineInput", "fieldType": "str", "inputTypes": ["Message"], "required": true, "isList": false, "payload": "Exact prebuilt native ExternalWaitV1 JSON bytes"}], "outputPorts": [{"name": "result", "method": "wait_result", "types": ["Data"], "groupOutputs": false, "allowsLoop": false}]},
+		{"id": "external-wait-v1", "version": 1, "className": "TrellisExternalWaitComponent", "source": {"root": "trellis", "path": "integrations/langflow/components/trellis_external_wait.py", "sha256": "7a03f9ff7df1b6500a2c516f149c6baa7786c9a76fdc9f3d9f1f748479699735"}, "sourceDependencies": [], "qualification": "source-only", "allowedForPublication": false, "template": {"inputs": [{"name": "wait_bytes", "class": "MultilineInput", "fieldType": "str", "inputTypes": ["Message"], "required": true, "isList": false, "payload": "Exact ExternalWaitV1 JSON bytes"}], "outputs": [{"name": "receipt", "method": "wait", "types": ["Message"], "groupOutputs": false, "allowsLoop": false}]}, "frontendTemplate": null, "inputPorts": [{"name": "wait_bytes", "class": "MultilineInput", "fieldType": "str", "inputTypes": ["Message"], "required": true, "isList": false, "payload": "Exact ExternalWaitV1 JSON bytes"}], "outputPorts": [{"name": "receipt", "method": "wait", "types": ["Message"], "groupOutputs": false, "allowsLoop": false}]},
+		{"id": "native-decision-v1", "version": 1, "className": "TrellisNativeDecisionV1", "source": {"root": "trellis", "path": "integrations/langflow/components/catalog/nativeDecision/nativeDecision.py", "sha256": "ff178d479e6b904d24f21c5ff49a5eb3f0d8c4cfccb890e716401f229d4d8ab7"}, "sourceDependencies": [], "qualification": "source-only", "allowedForPublication": false, "template": {"inputs": [{"name": "result", "class": "HandleInput", "fieldType": "other", "inputTypes": ["Data"], "required": true, "isList": false, "payload": "Host-validated NativeResultV1 in Data.data"}], "outputs": [{"name": "yes", "method": "yes", "types": ["Data"], "groupOutputs": true, "allowsLoop": false}, {"name": "no", "method": "no", "types": ["Data"], "groupOutputs": true, "allowsLoop": false}]}, "frontendTemplate": null, "inputPorts": [{"name": "result", "class": "HandleInput", "fieldType": "other", "inputTypes": ["Data"], "required": true, "isList": false, "payload": "Host-validated NativeResultV1 in Data.data"}], "outputPorts": [{"name": "yes", "method": "yes", "types": ["Data"], "groupOutputs": true, "allowsLoop": false}, {"name": "no", "method": "no", "types": ["Data"], "groupOutputs": true, "allowsLoop": false}]},
+		{"id": "ordered-output-v1", "version": 1, "className": "TrellisOrderedOutputV1", "source": {"root": "trellis", "path": "integrations/langflow/components/catalog/orderedOutput/orderedOutput.py", "sha256": "2795d11780e7551e509491a946fa655258dfbf1568b068bb44bf375c1403b80b"}, "sourceDependencies": [], "qualification": "source-only", "allowedForPublication": false, "template": {"inputs": [{"name": "items", "class": "HandleInput", "fieldType": "other", "inputTypes": ["Data"], "required": true, "isList": true, "payload": "Completed child records: nodeId, text, and retained reference fields"}, {"name": "child_ids", "class": "MultilineInput", "fieldType": "str", "inputTypes": ["Message"], "required": true, "isList": false, "payload": "JSON array of unique child IDs in source node order"}], "outputs": [{"name": "out", "method": "collect", "types": ["Data"], "groupOutputs": false, "allowsLoop": false}]}, "frontendTemplate": null, "inputPorts": [{"name": "items", "class": "HandleInput", "fieldType": "other", "inputTypes": ["Data"], "required": true, "isList": true, "payload": "Completed child records: nodeId, text, and retained reference fields"}, {"name": "child_ids", "class": "MultilineInput", "fieldType": "str", "inputTypes": ["Message"], "required": true, "isList": false, "payload": "JSON array of unique child IDs in source node order"}], "outputPorts": [{"name": "out", "method": "collect", "types": ["Data"], "groupOutputs": false, "allowsLoop": false}]},
+		{"id": "stock-loop", "version": 1, "className": "LoopComponent", "source": {"root": "engine", "path": "src/lfx/src/lfx/components/flow_controls/loop.py", "sha256": "2712a1de7210b3f15506893853fefc69ae66f7d802fe633869a27b80fe453704"}, "sourceDependencies": [{"root": "engine", "path": "src/lfx/src/lfx/base/flow_controls/loop_utils.py", "sha256": "bf7d1a372adc995fd43a409b3098fd0ac1ea039a2e3be48d0d931ba1b9ca22f6"}], "qualification": "source-only", "allowedForPublication": false, "template": {"inputs": [{"name": "data", "class": "HandleInput", "fieldType": "other", "inputTypes": ["DataFrame", "Table", "Data", "Message"], "required": false, "isList": false, "payload": null}], "outputs": [{"name": "item", "method": "item_output", "types": ["Data"], "groupOutputs": true, "allowsLoop": true, "loopTypes": ["Message"]}, {"name": "done", "method": "done_output", "types": ["DataFrame", "Table"], "groupOutputs": true, "allowsLoop": false}]}, "frontendTemplate": null, "inputPorts": [{"name": "data", "class": "HandleInput", "fieldType": "other", "inputTypes": ["DataFrame", "Table", "Data", "Message"], "required": false, "isList": false, "payload": null}], "outputPorts": [{"name": "item", "method": "item_output", "types": ["Data"], "groupOutputs": true, "allowsLoop": true, "loopTypes": ["Message"]}, {"name": "done", "method": "done_output", "types": ["DataFrame", "Table"], "groupOutputs": true, "allowsLoop": false}]}
+	],
+	"legacyMappings": [
+		{"id": "agent", "selector": {"kind": "agent"}, "definitionIds": ["native-completion-v1"], "status": "blocked", "blockerCodes": ["NATIVE_RESERVATION_UNAVAILABLE", "NATIVE_RESULT_TRACE_REQUIRED", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null},
+		{"id": "native-gate", "selector": {"kind": "gate", "reviewArea": {"absentOrNull": true}}, "definitionIds": ["native-completion-v1", "native-decision-v1"], "status": "blocked", "blockerCodes": ["NATIVE_RESERVATION_UNAVAILABLE", "NATIVE_RESULT_TRACE_REQUIRED", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null},
+		{"id": "jev-gate", "selector": {"kind": "gate", "reviewArea": {"oneOf": ["frontend", "backend"]}}, "definitionIds": [], "status": "blocked", "blockerCodes": ["JEV_INVOCATION_UNAVAILABLE", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null},
+		{"id": "human", "selector": {"kind": "human"}, "definitionIds": ["external-wait-v1"], "status": "blocked", "blockerCodes": ["HUMAN_REQUEST_UNAVAILABLE", "HUMAN_OUTCOME_UNMAPPED", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null},
+		{"id": "ordered-group", "selector": {"kind": "group", "parallel": false}, "definitionIds": ["ordered-output-v1"], "status": "blocked", "blockerCodes": ["GROUP_SCOPE_UNMAPPED", "GROUP_DEADLINE_UNMAPPED", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null},
+		{"id": "parallel-group", "selector": {"kind": "group", "parallel": true}, "definitionIds": ["ordered-output-v1"], "status": "blocked", "blockerCodes": ["GROUP_SCOPE_UNMAPPED", "GROUP_DEADLINE_UNMAPPED", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null},
+		{"id": "loop", "selector": {"kind": "loop"}, "definitionIds": ["stock-loop"], "status": "blocked", "blockerCodes": ["LOOP_SEMANTICS_UNPROVEN", "NATIVE_RESERVATION_UNAVAILABLE", "GROUP_SCOPE_UNMAPPED", "LEGACY_CONFIGURATION_UNMAPPED", "FRONTEND_TEMPLATE_UNVERIFIED", "ENGINE_TRACE_REQUIRED", "CONVERSION_ROUND_TRIP_REQUIRED"], "executableFieldBindings": null, "nodeAssociations": null, "edgeAssociations": null}
+	],
+	"blockers": {
+		"NATIVE_RESERVATION_UNAVAILABLE": "No executable component creates NativeRequestV1 and reserves its exact NativeHandleV1.",
+		"NATIVE_RESULT_TRACE_REQUIRED": "The native completion component needs an actual suspension and resume trace with its saved result.",
+		"HUMAN_REQUEST_UNAVAILABLE": "The engine occurrence producer must persist the exact HumanWaitV1 before a wait can execute.",
+		"HUMAN_OUTCOME_UNMAPPED": "Approval output and rejection feedback need an executable successor mapping.",
+		"JEV_INVOCATION_UNAVAILABLE": "No executable component invokes and binds the durable Jev classification service.",
+		"GROUP_SCOPE_UNMAPPED": "Scope entries, boundary dependencies, skipped children, and nested output references need executable expansion.",
+		"GROUP_DEADLINE_UNMAPPED": "Original first-launch deadlines need the native clock service at the scope boundary.",
+		"LOOP_SEMANTICS_UNPROVEN": "The nested stock-loop trace fails; child-then-condition behavior has no accepted mapping.",
+		"LEGACY_CONFIGURATION_UNMAPPED": "Retained fields have no complete executable configuration mapping.",
+		"FRONTEND_TEMPLATE_UNVERIFIED": "The complete template requires export from the matched engine batch.",
+		"ENGINE_TRACE_REQUIRED": "The mapping needs an actual engine trace on the merged source.",
+		"CONVERSION_ROUND_TRIP_REQUIRED": "The converter must reconstruct all original fields and compare their exact hashes."
+	},
+	"preservation": {
+		"scope": "source-envelope-only",
+		"root": "/trellisSource",
+		"fields": {
+			"flow": [
+				"id",
+				"project",
+				"slug",
+				"name",
+				"description",
+				"briefing",
+				"harness",
+				"version",
+				"createdAt",
+				"updatedAt"
+			],
+			"nodes": [
+				"id",
+				"parentId",
+				"kind",
+				"title",
+				"instruction",
+				"parallel",
+				"minutes",
+				"maxRounds",
+				"x",
+				"y",
+				"width",
+				"height",
+				"harness",
+				"reviewArea"
+			],
+			"edges": [
+				"id",
+				"fromNodeId",
+				"toNodeId",
+				"branch"
+			],
+			"harness": [
+				"preset",
+				"model",
+				"effort"
+			]
+		},
+		"fieldDestinations": {
+			"flow": {
+				"id": "/trellisSource/flow/id",
+				"project": "/trellisSource/flow/project",
+				"slug": "/trellisSource/flow/slug",
+				"name": "/trellisSource/flow/name",
+				"description": "/trellisSource/flow/description",
+				"briefing": "/trellisSource/flow/briefing",
+				"harness": "/trellisSource/flow/harness",
+				"version": "/trellisSource/flow/version",
+				"createdAt": "/trellisSource/flow/createdAt",
+				"updatedAt": "/trellisSource/flow/updatedAt"
+			},
+			"nodes": {
+				"id": "/trellisSource/nodes/INDEX/id",
+				"parentId": "/trellisSource/nodes/INDEX/parentId",
+				"kind": "/trellisSource/nodes/INDEX/kind",
+				"title": "/trellisSource/nodes/INDEX/title",
+				"instruction": "/trellisSource/nodes/INDEX/instruction",
+				"parallel": "/trellisSource/nodes/INDEX/parallel",
+				"minutes": "/trellisSource/nodes/INDEX/minutes",
+				"maxRounds": "/trellisSource/nodes/INDEX/maxRounds",
+				"x": "/trellisSource/nodes/INDEX/x",
+				"y": "/trellisSource/nodes/INDEX/y",
+				"width": "/trellisSource/nodes/INDEX/width",
+				"height": "/trellisSource/nodes/INDEX/height",
+				"harness": "/trellisSource/nodes/INDEX/harness",
+				"reviewArea": "/trellisSource/nodes/INDEX/reviewArea"
+			},
+			"edges": {
+				"id": "/trellisSource/edges/INDEX/id",
+				"fromNodeId": "/trellisSource/edges/INDEX/fromNodeId",
+				"toNodeId": "/trellisSource/edges/INDEX/toNodeId",
+				"branch": "/trellisSource/edges/INDEX/branch"
+			}
+		},
+		"harnessDestinations": [
+			"/trellisSource/flow/harness",
+			"/trellisSource/nodes/INDEX/harness"
+		],
+		"absentFields": "omit",
+		"nullFields": "retain-null",
+		"strings": "retain-original-codepoints-without-trim",
+		"unknownFields": "block-conversion",
+		"arrayOrder": [
+			"/trellisSource/nodes",
+			"/trellisSource/edges"
+		],
+		"coordinates": "retain-parent-relative-x-y-width-height",
+		"identityMaps": "unavailable-until-executable-expansion-exists"
+	},
+	"semantics": {
+		"dependencies": "explicit-scope-edges-only",
+		"scopeEntries": "all-children-without-incoming-scope-edges",
+		"groupOutputOrder": "source-node-array-order",
+		"groupOutputSeparator": "\n\n",
+		"loopOrder": "children-before-condition",
+		"limits": "retain-original-minutes-and-maxRounds",
+		"runtimeIdentities": "service-owned-never-generated-from-editor-metadata"
+	},
+	"edgeHandles": {
+		"engineSource": {
+			"root": "engine",
+			"path": "src/lfx/src/lfx/custom/custom_component/component.py",
+			"sha256": "356a2fee9ff33f172fa23f42723630ac0bb85871a2fbe7563ec2916786df687e"
+		},
+		"frontendSource": {
+			"root": "engine",
+			"path": "src/frontend/src/utils/reactflowUtils.ts",
+			"sha256": "dd6885f42ab02a8fb24f7615346daf85d352bfa02ee6b989d5355cf9aa6302d3"
+		},
+		"frontendSerialization": "scapedJSONStringfy(handle): customStringify(handle).replace(/\"/g, \"œ\")",
+		"source": {
+			"dataType": "component.name or className",
+			"id": "sourceNodeId",
+			"name": "output.name",
+			"output_types": "output.types"
+		},
+		"target": {
+			"fieldName": "input.name",
+			"id": "targetNodeId",
+			"inputTypes": "input.inputTypes",
+			"type": "input.fieldType"
+		},
+		"loopFeedbackTarget": {
+			"dataType": "target.name or className",
+			"id": "targetNodeId",
+			"name": "loop-enabled output.name",
+			"output_types": "loop-enabled output.types"
+		},
+		"engineStorage": [
+			"edge.data.sourceHandle",
+			"edge.data.targetHandle"
+		],
+		"legacyEdgeMappings": null
+	},
+	"implementationDependencies": {
+		"NATIVE_RESERVATION_UNAVAILABLE": {
+			"owner": "TRL-688",
+			"compositionOwner": "TRL-696",
+			"source": "apps/server/src/services/langflowNative/index.ts",
+			"requiredResult": "Engine endpoint for reserveNativeRequest and dispatchNative; exact NativeRequestV1 bytes and NativeHandleV1 response"
+		},
+		"NATIVE_RESULT_TRACE_REQUIRED": {
+			"owner": "TRL-667",
+			"source": "integrations/langflow/tests/catalog/test_native_completion.py",
+			"requiredResult": "Prove the native completion component reads the exact stored result after engine resume"
+		},
+		"HUMAN_REQUEST_UNAVAILABLE": {
+			"owner": "TRL-669",
+			"compositionOwner": "TRL-696",
+			"source": "integrations/langflow/patches/externalWaits/",
+			"requiredResult": "Create and persist HumanWaitV1 from the immutable engine occurrence"
+		},
+		"HUMAN_OUTCOME_UNMAPPED": {
+			"owner": "TRL-845",
+			"requiredResult": "Consume accepted HumanDecisionReceiptV1 with exact approved output and rejection feedback"
+		},
+		"JEV_INVOCATION_UNAVAILABLE": {
+			"owner": "TRL-693",
+			"compositionOwner": "TRL-696",
+			"source": "apps/server/src/services/langflowGates/reviewGate/index.ts",
+			"requiredResult": "Authenticated engine invocation of durable classification with immutable publication binding"
+		},
+		"GROUP_SCOPE_UNMAPPED": {
+			"owner": "TRL-845",
+			"semanticsOwner": "TRL-669",
+			"requiredResult": "Compile source scope boundaries into engine dependencies and retain independent entries and skipped children"
+		},
+		"GROUP_DEADLINE_UNMAPPED": {
+			"owner": "TRL-692",
+			"compositionOwner": "TRL-696",
+			"source": "apps/server/src/services/langflowClocks/index.ts",
+			"requiredResult": "Bind scope entry to original first-launch deadline receipts"
+		},
+		"LOOP_SEMANTICS_UNPROVEN": {
+			"owner": "TRL-669",
+			"source": "integrations/langflow/tests/semantics/test_real_engine_loops_and_deadlines.py",
+			"requiredResult": "Pass child-then-condition and nested-loop engine traces before executable conversion"
+		},
+		"LEGACY_CONFIGURATION_UNMAPPED": {
+			"owner": "TRL-845",
+			"consumerOwner": "TRL-695",
+			"requiredResult": "Bind all retained source fields to actual executable inputs and stable target associations"
+		},
+		"FRONTEND_TEMPLATE_UNVERIFIED": {
+			"owner": "TRL-845",
+			"executionOwner": "TRL-667",
+			"source": "integrations/langflow/tests/catalog/test_manifest.py",
+			"requiredResult": "Export complete templates from the matched merged engine batch"
+		},
+		"ENGINE_TRACE_REQUIRED": {
+			"owner": "TRL-667",
+			"source": "integrations/langflow/tests/catalog/",
+			"requiredResult": "Execute all supported component mappings in the real engine"
+		},
+		"CONVERSION_ROUND_TRIP_REQUIRED": {
+			"owner": "TRL-695",
+			"source": "apps/server/src/services/langflowMigration/",
+			"requiredResult": "Reconstruct exact source fields and compare all retained field hashes"
+		}
+	}
+}

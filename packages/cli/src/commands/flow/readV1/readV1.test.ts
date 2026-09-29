@@ -121,17 +121,20 @@ test("V1 failure text uses the immutable occurrence title and retains its error 
 });
 
 test("readiness finds success after 1000 runs and gives human waits no credit", async () => {
-	const records = Array.from({ length: 1001 }, () => ({
-		...legacyRun,
-		state: { ...legacyRun.state, status: "waiting" },
+	const records = Array.from({ length: 1001 }, (_, index) => ({
+		...executionViewV1Example,
+		id: String(index).padStart(26, "0"),
+		diffId: legacyRun.diffId,
+		status: "waiting" as "waiting" | "succeeded",
 	}));
 	const offsets: number[] = [];
 	const client = {
 		flows: { list: async () => [{ ...legacyRun.doc.flow, nodeCount: 0 }] },
-		flowExecutions: {
+		flowDocumentsV1: {
+			view: async ({ id }: { id: string }) => records[Number(id)],
 			list: async ({ offset }: { offset: number }) => {
 				offsets.push(offset);
-				return records.slice(offset, offset + 500);
+				return records.slice(offset, offset + 500).map(({ id, engine }) => ({ id, engine }));
 			},
 		},
 		pullRequests: { readFlowWaiver: async () => null },
@@ -139,7 +142,7 @@ test("readiness finds success after 1000 runs and gives human waits no credit", 
 	const ref = { id: legacyRun.diffId!, url: "https://github.com/example/app/pull/1" };
 	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(false);
 	expect(offsets).toEqual([0, 500, 1000]);
-	records[1000]!.state.status = "succeeded";
+	records[1000]!.status = "succeeded";
 	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(true);
 });
 

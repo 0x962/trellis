@@ -35,6 +35,15 @@ An empty diagnostic list establishes source equality only; it does not authorize
 The activation owner must read and compare the source under its transaction lock and commit the conversion atomically.
 Live conversion and activation belong to TRL-699.
 
+`prepareMigration` accepts optional `catalogBytes` from the caller's selected component manifest.
+It retains these exact bytes in a private `catalog.json` and records its path and SHA256 in `record.catalog`.
+The version-1 catalog supplies node selectors, blocker descriptions, and source-field destinations.
+Reports identify missing or ambiguous selectors, absent field destinations, and engine-version mismatches.
+Executable helper components alone do not establish a complete legacy mapping.
+Every catalog-backed report remains blocked, including a catalog that claims publication support.
+The caller must provide current `catalogBytes` to `checkMigrationSource` when the report contains a catalog.
+A changed retained copy, changed current bytes, or an absent current catalog invalidates that report.
+
 These operations use explicit copies and private files.
 The caller owns export retention and must retain the source before it removes any temporary directory.
 For retained execution snapshots, export only the available snapshot and retain its original execution record separately.

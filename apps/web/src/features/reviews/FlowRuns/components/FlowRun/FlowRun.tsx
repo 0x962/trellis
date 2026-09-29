@@ -1,16 +1,9 @@
 import { ArrowsClockwise, FlowArrow, Stop } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import {
-	type FlowAttemptV1,
-	type FlowExecutionCancelInput,
-	type FlowExecutionDecisionInput,
-	type FlowExecutionRecord,
-	type FlowExecutionViewV1,
-	flowRunIsLive,
-} from "@trellis/api";
+import { type FlowAttemptV1, type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
 import { Avatar, FailureState, FlowRunSummary, FlowRunTree, IconButton, Tooltip } from "@trellis/ui";
-import { type ComponentProps, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { relativeTime } from "../../../../../lib/format";
 import { agentKindOf } from "../../../../agents/agentKindOf";
@@ -46,12 +39,10 @@ export function FlowRun({
 	expanded,
 	onToggle,
 	canStart,
+	pendingFlowIds,
 	headSha,
 	readOnly = false,
 	recoveryBlocked = false,
-	onDecideV1,
-	onCancelV1,
-	readRetainedOutput,
 }: {
 	execution: Execution;
 	ticket: string;
@@ -59,12 +50,10 @@ export function FlowRun({
 	expanded: boolean;
 	onToggle: () => void;
 	canStart: boolean;
+	pendingFlowIds: readonly string[];
 	headSha: string;
 	readOnly?: boolean;
 	recoveryBlocked?: boolean;
-	onDecideV1?: (input: FlowExecutionDecisionInput) => Promise<FlowExecutionViewV1>;
-	onCancelV1?: (input: FlowExecutionCancelInput) => Promise<FlowExecutionViewV1>;
-	readRetainedOutput?: ComponentProps<typeof FlowTaskTerminal>["readRetainedOutput"];
 }) {
 	const { client, orpc } = useApp();
 	const versioned = "snapshot" in execution;
@@ -78,19 +67,19 @@ export function FlowRun({
 		(versioned &&
 			execution.submission !== null &&
 			(execution.submission.ownership === "unknown" || execution.submission.admission === "closed"));
-	const immutableOnly = readOnly || (versioned && onDecideV1 === undefined && onCancelV1 === undefined);
+	const immutableOnly = readOnly;
 	const now = useClock(live);
 	const runs = useQuery(allAgentRunsOptions(orpc, client, { ticket }));
 	const rows = useMemo(
 		() =>
 			versioned
-				? buildExecutionViewRows(execution, !immutableOnly && !fenced && onDecideV1 !== undefined)
+				? buildExecutionViewRows(execution, !immutableOnly && !fenced)
 				: buildFlowRunRows(execution).map((row) => ({
 						...row,
 						attempt: null,
 						decidable: row.decidable && !immutableOnly && !fenced,
 					})),
-		[execution, versioned, immutableOnly, fenced, onDecideV1],
+		[execution, versioned, immutableOnly, fenced],
 	);
 	const [decision, setDecision] = useState<string | null>(null);
 	const [terminal, setTerminal] = useState<TerminalTarget | null>(null);
@@ -171,7 +160,7 @@ export function FlowRun({
 				onToggle={onToggle}
 				actions={
 					<>
-						{live && !immutableOnly && (!versioned || onCancelV1 !== undefined) && (
+						{live && !immutableOnly && (
 							<Tooltip content="Cancel this run">
 								<IconButton
 									label="Cancel this run"
@@ -181,7 +170,7 @@ export function FlowRun({
 								/>
 							</Tooltip>
 						)}
-						{!live && canStart && !immutableOnly && !versioned && (
+						{!live && canStart && !immutableOnly && (
 							<Tooltip content={`Run ${flow.name} again`}>
 								<IconButton
 									label={`Run ${flow.name} again`}
@@ -230,11 +219,11 @@ export function FlowRun({
 			)}
 			{terminal && (
 				<FlowTaskTerminal
+					executionId={execution.id}
 					task={terminal.task}
 					attempt={terminal.attempt}
 					reviewedHead={reviewedHead}
 					recoveryBlocked={fenced || immutableOnly}
-					readRetainedOutput={readRetainedOutput}
 					onClose={() => setTerminal(null)}
 				/>
 			)}
@@ -245,7 +234,6 @@ export function FlowRun({
 					actionKey={decision}
 					onClose={() => setDecision(null)}
 					recoveryBlocked={fenced || immutableOnly}
-					onDecideV1={onDecideV1}
 				/>
 			)}
 			{confirmCancel && (
@@ -254,13 +242,14 @@ export function FlowRun({
 					execution={execution}
 					onClose={() => setConfirmCancel(false)}
 					recoveryBlocked={fenced || immutableOnly}
-					onCancelV1={onCancelV1}
 				/>
 			)}
 			{confirmRepeat && (
 				<StartFlowDialog
 					key={execution.id}
 					repeatOf={execution.id}
+					pendingFlowIds={pendingFlowIds}
+					submission={versioned ? execution.submission : undefined}
 					ticket={ticket}
 					diffId={diffId}
 					headSha={headSha}

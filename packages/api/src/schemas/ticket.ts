@@ -245,3 +245,16 @@ export type CountsOutput = z.infer<typeof CountsOutputSchema>;
 export const TicketGetInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 });
+
+export const TicketDependencySchema = z.object({
+	identifier: TicketIdentifierSchema,
+	title: TicketTitleSchema,
+	status: StatusCategorySchema,
+});
+export type TicketDependency = z.infer<typeof TicketDependencySchema>;
+
+export const TicketDependenciesSchema = z.object({
+	waitsOn: z.array(TicketDependencySchema),
+	blocks: z.array(TicketDependencySchema),
+});
+export type TicketDependencies = z.infer<typeof TicketDependenciesSchema>;
