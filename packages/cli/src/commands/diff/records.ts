@@ -4,7 +4,7 @@ import { contextOf, wantsJson } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { json, printList } from "../../output.ts";
 import { resolvePullRequest } from "../pullRequestRef.ts";
-import { writeDiff } from "./writeDiff.ts";
+import { writeDiff } from "../writeDiff/index.ts";
 
 const ref = { type: "positional", required: true, description: "Diff ID, URL, or owner/repo#number" } as const;
 

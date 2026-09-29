@@ -108,8 +108,8 @@ export const PullRequestIdInputSchema = z.strictObject({
 
 const PullRequestDiffCursorSchema = z
 	.string()
-	.regex(/^[a-f0-9]{64}:[1-9][0-9]*$/)
-	.refine((cursor) => Number.isSafeInteger(Number(cursor.slice(65))), "The byte offset must be a safe integer.");
+	.regex(/^[a-f0-9]{64}:[1-9][0-9]*:[a-f0-9]{64}$/)
+	.refine((cursor) => Number.isSafeInteger(Number(cursor.split(":")[1])), "The byte offset must be a safe integer.");
 
 export const PullRequestDiffInputSchema = PullRequestIdInputSchema.extend({
 	cursor: PullRequestDiffCursorSchema.optional(),

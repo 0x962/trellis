@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { PullRequestDiffInput } from "@trellis/api";
 import { writeDiff } from "./writeDiff.ts";
 
-const cursor = `${"a".repeat(64)}:11`;
+const cursor = `${"a".repeat(64)}:11:${"b".repeat(64)}`;
 
 const pages = (calls: PullRequestDiffInput[]) => async (input: PullRequestDiffInput) => {
 	calls.push(input);

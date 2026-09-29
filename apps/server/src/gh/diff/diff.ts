@@ -1,4 +1,4 @@
-import type { GhFailure, GhRunner } from "./run.ts";
+import type { GhFailure, GhRunner } from "../run.ts";
 
 // `gh pr diff <url>` runs on the interactive slot, so a person who opens a
 // diff never waits behind a poller tick.
@@ -17,7 +17,7 @@ export const diffPage = (bytes: Uint8Array, cursor: number): DiffPage => {
 		while ((bytes[end]! & 0xc0) === 0x80) end--;
 	}
 	return {
-		diff: new TextDecoder().decode(bytes.subarray(cursor, end)),
+		diff: new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes.subarray(cursor, end)),
 		nextOffset: end < bytes.byteLength ? end : null,
 	};
 };

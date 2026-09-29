@@ -5,9 +5,9 @@ import { contextOf, wantsJson } from "../context.ts";
 import { pullRequestNotReady } from "../errors.ts";
 import { cell, json, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { deletedRecord } from "./delete.ts";
-import { writeDiff } from "./diff/writeDiff.ts";
 import { pullRequestReadiness, pullRequestReadyText, pullRequestWaitingText } from "./ready/pullRequestReady.ts";
 import { prList } from "./show.ts";
+import { writeDiff } from "./writeDiff/index.ts";
 
 const prRecord: RecordSpec<PullRequest> = {
 	fields: [

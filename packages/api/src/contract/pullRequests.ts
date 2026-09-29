@@ -63,7 +63,7 @@ export const pullRequests = {
 		.input(PullRequestSetLocalStateInputSchema)
 		.output(PullRequestSchema),
 	diff: base
-		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.errors(pickErrors(["GH_UNAVAILABLE", "INPUT_VALIDATION_FAILED"]))
 		.route({ method: "GET", path: "/prs/{id}/diff", summary: "Read one page of the pull request diff" })
 		.input(PullRequestDiffInputSchema)
 		.output(PullRequestDiffOutputSchema),
