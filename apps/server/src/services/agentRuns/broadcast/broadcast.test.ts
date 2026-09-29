@@ -67,7 +67,8 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		if (input.id === fixture.ids.idleAgent) throw new Error("The execution service did not accept the message.");
 		return { id: input.id };
 	};
-	const input = { group: "idle", text: "New direction", requestId: "request-idle" } as const;
+	const requestId = "request-idle_".repeat(2_000);
+	const input = { group: "idle", text: "New direction", requestId } as const;
 	const result = await prepareBroadcast(fixture.ctx, input, { read: fixture.read, send });
 
 	expect(result.recipientCount).toBe(3);
@@ -85,7 +86,7 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		},
 	]);
 	expect(new Set(calls.map((call) => call.id)).size).toBe(3);
-	expect(calls.map((call) => call.messageId).sort()).toEqual(calls.map((call) => `request-idle-${call.id}`).sort());
+	expect(calls.map((call) => call.messageId).sort()).toEqual(calls.map((call) => `${requestId}-${call.id}`).sort());
 
 	const repeated: Array<{ id: string; messageId: string }> = [];
 	await prepareBroadcast(fixture.ctx, input, {
@@ -96,6 +97,16 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		},
 	});
 	expect(repeated.map((call) => call.messageId).sort()).toEqual(calls.map((call) => call.messageId).sort());
+	await prepareBroadcast(
+		fixture.ctx,
+		{ ...input, requestId: `${requestId}other` },
+		{
+			read: fixture.read,
+			send: async (_ctx, delivery) => {
+				expect(calls.some((call) => call.messageId === delivery.messageId)).toBe(false);
+			},
+		},
+	);
 });
 
 test("sends nothing for an empty recipient group", async () => {

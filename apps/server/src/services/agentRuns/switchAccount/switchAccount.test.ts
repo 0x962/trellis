@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, spyOn, test } from "bun:test";
+import { randomBytes } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,6 +7,7 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
+import * as connection from "../../../agents/native/connection.ts";
 import { createCache } from "../../../db/cache.ts";
 import { openTestDb } from "../../../db/testDb.ts";
 import { transferSession } from "../../harnessAccounts/transferSession.ts";
@@ -20,12 +22,16 @@ let home: string;
 let stops = 0;
 let interrupts = 0;
 let launches = 0;
+const ensure = spyOn(connection, "ensureNativeRuntime");
+const recover = spyOn(HarnessHost.prototype, "recover");
 const status = spyOn(HarnessHost.prototype, "status");
 const stop = spyOn(HarnessHost.prototype, "stop");
 const interrupt = spyOn(HarnessHost.prototype, "interrupt");
 const at = new Date("2026-09-21T12:00:00Z");
 
 beforeAll(async () => {
+	ensure.mockImplementation(async (home) => connection.nativeClient(home));
+	recover.mockImplementation(async (id) => status(id));
 	db = await openTestDb();
 	home = await mkdtemp(join(tmpdir(), "trellis-account-test-"));
 	const cache = createCache();
@@ -70,6 +76,8 @@ afterEach(() => {
 // The directory goes before the database closes, because a failed close
 // would otherwise leave it in the temporary directory.
 afterAll(async () => {
+	ensure.mockRestore();
+	recover.mockRestore();
 	status.mockRestore();
 	stop.mockRestore();
 	interrupt.mockRestore();
@@ -132,7 +140,13 @@ async function fixture(harness: "claude" | "codex", working = false, exited = fa
 		terminalId,
 		sessionId,
 		start,
-		input: { id, accountId, expectedTerminalId: terminalId, requestId: crypto.randomUUID(), confirmInterrupt: true },
+		input: {
+			id,
+			accountId,
+			expectedTerminalId: terminalId,
+			requestId: randomBytes(8192).toString("hex"),
+			confirmInterrupt: true,
+		},
 	};
 }
 
