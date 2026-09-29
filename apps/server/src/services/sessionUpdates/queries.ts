@@ -10,20 +10,20 @@ const requestColumns = sql`request_id AS "requestId", ${iso(sql`requested_at`)} 
 
 export const getSessionUpdateRequest = async (
 	tx: Tx,
-	input: { sessionId: string },
+	input: { runId: string },
 ): Promise<SessionUpdateRequest | null> => {
 	const [request] = await rows<SessionUpdateRequest>(
 		tx,
-		sql`SELECT ${requestColumns} FROM session_update_requests WHERE session_id=${input.sessionId}
+		sql`SELECT ${requestColumns} FROM session_update_requests WHERE run_id=${input.runId}
 		ORDER BY requested_at DESC, request_id DESC LIMIT 1`,
 	);
 	return request ?? null;
 };
 
-export const getSessionUpdates = async (tx: Tx, input: { sessionId: string }): Promise<SessionUpdates> => {
+export const getSessionUpdates = async (tx: Tx, input: { runId: string }): Promise<SessionUpdates> => {
 	const updates = await rows<SessionUpdate>(
 		tx,
-		sql`SELECT ${updateColumns} FROM session_updates WHERE session_id=${input.sessionId}
+		sql`SELECT ${updateColumns} FROM session_updates WHERE run_id=${input.runId}
 		ORDER BY created_at DESC, id DESC LIMIT 2`,
 	);
 	return {
@@ -33,11 +33,11 @@ export const getSessionUpdates = async (tx: Tx, input: { sessionId: string }): P
 	};
 };
 
-export const sessionUpdateByRequest = async (tx: Tx, input: { sessionId: string; requestId: string }) => {
+export const sessionUpdateByRequest = async (tx: Tx, input: { runId: string; requestId: string }) => {
 	const [update] = await rows<SessionUpdate>(
 		tx,
 		sql`SELECT ${updateColumns} FROM session_updates
-		WHERE session_id=${input.sessionId} AND request_id=${input.requestId}`,
+		WHERE run_id=${input.runId} AND request_id=${input.requestId}`,
 	);
 	return update ?? null;
 };
