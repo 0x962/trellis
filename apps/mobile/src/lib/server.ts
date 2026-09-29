@@ -17,7 +17,7 @@ export const probeTimeoutMs = 3_000;
 
 const schemeError = "Start the URL with http:// or https://, for example http://192.168.1.20:4521.";
 const shapeError = "Write the URL as http://<host>:<port>.";
-const nameError = "Write the name with 1 to 64 printable ASCII characters and no colon.";
+const nameError = "Write a nonempty name with printable ASCII characters and no colon.";
 
 // The `x-trellis-actor` value for a person. The mobile app always acts as a
 // human; agents reach the server through the CLI.

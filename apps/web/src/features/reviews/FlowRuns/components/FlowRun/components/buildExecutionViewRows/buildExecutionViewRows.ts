@@ -19,6 +19,7 @@ const attemptStates: Record<FlowAttemptV1["state"], FlowRunState> = {
 const waits = {
 	human: "Needs your decision",
 	native: "Wait for native result",
+	review: "Wait for review classification",
 	ownership_unknown: "Worker ownership unknown",
 	admission: "Queued for admission",
 };

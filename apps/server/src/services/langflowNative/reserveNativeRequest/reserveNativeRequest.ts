@@ -13,8 +13,9 @@ import {
 	readProtocolBytes,
 } from "../../../langflowContracts";
 import { reserve } from "../../agentRuns";
-import { assertExecutionActive } from "../../langflowStops/assertExecutionActive";
+import { assertExecutionNotCanceled } from "../../langflowStops";
 import { projectLaunchConfig } from "../../projectLaunchConfig";
+import { assembleNativePrompt } from "../assembleNativePrompt";
 import { writeLaunchSnapshot } from "../launchSnapshot";
 import type { NativeReservationCtx } from "../types";
 
@@ -23,7 +24,7 @@ type NewReservation = Extract<Awaited<ReturnType<typeof reserve>>, { replay: fal
 export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, input: { requestBytes: string }) {
 	const request = readProtocolBytes(NativeRequestV1Schema, input.requestBytes);
 	const execution = await lockExecution(tx, request);
-	assertAuthority(execution, ctx.nativeAuthority, "native.reserve", ctx.now);
+	await assertAuthority(tx, execution, ctx.nativeAuthority, "native.reserve", ctx.now);
 	const semanticKey = JSON.stringify([
 		request.nodeId,
 		request.parentOccurrenceKey,
@@ -47,7 +48,7 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 		if (existing.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
 		return { replay: true as const, reservation: existing, launch: null };
 	}
-	await assertExecutionActive(ctx, tx, request);
+	await assertExecutionNotCanceled(ctx, tx, request);
 	if (
 		execution.cancelIntent ||
 		execution.admission.state !== "open" ||
@@ -59,6 +60,7 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 	const approved = await ctx.resolveOccurrence(tx, { execution, request, requestBytes: input.requestBytes });
 	if (approved.requestDigest !== protocolDigest(input.requestBytes) || approved.specHash !== request.specHash)
 		throw new Error("native_spec_conflict");
+	const prompt = assembleNativePrompt(execution, request, approved);
 	const config = await projectLaunchConfig(tx, { projectId: execution.projectId, harness: approved.harness });
 	const permit = ctx.dispatchGate.acquire({
 		effectId: `native-reservation:${request.executionId}:${request.requestId}`,
@@ -72,8 +74,9 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 	// reserve returns a new attempt when its input omits requestId.
 	const launch = (await reserve(ctx, tx, { ticket: execution.ticketId, accountId: approved.accountId }, [], {
 		config,
-		flow: { name: approved.name, instruction: approved.instruction },
+		flow: { name: approved.name, instruction: prompt.instruction },
 	})) as NewReservation;
+	if (!isDeepStrictEqual(launch.config.harness, approved.harness)) throw new Error("native_harness_conflict");
 	const handle = NativeHandleV1Schema.parse({
 		version: 1,
 		stepId: ulid(),
@@ -98,6 +101,7 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 			executionId: request.executionId,
 			stepId: handle.stepId,
 			requestDigest: reservation.requestDigest,
+			promptProvenance: prompt.provenance,
 			launch,
 		}),
 	);

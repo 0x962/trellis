@@ -16,6 +16,8 @@ import { noticePullRequests } from "../pollerNotices.ts";
 import { upsertPullRequests } from "../pollerWrite.ts";
 import type { GhRunner } from "../run.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana'])`;
+
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: ServiceCtx;
 const rootId = ulid();
@@ -104,8 +106,8 @@ const seed = async (checks: Check[], options: { withTicket?: boolean } = {}) => 
 			(id, name, kind, instruction, project_key, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
 			VALUES (${runId}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticket.id}, ${ticket.identifier},
 				${`term-${runId}`}, ${t0}, ${t0})`);
-		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-			VALUES (${ticket.id}, ${pr!.id}, 'manual', 'dana', 'human', ${t0})`);
+		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+			VALUES (${ticket.id}, ${pr!.id}, 'manual', ${actorId}, 'dana', 'human', ${t0})`);
 		return { number, prId: pr!.id, ticketId: ticket.id, runId, terminal: `term-${runId}` };
 	}
 	return { number, prId: pr!.id, ticketId: null, runId, terminal: `term-${runId}` };
@@ -220,8 +222,8 @@ test("a queue entry reaches the agents of every linked ticket", async () => {
 		VALUES (${second}, 'brisk-pine', 'agent', 'Build it', '/tmp/work', ${ticket.id}, ${ticket.identifier},
 			${`term-${second}`}, ${t0}, ${t0})`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests
-		(ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${pr.prId}, 'manual', 'dana', 'human', ${t0})`);
+		(ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${pr.prId}, 'manual', ${actorId}, 'dana', 'human', ${t0})`);
 	await write(later(1000), { ...row(pr.number, "aaa1111aaaa", []), isQueued: true, queuePosition: 6 });
 
 	await noticePullRequests(db, gh, later(1000));

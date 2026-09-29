@@ -1,5 +1,14 @@
+export { cancelView } from "./cancelView";
+export { decisionView } from "./decisionView";
+export { discovery } from "./discovery";
 export { documentTag } from "./documentTag";
 export { getView } from "./getView";
+export { hostAuthority } from "./hostAuthority";
 export { list } from "./list";
+export { output } from "./output";
+export { prepareAction } from "./prepareAction";
+export { recovery } from "./recovery";
 export { saveDocument } from "./saveDocument";
+export { settleReviewClassification } from "./settleReviewClassification";
 export { startLegacy } from "./startLegacy";
+export { startView } from "./startView";

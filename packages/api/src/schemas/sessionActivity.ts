@@ -30,7 +30,7 @@ export const InputAnswerSchema = z.object({
 	questionId: z.string(),
 	selectedLabel: z.string().optional(),
 	selectedLabels: z.array(z.string()).optional(),
-	freeText: z.string().max(500).optional(),
+	freeText: z.string().optional(),
 });
 export type InputAnswer = z.infer<typeof InputAnswerSchema>;
 

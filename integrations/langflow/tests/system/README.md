@@ -1,10 +1,16 @@
 # Combined service fixtures
 
-These fixtures compose public services against the database from `openTestDb`.
+The `.test.ts` fixtures compose public services against the database from `openTestDb`.
 That helper applies the production migration journal to an isolated PGlite database.
 The fixtures create no substitute tables and launch no agent, engine, provider, or server.
 
+`composed/run.ts` is a separate HTTP entrypoint for an owner-supplied isolated host.
+Its [input contract](composed/README.md) requires actual package qualification and runtime receipts.
+Its source remains unexecuted. The [batch procedure](../../../../reports/langflow-integration-evidence/batch.md) retains all proof categories.
+
 `fixture` calls the document save, publication, reservation, and projection services.
+The fixture-only `seedLangflowDocument` helper persists its initial Langflow revision before the first generic save.
+The first save increments that revision through the document service and its engine-change guard.
 It retains the request actor during reservation and uses `SYSTEM_ACTOR` only for projection initialization.
 Both operations share one transaction and its event collector.
 The public view uses a separate transaction after commit.
@@ -18,6 +24,7 @@ Langflow does not execute a graph in these cases.
 | --- | --- |
 | `start.test.ts` | Current publication, null unknown epoch, atomic reservation, concurrent UUID replay, immutable snapshot, actor checks |
 | `decisionCancellation.test.ts` | Atomic human receipt, cancellation order, retained bytes, delivery refusal, competing actors, authorization |
+| `cancelView.test.ts` | Committed human decision through public cancellation, stale-response recovery, stable cancellation identity, atomic public-state rollback |
 | `retention.test.ts` | Independent archive reader, permanent request identity, exact decision outbox, opaque payload beyond fixture sizes |
 
 The transaction exceptions simulate failure before commit.
@@ -36,7 +43,8 @@ It adds no skip, substitute schema, or invented epoch.
 
 The complete acceptance requirements remain in `reports/langflow-integration-evidence/acceptance.md`.
 All runtime and UI gates remain separate from these focused fixtures.
-The public V1 mutation routes, actual engine transport, and cancellation-to-view composition remain producer prerequisites.
+The cancellation cases call the public `cancelView` service and its projection producer in one transaction.
+Public V1 mutation routes and actual engine transport remain separate integration requirements.
 
 ## Commands after the source batch merges
 

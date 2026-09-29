@@ -16,6 +16,7 @@ import { pageSearchStatement, searchPages } from "./search.ts";
 
 const at = new Date("2026-09-25T12:00:00.000Z");
 const actor = { name: "Navid", kind: "human" as const };
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[])`;
 const firstProject = { id: ulid(), key: "ONE" };
 const secondProject = { id: ulid(), key: "TWO" };
 let db: Awaited<ReturnType<typeof openTestDb>>;
@@ -50,27 +51,24 @@ const insertPage = async (input: {
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
 		creator_actor_name, creator_actor_kind, actor_name, actor_kind,
-		created_at, updated_at, deleted_at, deleted_actor_name, deleted_actor_kind
+		created_at, updated_at, deleted_at, deleted_actor_name, deleted_actor_kind, actor_id, creator_actor_id, deleted_actor_id
 	) VALUES (
 		${id}, ${input.projectId}, ${id.toLowerCase()}, ${input.title}, ${input.summary ?? ""}, ${version}, ${version},
 		${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${at}, ${at}, ${input.deleted ? at : null},
-		${input.deleted ? actor.name : null}, ${input.deleted ? actor.kind : null}
-	)`);
+		${input.deleted ? actor.name : null}, ${input.deleted ? actor.kind : null}, ${actorId}, ${actorId}, ${input.deleted ? actorId : null})`);
 	if (input.oldSearchText !== undefined)
 		await db.execute(sql`INSERT INTO page_versions (
 			page_id, number, request_id, document_sha256, document_size, search_text,
-			search_indexed, source_path, actor_name, actor_kind, created_at
+			search_indexed, source_path, actor_name, actor_kind, created_at, actor_id
 		) VALUES (
 			${id}, 1, ${crypto.randomUUID()}, ${"a".repeat(64)}, 10, ${input.oldSearchText},
-			true, 'index.html', ${actor.name}, ${actor.kind}, ${new Date(at.getTime() - 1000)}
-		)`);
+			true, 'index.html', ${actor.name}, ${actor.kind}, ${new Date(at.getTime() - 1000)}, ${actorId})`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size, search_text,
-		search_indexed, source_path, actor_name, actor_kind, created_at
+		search_indexed, source_path, actor_name, actor_kind, created_at, actor_id
 	) VALUES (
 		${id}, ${version}, ${crypto.randomUUID()}, ${"b".repeat(64)}, 10, ${input.searchText ?? ""},
-		true, 'index.html', ${actor.name}, ${actor.kind}, ${at}
-	)`);
+		true, 'index.html', ${actor.name}, ${actor.kind}, ${at}, ${actorId})`);
 	return id;
 };
 
@@ -144,18 +142,16 @@ test("reindexes a truncated latest version and finds text beyond the former boun
 	const fullText = `${truncatedText} beyondboundaryterm`;
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
-		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at
+		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at, actor_id, creator_actor_id
 	) VALUES (
 		${pageId}, ${firstProject.id}, ${pageId.toLowerCase()}, 'Old Page', '', 1, 1,
-		${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${at}, ${at}
-	)`);
+		${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${at}, ${at}, ${actorId}, ${actorId})`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size,
-		search_text, search_indexed, source_path, actor_name, actor_kind, created_at
+		search_text, search_indexed, source_path, actor_name, actor_kind, created_at, actor_id
 	) VALUES (
 		${pageId}, 1, ${crypto.randomUUID()}, ${sha256}, ${fullText.length},
-		${truncatedText}, false, 'index.html', ${actor.name}, ${actor.kind}, ${at}
-	)`);
+		${truncatedText}, false, 'index.html', ${actor.name}, ${actor.kind}, ${at}, ${actorId})`);
 	const path = pageObjectPath(home, sha256);
 	await mkdir(dirname(path), { recursive: true });
 	await Bun.write(path, `<main>${fullText}</main>`);
@@ -189,20 +185,23 @@ test("reindexes a truncated latest version and finds text beyond the former boun
 test("uses the three Page search indexes at 10,000 Pages", async () => {
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
-		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at
+		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at,
+		creator_actor_id, actor_id
 	)
 	SELECT 'scale-' || n, ${secondProject.id}, 'scale-' || n,
 		CASE WHEN n = 1 THEN 'Planprobe title' ELSE 'Scale title ' || n END,
 		CASE WHEN n = 2 THEN 'Planprobe summary' ELSE '' END,
-		1, 1, ${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${at}, ${at}
+		1, 1, ${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${at}, ${at}, ${actorId},
+		${actorId}
 	FROM generate_series(1, 10000) AS n`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size, search_text, search_indexed,
-		source_path, actor_name, actor_kind, created_at
+		source_path, actor_name, actor_kind, created_at, actor_id
 	)
 	SELECT 'scale-' || n, 1, 'scale-request-' || n, ${"d".repeat(64)}, 10,
 		CASE WHEN n = 3 THEN 'Planprobe content' ELSE '' END,
-		true, 'index.html', ${actor.name}, ${actor.kind}, ${at}
+		true, 'index.html', ${actor.name}, ${actor.kind}, ${at},
+		${actorId}
 	FROM generate_series(1, 10000) AS n`);
 	await db.execute(sql`ANALYZE pages`);
 	await db.execute(sql`ANALYZE page_versions`);

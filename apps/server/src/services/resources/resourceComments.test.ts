@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import type { ActorRef, TrellisEvent } from "@trellis/api";
+import { type ActorRef, ResourceCommentThreadSchema, type TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createCache } from "../../db/cache.ts";
+import { resourceComments } from "../../db/tables/resourceComments.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx } from "../support.ts";
@@ -50,8 +51,7 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${projectId}, 'TRL', 'trl', 'Trellis', ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epicId}, ${projectId}, 'comments', 'Comments', ${agent.name}, ${agent.kind}, ${now}, ${now})`);
+		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id) VALUES (${epicId}, ${projectId}, 'comments', 'Comments', ${agent.name}, ${agent.kind}, ${now}, ${now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${agent.kind}, ${agent.name}]::text[]))`);
 	cache = createCache();
 	await inTx(cache.rebuild);
 	asHuman = contextOf(human);
@@ -105,6 +105,69 @@ test("an anchor move stores the new text and the text removed flag, and refuses 
 	).rejects.toThrow();
 });
 
+test("501 anchor moves preserve thread identities, other anchors, and transaction rollback", async () => {
+	const doc = await newDoc();
+	const other = await newDoc();
+	const untouched = await inTx((tx) => create(asHuman, tx, { resource: doc.id, anchor, body: "Keep this." }));
+	const foreign = await inTx((tx) => create(asHuman, tx, { resource: other.id, anchor, body: "Other document." }));
+	const ids = Array.from({ length: 501 }, () => ulid());
+	await inTx(async (tx) => {
+		const { rows: actors } = await tx.execute<{ id: string }>(
+			sql`SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${human.kind}, ${human.name}]::text[]`,
+		);
+		await tx.insert(resourceComments).values(
+			ids.map((id) => ({
+				id,
+				threadId: id,
+				resourceId: doc.id,
+				body: `Comment ${id}`,
+				...anchor,
+				actorId: actors[0]!.id,
+				actorName: human.name,
+				actorKind: human.kind,
+				createdAt: now,
+				updatedAt: now,
+			})),
+		);
+	});
+	await inTx((tx) => reply(asAgent, tx, { thread: ids[500]!, body: "Keep the reply." }));
+	const before = await inTx((tx) => list(asHuman, tx, { resource: doc.id }));
+	const moved = ids.map((thread, index) => ({
+		thread,
+		anchor: { quote: `Moved quote ${index}`, prefix: "New prefix ", suffix: " new suffix" },
+		textRemoved: index % 2 === 0,
+	}));
+	events.length = 0;
+	const saved = await inTx((tx) => anchors(asHuman, tx, { resource: doc.id, anchors: moved }));
+	const byId = new Map(moved.map((move) => [move.thread, move]));
+	expect(saved).toEqual(
+		before.map((thread) => {
+			const move = byId.get(thread.id);
+			return move === undefined ? thread : { ...thread, anchor: move.anchor, textRemoved: move.textRemoved };
+		}),
+	);
+	expect(saved.find((thread) => thread.id === untouched.id)).toEqual(untouched);
+	expect(events).toEqual([{ type: "resource-comments.changed", projectId, resourceId: doc.id }]);
+	expect(await inTx((tx) => list(asHuman, tx, { resource: doc.id }))).toEqual(saved);
+	expect(await inTx((tx) => list(asHuman, tx, { resource: other.id }))).toEqual([foreign]);
+
+	events.length = 0;
+	await expect(
+		inTx((tx) =>
+			anchors(asHuman, tx, {
+				resource: doc.id,
+				anchors: [
+					...ids.map((thread) => ({ thread, anchor, textRemoved: false })),
+					{ thread: foreign.id, anchor, textRemoved: false },
+				],
+			}),
+		),
+	).rejects.toThrow();
+	expect(await inTx((tx) => list(asHuman, tx, { resource: doc.id }))).toEqual(saved);
+	expect(await inTx((tx) => list(asHuman, tx, { resource: other.id }))).toEqual([foreign]);
+	expect(events).toEqual([]);
+});
+
 test("a person edits and deletes their own comment only, and the first comment takes its thread", async () => {
 	const doc = await newDoc();
 	const thread = await inTx((tx) => create(asHuman, tx, { resource: doc.id, anchor, body: "Frist" }));
@@ -138,4 +201,43 @@ test("a reply is not a thread, and a removed document takes its comments", async
 		.execute<{ count: number }>(sql`SELECT count(*)::int AS count FROM resource_comments WHERE resource_id = ${doc.id}`)
 		.then((result) => result.rows);
 	expect(left!.count).toBe(0);
+});
+
+test("long multibyte comment bodies and quotes survive create, reply, edit, and read", async () => {
+	const doc = await newDoc();
+	const body = `Start\n${"漢é🙂".repeat(4_000)}\nEnd`;
+	const quote = `First\n${"文é🙂".repeat(1_000)}\nLast`;
+	const longAnchor = { ...anchor, quote };
+	const thread = await inTx((tx) => create(asHuman, tx, { resource: doc.id, anchor: longAnchor, body }));
+	expect(ResourceCommentThreadSchema.parse(thread).anchor).toEqual(longAnchor);
+	expect(thread.comments[0]!.body).toBe(body);
+
+	const replyBody = `${body}\nReply`;
+	await inTx((tx) => reply(asAgent, tx, { thread: thread.id, body: replyBody }));
+	const editedBody = `${body}\nEdit`;
+	await inTx((tx) => edit(asHuman, tx, { id: thread.id, body: editedBody }));
+	await inTx((tx) => resolve(asAgent, tx, { thread: thread.id, resolved: true }));
+	await inTx((tx) => resolve(asHuman, tx, { thread: thread.id, resolved: false }));
+	const [saved] = await inTx((tx) => list(asHuman, tx, { resource: doc.id }));
+	expect(ResourceCommentThreadSchema.parse(saved).anchor).toEqual(longAnchor);
+	expect(saved!.comments.map((comment) => comment.body)).toEqual([editedBody, replyBody]);
+	expect(saved!.resolved).toBeNull();
+	expect(saved!.textRemoved).toBe(false);
+});
+
+test("the database rejects empty text and invalid anchors after the text limits change", async () => {
+	const doc = await newDoc();
+	const thread = await inTx((tx) => create(asHuman, tx, { resource: doc.id, anchor, body: "Keep this." }));
+	for (const change of [
+		sql`body = ''`,
+		sql`quote = ''`,
+		sql`prefix = ${"x".repeat(33)}`,
+		sql`suffix = ${"x".repeat(33)}`,
+		sql`quote = NULL`,
+	]) {
+		await expect(
+			inTx((tx) => tx.execute(sql`UPDATE resource_comments SET ${change} WHERE id = ${thread.id}`)),
+		).rejects.toThrow();
+	}
+	expect((await inTx((tx) => list(asHuman, tx, { resource: doc.id })))[0]).toEqual(thread);
 });

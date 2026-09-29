@@ -8,6 +8,7 @@ import { protocolDigest } from "../../langflowContracts";
 import { ExecutionAuthority, type RenewalInput, type TakeoverInput } from "../authority";
 import type { LiveOwnership, SidecarIdentity, SupervisorDependencies } from "../contracts";
 import { PrivateState } from "../privateState";
+import { authenticateEngine } from "./components/authenticateEngine";
 
 export class LangflowSupervisor {
 	private busy = false;
@@ -68,6 +69,17 @@ export class LangflowSupervisor {
 		return this.exclusive(async () => operation(await this.live()));
 	}
 
+	async withAuthenticatedEngine<T>(
+		authorization: string | null,
+		operation: (observation: LiveOwnership) => Promise<T>,
+	) {
+		return this.exclusive(async () => {
+			if (!this.identity) throw new Error("sidecar_unavailable");
+			await authenticateEngine(this.state.authenticationFile(this.identity), authorization);
+			return operation(await this.live());
+		});
+	}
+
 	async renew(input: RenewalInput) {
 		return this.withHealthyEngine((observation) => this.authority.renew(observation, input));
 	}
@@ -93,7 +105,12 @@ export class LangflowSupervisor {
 		}
 		const observation = await this.observe(identity);
 		const revoked = await this.deps.authority.revokeOwner({ identity, observationId: observation.challenge });
-		if (!isDeepStrictEqual(revoked.identity, identity) || revoked.observationId !== observation.challenge) {
+		const retained = await this.deps.authority.readRevocation({
+			dataHomeId: identity.dataHomeId,
+			hostId: identity.hostId,
+			ownerId: identity.ownerId,
+		});
+		if (!isDeepStrictEqual(revoked.identity, identity) || !isDeepStrictEqual(retained, revoked)) {
 			throw new Error("sidecar_revocation_mismatch");
 		}
 		if (observation.state === "running") {

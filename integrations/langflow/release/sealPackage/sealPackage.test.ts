@@ -1,6 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { chmod, readFile, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { canonicalBytes } from "../canonicalBytes";
 import { inspectPackage } from "../inspectPackage";
 import { loadCandidatePackage } from "../loadCandidatePackage";
 import { verifyPackage } from "../verifyPackage";
@@ -27,6 +29,10 @@ test.each(["arm64", "x86_64"] as const)("seals an offline %s candidate with a tr
 	expect(loaded.componentManifestHash).toBe(input.recipe.components.catalog.sha256);
 	expect(loaded.qualification).toBe("candidate");
 	expect(loaded.engine.layoutDirectory).toBe(join(output, "payload/image"));
+	expect(loaded.engine.imageDigest).toBe(input.recipe.target.imageDigest);
+	expect(loaded.engine.imageConfigDigest).toBe(input.config.digest);
+	expect(loaded.engine.imageConfigDigest).not.toBe(loaded.engine.imageDigest);
+	expect(Object.isFrozen(loaded.engine)).toBe(true);
 	await rm(input.staging, { recursive: true });
 	expect((await verifyPackage(output, result.packageId)).packageId).toBe(result.packageId);
 	await expect(verifyPackage(output, "0".repeat(64))).rejects.toThrow("package_seal_mismatch");
@@ -109,4 +115,43 @@ test("does not overwrite an output or write beneath the input tree", async () =>
 	const output = join(input.root, "sealed");
 	await sealPackage({ ...input, output });
 	await expect(sealPackage({ ...input, output })).rejects.toThrow();
+});
+
+test("retains component support bytes after the source staging directory is removed", async () => {
+	const input = await fixture();
+	const support = await input.file("catalog/engine/loop_utils.py", "fixture loop dependency");
+	input.recipe.componentSupportFiles = [support];
+	const output = join(input.root, "sealed");
+	const result = await sealPackage({ ...input, output });
+	await rm(input.staging, { recursive: true });
+	expect(await readFile(join(output, "payload", support.path), "utf8")).toBe("fixture loop dependency");
+	expect((await verifyPackage(output, result.packageId)).recipe.componentSupportFiles).toEqual([support]);
+	expect((await loadCandidatePackage(output, result.packageId)).qualification).toBe("candidate");
+});
+
+test.each(["changed", "missing"])("rejects %s component support bytes", async (state) => {
+	const input = await fixture();
+	const support = await input.file("catalog/trellis/readCatalog.py", "fixture catalog reader");
+	input.recipe.componentSupportFiles = [support];
+	if (state === "changed") await writeFile(join(input.staging, support.path), "changed");
+	else await rm(join(input.staging, support.path));
+	await expect(inspectPackage(input.staging, input.recipe)).rejects.toThrow("package_input_mismatch");
+});
+
+test("keeps an omitted support inventory out of the stored recipe", async () => {
+	const input = await fixture();
+	const result = await inspectPackage(input.staging, input.recipe);
+	expect(Object.hasOwn(result.recipe, "componentSupportFiles")).toBe(false);
+	const expected = createHash("sha256")
+		.update(canonicalBytes({ recipe: input.recipe, files: result.files }))
+		.digest("hex");
+	expect(result.packageId).toBe(expected);
+});
+
+test("refuses a changed config blob before it returns a runtime image identity", async () => {
+	const input = await fixture();
+	const output = join(input.root, "sealed");
+	const result = await sealPackage({ ...input, output });
+	await writeFile(join(output, "payload/image/blobs/sha256", input.config.digest.slice(7)), "changed");
+	await expect(loadCandidatePackage(output, result.packageId)).rejects.toThrow("oci_blob_mismatch");
 });

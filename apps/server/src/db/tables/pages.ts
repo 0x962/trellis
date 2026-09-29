@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, integer, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { check, foreignKey, index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, actors, at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
@@ -17,31 +17,35 @@ export const pages = pgTable(
 		summary: text().notNull().default(""),
 		version: integer().notNull().default(1),
 		latestVersion: integer("latest_version").notNull().default(1),
+		creatorActorId: uuid("creator_actor_id").notNull(),
 		creatorActorName: text("creator_actor_name").notNull(),
 		creatorActorKind: text("creator_actor_kind").notNull(),
 		...actorColumns(),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 		deletedAt: at("deleted_at"),
+		deletedActorId: uuid("deleted_actor_id"),
 		deletedActorName: text("deleted_actor_name"),
 		deletedActorKind: text("deleted_actor_kind"),
 	},
 	(t) => [
-		unique("pages_project_id_slug_unique").on(t.projectId, t.slug),
+		// pages_project_id_slug_unique rejects duplicate project/slug values through a hash exclusion constraint.
+		// Slugs contain no slash, so the joined value identifies one slug in one project.
+		// Hash indexes accept slugs that exceed the B-tree entry size.
+		index("pages_project_id_slug_unique").using("hash", sql`(${t.projectId} || '/' || ${t.slug})`),
 		foreignKey({
 			name: "pages_creator_actor_fk",
-			columns: [t.creatorActorName, t.creatorActorKind],
-			foreignColumns: [actors.name, actors.kind],
+			columns: [t.creatorActorId],
+			foreignColumns: [actors.id],
 		}),
 		actorFk("pages_actor_fk", t),
 		foreignKey({
 			name: "pages_deleted_actor_fk",
-			columns: [t.deletedActorName, t.deletedActorKind],
-			foreignColumns: [actors.name, actors.kind],
+			columns: [t.deletedActorId],
+			foreignColumns: [actors.id],
 		}),
 		check("pages_slug_check", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
-		check("pages_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 200`),
-		check("pages_summary_check", sql`length(${t.summary}) <= 2000`),
+		check("pages_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) >= 1`),
 		// `pages.version` is the row revision.
 		// A publish increments both `version` and `latest_version` in one transaction.
 		// A metadata update increments only `version`.
@@ -50,7 +54,8 @@ export const pages = pgTable(
 		check(
 			"pages_deleted_check",
 			sql`(${t.deletedAt} IS NULL) = (${t.deletedActorName} IS NULL)
-				AND (${t.deletedAt} IS NULL) = (${t.deletedActorKind} IS NULL)`,
+				AND (${t.deletedAt} IS NULL) = (${t.deletedActorKind} IS NULL)
+				AND (${t.deletedAt} IS NULL) = (${t.deletedActorId} IS NULL)`,
 		),
 		index("pages_deleted_at_idx").on(t.deletedAt).where(sql`${t.deletedAt} IS NOT NULL`),
 	],

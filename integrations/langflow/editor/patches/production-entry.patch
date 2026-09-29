@@ -1,0 +1,1732 @@
+diff --git a/src/CustomNodes/hooks/use-fetch-data-on-mount.ts b/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
+--- a/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
++++ b/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { UseMutationResult } from "@tanstack/react-query";
+ import { useEffect } from "react";
+ import type { APIClassType, ResponseErrorDetailAPI } from "@/types/api";
+@@ -19,6 +20,7 @@
+ 
+   useEffect(() => {
+     async function fetchData() {
++      if (TRELLIS_EDITOR_BRIDGE) return;
+       const template = node.template[name];
+       if (!template) return;
+ 
+diff --git a/src/CustomNodes/hooks/use-handle-new-value.ts b/src/CustomNodes/hooks/use-handle-new-value.ts
+--- a/src/CustomNodes/hooks/use-handle-new-value.ts
++++ b/src/CustomNodes/hooks/use-handle-new-value.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useUpdateNodeInternals } from "@xyflow/react";
+ import { cloneDeep, debounce } from "lodash";
+ import { useCallback, useMemo, useRef } from "react";
+@@ -147,7 +148,7 @@
+         }
+       }
+ 
+-      const shouldUpdate = parameter.real_time_refresh;
++      const shouldUpdate = !TRELLIS_EDITOR_BRIDGE && parameter.real_time_refresh;
+ 
+       const setNodeClass = (newNodeClass: APIClassType) => {
+         options?.setNodeClass?.(newNodeClass);
+diff --git a/src/components/core/flowToolbarComponent/index.tsx b/src/components/core/flowToolbarComponent/index.tsx
+--- a/src/components/core/flowToolbarComponent/index.tsx
++++ b/src/components/core/flowToolbarComponent/index.tsx
+@@ -1,3 +1,5 @@
++import { EditorInteractions } from "@/customization/trellis/frontend/EditorInteractions";
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { Panel } from "@xyflow/react";
+ import { memo, useEffect, useState, useSyncExternalStore } from "react";
+ import { useHotkeys } from "react-hotkeys-hook";
+@@ -119,7 +121,13 @@
+   );
+ });
+ 
+-const FlowToolbar = TRELLIS_EDITOR_PROBE
++const TrellisBridgeToolbar = () => (
++  <Panel className="!m-2 rounded-md border bg-background shadow [&_button]:min-h-11" position="bottom-left">
++    <CanvasControlsDropdown selectedNode={null} />
++    <EditorInteractions />
++  </Panel>
++);
++const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITOR_PROBE
+   ? TrellisEditorToolbar
+   : StockFlowToolbar;
+ export default FlowToolbar;
+diff --git a/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
+--- a/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
++++ b/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
+@@ -1,6 +1,8 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { InputProps, StrRenderComponentType } from "../../types";
+ import CopyFieldAreaComponent from "../copyFieldAreaComponent";
+ import DropdownComponent from "../dropdownComponent";
++import InputComponent from "../inputComponent";
+ import InputGlobalComponent from "../inputGlobalComponent";
+ import TextAreaComponent from "../textAreaComponent";
+ import WebhookFieldComponent from "../webhookFieldComponent";
+@@ -52,6 +54,22 @@
+       );
+     }
+ 
++    if (TRELLIS_EDITOR_BRIDGE) {
++      return baseInputProps.showParameter ? (
++        <InputComponent
++          id={`input-${name}`}
++          nodeId={nodeId}
++          nodeStyle
++          editNode={baseInputProps.editNode}
++          disabled={baseInputProps.disabled || templateData.load_from_db === true}
++          password={templateData.password}
++          placeholder={placeholder}
++          value={baseInputProps.value}
++          onChange={(value, skipSnapshot) => handleOnNewValue({ value }, { skipSnapshot })}
++          ariaLabelledBy={baseInputProps.ariaLabelledBy}
++        />
++      ) : null;
++    }
+     return (
+       <InputGlobalComponent
+         {...baseInputProps}
+@@ -84,7 +102,7 @@
+         toggle={templateData.toggle}
+         toggleValue={templateData.toggle_value}
+         toggleDisable={templateData.toggle_disable}
+-        hasRefreshButton={templateData.refresh_button}
++        hasRefreshButton={!TRELLIS_EDITOR_BRIDGE && templateData.refresh_button}
+       />
+     );
+   }
+diff --git a/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx b/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
+--- a/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
++++ b/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { CustomCellRendererProps } from "ag-grid-react";
+ import { useTranslation } from "react-i18next";
+ import useHandleOnNewValue from "@/CustomNodes/hooks/use-handle-new-value";
+@@ -73,7 +74,7 @@
+           <VisibilityToggleButton
+             id={"show" + parameterId}
+             checked={isTweaks ? isApiEditable : !parameter.advanced}
+-            disabled={disabled}
++            disabled={disabled || (TRELLIS_EDITOR_BRIDGE && isTweaks)}
+             onToggle={handleToggle}
+           />
+         </div>
+diff --git a/src/components/core/parameterRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/index.tsx
+--- a/src/components/core/parameterRenderComponent/index.tsx
++++ b/src/components/core/parameterRenderComponent/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import type { handleOnNewValueType } from "@/CustomNodes/hooks/use-handle-new-value";
+ import CodeAreaComponent from "@/components/core/parameterRenderComponent/components/codeAreaComponent";
+@@ -82,7 +83,7 @@
+       value: templateValue,
+       editNode,
+       handleOnNewValue: handleOnNewValue as handleOnNewValueType,
+-      disabled,
++      disabled: disabled || (TRELLIS_EDITOR_BRIDGE && name === "code"),
+       nodeClass,
+       handleNodeClass,
+       nodeId,
+@@ -91,7 +92,7 @@
+       placeholder: placeholder || templateData?.placeholder,
+       isToolMode,
+       nodeInformationMetadata,
+-      hasRefreshButton: templateData.refresh_button,
++      hasRefreshButton: !TRELLIS_EDITOR_BRIDGE && templateData.refresh_button,
+       showParameter,
+       inspectionPanel,
+       ariaLabelledBy,
+@@ -398,5 +399,5 @@
+   // combobox). Widgets that don't yet apply it themselves get nothing from
+   // wrapping either way — role="group" doesn't propagate a name to a
+   // focused descendant control, only to the group boundary itself.
+-  return renderComponent();
++  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;
+ }
+diff --git a/src/controllers/API/queries/_builds/use-get-builds.ts b/src/controllers/API/queries/_builds/use-get-builds.ts
+--- a/src/controllers/API/queries/_builds/use-get-builds.ts
++++ b/src/controllers/API/queries/_builds/use-get-builds.ts
+@@ -1,7 +1,7 @@
+ import { keepPreviousData } from "@tanstack/react-query";
+ import type { AxiosResponse } from "axios";
+ import { useParams } from "react-router-dom";
+-import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
++import { TRELLIS_EDITOR_RESTRICTED } from "@/customization/trellis-editor-probe";
+ import useFlowStore from "@/stores/flowStore";
+ import type { FlowPoolType } from "@/types/zustand/flow";
+ import type { useQueryFunctionType } from "../../../../types/api";
+@@ -45,7 +45,7 @@
+     ["useGetBuildsQuery", { key: params.flowId }],
+     responseFn,
+     {
+-      enabled: !TRELLIS_EDITOR_PROBE,
++      enabled: !TRELLIS_EDITOR_RESTRICTED,
+       placeholderData: keepPreviousData,
+       refetchOnWindowFocus: false,
+       retry: 0,
+diff --git a/src/controllers/API/queries/flows/use-get-flow.ts b/src/controllers/API/queries/flows/use-get-flow.ts
+--- a/src/controllers/API/queries/flows/use-get-flow.ts
++++ b/src/controllers/API/queries/flows/use-get-flow.ts
+@@ -1,3 +1,5 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
++import { loadEditorFlow } from "@/customization/trellis/frontend/entry";
+ import { useQueryClient } from "@tanstack/react-query";
+ import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
+ import { loadTrellisEditorDocument } from "@/customization/trellis-editor-save";
+@@ -21,6 +23,7 @@
+   const queryClient = useQueryClient();
+ 
+   const getFlowFn = async (payload: IGetFlow): Promise<FlowType> => {
++    if (TRELLIS_EDITOR_BRIDGE) return loadEditorFlow(payload.id);
+     if (TRELLIS_EDITOR_PROBE) {
+       const flow = await loadTrellisEditorDocument(payload.id);
+       return processFlows([flow]).flows[0];
+diff --git a/src/controllers/API/queries/flows/use-get-types.ts b/src/controllers/API/queries/flows/use-get-types.ts
+--- a/src/controllers/API/queries/flows/use-get-types.ts
++++ b/src/controllers/API/queries/flows/use-get-types.ts
+@@ -1,3 +1,5 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
++import { loadEditorPalette } from "@/customization/trellis/frontend/entry";
+ import { replaceEqualDeep } from "@tanstack/react-query";
+ import { useLayoutEffect } from "react";
+ import { ENABLE_KNOWLEDGE_BASES } from "@/customization/feature-flags";
+@@ -68,7 +70,7 @@
+     try {
+       const queryParams = new URLSearchParams({ force_refresh: "true" });
+       appendProviderScope(queryParams, { flowId, projectId });
+-      const response = await api.get<APIObjectType>(
++      const response = TRELLIS_EDITOR_BRIDGE ? { data: await loadEditorPalette() } : await api.get<APIObjectType>(
+         `${getURL("ALL")}?${queryParams.toString()}`,
+       );
+       const raw = response?.data as Record<string, unknown>;
+diff --git a/src/controllers/API/queries/flows/use-patch-update-flow.ts b/src/controllers/API/queries/flows/use-patch-update-flow.ts
+--- a/src/controllers/API/queries/flows/use-patch-update-flow.ts
++++ b/src/controllers/API/queries/flows/use-patch-update-flow.ts
+@@ -4,6 +4,7 @@
+   UseMutationResult,
+ } from "@tanstack/react-query";
+ import type { ReactFlowJsonObject } from "@xyflow/react";
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
+ import { saveTrellisEditorDocument } from "@/customization/trellis-editor-save";
+ import type { useMutationFunctionType } from "@/types/api";
+@@ -71,6 +72,7 @@
+     ...payload
+     // biome-ignore lint/suspicious/noExplicitAny: legacy
+   }: IPatchUpdateFlow): Promise<any> => {
++    if (TRELLIS_EDITOR_BRIDGE) throw new Error("Use the Trellis workspace to save this draft.");
+     if (!TRELLIS_EDITOR_PROBE) {
+       const response = await api.patch(`${getURL("FLOWS")}/${id}`, payload);
+       return response.data;
+diff --git a/src/customization/trellis-editor-probe.ts b/src/customization/trellis-editor-probe.ts
+--- a/src/customization/trellis-editor-probe.ts
++++ b/src/customization/trellis-editor-probe.ts
+@@ -1,2 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
++export const TRELLIS_EDITOR_RESTRICTED = TRELLIS_EDITOR_BRIDGE || import.meta.env.TRELLIS_EDITOR_PROBE === true;
+ export const TRELLIS_EDITOR_PROBE =
+   import.meta.env.TRELLIS_EDITOR_PROBE === true;
+diff --git a/src/customization/trellis/api/flowEditorProtocolV1.ts b/src/customization/trellis/api/flowEditorProtocolV1.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/api/flowEditorProtocolV1.ts
+@@ -0,0 +1,49 @@
++import { z } from "zod/v4";
++
++const digest = z.string().regex(/^[a-f0-9]{64}$/);
++
++export const EditorIdentitySchema = z.strictObject({
++	host: z.string().min(1),
++	actor: z.string().min(1),
++	flowId: z.string().min(1),
++	revision: z.number().int().positive(),
++	documentHash: digest,
++	componentManifestHash: digest,
++});
++export type EditorIdentity = z.infer<typeof EditorIdentitySchema>;
++
++export const EditorContentSchema = z.strictObject({
++	schemaVersion: z.literal(1),
++	engine: z.literal("langflow"),
++	graphDocument: z.record(z.string(), z.json()),
++	componentManifestHash: digest,
++});
++export type EditorContent = z.infer<typeof EditorContentSchema>;
++
++export const EditorFocusSchema = z.strictObject({
++	nodeId: z.string().min(1),
++	field: z.string().nullable(),
++});
++export type EditorFocus = z.infer<typeof EditorFocusSchema>;
++
++const envelope = {
++	protocol: z.literal("trellis-editor-v1"),
++	channel: z.uuid(),
++	identity: EditorIdentitySchema,
++	sequence: z.number().int().positive(),
++};
++
++export const EditorEventSchema = z.discriminatedUnion("type", [
++	z.strictObject({ ...envelope, type: z.literal("connected") }),
++	z.strictObject({ ...envelope, type: z.literal("ready") }),
++	z.strictObject({ ...envelope, type: z.literal("draft-changed"), content: EditorContentSchema }),
++	z.strictObject({ ...envelope, type: z.literal("selection-changed"), focus: EditorFocusSchema.nullable() }),
++]);
++export type EditorEvent = z.infer<typeof EditorEventSchema>;
++
++export const EditorCommandSchema = z.discriminatedUnion("type", [
++	z.strictObject({ ...envelope, type: z.literal("initialize"), content: EditorContentSchema }),
++	z.strictObject({ ...envelope, type: z.literal("select-issue"), focus: EditorFocusSchema }),
++	z.strictObject({ ...envelope, type: z.literal("restore-focus"), focus: EditorFocusSchema.nullable() }),
++]);
++export type EditorCommand = z.infer<typeof EditorCommandSchema>;
+diff --git a/src/customization/trellis/api/flowEditorSessionV1.ts b/src/customization/trellis/api/flowEditorSessionV1.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/api/flowEditorSessionV1.ts
+@@ -0,0 +1,34 @@
++import { z } from "zod/v4";
++import { EditorContentSchema, EditorIdentitySchema } from "./flowEditorProtocolV1";
++
++const origin = z.string().refine((value) => {
++	try {
++		const url = new URL(value);
++		return ["http:", "https:"].includes(url.protocol) && url.origin === value;
++	} catch {
++		return false;
++	}
++}, "An editor origin must be an exact HTTP origin.");
++
++export const EditorSessionSchema = z
++	.strictObject({
++		channel: z.uuid(),
++		identity: EditorIdentitySchema,
++		content: EditorContentSchema,
++		editorOrigin: origin,
++		expiresAt: z.iso.datetime(),
++	})
++	.refine(
++		(session) => session.content.componentManifestHash === session.identity.componentManifestHash,
++		"The editor content must use the granted component catalog.",
++	);
++export type EditorSession = z.infer<typeof EditorSessionSchema>;
++
++export const EditorBootstrapSchema = z.strictObject({
++	channel: z.uuid(),
++	identity: EditorIdentitySchema,
++	parentOrigin: origin,
++	project: z.string().nullable(),
++	expiresAt: z.iso.datetime(),
++});
++export type EditorBootstrap = z.infer<typeof EditorBootstrapSchema>;
+diff --git a/src/customization/trellis/editorCatalog/editorCatalog.ts b/src/customization/trellis/editorCatalog/editorCatalog.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/editorCatalog.ts
+@@ -0,0 +1,44 @@
++import type { z } from "zod/v4";
++import { EditorCatalogSchema } from "./schema";
++
++export type EditorCatalog = z.infer<typeof EditorCatalogSchema>;
++
++export function readEditorCatalog(value: unknown, componentManifestHash: string): EditorCatalog {
++	const catalog = EditorCatalogSchema.parse(value);
++	const exported = catalog.frontendTemplates;
++	if (exported === null) return catalog;
++	if (
++		exported.componentManifestHash !== componentManifestHash ||
++		exported.catalogId !== catalog.catalogId ||
++		exported.engine.name !== catalog.engine.name ||
++		exported.engine.version !== catalog.engine.version ||
++		exported.engine.commit !== catalog.engine.commit ||
++		exported.allowedForPublication !== catalog.allowedForPublication
++	)
++		throw new Error("The frontend templates do not match the granted catalog.");
++	const declarations = new Map(catalog.definitions.map((item) => [item.id, item]));
++	const ids = new Set<string>();
++	const types = new Set<string>();
++	if (declarations.size !== catalog.definitions.length || exported.definitions.length !== declarations.size)
++		throw new Error("The frontend templates do not match the source definitions.");
++	for (const item of exported.definitions) {
++		const declaration = declarations.get(item.id);
++		if (
++			declaration === undefined ||
++			ids.has(item.id) ||
++			types.has(item.className) ||
++			item.version !== declaration.version ||
++			item.className !== declaration.className ||
++			item.source.root !== declaration.source.root ||
++			item.source.path !== declaration.source.path ||
++			item.source.sha256 !== declaration.source.sha256 ||
++			item.qualification !== declaration.qualification ||
++			item.allowedForPublication !== declaration.allowedForPublication ||
++			item.frontendTemplate.data.type !== item.className
++		)
++			throw new Error("A frontend template does not match its source definition.");
++		ids.add(item.id);
++		types.add(item.className);
++	}
++	return catalog;
++}
+diff --git a/src/customization/trellis/editorCatalog/index.ts b/src/customization/trellis/editorCatalog/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/index.ts
+@@ -0,0 +1 @@
++export { type EditorCatalog, readEditorCatalog } from "./editorCatalog";
+diff --git a/src/customization/trellis/editorCatalog/schema.ts b/src/customization/trellis/editorCatalog/schema.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/schema.ts
+@@ -0,0 +1,52 @@
++import { z } from "zod/v4";
++
++const digest = z.string().regex(/^[a-f0-9]{64}$/);
++const engine = z
++	.object({ name: z.literal("langflow"), version: z.string().min(1), commit: z.string().regex(/^[a-f0-9]{40}$/) })
++	.passthrough();
++const source = z.object({ root: z.enum(["trellis", "engine"]), path: z.string().min(1), sha256: digest }).passthrough();
++const definition = z
++	.object({
++		id: z.string(),
++		version: z.number().int().positive(),
++		className: z.string(),
++		source,
++		qualification: z.string(),
++		allowedForPublication: z.boolean(),
++	})
++	.passthrough();
++const policy = {
++	allowedForPublication: z.boolean(),
++	supportedMappings: z.array(z.json()),
++	legacyMappings: z.array(z.record(z.string(), z.json())),
++	blockers: z.record(z.string(), z.string()),
++};
++const template = z
++	.object({
++		id: z.string(),
++		data: z.object({ id: z.string(), type: z.string(), node: z.record(z.string(), z.json()) }).passthrough(),
++	})
++	.passthrough();
++const exported = z
++	.object({
++		schemaVersion: z.literal(1),
++		kind: z.literal("trellis-frontend-templates"),
++		catalogId: z.string().min(1),
++		componentManifestHash: digest,
++		engine,
++		engineOverlayHash: digest,
++		...policy,
++		definitions: z.array(definition.extend({ frontendTemplate: template })),
++	})
++	.passthrough();
++
++export const EditorCatalogSchema = z
++	.object({
++		schemaVersion: z.literal(1),
++		catalogId: z.string().min(1),
++		engine,
++		...policy,
++		definitions: z.array(definition.extend({ frontendTemplate: z.null() })),
++		frontendTemplates: exported.nullable(),
++	})
++	.passthrough();
+diff --git a/src/customization/trellis/editorOrigin/editorOrigin.ts b/src/customization/trellis/editorOrigin/editorOrigin.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorOrigin/editorOrigin.ts
+@@ -0,0 +1,7 @@
++export function editorOrigin(value: string, parentOrigin: string) {
++	const origin = new URL(value);
++	if (!["http:", "https:"].includes(origin.protocol) || origin.origin !== value || origin.origin === parentOrigin) {
++		throw new Error("The editor needs a separate HTTP origin.");
++	}
++	return origin.origin;
++}
+diff --git a/src/customization/trellis/editorOrigin/index.ts b/src/customization/trellis/editorOrigin/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorOrigin/index.ts
+@@ -0,0 +1 @@
++export { editorOrigin } from "./editorOrigin";
+diff --git a/src/customization/trellis/editorPalette/editorPalette.ts b/src/customization/trellis/editorPalette/editorPalette.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorPalette/editorPalette.ts
+@@ -0,0 +1,16 @@
++import type { EditorCatalog } from "../editorCatalog";
++
++export function editorPalette(catalog: EditorCatalog) {
++	const exported = catalog.frontendTemplates;
++	if (exported === null) throw new Error("The installed package has no verified frontend templates.");
++	const definitions = exported.definitions.filter(
++		(item) => catalog.allowedForPublication && item.allowedForPublication,
++	);
++	if (definitions.length === 0) throw new Error("The installed catalog has no approved editor components.");
++	return {
++		trellis: Object.fromEntries(
++			definitions.map(({ frontendTemplate }) => [frontendTemplate.data.type, frontendTemplate.data.node]),
++		),
++		component_display_names: {},
++	};
++}
+diff --git a/src/customization/trellis/editorPalette/index.ts b/src/customization/trellis/editorPalette/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorPalette/index.ts
+@@ -0,0 +1 @@
++export { editorPalette } from "./editorPalette";
+diff --git a/src/customization/trellis/fieldFocus/fieldFocus.ts b/src/customization/trellis/fieldFocus/fieldFocus.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/fieldFocus/fieldFocus.ts
+@@ -0,0 +1,12 @@
++import type { EditorFocus } from "../protocol";
++
++export function observeFieldFocus(document: Document, selected: (focus: EditorFocus) => void) {
++	const focused = (event: FocusEvent) => {
++		const target = event.target;
++		if (!(target instanceof document.defaultView!.Element)) return;
++		const field = target.closest<HTMLElement>("[data-trellis-node][data-trellis-field]");
++		if (field) selected({ nodeId: field.dataset.trellisNode!, field: field.dataset.trellisField! });
++	};
++	document.addEventListener("focusin", focused);
++	return () => document.removeEventListener("focusin", focused);
++}
+diff --git a/src/customization/trellis/fieldFocus/index.ts b/src/customization/trellis/fieldFocus/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/fieldFocus/index.ts
+@@ -0,0 +1 @@
++export { observeFieldFocus } from "./fieldFocus";
+diff --git a/src/customization/trellis/frameDriver/frameDriver.ts b/src/customization/trellis/frameDriver/frameDriver.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frameDriver/frameDriver.ts
+@@ -0,0 +1,98 @@
++import { editorOrigin } from "../editorOrigin";
++import {
++	EditorCommandSchema,
++	type EditorContent,
++	type EditorEvent,
++	type EditorFocus,
++	type EditorIdentity,
++	sameEditorIdentity,
++} from "../protocol";
++
++type Driver = {
++	initialize: (content: EditorContent) => Promise<void>;
++	subscribe: (callbacks: {
++		draftChanged: (content: EditorContent) => void;
++		selectionChanged: (focus: EditorFocus | null) => void;
++	}) => () => void;
++	selectIssue: (focus: EditorFocus) => void;
++	restoreFocus: (focus: EditorFocus | null) => void;
++};
++type Options = {
++	parentOrigin: string;
++	editorOrigin: string;
++	identity: EditorIdentity;
++	channel: string;
++	expiresAt: string;
++	now: () => number;
++	send: (event: EditorEvent, origin: string) => void;
++	driver: Driver;
++};
++
++export function createFrameDriver(options: Options) {
++	editorOrigin(options.editorOrigin, options.parentOrigin);
++	const expiresAt = Date.parse(options.expiresAt);
++	if (!Number.isFinite(expiresAt)) throw new Error("The editor grant needs an expiry time.");
++	let disposed = false;
++	let initialized = false;
++	let ready = false;
++	let connected = false;
++	let received = 0;
++	let sent = 0;
++	let unsubscribe: (() => void) | null = null;
++	const active = () => !disposed && options.now() < expiresAt;
++	const envelope = () => ({
++		protocol: "trellis-editor-v1" as const,
++		channel: options.channel,
++		identity: options.identity,
++		sequence: ++sent,
++	});
++	const connect = () => {
++		if (!active() || connected) return;
++		connected = true;
++		options.send({ ...envelope(), type: "connected" }, options.parentOrigin);
++	};
++	const receive = async (event: { origin: string; data: unknown }, fromParent: boolean) => {
++		if (!active() || !fromParent || event.origin !== options.parentOrigin) return false;
++		const parsed = EditorCommandSchema.safeParse(event.data);
++		if (!parsed.success) return false;
++		const command = parsed.data;
++		if (
++			command.channel !== options.channel ||
++			!sameEditorIdentity(command.identity, options.identity) ||
++			command.sequence <= received
++		)
++			return false;
++		if (command.type === "initialize") {
++			if (initialized || command.content.componentManifestHash !== options.identity.componentManifestHash) return false;
++			initialized = true;
++			received = command.sequence;
++			await options.driver.initialize(structuredClone(command.content));
++			if (!active()) return false;
++			unsubscribe = options.driver.subscribe({
++				draftChanged: (content) => {
++					if (!active() || !ready) return;
++					options.send({ ...envelope(), type: "draft-changed", content }, options.parentOrigin);
++				},
++				selectionChanged: (focus) => {
++					if (!active() || !ready) return;
++					options.send({ ...envelope(), type: "selection-changed", focus }, options.parentOrigin);
++				},
++			});
++			ready = true;
++			options.send({ ...envelope(), type: "ready" }, options.parentOrigin);
++			return true;
++		}
++		if (!ready) return false;
++		received = command.sequence;
++		if (command.type === "select-issue") options.driver.selectIssue(command.focus);
++		else options.driver.restoreFocus(command.focus);
++		return true;
++	};
++	const dispose = () => {
++		disposed = true;
++		ready = false;
++		unsubscribe?.();
++		unsubscribe = null;
++	};
++	return { connect, receive, dispose };
++}
+diff --git a/src/customization/trellis/frameDriver/index.ts b/src/customization/trellis/frameDriver/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frameDriver/index.ts
+@@ -0,0 +1 @@
++export { createFrameDriver } from "./frameDriver";
+diff --git a/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx b/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx
+@@ -0,0 +1,16 @@
++import { useId } from "react";
++import { Label } from "@/components/ui/label";
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
++
++export function EditorChoice({ label, value, choices, onChange }: {
++	label: string; value: string; choices: { value: string; label: string }[]; onChange: (value: string) => void;
++}) {
++	const id = useId();
++	return <div className="flex min-w-0 flex-col gap-2">
++		<Label htmlFor={id}>{label}</Label>
++		<Select value={value} onValueChange={onChange}>
++			<SelectTrigger id={id} className="min-h-11 w-full"><SelectValue placeholder={`Select ${label.toLowerCase()}`} /></SelectTrigger>
++			<SelectContent>{choices.map((choice) => <SelectItem key={choice.value} value={choice.value}>{choice.label}</SelectItem>)}</SelectContent>
++		</Select>
++	</div>;
++}
+diff --git a/src/customization/trellis/frontend/EditorChoice/index.ts b/src/customization/trellis/frontend/EditorChoice/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorChoice/index.ts
+@@ -0,0 +1 @@
++export { EditorChoice } from "./EditorChoice";
+diff --git a/src/customization/trellis/frontend/EditorInteractions/EditorInteractions.tsx b/src/customization/trellis/frontend/EditorInteractions/EditorInteractions.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorInteractions/EditorInteractions.tsx
+@@ -0,0 +1,29 @@
++import { useState } from "react";
++import IconComponent from "@/components/common/genericIconComponent";
++import ShadTooltip from "@/components/common/shadTooltipComponent";
++import { Button } from "@/components/ui/button";
++import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
++import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import { EditorOutline } from "../EditorOutline";
++import { KeyboardConnections } from "../KeyboardConnections";
++
++export function EditorInteractions() {
++	const [open, setOpen] = useState(false);
++	const [page, setPage] = useState<"outline" | "connections">("outline");
++	return <Dialog open={open} onOpenChange={setOpen}>
++		<ShadTooltip content="Outline and keyboard connections"><DialogTrigger asChild>
++			<Button type="button" variant="ghost" className="min-h-11 min-w-11 rounded-full" aria-label="Outline and keyboard connections"><IconComponent name="ListTree" /></Button>
++		</DialogTrigger></ShadTooltip>
++		<DialogContent className="max-h-screen overflow-auto">
++			<DialogTitle>Flow interactions</DialogTitle>
++			<DialogDescription>Find nested components and edit connections with the keyboard.</DialogDescription>
++			<div className="flex flex-wrap gap-2">
++				<Button type="button" variant="secondary" aria-pressed={page === "outline"} onClick={() => setPage("outline")}>Outline</Button>
++				<Button type="button" variant="secondary" aria-pressed={page === "connections"} onClick={() => setPage("connections")}>Connections</Button>
++				<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().undo()}>Undo</Button>
++				<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().redo()}>Redo</Button>
++			</div>
++			{page === "outline" ? <EditorOutline onReveal={() => setOpen(false)} /> : <KeyboardConnections />}
++		</DialogContent>
++	</Dialog>;
++}
+diff --git a/src/customization/trellis/frontend/EditorInteractions/__tests__/EditorInteractions.test.tsx b/src/customization/trellis/frontend/EditorInteractions/__tests__/EditorInteractions.test.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorInteractions/__tests__/EditorInteractions.test.tsx
+@@ -0,0 +1,72 @@
++import { act, fireEvent, render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import type { AllNodeType } from "@/types/flow";
++import useFlowStore from "@/stores/flowStore";
++import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import { KeyboardConnections } from "../../KeyboardConnections";
++import { EditorOutline } from "../../EditorOutline";
++import { connectEditorPorts, deleteEditorSelection } from "../../graphActions";
++import { graphPorts } from "../../graphPorts";
++
++function node(id: string, parentId?: string): AllNodeType {
++	return { id, parentId, type: "genericNode", position: { x: 0, y: 0 }, data: {
++		id, type: "FixtureOnly", node: { display_name: id, description: "Interaction fixture only",
++			template: { value: { type: "Data", input_types: ["Data"], display_name: "Input", list: false, show: true } },
++			outputs: [{ name: "result", display_name: "Result", types: ["Data"], method: "fixture" }],
++		},
++	} } as AllNodeType;
++}
++function reset(nodes = [node("source"), node("target")]) {
++	useFlowsManagerStore.setState({ currentFlowId: crypto.randomUUID() });
++	useFlowStore.setState({ nodes, edges: [], autoSaveFlow: undefined });
++}
++function connect(source = "source", target = "target") {
++	const nodes = useFlowStore.getState().nodes;
++	return connectEditorPorts({ source, target,
++		sourceHandle: graphPorts(nodes.find((item) => item.id === source)!).outputs[0].handle,
++		targetHandle: graphPorts(nodes.find((item) => item.id === target)!).inputs[0].handle,
++	});
++}
++
++test("keyboard selectors create a native edge and reject an occupied single input", async () => {
++	reset(); const user = userEvent.setup(); render(<KeyboardConnections />);
++	async function choose(label: string) {
++		const control = screen.getByRole("combobox", { name: label });
++		control.focus(); await user.keyboard("{Enter}{Home}{Enter}");
++	}
++	await choose("Source component"); await choose("Output port");
++	await choose("Target component"); await choose("Input port");
++	const save = screen.getByRole("button", { name: "Save connection" });
++	save.focus(); await user.keyboard("{Enter}");
++	expect(useFlowStore.getState().edges).toHaveLength(1);
++	expect(connect()).toBe(false);
++});
++
++test("replacement and deletion undo restore exact native handles and nested descendants", () => {
++	reset([node("source"), node("target"), node("group"), node("child", "group"), node("grandchild", "child")]);
++	expect(connect()).toBe(true);
++	const before = structuredClone({ nodes: useFlowStore.getState().nodes, edges: useFlowStore.getState().edges });
++	const edge = before.edges[0];
++	const nodes = useFlowStore.getState().nodes;
++	expect(connectEditorPorts({ source: "source", target: "grandchild", sourceHandle: edge.sourceHandle!,
++		targetHandle: graphPorts(nodes[4]).inputs[0].handle }, edge.id)).toBe(true);
++	useFlowsManagerStore.getState().undo();
++	expect(useFlowStore.getState().edges).toEqual(before.edges);
++	deleteEditorSelection(["group", "source"], []);
++	expect(useFlowStore.getState().nodes.map((item) => item.id)).toEqual(["target"]);
++	expect(useFlowStore.getState().edges).toEqual([]);
++	useFlowsManagerStore.getState().undo();
++	expect(useFlowStore.getState().nodes).toEqual(before.nodes);
++	expect(useFlowStore.getState().edges).toEqual(before.edges);
++});
++
++test("the mounted outline finds a descendant by ancestor path and deletes it with undo", () => {
++	reset([node("outer"), node("inner", "outer"), node("leaf", "inner")]);
++	render(<EditorOutline onReveal={() => {}} />);
++	fireEvent.change(screen.getByLabelText("Find a component"), { target: { value: "outer / inner / leaf" } });
++	fireEvent.click(screen.getByRole("button", { name: "outer / inner / leaf · leaf" }));
++	fireEvent.click(screen.getByRole("button", { name: "Delete component and descendants" }));
++	expect(useFlowStore.getState().nodes.map((item) => item.id)).toEqual(["outer", "inner"]);
++	act(() => useFlowsManagerStore.getState().undo());
++	expect(screen.getByRole("button", { name: "outer / inner / leaf · leaf" })).toBeTruthy();
++});
+diff --git a/src/customization/trellis/frontend/EditorInteractions/index.ts b/src/customization/trellis/frontend/EditorInteractions/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorInteractions/index.ts
+@@ -0,0 +1 @@
++export { EditorInteractions } from "./EditorInteractions";
+diff --git a/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx b/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx
+@@ -0,0 +1,46 @@
++import { useState } from "react";
++import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import useFlowStore from "@/stores/flowStore";
++import { deleteEditorSelection } from "../graphActions";
++import { revealEditorFocus } from "../revealEditorFocus";
++
++export function EditorOutline({ onReveal }: { onReveal: () => void }) {
++	const nodes = useFlowStore((state) => state.nodes);
++	const edges = useFlowStore((state) => state.edges);
++	const [query, setQuery] = useState("");
++	const [selected, setSelected] = useState("");
++	const byId = new Map(nodes.map((node) => [node.id, node]));
++	const pathOf = (id: string) => {
++		const labels: string[] = []; const seen = new Set<string>();
++		let node = byId.get(id);
++		while (node && !seen.has(node.id)) {
++			seen.add(node.id); labels.unshift(node.data.node?.display_name || node.data.type || node.id);
++			node = node.parentId ? byId.get(node.parentId) : undefined;
++		}
++		return labels.join(" / ");
++	};
++	const matches = nodes.filter((node) => `${pathOf(node.id)} ${node.id}`.toLowerCase().includes(query.toLowerCase()));
++	const selection = byId.get(selected);
++	return <section aria-label="Component outline" className="flex min-w-0 flex-col gap-4">
++		<Label htmlFor="trellis-outline-search">Find a component</Label>
++		<Input id="trellis-outline-search" value={query} onChange={(event) => setQuery(event.target.value)} />
++		<p role="status">{matches.length} components. Paths include every ancestor.</p>
++		<ul aria-label="Components" className="max-h-60 overflow-auto">
++			{matches.map((node) => <li key={node.id}>
++				<Button type="button" variant="ghost" className="h-auto min-h-11 w-full justify-start whitespace-normal break-words text-left" aria-pressed={selected === node.id} onClick={() => setSelected(node.id)}>
++					{pathOf(node.id)} · {node.id}
++				</Button>
++			</li>)}
++		</ul>
++		{selection && <div className="flex flex-col gap-2">
++			<p>{pathOf(selected)}. {edges.filter((edge) => edge.source === selected || edge.target === selected).length} direct connections.</p>
++			<div className="flex flex-wrap gap-2">
++				<Button type="button" onClick={() => { onReveal(); requestAnimationFrame(() => revealEditorFocus({ nodeId: selected, field: null })); }}>Reveal component</Button>
++				<Button type="button" variant="destructive" onClick={() => { deleteEditorSelection([selected], []); setSelected(""); }}>Delete component and descendants</Button>
++			</div>
++			<p>Undo restores the complete graph, including descendants and connections.</p>
++		</div>}
++	</section>;
++}
+diff --git a/src/customization/trellis/frontend/EditorOutline/index.ts b/src/customization/trellis/frontend/EditorOutline/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/EditorOutline/index.ts
+@@ -0,0 +1 @@
++export { EditorOutline } from "./EditorOutline";
+diff --git a/src/customization/trellis/frontend/KeyboardConnections/KeyboardConnections.tsx b/src/customization/trellis/frontend/KeyboardConnections/KeyboardConnections.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/KeyboardConnections/KeyboardConnections.tsx
+@@ -0,0 +1,62 @@
++import { useState } from "react";
++import type { Connection } from "@xyflow/react";
++import { Button } from "@/components/ui/button";
++import useFlowStore from "@/stores/flowStore";
++import { isValidConnection } from "@/utils/reactflowUtils";
++import { EditorChoice } from "../EditorChoice";
++import { connectEditorPorts, deleteEditorSelection } from "../graphActions";
++import { graphPorts } from "../graphPorts";
++
++export function KeyboardConnections() {
++	const nodes = useFlowStore((state) => state.nodes);
++	const edges = useFlowStore((state) => state.edges);
++	const [source, setSource] = useState("");
++	const [output, setOutput] = useState("");
++	const [target, setTarget] = useState("");
++	const [input, setInput] = useState("");
++	const [edgeId, setEdgeId] = useState("new");
++	const [message, setMessage] = useState("");
++	const sourceNode = nodes.find((node) => node.id === source);
++	const targetNode = nodes.find((node) => node.id === target);
++	const retained = edges.filter((edge) => edge.id !== edgeId);
++	const connection: Connection = { source, target, sourceHandle: output, targetHandle: input };
++	const valid = Boolean(sourceNode && targetNode && graphPorts(sourceNode).outputs.some((port) => port.handle === output) && graphPorts(targetNode).inputs.some((port) => port.handle === input) && output && input && isValidConnection(connection, nodes, retained));
++	const targets = output ? nodes.filter((node) => graphPorts(node).inputs.some((port) =>
++		isValidConnection({ source, target: node.id, sourceHandle: output, targetHandle: port.handle }, nodes, retained))) : [];
++	const inputs = targetNode && output ? graphPorts(targetNode).inputs.filter((port) =>
++		isValidConnection({ ...connection, targetHandle: port.handle }, nodes, retained)) : [];
++	const nodeChoice = (node: typeof nodes[number]) => ({ value: node.id, label: `${node.data.node?.display_name || node.data.type} · ${node.id}` });
++	function chooseEdge(id: string) {
++		setEdgeId(id); setMessage("");
++		const edge = edges.find((item) => item.id === id);
++		setSource(edge?.source ?? ""); setOutput(edge?.sourceHandle ?? "");
++		setTarget(edge?.target ?? ""); setInput(edge?.targetHandle ?? "");
++	}
++	return <form className="flex flex-col gap-4" aria-label="Keyboard connections" onSubmit={(event) => {
++		event.preventDefault();
++		if (!valid || !connectEditorPorts(connection, edgeId === "new" ? undefined : edgeId)) {
++			setMessage("Select compatible ports. The graph may have changed."); return;
++		}
++		chooseEdge("new"); setMessage("Connection saved. Undo restores the previous graph.");
++	}}>
++		<EditorChoice label="Connection" value={edgeId} onChange={chooseEdge} choices={[
++			{ value: "new", label: "New connection" }, ...edges.map((edge) => ({ value: edge.id, label: `${edge.source} → ${edge.target} · ${edge.id}` })),
++		]} />
++		<EditorChoice label="Source component" value={source} choices={nodes.filter((node) => graphPorts(node).outputs.length).map(nodeChoice)} onChange={(id) => {
++			setSource(id); setOutput(""); setTarget(""); setInput("");
++		}} />
++		<EditorChoice label="Output port" value={output} choices={(sourceNode ? graphPorts(sourceNode).outputs : []).map((port) => ({ value: port.handle, label: port.label }))} onChange={(id) => {
++			setOutput(id); setTarget(""); setInput("");
++		}} />
++		<EditorChoice label="Target component" value={target} choices={targets.map(nodeChoice)} onChange={(id) => { setTarget(id); setInput(""); }} />
++		<EditorChoice label="Input port" value={input} choices={inputs.map((port) => ({ value: port.handle, label: port.label }))} onChange={setInput} />
++		<p role="status">{message || "Only compatible ports are available. Feedback ports name the loop boundary."}</p>
++		<div className="flex flex-wrap gap-2">
++			<Button type="submit" disabled={!valid}>Save connection</Button>
++			<Button type="button" variant="secondary" onClick={() => chooseEdge("new")}>Cancel</Button>
++			<Button type="button" variant="destructive" disabled={edgeId === "new" || !edges.some((edge) => edge.id === edgeId)} onClick={() => {
++				deleteEditorSelection([], [edgeId]); chooseEdge("new"); setMessage("Connection deleted. Undo restores it.");
++			}}>Delete connection</Button>
++		</div>
++	</form>;
++}
+diff --git a/src/customization/trellis/frontend/KeyboardConnections/index.ts b/src/customization/trellis/frontend/KeyboardConnections/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/KeyboardConnections/index.ts
+@@ -0,0 +1 @@
++export { KeyboardConnections } from "./KeyboardConnections";
+diff --git a/src/customization/trellis/frontend/entry/entry.ts b/src/customization/trellis/frontend/entry/entry.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/entry/entry.ts
+@@ -0,0 +1,74 @@
++import type { APIObjectType } from "@/types/api";
++import type { FlowType } from "@/types/flow";
++import { editorPalette } from "../../editorPalette";
++import { createFrameDriver } from "../../frameDriver";
++import type { EditorContent } from "../../protocol";
++import { openEditorReads } from "../../scopedReads";
++import { TRELLIS_EDITOR_BRIDGE } from "../mode";
++import { nativeDriver } from "../nativeDriver";
++
++let reads: Awaited<ReturnType<typeof openEditorReads>>;
++let initialContent: Promise<EditorContent>;
++
++export async function startEditorBridge() {
++	if (!TRELLIS_EDITOR_BRIDGE) return;
++	const channel = new URL(location.href).searchParams.get("trellisChannel");
++	const flowId = decodeURIComponent(location.pathname.split("/")[2] ?? "");
++	if (!channel || !flowId || window.parent === window) throw new Error("The editor requires a Trellis workspace.");
++	reads = await openEditorReads({
++		channel,
++		flowId,
++		origin: location.origin,
++		fetch: window.fetch.bind(window),
++		now: Date.now,
++	});
++	let deliver!: (content: EditorContent) => void;
++	initialContent = new Promise((resolve) => {
++		deliver = resolve;
++	});
++	const driver = nativeDriver(flowId);
++	const bridge = createFrameDriver({
++		...reads.bootstrap,
++		editorOrigin: location.origin,
++		now: Date.now,
++		send: (event, origin) => window.parent.postMessage(event, origin),
++		driver: {
++			...driver,
++			initialize: async (content) => {
++				deliver(content);
++				await driver.initialize(content);
++			},
++		},
++	});
++	const receive = (event: MessageEvent) => {
++		void bridge.receive(event, event.source === window.parent);
++	};
++	window.addEventListener("message", receive);
++	window.addEventListener(
++		"pagehide",
++		() => {
++			bridge.dispose();
++			window.removeEventListener("message", receive);
++		},
++		{ once: true },
++	);
++	bridge.connect();
++}
++
++export async function loadEditorFlow(flowId: string): Promise<FlowType> {
++	if (flowId !== reads.bootstrap.identity.flowId) throw new Error("The editor flow does not match its grant.");
++	const [document, content] = await Promise.all([reads.document(), initialContent]);
++	return {
++		id: document.flow.id,
++		name: document.flow.name,
++		description: document.flow.description,
++		data: content.graphDocument as NonNullable<FlowType["data"]>,
++		flow_type: "workflow",
++		locked: false,
++		access_type: "PRIVATE",
++	};
++}
++
++export async function loadEditorPalette(): Promise<APIObjectType> {
++	return editorPalette(await reads.catalog()) as APIObjectType;
++}
+diff --git a/src/customization/trellis/frontend/entry/index.ts b/src/customization/trellis/frontend/entry/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/entry/index.ts
+@@ -0,0 +1 @@
++export { loadEditorFlow, loadEditorPalette, startEditorBridge } from "./entry";
+diff --git a/src/customization/trellis/frontend/graphActions/graphActions.ts b/src/customization/trellis/frontend/graphActions/graphActions.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/graphActions/graphActions.ts
+@@ -0,0 +1,29 @@
++import type { Connection } from "@xyflow/react";
++import useFlowStore from "@/stores/flowStore";
++import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import { isValidConnection } from "@/utils/reactflowUtils";
++
++export function connectEditorPorts(connection: Connection, replacedEdge?: string): boolean {
++	const state = useFlowStore.getState();
++	if (replacedEdge && !state.edges.some((edge) => edge.id === replacedEdge)) return false;
++	const edges = state.edges.filter((edge) => edge.id !== replacedEdge);
++	if (!isValidConnection(connection, state.nodes, edges)) return false;
++	useFlowsManagerStore.getState().takeSnapshot();
++	if (replacedEdge) state.setEdges(edges);
++	state.onConnect(connection);
++	return true;
++}
++
++export function deleteEditorSelection(nodeIds: string[], edgeIds: string[]) {
++	const state = useFlowStore.getState();
++	const removed = new Set(nodeIds);
++	let size = -1;
++	while (size !== removed.size) {
++		size = removed.size;
++		for (const node of state.nodes) if (node.parentId && removed.has(node.parentId)) removed.add(node.id);
++	}
++	useFlowsManagerStore.getState().takeSnapshot();
++	const edges = state.edges.filter((edge) => !edgeIds.includes(edge.id) && !removed.has(edge.source) && !removed.has(edge.target));
++	state.setNodes(state.nodes.filter((node) => !removed.has(node.id)));
++	state.setEdges(edges);
++}
+diff --git a/src/customization/trellis/frontend/graphActions/index.ts b/src/customization/trellis/frontend/graphActions/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/graphActions/index.ts
+@@ -0,0 +1 @@
++export { connectEditorPorts, deleteEditorSelection } from "./graphActions";
+diff --git a/src/customization/trellis/frontend/graphPorts/graphPorts.ts b/src/customization/trellis/frontend/graphPorts/graphPorts.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/graphPorts/graphPorts.ts
+@@ -0,0 +1,27 @@
++import { computeDisplayHandle } from "@/CustomNodes/GenericNode/components/RenderInputParameters/utils";
++import type { AllNodeType } from "@/types/flow";
++import { scapedJSONStringfy } from "@/utils/reactflowUtils";
++
++export type EditorPort = { handle: string; label: string; field: string };
++export function graphPorts(node: AllNodeType) {
++	const inputs: EditorPort[] = [];
++	const outputs: EditorPort[] = [];
++	for (const [name, field] of Object.entries(node.data.node?.template ?? {})) {
++		if (name === "code" || typeof field !== "object" || field === null || !computeDisplayHandle(field, false)) continue;
++		const handle = { inputTypes: field.input_types, type: field.type, id: node.id, fieldName: name,
++			...(field.proxy ? { proxy: field.proxy } : {}) };
++		inputs.push({ handle: scapedJSONStringfy(handle), field: name,
++			label: `${field.display_name || name} (${field.input_types?.join(", ") || field.type})` });
++	}
++	for (const output of node.data.node?.outputs ?? []) {
++		const selected = output.selected ?? output.types[0];
++		const handle = { output_types: [selected], id: node.id, dataType: node.data.type, name: output.name };
++		outputs.push({ handle: scapedJSONStringfy(handle), field: output.name,
++			label: `${output.display_name || output.name} (${selected})` });
++		if (output.allows_loop) inputs.push({
++			handle: scapedJSONStringfy({ ...handle, output_types: [selected, ...(output.loop_types ?? [])] }),
++			field: output.name, label: `${output.display_name || output.name}: feedback (${selected})`,
++		});
++	}
++	return { inputs, outputs };
++}
+diff --git a/src/customization/trellis/frontend/graphPorts/index.ts b/src/customization/trellis/frontend/graphPorts/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/graphPorts/index.ts
+@@ -0,0 +1 @@
++export { graphPorts } from "./graphPorts";
+diff --git a/src/customization/trellis/frontend/mode/index.ts b/src/customization/trellis/frontend/mode/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/mode/index.ts
+@@ -0,0 +1 @@
++export { TRELLIS_EDITOR_BRIDGE } from "./mode";
+diff --git a/src/customization/trellis/frontend/mode/mode.ts b/src/customization/trellis/frontend/mode/mode.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/mode/mode.ts
+@@ -0,0 +1 @@
++export const TRELLIS_EDITOR_BRIDGE = import.meta.env.VITE_TRELLIS_EDITOR_BRIDGE === "true";
+diff --git a/src/customization/trellis/frontend/nativeDriver/index.ts b/src/customization/trellis/frontend/nativeDriver/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/nativeDriver/index.ts
+@@ -0,0 +1 @@
++export { editorViewportChanged, nativeDriver } from "./nativeDriver";
+diff --git a/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts b/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts
+@@ -0,0 +1,75 @@
++import useFlowStore from "@/stores/flowStore";
++import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import type { FlowType } from "@/types/flow";
++import { observeFieldFocus } from "../../fieldFocus";
++import type { EditorContent, EditorFocus } from "../../protocol";
++import { revealEditorFocus } from "../revealEditorFocus";
++
++let viewportChanged = () => {};
++export function editorViewportChanged() {
++	viewportChanged();
++}
++
++export function nativeDriver(flowId: string) {
++	let original: EditorContent;
++	const initialize = async (content: EditorContent) => {
++		original = content;
++		useFlowsManagerStore.getState().setAutoSaving(false);
++		await new Promise<void>((resolve) => {
++			const loaded = () => {
++				const state = useFlowStore.getState();
++				return state.currentFlow?.id === flowId && state.reactFlowInstance !== null;
++			};
++			if (loaded()) return resolve();
++			const unsubscribe = useFlowStore.subscribe(() => {
++				if (loaded()) {
++					unsubscribe();
++					resolve();
++				}
++			});
++		});
++		const graph = content.graphDocument as NonNullable<FlowType["data"]>;
++		await useFlowStore.getState().reactFlowInstance!.setViewport(graph.viewport);
++	};
++	const subscribe = (callbacks: {
++		draftChanged: (content: EditorContent) => void;
++		selectionChanged: (focus: EditorFocus | null) => void;
++	}) => {
++		const content = (): EditorContent => {
++			const state = useFlowStore.getState();
++			return {
++				...original,
++				graphDocument: {
++					...original.graphDocument,
++					nodes: structuredClone(state.nodes),
++					edges: structuredClone(state.edges),
++					viewport: state.reactFlowInstance!.getViewport(),
++				} as EditorContent["graphDocument"],
++			};
++		};
++		let previous = JSON.stringify(content());
++		let selection = useFlowStore.getState().nodes.find((node) => node.selected)?.id ?? null;
++		const stopFocus = observeFieldFocus(document, callbacks.selectionChanged);
++		const changed = () => {
++			const next = content();
++			const bytes = JSON.stringify(next);
++			if (bytes !== previous) {
++				previous = bytes;
++				callbacks.draftChanged(next);
++			}
++			const selected = useFlowStore.getState().nodes.find((node) => node.selected)?.id ?? null;
++			if (selected !== selection) {
++				selection = selected;
++				callbacks.selectionChanged(selected === null ? null : { nodeId: selected, field: null });
++			}
++		};
++		viewportChanged = changed;
++		const unsubscribe = useFlowStore.subscribe(changed);
++		return () => {
++			unsubscribe();
++			stopFocus();
++			viewportChanged = () => {};
++		};
++	};
++	return { initialize, subscribe, selectIssue: revealEditorFocus, restoreFocus: revealEditorFocus };
++}
+diff --git a/src/customization/trellis/frontend/revealEditorFocus/index.ts b/src/customization/trellis/frontend/revealEditorFocus/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/revealEditorFocus/index.ts
+@@ -0,0 +1 @@
++export { revealEditorFocus } from "./revealEditorFocus";
+diff --git a/src/customization/trellis/frontend/revealEditorFocus/revealEditorFocus.ts b/src/customization/trellis/frontend/revealEditorFocus/revealEditorFocus.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/revealEditorFocus/revealEditorFocus.ts
+@@ -0,0 +1,36 @@
++import useFlowStore from "@/stores/flowStore";
++import type { EditorFocus } from "../../protocol";
++
++export function revealEditorFocus(focus: EditorFocus | null) {
++	if (focus === null) {
++		document.querySelector<HTMLElement>(".react-flow")?.focus();
++		return;
++	}
++	const state = useFlowStore.getState();
++	const target = state.nodes.find((node) => node.id === focus.nodeId);
++	if (!target) return;
++	const ancestors = new Set<string>();
++	let node: typeof target | undefined = target;
++	while (node && !ancestors.has(node.id)) {
++		ancestors.add(node.id);
++		node = state.nodes.find((candidate) => candidate.id === node?.parentId);
++	}
++	state.setNodes(
++		state.nodes.map((item) =>
++			ancestors.has(item.id)
++				? { ...item, hidden: false, selected: item.id === focus.nodeId, data: { ...item.data, showNode: true } }
++				: { ...item, selected: false },
++		),
++	);
++	void state.reactFlowInstance!.fitView({ nodes: [{ id: focus.nodeId }], duration: 0 }).then(() => {
++		requestAnimationFrame(() => {
++			const selector =
++				focus.field === null
++					? `[data-id="${CSS.escape(focus.nodeId)}"].react-flow__node`
++					: `[data-trellis-node="${CSS.escape(focus.nodeId)}"][data-trellis-field="${CSS.escape(focus.field)}"]`;
++			const element = document.querySelector<HTMLElement>(selector);
++			const control = element?.querySelector<HTMLElement>("input,textarea,button,select,[tabindex]");
++			(control ?? element)?.focus({ preventScroll: true });
++		});
++	});
++}
+diff --git a/src/customization/trellis/protocol/index.ts b/src/customization/trellis/protocol/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/protocol/index.ts
+@@ -0,0 +1,9 @@
++export type { EditorCommand, EditorContent, EditorEvent, EditorFocus, EditorIdentity } from "./protocol";
++export {
++	EditorCommandSchema,
++	EditorContentSchema,
++	EditorEventSchema,
++	EditorFocusSchema,
++	EditorIdentitySchema,
++	sameEditorIdentity,
++} from "./protocol";
+diff --git a/src/customization/trellis/protocol/protocol.ts b/src/customization/trellis/protocol/protocol.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/protocol/protocol.ts
+@@ -0,0 +1,21 @@
++import type { EditorIdentity } from "../api/flowEditorProtocolV1";
++
++export type { EditorCommand, EditorContent, EditorEvent, EditorFocus, EditorIdentity } from "../api/flowEditorProtocolV1";
++export {
++	EditorCommandSchema,
++	EditorContentSchema,
++	EditorEventSchema,
++	EditorFocusSchema,
++	EditorIdentitySchema,
++} from "../api/flowEditorProtocolV1";
++
++export function sameEditorIdentity(left: EditorIdentity, right: EditorIdentity) {
++	return (
++		left.host === right.host &&
++		left.actor === right.actor &&
++		left.flowId === right.flowId &&
++		left.revision === right.revision &&
++		left.documentHash === right.documentHash &&
++		left.componentManifestHash === right.componentManifestHash
++	);
++}
+diff --git a/src/customization/trellis/scopedReads/index.ts b/src/customization/trellis/scopedReads/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/scopedReads/index.ts
+@@ -0,0 +1 @@
++export { openEditorReads } from "./scopedReads";
+diff --git a/src/customization/trellis/scopedReads/scopedReads.ts b/src/customization/trellis/scopedReads/scopedReads.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/scopedReads/scopedReads.ts
+@@ -0,0 +1,67 @@
++import { z } from "zod/v4";
++import { readEditorCatalog } from "../editorCatalog";
++import { editorOrigin } from "../editorOrigin";
++import { EditorContentSchema } from "../protocol";
++import { EditorBootstrapSchema } from "../session";
++
++const documentSchema = EditorContentSchema.extend({
++	flow: z.object({ id: z.string(), name: z.string(), description: z.string(), project: z.string().nullable() }),
++	revision: z.number().int().positive(),
++	documentHash: z.string(),
++}).passthrough();
++
++type Options = {
++	channel: string;
++	origin: string;
++	flowId: string;
++	fetch: typeof fetch;
++	now: () => number;
++};
++
++export async function openEditorReads(options: Options) {
++	const channel = z.uuid().parse(options.channel);
++	const base = `${options.origin}/api/trellis-editor/v1/sessions/${channel}`;
++	const get = async (path: string, headers?: HeadersInit): Promise<unknown> => {
++		const response = await options.fetch(`${base}/${path}`, {
++			method: "GET",
++			credentials: "same-origin",
++			referrerPolicy: "origin",
++			redirect: "error",
++			cache: "no-store",
++			headers,
++		});
++		if (!response.ok) throw new Error(`The editor read failed (${response.status}).`);
++		return response.json();
++	};
++	const bootstrap = EditorBootstrapSchema.parse(await get("session"));
++	editorOrigin(options.origin, bootstrap.parentOrigin);
++	if (bootstrap.channel !== channel || bootstrap.identity.flowId !== options.flowId) {
++		throw new Error("The editor bootstrap belongs to another mount.");
++	}
++	const active = () => {
++		if (options.now() >= Date.parse(bootstrap.expiresAt)) throw new Error("The editor session has expired.");
++	};
++	active();
++	const read = async (path: string) => {
++		active();
++		const value = await get(path, {
++			"x-trellis-editor-identity": JSON.stringify(bootstrap.identity),
++			"x-trellis-editor-project": bootstrap.project ?? "",
++		});
++		active();
++		return value;
++	};
++	const document = async () => {
++		const result = documentSchema.parse(await read("document"));
++		if (
++			result.flow.id !== bootstrap.identity.flowId ||
++			result.flow.project !== bootstrap.project ||
++			result.componentManifestHash !== bootstrap.identity.componentManifestHash
++		)
++			throw new Error("The editor document does not match its grant.");
++		return result;
++	};
++	const catalog = async () =>
++		readEditorCatalog(await read("component-manifest"), bootstrap.identity.componentManifestHash);
++	return { bootstrap, document, catalog };
++}
+diff --git a/src/customization/trellis/session/index.ts b/src/customization/trellis/session/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/session/index.ts
+@@ -0,0 +1,2 @@
++export type { EditorBootstrap, EditorSession } from "./session";
++export { EditorBootstrapSchema, EditorSessionSchema } from "./session";
+diff --git a/src/customization/trellis/session/session.ts b/src/customization/trellis/session/session.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/session/session.ts
+@@ -0,0 +1,2 @@
++export type { EditorBootstrap, EditorSession } from "../api/flowEditorSessionV1";
++export { EditorBootstrapSchema, EditorSessionSchema } from "../api/flowEditorSessionV1";
+diff --git a/src/hooks/flows/use-save-flow.ts b/src/hooks/flows/use-save-flow.ts
+--- a/src/hooks/flows/use-save-flow.ts
++++ b/src/hooks/flows/use-save-flow.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { ReactFlowJsonObject } from "@xyflow/react";
+ import { useTranslation } from "react-i18next";
+ import { useGetFlow } from "@/controllers/API/queries/flows/use-get-flow";
+@@ -25,6 +26,7 @@
+     flow?: FlowType,
+     options?: SaveFlowOptions,
+   ): Promise<void> => {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     const currentFlow = useFlowStore.getState().currentFlow;
+     const currentSavedFlow = useFlowsManagerStore.getState().currentFlow;
+     const requestedFlow = flow || currentFlow;
+diff --git a/src/index.tsx b/src/index.tsx
+--- a/src/index.tsx
++++ b/src/index.tsx
+@@ -1,3 +1,4 @@
++import { startEditorBridge } from "@/customization/trellis/frontend/entry";
+ import "./i18n";
+ import ReactDOM from "react-dom/client";
+ import { detectedLang, loadLanguage } from "./i18n";
+@@ -13,7 +14,7 @@
+ // @ts-ignore
+ import App from "./customization/custom-App";
+ 
+-loadLanguage(detectedLang).then(() => {
++Promise.all([loadLanguage(detectedLang), startEditorBridge()]).then(() => {
+   const root = ReactDOM.createRoot(
+     document.getElementById("root") as HTMLElement,
+   );
+diff --git a/src/pages/DashboardWrapperPage/index.tsx b/src/pages/DashboardWrapperPage/index.tsx
+--- a/src/pages/DashboardWrapperPage/index.tsx
++++ b/src/pages/DashboardWrapperPage/index.tsx
+@@ -2,7 +2,7 @@
+ import AppHeader from "@/components/core/appHeaderComponent";
+ import { PermissionsProvider } from "@/contexts/permissionsContext";
+ import useTheme from "@/customization/hooks/use-custom-theme";
+-import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
++import { TRELLIS_EDITOR_RESTRICTED } from "@/customization/trellis-editor-probe";
+ import useFlowStore from "@/stores/flowStore";
+ 
+ export function DashboardWrapperPage() {
+@@ -18,7 +18,7 @@
+       }
+     >
+       <div className="flex h-screen w-full flex-col overflow-hidden">
+-        {!TRELLIS_EDITOR_PROBE && <AppHeader />}
++        {!TRELLIS_EDITOR_RESTRICTED && <AppHeader />}
+         <div className="flex w-full flex-1 flex-row overflow-hidden">
+           <Outlet />
+         </div>
+diff --git a/src/pages/FlowPage/components/PageComponent/index.tsx b/src/pages/FlowPage/components/PageComponent/index.tsx
+--- a/src/pages/FlowPage/components/PageComponent/index.tsx
++++ b/src/pages/FlowPage/components/PageComponent/index.tsx
+@@ -42,7 +42,10 @@
+   trellisCanvasEdges,
+   trellisCanvasNodes,
+ } from "@/customization/trellis-editor-canvas";
+-import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
++import { deleteEditorSelection } from "@/customization/trellis/frontend/graphActions";
++import { editorViewportChanged } from "@/customization/trellis/frontend/nativeDriver";
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
++import { TRELLIS_EDITOR_RESTRICTED } from "@/customization/trellis-editor-probe";
+ import { track } from "@/customization/utils/analytics";
+ import useApplyFlowToCanvas from "@/hooks/flows/use-apply-flow-to-canvas";
+ import useAutoSaveFlow from "@/hooks/flows/use-autosave-flow";
+@@ -140,7 +143,7 @@
+     // Labels are derived from the whole list at once: same-type nodes would
+     // otherwise share an accessible name, which role="application" forbids.
+     const ariaLabels = getNodeAriaLabels(nodes, t);
+-    return (TRELLIS_EDITOR_PROBE ? trellisCanvasNodes(nodes) : nodes).map(
++    return (TRELLIS_EDITOR_RESTRICTED ? trellisCanvasNodes(nodes) : nodes).map(
+       (node, index) => ({
+         ...node,
+         ariaLabel: ariaLabels[index],
+@@ -188,7 +191,7 @@
+   );
+   const edgesWithAriaLabel = useMemo(
+     () =>
+-      (TRELLIS_EDITOR_PROBE ? trellisCanvasEdges(nodes, edges) : edges).map(
++      (TRELLIS_EDITOR_RESTRICTED ? trellisCanvasEdges(nodes, edges) : edges).map(
+         (edge) => ({
+           ...edge,
+           ariaLabel: getEdgeAriaLabel(edge, getNode, t),
+@@ -241,7 +244,7 @@
+   const isPermissionReadOnly = useIsFlowReadOnly(currentFlowResourceId);
+ 
+   const { isAgentWorking, events, lastSettledAt, clearEvents } = useFlowEvents(
+-    TRELLIS_EDITOR_PROBE ? undefined : currentFlowId || undefined,
++    TRELLIS_EDITOR_RESTRICTED ? undefined : currentFlowId || undefined,
+   );
+   const isAssistantProcessing = useAssistantManagerStore(
+     (state) => state.isAssistantProcessing,
+@@ -556,6 +559,7 @@
+           track("Component Deleted", { componentType: n.data.type });
+         });
+       }
++      if (TRELLIS_EDITOR_BRIDGE) { deleteEditorSelection(lastSelection.nodes.map((node) => node.id), lastSelection.edges.map((edge) => edge.id)); return; }
+       deleteNode(lastSelection.nodes.map((node) => node.id));
+       deleteEdge(lastSelection.edges.map((edge) => edge.id));
+     }
+@@ -568,7 +572,7 @@
+   }
+ 
+   function handleDownload(e: KeyboardEvent) {
+-    if (TRELLIS_EDITOR_PROBE) return;
++    if (TRELLIS_EDITOR_RESTRICTED) return;
+     if (!isWrappedWithClass(e, "noflow")) {
+       e.preventDefault();
+       (e as unknown as Event).stopImmediatePropagation();
+@@ -826,6 +830,7 @@
+   const onEdgeUpdate = useCallback(
+     (oldEdge: EdgeType, newConnection: Connection) => {
+       if (isValidConnection(newConnection, nodes, edges)) {
++        if (TRELLIS_EDITOR_BRIDGE) takeSnapshot();
+         edgeUpdateSuccessful.current = true;
+         oldEdge.data = {
+           targetHandle: scapeJSONParse(newConnection.targetHandle!),
+@@ -1006,12 +1011,12 @@
+       {showCanvas ? (
+         <>
+           <div id="react-flow-id" className="h-full w-full bg-canvas relative">
+-            {!TRELLIS_EDITOR_PROBE && !isWelcomeOpen && (
++            {!TRELLIS_EDITOR_RESTRICTED && !isWelcomeOpen && (
+               <MemoizedSidebarTrigger />
+             )}
+             {!view && !isWelcomeOpen && (
+               <>
+-                {!TRELLIS_EDITOR_PROBE && (
++                {!TRELLIS_EDITOR_RESTRICTED && (
+                   <MemoizedCanvasControls
+                     selectedNode={selectedNode}
+                     isAgentWorking={isAgentWorking}
+@@ -1046,6 +1051,7 @@
+               nodesDraggable={!isPreviewActive && !effectiveLocked}
+               nodesConnectable={!isPreviewActive && !effectiveLocked}
+               elementsSelectable={!isPreviewActive && !effectiveLocked}
++              onMoveEnd={TRELLIS_EDITOR_BRIDGE ? editorViewportChanged : undefined}
+               onInit={setReactFlowInstance}
+               nodeTypes={nodeTypes}
+               onReconnect={
+@@ -1096,9 +1102,9 @@
+               onDrop={isPreviewActive || effectiveLocked ? undefined : onDrop}
+               onSelectionChange={onSelectionChange}
+               deleteKeyCode={[]}
+-              fitView={!TRELLIS_EDITOR_PROBE && !isEmptyFlow.current}
+-              defaultViewport={TRELLIS_EDITOR_PROBE ? savedViewport : undefined}
+-              onlyRenderVisibleElements={TRELLIS_EDITOR_PROBE}
++              fitView={!TRELLIS_EDITOR_RESTRICTED && !isEmptyFlow.current}
++              defaultViewport={TRELLIS_EDITOR_RESTRICTED ? savedViewport : undefined}
++              onlyRenderVisibleElements={TRELLIS_EDITOR_RESTRICTED}
+               fitViewOptions={FIT_VIEW_OPTIONS}
+               className="theme-attribution"
+               tabIndex={effectiveLocked ? -1 : undefined}
+@@ -1151,7 +1157,7 @@
+                 its visibility is driven entirely by the
+                 ``flowBuilderWelcomeStore`` which is primed by the
+                 "New Flow" button on the home page. */}
+-            {!TRELLIS_EDITOR_PROBE && !effectiveLocked && (
++            {!TRELLIS_EDITOR_RESTRICTED && !effectiveLocked && (
+               <FlowBuilderWelcomeMount />
+             )}
+           </div>
+@@ -1161,7 +1167,7 @@
+           <CustomLoader remSize={20} />
+         </div>
+       )}
+-      {!TRELLIS_EDITOR_PROBE && (
++      {!TRELLIS_EDITOR_RESTRICTED && (
+         <ExportModal open={openExportModal} setOpen={setOpenExportModal} />
+       )}
+     </div>
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import IconComponent from "@/components/common/genericIconComponent";
+ import ShadTooltip from "@/components/common/shadTooltipComponent";
+@@ -45,7 +46,7 @@
+   const shortcuts = useShortcutsStore((state) => state.shortcuts);
+   return (
+     <>
+-      {canEditCode && (
++      {!TRELLIS_EDITOR_BRIDGE && canEditCode && (
+         <ToolbarButton
+           className={isCustomComponent ? "animate-pulse-pink" : ""}
+           icon="Code"
+@@ -72,7 +73,7 @@
+           dataTestId="parameters-button"
+         />
+       )}
+-      {!hasToolMode && (
++      {!TRELLIS_EDITOR_BRIDGE && !hasToolMode && (
+         <ToolbarButton
+           icon="FreezeAll"
+           label={t("nodeToolbar.freeze")}
+@@ -87,7 +88,7 @@
+           )}
+         />
+       )}
+-      {hasToolMode && (
++      {!TRELLIS_EDITOR_BRIDGE && hasToolMode && (
+         <ShadTooltip
+           content={
+             <ShortcutDisplay
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import IconComponent from "@/components/common/genericIconComponent";
+ import ShadTooltip from "@/components/common/shadTooltipComponent";
+@@ -84,7 +85,7 @@
+       <SelectContentWithoutPortal
+         className={"relative top-1 w-56 bg-background"}
+       >
+-        <SelectItem variant="plain" value={"save"}>
++        <SelectItem variant="plain" value={"save"} disabled={TRELLIS_EDITOR_BRIDGE}>
+           <ToolbarSelectItem
+             shortcut={
+               shortcuts.find((obj) => obj.name === "Save Component")?.shortcut!
+@@ -113,7 +114,7 @@
+           />
+         </SelectItem>
+         {isOutdated && (
+-          <SelectItem variant="plain" value={"update"}>
++          <SelectItem variant="plain" value={"update"} disabled={TRELLIS_EDITOR_BRIDGE}>
+             <ToolbarSelectItem
+               shortcut={
+                 shortcuts.find((obj) => obj.name === "Update")?.shortcut!
+@@ -133,7 +134,7 @@
+           <SelectItem
+             variant="plain"
+             value={"Share"}
+-            disabled={!hasApiKey || !validApiKey}
++            disabled={TRELLIS_EDITOR_BRIDGE || !hasApiKey || !validApiKey}
+           >
+             <ToolbarSelectItem
+               shortcut={
+@@ -191,6 +192,7 @@
+           <SelectItem
+             variant="plain"
+             value="freezeAll"
++            disabled={TRELLIS_EDITOR_BRIDGE}
+             data-testid="freeze-all-button-modal"
+           >
+             <ToolbarSelectItem
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts b/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useHotkeys } from "react-hotkeys-hook";
+ import { useShortcutsStore } from "@/stores/shortcuts";
+ import isWrappedWithClass from "../../PageComponent/utils/is-wrapped-with-class";
+@@ -47,6 +48,7 @@
+   const toolMode = useShortcutsStore((state) => state.toolMode);
+ 
+   function handleFreezeAll(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (isWrappedWithClass(e, "noflow") || !FreezeAllVertices) return;
+     e.preventDefault();
+     FreezeAllVertices();
+@@ -65,6 +67,7 @@
+   }
+ 
+   function handleSaveWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (
+       (isWrappedWithClass(e, "noflow") && !showOverrideModal) ||
+       !saveComponent
+@@ -85,6 +88,7 @@
+   }
+ 
+   function handleCodeWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if ((isWrappedWithClass(e, "noflow") && !openModal) || !handleCodeModal)
+       return;
+     e.preventDefault();
+@@ -92,6 +96,7 @@
+   }
+ 
+   function handleShareWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (
+       (isWrappedWithClass(e, "noflow") && !showconfirmShare) ||
+       !shareComponent
+@@ -114,7 +119,7 @@
+   }
+ 
+   function handleToolModeWShortcut(e: KeyboardEvent, hasToolMode?: boolean) {
+-    if (!hasToolMode) return;
++    if (TRELLIS_EDITOR_BRIDGE || !hasToolMode) return;
+     if (isWrappedWithClass(e, "noflow") || !activateToolMode) return;
+     e.preventDefault();
+     activateToolMode();
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useUpdateNodeInternals } from "@xyflow/react";
+ import _, { cloneDeep } from "lodash";
+ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+@@ -365,6 +366,7 @@
+ 
+     const handleSelectChange = useCallback(
+       (event: string) => {
++        if (TRELLIS_EDITOR_BRIDGE && ["save", "saveAll", "override", "code", "update", "Share", "freezeAll", "toolMode"].includes(event)) return;
+         setSelectedValue(event);
+ 
+         // Clear right-clicked state when user selects an option
+diff --git a/src/pages/FlowPage/index.tsx b/src/pages/FlowPage/index.tsx
+--- a/src/pages/FlowPage/index.tsx
++++ b/src/pages/FlowPage/index.tsx
+@@ -14,7 +14,7 @@
+ import { useGetTypes } from "@/controllers/API/queries/flows/use-get-types";
+ import { ENABLE_NEW_SIDEBAR } from "@/customization/feature-flags";
+ import { useCustomNavigate } from "@/customization/hooks/use-custom-navigate";
+-import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
++import { TRELLIS_EDITOR_RESTRICTED } from "@/customization/trellis-editor-probe";
+ import useApplyFlowToCanvas from "@/hooks/flows/use-apply-flow-to-canvas";
+ import useSaveFlow from "@/hooks/flows/use-save-flow";
+ import { useDocumentTitle } from "@/hooks/use-document-title";
+@@ -126,17 +126,17 @@
+   const applyLoadedFlowToCanvas = useApplyFlowToCanvas();
+   const applyFlowToCanvas = useCallback(
+     (flow: FlowType) => {
+-      if (TRELLIS_EDITOR_PROBE) {
++      if (TRELLIS_EDITOR_RESTRICTED) {
+         setFlows([flow]);
+       }
+-      applyLoadedFlowToCanvas(flow, { fitView: !TRELLIS_EDITOR_PROBE });
++      applyLoadedFlowToCanvas(flow, { fitView: !TRELLIS_EDITOR_RESTRICTED });
+     },
+     [applyLoadedFlowToCanvas, setFlows],
+   );
+ 
+   useLoadFlowForRoute({
+     id,
+-    flows: TRELLIS_EDITOR_PROBE && flows === undefined ? [] : flows,
++    flows: TRELLIS_EDITOR_RESTRICTED && flows === undefined ? [] : flows,
+     currentFlowId,
+     types,
+     getFlow,
+@@ -284,7 +284,7 @@
+     setIsFullscreen,
+   ]);
+ 
+-  if (TRELLIS_EDITOR_PROBE) {
++  if (TRELLIS_EDITOR_RESTRICTED) {
+     return (
+       <div className="flow-page-positioning">
+         {currentFlow && (
+diff --git a/src/stores/flowStore.ts b/src/stores/flowStore.ts
+--- a/src/stores/flowStore.ts
++++ b/src/stores/flowStore.ts
+@@ -1,3 +1,5 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
++import { deleteEditorSelection } from "@/customization/trellis/frontend/graphActions";
+ import {
+   addEdge,
+   applyEdgeChanges,
+@@ -537,6 +539,7 @@
+     return get().nodes.find((node) => node.id === id);
+   },
+   deleteNode: (nodeId) => {
++    if (TRELLIS_EDITOR_BRIDGE) { deleteEditorSelection(typeof nodeId === "string" ? [nodeId] : nodeId, []); return; }
+     const { filteredNodes, deletedNode } = get().nodes.reduce<{
+       filteredNodes: AllNodeType[];
+       deletedNode: AllNodeType | null;
+@@ -578,6 +581,7 @@
+     }
+   },
+   deleteEdge: (edgeId) => {
++    if (TRELLIS_EDITOR_BRIDGE) { deleteEditorSelection([], typeof edgeId === "string" ? [edgeId] : edgeId); return; }
+     get().setEdges(
+       get().edges.filter((edge) =>
+         typeof edgeId === "string"
+diff --git a/src/stores/flowsManagerStore.ts b/src/stores/flowsManagerStore.ts
+--- a/src/stores/flowsManagerStore.ts
++++ b/src/stores/flowsManagerStore.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { cloneDeep } from "lodash";
+ import { create } from "zustand";
+ import { SAVE_DEBOUNCE_TIME } from "@/constants/constants";
+@@ -106,7 +107,7 @@
+       return;
+     if (pastLength > 0) {
+       past[currentFlowId] = past[currentFlowId].slice(
+-        pastLength - defaultOptions.maxHistorySize + 1,
++        TRELLIS_EDITOR_BRIDGE ? 0 : pastLength - defaultOptions.maxHistorySize + 1,
+         pastLength,
+       );
+ 

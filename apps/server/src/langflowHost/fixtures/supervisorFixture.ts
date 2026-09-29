@@ -20,6 +20,7 @@ export async function supervisorFixture() {
 	const trace: string[] = [];
 	const processes = new Map<string, SidecarObservation>();
 	const revocations = new Map<string, OwnerRevocation>();
+	let canceled = false;
 	const receipts = new Map<string, AuthorityCommit>();
 	let authority = DeliveryAuthorityV1Schema.parse(authorityFixture);
 	let admission = AdmissionStateV1Schema.parse({
@@ -61,6 +62,8 @@ export async function supervisorFixture() {
 		authority: {
 			async revokeOwner({ identity, observationId }) {
 				trace.push("revoke");
+				const saved = revocations.get(identity.ownerId);
+				if (saved) return saved;
 				const receipt = { id: crypto.randomUUID(), identity, observationId };
 				revocations.set(identity.ownerId, receipt);
 				return receipt;
@@ -72,7 +75,7 @@ export async function supervisorFixture() {
 				return receipts.get(`${executionId}/${requestId}`) ?? null;
 			},
 			async read() {
-				return structuredClone({ authority, admission });
+				return structuredClone({ authority, admission, canceled });
 			},
 			async commit(input) {
 				const { receipt } = input;
@@ -98,6 +101,11 @@ export async function supervisorFixture() {
 		dependencies,
 		open,
 		authority: () => structuredClone(authority),
+		cancel(closeAdmission = true) {
+			canceled = true;
+			if (closeAdmission) admission = { state: "closed", barrierId: "cancel-barrier" };
+		},
+
 		bind(identity: SidecarIdentity) {
 			authority = { ...authority, ownerId: identity.ownerId };
 		},

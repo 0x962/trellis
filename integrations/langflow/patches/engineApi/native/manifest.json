@@ -1,0 +1,11 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-native-engine-api.patch",
+  "sha256": "07445397a869fe88f8bc32731f85ad76d110ba3085cc5f4c199566433382bbd8",
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/native_ledger.py": "9f135f6a0c5233b25b47d299499ecb4165749b46f33e5a3757fa688bce801d36",
+    "src/backend/base/langflow/services/trellis_v1/native_protocol.py": "3be94b229daf8ec2624f37af6a96ef3d15f12b6dd31245b76b44280f3dcdc479",
+    "src/backend/base/langflow/services/trellis_v1/native_records.py": "421b92a54571fbb0d9ef53e11b479b7e7b35ffb385f53346620ed12eccb3dbfe",
+    "src/backend/base/langflow/services/trellis_v1/native_router.py": "89662dcec63c495ef3ac379d9b88af801a8fe4ab9e548da20cd0de5cb15b91ba"
+  }
+}

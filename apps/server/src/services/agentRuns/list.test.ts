@@ -62,9 +62,9 @@ beforeAll(async () => {
 		VALUES (${statusId}, ${epicProjectId}, 'Todo', 'todo', 'todo', 'neutral', 0, true,
 			${hoursAgo(300)}, ${hoursAgo(300)})`);
 	await db.execute(sql`INSERT INTO epics
-		(id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at)
+		(id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id)
 		VALUES (${epicId}, ${epicProjectId}, 'history', 'History', 'dana', 'human',
-			${hoursAgo(300)}, ${hoursAgo(300)})`);
+			${hoursAgo(300)}, ${hoursAgo(300)}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 	await db.execute(sql`INSERT INTO tickets
 		(id, project_id, number, title, status_id, epic_id, position, created_at, updated_at) VALUES
 		(${epicTicketIds[0]}, ${epicProjectId}, 1, 'Assigned', ${statusId}, ${epicId}, 1,

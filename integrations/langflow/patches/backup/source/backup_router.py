@@ -16,6 +16,7 @@ from langflow.services.trellis_v1.backup import (
     capture_engine_snapshot,
     snapshot_file,
 )
+from langflow.services.trellis_v1.capture_grants import CaptureConflict
 
 
 def create_backup_router(*, database, settings, export_root: Path, authentication_file: Path,
@@ -32,7 +33,7 @@ def create_backup_router(*, database, settings, export_root: Path, authenticatio
             raise HTTPException(status_code=401, detail="engine_snapshot_unauthorized",
                                 headers={"WWW-Authenticate": "Bearer"})
 
-    router = APIRouter(prefix="/trellis-v1/snapshots", dependencies=[Depends(authenticate)])
+    router = APIRouter(prefix="/snapshots", dependencies=[Depends(authenticate)])
 
     @router.post("", response_model=EngineSnapshotReceipt)
     async def capture(binding: SnapshotBinding) -> EngineSnapshotReceipt:
@@ -42,7 +43,7 @@ def create_backup_router(*, database, settings, export_root: Path, authenticatio
                 package_digest=package_digest, data_home_id=data_home_id, host_id=host_id,
                 snapshot_boundary=snapshot_boundary,
             )
-        except SnapshotConflict as error:
+        except (SnapshotConflict, CaptureConflict) as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
     @router.get("/{snapshot_id}/{part}")

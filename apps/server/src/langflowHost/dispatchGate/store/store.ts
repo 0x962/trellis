@@ -13,6 +13,7 @@ import {
 import { dirname, join } from "node:path";
 import { lockHome } from "../../../homeLock";
 import type { BlockReason, DispatchState } from "../contracts";
+import { dispatchChanges } from "./notifications";
 import { DispatchStateSchema } from "./schema";
 
 export class DispatchStore {
@@ -35,7 +36,15 @@ export class DispatchStore {
 		mkdirSync(directory, { mode: 0o700 });
 		const store = new DispatchStore(directory, dataHomeId);
 		const block = initialBlock ? { ...initialBlock, id: crypto.randomUUID(), dataHomeId, generation: 1 } : null;
-		store.write({ version: 1, dataHomeId, generation: block ? 1 : 0, block, permits: [], reconciliations: [] });
+		store.write({
+			version: 1,
+			dataHomeId,
+			generation: block ? 1 : 0,
+			block,
+			permits: [],
+			reconciliations: [],
+			captureGrants: [],
+		});
 		store.syncDirectory(dirname(store.directory));
 		return store;
 	}
@@ -75,6 +84,7 @@ export class DispatchStore {
 		}
 		renameSync(temporary, this.path);
 		this.syncDirectory(this.directory);
+		dispatchChanges.emit(this.directory);
 	}
 
 	private syncDirectory(path: string) {

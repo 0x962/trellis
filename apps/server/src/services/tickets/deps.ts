@@ -24,7 +24,7 @@ const resolveDependencies = async (
 	const resolved = new Map<string, TicketRow>();
 	for (const ref of refs) {
 		const dependency = await resolveTicket(ctx, tx, ref);
-		if (dependency.projectId !== target.projectId) {
+		if (field === "after" && dependency.projectId !== target.projectId) {
 			throw invalidInput(field, "A dependency must belong to the same project as its ticket.");
 		}
 		resolved.set(dependency.id, dependency);

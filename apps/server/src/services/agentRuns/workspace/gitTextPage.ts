@@ -7,8 +7,13 @@ const utf8End = (bytes: Buffer, limit: number) => {
 	return end;
 };
 
-export const gitTextPage = (workspace: string, args: string[], page: { offset: number; limit: number }) =>
-	runGit(workspace, args, async (stream) => {
+export const gitTextPage = (
+	workspace: string,
+	args: string[],
+	page: { offset: number; limit: number },
+	signal?: AbortSignal,
+) =>
+	runGit(workspace, args, signal, async (stream) => {
 		const hash = createHash("sha256");
 		const chunks: Uint8Array[] = [];
 		let totalBytes = 0;

@@ -1,1 +1,1 @@
-from .orderedOutput import TrellisOrderedOutputV1
+from .orderedOutput import TrellisOrderedOutputV1 as TrellisOrderedOutputV1

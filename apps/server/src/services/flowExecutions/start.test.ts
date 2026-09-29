@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { randomBytes } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { node } from "../../agents/nativeFlow/testDoc.ts";
 import type { ServiceCtx } from "../../context.ts";
+import { collisionActors } from "../../db/actorConsumerIdentities/fixture.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -136,4 +138,21 @@ test("an explicit repeat records the user's reason and preserves request idempot
 	expect(repeated.id).not.toBe(first.id);
 	expect(repeated.repeatReason).toBe(request.repeatReason);
 	expect((await run((tx) => start(ctx, tx, request))).id).toBe(repeated.id);
+});
+
+test("complete and colliding actor names preserve exact start replay", async () => {
+	const completeActors = [randomBytes(2048).toString("hex"), randomBytes(8192).toString("hex")];
+	expect(completeActors.map((actor) => actor.length)).toEqual([4096, 16384]);
+	for (const [index, actor] of [...completeActors, ...collisionActors].entries()) {
+		const { input } = await fixture();
+		const request = { ...input, requestId: index < 2 ? `long-request-${index}` : "collision-request" };
+		const actorCtx = { ...ctx, actor: { kind: "agent" as const, name: actor } };
+		const first = await run((tx) => start(actorCtx, tx, request));
+		const replay = await run((tx) => start(actorCtx, tx, request));
+		expect(replay.id).toBe(first.id);
+	}
+	const collisionRows = await db.$client.query(
+		"SELECT actor_name FROM flow_executions WHERE request_id='collision-request' ORDER BY actor_name",
+	);
+	expect(collisionRows.rows).toEqual(collisionActors.map((actor_name) => ({ actor_name })));
 });

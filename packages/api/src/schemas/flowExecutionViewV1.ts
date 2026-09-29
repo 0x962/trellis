@@ -17,7 +17,13 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 const opaqueId = z.string().min(1);
 const commit = z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/);
-export const FlowExecutionIdentityV1Schema = z.strictObject({ id: UlidSchema, engine: FlowEngineV1Schema });
+export const FlowExecutionIdentityV1Schema = z.strictObject({
+	id: UlidSchema,
+	engine: FlowEngineV1Schema,
+	flowId: UlidSchema,
+	status: FlowExecutionStateSchema.shape.status.nullable(),
+	pendingSubmission: z.boolean(),
+});
 export type FlowExecutionIdentityV1 = z.infer<typeof FlowExecutionIdentityV1Schema>;
 const paginationInteger = z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).pipe(z.number().int());
 export const FlowExecutionListV1InputSchema = FlowExecutionListInputSchema.extend({
@@ -116,7 +122,7 @@ export const FlowOccurrenceV1Schema = FlowOccurrenceIdentityV1Schema.extend({
 	instruction: z.string(),
 	actionKey: opaqueId,
 	state: FlowStepStateSchema,
-	waitReason: z.enum(["human", "native", "ownership_unknown", "admission"]).nullable(),
+	waitReason: z.enum(["human", "native", "review", "ownership_unknown", "admission"]).nullable(),
 	output: z.string().nullable(),
 	outputSource: FlowOutputSourceV1Schema.nullable().describe(
 		"The retained native result that supplies the output. Null means that no native result binding is available.",
@@ -191,6 +197,7 @@ export const FlowExecutionViewV1Schema = FlowExecutionSchema.omit({
 			"active",
 			"waiting_human",
 			"waiting_native",
+			"waiting_review",
 			"unknown",
 			"completed",
 			"failed",

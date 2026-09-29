@@ -2,7 +2,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/backup.py b/src/backe
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/backup.py
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,157 @@
 +from __future__ import annotations
 +
 +import asyncio
@@ -16,6 +16,8 @@ new file mode 100644
 +
 +import aiosqlite
 +from pydantic import BaseModel, ConfigDict, Field
++
++from langflow.services.trellis_v1.capture_tasks import finish_capture_task
 +
 +
 +class SnapshotConflict(ValueError):
@@ -139,8 +141,10 @@ new file mode 100644
 +                                  data_home_id: str, host_id: str,
 +                                  snapshot_boundary: Callable[[SnapshotBinding], AbstractAsyncContextManager]) -> EngineSnapshotReceipt:
 +    async with snapshot_boundary(binding):
-+        return await _export_engine_snapshot(database, settings, root, binding, package_digest=package_digest,
-+                                            data_home_id=data_home_id, host_id=host_id)
++        return await finish_capture_task(_export_engine_snapshot(
++            database, settings, root, binding, package_digest=package_digest,
++            data_home_id=data_home_id, host_id=host_id,
++        ))
 +
 +
 +def snapshot_file(root: Path, snapshot_id: UUID, part: str) -> Path:
@@ -160,7 +164,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/backup_router.py b/sr
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/backup_router.py
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,59 @@
 +from __future__ import annotations
 +
 +import hmac
@@ -179,6 +183,7 @@ new file mode 100644
 +    capture_engine_snapshot,
 +    snapshot_file,
 +)
++from langflow.services.trellis_v1.capture_grants import CaptureConflict
 +
 +
 +def create_backup_router(*, database, settings, export_root: Path, authentication_file: Path,
@@ -195,7 +200,7 @@ new file mode 100644
 +            raise HTTPException(status_code=401, detail="engine_snapshot_unauthorized",
 +                                headers={"WWW-Authenticate": "Bearer"})
 +
-+    router = APIRouter(prefix="/trellis-v1/snapshots", dependencies=[Depends(authenticate)])
++    router = APIRouter(prefix="/snapshots", dependencies=[Depends(authenticate)])
 +
 +    @router.post("", response_model=EngineSnapshotReceipt)
 +    async def capture(binding: SnapshotBinding) -> EngineSnapshotReceipt:
@@ -205,7 +210,7 @@ new file mode 100644
 +                package_digest=package_digest, data_home_id=data_home_id, host_id=host_id,
 +                snapshot_boundary=snapshot_boundary,
 +            )
-+        except SnapshotConflict as error:
++        except (SnapshotConflict, CaptureConflict) as error:
 +            raise HTTPException(status_code=409, detail=str(error)) from error
 +
 +    @router.get("/{snapshot_id}/{part}")
@@ -219,3 +224,408 @@ new file mode 100644
 +        return FileResponse(path, media_type="application/octet-stream", headers={"Cache-Control": "no-store"})
 +
 +    return router
+diff --git a/src/backend/base/langflow/services/trellis_v1/capture_boundary.py b/src/backend/base/langflow/services/trellis_v1/capture_boundary.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/capture_boundary.py
+@@ -0,0 +1,68 @@
++from __future__ import annotations
++
++import asyncio
++import fcntl
++import os
++from contextlib import asynccontextmanager
++from uuid import UUID
++
++from langflow.services.trellis_v1.backup import SnapshotBinding
++from langflow.services.trellis_v1.capture_grants import CaptureConflict, parse_grant
++from langflow.services.trellis_v1.capture_store import CaptureGrantStore
++from langflow.services.trellis_v1.capture_tasks import finish_capture_task
++
++
++class CapturePaused(RuntimeError):
++    pass
++
++
++class CaptureBoundary:
++    def __init__(self, store: CaptureGrantStore):
++        self.store = store
++        self.path = store.directory / "capture-writers.lock"
++
++    @asynccontextmanager
++    async def _exclude(self, exclusive: bool):
++        descriptor = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
++        try:
++            CaptureGrantStore._private_file(descriptor)
++            operation = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
++            while True:
++                try:
++                    fcntl.flock(descriptor, operation | fcntl.LOCK_NB)
++                    break
++                except BlockingIOError:
++                    await asyncio.sleep(0.01)
++            yield
++        finally:
++            os.close(descriptor)
++
++    @asynccontextmanager
++    async def writer(self):
++        async with self._exclude(False):
++            if await asyncio.to_thread(self.store.active) is not None:
++                raise CapturePaused("engine_capture_active")
++            yield
++
++    async def commit(self, grant_bytes: str):
++        async with self._exclude(True):
++            return await finish_capture_task(asyncio.to_thread(self.store.commit, grant_bytes))
++
++    async def revoke(self, grant_id: UUID, grant_bytes: str):
++        async with self._exclude(True):
++            return await finish_capture_task(asyncio.to_thread(self.store.revoke, grant_id, grant_bytes))
++
++    @asynccontextmanager
++    async def snapshot(self, binding: SnapshotBinding):
++        async with self._exclude(False):
++            receipt = await asyncio.to_thread(self.store.active)
++            if receipt is None:
++                raise CaptureConflict("capture_grant_not_active")
++            grant = parse_grant(receipt.grantBytes)
++            if grant.identity != self.store.identity:
++                raise CaptureConflict("capture_runtime_identity_conflict")
++            if (grant.snapshotId, grant.boundaryReceiptId, str(grant.identity.dataHomeId), str(grant.identity.hostId)) != (
++                str(binding.snapshotId), binding.boundaryReceiptId, binding.sourceDataHomeId, binding.sourceHostId
++            ):
++                raise CaptureConflict("capture_snapshot_binding_conflict")
++            yield
+diff --git a/src/backend/base/langflow/services/trellis_v1/capture_grants.py b/src/backend/base/langflow/services/trellis_v1/capture_grants.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/capture_grants.py
+@@ -0,0 +1,102 @@
++from __future__ import annotations
++
++import hashlib
++import json
++from typing import Annotated, Literal
++from uuid import UUID
++
++from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StrictInt, StrictStr, model_validator
++
++
++class CaptureConflict(ValueError):
++    pass
++
++
++class CaptureMissing(LookupError):
++    pass
++
++
++Text = Annotated[StrictStr, Field(min_length=1)]
++Digest = Annotated[StrictStr, Field(pattern=r"^[0-9a-f]{64}$")]
++Generation = Annotated[StrictInt, Field(gt=0, le=9007199254740991)]
++
++
++def canonical_uuid(value):
++    if isinstance(value, UUID):
++        return value
++    if not isinstance(value, str) or str(UUID(value)) != value.lower():
++        raise ValueError("capture_uuid_invalid")
++    return value
++
++
++StrictUUID = Annotated[UUID, BeforeValidator(canonical_uuid)]
++
++
++class CaptureModel(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True)
++
++
++class CaptureIdentity(CaptureModel):
++    dataHomeId: StrictUUID
++    hostId: StrictUUID
++    ownerId: StrictUUID
++    instanceId: StrictUUID
++    manifestDigest: Digest
++
++
++class CaptureReason(CaptureModel):
++    kind: Literal["capture"]
++    snapshotId: Text
++
++
++class CaptureBlock(CaptureModel):
++    id: StrictUUID
++    dataHomeId: StrictUUID
++    generation: Generation
++    requestId: Text
++    reason: CaptureReason
++
++
++class CaptureGrant(CaptureModel):
++    version: Literal[1]
++    id: StrictUUID
++    block: CaptureBlock
++    identity: CaptureIdentity
++    snapshotId: Text
++    boundaryReceiptId: Text
++
++    @model_validator(mode="after")
++    def match_scope(self):
++        if self.block.dataHomeId != self.identity.dataHomeId or self.block.reason.snapshotId != self.snapshotId:
++            raise ValueError("capture_grant_scope_conflict")
++        return self
++
++
++class CaptureReceipt(CaptureModel):
++    grantBytes: StrictStr
++    state: Literal["active", "revoked"]
++    receiptId: Digest
++
++
++def unique_keys(pairs):
++    result = {}
++    for key, value in pairs:
++        if key in result:
++            raise ValueError("capture_grant_duplicate_key")
++        result[key] = value
++    return result
++
++
++def parse_grant(grant_bytes: str) -> CaptureGrant:
++    value = json.loads(grant_bytes, object_pairs_hook=unique_keys)
++    if not isinstance(value, dict) or type(value.get("version")) is not int:
++        raise ValueError("capture_grant_version_invalid")
++    grant = CaptureGrant.model_validate(value)
++    grant_bytes.encode("utf-8")
++    return grant
++
++
++def capture_receipt(grant_bytes: str, state: Literal["active", "revoked"]) -> CaptureReceipt:
++    content = json.dumps({"grantBytes": grant_bytes, "state": state}, ensure_ascii=False, separators=(",", ":"))
++    return CaptureReceipt(grantBytes=grant_bytes, state=state,
++                          receiptId=hashlib.sha256(content.encode("utf-8")).hexdigest())
+diff --git a/src/backend/base/langflow/services/trellis_v1/capture_router.py b/src/backend/base/langflow/services/trellis_v1/capture_router.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/capture_router.py
+@@ -0,0 +1,71 @@
++from __future__ import annotations
++
++import asyncio
++import hmac
++import os
++from pathlib import Path
++from typing import Annotated
++from uuid import UUID
++
++from fastapi import APIRouter, Depends, Header, HTTPException
++from pydantic import ValidationError
++
++from langflow.services.trellis_v1.capture_boundary import CaptureBoundary
++from langflow.services.trellis_v1.capture_grants import (
++    CaptureConflict, CaptureMissing, CaptureModel, CaptureReceipt, Text,
++)
++from langflow.services.trellis_v1.capture_store import CaptureGrantStore
++
++
++class CaptureInput(CaptureModel):
++    grantBytes: Text
++
++
++def create_capture_authority_router(*, boundary: CaptureBoundary, issuer_file: Path) -> APIRouter:
++    descriptor = os.open(issuer_file, os.O_RDONLY | os.O_NOFOLLOW)
++    try:
++        CaptureGrantStore._private_file(descriptor)
++        with os.fdopen(descriptor, "rb", closefd=False) as source:
++            issuer = source.read()
++    finally:
++        os.close(descriptor)
++    if not issuer:
++        raise ValueError("capture_issuer_missing")
++    issuer.decode("utf-8")
++
++    async def authenticate(
++        supplied: Annotated[str | None, Header(alias="X-Trellis-Capture-Issuer")] = None,
++    ):
++        if supplied is None or not hmac.compare_digest(supplied.encode("utf-8"), issuer):
++            raise HTTPException(status_code=401, detail="capture_issuer_unauthorized")
++
++    router = APIRouter(prefix="/capture-authorities", dependencies=[Depends(authenticate)])
++
++    @router.post("", response_model=CaptureReceipt)
++    async def commit(input: CaptureInput):
++        try:
++            return await boundary.commit(input.grantBytes)
++        except CaptureConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++        except (ValidationError, ValueError) as error:
++            raise HTTPException(status_code=422, detail="capture_grant_invalid") from error
++
++    @router.get("/{grant_id}", response_model=CaptureReceipt)
++    async def read(grant_id: UUID):
++        try:
++            return await asyncio.to_thread(boundary.store.read, grant_id)
++        except CaptureMissing as error:
++            raise HTTPException(status_code=404, detail=str(error)) from error
++        except CaptureConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++
++    @router.post("/{grant_id}/revoke", response_model=CaptureReceipt)
++    async def revoke(grant_id: UUID, input: CaptureInput):
++        try:
++            return await boundary.revoke(grant_id, input.grantBytes)
++        except CaptureConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++        except (ValidationError, ValueError) as error:
++            raise HTTPException(status_code=422, detail="capture_grant_invalid") from error
++
++    return router
+diff --git a/src/backend/base/langflow/services/trellis_v1/capture_store.py b/src/backend/base/langflow/services/trellis_v1/capture_store.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/capture_store.py
+@@ -0,0 +1,122 @@
++from __future__ import annotations
++
++import fcntl
++import os
++import sqlite3
++import stat
++from contextlib import contextmanager
++from pathlib import Path
++from uuid import UUID
++
++from langflow.services.trellis_v1.capture_grants import (
++    CaptureConflict, CaptureIdentity, CaptureMissing, CaptureReceipt, capture_receipt, parse_grant,
++)
++
++
++class CaptureGrantStore:
++    def __init__(self, directory: Path, identity: CaptureIdentity):
++        metadata = directory.lstat()
++        if (not stat.S_ISDIR(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o700
++                or metadata.st_uid != os.getuid()):
++            raise ValueError("capture_store_directory_unsafe")
++        self.directory = directory.resolve(strict=True)
++        self.identity = identity
++        self.path = self.directory / "capture-authorities.sqlite"
++        self.lock_path = self.directory / "capture-authorities.lock"
++        with self._connection() as connection:
++            connection.execute("CREATE TABLE IF NOT EXISTS capture_grants ("
++                               "id TEXT PRIMARY KEY, grant_bytes TEXT NOT NULL, generation INTEGER NOT NULL, "
++                               "state TEXT NOT NULL CHECK (state IN ('active', 'revoked')))")
++            connection.execute("CREATE TABLE IF NOT EXISTS capture_generation ("
++                               "singleton INTEGER PRIMARY KEY CHECK (singleton = 1), generation INTEGER NOT NULL)")
++            connection.execute("INSERT OR IGNORE INTO capture_generation VALUES (1, 0)")
++
++    @contextmanager
++    def _connection(self):
++        descriptor = os.open(self.lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
++        try:
++            self._private_file(descriptor)
++            fcntl.flock(descriptor, fcntl.LOCK_EX)
++            database = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
++            try:
++                self._private_file(database)
++            finally:
++                os.close(database)
++            connection = sqlite3.connect(self.path)
++            try:
++                connection.execute("PRAGMA synchronous=FULL")
++                connection.execute("BEGIN IMMEDIATE")
++                with connection:
++                    yield connection
++                parent = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
++                try:
++                    os.fsync(parent)
++                finally:
++                    os.close(parent)
++            finally:
++                connection.close()
++        finally:
++            os.close(descriptor)
++
++    @staticmethod
++    def _private_file(descriptor):
++        metadata = os.fstat(descriptor)
++        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
++                or stat.S_IMODE(metadata.st_mode) != 0o600 or metadata.st_uid != os.getuid()):
++            raise ValueError("capture_store_file_unsafe")
++
++    def _grant(self, grant_bytes: str, *, retired: bool = False):
++        grant = parse_grant(grant_bytes)
++        if (grant.identity.hostId, grant.identity.dataHomeId) != (self.identity.hostId, self.identity.dataHomeId):
++            raise CaptureConflict("capture_home_identity_conflict")
++        if not retired and grant.identity != self.identity:
++            raise CaptureConflict("capture_runtime_identity_conflict")
++        return grant
++
++    def commit(self, grant_bytes: str) -> CaptureReceipt:
++        grant = self._grant(grant_bytes)
++        with self._connection() as connection:
++            prior = connection.execute("SELECT grant_bytes, state FROM capture_grants WHERE id=?", (str(grant.id),)).fetchone()
++            if prior:
++                if prior[0] != grant_bytes:
++                    raise CaptureConflict("capture_grant_bytes_conflict")
++                return capture_receipt(*prior)
++            generation = connection.execute("SELECT generation FROM capture_generation WHERE singleton=1").fetchone()[0]
++            if grant.block.generation <= generation:
++                raise CaptureConflict("capture_generation_stale")
++            if connection.execute("SELECT 1 FROM capture_grants WHERE state='active'").fetchone():
++                raise CaptureConflict("capture_grant_already_active")
++            connection.execute("INSERT INTO capture_grants VALUES (?, ?, ?, 'active')",
++                               (str(grant.id), grant_bytes, grant.block.generation))
++            connection.execute("UPDATE capture_generation SET generation=? WHERE singleton=1", (grant.block.generation,))
++        return capture_receipt(grant_bytes, "active")
++
++    def active(self) -> CaptureReceipt | None:
++        with self._connection() as connection:
++            row = connection.execute("SELECT grant_bytes, state FROM capture_grants WHERE state='active'").fetchone()
++            return capture_receipt(*row) if row else None
++
++    def read(self, grant_id: UUID) -> CaptureReceipt:
++        with self._connection() as connection:
++            prior = connection.execute("SELECT grant_bytes, state FROM capture_grants WHERE id=?", (str(grant_id),)).fetchone()
++            if prior is None:
++                raise CaptureMissing("capture_grant_not_found")
++            self._grant(prior[0], retired=prior[1] == "revoked")
++            return capture_receipt(*prior)
++
++    def revoke(self, grant_id: UUID, grant_bytes: str) -> CaptureReceipt:
++        grant = self._grant(grant_bytes, retired=True)
++        if grant.id != grant_id:
++            raise CaptureConflict("capture_grant_id_conflict")
++        with self._connection() as connection:
++            prior = connection.execute("SELECT grant_bytes, state FROM capture_grants WHERE id=?", (str(grant_id),)).fetchone()
++            if prior:
++                if prior[0] != grant_bytes:
++                    raise CaptureConflict("capture_grant_bytes_conflict")
++                connection.execute("UPDATE capture_grants SET state='revoked' WHERE id=?", (str(grant_id),))
++            else:
++                connection.execute("INSERT INTO capture_grants VALUES (?, ?, ?, 'revoked')",
++                                   (str(grant_id), grant_bytes, grant.block.generation))
++            connection.execute("UPDATE capture_generation SET generation=MAX(generation, ?) WHERE singleton=1",
++                               (grant.block.generation,))
++        return capture_receipt(grant_bytes, "revoked")
+diff --git a/src/backend/base/langflow/services/trellis_v1/capture_tasks.py b/src/backend/base/langflow/services/trellis_v1/capture_tasks.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/capture_tasks.py
+@@ -0,0 +1,17 @@
++from __future__ import annotations
++
++import asyncio
++
++
++async def finish_capture_task(awaitable):
++    task = asyncio.create_task(awaitable)
++    cancellation = None
++    while not task.done():
++        try:
++            await asyncio.shield(task)
++        except asyncio.CancelledError as error:
++            cancellation = error
++    result = task.result()
++    if cancellation is not None:
++        raise cancellation
++    return result
