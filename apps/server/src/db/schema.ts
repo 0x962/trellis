@@ -44,6 +44,7 @@ export * from "./tables/pullRequests.ts";
 export * from "./tables/resourceComments.ts";
 export * from "./tables/reviews.ts";
 export * from "./tables/sessions.ts";
+export * from "./tables/sessionUpdates.ts";
 export * from "./tables/ticketDeps.ts";
 export * from "./tables/waves.ts";
 

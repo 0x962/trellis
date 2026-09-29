@@ -133,3 +133,10 @@ export const openTestDb = async () => {
 	await prepareSearch(db);
 	return db;
 };
+
+export const openTestDbFromArchive = async (archive: Blob) => {
+	const db = await openDb(":memory:", archive);
+	await requireSchema(db);
+	await prepareSearch(db);
+	return db;
+};

@@ -22,6 +22,7 @@ import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
 import { search } from "./search.ts";
 import { sessions } from "./sessions.ts";
+import { sessionUpdates } from "./sessionUpdates.ts";
 import { settings } from "./settings.ts";
 import { statistics } from "./statistics.ts";
 import { statuses } from "./statuses.ts";
@@ -61,6 +62,7 @@ export const contract = {
 	resources: oc.tag("resources").router(resources),
 	resourceComments: oc.tag("resource comments").router(resourceComments),
 	sessions: oc.tag("sessions").router(sessions),
+	sessionUpdates: oc.tag("session updates").router(sessionUpdates),
 	search: oc.tag("search").router(search),
 	brief: oc.tag("brief").router(brief),
 	actors: oc.tag("actors").router(actors),

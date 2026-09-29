@@ -93,6 +93,8 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 			return [family("agentRuns"), family("sessions")];
 		case "sessions.changed":
 			return [family("sessions")];
+		case "session-updates.changed":
+			return [family("sessionUpdates")];
 		case "reviews.changed":
 			return [family("reviews")];
 		// A flow run stores its state under flowExecutions, and every state
