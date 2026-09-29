@@ -3,16 +3,9 @@ import { join } from "node:path";
 const HASH_CHUNK_BYTES = 1024 * 1024;
 
 type HashedFile = { sha256: string; size: number };
-type HashLimitExceeded = { limitExceeded: true };
 type WriteChunk = (chunk: Uint8Array) => void;
 
-export function hashFile(file: Blob, write: WriteChunk): Promise<HashedFile>;
-export function hashFile(file: Blob, write: WriteChunk, maxBytes: number): Promise<HashedFile | HashLimitExceeded>;
-export async function hashFile(
-	file: Blob,
-	write: WriteChunk,
-	maxBytes = Number.POSITIVE_INFINITY,
-): Promise<HashedFile | HashLimitExceeded> {
+export async function hashFile(file: Blob, write: WriteChunk): Promise<HashedFile> {
 	const hasher = new Bun.CryptoHasher("sha256");
 	const reader = file.stream().getReader();
 	let size = 0;
@@ -21,10 +14,6 @@ export async function hashFile(
 		if (done) break;
 		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
 			const part = chunk.subarray(offset, offset + HASH_CHUNK_BYTES);
-			if (size + part.byteLength > maxBytes) {
-				await reader.cancel();
-				return { limitExceeded: true };
-			}
 			hasher.update(part);
 			write(part);
 			size += part.byteLength;

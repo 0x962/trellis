@@ -1,10 +1,4 @@
-import {
-	internalLink,
-	PAGE_DOCUMENT_MAX_BYTES,
-	PAGE_VERSION_ASSET_MAX_BYTES,
-	PagePublishInputSchema,
-	type PagePublishOutput,
-} from "@trellis/api";
+import { internalLink, PagePublishInputSchema, type PagePublishOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
@@ -172,11 +166,7 @@ const publishWithText = async (
 	const uploadIds = [...new Set([input.document, ...input.assets.map((asset) => asset.uploadId)])];
 	const staged = await lockUploads(ctx, tx, projectId, uploadIds);
 	const document = staged.get(input.document)!;
-	if (document.size === 0 || document.size > PAGE_DOCUMENT_MAX_BYTES)
-		throw invalidInput("document", `A page document holds 1 to ${PAGE_DOCUMENT_MAX_BYTES} bytes.`);
-	const assetBytes = input.assets.reduce((total, asset) => total + staged.get(asset.uploadId)!.size, 0);
-	if (assetBytes > PAGE_VERSION_ASSET_MAX_BYTES)
-		throw invalidInput("assets", `The assets of one version hold ${PAGE_VERSION_ASSET_MAX_BYTES} bytes at most.`);
+	if (document.size === 0) throw invalidInput("document", "A page document must contain at least one byte.");
 
 	await upsert(ctx, tx, actor);
 	if (page === undefined) {
