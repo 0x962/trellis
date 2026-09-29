@@ -1,4 +1,4 @@
-import { MAX_TERMINAL_DIMENSION, type RuntimeProcessStatus, type RuntimeTerminalEvent } from "../index.ts";
+import type { RuntimeProcessStatus, RuntimeTerminalEvent } from "../index.ts";
 
 export type TerminalFrame =
 	| RuntimeTerminalEvent
@@ -63,8 +63,7 @@ export function decodeTerminalFrame(bytes: Buffer): TerminalFrame {
 			if (payload.length !== 4) throw new Error("Invalid terminal resize frame");
 			const cols = payload.readUInt16BE(0);
 			const rows = payload.readUInt16BE(2);
-			if (cols < 1 || cols > MAX_TERMINAL_DIMENSION || rows < 1 || rows > MAX_TERMINAL_DIMENSION)
-				throw new Error("Invalid terminal dimensions");
+			if (cols < 1 || rows < 1) throw new Error("Invalid terminal dimensions");
 			return { type: "resize", cols, rows };
 		}
 		case 3: {

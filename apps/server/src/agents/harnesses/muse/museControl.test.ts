@@ -4,10 +4,8 @@ import type { Server } from "node:http";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CodexAppServerClient } from "./codex/appServerClient";
-import { codexControl } from "./codex/codexControl";
-import type { MspClient } from "./muse/mspClient";
-import { museControl } from "./muse/museControl";
+import type { MspClient } from "./mspClient";
+import { museControl } from "./museControl";
 
 const sockets = new Set<string>();
 const servers = new Set<Server>();
@@ -43,31 +41,7 @@ const post = (socketPath: string, body: Buffer) =>
 		call.end(body.subarray(split));
 	});
 
-test("Codex accepts a complete multibyte control payload above one MiB", async () => {
-	const socket = join(tmpdir(), `trellis-codex-control-${process.pid}.sock`);
-	sockets.add(socket);
-	const prompt = "文".repeat(500_000);
-	let received = "";
-	const server = await codexControl({
-		socket,
-		token: "token",
-		sessionId: "session",
-		client: {
-			request: async (_method: string, params: { input: Array<{ text: string }> }) => {
-				received = params.input[0]!.text;
-			},
-		} as unknown as CodexAppServerClient,
-		current: () => ({ turnId: null, working: false }),
-	});
-	servers.add(server);
-
-	const response = await post(socket, Buffer.from(JSON.stringify({ sessionId: "session", prompt })));
-
-	expect(response).toMatchObject({ status: 200 });
-	expect(received).toBe(prompt);
-});
-
-test("Muse accepts a complete multibyte control payload above one MiB", async () => {
+test("accepts a complete multibyte control payload above one MiB", async () => {
 	const socket = join(tmpdir(), `trellis-muse-control-${process.pid}.sock`);
 	sockets.add(socket);
 	const prompt = "文".repeat(500_000);

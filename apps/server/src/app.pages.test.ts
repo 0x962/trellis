@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { PageContentFile, PagePullOutput } from "@trellis/api";
+import type { PageContentFile, PagePullOutput, PageUpload } from "@trellis/api";
 import { ulid } from "ulid";
 import { createApp } from "./app.ts";
 import type { Config } from "./config.ts";
@@ -44,12 +44,32 @@ const content: PagePullOutput = {
 	assets: [],
 };
 
+const uploadedFiles: File[] = [];
+const upload: PageUpload = {
+	id: ulid(),
+	projectId: ulid(),
+	sha256: "b".repeat(64),
+	size: 0,
+	mime: "application/octet-stream",
+	originalName: "large.bin",
+	actor,
+	createdAt: "2026-09-24T18:00:00.000Z",
+	expiresAt: "2026-09-25T18:00:00.000Z",
+};
+
 const transport = {
-	call: async (name: string) => (name === "pages.pull" ? content : file),
+	call: async (name: string, _ctx: unknown, input: { file?: File }) => {
+		if (name === "pages.pull") return content;
+		if (name === "pages.upload") {
+			uploadedFiles.push(input.file!);
+			return { ...upload, size: input.file!.size };
+		}
+		return file;
+	},
 } as unknown as ServiceTransport;
 
 // The app with a host token set, the way the desktop host runs it.
-const appOf = (maxUploadMb = 50) =>
+const appOf = () =>
 	createApp({
 		config: {
 			home,
@@ -57,7 +77,6 @@ const appOf = (maxUploadMb = 50) =>
 			host: "127.0.0.1",
 			allowedHosts: [],
 			port: 4521,
-			maxUploadMb,
 			webDist: join(home, "web"),
 		} as unknown as Config,
 		log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger,
@@ -79,18 +98,24 @@ afterAll(async () => {
 
 beforeEach(() => {
 	clearPageLeases();
+	uploadedFiles.length = 0;
 });
 
 describe("the Page routes of the whole app", () => {
-	test("passes an upload body above the configured former route limit to its handler", async () => {
-		const response = await appOf(1).request(`${ORIGIN}/api/page-uploads`, {
+	test("passes a valid upload above the former route limit to its handler", async () => {
+		const bytes = new Uint8Array(1024 * 1024 + 1).fill(7);
+		const form = new FormData();
+		form.set("project", "TRL");
+		form.set("file", new File([bytes], "large.bin", { type: "application/octet-stream" }));
+		const response = await appOf().request(`${ORIGIN}/api/page-uploads`, {
 			method: "POST",
-			headers: { authorization: `Bearer ${TOKEN}` },
-			body: new Uint8Array(1024 * 1024 + 1),
+			headers: { authorization: `Bearer ${TOKEN}`, "x-trellis-actor": "human:Navid" },
+			body: form,
 		});
 
-		expect(response.status).toBe(400);
-		expect((await response.json()) as { code: string }).not.toMatchObject({ code: "PAYLOAD_TOO_LARGE" });
+		expect(response.status).toBe(200);
+		expect((await response.json()) as PageUpload).toMatchObject({ originalName: "large.bin", size: bytes.byteLength });
+		expect(uploadedFiles[0]?.size).toBe(bytes.byteLength);
 	});
 
 	test("serve a frame, a page, and an archive without the host token", async () => {

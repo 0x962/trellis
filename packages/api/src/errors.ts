@@ -233,11 +233,6 @@ export const errors = {
 		message: "The backup command failed.",
 		data: z.object({ command: z.string().min(1), code: z.number().int(), stderr: z.string() }),
 	},
-	PAYLOAD_TOO_LARGE: {
-		status: 413,
-		message: "The upload is over the size limit.",
-		data: z.object({ maxBytes: CountSchema }),
-	},
 	GH_UNAVAILABLE: {
 		status: 503,
 		message: "gh cannot serve the request.",

@@ -39,6 +39,10 @@ export function createTerminalSocket({
 	let closed = false;
 	let settled = false;
 	let acknowledgedOffset = offset;
+	const sendImmediately = (value: object) => {
+		if (closed || socket.readyState !== WebSocket.OPEN) throw new Error("The terminal is not connected.");
+		socket.send(JSON.stringify(value));
+	};
 	const detach = () => {
 		socket.removeEventListener("message", message);
 		socket.removeEventListener("close", close);
@@ -83,7 +87,11 @@ export function createTerminalSocket({
 					outputWrites.delete(pending);
 					if (closed || socket.readyState !== WebSocket.OPEN || nextOffset <= acknowledgedOffset) return;
 					acknowledgedOffset = nextOffset;
-					void send({ type: "ack", offset: nextOffset }).catch(finish);
+					try {
+						sendImmediately({ type: "ack", offset: nextOffset });
+					} catch (failure) {
+						finish(failure);
+					}
 				}, finish);
 				return;
 			}
@@ -111,11 +119,7 @@ export function createTerminalSocket({
 		commands = next;
 		return next;
 	};
-	const send = (value: object) =>
-		enqueue(() => {
-			if (closed || socket.readyState !== WebSocket.OPEN) throw new Error("The terminal is not connected.");
-			socket.send(JSON.stringify(value));
-		});
+	const send = (value: object) => enqueue(() => sendImmediately(value));
 	const sendInput = (data: string, userInput: boolean) => {
 		const bytes = new TextEncoder().encode(data);
 		return enqueue(async () => {

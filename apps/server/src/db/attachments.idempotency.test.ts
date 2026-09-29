@@ -35,7 +35,7 @@ const pausedFile = (body: string, name: string, type: string) => {
 };
 
 describe("attachments.upload idempotency", () => {
-	test("one client attachment id creates one row across a repeated request", async () => {
+	test("one client attachment id stores streamed bytes above the former configured limit once", async () => {
 		const { openTestDb } = await import("./testDb.ts");
 		const db = await openTestDb();
 		const home = mkdtempSync(join(tmpdir(), "trellis-attachment-idempotency-"));
@@ -47,7 +47,6 @@ describe("attachments.upload idempotency", () => {
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,
-			maxUploadBytes: 50 * 1024 * 1024,
 			version: "test",
 			apiVersion: "test",
 			bootId: "test",
@@ -77,7 +76,8 @@ describe("attachments.upload idempotency", () => {
 				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
 				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
-			const paused = pausedFile("same bytes", "plan.txt", "text/plain");
+			const body = "x".repeat(2048);
+			const paused = pausedFile(body, "plan.txt", "text/plain");
 			const input = {
 				id: uploadId,
 				ticket: ticketId,
@@ -100,7 +100,7 @@ describe("attachments.upload idempotency", () => {
 			const first = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, firstInput));
 			const retryInput = await prepareUpload(ctx, {
 				...input,
-				file: new File(["same bytes"], "plan.txt", { type: "text/plain" }),
+				file: new File([body], "plan.txt", { type: "text/plain" }),
 			});
 			const retry = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, retryInput));
 			const attachments = await db.execute(sql`SELECT id FROM attachments`);
@@ -108,6 +108,7 @@ describe("attachments.upload idempotency", () => {
 			const tickets = await db.execute(sql`SELECT version FROM tickets WHERE id = ${ticketId}`);
 
 			expect(retry.result).toEqual(first.result);
+			expect(first.result.attachment.size).toBe(body.length);
 			expect(attachments.rows).toEqual([{ id: uploadId }]);
 			expect(activity.rows).toHaveLength(1);
 			expect(tickets.rows[0]!.version).toBe(2);
@@ -132,7 +133,6 @@ describe("attachments.upload idempotency", () => {
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,
-			maxUploadBytes: 50 * 1024 * 1024,
 			version: "test",
 			apiVersion: "test",
 			bootId: "test",

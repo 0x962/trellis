@@ -1312,7 +1312,7 @@ AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
 LABEL_AMBIGUOUS 409, LABEL_GROUP_CONFLICT 409,
 INVALID_ANCHOR 409,
-VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
+VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412,
 GH_UNAVAILABLE 503, RUNNER_UNAVAILABLE 503.
 
 The API carries no version prefix. `apiVersion` appears in health and in
@@ -1498,9 +1498,9 @@ checks block a queued pull request.
 
 ## Attachments
 
-An upload arrives as multipart through oRPC `z.file()`. The Hono `bodyLimit` is
-50 MB, and `TRELLIS_MAX_UPLOAD_MB` changes it. The server hashes the stream with
-`Bun.CryptoHasher` in 1 MB chunks while it writes `attachments/tmp/<ulid>`. It
+An upload arrives as multipart through oRPC `z.file()`. The server hashes the
+stream with `Bun.CryptoHasher` in 1 MB chunks while it writes
+`attachments/tmp/<ulid>`. It
 then calls `finalize(sha)` under the blob lock, which renames or dedupes the
 file and writes the database row.
 

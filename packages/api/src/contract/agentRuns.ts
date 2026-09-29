@@ -1,3 +1,4 @@
+import { MAX_TERMINAL_DIMENSION } from "@trellis/runtime-protocol";
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { ModelIdSchema } from "../models/models.ts";
@@ -30,7 +31,7 @@ import { base } from "./base.ts";
 
 const idInput = z.strictObject({ id: UlidSchema });
 export const AgentMessageSchema = z.string().trim().min(1);
-export const TerminalDimensionSchema = z.number().int().min(1).max(0xffff);
+export const TerminalDimensionSchema = z.number().int().min(1).max(MAX_TERMINAL_DIMENSION);
 const sessionSchema = z.object({
 	id: z.string(),
 	daemonId: z.string(),
