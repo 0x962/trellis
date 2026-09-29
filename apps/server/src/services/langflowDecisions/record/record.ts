@@ -3,9 +3,8 @@ import type { ServiceCtx } from "../../../context.ts";
 import { lockExecution, readCheckpoint, recordDecision } from "../../../db/queries/langflowExecution";
 import type { Tx } from "../../../db/tx.ts";
 import { invalidInput } from "../../../errors.ts";
-import { getView } from "../../langflowProjection";
+import { getView, saveDecisionDelivery } from "../../langflowProjection";
 import { createReceipt } from "../createReceipt";
-import { saveDelivery } from "../saveDelivery/saveDelivery.ts";
 
 export async function record(ctx: ServiceCtx, tx: Tx, input: FlowExecutionDecisionInput) {
 	if (ctx.actor?.kind !== "human") throw invalidInput("actor", "A person must answer a human flow step.");
@@ -17,5 +16,5 @@ export async function record(ctx: ServiceCtx, tx: Tx, input: FlowExecutionDecisi
 	if (!checkpoint) throw invalidInput("id", "The engine has not supplied the human wait. Refresh the execution.");
 	const receipt = createReceipt(ctx, view, checkpoint, input);
 	const saved = await recordDecision(tx, { payloadBytes: receipt.payloadBytes });
-	return saveDelivery(ctx, tx, saved);
+	return saveDecisionDelivery(ctx, tx, saved);
 }

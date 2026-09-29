@@ -11,7 +11,7 @@ const { update } = legacyServices;
 
 let h: Awaited<ReturnType<typeof serviceFixture>>;
 beforeEach(async () => {
-	h = await serviceFixture();
+	h = await serviceFixture("langflow");
 });
 afterEach(async () => {
 	await h.db.$client.close();
@@ -152,4 +152,28 @@ test("a confirmed publication wins over a late engine failure", async () => {
 	finish.resolve();
 	await failed;
 	expect(receipt).toEqual((await executable(2)).publication);
+});
+
+test("an older revision can recover a committed engine receipt without another publication", async () => {
+	const saved = await h.run((tx) => save(h.ctx, tx, saveInput()));
+	const engine = publisher();
+	const { publication: _publication, lastExecutablePublication: _last, ...snapshot } = saved;
+	if (snapshot.engine !== "langflow") throw new Error("fixture_engine");
+	const receipt = await engine.publish({ snapshot, sourceBytes: Buffer.from("fixture") });
+	await h.run((tx) => save(h.ctx, tx, saveInput(2)));
+	const forbidden = async () => {
+		throw new Error("unexpected_engine_write");
+	};
+	expect(
+		await publishDocument(
+			h.io,
+			{ flow: flowId, revision: 2 },
+			publisher({
+				validate: forbidden,
+				publish: forbidden,
+				recover: async () => receipt,
+			}),
+		),
+	).toEqual(receipt);
+	expect((await h.run((tx) => get(h.ctx, tx, { flow: flowId }))).publication.state).toBe("pending");
 });

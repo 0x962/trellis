@@ -43,7 +43,7 @@ export const SessionCreateInputSchema = z
 	.strictObject({
 		project: z.string().min(1).optional(),
 		requestId: z.string().uuid().optional(),
-		files: z.array(z.file()).max(20).optional(),
+		files: z.array(z.file()).optional(),
 		name: SessionNameSchema.optional().describe(
 			"The session name, stored as it is typed. Omit it to show New session until the first exchange supplies a name.",
 		),
