@@ -11,3 +11,6 @@ export type {
 	StartRun,
 	StartStore,
 } from "./store.ts";
+export { createAdmissionEngine, type AdmissionEngineOptions } from "./admissionEngine";
+export { createStartConnection, type StartConnection, type StartConnectionOptions } from "./startConnection";
+export { startState, type StartStateCall, type StartStateInput, type StartStateResult } from "./startState";
