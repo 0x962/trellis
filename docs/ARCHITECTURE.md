@@ -1180,12 +1180,19 @@ or a restore.
 
 ## API contract and ref grammars
 
-`clientContract` adds the versioned `flowDocumentsV1` methods to the typed client.
+`clientContract` and the server contract expose the versioned `flowDocumentsV1` methods.
 The methods retain the shared RPC transport, actor headers, and query utilities.
-The live server `contract` registers services after their implementation is available.
-The versioned client methods require a server that mounts the matching document and view services.
+The shared router sends these methods through the actor-aware service transport.
+The document and execution tables must exist before this router serves requests.
 The document methods use `/api/flows/{flow}/document-v1`.
 The execution view uses `/api/flow-executions/{id}/view-v1`.
+The execution index uses `/api/flow-executions/index-v1` and returns IDs with their stored engine.
+Its pagination combines both engines in creation order, with the ID as the tie breaker.
+`langflowDispatch.getView` selects the reader from the stored execution association.
+The current document cannot change that selection.
+`langflowDispatch.startLegacy` locks the flow before it checks the saved document format.
+An exact legacy request replay retains its original result after a document conversion.
+New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
 
 A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.

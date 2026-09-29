@@ -7,11 +7,22 @@ import {
 	FlowPublicationV1Schema,
 	FlowRevisionV1Schema,
 } from "./flowDocumentV1.ts";
-import { FlowExecutionSchema, FlowExecutionStateSchema, FlowStepStateSchema } from "./flowExecution.ts";
+import {
+	FlowExecutionListInputSchema,
+	FlowExecutionSchema,
+	FlowExecutionStateSchema,
+	FlowStepStateSchema,
+} from "./flowExecution.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 const opaqueId = z.string().min(1);
 const commit = z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/);
+export const FlowExecutionIdentityV1Schema = z.strictObject({ id: UlidSchema, engine: FlowEngineV1Schema });
+export type FlowExecutionIdentityV1 = z.infer<typeof FlowExecutionIdentityV1Schema>;
+export const FlowExecutionListV1InputSchema = FlowExecutionListInputSchema.extend({
+	limit: z.number().int().positive().optional(),
+});
+export type FlowExecutionListV1Input = z.infer<typeof FlowExecutionListV1InputSchema>;
 export const FlowOccurrenceIdentityV1Schema = z.strictObject({
 	nodeId: opaqueId,
 	occurrenceKey: opaqueId,
@@ -136,7 +147,7 @@ export const FlowSubmissionV1Schema = z
 		state: z.enum(["reserved", "submitted", "submission_unknown", "failed"]),
 		admission: z.enum(["closed", "open"]),
 		engineJobId: opaqueId.nullable(),
-		engineEpoch: z.number().int().positive(),
+		engineEpoch: z.number().int().positive().nullable(),
 		ownership: z.enum(["confirmed", "unknown"]),
 		error: z.string().nullable(),
 	})
@@ -145,8 +156,14 @@ export const FlowSubmissionV1Schema = z
 		"A submitted execution must identify its engine job.",
 	)
 	.refine(
-		(value) => value.admission !== "open" || (value.state === "submitted" && value.ownership === "confirmed"),
-		"Open admission requires a confirmed owner and a submitted execution.",
+		(value) => value.ownership !== "confirmed" || value.engineEpoch !== null,
+		"Confirmed ownership requires an observed engine epoch.",
+	)
+	.refine(
+		(value) =>
+			value.admission !== "open" ||
+			(value.state === "submitted" && value.ownership === "confirmed" && value.engineEpoch !== null),
+		"Open admission requires a confirmed owner, engine epoch, and submitted execution.",
 	);
 export type FlowSubmissionV1 = z.infer<typeof FlowSubmissionV1Schema>;
 

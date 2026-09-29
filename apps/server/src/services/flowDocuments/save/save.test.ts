@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { FlowDocumentV1Schema } from "@trellis/api";
-import { update, get as getLegacy } from "../flows/flows.ts";
-import { save as saveLegacy } from "../flows/save.ts";
-import { documentBytes } from "./documentBytes.ts";
-import { flowId, saveInput, serviceFixture } from "./fixture.ts";
-import { get } from "./get.ts";
+import { documentBytes } from "../documentBytes";
+import { flowId, saveInput, serviceFixture } from "../fixture";
+import { get } from "../get";
+import { legacyServices } from "../legacyServices";
 import { save } from "./save.ts";
+
+const { get: getLegacy, update, save: saveLegacy } = legacyServices;
 
 let h: Awaited<ReturnType<typeof serviceFixture>>;
 beforeEach(async () => {

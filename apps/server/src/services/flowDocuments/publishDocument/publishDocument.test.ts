@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { FlowDocumentV1Schema } from "@trellis/api";
-import { update } from "../flows/flows.ts";
-import { flowId, publisher, saveInput, serviceFixture } from "./fixture.ts";
-import { get } from "./get.ts";
+import { flowId, publisher, saveInput, serviceFixture } from "../fixture";
+import { get } from "../get";
+import { legacyServices } from "../legacyServices";
+import { requireCurrentPublication } from "../requireCurrentPublication";
+import { save } from "../save";
 import { publishDocument } from "./publishDocument.ts";
-import { requireCurrentPublication } from "./requireCurrentPublication.ts";
-import { save } from "./save.ts";
+
+const { update } = legacyServices;
 
 let h: Awaited<ReturnType<typeof serviceFixture>>;
 beforeEach(async () => {
@@ -22,7 +24,7 @@ test("publication binds the saved revision and installed package before a new st
 	await h.run((tx) => save(h.ctx, tx, saveInput()));
 	await expect(executable(2)).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	const receipt = await publishDocument(h.io, { flow: flowId, revision: 2 }, publisher());
-	expect((await executable(2)).publication).toEqual(receipt);
+	expect(receipt).toEqual((await executable(2)).publication);
 	expect(FlowDocumentV1Schema.safeParse(await current()).success).toBe(true);
 	await expect(executable(1)).rejects.toMatchObject({ code: "FLOW_VERSION_CONFLICT" });
 	await h.run((tx) => update(h.ctx, tx, { flow: flowId, expectedVersion: 2, briefing: "Changed instructions" }));
@@ -44,6 +46,18 @@ test("an engine outage retains saved bytes and durable failure diagnostics", asy
 	expect(document.documentHash).toBe(saved.documentHash);
 	expect(document.publication.state).toBe("failed");
 	expect(JSON.stringify(document.publication)).not.toContain("private connection detail");
+	expect(h.logs).toEqual([
+		{
+			message: "flow publication failed",
+			fields: {
+				flowId,
+				revision: 2,
+				requestId: "test",
+				stage: "validate",
+				category: "engine_error",
+			},
+		},
+	]);
 	await expect(executable(2)).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	expect(await h.run((tx) => save(h.ctx, tx, input))).toEqual(saved);
 });
@@ -137,5 +151,5 @@ test("a confirmed publication wins over a late engine failure", async () => {
 	const receipt = await publishDocument(h.io, { flow: flowId, revision: 2 }, publisher());
 	finish.resolve();
 	await failed;
-	expect((await executable(2)).publication).toEqual(receipt);
+	expect(receipt).toEqual((await executable(2)).publication);
 });

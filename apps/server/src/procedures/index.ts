@@ -1,6 +1,6 @@
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
-import { os } from "./base.ts";
+import { call, os } from "./base.ts";
 import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
@@ -42,6 +42,12 @@ export const router = os.router({
 	sessions,
 	sessionUpdates,
 	flows,
+	flowDocumentsV1: os.flowDocumentsV1.router({
+		get: os.flowDocumentsV1.get.handler(({ context, input }) => call(context, "flowDocuments.get", input)),
+		save: os.flowDocumentsV1.save.handler(({ context, input }) => call(context, "flowDocuments.save", input)),
+		view: os.flowDocumentsV1.view.handler(({ context, input }) => call(context, "flowDocuments.view", input)),
+		list: os.flowDocumentsV1.list.handler(({ context, input }) => call(context, "flowDocuments.list", input)),
+	}),
 	flowExecutions,
 	labels,
 	labelGroups,
