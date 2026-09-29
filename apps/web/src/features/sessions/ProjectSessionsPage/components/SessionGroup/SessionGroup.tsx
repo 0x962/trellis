@@ -245,36 +245,37 @@ export function SessionGroup({
 							<li
 								key={virtual.key}
 								data-run={run.id}
-								className="group/row absolute right-2 left-2"
+								className="group/row absolute right-2 left-2 flex items-center"
 								style={{ top: `${virtual.start - scrollMargin}px`, height: `${SESSION_ROW_HEIGHT}px` }}
 							>
-								{session === undefined ? (
-									row
-								) : (
-									<SessionName
-										session={session}
-										editing={renaming}
-										onEditingChange={(open) => setRenamingId(open ? session.id : null)}
-										fieldClassName="sidebar-item-box"
-										inputClassName="h-7 text-sm"
-										leading={
-											<span aria-hidden="true" className="flex shrink-0">
-												{avatar}
-											</span>
-										}
-									>
-										{row}
-									</SessionName>
-								)}
+								<div className="min-w-0 flex-1">
+									{session === undefined ? (
+										row
+									) : (
+										<SessionName
+											session={session}
+											editing={renaming}
+											onEditingChange={(open) => setRenamingId(open ? session.id : null)}
+											fieldClassName="sidebar-item-box"
+											inputClassName="h-7 text-sm"
+											leading={
+												<span aria-hidden="true" className="flex shrink-0">
+													{avatar}
+												</span>
+											}
+										>
+											{row}
+										</SessionName>
+									)}
+								</div>
 								{!renaming && (
 									<span
 										data-slot="menu"
-										className="absolute top-1 right-1 flex size-6 pointer-coarse:top-0 pointer-coarse:size-11 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
+										className="flex size-7 shrink-0 pointer-coarse:size-11 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
 									>
 										<SessionActionsMenu
 											session={session}
 											run={session === undefined ? run : undefined}
-											size="xs"
 											onRename={session === undefined ? undefined : () => setRenamingId(session.id)}
 										/>
 									</span>

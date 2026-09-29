@@ -32,7 +32,13 @@ export async function findEvent(tx: Tx, input: { engineJobId: string; sourceEven
 	const [row] = await tx
 		.select()
 		.from(events)
-		.where(and(eq(events.engineJobId, input.engineJobId), eq(events.sourceEventId, input.sourceEventId)));
+		.where(
+			and(
+				eq(events.engineJobId, input.engineJobId),
+				eq(events.sourceIdentityDigest, protocolDigest(input.sourceEventId)),
+			),
+		);
+	if (row && row.sourceEventId !== input.sourceEventId) throw new Error("event_identity_conflict");
 	return row?.event ?? null;
 }
 export async function commitProjection(

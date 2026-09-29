@@ -15,11 +15,12 @@ export const fixture = async () => {
 		requestId: "00000000-0000-4000-8000-000000000099",
 	};
 	await h.db.$client.exec(`
-		CREATE TABLE flow_executions (
-			id text PRIMARY KEY, flow_id text, ticket_id text, project_id text, diff_id text,
-			actor_kind text, actor_name text, request_id text, request jsonb, revision integer,
-			head_sha text, doc jsonb, state jsonb, created_at timestamptz, updated_at timestamptz
-		);
+		ALTER TABLE flow_executions
+			ADD COLUMN flow_id text, ADD COLUMN ticket_id text, ADD COLUMN project_id text,
+			ADD COLUMN diff_id text, ADD COLUMN actor_kind text, ADD COLUMN actor_name text,
+			ADD COLUMN request_id text, ADD COLUMN request jsonb, ADD COLUMN revision integer,
+			ADD COLUMN head_sha text, ADD COLUMN doc jsonb, ADD COLUMN state jsonb,
+			ADD COLUMN created_at timestamptz, ADD COLUMN updated_at timestamptz;
 		CREATE TABLE flow_execution_tasks (
 			execution_id text, key text, run_id text, attempt_id text, result_id text, created_at timestamptz
 		);

@@ -4,8 +4,7 @@ import { requireActor, type ServiceCtx } from "../../../context.ts";
 import { readExecution } from "../../../db/queries/langflowExecution";
 import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
-import { assertLegacy } from "../../flowDocuments/assertLegacy";
-import { unsupported } from "../../flowDocuments/assertLegacy/components/unsupported";
+import { assertLegacy, unsupported } from "../../flowDocuments";
 import { start } from "../../flowExecutions/start.ts";
 import { resolveFlow } from "../../flows/flows.ts";
 

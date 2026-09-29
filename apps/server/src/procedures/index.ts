@@ -20,6 +20,7 @@ import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
+import { sessionObservers } from "./sessionObservers.ts";
 import { sessions } from "./sessions.ts";
 import { sessionUpdates } from "./sessionUpdates.ts";
 import { statistics } from "./statistics.ts";
@@ -41,6 +42,7 @@ export const router = os.router({
 	reviews,
 	agentRuns,
 	sessions,
+	sessionObservers,
 	sessionUpdates,
 	flows,
 	flowDocumentsV1: flowDocumentProcedures,
