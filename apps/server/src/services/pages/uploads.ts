@@ -1,4 +1,4 @@
-import { PAGE_ASSET_MAX_BYTES, PageMimeSchema, type PageUpload, PageUploadInputSchema } from "@trellis/api";
+import { PageMimeSchema, type PageUpload, PageUploadInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
@@ -44,7 +44,7 @@ const storedPageMime = (type: string) => {
 
 export const prepareUpload = async (ctx: IoCtx & PrepareCtx, rawInput: unknown): Promise<PreparedUpload> => {
 	const input = PageUploadInputSchema.parse(rawInput);
-	const maxBytes = Math.min(ctx.maxUploadBytes, PAGE_ASSET_MAX_BYTES);
+	const maxBytes = ctx.maxUploadBytes;
 	if (input.file.size > maxBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes });
 	const mime = storedPageMime(input.file.type);
 	const project = await ctx.newTx(async (tx) => {

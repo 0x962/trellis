@@ -157,6 +157,35 @@ describe("a first publication", () => {
 		expect(await file.exists()).toBe(true);
 	});
 
+	test("publishes recorded sizes above the former document and asset limits", async () => {
+		const document = await stage(human, html("<p>Large report</p>"));
+		const firstAsset = await stage(human, new File(["a"], "first.bin"));
+		const secondAsset = await stage(human, new File(["b"], "second.bin"));
+		const documentSize = 16 * 1024 * 1024 + 1;
+		const firstAssetSize = 130 * 1024 * 1024;
+		const secondAssetSize = 121 * 1024 * 1024;
+		await db.execute(sql`UPDATE page_uploads SET size = ${documentSize} WHERE id = ${document}`);
+		await db.execute(sql`UPDATE page_uploads SET size = ${firstAssetSize} WHERE id = ${firstAsset}`);
+		await db.execute(sql`UPDATE page_uploads SET size = ${secondAssetSize} WHERE id = ${secondAsset}`);
+
+		const created = await publishIn(human, {
+			requestId: crypto.randomUUID(),
+			project: project.key,
+			title: "Large report",
+			document,
+			assets: [
+				{ uploadId: firstAsset, path: "first.bin" },
+				{ uploadId: secondAsset, path: "second.bin" },
+			],
+			sourcePath: "index.html",
+		});
+		const content = await inTx((tx) => pull(contextOf(human), tx, { page: created.page.ref }));
+
+		expect(created.version.documentSize).toBe(documentSize);
+		expect(content.assets.map((asset) => asset.size)).toEqual([firstAssetSize, secondAssetSize]);
+		expect(content.assets.reduce((total, asset) => total + asset.size, 0)).toBe(251 * 1024 * 1024);
+	});
+
 	test("gives a second page of the same title its own slug", async () => {
 		const document = await stage(human, html("<p>Twin</p>"));
 		const created = await publishIn(human, {

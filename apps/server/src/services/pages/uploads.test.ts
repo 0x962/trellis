@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type ActorRef, PAGE_ASSET_MAX_BYTES, PageUploadInputSchema, PageUploadSchema } from "@trellis/api";
+import { type ActorRef, PageUploadInputSchema, PageUploadSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createCache } from "../../db/cache.ts";
@@ -210,16 +210,15 @@ test("binds a staged upload id to its project, actor, and bytes", async () => {
 	expect(await stageAndStore(human, { id, project: projectId, file })).toMatchObject({ id, projectId });
 });
 
-test("refuses a declared size over the Page asset limit before it writes a file", async () => {
+test("uses the streamed size when a declared size exceeds the former Page asset limit", async () => {
 	const file = new File([], "large.bin", { type: "application/octet-stream" });
-	Object.defineProperty(file, "size", { value: PAGE_ASSET_MAX_BYTES + 1 });
+	Object.defineProperty(file, "size", { value: 100 * 1024 * 1024 + 1 });
 
-	await expect(
-		prepareUpload(contextOf(human, PAGE_ASSET_MAX_BYTES * 2), { project: projectId, file }),
-	).rejects.toMatchObject({
-		code: "PAYLOAD_TOO_LARGE",
-		data: { maxBytes: PAGE_ASSET_MAX_BYTES },
-	});
+	const ctx = contextOf(human, 200 * 1024 * 1024);
+	const prepared = await prepareUpload(ctx, { project: projectId, file });
+	const stored = await inTx((tx) => upload(ctx, tx, prepared));
+
+	expect(stored.size).toBe(0);
 	expect(await tempFiles()).toEqual([]);
 });
 

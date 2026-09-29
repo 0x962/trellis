@@ -42,6 +42,12 @@ test("a Page HTML document must contain at least one byte", () => {
 	expect(PageVersionSchema.shape.documentSize.safeParse(0).success).toBe(false);
 });
 
+test("Page records accept sizes above the former document and asset limits", () => {
+	expect(PageVersionSchema.shape.documentSize.safeParse(16 * 1024 * 1024 + 1).success).toBe(true);
+	expect(PageAssetSchema.shape.size.safeParse(100 * 1024 * 1024 + 1).success).toBe(true);
+	expect(PageUploadSchema.shape.size.safeParse(100 * 1024 * 1024 + 1).success).toBe(true);
+});
+
 test("a Page path rejects a Windows drive-letter root", () => {
 	expect(PageSourcePathSchema.safeParse("C:/file.js").success).toBe(false);
 	expect(PageAssetPathSchema.safeParse("C:/file.js").success).toBe(false);
