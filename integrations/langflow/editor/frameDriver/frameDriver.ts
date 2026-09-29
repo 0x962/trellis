@@ -35,6 +35,7 @@ export function createFrameDriver(options: Options) {
 	let disposed = false;
 	let initialized = false;
 	let ready = false;
+	let connected = false;
 	let received = 0;
 	let sent = 0;
 	let unsubscribe: (() => void) | null = null;
@@ -45,6 +46,11 @@ export function createFrameDriver(options: Options) {
 		identity: options.identity,
 		sequence: ++sent,
 	});
+	const connect = () => {
+		if (!active() || connected) return;
+		connected = true;
+		options.send({ ...envelope(), type: "connected" }, options.parentOrigin);
+	};
 	const receive = async (event: { origin: string; data: unknown }, fromParent: boolean) => {
 		if (!active() || !fromParent || event.origin !== options.parentOrigin) return false;
 		const parsed = EditorCommandSchema.safeParse(event.data);
@@ -88,5 +94,5 @@ export function createFrameDriver(options: Options) {
 		unsubscribe?.();
 		unsubscribe = null;
 	};
-	return { receive, dispose };
+	return { connect, receive, dispose };
 }

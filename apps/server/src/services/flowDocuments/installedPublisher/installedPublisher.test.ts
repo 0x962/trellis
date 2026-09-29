@@ -29,13 +29,24 @@ test("the concrete producer binds authenticated bytes, receipt identity, and los
 		componentManifestHash: manifestHash,
 	};
 	const sourceBytes = documentBytes(source);
-	const snapshot = {
+	const snapshot: SavedDocument["snapshot"] = {
 		...source,
-		flow: { id: flowId, version: 2, name: "Review" },
+		flow: {
+			id: flowId,
+			project: null,
+			slug: "review",
+			version: 2,
+			name: "Review",
+			description: "Review a proposed change.",
+			briefing: "Read the ticket.",
+			harness: null,
+			createdAt: "2026-09-29T06:00:00.000Z",
+			updatedAt: "2026-09-29T08:00:00.000Z",
+		},
 		revision: 2,
 		documentHash: createHash("sha256").update(sourceBytes).digest("hex"),
 		diagnostics: [],
-	} as SavedDocument["snapshot"];
+	};
 	const receipt = {
 		publicationId: "00000000000000000000000002",
 		flowId,
@@ -50,17 +61,21 @@ test("the concrete producer binds authenticated bytes, receipt identity, and los
 	let permit: PublicationPermit | null = null;
 	let requestDigest = "";
 	let posts = 0;
-	fetchSpy = spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
-		expect(new Headers(init?.headers).get("authorization")).toBe("Bearer secret");
-		expect(init?.redirect).toBe("error");
-		if (String(url).endsWith("/validate")) return Response.json({ diagnostics: [] });
-		if (init?.method === "GET") return Response.json({ publication: receipt, requestDigest });
-		posts++;
-		const bytes = String(init?.body);
-		requestDigest = createHash("sha256").update(bytes).digest("hex");
-		expect(JSON.parse(bytes).sourceBytes).toBe(sourceBytes.toString("base64"));
-		throw new Error("response_lost");
-	});
+	const fakeFetch: typeof fetch = Object.assign(
+		async (url: RequestInfo | URL, init?: RequestInit) => {
+			expect(new Headers(init?.headers).get("authorization")).toBe("Bearer secret");
+			expect(init?.redirect).toBe("error");
+			if (String(url).endsWith("/validate")) return Response.json({ diagnostics: [] });
+			if (init?.method === "GET") return Response.json({ publication: receipt, requestDigest });
+			posts++;
+			const bytes = String(init?.body);
+			requestDigest = createHash("sha256").update(bytes).digest("hex");
+			expect(JSON.parse(bytes).sourceBytes).toBe(sourceBytes.toString("base64"));
+			throw new Error("response_lost");
+		},
+		{ preconnect: () => {} },
+	);
+	fetchSpy = spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
 	const dispatch = publicationDispatch({
 		recoverPermit: () => (permit ? { permit, terminal: null } : null),
 		acquire: (binding) => (permit = { id: "permit", dataHomeId: "home", generation: 1, binding }),

@@ -7,6 +7,10 @@ The release or caller supplies the expected digest to `readCatalog.read_catalog`
 The caller supplies `engine_commit` from its verified package identity.
 The reader checks that identity, the manifest digest, and each listed source digest.
 It requires no Git metadata.
+`runtimeSources` hashes the reader and Python import files.
+A package retains each declared relative path below its explicit `trellis_root` or `engine_root`.
+The package also retains definition sources, source dependencies, and both edge-handle sources.
+The trusted package digest binds the original manifest bytes before the reader runs.
 A digest check proves source identity. It grants no execution authority.
 
 The catalog contains these source definitions:
@@ -16,6 +20,15 @@ The catalog contains these source definitions:
 - `native-decision-v1`: YES/NO branches for a completed `NativeResultV1` value.
 - `ordered-output-v1`: child outputs in source order, with two newline separators.
 - `stock-loop`: the pinned Langflow loop, with its own item and done ports.
+
+`nativeRequest.request_native_attempt` sends original UTF-8 request bytes to the private native-reservation endpoint.
+Trusted bootstrap supplies `origin`, `authentication_file`, and `capability_id`.
+The function returns the original UTF-8 response text.
+It disables ambient proxies and redirects and makes one request.
+The caller retains the request identity after an unknown result.
+
+Credentials are runtime arguments, separate from saved component fields.
+The engine occurrence producer must call this client before it creates the native wait.
 
 `native-completion-v1` accepts exact prebuilt native `ExternalWaitV1` bytes.
 It requires the request job to match `graph.job_id`.

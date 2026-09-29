@@ -24,7 +24,7 @@ def client(service, authentication_error=None):
         if authentication_error is not None:
             raise authentication_error
         if value != "Bearer private-engine-token":
-            raise TransportUnauthorized("invalid")
+            raise TransportUnauthorized()
         return SimpleNamespace(instance_id="instance-1")
 
     app = FastAPI()
@@ -38,7 +38,7 @@ def client(service, authentication_error=None):
     return TestClient(app, headers={"Authorization": "Bearer private-engine-token"})
 
 
-def accept_body(*, approved=False, notes="Feedback" ):
+def accept_body(*, approved=False, notes="Feedback"):
     decision = fixture("human-decision")
     decision["approved"] = approved
     decision["output"] = notes
@@ -118,8 +118,43 @@ def test_invalid_decision_cannot_reach_the_service():
 
 def test_transport_rejection_precedes_service_dispatch():
     backend = service()
-    with client(backend, TransportUnauthorized("private token")) as http:
+    with client(backend, TransportUnauthorized()) as http:
         response = http.post("/trellis-v1/decisions/accept", json=accept_body())
     assert response.status_code == 401
     assert response.json() == {"detail": "engine_transport_unauthorized"}
     backend.accept_trellis_human_decision.assert_not_awaited()
+
+
+def test_real_private_authentication_rejects_a_browser_token(tmp_path):
+    from langflow.services.trellis_v1.engine_api import EngineApiIdentity, EngineApiSecurity
+
+    token_file = tmp_path / "authentication"
+    token_file.write_text("private-engine-token")
+    token_file.chmod(0o600)
+    security = EngineApiSecurity(
+        authentication_file=token_file,
+        identity=EngineApiIdentity(
+            instanceId="instance-1",
+            dataHomeId="home-1",
+            hostId="host-1",
+            manifestDigest="a" * 64,
+            ownerId="owner-1",
+        ),
+    )
+    backend = service()
+    app = FastAPI()
+    app.include_router(create_decision_router(security=security, execution_service=backend), prefix="/trellis-v1")
+    body = accept_body()
+    backend.accept_trellis_human_decision.return_value = acceptance(body)
+    with TestClient(app) as http:
+        for token in ("browser-token", "private-engine-token "):
+            response = http.post(
+                "/trellis-v1/decisions/accept", json=body, headers={"Authorization": f"Bearer {token}"}
+            )
+            assert response.status_code == 401
+        backend.accept_trellis_human_decision.assert_not_awaited()
+        response = http.post(
+            "/trellis-v1/decisions/accept", json=body, headers={"Authorization": "Bearer private-engine-token"}
+        )
+        assert response.status_code == 200
+    backend.accept_trellis_human_decision.assert_awaited_once()

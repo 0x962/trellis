@@ -15,7 +15,7 @@ afterAll(async () => {
 const index = () => h.db.transaction((tx) => list(h.ctx, tx, { limit: 1000 }));
 const restore = async () => {
 	await h.db.execute(sql`UPDATE langflow_executions SET authority=${JSON.stringify(h.authority)}::jsonb,
-		submission=jsonb_set(submission,'{state}','"submitted"'), admission=jsonb_set(admission,'{state}','"open"')`);
+		submission=jsonb_set(submission,'{state}','"submitted"'), admission=admission-'state'`);
 	await h.db.execute(sql`UPDATE langflow_execution_projections SET view=${JSON.stringify(h.view)}::jsonb`);
 };
 

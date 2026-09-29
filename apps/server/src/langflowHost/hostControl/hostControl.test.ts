@@ -39,7 +39,9 @@ function fixture() {
 test("production control initializes closed outside the home and retains identities on restart", async () => {
 	const input = fixture();
 	expect(LangflowHostControl.recovery(input.home)).toEqual({ state: "unavailable", generation: null });
+	expect(() => LangflowHostControl.readIdentity(input.home)).toThrow();
 	const control = LangflowHostControl.create(input);
+	expect(LangflowHostControl.readIdentity(input.home)).toEqual(control.identity);
 	expect(LangflowHostControl.directory(input.home)).toBe(`${realpathSync(input.home)}.langflow-authority`);
 	expect(LangflowHostControl.recovery(input.home)).toEqual({ state: "blocked", generation: 1 });
 	const restarted = LangflowHostControl.open(input);
@@ -70,4 +72,43 @@ test("restored bytes cannot replace the external control or identity", () => {
 	const restored = LangflowHostControl.open(input);
 	expect(restored.identity).toEqual(control.identity);
 	expect(LangflowHostControl.recovery(input.home).state).toBe("blocked");
+});
+
+test("public effects settle under a block without access to reconciliation", async () => {
+	const input = fixture();
+	const control = LangflowHostControl.create(input);
+	const effects = LangflowHostControl.openEffects({
+		home: input.home,
+		readTerminal: async (permit, id) => ({ id, permit, outcome: "completed" }),
+	});
+	expect(effects.identity).toEqual(control.identity);
+	expect("reconcile" in effects.gate).toBe(false);
+	expect("closeDispatch" in effects.gate).toBe(false);
+	const binding = {
+		effectId: "cancel:one",
+		kind: "cancellation" as const,
+		executionId: "execution",
+		attemptId: null,
+		jobId: null,
+		requestId: "request",
+		payloadDigest: "a".repeat(64),
+	};
+	expect(() => effects.gate.acquire(binding)).toThrow("dispatch_blocked");
+	const initial = control.gate.read().block;
+	if (!initial) throw new Error("missing_initial_block");
+	await control.gate.reconcile(initial, "initialized");
+	const permit = effects.gate.acquire(binding);
+	const block = control.gate.closeDispatch({
+		requestId: "capture",
+		reason: { kind: "capture", snapshotId: "snapshot" },
+	});
+	const restarted = LangflowHostControl.openEffects({
+		home: input.home,
+		readTerminal: async (saved, id) => ({ id, permit: saved, outcome: "completed" }),
+	});
+	expect(restarted.gate.recoverPermit(binding)?.permit).toEqual(permit);
+	await restarted.gate.settle(permit, "committed");
+	await control.gate.waitForDrain(block);
+	expect(control.gate.read().block).toEqual(block);
+	expect(control.gate.recoverPermit(binding)?.terminal?.id).toBe("committed");
 });

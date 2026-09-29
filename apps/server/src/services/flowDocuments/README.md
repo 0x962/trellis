@@ -3,6 +3,9 @@
 `get(ctx, tx, { flow })` returns the current `FlowDocumentV1` and its publication state.
 `save(ctx, tx, input)` accepts `FlowDocumentSaveV1Input` and returns its first saved receipt.
 The caller commits the supplied transaction before it requests publication.
+An ordinary save retains the current engine. An engine change requires explicit conversion.
+The save holds the flow row lock through its version check, engine check, and writes.
+An exact request replay returns its first receipt before those checks.
 
 Request identity uses deterministic JSON from the complete validated input.
 Object keys sort by name. Array order and string content remain unchanged.
@@ -49,3 +52,21 @@ An older receipt cannot authorize a new run.
 The engine fragment and bootstrap contract live in `integrations/langflow/patches/publications/`.
 The current catalog has no approved publication definitions.
 The replay lookup reads the original request reference before the current slug, so a rename or slug reassignment preserves the first receipt.
+## Discovery
+
+`discovery(ctx, tx, input, availability)` returns `DiscoveryResult` from `discovery/types.ts`.
+The input uses the existing `FlowListInput` project and ticket filters.
+The result contains an explicit engine observation and compact flow summaries.
+One batch query reads document, publication, and conversion facts for the listed flows.
+The list includes every matching flow.
+
+Composition supplies `DiscoveryAvailability` from the current driver and host control.
+An available observation identifies its time, engine package, and component catalog.
+A missing observation stays unknown, and a blocked control must report unavailable.
+A publication receipt alone cannot establish engine availability.
+
+A new Langflow start requires the current publication and matching observed package and catalog.
+The action also requires an actor, as do edit and delete.
+Legacy execution authority remains unknown in this Langflow observation.
+Conversion stays unknown until a producer establishes an accepted mapping.
+A retained blocked conversion report applies only to its source version.

@@ -1227,6 +1227,20 @@ An exact legacy request replay retains its original result after a document conv
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
 
+`flowDocumentsV1.editorSession` issues an editor grant through
+`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
+editor configuration with the host identity, separate origins, and installed
+component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
+The issuer requires the host bearer, the exact parent Origin, and a stored
+`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
+The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+
+A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
+The grant service holds the channel until the actual document transaction returns.
+If the response is lost after commit, the next exact request reads the durable
+save receipt before it checks the old HTTP preconditions. The accepted receipt
+advances the grant revision; the original bootstrap identity stays unchanged.
+
 A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
 Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.
 The source must match one retained attempt, even when the occurrence has later attempts.
