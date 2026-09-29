@@ -13,7 +13,7 @@ import {
 	FlowExecutionViewV1Schema,
 } from "../schemas/flowExecutionViewV1.ts";
 import { base } from "./base.ts";
-import { flowEditorErrors } from "./flowEditorSessionV1.ts";
+import { flowEditorErrors } from "./flowEditorSessionV1";
 
 export const flowDocumentV1Errors = {
 	FLOW_UNSUPPORTED_FORMAT: {

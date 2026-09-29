@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { type PageTabSortDirection, sortTabs, visibleTabName } from "./sortTabs";
 
 export type PageTabPage = {
 	url: string;
@@ -23,6 +24,7 @@ export type PageTabsState = {
 	renameTab: (id: string, title: string | null) => void;
 	setPinned: (id: string, pinned: boolean) => void;
 	moveTab: (id: string, beforeId: string | null) => void;
+	sortTabs: (direction: PageTabSortDirection) => void;
 	reopenClosedTab: () => void;
 	addTab: (page: PageTabPage) => string;
 	selectTab: (id: string) => void;
@@ -86,11 +88,7 @@ export const pageTabsSelectors = {
 };
 
 export const pageTabsUiProjection = (tabs: readonly PageTab[], activeId: string): PageTabsUiState => ({
-	tabs: tabs.map(({ id, title, customTitle, pinned }) => ({
-		id,
-		title: customTitle ?? title,
-		pinned: pinned === true,
-	})),
+	tabs: tabs.map((tab) => ({ id: tab.id, title: visibleTabName(tab), pinned: tab.pinned === true })),
 	activeId,
 });
 
@@ -138,6 +136,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						const index = beforeId === null ? tabs.length : tabs.findIndex((item) => item.id === beforeId);
 						return { tabs: insertInRegion(tabs, moving, index) };
 					}),
+				sortTabs: (direction) => set((state) => ({ tabs: sortTabs(state.tabs, direction, pageTabRegion) })),
 				closeTab: (id) =>
 					set((state) => {
 						const index = state.tabs.findIndex((item) => item.id === id);
