@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"dependencies": {
+		"projection": "9484d9d7587a1acfaa48cf52b16bbeb1bddd6b3d51d49fa381b79d4556a0bd5f",
+		"occurrenceProjection": "9de2291dc680331270a33b8e22c65b4a50b628b7c43b1f32f371518b468702a3",
+		"reviewProjection": "eafe242778b51a2bf6c468f82fa5e176c39238449d927298c79d5e8ba6b3e82c"
+	},
+	"patch": "integrations/langflow/patches/externalWaits/0007-authoritative-lifecycle-projection.patch",
+	"sha256": "088a817aab6d42e9576fe4a45e1a150fcbefbe825f09779ec3778ef0476178f8",
+	"sources": {
+		"occurrence_projection.py": "40dce431ac954f4e1d92bf236a7101d5753bfacd13c927a065675dcfefd9d659",
+		"vertex_projection.py": "7e2dee97e869819871dd1224b21dfd79d00d16faada44fb6d589edd2bb6fabfb",
+		"terminal_projection.py": "f192e44ee3b3817851dc032246a32ead599ec0cc114aaa06c2ad4becf7f6277c"
+	},
+	"qualification": "source-only",
+	"runtimeAccepted": false
+}

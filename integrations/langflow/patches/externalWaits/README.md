@@ -205,6 +205,21 @@ The occurrence producer stores exact native request bytes under `trellis-native-
 The completion ledger compares the delivery request digest with those saved bytes.
 The completion envelope does not reconstruct request bytes from its parsed request object.
 
+## Authoritative lifecycle projection
+
+Apply `0007-authoritative-lifecycle-projection.patch` after the projection, occurrence projection, and review projection fragments.
+The Langflow build driver records a terminal occurrence only after the real vertex build returns.
+The writer retains the source vertex, exact occurrence, archived title, instructions, and action identity.
+It records the terminal state and time in the same transaction as the graph, journal, and projection snapshot.
+
+`JobService.update_terminal_status` locks the Job row.
+It writes the terminal Job status and exact `EngineProjectionOutcomeV1` before the same transaction records the projection snapshot.
+Failure outcomes use the published `FailureV1` reasons.
+Cancellation terminalizes active visits without changing an earlier completed, failed, or timed-out outcome.
+
+Group and loop owners call the same projection functions after their authoritative graph state changes.
+The helper does not select successors or create a second scheduler.
+
 Apply `0003-native-completion-obligation-consumer.patch` after the native engine API patch.
 It adds this service interface:
 
