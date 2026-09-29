@@ -10,6 +10,8 @@ import { ulid } from "ulid";
 import { fixture as legacyFixture } from "../../services/legacyFlowHistory/fixture.ts";
 import type { Db } from "../client.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Policy'])`;
+
 export const reviewFixture = async (db: Db) => {
 	const project = ulid();
 	const projectKey = `P${project.slice(-9)}`;
@@ -33,12 +35,12 @@ export const reviewFixture = async (db: Db) => {
 		VALUES (${pull},${owner},'app',1,${`https://github.com/${owner}/app/pull/1`},'open','old-head',
 		'ready','mergeable','pass',${at},${at})`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests
-		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
-		VALUES (${ticket},${pull},'manual','Policy','human',${at})`);
+		(ticket_id,pull_request_id,source,actor_id,actor_name,actor_kind,created_at)
+		VALUES (${ticket},${pull},'manual',${actorId},'Policy','human',${at})`);
 	await db.execute(sql`INSERT INTO pr_summaries (pull_request_id,head_sha,headline,why,watch,created_at,updated_at)
 		VALUES (${pull},'old-head','Review the change.','The change needs review.','nothing',${at},${at})`);
-	await db.execute(sql`INSERT INTO pr_evidence_documents (pull_request_id,head_sha,body,actor_name,actor_kind,created_at,updated_at)
-		VALUES (${pull},'old-head','The fixture supplies evidence.','Policy','human',${at},${at})`);
+	await db.execute(sql`INSERT INTO pr_evidence_documents (pull_request_id,head_sha,body,actor_id,actor_name,actor_kind,created_at,updated_at)
+		VALUES (${pull},'old-head','The fixture supplies evidence.',${actorId},'Policy','human',${at},${at})`);
 	const source = Buffer.from("{}");
 	const documentHash = createHash("sha256").update(source).digest("hex");
 	const snapshot = {
