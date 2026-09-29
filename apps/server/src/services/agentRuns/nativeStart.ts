@@ -63,6 +63,9 @@ const start = async (
 		prompt?: string;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
+		textOnly?: HarnessStartInput["textOnly"];
+		signal?: AbortSignal;
+		authorizeLaunch?: () => Promise<boolean>;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -166,6 +169,8 @@ const start = async (
 				prompt,
 				model: config.harness.model,
 				effort: config.harness.effort,
+				...(input.textOnly ? { textOnly: input.textOnly } : {}),
+				signal: input.signal,
 				token: input.attempt.token,
 				timeoutMs,
 			};
@@ -178,6 +183,8 @@ const start = async (
 				retireIdleAttempt = previous.stopReason === "idle";
 				if (previous.status !== "exited") throw new Error("This conversation already has an active agent.");
 				const identity = previous?.agent?.sessionId ?? run.sessionId;
+				if (input.textOnly && identity !== input.textOnly.sessionId)
+					throw new MissingNativeSessionIdentity("The observer attempt belongs to another saved conversation.");
 				if (identity == null || (await nativePreset(ctx.home, input.previousAttemptId)) !== config.harness.preset)
 					throw new MissingNativeSessionIdentity(
 						"The prior attempt has no confirmed session for this harness. Start a new session.",
@@ -210,6 +217,8 @@ const start = async (
 			)
 				return { id: run.id };
 			if (hostIsShuttingDown(ctx.home)) return { id: run.id };
+			input.signal?.throwIfAborted();
+			if (input.authorizeLaunch && !(await input.authorizeLaunch())) return { id: run.id };
 			launchSubmitted = true;
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
@@ -231,10 +240,10 @@ const start = async (
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET account_id = ${!launchSubmitted && resume && input.previousAccountId !== undefined ? input.previousAccountId : (run.accountId ?? null)}, terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure || run.kind === "flow" ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET account_id = ${!launchSubmitted && resume && input.previousAccountId !== undefined ? input.previousAccountId : (run.accountId ?? null)}, terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure || run.kind === "flow" ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${input.textOnly ? "The Claude observer launch failed." : error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
-		if (launchSubmitted || run.kind === "flow")
+		if (launchSubmitted || run.kind === "flow" || input.textOnly)
 			throw new ORPCError("RUNNER_UNAVAILABLE", {
 				defined: true,
 				status: 503,

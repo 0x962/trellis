@@ -8,6 +8,7 @@ import { upsert } from "../actors.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import { type StopRunDeps, stopRunProcess } from "../agentRuns/stopRunProcess.ts";
+import { removeSessionObserverWorkspace } from "../sessionObserverHarness/removeSessionObserverWorkspace.ts";
 import type { IoCtx } from "../support.ts";
 import { removeSessionDirectory } from "./directory.ts";
 import { sessionOperation } from "./operation.ts";
@@ -23,6 +24,7 @@ export const prepareDelete = async (
 	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
 	return sessionOperation(ctx.home, session.runId, async () => {
 		await ctx.newTx((tx) => getSession(tx, session.id));
+		await removeSessionObserverWorkspace(ctx, { sourceRunId: session.runId });
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		await stopRunProcess(ctx, run, deps);
 		if (session.directory === join(ctx.home, "agents", run.id, "work")) {
