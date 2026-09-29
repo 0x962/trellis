@@ -1,18 +1,16 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
-import { isDeepStrictEqual } from "node:util";
-import { FlowDiagnosticV1Schema, type FlowPublicationV1, FlowPublicationV1Schema } from "@trellis/api";
+import { FlowDiagnosticV1Schema } from "@trellis/api";
 import { z } from "zod";
 import type { CandidatePackage } from "../../../../../../integrations/langflow/release/loadCandidatePackage/loadCandidatePackage.ts";
 import type { LiveOwnership } from "../../../langflowHost/contracts";
 import { documentBytes } from "../documentBytes";
-import type { PublicationActions, PublicationBinding, PublicationPermit } from "../publicationDispatch";
+import type { PublicationActions, PublicationBinding, publicationDispatch } from "../publicationDispatch";
+import type { PublicationProof } from "../publicationProof";
 import type { DocumentPublisher, SavedDocument } from "../publisher";
 
-export type PublicationDispatch = {
-	run(binding: PublicationBinding, actions: PublicationActions): Promise<FlowPublicationV1>;
-};
+export type PublicationDispatch = ReturnType<typeof publicationDispatch>;
 
 const diagnosticsSchema = z.strictObject({ diagnostics: z.array(FlowDiagnosticV1Schema) });
 
@@ -21,12 +19,7 @@ export const installedPublisher = (input: {
 	ownership: LiveOwnership;
 	authenticationFile: string;
 	dispatch: PublicationDispatch;
-}): DocumentPublisher & {
-	readTerminal(
-		permit: PublicationPermit,
-		receiptId: string,
-	): Promise<{ id: string; permit: PublicationPermit; outcome: "completed" }>;
-} => {
+}): DocumentPublisher => {
 	const identity = input.package;
 	if (input.ownership.identity.manifestDigest !== identity.enginePackageDigest) {
 		throw new Error("publication_owner_package_mismatch");
@@ -62,78 +55,57 @@ export const installedPublisher = (input: {
 		});
 		if (bytes === undefined && response.status === 404) return null;
 		if (!response.ok) throw new Error(`publication_http_${response.status}`);
-		return response.json();
+		return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(await response.arrayBuffer());
 	};
-	const readReceipt = async (flowId: string, revision: number, digest: string) => {
-		const result = await request(`/trellis-v1/publications/${encodeURIComponent(flowId)}/${revision}`);
-		if (result === null) return null;
-		const saved = z.object({ requestDigest: z.string(), publication: FlowPublicationV1Schema }).parse(result);
-		if (
-			saved.requestDigest !== digest ||
-			saved.publication.flowId !== flowId ||
-			saved.publication.revision !== revision ||
-			saved.publication.enginePackageDigest !== identity.enginePackageDigest ||
-			saved.publication.componentManifestHash !== identity.componentManifestHash
-		) {
-			throw new Error("publication_replay_conflict");
-		}
-		return saved.publication;
+	const operation = (document: SavedDocument) => {
+		if (document.snapshot.componentManifestHash !== identity.componentManifestHash)
+			throw new Error("publication_manifest_conflict");
+		const requestBytes = body(document);
+		const digest = createHash("sha256").update(requestBytes).digest("hex");
+		const binding: PublicationBinding = {
+			effectId: `publication:${document.snapshot.flow.id}:${document.snapshot.revision}`,
+			kind: "publication",
+			executionId: null,
+			attemptId: null,
+			jobId: null,
+			requestId: digest,
+			payloadDigest: digest,
+		};
+		const proof = (responseBytes: string, responseKind: PublicationProof["responseKind"]): PublicationProof => ({
+			requestBytes,
+			responseBytes,
+			responseKind,
+		});
+		const actions: PublicationActions = {
+			read: async () => {
+				const responseBytes = await request(
+					`/trellis-v1/publications/${encodeURIComponent(document.snapshot.flow.id)}/${document.snapshot.revision}`,
+				);
+				return responseBytes === null ? null : proof(responseBytes, "recovered");
+			},
+			write: async () => {
+				const responseBytes = await request("/trellis-v1/publications", requestBytes);
+				if (responseBytes === null) throw new Error("publication_outcome_unknown");
+				return proof(responseBytes, "created");
+			},
+		};
+		return { binding, actions };
 	};
-
 	return {
 		enginePackageDigest: identity.enginePackageDigest,
 		componentManifestHash: identity.componentManifestHash,
-		recover: async (document) =>
-			readReceipt(
-				document.snapshot.flow.id,
-				document.snapshot.revision,
-				createHash("sha256").update(body(document)).digest("hex"),
-			),
-		validate: async (document) =>
-			diagnosticsSchema.parse(await request("/trellis-v1/publications/validate", body(document))).diagnostics,
-		publish: async (document) => {
-			const effect = {
-				flowId: document.snapshot.flow.id,
-				revision: document.snapshot.revision,
-				documentHash: document.snapshot.documentHash,
-				enginePackageDigest: identity.enginePackageDigest,
-				componentManifestHash: identity.componentManifestHash,
-			};
-			const bytes = body(document);
-			const digest = createHash("sha256").update(bytes).digest("hex");
-			return input.dispatch.run(
-				{
-					effectId: `publication:${effect.flowId}:${effect.revision}`,
-					kind: "publication",
-					executionId: null,
-					attemptId: null,
-					jobId: null,
-					requestId: digest,
-					payloadDigest: digest,
-				},
-				{
-					read: () => readReceipt(effect.flowId, effect.revision, digest),
-					write: async () => {
-						const receipt = FlowPublicationV1Schema.parse(await request("/trellis-v1/publications", bytes));
-						const received = {
-							flowId: receipt.flowId,
-							revision: receipt.revision,
-							documentHash: receipt.documentHash,
-							enginePackageDigest: receipt.enginePackageDigest,
-							componentManifestHash: receipt.componentManifestHash,
-						};
-						if (!isDeepStrictEqual(effect, received)) throw new Error("publication_receipt_identity_mismatch");
-						return receipt;
-					},
-				},
-			);
+		recover: (document) => {
+			const { binding, actions } = operation(document);
+			return input.dispatch.recover(binding, actions);
 		},
-		readTerminal: async (permit, receiptId) => {
-			const match = /^publication:([0-9A-HJKMNP-TV-Z]{26}):([1-9][0-9]*)$/.exec(permit.binding.effectId);
-			if (!match || permit.binding.kind !== "publication") throw new Error("publication_permit_invalid");
-			const receipt = await readReceipt(match[1]!, Number(match[2]), permit.binding.payloadDigest);
-			if (receipt === null || receipt.publicationId !== receiptId) throw new Error("publication_terminal_unknown");
-			return { id: receiptId, permit, outcome: "completed" };
+		validate: async (document) => {
+			const response = await request("/trellis-v1/publications/validate", body(document));
+			if (response === null) throw new Error("publication_validation_unknown");
+			return diagnosticsSchema.parse(JSON.parse(response)).diagnostics;
+		},
+		publish: (document) => {
+			const { binding, actions } = operation(document);
+			return input.dispatch.run(binding, actions);
 		},
 	};
 };
