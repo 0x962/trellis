@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { LangflowSidecarManifestV1Schema } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
 import type { NativeReservationAuthentication, SidecarDriver, SidecarIdentity, SidecarObservation } from "../contracts";
@@ -17,6 +17,7 @@ import {
 	createVolume,
 	inspectVolume,
 	privateDirectory,
+	privateDirectorySync,
 	privateFile,
 	provisionStorage,
 	storageNames,
@@ -36,7 +37,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	const executable = options.dockerExecutable ?? "docker";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(executable, args));
 	const fetcher = options.dependencies?.fetch ?? fetch;
-	const privateRoot = resolve(options.privateRoot);
+	const privateRoot = privateDirectorySync(options.privateRoot);
 	const privateRootDigest = createHash("sha256").update(privateRoot).digest("hex");
 	const image = { reference: options.imageConfigDigest, configDigest: options.imageConfigDigest };
 	const readNativeReservationAuthentication = nativeReservationAuthenticationReader(privateRoot);
