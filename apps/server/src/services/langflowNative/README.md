@@ -21,7 +21,8 @@ The launch value contains the attempt token and stays inside the trusted host.
 `dispatchNative` claims the reserved handle once and calls `startNative` with that exact attempt.
 Its `resolveProcessLimits` hook reads current deadlines and budgets inside the execution transaction.
 Its `recordObservedLaunch` hook commits the runtime launch time and the corresponding group deadlines together.
-TRL-692 owns both deadline hooks and the exact-attempt stop obligations.
+`resolveNativeLimits` reads retained group clocks, and `recordNativeLaunch` saves the runtime launch receipt and starts those clocks.
+Both hooks receive the caller transaction.
 An interrupted dispatch retains the same reservation for runtime inspection.
 The caller uses `observeNativeAttempt` after a restart or an uncertain launch response.
 
@@ -60,3 +61,47 @@ bunx --no-install biome check apps/server/src/services/langflowNative
 cd apps/server
 bun run typecheck
 ```
+
+## Private transport and recovery
+
+`requestNativeAttempt(ctx, { requestBytes }, dependencies)` commits the reservation before dispatch.
+The authenticated private route supplies the authority and immutable occurrence resolver.
+TRL-669 owns runtime occurrence data, and TRL-696 owns the route and publication resolver.
+The private route is `POST /api/langflow-private/v1/native-reservations`.
+Its UTF8 request body contains exact `NativeRequestV1` bytes, and its response contains `NativeHandleV1`.
+
+Reservation and launch each acquire a durable permit from `DispatchGate` before their first write.
+Reservation settlement uses the committed step ID. Launch settlement uses the saved launch receipt ID.
+The gate uses its trusted receipt reader to verify settlement.
+An uncertain effect keeps its permit pending for reconciliation.
+The launch holds `withAttemptOperation` through preparation, authorization, runtime submission, and the native row update.
+Stop confirmation holds the same lock for that exact attempt.
+
+`dispatchNative` accepts the existing `startNative` dependencies as its third argument.
+`observeNativeAttempt` accepts an exact runtime inspection client as its third argument.
+The production defaults use the existing native runtime.
+The observation transaction also repairs a missing launch receipt from the exact runtime observation.
+
+Before reservation commit, the bridge writes an owner-only snapshot in `harness-attempts/<attemptId>/langflow-launch.json`.
+The snapshot retains the original launch token, selected configuration, and instruction.
+It contains neither the ambient environment nor account credentials.
+The database stores the exact snapshot digest with the reservation.
+The file and database are separate stores. A rollback can leave an orphan file.
+Only a committed reservation can authorize recovery.
+
+`recoverNativeAttempt` checks the snapshot digest, token hash, generation, current attempt, and immutable launch configuration.
+Only the reserved state can proceed through normal dispatch guards.
+Other states require observation of the original attempt.
+Missing snapshots and historical null digests refuse recovery.
+The snapshot never supplies launch authority or a replacement attempt.
+
+`readNativeOutput` reads exact retained completion bytes after the current native attempt changes.
+The caller authorizes the execution read. Historical reads require no delivery grant.
+Every execution, step, run, attempt, and result identity must match.
+
+`readNativeSnapshotManifest` verifies committed snapshots and returns paths, hashes, and exact bindings for a trusted external archive.
+`readLaunchSnapshot` reads their private bytes without mutation.
+Missing, unsafe, or corrupt files and historical null digests appear in `unavailable` with their exact bindings and reasons.
+Unexpected I/O failures propagate to the archive caller.
+Paired backup and restore must include these files and retain the dispatch block until their validation succeeds.
+The ordinary database backup does not contain the private launch files.

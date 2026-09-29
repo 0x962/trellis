@@ -7,8 +7,10 @@ import type { Tx } from "../../../db/tx.ts";
 import type { GroupDeadlineV1 } from "../../../langflowContracts";
 import { recordLaunchClocks } from "../../langflowClocks/recordLaunchClocks";
 
+import { migratedDatabase } from "./components/migratedDatabase";
+
 export async function stopFixture(launched = false) {
-	const fixture = await receiptFixture();
+	const fixture = await receiptFixture(true, await migratedDatabase());
 	const core: ServiceCtx = {
 		actor: { kind: "human", name: "fixture" },
 		session: null,
@@ -56,6 +58,6 @@ export async function stopFixture(launched = false) {
 			});
 			await recordLaunchClocks(core, tx, { executionId: ids.execution, stepId: handle.stepId });
 		});
-	const io = { home: "unused", newTx: run, now: () => now, emit: core.emit, log: () => {} };
+	const io = { core, home: "unused", newTx: run, now: () => now, emit: core.emit, log: () => {} };
 	return { ...fixture, core, run, io, request, reservation, deadline };
 }
