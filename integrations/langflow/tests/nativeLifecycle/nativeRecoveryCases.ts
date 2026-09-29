@@ -90,12 +90,14 @@ describe.serial("native recovery feasibility", () => {
 	test("F6 starts nested clocks at launchedAt and sends the half and quarter warnings once", async () => {
 		const fixture = await useFixture(nestedFlow());
 		const first = (await fixture.claim())!;
+		const launchTime = Date.now();
+		const atMinute = (minute: number) => new Date(launchTime + minute * 60 * 1000).toISOString();
 		let state = (await fixture.read()).state;
 		expect(
 			state.steps.filter((step) => ["outer", "inner"].includes(step.nodeId)).map((step) => step.deadlineAt),
 		).toEqual([null, null]);
 
-		fixture.setNow("2026-09-29T10:10:00.000Z");
+		fixture.setNow(atMinute(0));
 		const launched = await fixture.launch(first);
 		await fixture.recordLaunch(first, launched.launchedAt);
 		await fixture.processes.acknowledge(first.attempt.id);
@@ -106,8 +108,8 @@ describe.serial("native recovery feasibility", () => {
 				.map((step) => [step.nodeId, step.deadlineAt]),
 		);
 		expect(original).toEqual({
-			outer: Date.parse("2026-10-01T10:10:00.000Z"),
-			inner: Date.parse("2026-09-29T10:30:00.000Z"),
+			outer: Date.parse(atMinute(2880)),
+			inner: Date.parse(atMinute(20)),
 		});
 		expect(
 			GroupDeadlineV1Schema.parse({
@@ -115,14 +117,14 @@ describe.serial("native recovery feasibility", () => {
 				groupOccurrenceKey: "outer:1",
 				budgetMs: 2880 * 60 * 1000,
 				launchedAt: launched.launchedAt,
-				deadlineAt: "2026-10-01T10:10:00.000Z",
+				deadlineAt: atMinute(2880),
 				launchReceiptId: "launch-receipt-outer",
 			}),
 		).toMatchObject({ budgetMs: 172_800_000 });
 
-		fixture.setNow("2026-09-29T10:20:00.000Z");
+		fixture.setNow(atMinute(10));
 		await fixture.reconcile();
-		fixture.setNow("2026-09-29T10:25:00.000Z");
+		fixture.setNow(atMinute(15));
 		await fixture.reconcile();
 		await fixture.reconcile();
 		expect(fixture.warnings.map((warning) => warning.text)).toEqual([
@@ -131,7 +133,7 @@ describe.serial("native recovery feasibility", () => {
 		]);
 
 		await fixture.processes.complete(first.attempt.id, "result-first", "First done");
-		fixture.setNow("2026-09-29T10:26:00.000Z");
+		fixture.setNow(atMinute(16));
 		await fixture.observeClaim(first);
 		const second = (await fixture.claim())!;
 		await fixture.launch(second);
