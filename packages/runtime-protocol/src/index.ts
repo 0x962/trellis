@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 15;
+export const RUNTIME_PROTOCOL_VERSION = 16;
 export type HarnessInputRequest = {
 	id: string;
 	kind: "question" | "permission" | "elicitation";

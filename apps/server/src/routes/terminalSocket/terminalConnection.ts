@@ -6,7 +6,7 @@ import { z } from "zod";
 import { legacyTerminalChannel } from "./legacyTerminalChannel.ts";
 
 const commandSchema = z.discriminatedUnion("type", [
-	z.object({ type: z.literal("input"), data: z.string().max(1024 * 1024), userInput: z.boolean() }),
+	z.object({ type: z.literal("input"), data: z.string(), userInput: z.boolean() }),
 	z.object({
 		type: z.literal("resize"),
 		cols: z.number().int().min(1).max(1000),
@@ -39,6 +39,11 @@ export function terminalConnection(
 		if (abort.signal.aborted) return;
 		ws.send(JSON.stringify({ type: "error", message: (error as Error).message }));
 		close(ws, 1011, "Terminal connection failed");
+	};
+	const binaryInput = (value: unknown) => {
+		if (value instanceof ArrayBuffer) return new Uint8Array(value);
+		if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+		throw new Error("Terminal commands must be JSON text or binary input.");
 	};
 	const follow = async (ws: WSContext) => {
 		const channel = binaryChannel
@@ -82,7 +87,18 @@ export function terminalConnection(
 		onMessage: (event, ws) => {
 			if (abort.signal.aborted) return;
 			try {
-				if (typeof event.data !== "string") throw new Error("Terminal commands must be JSON text.");
+				if (typeof event.data !== "string") {
+					const bytes = binaryInput(event.data);
+					if (bytes.byteLength < 1 || bytes[0]! > 1) throw new Error("Invalid terminal input frame");
+					if (!writable) throw new Error("This agent does not have a running interactive terminal.");
+					void transport
+						.input(bytes.subarray(1), bytes[0] === 1)
+						.then(() => {
+							if (!abort.signal.aborted) ws.send(JSON.stringify({ type: "input-ack" }));
+						})
+						.catch((error) => fail(ws, error));
+					return;
+				}
 				const command = commandSchema.parse(JSON.parse(event.data));
 				if (command.type === "ack") {
 					if (command.offset > sentOffset) throw new Error("Terminal acknowledgement exceeds delivered output");
@@ -91,7 +107,8 @@ export function terminalConnection(
 					return;
 				}
 				if (!writable) throw new Error("This agent does not have a running interactive terminal.");
-				if (command.type === "input") transport.input(Buffer.from(command.data), command.userInput);
+				if (command.type === "input")
+					void transport.input(Buffer.from(command.data), command.userInput).catch((error) => fail(ws, error));
 				else transport.resize(command.cols, command.rows);
 			} catch (error) {
 				fail(ws, error);

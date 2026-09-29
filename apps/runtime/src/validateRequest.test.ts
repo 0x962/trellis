@@ -33,3 +33,36 @@ test("accepts a full large turn result", () => {
 	expect(validateRequest(value) === value).toBe(true);
 	expect(() => validateRequest({ ...value, params: { ...value.params, result: 12 } })).toThrow("must be a string");
 });
+
+test("accepts complete control values above the former byte ceilings", () => {
+	const token = `token-${"文".repeat(1024)}`;
+	const input = Buffer.alloc(1024 * 1024 + 1, 120).toString("base64");
+	const values = [
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "registerNativeDelivery",
+			params: { id: "attempt", token, messageId: "message", promptDigest: "a".repeat(64) },
+		},
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "observe",
+			params: { id: "attempt", token, event: { kind: "idle" } },
+		},
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "turn",
+			params: { id: "attempt", token, event: "Stop" },
+		},
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "input",
+			params: { id: "attempt", data: input, userInput: true },
+		},
+	];
+
+	for (const value of values) expect(validateRequest(value) === value).toBe(true);
+});

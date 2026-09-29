@@ -81,21 +81,18 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("Message identifier must contain letters, numbers, underscores, or hyphens");
 			break;
 		case "registerNativeDelivery":
-			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
-				throw new Error("An attempt token is required");
+			if (typeof params.token !== "string" || !params.token) throw new Error("An attempt token is required");
 			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
 				throw new Error("A message identifier is required");
 			if (typeof params.promptDigest !== "string" || !/^[a-f0-9]{64}$/.test(params.promptDigest))
 				throw new Error("A SHA256 prompt digest is required");
 			break;
 		case "observe":
-			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
-				throw new Error("An attempt token is required");
+			if (typeof params.token !== "string" || !params.token) throw new Error("An attempt token is required");
 			validateHarnessEvent(params.event);
 			break;
 		case "turn":
-			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
-				throw new Error("An attempt token is required");
+			if (typeof params.token !== "string" || !params.token) throw new Error("An attempt token is required");
 			if (!["SessionStart", "UserPromptSubmit", "Stop"].includes(params.event as string))
 				throw new Error("Unknown turn event");
 			if (params.result !== undefined && typeof params.result !== "string")

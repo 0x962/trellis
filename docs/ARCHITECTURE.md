@@ -91,7 +91,7 @@ The desktop supplies thermal state through the trusted preload bridge.
 The renderer combines that state only when the desktop host origin exactly matches the page origin.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 15. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 16. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
@@ -137,6 +137,11 @@ Overview holds the summary and the evidence document. Checks holds every GitHub 
 The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
+A terminal input uses acknowledged 64 KiB pieces across the WebSocket and runtime socket.
+Each acknowledgement follows the write to the process, so backpressure preserves complete ordered input.
+The HTTP listener gives Bun `Number.MAX_SAFE_INTEGER`, which is the largest request size that JavaScript represents exactly.
+The WebSocket listener gives Bun `0xffffffff`, because Bun 1.3.13 stores `maxPayloadLength` as an unsigned 32-bit integer.
+RFC 6455 section 5.2 defines a 63-bit WebSocket payload length, so Bun sets the smaller transport maximum.
 A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
 Live output uses a memory buffer and an ordered asynchronous disk log.
 Parser acknowledgments bound output across the browser connection.

@@ -203,7 +203,7 @@ export const agentRuns = {
 		.route({ method: "POST", path: "/agent-runs/{id}/terminal/input", summary: "Write terminal bytes" })
 		.input(
 			idInput.extend({
-				text: z.string().min(1).max(65536),
+				text: z.string().min(1),
 				userInput: z.boolean().optional(),
 				expectedTerminalId: z.string().optional(),
 			}),

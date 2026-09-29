@@ -49,7 +49,7 @@ const transport = {
 } as unknown as ServiceTransport;
 
 // The app with a host token set, the way the desktop host runs it.
-const appOf = () =>
+const appOf = (maxUploadMb = 50) =>
 	createApp({
 		config: {
 			home,
@@ -57,7 +57,7 @@ const appOf = () =>
 			host: "127.0.0.1",
 			allowedHosts: [],
 			port: 4521,
-			maxUploadMb: 50,
+			maxUploadMb,
 			webDist: join(home, "web"),
 		} as unknown as Config,
 		log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as Logger,
@@ -82,6 +82,17 @@ beforeEach(() => {
 });
 
 describe("the Page routes of the whole app", () => {
+	test("passes an upload body above the configured former route limit to its handler", async () => {
+		const response = await appOf(1).request(`${ORIGIN}/api/page-uploads`, {
+			method: "POST",
+			headers: { authorization: `Bearer ${TOKEN}` },
+			body: new Uint8Array(1024 * 1024 + 1),
+		});
+
+		expect(response.status).toBe(404);
+		expect((await response.json()) as { code: string }).toMatchObject({ code: "NOT_FOUND" });
+	});
+
 	test("serve a frame, a page, and an archive without the host token", async () => {
 		const lease = createRenderLease({ pageId, version: 1, actor, now: new Date() });
 		const grant = createArchiveGrant({ pageId, version: 1, filename: "forecast-report-v1.zip", now: new Date() });
