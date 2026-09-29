@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { ActorRef, TrellisEvent } from "@trellis/api";
+import { type ActorRef, PageCommentThreadSchema, type TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
@@ -243,5 +243,30 @@ describe("Page comments", () => {
 		await expect(inTx((tx) => listPageComments(contextOf(null), tx, { page: deletedPageId }))).rejects.toMatchObject({
 			code: "PAGE_DELETED",
 		});
+	});
+	test("preserves large comments and selections through create, reply, edit, and read", async () => {
+		const quote = "Selected 界\n".repeat(3000);
+		const body = "Complete comment 界\n".repeat(2000).trim();
+		const anchor = { kind: "text" as const, path: "main", quote, prefix: "", suffix: "" };
+		const thread = await inTx((tx) =>
+			createPageComment(contextOf(human), tx, { page: pageId, version: 2, anchor, body }),
+		);
+		expect(PageCommentThreadSchema.parse(thread)).toMatchObject({ anchor, selectedText: quote });
+		expect(thread.comments[0]!.body).toBe(body);
+		const reply = `${body} Reply`;
+		await inTx((tx) => replyToPageComment(contextOf(agent), tx, { thread: thread.id, body: reply }));
+		const edited = `${body} Edited`;
+		await expect(
+			inTx((tx) => editPageComment(contextOf(other), tx, { id: thread.comments[0]!.id, body: edited })),
+		).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+		await expect(
+			inTx((tx) => createPageComment(contextOf(null), tx, { page: pageId, version: 2, anchor, body })),
+		).rejects.toMatchObject({ code: "ACTOR_REQUIRED" });
+		await inTx((tx) => editPageComment(contextOf(human), tx, { id: thread.comments[0]!.id, body: edited }));
+		const saved = (await inTx((tx) => listPageComments(contextOf(null), tx, { page: pageId }))).find(
+			(item) => item.id === thread.id,
+		)!;
+		expect(PageCommentThreadSchema.parse(saved)).toMatchObject({ anchor, selectedText: quote });
+		expect(saved.comments.map((comment) => comment.body)).toEqual([edited, reply]);
 	});
 });

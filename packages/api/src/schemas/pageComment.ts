@@ -4,41 +4,24 @@ import { ActorRefSchema } from "./actor.ts";
 import { PageVersionNumberSchema } from "./page.ts";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-export const PAGE_COMMENT_BODY_MAX = 10000;
-export const PAGE_COMMENT_ANCHOR_MAX_BYTES = 16 * 1024;
-export const PageCommentBodySchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a comment.")
-	.max(PAGE_COMMENT_BODY_MAX, `Enter a comment of ${PAGE_COMMENT_BODY_MAX} characters or less.`);
+export const PageCommentBodySchema = z.string().trim().min(1, "Enter a comment.");
 const pageDomPathPattern =
 	/^[a-z\p{L}][a-z0-9\p{L}\p{N}-]*(?::nth-of-type\([1-9]\d*\))?(?:>[a-z\p{L}][a-z0-9\p{L}\p{N}-]*(?::nth-of-type\([1-9]\d*\))?)*$/u;
 const PageDomPathSchema = z
 	.string()
 	.min(1)
-	.max(4000)
 	.regex(pageDomPathPattern, "A Page element path must contain tag names and optional nth-of-type positions.");
 
-// PostgreSQL renders JSONB with one space after each colon and comma. These
-// flat strict objects have one colon per property and one fewer comma.
-const jsonbTextByteLength = (value: Record<string, unknown>) =>
-	new TextEncoder().encode(JSON.stringify(value)).byteLength + Object.keys(value).length * 2 - 1;
-
-export const PageCommentAnchorSchema = z
-	.discriminatedUnion("kind", [
-		z.strictObject({ kind: z.literal("element"), path: PageDomPathSchema }),
-		z.strictObject({
-			kind: z.literal("text"),
-			path: PageDomPathSchema,
-			quote: z.string().min(1).max(2000),
-			prefix: z.string().max(32),
-			suffix: z.string().max(32),
-		}),
-	])
-	.refine(
-		(anchor) => jsonbTextByteLength(anchor) <= PAGE_COMMENT_ANCHOR_MAX_BYTES,
-		`A page comment anchor cannot exceed ${PAGE_COMMENT_ANCHOR_MAX_BYTES} bytes.`,
-	);
+export const PageCommentAnchorSchema = z.discriminatedUnion("kind", [
+	z.strictObject({ kind: z.literal("element"), path: PageDomPathSchema }),
+	z.strictObject({
+		kind: z.literal("text"),
+		path: PageDomPathSchema,
+		quote: z.string().min(1),
+		prefix: z.string().max(32),
+		suffix: z.string().max(32),
+	}),
+]);
 export type PageCommentAnchor = z.infer<typeof PageCommentAnchorSchema>;
 
 export const PageCommentSchema = z.object({
@@ -58,7 +41,7 @@ export const PageCommentThreadSchema = z
 		pageId: UlidSchema,
 		version: PageVersionNumberSchema,
 		anchor: PageCommentAnchorSchema,
-		selectedText: z.string().min(1).max(2000).nullable(),
+		selectedText: z.string().min(1).nullable(),
 		creator: ActorRefSchema,
 		resolved: z.object({ actor: ActorRefSchema, at: IsoDateTimeSchema }).nullable(),
 		comments: z.array(PageCommentSchema).min(1),

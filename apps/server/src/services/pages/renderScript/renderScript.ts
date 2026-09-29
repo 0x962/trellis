@@ -33,7 +33,6 @@ const contentRuntime = (nonce: string) => {
 				: range.commonAncestorContainer.parentElement;
 		const quote = selection.toString();
 		if (root === null || quote.trim() === "") return undefined;
-		if (quote.length > 2000) return null;
 		const before = range.cloneRange();
 		before.selectNodeContents(root);
 		before.setEnd(range.startContainer, range.startOffset);
@@ -49,10 +48,6 @@ const contentRuntime = (nonce: string) => {
 	};
 	const reportAnchor = (element: Element | null) => {
 		const selection = selectedAnchor();
-		if (selection === null) {
-			send({ type: "page-comment-anchor-error", message: "Select 2,000 characters or fewer." });
-			return;
-		}
 		const anchor = selection ?? (element === null ? null : { kind: "element", path: pathOf(element) });
 		if (anchor !== null) send({ type: "page-comment-anchor", anchor });
 	};
