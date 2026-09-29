@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { DecisionLookupRequestV1 } from "../../../langflowContracts";
 import { createReceipt } from "../createReceipt";
-import { accepted, testFixture } from "../testFixture/testFixture.ts";
-import { deliver } from "./deliver.ts";
+import { accepted, testFixture } from "../testFixture";
+import { type DecisionEngine, deliver as deliverWithLog, type PreparedDecision } from "./deliver.ts";
+
+const deliver = (prepared: PreparedDecision, engine: DecisionEngine) => deliverWithLog(prepared, engine, () => {});
 
 const prepared = () => {
 	const f = testFixture();
@@ -34,19 +36,62 @@ describe("decision acknowledgement", () => {
 		expect(confirmed.decision).toEqual(saved.delivery.decision);
 		expect(calls).toBe(1);
 	});
-	test("conflict and unknown lookup never authorize delivery or confirmation", async () => {
-		for (const state of ["conflict", "unknown"] as const) {
-			let calls = 0;
-			const result = await deliver(prepared(), {
-				lookup: async (lookup) =>
-					state === "conflict" ? { state, lookup, acceptedDigest: "a".repeat(64) } : { state, lookup },
+	test("unknown lookup never authorizes delivery or confirmation", async () => {
+		let calls = 0;
+		const result = await deliver(prepared(), {
+			lookup: async (lookup) => ({ state: "unknown", lookup }),
+			accept: async () => {
+				calls++;
+				return {};
+			},
+		});
+		expect(result.state).toBe("unknown");
+		expect(calls).toBe(0);
+	});
+	test("an explicit receipt conflict stops recovery", async () => {
+		let calls = 0;
+		await expect(
+			deliver(prepared(), {
+				lookup: async (lookup) => ({ state: "conflict", lookup, acceptedDigest: "a".repeat(64) }),
 				accept: async () => {
 					calls++;
 					return {};
 				},
-			});
+			}),
+		).rejects.toThrow("decision_acceptance_conflict");
+		expect(calls).toBe(0);
+	});
+	test("network diagnostics retain identity and exclude private payloads", async () => {
+		for (const operation of ["lookup", "accept"] as const) {
+			const saved = prepared();
+			const logs: { message: string; fields?: Record<string, unknown> }[] = [];
+			const failure = new TypeError("private notes and credentials");
+			const result = await deliverWithLog(
+				saved,
+				{
+					lookup: async (lookup) => {
+						if (operation === "lookup") throw failure;
+						return { state: "absent", lookup, authoritative: true };
+					},
+					accept: async () => {
+						throw failure;
+					},
+				},
+				(message, fields) => logs.push({ message, fields }),
+			);
 			expect(result.state).toBe("unknown");
-			expect(calls).toBe(0);
+			expect(logs).toEqual([
+				{
+					message: "Human decision delivery failed",
+					fields: {
+						operation,
+						executionId: saved.delivery.decision.wait.executionId,
+						decisionId: saved.delivery.decision.decisionId,
+						engineRequestId: saved.delivery.decision.wait.engineRequestId,
+						category: "TypeError",
+					},
+				},
+			]);
 		}
 	});
 	test("generic HTTP conflict retains an unknown receipt", async () => {
