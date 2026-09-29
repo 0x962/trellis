@@ -5,7 +5,7 @@ type ReadDiffPage = (input: PullRequestDiffInput) => Promise<PullRequestDiffOutp
 
 export const writeDiff = async (out: Writer, json: boolean, read: ReadDiffPage, id: string): Promise<void> => {
 	if (json) out.write('{"diff":"');
-	let cursor: number | undefined;
+	let cursor: string | undefined;
 	do {
 		const page = await read(cursor === undefined ? { id } : { id, cursor });
 		out.write(json ? JSON.stringify(page.diff).slice(1, -1) : page.diff);

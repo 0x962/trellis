@@ -108,8 +108,13 @@ export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+const PullRequestDiffCursorSchema = z
+	.string()
+	.regex(/^[a-f0-9]{64}:[1-9][0-9]*$/)
+	.refine((cursor) => Number.isSafeInteger(Number(cursor.slice(65))), "The byte offset must be a safe integer.");
+
 export const PullRequestDiffInputSchema = PullRequestIdInputSchema.extend({
-	cursor: z.number().int().safe().nonnegative().optional(),
+	cursor: PullRequestDiffCursorSchema.optional(),
 });
 export type PullRequestDiffInput = z.infer<typeof PullRequestDiffInputSchema>;
 
@@ -171,6 +176,6 @@ export type PullRequestSummaryWriteOutput = z.infer<typeof PullRequestSummaryWri
 
 export const PullRequestDiffOutputSchema = z.object({
 	diff: z.string(),
-	nextCursor: z.number().int().safe().nonnegative().nullable(),
+	nextCursor: PullRequestDiffCursorSchema.nullable(),
 });
 export type PullRequestDiffOutput = z.infer<typeof PullRequestDiffOutputSchema>;

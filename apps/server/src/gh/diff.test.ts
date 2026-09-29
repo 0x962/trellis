@@ -17,11 +17,11 @@ test("diffPage keeps a multibyte hunk intact across pages", () => {
 	const patch = `${before}€\nsecond-file\n`;
 	const bytes = new TextEncoder().encode(patch);
 	const first = diffPage(bytes, 0);
-	const second = diffPage(bytes, first.nextCursor!);
+	const second = diffPage(bytes, first.nextOffset!);
 
 	expect(first.diff).toBe(before);
-	expect(first.nextCursor).toBe(DIFF_PAGE_BYTES - 1);
+	expect(first.nextOffset).toBe(DIFF_PAGE_BYTES - 1);
 	expect(second.diff).toBe("€\nsecond-file\n");
-	expect(second.nextCursor).toBeNull();
+	expect(second.nextOffset).toBeNull();
 	expect(first.diff + second.diff).toBe(patch);
 });
