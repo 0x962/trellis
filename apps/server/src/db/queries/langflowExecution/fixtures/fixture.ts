@@ -52,6 +52,7 @@ export async function receiptFixture(open = true, database?: Db) {
 			tables.langflowExecutions,
 			tables.langflowStartReceipts,
 			tables.langflowNativeHandles,
+			tables.langflowWorkspaceObservations,
 			tables.langflowCompletions,
 			tables.langflowDecisions,
 			tables.langflowOutbox,
