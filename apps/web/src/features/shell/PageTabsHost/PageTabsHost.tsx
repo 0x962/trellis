@@ -130,6 +130,7 @@ export function PageTabsHost() {
 			onClose={close}
 			onMove={pageTabsActions.moveTab}
 			onRename={pageTabsActions.renameTab}
+			onSort={pageTabsActions.sortTabs}
 		/>
 	);
 }

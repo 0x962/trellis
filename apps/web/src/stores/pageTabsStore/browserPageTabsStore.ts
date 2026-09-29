@@ -1,4 +1,5 @@
 import { createPageTabsStore, type PageTabPage } from "./pageTabsStore";
+import type { PageTabSortDirection } from "./sortTabs";
 
 const currentPage = {
 	url: `${window.location.pathname}${window.location.search}${window.location.hash}`,
@@ -15,6 +16,7 @@ export const usePageTabsStore = createPageTabsStore({
 export const pageTabsActions = {
 	renameTab: (id: string, title: string | null) => usePageTabsStore.getState().renameTab(id, title),
 	moveTab: (id: string, beforeId: string | null) => usePageTabsStore.getState().moveTab(id, beforeId),
+	sortTabs: (direction: PageTabSortDirection) => usePageTabsStore.getState().sortTabs(direction),
 	reopenClosedTab: () => usePageTabsStore.getState().reopenClosedTab(),
 	addTab: (page: PageTabPage) => usePageTabsStore.getState().addTab(page),
 	selectTab: (id: string) => usePageTabsStore.getState().selectTab(id),

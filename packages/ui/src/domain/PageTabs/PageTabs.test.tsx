@@ -45,3 +45,18 @@ test("bounds the mounted controls and keeps the active tab", () => {
 	expect(html).toContain('data-page-tab-id="tab-999"');
 	expect(html).not.toContain('data-page-tab-id="tab-0"');
 });
+
+test("accepts the sort callback beside the other tab actions", () => {
+	const html = renderToStaticMarkup(
+		<PageTabs
+			tabs={tabs}
+			activeId="tickets"
+			onAdd={() => {}}
+			onSelect={() => {}}
+			onClose={() => {}}
+			onSort={() => {}}
+		/>,
+	);
+
+	expect(html).toContain('aria-label="Tab actions"');
+});

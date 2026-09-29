@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { type PageTabSortDirection, sortTabs, visibleTabName } from "./sortTabs";
 
 export type PageTabPage = {
 	url: string;
@@ -21,6 +22,7 @@ export type PageTabsState = {
 	closedTabs: { tab: PageTab; index: number; replacementId: string | null }[];
 	renameTab: (id: string, title: string | null) => void;
 	moveTab: (id: string, beforeId: string | null) => void;
+	sortTabs: (direction: PageTabSortDirection) => void;
 	reopenClosedTab: () => void;
 	addTab: (page: PageTabPage) => string;
 	selectTab: (id: string) => void;
@@ -55,6 +57,12 @@ const tab = (id: string, page: PageTabPage): PageTab => ({
 	forwardHistory: [],
 });
 
+// state.tabs holds the pinned prefix, then one contiguous block per group, then the ungrouped tail.
+// A pinned tab has no group. The region of a tab names the run it belongs to, and a sort reorders
+// tabs inside one run only.
+export const pageTabRegion = (tab: PageTab & { pinned?: boolean; groupId?: string }) =>
+	tab.pinned ? "pinned" : tab.groupId ? `group:${tab.groupId}` : "";
+
 const updateActiveTab = (state: PageTabsState, update: (current: PageTab) => PageTab) => ({
 	tabs: state.tabs.map((item) => (item.id === state.activeId ? update(item) : item)),
 });
@@ -65,7 +73,7 @@ export const pageTabsSelectors = {
 };
 
 export const pageTabsUiProjection = (tabs: readonly PageTab[], activeId: string): PageTabsUiState => ({
-	tabs: tabs.map(({ id, title, customTitle }) => ({ id, title: customTitle ?? title })),
+	tabs: tabs.map((tab) => ({ id: tab.id, title: visibleTabName(tab) })),
 	activeId,
 });
 
@@ -105,6 +113,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						tabs.splice(index, 0, moving);
 						return { tabs };
 					}),
+				sortTabs: (direction) => set((state) => ({ tabs: sortTabs(state.tabs, direction, pageTabRegion) })),
 				closeTab: (id) =>
 					set((state) => {
 						const index = state.tabs.findIndex((item) => item.id === id);

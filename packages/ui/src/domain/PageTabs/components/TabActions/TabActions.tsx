@@ -9,9 +9,10 @@ type Props = {
 	onMove: PageTabsProps["onMove"];
 	onRename?: () => void;
 	onRestore?: () => void;
+	onSort: PageTabsProps["onSort"];
 	onClose: () => void;
 };
-export function TabActions({ tabs, activeIndex, onMove, onRename, onRestore, onClose }: Props) {
+export function TabActions({ tabs, activeIndex, onMove, onRename, onRestore, onSort, onClose }: Props) {
 	const id = tabs[activeIndex]!.id;
 	const items: MenuItem[] = [];
 	if (onRename && onRestore)
@@ -42,6 +43,11 @@ export function TabActions({ tabs, activeIndex, onMove, onRename, onRestore, onC
 				disabled: activeIndex === tabs.length - 1,
 				onSelect: () => onMove(id, null),
 			},
+		);
+	if (onSort)
+		items.push(
+			{ label: "Sort tabs A to Z", disabled: tabs.length < 2, onSelect: () => onSort("ascending") },
+			{ label: "Sort tabs Z to A", disabled: tabs.length < 2, onSelect: () => onSort("descending") },
 		);
 	items.push({ label: "Close tab", kbd: "Delete", onSelect: onClose });
 	return (

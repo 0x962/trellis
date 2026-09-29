@@ -7,7 +7,9 @@ export {
 	type PageTabPage,
 	type PageTabsState,
 	type PageTabsUiState,
+	pageTabRegion,
 	pageTabsSelectors,
 	pageTabsStorageKey,
 	pageTabsUiProjection,
 } from "./pageTabsStore";
+export { type PageTabSortDirection, sortTabs, visibleTabName } from "./sortTabs";
