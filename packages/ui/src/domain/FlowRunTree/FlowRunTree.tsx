@@ -1,7 +1,15 @@
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FlowRunRow } from "./components/FlowRunRow";
 import type { FlowRunRow as Row } from "./types";
 import { visibleRows } from "./visibleRows";
+
+export type FlowRunTreeState = {
+	collapsed: readonly string[];
+	selectedKey: string | null;
+	outputKeys: readonly string[];
+	scrollTop: number;
+	scrollLeft: number;
+};
 
 export type FlowRunTreeProps = {
 	// The accessible name of the tree, such as the flow name.
@@ -12,29 +20,64 @@ export type FlowRunTreeProps = {
 	now: number;
 	onDecide: (key: string) => void;
 	onOpenTerminal: (key: string) => void;
+	state?: FlowRunTreeState;
+	onStateChange?: (state: FlowRunTreeState) => void;
+	restoreFocus?: boolean;
 };
 
 // The steps of one flow run as a tree. A box row collapses its descendants.
 // Arrow keys move between rows, Right opens a box or enters it, Left closes
 // a box or returns to its parent, and Enter or Space toggles a box. A
 // skipped box starts collapsed, because its steps never ran.
-export function FlowRunTree({ label, rows, now, onDecide, onOpenTerminal }: FlowRunTreeProps) {
-	const [collapsed, setCollapsed] = useState(
-		() => new Set(rows.filter((row) => row.hasChildren && row.state === "skipped").map((row) => row.key)),
-	);
-	const [focusKey, setFocusKey] = useState<string | null>(null);
+export function FlowRunTree({
+	label,
+	rows,
+	now,
+	onDecide,
+	onOpenTerminal,
+	state,
+	onStateChange,
+	restoreFocus = false,
+}: FlowRunTreeProps) {
+	const [localState, setLocalState] = useState<FlowRunTreeState>(() => ({
+		collapsed: rows.filter((row) => row.hasChildren && row.state === "skipped").map((row) => row.key),
+		selectedKey: null,
+		outputKeys: [],
+		scrollTop: 0,
+		scrollLeft: 0,
+	}));
+	const view = state ?? localState;
+	const currentView = useRef(view);
+	currentView.current = view;
+	const initialView = useRef(view);
+	const initialFocus = useRef(restoreFocus);
+	const viewport = useRef<HTMLDivElement>(null);
+	const collapsed = useMemo(() => new Set(view.collapsed), [view.collapsed]);
+	const outputKeys = useMemo(() => new Set(view.outputKeys), [view.outputKeys]);
+	const focusKey = view.selectedKey;
+	const update = (change: Partial<FlowRunTreeState>) => {
+		const next = { ...currentView.current, ...change };
+		currentView.current = next;
+		setLocalState(next);
+		onStateChange?.(next);
+	};
 	const elements = useRef(new Map<string, HTMLDivElement>());
 	const visible = useMemo(() => visibleRows(rows, collapsed), [rows, collapsed]);
-	const toggle = (key: string) =>
-		setCollapsed((previous) => {
-			const next = new Set(previous);
-			if (next.has(key)) next.delete(key);
-			else next.add(key);
-			return next;
-		});
+	useLayoutEffect(() => {
+		const element = viewport.current!;
+		element.scrollTop = initialView.current.scrollTop;
+		element.scrollLeft = initialView.current.scrollLeft;
+		if (initialFocus.current && initialView.current.selectedKey !== null)
+			elements.current.get(initialView.current.selectedKey)?.focus({ preventScroll: true });
+	}, []);
+	const toggle = (key: string) => {
+		const next = new Set(collapsed);
+		if (next.has(key)) next.delete(key);
+		else next.add(key);
+		update({ collapsed: [...next] });
+	};
 	const focus = (key: string | undefined) => {
 		if (key === undefined) return;
-		setFocusKey(key);
 		elements.current.get(key)?.focus();
 	};
 	const keyDown = (event: KeyboardEvent<HTMLDivElement>, row: Row, index: number) => {
@@ -56,7 +99,15 @@ export function FlowRunTree({ label, rows, now, onDecide, onOpenTerminal }: Flow
 	};
 	const current = focusKey !== null && visible.some((row) => row.key === focusKey) ? focusKey : visible[0]?.key;
 	return (
-		<div role="tree" aria-label={label} className="flex flex-col">
+		<div
+			ref={viewport}
+			role="tree"
+			aria-label={label}
+			className="flex max-h-160 flex-col overflow-auto overscroll-contain"
+			onScroll={(event) =>
+				update({ scrollTop: event.currentTarget.scrollTop, scrollLeft: event.currentTarget.scrollLeft })
+			}
+		>
 			{visible.map((row, index) => (
 				<FlowRunRow
 					key={row.key}
@@ -70,7 +121,15 @@ export function FlowRunTree({ label, rows, now, onDecide, onOpenTerminal }: Flow
 					}}
 					onToggle={() => toggle(row.key)}
 					onKeyDown={(event) => keyDown(event, row, index)}
-					onFocus={() => setFocusKey(row.key)}
+					onFocus={() => update({ selectedKey: row.key })}
+					selected={row.key === focusKey}
+					outputExpanded={outputKeys.has(row.key)}
+					onOutputToggle={(expanded) => {
+						if (expanded === outputKeys.has(row.key)) return;
+						update({
+							outputKeys: expanded ? [...view.outputKeys, row.key] : view.outputKeys.filter((key) => key !== row.key),
+						});
+					}}
 					onDecide={() => onDecide(row.key)}
 					onOpenTerminal={() => onOpenTerminal(row.key)}
 				/>
