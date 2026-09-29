@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 from langflow.services.deps import session_scope
+from langflow.services.trellis_v1.projection_store import record_projection_checkpoint
 
 from .occurrence_journal import OccurrenceConflict
 from .occurrence_models import VisitScope
@@ -55,5 +56,6 @@ async def capture_visit_scope(graph, vertex_id):
                                  "publicationId": admission["publicationId"]}
             await save_journal(session, job_id, journal)
             await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     return scope
