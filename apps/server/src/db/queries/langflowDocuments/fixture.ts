@@ -1,14 +1,14 @@
 import { getTableName, sql } from "drizzle-orm";
 import { getTableConfig, PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import { openDb } from "../../client.ts";
+import { immutableDocumentRowsSql } from "../../tables/langflowDocuments/immutableRows.ts";
 import {
 	langflowDocumentConversions,
-	langflowDocumentPublications,
 	langflowDocumentPublicationStates,
+	langflowDocumentPublications,
 	langflowDocumentRevisions,
 	langflowDocumentSaveReceipts,
 } from "../../tables/langflowDocuments/index.ts";
-import { immutableDocumentRowsSql } from "../../tables/langflowDocuments/immutableRows.ts";
 
 const dialect = new PgDialect();
 const names = (columns: { name: string }[]) => columns.map((column) => `"${column.name}"`).join(", ");
