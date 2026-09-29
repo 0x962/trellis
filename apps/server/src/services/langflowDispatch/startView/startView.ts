@@ -2,6 +2,7 @@ import type { FlowExecutionStartInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx, SYSTEM_ACTOR } from "../../../context";
 import type { Tx } from "../../../db/tx";
+import { invalidInput } from "../../../errors";
 import { get as getDocument } from "../../flowDocuments";
 import { resolveFlow } from "../../flows/flows";
 import { initialize } from "../../langflowProjection";
@@ -11,6 +12,7 @@ import { startLegacy } from "../startLegacy";
 
 export async function startView(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartInput, options: { hostId: string }) {
 	const actor = requireActor(ctx);
+	if (actor.kind === "system") throw invalidInput("actor", "A person or an agent must request the flow start.");
 	const prior = await databaseStore(ctx).readRequest(tx, {
 		actorKind: actor.kind,
 		actorName: actor.name,
