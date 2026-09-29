@@ -142,7 +142,6 @@ test("the brief names the wave and groups the epic tickets by wave", async () =>
 			"- TST-1 Step 1 (Done) (this ticket)",
 			"- TST-2 Step 2 (Done)",
 			"",
-			"## ",
 		].join("\n"),
 	);
 });
