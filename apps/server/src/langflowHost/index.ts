@@ -21,3 +21,13 @@ export type * from "./ociDriver";
 export { createOciDriver, importVerifiedOciImage } from "./ociDriver";
 export { DispatchReceiptArchive, type ReconciliationSources, type ValidationSource } from "./receiptArchive";
 export { LangflowSupervisor } from "./supervisor";
+export {
+	AuthorityLifecycle,
+	type AuthorityLifecycleInput,
+	type AuthorityRecoveryResult,
+	AuthorityLeasePolicySchema,
+	type AuthorityLeasePolicy,
+} from "./authorityLifecycle";
+export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
+
+export { provisionAuthorityRecoveryIssuer } from "./authorityLifecycle/recoveryIssuer";

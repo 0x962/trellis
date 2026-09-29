@@ -67,6 +67,8 @@ export type OwnershipSnapshot = {
 };
 
 export type AuthorityCommit = {
+	initialRecordBytes?: string;
+	takeoverStops?: { sourceBytes: string; sourceDigest: string };
 	permit: DispatchPermit;
 	requestBytes: string;
 	authorityBytes: string;
@@ -81,6 +83,13 @@ export type AuthorityPort = {
 	readReceipt(input: { executionId: string; requestId: string }): Promise<AuthorityCommit | null>;
 	read(executionId: string): Promise<OwnershipSnapshot>;
 	commit(input: AuthorityCommit): Promise<RenewalReceiptV1 | TakeoverReceiptV1>;
+};
+
+export type InitialBindingPort = {
+	recoverInitialBinding(input: {
+		initialRecordBytes: string;
+		takeover: AuthorityCommit;
+	}): Promise<AuthorityCommit & { initialRecordBytes: string }>;
 };
 
 export type SupervisorDependencies = {
