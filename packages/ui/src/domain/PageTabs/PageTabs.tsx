@@ -40,6 +40,13 @@ const rangeInView = (element: HTMLDivElement, count: number): TabRange => ({
 	end: Math.min(count - 1, Math.ceil((element.scrollLeft + element.clientWidth) / tabStepPx) + tabOverscan),
 });
 
+const scrollTabIntoView = (element: HTMLDivElement, index: number) => {
+	const tabLeft = index * tabStepPx;
+	const tabRight = tabLeft + tabWidthPx;
+	if (tabLeft < element.scrollLeft) element.scrollLeft = tabLeft;
+	if (tabRight > element.scrollLeft + element.clientWidth) element.scrollLeft = tabRight - element.clientWidth;
+};
+
 export function PageTabs({
 	tabs,
 	activeId,
@@ -74,17 +81,17 @@ export function PageTabs({
 	useLayoutEffect(() => {
 		const element = tabListElement.current;
 		if (!element) return;
-		const tabLeft = activeIndex * tabStepPx;
-		const tabRight = tabLeft + tabWidthPx;
-		if (tabLeft < element.scrollLeft) element.scrollLeft = tabLeft;
-		if (tabRight > element.scrollLeft + element.clientWidth) element.scrollLeft = tabRight - element.clientWidth;
+		scrollTabIntoView(element, activeIndex);
 		updateRenderRange(element);
 		const activeTab = Array.from(element.querySelectorAll<HTMLElement>('[role="tab"]')).find(
 			(tabElement) => tabElement.dataset.pageTabId === activeId,
 		);
 		if (focusActiveAfterChange.current) activeTab?.focus();
 		focusActiveAfterChange.current = false;
-		const resizeObserver = new ResizeObserver(() => updateRenderRange(element));
+		const resizeObserver = new ResizeObserver(() => {
+			scrollTabIntoView(element, activeIndex);
+			updateRenderRange(element);
+		});
 		resizeObserver.observe(element);
 		return () => resizeObserver.disconnect();
 	}, [activeId, activeIndex, updateRenderRange]);
