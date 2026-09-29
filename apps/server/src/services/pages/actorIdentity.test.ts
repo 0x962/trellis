@@ -107,6 +107,17 @@ test("keeps Page ownership exact for complete actor names", async () => {
 		document: firstDocument.id,
 		sourcePath: "index.html",
 	});
+	const otherDocument = await stage(
+		firstActor,
+		new File(["<main>Other page</main>"], "other.html", { type: "text/html" }),
+	);
+	const other = await publishIn(firstActor, {
+		requestId: crypto.randomUUID(),
+		project: project.key,
+		title: "Other Page",
+		document: otherDocument.id,
+		sourcePath: "other.html",
+	});
 
 	const countBeforeRead = await actorCount();
 	expect((await inTx((tx) => get(contextOf(secondActor), tx, { page: created.page.id }))).pinned).toBe(false);
@@ -116,6 +127,17 @@ test("keeps Page ownership exact for complete actor names", async () => {
 	await inTx((tx) => pin(firstContext, tx, { page: created.page.id, pinned: true }));
 	await inTx((tx) => pin(firstContext, tx, { page: created.page.id, pinned: true }));
 	expect((await db.execute(sql`SELECT count(*)::int AS count FROM page_pins`)).rows).toEqual([{ count: 1 }]);
+	const firstPage = await inTx((tx) => list(firstContext, tx, { project: project.key, limit: 1 }));
+	expect(firstPage.items.map((page) => page.id)).toEqual([created.page.id]);
+	expect(firstPage.nextCursor).not.toBeNull();
+	expect(
+		(
+			await inTx((tx) => list(firstContext, tx, { project: project.key, limit: 1, cursor: firstPage.nextCursor! }))
+		).items.map((page) => page.id),
+	).toEqual([other.page.id]);
+	await expect(
+		inTx((tx) => list(firstContext, tx, { project: project.key, pinned: true, cursor: firstPage.nextCursor! })),
+	).rejects.toMatchObject({ code: "INVALID_CURSOR" });
 	expect((await inTx((tx) => list(firstContext, tx, { project: project.key, pinned: true }))).items).toHaveLength(1);
 	expect((await inTx((tx) => get(firstContext, tx, { page: created.page.id }))).pinned).toBe(true);
 	expect((await inTx((tx) => get(contextOf(secondActor), tx, { page: created.page.id }))).pinned).toBe(false);
@@ -155,8 +177,10 @@ test("keeps Page ownership exact for complete actor names", async () => {
 		).items,
 	).toHaveLength(1);
 	expect(
-		(await inTx((tx) => list(firstContext, tx, { project: project.key, author: `human:${firstActor.name}` }))).items,
-	).toHaveLength(0);
+		(
+			await inTx((tx) => list(firstContext, tx, { project: project.key, author: `human:${firstActor.name}` }))
+		).items.map((page) => page.id),
+	).toEqual([other.page.id]);
 
 	await inTx((tx) => pin(firstContext, tx, { page: created.page.id, pinned: false }));
 	await inTx((tx) => pin(contextOf(secondActor), tx, { page: created.page.id, pinned: true }));
@@ -192,5 +216,7 @@ test("keeps Page ownership exact for complete actor names", async () => {
 
 	await db.execute(sql`DELETE FROM pages WHERE id = ${created.page.id}`);
 	expect((await db.execute(sql`SELECT count(*)::int AS count FROM page_pins`)).rows).toEqual([{ count: 0 }]);
-	expect((await db.execute(sql`SELECT count(*)::int AS count FROM page_versions`)).rows).toEqual([{ count: 0 }]);
+	expect(
+		(await db.execute(sql`SELECT count(*)::int AS count FROM page_versions WHERE page_id = ${created.page.id}`)).rows,
+	).toEqual([{ count: 0 }]);
 }, 60_000);
