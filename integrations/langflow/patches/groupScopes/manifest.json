@@ -42,6 +42,7 @@
   },
   "requires": [
     "langflow.services.trellis_v1.occurrence_scope.capture_visit_scope",
+    "capture_visit_scope exclusion for TrellisLoopV1.scope_entry",
     "langflow.services.trellis_v1.occurrence_controls.allocate_control_visit",
     "langflow.services.trellis_v1.occurrence_models.VisitScope.to_engine",
     "langflow.services.trellis_v1.occurrence_outputs.record_control_output",

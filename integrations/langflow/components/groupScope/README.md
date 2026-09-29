@@ -40,6 +40,7 @@ A nested group uses its scope vertex for input and its join vertex for output.
 A loop child uses `scopeInputPort=scope_entry` and `inputPort=seed`.
 When the loop is a group entry, `entries` connects only to `scope_entry`.
 The loop does not treat `scope_entry` as a selected input.
+The occurrence reader excludes the activation-only `scope_entry` edge from selected predecessor receipts.
 A connected loop receives its predecessor value through `seed`.
 A parallel group connects every child to the boundary.
 A connected group keeps each explicit source edge and connects only its entry nodes to the boundary.

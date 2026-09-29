@@ -61,6 +61,7 @@ An ordinary child uses one vertex for both fields.
 A nested group uses its scope vertex for input and its join vertex for output.
 A loop child declares `scope_entry` as its scope input and `seed` as its value input.
 An entry loop receives the group control value through `scope_entry` only.
+The occurrence reader excludes that activation-only edge from selected predecessor receipts.
 A connected loop receives its predecessor value through `seed`.
 Branch routing uses the child binding's `outputPorts` map.
 A gate routes through its `yes` and `no` ports and settles from its common committed result producer.
