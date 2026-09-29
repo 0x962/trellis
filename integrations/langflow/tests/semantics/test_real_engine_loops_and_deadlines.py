@@ -9,13 +9,14 @@ SOURCE_ROOT = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
 sys.path.insert(0, str(SOURCE_ROOT / "src" / "backend"))
 
 from lfx.components.flow_controls.loop import LoopComponent
-from lfx.components.input_output import ChatOutput
-from lfx.components.processing.parser import ParserComponent
 from lfx.custom.custom_component.component import Component
 from lfx.graph import Graph
+from lfx.inputs.inputs import HandleInput
 from lfx.schema.data import Data
 from lfx.schema.dataframe import DataFrame
 from lfx.template.field.base import Output
+
+FEEDBACK_EVENTS: list[tuple[str, str]] = []
 
 
 def _attach_feedback(loop: LoopComponent, source: Component, source_output: str) -> None:
@@ -28,7 +29,7 @@ def _attach_feedback(loop: LoopComponent, source: Component, source_output: str)
 					"dataType": type(source).__name__,
 					"id": source.get_id(),
 					"name": source_output,
-					"output_types": ["Message"],
+					"output_types": source.get_output(source_output).types,
 				},
 				"targetHandle": {
 					"dataType": "LoopComponent",
@@ -41,6 +42,18 @@ def _attach_feedback(loop: LoopComponent, source: Component, source_output: str)
 	)
 	if source not in loop._components:
 		loop._components.append(source)
+
+
+class FeedbackValue(Component):
+	display_name = "Feedback Value"
+	inputs = [HandleInput(name="feedback", display_name="Feedback", input_types=["Data", "DataFrame"])]
+	outputs = [Output(display_name="Value", name="value", method="run", types=["Data"])]
+
+	def run(self) -> Data:
+		value = self.feedback.to_data_list()[0] if isinstance(self.feedback, DataFrame) else self.feedback
+		if isinstance(value, Data) and value.data.get("text"):
+			FEEDBACK_EVENTS.append((self.get_id(), value.data["text"]))
+		return value
 
 
 class DeadlineProbe(Component):
@@ -63,22 +76,28 @@ class DeadlineProbe(Component):
 
 
 async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
+	FEEDBACK_EVENTS.clear()
 	outer = LoopComponent(_id="outer")
 	outer.set(data=DataFrame([Data(text="outer-1"), Data(text="outer-2")]))
 	inner = LoopComponent(_id="inner")
 	inner.set(data=outer.item_output)
-	inner_sink = ChatOutput(_id="ChatOutput-inner")
-	inner_sink.set(input_value=inner.item_output, should_store_message=False)
-	_attach_feedback(inner, inner_sink, "message")
-	outer_sink = ParserComponent(_id="outer-feedback")
-	outer_sink.set(input_data=inner.done_output, mode="Parser", pattern="{text}", sep="\n")
-	_attach_feedback(outer, outer_sink, "parsed_text")
+	inner_sink = FeedbackValue(_id="inner-feedback")
+	inner_sink.set(feedback=inner.item_output)
+	_attach_feedback(inner, inner_sink, "value")
+	outer_sink = FeedbackValue(_id="outer-feedback")
+	outer_sink.set(feedback=inner.done_output)
+	_attach_feedback(outer, outer_sink, "value")
 
-	graph = Graph(outer, inner, inner_sink, outer_sink)
+	graph = Graph(outer, outer_sink)
 	[r async for r in graph.async_start()]
 
-	assert [item.text for item in outer.ctx["outer_aggregated"]] == ["outer-1", "outer-2"]
-	assert outer.ctx["outer_index"] == 2
+	assert [item.data["text"] for item in outer.ctx["outer_aggregated"]] == ["outer-1", "outer-2"]
+	assert FEEDBACK_EVENTS == [
+		("inner-feedback", "outer-1"),
+		("outer-feedback", "outer-1"),
+		("inner-feedback", "outer-2"),
+		("outer-feedback", "outer-2"),
+	]
 
 
 async def test_real_graph_deadline_uses_first_launch_and_unbounded_budget() -> None:
@@ -89,10 +108,11 @@ async def test_real_graph_deadline_uses_first_launch_and_unbounded_budget() -> N
 	probe = DeadlineProbe(_id="deadline")
 	probe.launched_at = launched_at.isoformat()
 	probe.budget_ms = budget_ms
-	graph = Graph(probe)
-	await graph.process(fallback_to_env_vars=False)
+	graph = Graph()
+	graph.add_component(probe)
+	await graph.process(fallback_to_env_vars=False, start_component_id=probe.get_id())
 
-	result = graph.get_vertex("deadline").results["deadline"].data
+	result = graph.get_vertex("deadline").built_object["deadline"].data
 	deadline_at = datetime.fromisoformat(result["deadlineAt"])
 	assert deadline_at == launched_at + timedelta(milliseconds=budget_ms)
 	assert deadline_at != reserved_at + timedelta(milliseconds=budget_ms)

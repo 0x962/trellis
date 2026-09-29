@@ -24,20 +24,13 @@ import { diagnostics } from "./diagnostics.ts";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
 import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
-import * as flowDocuments from "./flowDocuments";
-import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
-import { list as listFlowExecutions } from "./flowExecutions/list.ts";
-import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
-import { prepareFlowReconcile } from "./flowExecutions/prepareFlowReconcile.ts";
-import { get as getFlowExecution } from "./flowExecutions/queries.ts";
-import * as flows from "./flows/flows.ts";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
-import * as langflowDispatch from "./langflowDispatch";
+import { flowServices } from "./langflowDispatch/registry";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
@@ -90,6 +83,7 @@ export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
+	...flowServices,
 	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
 	"agentRuns.broadcastRecipients": prepared("read", prepareBroadcastRecipients, broadcastRecipients),
 	"agentRuns.broadcast": prepared("mutation", broadcast.prepareBroadcast, broadcast.broadcast),
@@ -126,16 +120,6 @@ export const services = {
 	"providers.delete": io("mutation", providers.remove),
 	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
-	"flowExecutions.start": core("mutation", langflowDispatch.startLegacy),
-	"flowDocuments.get": core("read", flowDocuments.get),
-	"flowDocuments.save": core("mutation", flowDocuments.save),
-	"flowDocuments.view": core("read", langflowDispatch.getView),
-	"flowDocuments.list": core("read", langflowDispatch.list),
-	"flowExecutions.get": core("read", getFlowExecution),
-	"flowExecutions.list": core("read", listFlowExecutions),
-	"flowExecutions.decide": core("mutation", decideFlowExecution),
-	"flowExecutions.cancel": prepared("mutation", prepareFlowCancel, agentTerminal.result),
-	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"system.sweep": prepared("mutation", prepareSweep, agentTerminal.result),
@@ -193,12 +177,6 @@ export const services = {
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.pause": agentMutation(agentLifecycle.preparePause),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
-	"flows.list": core("read", flows.list),
-	"flows.get": core("read", flowDocuments.legacyServices.get),
-	"flows.create": core("mutation", flows.create),
-	"flows.update": core("mutation", flowDocuments.legacyServices.update),
-	"flows.save": core("mutation", flowDocuments.legacyServices.save),
-	"flows.delete": core("mutation", flows.remove),
 	"labels.list": core("read", labels.list),
 	"labels.create": core("mutation", labels.create),
 	"labels.update": core("mutation", labels.update),

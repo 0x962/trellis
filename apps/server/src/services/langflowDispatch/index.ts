@@ -1,3 +1,5 @@
-export { getView } from "./getView.ts";
-export { list } from "./list.ts";
-export { startLegacy } from "./startLegacy.ts";
+export { documentTag } from "./documentTag";
+export { getView } from "./getView";
+export { list } from "./list";
+export { saveDocument } from "./saveDocument";
+export { startLegacy } from "./startLegacy";

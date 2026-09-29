@@ -8,7 +8,57 @@ This gate does not block a Trellis-only release of unrelated fixes.
 The merged source contains useful contracts and fixtures, but it does not establish all required engine behavior.
 TRL-674 remains In Progress. A source merge does not complete a feasibility parent.
 
-## Reviewed source and authority
+## Latest integrated results
+
+This section records the repaired batches. The sections marked “First batch” below preserve earlier results.
+No required engineering probe passes its complete acceptance condition yet.
+
+PR 641 supplies the combined backend patch `a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85`.
+The schema patch remains `ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6`.
+The semantics command uses source `7bb522a10c76ab231fadc815dd57bcfc53169095`.
+It reports twelve passes, four failures, and three PostgreSQL skips in 8.43 seconds.
+The human-wait graph resumes one successor. This case does not prove all human-decision crash windows.
+
+| Failed case | Observed result | Owner |
+| --- | --- | --- |
+| Published human identities on SQLite | Duplicate `job.job_id` violates a unique constraint. | TRL-669 |
+| Nested stock loops | A Message receives a ChatOutput component as `flow_id`, not a string or UUID. | TRL-669 |
+| Real graph deadline | The graph requires both input and output components. | TRL-669 |
+| Review v71 | The vertex result lacks the requested `result` output. | TRL-669 |
+
+These failures keep ENG-F2, F3, F5, F6, and F8 open.
+They do not establish whether each defect belongs to the fixture or the engine.
+The owner must retain the exact failure and verify each repair against the same contract.
+
+The candidate retains `runs/semantics-7bb522a1/result.json`, `command.sh`, `pytest.log`, and `restoration.log`.
+The command is `bash command.sh`.
+The verified log digest is `1e96ff70b46b0607e1a7630ee6590585401be023f268c628d887de6174516237`.
+The receipt reports zero consumers and successful overlay reversal.
+Restoration confirms the pinned source, empty Git status, lockfile, fixtures, and original Python inventory.
+The private Review v71 record remains outside this report.
+
+The preceding correlation repair batch reports fifteen passes, one failure, and five PostgreSQL skips in 120.83 seconds.
+The service-death case fails, so ENG-F1 and F22 remain incomplete.
+The preceding decision batch reports eleven passes, one failure, and one PostgreSQL skip.
+PR 630 repairs its vertex suspension boundary; the newer human-wait result does not replace the full decision fault matrix.
+ENG-F20 remains incomplete.
+
+The native follow-up in PR 591 reports eight passes and 158 assertions in 21.23 seconds.
+Separate processes now prove owner death, a takeover race, durable reopen, and unchanged native provenance in the isolated fixture.
+This closes the earlier same-process-only gap, not production supervisor proof.
+ENG-F4 and F21 remain incomplete. ENG-F6 still needs Langflow deadline traces.
+ENG-F7 still lacks the complete cancellation-writer and output/decision race matrix.
+
+PR 642 reports thirty-one passing gateway source tests and a passing type check.
+Its HTTP loss fixture failed because the transport replayed the accepted request.
+The PR 648 HTTP fixture now passes: it observes the lost response, replays revision 3, and saves a distinct request as revision 4.
+The fixture records forty events. Its manifests and focused type check pass.
+The candidate retains this evidence under `runs/editor-ab6f56dd`.
+
+HTTP acceptance does not establish browser acceptance. TRL-672 owns the separate rendered proof.
+Linux OCI isolation remains unproved. The stopped shared engine awaits host-owner release.
+
+## First batch: source and authority
 
 The source batch ends at `1753c14fcf5ae2a71d99c300574a79ee7e219895`.
 The first source inspection uses `79004c939030861009f709986cd8ec2f18dc83f3`.
@@ -53,7 +103,7 @@ The following findings describe the initial batch. The repair section below reco
 Paths in this table resolve under `integrations/langflow/`, except the backend patch under this report directory.
 The decision log resides under the existing candidate at `runs/integrated-1753c14f/decisions.log`.
 
-## Required engineering probes
+## First batch: engineering probes
 
 Pass means the complete acceptance condition has retained, reviewed evidence.
 Incomplete means the current result cannot satisfy that condition, even when focused assertions pass.
@@ -77,7 +127,7 @@ The decision command reports `11 passed, 1 skipped, 2 warnings, 1 error in 29.40
 The error names `test_accepted_decision_survives_every_service_fault_and_runs_one_successor[sqlite]`.
 The test body never runs. Its presence in the suite does not establish continuation recovery.
 
-## Integrated batch and repair results
+## First batch: results and early repairs
 
 The package group passes thirteen Bun tests and three Python verifier tests.
 Focused type checks and Biome pass. Complete filesystem isolation still fails; no Linux target passes.
@@ -124,7 +174,7 @@ TRL-667 reports complete restoration after the first backend batch.
 The source tree, empty tracked/untracked status, lockfile, and Python inventory match the initial baseline.
 `runs/integrated-1753c14f/restoration.log` retains that check.
 
-## Critique preservation
+## First batch: critique disposition
 
 | Finding | Required closure | Current disposition |
 | --- | --- | --- |
@@ -194,17 +244,13 @@ Neither target has retained proof at this decision checkpoint.
 
 ## Next work and gate
 
-Source owners complete the engine migrations and fixture boundaries through linked follow-ups.
-The editor syntax, admission import, and human-bridge source repairs already merge.
-TRL-674 updates the backend composition after those source handoffs.
-TRL-667 runs the combined probes after the repair batch and retains exact input hashes and restoration evidence.
-TRL-669 supplies real-engine coverage for the remaining semantic gaps.
-The editor owners then use the existing candidate for HTTP, browser, and dense-graph proof.
+TRL-669 repairs the four retained semantic failures without changing the required behavior.
+TRL-672 proves the full editor with the existing candidate after the passing HTTP batch.
+TRL-667 runs matching batches after source merges and retains restoration evidence.
+TRL-674 updates the combined assembly when an author fragment changes.
 
-Production tickets retain their dependency on TRL-674.
-Source checkpoints TRL-782, TRL-783, TRL-784, and TRL-785 prepare documents, CLI compatibility, discovery, and drafts respectively.
-All four assigned workers report running. Their parents retain runtime and rendered acceptance requirements.
-These checkpoints do not activate the replacement or register unimplemented handlers.
-Principal retains migration 0132 and the production release. TRL-782 does not generate a migration.
-The gate passes only after required probes, independent trace review, and required architecture decisions pass.
+Independent source checkpoints continue from published contracts.
+Their parent tickets retain runtime and rendered acceptance requirements.
+Principal retains the canonical checkout and production release.
 No failed or skipped probe counts as acceptance.
+The gate requires complete probe evidence, independent trace review, and the required architecture decisions.

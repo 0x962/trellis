@@ -1,6 +1,6 @@
 import type { FlowAttemptV1, FlowExecutionViewV1, FlowOccurrenceV1, FlowStopObligationV1 } from "@trellis/api";
 import type { FlowRunState } from "@trellis/ui";
-import type { FlowRunRowData } from "./buildFlowRunRows";
+import type { FlowRunRowData } from "../../buildFlowRunRows";
 
 export type ExecutionViewRow = FlowRunRowData & {
 	occurrence: FlowOccurrenceV1 | null;

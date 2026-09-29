@@ -30,12 +30,17 @@ env TRL_EDITOR_ORIGIN=http://127.0.0.1:4172 \
 
 The HTTP fixture records HTTP proof. Aside records the separate editor interaction proof.
 
+After the editor route sets the fixture cookie, `/__probe/narrow` loads the same editor in a 320-by-800-pixel iframe. Measure the child viewport in Aside. The frame contains the real compiled editor, not a replacement graph.
+
+The process owner can set `TRL_EDITOR_GRAPH_CASE=required-density` or `TRL_EDITOR_GRAPH_CASE=beyond-former-cutoffs` before a fresh start. These select the merged TRL-673 graphs with 500/2000/50 and 501/2001/51 nodes, edges, and rounds. The default remains the seven-node fixture. Each start retains revision 2. Run `httpProbeFixture.ts` against the default case; it submits the seven-node document. Dense browser evidence requires the selected dense case.
+
 The focused source checks use the matching dependencies from the canonical Trellis checkout. They do not install a package or start a process:
 
 ```sh
 bun test \
   integrations/langflow/editor-probe/src/editorBoundary.test.ts \
-  integrations/langflow/editor-probe/src/gatewayProtocol.test.ts
+  integrations/langflow/editor-probe/src/gatewayProtocol.test.ts \
+  integrations/langflow/editor-probe/src/probeGraph.test.ts
 bun x --no-install tsc --noEmit -p integrations/langflow/editor-probe/tsconfig.json
 bun x --no-install @biomejs/biome check integrations/langflow/editor-probe/src
 ```

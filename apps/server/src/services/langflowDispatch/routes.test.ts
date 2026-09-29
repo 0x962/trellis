@@ -1,12 +1,13 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
+import { ResponseHeadersPlugin } from "@orpc/server/plugins";
 import { FlowDocumentV1Schema, FlowExecutionViewV1Schema } from "@trellis/api";
 import type { ServiceTransport } from "../../db/transport.ts";
 import type { GhAccess } from "../../ghState.ts";
 import { type ProcedureContext, router } from "../../procedures/index.ts";
 import { createDbTiming } from "../../serverTiming.ts";
 import { services } from "../registry.ts";
-import { fixture } from "./fixture.ts";
+import { fixture } from "./fixture";
 
 let h: Awaited<ReturnType<typeof fixture>>;
 beforeAll(async () => {
@@ -15,7 +16,7 @@ beforeAll(async () => {
 afterAll(async () => {
 	await h.db.$client.close();
 });
-const handler = new OpenAPIHandler<ProcedureContext>(router);
+const handler = new OpenAPIHandler<ProcedureContext>(router, { plugins: [new ResponseHeadersPlugin()] });
 const calls: string[] = [];
 const request = async (path: string, init: RequestInit = {}) => {
 	const raw = new Request(`http://localhost/api${path}`, init);
@@ -88,4 +89,34 @@ test("legacy document requests return the versioned endpoint instead of a substi
 		code: "FLOW_UNSUPPORTED_FORMAT",
 		data: { engine: "langflow", supportedEndpoint: `/api/flows/${h.input.flowId}/document-v1` },
 	});
+});
+
+test("conditional saves reject stale and excluded representations before a document write", async () => {
+	const before = await request("/flows/review/document-v1");
+	const document = FlowDocumentV1Schema.parse(await before.json());
+	const etag = before.headers.get("etag")!;
+	expect(etag).toMatch(/^"[a-f0-9]{64}"$/);
+	for (const [header, value] of [
+		["if-match", '"0"'],
+		["if-match", `W/${etag}`],
+		["if-none-match", "*"],
+		["if-none-match", `"0", W/${etag}`],
+	] as const) {
+		const response = await request("/flows/review/document-v1", {
+			method: "PUT",
+			headers: { "content-type": "application/json", "x-trellis-actor": "human:fixture", [header]: value },
+			body: JSON.stringify({
+				flow: "review",
+				schemaVersion: 1,
+				engine: "langflow",
+				expectedVersion: document.revision,
+				requestId: crypto.randomUUID(),
+				graphDocument: {},
+				componentManifestHash: document.componentManifestHash,
+			}),
+		});
+		expect(response.status).toBe(412);
+	}
+	const after = await request("/flows/review/document-v1");
+	expect(await after.json()).toEqual(document);
 });

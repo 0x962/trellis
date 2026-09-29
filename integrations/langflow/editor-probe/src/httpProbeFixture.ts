@@ -8,7 +8,9 @@ import { langflowGraphFixture } from "./langflowGraphFixture.ts";
 const origin = process.env.TRL_EDITOR_ORIGIN!;
 const headers = { cookie: probeSessionCookie, "content-type": "application/json" };
 
-const request = (path: string, init: RequestInit = {}) => fetch(`${origin}${path}`, { ...init, headers });
+// Bun retries a closed pooled connection. Fresh connections expose the injected failure to this client.
+const request = (path: string, init: RequestInit = {}) =>
+	fetch(`${origin}${path}`, { ...init, headers, keepalive: false });
 
 const expectStatus = async (response: Response, status: number) => {
 	if (response.status !== status) {
@@ -131,6 +133,14 @@ try {
 	lostResponseObserved = true;
 }
 if (!lostResponseObserved) throw new Error("The probe did not lose the armed save response.");
+
+const stateBeforeRetry = (await readJson(await request("/__probe/state"), 200)) as {
+	events: GatewayEvidenceEvent[];
+};
+const writesBeforeRetry = stateBeforeRetry.events.filter((event) => event.requestId === firstRequestId);
+if (writesBeforeRetry.length !== 1 || writesBeforeRetry[0]?.replayed !== false) {
+	throw new Error("The transport replayed the write before the explicit retry.");
+}
 
 const newerGraph = structuredClone(langflowGraphFixture);
 newerGraph.nodes[0]!.position.x = 144;
