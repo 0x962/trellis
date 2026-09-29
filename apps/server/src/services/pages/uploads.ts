@@ -44,8 +44,6 @@ const storedPageMime = (type: string) => {
 
 export const prepareUpload = async (ctx: IoCtx & PrepareCtx, rawInput: unknown): Promise<PreparedUpload> => {
 	const input = PageUploadInputSchema.parse(rawInput);
-	const maxBytes = ctx.maxUploadBytes;
-	if (input.file.size > maxBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes });
 	const mime = storedPageMime(input.file.type);
 	const project = await ctx.newTx(async (tx) => {
 		const resolved = await resolveProject(ctx.core, tx, input.project);
@@ -53,8 +51,7 @@ export const prepareUpload = async (ctx: IoCtx & PrepareCtx, rawInput: unknown):
 		return resolved;
 	});
 	const id = input.id ?? ulid();
-	const staged = await stagePageObject(ctx.home, input.file, maxBytes);
-	if (staged === null) throw fail("PAYLOAD_TOO_LARGE", { maxBytes });
+	const staged = (await stagePageObject(ctx.home, input.file))!;
 	return {
 		id,
 		projectId: project.id,

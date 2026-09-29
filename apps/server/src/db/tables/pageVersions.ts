@@ -32,7 +32,6 @@ export const pageVersions = pgTable(
 		check("page_versions_label_check", sql`${t.label} IS NULL OR length(${t.label}) BETWEEN 1 AND 200`),
 		check("page_versions_document_sha256_check", sql`${t.documentSha256} ~ '^[0-9a-f]{64}$'`),
 		check("page_versions_document_size_check", sql`${t.documentSize} > 0`),
-		check("page_versions_search_text_check", sql`octet_length(${t.searchText}) <= 1048576`),
 		check(
 			"page_versions_source_path_check",
 			sql`length(${t.sourcePath}) BETWEEN 1 AND 4096

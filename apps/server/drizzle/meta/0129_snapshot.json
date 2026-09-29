@@ -3948,10 +3948,6 @@
           "name": "page_versions_document_size_check",
           "value": "\"page_versions\".\"document_size\" > 0"
         },
-        "page_versions_search_text_check": {
-          "name": "page_versions_search_text_check",
-          "value": "octet_length(\"page_versions\".\"search_text\") <= 1048576"
-        },
         "page_versions_source_path_check": {
           "name": "page_versions_source_path_check",
           "value": "length(\"page_versions\".\"source_path\") BETWEEN 1 AND 4096\n\t\t\t\tAND left(\"page_versions\".\"source_path\", 1) <> '/'\n\t\t\t\tAND \"page_versions\".\"source_path\" !~* '^[a-z]:/'\n\t\t\t\tAND position(E'\\\\' IN \"page_versions\".\"source_path\") = 0\n\t\t\t\tAND position('//' IN \"page_versions\".\"source_path\") = 0\n\t\t\t\tAND right(\"page_versions\".\"source_path\", 1) <> '/'\n\t\t\t\tAND \"page_versions\".\"source_path\" !~ '(^|/)\\.\\.?(/|$)'\n\t\t\t\tAND \"page_versions\".\"source_path\" !~ '[[:cntrl:]]'"

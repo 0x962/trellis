@@ -7,6 +7,7 @@ import {
 	PageVersionSchema,
 } from "./page.ts";
 import { PAGE_COMMENT_ANCHOR_MAX_BYTES, PageCommentAnchorSchema, PageCommentThreadSchema } from "./pageComment.ts";
+import { PagePublishInputSchema } from "./pageVersion.ts";
 import { SlugSchema } from "./primitives.ts";
 
 const emptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -46,6 +47,22 @@ test("Page records accept sizes above the former document and asset limits", () 
 	expect(PageVersionSchema.shape.documentSize.safeParse(16 * 1024 * 1024 + 1).success).toBe(true);
 	expect(PageAssetSchema.shape.size.safeParse(100 * 1024 * 1024 + 1).success).toBe(true);
 	expect(PageUploadSchema.shape.size.safeParse(100 * 1024 * 1024 + 1).success).toBe(true);
+});
+
+test("a Page publication accepts more than 200 assets", () => {
+	const parsed = PagePublishInputSchema.safeParse({
+		requestId: "123e4567-e89b-42d3-a456-426614174000",
+		project: "TRL",
+		title: "Large site",
+		document: "01M3A9CAWQNFQG4H7BJC0MMA3V",
+		assets: Array.from({ length: 201 }, (_, index) => ({
+			uploadId: "01M3A9CB1QKQ4KGNAYRPT644N5",
+			path: `asset-${index}.txt`,
+		})),
+		sourcePath: "site",
+	});
+
+	expect(parsed.success).toBe(true);
 });
 
 test("a Page path rejects a Windows drive-letter root", () => {

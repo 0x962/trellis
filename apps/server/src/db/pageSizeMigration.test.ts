@@ -55,23 +55,24 @@ test("migration 0129 preserves published versions and removes their size ceiling
 		search_text, search_indexed, source_path, actor_name, actor_kind, created_at
 	) VALUES (
 		${pageId}, 1, ${requestId}, ${sha256}, 1,
-		'', true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
+		'existing search text', true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
 	)`);
 
 	expect(await migrate(db)).toBe(1);
-	const existing = await db.execute(sql`SELECT request_id, document_size FROM page_versions
+	const existing = await db.execute(sql`SELECT request_id, document_size, search_text FROM page_versions
 		WHERE page_id = ${pageId} AND number = 1`);
-	expect(existing.rows).toEqual([{ request_id: requestId, document_size: 1 }]);
+	expect(existing.rows).toEqual([{ request_id: requestId, document_size: 1, search_text: "existing search text" }]);
 
 	const documentSize = 16 * 1024 * 1024 + 1;
 	const assetSize = 100 * 1024 * 1024 + 1;
+	const searchText = "x".repeat(1024 * 1024 + 1);
 	const uploadId = ulid();
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size,
 		search_text, search_indexed, source_path, actor_name, actor_kind, created_at
 	) VALUES (
 		${pageId}, 2, ${crypto.randomUUID()}, ${sha256}, ${documentSize},
-		'', true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
+		${searchText}, true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
 	)`);
 	await db.execute(sql`INSERT INTO page_assets (page_id, version, path, sha256, size, mime)
 		VALUES (${pageId}, 2, 'large.bin', ${sha256}, ${assetSize}, 'application/octet-stream')`);
@@ -99,4 +100,10 @@ test("migration 0129 preserves published versions and removes their size ceiling
 			(await db.execute(sql`SELECT size FROM page_uploads WHERE id = ${uploadId}`)).rows[0]!.size,
 		),
 	).toBe(assetSize);
+	expect(
+		(
+			await db.execute(sql`SELECT octet_length(search_text)::int AS size FROM page_versions
+			WHERE page_id = ${pageId} AND number = 2`)
+		).rows,
+	).toEqual([{ size: 1024 * 1024 + 1 }]);
 }, 60_000);

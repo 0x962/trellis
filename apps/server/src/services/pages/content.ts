@@ -21,17 +21,7 @@ import { type RawVersion, toSummary, toVersion, versionColumns } from "./rows.ts
 // The media type of every page document. A page document is always HTML.
 const DOCUMENT_MIME = "text/html; charset=utf-8";
 
-export const PAGE_SEARCH_TEXT_MAX_BYTES = 1024 * 1024;
-
 const hiddenTags = new Set(["head", "script", "style", "template", "noscript"]);
-
-const truncateUtf8 = (value: string, maxBytes: number) => {
-	const bytes = new TextEncoder().encode(value);
-	if (bytes.length <= maxBytes) return value;
-	let end = maxBytes;
-	while ((bytes[end]! & 0xc0) === 0x80) end--;
-	return new TextDecoder().decode(bytes.subarray(0, end));
-};
 
 export const staticPageText = (html: string): string => {
 	const text: string[] = [];
@@ -54,7 +44,7 @@ export const staticPageText = (html: string): string => {
 		{ decodeEntities: true },
 	);
 	parser.end(html);
-	return truncateUtf8(text.join(" ").replace(/\s+/gu, " ").trim(), PAGE_SEARCH_TEXT_MAX_BYTES);
+	return text.join(" ").replace(/\s+/gu, " ").trim();
 };
 
 export const versionRow = async (tx: Tx, pageId: string, number: number): Promise<PageVersion | undefined> => {

@@ -222,14 +222,15 @@ test("uses the streamed size when a declared size exceeds the former Page asset 
 	expect(await tempFiles()).toEqual([]);
 });
 
-test("refuses streamed bytes over the host limit when a test File understates its size", async () => {
+test("accepts streamed bytes over the shared upload limit", async () => {
 	const file = new File(["12345"], "large.bin", { type: "application/octet-stream" });
 	Object.defineProperty(file, "size", { value: 4 });
 
-	await expect(prepareUpload(contextOf(human, 4), { project: projectId, file })).rejects.toMatchObject({
-		code: "PAYLOAD_TOO_LARGE",
-		data: { maxBytes: 4 },
-	});
+	const ctx = contextOf(human, 4);
+	const prepared = await prepareUpload(ctx, { project: projectId, file });
+	const stored = await inTx((tx) => upload(ctx, tx, prepared));
+
+	expect(stored.size).toBe(5);
 	expect(await tempFiles()).toEqual([]);
 });
 

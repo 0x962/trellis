@@ -11,7 +11,7 @@ import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { pageObjectPath } from "../../storage/pageObjects.ts";
 import { backfillSearchText, prepareSearchBackfill } from "./backfillSearchText.ts";
-import { PAGE_SEARCH_TEXT_MAX_BYTES, staticPageText } from "./content.ts";
+import { staticPageText } from "./content.ts";
 import { pageSearchStatement, searchPages } from "./search.ts";
 
 const at = new Date("2026-09-25T12:00:00.000Z");
@@ -99,11 +99,11 @@ test("extracts normalized static text without script content", () => {
 	expect(text).toBe("Revenue & rooms North wing Forecast");
 });
 
-test("keeps the static text within one MiB of complete UTF-8 characters", () => {
-	const text = staticPageText(`<p>${"a".repeat(PAGE_SEARCH_TEXT_MAX_BYTES - 2)}€</p>`);
+test("keeps static text beyond the former one MiB search limit", () => {
+	const body = `${"a".repeat(1024 * 1024)} final`;
+	const text = staticPageText(`<p>${body}</p>`);
 
-	expect(new TextEncoder().encode(text).byteLength).toBe(PAGE_SEARCH_TEXT_MAX_BYTES - 2);
-	expect(text.endsWith("�")).toBe(false);
+	expect(text).toBe(body);
 });
 
 test("ranks title, summary, and latest content and excludes deleted Pages", async () => {

@@ -375,7 +375,7 @@ describe("the staged uploads of a publication", () => {
 		).rejects.toThrow("No row matches the ref.");
 	});
 
-	test("takes one upload for two asset paths", async () => {
+	test("takes one upload for more than 200 asset paths", async () => {
 		const document = await stage(human, html("<p>Shared</p>"));
 		const shared = await stage(human, new File(["x"], "pixel.png", { type: "image/png" }));
 		const created = await publishIn(human, {
@@ -383,14 +383,13 @@ describe("the staged uploads of a publication", () => {
 			project: project.key,
 			title: "Shared asset",
 			document,
-			assets: [
-				{ uploadId: shared, path: "a/pixel.png" },
-				{ uploadId: shared, path: "b/pixel.png" },
-			],
+			assets: Array.from({ length: 201 }, (_, index) => ({ uploadId: shared, path: `asset-${index}.png` })),
 			sourcePath: "index.html",
 		});
 		const content = await inTx((tx) => pull(contextOf(human), tx, { page: created.page.ref }));
-		expect(content.assets.map((asset) => asset.path)).toEqual(["a/pixel.png", "b/pixel.png"]);
+		expect(content.assets).toHaveLength(201);
+		expect(content.assets[0]!.path).toBe("asset-0.png");
+		expect(content.assets.at(-1)!.path).toBe("asset-99.png");
 	});
 });
 
