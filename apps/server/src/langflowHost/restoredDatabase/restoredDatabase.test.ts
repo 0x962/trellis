@@ -48,12 +48,15 @@ async function fixture() {
 		initialBlock: {
 			requestId: crypto.randomUUID(),
 			reason: {
-				kind: "restore", directory, snapshotId: manifest.snapshotId,
+				kind: "restore",
+				directory,
+				snapshotId: manifest.snapshotId,
 				sourceDataHomeId: manifest.sourceDataHomeId,
 				manifestDigest: protocolDigest(await readFile(join(payload, manifestName), "utf8")),
 			},
 		},
 	});
+	if (block === null) throw new Error("fixture_restore_block_missing");
 	return { home, identity, block, payload, dataDir: join(home, "db"), signal: new AbortController().signal };
 }
 
@@ -71,12 +74,22 @@ test("install and open retain exact source identity while target dispatch stays 
 	expect(installed.record.sourceDataHomeId).not.toBe(f.identity.dataHomeId);
 	const bootId = crypto.randomUUID();
 	let closed = false;
-	const opened = await withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId }, async (verified) => {
-		expect(verified.block).toEqual(f.block);
-		expect(verified.installReceiptId).toBe(installed.receiptId);
-		await writeFile(join(f.dataDir, "base/data"), "opened rows");
-		return { value: { async close() { closed = true; } }, receipt: evidence(f.dataDir, bootId) };
-	});
+	const opened = await withRestoredDatabaseOpen(
+		{ ...f, installReceiptId: installed.receiptId, bootId },
+		async (verified) => {
+			expect(verified.block).toEqual(f.block);
+			expect(verified.installReceiptId).toBe(installed.receiptId);
+			await writeFile(join(f.dataDir, "base/data"), "opened rows");
+			return {
+				value: {
+					async close() {
+						closed = true;
+					},
+				},
+				receipt: evidence(f.dataDir, bootId),
+			};
+		},
+	);
 	expect(closed).toBe(false);
 	const read = readRestoredDatabaseOpen({ home: f.home, bootId, receiptId: opened.receiptId });
 	expect(read.sourceBytes).toBe(opened.sourceBytes);
@@ -89,10 +102,12 @@ test("changed installed bytes prevent the database callback", async () => {
 	const installed = await installRestoredDatabase(f);
 	await writeFile(join(f.dataDir, "base/data"), "changed rows");
 	let called = false;
-	await expect(withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId: "boot" }, async () => {
-		called = true;
-		return { value: { async close() {} }, receipt: evidence(f.dataDir, "boot") };
-	})).rejects.toThrow("restored_database_bytes_changed");
+	await expect(
+		withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId: "boot" }, async () => {
+			called = true;
+			return { value: { async close() {} }, receipt: evidence(f.dataDir, "boot") };
+		}),
+	).rejects.toThrow("restored_database_bytes_changed");
 	expect(called).toBe(false);
 	expect(LangflowHostControl.recovery(f.home).state).toBe("blocked");
 });
@@ -101,10 +116,16 @@ test("a false callback digest closes the returned database without an open recei
 	const f = await fixture();
 	const installed = await installRestoredDatabase(f);
 	let closed = false;
-	await expect(withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId: "boot" }, async () => ({
-		value: { async close() { closed = true; } },
-		receipt: { ...evidence(f.dataDir, "boot"), facts: { sourceBytes: "changed", sourceDigest: "0".repeat(64) } },
-	}))).rejects.toThrow("restored_database_open_digest_conflict");
+	await expect(
+		withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId: "boot" }, async () => ({
+			value: {
+				async close() {
+					closed = true;
+				},
+			},
+			receipt: { ...evidence(f.dataDir, "boot"), facts: { sourceBytes: "changed", sourceDigest: "0".repeat(64) } },
+		})),
+	).rejects.toThrow("restored_database_open_digest_conflict");
 	expect(closed).toBe(true);
 	expect(LangflowHostControl.recovery(f.home).state).toBe("blocked");
 });
@@ -114,23 +135,36 @@ test("the external restore lock excludes another open until callback evidence is
 	const installed = await installRestoredDatabase(f);
 	const input = { ...f, installReceiptId: installed.receiptId, bootId: "boot" };
 	await withRestoredDatabaseOpen(input, async () => {
-		await expect(withRestoredDatabaseOpen({ ...input, bootId: "other" }, async () => ({
-			value: { async close() {} }, receipt: evidence(f.dataDir, "other"),
-		}))).rejects.toThrow("uses");
+		await expect(
+			withRestoredDatabaseOpen({ ...input, bootId: "other" }, async () => ({
+				value: { async close() {} },
+				receipt: evidence(f.dataDir, "other"),
+			})),
+		).rejects.toThrow("uses");
 		return { value: { async close() {} }, receipt: evidence(f.dataDir, "boot") };
 	});
-	await expect(withRestoredDatabaseOpen(input, async () => ({
-		value: { async close() {} }, receipt: evidence(f.dataDir, "boot"),
-	}))).rejects.toThrow("restored_database_boot_already_opened");
+	await expect(
+		withRestoredDatabaseOpen(input, async () => ({
+			value: { async close() {} },
+			receipt: evidence(f.dataDir, "boot"),
+		})),
+	).rejects.toThrow("restored_database_boot_already_opened");
 });
 
 test("a wrong boot receipt closes the database and leaves the block", async () => {
 	const f = await fixture();
 	const installed = await installRestoredDatabase(f);
 	let closed = false;
-	await expect(withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId: "boot" }, async () => ({
-		value: { async close() { closed = true; } }, receipt: evidence(f.dataDir, "other"),
-	}))).rejects.toThrow("restored_database_open_scope_conflict");
+	await expect(
+		withRestoredDatabaseOpen({ ...f, installReceiptId: installed.receiptId, bootId: "boot" }, async () => ({
+			value: {
+				async close() {
+					closed = true;
+				},
+			},
+			receipt: evidence(f.dataDir, "other"),
+		})),
+	).rejects.toThrow("restored_database_open_scope_conflict");
 	expect(closed).toBe(true);
 	expect(LangflowHostControl.recovery(f.home).state).toBe("blocked");
 });

@@ -12,7 +12,8 @@ export function readRestoredDatabaseOpen(input: { home: string; bootId: string; 
 		record.verified.bootId !== input.bootId ||
 		!isDeepStrictEqual(record.verified.identity, ctx.identity) ||
 		ctx.objects.readBinding("installation") !== record.verified.installReceiptId
-	) throw new Error("restored_database_open_receipt_conflict");
+	)
+		throw new Error("restored_database_open_receipt_conflict");
 	closed(ctx, record.verified.block);
 	return { record, sourceBytes, sourceDigest: protocolDigest(sourceBytes) };
 }
