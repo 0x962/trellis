@@ -183,8 +183,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	return ticketGet(tx, row.id);
 };
 
-// One batch and one transaction for up to 200 tickets: a ref that misses or
-// a rule that refuses rolls every ticket back.
+// The caller transaction rolls every ticket back if any reference or rule fails.
 export const updateMany = async (
 	ctx: ServiceCtx,
 	tx: Tx,

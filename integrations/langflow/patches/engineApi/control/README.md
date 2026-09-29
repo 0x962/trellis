@@ -5,6 +5,10 @@ an `APIRouter` with the relative prefix `/cancellation`. The shared engine API
 mounts it under `/trellis-v1`. `sessions` opens the real engine database.
 `background` is the existing `BackgroundExecutionService`.
 
+`cancel_execution(sessions, background, security, input)` commits the receipt
+before it calls the stop effect. It returns the receipt and observed job status.
+The HTTP handler owns transport authentication, error translation, and response serialization.
+
 POST accepts `executionId`, `publicationId`, `engineJobId`, `requestId`,
 `cancelIntentBytes`, and `authorityBytes`. The bytes contain the original
 serialized `CancelIntentV1` and the exact stored delivery authority.
@@ -28,6 +32,11 @@ for nonterminal jobs. It preserves failed, timed-out, completed, and canceled
 jobs. A replay failure prevents successful startup. Repeated effects use the
 same job and receipt; `stop_job` owns its existing cooperative stop behavior.
 
+Structured logs carry the execution, request, job, and receipt identifiers.
+Each request and stop replay scopes these identifiers to its own operation.
+The service records receipt commits, stop requests, failure types, and observed status.
+The model context methods expose only identifiers and the actor kind.
+
 `assert_not_cancelled(session, job_id)` rejects a permanent cancellation marker,
 including after STOP consumption. Completion, admission, and continuation
 writers call it while they hold the Job lock through their writes. TRL-669 owns
@@ -42,8 +51,8 @@ Run them against the assembled pinned engine source:
 python -m pytest integrations/langflow/patches/engineApi/control/tests
 ```
 
-The capacity hold defers fixture execution and Review. Runtime acceptance also
-requires the shared guards, startup call, and actual engine stop proof.
+TRL-674 assembles the pinned source, and TRL-667 runs the combined fixtures.
+Runtime acceptance requires the shared guards, startup call, and actual engine stop proof.
 
 `assembly-guards.patch` contains the completion, admission, and continuation
 hunks for the shared engine owner. `assembly-bases.json` records the source
