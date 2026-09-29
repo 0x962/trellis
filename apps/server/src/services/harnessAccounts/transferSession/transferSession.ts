@@ -3,7 +3,7 @@ import { cp, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promis
 import { basename, dirname, join } from "node:path";
 import type { AccountHarness } from "@trellis/api";
 import { z } from "zod";
-import { transferOpenCode } from "./transferOpenCode";
+import { transferOpenCode } from "./components/transferOpenCode";
 
 type Input = {
 	harness: AccountHarness;

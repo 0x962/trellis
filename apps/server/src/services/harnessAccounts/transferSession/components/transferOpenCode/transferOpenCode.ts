@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
-import { mkdir, open, readFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -16,11 +16,13 @@ type Input = {
 export async function transferOpenCode(input: Input) {
 	await mkdir(input.directory, { recursive: true, mode: 0o700 });
 	const path = join(input.directory, "session.json");
-	await run(input, ["export", input.sessionId], input.from, path);
+	const partial = `${path}.partial`;
+	await run(input, ["export", input.sessionId], input.from, partial);
 	const data = z
 		.object({ info: z.object({ id: z.string() }), messages: z.array(z.unknown()) })
-		.parse(JSON.parse(await readFile(path, "utf8")));
+		.parse(JSON.parse(await readFile(partial, "utf8")));
 	if (data.info.id !== input.sessionId) throw new Error("OpenCode exported a different session.");
+	await rename(partial, path);
 	const output = join(input.directory, "import.stdout");
 	await run(input, ["import", path], input.to, output);
 	const confirmation = `Imported session: ${input.sessionId}`;
@@ -44,15 +46,11 @@ async function run(input: Input, args: string[], profile: string, output: string
 					cwd: input.cwd,
 					env: { ...input.env, XDG_DATA_HOME: profile },
 					stdio: ["ignore", stdout.fd, stderr.fd],
-					timeout: 30000,
 				});
 				child.once("error", reject);
 				child.once("close", (code, signal) => {
-					if (code === 0 && !child.killed) resolve();
-					else {
-						const reason = child.killed ? "timeout" : (signal ?? code);
-						reject(new Error(`OpenCode ${args[0]} failed (${reason}). See ${errorPath}.`));
-					}
+					if (code === 0) resolve();
+					else reject(new Error(`OpenCode ${args[0]} failed (${signal ?? code}). See ${errorPath}.`));
 				});
 			});
 		} finally {

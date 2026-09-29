@@ -3,7 +3,7 @@ import { createReadStream, existsSync } from "node:fs";
 import { chmod, mkdir, mkdtemp, open, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { transferSession } from "../transferSession";
+import { transferSession } from "../../transferSession";
 
 const roots: string[] = [];
 const sessionId = "ses_transfer";
@@ -40,10 +40,7 @@ if (command === "export") {
 		process.stderr.write("export failed after output");
 		process.exitCode = 9;
 	}
-	if (mode === "export-timeout") {
-		process.on("SIGTERM", () => process.exit(0));
-		setInterval(() => {}, 1000);
-	}
+	if (mode === "export-terminated") process.kill(process.pid, "SIGTERM");
 } else {
 	await writeFile(join(profile, "import-called"), argument);
 	if (mode !== "import-failure") await copyFile(argument, join(profile, "conversation.json"));
@@ -59,6 +56,7 @@ if (command === "export") {
 		process.stderr.write("import failed after confirmation");
 		process.exitCode = 7;
 	}
+	if (mode === "import-terminated") process.kill(process.pid, "SIGTERM");
 }
 `,
 	);
@@ -121,6 +119,7 @@ for (const [name, bytes] of [
 		await writeFile(join(input.to, "conversation.json"), "Existing target conversation");
 		await expect(transferSession(input)).rejects.toThrow();
 		expect(existsSync(join(input.to, "import-called"))).toBe(false);
+		expect(existsSync(join(input.directory, "session.json"))).toBe(false);
 		expect(await readFile(join(input.to, "conversation.json"), "utf8")).toBe("Existing target conversation");
 		expect(await readFile(source, "utf8")).toBe(bytes);
 	});
@@ -132,7 +131,10 @@ test("rejects a failed export even when its output is complete JSON", async () =
 	await expect(transferSession(input)).rejects.toThrow("OpenCode export failed (9)");
 	expect(existsSync(join(input.to, "import-called"))).toBe(false);
 	expect(await digest(source)).toBe(original);
-	expect(await readFile(join(input.directory, "session.json.stderr"), "utf8")).toBe("export failed after output");
+	expect(existsSync(join(input.directory, "session.json"))).toBe(false);
+	expect(await readFile(join(input.directory, "session.json.partial.stderr"), "utf8")).toBe(
+		"export failed after output",
+	);
 });
 
 test("rejects a failed import even when it prints a confirmation", async () => {
@@ -157,12 +159,12 @@ test("reports an unavailable executable without import", async () => {
 	expect(existsSync(join(input.to, "import-called"))).toBe(false);
 });
 
-test("rejects the export timeout even when the subprocess handles SIGTERM with exit zero", async () => {
-	const { source, input } = await fixture("export-timeout");
-	const original = await digest(source);
-	const started = Date.now();
-	await expect(transferSession(input)).rejects.toThrow("OpenCode export failed (timeout)");
-	expect(Date.now() - started).toBeGreaterThanOrEqual(30000);
-	expect(existsSync(join(input.to, "import-called"))).toBe(false);
-	expect(await digest(source)).toBe(original);
-}, 40000);
+for (const command of ["export", "import"]) {
+	test(`rejects a terminated ${command} after output`, async () => {
+		const { source, input } = await fixture(`${command}-terminated`);
+		const original = await digest(source);
+		await expect(transferSession(input)).rejects.toThrow(`OpenCode ${command} failed (SIGTERM)`);
+		expect(await digest(source)).toBe(original);
+		if (command === "export") expect(existsSync(join(input.to, "import-called"))).toBe(false);
+	});
+}
