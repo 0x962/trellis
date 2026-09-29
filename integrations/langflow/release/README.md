@@ -44,7 +44,7 @@ bun integrations/langflow/release/cli/cli.ts verify PACKAGE EXPECTED_PACKAGE_SHA
 ```
 
 The recipe schema is `packageRecipe/packageRecipe.ts`.
-The fixture in `fixtures/packageFixture.ts` illustrates its shape with synthetic bytes.
+The fixture in `sealPackage/components/packageFixture/packageFixture.ts` illustrates its shape with synthetic bytes.
 The fixture image cannot run and proves only the package integrity contract.
 
 All outputs have `qualification: candidate`.

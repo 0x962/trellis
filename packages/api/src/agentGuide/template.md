@@ -711,6 +711,7 @@ Do not claim a finding is fixed because the discussion ends.
 | --- | --- |
 | `trellis flow list --ticket <ticket>` | Read available flows and their descriptions. |
 | `trellis flow list --project <project>` | Read flows available to the project. |
+| `trellis flow document show <flow>` | Read the saved document in version 1 format, with its engine and publication state. |
 | `trellis flow run list --diff <diff>` | Read existing runs for the diff. |
 | `trellis flow run show <run-id>` | Read one run, its step results, and its findings. |
 | `trellis flow start <flow> --diff <diff>` | Start a flow and wait for its result. |
@@ -747,6 +748,10 @@ If the applicable flow has no existing run for this diff:
 ~~~sh
 trellis flow start <flow-slug> --diff example/app#123 --no-wait
 ~~~
+
+Run lists include both engines and follow every result page.
+Legacy runs retain their JSON shape. Langflow runs use the version 1 execution view.
+An unknown format fails explicitly. Use `trellis flow document show <flow>` to read a versioned document.
 
 Read the existing run's result with `trellis flow run show <run-id>`.
 Do not run the start command again to wait for it.

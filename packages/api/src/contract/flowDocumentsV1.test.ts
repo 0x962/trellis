@@ -10,15 +10,29 @@ import {
 } from "../schemas/flowV1Fixtures.ts";
 import { clientContract, contract, flowDocumentsV1 } from "./index.ts";
 
-test("the client retains legacy contracts and registers the versioned routes separately", () => {
+test("the client and server share versioned routes and retain strict legacy contracts", () => {
+	expect(clientContract).toBe(contract);
 	expect(clientContract.flows).toBe(contract.flows);
 	expect(clientContract.flowExecutions).toBe(contract.flowExecutions);
 	for (const name of ["get", "save", "view"] as const) {
-		expect(clientContract.flowDocumentsV1[name]["~orpc"].route).toEqual(flowDocumentsV1[name]["~orpc"].route);
+		expect(clientContract.flowDocumentsV1[name]["~orpc"].route).toEqual({
+			...flowDocumentsV1[name]["~orpc"].route,
+			tags: ["flow documents v1"],
+		});
 		expect(clientContract.flowDocumentsV1[name]["~orpc"].outputSchema).toBe(
 			flowDocumentsV1[name]["~orpc"].outputSchema,
 		);
 	}
+});
+
+test("the versioned execution index accepts pagination beyond the legacy cutoff", async () => {
+	const entries = [{ id: flowV1FixtureIds.execution, engine: "langflow" as const }];
+	const client = createTrellisClient("http://localhost", "human:reviewer", async (request) => {
+		expect(new URL(request.url).pathname).toBe("/rpc/flowDocumentsV1/list");
+		return Response.json({ json: entries });
+	});
+	expect(await client.flowDocumentsV1.list({ limit: 501, offset: 500 })).toEqual(entries);
+	expect(contract.flowDocumentsV1.list["~orpc"].inputSchema!.parse({ limit: 501 }).limit).toBe(501);
 });
 
 test("versioned reads use the shared typed RPC client and actor headers", async () => {

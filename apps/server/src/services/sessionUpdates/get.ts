@@ -7,5 +7,5 @@ import { getSessionUpdates } from "./queries.ts";
 export const get = async (_ctx: ServiceCtx, tx: Tx, value: SessionUpdatesGetInput) => {
 	const input = SessionUpdatesGetInputSchema.parse(value);
 	const owner = await resolveSessionUpdateOwner(tx, input.sessionId);
-	return getSessionUpdates(tx, { runId: owner.runId });
+	return getSessionUpdates(tx, { runId: owner.runId, history: input.history });
 };

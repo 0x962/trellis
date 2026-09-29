@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
-import { denseGraphCases } from "../../../../reports/langflow-large-graph-design/denseGraph/denseGraph.ts";
+import {
+	createDenseGraphFixture,
+	denseGraphCases,
+} from "../../../../reports/langflow-large-graph-design/denseGraph/denseGraph.ts";
 import { createGatewayProtocol, probeSessionCookie } from "./gatewayProtocol.ts";
 import { probeGraph } from "./probeGraph.ts";
 
@@ -16,6 +19,15 @@ for (const dimensions of denseGraphCases) {
 		const graphDocument = probeGraph(dimensions.name);
 		expect(graphDocument.nodes).toHaveLength(dimensions.nodeCount);
 		expect(graphDocument.edges).toHaveLength(dimensions.edgeCount);
+		const source = createDenseGraphFixture(dimensions).graph;
+		expect(graphDocument.edges).toEqual(source.edges);
+		expect(graphDocument.viewport).toEqual(source.viewport);
+		for (const [index, node] of graphDocument.nodes.entries()) {
+			expect(node.data).toEqual(source.nodes[index]!.data);
+			expect(node.id).toBe(source.nodes[index]!.id);
+			expect(node.position.x).toBe(source.nodes[index]!.position.x);
+		}
+		expect(graphDocument.nodes[20]!.position.y).toBe(800);
 		const gateway = createGatewayProtocol({ expiresAt: "2026-09-29T08:15:00Z", graphDocument });
 		const response = gateway.dispatch({
 			method: "GET",

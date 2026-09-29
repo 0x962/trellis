@@ -1,0 +1,1 @@
+export { sealSnapshot } from "./sealSnapshot";

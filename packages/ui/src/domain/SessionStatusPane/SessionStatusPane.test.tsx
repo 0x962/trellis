@@ -36,10 +36,10 @@ const render = (patch: Partial<SessionStatusPaneProps> = {}) =>
 describe("SessionStatusPane", () => {
 	test("renders the latest update and defers the previous update", () => {
 		const html = render();
-		expect(html).toContain("From the agent");
-		expect(html).toContain("2 min ago");
+		expect(html).toContain("Updates");
+		expect(html).toContain('role="tree"');
 		expect(html).toContain('data-markdown="Latest **status**"');
-		expect(html).toContain("Previous update");
+		expect(html).toContain("Previous status");
 		expect(html).not.toContain('data-markdown="Previous status"');
 		expect(html).not.toContain("<details open");
 	});
@@ -81,24 +81,9 @@ describe("SessionStatusPane", () => {
 				},
 			},
 			"active" as const,
-			"An update was requested. The last agent reply stays below.",
+			"The observer prepares a new update. The last update stays below.",
 		],
-		[
-			"late",
-			{
-				...baseUpdates,
-				latest: { ...latest, createdAt: "2026-09-29T05:28:00.000Z" },
-				request: {
-					requestId: "request-3",
-					requestedAt: "2026-09-29T05:27:00.000Z",
-					state: "pending" as const,
-					error: null,
-				},
-			},
-			"active" as const,
-			"This update is 12 minutes old. Trellis is waiting for a new reply.",
-		],
-		["paused", baseUpdates, "paused" as const, "The session is paused. This is the last update from the agent."],
+		["paused", baseUpdates, "paused" as const, "The session is paused. This is the last update from the observer."],
 		[
 			"failed request",
 			{
@@ -111,7 +96,7 @@ describe("SessionStatusPane", () => {
 				},
 			},
 			"active" as const,
-			"The status request failed. The last reply stays below; this does not mean the agent stopped.",
+			"The observer update failed. The last update stays below.",
 		],
 	])("keeps the latest reply in the %s state", (_name, updates, processState, notice) => {
 		const html = render({ updates, processState });
@@ -122,7 +107,7 @@ describe("SessionStatusPane", () => {
 	test("shows the first-update state without a previous disclosure", () => {
 		const html = render({ updates: { latest: null, previous: null, request: null } });
 		expect(html).toContain("No update yet");
-		expect(html).toContain("The agent has not supplied a status update yet.");
+		expect(html).toContain("The observer has not supplied a status update yet.");
 		expect(html).not.toContain("Previous update");
 	});
 
@@ -149,14 +134,22 @@ describe("SessionStatusPane", () => {
 		expect(html).toContain("w-93.5");
 		expect(html).toContain("max-md:order-first");
 		expect(html).toContain("max-md:max-h-130");
-		expect(html).toContain('aria-label="Agent status updates"');
+		expect(html).toContain('aria-label="Observer status updates"');
 		expect(html).toContain("overflow-auto");
 	});
 
-	test("keeps the five-minute policy behind a disclosure", () => {
+	test("shows a Claude observer error and keeps the latest update", () => {
+		const html = render({ observerError: "Select an enabled Claude account." });
+		expect(html).toContain("The observer could not update the status.");
+		expect(html).toContain("Select an enabled Claude account.");
+		expect(html).not.toContain("Open Usage");
+		expect(html).toContain('data-markdown="Latest **status**"');
+	});
+
+	test("describes activity-based observer updates behind a disclosure", () => {
 		const html = render();
-		expect(html).toContain("Updates every 5 min");
-		expect(html).toContain("The latest reply stays visible until a new reply arrives.");
-		expect(html).toContain("A paused session receives no automatic request.");
+		expect(html).toContain("How updates work");
+		expect(html).toContain("The observer reads completed session activity and writes a rich update.");
+		expect(html).toContain("A paused session receives no update.");
 	});
 });

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { canonicalBytes } from "../canonicalBytes";
 import { PackageRecipeSchema } from "../packageRecipe";
 import { type PayloadFile, payloadFiles } from "../payloadFiles";
-import { verifyOci } from "../verifyOci";
+import { verifyOci } from "./components/verifyOci";
 
 export async function inspectPackage(root: string, input: unknown) {
 	const recipe = PackageRecipeSchema.parse(input);

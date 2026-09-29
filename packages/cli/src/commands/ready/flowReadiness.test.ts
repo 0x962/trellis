@@ -38,16 +38,22 @@ const clientWith = (
 				return flows;
 			},
 		},
-		flowExecutions: {
+		flowDocumentsV1: {
 			list: async (input: unknown) => {
 				sent.push(input);
 				const offset = (input as { offset?: number }).offset ?? 0;
-				return records.slice(offset, offset + 500).map((record) => ({
+				return records
+					.slice(offset, offset + 500)
+					.map((_, index) => ({ id: String(offset + index), engine: "langflow" }));
+			},
+			view: async ({ id }: { id: string }) => {
+				const record = records[Number(id)]!;
+				return {
 					flowId: record.flowId ?? `flow:${record.slug}`,
 					diffId: record.diffId ?? ref.id,
-					doc: { flow: { slug: record.slug, name: record.name } },
-					state: { status: record.status },
-				}));
+					status: record.status,
+					failureKind: null,
+				};
 			},
 		},
 		pullRequests: { readFlowWaiver: async () => waiver },
