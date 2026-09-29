@@ -1,34 +1,15 @@
-import type { FlowDecisionDeliveryV1 } from "@trellis/api";
 import type { ServiceCtx } from "../../../context.ts";
 import { commitProjection, readProjection } from "../../../db/queries/langflowExecution";
 import type { Tx } from "../../../db/tx.ts";
 import type { HumanDeliveryV1 } from "../../../langflowContracts";
 
-export async function saveDelivery(ctx: ServiceCtx, tx: Tx, delivery: HumanDeliveryV1) {
-	const { decision, payloadDigest } = delivery;
+import { publicDecision } from "../publicDetails.ts";
+
+export async function saveDecisionDelivery(ctx: ServiceCtx, tx: Tx, delivery: HumanDeliveryV1) {
+	const { decision } = delivery;
 	const { wait } = decision;
 	const stored = (await readProjection(tx, { executionId: wait.executionId }))!;
-	const common = {
-		decisionId: decision.decisionId,
-		payloadDigest,
-		engineRequestId: wait.engineRequestId,
-		actionKey: wait.actionKey,
-		occurrenceKey: wait.occurrence.occurrenceKey,
-		actor: decision.actor,
-		approved: decision.approved,
-		output: decision.output,
-		expectedRevision: wait.expectedRevision,
-		recordedAt: decision.recordedAt,
-	};
-	const value: FlowDecisionDeliveryV1 =
-		delivery.state === "confirmed"
-			? {
-					...common,
-					state: "confirmed",
-					acceptedReceiptId: delivery.acceptance.acceptanceId,
-					confirmedAt: delivery.acceptance.acceptedAt,
-				}
-			: { ...common, state: delivery.state, acceptedReceiptId: null, confirmedAt: null };
+	const value = publicDecision(delivery);
 	const previous = stored.view.decisionDeliveries.find((row) => row.decisionId === decision.decisionId);
 	if (previous?.state === value.state) return stored.view;
 	const view = {

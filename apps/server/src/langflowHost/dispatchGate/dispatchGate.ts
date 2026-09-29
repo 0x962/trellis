@@ -11,8 +11,16 @@ export class DispatchGate {
 		private readonly evidence: DispatchEvidence,
 	) {}
 
-	static create(input: { directory: string; dataHomeId: string; evidence: DispatchEvidence }) {
-		return new DispatchGate(DispatchStore.create(input.directory, input.dataHomeId), input.evidence);
+	static create(input: {
+		directory: string;
+		dataHomeId: string;
+		evidence: DispatchEvidence;
+		initialBlock?: { requestId: string; reason: BlockReason };
+	}) {
+		return new DispatchGate(
+			DispatchStore.create(input.directory, input.dataHomeId, input.initialBlock),
+			input.evidence,
+		);
 	}
 
 	static open(input: { directory: string; dataHomeId: string; evidence: DispatchEvidence }) {
@@ -41,6 +49,13 @@ export class DispatchGate {
 			state.permits.push({ permit, terminal: null });
 			return structuredClone(permit);
 		});
+	}
+
+	recoverPermit(binding: EffectBinding) {
+		const entry = this.read().permits.find((item) => item.permit.binding.effectId === binding.effectId);
+		if (!entry) return null;
+		if (!isDeepStrictEqual(entry.permit.binding, binding)) throw new Error("dispatch_effect_binding_conflict");
+		return entry;
 	}
 
 	async settle(permit: DispatchPermit, receiptId: string) {

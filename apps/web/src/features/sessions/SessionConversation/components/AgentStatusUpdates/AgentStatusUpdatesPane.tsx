@@ -1,5 +1,5 @@
 import type { AgentRun } from "@trellis/api";
-import { type LinkPress, SessionStatusPane, type SessionUpdates, type SessionStatusPaneProps } from "@trellis/ui";
+import { type LinkPress, SessionStatusPane, type SessionStatusPaneProps, type SessionUpdates } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { agentStatusLinkPress, sessionStatusProcessState } from "./agentStatusUpdatesState";
