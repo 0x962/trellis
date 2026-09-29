@@ -18,7 +18,7 @@ export function TabPicker({ tabs, activeId, onSelect }: Props) {
 			onOpenChange={setOpen}
 			triggerTooltip={`Search ${tabs.length} open tabs`}
 			trigger={<IconButton label="Search open tabs" icon={<CaretDown />} className="max-sm:h-11 max-sm:min-w-11" />}
-			className="w-80 max-w-[calc(100vw-16px)] p-2"
+			className="w-80 max-w-[calc(100vw-var(--spacing)*4)] p-2"
 		>
 			{open && (
 				<TabPickerContent

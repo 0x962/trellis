@@ -43,7 +43,10 @@ export function PageTabs({
 	const suppressClick = useRef(false);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [announcement, setAnnouncement] = useState("");
-	const draggedIndex = tabs.findIndex((tab) => tab.id === draggedId);
+	const draggedIndex = useMemo(
+		() => (draggedId === null ? -1 : tabs.findIndex((tab) => tab.id === draggedId)),
+		[tabs, draggedId],
+	);
 	const renderedIndexes =
 		draggedIndex >= 0 && !layout.indexes.includes(draggedIndex)
 			? [...layout.indexes, draggedIndex].sort((a, b) => a - b)

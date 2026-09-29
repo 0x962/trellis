@@ -67,7 +67,7 @@ export function PageTab({
 			>
 				<Tooltip
 					content={tab.title}
-					className="max-w-[min(24rem,calc(100vw-16px))] break-words"
+					className="max-w-[min(24rem,calc(100vw-var(--spacing)*4))] break-words"
 					open={truncated ? undefined : false}
 				>
 					<TabsTab

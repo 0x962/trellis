@@ -13,7 +13,7 @@ type Props = {
 const rowHeight = 44;
 export function TabPickerContent({ tabs, activeId, onSelect: choose, inputRef }: Props) {
 	const [search, setSearch] = useState("");
-	const [cursor, setCursor] = useState(
+	const [cursor, setCursor] = useState(() =>
 		Math.max(
 			0,
 			tabs.findIndex((tab) => tab.id === activeId),
