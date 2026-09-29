@@ -74,7 +74,7 @@ async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
 	outer_sink.set(input_data=inner.done_output, mode="Parser", pattern="{text}", sep="\n")
 	_attach_feedback(outer, outer_sink, "parsed_text")
 
-	graph = Graph(outer, inner, inner_sink, outer_sink)
+	graph = Graph(outer, outer_sink)
 	[r async for r in graph.async_start()]
 
 	assert [item.text for item in outer.ctx["outer_aggregated"]] == ["outer-1", "outer-2"]
@@ -89,10 +89,11 @@ async def test_real_graph_deadline_uses_first_launch_and_unbounded_budget() -> N
 	probe = DeadlineProbe(_id="deadline")
 	probe.launched_at = launched_at.isoformat()
 	probe.budget_ms = budget_ms
-	graph = Graph(probe)
-	await graph.process(fallback_to_env_vars=False)
+	graph = Graph()
+	graph.add_component(probe)
+	await graph.process(fallback_to_env_vars=False, start_component_id=probe.get_id())
 
-	result = graph.get_vertex("deadline").results["deadline"].data
+	result = graph.get_vertex("deadline").built_object["deadline"].data
 	deadline_at = datetime.fromisoformat(result["deadlineAt"])
 	assert deadline_at == launched_at + timedelta(milliseconds=budget_ms)
 	assert deadline_at != reserved_at + timedelta(milliseconds=budget_ms)

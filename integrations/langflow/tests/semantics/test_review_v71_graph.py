@@ -199,4 +199,4 @@ async def test_review_v71_runs_with_exact_branches_groups_and_output_bytes() -> 
 			assert vertex.built is False
 			continue
 		output_name = "trace" if node["kind"] == "gate" else "result"
-		assert vertex.results[output_name].data == {"nodeId": node_id, "text": expected}
+		assert vertex.built_object[output_name].data == {"nodeId": node_id, "text": expected}
