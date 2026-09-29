@@ -17,6 +17,7 @@ The shared router mounts the relative `/native` routes under `/trellis-v1`.
 | --- | --- | --- |
 | `POST /trellis-v1/native/completions` | `completion.deliver` | `{engineWaitId,resultBytes,deliveryBytes,authorityBytes}`; exact `CompletionReceiptV1` response bytes |
 | `POST /trellis-v1/native/lookup` | `native.read` | `{jobId,waitId,authorityBytes}`; saved wait, result, and acceptance bytes |
+| `POST /trellis-v1/native/visit` | `native.read` | `{requestBytes,authorityBytes}`; retained vertex, request, occurrence, scope, admission, and ordered receipts |
 | `POST /trellis-v1/native/input-receipts` | `native.read` | `{requestBytes,authorityBytes}`; ordered `{receiptId,receiptBytes,receiptDigest}[]` |
 
 `authorityBytes` contains the exact persisted grant serialization.
@@ -31,6 +32,7 @@ If dispatch fails, the durable obligation stays pending for the engine startup d
 The input-receipt route derives the job and publication from the original request bytes.
 It locks the job before the shared authority check, then calls `occurrence_receipts.read_input_receipts` in that session.
 The helper verifies the original journal request and reads its ordered receipt records.
+The visit route uses the same transaction and authentication path with `occurrence_receipts.read_native_visit`.
 The response preserves each receipt string and digest and uses `Cache-Control: no-store`.
 Missing jobs or receipts and changed requests return a conflict.
 
