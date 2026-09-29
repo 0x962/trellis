@@ -41,6 +41,14 @@ The caller copies those recipe fields into the complete package recipe and adds 
 The original manifest retains its publication flags and diagnostics unchanged.
 The function checks copied bytes and rejects output beneath either source root.
 
+`frontendTemplates` optionally names the separate `frontend-templates.v1.json` export with its path, hash, and size.
+The assembler preserves its original bytes and checks its catalog hash, engine commit, and overlay hash against the recipe.
+Supply `recipe.patchSet.sha256` as the exporter's `engine_overlay_sha256` input.
+This hash covers the canonical ordered recipe patch records; a source-file aggregate is a different identity.
+The loader returns `frontendTemplates: { path, sha256, engineOverlayHash }` with an absolute path, or `null` when absent.
+The installed provider reads the verified artifact and retains its publication blockers and complete template metadata.
+The template producer owns the export schema and actual engine trace.
+
 `target.layout` names an OCI image layout inside the payload.
 Each package contains one image manifest for one target architecture.
 The verifier checks the manifest, config, and layer hashes and sizes against local blobs.
