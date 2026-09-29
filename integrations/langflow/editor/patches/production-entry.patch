@@ -206,6 +206,118 @@ new file mode 100644
 +	expiresAt: z.iso.datetime(),
 +});
 +export type EditorBootstrap = z.infer<typeof EditorBootstrapSchema>;
+diff --git a/src/customization/trellis/editorCatalog/editorCatalog.ts b/src/customization/trellis/editorCatalog/editorCatalog.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/editorCatalog.ts
+@@ -0,0 +1,44 @@
++import type { z } from "zod/v4";
++import { EditorCatalogSchema } from "./schema";
++
++export type EditorCatalog = z.infer<typeof EditorCatalogSchema>;
++
++export function readEditorCatalog(value: unknown, componentManifestHash: string): EditorCatalog {
++	const catalog = EditorCatalogSchema.parse(value);
++	const exported = catalog.frontendTemplates;
++	if (exported === null) return catalog;
++	if (
++		exported.componentManifestHash !== componentManifestHash ||
++		exported.catalogId !== catalog.catalogId ||
++		exported.engine.name !== catalog.engine.name ||
++		exported.engine.version !== catalog.engine.version ||
++		exported.engine.commit !== catalog.engine.commit ||
++		exported.allowedForPublication !== catalog.allowedForPublication
++	)
++		throw new Error("The frontend templates do not match the granted catalog.");
++	const declarations = new Map(catalog.definitions.map((item) => [item.id, item]));
++	const ids = new Set<string>();
++	const types = new Set<string>();
++	if (declarations.size !== catalog.definitions.length || exported.definitions.length !== declarations.size)
++		throw new Error("The frontend templates do not match the source definitions.");
++	for (const item of exported.definitions) {
++		const declaration = declarations.get(item.id);
++		if (
++			declaration === undefined ||
++			ids.has(item.id) ||
++			types.has(item.className) ||
++			item.version !== declaration.version ||
++			item.className !== declaration.className ||
++			item.source.root !== declaration.source.root ||
++			item.source.path !== declaration.source.path ||
++			item.source.sha256 !== declaration.source.sha256 ||
++			item.qualification !== declaration.qualification ||
++			item.allowedForPublication !== declaration.allowedForPublication ||
++			item.frontendTemplate.data.type !== item.className
++		)
++			throw new Error("A frontend template does not match its source definition.");
++		ids.add(item.id);
++		types.add(item.className);
++	}
++	return catalog;
++}
+diff --git a/src/customization/trellis/editorCatalog/index.ts b/src/customization/trellis/editorCatalog/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/index.ts
+@@ -0,0 +1 @@
++export { type EditorCatalog, readEditorCatalog } from "./editorCatalog";
+diff --git a/src/customization/trellis/editorCatalog/schema.ts b/src/customization/trellis/editorCatalog/schema.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/schema.ts
+@@ -0,0 +1,52 @@
++import { z } from "zod/v4";
++
++const digest = z.string().regex(/^[a-f0-9]{64}$/);
++const engine = z
++	.object({ name: z.literal("langflow"), version: z.string().min(1), commit: z.string().regex(/^[a-f0-9]{40}$/) })
++	.passthrough();
++const source = z.object({ root: z.enum(["trellis", "engine"]), path: z.string().min(1), sha256: digest }).passthrough();
++const definition = z
++	.object({
++		id: z.string(),
++		version: z.number().int().positive(),
++		className: z.string(),
++		source,
++		qualification: z.string(),
++		allowedForPublication: z.boolean(),
++	})
++	.passthrough();
++const policy = {
++	allowedForPublication: z.boolean(),
++	supportedMappings: z.array(z.json()),
++	legacyMappings: z.array(z.record(z.string(), z.json())),
++	blockers: z.record(z.string(), z.string()),
++};
++const template = z
++	.object({
++		id: z.string(),
++		data: z.object({ id: z.string(), type: z.string(), node: z.record(z.string(), z.json()) }).passthrough(),
++	})
++	.passthrough();
++const exported = z
++	.object({
++		schemaVersion: z.literal(1),
++		kind: z.literal("trellis-frontend-templates"),
++		catalogId: z.string().min(1),
++		componentManifestHash: digest,
++		engine,
++		engineOverlayHash: digest,
++		...policy,
++		definitions: z.array(definition.extend({ frontendTemplate: template })),
++	})
++	.passthrough();
++
++export const EditorCatalogSchema = z
++	.object({
++		schemaVersion: z.literal(1),
++		catalogId: z.string().min(1),
++		engine,
++		...policy,
++		definitions: z.array(definition.extend({ frontendTemplate: z.null() })),
++		frontendTemplates: exported.nullable(),
++	})
++	.passthrough();
 diff --git a/src/customization/trellis/editorOrigin/editorOrigin.ts b/src/customization/trellis/editorOrigin/editorOrigin.ts
 new file mode 100644
 --- /dev/null
@@ -224,6 +336,33 @@ new file mode 100644
 +++ b/src/customization/trellis/editorOrigin/index.ts
 @@ -0,0 +1 @@
 +export { editorOrigin } from "./editorOrigin";
+diff --git a/src/customization/trellis/editorPalette/editorPalette.ts b/src/customization/trellis/editorPalette/editorPalette.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorPalette/editorPalette.ts
+@@ -0,0 +1,16 @@
++import type { EditorCatalog } from "../editorCatalog";
++
++export function editorPalette(catalog: EditorCatalog) {
++	const exported = catalog.frontendTemplates;
++	if (exported === null) throw new Error("The installed package has no verified frontend templates.");
++	const definitions = exported.definitions.filter(
++		(item) => catalog.allowedForPublication && item.allowedForPublication,
++	);
++	if (definitions.length === 0) throw new Error("The installed catalog has no approved editor components.");
++	return {
++		trellis: Object.fromEntries(
++			definitions.map(({ frontendTemplate }) => [frontendTemplate.data.type, frontendTemplate.data.node]),
++		),
++		component_display_names: {},
++	};
++}
+diff --git a/src/customization/trellis/editorPalette/index.ts b/src/customization/trellis/editorPalette/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorPalette/index.ts
+@@ -0,0 +1 @@
++export { editorPalette } from "./editorPalette";
 diff --git a/src/customization/trellis/fieldFocus/fieldFocus.ts b/src/customization/trellis/fieldFocus/fieldFocus.ts
 new file mode 100644
 --- /dev/null
@@ -360,9 +499,10 @@ diff --git a/src/customization/trellis/frontend/entry/entry.ts b/src/customizati
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/entry/entry.ts
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,74 @@
 +import type { APIObjectType } from "@/types/api";
 +import type { FlowType } from "@/types/flow";
++import { editorPalette } from "../../editorPalette";
 +import { createFrameDriver } from "../../frameDriver";
 +import type { EditorContent } from "../../protocol";
 +import { openEditorReads } from "../../scopedReads";
@@ -432,14 +572,7 @@ new file mode 100644
 +}
 +
 +export async function loadEditorPalette(): Promise<APIObjectType> {
-+	const catalog = await reads.catalog();
-+	const definitions = catalog.definitions.filter(
-+		(item) => item.allowedForPublication && item.frontendTemplate !== null,
-+	);
-+	if (definitions.length === 0) throw new Error("The installed catalog has no approved editor components.");
-+	return {
-+		trellis: Object.fromEntries(definitions.map((item) => [item.className, item.frontendTemplate])),
-+	} as APIObjectType;
++	return editorPalette(await reads.catalog()) as APIObjectType;
 +}
 diff --git a/src/customization/trellis/frontend/entry/index.ts b/src/customization/trellis/frontend/entry/index.ts
 new file mode 100644
@@ -642,8 +775,9 @@ diff --git a/src/customization/trellis/scopedReads/scopedReads.ts b/src/customiz
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/scopedReads/scopedReads.ts
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,67 @@
 +import { z } from "zod/v4";
++import { readEditorCatalog } from "../editorCatalog";
 +import { editorOrigin } from "../editorOrigin";
 +import { EditorContentSchema } from "../protocol";
 +import { EditorBootstrapSchema } from "../session";
@@ -653,19 +787,6 @@ new file mode 100644
 +	revision: z.number().int().positive(),
 +	documentHash: z.string(),
 +}).passthrough();
-+const catalogSchema = z.object({
-+	schemaVersion: z.literal(1),
-+	catalogId: z.literal("trellis-components-v1"),
-+	engine: z.object({ name: z.literal("langflow"), version: z.string(), commit: z.string() }),
-+	definitions: z.array(
-+		z.object({
-+			id: z.string(),
-+			className: z.string(),
-+			allowedForPublication: z.boolean(),
-+			frontendTemplate: z.record(z.string(), z.json()).nullable(),
-+		}),
-+	),
-+});
 +
 +type Options = {
 +	channel: string;
@@ -718,7 +839,8 @@ new file mode 100644
 +			throw new Error("The editor document does not match its grant.");
 +		return result;
 +	};
-+	const catalog = async () => catalogSchema.parse(await read("component-manifest"));
++	const catalog = async () =>
++		readEditorCatalog(await read("component-manifest"), bootstrap.identity.componentManifestHash);
 +	return { bootstrap, document, catalog };
 +}
 diff --git a/src/customization/trellis/session/index.ts b/src/customization/trellis/session/index.ts
