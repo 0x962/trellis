@@ -36,8 +36,6 @@ with tempfile.TemporaryDirectory(prefix="trellis-langflow-isolation-") as temp:
 		}
 		command = [str(python), str(child), str(allowed_root), str(forbidden_file), host, str(port)]
 		unconfined = subprocess.run(command, check=True, capture_output=True, text=True, env=environment)
-		connection, _ = listener.accept()
-		connection.close()
 		sandboxed = subprocess.run(
 			[
 				"/usr/bin/sandbox-exec",

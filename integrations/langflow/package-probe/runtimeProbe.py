@@ -7,6 +7,7 @@ import stat
 import subprocess
 import time
 import urllib.request
+from contextlib import suppress
 from pathlib import Path
 
 
@@ -97,6 +98,17 @@ def listener_lines(pids: list[int]) -> list[str]:
 	return result.stdout.splitlines()[1:]
 
 
+def stop_process_group(process: subprocess.Popen[str]) -> None:
+	with suppress(ProcessLookupError):
+		os.killpg(process.pid, signal.SIGTERM)
+	try:
+		process.wait(timeout=30)
+	except subprocess.TimeoutExpired:
+		with suppress(ProcessLookupError):
+			os.killpg(process.pid, signal.SIGKILL)
+		process.wait(timeout=30)
+
+
 def start_once(label: str) -> dict[str, object]:
 	port = free_port()
 	log_path = run_root / f"{label}.log"
@@ -136,34 +148,41 @@ def start_once(label: str) -> dict[str, object]:
 			stderr=subprocess.STDOUT,
 			start_new_session=True,
 		)
-		deadline = started_at + 180
-		status = None
-		while time.monotonic() < deadline:
-			if process.poll() is not None:
-				raise RuntimeError(log_path.read_text(encoding="utf-8"))
+		probe_error: BaseException | None = None
+		try:
+			deadline = started_at + 180
+			status = None
+			while time.monotonic() < deadline:
+				if process.poll() is not None:
+					raise RuntimeError(log_path.read_text(encoding="utf-8"))
+				try:
+					with urllib.request.urlopen(f"http://127.0.0.1:{port}/health_check", timeout=1) as response:
+						status = response.status
+						break
+				except OSError:
+					time.sleep(0.1)
+			if status != 200:
+				raise RuntimeError(f"health check did not return 200: {log_path}")
+			elapsed_ms = round((time.monotonic() - started_at) * 1000)
+			pids = descendants(process.pid)
+			result = {
+				"healthStatus": status,
+				"listenerLines": listener_lines(pids),
+				"log": str(log_path),
+				"pids": pids,
+				"port": port,
+				"rssBytes": rss_bytes(pids),
+				"startupMs": elapsed_ms,
+			}
+		except BaseException as error:
+			probe_error = error
+			raise
+		finally:
 			try:
-				with urllib.request.urlopen(f"http://127.0.0.1:{port}/health_check", timeout=1) as response:
-					status = response.status
-					break
-			except OSError:
-				time.sleep(0.1)
-		if status != 200:
-			process.send_signal(signal.SIGTERM)
-			process.wait(timeout=30)
-			raise RuntimeError(f"health check did not return 200: {log_path}")
-		elapsed_ms = round((time.monotonic() - started_at) * 1000)
-		pids = descendants(process.pid)
-		result = {
-			"healthStatus": status,
-			"listenerLines": listener_lines(pids),
-			"log": str(log_path),
-			"pids": pids,
-			"port": port,
-			"rssBytes": rss_bytes(pids),
-			"startupMs": elapsed_ms,
-		}
-		os.killpg(process.pid, signal.SIGTERM)
-		process.wait(timeout=30)
+				stop_process_group(process)
+			except BaseException:
+				if probe_error is None:
+					raise
 		result["exitCode"] = process.returncode
 		return result
 
@@ -187,8 +206,6 @@ with socket.socket() as listener:
 		text=True,
 		env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"},
 	)
-	connection, _ = listener.accept()
-	connection.close()
 
 result = {
 	"cold": start_once("cold"),
