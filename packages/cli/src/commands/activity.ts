@@ -1,29 +1,12 @@
-import type { TimelineItem, TimelineListInput, TimelineListOutput } from "@trellis/api";
 import { defineCommand } from "citty";
+import { activityPages } from "../activity.ts";
 import { clientOf } from "../client.ts";
-import { compact, contextOf } from "../context.ts";
+import { contextOf } from "../context.ts";
 import { usageError } from "../errors.ts";
 import { printListPages } from "../output.ts";
 import { activityList } from "../timeline.ts";
 
-const pageMax = 100;
 const positiveInteger = /^[1-9][0-9]*$/;
-
-export const activityPages = async function* (
-	ticket: string,
-	want: number,
-	read: (input: TimelineListInput) => Promise<TimelineListOutput>,
-): AsyncGenerator<TimelineItem[]> {
-	let before: string | undefined;
-	let taken = 0;
-	while (taken < want) {
-		const page = await read(compact({ ticket, before, limit: Math.min(want - taken, pageMax) }));
-		taken += page.items.length;
-		yield page.items;
-		if (page.nextCursor === null) return;
-		before = page.nextCursor;
-	}
-};
 
 // The contract has no project activity procedure, so the command declares no
 // `--project` flag, and `checkFlags` refuses it with exit 2.
@@ -38,10 +21,11 @@ export default defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		if (args.ticket === undefined) throw usageError("activity needs a ticket ref");
-		if (args.all !== true && !positiveInteger.test(args.limit)) {
+		const parsedLimit = Number(args.limit);
+		if (args.all !== true && (!positiveInteger.test(args.limit) || !Number.isSafeInteger(parsedLimit))) {
 			throw usageError(`--limit needs a positive integer, not "${args.limit}"`);
 		}
-		const want = args.all === true ? Number.POSITIVE_INFINITY : Number(args.limit);
+		const want = args.all === true ? Number.POSITIVE_INFINITY : parsedLimit;
 		const client = clientOf(ctx);
 		await printListPages(
 			ctx.out,

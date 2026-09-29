@@ -64,12 +64,11 @@ const ticket: Ticket = {
 
 const fixture = (reply: (path: string, input: Record<string, unknown>) => unknown) => {
 	const output: string[] = [];
-	const errors: string[] = [];
 	const calls: Array<{ path: string; input: Record<string, unknown> }> = [];
 	const deps = {
 		env: { TRELLIS_URL: "http://test.local", TRELLIS_ACTOR: "agent:Builder" },
 		stdout: { write: (text: string) => output.push(text), isTTY: false },
-		stderr: { write: (text: string) => errors.push(text), isTTY: false },
+		stderr: { write: () => {}, isTTY: false },
 		stdin: async () => "",
 		gitUserName: () => "Sam",
 		osUser: () => "sam",
@@ -86,7 +85,7 @@ const fixture = (reply: (path: string, input: Record<string, unknown>) => unknow
 			return Response.json({ json: reply(path, input) }, { headers: { "x-trellis-api-version": "1" } });
 		},
 	} as unknown as Deps;
-	return { deps, calls, text: () => output.join(""), errors: () => errors.join("") };
+	return { deps, calls, text: () => output.join("") };
 };
 
 test("activity --all follows each cursor and keeps the order across an empty page", async () => {
@@ -124,6 +123,12 @@ test("activity --limit reads the exact count across pages", async () => {
 		{ ticket: "TRL-717", limit: 100 },
 		{ ticket: "TRL-717", before: "NEXT", limit: 5 },
 	]);
+});
+
+test("activity --limit rejects a count above the safe integer range", async () => {
+	const f = fixture(() => ({}));
+	expect(await run(["activity", "list", "TRL-717", "--limit", "9007199254740992"], f.deps)).toBe(2);
+	expect(f.calls).toEqual([]);
 });
 
 test("ticket show --activity reads all activity pages", async () => {

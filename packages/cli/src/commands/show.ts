@@ -1,10 +1,10 @@
-import type { LinkedPullRequest, Ticket, TimelineListOutput } from "@trellis/api";
+import type { LinkedPullRequest, Ticket } from "@trellis/api";
 import { defineCommand } from "citty";
+import { readTicketWithActivity } from "../activity.ts";
 import { clientOf } from "../client.ts";
 import { contextOf } from "../context.ts";
 import { heading, json, type ListSpec, renderRecord, renderTable, ticketRecord } from "../output.ts";
 import { renderActivity } from "../timeline.ts";
-import { activityPages } from "./activity.ts";
 
 export const prList: ListSpec<LinkedPullRequest> = {
 	columns: [
@@ -35,18 +35,11 @@ export default defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		const client = clientOf(ctx);
-		const ticket = await client.tickets.get({ ticket: args.ticket });
-		const wantsTimeline = args.activity === true;
-		let timeline: TimelineListOutput | undefined;
-		if (wantsTimeline) {
-			const items = [];
-			for await (const page of activityPages(args.ticket, Number.POSITIVE_INFINITY, (input) =>
-				client.timeline.list(input),
-			)) {
-				items.push(...page);
-			}
-			timeline = { items, nextCursor: null };
-		}
+		const result =
+			args.activity === true
+				? await readTicketWithActivity(client, args.ticket)
+				: { ticket: await client.tickets.get({ ticket: args.ticket }), timeline: undefined };
+		const { ticket, timeline } = result;
 		const { mode, color } = ctx.format;
 		if (mode === "quiet") {
 			ctx.out.write(`${ticket.identifier}\n`);
