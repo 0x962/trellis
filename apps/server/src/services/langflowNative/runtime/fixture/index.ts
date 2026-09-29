@@ -1,0 +1,1 @@
+export { completionFixture } from "./fixture";
