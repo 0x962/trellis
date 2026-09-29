@@ -3,11 +3,11 @@ import { createCache } from "../../db/cache.ts";
 import { receiptFixture } from "../../db/queries/langflowExecution/fixtures/fixture.ts";
 import { langflowExecutionProjections } from "../../db/tables/langflowExecution";
 import { type Tx, withTx } from "../../db/tx.ts";
-import { initialize } from "./initialize.ts";
+import { initialize } from "./initialize";
 import { fixture } from "./testFixture.ts";
 
-export async function databaseFixture() {
-	const { db, authority } = await receiptFixture();
+export async function databaseFixture(open = true) {
+	const { db, authority } = await receiptFixture(open);
 	await db.delete(langflowExecutionProjections);
 	const f = fixture();
 	const ctx: ServiceCtx = {

@@ -1,7 +1,7 @@
 import { FlowExecutionViewV1Schema } from "@trellis/api";
-import type { ServiceCtx } from "../../context.ts";
-import { initializeProjection, lockExecution, readProjection } from "../../db/queries/langflowExecution";
-import type { Tx } from "../../db/tx.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { initializeProjection, lockExecution, readProjection } from "../../../db/queries/langflowExecution";
+import type { Tx } from "../../../db/tx.ts";
 
 export async function initialize(ctx: ServiceCtx, tx: Tx, input: { executionId: string }) {
 	if (ctx.actor?.kind !== "system") throw new Error("authority_conflict");
@@ -26,7 +26,7 @@ export async function initialize(ctx: ServiceCtx, tx: Tx, input: { executionId: 
 			state: execution.submission.state,
 			admission: execution.admission.state,
 			engineJobId: execution.engineJobId,
-			engineEpoch: execution.authority?.engineEpoch ?? 1,
+			engineEpoch: execution.authority?.engineEpoch ?? null,
 			ownership: execution.authority === null ? "unknown" : "confirmed",
 			error: null,
 		},
