@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { PullRequestSummarySchema, PullRequestSummaryWriteOutputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { openTestDb } from "../db/testDb.ts";
@@ -147,4 +148,31 @@ test("a write refuses a SHA that is not the current pull request head", async ()
 			],
 		},
 	});
+});
+
+test("long explanations pass preparation and return complete stored text", async () => {
+	const headSha = "a".repeat(40);
+	const gh = Object.assign(
+		async () => ({
+			ok: true as const,
+			code: 0,
+			stdout: JSON.stringify({ headRefOid: headSha }),
+			stderr: "",
+		}),
+		{ bin: "gh", timeoutMs: 30_000 },
+	);
+	const fields = {
+		headSha,
+		headline: `Save the \`${"explanation".repeat(30)}\` field.`,
+		why: "The explanation preserves the full text.\n".repeat(100),
+		watch: "Read the schema for the explanation.\n".repeat(100),
+	};
+	const input = await prepareWrite({ ...ctx, newTx: inTx, gh }, { id: pullRequestId, ...fields });
+	const output = PullRequestSummaryWriteOutputSchema.parse(await inTx((tx) => write(ctx, tx, input)));
+	expect(output.summary).toEqual({ pullRequestId, ...fields });
+	expect(output.warnings).toEqual([]);
+	expect(PullRequestSummarySchema.parse(await inTx((tx) => read(ctx, tx, { id: pullRequestId })))).toEqual(
+		output.summary,
+	);
+	expect(await inTx((tx) => readHead(ctx, tx, { id: pullRequestId, headSha }))).toEqual(output.summary);
 });

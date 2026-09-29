@@ -4,10 +4,14 @@ import type { SidecarIdentity } from "../../contracts";
 import { missingOciObject, type OciRun } from "../process/process";
 
 const labelPrefix = "io.trellis.langflow";
+const engineApiConfigLabel = `${labelPrefix}.engine-api-config-digest`;
 export const containerPort = "7860/tcp";
 export const containerAuthenticationFile = "/run/trellis-secrets/authentication";
 export const containerCaptureIssuerFile = "/run/trellis-secrets/capture-issuer";
+export const containerEngineApiConfigFile = "/run/trellis-secrets/engine-api.json";
 export const containerEncryptionFile = "/run/trellis-secrets/engine-secret";
+export const containerNativeReservationAuthenticationFile =
+	"/run/trellis-secrets/native-reservations.token";
 
 export const HealthSchema = z.strictObject({
 	status: z.literal("healthy"),
@@ -112,6 +116,12 @@ export function labels(identity: SidecarIdentity) {
 	};
 }
 
+export function containerLabels(identity: SidecarIdentity, engineApiConfigDigest: string | null) {
+	return engineApiConfigDigest
+		? { ...labels(identity), [engineApiConfigLabel]: engineApiConfigDigest }
+		: labels(identity);
+}
+
 export function assertNetwork(network: NetworkInspection, identity: SidecarIdentity) {
 	if (!isDeepStrictEqual(network.Labels, labels(identity))) throw new Error("sidecar_network_identity_conflict");
 }
@@ -121,6 +131,7 @@ export function assertContainer(
 	identity: SidecarIdentity,
 	image: { reference: string; configDigest: string },
 	storage?: { data: string; secrets: string },
+	engineApiConfigDigest: string | null = null,
 ) {
 	const expectedNames = names(identity);
 	const tmpfsOptions = new Set(container.HostConfig.Tmpfs?.["/tmp"]?.split(","));
@@ -130,7 +141,7 @@ export function assertContainer(
 		container.Name !== `/${expectedNames.container}` ||
 		container.Config.Image !== image.reference ||
 		container.Image !== image.configDigest ||
-		!isDeepStrictEqual(container.Config.Labels, labels(identity)) ||
+		!isDeepStrictEqual(container.Config.Labels, containerLabels(identity, engineApiConfigDigest)) ||
 		container.HostConfig.NetworkMode !== expectedNames.network ||
 		!container.HostConfig.CapDrop?.includes("ALL") ||
 		!container.HostConfig.SecurityOpt?.includes("no-new-privileges") ||
@@ -143,6 +154,8 @@ export function assertContainer(
 		!tmpfsMode ||
 		!container.Config.Env.includes(`TRELLIS_AUTHENTICATION_FILE=${containerAuthenticationFile}`) ||
 		!container.Config.Env.includes(`TRELLIS_CAPTURE_ISSUER_FILE=${containerCaptureIssuerFile}`) ||
+		container.Config.Env.includes(`TRELLIS_ENGINE_API_CONFIG_FILE=${containerEngineApiConfigFile}`) !==
+			(engineApiConfigDigest !== null) ||
 		!container.Config.Env.includes(`LANGFLOW_SECRET_KEY_FILE=${containerEncryptionFile}`) ||
 		!container.Config.Env.includes(`TRELLIS_DATA_HOME_ID=${identity.dataHomeId}`) ||
 		!container.Config.Env.includes(`TRELLIS_HOST_ID=${identity.hostId}`) ||

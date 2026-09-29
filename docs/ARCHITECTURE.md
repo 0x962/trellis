@@ -215,7 +215,7 @@ before another agent can take the ticket.
 - A label ref is a ULID, a name, or `group/name`. A bare name takes the label with no group first, then the one label of that name in a group. Two grouped labels of that name are `LABEL_AMBIGUOUS`.
 - A label color is one of nine hues: gray, red, orange, yellow, green, teal, blue, purple, and pink. A create with no color takes a hue that no label of the project uses.
 - A label delete is a hard delete. It takes the label off every ticket, and it leaves `tickets.version` and `tickets.updated_at` as they are.
-- Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
+- Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is nonempty and uses printable ASCII without a colon.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
 - The service enforces the agent policy, so curl obeys it too. Agents can move tickets to Done. An agent cannot delete a ticket, a project, a label, or a label group (`AGENT_CANNOT_DELETE`, 403) without `force`.
@@ -549,7 +549,7 @@ An image accepts PNG, JPEG, GIF, WebP, or AVIF.
 The API is `resources.add`, `resources.list`, `resources.update`, and
 `resources.remove`. The routes are `POST /api/resources`,
 `GET /api/resources?epic=<EpicRef>`, `PATCH /api/resources/{id}`, and
-`DELETE /api/resources/{id}`. `PATCH` changes a document body only. The blob
+`DELETE /api/resources/{id}`. `PATCH` changes a document name or body. The blob
 route is `GET /api/resources/{id}/blob`.
 
 Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
@@ -1159,21 +1159,21 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
+| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (nonempty), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
-| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
+| statuses | id PK, project_id (CASCADE), name (nonempty), description, slug, category (CHECK set), color, position, is_default, created_at, updated_at. Hash equality exclusion constraints on project-scoped name and slug. Partial UNIQUE (project_id) WHERE is_default. |
 | label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
 | tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
-| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (project_id, slug). Index (project_id). The state of an epic is never stored. |
-| waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (epic_id, slug). Index (epic_id, position). The state of a wave is never stored. |
+| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). The state of an epic is never stored. |
+| waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), position integer (CHECK >= 0), created_at, updated_at. Hash equality exclusion on (epic_id || / || slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, local_state (CHECK not-ready, ready), ready_for_review_at, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
 | activity | id bigint IDENTITY PK, batch_id, project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (project_id, id), (created_at). |
-| actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
+| actors | name (CHECK nonempty printable ASCII, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex), name (CHECK nonblank), description, briefing, harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
@@ -1182,7 +1182,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | providers | id PK, name (CHECK trimmed, nonempty), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK nonempty), api_key (CHECK nonempty), enabled, created_at, updated_at. Hash equality exclusion on lower(name). |
 | provider_models | provider_id (FK providers CASCADE), model_id (CHECK nonempty, no space or control character). Hash equality exclusion on the length-prefixed provider ID and model ID. Index (provider_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
-| sessions | id PK, name (CHECK trimmed, 1 to 60), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
+| sessions | id PK, name (CHECK trimmed, nonempty), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row

@@ -53,7 +53,7 @@ export async function testFixture() {
 		const ticket = await run((tx) => createTicket(ctx, tx, { project: "ONE", title: "Review this change" }));
 		const diff = await run((tx) => ensurePr(tx, `example/app#${ticket.number}`));
 		await db.execute(
-			sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at) VALUES (${ticket.id},${diff.id},'manual','Test','agent',${at})`,
+			sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id) VALUES (${ticket.id},${diff.id},'manual','Test','agent',${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['agent', 'Test']::text[]))`,
 		);
 		const input = {
 			flow: flow.id,

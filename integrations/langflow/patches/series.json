@@ -43,7 +43,7 @@
 		{
 			"name": "backend-private-authority",
 			"path": "integrations/langflow/patches/engineApi/shared/0001-shared-engine-api.patch",
-			"sha256": "b977c5cb008efcb5f259328be5b156afcd69c49054f7ee2c192f749df52345b5",
+			"sha256": "baf63c24ffc0932432379a61d3d8ab158dcc6bd3b59875c73e7dfa93159f3497",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/engineApi/shared/manifest.json"
 		},
@@ -114,6 +114,27 @@
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
 		{
+			"name": "backend-capture-writers",
+			"path": "integrations/langflow/patches/externalWaits/0005-capture-boundary-writer-hooks.patch",
+			"sha256": "b65478f03a3d0f98f67017bcaa40f07ab8b5530cba6231f4ab7bded709e57210",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-capture-composition.json"
+		},
+		{
+			"name": "backend-occurrence-requests",
+			"path": "integrations/langflow/patches/occurrenceRequests/0001-engine-occurrence-requests.patch",
+			"sha256": "615191dc9bd2c64eb42387024ce30fb67c6c229e09331c84ebece37ef51e45d5",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/manifest.json"
+		},
+		{
+			"name": "backend-private-startup",
+			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
+			"sha256": "83dddae445eb1cc22ed2053c8ea903a01c2228a21f4e174c910e334ff9605ee4",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/startup/manifest.json"
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
 			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
@@ -128,15 +149,17 @@
 		"integrations/langflow/tests/nativeLifecycle",
 		"integrations/langflow/tests/restore",
 		"integrations/langflow/tests/publications",
+		"integrations/langflow/tests/occurrenceRequests",
 		"integrations/langflow/patches/engineApi/shared/tests",
 		"integrations/langflow/patches/engineApi/control/tests",
 		"integrations/langflow/patches/engineApi/native/tests",
 		"integrations/langflow/patches/engineApi/admission/tests",
 		"integrations/langflow/patches/engineApi/decisions/tests",
+		"integrations/langflow/patches/engineApi/startup/tests",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],
-	"verification": "Static composition only. Matched runtime checks remain with TRL-667. Package export requires private route registration and complete capture guards.",
+	"verification": "Source composition only. Tests, linters, runtime checks, and Review remain deferred to the complete batch. Package export and activation remain unapproved.",
 	"technicalAcceptance": false,
 	"productionApproval": false
 }
