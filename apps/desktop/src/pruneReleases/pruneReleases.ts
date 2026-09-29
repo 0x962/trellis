@@ -15,12 +15,8 @@ const releaseName = /^[a-f0-9]{64}$/;
 // belongs to a copy that stopped halfway.
 const PENDING_MAX_AGE_MS = 60 * 60 * 1000;
 
-// The release directories that may go: every release that `keep` does not
-// name and that no live process names in its arguments or its environment.
-// `processText` is the output of `ps -E`: one line per process with its
-// command line and its environment.
-export const releasesToRemove = (names: string[], keep: Set<string>, processText: string) =>
-	names.filter((name) => releaseName.test(name) && !keep.has(name) && !processText.includes(`/releases/${name}/`));
+const releasesToRemove = (names: string[], protectedNames: Set<string>) =>
+	names.filter((name) => releaseName.test(name) && !protectedNames.has(name));
 
 // Removes the releases that `releasesToRemove` names and the stale
 // `.pending-*` copies. Returns the names of the removed releases.
@@ -39,7 +35,7 @@ export const pruneReleases = async (
 		// A release path can span chunks. Retain all but one character of a complete match.
 		tail = text.slice(-("/releases/".length + 64));
 	});
-	const removed = releasesToRemove(names, protectedNames, "");
+	const removed = releasesToRemove(names, protectedNames);
 	for (const name of removed) rmSync(join(releases, name), { recursive: true, force: true });
 	for (const name of names) {
 		if (!name.startsWith(".pending-")) continue;

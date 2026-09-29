@@ -1,30 +1,14 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { streamCommand } from "../streamCommand/index.ts";
-import { pruneReleases, releasesToRemove } from "./pruneReleases.ts";
+import { pruneReleases } from "./pruneReleases.ts";
 
 const active = "a".repeat(64);
 const installed = "b".repeat(64);
 const held = "c".repeat(64);
 const stale = "d".repeat(64);
-
-test("a release that is neither kept nor named by a live process goes", () => {
-	const processText = `/Users/me/Library/Application Support/Trellis/releases/${held}/bin/node runtime --home /Users/me/.trellis TRELLIS_HARNESS_HOOK=/x\n`;
-	expect(
-		releasesToRemove(
-			[active, installed, held, stale, ".pending-abc", "release.json"],
-			new Set([active, installed]),
-			processText,
-		),
-	).toEqual([stale]);
-});
-
-test("a release named only in the environment of a process stays", () => {
-	const processText = `claude --print TRELLIS_HARNESS_HOOK='/Users/me/Library/Application Support/Trellis/releases/${held}/bin/bun hook.ts'\n`;
-	expect(releasesToRemove([held, stale], new Set(), processText)).toEqual([stale]);
-});
 
 const roots: string[] = [];
 afterEach(() => {
@@ -37,6 +21,27 @@ const fixture = () => {
 	utimesSync(join(root, ".pending-old"), 0, 0);
 	return root;
 };
+
+test("a release that is neither kept nor named by a live process goes", async () => {
+	const root = fixture();
+	writeFileSync(join(root, "release.json"), "{}");
+	const processText = `/Users/me/Library/Application Support/Trellis/releases/${held}/bin/node runtime --home /Users/me/.trellis TRELLIS_HARNESS_HOOK=/x\n`;
+	const removed = await pruneReleases(root, [active, installed], Date.now(), async (_command, _args, receive) => {
+		receive(processText);
+	});
+	expect(removed).toEqual([stale]);
+	expect(readdirSync(root).sort()).toEqual([".pending-new", "release.json", active, installed, held].sort());
+});
+
+test("a release named only in the environment of a process stays", async () => {
+	const root = fixture();
+	const processText = `claude --print TRELLIS_HARNESS_HOOK='/Users/me/Library/Application Support/Trellis/releases/${held}/bin/bun hook.ts'\n`;
+	const removed = await pruneReleases(root, [], Date.now(), async (_command, _args, receive) => {
+		receive(processText);
+	});
+	expect(removed.sort()).toEqual([active, installed, stale].sort());
+	expect(readdirSync(root).sort()).toEqual([".pending-new", held].sort());
+});
 
 test("pruning reads past 256 MiB before it removes unused releases", async () => {
 	const root = fixture();
