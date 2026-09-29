@@ -167,3 +167,8 @@ The writers call `record_projection_checkpoint(session, job_id)` after the journ
 The helper retains the exact bytes and a durable event sequence in the same transaction.
 The graph owner supplies actual vertex completion facts. The native observer supplies actual process times and state.
 The fixtures cover receipt identity, replacement history, and uncertain dispatch before HTTP. Execution remains deferred.
+
+Apply `0007-loop-scope-inputs.patch` after the occurrence projection fragment.
+Scope capture reads the component type from the immutable publication.
+For `TrellisLoopV1`, the `scope_entry` edge orders activation but does not select a predecessor receipt.
+The `seed` edge retains its selected input. A loop without a seed retains the inherited scope inputs.
