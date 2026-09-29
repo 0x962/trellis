@@ -103,6 +103,7 @@ test("requests status after five minutes of continuous work", async () => {
 	expect(due.stats().sent[0]!.text).toContain(
 		"trellis session status write 01M3NTSP1HRSKKKW47PYJECRXB --request-id fc549cba-8bd3-427c-bee5-668a6d4cc357 --body -",
 	);
+	expect(due.stats().sent[0]!.text).toContain("--body - --embed report.html,details.html");
 	expect(due.stats().states.at(-1)?.state).toBe("sent");
 });
 

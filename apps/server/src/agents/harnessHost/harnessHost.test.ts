@@ -115,7 +115,7 @@ test("the wait without a limit still ends on the idle clock", async () => {
 	);
 });
 
-test("a terminal-only harness queues a follow-up without a slash command", async () => {
+test.each(["claude", "pi"] as const)("%s queues a follow-up without a slash command", async (harness) => {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-harness-host-test-"));
 	made.push(directory);
 	await mkdir(join(directory, "attempt"), { recursive: true });
@@ -124,8 +124,8 @@ test("a terminal-only harness queues a follow-up without a slash command", async
 		JSON.stringify({
 			fingerprint: "test",
 			prompt: "Work",
-			harness: "pi",
-			spec: { id: "attempt", command: "pi", args: [], cwd: "/tmp", env: {} },
+			harness,
+			spec: { id: "attempt", command: harness, args: [], cwd: "/tmp", env: {} },
 		}),
 	);
 	const queued: Array<{ id: string; messageId: string; data: string }> = [];
