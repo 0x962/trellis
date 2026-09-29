@@ -7,7 +7,7 @@ import { resolvePullRequest } from "../pullRequestRef.ts";
 import { listRuns } from "./listRuns.ts";
 import { readRun } from "./readRun/readRun.ts";
 import { readV1 } from "./readV1/readV1.ts";
-import { runProgress } from "./runProgress/runProgress.ts";
+import { runRow } from "./runRow/runRow.ts";
 
 const start = async () => {
 	const command = await alias("flows", ["run"])();
@@ -48,11 +48,11 @@ const list = defineCommand({
 			identifier: (row) => row.id,
 			columns: [
 				{ name: "RUN", value: (row) => row.id },
-				{ name: "FLOW", value: (row) => runProgress(row).name },
-				{ name: "DIFF", value: (row) => cell(row.diffId) },
-				{ name: "STATE", value: (row) => runProgress(row).status },
-				{ name: "HEAD", value: (row) => cell(runProgress(row).head) },
-				{ name: "STARTED", value: (row) => timeCell(row.createdAt) },
+				{ name: "FLOW", value: (row) => runRow(row).name },
+				{ name: "DIFF", value: (row) => cell(runRow(row).diffId) },
+				{ name: "STATE", value: (row) => runRow(row).status },
+				{ name: "HEAD", value: (row) => cell(runRow(row).head) },
+				{ name: "STARTED", value: (row) => timeCell(runRow(row).createdAt) },
 			],
 		});
 	},
