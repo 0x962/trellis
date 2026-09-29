@@ -26,6 +26,7 @@ export type ProjectionUpdate = {
 	authority: DeliveryAuthorityV1;
 	observation: ProjectionObservation;
 	sourceBytes: string | null;
+	engineSnapshot?: { sourceCursor: number; snapshotBytes: string };
 };
 
 export async function update(ctx: ServiceCtx, tx: Tx, input: ProjectionUpdate) {
@@ -79,6 +80,7 @@ export async function update(ctx: ServiceCtx, tx: Tx, input: ProjectionUpdate) {
 		},
 		input.observation,
 		{
+			workspaceObservations: facts.workspaceObservations,
 			classification: await classificationStore.read(tx, input),
 			native: facts.native,
 			human: facts.humanDeliveries,
@@ -90,10 +92,13 @@ export async function update(ctx: ServiceCtx, tx: Tx, input: ProjectionUpdate) {
 		ctx.now,
 	);
 	if (execution.cancelIntent && view.status !== "canceled") throw new Error("execution_canceled");
+	if (!source && isDeepStrictEqual({ ...view, revision: stored.view.revision, updatedAt: stored.view.updatedAt }, stored.view))
+		return { state: "unchanged" as const, event: null, view: stored.view };
 	await commitProjection(tx, {
 		executionId: input.executionId,
 		expectedRevision: stored.view.revision,
 		checkpoint: input.observation.checkpoint,
+		engineSnapshot: input.engineSnapshot,
 		view,
 		event,
 		sourceBytes: input.sourceBytes,

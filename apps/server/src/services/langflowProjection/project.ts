@@ -45,12 +45,8 @@ export function project(
 		throw new Error("receipt_mismatch");
 	}
 	const pendingReviews = reviewWaits(observation, facts, current);
-	const seen = new Set<string>();
 	const previous = new Map(current.occurrences.map((row) => [row.occurrenceKey, row]));
 	const projectedOccurrences = observation.occurrences.map((observed) => {
-		const semantic = JSON.stringify({ ...identity(observed), occurrenceKey: undefined });
-		if (seen.has(semantic)) throw new Error("identity_conflict");
-		seen.add(semantic);
 		const prior = previous.get(observed.occurrenceKey);
 		if (
 			prior &&

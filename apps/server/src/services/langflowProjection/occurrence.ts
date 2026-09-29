@@ -21,7 +21,7 @@ export function projectOccurrence(
 		attempts: previous?.attempts ?? [],
 	};
 	const nativeFacts = facts.native.filter((item) => item.provenance.request.occurrenceKey === observed.occurrenceKey);
-	if (nativeFacts.length > 0) return nativeOccurrence(observed, base, nativeFacts);
+	if (nativeFacts.length > 0) return nativeOccurrence(observed, base, nativeFacts, facts.workspaceObservations);
 	if (observed.kind === "human") {
 		const delivery = facts.human.find((item) => item.decision.wait.occurrence.occurrenceKey === observed.occurrenceKey);
 		if (!delivery) {
@@ -54,7 +54,7 @@ export function projectOccurrence(
 			const ended = observed.state === "failed" || observed.state === "canceled";
 			return {
 				...base,
-				state: ended ? observed.state : "running",
+				state: ended || observed.state === "pending" ? observed.state : "running",
 				waitReason: ended ? null : "review",
 				endedAt: ended ? base.endedAt : null,
 				decision: null,
@@ -78,7 +78,7 @@ export function projectOccurrence(
 		(observed.kind === "gate" && observed.reviewArea === null) ||
 		observed.phase === "condition"
 	) {
-		return nativeOccurrence(observed, base, nativeFacts);
+		return nativeOccurrence(observed, base, nativeFacts, facts.workspaceObservations);
 	}
 	return base;
 }

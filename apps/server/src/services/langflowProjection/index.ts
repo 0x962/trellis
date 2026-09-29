@@ -5,3 +5,8 @@ export { replay } from "./replay";
 export { saveDecisionDelivery } from "./saveDecisionDelivery";
 export { saveStopState } from "./saveStopState";
 export { type ProjectionUpdate, update } from "./update";
+export { applyEngineObservation } from "./applyEngineObservation";
+export { createProjectionDomain, type ProjectionDomainOptions } from "./createProjectionDomain";
+export { projectionRecovery } from "./projectionRecovery";
+export { projectionState, type PreparedProjection } from "./projectionState";
+export { recordWorkspace } from "./recordWorkspace";
