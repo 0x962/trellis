@@ -206,10 +206,7 @@ export const attachments = pgTable(
 	},
 	(t) => [
 		actorFk("attachments_actor_fk", t),
-		check(
-			"attachments_filename_check",
-			sql`length(${t.filename}) BETWEEN 1 AND 255 AND position('/' IN ${t.filename}) = 0`,
-		),
+		check("attachments_filename_check", sql`length(${t.filename}) >= 1 AND position('/' IN ${t.filename}) = 0`),
 		check("attachments_size_check", sql`${t.size} > 0`),
 		check("attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 		index("attachments_ticket_id_idx").on(t.ticketId),

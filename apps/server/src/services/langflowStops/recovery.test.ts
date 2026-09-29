@@ -5,11 +5,11 @@ import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import { openTestDbFromArchive } from "../../db/testDb";
 import type { Tx } from "../../db/tx";
 import { recordExpiredStops } from "../langflowClocks/recordExpiredStops";
-import { assertExecutionActive } from "./assertExecutionActive";
+import { stopFixture } from "../langflowTestFixture";
+import { assertExecutionNotCanceled } from "./assertExecutionNotCanceled";
 import { cancelExecution } from "./cancelExecution";
 import { drainStops } from "./drainStops";
 import { readStopReconciliation } from "./readStopReconciliation";
-import { stopFixture } from "./testFixture";
 import { withAttemptOperation } from "./withAttemptOperation";
 
 let fixture: Awaited<ReturnType<typeof stopFixture>>;
@@ -57,7 +57,7 @@ test("restore retains cancellation and the launch deadline until exact exit conf
 	expect(after.deadlines).toEqual(before.deadlines);
 	expect(after.deadlines[0]!.deadlineAt).toBe(new Date(now.getTime() + 120_000).toISOString());
 	expect((await run((tx) => readExecution(tx, input)))!.cancelIntent).not.toBeNull();
-	await expect(run((tx) => assertExecutionActive(fixture.core, tx, input))).rejects.toThrow("canceled");
+	await expect(run((tx) => assertExecutionNotCanceled(fixture.core, tx, input))).rejects.toThrow("canceled");
 	const calls: string[] = [];
 	const io = { ...fixture.io, newTx: run };
 	const result = await drainStops(io, input, {
@@ -106,7 +106,7 @@ test("stop confirmation waits for an in-flight launch submission", async () => {
 	expect(order).toEqual(["authorized", "submitted", "stopped"]);
 	await expect(
 		withAttemptOperation(fixture.io.home, handle.attemptId, () =>
-			fixture.run((tx) => assertExecutionActive(fixture.core, tx, input)),
+			fixture.run((tx) => assertExecutionNotCanceled(fixture.core, tx, input)),
 		),
 	).rejects.toThrow("canceled");
 }, 60_000);

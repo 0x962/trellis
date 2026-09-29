@@ -52,3 +52,15 @@ test("compatible endpoints show the address and server refusal", () => {
 	expect(html).toContain('role="alert"');
 	expect(html).toContain('aria-invalid="true"');
 });
+
+test("provider fields preserve long values without browser length limits", () => {
+	const name = "Gateway".repeat(1000);
+	const baseUrl = `https://example.com/${"path/".repeat(1000)}`;
+	const apiKey = "synthetic-key".repeat(1000);
+	const html = markup({ value: { ...props.value, kind: "openai-compatible", name, baseUrl, apiKey } });
+	expect(html.toLowerCase()).not.toContain("maxlength");
+	expect(html).toContain(name);
+	expect(html).toContain(baseUrl);
+	expect(html.includes(apiKey)).toBe(true);
+	expect(html).toContain('type="password"');
+});

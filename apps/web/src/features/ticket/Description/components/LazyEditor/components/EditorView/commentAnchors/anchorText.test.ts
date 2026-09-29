@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { getSchema } from "@tiptap/core";
 import { MarkdownManager } from "@tiptap/markdown";
+import { ResourceCommentAnchorSchema } from "@trellis/api";
 import { editorExtensions } from "../editorExtensions";
 import { anchorOf, docText, findAnchor } from "./anchorText";
 
@@ -62,4 +63,14 @@ test("finds no place for a changed quote, and an exact search needs the whole co
 	expect(findAnchor(docText(docOf("The 2nd line holds a claim.\n")), anchor, false)).toBeNull();
 	expect(findAnchor(docText(docOf("The second line holds no claim.\n")), anchor, true)).toBeNull();
 	expect(findAnchor(docText(docOf(markdown)), anchor, true)).toEqual(rangeOf(markdown, "second line"));
+});
+
+test("a long multibyte selection retains its complete quote and finds its range", () => {
+	const quote = `First ${"漢é🙂".repeat(1_000)} last`;
+	const markdown = `Before ${quote} after`;
+	const text = docText(docOf(markdown));
+	const range = rangeOf(markdown, quote);
+	const anchor = ResourceCommentAnchorSchema.parse(anchorOf(text, range));
+	expect(anchor).toEqual({ quote, prefix: "Before ", suffix: " after" });
+	expect(findAnchor(text, anchor, true)).toEqual(range);
 });

@@ -11,10 +11,10 @@ import { ids, now } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import type { HumanDecisionReceiptV1 } from "../../langflowContracts";
 import { recordExpiredStops } from "../langflowClocks/recordExpiredStops";
-import { assertExecutionActive } from "./assertExecutionActive";
+import { stopFixture } from "../langflowTestFixture";
+import { assertExecutionNotCanceled } from "./assertExecutionNotCanceled";
 import { cancelExecution } from "./cancelExecution";
 import { drainStops } from "./drainStops";
-import { stopFixture } from "./testFixture";
 
 let fixture: Awaited<ReturnType<typeof stopFixture>>;
 afterEach(async () => {
@@ -49,9 +49,9 @@ test("cancel before launch commits intent and stop obligations before a failed e
 test("a canceled execution rejects downstream reservations and guarded effects", async () => {
 	fixture = await stopFixture();
 	await fixture.run((tx) => cancelExecution(fixture.core, tx, input));
-	await expect(fixture.run((tx) => assertExecutionActive(fixture.core, tx, { executionId: input.id }))).rejects.toThrow(
-		"canceled",
-	);
+	await expect(
+		fixture.run((tx) => assertExecutionNotCanceled(fixture.core, tx, { executionId: input.id })),
+	).rejects.toThrow("canceled");
 	await expect(
 		fixture.run((tx) =>
 			reserveNative(tx, {

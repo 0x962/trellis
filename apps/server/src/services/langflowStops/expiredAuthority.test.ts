@@ -10,9 +10,9 @@ import { ids, now } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import { langflowOutbox } from "../../db/tables/langflowExecution";
 import { protocolDigest, TakeoverReceiptV1Schema, type TakeoverRequestV1 } from "../../langflowContracts";
-import { assertExecutionActive } from "./assertExecutionActive";
+import { stopFixture } from "../langflowTestFixture";
+import { assertExecutionNotCanceled } from "./assertExecutionNotCanceled";
 import { cancelView } from "./cancelView";
-import { stopFixture } from "./testFixture";
 
 let fixture: Awaited<ReturnType<typeof stopFixture>>;
 afterEach(async () => fixture.db.$client.close());
@@ -84,7 +84,7 @@ test("expired cancellation retains its delivery and clocks through cancellation-
 	expect(after.native[0]!.launchReceipt).toEqual(before.native[0]!.launchReceipt);
 	expect(after.stops[0]!.state).toBe("pending");
 	expect(after.stops[0]!.attemptId).toBe(handle.attemptId);
-	await expect(fixture.run((tx) => assertExecutionActive(fixture.core, tx, input))).rejects.toThrow("canceled");
+	await expect(fixture.run((tx) => assertExecutionNotCanceled(fixture.core, tx, input))).rejects.toThrow("canceled");
 	await expect(
 		fixture.run((tx) =>
 			reserveNative(tx, {
