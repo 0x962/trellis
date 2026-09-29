@@ -72,7 +72,8 @@ test("metadata migration retains old rows and complete long metadata", async () 
 		await migrate(db);
 		expect((await db.execute(historicalPage)).rows).toEqual(original);
 		const actorId = (
-			await db.execute(sql`SELECT id FROM actors WHERE name = ${actor.name} AND kind = ${actor.kind}`)
+			await db.execute(sql`SELECT id FROM actors
+				WHERE ARRAY[kind, name]::text[] = ARRAY[${actor.kind}, ${actor.name}]::text[]`)
 		).rows[0]!.id;
 		await db.transaction(cache.rebuild);
 
