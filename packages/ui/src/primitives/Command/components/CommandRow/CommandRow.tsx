@@ -1,6 +1,6 @@
 import { Check, Minus } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cx } from "../../../../utils/cx";
 import { Kbd } from "../../../Kbd";
 import { commandRowClass } from "./rowClass";
@@ -30,7 +30,7 @@ export type CommandRowProps = {
 	// writes to, such as a label that only some selected tickets carry.
 	checked?: boolean | "mixed";
 	onSelect: () => void;
-};
+} & Pick<ComponentProps<typeof Cmdk.Item>, "style" | "aria-posinset" | "aria-setsize">;
 
 // One option of a Command list. The height is fixed, so a list that grows
 // while a response arrives moves nothing that is already on screen.
@@ -46,9 +46,11 @@ export function CommandRow({
 	icon,
 	checked,
 	onSelect,
+	...props
 }: CommandRowProps) {
 	return (
 		<Cmdk.Item
+			{...props}
 			value={value}
 			keywords={[label, ...(keywords ?? [])]}
 			onSelect={onSelect}

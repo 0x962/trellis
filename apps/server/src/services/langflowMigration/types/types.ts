@@ -24,6 +24,7 @@ export type MigrationRecordV1 = DocumentConversionProvenance & {
 	sourceVersion: number;
 	sourceDocumentHash: string;
 	sourceManifest: SourceManifestV1 | null;
+	catalog?: { sha256: string; exportRef: string };
 };
 
 export type BlockedMigrationV1 = MigrationRecordV1 & {
