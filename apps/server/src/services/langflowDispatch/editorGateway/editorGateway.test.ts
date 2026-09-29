@@ -25,7 +25,11 @@ test("the gateway uses committed services and recovers a lost save response", as
 	const f = await h.setup();
 	const calls: string[] = [];
 	let loseResponse = false;
-	const transport = {
+	const transport: ServiceTransport = {
+		start: async () => {
+			throw new Error("Unexpected transport start");
+		},
+		close: async () => {},
 		call: async (name, context, input) => {
 			calls.push(name);
 			const entry = services[name];
@@ -37,7 +41,7 @@ test("the gateway uses committed services and recovers a lost save response", as
 			}
 			return value;
 		},
-	} as ServiceTransport;
+	};
 	const gateway = editorGateway(loadConfig({ TRELLIS_AUTH_TOKEN: f.options.hostToken }), transport, {
 		identity: { version: 1, home: "/fixture", hostId: "host", dataHomeId: "home" },
 		parentOrigin: f.options.parentOrigin,
@@ -93,12 +97,16 @@ test("the mounted session route refuses issuance without host configuration", as
 		body: JSON.stringify({ expectedVersion: 1 }),
 	});
 	let calls = 0;
-	const transport = {
+	const transport: ServiceTransport = {
+		start: async () => {
+			throw new Error("Unexpected transport start");
+		},
+		close: async () => {},
 		call: async () => {
 			calls += 1;
 			throw new Error("Unexpected service call");
 		},
-	} as ServiceTransport;
+	};
 	const result = await new OpenAPIHandler<ProcedureContext>(router).handle(raw, {
 		prefix: "/api",
 		context: {

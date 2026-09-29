@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
-import { ticketSummary } from "../../db/queries/ticketGet.ts";
+import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { setContract } from "./contract.ts";
@@ -71,13 +71,14 @@ test("the contract write stores detail fields and keeps them out of the summary"
 	expect(repeated.version).toBe(updated.version);
 	const cleared = await run((tx) => setContract(ctx, tx, { ...input, result: "", expectedVersion: repeated.version }));
 	expect(cleared.contract.result).toBe("");
+	const lines = Array.from({ length: 201 }, (_, index) => `line-${index}`);
+	const contract = { result: input.result, files: lines, leaveAlone: lines, verify: lines, reviewFocus: lines };
+	const complete = await run((tx) =>
+		setContract(ctx, tx, { ...contract, ticket: created.id, expectedVersion: cleared.version }),
+	);
+	expect(complete.contract).toEqual(contract);
+	expect((await run((tx) => ticketGet(tx, created.id))).contract).toEqual(contract);
 	await expect(
-		run((tx) =>
-			setContract(ctx, tx, {
-				...input,
-				files: Array.from({ length: 201 }, (_, index) => `file-${index}`),
-				expectedVersion: cleared.version,
-			}),
-		),
-	).rejects.toThrow("Enter 200 contract lines or less.");
+		run((tx) => setContract(ctx, tx, { ...contract, ticket: created.id, files: [...lines, ""] })),
+	).rejects.toThrow("Enter a contract line.");
 });

@@ -1,5 +1,11 @@
 import type { SidecarIdentity } from "../../contracts";
-import { containerAuthenticationFile, containerEncryptionFile, labels, names } from "../identity/identity";
+import {
+	containerAuthenticationFile,
+	containerCaptureIssuerFile,
+	containerEncryptionFile,
+	labels,
+	names,
+} from "../identity/identity";
 
 export function containerCreateArgs(input: {
 	identity: SidecarIdentity;
@@ -10,6 +16,8 @@ export function containerCreateArgs(input: {
 	return [
 		"container",
 		"create",
+		"--pull",
+		"never",
 		"--name",
 		instanceNames.container,
 		"--network",
@@ -45,6 +53,7 @@ export function containerCreateArgs(input: {
 function environment(identity: SidecarIdentity) {
 	return Object.entries({
 		TRELLIS_AUTHENTICATION_FILE: containerAuthenticationFile,
+		TRELLIS_CAPTURE_ISSUER_FILE: containerCaptureIssuerFile,
 		LANGFLOW_SECRET_KEY_FILE: containerEncryptionFile,
 		TRELLIS_DATA_HOME_ID: identity.dataHomeId,
 		TRELLIS_HOST_ID: identity.hostId,

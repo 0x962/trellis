@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { editorFixture } from "./fixture";
 
-describe("parent document save hook", () => {
+describe.each(["http", "plain"] as const)("parent document save hook with %s issuance", (issuance) => {
 	let fixture: Awaited<ReturnType<typeof editorFixture>>;
 	beforeAll(async () => {
 		fixture = await editorFixture();
@@ -11,7 +11,7 @@ describe("parent document save hook", () => {
 	});
 
 	test("retains one committed receipt and permits the next queue request", async () => {
-		const f = await fixture.setup();
+		const f = await fixture.setup(issuance);
 		const input = f.input();
 		const first = await f.parentSave(input);
 		expect(await f.parentSave(input)).toEqual(first);
@@ -23,7 +23,7 @@ describe("parent document save hook", () => {
 	});
 
 	test("does not invoke a save for another actor, channel, flow, or manifest", async () => {
-		const f = await fixture.setup();
+		const f = await fixture.setup(issuance);
 		let calls = 0;
 		const save = async () => {
 			calls += 1;
@@ -45,7 +45,7 @@ describe("parent document save hook", () => {
 	});
 
 	test("does not advance authority after an uncommitted failure", async () => {
-		const f = await fixture.setup();
+		const f = await fixture.setup(issuance);
 		const input = f.input();
 		await expect(
 			f.server.withDocumentSave({ channel: f.session.channel, actor: fixture.ctx.actor!, input }, async () => {
@@ -57,7 +57,7 @@ describe("parent document save hook", () => {
 	});
 
 	test("recovers a committed receipt after the transport fails before its response", async () => {
-		const f = await fixture.setup();
+		const f = await fixture.setup(issuance);
 		const input = f.input();
 		let callbacks = 0;
 		const request = { channel: f.session.channel, actor: fixture.ctx.actor!, input };
@@ -80,7 +80,7 @@ describe("parent document save hook", () => {
 	});
 
 	test("returns an accepted receipt after another grant saves a later revision", async () => {
-		const f = await fixture.setup();
+		const f = await fixture.setup(issuance);
 		const input = f.input();
 		const receipt = await f.parentSave(input);
 		await f.options.documents.save(fixture.ctx.actor!, {
@@ -92,7 +92,7 @@ describe("parent document save hook", () => {
 	});
 
 	test("holds channel exclusion until the callback returns its committed receipt", async () => {
-		const f = await fixture.setup();
+		const f = await fixture.setup(issuance);
 		const input = f.input();
 		const entered = Promise.withResolvers<void>();
 		const release = Promise.withResolvers<void>();
@@ -115,7 +115,7 @@ describe("parent document save hook", () => {
 
 	test("checks revoked and expired grants before the cached parent receipt", async () => {
 		for (const end of ["revoke", "expire"] as const) {
-			const f = await fixture.setup();
+			const f = await fixture.setup(issuance);
 			const input = f.input();
 			await f.parentSave(input);
 			if (end === "revoke") await f.request("grant", "DELETE");

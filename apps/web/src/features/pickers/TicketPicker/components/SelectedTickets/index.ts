@@ -1,1 +1,0 @@
-export { SelectedTickets } from "./SelectedTickets";

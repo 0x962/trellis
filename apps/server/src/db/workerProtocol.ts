@@ -17,7 +17,7 @@ export type WorkerCall = {
 	ghStatus: GhStatus;
 };
 
-type WorkerRuntime = Pick<Runtime, "version" | "bootId"> & { ghBin: string; ghTimeoutMs: number };
+type WorkerRuntime = Pick<Runtime, "version" | "bootId"> & { ghBin: string; ghTimeoutMs: number | undefined };
 
 export type WorkerInput =
 	| { type: "start"; config: Config; runtime: WorkerRuntime; jobs: { clockRate: number } | null }

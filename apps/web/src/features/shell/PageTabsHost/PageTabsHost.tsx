@@ -20,7 +20,8 @@ const pageTabItemsEqual = (left: readonly PageTab[], right: readonly PageTab[]) 
 			(tab, index) =>
 				tab.id === right[index]!.id &&
 				tab.title === right[index]!.title &&
-				tab.customTitle === right[index]!.customTitle,
+				tab.customTitle === right[index]!.customTitle &&
+				tab.pinned === right[index]!.pinned,
 		));
 
 const activeTab = () => {
@@ -130,6 +131,8 @@ export function PageTabsHost() {
 			onClose={close}
 			onMove={pageTabsActions.moveTab}
 			onRename={pageTabsActions.renameTab}
+			onSort={pageTabsActions.sortTabs}
+			onPin={pageTabsActions.setPinned}
 		/>
 	);
 }

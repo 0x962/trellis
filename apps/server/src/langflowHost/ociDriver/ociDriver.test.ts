@@ -7,7 +7,7 @@ import type { SidecarIdentity } from "../contracts";
 import { manifest } from "../fixtures/manifest";
 import { createOciDriver } from "./ociDriver";
 import type { OciCommandResult } from "./process/process";
-import { storageLabels, storageNames } from "./storage/storage";
+import { type VolumeInspection, storageLabels, storageNames } from "./storage/storage";
 
 const configDigest = `sha256:${"b".repeat(64)}`;
 const identity: SidecarIdentity = {
@@ -22,12 +22,14 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 	const root = await mkdtemp(join(tmpdir(), "trellis-oci-driver-"));
 	const data = join(root, "data");
 	const authentication = join(root, "secrets", `${identity.instanceId}.token`);
+	const captureIssuer = join(root, "capture-issuer.key");
 	await mkdir(join(root, "secrets"), { recursive: true, mode: 0o700 });
 	await mkdir(data, { recursive: true, mode: 0o700 });
 	await chmod(data, 0o700);
 	await writeFile(authentication, "exact-private-bearer", { mode: 0o600 });
+	await writeFile(captureIssuer, "exact-capture-issuer", { mode: 0o600 });
 	let network = false;
-	const volumes = new Map<string, ReturnType<typeof volumeInspection>>();
+	const volumes = new Map<string, VolumeInspection>();
 	let container: ReturnType<typeof containerInspection> | null = null;
 	const commands: string[][] = [];
 	const run = async (args: string[]): Promise<OciCommandResult> => {
@@ -79,6 +81,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		manifest,
 		imageConfigDigest: configDigest,
 		privateRoot: root,
+		captureIssuerFile: captureIssuer,
 		dependencies: {
 			run,
 			fetch: async (input, init) => {
@@ -95,6 +98,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		await driver.start({ identity, manifest, dataDirectory: data, authenticationFile: authentication });
 		const create = commands.find((args) => args[0] === "container" && args[1] === "create")!;
 		expect(create).toContain("--read-only");
+		expect(create.slice(create.indexOf("--pull"), create.indexOf("--pull") + 2)).toEqual(["--pull", "never"]);
 		expect(create.slice(create.indexOf("--user"), create.indexOf("--user") + 2)).toEqual(["--user", "10001:10001"]);
 		expect(create).toContain("ALL");
 		expect(create).toContain("no-new-privileges");
@@ -102,7 +106,14 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		expect(create).toContain("127.0.0.1::7860");
 		expect(create).not.toContain("--privileged");
 		const provision = commands.find((args) => args[0] === "container" && args[1] === "run")!;
+		expect(provision.slice(provision.indexOf("--pull"), provision.indexOf("--pull") + 2)).toEqual([
+			"--pull",
+			"never",
+		]);
+		expect(provision).toContain(configDigest);
 		expect(provision.at(-1)).toContain("-m 0600 /input/authentication /secrets/authentication");
+		expect(provision).toContain(`type=bind,src=${captureIssuer},dst=/input/capture-issuer,readonly`);
+		expect(provision.at(-1)).toContain("-m 0400 /input/capture-issuer /secrets/capture-issuer");
 		const observation = await driver.observe({
 			identity,
 			challenge: "00000000-0000-4000-8000-000000000002",
@@ -157,10 +168,11 @@ function containerInspection(running: boolean) {
 		Name: `/trellis-langflow-${identity.instanceId}`,
 		Image: configDigest,
 		Config: {
-			Image: `fixture@sha256:${"a".repeat(64)}`,
+			Image: configDigest,
 			User: "10001:10001",
 			Env: [
 				"TRELLIS_AUTHENTICATION_FILE=/run/trellis-secrets/authentication",
+				"TRELLIS_CAPTURE_ISSUER_FILE=/run/trellis-secrets/capture-issuer",
 				"LANGFLOW_SECRET_KEY_FILE=/run/trellis-secrets/engine-secret",
 				`TRELLIS_DATA_HOME_ID=${identity.dataHomeId}`,
 				`TRELLIS_HOST_ID=${identity.hostId}`,
@@ -197,7 +209,7 @@ function containerInspection(running: boolean) {
 	};
 }
 
-function volumeInspection(root: string, kind: "data" | "secrets") {
+function volumeInspection(root: string, kind: "data" | "secrets"): VolumeInspection {
 	return {
 		Name: storageNames(identity)[kind],
 		Driver: "local",

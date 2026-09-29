@@ -1,4 +1,4 @@
-export * from "./assertExecutionActive";
+export * from "./assertExecutionNotCanceled";
 export * from "./cancelExecution";
 export { cancelView } from "./cancelView";
 export * from "./drainStops";

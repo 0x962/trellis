@@ -24,7 +24,8 @@ The next host uses that reservation instead of an unrecorded replacement.
 ## Driver boundary
 
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
-`createOciDriver` binds the manifest image digest and the separate image config digest to the saved instance.
+`createOciDriver` binds the verified manifest and its image config digest to the saved instance.
+It starts the loaded config digest with pull disabled, so a missing local import fails closed.
 `start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
 It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
 `observe` checks those current objects before it requests authenticated health for the supplied challenge.
@@ -36,7 +37,10 @@ The runtime uses a read-only root, UID 10001, no added capabilities, no new priv
 An internal bridge denies external routes, and the published engine port binds only to `127.0.0.1`.
 The runtime mounts one writable data volume and one read-only secrets volume.
 The storage labels bind both volumes to the data home, host, and a digest of the private host root.
-The restricted provisioner copies the exact mode-0600 bearer for UID 10001 and creates the persistent encryption secret.
+The restricted provisioner copies the exact mode-0600 bearer and capture issuer for UID 10001.
+The provisioner creates the persistent encryption secret.
+The engine reads the capture issuer from a separate read-only secret file.
+Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
