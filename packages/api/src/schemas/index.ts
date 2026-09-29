@@ -12,6 +12,8 @@ export * from "./evidence.ts";
 export * from "./flow.ts";
 export * from "./flowDiscoveryV1.ts";
 export * from "./flowDocumentV1.ts";
+export * from "./flowEditorProtocolV1.ts";
+export * from "./flowEditorSessionV1.ts";
 export * from "./flowExecution.ts";
 export * from "./flowExecutionActionsV1.ts";
 export * from "./flowExecutionViewV1.ts";
