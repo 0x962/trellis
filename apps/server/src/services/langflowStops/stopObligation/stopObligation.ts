@@ -6,7 +6,7 @@ export function stopObligation(input: {
 	handle: NativeHandleV1;
 	reason: StopObligationV1["reason"];
 	now: Date;
-}): StopObligationV1 {
+}): Extract<StopObligationV1, { exitReceipt: null }> & { state: "pending" } {
 	return {
 		version: 1,
 		obligationId: randomUUID(),
