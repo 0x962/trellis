@@ -59,7 +59,7 @@ beforeAll(async () => {
 	const journal = JSON.parse(await readFile(new URL("meta/_journal.json", migrationsDirectory), "utf8")) as {
 		entries: { idx: number; tag: string }[];
 	};
-	const migrationIndex = journal.entries.find((entry) => entry.tag.endsWith("_remove_project_metadata_limits"))!.idx;
+	const migrationIndex = journal.entries.find((entry) => entry.tag.endsWith("_complete_text_limits"))!.idx;
 	const prior = journal.entries.filter((entry) => entry.idx < migrationIndex);
 	await mkdir(join(fixtureDirectory, "meta"));
 	await writeFile(join(fixtureDirectory, "meta/_journal.json"), JSON.stringify({ ...journal, entries: prior }));
