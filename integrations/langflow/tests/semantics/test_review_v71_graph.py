@@ -121,6 +121,7 @@ def _assert_private_trace(run: dict[str, Any]) -> None:
 class ReviewGraph:
 	def __init__(self, run: dict[str, Any]) -> None:
 		self.nodes = {node["id"]: node for node in run["doc"]["nodes"]}
+		self.steps = run["state"]["steps"]
 		self.outputs = {step["nodeId"]: step.get("output") for step in run["state"]["steps"]}
 		self.decisions = {step["nodeId"]: step.get("decision") for step in run["state"]["steps"]}
 		self.edges = run["doc"]["edges"]
@@ -129,18 +130,18 @@ class ReviewGraph:
 		self._wire_groups()
 		self._wire_order()
 
-	def _children(self, parent_id: str | None, *, top_level: bool = False) -> list[dict[str, Any]]:
-		children = [node for node in self.nodes.values() if node.get("parentId") == parent_id]
-		key = (lambda node: (node["x"], node["y"], node["id"])) if top_level else (
-			lambda node: (node["y"], node["x"], node["id"])
-		)
-		return sorted(children, key=key)
+	def _children(self, parent_id: str | None) -> list[dict[str, Any]]:
+		return [node for node in self.nodes.values() if node.get("parentId") == parent_id]
+
+	def _settled_child_ids(self, node_id: str) -> list[str]:
+		group_step = next(step for step in self.steps if step["nodeId"] == node_id)
+		return [step["nodeId"] for step in self.steps if step.get("parentKey") == group_step["key"]]
 
 	def _add_components(self) -> None:
 		for node_id, node in self.nodes.items():
 			if node["kind"] == "group":
 				component = RecordedJoin(_id=node_id)
-				component.child_ids = [child["id"] for child in self._children(node_id)]
+				component.child_ids = self._settled_child_ids(node_id)
 			elif node["kind"] == "gate":
 				component = RecordedGate(_id=node_id)
 				component.decision = self.decisions[node_id]
@@ -178,7 +179,7 @@ class ReviewGraph:
 			self._connect(edge["fromNodeId"], edge["branch"], edge["toNodeId"])
 		containers = [node for node in self.nodes.values() if node["kind"] == "group" and not node["parallel"]]
 		orders = [self._children(node["id"]) for node in containers]
-		orders.append(self._children(None, top_level=True))
+		orders.append(self._children(None))
 		for children in orders:
 			for source, target in zip(children, children[1:], strict=False):
 				if (source["id"], target["id"]) in explicit:

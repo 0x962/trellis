@@ -44,13 +44,13 @@ def _attach_feedback(loop: LoopComponent, source: Component, source_output: str)
 
 class FeedbackValue(Component):
 	display_name = "Feedback Value"
-	inputs = [HandleInput(name="value", display_name="Value", input_types=["Data", "DataFrame"])]
+	inputs = [HandleInput(name="feedback", display_name="Feedback", input_types=["Data", "DataFrame"])]
 	outputs = [Output(display_name="Value", name="value", method="run", types=["Data"])]
 
 	def run(self) -> Data:
-		if isinstance(self.value, DataFrame):
-			return self.value.to_data_list()[0]
-		return self.value
+		if isinstance(self.feedback, DataFrame):
+			return self.feedback.to_data_list()[0]
+		return self.feedback
 
 
 class DeadlineProbe(Component):
@@ -78,10 +78,10 @@ async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
 	inner = LoopComponent(_id="inner")
 	inner.set(data=outer.item_output)
 	inner_sink = FeedbackValue(_id="inner-feedback")
-	inner_sink.set(value=inner.item_output)
+	inner_sink.set(feedback=inner.item_output)
 	_attach_feedback(inner, inner_sink, "value")
 	outer_sink = FeedbackValue(_id="outer-feedback")
-	outer_sink.set(value=inner.done_output)
+	outer_sink.set(feedback=inner.done_output)
 	_attach_feedback(outer, outer_sink, "value")
 
 	graph = Graph(outer, outer_sink)
