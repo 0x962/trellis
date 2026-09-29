@@ -12,10 +12,7 @@ import { assertOwnerActive, lockOwners } from "../ownerFence";
 export type InitialBindingCommit = AuthorityCommit & { initialRecordBytes: string };
 export type RecoverInitialBindingInput = { initialRecordBytes: string; takeover: AuthorityCommit };
 
-export async function recoverInitialBinding(
-	tx: Tx,
-	input: RecoverInitialBindingInput,
-): Promise<InitialBindingCommit> {
+export async function recoverInitialBinding(tx: Tx, input: RecoverInitialBindingInput): Promise<InitialBindingCommit> {
 	const initial = InitialAuthorityRecordSchema.parse(JSON.parse(input.initialRecordBytes));
 	const original = DeliveryAuthorityV1Schema.parse(JSON.parse(initial.authorityBytes));
 	const { takeover } = input;
@@ -57,15 +54,18 @@ export async function recoverInitialBinding(
 		throw new Error("initial_recovery_identity_conflict");
 	if ("transferId" in receipt) {
 		if (
-			!revocation || !isDeepStrictEqual(revocation.identity, identity) ||
+			!revocation ||
+			!isDeepStrictEqual(revocation.identity, identity) ||
 			observation.identity.ownerId === identity.ownerId ||
 			receipt.request.expectedOwnerId !== original.ownerId ||
 			receipt.request.expectedEpoch !== original.engineEpoch
 		)
 			throw new Error("initial_recovery_identity_conflict");
 	} else if (
-		revocation !== null || !isDeepStrictEqual(observation.identity, identity) ||
-		receipt.request.ownerId !== original.ownerId || receipt.request.engineEpoch !== original.engineEpoch
+		revocation !== null ||
+		!isDeepStrictEqual(observation.identity, identity) ||
+		receipt.request.ownerId !== original.ownerId ||
+		receipt.request.engineEpoch !== original.engineEpoch
 	)
 		throw new Error("initial_recovery_identity_conflict");
 	await lockOwners(tx, [original, receipt.authority]);

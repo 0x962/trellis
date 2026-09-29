@@ -65,9 +65,9 @@ export async function recoveryFixture(open = false, revoke = true) {
 		},
 		authorityBytes: ` ${JSON.stringify(original.authority)}\r\n`,
 	};
-	const revocation = revoke ? await db.transaction((tx) =>
-		authorityControl.revokeOwner(tx, { identity, observationId: "retire-1" }),
-	) : null;
+	const revocation = revoke
+		? await db.transaction((tx) => authorityControl.revokeOwner(tx, { identity, observationId: "retire-1" }))
+		: null;
 	const request = {
 		version: 1 as const,
 		executionId: ids.execution,
