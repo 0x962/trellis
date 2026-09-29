@@ -28,10 +28,9 @@ export const epicResources = pgTable(
 		check("epic_resources_kind_check", sql`${t.kind} IN ('doc', 'link', 'image', 'file')`),
 		check(
 			"epic_resources_name_check",
-			sql`${t.name} = btrim(${t.name}) AND length(${t.name}) <= 255 AND (${t.kind} = 'doc' OR length(${t.name}) >= 1)`,
+			sql`${t.name} = btrim(${t.name}) AND (${t.kind} = 'doc' OR length(${t.name}) >= 1)`,
 		),
-		check("epic_resources_body_check", sql`${t.body} IS NULL OR length(${t.body}) <= 200000`),
-		check("epic_resources_url_check", sql`${t.url} IS NULL OR length(${t.url}) BETWEEN 1 AND 10000`),
+		check("epic_resources_url_check", sql`${t.url} IS NULL OR length(${t.url}) >= 1`),
 		check("epic_resources_blob_sha256_check", sql`${t.blobSha256} IS NULL OR ${t.blobSha256} ~ '^[0-9a-f]{64}$'`),
 		check("epic_resources_blob_size_check", sql`${t.blobSize} IS NULL OR ${t.blobSize} > 0`),
 		check(
