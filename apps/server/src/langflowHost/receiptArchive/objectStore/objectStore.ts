@@ -34,6 +34,11 @@ export class ReceiptObjectStore {
 		this.persist(join(this.directory, `binding-${protocolDigest(key)}.json`), JSON.stringify({ key, id }));
 	}
 
+	findBinding(key: string): string | null {
+		if (!existsSync(join(this.directory, `binding-${protocolDigest(key)}.json`))) return null;
+		return this.readBinding(key);
+	}
+
 	readBinding(key: string): string {
 		const record = JSON.parse(this.readPath(join(this.directory, `binding-${protocolDigest(key)}.json`)));
 		if (record.key !== key || typeof record.id !== "string") throw new Error("receipt_binding_corrupt");

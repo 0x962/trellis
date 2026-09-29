@@ -1,28 +1,12 @@
-import type { FlowDiagnosticV1, FlowPublicationStateV1, FlowPublicationV1, FlowSummary } from "@trellis/api";
+import type { FlowDiagnosticV1, FlowPublicationStateV1, FlowPublicationV1 } from "@trellis/api";
 
-export type DiscoveryAvailability =
-	| { state: "available"; observedAt: string; enginePackageDigest: string; componentManifestHash: string }
-	| { state: "unavailable" | "unknown"; observedAt: string | null; reason: string };
-
-export type DiscoveryCapability = { state: "allowed" } | { state: "blocked" | "unknown"; reason: string };
-export type DiscoveryCompatibility =
-	| { state: "compatible" }
-	| { state: "needs_migration" | "blocked" | "unknown"; diagnostics: FlowDiagnosticV1[] };
-
-export type DiscoverySummary = {
-	flow: FlowSummary;
-	engine: "legacy" | "langflow";
-	revision: number;
-	documentHash: string | null;
-	componentManifestHash: string | null;
-	diagnostics: FlowDiagnosticV1[];
-	publication: FlowPublicationStateV1;
-	lastExecutablePublication: FlowPublicationV1 | null;
-	compatibility: DiscoveryCompatibility;
-	capabilities: Record<"edit" | "delete" | "convert" | "start", DiscoveryCapability>;
-};
-
-export type DiscoveryResult = { engine: DiscoveryAvailability; entries: DiscoverySummary[] };
+export type {
+	FlowCapabilityV1 as DiscoveryCapability,
+	FlowCompatibilityV1 as DiscoveryCompatibility,
+	FlowDiscoveryEntryV1 as DiscoverySummary,
+	FlowDiscoveryV1 as DiscoveryResult,
+	FlowEngineAvailabilityV1 as DiscoveryAvailability,
+} from "@trellis/api";
 
 export type DiscoveryStoredFacts = {
 	flowId: string;

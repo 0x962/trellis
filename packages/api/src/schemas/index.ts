@@ -10,6 +10,7 @@ export * from "./enums.ts";
 export * from "./epic.ts";
 export * from "./evidence.ts";
 export * from "./flow.ts";
+export * from "./flowDiscoveryV1.ts";
 export * from "./flowDocumentV1.ts";
 export * from "./flowExecution.ts";
 export * from "./flowExecutionActionsV1.ts";

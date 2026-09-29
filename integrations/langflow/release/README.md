@@ -30,6 +30,15 @@ The caller retains every source dependency and handle source named by the catalo
 An omitted inventory stays absent from the canonical recipe and preserves existing package IDs.
 The field records file identity; it does not approve a catalog mapping or alter the loader output.
 
+`stageComponentCatalog` prepares these recipe fields from the original catalog bytes.
+It accepts `trellisRoot`, `engineRoot`, `expectedManifestSha256`, `engineCommit`, and a new `output` directory.
+The catalog must declare `runtimeSources` as well as definition dependencies and edge-handle sources.
+The function verifies all declared hashes and retains original paths below `catalog/trellis` and `catalog/engine`.
+Its result contains `components`, `componentSupportFiles`, and absolute `roots` beneath the output for the catalog reader.
+The caller copies those recipe fields into the complete package recipe and adds its other measured inputs.
+The original manifest retains its publication flags and diagnostics unchanged.
+The function checks copied bytes and rejects output beneath either source root.
+
 `target.layout` names an OCI image layout inside the payload.
 Each package contains one image manifest for one target architecture.
 The verifier checks the manifest, config, and layer hashes and sizes against local blobs.

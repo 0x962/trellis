@@ -11,6 +11,7 @@ import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
 
 export const flowServices = {
 	"flowExecutions.start": core("mutation", langflowDispatch.startLegacy),
+	"flowDocuments.discovery": io("read", langflowDispatch.discovery),
 	"flowDocuments.get": core("read", flowDocuments.get),
 	"flowDocuments.save": core("mutation", langflowDispatch.saveDocument),
 	"flowDocuments.view": core("read", langflowDispatch.getView),
