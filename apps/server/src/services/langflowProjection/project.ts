@@ -5,6 +5,7 @@ import type { ProjectionFacts } from "./facts.ts";
 import { type ProjectionObservation, ProjectionObservationSchema } from "./observation.ts";
 import { projectOccurrence } from "./occurrence.ts";
 import { publicDecision, publicStop } from "./publicDetails.ts";
+import { reviewWaits } from "./reviewWaits";
 
 const identity = (row: OccurrenceV1) => ({
 	nodeId: row.nodeId,
@@ -43,6 +44,7 @@ export function project(
 	) {
 		throw new Error("receipt_mismatch");
 	}
+	const pendingReviews = reviewWaits(observation, facts, current);
 	const seen = new Set<string>();
 	const previous = new Map(current.occurrences.map((row) => [row.occurrenceKey, row]));
 	const projectedOccurrences = observation.occurrences.map((observed) => {
@@ -60,7 +62,7 @@ export function project(
 		) {
 			throw new Error("identity_conflict");
 		}
-		const projected = projectOccurrence(observed, prior, facts);
+		const projected = projectOccurrence(observed, prior, facts, pendingReviews.get(observed.occurrenceKey));
 		if (prior && terminal(prior)) {
 			if (
 				prior.state !== projected.state ||
@@ -112,6 +114,7 @@ export function project(
 		occurrences.some((row) => row.state === "unknown") ||
 		facts.stops.some((stop) => stop.state === "ownership_unknown");
 	const human = occurrences.some((row) => row.waitReason === "human");
+	const review = occurrences.some((row) => row.waitReason === "review");
 	const native = occurrences.some((row) => row.waitReason === "native");
 	const complete =
 		occurrences.every((row) => row.state === "succeeded" || row.state === "skipped") &&
@@ -131,6 +134,9 @@ export function project(
 	} else if (native) {
 		status = "waiting";
 		detail = "waiting_native";
+	} else if (review) {
+		status = "waiting";
+		detail = "waiting_review";
 	} else if (observation.status === "succeeded") {
 		status = "succeeded";
 		detail = "completed";

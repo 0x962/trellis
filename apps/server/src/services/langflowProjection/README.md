@@ -23,6 +23,11 @@ The service reads those records from storage within the same transaction.
 Native success requires the exact accepted completion and result digest.
 Human success requires the exact confirmed decision.
 A Jev gate uses the saved classification for the execution, publication, diff, and review target.
+An explicit review wait retains its occurrence, action, review area, deadlines, and shared classification digest.
+The occurrence stays running with `waitReason: review`; the run exposes `detail: waiting_review`.
+The classification receipt can precede engine acceptance, so a pending wait cannot expose a decision.
+After acceptance, `acceptedResultId` must equal the stored classification receipt ID.
+The engine acceptance record ID does not identify that classification result.
 Groups and loops retain the engine state; this service selects no successor or round.
 
 `sourceBytes` holds the original `SourceEventV1` bytes, or null for snapshot reconciliation.
