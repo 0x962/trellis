@@ -46,13 +46,24 @@ Each output expectation contains its SHA256, or null for a null output.
 Include every expected occurrence, including skipped branches.
 Extra, missing, or duplicate visits fail the assertion.
 
-Decisions name their visit, approval, and full output text.
+Decisions name their visit, approval, full output text, and expected `deliveryState`.
 The runner posts each decision once at its observed human wait and current revision.
-Each listed decision must have one confirmed receipt at the end.
-For a cancellation scenario, `cancelAt` names a running or human-waiting visit.
-Use null when the scenario must finish without cancellation.
+Each listed decision must have one public receipt with that exact state at the end.
+Allowed states are `recorded`, `pending`, `unknown`, and `confirmed`.
+For cancellation at a visit, set `cancel` to `{ "when": "visit", "visit": ... }`.
+That visit must be running or waiting for a human.
+For cancellation after all decision responses, use `{ "when": "decisions_recorded" }`.
+This mode requires at least one decision and sends cancellation after the public API returns each recorded decision.
+Use `cancel: null` when the scenario must finish without cancellation.
 The cancellation target must remain observable until the HTTP poll reaches it.
 Controlled crash and race probes require the engine owner's exact fault controls.
+
+Cancellation before engine acceptance need not produce a confirmed delivery.
+Acceptance before cancellation can later confirm through read-only lookup, including after authority expiry.
+A confirmed delivery proves durable acceptance, not successor execution.
+An unconfirmed public delivery does not prove that the engine lacks acceptance.
+Retain the exact engine acceptance, queue obligation, cancellation order, and native effects as separate evidence.
+The `decisions_recorded` mode establishes HTTP request order only; engine-side ordering needs controlled trace evidence.
 
 ## Invocation after the hold ends
 
@@ -74,7 +85,7 @@ It writes private request and response records before and after each HTTP call.
 An uncertain mutation ends the invocation and retains `transport_unknown`.
 An exact terminal start replay is an explicit assertion, not a transport retry.
 
-The runner polls through pending stop obligations until confirmed exit or the supplied deadline.
+The runner polls through pending stops and expected decision delivery states until they match or the supplied deadline expires.
 An expired deadline leaves the execution active and retains its request record.
 The caller must execute the owner's cleanup procedure after success, failure, or interruption.
 Retain the exact process and attempt exit receipts beside the HTTP evidence.
