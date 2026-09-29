@@ -55,7 +55,14 @@ export function createSaveQueue(options: Options) {
 		persist();
 	};
 	const drain = async () => {
-		while (!closed && !suspended && !readOnly && !explicit.held() && failure === null && (options.canDispatch?.() ?? true)) {
+		while (
+			!closed &&
+			!suspended &&
+			!readOnly &&
+			!explicit.held() &&
+			failure === null &&
+			(options.canDispatch?.() ?? true)
+		) {
 			if (draft.submission === null && draft.contentJson === draft.savedContentJson) return;
 			let request: FlowDocumentSaveV1Input;
 			try {
@@ -199,7 +206,15 @@ export function createSaveQueue(options: Options) {
 		},
 	});
 	return {
-		edit, flush, retry, discard, snapshot, suspend, resume, setReadOnly, subscribe,
+		edit,
+		flush,
+		retry,
+		discard,
+		snapshot,
+		suspend,
+		resume,
+		setReadOnly,
+		subscribe,
 		beginExplicitEdit: explicit.beginExplicitEdit,
 	};
 }

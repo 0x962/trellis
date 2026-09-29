@@ -1,39 +1,70 @@
 import { expect, test } from "bun:test";
-import { type ConversionEditIntentV1, type FlowDocumentSaveV1Input, type FlowDocumentV1, pendingDocumentV1Example } from "@trellis/api";
+import {
+	type ConversionEditIntentV1,
+	type FlowDocumentSaveV1Input,
+	type FlowDocumentV1,
+	pendingDocumentV1Example,
+} from "@trellis/api";
 import { createDraftStorage } from "../draftStorage";
 import { content, draft, memoryStore, receipt } from "../fixtures/fixtures";
 import { createSaveQueue } from "../saveQueue";
 
-function setup(save: (request: FlowDocumentSaveV1Input) => Promise<FlowDocumentV1> = async (request) => receipt(request)) {
+function setup(
+	save: (request: FlowDocumentSaveV1Input) => Promise<FlowDocumentV1> = async (request) => receipt(request),
+) {
 	const memory = memoryStore();
 	const storage = createDraftStorage(memory.storage);
 	const initial = draft();
 	initial.contentJson = initial.savedContentJson;
 	const document = {
-		...pendingDocumentV1Example, ...content("saved"), revision: initial.baseVersion,
+		...pendingDocumentV1Example,
+		...content("saved"),
+		revision: initial.baseVersion,
 		flow: { ...pendingDocumentV1Example.flow, version: initial.baseVersion },
 		publication: { state: "pending", revision: initial.baseVersion },
 	} as FlowDocumentV1;
 	let allowed = true;
-	const restore = () => createSaveQueue({
-		draft: storage.read(initial.identity).state === "absent" ? initial : JSON.parse(storage.readBytes(initial.identity)!),
-		storage, save, readOnly: false,
-		requestId: () => crypto.randomUUID(), now: () => new Date().toISOString(), canDispatch: () => allowed,
-	});
-	return { memory, storage, document, queue: restore(), restore, expire: () => { allowed = false; } };
+	const restore = () =>
+		createSaveQueue({
+			draft:
+				storage.read(initial.identity).state === "absent" ? initial : JSON.parse(storage.readBytes(initial.identity)!),
+			storage,
+			save,
+			readOnly: false,
+			requestId: () => crypto.randomUUID(),
+			now: () => new Date().toISOString(),
+			canDispatch: () => allowed,
+		});
+	return {
+		memory,
+		storage,
+		document,
+		queue: restore(),
+		restore,
+		expire: () => {
+			allowed = false;
+		},
+	};
 }
 
 const intentFor = (base: Extract<FlowDocumentV1, { engine: "langflow" }>): ConversionEditIntentV1 => ({
-	schemaVersion: 1, flowId: base.flow.id, expectedVersion: base.revision,
-	expectedDocumentHash: base.documentHash, componentManifestHash: base.componentManifestHash,
-	enginePackageDigest: "d".repeat(64), requestId: crypto.randomUUID(),
+	schemaVersion: 1,
+	flowId: base.flow.id,
+	expectedVersion: base.revision,
+	expectedDocumentHash: base.documentHash,
+	componentManifestHash: base.componentManifestHash,
+	enginePackageDigest: "d".repeat(64),
+	requestId: crypto.randomUUID(),
 	edits: [{ kind: "set-flow-briefing", briefing: "keep exact intent" }],
 });
 
 test("the lease waits for the active save and returns its acknowledged base", async () => {
 	const pending = Promise.withResolvers<FlowDocumentV1>();
 	let submitted!: FlowDocumentSaveV1Input;
-	const f = setup((request) => { submitted = request; return pending.promise; });
+	const f = setup((request) => {
+		submitted = request;
+		return pending.promise;
+	});
 	f.queue.edit(content("ordinary save"));
 	const saving = f.queue.flush();
 	const acquiring = f.queue.beginExplicitEdit(f.document);
@@ -74,11 +105,18 @@ test("unknown outcomes retain exact intent through reload and cannot be discarde
 	const f = setup();
 	const lease = await f.queue.beginExplicitEdit(f.document);
 	const intent = intentFor(lease.base);
-	await expect(lease.dispatch(intent, async () => { throw new Error("Response lost."); })).rejects.toThrow("Response lost");
+	await expect(
+		lease.dispatch(intent, async () => {
+			throw new Error("Response lost.");
+		}),
+	).rejects.toThrow("Response lost");
 	const bytes = lease.pendingBytes();
+	if (bytes === null) throw new Error("Expected the retained intent bytes.");
 	expect(bytes).toBe(JSON.stringify(intent));
 	expect(() => lease.release()).toThrow("Resolve the pending edit");
-	expect(() => f.storage.discard(draft().identity, f.storage.readBytes(draft().identity)!)).toThrow("pending explicit edit");
+	expect(() => f.storage.discard(draft().identity, f.storage.readBytes(draft().identity)!)).toThrow(
+		"pending explicit edit",
+	);
 	const restored = f.restore();
 	restored.resume();
 	expect(() => restored.edit(content("cannot overwrite"))).toThrow("read-only");
@@ -106,7 +144,9 @@ test("only the committed document replaces the clean base and requires a fresh g
 	const f = setup();
 	const lease = await f.queue.beginExplicitEdit(f.document);
 	const document = {
-		...f.document, ...content("regenerated"), revision: f.document.revision + 1,
+		...f.document,
+		...content("regenerated"),
+		revision: f.document.revision + 1,
 		flow: { ...f.document.flow, version: f.document.revision + 1 },
 		publication: { state: "pending", revision: f.document.revision + 1 },
 	} as FlowDocumentV1;

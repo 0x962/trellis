@@ -23,7 +23,9 @@ export function deleteEditorSelection(nodeIds: string[], edgeIds: string[]) {
 		for (const node of state.nodes) if (node.parentId && removed.has(node.parentId)) removed.add(node.id);
 	}
 	useFlowsManagerStore.getState().takeSnapshot();
-	const edges = state.edges.filter((edge) => !edgeIds.includes(edge.id) && !removed.has(edge.source) && !removed.has(edge.target));
+	const edges = state.edges.filter(
+		(edge) => !edgeIds.includes(edge.id) && !removed.has(edge.source) && !removed.has(edge.target),
+	);
 	state.setNodes(state.nodes.filter((node) => !removed.has(node.id)));
 	state.setEdges(edges);
 }
