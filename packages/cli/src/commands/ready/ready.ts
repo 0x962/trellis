@@ -1,4 +1,4 @@
-import { isAgentWorking, type TicketSummary, type Waiting, waitingFor } from "@trellis/api";
+import { type TicketSummary, type Waiting, waitingFor } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
@@ -8,6 +8,7 @@ import { json } from "../../output.ts";
 import { currentHead, type PullRequestRef, resolvePullRequest } from "../pullRequestRef.ts";
 import { pullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
+import { workingTicketIds } from "./workingTicketIds.ts";
 
 const nameFor = (ticket: TicketSummary, waiting: Waiting, hasWorkingRun: boolean): string => {
 	if (hasWorkingRun || ticket.status.category === "review") return ticket.identifier;
@@ -99,16 +100,8 @@ export default defineCommand({
 		const client = clientOf(ctx);
 		if (context.args.epic === undefined)
 			return pullRequestReady(ctx, client, context.args.ref, context.args["flow-does-not-apply"]);
-		const [epic, runs] = await Promise.all([
-			client.epics.get({ epic: `${context.args.ref}/${context.args.epic}` }),
-			client.agentRuns.list({ assigned: true }),
-		]);
-		const workingTicketIds = new Set(
-			runs.flatMap((run) =>
-				run.kind === "agent" && run.ticketId !== null && isAgentWorking(run) ? [run.ticketId] : [],
-			),
-		);
-		const result = readyResultOf(epic.tickets, workingTicketIds);
+		const epic = await client.epics.get({ epic: `${context.args.ref}/${context.args.epic}` });
+		const result = readyResultOf(epic.tickets, await workingTicketIds(client, epic.tickets));
 		if (ctx.format.mode === "quiet") {
 			ctx.out.write(`${result.readyToStart.identifiers.join("\n")}${result.readyToStart.count === 0 ? "" : "\n"}`);
 			return;
