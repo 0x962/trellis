@@ -17,7 +17,7 @@ test("metadata migration retains old rows and complete long metadata", async () 
 	const journal = JSON.parse(await readFile(join(source, "meta/_journal.json"), "utf8")) as {
 		entries: Array<{ tag: string }>;
 	};
-	const boundary = journal.entries.findIndex((entry) => entry.tag.endsWith("_remove_page_metadata_limits"));
+	const boundary = journal.entries.findIndex((entry) => entry.tag.startsWith("0138_"));
 	expect(boundary).toBeGreaterThan(0);
 	const entries = journal.entries.slice(0, boundary);
 	const directory = await mkdtemp(join(tmpdir(), "trellis-page-metadata-"));
