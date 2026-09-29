@@ -10,7 +10,7 @@ import { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
 import * as connection from "../../../agents/native/connection.ts";
 import { createCache } from "../../../db/cache.ts";
 import { openTestDb } from "../../../db/testDb.ts";
-import { transferSession } from "../../harnessAccounts/transferSession.ts";
+import { transferSession } from "../../harnessAccounts/transferSession";
 import type { IoCtx } from "../../support.ts";
 import type { startNative } from "../nativeStart.ts";
 import { getRun } from "../queries.ts";

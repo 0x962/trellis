@@ -4,8 +4,10 @@ import hashlib
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from structlog.contextvars import bound_contextvars
 
 from langflow.services.database.models.jobs.model import (
     ExecutionSignal,
@@ -26,6 +28,7 @@ from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
 from langflow.services.trellis_v1.engine_api import EngineApiSecurity
 
 CANCELLATION_KIND = "trellis-cancellation-v1"
+logger = structlog.get_logger(__name__)
 
 
 async def read_cancellation(session: AsyncSession, job_id: UUID) -> CancellationRecord | None:
@@ -33,7 +36,12 @@ async def read_cancellation(session: AsyncSession, job_id: UUID) -> Cancellation
         select(JobCheckpoint).where(JobCheckpoint.job_id == job_id, JobCheckpoint.kind == CANCELLATION_KIND)
     )
     checkpoint = result.scalar_one_or_none()
-    return None if checkpoint is None else CancellationRecord.model_validate_json(checkpoint.blob)
+    if checkpoint is None:
+        return None
+    record = CancellationRecord.model_validate_json(checkpoint.blob)
+    with bound_contextvars(**record.structlog_log_context()):
+        logger.debug("engine_cancellation_receipt_read")
+    return record
 
 
 async def assert_not_cancelled(session: AsyncSession, job_id: UUID) -> None:
@@ -107,4 +115,6 @@ async def accept_cancellation(
         ),
     ))
     await session.flush()
+    with bound_contextvars(**receipt.structlog_log_context()):
+        logger.debug("engine_cancellation_receipt_prepared")
     return receipt

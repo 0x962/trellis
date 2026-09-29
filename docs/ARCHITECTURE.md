@@ -1227,6 +1227,13 @@ An exact legacy request replay retains its original result after a document conv
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
 
+The versioned start, decision, and cancel routes acquire a durable permit before their database action.
+The action and its immutable receipt commit together. A known refusal rolls back its savepoint before the outer transaction stores the error bytes.
+The external receipt archive retains the committed receipt before the host gate settles its permit.
+An exact replay reads that receipt and the current view. Changed request bytes return `FLOW_REQUEST_CONFLICT`.
+A permit without a receipt returns `FLOW_ACTION_PENDING` and stays pending until reconciliation.
+These local action permits do not settle the separate permits for engine delivery or native processes.
+
 `flowDocumentsV1.editorSession` issues an editor grant through
 `POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
 editor configuration with the host identity, separate origins, and installed
@@ -1234,6 +1241,12 @@ component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE
 The issuer requires the host bearer, the exact parent Origin, and a stored
 `defaultActorName`. An actor header identifies a request; it does not authenticate a person.
 The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+The HTTP adapter calls the plain issuer, sets the credential cookie, and returns the session.
+Its service calls retain the request ID and database timing collector.
+`flowDocumentsV1.editorHost` reads the current host and data-home identifiers from the host control directory.
+It returns their combined identity, or `null` when the editor has no configuration.
+Grant operations reject a changed host identity.
+Version conflicts return 412, concurrent channel saves return 409, and an unconfigured actor returns 503.
 
 A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
 The grant service holds the channel until the actual document transaction returns.

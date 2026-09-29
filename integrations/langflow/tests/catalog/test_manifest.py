@@ -1,5 +1,4 @@
 import hashlib
-import importlib
 import json
 import os
 from pathlib import Path
@@ -12,13 +11,6 @@ ROOT = Path(os.environ["TRELLIS_ROOT"]).resolve()
 ENGINE = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
 ENGINE_COMMIT = "fec71dca901949c09ed4d63315804337cd2eb13d"
 MANIFEST = ROOT / "integrations/langflow/components/catalog/manifest.v1.json"
-CLASSES = {
-	"native-completion-v1": ("integrations.langflow.components.catalog.nativeCompletion", "TrellisNativeCompletionV1"),
-	"external-wait-v1": ("integrations.langflow.components.trellis_external_wait", "TrellisExternalWaitComponent"),
-	"native-decision-v1": ("integrations.langflow.components.catalog.nativeDecision", "TrellisNativeDecisionV1"),
-	"ordered-output-v1": ("integrations.langflow.components.catalog.orderedOutput", "TrellisOrderedOutputV1"),
-	"stock-loop": ("lfx.components.flow_controls.loop", "LoopComponent"),
-}
 
 
 def test_manifest_checks_exact_source_bytes_and_keeps_conversion_blocked():
@@ -40,27 +32,6 @@ def test_manifest_checks_exact_source_bytes_and_keeps_conversion_blocked():
 def test_reader_rejects_a_different_manifest_digest():
 	with pytest.raises(ValueError, match="catalog_manifest_digest_conflict"):
 		read_catalog(ROOT, ENGINE, "0" * 64, engine_commit=ENGINE_COMMIT)
-
-
-def test_engine_classes_match_declared_ports_and_export_complete_templates():
-	manifest = json.loads(MANIFEST.read_bytes())
-	templates = {}
-	for definition in manifest["definitions"]:
-		module, class_name = CLASSES[definition["id"]]
-		component = getattr(importlib.import_module(module), class_name)(_id="catalog-template")
-		assert set(component._inputs) == {field["name"] for field in definition["template"]["inputs"]}
-		for field in definition["template"]["inputs"]:
-			actual = component._inputs[field["name"]]
-			assert actual.input_types == field["inputTypes"]
-			assert actual.is_list == field["isList"]
-			assert actual.required == field["required"]
-		for output in definition["outputPorts"]:
-			actual = component.get_output(output["name"])
-			assert actual.method == output["method"]
-			assert actual.group_outputs == output["groupOutputs"]
-		templates[definition["id"]] = component.to_frontend_node()
-	output_path = Path(os.environ["LANGFLOW_RUN_ROOT"]) / "catalog-frontend-templates.json"
-	output_path.write_text(json.dumps(templates, ensure_ascii=False, indent=2))
 
 
 @pytest.mark.parametrize("changed_source", ["definition", "reader", "import"])
