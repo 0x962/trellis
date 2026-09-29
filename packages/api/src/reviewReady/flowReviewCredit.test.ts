@@ -8,8 +8,11 @@ const diffId = "00000000000000000000000008";
 const otherDiffId = "00000000000000000000000010";
 const flowId = executionViewV1Example.flowId;
 const otherFlowId = "00000000000000000000000011";
-const { publication: _publication, lastExecutablePublication: _lastPublication, ...legacySnapshot } =
-	legacyDocumentV1Example;
+const {
+	publication: _publication,
+	lastExecutablePublication: _lastPublication,
+	...legacySnapshot
+} = legacyDocumentV1Example;
 
 for (const engine of ["legacy", "langflow"] as const) {
 	describe(`${engine} review credit`, () => {
@@ -22,7 +25,14 @@ for (const engine of ["legacy", "langflow"] as const) {
 			...(engine === "legacy" ? { snapshot: legacySnapshot, publication: null, submission: null } : {}),
 		});
 		const credit = (overrides: Partial<FlowReviewCredit> = {}) =>
-			flowReviewCredit({ diffId, hasTicket: true, applicableFlowIds: [flowId], waived: false, runs: [run], ...overrides });
+			flowReviewCredit({
+				diffId,
+				hasTicket: true,
+				applicableFlowIds: [flowId],
+				waived: false,
+				runs: [run],
+				...overrides,
+			});
 
 		test("one applicable success answers only its diff", () => {
 			expect(credit()).toBe(true);
@@ -63,8 +73,15 @@ for (const engine of ["legacy", "langflow"] as const) {
 
 		test("flow credit leaves the other review requirements independent", () => {
 			const facts: ReviewReadyFacts = {
-				state: "open", localState: "ready", failedChecks: 0, pendingChecks: 0,
-				hasExplanation: true, hasEvidence: true, flowAnswered: credit(), openFindings: 0, mergeable: "mergeable",
+				state: "open",
+				localState: "ready",
+				failedChecks: 0,
+				pendingChecks: 0,
+				hasExplanation: true,
+				hasEvidence: true,
+				flowAnswered: credit(),
+				openFindings: 0,
+				mergeable: "mergeable",
 			};
 			expect(reviewGaps(facts)).toEqual([]);
 			for (const [change, kind] of [
@@ -75,7 +92,8 @@ for (const engine of ["legacy", "langflow"] as const) {
 				[{ hasEvidence: false }, "evidence"],
 				[{ hasExplanation: false }, "explanation"],
 				[{ localState: "not-ready" }, "not-asked"],
-			] as const) expect(reviewGaps({ ...facts, ...change })).toEqual([{ kind, count: 1 }]);
+			] as const)
+				expect(reviewGaps({ ...facts, ...change })).toEqual([{ kind, count: 1 }]);
 		});
 	});
 }
