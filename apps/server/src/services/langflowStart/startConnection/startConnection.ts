@@ -115,7 +115,7 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 				throw new Error("initial_authority_request_conflict");
 			const sameOwner = await supervisor.withHealthyEngine(async (observation) =>
 				isDeepStrictEqual(observation.identity, prior.observation.identity));
-			if (sameOwner) {
+			if (sameOwner && !execution.canceled && Date.parse(prior.authority.expiresAt) > options.now().getTime()) {
 				archive.writeAuthority({ authorityBytes: prior.authorityBytes, issuanceReceiptId: prior.issuanceReceiptId });
 				await state.restoreInitial({ executionId: execution.executionId, initialRecordBytes: prior.sourceBytes });
 			} else {

@@ -142,3 +142,16 @@ test("cancellation recovers an unknown submission under a cancel-only grant", as
 	expect(count(f, "admission/open")).toBe(0);
 	expect(permit(f).terminal).toBeNull();
 });
+
+test("recovery settles a retained admission delivery after the original start permit is terminal", async () => {
+	const f = await fixture();
+	await (await f.connect()).committed({ executionId: f.executionId });
+	const original = permit(f);
+	const row = await f.database.run((tx) => f.database.store.readSubmission(tx, { executionId: f.executionId }));
+	if (row.admission.state !== "open") throw new Error("fixture_admission_missing");
+	const delivery = f.control.gate.acquire({ ...original.permit.binding,
+		effectId: `${original.permit.binding.effectId}:${row.admission.receipt.admissionId}` });
+	await (await f.connect()).recover();
+	expect(f.control.gate.recoverPermit(delivery.binding)?.terminal?.outcome).toBe("completed");
+	expect(count(f, "admission/open")).toBe(1);
+});

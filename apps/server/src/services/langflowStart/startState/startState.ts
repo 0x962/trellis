@@ -4,7 +4,7 @@ import type { ServiceCtx } from "../../../context";
 import { bindExecution } from "../../../db/queries/langflowExecution";
 import { rows } from "../../../db/queries/support";
 import type { Tx } from "../../../db/tx";
-import { readCancellationReceipt } from "../../langflowStops";
+import { readCancellationReceipt, terminalCancellationStatuses } from "../../langflowStops";
 import { databaseStore } from "../databaseStore";
 import { restoreInitial } from "./components/restoreInitial";
 import type { StartStateInput } from "./contracts";
@@ -50,8 +50,9 @@ export async function startState(ctx: ServiceCtx, tx: Tx, request: StartStateInp
 			return null;
 		case "cancellationProof": {
 			const proof = await readCancellationReceipt(ctx, tx, request.input);
-			if (!proof.acknowledgement || proof.needsStop ||
-				!["completed", "failed", "cancelled", "timed_out"].includes(proof.acknowledgement.engineStatus)) return null;
+			const acknowledgement = proof.acknowledgement;
+			if (!acknowledgement || proof.needsStop ||
+				!terminalCancellationStatuses.some((status) => status === acknowledgement.engineStatus)) return null;
 			return JSON.stringify(proof);
 		}
 		case "admissionBytes": {
