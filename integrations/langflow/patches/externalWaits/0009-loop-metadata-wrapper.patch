@@ -1,0 +1,19 @@
+diff --git a/src/lfx/src/lfx/graph/graph/base.py b/src/lfx/src/lfx/graph/graph/base.py
+--- a/src/lfx/src/lfx/graph/graph/base.py
++++ b/src/lfx/src/lfx/graph/graph/base.py
+@@ -972,6 +972,7 @@ class Graph:
+         selected_inputs: list[Any] | dict[str, Any],
+         selected_input_bytes: str,
+         inherited_scope: dict[str, Any],
++        metadata: dict[str, Any],
+     ) -> dict[str, Any]:
+         from lfx.graph.loop_control import begin_visit
+ 
+@@ -983,6 +984,7 @@ class Graph:
+             selected_inputs=selected_inputs,
+             selected_input_bytes=selected_input_bytes,
+             inherited_scope=inherited_scope,
++            metadata=metadata,
+         )
+ 
+     async def commit_trellis_loop_children(
