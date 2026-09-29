@@ -1,0 +1,1001 @@
+diff --git a/src/lfx/src/lfx/graph/external_wait.py b/src/lfx/src/lfx/graph/external_wait.py
+new file mode 100644
+index 0000000..8dd7801
+--- /dev/null
++++ b/src/lfx/src/lfx/graph/external_wait.py
+@@ -0,0 +1,9 @@
++from __future__ import annotations
++
++
++class ExternalWaitPending(Exception):
++    """Release the worker after the graph saves its pending external waits."""
++
++    def __init__(self, waits: dict[str, str]) -> None:
++        self.waits = waits
++        super().__init__("external_wait_pending")
+diff --git a/src/lfx/src/lfx/graph/checkpoint/schema.py b/src/lfx/src/lfx/graph/checkpoint/schema.py
+index 887aa3f..935be46 100644
+--- a/src/lfx/src/lfx/graph/checkpoint/schema.py
++++ b/src/lfx/src/lfx/graph/checkpoint/schema.py
+@@ -55,5 +55,6 @@
+     vertex_results: dict[str, VertexCheckpointData] = Field(default_factory=dict)
+     pause_context: dict[str, Any] | None = None
+     human_input_decisions: dict[str, Any] = Field(default_factory=dict)
++    external_waits: dict[str, str] = Field(default_factory=dict)
+     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+     expires_at: datetime | None = None
+diff --git a/src/lfx/src/lfx/graph/checkpoint/builder.py b/src/lfx/src/lfx/graph/checkpoint/builder.py
+index b403c74..9c24a1d 100644
+--- a/src/lfx/src/lfx/graph/checkpoint/builder.py
++++ b/src/lfx/src/lfx/graph/checkpoint/builder.py
+@@ -73,4 +73,5 @@
+         vertex_results={vertex.id: _vertex_data(vertex) for vertex in graph.vertices},
+         pause_context=graph.pause_info,
+         human_input_decisions=dict(getattr(graph, "human_input_decisions", {}) or {}),
++        external_waits=dict(getattr(graph, "external_waits", {}) or {}),
+     )
+diff --git a/src/lfx/src/lfx/graph/checkpoint/resume.py b/src/lfx/src/lfx/graph/checkpoint/resume.py
+index 294ab22..231e14d 100644
+--- a/src/lfx/src/lfx/graph/checkpoint/resume.py
++++ b/src/lfx/src/lfx/graph/checkpoint/resume.py
+@@ -188,5 +188,6 @@
+     graph.conditionally_excluded_vertices = {str(v) for v in checkpoint.conditionally_excluded_vertices}
+     graph.human_input_decisions = dict(checkpoint.human_input_decisions)
+     graph.activated_vertices = list(checkpoint.activated_vertices)
++    graph.external_waits = dict(checkpoint.external_waits)
+     # Built-at-checkpoint vertices must not have their async generators re-consumed; the output loop skips this set.
+     graph.checkpoint_restored_built_ids = {vid for vid, vd in checkpoint.vertex_results.items() if vd.built}
+diff --git a/src/lfx/src/lfx/graph/graph/base.py b/src/lfx/src/lfx/graph/graph/base.py
+index 54e0be9..7101a0f 100644
+--- a/src/lfx/src/lfx/graph/graph/base.py
++++ b/src/lfx/src/lfx/graph/graph/base.py
+@@ -101,5 +101,7 @@
+     from lfx.services.chat.schema import GetCache, SetCache
+     from lfx.services.tracing.service import TracingService
+ 
++    ExternalWaitHandler = Callable[["Graph", str], Any]
++
+ 
+ def _serving_trace_end_user_enabled() -> bool:
+@@ -244,6 +246,9 @@
+         # checkpoint: only these re-run on resume to regenerate the object, so producers whose output
+         # round-tripped (e.g. an Agent's Message) are not needlessly re-executed. Empty otherwise.
+         self.checkpoint_opaque_dropped_ids: set[str] = set()
++        self.external_waits: dict[str, str] = {}
++        self.external_wait_handler: ExternalWaitHandler | None = None
++        self._external_wait_lock = asyncio.Lock()
+         self.pause_probe: Callable[[str], Any] | None = None
+ 
+         if context and not isinstance(context, dict):
+@@ -930,7 +935,37 @@
+             data=info.get("data"),
+         )
+ 
++    async def await_external_completion(self, wait_bytes: str) -> str:
++        """Save one exact wait and release the worker until its completion arrives."""
++        from lfx.graph.external_wait import ExternalWaitPending
++
++        wait_id = json.loads(wait_bytes)["waitId"]
++        async with self._external_wait_lock:
++            saved = self.external_waits.get(wait_id)
++            if saved is not None and saved != wait_bytes:
++                raise RuntimeError("external_wait_identity_conflict")
++            if self.external_wait_handler is None or self.checkpoint_store is None:
++                raise RuntimeError("external_wait_handler_unavailable")
++            receipt = await self.external_wait_handler(self, wait_bytes)
++            if receipt is not None:
++                self.external_waits.pop(wait_id, None)
++                await self.checkpoint_store.save(self.build_checkpoint())
++                return receipt
++            self.external_waits[wait_id] = wait_bytes
++            await self.checkpoint_store.save(self.build_checkpoint())
++            raise ExternalWaitPending(dict(self.external_waits))
++
++    async def complete_external_wait(self, wait_bytes: str, receipt_bytes: str) -> str:
++        """Remove one exact saved wait after its durable result becomes available."""
++        wait_id = json.loads(wait_bytes)["waitId"]
++        async with self._external_wait_lock:
++            if self.external_waits.get(wait_id) != wait_bytes or self.checkpoint_store is None:
++                raise RuntimeError("external_wait_identity_conflict")
++            self.external_waits.pop(wait_id)
++            await self.checkpoint_store.save(self.build_checkpoint())
++            return receipt_bytes
++
+     async def initialize_run(self) -> None:
+         if not self._run_id:
+             self.set_run_id()
+         if self.tracing_service:
+diff --git a/src/backend/base/langflow/services/trellis_v1/external_waits.py b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+new file mode 100644
+index 0000000..00a17ca
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import json
++from typing import TYPE_CHECKING, TypedDict
++from uuid import UUID
++
++if TYPE_CHECKING:
++    from lfx.graph.graph.base import Graph
++
++    from langflow.services.jobs.service import JobService
++
++
++class ContinuationConsumptionReceipt(TypedDict):
++    version: int
++    engineJobId: str
++    engineRequestId: str
++    decisionId: str | None
++    signalId: str
++    enqueueObligationId: str
++    queuedAt: str
++    queueClaimed: bool
++
++
++class TrellisExternalWaitBroker:
++    """Keep exact completion bytes while Langflow retains graph ownership."""
++
++    def __init__(self, jobs: JobService) -> None:
++        self._jobs = jobs
++
++    @staticmethod
++    def completion_kind(wait_id: str) -> str:
++        return f"trellis-completion-v1:{wait_id}"
++
++    async def receipt_for(self, graph: Graph, wait_bytes: str) -> str | None:
++        wait_id = json.loads(wait_bytes)["waitId"]
++        envelope_bytes = await self._jobs.load_checkpoint(UUID(graph.job_id), self.completion_kind(wait_id))
++        if envelope_bytes is None:
++            return None
++        envelope = json.loads(envelope_bytes)
++        if envelope["waitBytes"] != wait_bytes:
++            raise RuntimeError("external_wait_identity_conflict")
++        return envelope["receiptBytes"]
++
++    async def save_completion(
++        self,
++        *,
++        job_id: UUID,
++        wait_bytes: str,
++        delivery_bytes: str,
++        receipt_bytes: str,
++    ) -> str:
++        wait = json.loads(wait_bytes)
++        delivery = json.loads(delivery_bytes)
++        receipt = json.loads(receipt_bytes)
++        wait_id = wait["waitId"]
++        if receipt["engineWaitId"] != wait_id:
++            raise RuntimeError("completion_wait_conflict")
++        if wait["kind"] == "native":
++            request = wait["request"]
++            result = delivery["result"]
++            if (
++                result["launchBinding"]["executionId"] != request["executionId"]
++                or result["launchBinding"]["engineJobId"] != request["engineJobId"]
++                or result["attemptId"] != wait["handle"]["attemptId"]
++                or receipt["completionId"] != result["completionId"]
++                or receipt["resultDigest"] != delivery["resultDigest"]
++            ):
++                raise RuntimeError("completion_binding_conflict")
++        envelope_bytes = json.dumps(
++            {
++                "waitBytes": wait_bytes,
++                "deliveryBytes": delivery_bytes,
++                "receiptBytes": receipt_bytes,
++            },
++            separators=(",", ":"),
++        )
++        saved = await self._jobs.save_checkpoint_once(
++            job_id,
++            self.completion_kind(wait_id),
++            envelope_bytes,
++        )
++        return json.loads(saved)["receiptBytes"]
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+index 50dbe6c..c59217a 100644
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -8,4 +8,5 @@
+ import contextlib
++import json
+ from typing import TYPE_CHECKING
+ 
+ if TYPE_CHECKING:
+@@ -11,6 +12,8 @@
+     from collections.abc import Sequence
++    from sqlmodel.ext.asyncio.session import AsyncSession
+ from datetime import datetime, timezone
+ from uuid import UUID, uuid4
+ 
++from lfx.graph.external_wait import ExternalWaitPending
+ from lfx.graph.exceptions import GraphPausedException
+ from lfx.observability import inject_trace_carrier
+@@ -351,6 +352,197 @@
+             )
+             await session.exec(stmt)
+ 
++    async def save_checkpoint_once(self, job_id: UUID, kind: str, blob: str) -> str:
++        """Store immutable bytes once and return the saved bytes."""
++        now = datetime.now(timezone.utc)
++        async with session_scope() as session:
++            if session.get_bind().dialect.name == "postgresql":
++                from sqlalchemy.dialects.postgresql import insert as dialect_insert
++            else:
++                from sqlalchemy.dialects.sqlite import insert as dialect_insert
++            insert = (
++                dialect_insert(JobCheckpoint)
++                .values(id=uuid4(), job_id=job_id, kind=kind, blob=blob, created_at=now, updated_at=now)
++                .on_conflict_do_nothing(index_elements=["job_id", "kind"])
++            )
++            await session.exec(insert)
++            saved = (
++                await session.exec(
++                    select(JobCheckpoint).where(JobCheckpoint.job_id == job_id).where(JobCheckpoint.kind == kind)
++                )
++            ).one()
++            if saved.blob != blob:
++                raise RuntimeError("checkpoint_identity_conflict")
++            return saved.blob
++
++    async def consume_suspended_continuation(
++        self,
++        *,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str | None,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++    ) -> bytes | None:
++        """Queue one saved continuation and return its immutable receipt bytes."""
++        async with session_scope() as session:
++            return await self.consume_suspended_continuation_in_session(
++                session,
++                engine_job_id=engine_job_id,
++                engine_request_id=engine_request_id,
++                decision_id=decision_id,
++                signal_id=signal_id,
++                enqueue_obligation_id=enqueue_obligation_id,
++            )
++
++    async def consume_suspended_continuation_in_session(
++        self,
++        session: AsyncSession,
++        *,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str | None,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++    ) -> bytes | None:
++        """Claim one saved continuation inside the caller transaction."""
++        await session.flush()
++        kind = f"trellis-continuation-v1:{enqueue_obligation_id}"
++        existing = (
++            await session.exec(
++                select(JobCheckpoint)
++                .where(JobCheckpoint.job_id == engine_job_id)
++                .where(JobCheckpoint.kind == kind)
++            )
++        ).first()
++        if existing is not None:
++            receipt = json.loads(existing.blob)
++            expected = {
++                "engineJobId": str(engine_job_id),
++                "engineRequestId": engine_request_id,
++                "decisionId": decision_id,
++                "signalId": str(signal_id),
++                "enqueueObligationId": str(enqueue_obligation_id),
++            }
++            if any(receipt[key] != value for key, value in expected.items()):
++                raise RuntimeError("continuation_obligation_conflict")
++            return existing.blob.encode()
++        job = await session.get(Job, engine_job_id)
++        signal = await session.get(ExecutionSignal, signal_id)
++        checkpoint = (
++            await session.exec(
++                select(JobCheckpoint)
++                .where(JobCheckpoint.job_id == engine_job_id)
++                .where(JobCheckpoint.kind == "graph")
++            )
++        ).first()
++        if (
++            job is None
++            or signal is None
++            or signal.job_id != engine_job_id
++            or signal.signal_type != SignalType.RESUME
++            or signal.consumed_at is not None
++            or checkpoint is None
++        ):
++            return None
++        signal_data = signal.data or {}
++        waits = json.loads(checkpoint.blob).get("external_waits", {})
++        wait_bytes = waits.get(engine_request_id)
++        if wait_bytes is None:
++            wait_bytes = next(
++                (
++                    value
++                    for value in waits.values()
++                    if json.loads(value).get("request", {}).get("engineRequestId") == engine_request_id
++                ),
++                None,
++            )
++        if (
++            wait_bytes is None
++            or signal_data.get("engineRequestId") != engine_request_id
++            or signal_data.get("decisionId") != decision_id
++            or signal_data.get("enqueueObligationId") != str(enqueue_obligation_id)
++        ):
++            raise RuntimeError("continuation_binding_conflict")
++        metadata = dict(job.job_metadata or {})
++        metadata.pop("owner", None)
++        metadata.pop("heartbeat_at", None)
++        metadata["continuation_signal_id"] = str(signal_id)
++        queued_at = datetime.now(timezone.utc).isoformat()
++        from sqlmodel import update
++
++        queue_claimed = False
++        if job.status == JobStatus.SUSPENDED:
++            claim = (
++                update(Job)
++                .where(Job.job_id == engine_job_id, Job.status == JobStatus.SUSPENDED)
++                .values(status=JobStatus.QUEUED, job_metadata=metadata)
++            )
++            queue_claimed = (await session.exec(claim)).rowcount == 1  # type: ignore[call-overload]
++            if not queue_claimed:
++                await session.refresh(job)
++        if not queue_claimed and job.status not in {JobStatus.QUEUED, JobStatus.IN_PROGRESS}:
++            return None
++        receipt_bytes = json.dumps(
++            {
++                "version": 1,
++                "engineJobId": str(engine_job_id),
++                "engineRequestId": engine_request_id,
++                "decisionId": decision_id,
++                "signalId": str(signal_id),
++                "enqueueObligationId": str(enqueue_obligation_id),
++                "queuedAt": queued_at,
++                "queueClaimed": queue_claimed,
++            },
++            separators=(",", ":"),
++        )
++        if session.get_bind().dialect.name == "postgresql":
++            from sqlalchemy.dialects.postgresql import insert as dialect_insert
++        else:
++            from sqlalchemy.dialects.sqlite import insert as dialect_insert
++        insert = (
++            dialect_insert(JobCheckpoint)
++            .values(
++                id=uuid4(),
++                job_id=engine_job_id,
++                kind=kind,
++                blob=receipt_bytes,
++                created_at=datetime.fromisoformat(queued_at),
++                updated_at=datetime.fromisoformat(queued_at),
++            )
++            .on_conflict_do_nothing(index_elements=["job_id", "kind"])
++        )
++        await session.exec(insert)
++        saved = (
++            await session.exec(
++                select(JobCheckpoint)
++                .where(JobCheckpoint.job_id == engine_job_id)
++                .where(JobCheckpoint.kind == kind)
++            )
++        ).one()
++        saved_receipt = json.loads(saved.blob)
++        expected = {
++            "engineJobId": str(engine_job_id),
++            "engineRequestId": engine_request_id,
++            "decisionId": decision_id,
++            "signalId": str(signal_id),
++            "enqueueObligationId": str(enqueue_obligation_id),
++        }
++        if any(saved_receipt[key] != value for key, value in expected.items()):
++            raise RuntimeError("continuation_obligation_conflict")
++        return saved.blob.encode()
++
++    async def consume_signal(self, job_id: UUID, signal_id: UUID) -> bool:
++        """Consume one exact signal after the runner applies its saved data."""
++        async with session_scope() as session:
++            signal = await session.get(ExecutionSignal, signal_id)
++            if signal is None or signal.job_id != job_id or signal.consumed_at is not None:
++                return False
++            signal.consumed_at = datetime.now(timezone.utc)
++            session.add(signal)
++            await session.flush()
++            return True
++
+     async def load_checkpoint(self, job_id: UUID, kind: str) -> str | None:
+         """Return the stored checkpoint blob for ``(job_id, kind)``, or None if absent."""
+         async with session_scope() as session:
+@@ -861,6 +990,39 @@
+                 if not self.is_lease_stale(job, lease_ttl_s=lease_ttl_s):
+                     # Live owner still heartbeating — leave the run alone.
+                     continue
++                checkpoint = (
++                    await session.exec(
++                        select(JobCheckpoint)
++                        .where(JobCheckpoint.job_id == job.job_id)
++                        .where(JobCheckpoint.kind == "graph")
++                    )
++                ).first()
++                resume_signal = (
++                    await session.exec(
++                        select(ExecutionSignal)
++                        .where(ExecutionSignal.job_id == job.job_id)
++                        .where(ExecutionSignal.signal_type == SignalType.RESUME)
++                        .where(col(ExecutionSignal.consumed_at).is_(None))
++                    )
++                ).first()
++                has_waits = checkpoint is not None and bool(json.loads(checkpoint.blob).get("external_waits"))
++                if resume_signal is not None or has_waits:
++                    metadata = dict(job.job_metadata or {})
++                    metadata.pop("owner", None)
++                    metadata.pop("heartbeat_at", None)
++                    prior_heartbeat = (job.job_metadata or {}).get("heartbeat_at")
++                    heartbeat_unchanged = hb_expr.is_(None) if prior_heartbeat is None else hb_expr == prior_heartbeat
++                    recover = (
++                        update(Job)
++                        .where(
++                            Job.job_id == job.job_id,
++                            Job.status == JobStatus.IN_PROGRESS,
++                            heartbeat_unchanged,
++                        )
++                        .values(status=JobStatus.QUEUED, job_metadata=metadata)
++                    )
++                    await session.exec(recover)  # type: ignore[call-overload]
++                    continue
+                 prior_heartbeat = (job.job_metadata or {}).get("heartbeat_at")
+                 heartbeat_unchanged = hb_expr.is_(None) if prior_heartbeat is None else hb_expr == prior_heartbeat
+                 claim = (
+@@ -1019,7 +1141,7 @@
+             await logger.ainfo(f"Executing job function for job_id={job_id}")
+             result = await run_coro_func(*args, **kwargs)
+ 
+-        except (PauseRequested, GraphPausedException):
++        except (PauseRequested, GraphPausedException, ExternalWaitPending):
+             # A producer paused the run for human input. The runner suspends it
+             # (SUSPENDED); do NOT write a terminal status here.
+             await logger.adebug(f"Job {job_id} paused for human input")
+diff --git a/src/backend/base/langflow/services/background_execution/runner.py b/src/backend/base/langflow/services/background_execution/runner.py
+index dbcc139..421201c 100644
+--- a/src/backend/base/langflow/services/background_execution/runner.py
++++ b/src/backend/base/langflow/services/background_execution/runner.py
+@@ -16,4 +16,5 @@
+ from typing import TYPE_CHECKING, Any
+ 
++from lfx.graph.external_wait import ExternalWaitPending
+ from lfx.log.logger import logger
+ from lfx.workflow.adapters.langflow import WORKFLOW_OUTPUT_CAPTURE_EVENT, WORKFLOW_STOP_CHECKPOINT_EVENT
+@@ -118,5 +119,30 @@
+             else:
+                 paused = True
+                 await logger.adebug(f"Background job {job_id} suspended for human input")
++        except ExternalWaitPending as exc:
++            await self._stop_heartbeat(heartbeat_task)
++            heartbeat_task = None
++            try:
++                for wait_bytes in exc.waits.values():
++                    wait = json.loads(wait_bytes)
++                    if wait["kind"] == "human":
++                        await self._jobs.append_event(
++                            job_id,
++                            HUMAN_INPUT_REQUIRED_EVENT,
++                            {
++                                "request_id": wait["request"]["engineRequestId"],
++                                "trellis_wait_v1": wait["request"],
++                            },
++                        )
++                await self._jobs.suspend_job(job_id, {"external_wait_ids": list(exc.waits)})
++            except Exception as suspend_exc:  # noqa: BLE001
++                await logger.aerror(f"Background job {job_id} failed to suspend: {suspend_exc}", exc_info=True)
++                with contextlib.suppress(Exception):
++                    await self._jobs.update_job_status(job_id, JobStatus.FAILED, finished_timestamp=True)
++                with contextlib.suppress(Exception):
++                    await self._jobs.set_error(job_id, {"type": "suspend_failed"})
++            else:
++                paused = True
++                await logger.adebug(f"Background job {job_id} suspended for an external wait")
+         except asyncio.CancelledError as exc:
+             user_tagged = bool(exc.args) and exc.args[0] == "LANGFLOW_USER_CANCELLED"
+@@ -331,3 +358,4 @@
+             raise RuntimeError(msg)
+         await self._jobs.set_result(job_id, {"status": "completed", "outputs": self._dedup_outputs(output_events)})
++        await self._jobs.consume_signals(job_id, SignalType.RESUME)
+ 
+@@ -368,16 +382,26 @@
+         return merged
+ 
+     async def _maybe_resume(self, job_id: UUID) -> dict[str, Any] | None:
+-        data = await self._pending_resume(job_id)
+-        if data is None:
++        signal = await self._pending_resume(job_id)
++        if signal is None:
+             return None
++        data = signal.data or {}
++        if data.get("kind") == "trellis_external_completion_v1":
++            return {"kind": "external_wait", "request_id": data.get("engineRequestId")}
+         checkpoint = await self._load_checkpoint(job_id)
+         await self._resume_hook(checkpoint, data.get("decision"))
+-        await self._jobs.consume_signals(job_id, SignalType.RESUME)
+-        return {"request_id": data.get("request_id"), "decision": data.get("decision")}
++        return {
++            "request_id": data.get("request_id") or data.get("engineRequestId"),
++            "decision": data.get("decision"),
++        }
+ 
+-    async def _pending_resume(self, job_id: UUID) -> dict[str, Any] | None:
+-        for signal in await self._jobs.unconsumed_signals(job_id):
+-            if signal.signal_type == SignalType.RESUME:
+-                return signal.data or {}
++    async def _pending_resume(self, job_id: UUID):
++        signals = await self._jobs.unconsumed_signals(job_id)
++        job = await self._jobs.get_job_by_job_id(job_id)
++        signal_id = (job.job_metadata or {}).get("continuation_signal_id") if job is not None else None
++        for signal in signals:
++            if signal.signal_type != SignalType.RESUME:
++                continue
++            if signal_id is None or str(signal.id) == signal_id:
++                return signal
+         return None
+diff --git a/src/backend/base/langflow/services/background_execution/service.py b/src/backend/base/langflow/services/background_execution/service.py
+index 5ce908a..43a07a2 100644
+--- a/src/backend/base/langflow/services/background_execution/service.py
++++ b/src/backend/base/langflow/services/background_execution/service.py
+@@ -25,4 +25,4 @@
+ from pathlib import Path
+-from typing import TYPE_CHECKING, Any
++from typing import TYPE_CHECKING, Any, Literal
+ from uuid import uuid4
+ 
+@@ -37,4 +37,4 @@
+ if TYPE_CHECKING:
+-    from collections.abc import AsyncIterator, Callable
++    from collections.abc import AsyncIterator, Awaitable, Callable
+     from uuid import UUID
+ 
+@@ -119,5 +119,7 @@
+         self._frame_source_factory = frame_source_factory
+         self._deadline_task: asyncio.Task | None = None
+         self._orphan_task: asyncio.Task | None = None
++        self._trellis_lease_retry_tasks: set[asyncio.Task[None]] = set()
++        self._trellis_lease_retry_keys: set[str] = set()
+         self.set_ready()
+ 
+@@ -162,10 +164,13 @@
+     async def stop(self) -> None:
+         watchdogs = [task for task in (self._deadline_task, self._orphan_task) if task is not None]
+-        for task in watchdogs:
++        retry_tasks = list(self._trellis_lease_retry_tasks)
++        for task in [*watchdogs, *retry_tasks]:
+             task.cancel()
+         self._deadline_task = None
+         self._orphan_task = None
+-        if watchdogs:
+-            await asyncio.gather(*watchdogs, return_exceptions=True)
++        if watchdogs or retry_tasks:
++            await asyncio.gather(*watchdogs, *retry_tasks, return_exceptions=True)
++        self._trellis_lease_retry_tasks.clear()
++        self._trellis_lease_retry_keys.clear()
+         await self._executor.stop()
+ 
+@@ -710,5 +716,311 @@
+         await job_service.write_signal(job_id, SignalType.STOP)
+         await self._executor.cancel(str(job_id))
+ 
++    async def accept_trellis_human_decision(
++        self,
++        *,
++        engine_job_id: UUID,
++        decision_bytes: bytes,
++        payload_digest: str,
++    ) -> dict[str, Any]:
++        """Commit and queue one exact human decision."""
++        from langflow.services.trellis_v1.decisions import DecisionAcceptanceLedger
++
++        receipt = await DecisionAcceptanceLedger().accept(
++            engine_job_id=engine_job_id,
++            decision_bytes=decision_bytes,
++            payload_digest=payload_digest,
++        )
++        await self._consume_trellis_decision_obligation(receipt)
++        return receipt
++
++    async def _consume_trellis_decision_obligation(self, receipt: dict[str, Any]) -> None:
++        from uuid import UUID
++
++        from langflow.services.trellis_v1.decisions import DecisionAcceptanceLedger
++
++        enqueue_obligation_id = UUID(receipt["enqueueObligationId"])
++        continuation_receipt, disposition = await self._consume_trellis_continuation(
++            engine_job_id=UUID(receipt["engineJobId"]),
++            engine_request_id=receipt["engineRequestId"],
++            decision_id=receipt["decisionId"],
++            signal_id=UUID(receipt["signalId"]),
++            enqueue_obligation_id=enqueue_obligation_id,
++        )
++        if disposition in {"dispatched", "execution_proven"}:
++            await DecisionAcceptanceLedger().mark_enqueue_obligation_consumed(
++                engine_job_id=UUID(receipt["engineJobId"]),
++                engine_request_id=receipt["engineRequestId"],
++                decision_id=receipt["decisionId"],
++                signal_id=UUID(receipt["signalId"]),
++                enqueue_obligation_id=enqueue_obligation_id,
++                continuation_receipt_bytes=continuation_receipt,
++            )
++
++    async def _drain_trellis_decision_obligations(self) -> None:
++        from langflow.services.trellis_v1.decisions import DecisionAcceptanceLedger
++
++        ledger = DecisionAcceptanceLedger()
++        for receipt in await ledger.pending_enqueue_obligations():
++            await self._consume_trellis_decision_obligation(receipt)
++
++    async def _consume_trellis_admission_obligation(self, obligation) -> None:
++        job_service = get_job_service()
++        receipt_bytes = await job_service.consume_suspended_continuation(
++            engine_job_id=obligation.engine_job_id,
++            engine_request_id=obligation.engine_request_id,
++            decision_id=None,
++            signal_id=obligation.signal_id,
++            enqueue_obligation_id=obligation.enqueue_obligation_id,
++        )
++        if receipt_bytes is None or receipt_bytes != obligation.continuation_receipt_bytes:
++            raise RuntimeError("continuation_obligation_conflict")
++        disposition = await self._enqueue_queued_continuation(
++            engine_job_id=obligation.engine_job_id,
++            enqueue_obligation_id=obligation.enqueue_obligation_id,
++            continuation_receipt_bytes=receipt_bytes,
++        )
++        if disposition in {"dispatched", "execution_proven"}:
++            await job_service.mark_trellis_admission_obligation_consumed(
++                engine_job_id=obligation.engine_job_id,
++                engine_request_id=obligation.engine_request_id,
++                signal_id=obligation.signal_id,
++                enqueue_obligation_id=obligation.enqueue_obligation_id,
++                continuation_receipt_bytes=receipt_bytes,
++            )
++
++    async def _drain_trellis_admission_obligations(self) -> None:
++        job_service = get_job_service()
++        for obligation in await job_service.pending_trellis_admission_obligations():
++            await self._consume_trellis_admission_obligation(obligation)
++
++    async def _drain_trellis_enqueue_obligations(self) -> None:
++        await self._drain_trellis_decision_obligations()
++        await self._drain_trellis_admission_obligations()
++
++    @staticmethod
++    async def lookup_trellis_human_decision(
++        *,
++        execution_id: str,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str,
++        payload_digest: str,
++    ) -> dict[str, Any]:
++        """Read the retained acknowledgement for one exact human decision."""
++        from langflow.services.trellis_v1.decisions import DecisionAcceptanceLedger
++
++        return await DecisionAcceptanceLedger().lookup(
++            execution_id=execution_id,
++            engine_job_id=engine_job_id,
++            engine_request_id=engine_request_id,
++            decision_id=decision_id,
++            payload_digest=payload_digest,
++        )
++
++    async def consume_decision_continuation(
++        self,
++        *,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++    ):
++        """Consume one accepted decision obligation through the Langflow queue."""
++        receipt_bytes, _disposition = await self._consume_trellis_continuation(
++            engine_job_id=engine_job_id,
++            engine_request_id=engine_request_id,
++            decision_id=decision_id,
++            signal_id=signal_id,
++            enqueue_obligation_id=enqueue_obligation_id,
++        )
++        from langflow.services.trellis_v1.external_waits import ContinuationConsumptionReceipt
++
++        return ContinuationConsumptionReceipt(**json.loads(receipt_bytes))
++
++    async def consume_external_continuation(
++        self,
++        *,
++        engine_job_id: UUID,
++        engine_wait_id: str,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++    ):
++        """Consume one completion obligation through the Langflow queue."""
++        receipt_bytes, _disposition = await self._consume_trellis_continuation(
++            engine_job_id=engine_job_id,
++            engine_request_id=engine_wait_id,
++            decision_id=None,
++            signal_id=signal_id,
++            enqueue_obligation_id=enqueue_obligation_id,
++        )
++        return json.loads(receipt_bytes)
++
++    async def _consume_trellis_continuation(
++        self,
++        *,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str | None,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++    ) -> tuple[bytes, str]:
++        receipt_bytes = await get_job_service().consume_suspended_continuation(
++            engine_job_id=engine_job_id,
++            engine_request_id=engine_request_id,
++            decision_id=decision_id,
++            signal_id=signal_id,
++            enqueue_obligation_id=enqueue_obligation_id,
++        )
++        if receipt_bytes is None:
++            raise RuntimeError("continuation_not_pending")
++        disposition = await self._enqueue_queued_continuation(
++            engine_job_id=engine_job_id,
++            enqueue_obligation_id=enqueue_obligation_id,
++            continuation_receipt_bytes=receipt_bytes,
++        )
++        return receipt_bytes, disposition
++
++    async def _enqueue_queued_continuation(
++        self,
++        *,
++        engine_job_id: UUID,
++        enqueue_obligation_id: UUID,
++        continuation_receipt_bytes: bytes,
++    ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
++        """Dispatch one bound continuation or report its exact durable state."""
++        job_service = get_job_service()
++        continuation_kind = f"trellis-continuation-v1:{enqueue_obligation_id}"
++        saved_receipt = await job_service.load_checkpoint(engine_job_id, continuation_kind)
++        if saved_receipt is None or saved_receipt.encode() != continuation_receipt_bytes:
++            raise RuntimeError("continuation_obligation_conflict")
++        dispatch_kind = f"trellis-dispatch-v1:{enqueue_obligation_id}"
++        dispatch_receipt = await job_service.load_checkpoint(engine_job_id, dispatch_kind)
++        if dispatch_receipt is not None:
++            if dispatch_receipt.encode() != continuation_receipt_bytes:
++                raise RuntimeError("continuation_dispatch_conflict")
++            return "dispatched"
++        job = await job_service.get_job_by_job_id(engine_job_id)
++        if job is None:
++            raise RuntimeError("continuation_job_missing")
++        proof = await self._continuation_execution_proof(job, continuation_receipt_bytes)
++        if proof is not None:
++            return proof
++        if job.status != JobStatus.QUEUED:
++            raise RuntimeError("continuation_dispatch_state_conflict")
++        if self._scaled:
++            await self._backend.enqueue(str(engine_job_id))
++            await job_service.save_checkpoint_once(
++                engine_job_id,
++                dispatch_kind,
++                continuation_receipt_bytes.decode(),
++            )
++            return "dispatched"
++        lease_heartbeat = datetime.now(timezone.utc).isoformat()
++        if not await job_service.claim_queued_lease(
++            engine_job_id,
++            owner=self._owner,
++            lease_ttl_s=self._settings.background_lease_ttl_s,
++            heartbeat_at=lease_heartbeat,
++        ):
++            refreshed = await job_service.get_job_by_job_id(engine_job_id)
++            if refreshed is None:
++                raise RuntimeError("continuation_job_missing")
++            proof = await self._continuation_execution_proof(refreshed, continuation_receipt_bytes)
++            if proof is not None:
++                return proof
++            self._schedule_trellis_obligation_retry(
++                engine_job_id=engine_job_id,
++                enqueue_obligation_id=enqueue_obligation_id,
++                continuation_receipt_bytes=continuation_receipt_bytes,
++            )
++            return "pending_lease"
++        try:
++            request = self._reconstruct_request(job)
++            await self._enqueue(
++                job_id=engine_job_id,
++                flow_id=job.flow_id,
++                request=request,
++                user=self._user_stub(job.user_id),
++            )
++            await job_service.save_checkpoint_once(
++                engine_job_id,
++                dispatch_kind,
++                continuation_receipt_bytes.decode(),
++            )
++        except Exception:
++            await job_service.release_queued_lease(
++                engine_job_id,
++                owner=self._owner,
++                heartbeat_at=lease_heartbeat,
++            )
++            raise
++        return "dispatched"
++
++    async def _continuation_execution_proof(
++        self,
++        job: Job,
++        continuation_receipt_bytes: bytes,
++    ) -> Literal["execution_proven", "cancelled"] | None:
++        """Bind execution proof to the saved continuation receipt and exact signal."""
++        receipt = json.loads(continuation_receipt_bytes)
++        signal_id = receipt["signalId"]
++        if (job.job_metadata or {}).get("continuation_signal_id") != signal_id:
++            return None
++        signals = await get_job_service().unconsumed_signals(job.job_id)
++        signal_is_pending = any(str(signal.id) == signal_id for signal in signals)
++        if job.status == JobStatus.CANCELLED and signal_is_pending:
++            return "cancelled"
++        if job.status == JobStatus.IN_PROGRESS:
++            return "execution_proven"
++        if not signal_is_pending and job.status != JobStatus.QUEUED:
++            return "execution_proven"
++        if job.status != JobStatus.SUSPENDED:
++            return None
++        checkpoint_bytes = await get_job_service().load_checkpoint(job.job_id, "graph")
++        if checkpoint_bytes is None:
++            return None
++        waits = json.loads(checkpoint_bytes).get("external_waits", {})
++        engine_request_id = receipt["engineRequestId"]
++        still_waiting = engine_request_id in waits or any(
++            json.loads(wait_bytes).get("request", {}).get("engineRequestId") == engine_request_id
++            for wait_bytes in waits.values()
++        )
++        return None if still_waiting else "execution_proven"
++
++    def _schedule_trellis_obligation_retry(
++        self,
++        *,
++        engine_job_id: UUID,
++        enqueue_obligation_id: UUID,
++        continuation_receipt_bytes: bytes,
++    ) -> None:
++        retry_key = f"obligation:{enqueue_obligation_id}"
++
++        async def retry() -> None:
++            await self._enqueue_queued_continuation(
++                engine_job_id=engine_job_id,
++                enqueue_obligation_id=enqueue_obligation_id,
++                continuation_receipt_bytes=continuation_receipt_bytes,
++            )
++            await self._drain_trellis_enqueue_obligations()
++
++        self._schedule_trellis_lease_retry(retry_key, retry)
++
++    def _schedule_trellis_lease_retry(self, retry_key: str, retry: Callable[[], Awaitable[None]]) -> None:
++        if retry_key in self._trellis_lease_retry_keys:
++            return
++        self._trellis_lease_retry_keys.add(retry_key)
++
++        async def run() -> None:
++            await asyncio.sleep(self._settings.background_lease_ttl_s + 0.05)
++            self._trellis_lease_retry_keys.remove(retry_key)
++            await retry()
++
++        task = asyncio.create_task(run())
++        self._trellis_lease_retry_tasks.add(task)
++        task.add_done_callback(self._trellis_lease_retry_tasks.discard)
++
+     async def resume_job(self, job_id: UUID, user: UserRead, *, request_id: str, decision: Any) -> bool:  # noqa: ARG002
+         """Carry a human decision back into a SUSPENDED run and re-enqueue it.
+@@ -795,4 +921,5 @@
+         """
+         await self.start()
++        await self._drain_trellis_enqueue_obligations()
+         job_service = get_job_service()
+         lease_ttl = self._settings.background_lease_ttl_s
+@@ -824,11 +951,15 @@
+         for job in await self._queued_workflow_jobs():
+             lease_heartbeat = datetime.now(timezone.utc).isoformat()
+             if not await job_service.claim_queued_lease(
+                 job.job_id,
+                 owner=self._owner,
+                 lease_ttl_s=lease_ttl,
+                 heartbeat_at=lease_heartbeat,
+             ):
++                self._schedule_trellis_lease_retry(
++                    f"queued-job:{job.job_id}",
++                    self.sweep_orphans_on_startup,
++                )
+                 continue
+             try:
+                 request_dict = self._reconstruct_request(job)
+diff --git a/src/backend/base/langflow/api/build.py b/src/backend/base/langflow/api/build.py
+index c82a951..58d7ed3 100644
+--- a/src/backend/base/langflow/api/build.py
++++ b/src/backend/base/langflow/api/build.py
+@@ -9,2 +9,3 @@
+ from lfx.exceptions.tweaks import TweakRefusedError
++from lfx.graph.external_wait import ExternalWaitPending
+ from lfx.graph.exceptions import GraphPausedException
+@@ -507,4 +508,7 @@
+             raise HTTPException(status_code=404, detail="Checkpoint expired or not found; cannot resume this run.")
+         graph = LfxGraph.resume_from_checkpoint(checkpoint, checkpoint_store=store)
++        from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroker
++
++        graph.external_wait_handler = TrellisExternalWaitBroker(get_job_service()).receipt_for
+         if not graph.user_id:
+             graph.user_id = str(current_user.id)
+@@ -526,22 +530,22 @@
+         graph.flow_name = graph.flow_name or flow_name
+         await graph.initialize_run()
+-        pending = await get_job_service().get_pending_human_request(job_id)
+-        decision = reroute_decision_on_timeout(pending, resume["decision"])
+-        # Merge with checkpoint-restored decisions so a re-run HITL keeps its answer (no multi-HITL loop).
+-        graph.human_input_decisions = {
+-            **(getattr(graph, "human_input_decisions", {}) or {}),
+-            resume["request_id"]: decision,
+-        }
+-        action_id = str((decision or {}).get("action_id", ""))
+-        gate_label = _hitl_gate_label(action_id, (pending or {}).get("options"))
+-        if graph.tracing_service:
+-            graph.tracing_service.record_event_span(
+-                span_id=f"hitl-{resume['request_id']}",
+-                name=f"Human In The Loop — {gate_label}",
+-                outputs={"decision": action_id},
+-            )
+-        for vertex in graph.vertices:
+-            if request_id_targets_vertex(str(resume["request_id"]), vertex.id, run_id):
+-                vertex.built = False
+-                _rerun_non_input_predecessors(graph, vertex.id)
++        if resume.get("kind") != "external_wait":
++            pending = await get_job_service().get_pending_human_request(job_id)
++            decision = reroute_decision_on_timeout(pending, resume["decision"])
++            graph.human_input_decisions = {
++                **(getattr(graph, "human_input_decisions", {}) or {}),
++                resume["request_id"]: decision,
++            }
++            action_id = str((decision or {}).get("action_id", ""))
++            gate_label = _hitl_gate_label(action_id, (pending or {}).get("options"))
++            if graph.tracing_service:
++                graph.tracing_service.record_event_span(
++                    span_id=f"hitl-{resume['request_id']}",
++                    name=f"Human In The Loop — {gate_label}",
++                    outputs={"decision": action_id},
++                )
++            for vertex in graph.vertices:
++                if request_id_targets_vertex(str(resume["request_id"]), vertex.id, run_id):
++                    vertex.built = False
++                    _rerun_non_input_predecessors(graph, vertex.id)
+         first_layer = graph.resume_first_layer()
+@@ -584,4 +589,7 @@
+                 graph.job_id = str(job_id)  # the checkpoint is keyed by job_id
+                 graph.checkpointing_enabled = True  # arm the pause seam for producers
+                 graph.checkpoint_store = get_checkpoint_service()
++                from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroker
++
++                graph.external_wait_handler = TrellisExternalWaitBroker(get_job_service()).receipt_for
+             first_layer = sort_vertices(graph)
+@@ -835,2 +843,2 @@
+-        except GraphPausedException:
++        except (GraphPausedException, ExternalWaitPending):
+             raise
+@@ -983,3 +991,3 @@
+-        except GraphPausedException:
++        except (GraphPausedException, ExternalWaitPending):
+             # Suspension must reach the runtime unwrapped — emitting on_error
+             # here would terminalize the run in every client.
+@@ -1023,2 +1031,8 @@
++    except ExternalWaitPending:
++        try:
++            await graph.end_all_traces()
++        except Exception:  # noqa: BLE001
++            await logger.awarning("Failed to flush partial trace for external wait in flow %s", flow_id, exc_info=True)
++        raise
+     except GraphPausedException as exc:
+         # Non-terminal: persist the card to history, emit the pause event, end without on_end.

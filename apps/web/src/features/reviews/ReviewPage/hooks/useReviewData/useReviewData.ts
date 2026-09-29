@@ -32,7 +32,7 @@ export const useReviewData = (pr: string) => {
 		enabled: identifier !== "",
 		refetchInterval: 45000,
 	});
-	const run = runs.data?.find((row) => row.kind === "agent") ?? null;
+	const run = runs.data?.items.find((row) => row.kind === "agent") ?? null;
 	const ref = reviewRef(pr);
 	const linkedPr =
 		ticket.data?.prs.find((row) => row.owner === ref.owner && row.repo === ref.repo && row.number === ref.number) ??

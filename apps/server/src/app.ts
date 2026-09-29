@@ -225,7 +225,7 @@ export const createApp = ({
 		await next();
 	});
 
-	app.get("/api/review-image", reviewImageRoute(transport));
+	app.get("/api/review-image", reviewImageRoute({ transport, log }));
 	app.get("/api/evidence/:fileId/file", prFileRoute({ config, transport }));
 	app.get("/api/resources/:id/blob", resourceBlobRoute({ config, transport }));
 	app.get("/api/events", events.handler);

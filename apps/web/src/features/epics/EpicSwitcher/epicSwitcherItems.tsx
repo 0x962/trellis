@@ -9,17 +9,17 @@ import { epicProgress } from "../epicBar";
 // holds a slash, so no epic takes this id.
 export const allEpicsId = "all-epics";
 
-// The rows of the epic switcher: every epic of `epics.list`, open first,
-// each with its progress circle and a check on the current epic, then the
-// All epics row.
-export const epicSwitcherItems = (epics: readonly EpicSummary[], current: string): CommandItem[] => [
-	...epicItems(epics, { current, picker: true }).map((item, index) => {
-		const epic = epics[index]!;
-		const { done, of } = epicProgress(epic.counts);
-		return { ...item, icon: progressIcon(done, of, epic.state === "done") };
-	}),
-	{ id: allEpicsId, label: "All epics", icon: <ListBullets className="text-fg-muted" /> },
-];
+export const epicSwitcherItems = (epics: readonly EpicSummary[], current: string): CommandItem[] => {
+	const openEpics = epics.filter((epic) => epic.state === "open");
+	return [
+		...epicItems(openEpics, { current, picker: true }).map((item, index) => {
+			const epic = openEpics[index]!;
+			const { done, of } = epicProgress(epic.counts);
+			return { ...item, icon: progressIcon(done, of, false) };
+		}),
+		{ id: allEpicsId, label: "All epics", icon: <ListBullets className="text-fg-muted" /> },
+	];
+};
 
 // The search of the epic a person switches to. The tab stays; the filters,
 // the grouping and the rest of the table view belong to the epic that was

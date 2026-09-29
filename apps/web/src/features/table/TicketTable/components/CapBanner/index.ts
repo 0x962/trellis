@@ -1,1 +1,0 @@
-export { CapBanner } from "./CapBanner";

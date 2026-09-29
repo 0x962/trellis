@@ -21,7 +21,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 		...orpc.agentRuns.list.queryOptions({ input: { ids: [initial.id] } }),
 		refetchInterval: 2000,
 	});
-	const run = query.data?.find((item) => item.id === initial.id) ?? initial;
+	const run = query.data?.items.find((item) => item.id === initial.id) ?? initial;
 	const [confirmStop, setConfirmStop] = useState(false);
 	const stop = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: run.id }),

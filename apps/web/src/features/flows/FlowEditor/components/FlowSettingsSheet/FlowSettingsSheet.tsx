@@ -91,7 +91,6 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 						label="Name"
 						required
 						autoComplete="off"
-						maxLength={120}
 						disabled={pending}
 						value={name}
 						onChange={(event) => setName(event.target.value)}
@@ -101,7 +100,6 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 							label="Slug"
 							required
 							autoComplete="off"
-							maxLength={64}
 							disabled={pending}
 							error={parsedSlug.success ? undefined : parsedSlug.error.issues[0]!.message}
 							value={slug}
@@ -112,7 +110,6 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 					<Input
 						label="Description"
 						autoComplete="off"
-						maxLength={2000}
 						disabled={pending}
 						value={description}
 						onChange={(event) => setDescription(event.target.value)}
@@ -120,7 +117,6 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 					<Textarea
 						label="Briefing"
 						rows={12}
-						maxLength={200000}
 						disabled={pending}
 						value={briefing}
 						onChange={(event) => setBriefing(event.target.value)}

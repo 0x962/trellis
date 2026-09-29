@@ -1,0 +1,36 @@
+{
+	"version": 1,
+	"upstream": {
+		"version": "1.12.3",
+		"commit": "fec71dca901949c09ed4d63315804337cd2eb13d",
+		"tree": "e6ac634257b30645b6c35bcc707ed271789877d6"
+	},
+	"pathBase": "repository-root",
+	"patches": [
+		{
+			"name": "backend",
+			"path": "reports/langflow-feasibility-review/backend-source-assembly.4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0.patch",
+			"sha256": "4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
+		},
+		{
+			"name": "editor",
+			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
+			"sha256": "4006793d90fdae7e16e1fc6e6a97ed1c155c75a64ce851662a4a48a203375fc9",
+			"directory": "src/frontend",
+			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
+		}
+	],
+	"fixtureSources": [
+		"integrations/langflow/tests/correlation",
+		"integrations/langflow/tests/semantics",
+		"integrations/langflow/tests/decisions",
+		"integrations/langflow/tests/nativeLifecycle",
+		"integrations/langflow/editor-probe",
+		"reports/langflow-large-graph-design"
+	],
+	"verification": "Pending after the complete source merge.",
+	"technicalAcceptance": false,
+	"productionApproval": false
+}

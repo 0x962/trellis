@@ -18,16 +18,25 @@ const openCall = () => {
 
 describe("startedRunList", () => {
 	test("puts the started run first in an empty list", () => {
-		expect(startedRunList(undefined, run("run-1", "OP-1"))).toEqual([run("run-1", "OP-1")]);
+		expect(startedRunList(undefined, run("run-1", "OP-1"))).toEqual({
+			items: [run("run-1", "OP-1")],
+			nextCursor: null,
+		});
 	});
 
 	test("puts the started run before the runs the list already holds", () => {
 		const older = run("run-0", "OP-0");
-		expect(startedRunList([older], run("run-1", "OP-1"))).toEqual([run("run-1", "OP-1"), older]);
+		expect(startedRunList({ items: [older], nextCursor: "next" }, run("run-1", "OP-1"))).toEqual({
+			items: [run("run-1", "OP-1"), older],
+			nextCursor: "next",
+		});
 	});
 
 	test("replaces a run the list already holds under the same id", () => {
-		expect(startedRunList([run("run-1", "OP-1")], run("run-1", "OP-1"))).toEqual([run("run-1", "OP-1")]);
+		expect(startedRunList({ items: [run("run-1", "OP-1")], nextCursor: null }, run("run-1", "OP-1"))).toEqual({
+			items: [run("run-1", "OP-1")],
+			nextCursor: null,
+		});
 	});
 });
 

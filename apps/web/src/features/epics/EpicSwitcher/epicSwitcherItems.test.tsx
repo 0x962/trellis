@@ -18,6 +18,7 @@ const epic = (slug: string, name: string, state: EpicSummary["state"], epicCount
 const epics = [
 	epic("dashboards", "Make Operator dashboards real", "open", counts(3, 12, 2)),
 	epic("runtime", "Routine runtime", "open", counts(0, 4)),
+	epic("empty", "Empty epic", "open", counts(0, 0)),
 	epic("onboarding", "Onboarding", "done", counts(5, 5)),
 ];
 
@@ -25,13 +26,13 @@ const iconLabel = (item: ReturnType<typeof epicSwitcherItems>[number]) =>
 	renderToStaticMarkup(item.icon!).match(/aria-label="([^"]+)"/)?.[1];
 
 describe("epicSwitcherItems", () => {
-	test("lists every epic in list order, then the All epics row", () => {
+	test("lists incomplete and empty epics in list order, then the All epics row", () => {
 		const items = epicSwitcherItems(epics, "OP/runtime");
-		expect(items.map((item) => item.id)).toEqual(["OP/dashboards", "OP/runtime", "OP/onboarding", allEpicsId]);
+		expect(items.map((item) => item.id)).toEqual(["OP/dashboards", "OP/runtime", "OP/empty", allEpicsId]);
 		expect(items.map((item) => item.label)).toEqual([
 			"Make Operator dashboards real",
 			"Routine runtime",
-			"Onboarding",
+			"Empty epic",
 			"All epics",
 		]);
 	});
@@ -43,12 +44,22 @@ describe("epicSwitcherItems", () => {
 
 	test("draws the progress circle of each epic, without the canceled tickets", () => {
 		const items = epicSwitcherItems(epics, "OP/runtime");
-		expect(items.slice(0, 3).map(iconLabel)).toEqual(["3 of 10 done", "0 of 4 done", "5 of 5 done"]);
+		expect(items.slice(0, 3).map(iconLabel)).toEqual(["3 of 10 done", "0 of 4 done", "0 of 0 done"]);
 	});
 
-	test("keeps the Done hint of a done epic", () => {
+	test("does not create a search item for a completed epic", () => {
 		const items = epicSwitcherItems(epics, "OP/runtime");
-		expect(items.map((item) => item.hint)).toEqual([undefined, undefined, "Done", undefined]);
+		expect(items.some((item) => item.label === "Onboarding" || item.keywords?.includes("onboarding"))).toBe(false);
+	});
+
+	test("omits a completed current epic from the choices", () => {
+		const items = epicSwitcherItems(epics, "OP/onboarding");
+		expect(items.some((item) => item.id === "OP/onboarding")).toBe(false);
+		expect(items.some((item) => item.current === true)).toBe(false);
+	});
+
+	test("keeps the All epics row when no incomplete epic exists", () => {
+		expect(epicSwitcherItems([epics[3]!], "OP/onboarding").map((item) => item.id)).toEqual([allEpicsId]);
 	});
 });
 

@@ -1,10 +1,10 @@
 import type { PageListInput, PageSummary, PageVersion } from "@trellis/api";
 import { defineCommand } from "citty";
+import { positiveInteger } from "../../arguments.ts";
 import { clientOf } from "../../client.ts";
 import { compact, contextOf } from "../../context.ts";
 import { printListPages, printRecord } from "../../output.ts";
 import { pageDetailRecord, pageList, versionList } from "./pageText.ts";
-import { positiveInteger } from "./revision.ts";
 
 // The largest page one request takes. A larger --limit reads several pages.
 const pageMax = 200;
