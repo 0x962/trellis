@@ -320,3 +320,12 @@ Only that acknowledgement permits settlement.
 `provisionAuthorityRecoveryIssuer(identity)` supplies the separate private credential for this endpoint.
 Composition must provision it explicitly and mount it through the OCI driver before recovery can complete.
 The engine endpoint requires both its normal bearer and `X-Trellis-Authority-Recovery-Issuer`.
+
+
+`LangflowHostControl.initialize({home,initialBlock})` creates independent host and data-home identities with a closed gate.
+The operation refuses an existing control directory and returns the saved identity and block.
+It needs no reconciliation verifier and grants no dispatch authority.
+`create({home,evidence,initialBlock})` creates the same closed control and opens its full API.
+A restore block retains the canonical envelope path, snapshot identifier, source home, and exact manifest digest.
+The target home and recovery envelope must be separate directories.
+The operation does not copy the payload or prove that a live database uses the captured bytes.
