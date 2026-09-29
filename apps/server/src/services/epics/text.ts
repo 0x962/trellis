@@ -60,11 +60,7 @@ export const earlierResults = (epic: Epic, ticketId: string) => {
 		.filter((group) => group.tickets.length > 0);
 };
 
-// The "Results of earlier waves" section of a brief: one `### <name>`
-// group per wave of `earlierResults`, and one list item per done
-// ticket. `outcomes` maps a ticket id to the complete outcome that the
-// ticket records. The outcome prints below the item with indentation. A
-// ticket with no outcome prints its item alone. No group gives no section.
+// Each ticket item includes the complete stored outcome. Later lines can contain required work.
 export const resultsLines = (epic: Epic, ticketId: string, outcomes: Map<string, string>): string[] => {
 	const groups = earlierResults(epic, ticketId);
 	if (groups.length === 0) return [];
