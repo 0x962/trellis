@@ -23,6 +23,9 @@ The existing host control identity must match both configured identity fields.
 The bootstrap reads the identity again before image import.
 The runtime directory is `langflow` below the configured Trellis home.
 The capture issuer and engine configuration use separate private files.
+The supervisor retains one outgoing callback credential for each engine instance.
+The driver receives that credential and its digest with the saved instance identity.
+The engine configuration uses `/run/trellis-secrets/native-reservations.token` as its container path.
 
 `authorityTransport` sends internal authority operations through `ServiceTransport`.
 The prepared `langflowHost.authority` service uses `createAuthorityPort` with the worker's real transaction runner.

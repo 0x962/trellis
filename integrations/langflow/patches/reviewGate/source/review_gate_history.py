@@ -8,6 +8,7 @@ from langflow.services.trellis_v1.native_records import checkpoint
 from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict
 from .occurrence_models import digest
 from .review_classifications import acceptance_kind
+from .review_gate_projection import read_review_projection
 from .review_protocol import read_review_response, read_review_visit, read_review_wait
 
 
@@ -26,7 +27,7 @@ async def read_review_history(session, job_id):
                 or request.classificationRequestDigest != digest(journal["classificationRequestBytes"])):
             raise OccurrenceConflict("review_history_binding_conflict")
         accepted_id = visit["acceptedResultId"]
-        state = "pending"
+        projection = read_review_projection(visit)
         if accepted_id is not None:
             ledger = await checkpoint(session, job_id, acceptance_kind(request.requestId))
             if ledger is None:
@@ -38,6 +39,5 @@ async def read_review_history(session, job_id):
             if (accepted.visit != request or accepted.visitDigest != wait.request.visitDigest
                     or accepted.result.classificationReceiptId != accepted_id or accepted.result.state == "claimed"):
                 raise OccurrenceConflict("review_history_result_conflict")
-            state = accepted.result.state
-        result.append({**visit, "state": state})
+        result.append({**visit, "projection": projection, "state": projection["state"]})
     return result

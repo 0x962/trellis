@@ -25,7 +25,7 @@ export async function readClassificationContext(
 			ctx.control.archive.readAuthorityBytes(authority) !== input.authorityBytes)
 			throw new Error("authority_conflict");
 		await assertOwnerActive(tx, authority);
-		assertAuthority(execution, authority, "review.classify", ctx.now());
+		await assertAuthority(tx, execution, authority, "review.classify", ctx.now());
 		if (execution.publicationId !== request.publicationId || execution.engineJobId !== request.engineJobId ||
 			authority.engineEpoch < request.engineEpoch || execution.diffId === null || execution.reviewedHead === null || execution.cancelIntent)
 			throw new Error("review_gate_identity_conflict");

@@ -5,6 +5,7 @@ import {
 	langflowDecisions,
 	langflowNativeHandles,
 	langflowStops,
+	langflowWorkspaceObservations,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 export async function readProjectionFacts(tx: Tx, input: { executionId: string }) {
@@ -25,7 +26,10 @@ export async function readProjectionFacts(tx: Tx, input: { executionId: string }
 		.select()
 		.from(langflowDeadlines)
 		.where(eq(langflowDeadlines.executionId, input.executionId));
+	const workspaceObservations = await tx.select().from(langflowWorkspaceObservations)
+		.where(eq(langflowWorkspaceObservations.executionId, input.executionId));
 	return {
+		workspaceObservations,
 		native: native.map((row) => {
 			const completed = completions.find((value) => value.stepId === row.stepId);
 			return {

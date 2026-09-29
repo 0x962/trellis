@@ -4,8 +4,10 @@ from langflow.services.deps import session_scope
 
 from .occurrence_models import canonical
 from langflow.services.trellis_v1.native_records import checkpoint
+from langflow.services.trellis_v1.projection_store import record_projection_checkpoint
 
 from .occurrence_journal import OccurrenceConflict
+from .occurrence_projection import retain_accepted_result
 from .occurrence_receipts import original_decision, receipt_kind, retain_output
 from .occurrence_store import locked_context, locked_graph, save_graph, save_journal
 
@@ -21,10 +23,12 @@ async def record_visit_output(graph, vertex_id, scope, result, *, port="result",
                 occurrence=visit["occurrence"], port=port, output=raw if human else result["output"], result_bytes=raw,
             )
             visit.setdefault("outputReceiptIds", {})[port] = receipt["receiptId"]
+            retain_accepted_result(visit, result, human=human)
             if human:
                 journal.setdefault("outputFeedback", {})[receipt["receiptId"]] = list(visit.get("feedbackReceiptIds", []))
             await save_journal(session, job_id, journal)
             await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     return receipt
 
@@ -40,6 +44,7 @@ async def record_control_output(graph, vertex_id, scope, occurrence, port, resul
             )
             await save_journal(session, job_id, journal)
             await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     return receipt
 
@@ -68,5 +73,6 @@ async def record_forwarded_output(graph, vertex_id, scope, port, result):
             )
             await save_journal(session, job_id, journal)
             await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     return receipt

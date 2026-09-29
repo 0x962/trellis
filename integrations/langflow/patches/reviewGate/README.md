@@ -22,7 +22,7 @@ The component is `integrations.langflow.components.jevGate.jevGate.TrellisReview
 
 Each review record stores `requestBytes`, `waitBytes`, and `acceptedResultId`. The operation sets `acceptedResultId` to the classification receipt ID after it reads the accepted terminal result from the TRL-995 ledger. `acceptedResultBytes` retains those exact bytes. `outputReceiptId` identifies the output on the selected branch.
 
-`review_gate_history.read_review_history(session, job_id)` returns every retained review visit, including consumed waits. It adds `state` from the accepted result. It checks the exact accepted bytes against the ledger. A visit without an accepted result remains pending.
+`review_gate_history.read_review_history(session, job_id)` returns every retained review visit, including consumed waits. It reads vertex state from the nested `projection` fields. It checks the exact accepted bytes against the ledger. Historical visits without projection facts retain unknown state and null times.
 
 The host delivers one response for each saved review wait. The same classification receipt serves all these responses. A later visit can reuse that result. Each delivery has an `engine-delivery` permit. An unknown response retains that permit for exact replay. A claimed result never enters the acceptance route.
 
@@ -37,3 +37,13 @@ The source includes mounted HTTP fixtures with the real Trellis database and det
 After the combined merge, run the focused server fixtures with the repository test command, the server type check, and Biome for the changed TypeScript files. In the existing patched engine environment, run `pytest integrations/langflow/tests/reviewGate` and the TRL-995 continuation fixtures. Complete the combined route, restart, and cancellation proof there.
 
 This source publication runs no tests, linters, builds, installs, engine execution, or provider calls. Runtime acceptance remains with the merged batch.
+
+## Projection lifecycle
+
+Each review visit retains `projection={state,acceptedResultId,startedAt,endedAt,error,skipReason}`. Allocation sets pending state and null fields. The actual review invocation records running state and its observed start time. Equal invocation replay preserves that time. A historical visit with an unknown start keeps null.
+
+Classification acceptance fills `acceptedResultId` without a terminal state or end time. The row retains `acceptedResultId` and `acceptedResultBytes` for ledger validation. Actual engine lifecycle hooks own completion, failure, cancellation, and skip facts. The review producer does not infer vertex completion from a classification or output receipt.
+
+The review writer calls `record_projection_checkpoint(session,job_id)` after it saves the journal and root graph. The same Job transaction contains both writes. Apply `0002-review-projection-checkpoints.patch` after `0001-review-gate-invocation.patch` and the shared projection store. The assembly owner retains patch order and catalog dependency hashes.
+
+Deferred fixtures cover acceptance before vertex completion, historical null times, consumed-wait history, and projection writes before transaction commit. These fixtures have not run.

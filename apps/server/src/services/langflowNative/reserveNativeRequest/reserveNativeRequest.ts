@@ -1,10 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
-import { and, eq, or } from "drizzle-orm";
 import { ulid } from "ulid";
 import { bindLaunchSnapshot } from "../../../db/queries/langflowExecution";
 import { assertAuthority, lockExecution } from "../../../db/queries/langflowExecution/executions";
 import { reserveNative } from "../../../db/queries/langflowExecution/native";
-import { langflowNativeHandles } from "../../../db/tables/langflowExecution";
 import type { Tx } from "../../../db/tx";
 import {
 	NativeHandleV1Schema,
@@ -16,6 +14,7 @@ import { reserve } from "../../agentRuns";
 import { assertExecutionNotCanceled } from "../../langflowStops";
 import { projectLaunchConfig } from "../../projectLaunchConfig";
 import { assembleNativePrompt } from "../assembleNativePrompt";
+import { findNativeRequest } from "../findNativeRequest";
 import { writeLaunchSnapshot } from "../launchSnapshot";
 import type { NativeReservationCtx } from "../types";
 
@@ -25,27 +24,8 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 	const request = readProtocolBytes(NativeRequestV1Schema, input.requestBytes);
 	const execution = await lockExecution(tx, request);
 	await assertAuthority(tx, execution, ctx.nativeAuthority, "native.reserve", ctx.now);
-	const semanticKey = JSON.stringify([
-		request.nodeId,
-		request.parentOccurrenceKey,
-		request.phase,
-		request.iterationPath.map((value) => [value.loopNodeId, value.round]),
-	]);
-	const [existing] = await tx
-		.select()
-		.from(langflowNativeHandles)
-		.where(
-			and(
-				eq(langflowNativeHandles.executionId, request.executionId),
-				or(
-					eq(langflowNativeHandles.semanticDigest, protocolDigest(semanticKey)),
-					eq(langflowNativeHandles.requestId, request.requestId),
-					eq(langflowNativeHandles.occurrenceDigest, protocolDigest(request.occurrenceKey)),
-				),
-			),
-		);
+	const existing = await findNativeRequest(tx, input);
 	if (existing) {
-		if (existing.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
 		return { replay: true as const, reservation: existing, launch: null };
 	}
 	await assertExecutionNotCanceled(ctx, tx, request);
