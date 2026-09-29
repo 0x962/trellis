@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { protocolDigest } from "../../../../langflowContracts";
 import type { AuthorityCommit, SidecarIdentity } from "../../../../langflowHost/contracts";
+import type { DispatchPermit } from "../../../../langflowHost/dispatchGate/contracts";
 import { type Db, openDb } from "../../../client";
 import { migrate } from "../../../migrate";
 import { assertAuthority, lockExecution, openAdmission, readExecution } from "../executions";
@@ -23,6 +24,34 @@ async function fixture(open = true) {
 	await migrate(db);
 	return receiptFixture(open, db);
 }
+function withPermit(input: Omit<AuthorityCommit, "permit">) {
+	const { request, authority } = input.receipt;
+	const intent = {
+		operation: "expectedOwnerId" in request ? "takeover" : "renewal",
+		executionId: request.executionId,
+		requestId: request.requestId,
+		expectedRevision: request.expectedRevision,
+		expiresAt: authority.expiresAt,
+		...("expectedOwnerId" in request
+			? { expectedOwnerId: request.expectedOwnerId, expectedEpoch: request.expectedEpoch }
+			: {}),
+	};
+	const permit: DispatchPermit = {
+		id: crypto.randomUUID(),
+		dataHomeId: identity.dataHomeId,
+		generation: 1,
+		binding: {
+			effectId: `authority:${request.executionId}:${request.requestId}`,
+			kind: "recovery",
+			executionId: request.executionId,
+			attemptId: null,
+			jobId: authority.engineJobId,
+			requestId: request.requestId,
+			payloadDigest: protocolDigest(JSON.stringify(intent)),
+		},
+	};
+	return { ...input, permit };
+}
 async function renewal(): Promise<AuthorityCommit> {
 	const row = await db.transaction((tx) => authorityControl.read(tx, execution));
 	const request = {
@@ -34,12 +63,12 @@ async function renewal(): Promise<AuthorityCommit> {
 	const authority = { ...row.authority, ownershipRevision: row.authority.ownershipRevision + 1,
 		capabilityId: "capability-2", issuedAt: now.toISOString(),
 	};
-	return {
+	return withPermit({
 		requestBytes, authorityBytes: ` ${JSON.stringify(authority)}\r\n`,
 		receipt: { version: 1, request, requestDigest: protocolDigest(requestBytes), renewalId: "renewal-2", authority },
 		observation: { id: request.supervisorObservationId, identity, observedAt: now.toISOString(), endpoint: "http://127.0.0.1:4000" },
 		revocation: null,
-	};
+	});
 }
 test("commits exact grant bytes with ownership and repairs reads after archive reopen", async () => {
 	await fixture();
@@ -106,13 +135,13 @@ test("takeover requires the persisted revocation and preserves canceled admissio
 	const authority = { ...original.authority, ownerId: "owner-2", engineEpoch: 2, ownershipRevision: 2,
 		capabilityId: "capability-2", permissions: ["execution.cancel"] as typeof original.authority.permissions,
 		issuedAt: now.toISOString() };
-	const input: AuthorityCommit = {
+	const input: AuthorityCommit = withPermit({
 		requestBytes, authorityBytes: ` ${JSON.stringify(authority)}\n`,
 		receipt: { version: 1, request, requestDigest: protocolDigest(requestBytes), authority,
 			transferId: "transfer-1", committedAt: now.toISOString(), admission: row.admission },
 		observation: { id: request.supervisorObservationId, identity: { ...identity, ownerId: "owner-2", instanceId: "instance-2" },
 			observedAt: now.toISOString(), endpoint: "http://127.0.0.1:4001" }, revocation: prior,
-	};
+	});
 	await expect(db.transaction((tx) => authorityControl.commit(tx, {
 		...input, revocation: { ...prior, observationId: "invented" },
 	}))).rejects.toThrow("owner_revocation_conflict");
