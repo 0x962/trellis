@@ -13,6 +13,7 @@ export * from "./flow.ts";
 export * from "./flowDocumentV1.ts";
 export * from "./flowExecution.ts";
 export * from "./flowExecutionViewV1.ts";
+export * from "./flowV1Fixtures.ts";
 export * from "./flowWaiver.ts";
 export * from "./harnessAccount.ts";
 export * from "./internalLink.ts";

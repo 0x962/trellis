@@ -3,7 +3,7 @@ import { contract, flowDocumentsV1, flowDocumentV1Errors } from "../contract/ind
 import { FlowDocSchema, FlowListInputSchema, FlowSaveInputSchema } from "./flow.ts";
 import { FlowDocumentSaveV1InputSchema, FlowDocumentV1Schema } from "./flowDocumentV1.ts";
 import {
-	flowV1Id,
+	flowV1FixtureIds,
 	flowV1RequestId,
 	legacyDocumentV1Example,
 	pendingDocumentV1Example,
@@ -102,7 +102,7 @@ test("the unsupported-format error directs legacy clients to a versioned route",
 	expect(error.status).toBe(422);
 	expect(
 		error.data.parse({
-			flowId: flowV1Id,
+			flowId: flowV1FixtureIds.flow,
 			engine: "langflow" as const,
 			schemaVersion: 1 as const,
 			operation: "read",
@@ -129,7 +129,7 @@ test("versioned route exports do not register services in the live contract", ()
 
 test("legacy saves reject unknown node and edge bytes", () => {
 	const node = {
-		id: flowV1Id,
+		id: flowV1FixtureIds.node,
 		parentId: null,
 		kind: "agent",
 		title: "Review",
@@ -141,7 +141,12 @@ test("legacy saves reject unknown node and edge bytes", () => {
 		width: null,
 		height: null,
 	};
-	const edge = { id: flowV1Id, fromNodeId: flowV1Id, toNodeId: flowV1Id, branch: "out" };
+	const edge = {
+		id: flowV1FixtureIds.edge,
+		fromNodeId: flowV1FixtureIds.node,
+		toNodeId: flowV1FixtureIds.node,
+		branch: "out",
+	};
 	const input = {
 		...save,
 		engine: "legacy",
@@ -167,7 +172,7 @@ test("legacy saves reject unknown node and edge bytes", () => {
 
 test("legacy saves enforce node kinds while snapshots retain the read schema", () => {
 	const node = {
-		id: flowV1Id,
+		id: flowV1FixtureIds.node,
 		parentId: null,
 		kind: "loop",
 		title: "Review",

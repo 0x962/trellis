@@ -1,12 +1,23 @@
 import type { FlowDocumentV1, FlowPublicationV1 } from "./flowDocumentV1.ts";
 import type { FlowDecisionDeliveryV1, FlowExecutionViewV1, FlowOccurrenceV1 } from "./flowExecutionViewV1.ts";
 
-export const flowV1Id = "01M3NX2VHFRQKKK08C4GZX4GNR";
+export const flowV1FixtureIds = {
+	flow: "00000000000000000000000001",
+	publication: "00000000000000000000000002",
+	previousPublication: "00000000000000000000000003",
+	execution: "00000000000000000000000004",
+	ticket: "00000000000000000000000005",
+	project: "00000000000000000000000006",
+	agentRun: "00000000000000000000000007",
+	diff: "00000000000000000000000008",
+	node: "00000000000000000000000009",
+	edge: "00000000000000000000000010",
+};
 export const flowV1Time = "2026-09-29T06:00:00Z";
 export const flowV1Digest = "a".repeat(64);
 export const flowV1RequestId = "b9e9b394-f091-41da-96ca-591b678aac83";
 const flow = {
-	id: flowV1Id,
+	id: flowV1FixtureIds.flow,
 	project: "TRL",
 	slug: "review",
 	name: "Review",
@@ -30,8 +41,8 @@ export const legacyDocumentV1Example: Extract<FlowDocumentV1, { engine: "legacy"
 	lastExecutablePublication: null,
 };
 export const publicationV1Example: FlowPublicationV1 = {
-	publicationId: flowV1Id,
-	flowId: flowV1Id,
+	publicationId: flowV1FixtureIds.publication,
+	flowId: flowV1FixtureIds.flow,
 	revision: 2,
 	documentHash: flowV1Digest,
 	engineFlowId: "engine-flow-1",
@@ -46,7 +57,12 @@ export const pendingDocumentV1Example: Extract<FlowDocumentV1, { engine: "langfl
 	graphDocument: { data: { nodes: [], edges: [] } },
 	componentManifestHash: publicationV1Example.componentManifestHash,
 	publication: { state: "pending", revision: 2 },
-	lastExecutablePublication: { ...publicationV1Example, revision: 1, documentHash: "e".repeat(64) },
+	lastExecutablePublication: {
+		...publicationV1Example,
+		publicationId: flowV1FixtureIds.previousPublication,
+		revision: 1,
+		documentHash: "e".repeat(64),
+	},
 };
 export const publishedDocumentV1Example: Extract<FlowDocumentV1, { engine: "langflow" }> = {
 	...pendingDocumentV1Example,
@@ -59,10 +75,10 @@ const {
 	...snapshot
 } = publishedDocumentV1Example;
 export const executionViewV1Example: FlowExecutionViewV1 = {
-	id: flowV1Id,
-	flowId: flowV1Id,
-	ticketId: flowV1Id,
-	projectId: flowV1Id,
+	id: flowV1FixtureIds.execution,
+	flowId: flowV1FixtureIds.flow,
+	ticketId: flowV1FixtureIds.ticket,
+	projectId: flowV1FixtureIds.project,
 	diffId: null,
 	revision: 8,
 	createdAt: flowV1Time,
@@ -112,7 +128,7 @@ export const occurrenceV1Example: FlowOccurrenceV1 = {
 	attempts: [
 		{
 			stepId: "step-37",
-			agentRunId: flowV1Id,
+			agentRunId: flowV1FixtureIds.agentRun,
 			attemptId: "attempt-37",
 			workspaceId: null,
 			workspaceCommit: null,
@@ -145,7 +161,7 @@ export const stopPendingV1Example: FlowExecutionViewV1 = {
 	stopObligations: [
 		{
 			stepId: "step-37",
-			agentRunId: flowV1Id,
+			agentRunId: flowV1FixtureIds.agentRun,
 			attemptId: "attempt-37",
 			reason: "The person canceled the execution.",
 			requestedAt: flowV1Time,

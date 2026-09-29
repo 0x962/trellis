@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { FlowDocumentV1Schema, FlowExecutionViewV1Schema as PublicViewSchema } from "../index.ts";
+import {
+	FlowDocumentV1Schema,
+	FlowExecutionViewV1Schema as PublicViewSchema,
+	executionViewV1Example as rootExample,
+} from "../index.ts";
 import {
 	FlowExecutionCancelInputSchema,
 	FlowExecutionDecisionInputSchema,
@@ -16,7 +20,7 @@ import {
 } from "./flowExecutionViewV1.ts";
 import {
 	executionViewV1Example,
-	flowV1Id,
+	flowV1FixtureIds,
 	flowV1Time,
 	legacyDocumentV1Example,
 	occurrenceV1Example,
@@ -25,8 +29,12 @@ import {
 	unknownAdmissionV1Example,
 	unknownDecisionV1Example,
 } from "./flowV1Fixtures.ts";
+import { executionViewV1Example as schemasExample } from "./index.ts";
 
-test("the package root exports both public schemas", () => {
+test("the package exports public schemas and consumer examples", () => {
+	expect(rootExample).toBe(executionViewV1Example);
+	expect(schemasExample).toBe(executionViewV1Example);
+	expect(new Set(Object.values(flowV1FixtureIds)).size).toBe(Object.keys(flowV1FixtureIds).length);
 	expect(PublicViewSchema).toBe(FlowExecutionViewV1Schema);
 	expect(FlowDocumentV1Schema.parse(pendingDocumentV1Example).revision).toBe(2);
 });
@@ -142,12 +150,20 @@ test("an unknown decision keeps notes and requires an acceptance receipt for con
 });
 
 test("decision and cancellation preserve expectedRevision for the service stale-action check", () => {
-	const input = { id: flowV1Id, key: "review-37", approved: true, output: "Approved.", expectedRevision: 7 };
+	const input = {
+		id: flowV1FixtureIds.execution,
+		key: "review-37",
+		approved: true,
+		output: "Approved.",
+		expectedRevision: 7,
+	};
 	expect(FlowExecutionDecisionInputSchema.parse(input).expectedRevision).toBe(7);
 	expect(FlowExecutionDecisionInputSchema.safeParse({ ...input, expectedRevision: undefined }).success).toBe(false);
 	expect(FlowExecutionDecisionInputSchema.safeParse({ ...input, decisionId: "new-key" }).success).toBe(false);
-	expect(FlowExecutionCancelInputSchema.parse({ id: flowV1Id, expectedRevision: 7 }).expectedRevision).toBe(7);
-	expect(FlowExecutionCancelInputSchema.safeParse({ id: flowV1Id }).success).toBe(false);
+	expect(
+		FlowExecutionCancelInputSchema.parse({ id: flowV1FixtureIds.execution, expectedRevision: 7 }).expectedRevision,
+	).toBe(7);
+	expect(FlowExecutionCancelInputSchema.safeParse({ id: flowV1FixtureIds.execution }).success).toBe(false);
 	const view = FlowExecutionViewV1Schema.parse({
 		...executionViewV1Example,
 		decisionDeliveries: [unknownDecisionV1Example],
@@ -156,7 +172,7 @@ test("decision and cancellation preserve expectedRevision for the service stale-
 });
 
 test("legacy execution filters retain pagination beyond 500 results", () => {
-	const input = { flow: "review", ticket: "TRL-665", diffId: flowV1Id, limit: 500, offset: 500 };
+	const input = { flow: "review", ticket: "TRL-665", diffId: flowV1FixtureIds.diff, limit: 500, offset: 500 };
 	expect(FlowExecutionListInputSchema.parse(input)).toEqual(input);
 });
 
