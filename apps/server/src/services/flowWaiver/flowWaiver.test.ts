@@ -14,7 +14,15 @@ const later = new Date("2026-09-22T13:00:00.000Z");
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const ctx = (at = now) => ({ actor, now: () => at, emit: () => {}, newTx: inTx }) as unknown as IoCtx;
+const actorCache = new Map<string, number>();
+const ctx = (at = now) =>
+	({
+		actor,
+		core: { now: at, actorCache } as IoCtx["core"],
+		now: () => at,
+		emit: () => {},
+		newTx: inTx,
+	}) as unknown as IoCtx;
 
 beforeAll(async () => {
 	db = await openTestDb();

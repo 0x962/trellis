@@ -24,3 +24,14 @@ test("counts only unresolved stop obligations", () => {
 	const notice = executionViewNotice(stopPendingV1Example, "current", true);
 	expect(notice).toContain("1 worker stops await confirmation");
 });
+
+test("names review classification separately from a native result or human decision", () => {
+	const notice = executionViewNotice(
+		{ ...executionViewV1Example, status: "waiting", detail: "waiting_review" },
+		"current",
+		false,
+	);
+	expect(notice).toContain("The run awaits review classification.");
+	expect(notice).not.toContain("awaits a native result");
+	expect(notice).not.toContain("needs a human decision");
+});

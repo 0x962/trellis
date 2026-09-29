@@ -15,8 +15,9 @@ import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { assertProjectActive } from "../refs.ts";
-import { type IoCtx, notFound, touchActor } from "../support.ts";
+import { type IoCtx, notFound } from "../support.ts";
 
 type CommentRow = {
 	id: string;
@@ -149,12 +150,12 @@ export const create = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	assertProjectActive(ctx.core, resource.project_id);
 	const id = ulid();
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`INSERT INTO resource_comments (
-		id, resource_id, thread_id, body, quote, prefix, suffix, actor_name, actor_kind, created_at, updated_at
+		id, resource_id, thread_id, body, quote, prefix, suffix, actor_id, actor_name, actor_kind, created_at, updated_at
 	) VALUES (
 		${id}, ${resource.id}, ${id}, ${input.body}, ${input.anchor.quote}, ${input.anchor.prefix},
-		${input.anchor.suffix}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at}
+		${input.anchor.suffix}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at}
 	)`);
 	changed(ctx, resource);
 	return threadById(tx, id);
@@ -184,11 +185,11 @@ export const reply = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	const thread = await findThread(tx, input.thread);
 	assertProjectActive(ctx.core, thread.resource.project_id);
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`INSERT INTO resource_comments (
-		id, resource_id, thread_id, body, actor_name, actor_kind, created_at, updated_at
+		id, resource_id, thread_id, body, actor_id, actor_name, actor_kind, created_at, updated_at
 	) VALUES (
-		${ulid()}, ${thread.resource_id}, ${thread.id}, ${input.body}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at}
+		${ulid()}, ${thread.resource_id}, ${thread.id}, ${input.body}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at}
 	)`);
 	changed(ctx, thread.resource);
 	return threadById(tx, thread.id);
@@ -199,12 +200,12 @@ export const resolve = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	const thread = await findThread(tx, input.thread);
 	assertProjectActive(ctx.core, thread.resource.project_id);
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = input.resolved ? await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor) : null;
 	await tx.execute(
 		input.resolved
-			? sql`UPDATE resource_comments SET resolved_at = ${at}, resolved_by_name = ${ctx.actor.name},
+			? sql`UPDATE resource_comments SET resolved_at = ${at}, resolved_by_id = ${actorId}, resolved_by_name = ${ctx.actor.name},
 				resolved_by_kind = ${ctx.actor.kind} WHERE id = ${thread.id}`
-			: sql`UPDATE resource_comments SET resolved_at = NULL, resolved_by_name = NULL, resolved_by_kind = NULL
+			: sql`UPDATE resource_comments SET resolved_at = NULL, resolved_by_id = NULL, resolved_by_name = NULL, resolved_by_kind = NULL
 				WHERE id = ${thread.id}`,
 	);
 	changed(ctx, thread.resource);

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "requires": [
+    {
+      "patch": "0002-component-entry-receipts.patch",
+      "sha256": "09e1c6a68cbcc93fceabc065414f43d2976566fe3fc41a83c58763eb3b53e8ef"
+    }
+  ],
+  "patch": "integrations/langflow/patches/occurrenceRequests/0003-native-reservation-obligations.patch",
+  "sha256": "a265d58575658d0f30a9d16d0e24650e6bb68553572b579938117f704d558c1d",
+  "sources": [
+    {
+      "source": "source/occurrence_requests.py",
+      "target": "src/backend/base/langflow/services/trellis_v1/occurrence_requests.py",
+      "sha256": "ea982e6f99e7e95cf6c66a8c4cbf582bc791f63f4b316406c3c7bea9a9a7aa31"
+    },
+    {
+      "source": "source/occurrence_reservations.py",
+      "target": "src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py",
+      "sha256": "f55d2504cc45155222e4be06581e7a601fcf0bbb21c7dbecf9893a2084577c5e"
+    }
+  ],
+  "qualification": "source-only",
+  "runtimeAccepted": false
+}

@@ -145,7 +145,11 @@ const fetchBatch = async (hook: PollerHook, state: PollerState, at: Date, batch:
 		else if (entry.row.contentHash !== stored.content_hash || stored.fetch_error !== null)
 			written.push({ stored, row: entry.row });
 	}
-	await withTx(hook.db, (tx, emit) => writePolled(tx, emit, { at, written, failed }), hook.sink);
+	await withTx(
+		hook.db,
+		(tx, emit) => writePolled(serviceCtx(hook, emit, at), tx, emit, { at, written, failed }),
+		hook.sink,
+	);
 	return true;
 };
 

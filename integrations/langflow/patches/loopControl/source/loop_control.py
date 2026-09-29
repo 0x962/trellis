@@ -1,0 +1,234 @@
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+from typing import Any
+
+
+ECMASCRIPT_WHITESPACE = (
+    "\u0009\u000a\u000b\u000c\u000d\u0020\u00a0\u1680"
+    "\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007"
+    "\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+)
+
+
+class _ParentCheckpointStore:
+    def __init__(self, parent: Any) -> None:
+        self.parent = parent
+
+    async def save(self, _checkpoint: Any) -> None:
+        await self.parent.checkpoint_store.save(self.parent.build_checkpoint())
+
+
+def bind_subgraph(parent: Any, subgraph: Any) -> None:
+    root = getattr(parent, "trellis_checkpoint_root", parent)
+    subgraph.trellis_checkpoint_root = root
+    if not hasattr(parent, "trellis_loop_visits"):
+        return
+    subgraph.trellis_loop_visits = parent.trellis_loop_visits
+    subgraph.checkpoint_store = _ParentCheckpointStore(root)
+    subgraph.checkpointing_enabled = parent.checkpointing_enabled
+    subgraph.job_id = parent.job_id
+    subgraph.external_waits = parent.external_waits
+    subgraph.external_wait_handler = parent.external_wait_handler
+    subgraph._external_wait_lock = parent._external_wait_lock
+    subgraph.human_input_decisions = parent.human_input_decisions
+    subgraph.trellis_loop_active_visit_key = parent.trellis_loop_active_visit_key
+
+
+def _visit_key(loop_node_id: str, scope: dict[str, Any]) -> str:
+    identity = {
+        "iterationPath": scope["iterationPath"],
+        "loopNodeId": loop_node_id,
+        "parentOccurrenceKey": scope["parentOccurrenceKey"],
+    }
+    digest = hashlib.sha256(
+        json.dumps(identity, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode()
+    ).hexdigest()
+    return f"loop-{digest}"
+
+
+def _iteration_path(state: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        *state["inheritedIterationPath"],
+        {"loopNodeId": state["loopNodeId"], "round": state["round"]},
+    ]
+
+
+def _inherited_scope(state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "parentOccurrenceKey": state["parentOccurrenceKey"],
+        "phase": state["inheritedPhase"],
+        "iterationPath": copy.deepcopy(state["inheritedIterationPath"]),
+        "inputReceiptIds": list(state["inheritedInputReceiptIds"]),
+        "groupDeadlineRefs": copy.deepcopy(state["groupDeadlineRefs"]),
+        "deadlineAt": state["deadlineAt"],
+    }
+
+
+async def _save(graph: Any) -> None:
+    if graph.checkpoint_store is None:
+        raise RuntimeError("loop_checkpoint_store_unavailable")
+    await graph.checkpoint_store.save(graph.build_checkpoint())
+
+
+async def begin_visit(
+    graph: Any,
+    *,
+    loop_node_id: str,
+    max_rounds: int,
+    selected_inputs: dict[str, Any],
+    selected_input_bytes: str,
+    inherited_scope: dict[str, Any],
+) -> dict[str, Any]:
+    if max_rounds < 1:
+        raise ValueError("loop_max_rounds_invalid")
+    scope = inherited_scope
+    visit_key = _visit_key(loop_node_id, scope)
+    states = getattr(graph, "trellis_loop_visits", {})
+    if visit_key in states:
+        return copy.deepcopy(states[visit_key])
+    state = {
+        "schemaVersion": 1,
+        "visitKey": visit_key,
+        "visitOccurrenceKey": f"{visit_key}.1",
+        "loopNodeId": loop_node_id,
+        "parentOccurrenceKey": scope["parentOccurrenceKey"],
+        "inheritedPhase": scope["phase"],
+        "inheritedIterationPath": copy.deepcopy(scope["iterationPath"]),
+        "inheritedInputReceiptIds": list(scope["inputReceiptIds"]),
+        "iterationPath": [],
+        "round": 1,
+        "phase": "children",
+        "maxRounds": max_rounds,
+        "selectedInputs": copy.deepcopy(selected_inputs),
+        "childInputBytes": selected_input_bytes,
+        "groupDeadlineRefs": copy.deepcopy(scope["groupDeadlineRefs"]),
+        "deadlineAt": scope["deadlineAt"],
+        "inputReceiptIds": [],
+        "childOutput": None,
+        "conditionResult": None,
+        "feedbackBytes": None,
+        "priorOutputs": [],
+        "skippedBranches": [],
+    }
+    state["iterationPath"] = _iteration_path(state)
+    states[visit_key] = state
+    graph.trellis_loop_visits = states
+    await _save(graph)
+    return copy.deepcopy(state)
+
+
+async def commit_children(graph: Any, visit_key: str, output: dict[str, Any]) -> dict[str, Any]:
+    state = graph.trellis_loop_visits[visit_key]
+    if state["phase"] != "children":
+        raise RuntimeError("loop_phase_conflict")
+    children = output["children"]
+    state["inputReceiptIds"] = [child["receiptId"] for child in children]
+    state["childOutput"] = copy.deepcopy(output)
+    state["phase"] = "condition"
+    await _save(graph)
+    return copy.deepcopy(state)
+
+
+def condition_scope(graph: Any, visit_key: str) -> dict[str, Any]:
+    state = graph.trellis_loop_visits[visit_key]
+    if state["phase"] != "condition":
+        raise RuntimeError("loop_phase_conflict")
+    return {
+        "parentOccurrenceKey": state["visitOccurrenceKey"],
+        "phase": "condition",
+        "iterationPath": copy.deepcopy(state["iterationPath"]),
+        "inputReceiptIds": list(state["inputReceiptIds"]),
+        "groupDeadlineRefs": copy.deepcopy(state["groupDeadlineRefs"]),
+        "deadlineAt": state["deadlineAt"],
+    }
+
+
+def current_scope(graph: Any) -> dict[str, Any]:
+    visit_key = getattr(graph, "trellis_loop_active_visit_key", None)
+    if visit_key is None:
+        raise RuntimeError("loop_visit_not_active")
+    state = graph.trellis_loop_visits[visit_key]
+    if state["phase"] == "completed":
+        return _inherited_scope(state)
+    if state["phase"] == "condition":
+        return condition_scope(graph, visit_key)
+    if state["phase"] != "children":
+        raise RuntimeError("loop_phase_conflict")
+    return {
+        "parentOccurrenceKey": state["visitOccurrenceKey"],
+        "phase": "children",
+        "iterationPath": copy.deepcopy(state["iterationPath"]),
+        "inputReceiptIds": [],
+        "groupDeadlineRefs": copy.deepcopy(state["groupDeadlineRefs"]),
+        "deadlineAt": state["deadlineAt"],
+    }
+
+
+def output_context(graph: Any, visit_key: str, port: str) -> dict[str, Any]:
+    state = graph.trellis_loop_visits[visit_key]
+    if port == "done" or state["phase"] == "completed":
+        scope = _inherited_scope(state)
+    else:
+        scope = current_scope(graph)
+    return {
+        "scope": scope,
+        "output": (
+            state["childOutput"]["outputBytes"]
+            if port == "done" or state["phase"] == "completed"
+            else state["childInputBytes"]
+        ),
+        "occurrence": {
+            "nodeId": state["loopNodeId"],
+            "occurrenceKey": state["visitOccurrenceKey"],
+            "parentOccurrenceKey": state["parentOccurrenceKey"],
+            "phase": scope["phase"],
+            "iterationPath": copy.deepcopy(scope["iterationPath"]),
+        },
+    }
+
+
+def current_policy(graph: Any) -> dict[str, Any] | None:
+    visit_key = getattr(graph, "trellis_loop_active_visit_key", None)
+    if visit_key is None:
+        return None
+    state = graph.trellis_loop_visits[visit_key]
+    return {"visitKey": visit_key, "maxRounds": state["maxRounds"], "phase": state["phase"]}
+
+
+async def commit_condition(graph: Any, visit_key: str, result: dict[str, Any]) -> dict[str, Any]:
+    state = graph.trellis_loop_visits[visit_key]
+    if state["phase"] != "condition":
+        raise RuntimeError("loop_phase_conflict")
+    answer = result["output"].strip(ECMASCRIPT_WHITESPACE).lower()
+    if result["exitKind"] != "completed" or answer not in ("yes", "no"):
+        raise ValueError("native_gate_decision_unknown")
+    state["conditionResult"] = copy.deepcopy(result)
+    state["feedbackBytes"] = result["output"]
+    if answer == "yes":
+        state["skippedBranches"].append("no")
+        state["phase"] = "completed"
+        await _save(graph)
+        return copy.deepcopy(state)
+    state["skippedBranches"].append("yes")
+    if state["round"] == state["maxRounds"]:
+        state["phase"] = "failed"
+        await _save(graph)
+        raise RuntimeError("loop_rounds_exhausted")
+    state["priorOutputs"].append(copy.deepcopy(state["childOutput"]))
+    state["childInputBytes"] = state["childOutput"]["outputBytes"]
+    state["round"] += 1
+    state["visitOccurrenceKey"] = f"{visit_key}.{state['round']}"
+    state["iterationPath"] = _iteration_path(state)
+    state["phase"] = "children"
+    state["inputReceiptIds"] = []
+    state["childOutput"] = None
+    state["conditionResult"] = None
+    await _save(graph)
+    return copy.deepcopy(state)
+
+
+def read_visit(graph: Any, visit_key: str) -> dict[str, Any]:
+    return copy.deepcopy(graph.trellis_loop_visits[visit_key])

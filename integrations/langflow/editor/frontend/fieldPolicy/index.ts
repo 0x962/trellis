@@ -1,0 +1,1 @@
+export { fieldPolicy } from "./fieldPolicy";
