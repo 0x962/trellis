@@ -1,12 +1,16 @@
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import type { HarnessAccountQuota } from "@trellis/api";
 import { Dialog, Input, Select, toast } from "@trellis/ui";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
 import { LaunchFields } from "../../agents/LaunchFields";
 import { SessionPrompt } from "../SessionPrompt";
 import { sessionComposerActions, useSessionComposerStore } from "../sessionComposerStore";
 import { selectSessionAccount } from "./components/selectSessionAccount";
+
+const combineQuotas = (results: UseQueryResult<HarnessAccountQuota>[]) =>
+	results.flatMap((result) => (result.data && !result.isError ? [result.data] : []));
 
 export type NewSessionDialogProps = { onClose: () => void };
 
@@ -18,22 +22,40 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 	const { change } = sessionComposerActions;
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
-	const choices = (accounts.data ?? []).filter(
-		(account) => account.harness === draft.harness.preset && account.capabilities.launch,
+	const choices = useMemo(
+		() =>
+			(accounts.data ?? []).filter(
+				(account) => account.harness === draft.harness.preset && account.capabilities.launch,
+			),
+		[accounts.data, draft.harness.preset],
 	);
-	const quotas = useQueries({
-		queries: choices.map(({ id }) => ({
-			...orpc.harnessAccounts.quota.queryOptions({ input: { id } }),
-			staleTime: 0,
-			refetchInterval: 30_000,
-		})),
-	});
-	const automaticAccountId = selectSessionAccount({
-		harness: draft.harness,
-		accountId: draft.accountId,
-		accounts: accounts.data ?? [],
-		quotas: quotas.flatMap((quota) => (quota.data && !quota.isError ? [quota.data] : [])),
-	});
+	const quotaQueries = useMemo(
+		() =>
+			choices.map(({ id }) => ({
+				...orpc.harnessAccounts.quota.queryOptions({ input: { id } }),
+				staleTime: 0,
+				refetchInterval: 30_000,
+			})),
+		[choices, orpc],
+	);
+	const quotas = useQueries({ queries: quotaQueries, combine: combineQuotas });
+	const automaticAccountId = useMemo(
+		() =>
+			selectSessionAccount({
+				harness: draft.harness,
+				accountId: draft.accountId,
+				accounts: choices,
+				quotas,
+			}),
+		[draft.harness, draft.accountId, choices, quotas],
+	);
+	const accountItems = useMemo(
+		() => [
+			{ value: "default", label: "Default account" },
+			...choices.map((account) => ({ value: account.id, label: account.name })),
+		],
+		[choices],
+	);
 	const create = useMutation({
 		mutationFn: () =>
 			client.sessions.create({
@@ -138,10 +160,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 						label="Account"
 						className="max-w-full"
 						value={draft.accountId || "default"}
-						items={[
-							{ value: "default", label: "Default account" },
-							...choices.map((account) => ({ value: account.id, label: account.name })),
-						]}
+						items={accountItems}
 						onValueChange={(accountId) =>
 							sessionComposerActions.selectAccount(accountId === "default" ? "" : accountId)
 						}

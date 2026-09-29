@@ -26,6 +26,8 @@ The source checkpoint is not a qualification receipt.
 The prior macOS Python candidate is outside the selected OCI isolation boundary.
 Historical OCI output lacks the current API and cannot supply this batch.
 The OCI path correction in TRL-1011 still requires matched driver and runtime proof.
+`domain-inputs.md` records the published domain interfaces and the remaining lifecycle mounts.
+Use those interfaces through the composed host; their direct fixture calls remain separate evidence.
 
 ## Exact commands
 

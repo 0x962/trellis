@@ -50,7 +50,11 @@ def test_complete_exports_match_engine_code_defaults_and_ports():
 		assert set(component._inputs) == {field["name"] for field in declaration["inputPorts"]}
 		for field in declaration["inputPorts"]:
 			port = component._inputs[field["name"]]
-			assert port.input_types == field["inputTypes"]
+			if field["class"] == "IntInput":
+				assert port.input_types is None
+				assert field["inputTypes"] == []
+			else:
+				assert port.input_types == field["inputTypes"]
 			assert port.is_list == field["isList"]
 			assert port.required == field["required"]
 		assert {output.name for output in component.outputs} == {port["name"] for port in declaration["outputPorts"]}

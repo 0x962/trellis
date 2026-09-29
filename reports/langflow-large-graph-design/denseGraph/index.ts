@@ -1,1 +1,1 @@
-export { createDenseGraphFixture, denseGraphCases, type DenseGraphCase } from "./denseGraph.ts";
+export { createDenseGraphFixture, type DenseGraphCase, denseGraphCases } from "./denseGraph.ts";

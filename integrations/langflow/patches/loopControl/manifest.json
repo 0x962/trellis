@@ -25,12 +25,12 @@
 	],
 	"patch": {
 		"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
-		"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419"
+		"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415"
 	},
 	"source": {
 		"path": "integrations/langflow/patches/loopControl/source/loop_control.py",
 		"target": "src/lfx/src/lfx/graph/loop_control.py",
-		"sha256": "899eedab942192548d56880ea3b163b0efb9c4bd1cb4a447b716a206110e1628"
+		"sha256": "2b0049b81fac950e7caf3791532eb05b3002f6d8f63d670562e8eb89b5f121b5"
 	},
 	"sharedHunks": {
 		"src/lfx/src/lfx/graph/checkpoint/schema.py": {
@@ -51,19 +51,49 @@
 		}
 	},
 	"component": {
-		"definitionId": "trellis.loop.v1",
+		"definitionId": "trellis-loop-v1",
 		"className": "TrellisLoopV1",
 		"sourceNodeType": "loop",
 		"sourcePath": "integrations/langflow/components/trellisLoop/trellisLoop.py",
-		"sourceSha256": "4e625fad001dfad9941c30f81b775cbe2349bb8bfa236b47bc59118ef7bca21a",
+		"sourceSha256": "f92c9e589bf84f31bcde27922e1c00b2befab10122293cc1ccf228e7ffda64ee",
 		"inputs": [
+			"scope_entry",
 			"seed",
 			"max_rounds"
+		],
+		"inputPorts": [
+			{
+				"name": "scope_entry",
+				"class": "HandleInput",
+				"fieldType": "other",
+				"inputTypes": ["Data"],
+				"required": false,
+				"isList": false,
+				"payload": "Committed group entry output that orders nested scope activation before loop scope capture"
+			},
+			{
+				"name": "seed",
+				"class": "HandleInput",
+				"fieldType": "other",
+				"inputTypes": ["Data"],
+				"required": false,
+				"isList": false,
+				"payload": "Actual predecessor output, omitted when the source loop has no incoming source edge"
+			},
+			{
+				"name": "max_rounds",
+				"class": "IntInput",
+				"fieldType": "int",
+				"inputTypes": [],
+				"required": true,
+				"isList": false,
+				"payload": "Positive maximum round count from the immutable source loop"
+			}
 		],
 		"outputs": ["children", "done"]
 	},
 	"fixture": {
 		"path": "integrations/langflow/tests/loopControl/test_loop_control.py",
-		"sha256": "f2640c65718c85d5da42d1530f57c487ef46f1bfecea7b7659797ae2fa7200ee"
+		"sha256": "afebfa4a23566f100f1e5669d5088e4c5a7284a6da0440e7665b07c8d2c5dbb1"
 	}
 }

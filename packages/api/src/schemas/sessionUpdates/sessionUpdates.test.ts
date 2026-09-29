@@ -41,7 +41,7 @@ test("accepts a history cursor only on reads", () => {
 	const input = {
 		sessionId: "Status session",
 		history: {
-			include: true,
+			include: true as const,
 			before: {
 				createdAt: "2026-09-29T05:00:00.000Z",
 				id: "01M3NVQ8K3ZBWDFDZ406A4M1D9",
@@ -56,7 +56,7 @@ test("accepts a history cursor only on reads", () => {
 });
 
 test("accepts the explicit first history page in RPC and REST inputs", () => {
-	for (const include of [true, "true"]) {
+	for (const include of [true, "true"] as const) {
 		expect(
 			SessionUpdatesGetInputSchema.parse({ sessionId: "Status session", history: { include } }).history?.include,
 		).toBe(include);

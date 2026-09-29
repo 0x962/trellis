@@ -3,7 +3,9 @@ import { protocolDigest } from "../../../langflowContracts";
 import { documentBytes } from "../documentBytes";
 import type { RetainedExecutionPublication } from "./readExecutionPublication";
 
-export function retainedPublication(): RetainedExecutionPublication {
+export function retainedPublication(): RetainedExecutionPublication & {
+	snapshot: Extract<FlowDocumentSnapshotV1, { engine: "langflow" }>;
+} {
 	const flowId = "00000000000000000000000001";
 	const executionId = "00000000000000000000000002";
 	const content = {

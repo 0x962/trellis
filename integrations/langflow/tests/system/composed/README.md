@@ -26,7 +26,7 @@ The runner never prints or retains request headers.
 | `deadlineAt`, `pollIntervalMs`, `requestTimeoutMs` | Explicit batch deadline, read interval, and HTTP timeout in milliseconds |
 | `prerequisites.bootstrapConfiguration` | Exact TRL-994 configuration path and SHA256 |
 | `prerequisites.bootReceipt` | Owner evidence that this isolated origin uses this package, configuration, data home, and process identity |
-| `prerequisites.nativeAdapterReceipt` | Owner evidence for the deterministic native account, actual runtime dispatch, and denied provider access |
+| `prerequisites.nativeAdapterReceipt` | Prior focused proof of the deterministic adapter, effective account selection, actual runtime events, denied network access, resume, and exit |
 | `prerequisites.cleanupCommandFile` | Owner-supplied shutdown command and exact process verification procedure |
 | `prerequisites.matchedSeries` | TRL-674 final source manifest, including components, prompts, groups, loops, and engine patches |
 | `scenarios` | Named published documents, exact start inputs, expected identities, decisions, occurrences, outputs, and terminal states |
@@ -35,8 +35,16 @@ Each prerequisite reference contains `path` and `sha256`.
 The runner checks those bytes. A matching hash does not establish the truth of an owner receipt.
 The qualification loader checks the independent proof and the complete sealed package.
 The runner compares the configuration identity with that loader input.
-TRL-667 must accept the boot, native, and cleanup receipts before invocation.
+TRL-667 must accept the boot receipt, prior native proof, and cleanup procedure before invocation.
 The runner does not infer them from a URL or a candidate directory.
+
+The native prerequisite binds source and plan hashes, private profile identity, and account creation/read receipts.
+Its effective account selection belongs to that prior focused proof.
+It does not require dispatch of the current published scenario before invocation.
+For the current journey, the host owner must retain the actual account/assignment selection and dispatch evidence alongside the HTTP records.
+An account creation receipt alone does not prove which account the current scenario selected.
+Retain the current attempt, session, PID, prompt/result identities, network observations, and cleanup receipts after execution.
+The HTTP runner checks public attempt/session/output identities; it does not inspect account selection, operating-system denial, or process exit itself.
 
 Each scenario supplies `ticketId`, `projectId`, and `documentHash` for exact comparisons.
 Each expected visit names `nodeId`, `phase`, and the complete `iterationPath`.

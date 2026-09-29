@@ -1,9 +1,9 @@
 import { isDeepStrictEqual } from "node:util";
-import { authorityControl } from "../../db/queries/langflowExecution";
+import { authorityControl, readTakeoverStops, recoverInitialBinding } from "../../db/queries/langflowExecution";
 import type { Tx } from "../../db/tx";
 import { readIssuedAuthority } from "../authority/issuedBytes";
 import { authorityPermitBinding } from "../authorityPermit";
-import type { AuthorityCommit, AuthorityPort, SidecarIdentity } from "../contracts";
+import type { AuthorityCommit, AuthorityPort, InitialBindingPort, SidecarIdentity } from "../contracts";
 import type { DispatchEffects } from "../dispatchEffects";
 import { type HostControlIdentity, LangflowHostControl } from "../hostControl";
 import type { DispatchReceiptArchive } from "../receiptArchive";
@@ -14,7 +14,7 @@ export type AuthorityPortInput = {
 	newTx<T>(operation: (tx: Tx) => Promise<T>): Promise<T>;
 };
 
-export function createAuthorityPort(input: AuthorityPortInput): AuthorityPort {
+export function createAuthorityPort(input: AuthorityPortInput): AuthorityPort & InitialBindingPort {
 	const identity = structuredClone(input.control.identity);
 
 	function currentHome() {
@@ -54,6 +54,38 @@ export function createAuthorityPort(input: AuthorityPortInput): AuthorityPort {
 		return commit;
 	}
 
+	function assertCommit(request: AuthorityCommit) {
+		issuedFor(request);
+		const expected = authorityPermitBinding(
+			{ ...request.receipt.request, expiresAt: request.receipt.authority.expiresAt },
+			request.receipt.authority.engineJobId,
+		);
+		const entry = input.control.gate.read().permits.find((item) => item.permit.id === request.permit.id);
+		if (
+			!entry ||
+			entry.terminal !== null ||
+			!isDeepStrictEqual(entry.permit, request.permit) ||
+			!isDeepStrictEqual(entry.permit.binding, expected) ||
+			entry.permit.dataHomeId !== identity.dataHomeId
+		)
+			throw new Error("authority_permit_not_held");
+		if (request.revocation) scope(request.revocation.identity);
+	}
+
+	async function retainedStops(tx: Tx, request: AuthorityCommit): Promise<AuthorityCommit> {
+		if (!("transferId" in request.receipt)) return request;
+		const saved = await authorityControl.readReceipt(tx, request.receipt.request);
+		if (saved) {
+			if (!isDeepStrictEqual(saved, { ...request, takeoverStops: saved.takeoverStops })) {
+				throw new Error("authority_takeover_replay_conflict");
+			}
+			return saved;
+		}
+		const stops = await readTakeoverStops(tx, request.receipt.request);
+		if (!stops.ready) throw new Error("authority_takeover_stops_pending");
+		return { ...request, takeoverStops: { sourceBytes: stops.sourceBytes, sourceDigest: stops.sourceDigest } };
+	}
+
 	return {
 		async revokeOwner(request) {
 			scope(request.identity);
@@ -74,23 +106,21 @@ export function createAuthorityPort(input: AuthorityPortInput): AuthorityPort {
 			if (saved.authority.hostId !== identity.hostId) throw new Error("authority_control_home_mismatch");
 			return saved;
 		},
-		async commit(request) {
-			issuedFor(request);
-			const expected = authorityPermitBinding(
-				{ ...request.receipt.request, expiresAt: request.receipt.authority.expiresAt },
-				request.receipt.authority.engineJobId,
+		async recoverInitialBinding(request) {
+			assertCommit(request.takeover);
+			const saved = await input.newTx(async (tx) =>
+				recoverInitialBinding(tx, {
+					initialRecordBytes: request.initialRecordBytes,
+					takeover: await retainedStops(tx, { ...request.takeover, initialRecordBytes: request.initialRecordBytes }),
+				}),
 			);
-			const entry = input.control.gate.read().permits.find((item) => item.permit.id === request.permit.id);
-			if (
-				!entry ||
-				entry.terminal !== null ||
-				!isDeepStrictEqual(entry.permit, request.permit) ||
-				!isDeepStrictEqual(entry.permit.binding, expected) ||
-				entry.permit.dataHomeId !== identity.dataHomeId
-			)
-				throw new Error("authority_permit_not_held");
-			if (request.revocation) scope(request.revocation.identity);
-			const saved = await input.newTx((tx) => authorityControl.commit(tx, request));
+			archive(saved);
+			return saved;
+		},
+
+		async commit(request) {
+			assertCommit(request);
+			const saved = await input.newTx(async (tx) => authorityControl.commit(tx, await retainedStops(tx, request)));
 			return archive(saved).receipt;
 		},
 	};

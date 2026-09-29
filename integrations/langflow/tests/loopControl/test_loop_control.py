@@ -21,6 +21,9 @@ sys.path.insert(0, str(SOURCE_ROOT / "src" / "backend"))
 
 from lfx.graph import Graph
 from lfx.graph.loop_control import bind_subgraph
+from lfx.schema.data import Data
+
+from integrations.langflow.components.trellisLoop.trellisLoop import TrellisLoopV1
 
 
 class CheckpointStore:
@@ -31,7 +34,7 @@ class CheckpointStore:
 		self.saved.append(copy.deepcopy(checkpoint))
 
 
-def inherited_scope(*, parent: str = "execution-root", path: list[dict] | None = None) -> dict:
+def inherited_scope(*, parent: str | None = "execution-root", path: list[dict] | None = None) -> dict:
 	return {
 		"parentOccurrenceKey": parent,
 		"phase": "step",
@@ -51,6 +54,17 @@ def inherited_scope(*, parent: str = "execution-root", path: list[dict] | None =
 	}
 
 
+def root_scope() -> dict:
+	return {
+		"parentOccurrenceKey": None,
+		"phase": "step",
+		"iterationPath": [],
+		"inputReceiptIds": [],
+		"groupDeadlineRefs": [],
+		"deadlineAt": None,
+	}
+
+
 def make_graph() -> Graph:
 	graph = Graph()
 	graph.checkpoint_store = CheckpointStore()
@@ -63,12 +77,16 @@ async def begin(
 	node: str = "loop",
 	rounds: int = 3,
 	scope: dict | None = None,
+	selected_inputs: list | dict | None = None,
+	selected_input_bytes: str | None = None,
 ) -> dict:
+	inputs = {"text": "seed"} if selected_inputs is None else selected_inputs
+	input_bytes = "seed" if selected_input_bytes is None else selected_input_bytes
 	return await graph.begin_trellis_loop_visit(
 		loop_node_id=node,
 		max_rounds=rounds,
-		selected_inputs={"text": "seed"},
-		selected_input_bytes="seed",
+		selected_inputs=inputs,
+		selected_input_bytes=input_bytes,
 		inherited_scope=scope or inherited_scope(),
 	)
 
@@ -115,6 +133,66 @@ async def test_one_round_runs_child_before_yes_condition() -> None:
 	)
 	assert visit["phase"] == "completed"
 	assert visit["childOutput"]["outputBytes"] == "child-1"
+
+
+async def test_root_loop_starts_with_no_predecessor_input() -> None:
+	graph = make_graph()
+	scope = root_scope()
+	visit = await begin(graph, scope=scope, selected_inputs=[], selected_input_bytes="")
+	assert visit["parentOccurrenceKey"] is None
+	assert visit["selectedInputs"] == []
+	assert visit["childInputBytes"] == ""
+	assert visit["inheritedInputReceiptIds"] == []
+
+
+def test_component_maps_an_omitted_seed_to_no_predecessor_input() -> None:
+	assert TrellisLoopV1._seed_values(None) == ([], "")
+	ports = {item.name: item for item in TrellisLoopV1.inputs}
+	assert ports["scope_entry"].required is False
+	assert ports["seed"].required is False
+
+
+async def test_nested_entry_loop_keeps_scope_without_a_seed() -> None:
+	graph = make_graph()
+	scope = inherited_scope(parent="outer.2", path=[{"loopNodeId": "outer", "round": 2}])
+	scope["inputReceiptIds"] = ["outer-receipt"]
+	visit = await begin(
+		graph,
+		node="inner",
+		scope=scope,
+		selected_inputs=[],
+		selected_input_bytes="",
+	)
+	assert visit["selectedInputs"] == []
+	assert visit["childInputBytes"] == ""
+	assert visit["inheritedInputReceiptIds"] == ["outer-receipt"]
+	assert visit["iterationPath"] == [
+		{"loopNodeId": "outer", "round": 2},
+		{"loopNodeId": "inner", "round": 1},
+	]
+
+
+async def test_connected_loop_keeps_actual_selected_input() -> None:
+	graph = make_graph()
+	visit = await begin(
+		graph,
+		selected_inputs={"nodeId": "source", "output": "exact bytes"},
+		selected_input_bytes="exact bytes",
+	)
+	assert visit["selectedInputs"] == {"nodeId": "source", "output": "exact bytes"}
+	assert visit["childInputBytes"] == "exact bytes"
+	seed = Data(data={"nodeId": "source", "output": "exact bytes"})
+	assert TrellisLoopV1._seed_values(seed) == (seed.data, seed.get_text())
+
+
+async def test_root_loop_replay_reads_the_same_empty_input_visit() -> None:
+	graph = make_graph()
+	scope = root_scope()
+	visit = await begin(graph, scope=scope, selected_inputs=[], selected_input_bytes="")
+	restored = make_graph()
+	restored.trellis_loop_visits = copy.deepcopy(graph.trellis_loop_visits)
+	replayed = await begin(restored, scope=scope, selected_inputs=[], selected_input_bytes="")
+	assert replayed == visit
 
 
 @pytest.mark.parametrize(

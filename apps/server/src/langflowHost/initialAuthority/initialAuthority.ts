@@ -82,7 +82,8 @@ export class InitialAuthorityIssuer {
 		const key = JSON.stringify(["initial", this.control.identity.dataHomeId, executionId]);
 		const id = this.records.findBinding(key);
 		if (!id) return null;
-		const record = InitialAuthorityRecordSchema.parse(JSON.parse(this.records.read(id)));
+		const sourceBytes = this.records.read(id);
+		const record = InitialAuthorityRecordSchema.parse(JSON.parse(sourceBytes));
 		if (
 			record.input.executionId !== executionId ||
 			record.observation.identity.dataHomeId !== this.control.identity.dataHomeId ||
@@ -90,7 +91,12 @@ export class InitialAuthorityIssuer {
 		) {
 			throw new Error("initial_authority_home_conflict");
 		}
-		return { id, ...record, authority: DeliveryAuthorityV1Schema.parse(JSON.parse(record.authorityBytes)) };
+		return {
+			id,
+			sourceBytes,
+			...record,
+			authority: DeliveryAuthorityV1Schema.parse(JSON.parse(record.authorityBytes)),
+		};
 	}
 
 	readAuthorityBytes(authority: DeliveryAuthorityV1): string {

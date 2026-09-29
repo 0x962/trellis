@@ -1,4 +1,4 @@
-import type { FlowDocumentSaveV1Input } from "@trellis/api";
+import { type FlowDocumentSaveV1Input, FlowDocumentV1Schema } from "@trellis/api";
 import { z } from "zod";
 
 export type DraftContent = {
@@ -26,5 +26,6 @@ export const DraftRecordSchema = z.strictObject({
 	legacyBytes: z.string().nullable(),
 	submission: z.strictObject({ requestJson: z.string(), contentJson: z.string() }).nullable(),
 	blocked: z.enum(["conflict", "unsupported"]).nullable(),
+	explicitEdit: z.strictObject({ requestJson: z.string(), baseDocument: FlowDocumentV1Schema }).optional(),
 });
 export type DraftRecord = z.infer<typeof DraftRecordSchema>;

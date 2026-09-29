@@ -91,7 +91,10 @@ export class PrivateState {
 		const nativeStem = join(this.root, "secrets", `${identity.instanceId}.native-reservations`);
 		for (const [path, bytes] of [
 			[`${nativeStem}.token`, nativeToken],
-			[`${nativeStem}.json`, JSON.stringify({ identity, sha256: createHash("sha256").update(nativeToken).digest("hex") })],
+			[
+				`${nativeStem}.json`,
+				JSON.stringify({ identity, sha256: createHash("sha256").update(nativeToken).digest("hex") }),
+			],
 		] as const) {
 			const file = await open(path, "wx", 0o600);
 			try {

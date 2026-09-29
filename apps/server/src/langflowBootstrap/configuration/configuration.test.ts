@@ -40,3 +40,14 @@ test("configuration requires a private regular file and distinct origins", async
 		await rm(directory, { recursive: true, force: true });
 	}
 });
+
+test("authority duration and permissions require explicit configuration", () => {
+	const { configuration } = bootstrapFixture();
+	const { authorityPolicy: _policy, ...withoutPolicy } = configuration;
+	const { authorityPermissions: _permissions, ...withoutPermissions } = configuration;
+	expect(() => LangflowBootstrapConfigurationSchema.parse(withoutPolicy)).toThrow();
+	expect(() => LangflowBootstrapConfigurationSchema.parse(withoutPermissions)).toThrow();
+	expect(() => LangflowBootstrapConfigurationSchema.parse({
+		...configuration, authorityPolicy: { durationMs: 1000, renewBeforeMs: 1000 },
+	})).toThrow();
+});

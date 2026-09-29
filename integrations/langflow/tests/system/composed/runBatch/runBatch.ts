@@ -20,9 +20,8 @@ export async function runBatch(inputFile: string, outputDirectory: string) {
 	assert.equal(status.stdout.toString(), "", "source_workspace_not_clean");
 	const { qualified, token } = await preflight(input);
 	await mkdir(outputDirectory, { mode: 0o700 });
-	const write = (name: string, data: unknown) => writeFile(
-		join(outputDirectory, name), JSON.stringify(data, null, 2), { mode: 0o600, flag: "wx" },
-	);
+	const write = (name: string, data: unknown) =>
+		writeFile(join(outputDirectory, name), JSON.stringify(data, null, 2), { mode: 0o600, flag: "wx" });
 	await write("batch.json", {
 		sourceRevision: input.sourceRevision,
 		inputSha256: createHash("sha256").update(inputBytes).digest("hex"),

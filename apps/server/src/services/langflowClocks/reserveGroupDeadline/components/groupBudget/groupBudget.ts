@@ -25,5 +25,8 @@ export function groupBudget(snapshot: FlowDocumentSnapshotV1, input: GroupDeadli
 	const group = definition.parse(frozen);
 	if (group.scopeVertexId !== input.scopeVertexId || group.groupNodeId !== input.occurrence.nodeId)
 		throw new Error("group_scope_conflict");
-	return z.int().positive().parse(group.minutes * 60_000);
+	return z
+		.int()
+		.positive()
+		.parse(group.minutes * 60_000);
 }

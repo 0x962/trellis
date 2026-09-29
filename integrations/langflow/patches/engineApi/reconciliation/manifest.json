@@ -1,0 +1,23 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-hold-engine-reconciliation-lease.patch",
+  "sha256": "0a5a23b18a8c367ce81d8bd43333298bf551fed7d231b1778074985a20638fe4",
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/reconciliation_models.py": "03bf964113ff8c79ba95fb08222359950da417dc2171d49025eec9ec9f9144c2",
+    "src/backend/base/langflow/services/trellis_v1/reconciliation_reader.py": "b00ac6334ef180fb7b0001096c11844f50bc84c54d0f0429c6df82f348d3bca0",
+    "src/backend/base/langflow/services/trellis_v1/reconciliation_router.py": "64d4d1777a043f7131f0e3b4b39f75efc382f761523c19135b1a730ffa47b794",
+    "src/backend/base/langflow/services/trellis_v1/reconciliation_store.py": "06a3914649ca11164dd8968b2d80450ee2a0b06286513d30a3fdff264a08e23f",
+    "src/backend/base/langflow/services/trellis_v1/capture_boundary.py": "f28fd4df9d7379891f39b64ccf5cb8ab9bb909dd3a03b7f12b70b3db6d229ab2",
+    "src/backend/base/langflow/services/trellis_v1/startup.py": "18ab7fb47a8fcd891223541900a5f76a5f5237a216c9c8aad8aef508d2cd586b"
+  },
+  "tests": {
+    "tests/test_reconciliation.py": "356fd3167d2de3254b4c7db5d56b68974854673881c89bf50e73f7efb26089be"
+  },
+  "requires": [
+    "CaptureBoundary and CaptureGrantStore from the backup fragment",
+    "install_capture_boundary from the capture writer fragment",
+    "the explicit private engine API startup fragment",
+    "BackgroundExecutionService.resume_after_capture",
+    "TRELLIS_RECONCILIATION_ISSUER_FILE from host composition"
+  ]
+}

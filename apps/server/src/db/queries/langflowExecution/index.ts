@@ -11,6 +11,7 @@ export { assertOwnerActive } from "./ownerFence";
 export * from "./ownership";
 export * from "./projections";
 export * from "./recoverInitialBinding";
+export * from "./retainedNativeAttempts";
 export * from "./startRequests";
 export * from "./stops";
 export * from "./submission";

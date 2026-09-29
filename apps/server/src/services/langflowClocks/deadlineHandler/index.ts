@@ -1,1 +1,1 @@
-export { deadlineHandler, type DeadlineHandlerDependencies } from "./deadlineHandler";
+export { type DeadlineHandlerDependencies, deadlineHandler } from "./deadlineHandler";

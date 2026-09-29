@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from sqlmodel import select
 
 from langflow.services.database.models.jobs.model import Job
-from langflow.services.trellis_v1.authority import read_authority
+from langflow.services.trellis_v1.authority import TrellisDeliveryAuthority, read_authority
 from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
 from langflow.services.trellis_v1.native_records import add_checkpoint, checkpoint
 from langflow.services.trellis_v1.occurrence_models import canonical, digest
@@ -38,6 +38,9 @@ async def record_projection_checkpoint(session, job_id: UUID) -> dict:
     correlation = (await session.exec(select(TrellisJobCorrelation).where(
         TrellisJobCorrelation.engine_job_id == job_id))).one()
     admission = json.loads(correlation.admission_receipt_bytes)
+    (await session.exec(select(TrellisDeliveryAuthority).where(
+        TrellisDeliveryAuthority.execution_id == correlation.execution_id,
+    ).with_for_update())).one()
     owner = await read_authority(session, correlation.execution_id)
     if owner is None:
         raise ValueError("projection_authority_missing")

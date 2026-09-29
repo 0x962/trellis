@@ -9,6 +9,7 @@ export function usageChartSeries(
 	selected: UsageGroupRow | null,
 	metric: UsageMetric,
 	group: UsageGroupBy,
+	selectedRank = selected === null ? -1 : rows.indexOf(selected),
 ): UsageChartSeries[] {
 	if (selected === null) return [{ key: "total", label: "All usage", tone: "agent", values: dayTotals }];
 	const valuesByDay = new Map(selected.days.map((slice) => [slice.day, slice[metric]]));
@@ -16,7 +17,7 @@ export function usageChartSeries(
 		{
 			key: selected.key,
 			label: selected.label,
-			tone: rowTone(selected, rows.indexOf(selected), group),
+			tone: rowTone(selected, selectedRank, group),
 			values: days.map((day) => valuesByDay.get(day) ?? 0),
 		},
 	];

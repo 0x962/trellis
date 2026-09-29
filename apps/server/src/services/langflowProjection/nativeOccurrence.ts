@@ -1,13 +1,14 @@
 import { isDeepStrictEqual } from "node:util";
 import type { FlowAttemptV1, FlowOccurrenceV1 } from "@trellis/api";
 import { nativeGateDecision } from "../langflowGates";
-import type { NativeProjectionFact } from "./facts.ts";
+import type { NativeProjectionFact, ProjectionFacts } from "./facts.ts";
 import type { ObservedOccurrence } from "./observation.ts";
 
 export function nativeOccurrence(
 	observed: ObservedOccurrence,
 	base: FlowOccurrenceV1,
 	facts: NativeProjectionFact[],
+	workspaceObservations: ProjectionFacts["workspaceObservations"],
 ): FlowOccurrenceV1 {
 	const attempts: FlowAttemptV1[] = facts.map(({ provenance, handle, launchReceipt, completion }) => ({
 		stepId: provenance.stepId,
@@ -15,7 +16,15 @@ export function nativeOccurrence(
 		attemptId: provenance.attemptId,
 		workspaceId: handle.workspaceId,
 		workspaceCommit:
-			base.attempts.find((attempt) => attempt.attemptId === provenance.attemptId)?.workspaceCommit ?? null,
+			workspaceObservations.find(
+				(item) =>
+					item.executionId === provenance.request.executionId &&
+					item.stepId === provenance.stepId &&
+					item.attemptId === provenance.attemptId &&
+					item.workspaceId === handle.workspaceId,
+			)?.workspaceCommit ??
+			base.attempts.find((attempt) => attempt.attemptId === provenance.attemptId)?.workspaceCommit ??
+			null,
 		providerSessionId: handle.providerSessionId,
 		state: handle.state === "unknown" ? "unknown" : completion ? "exited" : launchReceipt ? "launched" : "reserved",
 		launchedAt: launchReceipt?.launchedAt ?? null,

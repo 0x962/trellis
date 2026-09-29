@@ -14,6 +14,7 @@ ALTER TABLE "langflow_authority_commits" ADD CONSTRAINT "langflow_authority_comm
 
 ALTER TABLE langflow_owner_fences ADD CONSTRAINT langflow_owner_fence_identity
 EXCLUDE USING hash (owner_key WITH =);
+--> statement-breakpoint
 CREATE FUNCTION retain_langflow_owner_fence() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'Owner fences cannot be deleted' USING ERRCODE = '23514'; END IF;
@@ -22,9 +23,12 @@ BEGIN
  THEN RAISE EXCEPTION 'Owner revocations are immutable' USING ERRCODE = '23514'; END IF;
  RETURN NEW;
 END $$;
+--> statement-breakpoint
 CREATE TRIGGER retain_langflow_owner_fence BEFORE UPDATE OR DELETE ON langflow_owner_fences
 FOR EACH ROW EXECUTE FUNCTION retain_langflow_owner_fence();
+--> statement-breakpoint
 CREATE FUNCTION retain_langflow_authority_commit() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'Authority commits are immutable' USING ERRCODE = '23514'; END $$;
+--> statement-breakpoint
 CREATE TRIGGER retain_langflow_authority_commit BEFORE UPDATE ON langflow_authority_commits
 FOR EACH ROW EXECUTE FUNCTION retain_langflow_authority_commit();

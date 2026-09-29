@@ -71,10 +71,12 @@ export async function openNativeAdapterFixture(home: string) {
 				const match = rows.rows.find((row) => {
 					const launch = row.launch_receipt as { launchReceiptId: string } | null;
 					return permit.binding.attemptId === null
-						? row.step_id === receiptId && row.request_id === permit.binding.requestId &&
-							row.request_digest === permit.binding.payloadDigest
-						: row.attempt_id === permit.binding.attemptId && launch?.launchReceiptId === receiptId &&
-							row.request_digest === permit.binding.payloadDigest;
+						? row.step_id === receiptId &&
+								row.request_id === permit.binding.requestId &&
+								row.request_digest === permit.binding.payloadDigest
+						: row.attempt_id === permit.binding.attemptId &&
+								launch?.launchReceiptId === receiptId &&
+								row.request_digest === permit.binding.payloadDigest;
 				});
 				if (!match) throw new Error("fixture_dispatch_receipt_missing");
 				return { id: receiptId, permit, outcome: "completed" as const };

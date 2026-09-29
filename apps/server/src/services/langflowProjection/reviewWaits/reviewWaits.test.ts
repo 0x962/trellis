@@ -119,7 +119,7 @@ test("a completed classification remains pending until its exact engine acceptan
 	});
 });
 
-test("classification errors require acceptance before they end the occurrence", () => {
+test("classification acceptance preserves actual lifecycle facts", () => {
 	const { f, occurrence } = reviewFixture();
 	f.facts.classification!.state = "failed";
 	f.facts.classification!.error = "provider_failure";
@@ -127,6 +127,10 @@ test("classification errors require acceptance before they end the occurrence", 
 	f.observed.checkpoint.waits = [];
 	expect(run(f).occurrences[0]!.state).toBe("unknown");
 	occurrence.acceptedResultId = "classification";
+	expect(run(f).occurrences[0]).toMatchObject({ state: "running", error: "provider_failure", decision: null });
+	occurrence.state = "succeeded";
+	expect(run(f).occurrences[0]!.state).toBe("unknown");
+	occurrence.state = "failed";
 	expect(run(f).occurrences[0]).toMatchObject({ state: "failed", error: "provider_failure", decision: null });
 });
 
@@ -181,4 +185,17 @@ test("a retained review wait cannot grant completion or discard history", () => 
 	f.observed.checkpoint.waits = [];
 	f.observed.occurrences = [];
 	expect(() => run(f)).toThrow("incomplete_snapshot");
+});
+
+test("allocated review waits preserve pending state before invocation", () => {
+	const { f } = reviewFixture();
+	f.observed.occurrences[0]!.state = "pending";
+	f.observed.occurrences[0]!.startedAt = null;
+	const result = run(f);
+	expect(result.occurrences[0]).toMatchObject({
+		state: "pending",
+		waitReason: "review",
+		startedAt: null,
+		attempts: [],
+	});
 });

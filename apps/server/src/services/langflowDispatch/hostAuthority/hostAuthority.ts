@@ -1,10 +1,12 @@
-import { createAuthorityPort, type AuthorityPort } from "../../../langflowHost";
+import { createAuthorityPort, type AuthorityPort, type InitialBindingPort } from "../../../langflowHost";
 import type { IoCtx } from "../../support";
 import { actionControl } from "../actionControl";
 
+type HostAuthorityPort = AuthorityPort & InitialBindingPort;
+
 type AuthorityOperation = {
-	[K in keyof AuthorityPort]: { operation: K; input: Parameters<AuthorityPort[K]>[0] };
-}[keyof AuthorityPort];
+	[K in keyof HostAuthorityPort]: { operation: K; input: Parameters<HostAuthorityPort[K]>[0] };
+}[keyof HostAuthorityPort];
 export type HostAuthorityInput = AuthorityOperation & { hostId: string; dataHomeId: string };
 
 export async function hostAuthority(ctx: IoCtx, input: HostAuthorityInput) {
@@ -14,6 +16,8 @@ export async function hostAuthority(ctx: IoCtx, input: HostAuthorityInput) {
 		throw new Error("langflow_bootstrap_identity_changed");
 	const authority = createAuthorityPort({ control, archive: control.archive, newTx: ctx.newTx });
 	switch (input.operation) {
+		case "recoverInitialBinding":
+			return authority.recoverInitialBinding(input.input);
 		case "revokeOwner":
 			return authority.revokeOwner(input.input);
 		case "readRevocation":

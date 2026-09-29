@@ -4,8 +4,8 @@ import { lockExecution } from "../../../db/queries/langflowExecution/executions"
 import { protocolDigest, readProtocolBytes } from "../../../langflowContracts";
 import { settleReviewClassification } from "../../langflowDispatch/settleReviewClassification";
 import type { ClassificationDependencies } from "../classifyReviewArea";
-import { ReviewGateRequestSchema, ReviewGateResponseSchema, type ReviewGateResponse } from "../invocationProtocol";
 import { deliverClassification } from "../deliverClassification";
+import { ReviewGateRequestSchema, type ReviewGateResponse, ReviewGateResponseSchema } from "../invocationProtocol";
 import { prepareInvocation, type ReviewGateInvocationCtx } from "../prepareInvocation";
 import { reviewGate } from "../reviewGate";
 
@@ -18,24 +18,35 @@ export async function invokeReviewGate(
 ): Promise<ReviewGateResponse> {
 	const request = readProtocolBytes(ReviewGateRequestSchema, input.requestBytes);
 	const saved = await prepareInvocation(ctx, input, request);
-	const result = await reviewGate(ctx, {
-		executionId: request.executionId, diffId: request.diffId, reviewedHead: request.reviewedHead,
-		publication: { publicationId: request.publicationId, gates: saved.gates }, gateNodeId: request.nodeId,
-	}, {
-		claim: async () => saved.claim,
-		finish: async (tx, finish) => {
-			const current = await lockExecution(tx, request);
-			const retained = isDeepStrictEqual(current.authority, saved.authority) && Date.parse(saved.authority.expiresAt) > ctx.now().getTime();
-			return classificationStore.finish(tx, {
-				...finish,
-				result: retained ? finish.result : { state: "failed", error: "Jev gate: execution authority ended." },
-			});
+	const result = await reviewGate(
+		ctx,
+		{
+			executionId: request.executionId,
+			diffId: request.diffId,
+			reviewedHead: request.reviewedHead,
+			publication: { publicationId: request.publicationId, gates: saved.gates },
+			gateNodeId: request.nodeId,
 		},
-	}, deps, {
-		afterValidatedResponse: async (receipt) => {
-			await settleReviewClassification(ctx, ctx.control, { permit: saved.permit!, receiptId: receipt.receiptId });
+		{
+			claim: async () => saved.claim,
+			finish: async (tx, finish) => {
+				const current = await lockExecution(tx, request);
+				const retained =
+					isDeepStrictEqual(current.authority, saved.authority) &&
+					Date.parse(saved.authority.expiresAt) > ctx.now().getTime();
+				return classificationStore.finish(tx, {
+					...finish,
+					result: retained ? finish.result : { state: "failed", error: "Jev gate: execution authority ended." },
+				});
+			},
 		},
-	});
+		deps,
+		{
+			afterValidatedResponse: async (receipt) => {
+				await settleReviewClassification(ctx, ctx.control, { permit: saved.permit!, receiptId: receipt.receiptId });
+			},
+		},
+	);
 	const receipt = result.receipt;
 	const response = ReviewGateResponseSchema.parse({
 		version: 1,

@@ -90,6 +90,33 @@ test("health loss blocks writes while an unknown process prevents replacement", 
 	}
 });
 
+test("shutdown waits for active work and refuses new operations", async () => {
+	const fixture = await supervisorFixture();
+	const supervisor = await fixture.open();
+	const live = await supervisor.start();
+	const entered = Promise.withResolvers<void>();
+	const release = Promise.withResolvers<void>();
+	const operation = supervisor.withHealthyEngine(async (current) => {
+		entered.resolve();
+		await release.promise;
+		return current.identity;
+	});
+	await entered.promise;
+	const shutdown = supervisor.shutdown();
+	try {
+		expect(fixture.trace).not.toContain("revoke");
+		await expect(supervisor.withHealthyEngine(async () => null)).rejects.toThrow("supervisor_busy");
+		release.resolve();
+		expect(await operation).toEqual(live.identity);
+		await shutdown;
+		expect(fixture.trace.slice(-4)).toEqual(["observe", "revoke", "stop", "observe"]);
+	} finally {
+		release.resolve();
+		await shutdown;
+		await fixture.remove();
+	}
+});
+
 test("a direct macOS or unverified package cannot acquire the home", async () => {
 	const fixture = await supervisorFixture();
 	try {

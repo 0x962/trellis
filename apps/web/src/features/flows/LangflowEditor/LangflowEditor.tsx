@@ -8,6 +8,8 @@ import type { EditorSession } from "../../../../../../integrations/langflow/edit
 export type LangflowEditorHandle = {
 	selectIssue: (focus: EditorFocus) => void;
 	restoreFocus: () => void;
+	suspendEditing: () => Promise<EditorContent>;
+	resumeEditing: () => boolean;
 };
 
 export type LangflowEditorSession = EditorSession;
@@ -42,6 +44,8 @@ function EditorFrame({ ref, session, draftChanged, selectionChanged, onAccessEnd
 	const callbacks = useRef({ draftChanged, selectionChanged, onAccessEnded });
 	const focus = useRef<EditorFocus | null>(null);
 	const loaded = useRef(false);
+	const [suspended, setSuspended] = useState(false);
+	const suspensionHeld = useRef(false);
 	const [state, setState] = useState<"pending" | "ready" | "expired" | "reloaded">(
 		Date.parse(initial.expiresAt) <= Date.now() ? "expired" : "pending",
 	);
@@ -57,6 +61,30 @@ function EditorFrame({ ref, session, draftChanged, selectionChanged, onAccessEnd
 		() => ({
 			selectIssue: (target) => channel.current?.selectIssue(target),
 			restoreFocus: () => channel.current?.restoreFocus(focus.current),
+			suspendEditing: async () => {
+				const connection = channel.current;
+				if (!connection) throw new Error("The editor is not connected.");
+				if (suspensionHeld.current) throw new Error("The editor already holds a suspended draft.");
+				suspensionHeld.current = true;
+				setSuspended(true);
+				if (frame.current) frame.current.inert = true;
+				try {
+					return await connection.suspendEditing();
+				} catch (error) {
+					if (connection.active()) {
+						suspensionHeld.current = false;
+						setSuspended(false);
+						if (frame.current) frame.current.inert = false;
+					}
+					throw error;
+				}
+			},
+			resumeEditing: () => {
+				if (!channel.current?.resumeEditing()) return false;
+				suspensionHeld.current = false;
+				setSuspended(false);
+				return true;
+			},
 		}),
 		[],
 	);
@@ -117,7 +145,7 @@ function EditorFrame({ ref, session, draftChanged, selectionChanged, onAccessEnd
 				sandbox="allow-scripts allow-same-origin"
 				referrerPolicy="no-referrer"
 				className={`min-h-0 w-full min-w-0 flex-1 border-0 ${state === "pending" ? "invisible" : ""}`}
-				inert={state !== "ready"}
+				inert={state !== "ready" || suspended}
 				onLoad={() => {
 					if (loaded.current) {
 						channel.current?.revoke();

@@ -24,7 +24,11 @@ export function useUsageReport() {
 	// server takes the work and the query then re-reads the answer.
 	const refresh = useMutation({
 		mutationFn: () => client.usage.report({ days, refresh: true }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
+		onSuccess: () =>
+			Promise.all([
+				queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
+				queryClient.invalidateQueries({ queryKey: orpc.usage.ranking.key() }),
+			]),
 	});
 	// A change of range drops the selected row and the selected day,
 	// because neither one survives a different set of days.

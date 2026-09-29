@@ -1,7 +1,7 @@
 export type {
 	EngineClientDependencies,
-	EngineFetch,
 	EngineClientOptions,
+	EngineFetch,
 	EngineRequest,
 	EngineResponse,
 	RecoveredMutation,
