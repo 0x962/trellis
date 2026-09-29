@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { node } from "../../agents/nativeFlow/testDoc.ts";
 import type { ServiceCtx } from "../../context.ts";
-import { applyActorConsumerIdentitySql, collisionActors } from "../../db/actorConsumerIdentities/fixture.ts";
+import { collisionActors } from "../../db/actorConsumerIdentities/fixture.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -31,7 +31,6 @@ const addProject = async (id: string, key: string, slug: string) => {
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await applyActorConsumerIdentitySql(db);
 	await addProject(oneId, "ONE", "one");
 	await addProject(twoId, "TWO", "two");
 	const cache = createCache();
