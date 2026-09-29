@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
-from dataclasses import replace
-from pathlib import Path
 from uuid import UUID
 
 import pytest
@@ -13,78 +10,18 @@ from langflow.services.trellis_v1.correlation import (
     CorrelationCoordinator,
     CorrelationKey,
     CorrelationUnknown,
-    LookupResult,
     ProtocolConflict,
-    StoredCorrelation,
 )
 
-CONTRACT_ROOT = Path(
-    os.environ.get(
-        "TRELLIS_LANGFLOW_CONTRACT_FIXTURES",
-        Path(__file__).parents[4] / "apps/server/src/langflowContracts/fixtures",
-    )
+from correlation_fixture_support import (
+    CONTINUATION,
+    JOB_ID,
+    KEY,
+    MemoryStore,
+    admission_wait_bytes,
+    contract_bytes,
+    reserved_submission_bytes,
 )
-
-
-def contract_bytes(name: str) -> bytes:
-    return (CONTRACT_ROOT / f"{name}.json").read_bytes()
-
-
-def reserved_submission_bytes() -> bytes:
-    submission = json.loads(contract_bytes("submission"))
-    submission["state"] = "reserved"
-    submission["correlation"] = None
-    submission["admission"] = {"state": "closed", "barrierId": "barrier-1"}
-    return json.dumps(submission, separators=(",", ":")).encode()
-
-
-def admission_wait_bytes() -> bytes:
-    return b'{"kind":"admission","waitId":"admission-wait-1","barrierId":"barrier-1"}'
-
-
-class MemoryStore:
-    def __init__(self) -> None:
-        self.records: dict[CorrelationKey, StoredCorrelation] = {}
-        self.unknown = False
-        self.effects = 0
-
-    async def lookup(self, key: CorrelationKey) -> LookupResult:
-        if self.unknown:
-            return LookupResult(state="unknown")
-        record = self.records.get(key)
-        return (
-            LookupResult(state="found", record=record)
-            if record
-            else LookupResult(state="absent")
-        )
-
-    async def reserve(self, candidate: StoredCorrelation) -> StoredCorrelation:
-        record = self.records.setdefault(candidate.key, candidate)
-        return record
-
-    async def commit_admission(
-        self, candidate: StoredCorrelation, admission_bytes: bytes
-    ) -> StoredCorrelation:
-        record = self.records[candidate.key]
-        if record.admission_receipt_bytes is None:
-            record = replace(record, admission_receipt_bytes=admission_bytes)
-            self.records[candidate.key] = record
-        return record
-
-    def set_terminal(self, key: CorrelationKey, state: str) -> None:
-        self.records[key] = replace(self.records[key], terminal_state=state)
-
-    def retain_effect(self, key: CorrelationKey) -> None:
-        record = self.records[key]
-        self.records[key] = replace(
-            record,
-            effect_refs=(*record.effect_refs, "attempt-1"),
-            stop_obligation_refs=(*record.stop_obligation_refs, "stop-1"),
-        )
-
-
-JOB_ID = UUID("00000000-0000-4000-8000-000000000001")
-KEY = CorrelationKey(host_id="host-1", execution_id="execution-1")
 
 
 @pytest.mark.asyncio
@@ -156,7 +93,7 @@ async def test_same_identity_with_changed_request_data_conflicts() -> None:
         correlation_receipt_bytes=contract_bytes("correlation"),
     )
     changed_submission = json.loads(submission)
-    changed_submission["requestId"] = "00000000-0000-4000-8000-000000000004"
+    changed_submission["revision"] = 2
     with pytest.raises(ProtocolConflict, match="submission_identity_conflict"):
         await coordinator.accept_submission(
             json.dumps(changed_submission, separators=(",", ":")).encode(),
@@ -183,9 +120,12 @@ async def test_closed_admission_suspends_and_opens_for_exact_binding() -> None:
         await request_native_work()
     assert pending.value.external_wait_bytes == admission_wait_bytes()
     assert store.effects == 0
-    assert await coordinator.open_admission(
-        KEY, contract_bytes("admission")
-    ) == contract_bytes("admission")
+    commit = await coordinator.open_admission(
+        KEY,
+        contract_bytes("admission"),
+        CONTINUATION,
+    )
+    assert commit.record.admission_receipt_bytes == contract_bytes("admission")
     await request_native_work()
     assert store.effects == 1
     changed_admission = json.loads(contract_bytes("admission"))
@@ -194,6 +134,7 @@ async def test_closed_admission_suspends_and_opens_for_exact_binding() -> None:
         await coordinator.open_admission(
             KEY,
             json.dumps(changed_admission, separators=(",", ":")).encode(),
+            CONTINUATION,
         )
 
 
@@ -206,7 +147,11 @@ async def test_recovery_preserves_admitted_effects_and_stop_obligations() -> Non
         job_id=JOB_ID,
         correlation_receipt_bytes=contract_bytes("correlation"),
     )
-    await first_process.open_admission(KEY, contract_bytes("admission"))
+    await first_process.open_admission(
+        KEY,
+        contract_bytes("admission"),
+        CONTINUATION,
+    )
     store.retain_effect(KEY)
     recovered_process = CorrelationCoordinator(store)
     assert await recovered_process.accept_submission(
@@ -252,7 +197,11 @@ async def test_references_have_no_app_length_ceiling() -> None:
     submission["hostId"] = "host-" + "a" * 20_000
     correlation = json.loads(contract_bytes("correlation"))
     correlation["hostId"] = submission["hostId"]
-    key = CorrelationKey(host_id=submission["hostId"], execution_id="execution-1")
+    key = CorrelationKey(
+        actor_kind="human",
+        actor_name="fixture-human",
+        request_id=UUID("00000000-0000-4000-8000-000000000003"),
+    )
     await coordinator.accept_submission(
         json.dumps(submission, separators=(",", ":")).encode(),
         job_id=JOB_ID,

@@ -3,11 +3,11 @@ new file mode 100644
 index 000000000..f4adcf13d
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/correlation.py
-@@ -0,0 +1,374 @@
+@@ -0,0 +1,520 @@
 +"""Permanent Trellis job correlation and the native admission barrier.
 +
 +The correlation store keeps the first serialized ``SubmissionV1`` bytes and
-+``CorrelationReceiptV1`` bytes under one ``(hostId, executionId)`` key. The
++``CorrelationReceiptV1`` bytes under one actor and request UUID key. The
 +admission store keeps the first serialized ``AdmissionReceiptV1`` bytes for
 +that job. Store implementations commit each method as one transaction.
 +"""
@@ -18,8 +18,15 @@ index 000000000..f4adcf13d
 +import json
 +import re
 +from dataclasses import dataclass, replace
-+from typing import Literal, Protocol
++from datetime import datetime, timezone
++from typing import TYPE_CHECKING, Literal, Protocol, cast
 +from uuid import UUID
++
++from sqlalchemy import Column, DateTime, LargeBinary, Text, UniqueConstraint
++from sqlmodel import Field, SQLModel
++
++if TYPE_CHECKING:
++    from langflow.services.jobs.service import JobService
 +
 +_DIGEST = re.compile(r"^[a-f0-9]{64}$")
 +_REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
@@ -54,14 +61,18 @@ index 000000000..f4adcf13d
 +
 +@dataclass(frozen=True)
 +class CorrelationKey:
-+    host_id: str
-+    execution_id: str
++    actor_kind: Literal["human", "agent"]
++    actor_name: str
++    request_id: UUID
 +
 +
 +@dataclass(frozen=True)
 +class StoredCorrelation:
 +    key: CorrelationKey
++    host_id: str
++    execution_id: str
 +    job_id: UUID
++    engine_session_id: str
 +    barrier_id: str
 +    submission_bytes: bytes
 +    submission_bytes_digest: str
@@ -73,9 +84,88 @@ index 000000000..f4adcf13d
 +
 +
 +@dataclass(frozen=True)
++class AdmissionContinuation:
++    engine_request_id: str
++    signal_id: UUID
++    enqueue_obligation_id: UUID
++
++
++@dataclass(frozen=True)
++class AdmissionCommit:
++    record: StoredCorrelation
++    continuation_receipt_bytes: bytes
++
++
++@dataclass(frozen=True)
++class AdmissionEnqueueObligation:
++    engine_job_id: UUID
++    engine_request_id: str
++    signal_id: UUID
++    enqueue_obligation_id: UUID
++    continuation_receipt_bytes: bytes
++
++
++@dataclass(frozen=True)
 +class LookupResult:
 +    state: Literal["found", "absent", "unknown"]
 +    record: StoredCorrelation | None = None
++
++
++class TrellisJobCorrelation(SQLModel, table=True):  # type: ignore[call-arg]
++    """Permanent identity bytes for one Trellis execution and Langflow job."""
++
++    __tablename__ = "trellis_job_correlations"
++    __table_args__ = (
++        UniqueConstraint(
++            "host_id",
++            "execution_id",
++            name="uq_trellis_job_correlations_engine_key",
++        ),
++        UniqueConstraint(
++            "engine_session_id",
++            name="uq_trellis_job_correlations_engine_session",
++        ),
++    )
++
++    actor_kind: str = Field(sa_column=Column(Text, primary_key=True))
++    actor_name: str = Field(sa_column=Column(Text, primary_key=True))
++    request_id: UUID = Field(primary_key=True)
++    host_id: str = Field(sa_column=Column(Text, nullable=False))
++    execution_id: str = Field(sa_column=Column(Text, nullable=False))
++    engine_job_id: UUID = Field(index=True, unique=True)
++    engine_session_id: str = Field(sa_column=Column(Text, nullable=False))
++    barrier_id: str = Field(sa_column=Column(Text, nullable=False))
++    submission_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    submission_bytes_digest: str = Field(sa_column=Column(Text, nullable=False))
++    correlation_receipt_bytes: bytes = Field(
++        sa_column=Column(LargeBinary, nullable=False)
++    )
++    admission_receipt_bytes: bytes | None = Field(
++        default=None,
++        sa_column=Column(LargeBinary, nullable=True),
++    )
++    continuation_engine_request_id: str | None = Field(
++        default=None,
++        sa_column=Column(Text, nullable=True),
++    )
++    continuation_signal_id: UUID | None = Field(default=None, nullable=True)
++    enqueue_obligation_id: UUID | None = Field(
++        default=None,
++        nullable=True,
++        unique=True,
++    )
++    continuation_receipt_bytes: bytes | None = Field(
++        default=None,
++        sa_column=Column(LargeBinary, nullable=True),
++    )
++    enqueue_obligation_consumed_at: datetime | None = Field(
++        default=None,
++        sa_column=Column(DateTime(timezone=True), nullable=True),
++    )
++    created_at: datetime = Field(
++        default_factory=lambda: datetime.now(timezone.utc),
++        sa_column=Column(DateTime(timezone=True), nullable=False),
++    )
 +
 +
 +class CorrelationStore(Protocol):
@@ -89,12 +179,55 @@ index 000000000..f4adcf13d
 +        """
 +
 +    async def commit_admission(
-+        self, candidate: StoredCorrelation, admission_bytes: bytes
-+    ) -> StoredCorrelation:
++        self,
++        candidate: StoredCorrelation,
++        admission_bytes: bytes,
++        continuation: AdmissionContinuation,
++    ) -> AdmissionCommit:
 +        """Commit admission consumption and its continuation obligation together.
 +
 +        The transaction rejects a canceled execution or a revoked engine owner.
 +        """
++
++
++class JobServiceCorrelationStore:
++    """Use the Langflow job database as the permanent correlation store."""
++
++    def __init__(
++        self,
++        jobs: JobService,
++        *,
++        flow_id: UUID,
++        user_id: UUID,
++    ) -> None:
++        self._jobs = jobs
++        self._flow_id = flow_id
++        self._user_id = user_id
++
++    async def lookup(self, key: CorrelationKey) -> LookupResult:
++        record = await self._jobs.lookup_trellis_correlation(key)
++        if record is None:
++            return LookupResult(state="absent")
++        return LookupResult(state="found", record=record)
++
++    async def reserve(self, candidate: StoredCorrelation) -> StoredCorrelation:
++        return await self._jobs.reserve_trellis_correlation(
++            candidate,
++            flow_id=self._flow_id,
++            user_id=self._user_id,
++        )
++
++    async def commit_admission(
++        self,
++        candidate: StoredCorrelation,
++        admission_bytes: bytes,
++        continuation: AdmissionContinuation,
++    ) -> AdmissionCommit:
++        return await self._jobs.commit_trellis_admission(
++            candidate,
++            admission_bytes,
++            continuation,
++        )
 +
 +
 +def _digest(value: bytes) -> str:
@@ -306,9 +439,11 @@ index 000000000..f4adcf13d
 +            or admission["state"] != "closed"
 +        ):
 +            raise ProtocolConflict("submission_must_start_reserved")
++        actor = submission["actor"]
 +        key = CorrelationKey(
-+            host_id=str(submission["hostId"]),
-+            execution_id=str(submission["executionId"]),
++            actor_kind=cast(Literal["human", "agent"], actor["kind"]),
++            actor_name=str(actor["name"]),
++            request_id=UUID(str(submission["requestId"])),
 +        )
 +        lookup = await self._store.lookup(key)
 +        if lookup.state == "unknown":
@@ -325,7 +460,10 @@ index 000000000..f4adcf13d
 +            raise ProtocolConflict("engine_job_identity_conflict")
 +        candidate = StoredCorrelation(
 +            key=key,
++            host_id=str(submission["hostId"]),
++            execution_id=str(submission["executionId"]),
 +            job_id=job_id,
++            engine_session_id=str(correlation["engineSessionId"]),
 +            barrier_id=str(admission["barrierId"]),
 +            submission_bytes=submission_bytes,
 +            submission_bytes_digest=_digest(submission_bytes),
@@ -335,9 +473,13 @@ index 000000000..f4adcf13d
 +        return self._same_submission(winner, submission_bytes)
 +
 +    async def open_admission(
-+        self, key: CorrelationKey, admission_bytes: bytes
-+    ) -> bytes:
++        self,
++        key: CorrelationKey,
++        admission_bytes: bytes,
++        continuation: AdmissionContinuation,
++    ) -> AdmissionCommit:
 +        admission = _admission(_read(admission_bytes, "admission"))
++        _reference(continuation.engine_request_id, "engineRequestId")
 +        lookup = await self._store.lookup(key)
 +        if lookup.state != "found" or lookup.record is None:
 +            raise CorrelationUnknown(key)
@@ -348,10 +490,14 @@ index 000000000..f4adcf13d
 +        if not _same_binding(submission, correlation, admission):
 +            raise ProtocolConflict("admission_binding_conflict")
 +        candidate = replace(lookup.record, admission_receipt_bytes=admission_bytes)
-+        winner = await self._store.commit_admission(candidate, admission_bytes)
-+        if winner.admission_receipt_bytes != admission_bytes:
++        commit = await self._store.commit_admission(
++            candidate,
++            admission_bytes,
++            continuation,
++        )
++        if commit.record.admission_receipt_bytes != admission_bytes:
 +            raise ProtocolConflict("admission_identity_conflict")
-+        return admission_bytes
++        return commit
 +
 +    async def admission_or_wait(
 +        self, key: CorrelationKey, external_wait_bytes: bytes
@@ -378,3 +524,360 @@ index 000000000..f4adcf13d
 +        ):
 +            raise ProtocolConflict("submission_identity_conflict")
 +        return record.correlation_receipt_bytes
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+index 1e82a698e..03a3463c1 100644
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -9,3 +9,13 @@ from typing import TYPE_CHECKING
+ if TYPE_CHECKING:
+     from collections.abc import Sequence
++
++    from sqlmodel.ext.asyncio.session import AsyncSession
++
++    from langflow.services.trellis_v1.correlation import (
++        AdmissionCommit,
++        AdmissionContinuation,
++        AdmissionEnqueueObligation,
++        CorrelationKey,
++        StoredCorrelation,
++    )
+ from datetime import datetime, timezone
+@@ -213,3 +223,338 @@ class JobService(Service):
+             session.add(job)
+             await session.flush()
+             return job
++
++    async def lookup_trellis_correlation(
++        self, key: CorrelationKey
++    ) -> StoredCorrelation | None:
++        """Read one permanent Trellis correlation and its current job state."""
++        async with session_scope() as session:
++            return await self._trellis_correlation_in_session(session, key)
++
++    async def reserve_trellis_correlation(
++        self,
++        candidate: StoredCorrelation,
++        *,
++        flow_id: UUID,
++        user_id: UUID,
++    ) -> StoredCorrelation:
++        """Commit a queued job and its permanent Trellis correlation together."""
++        from langflow.services.trellis_v1.correlation import (
++            ProtocolConflict,
++            TrellisJobCorrelation,
++        )
++
++        if isinstance(flow_id, str):
++            flow_id = UUID(flow_id)
++        try:
++            async with session_scope() as session:
++                winner = await self._trellis_correlation_in_session(
++                    session, candidate.key
++                )
++                if winner is not None:
++                    return winner
++                metadata = inject_trace_carrier(
++                    {
++                        "trellis_v1": {
++                            "actor_kind": candidate.key.actor_kind,
++                            "actor_name": candidate.key.actor_name,
++                            "request_id": str(candidate.key.request_id),
++                        }
++                    }
++                )
++                job = Job(
++                    job_id=candidate.job_id,
++                    flow_id=flow_id,
++                    status=JobStatus.QUEUED,
++                    type=JobType.WORKFLOW,
++                    user_id=user_id,
++                    dedupe_key=(
++                        f"trellis-v1:{candidate.host_id}:"
++                        f"{candidate.execution_id}"
++                    ),
++                    job_metadata=metadata,
++                )
++                correlation = TrellisJobCorrelation(
++                    actor_kind=candidate.key.actor_kind,
++                    actor_name=candidate.key.actor_name,
++                    request_id=candidate.key.request_id,
++                    host_id=candidate.host_id,
++                    execution_id=candidate.execution_id,
++                    engine_job_id=candidate.job_id,
++                    engine_session_id=candidate.engine_session_id,
++                    barrier_id=candidate.barrier_id,
++                    submission_bytes=candidate.submission_bytes,
++                    submission_bytes_digest=candidate.submission_bytes_digest,
++                    correlation_receipt_bytes=candidate.correlation_receipt_bytes,
++                )
++                session.add(job)
++                session.add(correlation)
++                await session.flush()
++                return candidate
++        except IntegrityError:
++            winner = await self.lookup_trellis_correlation(candidate.key)
++            if winner is not None:
++                return winner
++            async with session_scope() as session:
++                conflict_statement = select(TrellisJobCorrelation).where(
++                    (
++                        (
++                            TrellisJobCorrelation.host_id == candidate.host_id
++                        )
++                        & (
++                            TrellisJobCorrelation.execution_id
++                            == candidate.execution_id
++                        )
++                    )
++                    | (
++                        TrellisJobCorrelation.engine_session_id
++                        == candidate.engine_session_id
++                    )
++                )
++                conflict = (await session.exec(conflict_statement)).first()
++                if conflict is not None:
++                    raise ProtocolConflict(
++                        "engine_correlation_identity_conflict"
++                    )
++            raise
++
++    async def commit_trellis_admission(
++        self,
++        candidate: StoredCorrelation,
++        admission_bytes: bytes,
++        continuation: AdmissionContinuation,
++    ) -> AdmissionCommit:
++        """Commit admission and claim its exact suspended continuation."""
++        from langflow.services.trellis_v1.correlation import (
++            AdmissionCommit,
++            CorrelationUnknown,
++            ProtocolConflict,
++            TrellisJobCorrelation,
++        )
++
++        async with session_scope() as session:
++            statement = (
++                select(TrellisJobCorrelation)
++                .where(
++                    TrellisJobCorrelation.actor_kind == candidate.key.actor_kind,
++                    TrellisJobCorrelation.actor_name == candidate.key.actor_name,
++                    TrellisJobCorrelation.request_id == candidate.key.request_id,
++                )
++                .with_for_update()
++            )
++            correlation = (await session.exec(statement)).first()
++            if correlation is None:
++                raise CorrelationUnknown(candidate.key)
++            job = await session.get(
++                Job,
++                correlation.engine_job_id,
++                with_for_update=True,
++            )
++            if correlation.admission_receipt_bytes is None:
++                if job.status != JobStatus.SUSPENDED:
++                    raise ProtocolConflict("admission_job_not_suspended")
++                correlation.admission_receipt_bytes = admission_bytes
++                correlation.continuation_engine_request_id = (
++                    continuation.engine_request_id
++                )
++                correlation.continuation_signal_id = continuation.signal_id
++                correlation.enqueue_obligation_id = (
++                    continuation.enqueue_obligation_id
++                )
++            elif (
++                correlation.admission_receipt_bytes != admission_bytes
++                or correlation.continuation_engine_request_id
++                != continuation.engine_request_id
++                or correlation.continuation_signal_id != continuation.signal_id
++                or correlation.enqueue_obligation_id
++                != continuation.enqueue_obligation_id
++            ):
++                raise ProtocolConflict("admission_continuation_identity_conflict")
++            signal_data = {
++                "kind": "trellis_external_completion_v1",
++                "engineRequestId": continuation.engine_request_id,
++                "decisionId": None,
++                "enqueueObligationId": str(continuation.enqueue_obligation_id),
++            }
++            signal = await session.get(ExecutionSignal, continuation.signal_id)
++            if signal is None:
++                signal = ExecutionSignal(
++                    id=continuation.signal_id,
++                    job_id=correlation.engine_job_id,
++                    signal_type=SignalType.RESUME,
++                    data=signal_data,
++                )
++                session.add(signal)
++            elif (
++                signal.job_id != correlation.engine_job_id
++                or signal.signal_type != SignalType.RESUME
++                or signal.data != signal_data
++            ):
++                raise ProtocolConflict("admission_signal_identity_conflict")
++            session.add(correlation)
++            await session.flush()
++            continuation_receipt = (
++                await self.consume_suspended_continuation_in_session(
++                    session,
++                    engine_job_id=correlation.engine_job_id,
++                    engine_request_id=continuation.engine_request_id,
++                    decision_id=None,
++                    signal_id=continuation.signal_id,
++                    enqueue_obligation_id=continuation.enqueue_obligation_id,
++                )
++            )
++            if continuation_receipt is None:
++                raise ProtocolConflict("admission_continuation_not_pending")
++            continuation_receipt_bytes = continuation_receipt
++            if (
++                correlation.continuation_receipt_bytes is not None
++                and correlation.continuation_receipt_bytes
++                != continuation_receipt_bytes
++            ):
++                raise ProtocolConflict("admission_continuation_receipt_conflict")
++            correlation.continuation_receipt_bytes = continuation_receipt_bytes
++            session.add(correlation)
++            await session.flush()
++            record = await self._trellis_correlation_in_session(
++                session, candidate.key
++            )
++            if record is None:
++                raise CorrelationUnknown(candidate.key)
++            return AdmissionCommit(
++                record=record,
++                continuation_receipt_bytes=continuation_receipt_bytes,
++            )
++
++    async def pending_trellis_admission_obligations(
++        self,
++    ) -> list[AdmissionEnqueueObligation]:
++        """Read each admission obligation that still requires dispatch proof."""
++        from langflow.services.trellis_v1.correlation import (
++            AdmissionEnqueueObligation,
++            TrellisJobCorrelation,
++        )
++
++        async with session_scope() as session:
++            statement = (
++                select(TrellisJobCorrelation)
++                .where(
++                    TrellisJobCorrelation.admission_receipt_bytes.is_not(None),
++                    TrellisJobCorrelation.continuation_engine_request_id.is_not(
++                        None
++                    ),
++                    TrellisJobCorrelation.continuation_signal_id.is_not(None),
++                    TrellisJobCorrelation.enqueue_obligation_id.is_not(None),
++                    TrellisJobCorrelation.continuation_receipt_bytes.is_not(None),
++                    TrellisJobCorrelation.enqueue_obligation_consumed_at.is_(None),
++                )
++                .order_by(
++                    TrellisJobCorrelation.created_at,
++                    TrellisJobCorrelation.actor_kind,
++                    TrellisJobCorrelation.actor_name,
++                    TrellisJobCorrelation.request_id,
++                )
++            )
++            rows = (await session.exec(statement)).all()
++            return [
++                AdmissionEnqueueObligation(
++                    engine_job_id=row.engine_job_id,
++                    engine_request_id=cast(
++                        str,
++                        row.continuation_engine_request_id,
++                    ),
++                    signal_id=cast(UUID, row.continuation_signal_id),
++                    enqueue_obligation_id=cast(UUID, row.enqueue_obligation_id),
++                    continuation_receipt_bytes=cast(
++                        bytes,
++                        row.continuation_receipt_bytes,
++                    ),
++                )
++                for row in rows
++            ]
++
++    async def mark_trellis_admission_obligation_consumed(
++        self,
++        *,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++        continuation_receipt_bytes: bytes,
++    ) -> None:
++        """Mark one exact admission obligation after durable dispatch proof."""
++        from langflow.services.trellis_v1.correlation import (
++            CorrelationUnknown,
++            ProtocolConflict,
++            TrellisJobCorrelation,
++        )
++
++        async with session_scope() as session:
++            statement = (
++                select(TrellisJobCorrelation)
++                .where(
++                    TrellisJobCorrelation.engine_job_id == engine_job_id,
++                    TrellisJobCorrelation.enqueue_obligation_id
++                    == enqueue_obligation_id,
++                )
++                .with_for_update()
++            )
++            correlation = (await session.exec(statement)).first()
++            if correlation is None:
++                raise CorrelationUnknown(enqueue_obligation_id)
++            if (
++                correlation.continuation_engine_request_id != engine_request_id
++                or correlation.continuation_signal_id != signal_id
++                or correlation.continuation_receipt_bytes
++                != continuation_receipt_bytes
++            ):
++                raise ProtocolConflict("admission_obligation_identity_conflict")
++            if correlation.enqueue_obligation_consumed_at is None:
++                correlation.enqueue_obligation_consumed_at = datetime.now(
++                    timezone.utc
++                )
++                session.add(correlation)
++                await session.flush()
++
++    @staticmethod
++    async def _trellis_correlation_in_session(
++        session: AsyncSession,
++        key: CorrelationKey,
++    ) -> StoredCorrelation | None:
++        from langflow.services.trellis_v1.correlation import (
++            StoredCorrelation,
++            TrellisJobCorrelation,
++        )
++
++        statement = select(TrellisJobCorrelation).where(
++            TrellisJobCorrelation.actor_kind == key.actor_kind,
++            TrellisJobCorrelation.actor_name == key.actor_name,
++            TrellisJobCorrelation.request_id == key.request_id,
++        )
++        correlation = (await session.exec(statement)).first()
++        if correlation is None:
++            return None
++        job = await session.get(Job, correlation.engine_job_id)
++        terminal_state = (
++            job.status.value
++            if job.status
++            in {
++                JobStatus.COMPLETED,
++                JobStatus.FAILED,
++                JobStatus.CANCELLED,
++                JobStatus.TIMED_OUT,
++            }
++            else None
++        )
++        return StoredCorrelation(
++            key=key,
++            host_id=correlation.host_id,
++            execution_id=correlation.execution_id,
++            job_id=correlation.engine_job_id,
++            engine_session_id=correlation.engine_session_id,
++            barrier_id=correlation.barrier_id,
++            submission_bytes=correlation.submission_bytes,
++            submission_bytes_digest=correlation.submission_bytes_digest,
++            correlation_receipt_bytes=correlation.correlation_receipt_bytes,
++            admission_receipt_bytes=correlation.admission_receipt_bytes,
++            terminal_state=terminal_state,
++        )
