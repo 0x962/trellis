@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentRun, SessionUpdates } from "@trellis/api";
+import type { AgentRun } from "@trellis/api";
+import type { SessionUpdates } from "@trellis/ui";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SessionStatusContent } from "./SessionStatusContent";
 
