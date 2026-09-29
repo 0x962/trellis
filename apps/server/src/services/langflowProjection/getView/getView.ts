@@ -1,7 +1,7 @@
-import type { ServiceCtx } from "../../context.ts";
-import { readProjection } from "../../db/queries/langflowExecution";
-import type { Tx } from "../../db/tx.ts";
-import { fail } from "../../errors.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { readProjection } from "../../../db/queries/langflowExecution";
+import type { Tx } from "../../../db/tx.ts";
+import { fail } from "../../../errors.ts";
 
 export async function getView(_ctx: ServiceCtx, tx: Tx, input: { id: string }) {
 	const record = await readProjection(tx, { executionId: input.id });
