@@ -1,11 +1,19 @@
-import { type FlowSummary, flowReviewCredit, flowRunWorks } from "@trellis/api";
+import { type FlowExecutionViewV1, type FlowSummary, flowReviewCredit, flowRunWorks } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
-import { listRuns } from "../flow/listRuns.ts";
 import { flowChoiceLines, flowRunCommand } from "../flows/flowText.ts";
 import type { PullRequestRef } from "../pullRequestRef.ts";
 
 // A completed flow review applies to its diff across later commits.
-type Run = { slug: string; name: string; status: string; failureKind?: "error" | "feedback" };
+type Run = { slug: string; name: string; status: string; failureKind?: "error" | "feedback" | null };
+
+const reviewRuns = async (client: TrellisClient, diffId: string) => {
+	const runs: FlowExecutionViewV1[] = [];
+	for (let offset = 0; ; offset += 500) {
+		const page = await client.flowDocumentsV1.list({ diffId, limit: 500, offset });
+		for (const { id } of page) runs.push(await client.flowDocumentsV1.view({ id }));
+		if (page.length < 500) return runs;
+	}
+};
 
 export type FlowReadiness = {
 	flows: FlowSummary[];
@@ -28,7 +36,7 @@ export const flowReadiness = async (
 	const flows = await client.flows.list({ ticket });
 	if (flows.length === 0) return { flows, runs: [], waived: null, skipped: "no-flow", satisfied: true };
 	const [records, waiver] = await Promise.all([
-		listRuns(client, { diffId: ref.id }),
+		reviewRuns(client, ref.id),
 		client.pullRequests.readFlowWaiver({ id: ref.id }),
 	]);
 	const asked = new Set(flows.map((flow) => flow.id));
@@ -36,7 +44,7 @@ export const flowReadiness = async (
 		.filter((record) => asked.has(record.flowId))
 		.map((record) => {
 			const flow = flows.find((flow) => flow.id === record.flowId)!;
-			return { slug: flow.slug, name: flow.name, status: record.state.status, failureKind: record.state.failureKind };
+			return { slug: flow.slug, name: flow.name, status: record.status, failureKind: record.failureKind };
 		});
 	const waived = waiver === null ? null : waiver.reason;
 	return {
@@ -49,11 +57,7 @@ export const flowReadiness = async (
 			hasTicket: true,
 			applicableFlowIds: flows.map((flow) => flow.id),
 			waived: waived !== null,
-			runs: records.map((record) => ({
-				flowId: record.flowId,
-				diffId: record.diffId,
-				status: record.state.status,
-			})),
+			runs: records,
 		}),
 	};
 };

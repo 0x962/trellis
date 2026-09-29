@@ -1,9 +1,14 @@
 import { afterEach, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { type Db, openDb } from "../../client";
 import { migrate } from "../../migrate";
+import { saveInput } from "../langflowDocuments/inputs.fixture";
+import { readDocumentPublication } from "../langflowDocuments/readPublication";
+import { readDocumentRevision } from "../langflowDocuments/readRevision";
+import { readDocumentSaveReceipt } from "../langflowDocuments/readSaveReceipt";
 import { classificationStore } from "./classification";
 import { readExecution, reserveExecution } from "./executions";
 import { ids, now, receiptFixture } from "./fixtures/fixture";
@@ -18,7 +23,9 @@ afterEach(async () => {
 test("the migration chain preserves legacy rows and durable receipts across reopen and deletion", async () => {
 	db = await beforeDocuments();
 	const before = (await db.execute(sql`SELECT * FROM flow_executions WHERE id='legacy-execution'`)).rows;
+	const legacyFlows = (await db.execute(sql`SELECT * FROM flows ORDER BY id`)).rows;
 	expect(await migrate(db)).toBe(2);
+	expect((await db.execute(sql`SELECT * FROM flows ORDER BY id`)).rows).toEqual(legacyFlows);
 	expect((await db.execute(sql`SELECT * FROM flow_executions WHERE id='legacy-execution'`)).rows).toEqual(before);
 	const fixture = await receiptFixture(true, db);
 	expect((await db.transaction((tx) => reserveExecution(tx, fixture.input))).executionId).toBe(ids.execution);
@@ -54,10 +61,22 @@ test("the migration chain preserves legacy rows and durable receipts across reop
 			requestBytes: "original classification bytes",
 		}),
 	);
+	const savedInput = saveInput();
+	const savedRevision = await db.transaction((tx) => readDocumentRevision(tx, { flowId: ids.flow, revision: 2 }));
+	const savedReceipt = await db.transaction((tx) => readDocumentSaveReceipt(tx, savedInput));
+	expect(savedRevision!.sourceBytes.equals(savedInput.sourceBytes)).toBe(true);
+	expect(savedRevision!.documentHash).toBe(createHash("sha256").update(savedInput.sourceBytes).digest("hex"));
 	const backup = await db.$client.dumpDataDir();
 	await db.$client.close();
 	db = await openDb(":memory:", backup);
 	expect(await migrate(db)).toBe(0);
+	expect(await db.transaction((tx) => readDocumentRevision(tx, { flowId: ids.flow, revision: 2 }))).toEqual(
+		savedRevision,
+	);
+	expect(await db.transaction((tx) => readDocumentSaveReceipt(tx, savedInput))).toEqual(savedReceipt);
+	expect(await db.transaction((tx) => readDocumentPublication(tx, { flowId: ids.flow, revision: 2 }))).toEqual(
+		fixture.input.publication,
+	);
 	expect(await db.transaction((tx) => classificationStore.read(tx, { executionId: ids.execution }))).toEqual(
 		claim.receipt,
 	);

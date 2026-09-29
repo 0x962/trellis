@@ -37,7 +37,7 @@ export function createReceipt(
 		waits.length !== 1 ||
 		pending?.kind !== "human"
 	) {
-		throw invalidInput("key", "This step is not waiting for a human decision.");
+		throw fail("FLOW_VERSION_CONFLICT", { version: view.revision });
 	}
 	const wait = pending.request;
 	const identity = {
@@ -53,7 +53,7 @@ export function createReceipt(
 			(row) => row.engineRequestId === wait.engineRequestId || row.occurrenceKey === occurrence.occurrenceKey,
 		)
 	) {
-		throw invalidInput("key", "This human decision already has a receipt. Refresh the execution.");
+		throw fail("FLOW_VERSION_CONFLICT", { version: view.revision });
 	}
 	const decision = HumanDecisionReceiptV1Schema.parse({
 		version: 1,

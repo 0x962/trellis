@@ -1,5 +1,5 @@
 import { FunnelSimple } from "@phosphor-icons/react";
-import { Chip, FilterBar, FilterPopover, IconButton, Input } from "@trellis/ui";
+import { Chip, FilterBar, FilterPopover, IconButton, Input, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import type { FlowDiscoveryFilters as Filters } from "../../flowDiscovery";
 
@@ -35,7 +35,11 @@ export function FlowDiscoveryFilters({ filters, projects, onChange }: FlowDiscov
 				className="w-48 max-md:w-32"
 			/>
 			<FilterPopover
-				trigger={<IconButton label="Filter flows" icon={<FunnelSimple />} />}
+				trigger={
+					<Tooltip content="Filter flows">
+						<IconButton label="Filter flows" icon={<FunnelSimple />} />
+					</Tooltip>
+				}
 				open={open}
 				onOpenChange={setOpen}
 				label="Search projects"
