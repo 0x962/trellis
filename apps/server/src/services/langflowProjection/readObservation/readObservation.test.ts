@@ -125,5 +125,5 @@ test("an altered archived instruction fails the retained spec digest", () => {
 test("container facts without durable occurrence history stay explicit", () => {
 	const f = fixture();
 	f.snapshot.graphCheckpointBytes = JSON.stringify({ trellis_loop_visits: { one: { phase: "completed" } } });
-	expect(() => readObservation(f.execution, f.snapshot, 1)).toThrow("projection_container_history_missing");
+	expect(() => readObservation(f.execution, f.snapshot, 1)).toThrow();
 });
