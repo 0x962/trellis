@@ -102,6 +102,7 @@ export async function provisionStorage(
 		authenticationFile: string;
 		captureIssuerFile: string;
 		engineApiConfigFile: string | null;
+		nativeReservationAuthenticationFile: string | null;
 		storage: StorageNames;
 	},
 ) {
@@ -135,6 +136,12 @@ export async function provisionStorage(
 		...(input.engineApiConfigFile
 			? ["--mount", `type=bind,src=${input.engineApiConfigFile},dst=/input/engine-api,readonly`]
 			: []),
+		...(input.nativeReservationAuthenticationFile
+			? [
+					"--mount",
+					`type=bind,src=${input.nativeReservationAuthenticationFile},dst=/input/native-reservations,readonly`,
+				]
+			: []),
 		"--mount",
 		`type=volume,src=${input.storage.data},dst=/engine`,
 		"--mount",
@@ -157,6 +164,11 @@ const storageProvisionScript = [
 	"install -o 10001 -g 10001 -m 0600 /input/engine-api /secrets/engine-api.json",
 	"else",
 	"rm -f /secrets/engine-api.json",
+	"fi",
+	"if [ -e /input/native-reservations ]; then",
+	"install -o 10001 -g 10001 -m 0600 /input/native-reservations /secrets/native-reservations.token",
+	"else",
+	"rm -f /secrets/native-reservations.token",
 	"fi",
 	"if [ ! -s /secrets/engine-secret ]; then",
 	"python -c 'from pathlib import Path; from secrets import token_urlsafe; Path(\"/secrets/engine-secret\").write_text(token_urlsafe(48))'",

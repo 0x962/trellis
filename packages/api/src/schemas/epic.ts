@@ -15,14 +15,9 @@ export { type EpicLink, EpicLinkSchema } from "./epicLink.ts";
 // project of the ticket. The state of an epic derives from its tickets
 // and is never stored.
 
-export const EPIC_NAME_MAX = 120;
 export const EPIC_DESCRIPTION_MAX = 200000;
 
-export const EpicNameSchema = z
-	.string()
-	.trim()
-	.min(1, `Enter an epic name of 1 to ${EPIC_NAME_MAX} characters.`)
-	.max(EPIC_NAME_MAX, `Enter an epic name of 1 to ${EPIC_NAME_MAX} characters.`);
+export const EpicNameSchema = z.string().trim().min(1, "Enter an epic name.");
 
 export const EpicDescriptionSchema = z
 	.string()

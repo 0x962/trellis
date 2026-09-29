@@ -10,5 +10,6 @@ export { legacyServices } from "./legacyServices";
 export { publicationDispatch } from "./publicationDispatch";
 export { publishDocument } from "./publishDocument";
 export type { DocumentPublisher, Publication, SavedDocument } from "./publisher";
+export { type RetainedExecutionPublication, readExecutionPublication } from "./readExecutionPublication";
 export { requireCurrentPublication } from "./requireCurrentPublication";
 export { save } from "./save";

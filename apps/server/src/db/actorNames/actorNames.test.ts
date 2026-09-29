@@ -34,12 +34,18 @@ test("the actor migration preserves rows and accepts distinct complete names thr
 	db = await openDb(":memory:");
 	await runMigrations(db, { migrationsFolder: directory });
 	const ctx = { now: new Date(), actorCache: new Map<string, number>() } as ServiceCtx;
-	await db.transaction((tx) => actors.upsert(ctx, tx, { kind: "human", name: "retained" }));
-	const before = (await db.execute(sql`SELECT * FROM actors ORDER BY name, kind`)).rows;
+	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+		VALUES ('retained', 'human', ${ctx.now}, ${ctx.now})`);
+	const originalRows = () =>
+		db.execute(sql`SELECT name, kind, first_seen_at, last_seen_at FROM actors ORDER BY name, kind`);
+	const before = (await originalRows()).rows;
 	const names = [`${"a".repeat(64)}-first`, `${"a".repeat(64)}-second`];
-	await expect(db.transaction((tx) => actors.upsert(ctx, tx, { kind: "human", name: names[0]! }))).rejects.toThrow();
+	await expect(
+		db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+			VALUES (${names[0]!}, 'human', ${ctx.now}, ${ctx.now})`),
+	).rejects.toThrow();
 	expect(await migrate(db)).toBeGreaterThan(0);
-	expect((await db.execute(sql`SELECT * FROM actors ORDER BY name, kind`)).rows).toEqual(before);
+	expect((await originalRows()).rows).toEqual(before);
 	for (const name of names) {
 		const request = createContext({ headers: new Headers({ "x-trellis-actor": `human:${name}` }), reqId: name });
 		expect(request.actor).toEqual({ kind: "human", name });

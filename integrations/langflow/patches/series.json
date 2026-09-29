@@ -114,6 +114,20 @@
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
 		{
+			"name": "backend-capture-writers",
+			"path": "integrations/langflow/patches/externalWaits/0005-capture-boundary-writer-hooks.patch",
+			"sha256": "b65478f03a3d0f98f67017bcaa40f07ab8b5530cba6231f4ab7bded709e57210",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-capture-composition.json"
+		},
+		{
+			"name": "backend-private-startup",
+			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
+			"sha256": "3e3008cbca8407050779ccd18f6f01fa437e496e7162678fbdfe20ca020214a3",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/startup/manifest.json"
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
 			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
@@ -133,10 +147,11 @@
 		"integrations/langflow/patches/engineApi/native/tests",
 		"integrations/langflow/patches/engineApi/admission/tests",
 		"integrations/langflow/patches/engineApi/decisions/tests",
+		"integrations/langflow/patches/engineApi/startup/tests",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],
-	"verification": "Static composition only. Matched runtime checks remain with TRL-667. Package export requires private route registration and complete capture guards.",
+	"verification": "Source composition only. Tests, linters, runtime checks, and Review remain deferred to the complete batch. Package export and activation remain unapproved.",
 	"technicalAcceptance": false,
 	"productionApproval": false
 }
