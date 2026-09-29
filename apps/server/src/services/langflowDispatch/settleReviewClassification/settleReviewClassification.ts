@@ -14,8 +14,7 @@ export async function settleReviewClassification(
 	const executionId = permit.binding.executionId;
 	if (executionId === null) throw new Error("classification_permit_execution_missing");
 	const current = control.gate.recoverPermit(permit.binding);
-	if (current === null || !isDeepStrictEqual(current.permit, permit))
-		throw new Error("classification_permit_conflict");
+	if (current === null || !isDeepStrictEqual(current.permit, permit)) throw new Error("classification_permit_conflict");
 	const receipt = await ctx.newTx(async (tx) => {
 		const execution = await lockExecution(tx, { executionId });
 		const saved = await classificationStore.read(tx, { executionId });

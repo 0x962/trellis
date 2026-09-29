@@ -1,7 +1,7 @@
 import type { Tx } from "../../../db/tx";
 import { readNativeRequest } from "../../langflowNative";
 import type { IoCtx } from "../../support";
-import { nativeAuthority, type NativeAuthorityInput } from "../nativeAuthority";
+import { type NativeAuthorityInput, nativeAuthority } from "../nativeAuthority";
 
 export async function nativeReservationState(ctx: IoCtx, tx: Tx, input: NativeAuthorityInput) {
 	const authority = await nativeAuthority(ctx, tx, input);

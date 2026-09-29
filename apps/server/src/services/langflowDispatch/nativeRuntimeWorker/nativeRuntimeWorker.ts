@@ -8,8 +8,10 @@ export const nativeRuntimeWorker = createNativeRuntimeWorker({
 	dispatchGate: async (ctx) => {
 		const control = actionControl(ctx.home);
 		return createNativeDispatchGate({
-			newTx: ctx.newTx, dataHomeId: control.identity.dataHomeId,
-			gate: control.gate, archive: control.archive,
+			newTx: ctx.newTx,
+			dataHomeId: control.identity.dataHomeId,
+			gate: control.gate,
+			archive: control.archive,
 		});
 	},
 });

@@ -34,8 +34,11 @@ export async function startLangflowLifecycle(options: {
 		pauseOrdinary: async () => {
 			if (paused || stopping !== null) throw new Error("langflow_lifecycle_unavailable");
 			paused = true;
-			await Promise.all([queues.authority, queues.admission, queues.decisions, queues.native, queues.projection]
-				.map((queue) => queue.pause()));
+			await Promise.all(
+				[queues.authority, queues.admission, queues.decisions, queues.native, queues.projection].map((queue) =>
+					queue.pause(),
+				),
+			);
 			let held = true;
 			return {
 				freezeStops: () => {

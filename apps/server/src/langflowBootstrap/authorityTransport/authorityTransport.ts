@@ -2,8 +2,14 @@ import { systemContext } from "../../context";
 import type { ServiceTransport } from "../../db/transport";
 import type { AuthorityPort, HostControlIdentity, InitialBindingPort } from "../../langflowHost";
 
-export function authorityTransport(transport: ServiceTransport, identity: HostControlIdentity): AuthorityPort & InitialBindingPort {
-	const call = <K extends keyof (AuthorityPort & InitialBindingPort)>(operation: K, input: Parameters<(AuthorityPort & InitialBindingPort)[K]>[0]) =>
+export function authorityTransport(
+	transport: ServiceTransport,
+	identity: HostControlIdentity,
+): AuthorityPort & InitialBindingPort {
+	const call = <K extends keyof (AuthorityPort & InitialBindingPort)>(
+		operation: K,
+		input: Parameters<(AuthorityPort & InitialBindingPort)[K]>[0],
+	) =>
 		transport.call("langflowHost.authority", systemContext(), {
 			hostId: identity.hostId,
 			dataHomeId: identity.dataHomeId,
