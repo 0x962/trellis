@@ -1185,6 +1185,9 @@ The methods retain the shared RPC transport, actor headers, and query utilities.
 The shared router sends these methods through the actor-aware service transport.
 The document and execution tables must exist before this router serves requests.
 The document methods use `/api/flows/{flow}/document-v1`.
+Document responses include an ETag for the complete representation.
+Conditional saves evaluate `If-Match` and `If-None-Match` in the save transaction.
+The required `expectedVersion` also checks the saved revision.
 The execution view uses `/api/flow-executions/{id}/view-v1`.
 The execution index uses `/api/flow-executions/index-v1` and returns IDs with their stored engine.
 Its pagination combines both engines in creation order, with the ID as the tie breaker.

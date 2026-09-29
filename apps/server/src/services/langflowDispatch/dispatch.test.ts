@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { FlowExecutionViewV1Schema } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { fixture } from "./fixture.ts";
-import { getView } from "./getView.ts";
-import { list } from "./list.ts";
-import { startLegacy } from "./startLegacy.ts";
+import { fixture } from "./fixture";
+import { getView } from "./getView";
+import { list } from "./list";
+import { startLegacy } from "./startLegacy";
 
 let h: Awaited<ReturnType<typeof fixture>>;
 beforeAll(async () => {
