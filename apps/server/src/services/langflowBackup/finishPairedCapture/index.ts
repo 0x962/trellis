@@ -1,0 +1,1 @@
+export { finishPairedCapture } from "./finishPairedCapture";

@@ -1,0 +1,1 @@
+export { capturePairedSnapshot } from "./capturePairedSnapshot";
