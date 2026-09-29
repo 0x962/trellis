@@ -3,7 +3,7 @@ import { flowProjectLabel } from "@trellis/api";
 import { Badge, EmptyState, EntityCard, FailureState, Skeleton } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { FlowVersionDetails } from "../../../FlowEditor/components/FlowSettingsSheet/components/FlowVersionDetails";
-import { flowDiscovery, type FlowDiscoveryInput } from "../../flowDiscovery";
+import { type FlowDiscoveryInput, flowDiscovery } from "../../flowDiscovery";
 
 export type FlowDiscoveryContentProps = {
 	input: FlowDiscoveryInput;

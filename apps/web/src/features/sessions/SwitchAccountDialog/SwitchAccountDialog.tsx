@@ -1,11 +1,12 @@
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { Command, ConfirmDialog, Dialog } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useSessionRestart } from "../useSessionRestart";
 
 export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: () => void }) {
-	const { client, orpc, queryClient } = useApp();
+	const { client, orpc } = useApp();
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
 	const choices = (accounts.data ?? []).filter((account) => account.harness === run.harness?.preset);
 	const quotas = useQueries({
@@ -14,27 +15,25 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	const [selected, setSelected] = useState<{ id: string; label: string; terminalId: string; requestId: string } | null>(
 		null,
 	);
-	const change = useMutation({
-		mutationFn: async () => {
-			const result = await client.agentRuns.switchAccount({
+	const [launchError, setLaunchError] = useState<string | null>(null);
+	const change = useSessionRestart(run, {
+		mutationFn: () =>
+			client.agentRuns.switchAccount({
 				id: run.id,
 				accountId: selected!.id,
 				expectedTerminalId: selected!.terminalId,
 				requestId: selected!.requestId,
 				confirmInterrupt: true,
-			});
-			if (result.error) throw new Error(result.error);
-			if (result.state !== "running")
-				throw new Error(`The session is ${result.state}. Inspect it before another switch.`);
-			if (result.accountId !== selected!.id) throw new Error("The session did not switch accounts.");
+			}),
+		onSuccess: (result) => {
+			if (result.error) setLaunchError(result.error);
+			else if (result.state !== "running")
+				setLaunchError(`The session is ${result.state}. Inspect it before another switch.`);
+			else if (result.accountId !== selected!.id) setLaunchError("The session did not switch accounts.");
+			else onClose();
 		},
-		onSuccess: onClose,
-		onSettled: () =>
-			Promise.all([
-				queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
-				queryClient.invalidateQueries({ queryKey: orpc.sessions.key() }),
-			]),
 	});
+	const failure = change.error?.message ?? launchError;
 	const items = choices.map((account, index) => {
 		const quota = quotas[index]!;
 		return {
@@ -99,17 +98,21 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 				}
 				confirmLabel="Switch account"
 				processing={change.isPending}
-				onConfirm={() => change.mutate()}
+				onConfirm={() => {
+					setLaunchError(null);
+					change.mutate();
+				}}
 				onCancel={() => {
 					if (!change.isPending) {
 						change.reset();
+						setLaunchError(null);
 						setSelected(null);
 					}
 				}}
 			>
-				{change.error && (
+				{failure && (
 					<p role="alert" className="mb-2 text-sm text-danger">
-						{change.error.message}
+						{failure}
 					</p>
 				)}
 			</ConfirmDialog>

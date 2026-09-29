@@ -66,12 +66,34 @@ test("native output identifies its retained result even with a later attempt", (
 });
 
 test("occurrence metadata accepts every archived kind and rejects untyped source data", () => {
-	for (const kind of ["agent", "gate", "human", "group", "loop", null]) {
+	for (const kind of ["agent", "gate", "human", "group", "loop", null] as const) {
 		expect(FlowOccurrenceV1Schema.parse({ ...occurrenceV1Example, kind }).kind).toBe(kind);
 	}
 	for (const change of [{ kind: "code" }, { outputSource: { attemptId: "attempt-37" } }]) {
 		expect(FlowOccurrenceV1Schema.safeParse({ ...occurrenceV1Example, ...change }).success).toBe(false);
 	}
+});
+
+test("a reserved submission retains an unknown epoch until admission opens", () => {
+	const reservation = {
+		...executionViewV1Example.submission!,
+		state: "reserved" as const,
+		admission: "closed" as const,
+		engineJobId: null,
+		engineEpoch: null,
+		ownership: "unknown" as const,
+	};
+	expect(FlowSubmissionV1Schema.parse(reservation).engineEpoch).toBeNull();
+	expect(FlowSubmissionV1Schema.safeParse({ ...reservation, ownership: "confirmed" }).success).toBe(false);
+	expect(
+		FlowSubmissionV1Schema.safeParse({
+			...reservation,
+			state: "submitted",
+			admission: "open",
+			ownership: "confirmed",
+			engineJobId: "job",
+		}).success,
+	).toBe(false);
 });
 
 test("the package exports public schemas and consumer examples", () => {

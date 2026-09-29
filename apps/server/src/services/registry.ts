@@ -65,11 +65,7 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
-import {
-	get as getSessionObserver,
-	history as getSessionObserverHistory,
-	setEnabledForProcedure as setSessionObserverEnabled,
-} from "./sessionObservers";
+import { sessionObserverServices } from "./sessionObservers/registry";
 import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
@@ -90,8 +86,6 @@ import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 import * as waves from "./waves/waves.ts";
-
-export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
@@ -114,9 +108,7 @@ export const services = {
 	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
-	"sessionObservers.get": core("read", getSessionObserver),
-	"sessionObservers.history": core("read", getSessionObserverHistory),
-	"sessionObservers.setEnabled": core("mutation", setSessionObserverEnabled),
+	...sessionObserverServices,
 	...sessionUpdateServices,
 	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
@@ -307,3 +299,4 @@ export const services = {
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;
+export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";

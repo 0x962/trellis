@@ -1,12 +1,12 @@
 diff --git a/src/components/core/flowToolbarComponent/index.tsx b/src/components/core/flowToolbarComponent/index.tsx
-index fd7b50e..d821785 100644
 --- a/src/components/core/flowToolbarComponent/index.tsx
 +++ b/src/components/core/flowToolbarComponent/index.tsx
-@@ -1,15 +1,23 @@
+@@ -1,15 +1,24 @@
  import { Panel } from "@xyflow/react";
--import { memo, useEffect, useState } from "react";
 +import { memo, useEffect, useState, useSyncExternalStore } from "react";
+-import { memo, useEffect, useState } from "react";
  import { useHotkeys } from "react-hotkeys-hook";
++import CanvasControlsDropdown from "@/components/core/canvasControlsComponent/CanvasControlsDropdown";
 +import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
 +import {
 +  retryTrellisEditorDocument,
@@ -23,12 +23,12 @@ index fd7b50e..d821785 100644
  import { cn, isThereModal } from "../../../utils/utils";
  import FlowToolbarOptions from "./components/flow-toolbar-options";
 
--const FlowToolbar = memo(function FlowToolbar(): JSX.Element {
 +const StockFlowToolbar = memo(function StockFlowToolbar(): JSX.Element {
+-const FlowToolbar = memo(function FlowToolbar(): JSX.Element {
    const preventDefault = true;
    const [openApiModal, setOpenApiModal] = useState<boolean>(false);
    const [openExportModal, setOpenExportModal] = useState<boolean>(false);
-@@ -65,4 +73,44 @@ const FlowToolbar = memo(function FlowToolbar(): JSX.Element {
+@@ -65,4 +74,52 @@
    );
  });
 
@@ -49,23 +49,31 @@ index fd7b50e..d821785 100644
 +        : "Save flow";
 +
 +  return (
-+    <Panel className="!top-auto !m-2" position="top-right">
-+      <button
-+        aria-label={label}
-+        className="flex h-11 items-center rounded-md border bg-background px-3 shadow"
-+        disabled={saveLoading || saveState === "conflict"}
-+        onClick={() => {
-+          const save =
-+            saveState === "failed"
-+              ? retryTrellisEditorDocument(flowId).then(() => saveFlow())
-+              : saveFlow();
-+          void save.catch(() => undefined);
-+        }}
-+        type="button"
++    <>
++      <Panel className="!top-auto !m-2" position="top-right">
++        <button
++          aria-label={label}
++          className="flex h-11 items-center rounded-md border bg-background px-3 shadow"
++          disabled={saveLoading || saveState === "conflict"}
++          onClick={() => {
++            const save =
++              saveState === "failed"
++                ? retryTrellisEditorDocument(flowId).then(() => saveFlow())
++                : saveFlow();
++            void save.catch(() => undefined);
++          }}
++          type="button"
++        >
++          {saveLoading ? "Saving" : label}
++        </button>
++      </Panel>
++      <Panel
++        className="!m-2 rounded-md border bg-background shadow [&_button]:min-h-11"
++        position="bottom-left"
 +      >
-+        {saveLoading ? "Saving" : label}
-+      </button>
-+    </Panel>
++        <CanvasControlsDropdown selectedNode={null} />
++      </Panel>
++    </>
 +  );
 +});
 +
@@ -74,7 +82,6 @@ index fd7b50e..d821785 100644
 +  : StockFlowToolbar;
  export default FlowToolbar;
 diff --git a/src/controllers/API/queries/_builds/use-get-builds.ts b/src/controllers/API/queries/_builds/use-get-builds.ts
-index e10bd64..a8cc7aa 100644
 --- a/src/controllers/API/queries/_builds/use-get-builds.ts
 +++ b/src/controllers/API/queries/_builds/use-get-builds.ts
 @@ -1,6 +1,7 @@
@@ -85,7 +92,7 @@ index e10bd64..a8cc7aa 100644
  import useFlowStore from "@/stores/flowStore";
  import type { FlowPoolType } from "@/types/zustand/flow";
  import type { useQueryFunctionType } from "../../../../types/api";
-@@ -29,6 +30,7 @@ export const useGetBuildsQuery: useQueryFunctionType<
+@@ -29,6 +30,7 @@
          !params.flowId || params.flowId === "" ? routeFlowId : params.flowId,
      };
 
@@ -93,7 +100,7 @@ index e10bd64..a8cc7aa 100644
      const response = await api.get<any>(`${getURL("BUILDS")}`, config);
 
      if (currentFlow) {
-@@ -43,6 +45,7 @@ export const useGetBuildsQuery: useQueryFunctionType<
+@@ -43,6 +45,7 @@
      ["useGetBuildsQuery", { key: params.flowId }],
      responseFn,
      {
@@ -102,10 +109,9 @@ index e10bd64..a8cc7aa 100644
        refetchOnWindowFocus: false,
        retry: 0,
 diff --git a/src/controllers/API/queries/flows/use-patch-update-flow.ts b/src/controllers/API/queries/flows/use-patch-update-flow.ts
-index 677e72d..ab71269 100644
 --- a/src/controllers/API/queries/flows/use-patch-update-flow.ts
 +++ b/src/controllers/API/queries/flows/use-patch-update-flow.ts
-@@ -4,6 +4,8 @@ import type {
+@@ -4,6 +4,8 @@
    UseMutationResult,
  } from "@tanstack/react-query";
  import type { ReactFlowJsonObject } from "@xyflow/react";
@@ -114,27 +120,67 @@ index 677e72d..ab71269 100644
  import type { useMutationFunctionType } from "@/types/api";
  import { api } from "../../api";
  import { getURL } from "../../helpers/constants";
-@@ -69,9 +71,15 @@ export const usePatchUpdateFlow: useMutationFunctionType<
+@@ -69,9 +71,15 @@
      ...payload
      // biome-ignore lint/suspicious/noExplicitAny: legacy
    }: IPatchUpdateFlow): Promise<any> => {
--    const response = await api.patch(`${getURL("FLOWS")}/${id}`, payload);
 +    if (!TRELLIS_EDITOR_PROBE) {
 +      const response = await api.patch(`${getURL("FLOWS")}/${id}`, payload);
 +      return response.data;
 +    }
+-    const response = await api.patch(`${getURL("FLOWS")}/${id}`, payload);
 
--    return response.data;
 +    return saveTrellisEditorDocument({
 +      flowId: id,
 +      graphDocument: payload.data!,
 +    });
+-    return response.data;
    };
 
    // biome-ignore lint/suspicious/noExplicitAny: legacy
+diff --git a/src/customization/trellis-editor-canvas.ts b/src/customization/trellis-editor-canvas.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis-editor-canvas.ts
+@@ -0,0 +1,36 @@
++type CanvasNode = {
++  id: string;
++  initialWidth?: number;
++  initialHeight?: number;
++  handles?: unknown[];
++  measured?: { width?: number; height?: number };
++};
++
++export function trellisCanvasNodes<T extends CanvasNode>(nodes: T[]): T[] {
++  return nodes.map((node) => ({
++    ...node,
++    initialWidth: node.initialWidth ?? 320,
++    initialHeight: node.initialHeight ?? 800,
++    // ReactFlow mounts every node without handle metadata, even outside the
++    // viewport. Visible nodes replace these empty handles after measurement.
++    ...(!node.measured?.width || !node.measured?.height
++      ? { handles: node.handles ?? [] }
++      : {}),
++  }));
++}
++
++export function trellisCanvasEdges<
++  T extends CanvasNode,
++  E extends { source: string; target: string },
++>(nodes: T[], edges: E[]): E[] {
++  const measured = new Set(
++    nodes
++      .filter((node) => node.measured?.width && node.measured?.height)
++      .map((node) => node.id),
++  );
++  // ReactFlow needs measured ports at both ends to draw an edge. The save
++  // hook reads all edges from the flow store, not this canvas projection.
++  return edges.filter(
++    (edge) => measured.has(edge.source) && measured.has(edge.target),
++  );
++}
 diff --git a/src/customization/trellis-editor-probe.ts b/src/customization/trellis-editor-probe.ts
 new file mode 100644
-index 0000000..ce60fef
 --- /dev/null
 +++ b/src/customization/trellis-editor-probe.ts
 @@ -0,0 +1,2 @@
@@ -142,7 +188,6 @@ index 0000000..ce60fef
 +  import.meta.env.TRELLIS_EDITOR_PROBE === true;
 diff --git a/src/customization/trellis-editor-save.ts b/src/customization/trellis-editor-save.ts
 new file mode 100644
-index 0000000..4af3b26
 --- /dev/null
 +++ b/src/customization/trellis-editor-save.ts
 @@ -0,0 +1,148 @@
@@ -295,10 +340,9 @@ index 0000000..4af3b26
 +  return { ...document.flow, data: document.graphDocument };
 +};
 diff --git a/src/pages/DashboardWrapperPage/index.tsx b/src/pages/DashboardWrapperPage/index.tsx
-index 202ba6e..ebf1a29 100644
 --- a/src/pages/DashboardWrapperPage/index.tsx
 +++ b/src/pages/DashboardWrapperPage/index.tsx
-@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
+@@ -2,6 +2,7 @@
  import AppHeader from "@/components/core/appHeaderComponent";
  import { PermissionsProvider } from "@/contexts/permissionsContext";
  import useTheme from "@/customization/hooks/use-custom-theme";
@@ -306,37 +350,103 @@ index 202ba6e..ebf1a29 100644
  import useFlowStore from "@/stores/flowStore";
 
  export function DashboardWrapperPage() {
-@@ -17,7 +18,7 @@ export function DashboardWrapperPage() {
+@@ -17,7 +18,7 @@
        }
      >
        <div className="flex h-screen w-full flex-col overflow-hidden">
--        <AppHeader />
 +        {!TRELLIS_EDITOR_PROBE && <AppHeader />}
+-        <AppHeader />
          <div className="flex w-full flex-1 flex-row overflow-hidden">
            <Outlet />
          </div>
 diff --git a/src/pages/FlowPage/components/PageComponent/index.tsx b/src/pages/FlowPage/components/PageComponent/index.tsx
-index d42dd27..c75cfdc 100644
 --- a/src/pages/FlowPage/components/PageComponent/index.tsx
 +++ b/src/pages/FlowPage/components/PageComponent/index.tsx
-@@ -38,6 +38,7 @@ import { api } from "@/controllers/API/api";
+@@ -38,6 +38,11 @@
  import { getURL } from "@/controllers/API/helpers/constants";
  import { useGetBuildsQuery } from "@/controllers/API/queries/_builds";
  import CustomLoader from "@/customization/components/custom-loader";
++import {
++  trellisCanvasEdges,
++  trellisCanvasNodes,
++} from "@/customization/trellis-editor-canvas";
 +import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
  import { track } from "@/customization/utils/analytics";
  import useApplyFlowToCanvas from "@/hooks/flows/use-apply-flow-to-canvas";
  import useAutoSaveFlow from "@/hooks/flows/use-autosave-flow";
-@@ -229,7 +230,7 @@ export default function Page({
+@@ -135,18 +140,20 @@
+     // Labels are derived from the whole list at once: same-type nodes would
+     // otherwise share an accessible name, which role="application" forbids.
+     const ariaLabels = getNodeAriaLabels(nodes, t);
++    return (TRELLIS_EDITOR_PROBE ? trellisCanvasNodes(nodes) : nodes).map(
++      (node, index) => ({
++        ...node,
++        ariaLabel: ariaLabels[index],
++        // Nodes are tabbable, so a plain "group" (ReactFlow's fallback)
++        // fails IBM element_tabbable_role_valid — but every widget role with
++        // presentational children (button, option, ...) fails
++        // aria_descendant_valid instead, because nodes contain interactive
++        // handles and fields. "application" is the ARIA role for a composite
++        // canvas widget with its own keyboard model (arrow keys move the
++        // node), permits interactive descendants, and scans clean.
++        ariaRole: "application" as const,
++      }),
++    );
+-    return nodes.map((node, index) => ({
+-      ...node,
+-      ariaLabel: ariaLabels[index],
+-      // Nodes are tabbable, so a plain "group" (ReactFlow's fallback)
+-      // fails IBM element_tabbable_role_valid — but every widget role with
+-      // presentational children (button, option, ...) fails
+-      // aria_descendant_valid instead, because nodes contain interactive
+-      // handles and fields. "application" is the ARIA role for a composite
+-      // canvas widget with its own keyboard model (arrow keys move the
+-      // node), permits interactive descendants, and scans clean.
+-      ariaRole: "application" as const,
+-    }));
+   }, [nodes, t]);
+
+   const getNode = useFlowStore((state) => state.getNode);
+@@ -176,16 +183,21 @@
+     [t],
+   );
+
++  const savedViewport = useFlowStore(
++    (state) => state.currentFlow?.data?.viewport,
++  );
+   const edgesWithAriaLabel = useMemo(
+     () =>
++      (TRELLIS_EDITOR_PROBE ? trellisCanvasEdges(nodes, edges) : edges).map(
++        (edge) => ({
++          ...edge,
++          ariaLabel: getEdgeAriaLabel(edge, getNode, t),
++          // Same widget-role requirement as nodes; the edge wrapper is a
++          // tabbable <g> whose ReactFlow fallback role is "group".
++          ariaRole: "button" as const,
++        }),
++      ),
++    [edges, getNode, nodes, t],
+-      edges.map((edge) => ({
+-        ...edge,
+-        ariaLabel: getEdgeAriaLabel(edge, getNode, t),
+-        // Same widget-role requirement as nodes; the edge wrapper is a
+-        // tabbable <g> whose ReactFlow fallback role is "group".
+-        ariaRole: "button" as const,
+-      })),
+-    [edges, getNode, t],
+   );
+
+   const previewLabel = useVersionPreviewStore((s) => s.previewLabel);
+@@ -229,7 +241,7 @@
    const isPermissionReadOnly = useIsFlowReadOnly(currentFlowResourceId);
 
    const { isAgentWorking, events, lastSettledAt, clearEvents } = useFlowEvents(
--    currentFlowId || undefined,
 +    TRELLIS_EDITOR_PROBE ? undefined : currentFlowId || undefined,
+-    currentFlowId || undefined,
    );
    const isAssistantProcessing = useAssistantManagerStore(
      (state) => state.isAssistantProcessing,
-@@ -556,6 +557,7 @@ export default function Page({
+@@ -556,6 +568,7 @@
    }
 
    function handleDownload(e: KeyboardEvent) {
@@ -344,7 +454,7 @@ index d42dd27..c75cfdc 100644
      if (!isWrappedWithClass(e, "noflow")) {
        e.preventDefault();
        (e as unknown as Event).stopImmediatePropagation();
-@@ -982,19 +984,6 @@ export default function Page({
+@@ -982,19 +995,6 @@
      ? (nodes.find((n) => n.id === selectedNodeId) as AllNodeType)
      : null;
 
@@ -364,21 +474,16 @@ index d42dd27..c75cfdc 100644
    useEffect(() => {
      if (inspectionPanelVisible) {
        setSelectionMenuVisible(false);
-@@ -1006,14 +995,18 @@ export default function Page({
+@@ -1006,14 +1006,18 @@
        {showCanvas ? (
          <>
            <div id="react-flow-id" className="h-full w-full bg-canvas relative">
--            {!isWelcomeOpen && <MemoizedSidebarTrigger />}
 +            {!TRELLIS_EDITOR_PROBE && !isWelcomeOpen && (
 +              <MemoizedSidebarTrigger />
 +            )}
+-            {!isWelcomeOpen && <MemoizedSidebarTrigger />}
              {!view && !isWelcomeOpen && (
                <>
--                <MemoizedCanvasControls
--                  selectedNode={selectedNode}
--                  isAgentWorking={isAgentWorking}
--                  isReadOnly={isPermissionReadOnly}
--                />
 +                {!TRELLIS_EDITOR_PROBE && (
 +                  <MemoizedCanvasControls
 +                    selectedNode={selectedNode}
@@ -386,42 +491,57 @@ index d42dd27..c75cfdc 100644
 +                    isReadOnly={isPermissionReadOnly}
 +                  />
 +                )}
+-                <MemoizedCanvasControls
+-                  selectedNode={selectedNode}
+-                  isAgentWorking={isAgentWorking}
+-                  isReadOnly={isPermissionReadOnly}
+-                />
                  {!isPreviewActive && <FlowToolbar />}
                  {inspectionPanelVisible && !effectiveLocked && (
                    <InspectionPanel selectedNode={selectedNode} />
-@@ -1145,7 +1138,9 @@ export default function Page({
+@@ -1092,7 +1096,9 @@
+               onDrop={isPreviewActive || effectiveLocked ? undefined : onDrop}
+               onSelectionChange={onSelectionChange}
+               deleteKeyCode={[]}
++              fitView={!TRELLIS_EDITOR_PROBE && !isEmptyFlow.current}
++              defaultViewport={TRELLIS_EDITOR_PROBE ? savedViewport : undefined}
++              onlyRenderVisibleElements={TRELLIS_EDITOR_PROBE}
+-              fitView={isEmptyFlow.current ? false : true}
+               fitViewOptions={FIT_VIEW_OPTIONS}
+               className="theme-attribution"
+               tabIndex={effectiveLocked ? -1 : undefined}
+@@ -1145,7 +1151,9 @@
                  its visibility is driven entirely by the
                  ``flowBuilderWelcomeStore`` which is primed by the
                  "New Flow" button on the home page. */}
--            {!effectiveLocked && <FlowBuilderWelcomeMount />}
 +            {!TRELLIS_EDITOR_PROBE && !effectiveLocked && (
 +              <FlowBuilderWelcomeMount />
 +            )}
+-            {!effectiveLocked && <FlowBuilderWelcomeMount />}
            </div>
          </>
        ) : (
-@@ -1153,7 +1148,9 @@ export default function Page({
+@@ -1153,7 +1161,9 @@
            <CustomLoader remSize={20} />
          </div>
        )}
--      <ExportModal open={openExportModal} setOpen={setOpenExportModal} />
 +      {!TRELLIS_EDITOR_PROBE && (
 +        <ExportModal open={openExportModal} setOpen={setOpenExportModal} />
 +      )}
+-      <ExportModal open={openExportModal} setOpen={setOpenExportModal} />
      </div>
    );
  }
 diff --git a/src/pages/FlowPage/index.tsx b/src/pages/FlowPage/index.tsx
-index 52c2ade..9f20440 100644
 --- a/src/pages/FlowPage/index.tsx
 +++ b/src/pages/FlowPage/index.tsx
 @@ -1,4 +1,4 @@
--import { useEffect, useState } from "react";
 +import { useCallback, useEffect, useState } from "react";
+-import { useEffect, useState } from "react";
  import { useHotkeys } from "react-hotkeys-hook";
  import { useTranslation } from "react-i18next";
  import { useBlocker, useParams } from "react-router-dom";
-@@ -14,6 +14,7 @@ import { useGetFlow } from "@/controllers/API/queries/flows/use-get-flow";
+@@ -14,6 +14,7 @@
  import { useGetTypes } from "@/controllers/API/queries/flows/use-get-types";
  import { ENABLE_NEW_SIDEBAR } from "@/customization/feature-flags";
  import { useCustomNavigate } from "@/customization/hooks/use-custom-navigate";
@@ -429,54 +549,49 @@ index 52c2ade..9f20440 100644
  import useApplyFlowToCanvas from "@/hooks/flows/use-apply-flow-to-canvas";
  import useSaveFlow from "@/hooks/flows/use-save-flow";
  import { useDocumentTitle } from "@/hooks/use-document-title";
-@@ -28,5 +29,6 @@ import { usePlaygroundStore } from "@/stores/playgroundStore";
+@@ -26,6 +27,7 @@
+ import { usePlaygroundStore } from "@/stores/playgroundStore";
  import { useShortcutsStore } from "@/stores/shortcuts";
  import { useTypesStore } from "@/stores/typesStore";
 +import type { FlowType } from "@/types/flow";
  import { uiLocale } from "@/utils/format-date";
  import { customStringify } from "@/utils/reactflowUtils";
  import { cn } from "@/utils/utils";
-@@ -110,24 +112,34 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+@@ -110,6 +112,7 @@
    const saveFlow = useSaveFlow();
- 
+
    const flows = useFlowsManagerStore((state) => state.flows);
 +  const setFlows = useFlowsManagerStore((state) => state.setFlows);
    const currentFlowId = useFlowsManagerStore((state) => state.currentFlowId);
- 
+
    // Restore the Human Input awaiting-input badge after a reload (LE-1603 reconnect).
-   useRestoreCanvasHitl(currentFlowId);
- 
-   const updatedAt = currentSavedFlow?.updated_at;
-   const autoSaving = useFlowsManagerStore((state) => state.autoSaving);
+@@ -120,11 +123,20 @@
    const stopBuilding = useFlowStore((state) => state.stopBuilding);
- 
+
    const { mutateAsync: getFlow } = useGetFlow();
--  const applyFlowToCanvas = useApplyFlowToCanvas();
 +  const applyLoadedFlowToCanvas = useApplyFlowToCanvas();
 +  const applyFlowToCanvas = useCallback(
 +    (flow: FlowType) => {
 +      if (TRELLIS_EDITOR_PROBE) {
 +        setFlows([flow]);
 +      }
-+      applyLoadedFlowToCanvas(flow);
++      applyLoadedFlowToCanvas(flow, { fitView: !TRELLIS_EDITOR_PROBE });
 +    },
 +    [applyLoadedFlowToCanvas, setFlows],
 +  );
- 
+-  const applyFlowToCanvas = useApplyFlowToCanvas();
+
    useLoadFlowForRoute({
      id,
--    flows,
 +    flows: TRELLIS_EDITOR_PROBE && flows === undefined ? [] : flows,
+-    flows,
      currentFlowId,
      types,
      getFlow,
-     applyFlowToCanvas,
-     navigate,
-   });
-@@ -272,6 +284,33 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+@@ -272,6 +284,33 @@
      setIsFullscreen,
    ]);
- 
+
 +  if (TRELLIS_EDITOR_PROBE) {
 +    return (
 +      <div className="flow-page-positioning">
@@ -508,10 +623,9 @@ index 52c2ade..9f20440 100644
      <>
        <div className="flow-page-positioning">
 diff --git a/vite.config.mts b/vite.config.mts
-index d617a0a..d5a6e68 100644
 --- a/vite.config.mts
 +++ b/vite.config.mts
-@@ -55,6 +55,9 @@ export default defineConfig(({ mode }) => {
+@@ -55,6 +55,9 @@
        __LANGFLOW_AUTO_LOGIN__: JSON.stringify(
          envLangflow.LANGFLOW_AUTO_LOGIN ?? true,
        ),
