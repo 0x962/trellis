@@ -10,7 +10,6 @@ import { sha256OfFile, storedMime, storeFile } from "../storage/blobs.ts";
 import { gcBlobs } from "./blobs.ts";
 import {
 	assertProjectActive,
-	fail,
 	notFound,
 	resolveTicket,
 	type ServiceCtx,
@@ -143,7 +142,6 @@ const assertMatchingAttachment = (existing: AttachmentRow, input: PreparedUpload
 };
 
 export const prepareUpload = async (ctx: ServiceCtx, input: UploadInput): Promise<PreparedUpload> => {
-	if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
 	const filename = input.name ?? input.file.name;
 	const mime = storedMime(input.file.type);
 	const { ticket, existing } = await ctx.newTx(async (tx) => {

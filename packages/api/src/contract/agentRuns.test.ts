@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AgentMessageSchema } from "./agentRuns.ts";
+import { AgentMessageSchema, TerminalDimensionSchema } from "./agentRuns.ts";
 
 describe("AgentMessageSchema", () => {
 	test.each([
@@ -10,4 +10,10 @@ describe("AgentMessageSchema", () => {
 	test("rejects an empty message", () => {
 		expect(AgentMessageSchema.safeParse(" \n ").success).toBe(false);
 	});
+});
+
+test("terminal dimensions use the unsigned 16-bit range", () => {
+	expect(TerminalDimensionSchema.parse(1001)).toBe(1001);
+	expect(TerminalDimensionSchema.parse(65_535)).toBe(65_535);
+	for (const dimension of [0, 1.5, 65_536]) expect(TerminalDimensionSchema.safeParse(dimension).success).toBe(false);
 });

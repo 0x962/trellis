@@ -1,17 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { prepareUpload, upload } from "../services/attachments.ts";
 import type { ServiceCtx } from "../services/support.ts";
+import { blobPath } from "../storage/blobs.ts";
 import { withTx } from "./tx.ts";
 
 const at = new Date("2026-09-17T06:00:00.000Z");
+const FORMER_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const LARGE_UPLOAD_BYTES = FORMER_UPLOAD_LIMIT_BYTES + 1;
 
-const pausedFile = (body: string, name: string, type: string) => {
-	const bytes = new TextEncoder().encode(body);
+const pausedFile = (bytes: Uint8Array<ArrayBuffer>, name: string, type: string) => {
 	const started = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
 	const file = new File([bytes], name, { type });
@@ -35,7 +37,7 @@ const pausedFile = (body: string, name: string, type: string) => {
 };
 
 describe("attachments.upload idempotency", () => {
-	test("one client attachment id creates one row across a repeated request", async () => {
+	test("one client attachment id stores 52,428,801 streamed bytes once", async () => {
 		const { openTestDb } = await import("./testDb.ts");
 		const db = await openTestDb();
 		const home = mkdtempSync(join(tmpdir(), "trellis-attachment-idempotency-"));
@@ -47,7 +49,6 @@ describe("attachments.upload idempotency", () => {
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,
-			maxUploadBytes: 50 * 1024 * 1024,
 			version: "test",
 			apiVersion: "test",
 			bootId: "test",
@@ -77,7 +78,8 @@ describe("attachments.upload idempotency", () => {
 				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
 				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
-			const paused = pausedFile("same bytes", "plan.txt", "text/plain");
+			const bytes = new Uint8Array(LARGE_UPLOAD_BYTES).fill(120);
+			const paused = pausedFile(bytes, "plan.txt", "text/plain");
 			const input = {
 				id: uploadId,
 				ticket: ticketId,
@@ -100,7 +102,7 @@ describe("attachments.upload idempotency", () => {
 			const first = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, firstInput));
 			const retryInput = await prepareUpload(ctx, {
 				...input,
-				file: new File(["same bytes"], "plan.txt", { type: "text/plain" }),
+				file: new File([bytes], "plan.txt", { type: "text/plain" }),
 			});
 			const retry = await withTx(db, (tx, emit) => upload({ ...ctx, emit }, tx, retryInput));
 			const attachments = await db.execute(sql`SELECT id FROM attachments`);
@@ -108,6 +110,8 @@ describe("attachments.upload idempotency", () => {
 			const tickets = await db.execute(sql`SELECT version FROM tickets WHERE id = ${ticketId}`);
 
 			expect(retry.result).toEqual(first.result);
+			expect(first.result.attachment.size).toBe(LARGE_UPLOAD_BYTES);
+			expect(statSync(blobPath(home, first.result.attachment.sha256)).size).toBe(LARGE_UPLOAD_BYTES);
 			expect(attachments.rows).toEqual([{ id: uploadId }]);
 			expect(activity.rows).toHaveLength(1);
 			expect(tickets.rows[0]!.version).toBe(2);
@@ -132,7 +136,6 @@ describe("attachments.upload idempotency", () => {
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,
-			maxUploadBytes: 50 * 1024 * 1024,
 			version: "test",
 			apiVersion: "test",
 			bootId: "test",

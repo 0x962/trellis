@@ -50,7 +50,7 @@ test("migration 0131 preserves flow rows and removes their application ceilings"
 			(id, flow_id, from_node_id, to_node_id, branch)
 			VALUES (${edgeId}, ${flowId}, ${nodeId}, ${childId}, 'out')`);
 
-		expect(await migrate(db)).toBe(1);
+		expect(await migrate(db)).toBe(journal.entries.length - earlierEntries.length);
 		expect(
 			(await db.execute(sql`SELECT flow_id, minutes, x, y, width, height FROM flow_nodes WHERE id=${nodeId}`)).rows,
 		).toEqual([{ flow_id: flowId, minutes: 1440, x: 10, y: 20, width: 200, height: 100 }]);

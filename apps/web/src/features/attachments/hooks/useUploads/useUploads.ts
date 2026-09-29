@@ -3,13 +3,9 @@ import { useCallback, useRef, useState } from "react";
 import { ulid } from "ulid";
 import { useApp } from "../../../../lib/appContext";
 
-// Why the server did not store one file. `maxBytes` is the size cap the
-// server reported. `UPLOAD_FAILED` covers a network failure and a server
-// fault, and it is the only error that a retry can clear.
-export type UploadError =
-	| { code: "PAYLOAD_TOO_LARGE"; maxBytes: number }
-	| { code: "PROJECT_ARCHIVED" }
-	| { code: "UPLOAD_FAILED" };
+// Why the server did not store one file. `UPLOAD_FAILED` covers a network
+// failure and a server fault, and it is the only error that a retry can clear.
+export type UploadError = { code: "PROJECT_ARCHIVED" } | { code: "UPLOAD_FAILED" };
 
 // One file of an attachment list. A `pending` file waits for a ticket
 // identifier or for a retry. The browser reports no byte count while a
@@ -84,13 +80,10 @@ export const useUploads = (ticket?: string, removeCompleted = true): Uploads => 
 				// Each branch names the server error code it handles. An error code
 				// that no branch names reads as a plain upload failure, so a code
 				// added to the contract later cannot wear another code's message.
-				const uploadError: UploadError = !isDefinedError(error)
-					? { code: "UPLOAD_FAILED" }
-					: error.code === "PAYLOAD_TOO_LARGE"
-						? { code: "PAYLOAD_TOO_LARGE", maxBytes: error.data.maxBytes }
-						: error.code === "PROJECT_ARCHIVED"
-							? { code: "PROJECT_ARCHIVED" }
-							: { code: "UPLOAD_FAILED" };
+				const uploadError: UploadError =
+					isDefinedError(error) && error.code === "PROJECT_ARCHIVED"
+						? { code: "PROJECT_ARCHIVED" }
+						: { code: "UPLOAD_FAILED" };
 				update((current) =>
 					current.map((item) => (item.id === entry.id ? { ...item, status: "pending", error: uploadError } : item)),
 				);

@@ -2,6 +2,8 @@ import type { AgentRun } from "@trellis/api";
 import type { TerminalFrame } from "@trellis/ui/terminal";
 import type { TerminalProcess } from "../terminalStream";
 
+const INPUT_CHUNK_BYTES = 64 * 1024;
+
 type Options = {
 	run: Pick<AgentRun, "id" | "terminalId" | "sessionId">;
 	offset: number;
@@ -30,11 +32,17 @@ export function createTerminalSocket({
 	const socket = createSocket(url.toString());
 	socket.binaryType = "arraybuffer";
 	const done = Promise.withResolvers<void>();
-	const writes = new Set<Promise<void>>();
+	const outputWrites = new Set<Promise<void>>();
+	let inputAcknowledgement: PromiseWithResolvers<void> | undefined;
+	let commands = Promise.resolve();
 	let exited = false;
 	let closed = false;
 	let settled = false;
 	let acknowledgedOffset = offset;
+	const sendImmediately = (value: object) => {
+		if (closed || socket.readyState !== WebSocket.OPEN) throw new Error("The terminal is not connected.");
+		socket.send(JSON.stringify(value));
+	};
 	const detach = () => {
 		socket.removeEventListener("message", message);
 		socket.removeEventListener("close", close);
@@ -44,6 +52,8 @@ export function createTerminalSocket({
 		if (settled) return;
 		settled = true;
 		closed = true;
+		inputAcknowledgement?.reject(failure ?? new Error("The terminal connection closed."));
+		inputAcknowledgement = undefined;
 		detach();
 		signal.removeEventListener("abort", abort);
 		socket.close();
@@ -59,7 +69,7 @@ export function createTerminalSocket({
 			finish(new Error("The terminal connection closed before the process exited."));
 			return;
 		}
-		void Promise.all(writes).then(() => finish(), finish);
+		void Promise.all(outputWrites).then(() => finish(), finish);
 	};
 	const message = (event: MessageEvent<string | ArrayBuffer>) => {
 		try {
@@ -72,20 +82,30 @@ export function createTerminalSocket({
 					truncated: header.getUint8(16) === 1,
 					data: new Uint8Array(event.data, 17),
 				});
-				writes.add(pending);
+				outputWrites.add(pending);
 				void pending.then(() => {
-					writes.delete(pending);
+					outputWrites.delete(pending);
 					if (closed || socket.readyState !== WebSocket.OPEN || nextOffset <= acknowledgedOffset) return;
 					acknowledgedOffset = nextOffset;
-					void send({ type: "ack", offset: nextOffset }).catch(finish);
+					try {
+						sendImmediately({ type: "ack", offset: nextOffset });
+					} catch (failure) {
+						finish(failure);
+					}
 				}, finish);
 				return;
 			}
 			const data = JSON.parse(event.data) as
 				| { type: "session"; session: TerminalProcess }
-				| { type: "error"; message: string };
+				| { type: "error"; message: string }
+				| { type: "input-ack" };
 			if (data.type === "error") {
 				finish(new Error(data.message));
+				return;
+			}
+			if (data.type === "input-ack") {
+				if (!inputAcknowledgement) throw new Error("The terminal sent an unexpected input acknowledgement.");
+				inputAcknowledgement.resolve();
 				return;
 			}
 			exited = data.session.status === "exited";
@@ -94,15 +114,28 @@ export function createTerminalSocket({
 			finish(failure);
 		}
 	};
-	const send = async (value: object) => {
-		if (closed || socket.readyState !== WebSocket.OPEN) throw new Error("The terminal is not connected.");
-		const data = JSON.stringify(value);
-		if (socket.bufferedAmount + new TextEncoder().encode(data).length > 1024 * 1024) {
-			const failure = new Error("The terminal input buffer is full. Reconnect to continue.");
-			finish(failure);
-			throw failure;
-		}
-		socket.send(data);
+	const enqueue = (command: () => Promise<void> | void) => {
+		const next = commands.then(command);
+		commands = next;
+		return next;
+	};
+	const send = (value: object) => enqueue(() => sendImmediately(value));
+	const sendInput = (data: string, userInput: boolean) => {
+		const bytes = new TextEncoder().encode(data);
+		return enqueue(async () => {
+			const length = Math.max(bytes.byteLength, 1);
+			for (let start = 0; start < length; start += INPUT_CHUNK_BYTES) {
+				if (closed || socket.readyState !== WebSocket.OPEN) throw new Error("The terminal is not connected.");
+				const chunk = bytes.subarray(start, start + INPUT_CHUNK_BYTES);
+				const frame = new Uint8Array(1 + chunk.byteLength);
+				frame[0] = Number(userInput);
+				frame.set(chunk, 1);
+				inputAcknowledgement = Promise.withResolvers<void>();
+				socket.send(frame);
+				await inputAcknowledgement.promise;
+				inputAcknowledgement = undefined;
+			}
+		});
 	};
 	socket.addEventListener("message", message);
 	socket.addEventListener("close", close);
@@ -111,7 +144,7 @@ export function createTerminalSocket({
 	if (signal.aborted) abort();
 	return {
 		done: done.promise,
-		send: (data: string, userInput: boolean) => send({ type: "input", data, userInput }),
+		send: sendInput,
 		resize: (cols: number, rows: number) => send({ type: "resize", cols, rows }),
 	};
 }

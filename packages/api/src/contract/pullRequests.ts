@@ -109,7 +109,7 @@ export const pullRequests = {
 		.input(PullRequestFileIdInputSchema)
 		.output(PullRequestFileSchema),
 	uploadFile: base
-		.errors(pickErrors(["DUPLICATE", "PAYLOAD_TOO_LARGE"]))
+		.errors(pickErrors(["DUPLICATE"]))
 		.route({
 			method: "PUT",
 			path: "/prs/{id}/files/{fileId}",
