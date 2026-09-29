@@ -1,5 +1,5 @@
-import { executionEnvironment } from "../../../executionEnvironment";
-import { stopGitGroup } from "./stopGitGroup";
+import { executionEnvironment } from "../../../../executionEnvironment";
+import { stopGitGroup } from "./components/stopGitGroup";
 
 const readError = async (stream: ReadableStream<Uint8Array>) => {
 	const decoder = new TextDecoder("utf-8", { ignoreBOM: true });

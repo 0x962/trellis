@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { runGit } from "./gitProcess.ts";
+import { runGit } from "./gitProcess";
 
 export const gitRecordPage = (
 	workspace: string,

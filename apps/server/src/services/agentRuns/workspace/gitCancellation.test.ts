@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tempDirs } from "../../../tempDir.ts";
 import { git } from "./git.ts";
-import { runGit } from "./gitProcess.ts";
+import { runGit } from "./gitProcess";
 import { gitRecordPage } from "./gitRecordPage.ts";
 import { gitTextPage } from "./gitTextPage.ts";
 
