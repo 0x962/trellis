@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { RPCHandler } from "@orpc/server/fetch";
 import { sql } from "drizzle-orm";
-import { run } from "../../../../../../packages/cli/src/index.ts";
-import { fixture as cliFixture } from "../../../../../../packages/cli/src/commands/flow/testFixture/testFixture.ts";
+import { fixture as cliFixture } from "../../../../../packages/cli/src/commands/flow/testFixture/testFixture.ts";
+import { run } from "../../../../../packages/cli/src/index.ts";
 import type { ServiceTransport } from "../../db/transport.ts";
 import type { GhAccess } from "../../ghState.ts";
 import { type ProcedureContext, router } from "../../procedures/index.ts";

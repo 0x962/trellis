@@ -38,7 +38,8 @@ test("unknown versions and formats fail without a legacy request", async () => {
 			[["flow", "run", "show", legacyRun.id], executionViewV1Example],
 		] as const) {
 			const f = fixture(() => ({ ...value, ...change }));
-			expect(await run([...args, "--json"], f.deps)).not.toBe(0);
+			expect(await run([...args, "--json"], f.deps)).toBe(4);
+			expect(f.errors()).toContain("FLOW_UNSUPPORTED_FORMAT");
 			expect(f.calls).toHaveLength(1);
 			expect(f.text()).toBe("");
 		}
