@@ -111,6 +111,7 @@ export function createLangflowEditorSessions(options: EditorSessionOptions) {
 			revoked: false,
 			conflicted: false,
 			busy: false,
+			pending: null,
 			receipts: new Map(),
 		});
 		setCookie(c, cookieName, token, {

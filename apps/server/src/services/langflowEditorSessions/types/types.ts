@@ -33,6 +33,10 @@ export type EditorSessionOptions = {
 	documents: {
 		get: (actor: ActorRef, input: { flow: string }) => Promise<EditorDocumentRead>;
 		save: (actor: ActorRef, input: EditorDocumentSave) => Promise<FlowDocumentV1>;
+		receipt: (
+			actor: ActorRef,
+			input: { flow: string; requestId: string },
+		) => Promise<{ requestBytes: string; receipt: FlowDocumentV1 } | null>;
 	};
 };
 
@@ -53,5 +57,6 @@ export type EditorGrant = {
 	revoked: boolean;
 	conflicted: boolean;
 	busy: boolean;
+	pending: { requestId: string; bytes: Uint8Array } | null;
 	receipts: Map<string, SavedEditorRequest>;
 };

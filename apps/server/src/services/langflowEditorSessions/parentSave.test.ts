@@ -52,8 +52,43 @@ describe("parent document save hook", () => {
 				throw new Error("uncommitted");
 			}),
 		).rejects.toThrow("uncommitted");
-		expect((await f.request("document")).status).toBe(200);
+		expect((await f.request("document")).status).toBe(409);
 		expect((await f.parentSave(input)).revision).toBe(input.expectedVersion + 1);
+	});
+
+	test("recovers a committed receipt after the transport fails before its response", async () => {
+		const f = await fixture.setup();
+		const input = f.input();
+		let callbacks = 0;
+		const request = { channel: f.session.channel, actor: fixture.ctx.actor!, input };
+		await expect(
+			f.server.withDocumentSave(request, async () => {
+				callbacks += 1;
+				await f.options.documents.save(fixture.ctx.actor!, { document: input, projectId: f.current.projectId });
+				throw new Error("response lost after commit");
+			}),
+		).rejects.toThrow("response lost after commit");
+		await expect(f.parentSave(f.input())).rejects.toMatchObject({ code: "EDITOR_SAVE_IN_PROGRESS" });
+		const receipt = await f.server.withDocumentSave(request, async () => {
+			callbacks += 1;
+			throw new Error("The durable receipt must resolve this request.");
+		});
+		expect(receipt.revision).toBe(input.expectedVersion + 1);
+		expect(callbacks).toBe(1);
+		expect(f.writes()).toBe(1);
+		expect((await f.parentSave(f.input(receipt.revision))).revision).toBe(receipt.revision + 1);
+	});
+
+	test("returns an accepted receipt after another grant saves a later revision", async () => {
+		const f = await fixture.setup();
+		const input = f.input();
+		const receipt = await f.parentSave(input);
+		await f.options.documents.save(fixture.ctx.actor!, {
+			document: f.input(receipt.revision),
+			projectId: f.current.projectId,
+		});
+		expect(await f.parentSave(input)).toEqual(receipt);
+		await expect(f.parentSave(f.input(receipt.revision))).rejects.toMatchObject({ code: "FLOW_VERSION_CONFLICT" });
 	});
 
 	test("holds channel exclusion until the callback returns its committed receipt", async () => {

@@ -5,6 +5,7 @@ import { flowId, manifestHash, saveInput, serviceFixture } from "../../flowDocum
 import { createLangflowEditorSessions } from "../createSessions";
 import { editorFailure } from "../failure";
 import { readDocument } from "../readDocument";
+import { readSaveReceipt } from "../readSaveReceipt";
 import { saveDocument } from "../saveDocument";
 import type { EditorSessionOptions } from "../types";
 
@@ -33,6 +34,7 @@ export async function editorFixture() {
 			}),
 			documents: {
 				get: (actor, input) => fixture.run((tx) => readDocument({ ...fixture.ctx, actor, now }, tx, input)),
+				receipt: (actor, input) => fixture.run((tx) => readSaveReceipt({ ...fixture.ctx, actor, now }, tx, input)),
 				save: (actor, input) => {
 					writes += 1;
 					return fixture.run((tx) => saveDocument({ ...fixture.ctx, actor, now }, tx, input));

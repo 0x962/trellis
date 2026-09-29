@@ -43,7 +43,8 @@ The bootstrap identity remains fixed for the frame mount.
 
 `readDocument(ctx, tx, {flow})` reads the production document and its actual project ID.
 `saveDocument(ctx, tx, {document, projectId})` verifies the project and revision in the save transaction.
-Both services use the caller's transaction.
+`readSaveReceipt(ctx, tx, {flow, requestId})` reads the durable request bytes and the original committed receipt.
+These services use the caller's transaction.
 The composition registers these services and supplies their committed transport calls through `options.documents`.
 The HTTP process owns the grants; a process restart invalidates them.
 
@@ -51,6 +52,11 @@ The raw gateway retains exact HTTP body bytes and response bytes for each reques
 The parent hook retains `JSON.stringify(input)` and the committed receipt for the validated API input.
 The parent hook does not claim to retain the raw oRPC envelope.
 Both paths check expiry, revocation, actor, project, flow, installed manifest, and current authority before receipt replay.
+An admitted request remains pending when its callback fails before the response.
+Its exact retry reads the durable receipt before the current revision check.
+A recovered receipt must identify the previously admitted request bytes.
+A pending request blocks a different save request until the original result is known.
+An accepted receipt remains readable after another grant saves a later revision.
 A version conflict blocks further saves from that grant.
 An external save never advances the grant through a document read.
 
