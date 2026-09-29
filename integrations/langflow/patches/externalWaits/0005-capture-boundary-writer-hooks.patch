@@ -1,0 +1,258 @@
+diff --git a/src/backend/base/langflow/services/background_execution/runner.py b/src/backend/base/langflow/services/background_execution/runner.py
+index d4bf571..bc82d22 100644
+--- a/src/backend/base/langflow/services/background_execution/runner.py
++++ b/src/backend/base/langflow/services/background_execution/runner.py
+@@ -88,6 +88,13 @@ class JobRunner:
+         self._heartbeat_interval_s = max(heartbeat_interval_s, 0.1)
+ 
+     async def run(self, *, job_id: UUID, source_kwargs: dict[str, Any]) -> None:
++        """Execute one graph pass while the capture boundary admits writers."""
++        from langflow.services.trellis_v1.capture_writer import engine_writer
++
++        async with engine_writer():
++            await self._run(job_id=job_id, source_kwargs=source_kwargs)
++
++    async def _run(self, *, job_id: UUID, source_kwargs: dict[str, Any]) -> None:
+         """Execute one background job to a terminal state."""
+ 
+         async def _wrapped() -> None:
+diff --git a/src/backend/base/langflow/services/background_execution/service.py b/src/backend/base/langflow/services/background_execution/service.py
+index cd38fcf..728f9a2 100644
+--- a/src/backend/base/langflow/services/background_execution/service.py
++++ b/src/backend/base/langflow/services/background_execution/service.py
+@@ -726,6 +726,27 @@ class BackgroundExecutionService(Service):
+         flow_id: UUID,
+         user_id: UUID,
+         request_bytes: bytes,
++    ) -> Literal["dispatched", "execution_proven", "pending_lease", "capture_paused", "cancelled"]:
++        """Dispatch an existing Trellis job or retain it during capture."""
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            return await self._enqueue_trellis_submission_unpaused(
++                engine_job_id=engine_job_id,
++                flow_id=flow_id,
++                user_id=user_id,
++                request_bytes=request_bytes,
++            )
++        except CapturePaused:
++            return "capture_paused"
++
++    async def _enqueue_trellis_submission_unpaused(
++        self,
++        *,
++        engine_job_id: UUID,
++        flow_id: UUID,
++        user_id: UUID,
++        request_bytes: bytes,
+     ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
+         """Dispatch an existing Trellis job through the Langflow queue."""
+         await self.start()
+@@ -754,7 +775,7 @@ class BackgroundExecutionService(Service):
+                 raise RuntimeError("trellis_submission_job_missing")
+             if job.flow_id != flow_id or job.user_id != user_id:
+                 raise RuntimeError("trellis_submission_job_conflict")
+-        disposition = await self._enqueue_trellis_job(
++        disposition = await self._enqueue_trellis_job_unpaused(
+             engine_job_id=engine_job_id,
+             request=request,
+             dispatch_kind="trellis-submission-dispatch-v1",
+@@ -779,6 +800,27 @@ class BackgroundExecutionService(Service):
+         request: dict[str, Any],
+         dispatch_kind: str | None = None,
+         dispatch_receipt: str | None = None,
++    ) -> Literal["dispatched", "execution_proven", "pending_lease", "capture_paused", "cancelled"]:
++        """Submit one queued job or retain it during capture."""
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            return await self._enqueue_trellis_job_unpaused(
++                engine_job_id=engine_job_id,
++                request=request,
++                dispatch_kind=dispatch_kind,
++                dispatch_receipt=dispatch_receipt,
++            )
++        except CapturePaused:
++            return "capture_paused"
++
++    async def _enqueue_trellis_job_unpaused(
++        self,
++        *,
++        engine_job_id: UUID,
++        request: dict[str, Any],
++        dispatch_kind: str | None = None,
++        dispatch_receipt: str | None = None,
+     ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
+         """Submit one queued job while cancellation and the dispatch receipt share its Job lock."""
+         from langflow.services.database.models.jobs.model import Job
+@@ -848,6 +890,14 @@ class BackgroundExecutionService(Service):
+         return receipt
+ 
+     async def _consume_trellis_decision_obligation(self, receipt: dict[str, Any]) -> None:
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            await self._consume_trellis_decision_obligation_unpaused(receipt)
++        except CapturePaused:
++            return
++
++    async def _consume_trellis_decision_obligation_unpaused(self, receipt: dict[str, Any]) -> None:
+         from uuid import UUID
+ 
+         from langflow.services.trellis_v1.decisions import DecisionAcceptanceLedger
+@@ -878,6 +928,14 @@ class BackgroundExecutionService(Service):
+             await self._consume_trellis_decision_obligation(receipt)
+ 
+     async def _consume_trellis_admission_obligation(self, obligation) -> None:
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            await self._consume_trellis_admission_obligation_unpaused(obligation)
++        except CapturePaused:
++            return
++
++    async def _consume_trellis_admission_obligation_unpaused(self, obligation) -> None:
+         job_service = get_job_service()
+         receipt_bytes = await job_service.consume_suspended_continuation(
+             engine_job_id=obligation.engine_job_id,
+@@ -909,6 +967,15 @@ class BackgroundExecutionService(Service):
+ 
+     async def consume_external_completion_obligation(self, obligation: dict[str, Any]) -> None:
+         """Consume one accepted native completion through the Langflow queue."""
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            await self._consume_external_completion_obligation_unpaused(obligation)
++        except CapturePaused:
++            return
++
++    async def _consume_external_completion_obligation_unpaused(self, obligation: dict[str, Any]) -> None:
++        """Consume one native completion while the capture boundary admits writers."""
+         from uuid import UUID
+ 
+         from langflow.services.trellis_v1.native_ledger import NativeCompletionLedger
+@@ -934,6 +1001,14 @@ class BackgroundExecutionService(Service):
+             await self.consume_external_completion_obligation(obligation)
+ 
+     async def _drain_trellis_enqueue_obligations(self) -> None:
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            await self._drain_trellis_enqueue_obligations_unpaused()
++        except CapturePaused:
++            return
++
++    async def _drain_trellis_enqueue_obligations_unpaused(self) -> None:
+         await self._drain_trellis_decision_obligations()
+         await self._drain_trellis_admission_obligations()
+         await self._drain_trellis_native_completion_obligations()
+@@ -1028,6 +1103,25 @@ class BackgroundExecutionService(Service):
+         engine_job_id: UUID,
+         enqueue_obligation_id: UUID,
+         continuation_receipt_bytes: bytes,
++    ) -> Literal["dispatched", "execution_proven", "pending_lease", "capture_paused", "cancelled"]:
++        """Dispatch a continuation or retain its obligation during capture."""
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            return await self._enqueue_queued_continuation_unpaused(
++                engine_job_id=engine_job_id,
++                enqueue_obligation_id=enqueue_obligation_id,
++                continuation_receipt_bytes=continuation_receipt_bytes,
++            )
++        except CapturePaused:
++            return "capture_paused"
++
++    async def _enqueue_queued_continuation_unpaused(
++        self,
++        *,
++        engine_job_id: UUID,
++        enqueue_obligation_id: UUID,
++        continuation_receipt_bytes: bytes,
+     ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
+         """Dispatch one bound continuation or report its exact durable state."""
+         from langflow.services.database.models.jobs.model import Job
+@@ -1225,6 +1319,19 @@ class BackgroundExecutionService(Service):
+     # ----------------------------------------------------------- startup sweep
+ 
+     async def sweep_orphans_on_startup(self) -> None:
++        """Run one recovery pass when capture does not block engine writers."""
++        from langflow.services.trellis_v1.capture_boundary import CapturePaused
++
++        try:
++            await self._sweep_orphans_on_startup_unpaused()
++        except CapturePaused:
++            return
++
++    async def resume_after_capture(self) -> None:
++        """Run one durable recovery pass after capture revocation."""
++        await self.sweep_orphans_on_startup()
++
++    async def _sweep_orphans_on_startup_unpaused(self) -> None:
+         """Reconcile jobs left mid-flight by a crashed process.
+ 
+         Single-flight across workers: this runs in the per-worker lifespan on
+diff --git a/src/backend/base/langflow/services/database/service.py b/src/backend/base/langflow/services/database/service.py
+index 2f2b1d2..7b424a7 100644
+--- a/src/backend/base/langflow/services/database/service.py
++++ b/src/backend/base/langflow/services/database/service.py
+@@ -457,13 +457,16 @@ class DatabaseService(Service):
+         Use session_scope() for write operations or session_scope_readonly() for read operations.
+         This method does not handle commits - it only provides a raw session.
+         """
+-        if self.settings_service.settings.use_noop_database:
+-            yield NoopSession()
+-        else:
+-            # Use async_session_maker - the recommended SQLAlchemy 2.0+ pattern
+-            # Provides efficient session creation and proper connection pooling
+-            async with self.async_session_maker() as session:
+-                yield session
++        from langflow.services.trellis_v1.capture_writer import engine_writer
++
++        async with engine_writer():
++            if self.settings_service.settings.use_noop_database:
++                yield NoopSession()
++            else:
++                # Use async_session_maker - the recommended SQLAlchemy 2.0+ pattern
++                # Provides efficient session creation and proper connection pooling
++                async with self.async_session_maker() as session:
++                    yield session
+ 
+     async def ensure_postgresql_version(self) -> None:
+         """If the database is PostgreSQL, ensure it is version 15 or higher.
+diff --git a/src/backend/base/langflow/services/trellis_v1/capture_writer.py b/src/backend/base/langflow/services/trellis_v1/capture_writer.py
+new file mode 100644
+index 0000000..9eb9af6
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/capture_writer.py
+@@ -0,0 +1,30 @@
++from __future__ import annotations
++
++from contextlib import asynccontextmanager
++from typing import TYPE_CHECKING
++
++if TYPE_CHECKING:
++    from collections.abc import AsyncIterator
++
++    from langflow.services.trellis_v1.capture_boundary import CaptureBoundary
++
++_boundary: CaptureBoundary | None = None
++
++
++def install_capture_boundary(boundary: CaptureBoundary) -> None:
++    """Install the capture boundary before the engine admits work."""
++    global _boundary  # noqa: PLW0603
++    if _boundary is not None and _boundary is not boundary:
++        raise RuntimeError("capture_boundary_already_installed")
++    _boundary = boundary
++
++
++@asynccontextmanager
++async def engine_writer() -> AsyncIterator[None]:
++    """Hold writer admission for one database scope or graph pass."""
++    boundary = _boundary
++    if boundary is None:
++        yield
++        return
++    async with boundary.writer():
++        yield
