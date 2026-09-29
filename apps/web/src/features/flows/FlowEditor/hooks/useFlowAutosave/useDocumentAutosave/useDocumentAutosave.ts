@@ -1,11 +1,11 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import type { DraftContent } from "../../../../langflowDrafts/draftRecord";
 import {
 	type DocumentAccess,
 	type DocumentSessionOptions,
 	documentScopeKey,
 	documentSession,
 } from "../../../../langflowDrafts/documentSession";
+import type { DraftContent } from "../../../../langflowDrafts/draftRecord";
 import type { createSaveQueue } from "../../../../langflowDrafts/saveQueue";
 
 type Queue = ReturnType<typeof createSaveQueue>;
@@ -35,7 +35,7 @@ export function useDocumentAutosave(options: DocumentAutosaveOptions) {
 	useLayoutEffect(() => {
 		let session: ReturnType<typeof documentSession>;
 		try {
-			session = documentSession(latest.current);
+			session = documentSession({ ...latest.current, storage: options.storage });
 		} catch (error) {
 			setView({ scope, state: { kind: "unavailable", reason: "storage", error, bytes: null } });
 			return;

@@ -1,8 +1,8 @@
-import { ArrowClockwise, FloppyDisk, SlidersHorizontal } from "@phosphor-icons/react";
+import { Archive, ArrowClockwise, FloppyDisk, SlidersHorizontal } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { FlowDocumentV1 } from "@trellis/api";
 import { FailureState, Tooltip } from "@trellis/ui";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { EditorContentSchema } from "../../../../../../../../integrations/langflow/editor/protocol";
 import { useApp } from "../../../../../lib/appContext";
 import type { DraftStore } from "../../../../../lib/draftTransfer/types";
@@ -10,6 +10,8 @@ import { PageTitle } from "../../../../shell/PageTitle";
 import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
 import { FlowSettingsSheet } from "../../../FlowEditor/components/FlowSettingsSheet";
 import { useDocumentAutosave } from "../../../FlowEditor/hooks/useFlowAutosave";
+import { createDocumentRecovery } from "../../../langflowDrafts/documentRecovery";
+import { DocumentDraftDialog, type DocumentDraftCopy } from "../DocumentDraftDialog";
 import { LangflowEditor, type LangflowEditorHandle, type LangflowEditorSession } from "../../LangflowEditor";
 
 type Props = {
@@ -20,19 +22,27 @@ type Props = {
 	grantActive: boolean;
 	readOnly: boolean;
 	currentIdentity: () => { host: string; actor: string };
+	onOpenDraft: (tab: string) => Promise<void>;
 };
 
 export function LangflowWorkspace(props: Props) {
 	return <Workspace key={props.session.channel} {...props} />;
 }
 
-function Workspace({ document, session, storage, tab, grantActive, readOnly, currentIdentity }: Props) {
+function Workspace({ document, session, storage, tab, grantActive, readOnly, currentIdentity, onOpenDraft }: Props) {
 	const { client } = useApp();
 	const editor = useRef<LangflowEditorHandle>(null);
 	const ended = useRef(false);
 	const [accessEnded, setAccessEnded] = useState(false);
 	const [flow, setFlow] = useState(document.flow);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [copies, setCopies] = useState<DocumentDraftCopy[] | null>(null);
+	const [recoveryError, setRecoveryError] = useState("");
+	const identity = useMemo(
+		() => ({ host: session.identity.host, actor: session.identity.actor, flow: document.flow.id, tab }),
+		[session.identity.host, session.identity.actor, document.flow.id, tab],
+	);
+	const recovery = useMemo(() => createDocumentRecovery(storage, identity), [storage, identity]);
 	const canDispatch = () => {
 		const current = currentIdentity();
 		return (
@@ -44,7 +54,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 		);
 	};
 	const autosave = useDocumentAutosave({
-		identity: { host: session.identity.host, actor: session.identity.actor, flow: document.flow.id, tab },
+		identity,
 		document,
 		storage,
 		active: grantActive && !accessEnded,
@@ -59,7 +69,39 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 	}, [autosave.suspend]);
 	const { state } = autosave;
 	const snapshot = state.kind === "ready" ? state.snapshot : null;
+	const latestFlow = snapshot?.receipt && snapshot.receipt.flow.version > flow.version ? snapshot.receipt.flow : flow;
 	const content = snapshot === null ? null : readContent(snapshot.draft.contentJson);
+	const showDrafts = () => {
+		const bytes = autosave.exportDraft() ?? (state.kind === "unavailable" ? state.bytes : null);
+		const current = bytes === null ? [] : [{ identity, bytes }];
+		setRecoveryError("");
+		try {
+			setCopies([...current, ...recovery.list().filter((copy) => bytes === null || copy.identity.tab !== tab)]);
+		} catch (error) {
+			setCopies(current);
+			setRecoveryError(error instanceof Error ? error.message : String(error));
+		}
+	};
+	const changeDraft = async (copy: DocumentDraftCopy, discard: boolean) => {
+		setRecoveryError("");
+		try {
+			if (snapshot?.saving) throw new Error("Wait for the current save before you change drafts.");
+			const nextTab = crypto.randomUUID();
+			if (discard) {
+				if (copy.identity.tab === tab && state.kind === "ready") autosave.discard(copy.bytes);
+				else recovery.discard(copy.identity, copy.bytes);
+				if (copy.identity.tab !== tab) {
+					showDrafts();
+					return;
+				}
+			} else recovery.recover(copy.identity, copy.bytes, nextTab);
+			endAccess();
+			await onOpenDraft(nextTab);
+			setCopies(null);
+		} catch (error) {
+			setRecoveryError(error instanceof Error ? error.message : String(error));
+		}
+	};
 	const status =
 		state.kind === "loading"
 			? "Read the browser draft"
@@ -106,6 +148,9 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 								}
 							/>
 						</Tooltip>
+						<Tooltip content="Browser drafts">
+							<TopbarActionButton label="Browser drafts" icon={<Archive />} onClick={showDrafts} />
+						</Tooltip>
 						<Tooltip content="Flow settings">
 							<TopbarActionButton
 								label="Flow settings"
@@ -117,7 +162,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 					</>
 				}
 			>
-				<PageTitle parent={<Link to="/ai/flows">Flows</Link>} title={flow.name} />
+				<PageTitle parent={<Link to="/ai/flows">Flows</Link>} title={latestFlow.name} />
 			</Topbar>
 			<div className="page-card relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
 				{state.kind === "loading" ? (
@@ -141,9 +186,23 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 					/>
 				)}
 			</div>
+			{copies !== null && (
+				<DocumentDraftDialog
+					copies={copies}
+					error={recoveryError}
+					busy={snapshot?.saving ?? false}
+					readOnly={readOnly}
+					onClose={() => {
+						setCopies(null);
+						requestAnimationFrame(() => editor.current?.restoreFocus());
+					}}
+					onRecover={(copy) => changeDraft(copy, false)}
+					onDiscard={(copy) => changeDraft(copy, true)}
+				/>
+			)}
 			{settingsOpen && (
 				<FlowSettingsSheet
-					flow={flow}
+					flow={latestFlow}
 					onSaved={setFlow}
 					onClose={() => {
 						setSettingsOpen(false);
