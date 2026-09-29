@@ -67,7 +67,7 @@ export function createDenseGraphFixture(dimensions: DenseGraphCase) {
 	const edges = Array.from({ length: dimensions.edgeCount }, (_, index) => {
 		const source = nodes[index % nodes.length]!;
 		const candidates = listInputs.filter(({ node }) => node.id !== source.id);
-		const target = candidates[(index % nodes.length + Math.floor(index / nodes.length)) % candidates.length]!;
+		const target = candidates[((index % nodes.length) + Math.floor(index / nodes.length)) % candidates.length]!;
 		const sourceHandle = {
 			dataType: source.data.type,
 			id: source.id,
