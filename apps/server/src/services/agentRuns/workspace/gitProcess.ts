@@ -1,4 +1,5 @@
 import { executionEnvironment } from "../../../executionEnvironment";
+import { stopGitGroup } from "./stopGitGroup";
 
 const readError = async (stream: ReadableStream<Uint8Array>) => {
 	const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
@@ -22,13 +23,7 @@ export const runGit = async <T>(
 		stdout: "pipe",
 		stderr: "pipe",
 	});
-	const stop = () => {
-		try {
-			process.kill(-child.pid, "SIGKILL");
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
-		}
-	};
+	const stop = () => stopGitGroup(child.pid);
 	signal?.addEventListener("abort", stop, { once: true });
 	try {
 		const [output, stderr, code] = await Promise.all([readOutput(child.stdout), readError(child.stderr), child.exited]);
@@ -37,7 +32,10 @@ export const runGit = async <T>(
 		return output;
 	} finally {
 		signal?.removeEventListener("abort", stop);
-		stop();
-		await child.exited;
+		try {
+			stop();
+		} finally {
+			await child.exited;
+		}
 	}
 };

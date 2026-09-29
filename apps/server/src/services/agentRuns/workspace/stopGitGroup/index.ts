@@ -1,0 +1,1 @@
+export { stopGitGroup } from "./stopGitGroup";
