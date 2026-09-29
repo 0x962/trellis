@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { protocolDigest } from "../../langflowContracts";
+import authorityFixture from "../../langflowContracts/fixtures/authority.json";
 import type { DispatchBlock, DispatchEvidence, EffectBinding } from "../dispatchGate";
 import { LangflowHostControl } from "../hostControl";
 import { DispatchReceiptArchive } from "./receiptArchive";
@@ -116,4 +117,22 @@ test("reconciliation rejects another block generation and preserves the original
 		good.stopObligations.sourceBytes,
 	);
 	expect(f.archive.readReconciliation(f.block, receipt.id)).toEqual(receipt);
+});
+
+test("authority archive preserves original grant whitespace and refuses another host", () => {
+	const f = fixture();
+	const authorityBytes = `${JSON.stringify({ ...authorityFixture, hostId: f.control.identity.hostId }, null, 2)}\n`;
+	const receipt = f.archive.writeAuthority({ authorityBytes, issuanceReceiptId: "issued" });
+	const reopened = DispatchReceiptArchive.open(LangflowHostControl.open({ home: f.home, evidence: f.evidence }));
+	expect(reopened.readAuthority(receipt.id).authorityBytes).toBe(authorityBytes);
+	expect(reopened.readAuthority(receipt.id).authorityDigest).toBe(protocolDigest(authorityBytes));
+	expect(() =>
+		reopened.writeAuthority({
+			authorityBytes: JSON.stringify(JSON.parse(authorityBytes)),
+			issuanceReceiptId: "issued",
+		}),
+	).toThrow("receipt_immutable_conflict");
+	expect(() =>
+		f.archive.writeAuthority({ authorityBytes: JSON.stringify(authorityFixture), issuanceReceiptId: "wrong-home" }),
+	).toThrow("receipt_authority_home_mismatch");
 });
