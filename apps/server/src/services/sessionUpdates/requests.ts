@@ -16,25 +16,26 @@ export const sessionUpdateRequestIsOutstanding = (state: SessionUpdateRequestSta
 export const beginSessionUpdateRequest = async (
 	ctx: RequestCtx,
 	tx: Tx,
-	input: { sessionId: string; requestId: string },
+	input: { runId: string; requestId: string },
 ): Promise<SessionUpdateRequest | null> => {
 	const inserted = await rows<SessionUpdateRequest>(
 		tx,
-		sql`INSERT INTO session_update_requests (request_id, session_id, requested_at, state, error)
-		VALUES (${input.requestId}, ${input.sessionId}, ${ctx.now}, 'pending', NULL)
+		sql`INSERT INTO session_update_requests (request_id, run_id, session_id, requested_at, state, error)
+		SELECT ${input.requestId}, agent_runs.id, sessions.id, ${ctx.now}, 'pending', NULL
+		FROM agent_runs LEFT JOIN sessions ON sessions.run_id=agent_runs.id WHERE agent_runs.id=${input.runId}
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 	);
 	if (inserted[0] !== undefined) {
-		ctx.emit({ type: "session-updates.changed", id: input.sessionId });
+		ctx.emit({ type: "session-updates.changed", id: input.runId });
 		return inserted[0];
 	}
-	const [sameRequest] = await rows<SessionUpdateRequest & { sessionId: string }>(
+	const [sameRequest] = await rows<SessionUpdateRequest & { runId: string }>(
 		tx,
-		sql`SELECT session_id AS "sessionId", ${columns} FROM session_update_requests
+		sql`SELECT run_id AS "runId", ${columns} FROM session_update_requests
 		WHERE request_id=${input.requestId}`,
 	);
 	if (sameRequest !== undefined) {
-		if (sameRequest.sessionId !== input.sessionId)
+		if (sameRequest.runId !== input.runId)
 			throw invalidInput("requestId", "This request ID belongs to another session.");
 		return {
 			requestId: sameRequest.requestId,
@@ -50,7 +51,7 @@ export const beginSessionUpdateRequest = async (
 export const setSessionUpdateRequestState = async (
 	ctx: RequestCtx,
 	tx: Tx,
-	input: { sessionId: string; requestId: string; state: "sent" | "failed"; error?: string },
+	input: { runId: string; requestId: string; state: "sent" | "failed"; error?: string },
 ): Promise<SessionUpdateRequest> => {
 	if (input.state === "failed" && !input.error)
 		throw invalidInput("error", "Give the error from the failed status request.");
@@ -61,11 +62,11 @@ export const setSessionUpdateRequestState = async (
 		sql`UPDATE session_update_requests SET
 		state=CASE WHEN state='answered' THEN state ELSE ${input.state} END,
 		error=CASE WHEN state='answered' THEN error ELSE ${input.error ?? null} END
-		WHERE session_id=${input.sessionId} AND request_id=${input.requestId}
+		WHERE run_id=${input.runId} AND request_id=${input.requestId}
 		AND (state='pending' OR state='answered' OR state=${input.state}
 			OR (state='sent' AND ${input.state}='failed')) RETURNING ${columns}`,
 	);
 	if (request === undefined) throw invalidInput("requestId", "This status request is not pending for the session.");
-	ctx.emit({ type: "session-updates.changed", id: input.sessionId });
+	ctx.emit({ type: "session-updates.changed", id: input.runId });
 	return request;
 };
