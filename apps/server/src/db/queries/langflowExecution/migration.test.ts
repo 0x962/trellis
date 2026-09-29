@@ -18,7 +18,8 @@ afterEach(async () => {
 test("the migration chain preserves legacy rows and durable receipts across reopen and deletion", async () => {
 	db = await beforeDocuments();
 	const before = (await db.execute(sql`SELECT * FROM flow_executions WHERE id='legacy-execution'`)).rows;
-	expect(await migrate(db)).toBe(2);
+	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8"));
+	expect(await migrate(db)).toBe(journal.entries.filter((entry: { idx: number }) => entry.idx >= 133).length);
 	expect((await db.execute(sql`SELECT * FROM flow_executions WHERE id='legacy-execution'`)).rows).toEqual(before);
 	const fixture = await receiptFixture(true, db);
 	expect((await db.transaction((tx) => reserveExecution(tx, fixture.input))).executionId).toBe(ids.execution);

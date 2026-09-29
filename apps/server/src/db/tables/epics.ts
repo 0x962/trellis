@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { check, index, pgTable, text } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
@@ -8,6 +8,9 @@ import { projects } from "./projects.ts";
 // writer. The unique (project_id, slug) pair gives the epic its `KEY/slug`
 // ref. The epic keeps no state column: its state derives from the tickets
 // that point at it.
+// `epics_project_slug_equality` keeps each slug unique within its project.
+// The migration creates this hash index as an equality exclusion constraint,
+// so long slugs fit. The slug syntax excludes the separator slash.
 export const epics = pgTable(
 	"epics",
 	{
@@ -24,9 +27,9 @@ export const epics = pgTable(
 	},
 	(t) => [
 		actorFk("epics_actor_fk", t),
-		unique("epics_project_id_slug_unique").on(t.projectId, t.slug),
+		index("epics_project_slug_equality").using("hash", sql`(${t.projectId} || '/' || ${t.slug})`),
 		check("epics_slug_check", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
-		check("epics_name_check", sql`${t.name} = btrim(${t.name}) AND length(${t.name}) BETWEEN 1 AND 120`),
+		check("epics_name_check", sql`${t.name} = btrim(${t.name}) AND length(${t.name}) >= 1`),
 		check("epics_description_check", sql`length(${t.description}) <= 200000`),
 		index("epics_project_id_idx").on(t.projectId),
 	],
