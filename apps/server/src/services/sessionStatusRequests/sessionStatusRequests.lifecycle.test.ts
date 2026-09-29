@@ -50,8 +50,9 @@ const fixture = async (kind: "agent" | "session") => {
 		${kind === "agent" ? "STA" : ""},${kind === "agent" ? ticketId : null},
 		${kind === "agent" ? "STA-1" : null},'{"preset":"codex"}'::jsonb,${terminalId},
 		${providerSessionId},${home},${at},${at})`);
-	await db.execute(sql`INSERT INTO sessions (id,name,directory,harness,run_id,created_at,updated_at)
-		VALUES (${sessionId},'Status session',${home},'{"preset":"codex"}'::jsonb,${runId},${at},${at})`);
+	if (kind === "session")
+		await db.execute(sql`INSERT INTO sessions (id,name,directory,harness,run_id,created_at,updated_at)
+			VALUES (${sessionId},'Status session',${home},'{"preset":"codex"}'::jsonb,${runId},${at},${at})`);
 	await db.execute(sql`INSERT INTO agent_execution_attempts
 		(id,run_id,generation,token_hash,created_at) VALUES
 		(${terminalId},${runId},1,${createHash("sha256").update(token).digest("hex")},${at})`);
@@ -83,15 +84,23 @@ const fixture = async (kind: "agent" | "session") => {
 		emit: () => {},
 		background: (action) => pending.push(action(io)),
 	} as IoCtx;
-	return { db, home, runId, sessionId, terminalId, providerSessionId, core, io, pending };
+	return {
+		db,
+		home,
+		runId,
+		sessionRef: kind === "agent" ? runId : sessionId,
+		terminalId,
+		providerSessionId,
+		core,
+		io,
+		pending,
+	};
 };
 
 const beginSentRequest = async (value: Awaited<ReturnType<typeof fixture>>, requestId: string) => {
+	await value.db.transaction((tx) => beginSessionUpdateRequest(value.core, tx, { runId: value.runId, requestId }));
 	await value.db.transaction((tx) =>
-		beginSessionUpdateRequest(value.core, tx, { sessionId: value.sessionId, requestId }),
-	);
-	await value.db.transaction((tx) =>
-		setSessionUpdateRequestState(value.core, tx, { sessionId: value.sessionId, requestId, state: "sent" }),
+		setSessionUpdateRequestState(value.core, tx, { runId: value.runId, requestId, state: "sent" }),
 	);
 };
 
@@ -136,7 +145,7 @@ const saveLateReply = async (
 		attemptToken: attempt.token,
 	};
 	await value.db.transaction((tx) =>
-		write(agentCore, tx, { sessionId: value.sessionId, requestId, body: "The replacement saved the late reply." }),
+		write(agentCore, tx, { sessionId: value.sessionRef, requestId, body: "The replacement saved the late reply." }),
 	);
 	await value.db.transaction((tx) =>
 		failOutstandingSessionUpdateRequestForRun(value.core, tx, {
@@ -144,7 +153,7 @@ const saveLateReply = async (
 			error: "A later lifecycle check must preserve the reply.",
 		}),
 	);
-	const saved = await value.db.transaction((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionId }));
+	const saved = await value.db.transaction((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionRef }));
 	expect(saved.latest?.body).toBe("The replacement saved the late reply.");
 	expect(saved.request).toMatchObject({ requestId, state: "answered", error: null });
 };
@@ -178,7 +187,7 @@ test("Resume replaces terminal A, clears its request, and preserves a late reply
 		const run = await value.db.transaction((tx) => getRun(tx, value.runId));
 		expect(run.terminalId).toBe(replacement.id);
 		const failed = await value.db.transaction((tx) =>
-			getSessionUpdates(value.core, tx, { sessionId: value.sessionId }),
+			getSessionUpdates(value.core, tx, { sessionId: value.sessionRef }),
 		);
 		expect(failed.request).toMatchObject({ requestId, state: "failed" });
 		await saveLateReply(value, requestId, replacement);
@@ -207,7 +216,7 @@ test("Retry replaces terminal A, clears its request, and preserves a late reply 
 		const run = await value.db.transaction((tx) => getRun(tx, value.runId));
 		expect(run.terminalId).toBe(replacement.id);
 		const failed = await value.db.transaction((tx) =>
-			getSessionUpdates(value.core, tx, { sessionId: value.sessionId }),
+			getSessionUpdates(value.core, tx, { sessionId: value.sessionRef }),
 		);
 		expect(failed.request).toMatchObject({ requestId, state: "failed" });
 		await saveLateReply(value, requestId, replacement);

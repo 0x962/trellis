@@ -18,8 +18,6 @@ const standaloneRunId = ulid();
 const archivedRunId = ulid();
 const closedRunId = ulid();
 const archivedProjectRunId = ulid();
-const activeTicketSessionId = ulid();
-const doneTicketSessionId = ulid();
 const standaloneSessionId = ulid();
 const archivedSessionId = ulid();
 const closedSessionId = ulid();
@@ -53,8 +51,6 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO sessions (
 		id, name, directory, harness, run_id, archived_at, created_at, updated_at
 	) VALUES
-		(${activeTicketSessionId}, 'active-ticket', '/tmp/active-ticket', '{"preset":"codex"}'::jsonb, ${activeTicketRunId}, NULL, ${at}, ${at}),
-		(${doneTicketSessionId}, 'done-ticket', '/tmp/done-ticket', '{"preset":"codex"}'::jsonb, ${doneTicketRunId}, NULL, ${at}, ${at}),
 		(${standaloneSessionId}, 'standalone', '/tmp/standalone', '{"preset":"codex"}'::jsonb, ${standaloneRunId}, NULL, ${at}, ${at}),
 		(${archivedSessionId}, 'archived', '/tmp/archived', '{"preset":"codex"}'::jsonb, ${archivedRunId}, ${at}, ${at}, ${at}),
 		(${closedSessionId}, 'closed', '/tmp/closed', '{"preset":"codex"}'::jsonb, ${closedRunId}, NULL, ${at}, ${at}),
@@ -63,14 +59,14 @@ beforeAll(async () => {
 
 afterAll(async () => db.$client.close());
 
-test("lists active ticket and standalone sessions only", async () => {
+test("lists active ticket agents and standalone sessions only", async () => {
 	const found = await db.transaction(sessionStatusRequestCandidates);
 
 	expect(found).toHaveLength(2);
 	expect(found).toEqual(
 		expect.arrayContaining([
-			{ sessionId: activeTicketSessionId, terminalId: "active-ticket-attempt" },
-			{ sessionId: standaloneSessionId, terminalId: "standalone-attempt" },
+			{ runId: activeTicketRunId, sessionRef: activeTicketRunId, terminalId: "active-ticket-attempt" },
+			{ runId: standaloneRunId, sessionRef: standaloneSessionId, terminalId: "standalone-attempt" },
 		]),
 	);
 });

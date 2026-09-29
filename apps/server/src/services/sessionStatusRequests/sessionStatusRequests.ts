@@ -17,55 +17,52 @@ import { incompleteTicketIds } from "../tickets.ts";
 const SESSION_STATUS_REQUEST_INTERVAL_MS = 5 * 60 * 1000;
 
 export type SessionStatusRequestCandidate = {
-	sessionId: string;
+	runId: string;
+	sessionRef: string;
 	terminalId: string;
 };
 
 export const sessionStatusRequestCandidates = async (tx: Tx): Promise<SessionStatusRequestCandidate[]> => {
 	const sessions = await statusRequestSessions(tx);
-	if (sessions.length === 0) return [];
 	const sessionByRun = new Map(sessions.map((session) => [session.runId, session.sessionId]));
-	const runs = await statusRequestRuns(
-		tx,
-		sessions.map((session) => session.runId),
-	);
+	const runs = await statusRequestRuns(tx);
 	const projectIds = [...new Set(runs.flatMap((run) => (run.projectId === null ? [] : [run.projectId])))];
 	const ticketIds = [...new Set(runs.flatMap((run) => (run.ticketId === null ? [] : [run.ticketId])))];
 	const activeProjects = new Set(projectIds.length === 0 ? [] : await activeProjectIds(tx, projectIds));
 	const incompleteTickets = new Set(ticketIds.length === 0 ? [] : await incompleteTicketIds(tx, ticketIds));
 	return runs
 		.flatMap((run) => {
-			const sessionId = sessionByRun.get(run.id);
-			if (sessionId === undefined) return [];
+			const sessionRef = run.kind === "agent" ? run.id : sessionByRun.get(run.id);
+			if (sessionRef === undefined) return [];
 			if (run.projectId !== null && !activeProjects.has(run.projectId)) return [];
 			if (run.kind === "agent" && (run.ticketId === null || !incompleteTickets.has(run.ticketId))) return [];
-			return [{ sessionId, terminalId: run.terminalId }];
+			return [{ runId: run.id, sessionRef, terminalId: run.terminalId }];
 		})
-		.sort((left, right) => left.sessionId.localeCompare(right.sessionId));
+		.sort((left, right) => left.runId.localeCompare(right.runId));
 };
 
-const sessionStatusRequestPrompt = (sessionId: string, requestId: string) => `Provide a status update for this session.
+const sessionStatusRequestPrompt = (sessionRef: string, requestId: string) => `Provide a status update for this session.
 
 Explain the purpose, actions, findings, uncertainty, and next step in useful prose. Use Markdown. You can include optional HTML files as embeds.
 
 Save the Markdown reply with this exact command:
 
-trellis session status write ${sessionId} --request-id ${requestId} --body -
+trellis session status write ${sessionRef} --request-id ${requestId} --body -
 
 Pass the Markdown body on standard input. To attach HTML files, use this form:
 
-trellis session status write ${sessionId} --request-id ${requestId} --body - --embed report.html,details.html
+trellis session status write ${sessionRef} --request-id ${requestId} --body - --embed report.html,details.html
 
 Use one --embed flag with a comma-separated path list. Do not send the answer as chat text alone. A sent request is not a saved update. After the write succeeds, continue the assigned work.`;
 
 export type SessionStatusRequestDeps = {
 	candidates: (ctx: IoCtx) => Promise<SessionStatusRequestCandidate[]>;
 	runtime: (ctx: IoCtx, terminalIds: string[]) => Promise<RuntimeProcessStatus[]>;
-	requests: (ctx: IoCtx, sessionIds: string[]) => Promise<Map<string, SessionUpdateRequest | null>>;
-	beginRequest: (ctx: IoCtx, sessionId: string, requestId: string) => Promise<SessionUpdateRequest | null>;
+	requests: (ctx: IoCtx, runIds: string[]) => Promise<Map<string, SessionUpdateRequest | null>>;
+	beginRequest: (ctx: IoCtx, runId: string, requestId: string) => Promise<SessionUpdateRequest | null>;
 	setRequest: (
 		ctx: IoCtx,
-		input: { sessionId: string; requestId: string; state: "sent" | "failed"; error?: string },
+		input: { runId: string; requestId: string; state: "sent" | "failed"; error?: string },
 	) => Promise<SessionUpdateRequest>;
 	send: (ctx: IoCtx, input: SessionStatusRequestCandidate & { requestId: string; text: string }) => Promise<unknown>;
 	requestId: () => string;
@@ -74,14 +71,14 @@ export type SessionStatusRequestDeps = {
 const dependencies: SessionStatusRequestDeps = {
 	candidates: (ctx) => ctx.newTx(sessionStatusRequestCandidates),
 	runtime: statusRequestProcesses,
-	requests: (ctx, sessionIds) =>
+	requests: (ctx, runIds) =>
 		ctx.newTx(async (tx) => {
 			const requests = new Map<string, SessionUpdateRequest | null>();
-			for (const sessionId of sessionIds) requests.set(sessionId, await getSessionUpdateRequest(tx, { sessionId }));
+			for (const runId of runIds) requests.set(runId, await getSessionUpdateRequest(tx, { runId }));
 			return requests;
 		}),
-	beginRequest: (ctx, sessionId, requestId) =>
-		ctx.newTx((tx) => beginSessionUpdateRequest(ctx.core, tx, { sessionId, requestId })),
+	beginRequest: (ctx, runId, requestId) =>
+		ctx.newTx((tx) => beginSessionUpdateRequest(ctx.core, tx, { runId, requestId })),
 	setRequest: (ctx, input) => ctx.newTx((tx) => setSessionUpdateRequestState(ctx.core, tx, input)),
 	send: (ctx, input) => requestStatusAtTurnBoundary(ctx, input),
 	requestId: randomUUID,
@@ -107,7 +104,7 @@ const failRequest = (
 	error: string,
 ) =>
 	deps.setRequest(ctx, {
-		sessionId: candidate.sessionId,
+		runId: candidate.runId,
 		requestId: request.requestId,
 		state: "failed",
 		error,
@@ -144,7 +141,7 @@ const dispatchCandidate = async (
 	}
 	if (request?.state === "pending" && process?.acknowledgedMessageIds.includes(request.requestId)) {
 		await deps.setRequest(ctx, {
-			sessionId: candidate.sessionId,
+			runId: candidate.runId,
 			requestId: request.requestId,
 			state: "sent",
 		});
@@ -162,17 +159,17 @@ const dispatchCandidate = async (
 		return;
 	if (request?.state !== "pending") {
 		const requestId = deps.requestId();
-		request = await deps.beginRequest(ctx, candidate.sessionId, requestId);
+		request = await deps.beginRequest(ctx, candidate.runId, requestId);
 		if (request === null) return;
 	}
 	try {
 		await deps.send(ctx, {
 			...candidate,
 			requestId: request.requestId,
-			text: sessionStatusRequestPrompt(candidate.sessionId, request.requestId),
+			text: sessionStatusRequestPrompt(candidate.sessionRef, request.requestId),
 		});
 		await deps.setRequest(ctx, {
-			sessionId: candidate.sessionId,
+			runId: candidate.runId,
 			requestId: request.requestId,
 			state: "sent",
 		});
@@ -199,7 +196,7 @@ export const prepareSessionStatusRequests = async (
 	);
 	const requests = await deps.requests(
 		ctx,
-		candidates.map((candidate) => candidate.sessionId),
+		candidates.map((candidate) => candidate.runId),
 	);
 	await Promise.all(
 		candidates.map((candidate) =>
@@ -208,7 +205,7 @@ export const prepareSessionStatusRequests = async (
 				deps,
 				candidate,
 				processes.get(candidate.terminalId),
-				requests.get(candidate.sessionId) ?? null,
+				requests.get(candidate.runId) ?? null,
 			),
 		),
 	);

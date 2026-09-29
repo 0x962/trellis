@@ -5,7 +5,11 @@ import type { IoCtx } from "../support.ts";
 import { prepareSessionStatusRequests, type SessionStatusRequestDeps } from "./sessionStatusRequests.ts";
 
 const now = new Date("2026-09-29T12:05:00.000Z");
-const candidate = { sessionId: "01M3NTSP1HRSKKKW47PYJECRXB", terminalId: "attempt" };
+const candidate = {
+	runId: "01M3NTSP1HRSKKKW47PYJECRXB",
+	sessionRef: "01M3NTSP1HRSKKKW47PYJECRXB",
+	terminalId: "attempt",
+};
 const process = (overrides: Partial<RuntimeProcessStatus> = {}): RuntimeProcessStatus => ({
 	id: "attempt",
 	daemonId: "runtime",
@@ -59,8 +63,8 @@ const fixture = (input: {
 			if (input.runtimeError) throw input.runtimeError;
 			return [input.process ?? process()];
 		},
-		requests: async () => new Map([[candidate.sessionId, current]]),
-		beginRequest: async (_ctx, _sessionId, requestId) => {
+		requests: async () => new Map([[candidate.runId, current]]),
+		beginRequest: async (_ctx, _runId, requestId) => {
 			begins++;
 			current = request("pending", { requestId, requestedAt: now.toISOString() });
 			return current;

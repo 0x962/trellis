@@ -1,7 +1,7 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeHost } from "../../../agents/native/harnessHost.ts";
-import { rows, textArray } from "../../../db/queries/support.ts";
+import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import type { IoCtx } from "../../support.ts";
 
@@ -13,13 +13,12 @@ export type StatusRequestRun = {
 	terminalId: string;
 };
 
-export const statusRequestRuns = (tx: Tx, ids: string[]) =>
+export const statusRequestRuns = (tx: Tx) =>
 	rows<StatusRequestRun>(
 		tx,
 		sql`SELECT id, kind, project_id AS "projectId", ticket_id AS "ticketId", terminal_id AS "terminalId"
 			FROM agent_runs
-			WHERE id = ANY(${textArray(ids)})
-				AND closed_at IS NULL
+			WHERE closed_at IS NULL
 				AND runtime = 'native'
 				AND terminal_id IS NOT NULL
 				AND kind IN ('agent', 'session')

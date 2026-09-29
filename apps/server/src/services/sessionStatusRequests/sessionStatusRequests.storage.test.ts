@@ -87,12 +87,12 @@ const dependencies = (
 	requestId: string,
 	terminalId = value.terminalId,
 ): SessionStatusRequestDeps => ({
-	candidates: async () => [{ sessionId: value.sessionId, terminalId }],
+	candidates: async () => [{ runId: value.runId, sessionRef: value.sessionId, terminalId }],
 	runtime: async () => [processStatus(terminalId, requestId)],
 	requests: async () =>
-		new Map([[value.sessionId, await value.inTx((tx) => getSessionUpdateRequest(tx, { sessionId: value.sessionId }))]]),
-	beginRequest: (_ctx, sessionId, nextRequestId) =>
-		value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { sessionId, requestId: nextRequestId })),
+		new Map([[value.runId, await value.inTx((tx) => getSessionUpdateRequest(tx, { runId: value.runId }))]]),
+	beginRequest: (_ctx, runId, nextRequestId) =>
+		value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { runId, requestId: nextRequestId })),
 	setRequest: (_ctx, input) => value.inTx((tx) => setSessionUpdateRequestState(value.core, tx, input)),
 	send: async () => {},
 	requestId: () => crypto.randomUUID(),
@@ -102,9 +102,9 @@ test("a completed status turn clears its outstanding request", async () => {
 	const value = await fixture();
 	try {
 		const requestId = crypto.randomUUID();
-		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { sessionId: value.sessionId, requestId }));
+		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { runId: value.runId, requestId }));
 		await value.inTx((tx) =>
-			setSessionUpdateRequestState(value.core, tx, { sessionId: value.sessionId, requestId, state: "sent" }),
+			setSessionUpdateRequestState(value.core, tx, { runId: value.runId, requestId, state: "sent" }),
 		);
 		await prepareSessionStatusRequests(value.io, {}, dependencies(value, requestId));
 
@@ -120,9 +120,9 @@ test("an agent reply wins the race with completion", async () => {
 	const value = await fixture();
 	try {
 		const requestId = crypto.randomUUID();
-		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { sessionId: value.sessionId, requestId }));
+		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { runId: value.runId, requestId }));
 		await value.inTx((tx) =>
-			setSessionUpdateRequestState(value.core, tx, { sessionId: value.sessionId, requestId, state: "sent" }),
+			setSessionUpdateRequestState(value.core, tx, { runId: value.runId, requestId, state: "sent" }),
 		);
 		const deps = dependencies(value, requestId);
 		deps.setRequest = async (_ctx, input) => {
@@ -146,9 +146,9 @@ test("a replacement attempt clears the old request and preserves a late reply", 
 	const value = await fixture();
 	try {
 		const requestId = crypto.randomUUID();
-		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { sessionId: value.sessionId, requestId }));
+		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { runId: value.runId, requestId }));
 		await value.inTx((tx) =>
-			setSessionUpdateRequestState(value.core, tx, { sessionId: value.sessionId, requestId, state: "sent" }),
+			setSessionUpdateRequestState(value.core, tx, { runId: value.runId, requestId, state: "sent" }),
 		);
 
 		const replacementTerminalId = crypto.randomUUID();
