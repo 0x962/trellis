@@ -186,7 +186,11 @@ test("observer launch failure logs only safe cause and identity fields", async (
 			{ ...ctx, log: (message, fields) => logs.push({ message, fields }) },
 			{
 				run,
-				config: { directory: home, harness: { preset: "claude" }, accountId: null },
+				config: {
+					directory: home,
+					harness: { preset: "claude", startCommand: "claude", resumeCommand: "claude --resume" },
+					accountId: null,
+				},
 				resume: false,
 				attempt: { id: attemptId, generation: 1, token: "private-token" },
 				textOnly: { system: "private instruction", sessionId: crypto.randomUUID() },

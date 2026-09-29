@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { ORPCError } from "@orpc/server";
 import { ObserverHarnessError } from "../sessionObserverHarness/index.ts";
-import { at, context, seed } from "../sessionObservers/testFixture.ts";
+import { at, context, seed } from "../sessionObservers/testFixture/index.ts";
 import type { IoCtx } from "../support.ts";
 import { getSession } from "./queries.ts";
 import { prepareDelete } from "./remove.ts";

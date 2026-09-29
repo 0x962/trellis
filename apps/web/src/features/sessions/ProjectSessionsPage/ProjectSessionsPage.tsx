@@ -6,6 +6,7 @@ import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { allAgentRunsOptions } from "../../agents/allAgentRuns";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { ProjectSectionMenu } from "../../shell/ProjectSectionMenu";
@@ -16,7 +17,7 @@ import { SessionList } from "./components/SessionList";
 import { nextSessionArchiveTimeMs, selectedSession, sessionGroups } from "./sessionGroups";
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
-	const { orpc, queryClient } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	useEffect(() => {
 		document.title = `${project.name} sessions · trellis`;
 	}, [project.name]);
@@ -29,14 +30,13 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
-	// The current list needs the full 48-hour window. The Archived list asks
-	// for a longer window only while a person reads it. Runtime events refresh
-	// the Archived list when new activity moves a run back to the current list.
-	const runsOptions = orpc.agentRuns.list.queryOptions({
-		input: showArchived
-			? { project: project.id, includePinnedHistory: true, windowHours: 24 * 365, limit: 1000 }
+	const runsOptions = allAgentRunsOptions(
+		orpc,
+		client,
+		showArchived
+			? { project: project.id, includePinnedHistory: true, allHistory: true, limit: 1000 }
 			: { project: project.id, includePinnedHistory: true, windowHours: 48, limit: 1000 },
-	});
+	);
 	const selectedRunOptions = orpc.agentRuns.list.queryOptions({ input: { ids: hash ? [hash] : [] } });
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({
@@ -55,7 +55,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 		if (hash) void queryClient.resetQueries({ queryKey: selectedRunOptions.queryKey, exact: true });
 		void queryClient.resetQueries({ queryKey: sessionsOptions.queryKey, exact: true });
 	};
-	const linkedRun = selectedRun.data?.[0];
+	const linkedRun = selectedRun.data?.items[0];
 	const items = useMemo(() => {
 		const listedRuns = runs.data ?? [];
 		const availableRuns =

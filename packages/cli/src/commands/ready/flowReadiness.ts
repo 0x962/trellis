@@ -1,4 +1,4 @@
-import { type FlowSummary, flowRunWorks } from "@trellis/api";
+import { type FlowSummary, flowReviewCredit, flowRunWorks } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { listRuns } from "../flow/listRuns.ts";
 import { flowChoiceLines, flowRunCommand } from "../flows/flowText.ts";
@@ -17,9 +17,6 @@ export type FlowReadiness = {
 	skipped: "no-ticket" | "no-flow" | null;
 	satisfied: boolean;
 };
-
-// `reviewGaps` in `packages/api` states this rule for every surface.
-const answersTheCheck = (run: Run) => run.status === "succeeded";
 
 // The linked ticket supplies the project whose flows apply to the diff.
 export const flowReadiness = async (
@@ -42,7 +39,23 @@ export const flowReadiness = async (
 			return { slug: flow.slug, name: flow.name, status: record.state.status, failureKind: record.state.failureKind };
 		});
 	const waived = waiver === null ? null : waiver.reason;
-	return { flows, runs, waived, skipped: null, satisfied: waived !== null || runs.some(answersTheCheck) };
+	return {
+		flows,
+		runs,
+		waived,
+		skipped: null,
+		satisfied: flowReviewCredit({
+			diffId: ref.id,
+			hasTicket: true,
+			applicableFlowIds: flows.map((flow) => flow.id),
+			waived: waived !== null,
+			runs: records.map((record) => ({
+				flowId: record.flowId,
+				diffId: record.diffId,
+				status: record.state.status,
+			})),
+		}),
+	};
 };
 
 // The one sentence beside `MISSING  flow run`.

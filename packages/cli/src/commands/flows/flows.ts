@@ -1,17 +1,12 @@
-import {
-	type FlowExecutionRecord,
-	type FlowSummary,
-	flowProjectLabel,
-	flowPurpose,
-	flowRunNeedsPerson,
-	flowRunWorks,
-} from "@trellis/api";
+import { type FlowSummary, flowProjectLabel, flowPurpose, flowRunNeedsPerson } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
-import { type CliContext, contextOf, wantsJson } from "../../context.ts";
+import { contextOf, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
 import { cell, json, printList, timeCell } from "../../output.ts";
+import { listRuns } from "../flow/listRuns.ts";
+import { waitForRun } from "../flow/waitForRun/waitForRun.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
 import { flowRunText } from "./flowText.ts";
 
@@ -66,24 +61,6 @@ const list = defineCommand({
 	},
 });
 
-const pollMs = 5000;
-
-// Reads the run every `pollMs` until it advances no further on its own, or
-// until `deadline` passes.
-const watch = async (
-	ctx: CliContext,
-	client: TrellisClient,
-	run: FlowExecutionRecord,
-	deadline: number,
-): Promise<FlowExecutionRecord> => {
-	let latest = run;
-	while (flowRunWorks(latest.state.status) && ctx.deps.now().getTime() < deadline) {
-		await ctx.deps.sleep(pollMs);
-		latest = await client.flowExecutions.get({ id: latest.id });
-	}
-	return latest;
-};
-
 const run = defineCommand({
 	meta: { name: "run", description: "Start a flow on a pull request and wait for its result" },
 	args: {
@@ -123,12 +100,12 @@ const run = defineCommand({
 				`The ${flow.name} flow on #${pr.number}: run ${started.id}, head ${started.headSha ?? "not recorded"}.\n`,
 			);
 		const deadline = ctx.deps.now().getTime() + minutes * 60_000;
-		const finished = context.args.wait ? await watch(ctx, client, started, deadline) : started;
+		const finished = context.args.wait
+			? await waitForRun(started, (id) => client.flowExecutions.get({ id }), ctx.deps, deadline)
+			: started;
 		if (wantsJson(ctx)) ctx.out.write(json(finished));
 		else ctx.out.write(flowRunText(finished, pr.number));
-		// A run that waits for a person did every agent step it had. The agent
-		// has nothing left to do, so the command succeeds and the message says
-		// who must answer next.
+		// Exit zero also covers a human wait. Review readiness requires status "succeeded".
 		const status = finished.state.status;
 		return !context.args.wait || status === "succeeded" || flowRunNeedsPerson(status) ? 0 : 1;
 	},
@@ -141,7 +118,7 @@ const runs = defineCommand({
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
 		const pr = await pullRequestForFlow(client, context.args.ref);
-		const found = await client.flowExecutions.list({ diffId: pr.diffId });
+		const found = await listRuns(client, { diffId: pr.diffId });
 		printList(ctx.out, ctx.format, found, {
 			identifier: (record) => record.id,
 			columns: [

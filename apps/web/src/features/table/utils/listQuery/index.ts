@@ -8,6 +8,5 @@ export {
 	hasStatusFilter,
 	inlineClosedInput,
 	pageSize,
-	rowCap,
 	scopedQuery,
 } from "./listQuery";

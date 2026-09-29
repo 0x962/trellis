@@ -6,6 +6,7 @@ import * as agentAttention from "./agentRuns/attention.ts";
 import * as broadcast from "./agentRuns/broadcast";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import * as agentRunList from "./agentRuns/list.ts";
 import { setPinned as setAgentRunPinned } from "./agentRuns/pin.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareRetry } from "./agentRuns/retry.ts";
@@ -64,11 +65,7 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
-import {
-	get as getSessionObserver,
-	history as getSessionObserverHistory,
-	setEnabledForProcedure as setSessionObserverEnabled,
-} from "./sessionObservers";
+import { sessionObserverServices } from "./sessionObservers/registry";
 import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
@@ -89,8 +86,6 @@ import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 import * as waves from "./waves/waves.ts";
-
-export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
@@ -113,9 +108,7 @@ export const services = {
 	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
-	"sessionObservers.get": core("read", getSessionObserver),
-	"sessionObservers.history": core("read", getSessionObserverHistory),
-	"sessionObservers.setEnabled": core("mutation", setSessionObserverEnabled),
+	...sessionObserverServices,
 	...sessionUpdateServices,
 	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
@@ -176,7 +169,8 @@ export const services = {
 	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
-	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
+	"agentRuns.list": prepared("read", agentRunList.prepareList, agentTerminal.result),
+	"agentRuns.latestByEpicTicket": prepared("read", agentRunList.prepareLatestByEpicTicket, agentTerminal.result),
 	"agentRuns.setPinned": core("mutation", setAgentRunPinned),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": prepared(
@@ -305,3 +299,4 @@ export const services = {
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;
+export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";

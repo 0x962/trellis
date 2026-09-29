@@ -1,1 +1,2 @@
-export { EpicPage, type EpicPageProps } from "./EpicPage";
+export { EpicPage } from "./EpicPage";
+export type { EpicPageProps } from "./EpicPageProps";

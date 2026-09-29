@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
+import { AgentRunListInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { list } from "../agentRuns/list.ts";
 import { reserveObserverDelivery } from "../agentRuns/observerRuns/index.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import {
@@ -11,7 +13,7 @@ import {
 	saveSessionObserverSummary,
 	setEnabled,
 } from "../sessionObservers/index.ts";
-import { at, context, seed } from "../sessionObservers/testFixture.ts";
+import { at, context, seed } from "../sessionObservers/testFixture/index.ts";
 import type { IoCtx } from "../support.ts";
 import { listUsageRuns } from "../usage/queries.ts";
 import { ensureSessionObserverRun } from "./ensureSessionObserverRun/index.ts";
@@ -46,6 +48,10 @@ test("reserves one hidden Claude conversation and reuses its exact delivery afte
 		const hidden = await ensureSessionObserverRun(ctx, identity);
 		expect(await ensureSessionObserverRun(ctx, identity)).toEqual(hidden);
 		expect(hidden.observerRunId).not.toBe(ticketRunId);
+		const listed = await db.transaction((tx) =>
+			list(core, tx, AgentRunListInputSchema.parse({ ids: [ticketRunId, hidden.observerRunId] })),
+		);
+		expect(listed.items.map((item) => item.id)).toEqual([ticketRunId]);
 		const run = await db.transaction((tx) => getRun(tx, hidden.observerRunId));
 		expect(run).toMatchObject({
 			kind: "session",

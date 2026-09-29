@@ -38,7 +38,14 @@ export async function readObserverTranscriptUsage(
 				!Number.isSafeInteger(usage.input_tokens) ||
 				usage.input_tokens < 0 ||
 				!Number.isSafeInteger(usage.output_tokens) ||
-				usage.output_tokens < 0
+				usage.output_tokens < 0 ||
+				[
+					usage.cache_read_input_tokens,
+					usage.cache_creation_input_tokens,
+					usage.cache_creation?.ephemeral_5m_input_tokens,
+					usage.cache_creation?.ephemeral_1h_input_tokens,
+					usage.output_tokens_details?.thinking_tokens,
+				].some((value) => value !== undefined && (!Number.isSafeInteger(value) || value < 0))
 			)
 				throw new ObserverHarnessError(
 					"OBSERVER_USAGE_UNAVAILABLE",

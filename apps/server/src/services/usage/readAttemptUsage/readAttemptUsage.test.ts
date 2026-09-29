@@ -73,6 +73,11 @@ test.each([
 	{ input_tokens: 10, output_tokens: 1.5 },
 	{ input_tokens: 1e100, output_tokens: 10 },
 	{ input_tokens: 10, output_tokens: 1e100 },
+	{ input_tokens: 10, output_tokens: 10, cache_read_input_tokens: -1 },
+	{ input_tokens: 10, output_tokens: 10, cache_creation_input_tokens: null },
+	{ input_tokens: 10, output_tokens: 10, cache_creation: { ephemeral_5m_input_tokens: "2" } },
+	{ input_tokens: 10, output_tokens: 10, cache_creation: { ephemeral_1h_input_tokens: -1 } },
+	{ input_tokens: 10, output_tokens: 10, output_tokens_details: { thinking_tokens: -1 } },
 ])("rejects missing or invalid required counts: %j", async (usage) => {
 	const row = assistant(40);
 	const record = { ...row, message: { ...row.message, usage } };

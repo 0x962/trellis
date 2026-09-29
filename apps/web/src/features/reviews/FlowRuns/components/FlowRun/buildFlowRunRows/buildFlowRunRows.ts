@@ -118,8 +118,7 @@ export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData
 		return null;
 	};
 
-	// The exit question of a loop after one round. A past round answered No,
-	// which is why a later round exists.
+	// The legacy state retains only the current exit question. Earlier tasks retain their exact terminal bindings.
 	const conditionRow = (step: Step, key: string, round: number, parentKey: string, depth: number) => {
 		const actionKey = `${key}:condition:${round}`;
 		const current = round === step.round;
@@ -131,8 +130,16 @@ export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData
 			depth,
 			kind: "gate",
 			title: "Exit question",
-			state: current ? (asked ? step.state : "not_started") : "succeeded",
-			meta: asked ? (step.decision === null ? null : decisionWord(step.decision)) : current ? null : "No",
+			state: current ? (asked ? step.state : "not_started") : "unknown",
+			meta: asked
+				? step.decision === null
+					? null
+					: decisionWord(step.decision)
+				: current
+					? null
+					: "Historical decision unavailable",
+			output: asked ? step.output : null,
+			error: asked ? step.error : null,
 			terminal: taskKeys.has(actionKey),
 			actionKey,
 		});
@@ -160,11 +167,11 @@ export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData
 				kind: node.kind,
 				title: node.kind === "group" && node.title === untitledBox ? "Group" : node.title,
 				state: step === null ? "not_started" : step.state,
-				meta: meta(node, step),
+				meta: [meta(node, step), step?.needsStop ? "Stop pending" : null].filter(Boolean).join(" · ") || null,
 				startedAt: step?.startedAt ?? null,
 				endedAt: step?.endedAt ?? null,
 				deadlineAt: step?.deadlineAt ?? null,
-				output: step === null || box || node.kind === "gate" || !step.output ? null : step.output,
+				output: step === null || box ? null : step.output,
 				error: step === null || inherited ? null : step.error,
 				terminal: step !== null && !box && taskKeys.has(step.actionKey),
 				decidable: step?.state === "waiting_human",

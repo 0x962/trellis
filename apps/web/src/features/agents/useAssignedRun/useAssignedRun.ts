@@ -10,7 +10,7 @@ export function useAssignedRun(ticketId: string) {
 	const { orpc } = useApp();
 	return useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
-		select: (runs) => runs.find((run) => run.ticketId === ticketId && run.kind === "agent"),
+		select: (page) => page.items.find((run) => run.ticketId === ticketId && run.kind === "agent"),
 		refetchOnWindowFocus: "always",
 	}).data;
 }

@@ -13,7 +13,7 @@ import {
 	recoverSessionObserverGenerations,
 	setEnabled,
 } from "../../sessionObservers/index.ts";
-import { at, context, seed } from "../../sessionObservers/testFixture.ts";
+import { at, context, seed } from "../../sessionObservers/testFixture/index.ts";
 import type { IoCtx } from "../../support.ts";
 import { ensureSessionObserverRun } from "../ensureSessionObserverRun/index.ts";
 import { SESSION_OBSERVER_MODEL } from "../types.ts";
