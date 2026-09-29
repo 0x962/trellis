@@ -22,7 +22,7 @@ afterAll(async () => {
 });
 
 test("the name constraint upgrade preserves the session and provider conversation", async () => {
-	const migration = journal.entries.find((entry) => entry.tag.endsWith("_session_name_length"))!;
+	const migration = journal.entries.find((entry) => entry.tag === "0138_complete_text_limits")!;
 	const earlierEntries = journal.entries.filter((entry) => entry.idx < migration.idx);
 	await mkdir(join(fixturesDir, "meta"));
 	await writeFile(join(fixturesDir, "meta/_journal.json"), JSON.stringify({ ...journal, entries: earlierEntries }));
