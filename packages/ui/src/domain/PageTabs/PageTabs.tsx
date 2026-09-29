@@ -32,7 +32,7 @@ export function PageTabs({
 }: PageTabsProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
-	const layout = useTabLayout(tabs.length, activeIndex);
+	const layout = useTabLayout(tabs, activeIndex);
 	const { ref: tabListRef, width: tabWidth } = layout;
 	const focusAfterChange = useRef(false);
 	const addButton = useRef<HTMLButtonElement>(null);
@@ -167,6 +167,9 @@ export function PageTabs({
 						event.stopPropagation();
 						const target = targets[event.key];
 						if (target !== undefined) move(activeId, target);
+					}}
+					onPointerDownCapture={() => {
+						suppressClick.current = false;
 					}}
 					onPointerMove={pointerMove}
 					onPointerUp={pointerEnd}

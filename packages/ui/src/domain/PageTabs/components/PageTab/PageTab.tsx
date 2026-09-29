@@ -65,7 +65,11 @@ export function PageTab({
 				fieldClassName="px-1"
 				inputClassName="h-7 max-sm:h-11"
 			>
-				<Tooltip content={tab.title} open={truncated ? undefined : false}>
+				<Tooltip
+					content={tab.title}
+					className="max-w-[min(24rem,calc(100vw-16px))] break-words"
+					open={truncated ? undefined : false}
+				>
 					<TabsTab
 						onAuxClick={(event) => {
 							if (event.button === 1) {

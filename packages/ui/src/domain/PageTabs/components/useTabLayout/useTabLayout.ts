@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-export function useTabLayout(count: number, activeIndex: number) {
+export function useTabLayout(tabs: readonly { id: string }[], activeIndex: number) {
+	const count = tabs.length;
 	const ref = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState({
 		width: 200,
@@ -9,6 +10,7 @@ export function useTabLayout(count: number, activeIndex: number) {
 	});
 	const measure = useCallback(
 		(reveal: boolean) => {
+			const count = tabs.length;
 			const element = ref.current!;
 			const width = Math.min(240, Math.max(132, element.clientWidth / Math.max(1, count)));
 			if (reveal && activeIndex >= 0) {
@@ -23,7 +25,7 @@ export function useTabLayout(count: number, activeIndex: number) {
 				current.width === width && current.start === start && current.end === end ? current : { width, start, end },
 			);
 		},
-		[count, activeIndex],
+		[tabs, activeIndex],
 	);
 	useLayoutEffect(() => {
 		measure(true);
