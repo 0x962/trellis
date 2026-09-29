@@ -5,9 +5,15 @@ import type { compilerCatalog } from "../compilerCatalog";
 import type { CompilerEndpoint, CompilerJson, CompilerNode, CompilerObject } from "../conversionCompilerTypes";
 
 const object = z.record(z.string(), z.json());
-const outputSchema = z.looseObject({ name: z.string(), types: z.array(z.string()).min(1), selected: z.string().nullish(), allows_loop: z.boolean().optional(), loop_types: z.array(z.string()).nullish() });
+const outputSchema = z.looseObject({
+	name: z.string(),
+	types: z.array(z.string()).min(1),
+	selected: z.string().nullish(),
+	allows_loop: z.boolean().optional(),
+	loop_types: z.array(z.string()).nullish(),
+});
 const inputSchema = z.looseObject({ type: z.string(), input_types: z.array(z.string()), proxy: z.json().optional() });
-const escape = (handle: CompilerObject) => documentBytes(handle).toString("utf8").replaceAll('"', "œ");
+const serializeHandle = (handle: CompilerObject) => documentBytes(handle).toString("utf8").replaceAll('"', "œ");
 
 export const compilerGraph = (catalog: ReturnType<typeof compilerCatalog>) => {
 	const nodes: CompilerNode[] = [];
@@ -20,23 +26,32 @@ export const compilerGraph = (catalog: ReturnType<typeof compilerCatalog>) => {
 		const fields = object.parse(native.template);
 		for (const [key, value] of Object.entries(values)) {
 			const field = object.parse(fields[key]);
-			if (key === "code" || !Object.hasOwn(field, "value")) throw new Error(`conversion_field_unavailable:${className}.${key}`);
+			if (key === "code" || !Object.hasOwn(field, "value"))
+				throw new Error(`conversion_field_unavailable:${className}.${key}`);
 			fields[key] = { ...field, value };
 		}
 		native.template = fields;
 		const node: CompilerNode = {
-			id, type: "genericNode", position: { x: source.x, y: source.y },
+			id,
+			type: "genericNode",
+			position: { x: source.x, y: source.y },
 			data: { id, type: className, node: native, showNode: true },
 		};
 		nodes.push(node);
 		return { node, definitionId: definition.id };
 	};
 	const outputHandle = ({ node, port }: CompilerEndpoint, feedback = false): CompilerObject => {
-		const output = z.array(outputSchema).parse(node.data.node.outputs).find((item) => item.name === port);
-		if (!output || (feedback && !output.allows_loop)) throw new Error(`conversion_output_unavailable:${node.id}.${port}`);
+		const output = z
+			.array(outputSchema)
+			.parse(node.data.node.outputs)
+			.find((item) => item.name === port);
+		if (!output || (feedback && !output.allows_loop))
+			throw new Error(`conversion_output_unavailable:${node.id}.${port}`);
 		return {
-			output_types: [output.selected ?? output.types[0]!, ...(feedback ? output.loop_types ?? [] : [])],
-			id: node.id, dataType: node.data.type, name: port,
+			output_types: [output.selected ?? output.types[0]!, ...(feedback ? (output.loop_types ?? []) : [])],
+			id: node.id,
+			dataType: node.data.type,
+			name: port,
 		};
 	};
 	const connect = (id: string, source: CompilerEndpoint, target: CompilerEndpoint, feedback = false) => {
@@ -46,16 +61,28 @@ export const compilerGraph = (catalog: ReturnType<typeof compilerCatalog>) => {
 		else {
 			const fields = object.parse(target.node.data.node.template);
 			const field = inputSchema.parse(fields[target.port]);
-			targetHandle = { inputTypes: field.input_types, type: field.type, id: target.node.id, fieldName: target.port,
-				...(field.proxy === undefined ? {} : { proxy: field.proxy }) };
+			targetHandle = {
+				inputTypes: field.input_types,
+				type: field.type,
+				id: target.node.id,
+				fieldName: target.port,
+				...(field.proxy === undefined ? {} : { proxy: field.proxy }),
+			};
 		}
-		edges.push({ id, source: source.node.id, target: target.node.id, sourceHandle: escape(sourceHandle), targetHandle: escape(targetHandle),
-			data: { sourceHandle, targetHandle } });
+		edges.push({
+			id,
+			source: source.node.id,
+			target: target.node.id,
+			sourceHandle: serializeHandle(sourceHandle),
+			targetHandle: serializeHandle(targetHandle),
+			data: { sourceHandle, targetHandle },
+		});
 	};
 	const set = (node: CompilerNode, name: string, value: CompilerJson) => {
 		const fields = object.parse(node.data.node.template);
 		const field = object.parse(fields[name]);
-		if (name === "code" || !Object.hasOwn(field, "value")) throw new Error(`conversion_field_unavailable:${node.id}.${name}`);
+		if (name === "code" || !Object.hasOwn(field, "value"))
+			throw new Error(`conversion_field_unavailable:${node.id}.${name}`);
 		fields[name] = { ...field, value };
 		node.data.node.template = fields;
 	};

@@ -10,10 +10,12 @@ export const readConversionBinding = (
 ) => {
 	const { envelope, source: document, originalSource } = readConversionSource(verified.graphDocument);
 	const publication = verified.publication;
-	if (publication.conversion?.sourceDocumentHash !== envelope.source.sha256 ||
+	if (
+		publication.conversion?.sourceDocumentHash !== envelope.source.sha256 ||
 		publication.flowId !== envelope.source.flowId ||
 		publication.componentManifestHash !== envelope.componentManifestHash ||
-		(envelope.editedSource && envelope.editedSource.revision > publication.revision)) {
+		(envelope.editedSource && envelope.editedSource.revision > publication.revision)
+	) {
 		throw new Error("conversion_publication_conflict");
 	}
 	const bindings = envelope.nodeSpecs.filter((binding) => binding.engineNodeId === visit.engineNodeId);
@@ -23,9 +25,9 @@ export const readConversionBinding = (
 		throw new Error("conversion_visit_conflict");
 	}
 	const object = z.record(z.string(), z.json());
-	const graphNodes = z.array(z.object({ id: z.string(), data: z.object({ id: z.string() }) })).parse(
-		verified.graphDocument.nodes ?? object.safeParse(verified.graphDocument.data).data?.nodes,
-	);
+	const graphNodes = z
+		.array(z.object({ id: z.string(), data: z.object({ id: z.string() }) }))
+		.parse(verified.graphDocument.nodes ?? object.safeParse(verified.graphDocument.data).data?.nodes);
 	const vertices = graphNodes.filter((node) => node.id === binding.engineNodeId);
 	if (vertices.length !== 1 || vertices[0]!.data.id !== binding.engineNodeId) {
 		throw new Error("conversion_vertex_conflict");
@@ -40,7 +42,9 @@ export const readConversionBinding = (
 		throw new Error("conversion_spec_hash_conflict");
 	}
 	return {
-		binding, sourceNode: nodes[0]!, sourceFlow: document.flow,
+		binding,
+		sourceNode: nodes[0]!,
+		sourceFlow: document.flow,
 		originalSourceNode: originalSource.nodes.find((node) => node.id === binding.sourceNodeId)!,
 		originalSourceFlow: originalSource.flow,
 	};
