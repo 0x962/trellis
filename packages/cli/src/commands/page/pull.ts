@@ -2,11 +2,11 @@ import { mkdirSync } from "node:fs";
 import { dirname, resolve, sep } from "node:path";
 import { PAGE_DOCUMENT_PATH } from "@trellis/api";
 import { defineCommand } from "citty";
+import { positiveInteger } from "../../arguments.ts";
 import { clientOf, clientOptions, throwErrorAnswer, trellisFetch } from "../../client.ts";
 import { compact, contextOf } from "../../context.ts";
 import { CliFailure } from "../../errors.ts";
 import { printRecord, type RecordSpec } from "../../output.ts";
-import { positiveInteger } from "./revision.ts";
 
 type PullResult = { out: string; ref: string; version: number; files: string[] };
 

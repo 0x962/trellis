@@ -3,10 +3,10 @@ import { RPCLink } from "@orpc/client/fetch";
 import type { StandardLinkPlugin } from "@orpc/client/standard";
 import type { ContractRouterClient } from "@orpc/contract";
 import pkg from "../package.json" with { type: "json" };
-import type { contract } from "./contract/index.ts";
+import type { clientContract } from "./contract/index.ts";
 import { ActorHeaderSchema } from "./refs.ts";
 
-export type TrellisClient = ContractRouterClient<typeof contract>;
+export type TrellisClient = ContractRouterClient<typeof clientContract>;
 
 // The shape the RPC link calls. `globalThis.fetch` fits it; a test passes a
 // stub that records the request.

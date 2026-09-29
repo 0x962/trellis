@@ -100,6 +100,6 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 		// A flow run stores its state under flowExecutions, and every state
 		// write emits flows.changed with the flow id.
 		case "flows.changed":
-			return [family("flows"), family("flowExecutions")];
+			return [family("flows"), family("flowExecutions"), family("flowDocumentsV1")];
 	}
 }

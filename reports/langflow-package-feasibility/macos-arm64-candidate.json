@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "qualification": "candidate",
+  "source": {
+    "tag": "v1.12.3",
+    "commit": "fec71dca901949c09ed4d63315804337cd2eb13d",
+    "tree": "e6ac634257b30645b6c35bcc707ed271789877d6",
+    "archiveBytes": 134686169,
+    "archiveSha256": "22121d494f34b6dfda669295e26b8cab475b4642fe9f86273f39e19a1a6cb4bd",
+    "archiveSeconds": 76.97,
+    "checkoutAllocatedKiB": 374148,
+    "gitAllocatedKiB": 132904,
+    "checkoutSeconds": 167.59,
+    "checkoutMaxRssBytes": 202391552
+  },
+  "host": {
+    "os": "macOS 26.6.2",
+    "architecture": "arm64",
+    "freeDiskBeforeGiB": 49,
+    "minimumFreeDiskGiB": 10,
+    "freeDiskAfterGiB": 40
+  },
+  "python": {
+    "implementation": "CPython",
+    "version": "3.12.12",
+    "lockedRecords": 832,
+    "installedPackages": 455,
+    "dryRunSeconds": 0.12,
+    "installSeconds": 97.73,
+    "installMaxRssBytes": 614088704,
+    "environmentAllocatedKiB": 1368332,
+    "cacheAllocatedKiB": 1891692,
+    "privateHomeAllocatedKiB": 795228,
+    "environmentInventorySha256": "d17199cda84fb9c291e92021cb2813199f25bab755f5f09d083ed547f224f9b1"
+  },
+  "frontend": {
+    "nodeVersion": "26.5.1",
+    "lockedPackages": 1428,
+    "dryRunSeconds": 0.86,
+    "installSeconds": 40.46,
+    "installMaxRssBytes": 554287104,
+    "nodeModulesAllocatedKiB": 1103604,
+    "npmCacheAllocatedKiB": 184368,
+    "buildSeconds": 28.36,
+    "buildMaxRssBytes": 3897720832,
+    "assetFiles": 1880,
+    "assetBytes": 24672326,
+    "assetAllocatedKiB": 30668,
+    "assetManifestSha256": "686ca6c158c516e2fa38fc2ac0edc797971222a53d60450ce087d1f9d6eed031"
+  },
+  "runtime": {
+    "healthPath": "/health_check",
+    "healthStatus": 200,
+    "coldStartupMs": 30603,
+    "coldRssBytes": 886194176,
+    "warmStartupMs": 30040,
+    "warmRssBytes": 856899584,
+    "coldListener": "127.0.0.1:52320",
+    "warmListener": "127.0.0.1:52855",
+    "sandboxProfileSha256": "b7063726bd55d4d4ea42cae32fd30a4becea23fd729868d39c5e9199d3a0182c",
+    "isolationMechanismSupported": false,
+    "completeFilesystemIsolation": false,
+    "externalTcpDenied": true,
+    "fixtureCredentialReadDenied": true,
+    "unnamedSameUserReadDenied": false,
+    "loopbackTcpAllowed": true,
+    "privateWriteAllowed": true
+  }
+}

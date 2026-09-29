@@ -1,0 +1,1 @@
+export { editorOrigin } from "./editorOrigin";

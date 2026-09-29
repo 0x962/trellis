@@ -104,7 +104,7 @@ export default defineCommand({
 			client.agentRuns.list({ assigned: true }),
 		]);
 		const workingTicketIds = new Set(
-			runs.flatMap((run) =>
+			runs.items.flatMap((run) =>
 				run.kind === "agent" && run.ticketId !== null && isAgentWorking(run) ? [run.ticketId] : [],
 			),
 		);

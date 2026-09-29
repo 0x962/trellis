@@ -1,19 +1,20 @@
 import { expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { openTestDbFromArchive } from "../../db/testDb.ts";
-import { getSessionUpdates } from "../sessionUpdates/queries.ts";
+import { get as getSessionUpdates } from "../sessionUpdates";
 import {
 	claimSessionObserverGeneration,
+	disableSessionObserverForDeletion,
 	failSessionObserverGeneration,
 	get as getObserver,
 	linkSessionObserverRun,
+	readSessionObserverSummaryForClaim,
 	recoverSessionObserverGenerations,
-	retrySessionObserverGeneration,
 	saveSessionObserverGeneration,
 	saveSessionObserverSummary,
 	setEnabled,
 } from "./index.ts";
-import { at, context, seed } from "./testFixture.ts";
+import { at, context, seed } from "./testFixture";
 
 test("links one hidden run only while the exact observer claim remains active", async () => {
 	const value = await seed();
@@ -42,6 +43,11 @@ test("links one hidden run only while the exact observer claim remains active", 
 			harnessPreset: "claude",
 			modelId: "anthropic/claude-sonnet-5.5",
 		});
+		await value.db.execute(sql`UPDATE agent_runs SET harness=NULL WHERE id=${claim!.observerId}`);
+		expect(await value.db.transaction((tx) => getObserver(ctx, tx, { sessionId: value.ticketRunId }))).toMatchObject({
+			harnessPreset: null,
+			modelId: null,
+		});
 		expect(
 			await value.db.transaction((tx) =>
 				linkSessionObserverRun(tx, {
@@ -51,6 +57,9 @@ test("links one hidden run only while the exact observer claim remains active", 
 				}),
 			),
 		).toBeNull();
+		expect(
+			await value.db.transaction((tx) => disableSessionObserverForDeletion(tx, { runId: value.ticketRunId, now: at })),
+		).toEqual({ observerRunId: claim!.observerId, cancelGeneration: true });
 	} finally {
 		await value.db.$client.close();
 	}
@@ -141,10 +150,13 @@ test("keeps failed activity pending without repeating the same request", async (
 		).toBeNull();
 		const observer = await value.db.transaction((tx) => getObserver(ctx, tx, { sessionId: value.ticketRunId }));
 		expect(observer).toMatchObject({ lastConsumedCursor: null, lastAttemptedCursor: "cursor-1", error: failure });
-		expect(await value.db.transaction((tx) => getSessionUpdates(tx, { runId: value.ticketRunId }))).toMatchObject({
+		expect(
+			await value.db.transaction((tx) => getSessionUpdates(ctx, tx, { sessionId: value.ticketRunId })),
+		).toMatchObject({
 			latest: null,
 		});
-		await value.db.transaction((tx) => retrySessionObserverGeneration(ctx, tx, { runId: value.ticketRunId }));
+		await value.db.transaction((tx) => setEnabled(ctx, tx, { sessionId: value.ticketRunId, enabled: false }));
+		await value.db.transaction((tx) => setEnabled(ctx, tx, { sessionId: value.ticketRunId, enabled: true }));
 		expect(
 			await value.db.transaction((tx) =>
 				claimSessionObserverGeneration(tx, { runId: value.ticketRunId, throughCursor: "cursor-1" }),
@@ -167,24 +179,54 @@ test("saves one durable summary without completing its generation", async () => 
 			saveSessionObserverSummary(ctx, tx, {
 				runId: value.ticketRunId,
 				claimId: claim!.claimId,
-				message: { role: "assistant", body: "Earlier context." },
+				message: { role: "user", body: "Earlier context." },
 			}),
 		);
 		const replay = await value.db.transaction((tx) =>
 			saveSessionObserverSummary(ctx, tx, {
 				runId: value.ticketRunId,
 				claimId: claim!.claimId,
-				message: { role: "assistant", body: "Duplicate delivery." },
+				message: { role: "user", body: "Duplicate delivery." },
 			}),
 		);
 		expect(replay).toEqual(first);
 		expect(first).toMatchObject({ generation: claim!.generation, position: 0, body: "Earlier context." });
+		await value.db.transaction(async (tx) => {
+			await tx.execute(sql`INSERT INTO agent_runs
+				(id, name, runtime, harness, kind, instruction, project_key, created_at, updated_at)
+				VALUES (${claim!.observerId}, 'Session observer', 'native',
+				'{"preset":"claude","model":"anthropic/claude-sonnet-5.5","effort":"medium"}'::jsonb,
+				'session', 'Observe the session.', '', ${at}, ${at})`);
+			await linkSessionObserverRun(tx, {
+				runId: value.ticketRunId,
+				claimId: claim!.claimId,
+				observerRunId: claim!.observerId,
+			});
+			expect(
+				await readSessionObserverSummaryForClaim(tx, {
+					runId: value.ticketRunId,
+					claimId: claim!.claimId,
+					observerRunId: claim!.observerId,
+					summaryMessageId: first!.id,
+				}),
+			).toEqual(first);
+			expect(
+				await readSessionObserverSummaryForClaim(tx, {
+					runId: value.ticketRunId,
+					claimId: crypto.randomUUID(),
+					observerRunId: claim!.observerId,
+					summaryMessageId: first!.id,
+				}),
+			).toBeNull();
+		});
 		expect(await value.db.transaction((tx) => getObserver(ctx, tx, { sessionId: value.ticketRunId }))).toMatchObject({
 			generationState: "generating",
 			lastConsumedCursor: null,
 			lastAttemptedCursor: null,
 		});
-		expect(await value.db.transaction((tx) => getSessionUpdates(tx, { runId: value.ticketRunId }))).toMatchObject({
+		expect(
+			await value.db.transaction((tx) => getSessionUpdates(ctx, tx, { sessionId: value.ticketRunId })),
+		).toMatchObject({
 			latest: null,
 		});
 	} finally {

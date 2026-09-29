@@ -1,12 +1,12 @@
 import type { PagePublishInput, PageUpload } from "@trellis/api";
 import { defineCommand } from "citty";
+import { positiveInteger } from "../../arguments.ts";
 import { clientOf } from "../../client.ts";
 import { type CliContext, compact, contextOf, readText } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { printRecord } from "../../output.ts";
 import { type PageSource, pageSourceAt } from "./pageSource.ts";
 import { publishedRecord } from "./pageText.ts";
-import { positiveInteger } from "./revision.ts";
 
 type PublishArgs = {
 	path: string;

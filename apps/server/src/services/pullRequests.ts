@@ -24,7 +24,7 @@ import { parsePullRequestUrl } from "../gh/parse.ts";
 import { PR_COLUMNS, PR_UPDATE_SET, prValues } from "../gh/pollerWrite.ts";
 import { gcBlobs } from "./blobs.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
-import type { PreparedDiff } from "./pullRequestDiff.ts";
+import type { PreparedDiff } from "./pullRequestDiff/index.ts";
 import { linkScope } from "./pullRequestScope.ts";
 import {
 	assertProjectActive,
@@ -54,7 +54,7 @@ import { completeMergedPullRequestTickets } from "./tickets/completeMergedPullRe
 // when gh is away, so a ticket keeps the link either way. refresh reports
 // GH_UNAVAILABLE instead, because the caller asked for fresh fields.
 
-export { prepareDiff } from "./pullRequestDiff.ts";
+export { prepareDiff } from "./pullRequestDiff/index.ts";
 export { parsePullRequestUrl };
 
 // The caller verifies `headSha` with GitHub before this transaction starts.
