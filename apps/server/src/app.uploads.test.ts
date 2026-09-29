@@ -14,6 +14,8 @@ const projectId = ulid();
 const ticketId = ulid();
 const pullRequestId = ulid();
 const received: Array<{ name: string; size: number }> = [];
+const FORMER_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const LARGE_UPLOAD_BYTES = FORMER_UPLOAD_LIMIT_BYTES + 1;
 
 const commands = {
 	startCommand: "claude --dangerously-skip-permissions {{prompt}}",
@@ -149,7 +151,7 @@ const app = createApp({
 }).app;
 
 const largeFile = () =>
-	new File([new Uint8Array(1024 * 1024 + 1).fill(7)], "large.bin", { type: "application/octet-stream" });
+	new File([new Uint8Array(LARGE_UPLOAD_BYTES).fill(7)], "large.bin", { type: "application/octet-stream" });
 
 const form = (fields: Record<string, string>) => {
 	const body = new FormData();
@@ -162,47 +164,55 @@ beforeEach(() => {
 	received.length = 0;
 });
 
-test("the REST routes pass complete valid uploads above one MiB", async () => {
+test("the REST routes pass complete valid uploads of 52,428,801 bytes", async () => {
 	const headers = { "x-trellis-actor": "human:Navid" };
 	const sessionForm = new FormData();
 	sessionForm.set("prompt", "Read the file.");
 	sessionForm.set("name", "Upload test");
 	sessionForm.append("files", largeFile());
 	sessionForm.append("files", new File(["second"], "second.txt", { type: "text/plain" }));
-	const requests = [
-		app.request(`${ORIGIN}/api/tickets/TRL-1/attachments`, {
+	const responses = [];
+	responses.push(
+		await app.request(`${ORIGIN}/api/tickets/TRL-1/attachments`, {
 			method: "POST",
 			headers,
 			body: form({}),
 		}),
-		app.request(`${ORIGIN}/api/prs/${pullRequestId}/files/${ulid()}`, {
+	);
+	responses.push(
+		await app.request(`${ORIGIN}/api/prs/${pullRequestId}/files/${ulid()}`, {
 			method: "PUT",
 			headers,
 			body: form({}),
 		}),
-		app.request(`${ORIGIN}/api/page-uploads`, {
+	);
+	responses.push(
+		await app.request(`${ORIGIN}/api/page-uploads`, {
 			method: "POST",
 			headers,
 			body: form({ project: "TRL" }),
 		}),
-		app.request(`${ORIGIN}/api/resources`, {
+	);
+	responses.push(
+		await app.request(`${ORIGIN}/api/resources`, {
 			method: "POST",
 			headers,
 			body: form({ epic: "TRL/uploads", kind: "file", name: "large.bin" }),
 		}),
-		app.request(`${ORIGIN}/api/sessions`, {
+	);
+	responses.push(
+		await app.request(`${ORIGIN}/api/sessions`, {
 			method: "POST",
 			headers,
 			body: sessionForm,
 		}),
-	];
-	const responses = await Promise.all(requests);
+	);
 	expect(responses.map(({ status }) => status)).toEqual([201, 200, 200, 201, 201]);
 	expect(received).toHaveLength(5);
-	expect(received.every(({ size }) => size > 1024 * 1024)).toBe(true);
+	expect(received.every(({ size }) => size === LARGE_UPLOAD_BYTES)).toBe(true);
 });
 
-test("the RPC routes pass complete valid uploads above one MiB", async () => {
+test("the RPC routes pass complete valid uploads of 52,428,801 bytes", async () => {
 	const client = createTrellisClient(ORIGIN, "human:Navid", (request) => app.request(request));
 	await client.attachments.upload({ ticket: "TRL-1", file: largeFile() });
 	await client.pullRequests.uploadFile({ id: pullRequestId, fileId: ulid(), file: largeFile() });
@@ -211,5 +221,5 @@ test("the RPC routes pass complete valid uploads above one MiB", async () => {
 	await client.sessions.create({ prompt: "Read the file.", name: "Upload test", files: [largeFile()] });
 
 	expect(received).toHaveLength(5);
-	expect(received.every(({ size }) => size > 1024 * 1024)).toBe(true);
+	expect(received.every(({ size }) => size === LARGE_UPLOAD_BYTES)).toBe(true);
 });
