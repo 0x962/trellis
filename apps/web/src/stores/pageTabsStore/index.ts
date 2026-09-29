@@ -12,3 +12,4 @@ export {
 	pageTabsStorageKey,
 	pageTabsUiProjection,
 } from "./pageTabsStore";
+export { type PageTabSortDirection, sortTabs, visibleTabName } from "./sortTabs";

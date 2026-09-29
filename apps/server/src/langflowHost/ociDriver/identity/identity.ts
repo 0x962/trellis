@@ -6,6 +6,7 @@ import { missingOciObject, type OciRun } from "../process/process";
 const labelPrefix = "io.trellis.langflow";
 export const containerPort = "7860/tcp";
 export const containerAuthenticationFile = "/run/trellis-secrets/authentication";
+export const containerCaptureIssuerFile = "/run/trellis-secrets/capture-issuer";
 export const containerEncryptionFile = "/run/trellis-secrets/engine-secret";
 
 export const HealthSchema = z.strictObject({
@@ -141,6 +142,7 @@ export function assertContainer(
 		!tmpfsSize ||
 		!tmpfsMode ||
 		!container.Config.Env.includes(`TRELLIS_AUTHENTICATION_FILE=${containerAuthenticationFile}`) ||
+		!container.Config.Env.includes(`TRELLIS_CAPTURE_ISSUER_FILE=${containerCaptureIssuerFile}`) ||
 		!container.Config.Env.includes(`LANGFLOW_SECRET_KEY_FILE=${containerEncryptionFile}`) ||
 		!container.Config.Env.includes(`TRELLIS_DATA_HOME_ID=${identity.dataHomeId}`) ||
 		!container.Config.Env.includes(`TRELLIS_HOST_ID=${identity.hostId}`) ||

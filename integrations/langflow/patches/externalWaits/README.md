@@ -220,6 +220,19 @@ It leaves `pending_lease` and `cancelled` obligations pending.
 The existing startup drain reads `NativeCompletionLedger.pending()` and calls the same method.
 No ledger method calls the queue or the executor.
 
+Apply `0004-cancellation-ordered-dispatch.patch` after the control guards and native completion consumer.
+Apply each control guard once.
+The admission transaction locks the Job row, checks authority, checks cancellation, and then reads or writes its receipt.
+
+The completion transaction locks the Job row before it reads or writes the completion envelope.
+An equal saved envelope returns its original receipt after a later cancellation.
+Changed replay bytes fail.
+A new envelope fails when cancellation or another terminal status already owns the job.
+
+The queue path holds the Job lock through cancellation inspection, lease claim, executor submission, and dispatch receipt storage.
+The runner consumes a STOP without replacing a completed, failed, or timed-out status.
+The initial queue path and every continuation use the same Langflow executor.
+
 TRL-674 owns the combined patch series.
 
 The probe uses these cases without a product ceiling:

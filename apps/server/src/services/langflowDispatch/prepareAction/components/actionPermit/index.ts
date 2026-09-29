@@ -1,0 +1,1 @@
+export { actionPermit } from "./actionPermit";
