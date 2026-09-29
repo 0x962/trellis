@@ -32,6 +32,8 @@ const schemas = {
 	"review-classification-delivery": contracts.ReviewClassificationDeliveryV1Schema,
 	"review-classification-acceptance": contracts.ReviewClassificationAcceptanceV1Schema,
 	checkpoint: contracts.EngineCheckpointV1Schema,
+	"projection-outcome": contracts.EngineProjectionOutcomeV1Schema,
+	"projection-snapshot": contracts.EngineProjectionSnapshotV1Schema,
 	stop: contracts.StopObligationV1Schema,
 	"source-event": contracts.SourceEventV1Schema,
 	event: contracts.ExecutionEventV1Schema,

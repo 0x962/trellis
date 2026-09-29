@@ -15,6 +15,7 @@ const ExecutionPayloadV1Schema = z.discriminatedUnion("kind", [
 		receiptId: ReferenceSchema,
 	}),
 	z.strictObject({ kind: z.literal("execution_failed"), failure: FailureV1Schema, receiptId: ReferenceSchema }),
+	z.strictObject({ kind: z.literal("checkpoint_saved"), receiptId: ReferenceSchema }),
 ]);
 const OccurrencePayloadV1Schema = z.discriminatedUnion("kind", [
 	z.strictObject({ kind: z.literal("step_queued"), stepId: ReferenceSchema }),
