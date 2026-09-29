@@ -163,8 +163,6 @@ const mineQuery = `query($cursor:String) {
 	} }
 }`;
 
-// With a project, mine returns only pull requests from repositories of that project.
-// A project with no repository returns an empty list without a GitHub request.
 export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string }) {
 	const project = input.project;
 	const repos = project === undefined ? [] : await ctx.newTx((tx) => projectRepos(ctx.core, tx, { project }));
