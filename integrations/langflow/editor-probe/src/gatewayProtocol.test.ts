@@ -29,6 +29,24 @@ const saveBody = (input: {
 	});
 
 describe("gateway prototype", () => {
+	test("bootstraps the fixture session without an access token", () => {
+		const gateway = createGatewayProtocol({ expiresAt: "2026-09-29T08:15:00Z" });
+		expect(gateway.dispatch(request({ method: "GET", path: "/api/v1/session" }))).toEqual({
+			status: 200,
+			body: {
+				authenticated: true,
+				user: { id: "editor-fixture-user", username: "Editor fixture", is_active: true, is_superuser: false },
+			},
+		});
+		for (const path of ["/api/v1/session", "/api/v1/auto_login", "/health_check"]) {
+			expect(gateway.dispatch(request({ method: "GET", path, headers: {} })).status).toBe(401);
+		}
+		expect(gateway.dispatch(request({ method: "GET", path: "/health_check" }))).toEqual({
+			status: 200,
+			body: { status: "ok" },
+		});
+	});
+
 	test("requires the editor session for the document routes", () => {
 		const gateway = createGatewayProtocol({ expiresAt: "2026-09-29T08:15:00Z" });
 		expect(
@@ -175,6 +193,9 @@ describe("gateway prototype", () => {
 		const firstBody = saveBody({ expectedVersion: 2, requestId: flowV1RequestId });
 		gateway.dispatch(request({ method: "PUT", path: "/api/trellis-editor/v1/document", bodyText: firstBody }));
 		for (const path of [
+			"/api/v1/session",
+			"/api/v1/auto_login",
+			"/health_check",
 			"/api/trellis-editor/v1/document",
 			"/api/trellis-editor/v1/component-manifest",
 			"/api/v1/all",

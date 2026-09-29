@@ -171,10 +171,16 @@ export function createGatewayProtocol(input: { expiresAt: string }) {
 			return record(request, { status: 200, body: snapshot() });
 		}
 		if (request.method === "GET" && request.path === "/api/v1/session") {
-			return record(request, { status: 200, body: { authenticated: false } });
+			return authorizedRead(request, "document:read", {
+				authenticated: true,
+				user: { id: "editor-fixture-user", username: "Editor fixture", is_active: true, is_superuser: false },
+			});
 		}
 		if (request.method === "GET" && request.path === "/api/v1/auto_login") {
-			return record(request, { status: 200, body: {} });
+			return authorizedRead(request, "document:read", {});
+		}
+		if (request.method === "GET" && request.path === "/health_check") {
+			return authorizedRead(request, "document:read", { status: "ok" });
 		}
 		if (request.method === "GET" && request.path === "/api/v1/version") {
 			return record(request, {
