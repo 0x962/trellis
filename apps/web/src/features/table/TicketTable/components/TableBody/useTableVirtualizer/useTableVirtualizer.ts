@@ -30,11 +30,32 @@ const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 	return rowHeight;
 };
 
+export const tableRange = (
+	drawnIndexes: number[],
+	headerIndexes: readonly number[],
+	visibleStartIndex: number,
+): number[] => {
+	let low = 0;
+	let high = headerIndexes.length - 1;
+	let activeHeader: number | undefined;
+	while (low <= high) {
+		const middle = Math.floor((low + high) / 2);
+		const header = headerIndexes[middle]!;
+		if (header > visibleStartIndex) {
+			high = middle - 1;
+		} else {
+			activeHeader = header;
+			low = middle + 1;
+		}
+	}
+	if (activeHeader === undefined || drawnIndexes.includes(activeHeader)) return drawnIndexes;
+	return [activeHeader, ...drawnIndexes].sort((a, b) => a - b);
+};
+
 // The virtual list of the table body. Every line but the agent line has a
 // fixed height. An agent line wraps its words, so the virtualizer measures
-// it once it renders and moves the lines below it. The list draws every
-// header line at any scroll offset, because a header must stay in place
-// while the rows of its group pass.
+// it once it renders and moves the lines below it. The list also draws the
+// active group header while the rows of that group pass.
 export function useTableVirtualizer({
 	viewport,
 	items,
@@ -51,7 +72,7 @@ export function useTableVirtualizer({
 	const headerIndexes = useMemo(() => items.flatMap((item, index) => (item.kind === "header" ? [index] : [])), [items]);
 	const rangeExtractor = useCallback(
 		(range: Parameters<typeof defaultRangeExtractor>[0]) =>
-			[...new Set([...defaultRangeExtractor(range), ...headerIndexes])].sort((a, b) => a - b),
+			tableRange(defaultRangeExtractor(range), headerIndexes, range.startIndex),
 		[headerIndexes],
 	);
 	const virtualizer = useVirtualizer({

@@ -10,6 +10,7 @@ import {
 import { PullRequestFlowWaiverSchema, PullRequestFlowWaiverWriteInputSchema } from "../schemas/flowWaiver.ts";
 import {
 	LinkedPullRequestSchema,
+	PullRequestDiffInputSchema,
 	PullRequestDiffOutputSchema,
 	PullRequestIdInputSchema,
 	PullRequestLinkInputSchema,
@@ -62,9 +63,9 @@ export const pullRequests = {
 		.input(PullRequestSetLocalStateInputSchema)
 		.output(PullRequestSchema),
 	diff: base
-		.errors(pickErrors(["GH_UNAVAILABLE"]))
-		.route({ method: "GET", path: "/prs/{id}/diff", summary: "Read the diff, cut at 1 MB" })
-		.input(PullRequestIdInputSchema)
+		.errors(pickErrors(["GH_UNAVAILABLE", "INPUT_VALIDATION_FAILED"]))
+		.route({ method: "GET", path: "/prs/{id}/diff", summary: "Read one page of the pull request diff" })
+		.input(PullRequestDiffInputSchema)
 		.output(PullRequestDiffOutputSchema),
 	readSummary: base
 		.route({ method: "GET", path: "/prs/{id}/summary", summary: "Read the newest summary of a pull request" })

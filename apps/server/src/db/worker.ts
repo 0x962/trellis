@@ -154,16 +154,22 @@ const startHost = () => {
 
 	const readStream = (id: number) => {
 		const state = streams.get(id)!;
-		state.reads = state.reads.then(async () => {
-			const next = await state.reader.read();
-			if (next.done) {
+		state.reads = state.reads
+			.then(async () => {
+				const next = await state.reader.read();
+				if (next.done) {
+					streams.delete(id);
+					if (!state.cancelled) send({ type: "streamEnd", id });
+					state.done();
+					return;
+				}
+				send({ type: "chunk", id, chunk: next.value as Uint8Array<ArrayBuffer> });
+			})
+			.catch((error: unknown) => {
 				streams.delete(id);
-				if (!state.cancelled) send({ type: "streamEnd", id });
+				if (!state.cancelled) send({ type: "error", id, error: errorOf(error), timing: createDbTiming() });
 				state.done();
-				return;
-			}
-			send({ type: "chunk", id, chunk: next.value as Uint8Array<ArrayBuffer> });
-		});
+			});
 	};
 
 	self.onmessage = ({ data }: MessageEvent<WorkerInput>) => {

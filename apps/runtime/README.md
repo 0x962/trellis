@@ -31,7 +31,7 @@ Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens 
 | `stop` | Session identifier | Session |
 | `output` | Session identifier, byte offset | Base64 bytes and retained byte interval |
 
-A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, `rows`, and `timeoutMs`. A timeout must be between 1 millisecond and 24 hours. The runtime enforces it independently of host connections. A deadline stops the owned OS session and persists the timeout reason. The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
+A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, `rows`, and `timeoutMs`. A timeout must be a positive safe integer of milliseconds. The runtime enforces it independently of host connections. [Node.js accepts one timer delay through 2,147,483,647 milliseconds](https://nodejs.org/api/timers.html#settimeoutcallback-delay-args). The runtime divides a larger deadline into supported timer segments. A deadline stops the owned OS session and persists the timeout reason. The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
 
 A repeated launch identifier returns its existing session. A changed command under that identifier returns `LAUNCH_CONFLICT`. The runtime records the identifier before it starts the process. A stop before launch records cancellation, so a delayed launch cannot create a process.
 

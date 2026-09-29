@@ -3,6 +3,7 @@ import { inspectProcess } from "../inspectProcess.ts";
 import { createProcessHandle } from "../processHandle.ts";
 import type { SessionRecord } from "../sessionRecord.ts";
 import { stopAttempt } from "../stopAttempt.ts";
+import { scheduleLaunchDeadline } from "./launchDeadline.ts";
 
 // `save` writes the session record after each change of its state. `onExit`
 // runs once the exit is final, after the record is saved and the stop
@@ -70,9 +71,19 @@ export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () 
 	session.status = "running";
 	save();
 	if (spec.timeoutMs !== undefined)
-		record.timer = setTimeout(() => {
-			session.error = `Process timed out after ${spec.timeoutMs} ms`;
-			save();
-			record.process!.stop();
-		}, spec.timeoutMs);
+		scheduleLaunchDeadline(
+			spec.timeoutMs,
+			() => {
+				session.error = `Process timed out after ${spec.timeoutMs} ms`;
+				save();
+				record.process!.stop();
+			},
+			{
+				now: Date.now,
+				schedule: setTimeout,
+				setCurrentTimer: (timer) => {
+					record.timer = timer;
+				},
+			},
+		);
 }
