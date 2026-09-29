@@ -18,8 +18,6 @@ import { decodeCursor, encodeCursor, isIsoTimestamp, rows } from "../../db/queri
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { findActorId, resolveActorId } from "../actorIdentity/index.ts";
-import { upsert } from "../actors.ts";
-import { resolveActorId } from "../actorIdentity/index.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import {
 	PAGE_RETENTION_MS,
