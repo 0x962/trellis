@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
 	executionViewV1Example,
+	flowReviewCredit,
 	legacyDocumentV1Example,
 	occurrenceV1Example,
 	pendingDocumentV1Example,
@@ -140,4 +141,19 @@ test("readiness finds success after 1000 runs and gives human waits no credit", 
 	expect(offsets).toEqual([0, 500, 1000]);
 	records[1000]!.state.status = "succeeded";
 	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(true);
+});
+
+test("the shared credit function treats V1 and legacy results equally", () => {
+	const input = {
+		diffId: legacyRun.diffId!,
+		hasTicket: true,
+		waived: false,
+		applicableFlowIds: [legacyRun.flowId],
+	};
+	for (const status of ["waiting", "failed", "canceled", "running", "succeeded"] as const) {
+		const view = { ...executionViewV1Example, diffId: legacyRun.diffId, status };
+		const legacy = { flowId: legacyRun.flowId, diffId: legacyRun.diffId, status };
+		expect(flowReviewCredit({ ...input, runs: [view] })).toBe(status === "succeeded");
+		expect(flowReviewCredit({ ...input, runs: [legacy] })).toBe(status === "succeeded");
+	}
 });
