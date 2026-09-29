@@ -1,4 +1,5 @@
-import { index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { projects } from "./projects.ts";
@@ -31,7 +32,10 @@ export const flowExecutions = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		unique("flow_executions_actor_request_unique").on(t.actorKind, t.actorName, t.requestId),
+		index("flow_executions_actor_request_identity").using(
+			"hash",
+			sql`ARRAY[${t.actorKind}, ${t.actorName}, ${t.requestId}]`,
+		),
 		index("flow_executions_ticket_idx").on(t.ticketId),
 		index("flow_executions_diff_flow_idx").on(t.diffId, t.flowId, t.createdAt),
 	],

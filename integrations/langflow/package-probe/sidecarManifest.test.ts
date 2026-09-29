@@ -105,3 +105,41 @@ describe("LangflowSidecarManifestV1Schema", () => {
 		).toThrow();
 	});
 });
+
+const ociManifest = {
+	...manifest,
+	target: { kind: "linux-oci", architecture: "arm64", image: "fixture", imageDigest: `sha256:${digest}` },
+	data: { ...manifest.data, privateRoot: "data" },
+	encryptionSecret: { ...manifest.encryptionSecret, relativePath: "run/trellis-secrets/engine-secret" },
+	health: { ...manifest.health, path: "/trellis-v1/health" },
+};
+
+test.each(["candidate", "verified"])("accepts exact OCI paths for the synthetic %s manifest", (qualification) => {
+	const result = LangflowSidecarManifestV1Schema.parse({ ...ociManifest, qualification });
+	expect(result.data.privateRoot).toBe("data");
+	expect(result.encryptionSecret.relativePath).toBe("run/trellis-secrets/engine-secret");
+	expect(result.health.path).toBe("/trellis-v1/health");
+	expect(result.qualification).toBe(qualification);
+});
+
+test.each([
+	["data", "privateRoot", "private/data-home-a"],
+	["data", "privateRoot", "/data"],
+	["encryptionSecret", "relativePath", "secrets/encryption-key"],
+	["encryptionSecret", "relativePath", "/run/trellis-secrets/engine-secret"],
+	["health", "path", "/health_check"],
+	["health", "scheme", "https"],
+	["health", "host", "0.0.0.0"],
+] as const)("rejects conflicting OCI %s.%s=%s", (section, key, value) => {
+	expect(() =>
+		LangflowSidecarManifestV1Schema.parse({
+			...ociManifest,
+			[section]: { ...ociManifest[section], [key]: value },
+		}),
+	).toThrow();
+});
+
+test("retains historical non-OCI candidate paths without qualification", () => {
+	expect(LangflowSidecarManifestV1Schema.parse(manifest)).toEqual(manifest);
+	expect(LangflowSidecarManifestV1Schema.parse(manifest).qualification).toBe("candidate");
+});

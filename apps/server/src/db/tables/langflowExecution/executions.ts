@@ -1,6 +1,6 @@
 import type { FlowDocumentSnapshotV1, FlowPublicationV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { bigint, check, index, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { bigint, check, index, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
 import type {
 	AdmissionStateV1,
 	CancelIntentV1,
@@ -53,7 +53,10 @@ export const langflowExecutions = pgTable(
 		createdAt: at("created_at").notNull(),
 	},
 	(t) => [
-		unique("langflow_start_actor_request").on(t.actorKind, t.actorName, t.requestId),
+		index("langflow_start_actor_request_identity").using(
+			"hash",
+			sql`ARRAY[${t.actorKind}, ${t.actorName}, ${t.requestId}]`,
+		),
 		unique("langflow_job_unique").on(t.engineJobId),
 		unique("langflow_session_unique").on(t.engineSessionId),
 		index("langflow_execution_ticket").on(t.ticketId),
@@ -75,7 +78,7 @@ export const langflowStartReceipts = pgTable(
 		legacyExecutionId: text("legacy_execution_id").references(() => flowExecutions.id, { onDelete: "cascade" }),
 	},
 	(t) => [
-		primaryKey({ columns: [t.actorKind, t.actorName, t.requestId] }),
+		index("langflow_start_receipts_identity").using("hash", sql`ARRAY[${t.actorKind}, ${t.actorName}, ${t.requestId}]`),
 		check(
 			"langflow_start_receipt_target",
 			sql`((${t.langflowExecutionId} = ${t.executionId} AND ${t.legacyExecutionId} IS NULL) OR (${t.legacyExecutionId} = ${t.executionId} AND ${t.langflowExecutionId} IS NULL)) IS TRUE`,

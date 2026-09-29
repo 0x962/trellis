@@ -1,0 +1,1 @@
+export { readQualification } from "./readQualification";

@@ -44,7 +44,9 @@ export const reviewSubmissions = pgTable(
 		document: jsonb().notNull(),
 		createdAt: at("created_at").notNull(),
 	},
-	(t) => [unique("review_submissions_request").on(t.prId, t.actor, t.requestId)],
+	(t) => [
+		index("review_submissions_request_identity").using("hash", sql`ARRAY[${t.prId}, ${t.actor}, ${t.requestId}]`),
+	],
 );
 // One row is one message that waits for the agent of one ticket. The message
 // is a review submission, one comment a person wrote on a diff line, or one

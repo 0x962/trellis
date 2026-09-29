@@ -66,3 +66,32 @@ test("Muse supports text answers, explicit decline, and settled notifications", 
 	await questions.answer(client, "session", "input", [], true);
 	expect(calls).toEqual(["userInput/answer", "userInput/cancel"]);
 });
+
+test("Muse sends complete multibyte text once while the provider acknowledgement is pending", async () => {
+	const questions = new MuseQuestions();
+	questions.observe(pending);
+	const calls: unknown[] = [];
+	const acknowledgement = Promise.withResolvers<object>();
+	const client = {
+		request: async (...args: unknown[]) => {
+			calls.push(args);
+			return acknowledgement.promise;
+		},
+	};
+	const freeText = `  ${"東京 café e\u0301\n".repeat(1_000)}  `;
+	const answers = [{ questionId: "q", freeText }];
+	await expect(questions.answer(client, "session", "other-input", answers, false)).rejects.toThrow("no longer");
+	await expect(
+		questions.answer(client, "session", "input", [{ questionId: "other-question", freeText }], false),
+	).rejects.toThrow("each question");
+	expect(calls).toHaveLength(0);
+	const submission = questions.answer(client, "session", "input", answers, false);
+	await expect(questions.answer(client, "session", "input", answers, false)).rejects.toThrow("no longer");
+	expect(calls).toMatchObject([["userInput/answer", { sessionId: "session", userInputId: "input", answers }]]);
+	acknowledgement.resolve({});
+	await submission;
+	await expect(questions.answer(client, "session", "input", answers, false)).rejects.toThrow("no longer");
+	questions.observe({ kind: "input-resolved", requestId: "input" });
+	await expect(questions.answer(client, "session", "input", answers, false)).rejects.toThrow("no longer");
+	expect(calls).toHaveLength(1);
+});
