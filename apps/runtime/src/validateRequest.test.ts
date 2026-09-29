@@ -102,3 +102,13 @@ test("accepts every positive safe process timeout", () => {
 			"Process timeout must be a positive safe integer",
 		);
 });
+
+test("accepts a queued delivery", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "queueInput",
+		params: { id: "attempt", messageId: "status-request", data: "c3RhdHVz" },
+	};
+	expect(validateRequest(value) === value).toBe(true);
+});

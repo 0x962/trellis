@@ -11,6 +11,7 @@ import type { StoredExecution } from "../flowExecutions/types.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { projectRow } from "../projectRows.ts";
+import { failOutstandingSessionUpdateRequestForRun } from "../sessionUpdates";
 import { columns, type LaunchRun } from "./queries.ts";
 
 export type ResumeSession = {
@@ -86,6 +87,10 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		await tx.execute(
 			sql`UPDATE agent_runs SET terminal_id=${attempt.id},session_id=${session.providerSessionId},workspace_id=${session.workspace},harness=${JSON.stringify(harness)}::jsonb,error=NULL,session_lost=false,updated_at=${ctx.now} WHERE id=${run.id}`,
 		);
+		await failOutstandingSessionUpdateRequestForRun(ctx, tx, {
+			runId: run.id,
+			error: "The agent restarted before it saved the status update.",
+		});
 		await tx.execute(
 			sql`UPDATE flow_execution_tasks SET attempt_id=${attempt.id} WHERE run_id=${run.id} AND attempt_id=${session.previousAttemptId} AND result_id IS NULL`,
 		);

@@ -42,76 +42,52 @@ export function sessionIdForFile(path: string): string {
 	return basename(path).replace(/\.jsonl$/, "");
 }
 
-const SESSION_LABEL_MAX = 80;
-
-// A user line is parsed for the session label only while it is short and
-// only for the first few user lines of a file. A tool result rides on a
-// user line and can be many MB, and a session whose prompts all start with
-// a system reminder never yields a label, so without both bounds the scan
-// parses every tool result on the machine.
-export const LABEL_LINE_MAX = 16 * 1024;
-export const LABEL_ATTEMPTS = 8;
-
-// Whether one more user line of a session should be parsed for its label.
-export function wantsLabel(sessionId: string, labels: Map<string, string>, attempts: Map<string, number>): boolean {
-	if (labels.has(sessionId)) return false;
-	const made = attempts.get(sessionId) ?? 0;
-	if (made >= LABEL_ATTEMPTS) return false;
-	attempts.set(sessionId, made + 1);
-	return true;
-}
-
-// The first real user prompt of a session, cut to one short line. A slash
-// command, a caveat, and a system reminder wrapper do not count.
+// toSessionLabel returns the first line of a user prompt. It ignores a slash
+// command, a caveat, and a system reminder.
 export function toSessionLabel(text: unknown): string | null {
 	if (typeof text !== "string") return null;
 	const trimmed = text.trim();
 	if (!trimmed || trimmed.startsWith("<") || trimmed.startsWith("#") || trimmed.startsWith("Caveat:")) return null;
 	const line = trimmed.split("\n", 1)[0] ?? "";
 	if (!line) return null;
-	return line.length > SESSION_LABEL_MAX ? `${line.slice(0, SESSION_LABEL_MAX - 1)}…` : line;
+	return line;
 }
 
-// The longest line a parser accepts. A real transcript line stays under
-// 10 MB, so a longer run of bytes without a newline is a corrupt or foreign
-// file. V8 refuses a string past about 512 MB, and node:readline buffers a
-// newline-free run without limit, so the bound is what keeps one data file
-// from killing the process.
-export const MAX_LINE_LENGTH = 32 * 1024 * 1024;
-
 // Calls `onLine` for every `\n`-terminated line of a UTF-8 file, with a
-// trailing `\r` removed. A line longer than MAX_LINE_LENGTH is skipped, and
-// the file continues at the next newline.
+// trailing `\r` removed. The stream retains only the parts of the current
+// line, because JSON.parse needs one complete transcript record.
 export async function forEachLine(path: string, onLine: (line: string) => void): Promise<void> {
-	let pending = "";
-	let skipping = false;
-	const emit = (raw: string) => {
-		const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
-		if (line.length <= MAX_LINE_LENGTH) onLine(line);
+	let lineParts: string[] = [];
+	const emitLine = (lineTail: string) => {
+		lineParts.push(lineTail);
+		const rawLine = lineParts.join("");
+		lineParts = [];
+		const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
+		onLine(line);
 	};
+	const stream = createReadStream(path, { encoding: "utf-8" });
+	const iterator = (stream as AsyncIterable<string>)[Symbol.asyncIterator]();
 	try {
-		const chunks = createReadStream(path, { encoding: "utf-8" }) as AsyncIterable<string>;
-		for await (const chunk of chunks) {
+		while (true) {
+			let next: IteratorResult<string>;
+			try {
+				next = await iterator.next();
+			} catch (error) {
+				if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+				throw error;
+			}
+			if (next.done) break;
+			const chunk = next.value;
 			let start = 0;
 			for (let end = chunk.indexOf("\n"); end !== -1; end = chunk.indexOf("\n", start)) {
-				if (skipping) skipping = false;
-				else {
-					const line = pending + chunk.slice(start, end);
-					pending = "";
-					emit(line);
-				}
+				emitLine(chunk.slice(start, end));
 				start = end + 1;
 			}
-			if (skipping) continue;
-			pending += chunk.slice(start);
-			if (pending.length > MAX_LINE_LENGTH) {
-				pending = "";
-				skipping = true;
-			}
+			if (start < chunk.length) lineParts.push(chunk.slice(start));
 		}
-		if (!skipping && pending) emit(pending);
-	} catch {
-		// The CLI removed or truncated the file during the scan.
+		if (lineParts.length > 0) emitLine("");
+	} finally {
+		stream.destroy();
 	}
 }
 
@@ -162,14 +138,9 @@ export async function parseClaudeLogFile(
 	sessionLabels: Map<string, string>,
 ): Promise<void> {
 	const sessionId = sessionIdForFile(file.path);
-	const attempts = new Map<string, number>();
 	await forEachLine(file.path, (line) => {
 		const assistant = line.includes('"assistant"');
-		const wantLabel =
-			!assistant &&
-			line.length <= LABEL_LINE_MAX &&
-			line.includes('"user"') &&
-			wantsLabel(sessionId, sessionLabels, attempts);
+		const wantLabel = !assistant && line.includes('"user"') && !sessionLabels.has(sessionId);
 		if (!assistant && !wantLabel) return;
 		let parsed: ClaudeLine;
 		try {
@@ -250,16 +221,10 @@ export async function parseCodexLogFile(
 	// repeated delta is skipped, which brings the sum within 1% of the
 	// cumulative counter of the session.
 	let previousDeltaSignature: string | null = null;
-	const attempts = new Map<string, number>();
 	await forEachLine(file.path, (line) => {
 		const isContext = line.includes('"turn_context"') || line.includes('"session_meta"');
 		const isCount = line.includes('"token_count"');
-		const wantLabel =
-			!isContext &&
-			!isCount &&
-			line.length <= LABEL_LINE_MAX &&
-			line.includes('"user_message"') &&
-			wantsLabel(sessionId, sessionLabels, attempts);
+		const wantLabel = !isContext && !isCount && line.includes('"user_message"') && !sessionLabels.has(sessionId);
 		if (!isContext && !isCount && !wantLabel) return;
 		let parsed: CodexLine;
 		try {

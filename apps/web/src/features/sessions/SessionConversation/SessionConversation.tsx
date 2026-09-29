@@ -1,6 +1,7 @@
+import { SidebarSimple } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, Button, EmptyState, FailureState, toast } from "@trellis/ui";
+import { Avatar, Button, EmptyState, FailureState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -12,6 +13,7 @@ import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
 import { isSessionArchived, sessionPane } from "../sessionPane";
 import { useSessionArchive } from "../useSessionArchive";
+import { AgentStatusUpdates, useSessionStatusPaneVisibility } from "./components/AgentStatusUpdates";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -42,6 +44,7 @@ export function SessionConversation({
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const [renaming, setRenaming] = useState(false);
+	const statusPane = useSessionStatusPaneVisibility();
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const headingElement = headingRef ?? localHeading;
 	const focusHeading = useCallback(() => headingElement.current?.focus(), [headingElement]);
@@ -124,6 +127,14 @@ export function SessionConversation({
 					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
+				<Tooltip content={statusPane.visible ? "Hide session status" : "Show session status"}>
+					<IconButton
+						label={statusPane.visible ? "Hide session status" : "Show session status"}
+						icon={<SidebarSimple />}
+						pressed={statusPane.visible}
+						onClick={statusPane.toggle}
+					/>
+				</Tooltip>
 				<SessionBarActions
 					run={run}
 					session={session}
@@ -144,47 +155,49 @@ export function SessionConversation({
 				</p>
 			)}
 			<PendingQuestions run={run} readOnly={readOnly} />
-			<div className="flex min-h-0 flex-1 flex-col">
-				{pane.kind === "failed" ? (
-					<FailureState variant="page" title={pane.title} description={pane.description} detail={pane.detail} />
-				) : pane.kind === "archived" ? (
-					<EmptyState
-						variant="page"
-						image={null}
-						title={pane.title}
-						description={pane.description}
-						action={
-							<Button
-								size="md"
-								processing={archive.isPending}
-								onClick={() => archive.mutate({ session: session!, archived: false })}
-							>
-								Unarchive
-							</Button>
-						}
-					/>
-				) : pane.kind === "paused" ? (
-					// The page variant draws the picture that every page-level state
-					// of the app draws. A pause is no failure, so the block keeps it.
-					<EmptyState variant="page" title={pane.title} description={pane.description} />
-				) : run.terminalId ? (
-					<NativeTerminal
-						key={run.terminalId}
-						run={run}
-						layout="fill"
-						readOnly={readOnly}
-						autoFocus={autoFocusTerminal}
-						autoFocusDelay={autoFocusTerminalDelay}
-						onLeave={leaveTerminal}
-					/>
-				) : (
-					<EmptyState
-						variant="page"
-						image={null}
-						title="This session has no process"
-						description="Trellis starts no process for this runtime."
-					/>
-				)}
+			<div className="flex min-h-0 flex-1 max-md:flex-col">
+				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+					{pane.kind === "failed" ? (
+						<FailureState variant="page" title={pane.title} description={pane.description} detail={pane.detail} />
+					) : pane.kind === "archived" ? (
+						<EmptyState
+							variant="page"
+							image={null}
+							title={pane.title}
+							description={pane.description}
+							action={
+								<Button
+									size="md"
+									processing={archive.isPending}
+									onClick={() => archive.mutate({ session: session!, archived: false })}
+								>
+									Unarchive
+								</Button>
+							}
+						/>
+					) : pane.kind === "paused" ? (
+						// A paused session uses the page picture because a pause is not a failure.
+						<EmptyState variant="page" title={pane.title} description={pane.description} />
+					) : run.terminalId ? (
+						<NativeTerminal
+							key={run.terminalId}
+							run={run}
+							layout="fill"
+							readOnly={readOnly}
+							autoFocus={autoFocusTerminal}
+							autoFocusDelay={autoFocusTerminalDelay}
+							onLeave={leaveTerminal}
+						/>
+					) : (
+						<EmptyState
+							variant="page"
+							image={null}
+							title="This session has no process"
+							description="Trellis starts no process for this runtime."
+						/>
+					)}
+				</div>
+				<AgentStatusUpdates run={run} visible={statusPane.visible} />
 			</div>
 		</section>
 	);

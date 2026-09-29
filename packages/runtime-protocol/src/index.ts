@@ -254,6 +254,10 @@ export interface RuntimeMethods {
 		params: { id: string; messageId: string; data: string; expected?: RuntimeExpectedTurn };
 		result: RuntimeDelivery;
 	};
+	queueInput: {
+		params: { id: string; messageId: string; data: string };
+		result: RuntimeDelivery;
+	};
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: RuntimeListInput; result: RuntimeProcessStatus[] };
 	listPage: { params: RuntimeListPageInput; result: RuntimeListPage };

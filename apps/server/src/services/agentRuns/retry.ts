@@ -8,6 +8,7 @@ import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
+import { failOutstandingSessionUpdateRequestForRun } from "../sessionUpdates";
 import type { IoCtx } from "../support.ts";
 import { launchRun } from "./launchRun";
 import { startNative } from "./nativeStart.ts";
@@ -69,6 +70,10 @@ export async function prepareRetry(ctx: IoCtx, input: AgentRunRetryInput, start:
 		await tx.execute(
 			sql`UPDATE agent_runs SET terminal_id=${attempt.id}, error=NULL, session_lost=false, updated_at=${ctx.core.now} WHERE id=${current.id}`,
 		);
+		await failOutstandingSessionUpdateRequestForRun(ctx.core, tx, {
+			runId: current.id,
+			error: "The agent retried before it saved the status update.",
+		});
 		await recordRequest(ctx.core, tx, { ...request, runId: current.id });
 		return {
 			replay: false as const,

@@ -9,4 +9,5 @@ export { move } from "./tickets/move.ts";
 export { setOutcome } from "./tickets/outcome.ts";
 export { boardOf as board, countsOf as counts, get, list, resolveTicketAge } from "./tickets/read.ts";
 export { delete, deleteMany } from "./tickets/remove.ts";
+export { incompleteTicketIds } from "./tickets/statusRequestTickets";
 export { update, updateMany } from "./tickets/update.ts";

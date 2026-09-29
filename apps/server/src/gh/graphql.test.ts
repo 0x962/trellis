@@ -27,13 +27,18 @@ const responseWithSize = (
 			pullRequest: {
 				number: 42,
 				...size,
-				files: { nodes: files },
+				files: {
+					nodes: files,
+					pageInfo: { hasNextPage: false, endCursor: null },
+					totalCount: files.length,
+				},
 				title: "Store pull request size",
 				state: "OPEN",
 				isDraft: false,
 				mergeQueueEntry: null,
 				url: "https://github.com/octo/repo/pull/42",
 				headRefOid: headSha,
+				baseRefOid: "base-oid",
 				headRefName: "size",
 				baseRefName: "main",
 				mergeable: "CONFLICTING",
@@ -85,9 +90,9 @@ describe("pull request GraphQL size", () => {
 		expect(result.row.contentHash).not.toBe(rowOf(size).contentHash);
 	});
 
-	test("requests at most 100 changed files", () => {
+	test("requests a bounded first page of changed files", () => {
 		expect(buildPullRequestQuery([ref])).toContain(
-			"files(first: 100) { nodes { path changeType additions deletions } }",
+			"files(first: 100) { nodes { path changeType additions deletions } pageInfo { hasNextPage endCursor } totalCount }",
 		);
 	});
 
