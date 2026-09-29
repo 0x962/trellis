@@ -7,7 +7,7 @@ export const revealTab = (element: HTMLElement, left: number, width: number) => 
 	if (left < element.scrollLeft) element.scrollLeft = left;
 };
 
-export function useTabLayout(tabs: readonly { id: string }[], activeIndex: number) {
+export function useTabLayout(tabs: readonly unknown[], activeIndex: number) {
 	const count = tabs.length;
 	const ref = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState({

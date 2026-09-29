@@ -57,9 +57,7 @@ export const contract = {
 		editorHost: flowEditorHostV1,
 	}),
 	flowExecutions: oc.tag("flow executions").router(flowExecutions),
-	flowExecutionsV1: oc
-		.tag("flow executions v1")
-		.router({ recovery: flowExecutionsV1.recovery, output: flowExecutionsV1.output }),
+	flowExecutionsV1: oc.tag("flow executions v1").router(flowExecutionsV1),
 	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),
