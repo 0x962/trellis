@@ -106,7 +106,7 @@ const label = (state: PrState, ciState: CiState) => `${state}/${ciState}`;
 
 const moved = (entry: Polled) => entry.stored.state !== entry.row.state || entry.stored.ci_state !== entry.row.ciState;
 
-const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
+const activityValues = (actorId: string, at: Date, entry: Polled, links: LinkRow[]) => {
 	const batchId = ulid();
 	const meta = JSON.stringify({
 		pullRequestId: entry.stored.id,
@@ -115,7 +115,7 @@ const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
 	});
 	return ticketsOf(links, entry.stored.id).map(
 		(link) => sql`(
-			${batchId}, ${link.project_id}, ${link.ticket_id},
+			${actorId}, ${batchId}, ${link.project_id}, ${link.ticket_id},
 			${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, 'pr.state_changed', ${meta}::jsonb, ${at}
 		)`,
 	);
@@ -124,13 +124,12 @@ const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
 // One timeline row per linked ticket, for a pull request whose state or ci
 // state moved. A title edit writes none: nobody wants a timeline line for it.
 const writeStateChanges = async (ctx: ServiceCtx, tx: Tx, at: Date, changed: Polled[], links: LinkRow[]) => {
-	const values = changed.flatMap((entry) => activityValues(at, entry, links));
-	if (values.length === 0) return;
+	if (changed.every((entry) => ticketsOf(links, entry.stored.id).length === 0)) return;
 	const actorId = await touchSystemActor(ctx, tx);
-	const boundValues = values.map((value) => sql`(${actorId}, ${value})`);
+	const values = changed.flatMap((entry) => activityValues(actorId, at, entry, links));
 	await tx.execute(sql`
 		INSERT INTO activity (actor_id, batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
-		VALUES ${joined(boundValues)}
+		VALUES ${joined(values)}
 	`);
 };
 
