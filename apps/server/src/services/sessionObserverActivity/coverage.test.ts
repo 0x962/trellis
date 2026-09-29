@@ -1,7 +1,86 @@
 import { expect, test } from "bun:test";
+import { CompletedActivity } from "../../../../runtime/src/harnessObservations/components/completedActivity/index.ts";
 import { parseClaudeEvent } from "../../agents/harnesses/claude/parseClaudeEvent.ts";
+import { CodexAppServerEvents } from "../../agents/harnesses/codex/appServerEvents.ts";
+import { MuseSessionEvents } from "../../agents/harnesses/muse/mspEvents.ts";
 import { readSessionObserverActivity } from "./sessionObserverActivity.ts";
 import { annotated, fixture, line, outputReader } from "./testFixture/index.ts";
+
+test("Codex same-turn status cycles emit new input signals after a saved cursor", async () => {
+	const f = await fixture();
+	const observedAt = f.at.toISOString();
+	const parser = new CodexAppServerEvents("thread");
+	const status = (activeFlags: string[]) =>
+		parser.parse({
+			method: "thread/status/changed",
+			params: { threadId: "thread", status: { type: "active", activeFlags } },
+		});
+	const modern = new CompletedActivity();
+	const start = { kind: "working" as const, turnId: "turn" };
+	modern.derive(start, observedAt);
+	const firstEvents = status(["waitingOnUserInput"]);
+	const firstSignals = firstEvents.flatMap((event) => {
+		const result = modern.derive(event, observedAt);
+		return result.signal === undefined ? [] : [result.signal];
+	});
+	const records = [start, ...firstEvents].map((event) => line({ observedAt, event }));
+	const logs = new Map([
+		[f.attempts[0]!, Buffer.alloc(0)],
+		[f.attempts[1]!, Buffer.concat(records)],
+	]);
+	const reader = outputReader(logs);
+	const first = await readSessionObserverActivity(f.context, { runId: f.runId, after: null }, reader);
+	expect(first.signals.map((signal) => signal.id)).toEqual(firstSignals.map((signal) => signal.id));
+	const nextEvents = [...firstEvents, ...status([]), ...status([]), ...status(["waitingOnUserInput"]), ...firstEvents];
+	const nextSignals = nextEvents.flatMap((event) => {
+		const result = modern.derive(event, observedAt);
+		return result.signal === undefined ? [] : [result.signal];
+	});
+	logs.set(f.attempts[1]!, Buffer.concat([...records, ...nextEvents.map((event) => line({ observedAt, event }))]));
+	const next = await readSessionObserverActivity(f.context, { runId: f.runId, after: first.cursor }, reader);
+	expect(firstSignals).toHaveLength(1);
+	expect(nextSignals).toHaveLength(1);
+	expect(next.signals.map((signal) => signal.id)).toEqual(nextSignals.map((signal) => signal.id));
+	expect(nextSignals[0]!.id).not.toBe(firstSignals[0]!.id);
+	const repeat = await readSessionObserverActivity(f.context, { runId: f.runId, after: next.cursor }, reader);
+	expect(repeat.signals).toEqual([]);
+});
+
+test("a Muse batch preserves both prompts once in modern and legacy activity", async () => {
+	const f = await fixture();
+	const observedAt = f.at.toISOString();
+	const parser = new MuseSessionEvents("session");
+	parser.expectBatch("command", ["First prompt.", "Second prompt."]);
+	const notification = {
+		method: "item/completed",
+		params: {
+			sessionId: "session",
+			item: { itemId: "batch", commandId: "command", turnId: "turn", kind: "userMessage", status: "completed" },
+		},
+	};
+	const events = parser.parse(notification);
+	expect(events.map((event) => event.activityId)).toEqual(["batch:prompt:0", "batch:prompt:1"]);
+	expect(parser.parse(notification)).toEqual([]);
+	const modern = new CompletedActivity();
+	const items = [...events, ...events].flatMap((event) => {
+		const result = modern.derive(event, observedAt);
+		return result.activity === undefined ? [] : [result.activity];
+	});
+	expect(items).toMatchObject([{ text: "First prompt." }, { text: "Second prompt." }]);
+	expect(items).toHaveLength(2);
+	const logs = new Map([
+		[f.attempts[0]!, Buffer.alloc(0)],
+		[f.attempts[1]!, Buffer.concat([...events, ...events].map((event) => line({ observedAt, event })))],
+	]);
+	const legacy = await readSessionObserverActivity(f.context, { runId: f.runId, after: null }, outputReader(logs));
+	expect(legacy.items.map(({ attemptId, attemptGeneration, ...item }) => item)).toEqual(items);
+	const repeat = await readSessionObserverActivity(
+		f.context,
+		{ runId: f.runId, after: legacy.cursor },
+		outputReader(logs),
+	);
+	expect(repeat.items).toEqual([]);
+});
 
 test("an older runtime journal preserves explicit message completion and result identities", async () => {
 	const f = await fixture();

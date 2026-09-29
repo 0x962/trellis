@@ -1,7 +1,38 @@
 import { expect, test } from "bun:test";
+import type { HarnessEvent } from "@trellis/runtime-protocol";
 import { CompletedActivity } from "./completedActivity.ts";
 
 const at = "2026-09-29T12:00:00.000Z";
+
+test("a resolved request can recur within one turn across checkpoints and journal replay", () => {
+	const request: HarnessEvent = {
+		kind: "input-request",
+		inputRequest: { id: "codex:waitingOnUserInput", kind: "question", title: "Choose", blocking: true },
+	};
+	const resolved: HarnessEvent = { kind: "input-resolved", requestId: "codex:waitingOnUserInput" };
+	const start: HarnessEvent = { kind: "working", turnId: "turn" };
+	let state = new CompletedActivity();
+	state.derive(start, at);
+	const first = state.derive(request, at).signal!;
+	const previousCheckpoint = state.snapshot();
+	delete previousCheckpoint.inputCycles;
+	state = new CompletedActivity(state.snapshot());
+	expect(state.derive(request, at).signal).toBeUndefined();
+	state.derive(resolved, at);
+	state.derive(resolved, at);
+	state = new CompletedActivity(state.snapshot());
+	const second = state.derive(request, at).signal!;
+	expect(second.kind).toBe("input-request");
+	expect(second.id).not.toBe(first.id);
+	const upgraded = new CompletedActivity(previousCheckpoint);
+	upgraded.derive(resolved, at);
+	expect(upgraded.derive(request, at).signal?.id).toBe(second.id);
+	expect(state.derive(request, at).signal).toBeUndefined();
+	const replay = new CompletedActivity();
+	for (const event of [start, request, request, resolved, resolved, request]) replay.restore({ observedAt: at, event });
+	expect(replay.derive(request, at).signal).toBeUndefined();
+	expect(replay.snapshot()).toEqual(state.snapshot());
+});
 
 test("a repeated status request belongs to each explicit provider turn", () => {
 	const state = new CompletedActivity();
