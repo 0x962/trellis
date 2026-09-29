@@ -172,3 +172,20 @@ The evidence retains the original request and immutable attempt provenance.
 Private launch snapshots and tokens stay outside this evidence.
 The archive verifies the saved permit, data home, and generation before settlement.
 Unknown effects keep their permits pending.
+
+## Hold native state for reconciliation
+
+`withNativeReconciliation(ctx, { block }, action, client?)` holds native state through the final callback.
+The context requires `withSnapshotRetention(home, action)` from the sweep owner.
+That producer must exclude deletion of private snapshots for the entire callback.
+Production composition remains blocked until the concrete sweep producer is available.
+
+The service checks the exact blocked gate and requires every dispatch permit to have terminal evidence.
+It acquires sorted exact-attempt locks outside database transactions and repeats the inventory read under those locks.
+It verifies snapshot digests and bindings, then inspects each original attempt through the native runtime client.
+A saved exact exit receipt also proves terminal ownership.
+Missing snapshots, pending stops, and unknown ownership return a blocked result without the callback.
+The callback receives the verified manifest and saved reservations while the locks remain held.
+The completed result confirms the callback returned; the host owner controls gate release.
+This scope covers native records and private launch files.
+Live workspace and provider conversation files require their own export boundary.
