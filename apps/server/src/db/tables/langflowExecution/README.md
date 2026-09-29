@@ -123,3 +123,13 @@ Execution operations lock the execution first, then owner rows in sorted order. 
 Initial job binding, admission, and ownership receipts use the same owner lock.
 A takeover requires the exact saved revocation of its prior owner. A revoked owner remains readable for takeover.
 Native stop records retain their original attempt identities through revocation.
+
+
+`recoverInitialBinding(tx, {initialRecordBytes, takeover})` recovers an archived initial grant that has no database binding.
+The caller verifies the archive and supplies a real successor commit from the trusted supervisor with its held permit.
+The query requires the saved revocation of the original owner, an active successor, and closed admission.
+It restores the original job association and commits the successor in one transaction.
+The original owner cannot use that grant, and the query leaves the admission barrier closed.
+The complete commit retains `initialRecordBytes` unchanged. `InitialBindingCommit` exposes that field as required.
+`StoredAuthorityCommit` exposes the field as optional for receipts that can also originate from ordinary renewal or takeover.
+An equal replay returns the stored commit. Changed archive bytes conflict.

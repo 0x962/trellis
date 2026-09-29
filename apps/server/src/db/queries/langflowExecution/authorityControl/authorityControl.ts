@@ -14,6 +14,8 @@ import { lockExecution } from "../executions";
 import { assertOwnerActive, lockOwner, lockOwners } from "../ownerFence";
 import { transferOwnership } from "../ownership";
 
+export type StoredAuthorityCommit = AuthorityCommit & { initialRecordBytes?: string };
+
 async function revokeOwner(
 	tx: Tx,
 	input: { identity: SidecarIdentity; observationId: string },
@@ -38,7 +40,7 @@ async function readRevocation(tx: Tx, input: { dataHomeId: string; hostId: strin
 async function storedCommit(
 	tx: Tx,
 	input: { executionId: string; requestId: string },
-): Promise<AuthorityCommit | null> {
+): Promise<StoredAuthorityCommit | null> {
 	const [row] = await tx
 		.select({ commit: langflowAuthorityCommits.commit })
 		.from(langflowOwnershipReceipts)
@@ -67,7 +69,7 @@ async function read(tx: Tx, input: { executionId: string }): Promise<OwnershipSn
 	return { canceled: row.cancelIntent !== null, authority: row.authority, admission: row.admission };
 }
 
-async function commit(tx: Tx, input: AuthorityCommit): Promise<AuthorityCommit> {
+async function commit(tx: Tx, input: AuthorityCommit): Promise<StoredAuthorityCommit> {
 	const { receipt, observation, revocation } = input;
 	await lockExecution(tx, receipt.request);
 	const authority = receipt.authority;
