@@ -1,0 +1,1 @@
+export { lifecycleFacts } from "./lifecycleFacts";
