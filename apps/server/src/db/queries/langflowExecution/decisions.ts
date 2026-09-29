@@ -90,3 +90,11 @@ export async function updateDecisionDelivery(
 	await tx.update(decisions).set({ delivery }).where(eq(decisions.decisionId, input.decisionId));
 	return delivery;
 }
+
+export async function readDecision(tx: Tx, input: { executionId: string; decisionId: string }) {
+	const [row] = await tx
+		.select()
+		.from(decisions)
+		.where(and(eq(decisions.executionId, input.executionId), eq(decisions.decisionId, input.decisionId)));
+	return row ?? null;
+}
