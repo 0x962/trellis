@@ -22,10 +22,10 @@ export const pageUploads = pgTable(
 		actorFk("page_uploads_actor_fk", t),
 		check("page_uploads_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 		check("page_uploads_size_check", sql`${t.size} >= 0`),
-		check("page_uploads_mime_check", sql`length(${t.mime}) BETWEEN 1 AND 255 AND ${t.mime} !~ '[[:cntrl:]]'`),
+		check("page_uploads_mime_check", sql`length(${t.mime}) >= 1 AND ${t.mime} !~ '[[:cntrl:]]'`),
 		check(
 			"page_uploads_original_name_check",
-			sql`length(${t.originalName}) BETWEEN 1 AND 255
+			sql`length(${t.originalName}) >= 1
 				AND position('/' IN ${t.originalName}) = 0
 				AND position(E'\\\\' IN ${t.originalName}) = 0
 				AND ${t.originalName} !~ '[[:cntrl:]]'`,

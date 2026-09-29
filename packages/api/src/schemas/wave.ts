@@ -8,13 +8,7 @@ import { booleanString, IsoDateTimeSchema, slugPattern, UlidSchema } from "./pri
 // belongs to the epic of the ticket. The counts and the state of a wave
 // derive from its tickets and are never stored.
 
-export const WAVE_NAME_MAX = 120;
-
-export const WaveNameSchema = z
-	.string()
-	.trim()
-	.min(1, `Enter a wave name of 1 to ${WAVE_NAME_MAX} characters.`)
-	.max(WAVE_NAME_MAX, `Enter a wave name of 1 to ${WAVE_NAME_MAX} characters.`);
+export const WaveNameSchema = z.string().trim().min(1, "Enter a wave name.");
 
 // A wave slug is the last segment of the `KEY/epic-slug/wave-slug`
 // ref. Two waves of one epic never share a slug.

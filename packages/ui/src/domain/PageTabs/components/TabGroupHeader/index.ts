@@ -1,0 +1,1 @@
+export { TabGroupHeader } from "./TabGroupHeader";

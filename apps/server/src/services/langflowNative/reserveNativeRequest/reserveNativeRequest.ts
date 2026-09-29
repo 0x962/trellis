@@ -13,7 +13,7 @@ import {
 	readProtocolBytes,
 } from "../../../langflowContracts";
 import { reserve } from "../../agentRuns";
-import { assertExecutionNotCanceled } from "../../langflowStops/assertExecutionNotCanceled";
+import { assertExecutionNotCanceled } from "../../langflowStops";
 import { projectLaunchConfig } from "../../projectLaunchConfig";
 import { writeLaunchSnapshot } from "../launchSnapshot";
 import type { NativeReservationCtx } from "../types";
@@ -74,6 +74,7 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 		config,
 		flow: { name: approved.name, instruction: approved.instruction },
 	})) as NewReservation;
+	if (!isDeepStrictEqual(launch.config.harness, approved.harness)) throw new Error("native_harness_conflict");
 	const handle = NativeHandleV1Schema.parse({
 		version: 1,
 		stepId: ulid(),

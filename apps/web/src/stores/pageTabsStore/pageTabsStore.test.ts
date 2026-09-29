@@ -171,11 +171,10 @@ test("different origins use separate saved tabs", () => {
 test("the UI projection contains the structural tab fields", () => {
 	const store = createStore();
 	const tabs = pageTabsSelectors.tabs(store.getState());
-	const activeId = pageTabsSelectors.activeId(store.getState());
-	const projection = pageTabsUiProjection(tabs, activeId);
+	const projection = pageTabsUiProjection(tabs, []);
 
-	expect(projection.activeId).toBe("tab-1");
-	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Needs you", pinned: false }]);
+	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Needs you", pinned: false, groupId: undefined }]);
+	expect(projection.groups).toEqual([]);
 });
 
 test("the UI selectors return stable store fields", () => {
@@ -207,10 +206,10 @@ test("a pin moves the tab to the end of the pinned region and keeps its record",
 		forwardHistory: [],
 	});
 	expect(store.getState().activeId).toBe(c);
-	expect(pageTabsUiProjection(store.getState().tabs, c).tabs).toEqual([
-		{ id: c, title: "C", pinned: true },
-		{ id: a, title: "Mine", pinned: true },
-		{ id: b, title: "B", pinned: false },
+	expect(pageTabsUiProjection(store.getState().tabs, []).tabs).toEqual([
+		{ id: c, title: "C", pinned: true, groupId: undefined },
+		{ id: a, title: "Mine", pinned: true, groupId: undefined },
+		{ id: b, title: "B", pinned: false, groupId: undefined },
 	]);
 });
 

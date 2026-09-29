@@ -6,8 +6,7 @@ from fastapi import APIRouter, Header, HTTPException
 
 from langflow.services.background_execution.service import BackgroundExecutionService
 from langflow.services.trellis_v1.authority import AuthorityConflict, AuthorityUnauthorized
-from langflow.services.trellis_v1.cancellation import accept_cancellation
-from langflow.services.trellis_v1.cancellation_effects import drain_cancellation
+from langflow.services.trellis_v1.cancellation_effects import cancel_execution
 from langflow.services.trellis_v1.cancellation_models import CancellationConflict, CancellationInput, CancellationMissing
 from langflow.services.trellis_v1.engine_api import AuthoritySession, EngineApiSecurity
 
@@ -27,10 +26,7 @@ def create_cancellation_router(
     ) -> dict[str, object]:
         await security.require_transport_auth(authorization)
         try:
-            async with sessions() as session:
-                receipt = await accept_cancellation(session, security, input)
-                await session.commit()
-            status = await drain_cancellation(sessions, background, input.engine_job_id)
+            receipt, status = await cancel_execution(sessions, background, security, input)
         except AuthorityUnauthorized as error:
             raise HTTPException(status_code=403, detail=str(error)) from error
         except (CancellationConflict, AuthorityConflict) as error:
