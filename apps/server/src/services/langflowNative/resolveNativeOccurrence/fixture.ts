@@ -25,19 +25,29 @@ export async function occurrenceFixture(omitModel = false) {
 	snapshot.graphDocument.trellisRequestSpecsV1 = { vertex: spec };
 	const publication = { ...input.publication, conversion: null };
 	const submissionBytes = JSON.stringify({ publication, snapshot });
-	await db.update(langflowExecutions).set({
-		publication, snapshot, submissionBytes,
-		submission: { ...input.submission, submissionDigest: protocolDigest(submissionBytes) },
-	}).where(eq(langflowExecutions.executionId, ids.execution));
+	await db
+		.update(langflowExecutions)
+		.set({
+			publication,
+			snapshot,
+			submissionBytes,
+			submission: { ...input.submission, submissionDigest: protocolDigest(submissionBytes) },
+		})
+		.where(eq(langflowExecutions.executionId, ids.execution));
 	const request = {
 		...structuredClone(nativeRequest),
 		specHash: protocolDigest(documentBytes(spec).toString("utf8")),
 		inputReceiptIds: ["receipt-1"],
 	};
 	const receiptBytes = JSON.stringify({
-		version: 1, receiptId: "receipt-1", executionId: request.executionId,
-		publicationId: request.publicationId, engineJobId: request.engineJobId,
-		nodeId: "prior", occurrenceKey: "prior.501", output: JSON.stringify({ approved: false, output: "Full NO feedback" }),
+		version: 1,
+		receiptId: "receipt-1",
+		executionId: request.executionId,
+		publicationId: request.publicationId,
+		engineJobId: request.engineJobId,
+		nodeId: "prior",
+		occurrenceKey: "prior.501",
+		output: JSON.stringify({ approved: false, output: "Full NO feedback" }),
 	});
 	const visit: NativeVisit = {
 		engineNodeId: "vertex",
@@ -45,8 +55,11 @@ export async function occurrenceFixture(omitModel = false) {
 		engineWaitId: "00000000-0000-4000-8000-000000000099",
 		waitBytes: JSON.stringify({ kind: "native_reservation", waitId: "00000000-0000-4000-8000-000000000099", request }),
 		occurrence: {
-			nodeId: request.nodeId, occurrenceKey: request.occurrenceKey,
-			parentOccurrenceKey: request.parentOccurrenceKey, phase: request.phase, iterationPath: request.iterationPath,
+			nodeId: request.nodeId,
+			occurrenceKey: request.occurrenceKey,
+			parentOccurrenceKey: request.parentOccurrenceKey,
+			phase: request.phase,
+			iterationPath: request.iterationPath,
 		},
 		scope: { inputReceiptIds: request.inputReceiptIds, groupDeadlineRefs: [], deadlineAt: null },
 		admissionReceipt: request.admissionReceipt,
