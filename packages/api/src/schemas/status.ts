@@ -3,10 +3,7 @@ import { ProjectRefStringSchema, StatusRefStringSchema } from "../refs.ts";
 import { ColorTokenSchema, StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 
-const StatusNameSchema = z
-	.string()
-	.min(1, "Enter a status name of 1 to 40 characters.")
-	.max(40, "Enter a status name of 1 to 40 characters.");
+const StatusNameSchema = z.string().min(1, "Enter a status name.");
 
 // A status slug is the name in slug form. The reserved project slugs (`board`,
 // `settings`) are web routes under a project URL. A status is never a route
@@ -19,7 +16,7 @@ const StatusSlugSchema = z
 const ColorSchema = ColorTokenSchema;
 
 // Markdown that describes what the status means.
-const StatusDescriptionSchema = z.string().max(2000, "Enter a status description of 2000 characters or less.");
+const StatusDescriptionSchema = z.string();
 
 // The status fields every ticket row carries.
 export const StatusSummarySchema = z.object({

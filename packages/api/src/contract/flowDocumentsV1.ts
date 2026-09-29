@@ -13,6 +13,7 @@ import {
 	FlowExecutionViewV1Schema,
 } from "../schemas/flowExecutionViewV1.ts";
 import { base } from "./base.ts";
+import { flowEditorErrors } from "./flowEditorSessionV1";
 
 export const flowDocumentV1Errors = {
 	FLOW_UNSUPPORTED_FORMAT: {
@@ -49,7 +50,7 @@ export const flowDocumentsV1 = {
 			path: "/flows/{flow}/document-v1",
 			summary: "Save a flow document with its expected version",
 		})
-		.errors(flowDocumentV1Errors)
+		.errors({ ...flowDocumentV1Errors, ...flowEditorErrors })
 		.input(FlowDocumentSaveV1InputSchema)
 		.output(FlowDocumentV1Schema),
 	view: base

@@ -1,6 +1,10 @@
 {
 	"engineCommit": "fec71dca901949c09ed4d63315804337cd2eb13d",
 	"afterProbeSha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
+	"schemaSources": {
+		"flowEditorProtocolV1": "309e162ed91acd451b99b4de5dbd280d8cf81de79e8fa2a1580ba1910be5c9ac",
+		"flowEditorSessionV1": "b77232721a7c452b8ba0ee9f86ace6ffee3a07327f8926603c456b546d21b2e8"
+	},
 	"patch": "production-entry.patch",
-	"sha256": "707705a6a2fe04ef4f82b5b223d6e4a5a0d8fd92ad2543bfeef1c12ac29ddd80"
+	"sha256": "98f650bbd13e02a7e0651744084150a7e117ccb1c1dd43a3dded09dd0eaa3d1b"
 }

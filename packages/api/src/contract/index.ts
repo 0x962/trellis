@@ -6,6 +6,7 @@ import { brief } from "./brief.ts";
 import { epics } from "./epics.ts";
 import { flowDiscoveryV1 } from "./flowDiscoveryV1.ts";
 import { flowDocumentsV1, flowExecutionIndexV1 } from "./flowDocumentsV1.ts";
+import { flowEditorHostV1, flowEditorSessionV1 } from "./flowEditorSessionV1";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flowExecutionsV1 } from "./flowExecutionsV1.ts";
 import { flows } from "./flows.ts";
@@ -48,13 +49,15 @@ export const contract = {
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	flows: oc.tag("flows").router(flows),
-	flowDocumentsV1: oc
-		.tag("flow documents v1")
-		.router({ ...flowDocumentsV1, list: flowExecutionIndexV1, discovery: flowDiscoveryV1 }),
+	flowDocumentsV1: oc.tag("flow documents v1").router({
+		...flowDocumentsV1,
+		list: flowExecutionIndexV1,
+		discovery: flowDiscoveryV1,
+		editorSession: flowEditorSessionV1,
+		editorHost: flowEditorHostV1,
+	}),
 	flowExecutions: oc.tag("flow executions").router(flowExecutions),
-	flowExecutionsV1: oc
-		.tag("flow executions v1")
-		.router({ recovery: flowExecutionsV1.recovery, output: flowExecutionsV1.output }),
+	flowExecutionsV1: oc.tag("flow executions v1").router(flowExecutionsV1),
 	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),

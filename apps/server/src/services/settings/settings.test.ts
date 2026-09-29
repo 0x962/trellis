@@ -19,7 +19,7 @@ const actionsLink: MenuLink = {
 const docsLink: MenuLink = {
 	...actionsLink,
 	id: "128f08be-daf8-4999-abcc-27e20a5d81bd",
-	label: "Docs",
+	label: "Release documentation ".repeat(100).trim(),
 	icon: "BookOpen",
 };
 const readSettings = () => database.db.transaction((tx) => settings.get(ctx, tx));

@@ -549,7 +549,7 @@ An image accepts PNG, JPEG, GIF, WebP, or AVIF.
 The API is `resources.add`, `resources.list`, `resources.update`, and
 `resources.remove`. The routes are `POST /api/resources`,
 `GET /api/resources?epic=<EpicRef>`, `PATCH /api/resources/{id}`, and
-`DELETE /api/resources/{id}`. `PATCH` changes a document body only. The blob
+`DELETE /api/resources/{id}`. `PATCH` changes a document name or body. The blob
 route is `GET /api/resources/{id}/blob`.
 
 Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
@@ -1159,15 +1159,15 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
+| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (nonempty), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
-| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
+| statuses | id PK, project_id (CASCADE), name (nonempty), description, slug, category (CHECK set), color, position, is_default, created_at, updated_at. Hash equality exclusion constraints on project-scoped name and slug. Partial UNIQUE (project_id) WHERE is_default. |
 | label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
 | tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
-| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (project_id, slug). Index (project_id). The state of an epic is never stored. |
-| waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (epic_id, slug). Index (epic_id, position). The state of a wave is never stored. |
+| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). The state of an epic is never stored. |
+| waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), position integer (CHECK >= 0), created_at, updated_at. Hash equality exclusion on (epic_id || / || slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, local_state (CHECK not-ready, ready), ready_for_review_at, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
@@ -1179,10 +1179,10 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
-| provider_models | provider_id (FK providers CASCADE), model_id (CHECK 1 to 200, no space or control character). PK (provider_id, model_id). |
+| providers | id PK, name (CHECK trimmed, nonempty), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK nonempty), api_key (CHECK nonempty), enabled, created_at, updated_at. Hash equality exclusion on lower(name). |
+| provider_models | provider_id (FK providers CASCADE), model_id (CHECK nonempty, no space or control character). Hash equality exclusion on the length-prefixed provider ID and model ID. Index (provider_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
-| sessions | id PK, name (CHECK trimmed, 1 to 60), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
+| sessions | id PK, name (CHECK trimmed, nonempty), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -1226,6 +1226,33 @@ The current document cannot change that selection.
 An exact legacy request replay retains its original result after a document conversion.
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
+
+The versioned start, decision, and cancel routes acquire a durable permit before their database action.
+The action and its immutable receipt commit together. A known refusal rolls back its savepoint before the outer transaction stores the error bytes.
+The external receipt archive retains the committed receipt before the host gate settles its permit.
+An exact replay reads that receipt and the current view. Changed request bytes return `FLOW_REQUEST_CONFLICT`.
+A permit without a receipt returns `FLOW_ACTION_PENDING` and stays pending until reconciliation.
+These local action permits do not settle the separate permits for engine delivery or native processes.
+
+`flowDocumentsV1.editorSession` issues an editor grant through
+`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
+editor configuration with the host identity, separate origins, and installed
+component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
+The issuer requires the host bearer, the exact parent Origin, and a stored
+`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
+The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+The HTTP adapter calls the plain issuer, sets the credential cookie, and returns the session.
+Its service calls retain the request ID and database timing collector.
+`flowDocumentsV1.editorHost` reads the current host and data-home identifiers from the host control directory.
+It returns their combined identity, or `null` when the editor has no configuration.
+Grant operations reject a changed host identity.
+Version conflicts return 412, concurrent channel saves return 409, and an unconfigured actor returns 503.
+
+A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
+The grant service holds the channel until the actual document transaction returns.
+If the response is lost after commit, the next exact request reads the durable
+save receipt before it checks the old HTTP preconditions. The accepted receipt
+advances the grant revision; the original bootstrap identity stays unchanged.
 
 A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
 Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.
@@ -1274,7 +1301,7 @@ returns one canonical spelling.
 | tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same project; `wave` joins a wave and its epic |
 | tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic and the wave; `wave: null` clears the wave |
 | tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
-| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
+| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | all supplied refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project; open first, then done, then by updated desc |
 | epics.get | GET /api/epics/{epic} | the summary, its waves in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |

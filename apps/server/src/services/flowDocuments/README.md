@@ -3,6 +3,9 @@
 `get(ctx, tx, { flow })` returns the current `FlowDocumentV1` and its publication state.
 `save(ctx, tx, input)` accepts `FlowDocumentSaveV1Input` and returns its first saved receipt.
 The caller commits the supplied transaction before it requests publication.
+An ordinary save retains the current engine. An engine change requires explicit conversion.
+The save holds the flow row lock through its version check, engine check, and writes.
+An exact request replay returns its first receipt before those checks.
 
 Request identity uses deterministic JSON from the complete validated input.
 Object keys sort by name. Array order and string content remain unchanged.
@@ -67,3 +70,18 @@ The action also requires an actor, as do edit and delete.
 Legacy execution authority remains unknown in this Langflow observation.
 Conversion stays unknown until a producer establishes an accepted mapping.
 A retained blocked conversion report applies only to its source version.
+
+## Installed editor manifest
+
+`installedEditorManifest(candidatePackage)` reads the catalog and optional template export from `loadCandidatePackage` references.
+It checks the original file hashes and compares the export with the exact catalog and package overlay hash.
+Composition supplies its result through `installedManifest` in the editor session options.
+Load the provider once for each verified package identity.
+The provider retains catalog blockers and exposes `frontendTemplates: envelope | null` alongside the source manifest.
+An absent export permits an empty draft; a component requires its verified native template.
+
+The draft validator permits declared input values, names, descriptions, layout, and supported native presentation controls.
+Output selection must name a sealed output and one of its sealed types.
+Component code, input metadata, output contracts, and other component metadata must match the sealed template.
+A valid draft does not authorize publication, conversion, or execution.
+The publisher still applies its independent validation and catalog approval rules.

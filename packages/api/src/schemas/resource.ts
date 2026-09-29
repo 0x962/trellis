@@ -7,19 +7,14 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const ResourceKindSchema = z.enum(["doc", "link", "image", "file"]);
 export const ResourceBodySchema = z.string().max(EPIC_DESCRIPTION_MAX);
 
-export const ResourceNameSchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a resource name.")
-	.max(255, "Enter a resource name of 255 characters or less.");
+export const ResourceNameSchema = z.string().trim().min(1, "Enter a resource name.");
 
 // A document can have an empty title, as a new page does. The page draws
 // "Untitled" in its place.
-export const ResourceDocNameSchema = z.string().trim().max(255, "Enter a title of 255 characters or less.");
+export const ResourceDocNameSchema = z.string().trim();
 
 export const ResourceUrlSchema = z
 	.url()
-	.max(10000)
 	.refine((value) => ["http:", "https:"].includes(URL.parse(value)?.protocol ?? ""), "Enter an HTTP or HTTPS URL.");
 
 export const ResourceBlobSchema = z.object({
@@ -39,7 +34,7 @@ export const ResourceSchema = z.object({
 	id: UlidSchema,
 	epicId: UlidSchema,
 	kind: ResourceKindSchema,
-	name: z.string().max(255),
+	name: z.string(),
 	body: z.string().nullable(),
 	url: z.string().nullable(),
 	blob: ResourceBlobSchema.nullable(),

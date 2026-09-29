@@ -6,8 +6,13 @@ import subprocess
 import sys
 import tempfile
 
+from restrictInspectors import paths as inspector_paths, restrict_inspectors
+
 root = pathlib.Path(__file__).resolve().parents[1]
 engine = pathlib.Path(sys.argv[1]).resolve()
+schemas = root.parents[2] / 'packages/api/src/schemas'
+schema_names = ['flowEditorProtocolV1', 'flowEditorSessionV1']
+schema_hashes = {name: hashlib.sha256((schemas / f'{name}.ts').read_bytes()).hexdigest() for name in schema_names}
 pin = 'fec71dca901949c09ed4d63315804337cd2eb13d'
 probe = root.parent / 'editor-probe/patches/trellis-editor-probe.patch'
 probe_sha = '3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c'
@@ -19,6 +24,7 @@ paths |= {
     'src/hooks/flows/use-save-flow.ts',
     'src/components/core/parameterRenderComponent/index.tsx',
 }
+paths |= inspector_paths
 with tempfile.TemporaryDirectory(prefix='trellis-editor-patch-') as temporary:
     stage = pathlib.Path(temporary)
     for path in sorted(paths):
@@ -81,13 +87,25 @@ const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITO
     replace(canvas, '              onInit={setReactFlowInstance}', '              onMoveEnd={TRELLIS_EDITOR_BRIDGE ? editorViewportChanged : undefined}\n              onInit={setReactFlowInstance}')
     replace('src/components/core/parameterRenderComponent/index.tsx',
             '  return renderComponent();', '  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;')
-    for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'fieldFocus', 'frontend']:
+    restrict_inspectors(replace, mode)
+    for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'editorCatalog', 'editorPalette', 'fieldFocus', 'frontend']:
         for source in sorted((root / module).rglob('*.ts')):
             if source.name.endswith('.test.ts'):
                 continue
             target = stage / 'src/customization/trellis' / source.relative_to(root)
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(source.read_text().replace('from "zod"', 'from "zod/v4"'))
+            content = source.read_text().replace('from "zod"', 'from "zod/v4"')
+            if module in ['protocol', 'session']:
+                schema = 'flowEditorProtocolV1' if module == 'protocol' else 'flowEditorSessionV1'
+                content = content.replace('from "@trellis/api"', f'from "../api/{schema}"')
+            assert '@trellis/api' not in content, source
+            target.write_text(content)
+    for name in schema_names:
+        target = stage / f'src/customization/trellis/api/{name}.ts'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        content = (schemas / f'{name}.ts').read_text().replace('from "zod"', 'from "zod/v4"')
+        content = content.replace('from "./flowEditorProtocolV1.ts"', 'from "./flowEditorProtocolV1"')
+        target.write_text(content)
     after = {str(path.relative_to(stage)): path.read_text() for path in stage.rglob('*') if path.is_file()}
     patch = []
     for path in sorted(before.keys() | after.keys()):
@@ -117,6 +135,7 @@ const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITO
     (root / 'patches/series.json').write_text(json.dumps({
         'engineCommit': pin,
         'afterProbeSha256': probe_sha,
+        'schemaSources': schema_hashes,
         'patch': 'production-entry.patch',
         'sha256': hashlib.sha256(output).hexdigest(),
     }, indent="\t") + '\n')
