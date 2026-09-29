@@ -13,6 +13,7 @@ import {
 	Tooltip,
 	useMediaQuery,
 } from "@trellis/ui";
+import { useMemo } from "react";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
 import { projectColorsByKey } from "../../../lib/projectChipColor";
@@ -45,17 +46,18 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const { orpc } = useApp();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const query = useSuspenseInfiniteQuery(searchOptions(orpc, q, filters.rankProject));
-	const tickets = query.data.pages.flatMap((page) => page.tickets);
-	const projects = query.data.pages.flatMap((page) => page.projects);
-	const pages = query.data.pages.flatMap((page) => page.pages);
+	const tickets = useMemo(() => query.data.pages.flatMap((page) => page.tickets), [query.data.pages]);
+	const projects = useMemo(() => query.data.pages.flatMap((page) => page.projects), [query.data.pages]);
+	const pages = useMemo(() => query.data.pages.flatMap((page) => page.pages), [query.data.pages]);
 	// A ticket row carries a project key without its color. The project list
 	// supplies that color.
 	const colors = useQuery({
 		...orpc.projects.list.queryOptions({ input: {} }),
 		select: projectColorsByKey,
 	}).data;
-	const visibleTickets = tickets.filter(
-		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
+	const visibleTickets = useMemo(
+		() => tickets.filter((ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority)),
+		[tickets, filters.priority],
 	);
 	if (visibleTickets.length === 0 && projects.length === 0 && pages.length === 0 && !query.hasNextPage) {
 		return (
@@ -74,8 +76,13 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 				{pages.length > 0 && ` · ${formatCount(pages.length)} ${pages.length === 1 ? "Page" : "Pages"}`}
 			</p>
 			{visibleTickets.length > 0 && (
-				<ResultGroup label="Tickets" count={query.hasNextPage ? undefined : visibleTickets.length}>
-					{visibleTickets.map((ticket) => {
+				<ResultGroup
+					label="Tickets"
+					count={query.hasNextPage ? undefined : visibleTickets.length}
+					items={visibleTickets}
+					rowHeight={phone ? 56 : 36}
+				>
+					{(ticket) => {
 						const segments = ticket.project.key.split(".");
 						if (phone) {
 							return (
@@ -122,12 +129,17 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								</td>
 							</tr>
 						);
-					})}
+					}}
 				</ResultGroup>
 			)}
 			{projects.length > 0 && (
-				<ResultGroup label="Projects" count={query.hasNextPage ? undefined : projects.length}>
-					{projects.map((project) =>
+				<ResultGroup
+					label="Projects"
+					count={query.hasNextPage ? undefined : projects.length}
+					items={projects}
+					rowHeight={phone ? 56 : 36}
+				>
+					{(project) =>
 						phone ? (
 							<tr key={project.id} className={phoneRowClass}>
 								<td data-line="phone" colSpan={6}>
@@ -155,13 +167,19 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									{project.key}
 								</td>
 							</tr>
-						),
-					)}
+						)
+					}
 				</ResultGroup>
 			)}
 			{pages.length > 0 && (
-				<ResultGroup label="Pages" count={query.hasNextPage ? undefined : pages.length} layout="list">
-					{pages.map((page) => (
+				<ResultGroup
+					label="Pages"
+					count={query.hasNextPage ? undefined : pages.length}
+					items={pages}
+					rowHeight={phone ? 80 : 56}
+					layout="list"
+				>
+					{(page) => (
 						<PageRow
 							key={page.id}
 							variant="search"
@@ -179,7 +197,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							project={<ProjectKey projectKey={page.projectKey} color={colors?.[page.projectKey] ?? null} />}
 							link={<Link to="/p/$" params={{ _splat: `${page.projectKey}/pages/${page.slug}` }} search={{}} />}
 						/>
-					))}
+					)}
 				</ResultGroup>
 			)}
 			{query.isFetchNextPageError && (

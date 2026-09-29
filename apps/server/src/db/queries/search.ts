@@ -82,10 +82,8 @@ const identifierFunction = (narrowed: boolean) => (narrowed ? "search_identifier
 // The row type that both functions return: the summary columns of a page.
 const SEARCH_ROW = "search_row";
 
-// Creates the row type and the two KEY-n functions for this session. They
-// are temporary objects, so every PGlite instance creates its own after its
-// migrations. The functions take the key, the number, the text, and the
-// limit and offset, and the narrowed function also takes the project ids as a text[].
+// Each PGlite instance must recreate the temporary search_row type and
+// search_identifier functions after its migrations.
 export const prepareSearch = async (db: Db) => {
 	const dialect = new PgDialect();
 	const emptyPage = sql`page AS (SELECT NULL::text AS id, 0::bigint AS rn WHERE false)`;
