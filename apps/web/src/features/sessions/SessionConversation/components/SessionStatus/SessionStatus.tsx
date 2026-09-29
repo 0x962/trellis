@@ -1,42 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import type { AgentRun, SessionUpdates } from "@trellis/api";
-import { Button, EmptyState, FailureState, type LinkPress, SessionStatusPane } from "@trellis/ui";
-import { type ReactNode, useEffect, useState } from "react";
-import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
+import type { AgentRun } from "@trellis/api";
+import { Button, EmptyState, FailureState } from "@trellis/ui";
+import { useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useOpenLink } from "../../../../../lib/openLink";
-import { sessionStatusProcessState, sessionUpdateInput, statusLinkPress } from "./sessionStatusState";
+import { SessionStatusContent } from "./SessionStatusContent";
+import { sessionUpdateInput } from "./sessionStatusState";
 
 const stateClass = [
 	"order-none flex h-full min-h-0 w-93.5 shrink-0 flex-col border-s border-border bg-bg",
 	"max-md:order-first max-md:h-auto max-md:max-h-130 max-md:w-full max-md:border-s-0 max-md:border-b",
 ].join(" ");
-
-const renderStatusMarkdown = (markdown: string): ReactNode => <ReadOnlyMarkdown markdown={markdown} />;
-
-export function SessionStatusContent({
-	run,
-	updates,
-	now,
-	onOpenLink,
-	renderMarkdown = renderStatusMarkdown,
-}: {
-	run: AgentRun;
-	updates: SessionUpdates;
-	now: string;
-	onOpenLink: (href: string, press: LinkPress) => void;
-	renderMarkdown?: (markdown: string) => ReactNode;
-}) {
-	return (
-		<SessionStatusPane
-			updates={updates}
-			processState={sessionStatusProcessState(run)}
-			now={now}
-			renderMarkdown={renderMarkdown}
-			onOpenLink={(href, target, press) => onOpenLink(href, statusLinkPress(target, press))}
-		/>
-	);
-}
 
 export function SessionStatus({ run, visible }: { run: AgentRun; visible: boolean }) {
 	const { orpc, scheduler } = useApp();

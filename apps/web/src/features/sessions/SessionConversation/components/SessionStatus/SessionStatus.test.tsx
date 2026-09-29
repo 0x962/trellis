@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AgentRun, SessionUpdates } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SessionStatusContent } from "./SessionStatus";
+import { SessionStatusContent } from "./SessionStatusContent";
 
 const run = {
 	id: "run-a",
