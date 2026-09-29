@@ -38,15 +38,6 @@ const PercentSchema = z.number().min(0).max(100);
 export const MemoryPressureLevelSchema = z.number().int();
 export type MemoryPressureLevel = z.infer<typeof MemoryPressureLevelSchema>;
 
-export type MemoryPressureName = "Normal" | "Warning" | "Critical" | "Unknown" | "Unavailable";
-
-export const memoryPressureName = (level: MemoryPressureLevel | null): MemoryPressureName => {
-	if (level === 1) return "Normal";
-	if (level === 2) return "Warning";
-	if (level === 4) return "Critical";
-	return level === null ? "Unavailable" : "Unknown";
-};
-
 // NSProcessInfo publishes four thermal states, and Electron adds `unknown`.
 // A nominal state can also mean that the operating system cannot read the
 // state. A computer outside the macOS app reports no thermal state.

@@ -32,8 +32,9 @@ const diskView = (signal: MachinePressureState["disk"], path: string): MachinePr
 	};
 };
 
-const readingView = (signal: MachinePressureState[keyof MachinePressureState]): MachinePressureReadingView => {
-	if (signal.key === "disk") return diskView(signal as MachinePressureState["disk"], "");
+type NonDiskSignalKey = Exclude<keyof MachinePressureState, "disk">;
+
+const readingView = (signal: MachinePressureState[NonDiskSignalKey]): MachinePressureReadingView => {
 	const tone = signal.tier;
 	if (signal.key === "cpuLoad")
 		return {
@@ -83,16 +84,29 @@ const ageText = (state: MachinePressureState, now: number): string | undefined =
 	return `Last read ${seconds} s ago.`;
 };
 
+export type MachinePressureView = {
+	machines: MachinePressureMachineView[];
+	machinesWithAlerts: MachinePressureMachineView[];
+};
+
 export const machinePressureView = (
 	sample: MachinePressureSample,
 	state: MachinePressureState,
 	now: number,
-): MachinePressureMachineView => ({
-	id: "server",
-	name: sample.hostname,
-	readings: machinePressureSignalKeys.map((key) =>
+): MachinePressureView => {
+	const readings = machinePressureSignalKeys.map((key) =>
 		key === "disk" ? diskView(state.disk, sample.disk.path) : readingView(state[key]),
-	),
-	runs: sample.runs.map((run) => `${run.ticketIdentifier ?? run.name} ${formatBytes(run.memoryBytes)}`),
-	ageText: ageText(state, now),
-});
+	);
+	const machine = {
+		id: "server",
+		name: sample.hostname,
+		readings,
+		runs: sample.runs.map((run) => `${run.ticketIdentifier ?? run.name} ${formatBytes(run.memoryBytes)}`),
+		ageText: ageText(state, now),
+	};
+	const alertReadings = readings.filter((reading) => reading.tone !== "normal");
+	return {
+		machines: [machine],
+		machinesWithAlerts: alertReadings.length > 0 ? [{ ...machine, readings: alertReadings }] : [],
+	};
+};

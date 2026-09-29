@@ -2,8 +2,8 @@ import {
 	MachinePressure,
 	type MachinePressureMachineView,
 	type MachinePressureReadingView,
-} from "../../../../domain/MachinePressure";
-import { Section } from "../../Section";
+} from "../../../../../domain/MachinePressure";
+import { Section } from "../../../Section";
 
 const readings = {
 	disk: {
@@ -62,6 +62,11 @@ const machine = (
 	},
 ];
 
+const machinesWithAlerts = (items: MachinePressureReadingView[]) => {
+	const alerts = items.filter((item) => item.tone !== "normal");
+	return alerts.length > 0 ? machine(alerts) : [];
+};
+
 const usageLink = (
 	<a
 		href="#machine-pressure"
@@ -74,7 +79,7 @@ const usageLink = (
 const Example = ({ label, items }: { label: string; items: MachinePressureReadingView[] }) => (
 	<div className="w-56 rounded-md border border-border bg-bg p-2">
 		<p className="mb-1 text-xs text-fg-faint">{label}</p>
-		<MachinePressure machines={machine(items)} usageLink={usageLink} />
+		<MachinePressure machines={machine(items)} machinesWithAlerts={machinesWithAlerts(items)} usageLink={usageLink} />
 	</div>
 );
 
@@ -93,7 +98,7 @@ export function MachinePressureSection() {
 			</div>
 			<div className="w-56 rounded-md border border-border bg-bg p-2">
 				<p className="mb-1 text-xs text-fg-faint">All signals, panel open</p>
-				<MachinePressure machines={machine(all)} usageLink={usageLink} open />
+				<MachinePressure machines={machine(all)} machinesWithAlerts={machine(all)} usageLink={usageLink} open />
 			</div>
 			<div className="flex flex-col gap-3">
 				<Example
@@ -116,6 +121,9 @@ export function MachinePressureSection() {
 						machines={machine([{ ...readings.cpuLoad, freshness: "stale" }], {
 							ageText: "Last read 34 s ago.",
 						})}
+						machinesWithAlerts={machine([{ ...readings.cpuLoad, freshness: "stale" }], {
+							ageText: "Last read 34 s ago.",
+						})}
 						usageLink={usageLink}
 					/>
 				</div>
@@ -135,7 +143,7 @@ export function MachinePressureSection() {
 			</div>
 			<div className="rounded-md border border-border bg-bg p-2">
 				<p className="mb-1 text-xs text-fg-faint">Collapsed rail</p>
-				<MachinePressure machines={machine(all)} usageLink={usageLink} collapsed />
+				<MachinePressure machines={machine(all)} machinesWithAlerts={machine(all)} usageLink={usageLink} collapsed />
 			</div>
 		</Section>
 	);

@@ -5,7 +5,7 @@ import { MachinePressureContext } from "./MachinePressureProvider";
 
 export function SidebarMachinePressure({ collapsed = false }: { collapsed?: boolean }) {
 	const id = useId();
-	const { machines, setDetailsOpen } = useContext(MachinePressureContext)!;
+	const { machines, machinesWithAlerts, setDetailsOpen } = useContext(MachinePressureContext)!;
 	const [open, setOpen] = useState(false);
 	const changeOpen = useCallback(
 		(next: boolean) => {
@@ -21,6 +21,7 @@ export function SidebarMachinePressure({ collapsed = false }: { collapsed?: bool
 	return (
 		<MachinePressure
 			machines={machines}
+			machinesWithAlerts={machinesWithAlerts}
 			collapsed={collapsed}
 			open={open}
 			onOpenChange={changeOpen}

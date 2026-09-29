@@ -13,9 +13,6 @@ export type MemoryPressureDisplay = {
 	valueClass: "text-fg" | "text-danger";
 };
 
-// The XNU sysctl uses 1 for normal, 2 for warning, and 4 for critical. Another
-// integer reads "Unknown". A missing sysctl reads "Unavailable". Only critical
-// pressure changes the color of the memory figure.
 export const memoryPressureLevel = (level: MemoryPressureLevel | null): MemoryPressureDisplay => {
 	if (memoryIsRed(level))
 		return { label: "Critical", tone: "danger", textClass: "text-danger", valueClass: "text-danger" };

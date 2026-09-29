@@ -5,6 +5,14 @@ export type MachinePressureSignalKey = (typeof machinePressureSignalKeys)[number
 export type MachinePressureTier = "normal" | "warning" | "danger";
 export type MachinePressureFreshness = "live" | "stale" | "unavailable" | "lost";
 export type TemperatureReaderState = "available" | "unavailable" | "failed" | "lost";
+export type MemoryPressureName = "Normal" | "Warning" | "Critical" | "Unknown" | "Unavailable";
+
+export const memoryPressureName = (level: MemoryPressureLevel | null): MemoryPressureName => {
+	if (level === 1) return "Normal";
+	if (level === 2) return "Warning";
+	if (level === 4) return "Critical";
+	return level === null ? "Unavailable" : "Unknown";
+};
 
 export type TimedReading<T> = {
 	value: T;
@@ -131,7 +139,8 @@ const thermalScore = (state: ThermalState): number => {
 	return 0;
 };
 
-const memoryScore = (level: MemoryPressureLevel): number => (level === 1 || level === 2 || level === 4 ? level : 0);
+const memoryScore = (level: MemoryPressureLevel): number | null =>
+	level === 1 || level === 2 || level === 4 ? level : null;
 
 const tierFor = (value: number, policy: NumericPolicy): MachinePressureTier => {
 	if (value >= policy.dangerAt) return "danger";
@@ -235,13 +244,17 @@ const updateSignal = <T>(
 	key: MachinePressureSignalKey,
 	stored: StoredSignal<T>,
 	reading: TimedReading<T> | null,
-	score: (value: T) => number,
+	score: (value: T) => number | null,
 	now: number,
 	availability: SignalAvailability = null,
 ): MachinePressureSignalState<T> => {
 	const policy = MACHINE_PRESSURE_POLICY[key];
 	const freshness = freshnessOf(stored, reading, now, policy.staleAfterMs, policy.lostAfterMs, availability);
-	if (freshness === "live" && reading !== null) updateTier(stored, score(reading.value), policy, now);
+	if (freshness === "live" && reading !== null) {
+		const value = score(reading.value);
+		if (value === null) stored.transition = null;
+		else updateTier(stored, value, policy, now);
+	}
 	return { key, tier: stored.tier, freshness, reading: stored.reading };
 };
 
