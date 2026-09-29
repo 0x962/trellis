@@ -1,5 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { SessionCreateInputSchema } from "./session.ts";
+import { SessionCreateInputSchema, SessionNameSchema, SessionRenameInputSchema, SessionSchema } from "./session.ts";
+
+describe("session names", () => {
+	test.each([
+		["ASCII", "a".repeat(61)],
+		["Unicode", "界".repeat(4096)],
+	])("preserves a complete %s name", (_, name) => {
+		expect(SessionCreateInputSchema.parse({ name, prompt: "Inspect" }).name).toBe(name);
+		expect(SessionRenameInputSchema.parse({ id: "session", name }).name).toBe(name);
+		expect(SessionSchema.shape.name.parse(name)).toBe(name);
+	});
+
+	test("trims outer whitespace and rejects an empty name", () => {
+		expect(SessionNameSchema.parse("  Session name  ")).toBe("Session name");
+		expect(SessionNameSchema.safeParse(" \n ").success).toBe(false);
+	});
+});
 
 describe("SessionCreateInputSchema", () => {
 	test.each([

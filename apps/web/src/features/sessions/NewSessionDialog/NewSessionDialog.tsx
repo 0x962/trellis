@@ -99,7 +99,6 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 					hideLabel
 					className="border-transparent bg-transparent px-1 font-medium enabled:hover:border-transparent"
 					value={draft.name}
-					maxLength={60}
 					placeholder="Session name (optional)"
 					onChange={(event) => change({ name: event.target.value })}
 				/>
