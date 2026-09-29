@@ -13,7 +13,7 @@ import {
 import { rows, textArray } from "./support.ts";
 import { type SummaryRow, summaryStatement, toSummary } from "./ticketSummary.ts";
 
-export type SearchInput = { q: string; projectIds?: readonly string[]; limit?: number };
+export type SearchInput = { q: string; projectIds?: readonly string[]; limit?: number; offset?: number };
 export type SearchRankInput = SearchInput & { rankProjectIds?: readonly string[] };
 
 export const SEARCH_LIMIT = 20;
@@ -48,14 +48,14 @@ const textHits = (scope: Scope) => sql`
 	SELECT t.id, ts_rank(t.search, query.ts) AS rank
 	FROM tickets t, query WHERE t.search @@ query.ts AND ${scope("t")}`;
 
-type IdentifierArgs = { key: SQL; number: SQL; q: SQL; limit: SQL; scope: Scope };
+type IdentifierArgs = { key: SQL; number: SQL; q: SQL; limit: SQL; offset: SQL; scope: Scope };
 
 // A KEY-n text: the exact ticket first, then the text hits for the same
 // text. The exact lookup and the text search are one statement. A KEY-n
 // text holds a hyphen, and tsquery() sends every text with a hyphen in its
 // last word through websearch_to_tsquery, so the statement calls it
 // directly.
-const identifierPage = ({ key, number, q, limit, scope }: IdentifierArgs) => sql`
+const identifierPage = ({ key, number, q, limit, offset, scope }: IdentifierArgs) => sql`
 	exact AS (
 		SELECT t.id FROM tickets t JOIN projects proj ON proj.id = t.project_id
 		WHERE proj.key = ${key} AND t.number = ${number} AND ${scope("t")}
@@ -64,11 +64,12 @@ const identifierPage = ({ key, number, q, limit, scope }: IdentifierArgs) => sql
 		FROM hits WHERE id NOT IN (SELECT id FROM exact)
 		GROUP BY id
 		ORDER BY max(rank) DESC, id DESC
-		LIMIT ${limit} - (SELECT count(*) FROM exact)
-	), page AS (
+	), ordered AS (
 		SELECT id, 0 AS rn FROM exact
 		UNION ALL
 		SELECT id, rn FROM ranked
+	), page AS (
+		SELECT id, rn FROM ordered ORDER BY rn LIMIT ${limit} OFFSET ${offset}
 	)`;
 
 // A KEY-n search must answer in 3 ms. Postgres plans a statement again on
@@ -88,7 +89,7 @@ const SEARCH_ROW = "search_row";
 // Creates the row type and the two KEY-n functions for this session. They
 // are temporary objects, so every PGlite instance creates its own after its
 // migrations. The functions take the key, the number, the text, and the
-// limit, and the narrowed function also takes the project ids as a text[].
+// limit and offset, and the narrowed function also takes the project ids as a text[].
 export const prepareSearch = async (db: Db) => {
 	const dialect = new PgDialect();
 	const emptyPage = sql`page AS (SELECT NULL::text AS id, 0::bigint AS rn WHERE false)`;
@@ -101,10 +102,11 @@ export const prepareSearch = async (db: Db) => {
 			number: sql.raw("$2"),
 			q: sql.raw("$3"),
 			limit: sql.raw("$4"),
-			scope: scopeIn(narrowed ? sql.raw("$5") : undefined),
+			offset: sql.raw("$5"),
+			scope: scopeIn(narrowed ? sql.raw("$6") : undefined),
 		});
 		const body = dialect.sqlToQuery(summaryStatement(page, sql``, sql`page.rn`)).sql;
-		const args = narrowed ? "text, int, text, int, text[]" : "text, int, text, int";
+		const args = narrowed ? "text, int, text, int, bigint, text[]" : "text, int, text, int, bigint";
 		await db.execute(
 			sql.raw(`CREATE OR REPLACE FUNCTION pg_temp.${identifierFunction(narrowed)}(${args})
 				RETURNS SETOF ${SEARCH_ROW} LANGUAGE plpgsql SET plan_cache_mode = force_generic_plan
@@ -115,7 +117,7 @@ export const prepareSearch = async (db: Db) => {
 
 // Every other text. A ticket matches only through full-text search: complete
 // words, and a prefix on the last word while the person types.
-const textPage = (q: string, scope: Scope, limit: number, rankIds: SQL | undefined) => {
+const textPage = (q: string, scope: Scope, limit: number, offset: number, rankIds: SQL | undefined) => {
 	const order =
 		rankIds === undefined
 			? sql`g.rank DESC, g.id DESC`
@@ -129,7 +131,7 @@ const textPage = (q: string, scope: Scope, limit: number, rankIds: SQL | undefin
 		) AS rn
 		FROM grouped g JOIN tickets t ON t.id = g.id
 		ORDER BY ${order}
-		LIMIT ${limit}
+		LIMIT ${limit} OFFSET ${offset}
 	)`;
 };
 
@@ -139,7 +141,13 @@ const regexQuote = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&
 
 const wordPrefixPattern = (word: string) => `(^|[^[:alnum:]])${regexQuote(word)}[[:alnum:]]*`;
 
-const projectsMatching = async (tx: Tx, q: string, projectIds: readonly string[] | undefined, limit: number) => {
+const projectsMatching = async (
+	tx: Tx,
+	q: string,
+	projectIds: readonly string[] | undefined,
+	limit: number,
+	offset: number,
+) => {
 	const words = searchWords(q).map(wordPrefixPattern);
 	const matches = (column: SQL) =>
 		sql.join(
@@ -151,8 +159,8 @@ const projectsMatching = async (tx: Tx, q: string, projectIds: readonly string[]
 		sql`SELECT ${projectSummaryColumns} ${projectSummaryJoins}
 			WHERE ((${matches(sql`p.key`)}) OR (${matches(sql`p.slug`)}) OR (${matches(sql`p.name`)}))
 				AND ${projectIds ? sql`p.id = ANY(${textArray(projectIds)})` : sql`true`}
-			ORDER BY p.position, p.slug
-			LIMIT ${limit}`,
+			ORDER BY p.position, p.slug, p.id
+			LIMIT ${limit} OFFSET ${offset}`,
 	);
 	return found.map(toProjectSummary);
 };
@@ -162,6 +170,7 @@ const projectsMatching = async (tx: Tx, q: string, projectIds: readonly string[]
 // projects.
 export const search = async (tx: Tx, input: SearchRankInput): Promise<Pick<SearchOutput, "tickets" | "projects">> => {
 	const limit = input.limit ?? SEARCH_LIMIT;
+	const offset = input.offset ?? 0;
 	const ids = input.projectIds === undefined ? undefined : textArray(input.projectIds);
 	const rankIds = input.rankProjectIds === undefined ? undefined : textArray(input.rankProjectIds);
 	const narrowed = ids !== undefined;
@@ -173,11 +182,11 @@ export const search = async (tx: Tx, input: SearchRankInput): Promise<Pick<Searc
 		const scope = narrowed ? sql`, ${ids}` : sql``;
 		const found = await rows<SummaryRow>(
 			tx,
-			sql`SELECT * FROM pg_temp.${sql.raw(identifierFunction(narrowed))}(${id.key}, ${id.number}, ${q}, ${limit}${scope})`,
+			sql`SELECT * FROM pg_temp.${sql.raw(identifierFunction(narrowed))}(${id.key}, ${id.number}, ${q}, ${limit}, ${offset}${scope})`,
 		);
 		return { tickets: found.map(toSummary), projects: [] };
 	}
-	const page = textPage(q, scopeIn(ids), limit, rankIds);
+	const page = textPage(q, scopeIn(ids), limit, offset, rankIds);
 	const found = await rows<SummaryRow>(tx, summaryStatement(page, sql``, sql`page.rn`));
-	return { tickets: found.map(toSummary), projects: await projectsMatching(tx, q, input.projectIds, limit) };
+	return { tickets: found.map(toSummary), projects: await projectsMatching(tx, q, input.projectIds, limit, offset) };
 };

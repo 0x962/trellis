@@ -4,7 +4,7 @@ import { formatCount } from "../../../../../lib/format";
 
 export type ResultGroupProps = {
 	label: string;
-	count: number;
+	count?: number;
 	children: ReactNode;
 	layout?: "table" | "list";
 };
@@ -15,7 +15,7 @@ export function ResultGroup({ label, count, children, layout = "table" }: Result
 			<GroupHeader
 				group={label.toLowerCase()}
 				label={label}
-				count={formatCount(count)}
+				count={count === undefined ? undefined : formatCount(count)}
 				collapsible={false}
 				appearance="band"
 			/>

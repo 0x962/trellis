@@ -6,6 +6,7 @@ import { TicketSummarySchema } from "./ticket.ts";
 
 export const SearchQuerySchema = z.strictObject({
 	q: z.string().min(1, "Enter the text to search for."),
+	offset: z.coerce.number().int().min(0).default(0),
 	project: ProjectRefStringSchema.optional(),
 	rankProject: ProjectRefStringSchema.optional(),
 	limit: z.coerce
@@ -21,5 +22,6 @@ export const SearchOutputSchema = z.object({
 	tickets: z.array(TicketSummarySchema),
 	pages: z.array(PageSummarySchema),
 	projects: z.array(ProjectSummarySchema),
+	nextOffset: z.number().int().min(0).nullable(),
 });
 export type SearchOutput = z.infer<typeof SearchOutputSchema>;

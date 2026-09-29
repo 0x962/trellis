@@ -1577,6 +1577,13 @@ page. The query dedupes, limits to 20 rows, and runs under a 200 ms statement
 timeout. The client debounces by 120 ms, keeps one search in flight, and drops a
 superseded one on both sides.
 
+Search responses include at most 50 matches per type and a nullable `nextOffset`.
+The default page size is 20. Each result type retains its ranked order across offsets.
+Unique IDs break equal ranks. An exact ticket identifier precedes its text matches.
+The global search view appends each requested page and shows tickets, projects, and Pages.
+A different query or preferred project selects a separate cache and starts at offset zero.
+Offsets describe the current data, not a frozen snapshot.
+
 ## Performance design
 
 The database worker keeps the synchronous WASM
