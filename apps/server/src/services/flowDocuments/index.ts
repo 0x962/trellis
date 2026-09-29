@@ -1,5 +1,7 @@
 export { assertLegacy } from "./assertLegacy";
 export { unsupported } from "./assertLegacy/components/unsupported";
+export type { DiscoveryAvailability, DiscoveryResult, DiscoverySummary } from "./discovery";
+export { discovery } from "./discovery";
 export { documentBytes } from "./documentBytes";
 export { get } from "./get";
 export { installedPublisher, type PublicationDispatch } from "./installedPublisher";
