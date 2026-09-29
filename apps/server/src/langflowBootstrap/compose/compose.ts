@@ -79,7 +79,6 @@ export async function composeLangflowBootstrap(config: Config, deps: LangflowBoo
 		captureIssuerFile: configured.captureIssuerFile,
 		engineApiConfigFile: configured.engineApiConfigFile,
 		engineApiConfigSha256: engineConfiguration.sha256,
-		nativeReservationAuthenticationFile: configured.nativeReservationAuthenticationFile,
 	});
 	const supervisor = await deps.openSupervisor({
 		home: config.home,

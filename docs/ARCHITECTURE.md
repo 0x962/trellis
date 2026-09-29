@@ -123,6 +123,8 @@ The Codex adapter maps native thread, turn, tool, result, and error events into 
 Muse runs one private `muse serve` session host per attempt. The Muse bridge speaks the Muse Session Protocol over its stdio, maps session, turn, item, and result notifications into the runtime journal, and prints the transcript to the terminal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
+The login environment reader waits for the shell to exit and its output to close.
+An explicit caller deadline stops the read and returns an error.
 A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
 `HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
@@ -182,7 +184,7 @@ An application replacement can reuse that version while its runtime owns active 
 The update status blocks an incompatible runtime protocol and retains the prior host until work stops.
 
 A directory handoff verifies the recorded owner against the standalone launchd service.
-After confirmation, it disables that service and waits for the owner to exit.
+After confirmation, it disables that service and waits for the owner to exit before the offline helper starts.
 The offline helper holds the database and runtime locks before it copies the database into `backups/desktop-handoff-<id>`.
 It then applies schema migrations. It pauses automation in one transaction.
 External agent records retain their states. External clients need the desktop bearer token to update tickets.
@@ -773,7 +775,10 @@ The session update pane groups retained updates by local calendar day, newest fi
 The tree keeps one selected update open with its Markdown and isolated embeds.
 Arrow keys move tree focus and fold days. Enter or Space selects an update.
 New updates announce availability without changing selection, focus, or the visible scroll anchor.
-`sessionUpdates.get` accepts an optional `history.before` cursor with `createdAt` and `id`.
+`sessionUpdates.get` accepts `history: { include: true }` for the first history page.
+REST clients send `history[include]=true`. Later pages also supply `history.before` with `createdAt` and `id`.
+The tree mounts the visible rows and retains the selected update and focused row.
+History read failures expose Retry, including when the saved history is empty.
 History pages contain up to 50 updates and a nullable `nextCursor`; the original `latest`, `previous`, and `request` fields remain available.
 
 ### Harness accounts
@@ -842,6 +847,7 @@ The assignment retains its account across process restarts. An explicit account 
 `agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
 A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
 Claude, Codex, and Pi transfer the selected session file. Muse copies the session directory. OpenCode exports and imports that session through its CLI.
+Each OpenCode transfer command must exit successfully before the transfer continues.
 The runtime checks the resumed provider session identifier before it accepts the process.
 
 `agentRuns.switchAccount` stops a native process and resumes its saved conversation with another account of the same harness.
@@ -1166,7 +1172,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
 | tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
-| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). The state of an epic is never stored. |
+| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description text, actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). The state of an epic is never stored. |
 | waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), position integer (CHECK >= 0), created_at, updated_at. Hash equality exclusion on (epic_id || / || slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
@@ -1609,8 +1615,10 @@ every leading token as a whole lexeme and the last token as a prefix.
 The result unions with a trigram match on the title, ranked by
 `word_similarity`, when the text is 3 characters or longer. Text hits sort
 first, so the trigram index runs only when the text hits fill less than the
-page. The query dedupes, limits to 20 rows, and runs under a 200 ms statement
-timeout. The client debounces by 120 ms, keeps one search in flight, and drops a
+page. The query dedupes and limits each page to 20 rows.
+
+Search uses the database settings of its caller.
+The client debounces by 120 ms, keeps one search in flight, and drops a
 superseded one on both sides.
 
 ## Performance design

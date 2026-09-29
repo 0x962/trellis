@@ -18,6 +18,14 @@ def restrict_inspectors(replace, mode):
 
     main = parameter + 'index.tsx'
     imports(main, 'import { useTranslation }')
+    replace(main, 'import { useTranslation }', 'import { DeclaredField } from "@/customization/trellis/frontend/DeclaredField";\nimport useFlowStore from "@/stores/flowStore";\nimport { useTranslation }')
+    replace(main, '  const { t } = useTranslation();', '  const { t } = useTranslation();\n  const graph = useFlowStore((state) => state.currentFlow?.data);')
+    replace(main, '  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;', '''  if (TRELLIS_EDITOR_BRIDGE) return showParameter ? (
+    <DeclaredField name={name} nodeId={nodeId} field={templateData} value={templateValue}
+      disabled={disabled} sourceBound={Boolean(graph && "trellisSource" in graph)}
+      onChange={(value) => (handleOnNewValue as handleOnNewValueType)({ value })} />
+  ) : null;
+  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;''')
     replace(main, '      disabled,', '      disabled: disabled || (TRELLIS_EDITOR_BRIDGE && name === "code"),')
     replace(main, 'hasRefreshButton: templateData.refresh_button,',
             'hasRefreshButton: !TRELLIS_EDITOR_BRIDGE && templateData.refresh_button,')

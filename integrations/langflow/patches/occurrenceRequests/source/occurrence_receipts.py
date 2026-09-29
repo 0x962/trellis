@@ -75,7 +75,10 @@ async def read_native_visit(session, job_id, request_bytes):
     visit = matches[0]
     if visit["kind"] != "native":
         raise OccurrenceConflict("input_request_kind_conflict")
+    if visit["waitBytes"] is None:
+        raise OccurrenceConflict("native_wait_not_retained")
     return {"engineNodeId": visit["vertexId"], "requestBytes": visit["requestBytes"],
+            "engineWaitId": visit["waitId"], "waitBytes": visit["waitBytes"],
             "occurrence": visit["occurrence"], "scope": visit["facts"],
             "admissionReceipt": request["admissionReceipt"],
             "inputReceipts": [await read_receipt(session, job_id, request, receipt_id)

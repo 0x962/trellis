@@ -4,3 +4,6 @@ export { deliverDecision } from "./deliverDecision";
 export { prepareDelivery } from "./prepareDelivery/prepareDelivery.ts";
 export { record } from "./record/record.ts";
 export { recordAcknowledgement } from "./recordAcknowledgement/recordAcknowledgement.ts";
+export { decisionEngine } from "./decisionEngine";
+export { decisionConnection, type DecisionConnectionDependencies } from "./decisionConnection";
+export { decisionState, type DecisionStateInput, type DecisionStateOperations } from "./decisionState";

@@ -48,8 +48,8 @@ Keep every required asset in the published directory.
 | Assets per version | 200 |
 | One asset | 0 to 100 MiB |
 | All assets in one version | 250 MiB |
-| Title | 1 to 200 characters |
-| Summary | Up to 2,000 characters |
+| Title | Nonempty, trimmed text |
+| Summary | Trimmed text |
 | Asset path | Up to 1,024 UTF-8 bytes |
 
 The host upload limit can impose a smaller per-file limit.
@@ -84,7 +84,7 @@ The browser route `/p/<KEY>/pages/<slug>?version=<number>` selects a historical 
 
 Select text, open the context menu on an element, or focus an element and press **C**.
 Enter the comment in the trusted Trellis editor. Submit it with **Comment** or Enter.
-A selected text anchor permits up to 2,000 characters.
+Trellis preserves the complete comment body and selected text.
 The anchor belongs to the exact version that the reader sees.
 
 The viewer places numbered pins beside matching anchors. A pin opens its thread.

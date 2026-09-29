@@ -108,7 +108,16 @@ It calls `useAddComponent` with the installed palette definition.
 The native fixture beside that component covers those keys; the combined browser proof must use that actual path.
 `frontend/EditorInteractions/__tests__` supplies mounted selector and outline fixtures plus exact graph undo assertions.
 The production patch copies these fixtures into the matched frontend for its Jest suite.
-Typed source inspectors and the rendered interaction proof remain open.
+`NativeInspector` edits a local copy of the installed node template.
+Save checks for concurrent changes and preserves the template metadata. Cancel leaves the graph unchanged.
+The form exposes text, multiline text, booleans, numbers, and declared string choices.
+`DeclaredField` supplies the same controls in the native inline inspector.
+`NumericField` rejects invalid input without a silent replacement value or an arbitrary maximum.
+Internal control inputs stay read-only. Fields bound to `trellisSource` require the atomic source editor owned by TRL-695 and TRL-684.
+The source editor must regenerate associations, request specifications, and group or loop policy together.
+A client hash calculation cannot authorize an edit to those bindings.
+`NativeInspector/__tests__` covers Save, Cancel, reopen, concurrent changes, large values, and bound fields.
+These fixtures and the rendered interaction proof remain unrun.
 The existing probe paths, patch, and shared candidate remain under their owners.
 
 ## Verification

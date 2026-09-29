@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "classificationRequestId": "00000000-0000-4000-8000-000000000010",
+  "classificationRequestDigest": "4bd7486cf12e5e4545b6b621be1594b994466e14b0378c4fc0b35eeb9040f00d",
+  "classificationReceiptId": "classification-1",
+  "state": "succeeded",
+  "relevance": {
+    "frontend": true,
+    "backend": false
+  },
+  "error": null
+}

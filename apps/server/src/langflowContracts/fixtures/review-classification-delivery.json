@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "wait": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 1,
+    "occurrence": {
+      "nodeId": "node-frontend",
+      "occurrenceKey": "outer-2.inner-3.review-frontend",
+      "parentOccurrenceKey": "outer-2.inner-3",
+      "phase": "step",
+      "iterationPath": [
+        {
+          "loopNodeId": "outer",
+          "round": 2
+        },
+        {
+          "loopNodeId": "inner",
+          "round": 3
+        }
+      ]
+    },
+    "engineRequestId": "00000000-0000-4000-8000-000000000011",
+    "actionKey": "review-action-frontend",
+    "reviewArea": "frontend",
+    "visit": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "nodeId": "node-frontend",
+      "occurrenceKey": "outer-2.inner-3.review-frontend",
+      "parentOccurrenceKey": "outer-2.inner-3",
+      "phase": "step",
+      "iterationPath": [
+        {
+          "loopNodeId": "outer",
+          "round": 2
+        },
+        {
+          "loopNodeId": "inner",
+          "round": 3
+        }
+      ],
+      "requestId": "00000000-0000-4000-8000-000000000011",
+      "classificationRequestId": "00000000-0000-4000-8000-000000000010",
+      "classificationRequestDigest": "4bd7486cf12e5e4545b6b621be1594b994466e14b0378c4fc0b35eeb9040f00d",
+      "diffId": "diff-1",
+      "reviewedHead": "head-1",
+      "specHash": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "visitDigest": "99da188fd9b422ba7ef0e99a6369dd9bb75dbbab9bd07fdb0859743b768efb25",
+    "deadlineRefs": [
+      "deadline-1"
+    ]
+  },
+  "result": {
+    "version": 1,
+    "visit": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "nodeId": "node-frontend",
+      "occurrenceKey": "outer-2.inner-3.review-frontend",
+      "parentOccurrenceKey": "outer-2.inner-3",
+      "phase": "step",
+      "iterationPath": [
+        {
+          "loopNodeId": "outer",
+          "round": 2
+        },
+        {
+          "loopNodeId": "inner",
+          "round": 3
+        }
+      ],
+      "requestId": "00000000-0000-4000-8000-000000000011",
+      "classificationRequestId": "00000000-0000-4000-8000-000000000010",
+      "classificationRequestDigest": "4bd7486cf12e5e4545b6b621be1594b994466e14b0378c4fc0b35eeb9040f00d",
+      "diffId": "diff-1",
+      "reviewedHead": "head-1",
+      "specHash": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "visitDigest": "99da188fd9b422ba7ef0e99a6369dd9bb75dbbab9bd07fdb0859743b768efb25",
+    "result": {
+      "version": 1,
+      "classificationRequestId": "00000000-0000-4000-8000-000000000010",
+      "classificationRequestDigest": "4bd7486cf12e5e4545b6b621be1594b994466e14b0378c4fc0b35eeb9040f00d",
+      "classificationReceiptId": "classification-1",
+      "state": "succeeded",
+      "relevance": {
+        "frontend": true,
+        "backend": false
+      },
+      "error": null
+    }
+  },
+  "resultDigest": "e25e33b17a89397763289828890321a8d4a95b39f3be7ced52a81ab0795d2abb",
+  "authority": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 2,
+    "hostId": "host-1",
+    "projectId": "project-1",
+    "publicationDigest": "3f662004cb4676be8aa8eae1a6a2328aeb693df48ceebb81f492e6b34872f4e7",
+    "ownerId": "owner-2",
+    "ownershipRevision": 2,
+    "capabilityId": "capability-2",
+    "permissions": [
+      "classification.deliver"
+    ],
+    "issuedAt": "2026-09-29T06:00:00.000Z",
+    "expiresAt": "2026-09-29T07:00:00.000Z"
+  }
+}

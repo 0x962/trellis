@@ -5,3 +5,4 @@ export * from "./effects";
 export * from "./executions";
 export * from "./native";
 export * from "./projections";
+export * from "./workspaceObservations";

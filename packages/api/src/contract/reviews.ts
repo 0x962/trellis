@@ -11,6 +11,7 @@ import {
 	ReviewCreateSchema,
 	ReviewListSchema,
 	ReviewPageSchema,
+	ReviewPathSchema,
 	ReviewPrSchema,
 	ReviewRefSchema,
 	ReviewRevisionSchema,
@@ -98,7 +99,7 @@ export const reviews = {
 	file: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/file", summary: "Read a file at the reviewed commit" })
-		.input(pr.extend({ revisionId: UlidSchema, path: z.string().min(1), side: z.enum(["old", "new"]) }))
+		.input(pr.extend({ revisionId: UlidSchema, path: ReviewPathSchema, side: z.enum(["old", "new"]) }))
 		.output(z.object({ content: z.string() })),
 	open: base
 		.route({ method: "POST", path: "/reviews/open", summary: "Keep a PR for local review" })

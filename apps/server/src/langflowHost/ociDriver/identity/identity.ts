@@ -5,6 +5,7 @@ import { missingOciObject, type OciRun } from "../process/process";
 
 const labelPrefix = "io.trellis.langflow";
 const engineApiConfigLabel = `${labelPrefix}.engine-api-config-digest`;
+const nativeReservationAuthenticationLabel = `${labelPrefix}.native-reservation-authentication-sha256`;
 export const containerPort = "7860/tcp";
 export const containerDataDirectory = "/data";
 export const containerAuthenticationFile = "/run/trellis-secrets/authentication";
@@ -117,10 +118,24 @@ export function labels(identity: SidecarIdentity) {
 	};
 }
 
-export function containerLabels(identity: SidecarIdentity, engineApiConfigDigest: string | null) {
-	return engineApiConfigDigest
-		? { ...labels(identity), [engineApiConfigLabel]: engineApiConfigDigest }
-		: labels(identity);
+export function containerLabels(
+	identity: SidecarIdentity,
+	engineApiConfigDigest: string | null,
+	nativeReservationAuthenticationDigest: string,
+) {
+	return {
+		...labels(identity),
+		...(engineApiConfigDigest ? { [engineApiConfigLabel]: engineApiConfigDigest } : {}),
+		[nativeReservationAuthenticationLabel]: nativeReservationAuthenticationDigest,
+	};
+}
+
+export function readNativeReservationAuthenticationDigest(container: ContainerInspection) {
+	const digest = container.Config.Labels?.[nativeReservationAuthenticationLabel];
+	if (!digest || !/^[0-9a-f]{64}$/.test(digest)) {
+		throw new Error("sidecar_native_reservation_authentication_digest_invalid");
+	}
+	return digest;
 }
 
 export function assertNetwork(network: NetworkInspection, identity: SidecarIdentity) {
@@ -133,6 +148,7 @@ export function assertContainer(
 	image: { reference: string; configDigest: string },
 	storage?: { data: string; secrets: string },
 	engineApiConfigDigest: string | null = null,
+	nativeReservationAuthenticationDigest = readNativeReservationAuthenticationDigest(container),
 ) {
 	const expectedNames = names(identity);
 	const tmpfsOptions = new Set(container.HostConfig.Tmpfs?.["/tmp"]?.split(","));
@@ -142,7 +158,10 @@ export function assertContainer(
 		container.Name !== `/${expectedNames.container}` ||
 		container.Config.Image !== image.reference ||
 		container.Image !== image.configDigest ||
-		!isDeepStrictEqual(container.Config.Labels, containerLabels(identity, engineApiConfigDigest)) ||
+		!isDeepStrictEqual(
+			container.Config.Labels,
+			containerLabels(identity, engineApiConfigDigest, nativeReservationAuthenticationDigest),
+		) ||
 		container.HostConfig.NetworkMode !== expectedNames.network ||
 		!container.HostConfig.CapDrop?.includes("ALL") ||
 		!container.HostConfig.SecurityOpt?.includes("no-new-privileges") ||

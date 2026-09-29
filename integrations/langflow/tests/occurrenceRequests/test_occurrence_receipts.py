@@ -62,3 +62,24 @@ async def test_original_human_decision_retains_whitespace_and_full_no_feedback()
     row = SimpleNamespace(decision_bytes=raw.encode(), payload_digest=receipts.digest(raw))
     session = SimpleNamespace(exec=AsyncMock(return_value=SimpleNamespace(one=lambda: row)))
     assert await receipts.original_decision(session, "job", json.loads(raw)) == raw
+
+
+@pytest.mark.asyncio
+async def test_native_visit_returns_original_wait_after_graph_wait_is_removed(monkeypatch):
+    request = {"engineJobId": "job", "requestId": "request", "inputReceiptIds": [],
+               "admissionReceipt": {"executionId": "execution", "publicationId": "publication"}}
+    request_bytes = canonical(request)
+    original_wait = " " + json.dumps({"kind": "native", "waitId": "original-wait", "request": request}) + " "
+    visit = {"vertexId": "vertex", "requestBytes": request_bytes, "kind": "native", "facts": {},
+             "occurrence": OCCURRENCE, "waitId": "original-wait", "waitBytes": original_wait}
+    async def read(session, job_id, kind):
+        assert kind == receipts.JOURNAL_KIND
+        return SimpleNamespace(blob=canonical({"visits": {"visit": visit}}))
+    monkeypatch.setattr(receipts, "checkpoint", read)
+    session = SimpleNamespace(exec=AsyncMock())
+    result = await receipts.read_native_visit(session, "job", request_bytes)
+    assert result["engineWaitId"] == "original-wait"
+    assert result["waitBytes"] == original_wait
+    assert result["requestBytes"] == request_bytes
+    with pytest.raises(OccurrenceConflict, match="input_request_not_retained"):
+        await receipts.read_native_visit(session, "job", request_bytes + " ")
