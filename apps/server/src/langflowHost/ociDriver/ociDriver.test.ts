@@ -31,11 +31,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 	const authentication = join(root, "secrets", `${identity.instanceId}.token`);
 	const captureIssuer = join(root, "capture-issuer.key");
 	const engineApiConfig = join(root, "engine-api.json");
-	const nativeReservationAuthentication = join(
-		root,
-		"secrets",
-		`${identity.instanceId}.native-reservations.token`,
-	);
+	const nativeReservationAuthentication = join(root, "secrets", `${identity.instanceId}.native-reservations.token`);
 	await mkdir(join(root, "secrets"), { recursive: true, mode: 0o700 });
 	await mkdir(data, { recursive: true, mode: 0o700 });
 	await chmod(data, 0o700);
@@ -144,9 +140,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		expect(provision).toContain(
 			`type=bind,src=${nativeReservationAuthentication},dst=/input/native-reservations,readonly`,
 		);
-		expect(provision.at(-1)).toContain(
-			"-m 0600 /input/native-reservations /secrets/native-reservations.token",
-		);
+		expect(provision.at(-1)).toContain("-m 0600 /input/native-reservations /secrets/native-reservations.token");
 		const observation = await driver.observe({
 			identity,
 			challenge: "00000000-0000-4000-8000-000000000002",
@@ -246,8 +240,7 @@ function containerInspection(running: boolean) {
 			Labels: {
 				...labels(),
 				"io.trellis.langflow.engine-api-config-digest": engineApiConfigDigest,
-				"io.trellis.langflow.native-reservation-authentication-sha256":
-					nativeReservationAuthenticationDigest,
+				"io.trellis.langflow.native-reservation-authentication-sha256": nativeReservationAuthenticationDigest,
 			},
 		},
 		HostConfig: {

@@ -8,17 +8,10 @@ import { assertContainerBinding } from "./containerBinding";
 import { containerCreateArgs } from "./createArgs/createArgs";
 import { engineApiConfiguration } from "./engineApiConfiguration";
 import { authenticatedHealth } from "./health";
-import {
-	assertNetwork,
-	endpoint,
-	inspectContainer,
-	inspectNetwork,
-	labels,
-	names,
-} from "./identity/identity";
+import { assertNetwork, endpoint, inspectContainer, inspectNetwork, labels, names } from "./identity/identity";
 import { assertManifestRuntime } from "./manifestRuntime";
 import { nativeReservationAuthenticationReader } from "./nativeReservationAuthentication";
-import { type OciCommandResult, runOciCommand } from "./process/process";
+import { runOciCommand } from "./process/process";
 import {
 	assertVolume,
 	createVolume,
@@ -99,14 +92,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		if (container.state === "unknown") throw new Error("sidecar_ownership_unknown");
 		if (container.state === "found") {
 			const storage = await assertIsolation(input.identity);
-			assertContainerBinding(
-				container.value,
-				input.identity,
-				image,
-				storage,
-				configuredEngineApi,
-				native.digest,
-			);
+			assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		} else {
 			let network = await inspectNetwork(run, instanceNames.network);
 			if (network.state === "unknown") throw new Error("sidecar_network_unknown");
@@ -212,14 +198,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				throw new Error("sidecar_authentication_file_conflict");
 			}
 			const storage = await assertIsolation(input.identity);
-			assertContainerBinding(
-				inspected.value,
-				input.identity,
-				image,
-				storage,
-				configuredEngineApi,
-				native.digest,
-			);
+			assertContainerBinding(inspected.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		} catch {
 			return {
 				identity: input.identity,
