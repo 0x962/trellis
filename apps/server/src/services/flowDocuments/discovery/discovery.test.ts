@@ -22,7 +22,7 @@ beforeEach(async () => {
 afterEach(async () => {
 	await h.db.$client.close();
 });
-const read = (availability = unknown) => h.run((tx) => discovery(h.ctx, tx, {}, availability));
+const read = (availability: DiscoveryAvailability = unknown) => h.run((tx) => discovery(h.ctx, tx, {}, availability));
 
 test("discovery retains dense counts and excludes graph bytes and instructions", async () => {
 	const input = saveInput();
