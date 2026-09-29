@@ -12,9 +12,7 @@ type Key = { executionId: string; decisionId: string };
 type AuthorizedKey = Key & { authority: DeliveryAuthorityV1 };
 export type DecisionStateOperations = {
 	page(input: { executionId?: string; after: Key | null }): Promise<Key[]>;
-	read(
-		input: Key,
-	): Promise<{
+	read(input: Key): Promise<{
 		stored: NonNullable<Awaited<ReturnType<typeof readDecision>>>;
 		authority: DeliveryAuthorityV1 | null;
 		canceled: boolean;

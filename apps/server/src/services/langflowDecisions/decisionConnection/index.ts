@@ -1,1 +1,1 @@
-export { decisionConnection, type DecisionConnectionDependencies } from "./decisionConnection";
+export { type DecisionConnectionDependencies, decisionConnection } from "./decisionConnection";
