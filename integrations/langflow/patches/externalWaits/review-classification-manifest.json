@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "integrations/langflow/patches/externalWaits/0006-review-classification-continuation.patch",
-  "sha256": "270fb9b4122449f2b668abc242b81633cfe3341b12df8bcd14dea992d73be624",
+  "sha256": "a6dbce79978dd55a67177299e42f3e3cb209265e50687d14c427ad1f2972528f",
   "sources": [
     {
       "source": "source/review_protocol.py",
@@ -12,7 +12,7 @@
     {
       "source": "source/review_classifications.py",
       "target": "src/backend/base/langflow/services/trellis_v1/review_classifications.py",
-      "sha256": "17183ab16b42e55e6eaebf0ccc1f662cbe0f436f8409cabe0dda193df8fcb464"
+      "sha256": "f22112893fcaa2380e3228a0bf99a9e30c8ad4ffc4f26871911343e37aa0cfd7"
     }
   ],
   "contracts": {
@@ -33,7 +33,7 @@
   },
   "tests": {
     "apps/server/src/langflowContracts/contracts.test.ts": "d0ad25b8a7675766ce64e6b253eba7074308192592978dac8bccf04bb01b0d27",
-    "integrations/langflow/tests/semantics/test_review_classification_waits.py": "a62256b211e9dab18d598139853bdf222de09db1c3e365b390fa895cef15d2d8"
+    "integrations/langflow/tests/semantics/test_review_classification_waits.py": "8b2535a261b33d376396b1afd181cc20a09fd35bba9c3b75000627bf61290cad"
   },
   "qualification": "source-only",
   "runtimeAccepted": false,

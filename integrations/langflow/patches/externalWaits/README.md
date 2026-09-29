@@ -287,6 +287,7 @@ async def mark_consumed(self, obligation: dict, continuation_receipt_bytes: byte
 `ReviewDeliveryInput` contains `engineWaitId`, `resultBytes`, `deliveryBytes`, and `authorityBytes` as bytes.
 The ledger rejects `claimed` results.
 It accepts one terminal response for each exact saved review wait.
+An equal delivery replay validates the retained acceptance after the graph consumes that wait.
 It stores the exact result and delivery bytes with the RESUME signal and queue obligation in one transaction.
 
 `BackgroundExecutionService.consume_review_classification_obligation` uses the existing external-completion signal.
