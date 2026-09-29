@@ -123,7 +123,7 @@ export const tickets = pgTable(
 		check("tickets_wave_needs_epic", sql`${t.waveId} IS NULL OR ${t.epicId} IS NOT NULL`),
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
-		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
+		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) >= 1`),
 		check("tickets_files_check", sql`jsonb_typeof(${t.files}) = 'array'`),
 		check("tickets_leave_alone_check", sql`jsonb_typeof(${t.leaveAlone}) = 'array'`),
 		check("tickets_verify_check", sql`jsonb_typeof(${t.verify}) = 'array'`),
@@ -206,10 +206,7 @@ export const attachments = pgTable(
 	},
 	(t) => [
 		actorFk("attachments_actor_fk", t),
-		check(
-			"attachments_filename_check",
-			sql`length(${t.filename}) BETWEEN 1 AND 255 AND position('/' IN ${t.filename}) = 0`,
-		),
+		check("attachments_filename_check", sql`length(${t.filename}) >= 1 AND position('/' IN ${t.filename}) = 0`),
 		check("attachments_size_check", sql`${t.size} > 0`),
 		check("attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 		index("attachments_ticket_id_idx").on(t.ticketId),

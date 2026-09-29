@@ -26,7 +26,7 @@ export const notes = pgTable(
 	(t) => [
 		actorFk("notes_actor_fk", t),
 		check("notes_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 120`),
-		check("notes_body_check", sql`length(${t.body}) BETWEEN 1 AND 4000`),
+		check("notes_body_check", sql`length(${t.body}) >= 1`),
 		checkIn(t.audience, NOTE_AUDIENCES),
 		// Two notes of one project never share a title, compared without case.
 		uniqueIndex("notes_project_id_title_idx").on(t.projectId, sql`lower(${t.title})`),

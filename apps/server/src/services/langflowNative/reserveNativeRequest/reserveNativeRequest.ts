@@ -13,7 +13,7 @@ import {
 	readProtocolBytes,
 } from "../../../langflowContracts";
 import { reserve } from "../../agentRuns";
-import { assertExecutionActive } from "../../langflowStops/assertExecutionActive";
+import { assertExecutionNotCanceled } from "../../langflowStops";
 import { projectLaunchConfig } from "../../projectLaunchConfig";
 import { writeLaunchSnapshot } from "../launchSnapshot";
 import type { NativeReservationCtx } from "../types";
@@ -47,7 +47,7 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 		if (existing.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
 		return { replay: true as const, reservation: existing, launch: null };
 	}
-	await assertExecutionActive(ctx, tx, request);
+	await assertExecutionNotCanceled(ctx, tx, request);
 	if (
 		execution.cancelIntent ||
 		execution.admission.state !== "open" ||

@@ -29,12 +29,12 @@ export const pageVersions = pgTable(
 		unique("page_versions_request_id_unique").on(t.requestId),
 		actorFk("page_versions_actor_fk", t),
 		check("page_versions_number_check", sql`${t.number} > 0`),
-		check("page_versions_label_check", sql`${t.label} IS NULL OR length(${t.label}) BETWEEN 1 AND 200`),
+		check("page_versions_label_check", sql`${t.label} IS NULL OR length(${t.label}) >= 1`),
 		check("page_versions_document_sha256_check", sql`${t.documentSha256} ~ '^[0-9a-f]{64}$'`),
 		check("page_versions_document_size_check", sql`${t.documentSize} > 0`),
 		check(
 			"page_versions_source_path_check",
-			sql`length(${t.sourcePath}) BETWEEN 1 AND 4096
+			sql`length(${t.sourcePath}) >= 1
 				AND left(${t.sourcePath}, 1) <> '/'
 				AND ${t.sourcePath} !~* '^[a-z]:/'
 				AND position(E'\\\\' IN ${t.sourcePath}) = 0

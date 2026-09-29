@@ -1,6 +1,13 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-export function useTabLayout(tabs: readonly { id: string }[], activeIndex: number) {
+// Scrolls the tab at `left` into view. The left edge wins when the tab is
+// wider than the viewport, so the start of its name stays readable.
+export const revealTab = (element: HTMLElement, left: number, width: number) => {
+	if (left + width > element.scrollLeft + element.clientWidth) element.scrollLeft = left + width - element.clientWidth;
+	if (left < element.scrollLeft) element.scrollLeft = left;
+};
+
+export function useTabLayout(tabs: readonly unknown[], activeIndex: number) {
 	const count = tabs.length;
 	const ref = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState({
@@ -13,12 +20,7 @@ export function useTabLayout(tabs: readonly { id: string }[], activeIndex: numbe
 			const count = tabs.length;
 			const element = ref.current!;
 			const width = Math.min(240, Math.max(132, element.clientWidth / Math.max(1, count)));
-			if (reveal && activeIndex >= 0) {
-				const left = activeIndex * width;
-				if (left < element.scrollLeft) element.scrollLeft = left;
-				if (left + width > element.scrollLeft + element.clientWidth)
-					element.scrollLeft = left + width - element.clientWidth;
-			}
+			if (reveal && activeIndex >= 0) revealTab(element, activeIndex * width, width);
 			const start = Math.max(0, Math.floor(element.scrollLeft / width) - 2);
 			const end = Math.min(count, Math.ceil((element.scrollLeft + element.clientWidth) / width) + 2);
 			setLayout((current) =>
@@ -36,11 +38,7 @@ export function useTabLayout(tabs: readonly { id: string }[], activeIndex: numbe
 	useLayoutEffect(() => {
 		const element = ref.current!;
 		const left = activeIndex * layout.width;
-		if (activeIndex >= 0) {
-			if (left < element.scrollLeft) element.scrollLeft = left;
-			if (left + layout.width > element.scrollLeft + element.clientWidth)
-				element.scrollLeft = left + layout.width - element.clientWidth;
-		}
+		if (activeIndex >= 0) revealTab(element, left, layout.width);
 		measure(false);
 	}, [layout.width, activeIndex, measure]);
 	const indexes = Array.from(

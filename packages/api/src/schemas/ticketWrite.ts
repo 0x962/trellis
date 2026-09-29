@@ -14,18 +14,17 @@ import { TicketIdentifierSchema, TicketSummarySchema, TicketTitleSchema } from "
 // The inputs and the outputs of the ticket writes: create, update, move,
 // the two batch writes, and delete.
 
-// One write names at most 50 labels. A ticket holds one label of a group at
-// most, so two labels of one group in one list fail INPUT_VALIDATION_FAILED.
-const LabelRefListSchema = z.array(LabelRefStringSchema).max(50, "Enter 50 labels or less.");
+// A ticket holds at most one label from each group.
+// Two labels from one group in one list fail INPUT_VALIDATION_FAILED.
+const LabelRefListSchema = z.array(LabelRefStringSchema);
 
 const TicketDependencyListSchema = z
 	.array(TicketRefStringSchema)
 	.min(1, "Name one ticket at least.")
-	.max(200, "Name 200 tickets or less.")
 	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
 
 const ContractLineSchema = z.string().min(1, "Enter a contract line.");
-const ContractListSchema = z.array(ContractLineSchema).max(200, "Enter 200 contract lines or less.");
+const ContractListSchema = z.array(ContractLineSchema);
 
 export const TicketContractInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
@@ -143,7 +142,7 @@ export const TicketMoveInputSchema = z.strictObject({
 });
 export type TicketMoveInput = z.input<typeof TicketMoveInputSchema>;
 
-// A batch is one transaction of at most 200 tickets. Each ref arrives in its
+// A batch is one transaction. Each ref arrives in its
 // canonical spelling, `CDE-1` for `cde-1`, and the batch refuses two refs
 // that hold the same canonical spelling. A ULID and a `KEY-n` are two
 // spellings of one ticket, so a batch that holds both passes this check and
@@ -151,7 +150,6 @@ export type TicketMoveInput = z.input<typeof TicketMoveInputSchema>;
 const TicketBatchSchema = z
 	.array(TicketRefStringSchema)
 	.min(1)
-	.max(200)
 	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
 
 export const TicketUpdateManyInputSchema = z.strictObject({

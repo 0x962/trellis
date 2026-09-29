@@ -83,20 +83,33 @@ const accepts = (input: ListQueryInput, row: TicketSummary) => {
 	return true;
 };
 
-// Puts a new row at the head of every cached list whose filters accept
-// it. The list re-sorts on render, so the row lands in its group.
-export const insertRow = (queryClient: QueryClient, row: TicketSummary) => {
+// Insert each missing row once. The ID set avoids a list scan for each response item.
+export const insertRows = (queryClient: QueryClient, rows: readonly TicketSummary[]) => {
 	for (const query of listQueries(queryClient)) {
 		const data = query.state.data as ListData;
-		if (rowsOf(data).some((entry) => entry.id === row.id) || !accepts(inputOf(query), row)) continue;
+		const ids = new Set(rowsOf(data).map((row) => row.id));
+		const input = inputOf(query);
+		const added = rows.filter((row) => !ids.has(row.id) && accepts(input, row)).toReversed();
+		if (added.length === 0) continue;
 		let placed = false;
 		queryClient.setQueryData(
 			query.queryKey,
 			mapItems(data, (items) => {
 				if (placed) return items;
 				placed = true;
-				return [row, ...items];
+				return [...added, ...items];
 			}),
 		);
 	}
+};
+
+export const insertRow = (queryClient: QueryClient, row: TicketSummary) => insertRows(queryClient, [row]);
+
+// Capture each row once before an optimistic batch so rollback retains its original value.
+export const readRows = (queryClient: QueryClient) => {
+	const found = new Map<string, TicketSummary>();
+	for (const query of listQueries(queryClient)) {
+		for (const row of rowsOf(query.state.data as ListData)) if (!found.has(row.id)) found.set(row.id, row);
+	}
+	return found;
 };

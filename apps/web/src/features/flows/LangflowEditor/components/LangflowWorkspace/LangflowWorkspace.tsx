@@ -21,7 +21,7 @@ type Props = {
 	tab: string;
 	grantActive: boolean;
 	readOnly: boolean;
-	currentIdentity: () => { host: string; actor: string };
+	currentIdentity: () => { host: string | null; actor: string | null };
 	onOpenDraft: (tab: string) => Promise<void>;
 };
 
@@ -60,7 +60,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 		active: grantActive && !accessEnded,
 		readOnly,
 		canDispatch,
-		save: (request) => client.flowDocumentsV1.save(request),
+		save: (request) => client.flowDocumentsV1.save(request, { context: { editorChannel: session.channel } }),
 	});
 	const endAccess = useCallback(() => {
 		ended.current = true;
@@ -148,6 +148,16 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 								}
 							/>
 						</Tooltip>
+						{!canDispatch() && (
+							<Tooltip content="Reopen the editor">
+								<TopbarActionButton
+									label="Reopen the editor"
+									icon={<ArrowClockwise />}
+									onClick={() => void onOpenDraft(tab)}
+									disabled={snapshot?.saving ?? false}
+								/>
+							</Tooltip>
+						)}
 						<Tooltip content="Browser drafts">
 							<TopbarActionButton label="Browser drafts" icon={<Archive />} onClick={showDrafts} />
 						</Tooltip>
