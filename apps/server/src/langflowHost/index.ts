@@ -1,5 +1,6 @@
 export type { RenewalInput, TakeoverInput } from "./authority";
 export { readIssuedAuthority } from "./authority/issuedBytes";
+export { type AuthorityPortInput, createAuthorityPort } from "./authorityPort";
 export {
 	CaptureAuthority,
 	type CaptureGrant,

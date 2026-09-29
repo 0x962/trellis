@@ -31,9 +31,11 @@ test("a restart retains private data and replaces the exact previous process", a
 	const data = join(fixture.home, "langflow", "data", "receipt.json");
 	await writeFile(data, '{"deadlineAt":"2026-09-29T10:15:00.000Z","receiptId":"original"}');
 	await first.shutdown();
+	const revocation = fixture.revocations.get(live.identity.ownerId);
 	const second = await fixture.open();
 	try {
 		const replacement = await second.start();
+		expect(fixture.revocations.get(live.identity.ownerId)).toEqual(revocation);
 		expect(replacement.identity.ownerId).not.toBe(live.identity.ownerId);
 		expect(await readFile(data, "utf8")).toBe('{"deadlineAt":"2026-09-29T10:15:00.000Z","receiptId":"original"}');
 		expect([...fixture.processes.values()].filter((process) => process.state === "running")).toHaveLength(1);
