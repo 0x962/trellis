@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { getSessionUpdates } from "../sessionUpdates/queries.ts";
+import { get as getSessionUpdates } from "../sessionUpdates";
 import {
 	claimSessionObserverGeneration,
 	get as getObserver,
@@ -9,7 +9,7 @@ import {
 	saveSessionObserverGeneration,
 	setEnabled,
 } from "./index.ts";
-import { context, seed } from "./testFixture.ts";
+import { context, seed } from "./testFixture";
 
 test("keeps observers off until a person enables a ticket or standalone session", async () => {
 	const value = await seed();
@@ -44,9 +44,9 @@ test("enables one durable Claude observer and reuses it after disablement", asyn
 		expect(duplicate.observer).toMatchObject({
 			observerId: first.observer.observerId,
 			observerRunId: null,
-			harnessPreset: "claude",
+			harnessPreset: null,
 			accountId: null,
-			modelId: "anthropic/claude-sonnet-5.5",
+			modelId: null,
 			providerSessionId: null,
 			activityThreshold: 12,
 		});
@@ -73,7 +73,7 @@ test("lists enabled candidates with the approved activity threshold", async () =
 				observerRunId: null,
 				lastConsumedCursor: null,
 				lastAttemptedCursor: null,
-				hasInitialUpdate: false,
+				hasObserverMessages: false,
 				activityThreshold: 20,
 			},
 		]);
@@ -150,9 +150,23 @@ test("prevents a disabled generation from publishing a late result", async () =>
 				}),
 			),
 		).toBeNull();
-		expect(await value.db.transaction((tx) => getSessionUpdates(tx, { runId: value.ticketRunId }))).toMatchObject({
+		expect(
+			await value.db.transaction((tx) => getSessionUpdates(ctx, tx, { sessionId: value.ticketRunId })),
+		).toMatchObject({
 			latest: null,
 		});
+	} finally {
+		await value.db.$client.close();
+	}
+});
+
+test("refuses observer enablement from an agent with the declared permission error", async () => {
+	const value = await seed();
+	try {
+		const ctx = { ...context([]), actor: { kind: "agent" as const, name: value.ticketRunId } };
+		expect(
+			value.db.transaction((tx) => setEnabled(ctx, tx, { sessionId: value.ticketRunId, enabled: true })),
+		).rejects.toMatchObject({ code: "SESSION_OBSERVER_FORBIDDEN", status: 403 });
 	} finally {
 		await value.db.$client.close();
 	}
