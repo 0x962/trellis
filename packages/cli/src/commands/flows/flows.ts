@@ -1,4 +1,4 @@
-import { type FlowSummary, flowProjectLabel, flowPurpose, flowRunNeedsPerson } from "@trellis/api";
+import { type FlowSummary, flowProjectLabel, flowPurpose } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
@@ -6,7 +6,10 @@ import { contextOf, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
 import { cell, json, printList, timeCell } from "../../output.ts";
 import { listRuns } from "../flow/listRuns.ts";
+import { readRun } from "../flow/readRun/readRun.ts";
 import { runProgress } from "../flow/runProgress/runProgress.ts";
+import { runRow } from "../flow/runRow/runRow.ts";
+import { startRun } from "../flow/startRun/startRun.ts";
 import { waitForRun } from "../flow/waitForRun/waitForRun.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
 import { flowRunText } from "./flowText.ts";
@@ -72,6 +75,10 @@ const run = defineCommand({
 			default: true,
 			description: "Wait for the run to end; --no-wait prints the run id to poll",
 		},
+		"format-version": {
+			type: "string",
+			description: "Use the version 1 start contract; requires a host with versioned actions",
+		},
 		timeout: { type: "string", valueHint: "minutes", description: "Stop waiting after this many minutes (default 60)" },
 		"allow-repeat": { type: "boolean", description: "Start another run after an explicit user request" },
 		reason: { type: "string", description: "The user's reason for another run" },
@@ -79,36 +86,47 @@ const run = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
+		const format = context.args["format-version"];
+		if (format !== undefined && format !== "1") throw usageError("--format-version accepts 1");
 		const minutes = context.args.timeout === undefined ? 60 : Number(context.args.timeout);
 		if (!Number.isFinite(minutes) || minutes <= 0) throw usageError("--timeout takes a number of minutes above zero");
 		const pr = await pullRequestForFlow(client, context.args.ref);
 		const flow = pickFlow(await client.flows.list({ ticket: pr.ticket }), context.args.flow);
-		const started = await client.flowExecutions.start({
-			flow: flow.slug,
-			ticket: pr.ticket,
-			diffId: pr.diffId,
-			...(context.args["allow-repeat"] ? { allowRepeat: true } : {}),
-			...(context.args.reason === undefined ? {} : { repeatReason: context.args.reason }),
-			headSha: pr.headSha,
-			requestId: crypto.randomUUID(),
-			expectedVersion: flow.version,
-		});
+		const started = await startRun(
+			client,
+			{
+				flow: flow.slug,
+				ticket: pr.ticket,
+				diffId: pr.diffId,
+				...(context.args["allow-repeat"] ? { allowRepeat: true } : {}),
+				...(context.args.reason === undefined ? {} : { repeatReason: context.args.reason }),
+				headSha: pr.headSha,
+				requestId: crypto.randomUUID(),
+				expectedVersion: flow.version,
+			},
+			format === "1",
+		);
 		// The start line prints before the wait. A wait can outlive the agent's
 		// own time limit, and the agent still needs the run id to poll the run
 		// and to name it in the evidence document.
 		if (!wantsJson(ctx))
 			ctx.out.write(
-				`The ${flow.name} flow on #${pr.number}: run ${started.id}, head ${started.headSha ?? "not recorded"}.\n`,
+				`The ${flow.name} flow on #${pr.number}: run ${started.id}, head ${runProgress(started).head ?? "not recorded"}.\n`,
 			);
 		const deadline = ctx.deps.now().getTime() + minutes * 60_000;
 		const finished = context.args.wait
-			? await waitForRun(started, (id) => client.flowExecutions.get({ id }), ctx.deps, deadline)
+			? await waitForRun(
+					started,
+					(id) => readRun(client, id, "schemaVersion" in started ? started.engine : "legacy"),
+					ctx.deps,
+					deadline,
+				)
 			: started;
 		if (wantsJson(ctx)) ctx.out.write(json(finished));
 		else ctx.out.write(flowRunText(finished, pr.number));
 		// Exit zero also covers a human wait. Review readiness requires status "succeeded".
-		const status = finished.state.status;
-		return !context.args.wait || status === "succeeded" || flowRunNeedsPerson(status) ? 0 : 1;
+		const progress = runProgress(finished);
+		return !context.args.wait || progress.status === "succeeded" || progress.human ? 0 : 1;
 	},
 });
 
@@ -124,10 +142,10 @@ const runs = defineCommand({
 			identifier: (record) => record.id,
 			columns: [
 				{ name: "RUN", value: (record) => record.id },
-				{ name: "FLOW", value: (record) => runProgress(record).name },
-				{ name: "STATUS", value: (record) => runProgress(record).status },
-				{ name: "HEAD", value: (record) => cell(runProgress(record).head) },
-				{ name: "STARTED", value: (record) => timeCell(record.createdAt) },
+				{ name: "FLOW", value: (record) => runRow(record).name },
+				{ name: "STATUS", value: (record) => runRow(record).status },
+				{ name: "HEAD", value: (record) => cell(runRow(record).head) },
+				{ name: "STARTED", value: (record) => timeCell(runRow(record).createdAt) },
 			],
 		});
 	},

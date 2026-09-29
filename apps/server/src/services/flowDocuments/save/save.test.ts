@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { FlowDocumentV1Schema } from "@trellis/api";
+import { create } from "../../flows/flows.ts";
 import { documentBytes } from "../documentBytes";
 import { flowId, saveInput, serviceFixture } from "../fixture";
 import { get } from "../get";
@@ -108,4 +109,27 @@ test("save preserves graph counts, text, and geometry beyond the dense fixture",
 	const saved = await h.run((tx) => save(h.ctx, tx, input));
 	expect(saved.graphDocument).toEqual(input.graphDocument);
 	expect(documentBytes({ text: " a\r\nβ " })).not.toEqual(documentBytes({ text: "a\nβ" }));
+});
+
+test("a save receipt survives a slug rename and reassignment", async () => {
+	const input = { ...saveInput(), flow: "review" };
+	const first = await h.run((tx) => save(h.ctx, tx, input));
+	await h.run((tx) => update(h.ctx, tx, { flow: flowId, expectedVersion: 2, slug: "renamed" }));
+	expect(await h.run((tx) => save(h.ctx, tx, input))).toEqual(first);
+	await expect(h.run((tx) => save(h.ctx, tx, { ...input, expectedVersion: 3 }))).rejects.toMatchObject({
+		code: "FLOW_REQUEST_CONFLICT",
+	});
+	const other = await h.run((tx) => create(h.ctx, tx, { name: "Other", slug: "review" }));
+	expect(await h.run((tx) => save(h.ctx, tx, input))).toEqual(first);
+	expect((await h.run((tx) => get(h.ctx, tx, { flow: other.id }))).revision).toBe(1);
+	expect((await h.run((tx) => get(h.ctx, tx, { flow: flowId }))).revision).toBe(3);
+});
+
+test("different flow references retain independent request IDs", async () => {
+	const input = { ...saveInput(), flow: "review" };
+	const first = await h.run((tx) => save(h.ctx, tx, input));
+	const other = await h.run((tx) => create(h.ctx, tx, { name: "Other", slug: "other" }));
+	const next = await h.run((tx) => save(h.ctx, tx, { ...input, flow: "other" }));
+	expect(next.flow.id).toBe(other.id);
+	expect(first.flow.id).toBe(flowId);
 });

@@ -11,7 +11,9 @@ It connects CLI requests to the registered RPC router and services on a database
 Unknown schema versions and engine formats fail validation.
 The CLI uses `flowDocumentsV1.list` for both engines and follows every result page.
 Legacy identities use `flowExecutions.get`, which preserves their JSON response shape.
-Langflow identities use `flowDocumentsV1.view` and validate its version and engine.
+Langflow identities with a stored status use `flowDocumentsV1.view` and validate its version and engine.
+An identity without a projection remains visible with its stored null status in JSON.
+The table displays unknown and retains its execution and flow IDs.
 `flow run show` negotiates through the versioned view before it selects the matching reader.
 `flow document show <flow>` explicitly requests the version 1 saved document.
 
@@ -26,8 +28,10 @@ The registered `flowDocumentsV1.get`, `save`, `view`, and `list` procedures serv
 `flow run list` supports flow, ticket, and diff filters. Project filters belong to `flow list`.
 The run-list input has no project field.
 
-The start command still uses the legacy mutation contract.
-TRL-868 owns the versioned action contract under TRL-696.
+The start command uses the legacy mutation contract by default.
+`--format-version 1` explicitly selects `flowExecutionsV1.start`.
+TRL-891 supplies the typed client; TRL-868 owns server registration under TRL-696.
+A typed client does not establish handler availability.
 Langflow start and actual engine acceptance remain required by TRL-677.
 No read result authorizes a mutation through the legacy transport.
 
