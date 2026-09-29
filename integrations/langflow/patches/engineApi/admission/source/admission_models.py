@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from langflow.services.trellis_v1.correlation import _timestamp, _uuid
 
 Reference = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")]
-Digest = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
-Revision = Annotated[int, Field(gt=0)]
 
 
 class StrictModel(BaseModel):
@@ -20,6 +16,13 @@ class EngineKey(StrictModel):
     version: Literal[1]
     hostId: Reference
     executionId: Reference
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def exact_version_type(cls, value):
+        if type(value) is not int:
+            raise ValueError("invalid_version_type")
+        return value
 
 
 class SubmitRequest(StrictModel):
@@ -32,37 +35,9 @@ class SubmissionPayload(StrictModel):
     snapshot: dict
 
 
-class DeliveryAuthority(StrictModel):
-    version: Literal[1]
-    executionId: Reference
-    publicationId: Reference
-    engineJobId: str
-    engineEpoch: Revision
-    hostId: Reference
-    projectId: Reference
-    publicationDigest: Digest
-    ownerId: Reference
-    ownershipRevision: Revision
-    capabilityId: Reference
-    permissions: list[Literal[
-        "native.reserve", "native.read", "completion.deliver", "decision.deliver", "events.append"
-    ]] = Field(min_length=1)
-    issuedAt: str
-    expiresAt: str
-
-    @model_validator(mode="after")
-    def valid_identity(self):
-        _uuid(self.engineJobId, "engineJobId")
-        _timestamp(self.issuedAt, "issuedAt")
-        _timestamp(self.expiresAt, "expiresAt")
-        if datetime.fromisoformat(self.expiresAt) <= datetime.fromisoformat(self.issuedAt):
-            raise ValueError("authority_expiry_order")
-        return self
-
-
 class OpenRequest(StrictModel):
     receiptBytes: str
-    authority: DeliveryAuthority
+    authorityBytes: str
 
 
 class Found(StrictModel):

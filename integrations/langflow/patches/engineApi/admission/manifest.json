@@ -1,11 +1,17 @@
 {
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "0001-private-admission-routes.patch",
-  "sha256": "e7f1cae671b4a2f1da539f24589350770378f1e30d07bae01bf18405731ddf30",
+  "sha256": "cf9dcae728c9470ac2c89d61984d34124e8ec62d92d7e2b26c569f5c36c5045c",
   "files": {
     "src/backend/base/langflow/services/trellis_v1/admission_lookup.py": "f0e4c5f49470d3f3fb29ff94916e72cf795ae5c81abcd2287c880c2fef03b6f3",
-    "src/backend/base/langflow/services/trellis_v1/admission_models.py": "59b72cf298a1d5a99b35a1fcc0e19aac6e53cbbb98a536424ae88dcd1ab472e4",
-    "src/backend/base/langflow/services/trellis_v1/admission_router.py": "ba60c2639da518c56be929bd2ccaa8198fddcec035622591313097854e5458c4",
-    "src/backend/base/langflow/services/trellis_v1/admission_service.py": "412fd5f0af8705928cbadb4c3817e970c3a6f09b86456f38cc5cc87703295c4c"
+    "src/backend/base/langflow/services/trellis_v1/admission_models.py": "2b6d500229238917aa18d8985e229600b8f55a606cbb41c3bac2acc9acb9637c",
+    "src/backend/base/langflow/services/trellis_v1/admission_request.py": "6febb882021089874f89e860d6ce28a7ea5db20d6c33c204558cdc2d84ac6eb5",
+    "src/backend/base/langflow/services/trellis_v1/admission_router.py": "a029bde08ba9432afe62171374a1c60e2381af19fe8fe2f1d8c6670d1b4cdf3e",
+    "src/backend/base/langflow/services/trellis_v1/admission_service.py": "680c5a3de7f3c233e56d2a67ffc09738b2e74a17b93d5741193f8632abfaa8ce",
+    "src/backend/base/langflow/services/trellis_v1/admission_store.py": "3cb5db6d113bf120459da7d32baf60e5c7982d8f0ce9f8e2413fbccb2b143e51"
+  },
+  "transactionPatch": {
+    "patch": "0002-authorize-admission-transaction.patch",
+    "sha256": "572248b1306a3ae5c04cfa88b8594d6b51cdffa40c451587a23ad9f7e2431c09"
   }
 }
