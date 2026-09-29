@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { createTrellisClient } from "../client.ts";
+import type { ConversionEditIntentV1, PublishDocumentV1Input } from "../schemas/flowDocumentActionsV1.ts";
 import type { FlowExecutionViewV1 } from "../schemas/flowExecutionViewV1.ts";
 import {
 	executionViewV1Example,
@@ -85,4 +86,35 @@ test("versioned saves carry the full document and request identity through the s
 	});
 	await client.flowDocumentsV1.save(input);
 	expect(body).toEqual({ json: input });
+});
+
+test("typed document actions keep request identities and pending outcomes", async () => {
+	const input: PublishDocumentV1Input = {
+		flowId: pendingDocumentV1Example.flow.id,
+		expectedVersion: pendingDocumentV1Example.revision,
+		expectedDocumentHash: pendingDocumentV1Example.documentHash,
+		componentManifestHash: "a".repeat(64),
+		enginePackageDigest: "b".repeat(64),
+		requestId: flowV1RequestId,
+	};
+	const edit: ConversionEditIntentV1 = {
+		...input,
+		schemaVersion: 1,
+		edits: [{ kind: "set-flow-briefing", briefing: "exact  bytes\n" }],
+	};
+	const received: { path: string; body: unknown }[] = [];
+	const client = createTrellisClient("http://localhost", "human:reviewer", async (request) => {
+		received.push({ path: new URL(request.url).pathname, body: await request.json() });
+		return Response.json({ json: { state: "pending", requestId: input.requestId } });
+	});
+	for (const result of [
+		await client.flowDocumentsV1.publish(input),
+		await client.flowDocumentsV1.activateConversion(input),
+		await client.flowDocumentsV1.editConversion(edit),
+	]) expect(result).toEqual({ state: "pending", requestId: input.requestId });
+	expect(received).toEqual([
+		{ path: "/rpc/flowDocumentsV1/publish", body: { json: input } },
+		{ path: "/rpc/flowDocumentsV1/activateConversion", body: { json: input } },
+		{ path: "/rpc/flowDocumentsV1/editConversion", body: { json: edit } },
+	]);
 });

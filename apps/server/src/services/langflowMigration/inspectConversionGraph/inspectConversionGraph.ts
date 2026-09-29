@@ -7,6 +7,7 @@ import {
 	ConversionExpansionSchema,
 } from "../conversionIntakeTypes";
 import { inspectSource } from "../inspectSource";
+import { ResolvedConversionHarnessSchema } from "../resolvedConversionHarness";
 import { sourceDigest } from "../sourceDigest";
 
 const object = z.record(z.string(), z.json());
@@ -124,11 +125,7 @@ export const inspectConversionGraph = (input: {
 				);
 				continue;
 			}
-			if (
-				node.kind !== "human" &&
-				harness.success &&
-				(harness.data.model === undefined || harness.data.effort === undefined)
-			) {
+			if (node.kind !== "human" && !ResolvedConversionHarnessSchema.safeParse(spec.data.harness).success) {
 				fail(
 					"conversion_harness_policy_unverified",
 					path,
