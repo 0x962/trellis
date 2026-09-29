@@ -4,6 +4,7 @@ import { protocolDigest, type RenewalReceiptV1, type TakeoverReceiptV1 } from ".
 import { langflowExecutions, langflowOutbox, langflowOwnershipReceipts } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
+import { assertOwnerActive } from "./ownerFence";
 
 export async function transferOwnership(
 	tx: Tx,
@@ -20,6 +21,7 @@ export async function transferOwnership(
 				eq(langflowOwnershipReceipts.requestId, receipt.request.requestId),
 			),
 		);
+	await assertOwnerActive(tx, existing?.receipt.authority ?? receipt.authority);
 	if (row.cancelIntent) {
 		if (row.admission.state !== "closed" || !isDeepStrictEqual(row.submission.admission, row.admission))
 			throw new Error("canceled_admission_open");

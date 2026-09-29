@@ -1,0 +1,1 @@
+export { readPrivateConfiguration } from "./privateConfiguration";
