@@ -1,8 +1,9 @@
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { DeliveryAuthorityV1Schema, protocolDigest } from "../../langflowContracts";
+import type { DispatchEffects } from "../dispatchEffects";
 import type { DispatchBlock, DispatchPermit, ReconciliationReceipt, TerminalReceipt } from "../dispatchGate";
-import { LangflowHostControl } from "../hostControl";
+import { type HostControlIdentity, LangflowHostControl } from "../hostControl";
 import { ReceiptObjectStore } from "./objectStore/objectStore";
 import {
 	AuthorityArchiveSchema,
@@ -14,13 +15,15 @@ import {
 	type ValidationSource,
 } from "./schema";
 
+type ArchiveControl = { identity: HostControlIdentity; gate: Pick<DispatchEffects, "read"> };
+
 export class DispatchReceiptArchive {
 	private constructor(
-		private readonly control: LangflowHostControl,
+		private readonly control: ArchiveControl,
 		private readonly objects: ReceiptObjectStore,
 	) {}
 
-	static open(control: LangflowHostControl) {
+	static open(control: ArchiveControl) {
 		return new DispatchReceiptArchive(
 			control,
 			new ReceiptObjectStore(join(LangflowHostControl.directory(control.identity.home), "receipts")),

@@ -18,6 +18,7 @@ Langflow does not execute a graph in these cases.
 | --- | --- |
 | `start.test.ts` | Current publication, null unknown epoch, atomic reservation, concurrent UUID replay, immutable snapshot, actor checks |
 | `decisionCancellation.test.ts` | Atomic human receipt, cancellation order, retained bytes, delivery refusal, competing actors, authorization |
+| `cancelView.test.ts` | Committed human decision through public cancellation, stale-response recovery, stable cancellation identity, atomic public-state rollback |
 | `retention.test.ts` | Independent archive reader, permanent request identity, exact decision outbox, opaque payload beyond fixture sizes |
 
 The transaction exceptions simulate failure before commit.
@@ -36,7 +37,8 @@ It adds no skip, substitute schema, or invented epoch.
 
 The complete acceptance requirements remain in `reports/langflow-integration-evidence/acceptance.md`.
 All runtime and UI gates remain separate from these focused fixtures.
-The public V1 mutation routes, actual engine transport, and cancellation-to-view composition remain producer prerequisites.
+The cancellation cases call the public `cancelView` service and its projection producer in one transaction.
+Public V1 mutation routes and actual engine transport remain separate integration requirements.
 
 ## Commands after the source batch merges
 

@@ -23,6 +23,13 @@ The recipe retains the pinned source, ordered patches, both dependency locks, de
 `directory` uses `.` for the source root or a normalized relative path.
 The caller supplies measurements from the actual build.
 
+`componentSupportFiles` optionally lists catalog dependencies and reader support files.
+Each entry binds its payload path, SHA256, and byte size.
+The assembler verifies and copies those files with the same rules as component sources.
+The caller retains every source dependency and handle source named by the catalog.
+An omitted inventory stays absent from the canonical recipe and preserves existing package IDs.
+The field records file identity; it does not approve a catalog mapping or alter the loader output.
+
 `target.layout` names an OCI image layout inside the payload.
 Each package contains one image manifest for one target architecture.
 The verifier checks the manifest, config, and layer hashes and sizes against local blobs.
@@ -59,7 +66,8 @@ The adapter must retain an independently trusted package digest.
 The adapter must verify the package before import or use.
 The release owner retains installation, restart, exact process confirmation, and native session retention.
 
-The OCI image build, approved base digest, restricted component catalog, production editor assets, and installer adapters remain dependencies.
+The arm64 OCI candidate build passes with pinned base images.
+The restricted component catalog, production editor assets, runtime qualification, and installer adapters remain dependencies.
 TRL-667 owns the retained candidate and its environment.
 TRL-676 owns the lifecycle interface. TRL-679 owns the editor handoff.
 TRL-696 owns composition. Principal owns the production installer.

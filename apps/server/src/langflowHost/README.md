@@ -114,3 +114,15 @@ It returns an immutable archive identifier with the bytes, digest, parsed author
 The trusted producer must retain this archive identifier with its control receipt before it sends the grant.
 `readAuthority(id)` returns the original bytes after restart.
 The archive checks the target home and host, but the engine must still check current ownership, permissions, expiry, and revocation.
+
+## Access for public effects
+
+`LangflowHostControl.openEffects({home, readTerminal})` returns the saved identity and a `DispatchEffects` instance.
+The instance exposes `read`, `acquire`, `recoverPermit`, and `settle`.
+Public actions supply the reader that validates their committed terminal evidence.
+The instance shares the durable permits with the full control.
+A blocked home still permits settlement of an existing effect, so the full control can finish its drain.
+Only the full control exposes reconciliation and block management.
+
+`DispatchReceiptArchive.open` accepts the identity and `gate.read` from either control.
+Compose its terminal reader after both objects exist; only a later settlement calls the reader.
