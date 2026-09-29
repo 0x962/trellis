@@ -1,8 +1,8 @@
 import { Copy } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageMetric, UsageSession } from "@trellis/api";
-import { Button, EmptyState, formatDayTime, IconButton, SectionHeader, TicketId, Tooltip } from "@trellis/ui";
-import { useState } from "react";
+import { EmptyState, formatDayTime, IconButton, SectionHeader, TicketId, Tooltip } from "@trellis/ui";
+import type { ReactNode } from "react";
 import { copyText } from "../../../../../lib/clipboard";
 import { formatMetric, harnessLabel } from "../../../formatUsage";
 
@@ -12,10 +12,9 @@ export type UsageSessionsProps = {
 	groupLabel: string;
 	// The label of the selected breakdown row, when one filters the list.
 	filtered: string | null;
+	total: number;
+	pages: ReactNode;
 };
-
-// How many sessions show at first, and how many each Show more adds.
-const PAGE = 10;
 
 const kindLabel: Record<string, string> = {
 	agent: "Agent",
@@ -34,14 +33,12 @@ const runLabel = (session: UsageSession) =>
 // The top sessions for the selected metric. A session that Trellis started
 // names its ticket, agent, and kind. The session id copies for
 // `claude --resume`, `codex resume`, or `muse resume`.
-export function UsageSessions({ sessions, metric, groupLabel, filtered }: UsageSessionsProps) {
-	const [shown, setShown] = useState(PAGE);
-	const visible = sessions.slice(0, shown);
+export function UsageSessions({ sessions, metric, groupLabel, filtered, total, pages }: UsageSessionsProps) {
 	return (
 		<section aria-label="Sessions" className="flex flex-col gap-3">
 			<SectionHeader
 				title={filtered === null ? `Sessions by ${groupLabel}` : `Sessions in ${filtered}`}
-				count={sessions.length}
+				count={total}
 				actions={<span>{metric === "usd" ? "Highest cost first" : "Most tokens first"}</span>}
 			/>
 			{sessions.length === 0 ? (
@@ -51,96 +48,92 @@ export function UsageSessions({ sessions, metric, groupLabel, filtered }: UsageS
 				/>
 			) : (
 				<>
-					<table aria-label="Top sessions" className="w-full table-fixed border-collapse text-sm">
-						<thead>
-							<tr className="border-b border-border text-left text-xs text-fg-faint">
-								<th scope="col" className="h-8 w-36 pr-3 font-medium">
-									Last turn
-								</th>
-								<th scope="col" className="h-8 pr-3 font-medium">
-									Session
-								</th>
-								<th scope="col" className="h-8 w-44 pr-3 font-medium max-md:hidden">
-									Agent or harness
-								</th>
-								<th scope="col" className="h-8 w-40 pr-3 font-medium max-lg:hidden">
-									Model
-								</th>
-								<th scope="col" className="h-8 w-24 pr-3 text-right font-medium">
-									{metric === "usd" ? "Cost" : "Tokens"}
-								</th>
-								<th scope="col" className="h-8 w-9 font-medium">
-									<span className="sr-only">Actions</span>
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{visible.map((session) => {
-								const name = session.label ?? session.run?.ticketTitle ?? null;
-								return (
-									<tr
-										key={session.sessionId}
-										className="group h-9 border-b border-border transition-colors duration-hover ease-out hover:bg-band"
-									>
-										<td className="whitespace-nowrap pr-3 text-fg-muted tabular">{formatDayTime(session.lastAt)}</td>
-										<td className="max-w-0 pr-3">
-											<div className="flex min-w-0 items-center gap-2">
-												{session.run?.ticketIdentifier && (
-													<Link
-														to="/t/$identifier"
-														params={{ identifier: session.run.ticketIdentifier }}
-														className="shrink-0"
-													>
-														<TicketId id={session.run.ticketIdentifier} />
-													</Link>
-												)}
-												{name === null ? (
-													<span className="truncate font-mono text-fg tabular" title={session.sessionId}>
-														{session.sessionId}
-													</span>
-												) : (
-													<span className="truncate font-medium text-fg" title={name}>
-														{name}
-													</span>
-												)}
-											</div>
-										</td>
-										<td className="max-w-0 pr-3 text-fg-muted max-md:hidden">
-											<span className="block truncate" title={runLabel(session)}>
-												{runLabel(session)}
-											</span>
-										</td>
-										<td className="max-w-0 pr-3 text-fg-muted max-lg:hidden">
-											<span className="block truncate font-mono" title={session.model}>
-												{session.model}
-											</span>
-										</td>
-										<td className="whitespace-nowrap pr-3 text-right text-fg tabular">
-											{session.approximate && metric === "usd" ? "~" : ""}
-											{formatMetric(metric, session[metric])}
-										</td>
-										<td>
-											<Tooltip content="Copy session id">
-												<IconButton
-													label={`Copy session id ${session.sessionId}`}
-													icon={<Copy />}
-													className="opacity-0 transition-opacity duration-hover ease-out group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
-													onClick={() => void copyText(session.sessionId, "Session id copied")}
-												/>
-											</Tooltip>
-										</td>
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-					{sessions.length > shown && (
-						<div className="flex justify-start">
-							<Button size="sm" variant="quiet" onClick={() => setShown((count) => count + PAGE)}>
-								Show {Math.min(PAGE, sessions.length - shown)} more of {sessions.length}
-							</Button>
-						</div>
-					)}
+					<div className="relative overflow-x-auto">
+						<table aria-label="Top sessions" className="w-full min-w-96 table-fixed border-collapse text-sm">
+							<thead>
+								<tr className="border-b border-border text-left text-xs text-fg-faint">
+									<th scope="col" className="h-8 w-36 pr-3 font-medium">
+										Last turn
+									</th>
+									<th scope="col" className="h-8 pr-3 font-medium">
+										Session
+									</th>
+									<th scope="col" className="h-8 w-44 pr-3 font-medium max-md:hidden">
+										Agent or harness
+									</th>
+									<th scope="col" className="h-8 w-40 pr-3 font-medium max-lg:hidden">
+										Model
+									</th>
+									<th scope="col" className="h-8 w-24 pr-3 text-right font-medium">
+										{metric === "usd" ? "Cost" : "Tokens"}
+									</th>
+									<th scope="col" className="h-8 w-9 font-medium">
+										<span className="sr-only">Actions</span>
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{sessions.map((session) => {
+									const name = session.label ?? session.run?.ticketTitle ?? null;
+									return (
+										<tr
+											key={session.sessionId}
+											className="group h-9 border-b border-border transition-colors duration-hover ease-out hover:bg-band"
+										>
+											<td className="whitespace-nowrap pr-3 text-fg-muted tabular">{formatDayTime(session.lastAt)}</td>
+											<td className="max-w-0 pr-3">
+												<div className="flex min-w-0 items-center gap-2">
+													{session.run?.ticketIdentifier && (
+														<Link
+															to="/t/$identifier"
+															params={{ identifier: session.run.ticketIdentifier }}
+															className="shrink-0"
+														>
+															<TicketId id={session.run.ticketIdentifier} />
+														</Link>
+													)}
+													{name === null ? (
+														<span className="truncate font-mono text-fg tabular" title={session.sessionId}>
+															{session.sessionId}
+														</span>
+													) : (
+														<span className="truncate font-medium text-fg" title={name}>
+															{name}
+														</span>
+													)}
+												</div>
+											</td>
+											<td className="max-w-0 pr-3 text-fg-muted max-md:hidden">
+												<span className="block truncate" title={runLabel(session)}>
+													{runLabel(session)}
+												</span>
+											</td>
+											<td className="max-w-0 pr-3 text-fg-muted max-lg:hidden">
+												<span className="block truncate font-mono" title={session.model}>
+													{session.model}
+												</span>
+											</td>
+											<td className="whitespace-nowrap pr-3 text-right text-fg tabular">
+												{session.approximate && metric === "usd" ? "~" : ""}
+												{formatMetric(metric, session[metric])}
+											</td>
+											<td>
+												<Tooltip content="Copy session id">
+													<IconButton
+														label={`Copy session id ${session.sessionId}`}
+														icon={<Copy />}
+														className="opacity-0 transition-opacity duration-hover ease-out group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+														onClick={() => void copyText(session.sessionId, "Session id copied")}
+													/>
+												</Tooltip>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
+					{pages}
 				</>
 			)}
 		</section>

@@ -2,7 +2,7 @@ import { ArrowSquareOut } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
 import { IconButton, ProviderIcon, RankedBars, SectionHeader, Tooltip } from "@trellis/ui";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { formatMetric, harnessProvider, modelProvider, rowTone } from "../../../formatUsage";
 
 export type UsageGroupsProps = {
@@ -10,6 +10,10 @@ export type UsageGroupsProps = {
 	rows: readonly UsageGroupRow[];
 	metric: UsageMetric;
 	total: number;
+	maxValue: number;
+	count: number;
+	start: number;
+	pages: ReactNode;
 	// The days of the range, for the sparkline of each row.
 	days: readonly string[];
 	selectedRow: string | null;
@@ -59,7 +63,19 @@ function rowIcon(group: UsageGroupBy, row: UsageGroupRow) {
 // The range sliced one way at a time, as ranked bars. The bar of a row is
 // its share of the largest row, the sparkline is its days, and a pressed
 // row is the selected slice that the chart and the session list follow.
-export function UsageGroups({ group, rows, metric, total, days, selectedRow, onSelectRow }: UsageGroupsProps) {
+export function UsageGroups({
+	group,
+	rows,
+	metric,
+	total,
+	maxValue,
+	count,
+	start,
+	pages,
+	days,
+	selectedRow,
+	onSelectRow,
+}: UsageGroupsProps) {
 	const label = group === "kind" ? "agent kind" : group;
 	const rankedRows = useMemo(
 		() =>
@@ -73,17 +89,24 @@ export function UsageGroups({ group, rows, metric, total, days, selectedRow, onS
 					value: row[metric],
 					valueLabel: `${row.approximate && metric === "usd" ? "~" : ""}${formatMetric(metric, row[metric])}`,
 					share: total > 0 ? row[metric] / total : 0,
-					tone: rowTone(row, rank, group),
+					tone: rowTone(row, start + rank, group),
 					spark: days.map((day) => valuesByDay.get(day) ?? 0),
 					action: <RowLink row={row} />,
 				};
 			}),
-		[days, group, metric, rows, total],
+		[days, group, metric, rows, total, start],
 	);
 	return (
 		<section aria-label="Breakdown" className="flex flex-col gap-3">
-			<SectionHeader title={`Breakdown by ${label}`} count={rows.length} />
-			<RankedBars label={`By ${label}`} rows={rankedRows} selected={selectedRow} onSelect={onSelectRow} />
+			<SectionHeader title={`Breakdown by ${label}`} count={count} />
+			<RankedBars
+				label={`By ${label}`}
+				rows={rankedRows}
+				maxValue={maxValue}
+				selected={selectedRow}
+				onSelect={onSelectRow}
+			/>
+			{pages}
 		</section>
 	);
 }
