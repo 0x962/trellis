@@ -7,6 +7,7 @@ import {
 } from "@trellis/api";
 import type { DraftContent, DraftRecord } from "../draftRecord";
 import type { createDraftStorage } from "../draftStorage";
+import { createExplicitEditLease } from "../explicitEditLease";
 
 type Failure = "network" | "storage" | "conflict" | "unsupported";
 type Options = {
@@ -49,12 +50,12 @@ export function createSaveQueue(options: Options) {
 		}
 	};
 	const edit = (content: DraftContent) => {
-		if (closed || suspended || readOnly) throw new Error("This draft is read-only.");
+		if (closed || suspended || readOnly || explicit.held()) throw new Error("This draft is read-only.");
 		draft = { ...draft, contentJson: JSON.stringify(content), updatedAt: options.now() };
 		persist();
 	};
 	const drain = async () => {
-		while (!closed && !suspended && !readOnly && failure === null && (options.canDispatch?.() ?? true)) {
+		while (!closed && !suspended && !readOnly && !explicit.held() && failure === null && (options.canDispatch?.() ?? true)) {
 			if (draft.submission === null && draft.contentJson === draft.savedContentJson) return;
 			let request: FlowDocumentSaveV1Input;
 			try {
@@ -81,7 +82,7 @@ export function createSaveQueue(options: Options) {
 				return;
 			}
 			if (!persist()) return;
-			if (closed || suspended || readOnly || !(options.canDispatch?.() ?? true)) return;
+			if (closed || suspended || readOnly || explicit.held() || !(options.canDispatch?.() ?? true)) return;
 			const submitted = draft.submission!;
 			let result: FlowDocumentV1;
 			try {
@@ -123,13 +124,14 @@ export function createSaveQueue(options: Options) {
 	};
 	const retry = () => {
 		if (active !== null) return active;
-		if (draft.blocked !== null || closed || suspended || readOnly) return Promise.resolve();
+		if (draft.blocked !== null || closed || suspended || readOnly || explicit.held()) return Promise.resolve();
 		failure = null;
 		error = null;
 		if (!persist()) return Promise.resolve();
 		return flush();
 	};
 	const discard = () => {
+		if (explicit.held()) throw new Error("Resolve the explicit edit before discard.");
 		if (active !== null) throw new Error("Wait for the submitted save before discard.");
 		const bytes = options.storage.readBytes(draft.identity);
 		if (bytes !== null) options.storage.discard(draft.identity, JSON.stringify(draft));
@@ -148,12 +150,14 @@ export function createSaveQueue(options: Options) {
 		readOnly: readOnly || closed,
 		closed,
 		suspended,
+		explicitEdit: explicit.held(),
 	});
 	const suspend = () => {
 		suspended = true;
 		notify();
 	};
 	const resume = () => {
+		if (explicit.held()) return;
 		suspended = false;
 		notify();
 	};
@@ -167,5 +171,32 @@ export function createSaveQueue(options: Options) {
 			listeners.delete(listener);
 		};
 	};
-	return { edit, flush, retry, discard, snapshot, suspend, resume, setReadOnly, subscribe };
+	const explicit = createExplicitEditLease({
+		read: () => ({ draft, failed: failure !== null || closed || readOnly, receipt }),
+		pause: async () => {
+			suspend();
+			if (active !== null) await active;
+		},
+		canDispatch: () => !closed && !readOnly && (options.canDispatch?.() ?? true),
+		changed: notify,
+		write: (next, document) => {
+			try {
+				options.storage.write(next);
+				draft = next;
+				if (document !== undefined) receipt = structuredClone(document);
+				retained = true;
+				failure = null;
+				error = null;
+				return true;
+			} catch (cause) {
+				retained = false;
+				failure = "storage";
+				error = cause;
+				return false;
+			} finally {
+				notify();
+			}
+		},
+	});
+	return { edit, flush, retry, discard, snapshot, suspend, resume, setReadOnly, subscribe, beginExplicitEdit: explicit.beginExplicitEdit };
 }
