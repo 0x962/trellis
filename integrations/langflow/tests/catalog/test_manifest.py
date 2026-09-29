@@ -13,6 +13,7 @@ ENGINE = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
 ENGINE_COMMIT = "fec71dca901949c09ed4d63315804337cd2eb13d"
 MANIFEST = ROOT / "integrations/langflow/components/catalog/manifest.v1.json"
 CLASSES = {
+	"native-completion-v1": ("integrations.langflow.components.catalog.nativeCompletion", "TrellisNativeCompletionV1"),
 	"external-wait-v1": ("integrations.langflow.components.trellis_external_wait", "TrellisExternalWaitComponent"),
 	"native-decision-v1": ("integrations.langflow.components.catalog.nativeDecision", "TrellisNativeDecisionV1"),
 	"ordered-output-v1": ("integrations.langflow.components.catalog.orderedOutput", "TrellisOrderedOutputV1"),
