@@ -1,0 +1,4 @@
+{
+	"extends": "../../../../tsconfig.base.json",
+	"include": ["../../fixtures/nativeHost/**/*.ts", "./**/*.ts"]
+}
