@@ -141,3 +141,11 @@ The occurrence writers read the accepted cancellation record under the Job lock.
 An active Job status cannot override that record.
 A late handle remains retained with its unresolved stop obligation.
 Two deferred fixtures cover accepted cancellation with an active Job and a late handle after that cancellation.
+
+Apply `0005-retained-wait-lookup.patch` after the cancellation guard.
+Each visit retains its exact `waitBytes` before dispatch and after handle confirmation.
+`read_native_visit` also returns `engineWaitId` and `waitBytes` from that journal entry.
+These bytes remain available after the graph removes a completed wait.
+Before handle confirmation, the returned wait has kind `native_reservation`.
+A completion caller must require kind `native` before it delivers a native result.
+The authenticated route uses the original request bytes and the existing `native.read` permission.
