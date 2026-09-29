@@ -17,7 +17,7 @@ export const actors = pgTable(
 	},
 	(t) => [
 		primaryKey({ name: "actors_pkey", columns: [t.name, t.kind] }),
-		check("actors_name_check", sql`${t.name} ~ '^[ -~]{1,64}$' AND position(':' IN ${t.name}) = 0`),
+		check("actors_name_check", sql`${t.name} ~ '^[ -~]+$' AND position(':' IN ${t.name}) = 0`),
 		checkIn(t.kind, STORED_ACTOR_KINDS),
 	],
 );
