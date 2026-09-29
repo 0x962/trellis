@@ -73,6 +73,15 @@ def test_review_result_waits_replay_and_resume_after_database_reopen(tmp_path):
             engine_request_id=wait["request"]["engineRequestId"],
         ) is None
         first = await ledger.accept(payload, authorize)
+        async with scope() as session:
+            graph = (await session.exec(select(JobCheckpoint).where(
+                JobCheckpoint.job_id == job_id,
+                JobCheckpoint.kind == "graph",
+            ))).one()
+            checkpoint_value = json.loads(graph.blob)
+            checkpoint_value["external_waits"] = {}
+            graph.blob = review_json(checkpoint_value)
+            session.add(graph)
         assert await ledger.accept(payload, authorize) == first
         assert await ledger.read_result(
             engine_job_id=job_id,

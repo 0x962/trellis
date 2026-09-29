@@ -8,6 +8,7 @@ import {
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
+import { type EngineSnapshotInput, prepareEngineSnapshot } from "./engineSnapshots/engineSnapshots";
 
 export async function readProjection(tx: Tx, input: { executionId: string }) {
 	const [row] = await tx.select().from(projections).where(eq(projections.executionId, input.executionId));
@@ -26,6 +27,7 @@ export async function initializeProjection(tx: Tx, input: { view: FlowExecutionV
 		revision: input.view.revision,
 		lastEventSeq: input.view.lastEventSeq,
 		firstAvailableSeq: 1,
+		sourceCursor: 0,
 	});
 }
 export async function findEvent(tx: Tx, input: { engineJobId: string; sourceEventId: string }) {
@@ -50,14 +52,18 @@ export async function commitProjection(
 		event: ExecutionEventV1 | null;
 		sourceBytes: string | null;
 		checkpoint?: EngineCheckpointV1;
+		engineSnapshot?: EngineSnapshotInput;
 	},
 ) {
 	const execution = await lockExecution(tx, input);
 	const current = await readProjection(tx, input);
 	if (!current || current.view.revision !== input.expectedRevision) throw new Error("projection_conflict");
 	const { view, event, sourceBytes } = input;
-	if (input.checkpoint) {
-		const checkpoint = input.checkpoint;
+	const snapshot = input.engineSnapshot ? await prepareEngineSnapshot(tx, execution, input.engineSnapshot) : null;
+	const checkpoint = snapshot?.checkpoint ?? input.checkpoint;
+	if (snapshot && input.checkpoint && !isDeepStrictEqual(input.checkpoint, snapshot.checkpoint))
+		throw new Error("checkpoint_bytes_conflict");
+	if (checkpoint) {
 		const previous = await readCheckpoint(tx, input);
 		if (
 			checkpoint.executionId !== input.executionId ||
@@ -114,7 +120,12 @@ export async function commitProjection(
 			view,
 			revision: view.revision,
 			lastEventSeq: view.lastEventSeq,
-			...(input.checkpoint ? { checkpoint: input.checkpoint } : {}),
+			...(checkpoint ? { checkpoint } : {}),
+			...(snapshot ? {
+				sourceCursor: snapshot.sourceCursor,
+				snapshotBytes: snapshot.snapshotBytes,
+				snapshotDigest: snapshot.snapshotDigest,
+			} : {}),
 		})
 		.where(eq(projections.executionId, input.executionId));
 	return { view, firstAvailableSeq: current.firstAvailableSeq };

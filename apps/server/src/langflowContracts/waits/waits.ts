@@ -6,6 +6,11 @@ import { ReviewWaitV1Schema } from "../review";
 
 export const ExternalWaitV1Schema = z.discriminatedUnion("kind", [
 	z.strictObject({
+		kind: z.literal("native_reservation"),
+		waitId: ReferenceSchema,
+		request: NativeRequestV1Schema,
+	}),
+	z.strictObject({
 		kind: z.literal("native"),
 		waitId: ReferenceSchema,
 		request: NativeRequestV1Schema,

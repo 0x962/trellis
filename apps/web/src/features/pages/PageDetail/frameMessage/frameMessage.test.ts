@@ -81,3 +81,10 @@ test("large anchors retain frame isolation and structural validation", () => {
 	expect(message({ ...data, anchor: { ...anchor, action: "delete" } })).toBeNull();
 	expect(message({ ...data, anchor: { ...anchor, path: "main<script>" } })).toBeNull();
 });
+
+test("retains a complete Page link beyond 8192 characters", () => {
+	const href = `https://example.test/report?q=${"x".repeat(8193)}`;
+	expect(message({ type: "page-link", nonce: "nonce", href })).toEqual({ type: "page-link", nonce: "nonce", href });
+	expect(message({ type: "page-link", nonce: "other", href })).toBeNull();
+	expect(message({ type: "page-link", nonce: "nonce", href }, {} as Window)).toBeNull();
+});

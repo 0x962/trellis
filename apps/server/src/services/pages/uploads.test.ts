@@ -108,7 +108,7 @@ test("uses application/octet-stream when an upload has no MIME type", async () =
 });
 
 test("refuses a malformed nonempty MIME type", async () => {
-	for (const type of ["invalid", `application/${"x".repeat(300)}`]) {
+	for (const type of ["invalid", "text/plain/extra", "text/invalid value"]) {
 		await expect(
 			prepareUpload(contextOf(human), {
 				project: projectId,
@@ -260,7 +260,7 @@ test("refuses an archived project before it writes a file", async () => {
 });
 
 test("refuses an invalid upload name", () => {
-	for (const name of ["nested/file.css", "nested\\file.css", "bad\u001fname.css", "x".repeat(256)]) {
+	for (const name of ["nested/file.css", "nested\\file.css", "bad\u001fname.css", ""]) {
 		expect(
 			PageUploadInputSchema.safeParse({
 				project: projectId,
@@ -268,4 +268,14 @@ test("refuses an invalid upload name", () => {
 			}).success,
 		).toBe(false);
 	}
+});
+
+test("stores complete upload names and MIME values beyond 255 characters", async () => {
+	const originalName = `${"n".repeat(256)}.bin`;
+	const mime = `application/${"x".repeat(300)}`;
+	const stored = await stageAndStore(human, {
+		project: projectId,
+		file: new File(["bytes"], originalName, { type: mime }),
+	});
+	expect(PageUploadSchema.parse(stored)).toMatchObject({ originalName, mime });
 });

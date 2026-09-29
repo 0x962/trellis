@@ -1,1 +1,1 @@
-export { authorityControl } from "./authorityControl";
+export { authorityControl, type StoredAuthorityCommit } from "./authorityControl";

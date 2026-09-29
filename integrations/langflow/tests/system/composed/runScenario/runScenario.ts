@@ -38,6 +38,7 @@ export async function runScenario(
 	let canceled = false;
 	let previousRevision = view.revision;
 	let previousEvent = view.lastEventSeq;
+	const cancellation = scenario.cancel;
 	for (;;) {
 		assert.equal(view.id, executionId);
 		assert.equal(view.engine, "langflow");
@@ -54,10 +55,13 @@ export async function runScenario(
 		previousRevision = view.revision;
 		previousEvent = view.lastEventSeq;
 		if (
-			scenario.cancelAt !== null && !canceled &&
-			view.occurrences.some((row) =>
-				sameVisit(row, scenario.cancelAt!) &&
-				["running", "waiting_human"].includes(row.state),
+			cancellation !== null && !canceled && (
+				cancellation.when === "decisions_recorded"
+					? sent.size === scenario.decisions.length
+					: view.occurrences.some((row) =>
+						sameVisit(row, cancellation.visit) &&
+						["running", "waiting_human"].includes(row.state),
+					)
 			)
 		) {
 			view = FlowExecutionViewV1Schema.parse(await request(
@@ -90,7 +94,18 @@ export async function runScenario(
 		if (
 			["succeeded", "failed", "canceled"].includes(view.status) &&
 			view.stopObligations.every((stop) => stop.state === "confirmed")
-		) break;
+		) {
+			assert.equal(sent.size, scenario.decisions.length, "expected_decision_not_observed");
+			const deliveriesMatch = scenario.decisions.every((expected, index) => {
+				const identity = sent.get(index)!;
+				return view.decisionDeliveries.some((delivery) =>
+					delivery.actionKey === identity.key &&
+					delivery.occurrenceKey === identity.occurrenceKey &&
+					delivery.state === expected.deliveryState,
+				);
+			});
+			if (deliveriesMatch) break;
+		}
 		const remaining = Date.parse(input.deadlineAt) - Date.now();
 		assert.ok(remaining > 0, "batch_deadline_elapsed");
 		await Bun.sleep(Math.min(input.pollIntervalMs, remaining, 2_147_483_647));
@@ -98,7 +113,7 @@ export async function runScenario(
 			await request("GET", `/flow-executions/${executionId}/view-v1`),
 		);
 	}
-	assert.equal(canceled, scenario.cancelAt !== null);
+	assert.equal(canceled, cancellation !== null);
 	assert.equal(sent.size, scenario.decisions.length, "expected_decision_not_observed");
 	assert.equal(view.decisionDeliveries.length, sent.size);
 	for (const [index, identity] of sent) {
@@ -109,7 +124,7 @@ export async function runScenario(
 		assert.equal(matches.length, 1, "decision_receipt_not_unique");
 		assert.equal(matches[0]!.approved, expected.approved);
 		assert.equal(matches[0]!.output, expected.output);
-		assert.equal(matches[0]!.state, "confirmed");
+		assert.equal(matches[0]!.state, expected.deliveryState);
 	}
 	await verifyView(view, scenario, request);
 	const replay = FlowExecutionViewV1Schema.parse(

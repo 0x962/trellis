@@ -51,15 +51,13 @@ class ReviewClassificationLedger:
             job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).first()
             if job is None:
                 raise ReviewConflict("review_job_missing")
-            wait_bytes = await saved_wait(session, job_id, payload.engineWaitId)
-            if wait_bytes is None:
-                raise ReviewConflict("review_wait_not_retained")
-            wait = read_review_wait(wait_bytes)
-            authority = await authorize(session, wait.request.model_dump(mode="json"))
-            retained = await checkpoint(session, job_id, acceptance_kind(wait.request.engineRequestId))
+            retained = await checkpoint(session, job_id, acceptance_kind(response.visit.requestId))
             if retained is not None:
                 saved = json.loads(retained.blob)
-                validate_review_delivery(payload, saved["waitBytes"].encode("utf-8"), authority)
+                retained_wait_bytes = saved["waitBytes"].encode("utf-8")
+                retained_wait = read_review_wait(saved["waitBytes"])
+                authority = await authorize(session, retained_wait.request.model_dump(mode="json"))
+                validate_review_delivery(payload, retained_wait_bytes, authority)
                 if (
                     saved["resultBytes"].encode("utf-8") != payload.resultBytes
                     or saved["deliveryBytes"].encode("utf-8") != payload.deliveryBytes
@@ -67,6 +65,11 @@ class ReviewClassificationLedger:
                 ):
                     raise ReviewConflict("review_classification_replay_conflict")
                 return saved["obligation"]
+            wait_bytes = await saved_wait(session, job_id, payload.engineWaitId)
+            if wait_bytes is None:
+                raise ReviewConflict("review_wait_not_retained")
+            wait = read_review_wait(wait_bytes)
+            authority = await authorize(session, wait.request.model_dump(mode="json"))
             if job.status not in {JobStatus.SUSPENDED, JobStatus.QUEUED, JobStatus.IN_PROGRESS}:
                 raise ReviewConflict("review_job_not_pending")
             await assert_not_cancelled(session, job_id)

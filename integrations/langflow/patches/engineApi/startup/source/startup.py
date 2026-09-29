@@ -138,6 +138,7 @@ def create_engine_api_runtime(config: EngineApiStartupConfig) -> EngineApiRuntim
         create_engine_api_router,
         load_engine_api_identity,
     )
+    from langflow.services.trellis_v1.projection_router import create_projection_router
     from langflow.services.trellis_v1.native_router import create_native_router
     from langflow.services.trellis_v1.occurrence_transport import install_request_transport
 
@@ -177,6 +178,7 @@ def create_engine_api_runtime(config: EngineApiStartupConfig) -> EngineApiRuntim
         ),
         create_decision_router(security=security, execution_service=background),
         create_native_router(jobs=jobs, executor=background, security=security, open_session=session_scope),
+        create_projection_router(security=security, open_session=session_scope),
         create_cancellation_router(security=security, sessions=session_scope, background=background),
         create_backup_router(
             database=database,

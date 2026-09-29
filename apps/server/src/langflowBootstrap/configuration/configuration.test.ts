@@ -4,12 +4,21 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../../config";
 import { bootstrapFixture } from "../fixtures";
-import { readLangflowBootstrapConfiguration } from "./configuration";
+import { LangflowBootstrapConfigurationSchema, readLangflowBootstrapConfiguration } from "./configuration";
 
 test("server configuration keeps Langflow absent unless explicitly supplied", () => {
 	expect(loadConfig({}).langflowConfigFile).toBeUndefined();
 	expect(() => loadConfig({ TRELLIS_LANGFLOW_CONFIG_FILE: "relative.json" })).toThrow("absolute path");
 	expect(() => loadConfig({ TRELLIS_LANGFLOW_CONFIG_FILE: "" })).toThrow("absolute path");
+});
+
+test("bootstrap refuses a static callback credential in host configuration", () => {
+	const { configuration } = bootstrapFixture();
+	expect(LangflowBootstrapConfigurationSchema.parse(configuration)).toEqual(configuration);
+	expect(() => LangflowBootstrapConfigurationSchema.parse({
+		...configuration,
+		nativeReservationAuthenticationFile: "/private/static-native.token",
+	})).toThrow();
 });
 
 test("configuration requires a private regular file and distinct origins", async () => {
