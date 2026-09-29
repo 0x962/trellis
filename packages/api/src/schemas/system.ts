@@ -32,13 +32,20 @@ export type Health = z.infer<typeof HealthSchema>;
 
 const PercentSchema = z.number().min(0).max(100);
 
-// The XNU kernel publishes the memory pressure level in
-// `kern.memorystatus_vm_pressure_level`. 1 is normal, 2 is warning, and 4 is
-// critical. The kernel picks the level, so Trellis reports the number the
-// kernel gives and derives no level of its own. A computer that is not a Mac
-// publishes no level, and every field below that holds one is then null.
-export const MemoryPressureLevelSchema = z.union([z.literal(1), z.literal(2), z.literal(4)]);
+// The `kern.memorystatus_vm_pressure_level` sysctl returns 1 for normal, 2 for
+// warning, and 4 for critical. Trellis preserves another integer as an unknown
+// value because the sysctl is an operating-system boundary.
+export const MemoryPressureLevelSchema = z.number().int();
 export type MemoryPressureLevel = z.infer<typeof MemoryPressureLevelSchema>;
+
+export type MemoryPressureName = "Normal" | "Warning" | "Critical" | "Unknown" | "Unavailable";
+
+export const memoryPressureName = (level: MemoryPressureLevel | null): MemoryPressureName => {
+	if (level === 1) return "Normal";
+	if (level === 2) return "Warning";
+	if (level === 4) return "Critical";
+	return level === null ? "Unavailable" : "Unknown";
+};
 
 // NSProcessInfo publishes four thermal states, and Electron adds `unknown`.
 // A nominal state can also mean that the operating system cannot read the

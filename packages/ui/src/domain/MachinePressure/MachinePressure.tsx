@@ -18,7 +18,6 @@ export type MachinePressureMachineView = {
 	id: string;
 	name: string;
 	readings: MachinePressureReadingView[];
-	details?: MachinePressureReadingView[];
 	runs?: string[];
 	ageText?: string;
 };
@@ -34,6 +33,14 @@ export type MachinePressureProps = {
 const toneOf = (machines: MachinePressureMachineView[]) =>
 	machines.some((machine) => machine.readings.some((reading) => reading.tone === "danger")) ? "danger" : "warning";
 
+const alertMachines = (machines: MachinePressureMachineView[]) =>
+	machines
+		.map((machine) => ({
+			...machine,
+			readings: machine.readings.filter((reading) => reading.tone !== "normal"),
+		}))
+		.filter((machine) => machine.readings.length > 0);
+
 const readingText = (reading: MachinePressureReadingView) =>
 	`${reading.value}${reading.unit ? ` ${reading.unit}` : ""}`;
 
@@ -45,12 +52,14 @@ const announcementOf = (machines: MachinePressureMachineView[]) =>
 		.join(". ");
 
 function PressureDots({ machines, collapsed }: { machines: MachinePressureMachineView[]; collapsed: boolean }) {
+	const alerts = alertMachines(machines);
+	if (alerts.length === 0) return null;
 	if (collapsed) {
 		return (
 			<span className="absolute -right-0.5 -top-0.5 inline-flex">
 				<AttentionDot
 					label="Machine pressure has high readings"
-					tone={toneOf(machines)}
+					tone={toneOf(alerts)}
 					tooltip={false}
 					focusable={false}
 				/>
@@ -59,7 +68,7 @@ function PressureDots({ machines, collapsed }: { machines: MachinePressureMachin
 	}
 	return (
 		<span className="sidebar-trailing min-w-10 gap-1 pointer-coarse:min-w-15" aria-hidden="true">
-			{machines.flatMap((machine) =>
+			{alerts.flatMap((machine) =>
 				machine.readings.map((reading) => (
 					<AttentionDot
 						key={`${machine.id}:${reading.key}`}
@@ -81,7 +90,7 @@ function MachinePanel({ machines, usageLink }: Pick<MachinePressureProps, "machi
 				<section key={machine.id} className={cx("p-3", index > 0 && "border-border border-t")}>
 					<p className="truncate text-xs text-fg-muted uppercase tracking-wide">Machine · {machine.name}</p>
 					<dl className="mt-3 flex flex-col gap-2">
-						{[...machine.readings, ...(machine.details ?? [])].map((reading) => (
+						{machine.readings.map((reading) => (
 							<div key={reading.key}>
 								<div className="flex min-w-0 items-baseline gap-3 text-sm">
 									<dt className="min-w-0 flex-1 text-fg">{reading.label}</dt>
@@ -99,7 +108,15 @@ function MachinePanel({ machines, usageLink }: Pick<MachinePressureProps, "machi
 										{reading.unit && <span className="font-normal text-fg-faint"> {reading.unit}</span>}
 									</dd>
 								</div>
-								{reading.freshness === "stale" && <p className="text-xs text-fg-muted">Stale reading</p>}
+								{reading.freshness !== "live" && (
+									<p className="text-xs text-fg-muted">
+										{reading.freshness === "stale"
+											? "Stale reading"
+											: reading.freshness === "lost"
+												? "Reading lost"
+												: "Reading unavailable"}
+									</p>
+								)}
 								{reading.detail && <p className="mt-1 break-words text-xs text-fg-faint">{reading.detail}</p>}
 							</div>
 						))}
@@ -118,13 +135,14 @@ function MachinePanel({ machines, usageLink }: Pick<MachinePressureProps, "machi
 }
 
 export function MachinePressure({ machines, usageLink, collapsed = false, open, onOpenChange }: MachinePressureProps) {
-	const active = machines.filter((machine) => machine.readings.length > 0);
-	const announcement = announcementOf(active);
-	if (active.length === 0) return <span role="status" aria-live="polite" className="sr-only" />;
+	const alerts = alertMachines(machines);
+	const announcement = announcementOf(alerts);
+	const description = announcementOf(machines);
+	if (machines.length === 0) return <span role="status" aria-live="polite" className="sr-only" />;
 	const trigger = (
 		<button
 			type="button"
-			aria-label={collapsed ? `Machine pressure. ${announcement}` : undefined}
+			aria-label={collapsed ? `Machine readings. ${description}` : undefined}
 			className={cx(
 				"text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
 				collapsed ? "sidebar-rail-row relative" : "sidebar-row w-full pl-2 text-sm",
@@ -132,14 +150,14 @@ export function MachinePressure({ machines, usageLink, collapsed = false, open, 
 		>
 			<span data-slot="leading" className={collapsed ? "relative inline-flex" : "sidebar-leading"}>
 				<Cpu size={16} aria-hidden="true" />
-				{collapsed && <PressureDots machines={active} collapsed />}
+				{collapsed && <PressureDots machines={machines} collapsed />}
 			</span>
 			{!collapsed && (
 				<>
 					<span data-slot="label" className="sidebar-label text-left">
 						Machine
 					</span>
-					<PressureDots machines={active} collapsed={false} />
+					<PressureDots machines={machines} collapsed={false} />
 				</>
 			)}
 		</button>
@@ -159,7 +177,7 @@ export function MachinePressure({ machines, usageLink, collapsed = false, open, 
 				open={open}
 				onOpenChange={onOpenChange}
 			>
-				<MachinePanel machines={active} usageLink={usageLink} />
+				<MachinePanel machines={machines} usageLink={usageLink} />
 			</Popover>
 		</>
 	);

@@ -27,13 +27,12 @@ const readings = {
 		key: "memory",
 		label: "Memory pressure",
 		value: "Critical",
-		unit: "level 4",
 		tone: "danger",
 		freshness: "live",
 	},
 	thermal: {
 		key: "thermal",
-		label: "Thermal state",
+		label: "Thermal pressure",
 		value: "Serious",
 		tone: "danger",
 		freshness: "live",
@@ -84,7 +83,7 @@ export function MachinePressureSection() {
 	return (
 		<Section
 			name="MachinePressure"
-			note="each high signal, every signal, normal and lost absence, a stale sample, and the collapsed rail"
+			note="each high signal, every signal, normal, unavailable, stale, and lost readings, and the collapsed rail"
 			className="items-start"
 		>
 			<div id="machine-pressure" className="flex flex-col gap-3">
@@ -97,7 +96,20 @@ export function MachinePressureSection() {
 				<MachinePressure machines={machine(all)} usageLink={usageLink} open />
 			</div>
 			<div className="flex flex-col gap-3">
-				<Example label="Normal or unavailable: no row" items={[]} />
+				<Example
+					label="Normal and unavailable"
+					items={[
+						{ ...readings.cpuLoad, value: "0.4", tone: "normal" },
+						{
+							...readings.temperature,
+							value: "Unavailable",
+							unit: undefined,
+							detail: undefined,
+							tone: "normal",
+							freshness: "unavailable",
+						},
+					]}
+				/>
 				<div className="w-56 rounded-md border border-border bg-bg p-2">
 					<p className="mb-1 text-xs text-fg-faint">Stale sample</p>
 					<MachinePressure
@@ -107,7 +119,19 @@ export function MachinePressureSection() {
 						usageLink={usageLink}
 					/>
 				</div>
-				<Example label="Lost reader: no row" items={[]} />
+				<Example
+					label="Lost reader"
+					items={[
+						{
+							...readings.temperature,
+							value: "Unavailable",
+							unit: undefined,
+							detail: undefined,
+							tone: "normal",
+							freshness: "lost",
+						},
+					]}
+				/>
 			</div>
 			<div className="rounded-md border border-border bg-bg p-2">
 				<p className="mb-1 text-xs text-fg-faint">Collapsed rail</p>

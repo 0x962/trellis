@@ -131,6 +131,8 @@ const thermalScore = (state: ThermalState): number => {
 	return 0;
 };
 
+const memoryScore = (level: MemoryPressureLevel): number => (level === 1 || level === 2 || level === 4 ? level : 0);
+
 const tierFor = (value: number, policy: NumericPolicy): MachinePressureTier => {
 	if (value >= policy.dangerAt) return "danger";
 	if (value >= policy.warningAt) return "warning";
@@ -263,7 +265,7 @@ export class MachinePressureMonitor {
 				readings.disk === null ? "failed" : null,
 			),
 			cpuLoad: updateSignal("cpuLoad", this.cpuLoad, readings.cpuLoad, (value) => value, now),
-			memory: updateSignal("memory", this.memory, readings.memory, (value) => value, now),
+			memory: updateSignal("memory", this.memory, readings.memory, memoryScore, now),
 			thermal: updateSignal("thermal", this.thermal, readings.thermal, thermalScore, now),
 			temperature: updateSignal(
 				"temperature",
