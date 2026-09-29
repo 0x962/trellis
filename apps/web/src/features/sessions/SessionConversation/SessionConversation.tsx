@@ -1,7 +1,7 @@
 import { SidebarSimple } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, Button, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
+import { Avatar, Button, EmptyState, FailureState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -12,7 +12,6 @@ import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
 import { isSessionArchived, sessionPane } from "../sessionPane";
-import { SessionPaneState } from "../sessionPane/SessionPaneState";
 import { useSessionArchive } from "../useSessionArchive";
 import { AgentStatusUpdates, useSessionStatusObserver } from "./components/AgentStatusUpdates";
 import { sessionObserverEnabled } from "./components/AgentStatusUpdates/sessionObserverState";
@@ -100,7 +99,7 @@ export function SessionConversation({
 			{name}
 		</h2>
 	);
-	const pane = sessionPane(run, archived, start.isPending);
+	const pane = sessionPane(run, archived);
 	const observerEnabled = sessionObserverEnabled(statusObserver.observer.data);
 	const observerFailed = statusObserver.observer.isError;
 	const observerLabel = observerFailed
@@ -116,8 +115,8 @@ export function SessionConversation({
 					name={name}
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
-					state={start.isPending ? "starting" : isAgentWorking(run) ? "working" : "static"}
-					status={start.isPending ? "starting" : sessionStatus(run)}
+					state={isAgentWorking(run) ? "working" : "static"}
+					status={sessionStatus(run)}
 					className="size-7 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">
@@ -141,7 +140,11 @@ export function SessionConversation({
 						label={observerLabel}
 						icon={<SidebarSimple />}
 						pressed={observerEnabled}
-						processing={statusObserver.observer.isFetching || statusObserver.setEnabled.isPending}
+						processing={
+							statusObserver.observer.isPending ||
+							statusObserver.setEnabled.isPending ||
+							(observerFailed && statusObserver.observer.isFetching)
+						}
 						disabled={readOnly && !observerFailed}
 						onClick={() => {
 							if (observerFailed) void statusObserver.observer.refetch();
@@ -171,7 +174,9 @@ export function SessionConversation({
 			<PendingQuestions run={run} readOnly={readOnly} />
 			<div className="flex min-h-0 flex-1 max-md:flex-col">
 				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
-					{pane.kind === "archived" ? (
+					{pane.kind === "failed" ? (
+						<FailureState variant="page" title={pane.title} description={pane.description} detail={pane.detail} />
+					) : pane.kind === "archived" ? (
 						<EmptyState
 							variant="page"
 							image={null}
@@ -187,8 +192,8 @@ export function SessionConversation({
 								</Button>
 							}
 						/>
-					) : pane.kind !== "terminal" ? (
-						<SessionPaneState pane={pane} />
+					) : pane.kind === "paused" ? (
+						<EmptyState variant="page" title={pane.title} description={pane.description} />
 					) : run.terminalId ? (
 						<NativeTerminal
 							key={run.terminalId}
