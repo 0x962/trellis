@@ -6,16 +6,10 @@ type LaunchDeadlineDependencies = {
 	setCurrentTimer: (timer: ReturnType<typeof setTimeout>) => void;
 };
 
-const defaultDependencies: LaunchDeadlineDependencies = {
-	now: Date.now,
-	schedule: setTimeout,
-	setCurrentTimer: () => {},
-};
-
 export const scheduleLaunchDeadline = (
 	timeoutMs: number,
 	onDeadline: () => void,
-	dependencies: LaunchDeadlineDependencies = defaultDependencies,
+	dependencies: LaunchDeadlineDependencies,
 ) => {
 	const deadline = BigInt(dependencies.now()) + BigInt(timeoutMs);
 	const scheduleRemaining = () => {
