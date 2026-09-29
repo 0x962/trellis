@@ -117,7 +117,7 @@ TRL-669 owns both service consumers, both drains, retained decision lookup, star
 The queue helper returns one `DispatchDisposition`:
 
 ```python
-DispatchDisposition = Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]
+DispatchDisposition = Literal["dispatched", "execution_proven", "pending_lease", "capture_paused", "cancelled"]
 
 async def _enqueue_queued_continuation(
 	self,
@@ -131,6 +131,7 @@ async def _enqueue_queued_continuation(
 - `dispatched`: the executor accepted the job, and the service stored the exact receipt under `trellis-dispatch-v1:<enqueueObligationId>`;
 - `execution_proven`: the durable job state binds the exact continuation signal to the runner;
 - `pending_lease`: a fresh QUEUED lease blocked dispatch;
+- `capture_paused`: the active capture grant blocked dispatch and left the durable obligation pending;
 - `cancelled`: the job is canceled while the exact continuation signal remains unconsumed.
 
 A QUEUED row, lease, or continuation receipt does not prove execution.
@@ -232,6 +233,34 @@ A new envelope fails when cancellation or another terminal status already owns t
 The queue path holds the Job lock through cancellation inspection, lease claim, executor submission, and dispatch receipt storage.
 The runner consumes a STOP without replacing a completed, failed, or timed-out status.
 The initial queue path and every continuation use the same Langflow executor.
+
+## Capture writer boundary
+
+Apply `0005-capture-boundary-writer-hooks.patch` after the complete TRL-970 backend series and its capture boundary.
+Apply the private engine startup patch after `0005`.
+
+Startup calls this interface immediately after it constructs `CaptureBoundary`:
+
+```python
+def install_capture_boundary(boundary: CaptureBoundary) -> None
+```
+
+The installed boundary guards every concrete `DatabaseService` session.
+`JobRunner.run` also holds one writer admission for the full graph pass because one pass spans several transactions.
+An active durable capture grant raises `CapturePaused` before a new session or graph pass starts.
+
+The initial queue, continuation queue, and all obligation consumers retain their durable work when capture blocks dispatch.
+They do not store a dispatch receipt or mark an obligation consumed.
+The background service exposes this recovery interface:
+
+```python
+async def resume_after_capture(self) -> None
+```
+
+The capture revoke caller awaits `resume_after_capture()` before it returns its response.
+The method runs the existing orphan sweep and obligation drains once.
+If a durable capture grant remains active, the writer guard keeps recovery deferred.
+No capture hook adds a queue, poller, graph scheduler, or retry loop.
 
 TRL-674 owns the combined patch series.
 
