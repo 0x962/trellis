@@ -7,9 +7,11 @@ import {
 	ReviewSubmitSchema,
 	type ReviewThread,
 } from "@trellis/api";
+import { createCache } from "../../../db/cache.ts";
 import { openTestDb } from "../../../db/testDb.ts";
 import type { Tx } from "../../../db/tx.ts";
-import type { PrepareCtx, ServiceCtx } from "../../support.ts";
+import type { GhSuccess } from "../../../gh/run.ts";
+import type { IoCtx } from "../../support.ts";
 import { applyResult, prepareApply } from "../apply.ts";
 import { edit } from "../messages.ts";
 import { readThread } from "../queries.ts";
@@ -19,13 +21,38 @@ import { add, reply } from "../threads.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
-const ctx = {
-	actor: { name: "reviewer", kind: "human" },
+const actor: IoCtx["actor"] = { name: "reviewer", kind: "human" };
+const at = new Date("2026-09-29T20:00:00Z");
+const ctx: IoCtx = {
+	actor,
 	session: null,
-	now: () => new Date("2026-09-29T20:00:00Z"),
+	home: import.meta.dir,
+	version: "test",
+	apiVersion: "1",
+	bootId: "review-fixture",
+	now: () => at,
+	ghStatus: () => ({ ok: true, user: "reviewer", reason: null, message: null, checkedAt: null }),
+	addresses: async () => [],
+	log: () => {},
 	emit: () => {},
+	afterCommit: () => {},
 	newTx: run,
-} as unknown as ServiceCtx;
+	vacuum: async () => {},
+	localUrl: "http://localhost",
+	publicUrl: "http://localhost",
+	background: () => {},
+	core: {
+		actor,
+		session: null,
+		reqId: "review-fixture",
+		now: at,
+		emit: () => {},
+		cache: createCache(),
+		actorCache: new Map(),
+		dropBlobs: () => {},
+		publicUrl: "http://localhost",
+	},
+};
 const headSha = "a".repeat(40);
 
 beforeAll(async () => {
@@ -134,7 +161,7 @@ test("applies 51 suggestions and 10001 original lines with the complete commit m
 	const message = `Complete suggestions\n\n${"界".repeat(10_001)}\nlast message line`;
 	let requestFile = "";
 	const gh = Object.assign(
-		async (_slot: string, args: string[]) => {
+		async (_slot: string, args: string[]): Promise<GhSuccess> => {
 			calls.push(args);
 			let stdout: string;
 			if (args[0] === "pr") {
@@ -160,12 +187,12 @@ test("applies 51 suggestions and 10001 original lines with the complete commit m
 			} else {
 				stdout = `${[...original, ...tail].join("\n")}\n`;
 			}
-			return { ok: true as const, code: 0, stdout, stderr: "" };
+			return { ok: true, code: 0, stdout, stderr: "" };
 		},
 		{ bin: "gh", timeoutMs: 30_000 },
 	);
 	const prepared = await prepareApply(
-		{ ...ctx, gh } as PrepareCtx,
+		{ ...ctx, gh },
 		ReviewApplySchema.parse({ pr, headSha, message, threadIds: threads.map((thread) => thread.id) }),
 	);
 	const applied = await run((tx) => applyResult(ctx, tx, prepared));
