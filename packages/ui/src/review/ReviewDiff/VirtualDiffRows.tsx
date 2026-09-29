@@ -3,7 +3,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { diffRowSlots, diffRowStyle } from "./diffRowSlots";
 import type { DiffAnchor } from "./ReviewDiff";
 import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
-import { useVirtualRows } from "./useVirtualRows";
+import { useVirtualRows } from "../../hooks/useVirtualRows";
 
 // A wrapper that reports the height of variable-height annotation content:
 // a file-level annotation row, or a line row with a thread or the composer

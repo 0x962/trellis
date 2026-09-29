@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useVirtualRows } from "../../review/ReviewDiff/useVirtualRows";
+import { useVirtualRows } from "../../hooks/useVirtualRows";
 import { FlowRunRow } from "./components/FlowRunRow";
 import { MeasuredRunRow } from "./components/MeasuredRunRow";
 import type { FlowRunRow as Row } from "./types";
