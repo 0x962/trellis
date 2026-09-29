@@ -249,7 +249,11 @@ test("an exact replay can return the saved explicit refusal", async () => {
 	await flush();
 	expect(f.action().request?.phase).toBe("conflict");
 	expect(f.action().request?.result).toBeUndefined();
-	await act(async () => f.action().clearConflict());
+	await act(async () => {
+		f.action().clearConflict();
+		expect(f.queryClient.getQueryData(["flow-action-request", "first"])).toBeNull();
+	});
+	await flush();
 	expect(f.action().request).toBeNull();
 	await f.close();
 });
