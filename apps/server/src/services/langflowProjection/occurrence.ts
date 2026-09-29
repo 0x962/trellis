@@ -70,12 +70,13 @@ export function projectOccurrence(
 				waitReason: "ownership_unknown",
 				output: gate.state === "succeeded" ? gate.output : base.output,
 			};
-		if (gate.state === "failed") return {
-			...base,
-			state: observed.state === "succeeded" ? "unknown" : observed.state,
-			waitReason: observed.state === "succeeded" ? "ownership_unknown" : null,
-			error: gate.error,
-		};
+		if (gate.state === "failed")
+			return {
+				...base,
+				state: observed.state === "succeeded" ? "unknown" : observed.state,
+				waitReason: observed.state === "succeeded" ? "ownership_unknown" : null,
+				error: gate.error,
+			};
 		return { ...base, output: gate.output, decision: gate.decision };
 	}
 	if (

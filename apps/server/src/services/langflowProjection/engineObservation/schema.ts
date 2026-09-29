@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { DigestSchema, RevisionSchema } from "../../../langflowContracts";
-export { EngineProjectionSnapshotV1Schema, type EngineProjectionSnapshotV1 } from "../../../langflowContracts/projection";
+
+export {
+	type EngineProjectionSnapshotV1,
+	EngineProjectionSnapshotV1Schema,
+} from "../../../langflowContracts/projection";
 
 const record = {
 	authorityDigest: DigestSchema,

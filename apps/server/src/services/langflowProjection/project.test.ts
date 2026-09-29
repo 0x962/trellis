@@ -117,14 +117,16 @@ describe("durable occurrence projection", () => {
 test("workspace observations change only the exact retained attempt", () => {
 	const f = fixture();
 	const native = f.facts.native[0]!;
-	f.facts.workspaceObservations = [{
-		executionId: f.binding.executionId,
-		stepId: native.provenance.stepId,
-		attemptId: native.provenance.attemptId,
-		workspaceId: native.handle.workspaceId,
-		workspaceCommit: "a".repeat(40),
-		observedAt: f.now,
-	}];
+	f.facts.workspaceObservations = [
+		{
+			executionId: f.binding.executionId,
+			stepId: native.provenance.stepId,
+			attemptId: native.provenance.attemptId,
+			workspaceId: native.handle.workspaceId!,
+			workspaceCommit: "a".repeat(40),
+			observedAt: f.now,
+		},
+	];
 	const result = run(f);
 	expect(result.occurrences[0]!.attempts[0]!.workspaceCommit).toBe("a".repeat(40));
 	expect(result.occurrences[0]!.outputSource?.resultId).toBe(native.completion!.completion.result.resultId);
@@ -136,10 +138,25 @@ test("distinct human feedback occurrences can retain one semantic scope", () => 
 	const f = fixture();
 	f.facts.native = [];
 	f.view.occurrences = [];
-	const occurrence = { ...f.observed.occurrences[0]!, kind: "human" as const, acceptedResultId: null,
-		state: "skipped" as const, skipReason: "human_feedback_replaced" };
-	f.observed.occurrences = [occurrence, { ...occurrence, occurrenceKey: "replacement", actionKey: "replacement-action",
-		state: "waiting_human", skipReason: null, startedAt: null, endedAt: null }];
+	const occurrence = {
+		...f.observed.occurrences[0]!,
+		kind: "human" as const,
+		acceptedResultId: null,
+		state: "skipped" as const,
+		skipReason: "human_feedback_replaced",
+	};
+	f.observed.occurrences = [
+		occurrence,
+		{
+			...occurrence,
+			occurrenceKey: "replacement",
+			actionKey: "replacement-action",
+			state: "waiting_human",
+			skipReason: null,
+			startedAt: null,
+			endedAt: null,
+		},
+	];
 	f.observed.status = "running";
 	const result = run(f);
 	expect(result.occurrences.map((row) => row.occurrenceKey)).toEqual([occurrence.occurrenceKey, "replacement"]);
