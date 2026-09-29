@@ -1,23 +1,17 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type { AgentRun, SessionUpdatesGetInput } from "@trellis/api";
+import type { AgentRun } from "@trellis/api";
 import { Button, EmptyState, FailureState, SessionStatusPaneShell } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useOpenLink } from "../../../../../lib/openLink";
 import { AgentStatusUpdatesPane } from "./AgentStatusUpdatesPane";
+import { agentStatusUpdatesQueryOptions } from "./agentStatusUpdatesState";
 
 export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; observerError: string | null }) {
 	const { orpc, scheduler } = useApp();
 	const openLink = useOpenLink();
 	const [now, setNow] = useState(() => scheduler.now());
-	type Cursor = NonNullable<SessionUpdatesGetInput["history"]>["before"];
-	const query = useInfiniteQuery(
-		orpc.sessionUpdates.get.infiniteOptions({
-			input: (before: Cursor) => ({ sessionId: run.id, history: { before } }),
-			initialPageParam: undefined as Cursor,
-			getNextPageParam: (result) => result.nextCursor ?? undefined,
-		}),
-	);
+	const query = useInfiniteQuery(agentStatusUpdatesQueryOptions(orpc, run));
 
 	useEffect(() => {
 		let timer: unknown;
