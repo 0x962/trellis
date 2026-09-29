@@ -37,7 +37,7 @@ const graphql = async (ctx: PrepareCtx, query: string, variables: Record<string,
 	const file = join(directory, "request.json");
 	try {
 		await writeFile(file, JSON.stringify({ query, variables }), { mode: 0o600 });
-		return ghJson<Record<string, unknown>>(ctx, ["api", "graphql", "--input", file]);
+		return await ghJson<Record<string, unknown>>(ctx, ["api", "graphql", "--input", file]);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
