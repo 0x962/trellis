@@ -130,3 +130,22 @@ The reviewed head belongs to the retained execution; the runtime observer record
 The authenticated receipt reader remains a required composition dependency.
 Missing receipts stop reservation.
 The authored prompt fixtures require execution in the integrated batch.
+
+## Resolve a retained engine visit
+
+`readNativeVisit(client, { requestBytes, authorityBytes, capabilityId, signal })` calls the private engine through the existing `createEngineClient`.
+The supervisor supplies its current endpoint and outgoing authentication file.
+Call this reader before the Trellis transaction while the supervisor retains the connection.
+An unknown response, refused request, malformed response, or changed request string stops the read.
+
+`resolveNativeOccurrence(ctx, tx, { requestBytes, visit })` locks the current execution and validates its current grant with `native.reserve`.
+It checks admission, cancellation, the original request bytes, the full occurrence, input order, and deadline references.
+It reads the static specification from the retained publication and refuses unresolved model or effort settings.
+It derives the exact task association and calls `assembleNativePrompt` before it returns `ApprovedNativeOccurrence`.
+The incoming route supplies this service through `NativeReservationCtx.resolveOccurrence`.
+The route authenticates the caller before either read.
+
+The engine visit reader returns `engineNodeId`, `requestBytes`, `occurrence`, `scope`, `admissionReceipt`, and `inputReceipts`.
+The scope contains `inputReceiptIds`, `groupDeadlineRefs`, and `deadlineAt`.
+The engine journal owns these values; the resolver compares them with the original request without constructing a visit from the editor.
+The database check repeats authority validation after the external read because ownership can change between the two transactions.

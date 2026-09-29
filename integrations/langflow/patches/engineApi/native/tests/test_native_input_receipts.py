@@ -72,6 +72,11 @@ def route(monkeypatch):
             raise OccurrenceConflict("input_request_not_retained")
         return receipts
 
+    async def read_visit(supplied_session, job_id, request_bytes):
+        saved_receipts = await read(supplied_session, job_id, request_bytes)
+        return {"engineNodeId": "retained-vertex", "requestBytes": request_bytes, "inputReceipts": saved_receipts}
+
+    monkeypatch.setattr("langflow.services.trellis_v1.native_router.read_native_visit", read_visit)
     monkeypatch.setattr("langflow.services.trellis_v1.native_router.read_input_receipts", read)
     app = FastAPI()
     app.include_router(create_native_router(
@@ -141,3 +146,19 @@ def test_rejects_extra_body_fields(route):
     route.body["jobId"] = "untrusted"
     assert post(route).status_code == 422
     assert route.events == []
+
+
+def test_visit_uses_the_same_locked_read_and_preserves_the_journal_response(route):
+    response = route.client.post("/trellis-v1/native/visit", json=route.body, headers=route.headers)
+    assert response.status_code == 200
+    assert response.json() == {"engineNodeId": "retained-vertex", "requestBytes": route.body["requestBytes"],
+                               "inputReceipts": route.receipts}
+    assert route.events == ["transport", "open", "lock", "authority", "read", "close"]
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_visit_rejects_capability_before_journal_access(route):
+    route.headers["X-Trellis-Capability-Id"] = "forged"
+    response = route.client.post("/trellis-v1/native/visit", json=route.body, headers=route.headers)
+    assert response.status_code == 401
+    assert "read" not in route.events

@@ -1,10 +1,12 @@
 export { assembleNativePrompt } from "./assembleNativePrompt";
 export { dispatchNative } from "./dispatchNative";
 export { readLaunchSnapshot } from "./launchSnapshot";
+export type { NativeVisit } from "./nativeVisit";
 export { observeNativeAttempt } from "./observeNativeAttempt";
 export { readCompletionDelivery } from "./readCompletionDelivery";
 export { readNativeOutput } from "./readNativeOutput";
 export { readNativeSnapshotManifest } from "./readNativeSnapshotManifest";
+export { readNativeVisit } from "./readNativeVisit";
 export type { NativePromptReceipt } from "./readPromptInputs";
 export { readReservation } from "./readReservation";
 export { recordNativeLaunch } from "./recordNativeLaunch";
@@ -13,4 +15,5 @@ export { recoverNativeAttempt } from "./recoverNativeAttempt";
 export { requestNativeAttempt } from "./requestNativeAttempt";
 export { reserveNativeRequest } from "./reserveNativeRequest";
 export { resolveNativeLimits } from "./resolveNativeLimits";
+export { resolveNativeOccurrence } from "./resolveNativeOccurrence";
 export type { ApprovedNativeOccurrence, NativeReservationCtx } from "./types";
