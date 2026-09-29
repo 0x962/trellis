@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { fixture } from "./fixture.ts";
+import { fixture } from "../components/fixture/fixture.ts";
 import { reconcile } from "./reconcile.ts";
 
 const run = (f: ReturnType<typeof fixture>) => reconcile(f.context, { executionId: f.initial.executionId }, f);
@@ -121,5 +121,37 @@ test("cancellation during submission prevents admission", async () => {
 		return result;
 	};
 	expect((await run(f)).disposition).toBe("reused");
+	expect(f.trace).not.toContain("admit");
+});
+
+test("unknown operations log only their identities", async () => {
+	for (const operation of ["lookup", "submit", "admit"] as const) {
+		const f = fixture();
+		const unknown = {
+			state: "unknown" as const,
+			key: { version: 1 as const, hostId: f.initial.hostId, executionId: f.initial.executionId },
+		};
+		if (operation === "lookup") f.engine.lookup = async () => unknown;
+		if (operation === "submit") f.engine.submit = async () => unknown;
+		if (operation === "admit") f.engine.admit = async () => ({ state: "unknown" });
+		await reconcile(f.context, { executionId: f.initial.executionId }, f);
+		expect(f.logs).toHaveLength(1);
+		expect(f.logs[0]!.fields).toEqual({
+			operation,
+			executionId: f.initial.executionId,
+			hostId: f.initial.hostId,
+			...(operation === "admit"
+				? { engineJobId: "00000000-0000-4000-8000-000000000001", admissionId: "admission-1" }
+				: {}),
+		});
+	}
+});
+
+test("a store that leaves admission closed fails before engine delivery", async () => {
+	const f = fixture();
+	f.store.openAdmission = async () => structuredClone(f.current());
+	await expect(reconcile(f.context, { executionId: f.initial.executionId }, f)).rejects.toThrow(
+		"admission_not_committed",
+	);
 	expect(f.trace).not.toContain("admit");
 });

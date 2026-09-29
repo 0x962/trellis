@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
-import type { Tx } from "../../db/tx.ts";
+import type { Tx } from "../../../db/tx.ts";
+import type { JobsLog } from "../../../jobs.ts";
 import {
 	AdmissionReceiptV1Schema,
 	CorrelationLookupResultV1Schema,
@@ -7,12 +8,13 @@ import {
 	CorrelationReceiptV1Schema,
 	type DeliveryAuthorityV1,
 	DeliveryAuthorityV1Schema,
-} from "../../langflowContracts";
-import type { LangflowStartEngine } from "./engine.ts";
-import type { StartExecution, StartStore } from "./store.ts";
-import { submissionEnvelope } from "./submissionEnvelope.ts";
+} from "../../../langflowContracts";
+import type { LangflowStartEngine } from "../engine.ts";
+import type { StartExecution, StartStore } from "../store.ts";
+import { submissionEnvelope } from "./components/submissionEnvelope/submissionEnvelope.ts";
 
 export type ReconcileContext = {
+	log: JobsLog;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
 	now: () => Date;
 };
@@ -33,7 +35,7 @@ export async function reconcile(ctx: ReconcileContext, input: { executionId: str
 		const result =
 			lookup.state === "absent"
 				? await deps.engine.submit({
-						submissionBytes: submissionEnvelope(execution),
+						envelopeBytes: submissionEnvelope(execution),
 						payloadBytes: execution.submissionBytes,
 						publication: execution.publication,
 						snapshot: execution.snapshot,
@@ -42,6 +44,11 @@ export async function reconcile(ctx: ReconcileContext, input: { executionId: str
 		if (result.state === "unknown") {
 			if (!isDeepStrictEqual(result.key, key)) throw new Error("correlation_conflict");
 			execution = await ctx.newTx((tx) => deps.store.markUnknown(tx, input));
+			ctx.log("langflow.start.unknown", {
+				operation: lookup.state === "absent" ? "submit" : "lookup",
+				executionId: execution.executionId,
+				hostId: execution.hostId,
+			});
 			return { execution, disposition: "unknown" as const };
 		}
 		const correlation = CorrelationReceiptV1Schema.parse(result.receipt);
@@ -71,13 +78,20 @@ export async function reconcile(ctx: ReconcileContext, input: { executionId: str
 		execution = await ctx.newTx((tx) => deps.store.openAdmission(tx, { ...input, now: ctx.now() }));
 	if (execution.canceled || execution.submission.state === "failed")
 		return { execution, disposition: "reused" as const };
-	if (execution.admission.state !== "open" || execution.authority === null)
-		return { execution, disposition: "pending" as const };
+	if (execution.admission.state !== "open" || execution.authority === null) throw new Error("admission_not_committed");
 	const result = await deps.engine.admit({ receipt: execution.admission.receipt, authority: execution.authority });
 	if (result.state === "admitted") {
 		const receipt = AdmissionReceiptV1Schema.parse(result.receipt);
 		if (!isDeepStrictEqual(receipt, execution.admission.receipt)) throw new Error("admission_conflict");
 		await ctx.newTx((tx) => deps.store.confirmAdmission(tx, { ...input, receipt }));
 	}
+	if (result.state === "unknown")
+		ctx.log("langflow.start.unknown", {
+			operation: "admit",
+			executionId: execution.executionId,
+			hostId: execution.hostId,
+			engineJobId: execution.admission.receipt.engineJobId,
+			admissionId: execution.admission.receipt.admissionId,
+		});
 	return { execution, disposition: result.state === "admitted" ? ("queued" as const) : result.state };
 }

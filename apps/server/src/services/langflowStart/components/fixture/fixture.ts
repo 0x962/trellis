@@ -1,11 +1,11 @@
 import { isDeepStrictEqual } from "node:util";
 import { executionViewV1Example } from "@trellis/api";
-import type { Tx } from "../../db/tx.ts";
-import type { CorrelationReceiptV1, DeliveryAuthorityV1 } from "../../langflowContracts";
-import type { LangflowStartEngine } from "./engine.ts";
-import { requestBytes } from "./requestBytes.ts";
-import type { StartExecution, StartIdentity, StartReceipt, StartStore } from "./store.ts";
-import { submission } from "./submission.ts";
+import type { Tx } from "../../../../db/tx.ts";
+import type { CorrelationReceiptV1, DeliveryAuthorityV1 } from "../../../../langflowContracts";
+import type { LangflowStartEngine } from "../../engine.ts";
+import { requestBytes } from "../../requestBytes/requestBytes.ts";
+import type { StartExecution, StartIdentity, StartReceipt, StartStore } from "../../store.ts";
+import { submission } from "../../submission/submission.ts";
 
 export function fixture() {
 	const at = new Date("2026-09-29T06:00:00Z");
@@ -168,7 +168,11 @@ export function fixture() {
 		issuedAt: at.toISOString(),
 		expiresAt: "2026-09-29T07:00:00Z",
 	});
+	const logs: { message: string; fields?: Record<string, unknown> }[] = [];
 	const context = {
+		log: (message: string, fields?: Record<string, unknown>) => {
+			logs.push({ message, fields });
+		},
 		now: () => at,
 		newTx: async <T>(fn: (tx: Tx) => Promise<T>) => {
 			inTransaction = true;
@@ -180,5 +184,19 @@ export function fixture() {
 			}
 		},
 	};
-	return { initial, identity, input, records, receipts, outcomes, current, trace, store, engine, authorize, context };
+	return {
+		logs,
+		initial,
+		identity,
+		input,
+		records,
+		receipts,
+		outcomes,
+		current,
+		trace,
+		store,
+		engine,
+		authorize,
+		context,
+	};
 }
