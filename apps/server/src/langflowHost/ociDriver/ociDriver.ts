@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import {
 	type LangflowSidecarManifestV1,
@@ -38,6 +38,7 @@ export type OciDriverOptions = {
 	manifest: LangflowSidecarManifestV1;
 	imageConfigDigest: string;
 	privateRoot: string;
+	captureIssuerFile: string;
 	dockerExecutable?: string;
 	dependencies?: Partial<OciDriverDependencies>;
 };
@@ -46,6 +47,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	const manifest = LangflowSidecarManifestV1Schema.parse(options.manifest);
 	if (manifest.target.kind !== "linux-oci") throw new Error("sidecar_oci_target_required");
 	if (!/^sha256:[0-9a-f]{64}$/.test(options.imageConfigDigest)) throw new Error("sidecar_image_config_invalid");
+	if (!isAbsolute(options.captureIssuerFile)) throw new Error("sidecar_capture_issuer_path_invalid");
 	const executable = options.dockerExecutable ?? "docker";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(executable, args));
 	const fetcher = options.dependencies?.fetch ?? fetch;
@@ -96,6 +98,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		const instanceNames = names(input.identity);
 		const data = await privateDirectory(input.dataDirectory);
 		const authentication = await privateFile(input.authenticationFile);
+		const captureIssuer = await privateFile(options.captureIssuerFile);
 		if (data !== join(privateRoot, "data")) throw new Error("sidecar_data_directory_conflict");
 		if (authentication !== join(privateRoot, "secrets", `${input.identity.instanceId}.token`)) {
 			throw new Error("sidecar_authentication_file_conflict");
@@ -130,7 +133,12 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				else if (volume.state === "absent") await createVolume(run, input.identity, privateRootDigest, kind);
 				else throw new Error("sidecar_volume_unknown");
 			}
-			await provisionStorage(run, { image: image.reference, authenticationFile: authentication, storage });
+			await provisionStorage(run, {
+				image: image.reference,
+				authenticationFile: authentication,
+				captureIssuerFile: captureIssuer,
+				storage,
+			});
 			const result = await run(containerCreateArgs({ identity: input.identity, image: image.reference, storage }));
 			container = await inspectContainer(run, instanceNames.container);
 			if (result.exitCode !== 0 && container.state !== "found") throw new Error("sidecar_start_unknown");

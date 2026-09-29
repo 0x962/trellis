@@ -1,4 +1,4 @@
-import { createORPCClient, ORPCError } from "@orpc/client";
+import { type ClientOptions, createORPCClient, ORPCError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { StandardLinkPlugin } from "@orpc/client/standard";
 import type { ContractRouterClient } from "@orpc/contract";
@@ -6,7 +6,8 @@ import pkg from "../package.json" with { type: "json" };
 import type { clientContract } from "./contract/index.ts";
 import { ActorHeaderSchema } from "./refs.ts";
 
-export type TrellisClient = ContractRouterClient<typeof clientContract>;
+export type TrellisClientContext = { editorChannel?: string };
+export type TrellisClient = ContractRouterClient<typeof clientContract, TrellisClientContext>;
 
 // The shape the RPC link calls. `globalThis.fetch` fits it; a test passes a
 // stub that records the request.
@@ -20,7 +21,7 @@ export type ActorSource = string | (() => string | null);
 export type TrellisClientOptions = {
 	// Link plugins, such as a BatchLinkPlugin that folds one tick's calls
 	// into one request.
-	plugins?: StandardLinkPlugin<Record<never, never>>[];
+	plugins?: StandardLinkPlugin<TrellisClientContext>[];
 };
 
 // The value of `x-trellis-client`. The server compares it with its own
@@ -31,7 +32,7 @@ export const clientVersion = `api/${pkg.version}`;
 // `url` option aims at the first call's own path plus `/__batch__`, so this
 // plugin runs after it and rewrites that URL. It sits after every other
 // plugin, so it sees the batch request and not the calls inside it.
-const batchUrlPlugin = (baseUrl: string): StandardLinkPlugin<Record<never, never>> => ({
+const batchUrlPlugin = (baseUrl: string): StandardLinkPlugin<TrellisClientContext> => ({
 	order: 10_000_000,
 	init: (options) => {
 		options.clientInterceptors ??= [];
@@ -71,13 +72,16 @@ export const createTrellisClient = (
 	options: TrellisClientOptions = {},
 ): TrellisClient => {
 	if (typeof actor === "string") ActorHeaderSchema.parse(actor);
-	const headers = () => {
+	const headers = ({ context }: ClientOptions<TrellisClientContext>, path: readonly string[]) => {
 		const value = typeof actor === "string" ? actor : actor();
-		return value === null
-			? { "x-trellis-client": clientVersion }
-			: { "x-trellis-actor": value, "x-trellis-client": clientVersion };
+		const result: Record<string, string> = { "x-trellis-client": clientVersion };
+		if (value !== null) result["x-trellis-actor"] = value;
+		if (path.join(".") === "flowDocumentsV1.save" && context.editorChannel !== undefined) {
+			result["x-trellis-editor-channel"] = context.editorChannel;
+		}
+		return result;
 	};
-	const link = new RPCLink({
+	const link = new RPCLink<TrellisClientContext>({
 		url: `${baseUrl}/rpc`,
 		headers,
 		fetch: async (request, init) => {

@@ -18,6 +18,7 @@ import { TabPicker } from "./components/TabPicker";
 import { revealTab, useTabLayout } from "./components/useTabLayout";
 
 export type PageTabItem = { id: string; title: string; pinned: boolean };
+export type PageTabSortDirection = "ascending" | "descending";
 export type PageTabsProps = {
 	// The pinned tabs come first. The strip draws them in a region of their
 	// own before the other tabs, and a move never crosses that boundary.
@@ -28,6 +29,7 @@ export type PageTabsProps = {
 	onClose: (id: string) => void;
 	onMove?: (id: string, beforeId: string | null) => void;
 	onRename?: (id: string, title: string | null) => void;
+	onSort?: (direction: PageTabSortDirection) => void;
 	onPin?: (id: string, pinned: boolean) => void;
 	"aria-label"?: string;
 };
@@ -43,6 +45,7 @@ export function PageTabs({
 	onClose,
 	onMove,
 	onRename,
+	onSort,
 	onPin,
 	"aria-label": ariaLabel = "Open pages",
 }: PageTabsProps) {
@@ -109,6 +112,11 @@ export function PageTabs({
 	const select = (id: string) => {
 		focusAfterChange.current = true;
 		onSelect(id);
+	};
+	const sort = (direction: PageTabSortDirection) => {
+		focusAfterChange.current = true;
+		onSort!(direction);
+		setAnnouncement(`Tabs sorted ${direction === "ascending" ? "A to Z" : "Z to A"}.`);
 	};
 	// The drop position of a drag, as an index into `tabs`. A drag stays in
 	// the region its tab started in.
@@ -292,13 +300,14 @@ export function PageTabs({
 					/>
 				</Tooltip>
 				<TabPicker tabs={tabs} activeId={activeId} onSelect={onSelect} />
-				{tabs.length > 0 && (onMove || onRename || onPin) && (
+				{tabs.length > 0 && (onMove || onRename || onPin || onSort) && (
 					<TabActions
 						tabs={tabs}
 						activeIndex={activeIndex}
 						regionStart={regionStart}
 						regionEnd={regionEnd}
 						onMove={onMove ? move : undefined}
+						onSort={onSort ? sort : undefined}
 						onPin={onPin}
 						onRename={onRename ? () => setEditingId(activeId) : undefined}
 						onRestore={onRename ? () => onRename(activeId, null) : undefined}
