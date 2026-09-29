@@ -11,9 +11,9 @@ export class TimelineScrollAnchor extends Component<Props> {
 		const viewport = this.content.current?.closest<HTMLElement>(".overflow-auto");
 		if (!viewport) return null;
 		const top = viewport.getBoundingClientRect().top;
-		const element = [...this.content.current!.querySelectorAll<HTMLElement>("[data-update-id]")].find(
-			(row) => row.getBoundingClientRect().bottom > top,
-		);
+		const element = [
+			...this.content.current!.querySelectorAll<HTMLElement>("[data-update-id], [aria-expanded] > [data-row-head]"),
+		].find((row) => row.getBoundingClientRect().bottom > top);
 		return element
 			? { element, top: element.getBoundingClientRect().top, viewport, scrollTop: viewport.scrollTop }
 			: null;
