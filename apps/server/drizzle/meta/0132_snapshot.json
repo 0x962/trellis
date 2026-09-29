@@ -1,5 +1,5 @@
 {
-  "id": "36ea3bd5-b2cd-425f-9805-e0055ab9e02c",
+  "id": "adbf3ad7-2710-4bbf-b232-45137ece19fe",
   "prevId": "52191d4c-4d83-4d34-978d-06d739a9dc6d",
   "version": "7",
   "dialect": "postgresql",
@@ -6154,6 +6154,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "role": {
           "name": "role",
           "type": "text",
@@ -6173,35 +6179,7 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "session_observer_messages_history_idx": {
-          "name": "session_observer_messages_history_idx",
-          "columns": [
-            {
-              "expression": "observer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "session_observer_messages_observer_id_session_observers_observer_id_fk": {
           "name": "session_observer_messages_observer_id_session_observers_observer_id_fk",
@@ -6218,12 +6196,26 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "session_observer_messages_position_unique": {
+          "name": "session_observer_messages_position_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "observer_id",
+            "generation",
+            "position"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "session_observer_messages_generation_check": {
           "name": "session_observer_messages_generation_check",
           "value": "\"session_observer_messages\".\"generation\" > 0"
+        },
+        "session_observer_messages_position_check": {
+          "name": "session_observer_messages_position_check",
+          "value": "\"session_observer_messages\".\"position\" >= 0"
         },
         "session_observer_messages_role_check": {
           "name": "session_observer_messages_role_check",
