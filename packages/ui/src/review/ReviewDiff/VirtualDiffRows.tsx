@@ -1,9 +1,9 @@
 import { createElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useVirtualRows } from "../../hooks/useVirtualRows";
 import { diffRowSlots, diffRowStyle } from "./diffRowSlots";
 import type { DiffAnchor } from "./ReviewDiff";
 import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
-import { useVirtualRows } from "../../hooks/useVirtualRows";
 
 // A wrapper that reports the height of variable-height annotation content:
 // a file-level annotation row, or a line row with a thread or the composer
