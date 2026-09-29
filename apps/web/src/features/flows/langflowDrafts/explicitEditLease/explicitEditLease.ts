@@ -37,10 +37,12 @@ export function createExplicitEditLease(options: Options) {
 		};
 		const assertIntent = (intent: ConversionEditIntentV1) => {
 			if (
-				intent.flowId !== base.flow.id || intent.expectedVersion !== base.revision ||
+				intent.flowId !== base.flow.id ||
+				intent.expectedVersion !== base.revision ||
 				intent.expectedDocumentHash !== base.documentHash ||
 				intent.componentManifestHash !== base.componentManifestHash
-			) throw new Error("The intent does not match the leased document.");
+			)
+				throw new Error("The intent does not match the leased document.");
 		};
 		const sendPending = async (send: Send) => {
 			assertLive();
@@ -82,10 +84,13 @@ export function createExplicitEditLease(options: Options) {
 				const intent = ConversionEditIntentV1Schema.parse(value);
 				assertIntent(intent);
 				if (!options.canDispatch()) throw new Error("Editor access ended.");
-				if (!options.write({
-					...options.read().draft,
-					explicitEdit: { requestJson: JSON.stringify(intent), baseDocument: structuredClone(base) },
-				})) throw new Error("The browser could not retain the explicit edit.");
+				if (
+					!options.write({
+						...options.read().draft,
+						explicitEdit: { requestJson: JSON.stringify(intent), baseDocument: structuredClone(base) },
+					})
+				)
+					throw new Error("The browser could not retain the explicit edit.");
 				return sendPending(send);
 			},
 			replay: sendPending,
@@ -107,12 +112,16 @@ export function createExplicitEditLease(options: Options) {
 				if (document.flow.id !== base.flow.id || document.revision <= base.revision)
 					throw new Error("The committed document does not advance this flow.");
 				const contentJson = JSON.stringify({
-					schemaVersion: document.schemaVersion, engine: document.engine,
-					graphDocument: document.graphDocument, componentManifestHash: document.componentManifestHash,
+					schemaVersion: document.schemaVersion,
+					engine: document.engine,
+					graphDocument: document.graphDocument,
+					componentManifestHash: document.componentManifestHash,
 				});
 				const next = {
-					...options.read().draft, baseVersion: document.revision,
-					contentJson, savedContentJson: contentJson,
+					...options.read().draft,
+					baseVersion: document.revision,
+					contentJson,
+					savedContentJson: contentJson,
 				};
 				delete next.explicitEdit;
 				if (!options.write(next, document)) throw new Error("The browser could not retain the committed document.");
@@ -131,7 +140,10 @@ export function createExplicitEditLease(options: Options) {
 			const state = options.read();
 			const pending = state.draft.explicitEdit;
 			if (pending !== undefined) {
-				if (pending.baseDocument.flow.id !== state.draft.identity.flow || pending.baseDocument.revision !== state.draft.baseVersion)
+				if (
+					pending.baseDocument.flow.id !== state.draft.identity.flow ||
+					pending.baseDocument.revision !== state.draft.baseVersion
+				)
 					throw new Error("The retained edit does not match this draft.");
 				lease = createLease(pending.baseDocument);
 				return lease;

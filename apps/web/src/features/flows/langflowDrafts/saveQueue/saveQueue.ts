@@ -198,5 +198,8 @@ export function createSaveQueue(options: Options) {
 			}
 		},
 	});
-	return { edit, flush, retry, discard, snapshot, suspend, resume, setReadOnly, subscribe, beginExplicitEdit: explicit.beginExplicitEdit };
+	return {
+		edit, flush, retry, discard, snapshot, suspend, resume, setReadOnly, subscribe,
+		beginExplicitEdit: explicit.beginExplicitEdit,
+	};
 }
