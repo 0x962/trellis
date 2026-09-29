@@ -53,7 +53,7 @@ export const editorExtensions = (): Extensions => [
 	StarterKit.configure({
 		codeBlock: false,
 		underline: false,
-		link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
+		link: { openOnClick: false, autolink: true, defaultProtocol: "https", protocols: ["trellis"] },
 		dropcursor: { color: "var(--accent)", width: 2 },
 	}),
 	TaskList,

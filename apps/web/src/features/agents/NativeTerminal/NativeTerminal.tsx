@@ -3,6 +3,7 @@ import { Badge, cx, EmptyState } from "@trellis/ui";
 import type { TerminalConnectionState, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import type { DesktopBridge } from "../../../lib/desktopBridge";
+import { useOpenLink } from "../../../lib/openLink";
 import { useSessionAttention } from "../../sessions/useSessionAttention";
 import { nativeTerminalTransport } from "./nativeTerminalTransport";
 import { useTerminalAccessibility } from "./useTerminalAccessibility";
@@ -25,6 +26,7 @@ export function NativeTerminal({
 	onLeave?: () => void;
 }) {
 	useSessionAttention(run, !readOnly);
+	const onOpenLink = useOpenLink();
 	const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 	const screenReaderMode = useTerminalAccessibility();
 	const heading = useRef<HTMLHeadingElement>(null);
@@ -93,6 +95,7 @@ export function NativeTerminal({
 					autoFocusDelay={autoFocusDelay}
 					stopped={run.processStatus === "exited"}
 					onLeave={leave}
+					onOpenLink={onOpenLink}
 				/>
 			</Suspense>
 		</section>

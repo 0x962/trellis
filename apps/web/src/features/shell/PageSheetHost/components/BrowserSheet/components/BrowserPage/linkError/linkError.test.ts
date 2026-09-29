@@ -13,8 +13,9 @@ describe("linkError", () => {
 		expect(linkLoadError({ errorCode: -105, errorDescription: "NAME_NOT_RESOLVED", isMainFrame: false })).toBeNull();
 	});
 
-	test("refuses a link outside HTTPS before it creates a webview", () => {
+	test("refuses a link outside HTTP and HTTPS before it creates a webview", () => {
 		expect(linkUrlError("https://example.com")).toBeNull();
-		expect(linkUrlError("http://example.com")).toBe("Trellis opens only HTTPS links.");
+		expect(linkUrlError("http://example.com")).toBeNull();
+		expect(linkUrlError("file:///etc/passwd")).toBe("This link has an unsupported or invalid address.");
 	});
 });

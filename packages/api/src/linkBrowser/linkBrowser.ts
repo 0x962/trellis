@@ -3,5 +3,8 @@ export const LINK_BROWSER_NODE_INTEGRATION = false;
 export const LINK_BROWSER_SANDBOX = true;
 export const LINK_BROWSER_WEB_PREFERENCES = "nodeIntegration=no,sandbox=yes";
 
-export const isLinkBrowserUrl = (url: string | undefined) =>
-	url !== undefined && URL.canParse(url) && new URL(url).protocol === "https:";
+export const isLinkBrowserUrl = (url: string | undefined) => {
+	if (url === undefined || !URL.canParse(url)) return false;
+	const parsed = new URL(url);
+	return ["http:", "https:"].includes(parsed.protocol) && !parsed.username && !parsed.password;
+};
