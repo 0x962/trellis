@@ -1,3 +1,4 @@
+export * from "./documentActions";
 export { insertDocumentConversion } from "./insertConversion.ts";
 export { insertDocumentPublication } from "./insertPublication.ts";
 export { insertDocumentRevision } from "./insertRevision.ts";
@@ -11,5 +12,3 @@ export { readDocumentSaveReceipt } from "./readSaveReceipt.ts";
 export { readDocumentSaveReceiptsByRef } from "./readSaveReceiptsByRef";
 export { type SaveDocumentInput, type SaveDocumentResult, saveDocument } from "./save.ts";
 export { writeDocumentPublicationState } from "./writePublicationState.ts";
-
-export * from "./documentActions";

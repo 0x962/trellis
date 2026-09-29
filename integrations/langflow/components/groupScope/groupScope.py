@@ -4,6 +4,7 @@ from lfx.custom import Component
 from lfx.graph.group_scope import (
 	GroupScopeDefinition,
 	GroupSettlement,
+	complete_group_scope,
 	extend_group_deadlines,
 	open_group_scope,
 	settle_group_child,
@@ -44,7 +45,7 @@ class TrellisGroupScopeV1(Component):
 		visit = self.graph.activate_group_occurrence(
 			vertex_id, occurrence, loop_visit_key, child_scope.to_engine(),
 		)
-		open_group_scope(self.graph, definition)
+		open_group_scope(self.graph, definition, self._vertex.data["node"]["trellis_metadata"])
 		if definition.minutes is not None:
 			deadline = await reserve_group_deadline(self.graph, vertex_id, occurrence)
 			visit = extend_group_deadlines(
@@ -113,6 +114,8 @@ class TrellisGroupOutputV1(Component):
 			output=output["outputBytes"],
 		)
 		loop_visit_key = visit["loopVisitKey"]
+		complete_group_scope(self.graph, occurrence_key, receipt["receiptId"])
+		await self.graph.checkpoint_store.save(self.graph.build_checkpoint())
 		if loop_visit_key is not None:
 			await self.graph.commit_trellis_loop_children(loop_visit_key, output)
 		return Data(data={

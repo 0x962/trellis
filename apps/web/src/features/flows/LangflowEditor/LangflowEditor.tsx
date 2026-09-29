@@ -20,6 +20,7 @@ export type LangflowEditorProps = {
 	ref?: Ref<LangflowEditorHandle>;
 	session: LangflowEditorSession;
 	grantActive: boolean;
+	interactionBlocked?: boolean;
 	draftChanged: (content: EditorContent) => void;
 	selectionChanged: (focus: EditorFocus | null) => void;
 	onAccessEnded: (reason: EditorAccessEnd) => void;
@@ -36,7 +37,14 @@ export function LangflowEditor(props: LangflowEditorProps) {
 	return <EditorFrame key={JSON.stringify([channel, identity, origin, expiresAt])} {...props} />;
 }
 
-function EditorFrame({ ref, session, draftChanged, selectionChanged, onAccessEnded }: LangflowEditorProps) {
+function EditorFrame({
+	ref,
+	session,
+	draftChanged,
+	selectionChanged,
+	onAccessEnded,
+	interactionBlocked = false,
+}: LangflowEditorProps) {
 	const [initial] = useState(() => structuredClone(session));
 	if (!Number.isFinite(Date.parse(initial.expiresAt))) throw new Error("The editor grant needs an expiry time.");
 	const frame = useRef<HTMLIFrameElement>(null);
@@ -145,7 +153,7 @@ function EditorFrame({ ref, session, draftChanged, selectionChanged, onAccessEnd
 				sandbox="allow-scripts allow-same-origin"
 				referrerPolicy="no-referrer"
 				className={`min-h-0 w-full min-w-0 flex-1 border-0 ${state === "pending" ? "invisible" : ""}`}
-				inert={state !== "ready" || suspended}
+				inert={state !== "ready" || suspended || interactionBlocked}
 				onLoad={() => {
 					if (loaded.current) {
 						channel.current?.revoke();

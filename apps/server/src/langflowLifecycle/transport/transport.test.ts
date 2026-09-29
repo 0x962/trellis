@@ -8,12 +8,18 @@ test("committed actions notify their domain only after the service promise resol
 	const notices: LangflowCommit[] = [];
 	const receipt = Promise.withResolvers<unknown>();
 	const lifecycle: LangflowLifecycle = {
-		committed: (value) => { notices.push(value); },
+		committed: (value) => {
+			notices.push(value);
+		},
 		stop: async () => {},
-		pauseOrdinary: async () => { throw new Error("Unexpected pause"); },
+		pauseOrdinary: async () => {
+			throw new Error("Unexpected pause");
+		},
 	};
 	const transport: ServiceTransport = {
-		start: async () => { throw new Error("Unexpected start"); },
+		start: async () => {
+			throw new Error("Unexpected start");
+		},
 		close: async () => {},
 		call: () => receipt.promise,
 	};
@@ -30,7 +36,9 @@ test("unknown results and legacy actions leave Langflow notices unchanged", asyn
 	const notices: LangflowCommit[] = [];
 	let fail = true;
 	const transport: ServiceTransport = {
-		start: async () => { throw new Error("Unexpected start"); },
+		start: async () => {
+			throw new Error("Unexpected start");
+		},
 		close: async () => {},
 		call: async () => {
 			if (fail) throw new Error("committed_response_lost");
@@ -38,8 +46,13 @@ test("unknown results and legacy actions leave Langflow notices unchanged", asyn
 		},
 	};
 	const wrapped = langflowLifecycleTransport(transport, {
-		committed: (value) => { notices.push(value); }, stop: async () => {},
-		pauseOrdinary: async () => { throw new Error("Unexpected pause"); },
+		committed: (value) => {
+			notices.push(value);
+		},
+		stop: async () => {},
+		pauseOrdinary: async () => {
+			throw new Error("Unexpected pause");
+		},
 	});
 	await expect(wrapped.call("flowExecutionsV1.start", systemContext(), {})).rejects.toThrow("committed_response_lost");
 	fail = false;

@@ -8,8 +8,14 @@ test("shutdown aborts domain calls and waits before the caller closes transport"
 	let nextTimer = 0;
 	const clock: JobsClock = {
 		now: () => new Date(),
-		setTimer: (fn) => { const id = ++nextTimer; timers.set(id, fn); return id; },
-		clearTimer: (id) => { timers.delete(id); },
+		setTimer: (fn) => {
+			const id = ++nextTimer;
+			timers.set(id, fn);
+			return id;
+		},
+		clearTimer: (id) => {
+			timers.delete(id);
+		},
 	};
 	const entered = Promise.withResolvers<void>();
 	const finish = Promise.withResolvers<void>();
@@ -23,10 +29,18 @@ test("shutdown aborts domain calls and waits before the caller closes transport"
 			current.addEventListener("abort", () => order.push("abort"));
 			const idle: LangflowConnection = { recover: async () => {}, committed: async () => {} };
 			const connections: LangflowConnections = {
-				authority: idle, admission: idle, decisions: idle, stops: idle, projection: idle,
+				authority: idle,
+				admission: idle,
+				decisions: idle,
+				stops: idle,
+				projection: idle,
 				native: {
 					recover: async () => {},
-					committed: async () => { entered.resolve(); await finish.promise; order.push("effect-finished"); },
+					committed: async () => {
+						entered.resolve();
+						await finish.promise;
+						order.push("effect-finished");
+					},
 				},
 			};
 			return connections;
@@ -50,7 +64,9 @@ test("ordinary pause leaves stops active until freeze and retains committed noti
 	const resumedNative = Promise.withResolvers<void>();
 	const resumedStop = Promise.withResolvers<void>();
 	const connection = (name: string): LangflowConnection => ({
-		recover: async () => { calls.push(`${name}:recover`); },
+		recover: async () => {
+			calls.push(`${name}:recover`);
+		},
 		committed: async ({ executionId }) => {
 			calls.push(`${name}:${executionId}`);
 			if (name === "stops" && executionId === "one") {
@@ -65,8 +81,12 @@ test("ordinary pause leaves stops active until freeze and retains committed noti
 		clock: { now: () => new Date(), setTimer: () => 1, clearTimer: () => {} },
 		log: () => {},
 		connect: () => ({
-			authority: connection("authority"), admission: connection("admission"), decisions: connection("decisions"),
-			stops: connection("stops"), native: connection("native"), projection: connection("projection"),
+			authority: connection("authority"),
+			admission: connection("admission"),
+			decisions: connection("decisions"),
+			stops: connection("stops"),
+			native: connection("native"),
+			projection: connection("projection"),
 		}),
 	});
 	const scope = await lifecycle.pauseOrdinary();
@@ -74,7 +94,9 @@ test("ordinary pause leaves stops active until freeze and retains committed noti
 	lifecycle.committed({ domain: "stops", executionId: "one" });
 	await stopEntered.promise;
 	let frozen = false;
-	const freeze = scope.freezeStops().then(() => { frozen = true; });
+	const freeze = scope.freezeStops().then(() => {
+		frozen = true;
+	});
 	await Promise.resolve();
 	expect(frozen).toBe(false);
 	stopRelease.resolve();

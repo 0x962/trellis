@@ -1,5 +1,4 @@
 import { isDeepStrictEqual } from "node:util";
-import { FlowStepStateSchema, IsoDateTimeSchema } from "@trellis/api";
 import { z } from "zod";
 import {
 	EngineCheckpointV1Schema,
@@ -13,15 +12,9 @@ import {
 } from "../../../langflowContracts";
 import { documentBytes, type RetainedExecutionPublication, readExecutionPublication } from "../../flowDocuments";
 import { type ObservedOccurrence, ProjectionObservationSchema } from "../observation";
+import { containerOccurrences } from "./components/containerOccurrences";
+import { lifecycleFacts as projection } from "./components/lifecycleFacts";
 
-const projection = z.strictObject({
-	state: FlowStepStateSchema,
-	acceptedResultId: z.string().nullable(),
-	startedAt: IsoDateTimeSchema.nullable(),
-	endedAt: IsoDateTimeSchema.nullable(),
-	error: z.string().nullable(),
-	skipReason: z.string().nullable(),
-});
 const priorVisit = z.looseObject({
 	occurrence: OccurrenceV1Schema,
 	requestBytes: z.string(),
@@ -155,10 +148,7 @@ export function readObservation(
 			});
 		}
 	}
-	const savedGraph = z.record(z.string(), z.json()).parse(JSON.parse(snapshot.graphCheckpointBytes));
-	for (const key of ["trellis_loop_visits", "group_visit_scopes"])
-		if (savedGraph[key] !== undefined && Object.keys(z.record(z.string(), z.json()).parse(savedGraph[key])).length > 0)
-			throw new Error("projection_container_history_missing");
+	rows.push(...containerOccurrences(publication.graphDocument, JSON.parse(snapshot.graphCheckpointBytes)));
 	const outcome =
 		snapshot.jobOutcomeBytes === null
 			? null

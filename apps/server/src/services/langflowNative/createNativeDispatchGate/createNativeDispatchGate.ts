@@ -2,11 +2,13 @@ import type { DispatchGate, DispatchReceiptArchive } from "../../../langflowHost
 import type { IoCtx } from "../../support";
 import { readNativeDispatchEvidence } from "../readNativeDispatchEvidence";
 
-export function createNativeDispatchGate(ctx: Pick<IoCtx, "newTx"> & {
-	dataHomeId: string;
-	gate: Pick<DispatchGate, "acquire" | "settle">;
-	archive: Pick<DispatchReceiptArchive, "writeTerminal">;
-}): Pick<DispatchGate, "acquire" | "settle"> {
+export function createNativeDispatchGate(
+	ctx: Pick<IoCtx, "newTx"> & {
+		dataHomeId: string;
+		gate: Pick<DispatchGate, "acquire" | "settle">;
+		archive: Pick<DispatchReceiptArchive, "writeTerminal">;
+	},
+): Pick<DispatchGate, "acquire" | "settle"> {
 	return {
 		acquire: (binding) => ctx.gate.acquire(binding),
 		async settle(permit, receiptId) {

@@ -43,11 +43,7 @@ export function containerCreateArgs(input: {
 		`type=volume,src=${input.storage.secrets},dst=/run/trellis-secrets,readonly`,
 		...environment(input.identity, input.engineApiConfigDigest !== null),
 		...Object.entries(
-			containerLabels(
-				input.identity,
-				input.engineApiConfigDigest,
-				input.nativeReservationAuthenticationDigest,
-			),
+			containerLabels(input.identity, input.engineApiConfigDigest, input.nativeReservationAuthenticationDigest),
 		).flatMap(([key, value]) => ["--label", `${key}=${value}`]),
 		input.image,
 		"run",

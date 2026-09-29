@@ -1,8 +1,8 @@
 import { isAbsolute } from "node:path";
 import { z } from "zod";
 import { QualificationRuntimeSchema } from "../../../../../integrations/langflow/release";
-import { AuthorityLeasePolicySchema } from "../../langflowHost";
 import { DeliveryAuthorityV1Schema } from "../../langflowContracts";
+import { AuthorityLeasePolicySchema } from "../../langflowHost";
 import { readPrivateConfiguration } from "../privateConfiguration";
 
 const path = z.string().refine(isAbsolute, "An absolute path is required.");
@@ -11,23 +11,25 @@ const origin = z.url().refine((value) => {
 	return ["http:", "https:"].includes(parsed.protocol) && parsed.origin === value;
 }, "An exact HTTP or HTTPS origin is required.");
 
-export const LangflowBootstrapConfigurationSchema = z.strictObject({
-	version: z.literal(1),
-	packageRoot: path,
-	packageId: z.string().regex(/^[a-f0-9]{64}$/),
-	qualificationFile: path,
-	qualificationSha256: z.string().regex(/^[a-f0-9]{64}$/),
-	runtime: QualificationRuntimeSchema,
-	expectedHostId: z.uuid(),
-	expectedDataHomeId: z.uuid(),
-	parentOrigin: origin,
-	editorOrigin: origin,
-	engineApiConfigFile: path,
-	captureIssuerFile: path,
-	authorityPolicy: AuthorityLeasePolicySchema,
-	authorityPermissions: DeliveryAuthorityV1Schema.shape.permissions,
-	grantDurationMs: z.number().int().positive().optional(),
-}).refine((value) => value.parentOrigin !== value.editorOrigin, "The editor requires a separate origin.");
+export const LangflowBootstrapConfigurationSchema = z
+	.strictObject({
+		version: z.literal(1),
+		packageRoot: path,
+		packageId: z.string().regex(/^[a-f0-9]{64}$/),
+		qualificationFile: path,
+		qualificationSha256: z.string().regex(/^[a-f0-9]{64}$/),
+		runtime: QualificationRuntimeSchema,
+		expectedHostId: z.uuid(),
+		expectedDataHomeId: z.uuid(),
+		parentOrigin: origin,
+		editorOrigin: origin,
+		engineApiConfigFile: path,
+		captureIssuerFile: path,
+		authorityPolicy: AuthorityLeasePolicySchema,
+		authorityPermissions: DeliveryAuthorityV1Schema.shape.permissions,
+		grantDurationMs: z.number().int().positive().optional(),
+	})
+	.refine((value) => value.parentOrigin !== value.editorOrigin, "The editor requires a separate origin.");
 
 export type LangflowBootstrapConfiguration = z.infer<typeof LangflowBootstrapConfigurationSchema>;
 

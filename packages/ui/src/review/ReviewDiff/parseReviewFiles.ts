@@ -50,14 +50,14 @@ const decodeGitPath = (value: string) => {
 			bytes.push(...new TextEncoder().encode(character));
 			continue;
 		}
-		const escape = quoted[++index]!;
-		if (/[0-7]/.test(escape)) {
-			const octal = `${escape}${quoted[index + 1] ?? ""}${quoted[index + 2] ?? ""}`.match(/^[0-7]{1,3}/)![0];
+		const escapedCharacter = quoted[++index]!;
+		if (/[0-7]/.test(escapedCharacter)) {
+			const octal = `${escapedCharacter}${quoted[index + 1] ?? ""}${quoted[index + 2] ?? ""}`.match(/^[0-7]{1,3}/)![0];
 			bytes.push(Number.parseInt(octal, 8));
 			index += octal.length - 1;
 			continue;
 		}
-		bytes.push(escapeBytes[escape] ?? escape.charCodeAt(0));
+		bytes.push(escapeBytes[escapedCharacter] ?? escapedCharacter.charCodeAt(0));
 	}
 	return new TextDecoder().decode(Uint8Array.from(bytes));
 };

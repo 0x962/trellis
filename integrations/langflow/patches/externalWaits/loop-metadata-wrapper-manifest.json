@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"dependencies": {
+		"loopControl": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415",
+		"containerHistory": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d"
+	},
+	"patch": "integrations/langflow/patches/externalWaits/0009-loop-metadata-wrapper.patch",
+	"sha256": "0474eb22c82ee6006c7bef6bc34eb18a2822a6ed1f98632ddf9d4741e7d8e292",
+	"sources": {
+		"catalog": "b74ef5072f82aee14933a467cd12297711267dbcb4b89121157786c886d8ba48",
+		"loopFixture": "04b215e8175c8e859fc1f12caa4fb3c1ba260cbb6c6866ccffaadafe48a05bde"
+	},
+	"qualification": "source-only",
+	"runtimeAccepted": false
+}

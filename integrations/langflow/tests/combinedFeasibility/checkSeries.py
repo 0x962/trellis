@@ -64,7 +64,8 @@ def apply_patch(files, patch, directory, engine, revision):
                 index += 1
             if (len(old), len(new)) != (old_count, new_count):
                 raise ValueError(f"Invalid hunk counts: {target}:{old_start}")
-            expected = max(0, int(old_start) - 1) + offset
+            origin = int(old_start) if old_count == 0 else max(0, int(old_start) - 1)
+            expected = origin + offset
             if old:
                 if content[expected:expected + len(old)] == old:
                     position = expected
@@ -80,7 +81,7 @@ def apply_patch(files, patch, directory, engine, revision):
                 raise ValueError(f"Overlapping hunks: {target}:{old_start}")
             content[position:position + len(old)] = new
             previous_end = position + len(new)
-            offset = position - max(0, int(old_start) - 1) + len(new) - len(old)
+            offset = position - origin + len(new) - len(old)
         files[target] = "".join(content).encode()
 
 

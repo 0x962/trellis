@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { LangflowSidecarManifestV1Schema } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
 import type { NativeReservationAuthentication, SidecarDriver, SidecarIdentity, SidecarObservation } from "../contracts";
@@ -8,22 +8,16 @@ import { assertContainerBinding } from "./containerBinding";
 import { containerCreateArgs } from "./createArgs/createArgs";
 import { engineApiConfiguration } from "./engineApiConfiguration";
 import { authenticatedHealth } from "./health";
-import {
-	assertNetwork,
-	endpoint,
-	inspectContainer,
-	inspectNetwork,
-	labels,
-	names,
-} from "./identity/identity";
+import { assertNetwork, endpoint, inspectContainer, inspectNetwork, labels, names } from "./identity/identity";
 import { assertManifestRuntime } from "./manifestRuntime";
 import { nativeReservationAuthenticationReader } from "./nativeReservationAuthentication";
-import { type OciCommandResult, runOciCommand } from "./process/process";
+import { runOciCommand } from "./process/process";
 import {
 	assertVolume,
 	createVolume,
 	inspectVolume,
 	privateDirectory,
+	privateDirectorySync,
 	privateFile,
 	provisionStorage,
 	storageNames,
@@ -43,7 +37,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	const executable = options.dockerExecutable ?? "docker";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(executable, args));
 	const fetcher = options.dependencies?.fetch ?? fetch;
-	const privateRoot = resolve(options.privateRoot);
+	const privateRoot = privateDirectorySync(options.privateRoot);
 	const privateRootDigest = createHash("sha256").update(privateRoot).digest("hex");
 	const image = { reference: options.imageConfigDigest, configDigest: options.imageConfigDigest };
 	const readNativeReservationAuthentication = nativeReservationAuthenticationReader(privateRoot);
@@ -99,14 +93,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		if (container.state === "unknown") throw new Error("sidecar_ownership_unknown");
 		if (container.state === "found") {
 			const storage = await assertIsolation(input.identity);
-			assertContainerBinding(
-				container.value,
-				input.identity,
-				image,
-				storage,
-				configuredEngineApi,
-				native.digest,
-			);
+			assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		} else {
 			let network = await inspectNetwork(run, instanceNames.network);
 			if (network.state === "unknown") throw new Error("sidecar_network_unknown");
@@ -212,14 +199,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				throw new Error("sidecar_authentication_file_conflict");
 			}
 			const storage = await assertIsolation(input.identity);
-			assertContainerBinding(
-				inspected.value,
-				input.identity,
-				image,
-				storage,
-				configuredEngineApi,
-				native.digest,
-			);
+			assertContainerBinding(inspected.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		} catch {
 			return {
 				identity: input.identity,

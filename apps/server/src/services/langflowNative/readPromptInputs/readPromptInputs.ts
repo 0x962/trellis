@@ -17,7 +17,10 @@ const ReceiptSchema = z.strictObject({
 export function readPromptInputs(request: NativeRequestV1, receipts: NativePromptReceipt[]) {
 	if (receipts.length !== request.inputReceiptIds.length) throw new Error("native_prompt_inputs_missing");
 	return receipts.map((saved, index) => {
-		if (saved.receiptId !== request.inputReceiptIds[index] || protocolDigest(saved.receiptBytes) !== saved.receiptDigest)
+		if (
+			saved.receiptId !== request.inputReceiptIds[index] ||
+			protocolDigest(saved.receiptBytes) !== saved.receiptDigest
+		)
 			throw new Error("native_prompt_receipt_conflict");
 		const receipt = ReceiptSchema.parse(JSON.parse(saved.receiptBytes));
 		if (

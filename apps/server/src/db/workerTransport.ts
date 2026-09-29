@@ -68,7 +68,11 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 
 	const receive = ({ data }: MessageEvent<WorkerOutput>) => {
 		if (data.type === "ready") {
-			ready?.resolve({ applied: data.applied, liveShas: data.liveShas });
+			ready?.resolve({
+				applied: data.applied,
+				liveShas: data.liveShas,
+				...(data.restoredOpen === undefined ? {} : { restoredOpen: data.restoredOpen }),
+			});
 			return;
 		}
 		if (data.type === "startError") {

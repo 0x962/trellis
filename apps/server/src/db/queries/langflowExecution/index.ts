@@ -1,7 +1,9 @@
 export * from "./actionReceipts";
 export * from "./authorityControl";
+export * from "./authorityRecovery";
 export * from "./classification";
 export * from "./decisions";
+export * from "./engineSnapshots";
 export * from "./executions";
 export * from "./facts";
 export * from "./launchSnapshot";
@@ -10,13 +12,11 @@ export * from "./outbox";
 export { assertOwnerActive } from "./ownerFence";
 export * from "./ownership";
 export * from "./projections";
+export * from "./reconciliationFacts";
 export * from "./recoverInitialBinding";
 export * from "./retainedNativeAttempts";
 export * from "./startRequests";
 export * from "./stops";
 export * from "./submission";
 export * from "./warnings";
-export * from "./engineSnapshots";
 export * from "./workspaceObservations";
-
-export * from "./authorityRecovery";

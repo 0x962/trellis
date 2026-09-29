@@ -91,10 +91,7 @@ test("Page versions enforce immutable request, document, source, and asset recor
 		insertVersion(2, { requestId: crypto.randomUUID(), sha: "bad" }),
 		"page_versions_document_sha256_check",
 	);
-	await constraint(
-		insertVersion(2, { requestId: crypto.randomUUID(), size: 16777217 }),
-		"page_versions_document_size_check",
-	);
+	await constraint(insertVersion(2, { size: 0 }), "page_versions_document_size_check");
 	await constraint(
 		insertVersion(2, { requestId: crypto.randomUUID(), path: "../outside.html" }),
 		"page_versions_source_path_check",
@@ -109,6 +106,13 @@ test("Page versions enforce immutable request, document, source, and asset recor
 		}),
 		"page_versions_request_id_unique",
 	);
+
+	const sourcePath = `${"reports/".repeat(600)}index.html`;
+	await insertVersion(2, { size: 16777217, path: sourcePath });
+	const version = await db.execute(
+		sql`SELECT document_size::text AS size, source_path FROM page_versions WHERE page_id = ${pageId} AND number = 2`,
+	);
+	expect(version.rows).toEqual([{ size: "16777217", source_path: sourcePath }]);
 
 	await db.execute(sql`INSERT INTO page_assets (page_id, version, path, sha256, size, mime)
 		VALUES (${pageId}, 1, 'styles/app.css', ${assetSha}, 100, 'text/css')`);
@@ -227,25 +231,29 @@ test("Page uploads, comments, watches, and pins enforce their row state", async 
 	const reservationExpiresAt = new Date(at.getTime() + 60_000);
 	const reservationEndAt = new Date(at.getTime() + 30_000);
 	const reservationEndId = ulid();
-	for (let mask = 1; mask < 15; mask += 1) {
+	const payload = { text: "Page comment", terminalId: ulid(), sessionId: null };
+	for (let mask = 1; mask < 31; mask += 1) {
 		await constraint(
 			db.execute(sql`UPDATE page_watches SET
 				reservation_id = ${(mask & 1) !== 0 ? reservationId : null},
 				reservation_expires_at = ${(mask & 2) !== 0 ? reservationExpiresAt : null},
 				reservation_end_at = ${(mask & 4) !== 0 ? reservationEndAt : null},
-				reservation_end_id = ${(mask & 8) !== 0 ? reservationEndId : null}
+				reservation_end_id = ${(mask & 8) !== 0 ? reservationEndId : null},
+				reservation_payload = ${(mask & 16) !== 0 ? JSON.stringify(payload) : null}::jsonb
 				WHERE page_id = ${pageId}`),
 			"page_watches_reservation_check",
 		);
 	}
 	await db.execute(sql`UPDATE page_watches SET
 		reservation_id = ${reservationId}, reservation_expires_at = ${reservationExpiresAt},
-		reservation_end_at = ${reservationEndAt}, reservation_end_id = ${reservationEndId}
+		reservation_end_at = ${reservationEndAt}, reservation_end_id = ${reservationEndId}, reservation_payload = ${payload}::jsonb
 		WHERE page_id = ${pageId}`);
 	const reserved = await db.execute(
-		sql`SELECT reservation_id, reservation_end_id FROM page_watches WHERE page_id = ${pageId}`,
+		sql`SELECT reservation_id, reservation_end_id, reservation_payload FROM page_watches WHERE page_id = ${pageId}`,
 	);
-	expect(reserved.rows).toEqual([{ reservation_id: reservationId, reservation_end_id: reservationEndId }]);
+	expect(reserved.rows).toEqual([
+		{ reservation_id: reservationId, reservation_end_id: reservationEndId, reservation_payload: payload },
+	]);
 	await db.execute(sql`INSERT INTO page_pins (page_id, actor_name, actor_kind, created_at, actor_id)
 		VALUES (${pageId}, ${human.name}, ${human.kind}, ${at}, ${humanActorId})`);
 	await constraint(

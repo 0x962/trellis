@@ -44,10 +44,13 @@ They cover receipt replay, version races, format refusal, engine failure, valida
 They do not prove real engine validation, browser draft recovery, isolation, or installed-host behavior.
 
 `installedPublisher` creates the authenticated HTTP producer from a verified package, live ownership, and the supervisor's private token file.
-`publicationDispatch` acquires a durable permit before a new publication request.
+`publicationDispatch(gate, archive)` acquires a durable permit before a new publication request.
 It recovers an existing permit through GET only and keeps unknown outcomes unresolved.
-The producer exposes `readTerminal` for the dispatch gate's durable evidence reader.
-Its optional `recover` method permits receipt recovery for an older saved revision without another engine write.
+The adapter validates the exact authenticated response against the retained request, document, package, catalog, and permit.
+It archives the original request and response text through `DispatchReceiptArchive.writeTerminal`.
+The adapter settles the archive terminal ID. A completed permit reads its proof from the archive.
+The producer's `recover` method reads an existing permit and never acquires a new permit.
+An absent permit or unknown engine receipt returns null.
 An older receipt cannot authorize a new run.
 The engine fragment and bootstrap contract live in `integrations/langflow/patches/publications/`.
 The current catalog has no approved publication definitions.
@@ -115,3 +118,11 @@ It preserves the exact validated intent bytes as receipt identity.
 Preparation runs outside the transaction, and the final flow lock protects the shared version.
 The commit saves generated content, flow briefing, harness, and the original response together.
 The preparation result retains the original source and each derived edit in its provenance.
+
+`readDocumentActionReceipt(ctx, tx, { operation, value })` reads the original receipt before host access.
+`operation` is `publish`, `convert`, or `edit`. The result distinguishes `completed`, `pending`, and `miss`.
+A completed result includes `requestId` and the original `document`; other results include `requestId`.
+The lookup requires an actor and locks the flow while it compares the exact intent bytes.
+A miss creates no claim. Composition calls this operation before configuration, package, or supervisor access.
+After a miss or pending result, the full operation repeats its receipt and version checks under its own transaction.
+Only a fresh publication claim permits a POST. A pending claim permits receipt recovery.

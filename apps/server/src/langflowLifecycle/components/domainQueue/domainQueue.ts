@@ -10,17 +10,23 @@ export function domainQueue(domain: LangflowDomain, connection: LangflowConnecti
 	const drain = (): Promise<void> => {
 		if (running !== null) return running;
 		if (stopped || paused || pending.size === 0) return Promise.resolve();
-		running = Promise.resolve().then(async () => {
-			while (!stopped && !paused && pending.size > 0) {
-				const [key, work] = pending.entries().next().value!;
-				pending.delete(key);
-				await work().catch((error: unknown) => {
-					log("Langflow domain work failed", {
-						domain, work: key, error: error instanceof Error ? error.message : String(error),
+		running = Promise.resolve()
+			.then(async () => {
+				while (!stopped && !paused && pending.size > 0) {
+					const [key, work] = pending.entries().next().value!;
+					pending.delete(key);
+					await work().catch((error: unknown) => {
+						log("Langflow domain work failed", {
+							domain,
+							work: key,
+							error: error instanceof Error ? error.message : String(error),
+						});
 					});
-				});
-			}
-		}).finally(() => { running = null; });
+				}
+			})
+			.finally(() => {
+				running = null;
+			});
 		return running;
 	};
 	const enqueue = (key: string, work: () => Promise<void>) => {
@@ -30,10 +36,21 @@ export function domainQueue(domain: LangflowDomain, connection: LangflowConnecti
 	};
 
 	return {
-		committed: (executionId: string) => enqueue(`execution:${executionId}`, () => connection.committed({ executionId })),
+		committed: (executionId: string) =>
+			enqueue(`execution:${executionId}`, () => connection.committed({ executionId })),
 		recover: () => enqueue("recover", () => connection.recover()),
-		pause: async () => { paused = true; await running; },
-		resume: () => { paused = false; void drain(); },
-		stop: async () => { stopped = true; pending.clear(); await running; },
+		pause: async () => {
+			paused = true;
+			await running;
+		},
+		resume: () => {
+			paused = false;
+			void drain();
+		},
+		stop: async () => {
+			stopped = true;
+			pending.clear();
+			await running;
+		},
 	};
 }

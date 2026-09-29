@@ -102,14 +102,14 @@
 		{
 			"name": "backend-backup",
 			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
-			"sha256": "659e9d3f6f56af961c2e0d15261d655232f8fd0c3c526678f1db933f72fda04c",
+			"sha256": "e1dd700f9fff43d39f6f6750d483eac3e2a47c4463d3e9cd4d938691f8951ab9",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
 		{
 			"name": "backend-loop-control",
 			"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
-			"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419",
+			"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/loopControl/manifest.json"
 		},
@@ -179,7 +179,7 @@
 		{
 			"name": "backend-projection-store",
 			"path": "integrations/langflow/patches/engineApi/projection/0001-projection-checkpoints.patch",
-			"sha256": "9484d9d7587a1acfaa48cf52b16bbeb1bddd6b3d51d49fa381b79d4556a0bd5f",
+			"sha256": "5a27a8e056520a6bd403a105fd4f0347ea579c8b3f8a59d47a1a768b454de3af",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/engineApi/projection/manifest.json"
 		},

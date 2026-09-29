@@ -1,4 +1,4 @@
-import { listAuthorityExecutions, type ListAuthorityExecutionsInput } from "../../../db/queries/langflowExecution";
+import { type ListAuthorityExecutionsInput, listAuthorityExecutions } from "../../../db/queries/langflowExecution";
 import type { Tx } from "../../../db/tx";
 import { LangflowHostControl } from "../../../langflowHost";
 import type { IoCtx } from "../../support";

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { runGit } from "./gitProcess.ts";
+import { runGit } from "./gitProcess";
 
 const utf8End = (bytes: Buffer, limit: number) => {
 	let end = Math.min(bytes.length, limit);

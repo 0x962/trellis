@@ -10,7 +10,7 @@ import {
 } from "../../langflowNative";
 import type { IoCtx } from "../../support";
 import { actionControl } from "../actionControl";
-import { nativeAuthority, type NativeAuthorityInput } from "../nativeAuthority";
+import { type NativeAuthorityInput, nativeAuthority } from "../nativeAuthority";
 
 export type NativeReservationInput = NativeAuthorityInput & {
 	authority: DeliveryAuthorityV1;
@@ -27,16 +27,20 @@ export async function prepareNativeReservation(ctx: IoCtx, input: NativeReservat
 		gate: control.gate,
 		archive: control.archive,
 	});
-	const handle = await requestNativeAttempt({
-		...ctx,
-		dispatchGate,
-		nativeAuthority: authority,
-		resolveOccurrence: (tx, request) => resolveNativeOccurrence(
-			{ ...ctx.core, now: ctx.now(), nativeAuthority: authority }, tx,
-			{ requestBytes: request.requestBytes, visit: input.visit },
-		),
-		resolveProcessLimits: (tx, request) => resolveNativeLimits(ctx.core, tx, request),
-		recordObservedLaunch: (tx, request) => recordNativeLaunch(ctx.core, tx, request),
-	}, { requestBytes: input.requestBytes });
+	const handle = await requestNativeAttempt(
+		{
+			...ctx,
+			dispatchGate,
+			nativeAuthority: authority,
+			resolveOccurrence: (tx, request) =>
+				resolveNativeOccurrence({ ...ctx.core, now: ctx.now(), nativeAuthority: authority }, tx, {
+					requestBytes: request.requestBytes,
+					visit: input.visit,
+				}),
+			resolveProcessLimits: (tx, request) => resolveNativeLimits(ctx.core, tx, request),
+			recordObservedLaunch: (tx, request) => recordNativeLaunch(ctx.core, tx, request),
+		},
+		{ requestBytes: input.requestBytes },
+	);
 	return JSON.stringify(handle);
 }

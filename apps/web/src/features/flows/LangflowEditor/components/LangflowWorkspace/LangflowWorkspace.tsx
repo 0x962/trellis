@@ -85,7 +85,8 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 	const changeDraft = async (copy: DocumentDraftCopy, discard: boolean) => {
 		setRecoveryError("");
 		try {
-			if (snapshot?.saving) throw new Error("Wait for the current save before you change drafts.");
+			if (snapshot?.saving || snapshot?.explicitEdit)
+				throw new Error("Resolve the current save or explicit edit before you change drafts.");
 			const nextTab = crypto.randomUUID();
 			if (discard) {
 				if (copy.identity.tab === tab && state.kind === "ready") autosave.discard(copy.bytes);
@@ -102,24 +103,29 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 			setRecoveryError(error instanceof Error ? error.message : String(error));
 		}
 	};
+	const busy = snapshot?.saving || snapshot?.explicitEdit || false;
 	const status =
 		state.kind === "loading"
 			? "Read the browser draft"
 			: state.kind === "unavailable"
 				? "The browser draft is unavailable"
-				: snapshot?.failure === "storage"
-					? "The browser could not retain the draft"
-					: snapshot?.failure === "conflict"
-						? "The flow changed in another window"
-						: snapshot?.failure === "network"
-							? "The save failed"
-							: snapshot?.failure === "unsupported"
-								? "The draft format is unsupported"
-								: snapshot?.saving
-									? "Save in progress"
-									: snapshot?.saved
-										? "Saved"
-										: "Pending save";
+				: autosave.requiresFreshFrame
+					? "Open a new editor session"
+					: snapshot?.explicitEdit
+						? "Resolve the explicit edit"
+						: snapshot?.failure === "storage"
+							? "The browser could not retain the draft"
+							: snapshot?.failure === "conflict"
+								? "The flow changed in another window"
+								: snapshot?.failure === "network"
+									? "The save failed"
+									: snapshot?.failure === "unsupported"
+										? "The draft format is unsupported"
+										: snapshot?.saving
+											? "Save in progress"
+											: snapshot?.saved
+												? "Saved"
+												: "Pending save";
 	return (
 		<>
 			<Topbar
@@ -134,7 +140,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 									label="Retry the save"
 									icon={<ArrowClockwise />}
 									onClick={() => void autosave.retry()}
-									disabled={!canDispatch() || readOnly}
+									disabled={!canDispatch() || readOnly || busy || autosave.requiresFreshFrame}
 								/>
 							</Tooltip>
 						)}
@@ -144,11 +150,17 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 								icon={<FloppyDisk />}
 								onClick={() => void autosave.saveNow()}
 								disabled={
-									snapshot === null || snapshot.saved || snapshot.failure !== null || !canDispatch() || readOnly
+									snapshot === null ||
+									snapshot.saved ||
+									snapshot.failure !== null ||
+									!canDispatch() ||
+									readOnly ||
+									busy ||
+									autosave.requiresFreshFrame
 								}
 							/>
 						</Tooltip>
-						{!canDispatch() && (
+						{(!canDispatch() || autosave.requiresFreshFrame) && (
 							<Tooltip content="Reopen the editor">
 								<TopbarActionButton
 									label="Reopen the editor"
@@ -166,7 +178,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 								label="Flow settings"
 								icon={<SlidersHorizontal />}
 								onClick={() => setSettingsOpen(true)}
-								disabled={readOnly}
+								disabled={readOnly || busy || autosave.requiresFreshFrame}
 							/>
 						</Tooltip>
 					</>
@@ -190,6 +202,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 						ref={editor}
 						session={{ ...session, content: content.data }}
 						grantActive={canDispatch()}
+						interactionBlocked={snapshot?.explicitEdit || autosave.requiresFreshFrame}
 						draftChanged={autosave.draftChanged}
 						selectionChanged={() => {}}
 						onAccessEnded={endAccess}
@@ -200,7 +213,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 				<DocumentDraftDialog
 					copies={copies}
 					error={recoveryError}
-					busy={snapshot?.saving ?? false}
+					busy={busy}
 					readOnly={readOnly}
 					onClose={() => {
 						setCopies(null);

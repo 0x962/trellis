@@ -1,0 +1,20 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-register-group-scope-startup.patch",
+  "sha256": "440db15a728fb14ffe62192ccc5f1b15520b3c1f236f5bcafa7336fce59669f5",
+  "startupBase": {
+    "path": "integrations/langflow/patches/engineApi/reviewStartup/source/startup.py",
+    "sha256": "b9feda30eeac7e8d97f6d16f70f3af2848ecac6ef73f863167f8e1d3bf1bc15a"
+  },
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/startup.py": "0c8b9b8510d38dd3a405e29f8dd1b50c8c1dddc2c8260cc050d4cabcfd0a5724"
+  },
+  "requires": [
+    "integrations/langflow/patches/groupScopes/0001-executable-group-scopes.patch",
+    "langflow.services.trellis_v1.group_scope_reader.create_group_scope_router",
+    "langflow.services.trellis_v1.group_scope_deadline.install_group_deadline_transport",
+    "the per-instance native reservation origin and authentication file",
+    "the published review startup fragment",
+    "the actual group deadline host callback"
+  ]
+}

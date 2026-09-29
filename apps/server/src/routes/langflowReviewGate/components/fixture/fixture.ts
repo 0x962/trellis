@@ -21,6 +21,7 @@ export async function invocationFixture(
 	const root = mkdtempSync(join(tmpdir(), "trellis-review-http-"));
 	const home = join(root, "home");
 	mkdirSync(home);
+	mkdirSync(`${home}.langflow-authority`, { mode: 0o700 });
 	const dataHomeId = crypto.randomUUID();
 	const gate = DispatchGate.create({
 		directory: `${home}.langflow-authority/dispatch`,

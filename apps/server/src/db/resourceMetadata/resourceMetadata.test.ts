@@ -97,7 +97,7 @@ beforeAll(async () => {
 		apiVersion: "1",
 		bootId: ulid(),
 		now: () => now,
-		ghStatus: () => ({ ok: true }),
+		ghStatus: () => ({ ok: true, user: null, reason: null, message: null, checkedAt: null }),
 		addresses: async () => [],
 		log: () => {},
 		emit: () => {},

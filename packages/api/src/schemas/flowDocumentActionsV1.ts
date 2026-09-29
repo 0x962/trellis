@@ -11,8 +11,10 @@ const edits = z.discriminatedUnion("kind", [
 	z.strictObject({ kind: z.literal("set-node-instruction"), sourceNodeId, instruction: z.string() }),
 	z.strictObject({ kind: z.literal("set-node-harness"), sourceNodeId, harness }),
 	z.strictObject({
-		kind: z.literal("set-group-policy"), sourceNodeId,
-		parallel: z.boolean(), minutes: z.number().int().positive().nullable(),
+		kind: z.literal("set-group-policy"),
+		sourceNodeId,
+		parallel: z.boolean(),
+		minutes: z.number().int().positive().nullable(),
 	}),
 	z.strictObject({ kind: z.literal("set-loop-rounds"), sourceNodeId, maxRounds: z.number().int().positive() }),
 ]);
