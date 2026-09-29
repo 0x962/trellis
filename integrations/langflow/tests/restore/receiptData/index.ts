@@ -1,0 +1,1 @@
+export { receiptData } from "./receiptData";
