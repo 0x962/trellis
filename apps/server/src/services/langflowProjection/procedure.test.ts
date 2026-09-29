@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { executionViewV1Example } from "@trellis/api";
-import type { ServiceTransport } from "../../db/transport.ts";
 import type { GhAccess } from "../../ghState.ts";
 import type { ProcedureContext } from "../../procedures/base.ts";
 import { router } from "../../procedures/index.ts";
@@ -19,7 +18,9 @@ test("invalid execution IDs return the declared HTTP validation error", async ()
 				reads += 1;
 				return executionViewV1Example;
 			},
-		} as ServiceTransport,
+			start: async () => ({ applied: 0, liveShas: [] }),
+			close: async () => undefined,
+		},
 		actor: null,
 		timing: createDbTiming(),
 		chooseDirectory: async () => null,
