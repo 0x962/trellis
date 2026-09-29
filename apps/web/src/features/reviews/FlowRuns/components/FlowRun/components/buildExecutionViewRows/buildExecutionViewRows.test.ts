@@ -105,3 +105,17 @@ test("permits only an undelivered human decision after recovery", () => {
 			?.decidable,
 	).toBe(false);
 });
+
+test("a review wait describes classification without a decision or terminal action", () => {
+	const occurrence = {
+		...occurrenceV1Example,
+		state: "waiting_human" as const,
+		waitReason: "review" as const,
+		attempts: [],
+	};
+	const rows = buildExecutionViewRows({ ...executionViewV1Example, occurrences: [occurrence] }, true);
+	expect(rows).toHaveLength(1);
+	expect(rows[0]?.meta).toContain("Wait for review classification");
+	expect(rows[0]?.decidable).toBe(false);
+	expect(rows[0]?.terminal).toBe(false);
+});
