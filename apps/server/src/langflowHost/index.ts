@@ -31,3 +31,8 @@ export {
 export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
 
 export { provisionAuthorityRecoveryIssuer } from "./authorityLifecycle/recoveryIssuer";
+export {
+	EngineReconciliation,
+	type EngineReconciliationInput,
+	provisionReconciliationIssuer,
+} from "./engineReconciliation";
