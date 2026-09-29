@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { SessionUpdatesWriteInputSchema } from "./sessionUpdates.ts";
+import { SessionUpdateSchema, SessionUpdatesWriteInputSchema } from "./sessionUpdates.ts";
 
 test("accepts Markdown and HTML embeds at the write boundary", () => {
 	const input = SessionUpdatesWriteInputSchema.parse({
@@ -21,4 +21,18 @@ test("rejects blank prose, invalid requests, empty embeds, and unknown fields", 
 	]) {
 		expect(SessionUpdatesWriteInputSchema.safeParse(input).success).toBe(false);
 	}
+});
+
+test("accepts a ticket update without standalone session provenance", () => {
+	expect(
+		SessionUpdateSchema.parse({
+			id: "01M3NVQ8K3ZBWDFDZ406A4M1D9",
+			sessionId: null,
+			runId: "01M3NVQ8K3ZBWDFDZ406A4M1DA",
+			requestId: null,
+			body: "I am checking the ticket run.",
+			embeds: [],
+			createdAt: "2026-09-29T05:00:00.000Z",
+		}),
+	).toMatchObject({ sessionId: null, runId: "01M3NVQ8K3ZBWDFDZ406A4M1DA" });
 });

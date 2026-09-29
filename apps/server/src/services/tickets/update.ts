@@ -55,7 +55,8 @@ type FieldChange = {
 type Applied = { id: string; fields: string[] };
 
 // A parent must sit in the same project and must not be the ticket or one
-// of its descendants. The walk down the children stops at depth 64.
+// of its descendants. UNION removes repeated ticket ids, so a cycle in
+// `tickets.parent_id` cannot make the recursive query run forever.
 const resolveParent = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, ref: string) => {
 	const parent = await resolveTicket(ctx, tx, ref);
 	if (outsideProject(parent, row.projectId)) throw fail("CROSS_PROJECT_LINK");
@@ -63,9 +64,9 @@ const resolveParent = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, ref: strin
 	const below = await rows<{ id: string }>(
 		tx,
 		sql`WITH RECURSIVE down AS (
-			SELECT id, 0 AS depth FROM tickets WHERE parent_id = ${row.id}
-			UNION ALL
-			SELECT t.id, down.depth + 1 FROM tickets t JOIN down ON t.parent_id = down.id WHERE down.depth < 64
+			SELECT id FROM tickets WHERE parent_id = ${row.id}
+			UNION
+			SELECT t.id FROM tickets t JOIN down ON t.parent_id = down.id
 		)
 		SELECT id FROM down WHERE id = ${parent.id} LIMIT 1`,
 	);
