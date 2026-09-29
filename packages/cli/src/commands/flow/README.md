@@ -26,8 +26,10 @@ The registered `flowDocumentsV1.get`, `save`, `view`, and `list` procedures serv
 `flow run list` supports flow, ticket, and diff filters. Project filters belong to `flow list`.
 The run-list input has no project field.
 
-The start command still uses the legacy mutation contract.
-TRL-868 owns the versioned action contract under TRL-696.
+The start command uses the legacy mutation contract by default.
+`--format-version 1` explicitly selects `flowExecutionsV1.start`.
+TRL-891 supplies the typed client; TRL-868 owns server registration under TRL-696.
+A typed client does not establish handler availability.
 Langflow start and actual engine acceptance remain required by TRL-677.
 No read result authorizes a mutation through the legacy transport.
 
