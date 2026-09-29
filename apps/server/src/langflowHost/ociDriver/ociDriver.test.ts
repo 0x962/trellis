@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SidecarIdentity } from "../contracts";
@@ -27,6 +27,7 @@ const identity: SidecarIdentity = {
 
 test("the driver launches and verifies one restricted OCI instance", async () => {
 	const root = await mkdtemp(join(tmpdir(), "trellis-oci-driver-"));
+	const canonicalRoot = await realpath(root);
 	const data = join(root, "data");
 	const authentication = join(root, "secrets", `${identity.instanceId}.token`);
 	const captureIssuer = join(root, "capture-issuer.key");
@@ -63,7 +64,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		if (args[0] === "volume" && args[1] === "create") {
 			const name = args.at(-1)!;
 			const kind = name.includes("-data-") ? "data" : "secrets";
-			volumes.set(name, volumeInspection(root, kind));
+			volumes.set(name, volumeInspection(canonicalRoot, kind));
 			return result(name);
 		}
 		if (args[0] === "container" && args[1] === "inspect") {
@@ -133,12 +134,12 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		expect(provision.slice(provision.indexOf("--pull"), provision.indexOf("--pull") + 2)).toEqual(["--pull", "never"]);
 		expect(provision).toContain(configDigest);
 		expect(provision.at(-1)).toContain("-m 0600 /input/authentication /secrets/authentication");
-		expect(provision).toContain(`type=bind,src=${captureIssuer},dst=/input/capture-issuer,readonly`);
+		expect(provision).toContain(`type=bind,src=${await realpath(captureIssuer)},dst=/input/capture-issuer,readonly`);
 		expect(provision.at(-1)).toContain("-m 0600 /input/capture-issuer /secrets/capture-issuer");
-		expect(provision).toContain(`type=bind,src=${engineApiConfig},dst=/input/engine-api,readonly`);
+		expect(provision).toContain(`type=bind,src=${await realpath(engineApiConfig)},dst=/input/engine-api,readonly`);
 		expect(provision.at(-1)).toContain("-m 0600 /input/engine-api /secrets/engine-api.json");
 		expect(provision).toContain(
-			`type=bind,src=${nativeReservationAuthentication},dst=/input/native-reservations,readonly`,
+			`type=bind,src=${await realpath(nativeReservationAuthentication)},dst=/input/native-reservations,readonly`,
 		);
 		expect(provision.at(-1)).toContain("-m 0600 /input/native-reservations /secrets/native-reservations.token");
 		const observation = await driver.observe({
