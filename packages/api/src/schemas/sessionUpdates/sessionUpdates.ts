@@ -30,17 +30,25 @@ export const SessionUpdateRequestSchema = z.strictObject({
 });
 export type SessionUpdateRequest = z.infer<typeof SessionUpdateRequestSchema>;
 
+const HistoryCursorSchema = z.strictObject({ createdAt: IsoDateTimeSchema, id: UlidSchema });
+
 export const SessionUpdatesSchema = z.strictObject({
 	latest: SessionUpdateSchema.nullable(),
 	previous: SessionUpdateSchema.nullable(),
 	request: SessionUpdateRequestSchema.nullable(),
+	history: z.array(SessionUpdateSchema).optional(),
+	nextCursor: HistoryCursorSchema.nullable().optional(),
 });
 export type SessionUpdates = z.infer<typeof SessionUpdatesSchema>;
 
-export const SessionUpdatesGetInputSchema = z.strictObject({ sessionId: SessionRefSchema });
+export const SessionUpdatesGetInputSchema = z.strictObject({
+	sessionId: SessionRefSchema,
+	history: z.strictObject({ before: HistoryCursorSchema.optional() }).optional(),
+});
 export type SessionUpdatesGetInput = z.infer<typeof SessionUpdatesGetInputSchema>;
 
-export const SessionUpdatesWriteInputSchema = SessionUpdatesGetInputSchema.extend({
+export const SessionUpdatesWriteInputSchema = z.strictObject({
+	sessionId: SessionRefSchema,
 	requestId: z.string().uuid().optional(),
 	body: z.string().refine((body) => body.trim().length > 0, "Write a status update."),
 	embeds: z.array(SessionUpdateEmbedSchema).optional(),

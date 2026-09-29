@@ -89,8 +89,8 @@ describe("AgentStatusUpdatesPane", () => {
 	test("renders the saved update after the ticket completes", () => {
 		const html = renderPane();
 		expect(html).toContain("Session A **finished**.");
-		expect(html).toContain("2 min ago");
-		expect(html).toContain("Previous update");
+		expect(html).toContain('role="tree"');
+		expect(html).toContain("Session A started.");
 		expect(html).not.toContain("The session is paused");
 	});
 

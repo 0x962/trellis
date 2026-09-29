@@ -29,6 +29,7 @@ export type SessionUpdates = {
 	latest: SessionUpdate | null;
 	previous: SessionUpdate | null;
 	request: SessionUpdateRequest | null;
+	history?: SessionUpdate[];
 };
 
 export type SessionStatusProcessState = "active" | "paused" | "completed";
@@ -38,6 +39,7 @@ export type SessionStatusPaneProps = {
 	processState: SessionStatusProcessState;
 	now: string;
 	observerError?: string | null;
+	historyControl?: { hasMore: boolean; loading: boolean; error: boolean; load: () => void; retry: () => void };
 	renderMarkdown: (markdown: string) => ReactNode;
 	onOpenLink: (href: string, target: string, press: LinkPress) => void;
 	className?: string;
