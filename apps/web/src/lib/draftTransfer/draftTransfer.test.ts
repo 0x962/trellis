@@ -27,7 +27,7 @@ const roundTrip = (source: ReturnType<typeof stores>) => {
 	importDrafts(target, exported);
 	return { exported, entries: entriesOf(exportDrafts(target)) };
 };
-const id = (index: number) => `01ARZ3NDEKTSV4RRFFQ${String(index).padStart(7, "0")}`;
+const graphItemId = (index: number) => `01ARZ3NDEKTSV4RRFFQ${String(index).padStart(7, "0")}`;
 
 test("malformed bundles and unsupported keys change no storage", () => {
 	const target = stores();
@@ -117,7 +117,7 @@ test("round trip preserves a supported key longer than 8192 characters", () => {
 test("round trip preserves a valid graph above the former node and edge limits", () => {
 	const source = stores();
 	const nodes = Array.from({ length: 501 }, (_, index) => ({
-		id: id(index),
+		id: graphItemId(index),
 		parentId: null,
 		kind: "agent" as const,
 		title: `Agent ${index}`,
@@ -135,7 +135,7 @@ test("round trip preserves a valid graph above the former node and edge limits",
 	for (let from = 0; from < nodes.length && edges.length < 2001; from++)
 		for (let to = from + 1; to < nodes.length && edges.length < 2001; to++)
 			edges.push({
-				id: id(10_000 + edges.length),
+				id: graphItemId(10_000 + edges.length),
 				fromNodeId: nodes[from]!.id,
 				toNodeId: nodes[to]!.id,
 				branch: "out" as const,
