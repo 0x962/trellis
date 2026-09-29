@@ -124,3 +124,34 @@ test("retains more than 500 occurrences and output beyond former text cutoffs", 
 	expect(view.occurrences).toHaveLength(501);
 	expect(view.occurrences[500]!.output).toBe(output);
 });
+
+test("binds output only to the exact retained result of its current action", () => {
+	const record = fixture();
+	const step = record.state.steps[0]!;
+	record.doc.nodes[0]!.kind = "loop";
+	step.phase = "condition";
+	step.round = 2;
+	record.tasks = [
+		{ key: `${step.key}:condition:1`, runId: ids.agentRun, attemptId: "old-attempt", resultId: "old-result" },
+	];
+	expect(projectView(record, JSON.stringify(record.doc)).occurrences[0]).toMatchObject({
+		kind: "loop",
+		outputSource: null,
+	});
+	record.tasks.push({
+		key: `${step.key}:condition:2`,
+		runId: ids.agentRun,
+		attemptId: "exact-attempt",
+		resultId: "exact-result",
+	});
+	expect(projectView(record, JSON.stringify(record.doc)).occurrences[0]).toMatchObject({
+		outputSource: {
+			stepId: `${step.key}:condition:2`,
+			agentRunId: ids.agentRun,
+			attemptId: "exact-attempt",
+			resultId: "exact-result",
+		},
+	});
+	step.output = null;
+	expect(projectView(record, JSON.stringify(record.doc)).occurrences[0]).toMatchObject({ outputSource: null });
+});

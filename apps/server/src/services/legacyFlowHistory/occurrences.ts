@@ -28,7 +28,18 @@ export const occurrences = (record: FlowExecutionRecord, deadlineIds: Set<string
 			if (deadlineIds.has(parent.key)) deadlineRefs.unshift(parent.key);
 			child = parent;
 		}
+		const result = (tasks.get(step.key) ?? []).find((task) => task.key === actionKey(step));
 		return {
+			kind: node.kind,
+			outputSource:
+				step.output !== null && result?.resultId != null
+					? {
+							stepId: result.key,
+							agentRunId: result.runId,
+							attemptId: result.attemptId,
+							resultId: result.resultId,
+						}
+					: null,
 			nodeId: step.nodeId,
 			occurrenceKey: step.key,
 			parentOccurrenceKey: step.parentKey,
