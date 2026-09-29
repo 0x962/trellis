@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import type { AgentRun } from "@trellis/api";
 import { Button, EmptyState, FailureState, SessionStatusPaneShell } from "@trellis/ui";
 import { useEffect, useState } from "react";
@@ -11,7 +10,6 @@ import { agentStatusUpdatesQueryOptions } from "./agentStatusUpdatesState";
 export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; observerError: string | null }) {
 	const { orpc, scheduler } = useApp();
 	const openLink = useOpenLink();
-	const navigate = useNavigate();
 	const [now, setNow] = useState(() => scheduler.now());
 	const query = useQuery(agentStatusUpdatesQueryOptions(orpc, run));
 
@@ -33,7 +31,6 @@ export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; obse
 				now={new Date(now).toISOString()}
 				observerError={observerError}
 				onOpenLink={openLink}
-				onOpenObserverProvider={() => void navigate({ to: "/usage" })}
 			/>
 		);
 

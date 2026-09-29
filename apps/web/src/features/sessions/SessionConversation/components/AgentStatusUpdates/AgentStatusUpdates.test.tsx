@@ -62,7 +62,6 @@ const renderPane = (value = updates) =>
 			now="2026-09-29T06:00:00.000Z"
 			observerError={null}
 			onOpenLink={() => {}}
-			onOpenObserverProvider={() => {}}
 			renderMarkdown={(markdown) => <p data-markdown={markdown}>{markdown}</p>}
 		/>,
 	);
@@ -80,7 +79,6 @@ const renderConversation = () =>
 					now="2026-09-29T06:00:00.000Z"
 					observerError={null}
 					onOpenLink={() => {}}
-					onOpenObserverProvider={() => {}}
 					renderMarkdown={(markdown) => <p data-markdown={markdown}>{markdown}</p>}
 				/>
 			</div>

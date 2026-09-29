@@ -138,11 +138,11 @@ describe("SessionStatusPane", () => {
 		expect(html).toContain("overflow-auto");
 	});
 
-	test("shows an observer provider error and keeps the latest update", () => {
-		const html = render({ observerError: "The Vercel provider needs a key.", onOpenObserverProvider() {} });
+	test("shows a Claude observer error and keeps the latest update", () => {
+		const html = render({ observerError: "Select an enabled Claude account." });
 		expect(html).toContain("The observer could not update the status.");
-		expect(html).toContain("The Vercel provider needs a key.");
-		expect(html).toContain("Open Usage");
+		expect(html).toContain("Select an enabled Claude account.");
+		expect(html).not.toContain("Open Usage");
 		expect(html).toContain('data-markdown="Latest **status**"');
 	});
 

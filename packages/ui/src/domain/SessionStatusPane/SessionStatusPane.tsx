@@ -1,5 +1,4 @@
 import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
-import { Button } from "../../primitives/Button";
 import { EmptyState } from "../../primitives/EmptyState";
 import { ScrollArea } from "../../primitives/ScrollArea";
 import { cx } from "../../utils/cx";
@@ -85,7 +84,6 @@ export function SessionStatusPane({
 	observerError = null,
 	renderMarkdown,
 	onOpenLink,
-	onOpenObserverProvider,
 	className,
 }: SessionStatusPaneProps) {
 	const [previousOpen, setPreviousOpen] = useState(false);
@@ -120,15 +118,8 @@ export function SessionStatusPane({
 						<FailureState
 							variant="section"
 							title="The observer could not update the status."
-							description="The last update stays available. Check the observer provider, then wait for new session activity."
+							description="The last update stays available. Follow the error details before new session activity."
 							detail={observerError}
-							action={
-								onOpenObserverProvider ? (
-									<Button size="md" onClick={onOpenObserverProvider}>
-										Open Usage
-									</Button>
-								) : undefined
-							}
 						/>
 					)}
 					{updates.latest === null ? (

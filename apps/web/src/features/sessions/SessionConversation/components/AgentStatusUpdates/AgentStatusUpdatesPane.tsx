@@ -12,7 +12,6 @@ export function AgentStatusUpdatesPane({
 	now,
 	observerError,
 	onOpenLink,
-	onOpenObserverProvider,
 	renderMarkdown = renderStatusMarkdown,
 }: {
 	run: AgentRun;
@@ -20,7 +19,6 @@ export function AgentStatusUpdatesPane({
 	now: string;
 	observerError: string | null;
 	onOpenLink: (href: string, press: LinkPress) => void;
-	onOpenObserverProvider: () => void;
 	renderMarkdown?: (markdown: string) => ReactNode;
 }) {
 	return (
@@ -31,7 +29,6 @@ export function AgentStatusUpdatesPane({
 			observerError={observerError}
 			renderMarkdown={renderMarkdown}
 			onOpenLink={(href, target, press) => onOpenLink(href, agentStatusLinkPress(target, press))}
-			onOpenObserverProvider={onOpenObserverProvider}
 		/>
 	);
 }
