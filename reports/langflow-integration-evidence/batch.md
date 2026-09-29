@@ -53,6 +53,17 @@ Its final series must include the current occurrence and startup fixture sources
 Retain every failure and PostgreSQL skip. Keep Review input/output text private.
 Do not reuse an older loop marker result after fixture bytes change.
 
+TRL-994 names this source entry command after its dependency assembly:
+
+```sh
+bun run apps/server/src/index.ts
+```
+
+It requires explicit `TRELLIS_HOME`, `TRELLIS_AUTH_TOKEN`, and `TRELLIS_LANGFLOW_CONFIG_FILE` from the isolated host owner.
+SIGTERM calls supervisor shutdown before the database transport closes.
+These source facts do not establish a runnable configuration or owned process receipt.
+The owner must supply the exact launch identity and cleanup procedure before the batch.
+
 After TRL-696 boots the real isolated host, invoke the composed HTTP journey:
 
 ```sh
@@ -62,7 +73,7 @@ bun run integrations/langflow/tests/system/composed/run.ts "$BATCH_INPUT" "$BATC
 `composed/README.md` defines the required owner inputs and exact assertion scope.
 The input requires boot, deterministic native, matched-series, and cleanup receipts by hash.
 The HTTP runner uses no direct service fixture as a replacement for the host.
-The bootstrap command and deterministic native setup remain required producer handoffs.
+The runnable configuration, boot receipt, and deterministic native setup remain required producer handoffs.
 No invocation is authorized by this document during the hold.
 
 ## Remaining acceptance
