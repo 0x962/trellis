@@ -15,6 +15,11 @@ export type CandidatePackage = {
 		readonly imageConfigDigest: string;
 	};
 	readonly editor: { readonly rootDirectory: string };
+	readonly frontendTemplates: {
+		readonly path: string;
+		readonly sha256: string;
+		readonly engineOverlayHash: string;
+	} | null;
 	readonly manifestPath: string;
 };
 
@@ -39,6 +44,13 @@ export async function loadCandidatePackage(root: string, expectedPackageId: stri
 			imageConfigDigest: manifest.config.digest,
 		}),
 		editor: Object.freeze({ rootDirectory: join(absolute, "payload", recipe.editor.root) }),
+		frontendTemplates: recipe.frontendTemplates
+			? Object.freeze({
+					path: join(absolute, "payload", recipe.frontendTemplates.path),
+					sha256: recipe.frontendTemplates.sha256,
+					engineOverlayHash: recipe.patchSet.sha256,
+				})
+			: null,
 		manifestPath: join(absolute, "package.json"),
 	});
 }
