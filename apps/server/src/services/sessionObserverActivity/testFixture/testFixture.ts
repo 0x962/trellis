@@ -8,8 +8,8 @@ import type {
 } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { openTestDb } from "../../db/testDb.ts";
-import type { Tx } from "../../db/tx.ts";
+import { openTestDb } from "../../../db/testDb.ts";
+import type { Tx } from "../../../db/tx.ts";
 
 const databases: Awaited<ReturnType<typeof openTestDb>>[] = [];
 afterEach(async () => {

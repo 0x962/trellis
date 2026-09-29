@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { parseClaudeEvent } from "../../agents/harnesses/claude/parseClaudeEvent.ts";
 import { readSessionObserverActivity } from "./sessionObserverActivity.ts";
-import { annotated, fixture, line, outputReader } from "./testFixture.ts";
+import { annotated, fixture, line, outputReader } from "./testFixture/index.ts";
 
 test("an older runtime journal preserves explicit message completion and result identities", async () => {
 	const f = await fixture();
