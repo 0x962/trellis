@@ -17,7 +17,8 @@ export function useResultVirtualizer(items: readonly { id: string }[], rowHeight
 		const element = scrollParentOf(list.current!);
 		if (element === null) return;
 		const measure = () => {
-			const margin = list.current!.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop;
+			const margin =
+				list.current!.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop;
 			setScroller((current) =>
 				current !== null && current.element === element && current.margin === margin ? current : { element, margin },
 			);
