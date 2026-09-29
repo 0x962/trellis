@@ -24,7 +24,6 @@ const sentences: Record<ControlHarness, Record<string, string>> = {
 		STALE_SESSION: "The Codex session changed. Read the current session before a resend.",
 		Unauthorized: "The Codex control token does not match this session.",
 		"Not found": "The Codex control path does not exist.",
-		"Request too large": "The message exceeds the 1 MiB Codex control limit.",
 	},
 	opencode: {
 		STALE_TURN: "OpenCode finished that turn. Read the current turn before another interrupt.",
@@ -34,7 +33,6 @@ const sentences: Record<ControlHarness, Record<string, string>> = {
 		STALE_SESSION: "The OpenCode session changed. Read the current session before a resend.",
 		Unauthorized: "The OpenCode control token does not match this session.",
 		"Not found": "The OpenCode control path does not exist.",
-		"Request too large": "The message exceeds the 1 MiB OpenCode control limit.",
 	},
 	muse: {
 		STALE_TURN: "Muse finished that turn. Read the current turn before another interrupt.",
@@ -42,7 +40,6 @@ const sentences: Record<ControlHarness, Record<string, string>> = {
 		STALE_SESSION: "The Muse session changed. Read the current session before a resend.",
 		Unauthorized: "The Muse control token does not match this session.",
 		"Not found": "The Muse control path does not exist.",
-		"Request too large": "The message exceeds the 1 MiB Muse control limit.",
 	},
 };
 

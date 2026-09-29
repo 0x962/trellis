@@ -44,7 +44,6 @@ export const pageHomeFixture = async () => {
 		home,
 		now: () => core.now,
 		newTx,
-		maxUploadBytes: 100 * 1024 * 1024,
 		version: "test",
 		apiVersion: "1",
 		bootId: ulid(),

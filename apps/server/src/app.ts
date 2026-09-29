@@ -5,7 +5,6 @@ import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins"
 import type { StandardHandlerOptions } from "@orpc/server/standard";
 import { errors, reviewHref } from "@trellis/api";
 import { type Context, Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
@@ -56,8 +55,6 @@ export type AppOptions = {
 // CORS header, so a page elsewhere cannot read the API.
 const DEV_ORIGINS = ["http://localhost:5173", "http://trellis.localhost"];
 
-const MB = 1024 * 1024;
-
 const HOST_REFUSED =
 	"The Host header names a hostname this server does not serve. Use 127.0.0.1, localhost, or the TRELLIS_HOST name. To allow a proxy hostname, add it to TRELLIS_ALLOWED_HOSTS.";
 
@@ -100,8 +97,8 @@ const deleteWithQuery = (request: Request) => {
 };
 
 // The middleware chain: request id, the request log line and the api
-// version header, the Host check, cors, the body limits on upload
-// paths, the RPC handler at /rpc, the OpenAPI handler at /api, the plain
+// version header, the Host check, cors, the RPC handler at /rpc, the
+// OpenAPI handler at /api, the plain
 // routes, a JSON 404 under the two mounts, and the web app for everything
 // else.
 export const createApp = ({
@@ -175,44 +172,6 @@ export const createApp = ({
 	app.use(hostAuth(config.authToken));
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
-
-	const maxBytes = config.maxUploadMb * MB;
-	app.use(
-		"/api/tickets/:ticket/attachments",
-		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
-	);
-	app.use(
-		"/api/prs/:id/files/:fileId",
-		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
-	);
-	app.use(
-		"/api/page-uploads",
-		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
-	);
-	// The RPC codec wraps every body in `json`. The limit answers before the
-	// handler runs, so it writes that shape itself; without it the client
-	// reads an undefined error and never sees the cap it must report.
-	app.use(
-		"/rpc/attachments/upload",
-		bodyLimit({
-			maxSize: maxBytes,
-			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
-		}),
-	);
-	app.use(
-		"/rpc/pullRequests/uploadFile",
-		bodyLimit({
-			maxSize: maxBytes,
-			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
-		}),
-	);
-	app.use(
-		"/rpc/pages/upload",
-		bodyLimit({
-			maxSize: maxBytes,
-			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
-		}),
-	);
 
 	const interceptors: StandardHandlerOptions<ProcedureContext>["interceptors"] = [
 		onError((error, { context, request }) => {

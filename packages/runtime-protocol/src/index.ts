@@ -1,4 +1,5 @@
-export const RUNTIME_PROTOCOL_VERSION = 15;
+export const RUNTIME_PROTOCOL_VERSION = 16;
+export const MAX_TERMINAL_DIMENSION = 0xffff;
 export type HarnessInputRequest = {
 	id: string;
 	kind: "question" | "permission" | "elicitation";

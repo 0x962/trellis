@@ -17,7 +17,6 @@ export type Config = {
 	// as Tailscale Serve, reaches the server.
 	allowedHosts: string[];
 	port: number;
-	maxUploadMb: number;
 	ghBin: string;
 	webDist: string;
 	logLevel: LogLevel;
@@ -98,8 +97,6 @@ export const loadConfig = (env: Env): Config => {
 		agentsUrl: `http://${agentsHost(host)}:${port}`,
 		publicUrl:
 			env.TRELLIS_PUBLIC_URL === undefined ? `http://${agentsHost(host)}:${port}` : originOf(env.TRELLIS_PUBLIC_URL),
-		maxUploadMb:
-			env.TRELLIS_MAX_UPLOAD_MB === undefined ? 50 : numberOf("TRELLIS_MAX_UPLOAD_MB", env.TRELLIS_MAX_UPLOAD_MB),
 		ghBin: env.TRELLIS_GH_BIN ?? "gh",
 		webDist: env.TRELLIS_WEB_DIST === undefined ? defaultWebDist : resolve(expandHome(env.TRELLIS_WEB_DIST)),
 		logLevel: env.TRELLIS_LOG_LEVEL === undefined ? "info" : levelOf(env.TRELLIS_LOG_LEVEL),

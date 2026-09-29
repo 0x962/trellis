@@ -47,7 +47,6 @@ const ioContextOf = (actor: ActorRef, now = at) =>
 		actor,
 		session: null,
 		home,
-		maxUploadBytes: 50 * 1024 * 1024,
 		now: () => now,
 		log: () => {},
 		newTx: inTx,

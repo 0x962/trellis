@@ -26,7 +26,7 @@ export const sessions = {
 		.input(SessionIdInputSchema)
 		.output(SessionDetailSchema),
 	create: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE", "PAYLOAD_TOO_LARGE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({
 			method: "POST",
 			path: "/sessions",

@@ -13,11 +13,9 @@ export async function openCodeControl({ socket, token, current, abort, prompt })
 		if (request.method !== "POST" || !["/interrupt", "/prompt"].includes(request.url))
 			return reply(404, { error: "Not found" });
 		try {
+			request.setEncoding("utf8");
 			let body = "";
-			for await (const chunk of request) {
-				body += chunk;
-				if (body.length > 1048576) return reply(413, { error: "Request too large" });
-			}
+			for await (const chunk of request) body += chunk;
 			const input = JSON.parse(body);
 			const active = current();
 			if (request.url === "/prompt") {
