@@ -4,16 +4,26 @@ import { z } from "zod";
 import { documentBytes } from "../../flowDocuments";
 import type { compilerCatalog } from "../compilerCatalog";
 import { compilerGraph } from "../compilerGraph";
-import type { CompiledSourceNode, CompilerHarness, CompilerObject, ConversionCompilerInput } from "../conversionCompilerTypes";
+import type {
+	CompiledSourceNode,
+	CompilerHarness,
+	CompilerObject,
+	ConversionCompilerInput,
+} from "../conversionCompilerTypes";
 import type { ConversionAssociationV1, ConversionExpansionV1 } from "../conversionIntakeTypes";
 
 const harnessSchema = z.strictObject({
-	preset: z.string().min(1), startCommand: z.string().min(1), resumeCommand: z.string().min(1),
-	model: z.string().min(1), effort: z.string().min(1),
+	preset: z.string().min(1),
+	startCommand: z.string().min(1),
+	resumeCommand: z.string().min(1),
+	model: z.string().min(1),
+	effort: z.string().min(1),
 });
 
 export const compileFlow = (
-	doc: FlowDoc, input: ConversionCompilerInput, catalog: ReturnType<typeof compilerCatalog>,
+	doc: FlowDoc,
+	input: ConversionCompilerInput,
+	catalog: ReturnType<typeof compilerCatalog>,
 ) => {
 	const graph = compilerGraph(catalog);
 	const nodeSpecs: ConversionAssociationV1[] = [];
@@ -41,7 +51,8 @@ export const compileFlow = (
 	};
 	const create = (source: FlowNode, id: string, className: string, values: CompilerObject = {}) => {
 		const created = graph.create(position(source), id, className, values);
-		(sourceAssociations[source.id] ??= []).push(id);
+		sourceAssociations[source.id] ??= [];
+		sourceAssociations[source.id].push(id);
 		return created;
 	};
 	const native = (source: FlowNode, id: string, phase: "step" | "children" | "condition") => {
@@ -52,13 +63,36 @@ export const compileFlow = (
 			const inherited = source.harness ?? doc.flow.harness;
 			const policy = input.nativePolicies[source.id];
 			const parsed = harnessSchema.safeParse(policy?.harness);
-			if (!policy || !parsed.success || !isDeepStrictEqual(inherited, policy.sourceHarness) ||
-				(inherited !== null && Object.entries(inherited).some(([key, value]) => policy.harness[key as keyof typeof policy.harness] !== value))) {
-				fail("conversion_native_policy_unresolved", source.id, "An immutable policy must resolve the exact inherited harness, commands, model, and effort.");
+			if (
+				!policy ||
+				!parsed.success ||
+				!isDeepStrictEqual(inherited, policy.sourceHarness) ||
+				(inherited !== null &&
+					Object.entries(inherited).some(
+						([key, value]) => policy.harness[key as keyof typeof policy.harness] !== value,
+					))
+			) {
+				fail(
+					"conversion_native_policy_unresolved",
+					source.id,
+					"An immutable policy must resolve the exact inherited harness, commands, model, and effort.",
+				);
 			} else harness = structuredClone(policy.harness);
 		}
-		nativeSpecs[id] = { nodeId: source.id, taskKeyBase: source.id, name: source.title, instruction: source.instruction, harness };
-		nodeSpecs.push({ sourceNodeId: source.id, engineNodeId: id, definitionId: created.definitionId, phase, specNamespace: "trellisRequestSpecsV1" });
+		nativeSpecs[id] = {
+			nodeId: source.id,
+			taskKeyBase: source.id,
+			name: source.title,
+			instruction: source.instruction,
+			harness,
+		};
+		nodeSpecs.push({
+			sourceNodeId: source.id,
+			engineNodeId: id,
+			definitionId: created.definitionId,
+			phase,
+			specNamespace: "trellisRequestSpecsV1",
+		});
 		return created.node;
 	};
 	const sourceEdge = (edge: FlowDoc["edges"][number]) => {
@@ -83,31 +117,62 @@ export const compileFlow = (
 		const output = create(source, `${source.id}:output`, "TrellisGroupOutputV1").node;
 		const settlements = Object.fromEntries(ids.map((id) => [id, `${source.id}:settle:${id}`]));
 		const definition = {
-			version: 1, groupNodeId: source.id, parentGroupNodeId: source.parentId,
-			scopeVertexId: scope.id, outputVertexId: output.id,
-			parallel: source.parallel, minutes: source.minutes, childNodeIds: ids,
-			childVertices: Object.fromEntries(ids.map((id) => {
-				const child = compiled.get(id)!;
-				return [id, {
-					inputVertexId: child.input.node.id, outputVertexId: (child.outputs.out ?? child.outputs.yes)!.node.id,
-					settlementSourceVertexId: child.settlement!.node.id,
-				}];
-			})),
-			entryNodeIds: entryIds, terminalNodeIds: terminalIds, settlementVertexIds: settlements, edges: internal,
+			version: 1,
+			groupNodeId: source.id,
+			parentGroupNodeId: source.parentId,
+			scopeVertexId: scope.id,
+			outputVertexId: output.id,
+			parallel: source.parallel,
+			minutes: source.minutes,
+			childNodeIds: ids,
+			childVertices: Object.fromEntries(
+				ids.map((id) => {
+					const child = compiled.get(id)!;
+					return [
+						id,
+						{
+							inputVertexId: child.input.node.id,
+							outputVertexId: (child.outputs.out ?? child.outputs.yes)!.node.id,
+							settlementSourceVertexId: child.settlement!.node.id,
+						},
+					];
+				}),
+			),
+			entryNodeIds: entryIds,
+			terminalNodeIds: terminalIds,
+			settlementVertexIds: settlements,
+			edges: internal,
 		};
 		graph.set(scope, "scope_definition", documentBytes(definition).toString("utf8"));
 		scopes[source.id] = definition;
 		graph.connect(`${scope.id}:${output.id}`, { node: scope, port: "entries" }, { node: output, port: "scope_entry" });
-		for (const id of entryIds) graph.connect(`${scope.id}:${id}`, { node: scope, port: "entries" }, compiled.get(id)!.scopeInput);
+		for (const id of entryIds)
+			graph.connect(`${scope.id}:${id}`, { node: scope, port: "entries" }, compiled.get(id)!.scopeInput);
 		for (const edge of internal) sourceEdge(edge);
 		for (const child of children) {
 			const settled = compiled.get(child.id)!.settlement!;
-			const settlement = create(child, settlements[child.id]!, "TrellisGroupSettlementV1", { source_node_id: child.id }).node;
+			const settlement = create(child, settlements[child.id]!, "TrellisGroupSettlementV1", {
+				source_node_id: child.id,
+			}).node;
 			graph.connect(`${child.id}:${settlement.id}`, settled, { node: settlement, port: "result" });
-			graph.connect(`${settlement.id}:${output.id}`, { node: settlement, port: "settlement" }, { node: output, port: "settlements" });
+			graph.connect(
+				`${settlement.id}:${output.id}`,
+				{ node: settlement, port: "settlement" },
+				{ node: output, port: "settlements" },
+			);
 		}
-		if (source.minutes !== null) fail("conversion_group_deadline_unverified", source.id, "Timed groups require the qualified deadline reservation and launch trace.");
-		return { input: { node: scope, port: "boundary_inputs" }, scopeInput: { node: scope, port: "boundary_inputs" }, outputs: { out: { node: output, port: "out" } }, settlement: { node: output, port: "out" } };
+		if (source.minutes !== null)
+			fail(
+				"conversion_group_deadline_unverified",
+				source.id,
+				"Timed groups require the qualified deadline reservation and launch trace.",
+			);
+		return {
+			input: { node: scope, port: "boundary_inputs" },
+			scopeInput: { node: scope, port: "boundary_inputs" },
+			outputs: { out: { node: output, port: "out" } },
+			settlement: { node: output, port: "out" },
+		};
 	};
 	const compile = (source: FlowNode): CompiledSourceNode => {
 		let result: CompiledSourceNode;
@@ -118,17 +183,43 @@ export const compileFlow = (
 			const condition = native(source, `${source.id}:condition`, "condition");
 			graph.connect(`${source.id}:children`, { node: loop, port: "children" }, body.input);
 			graph.connect(`${source.id}:condition-input`, body.outputs.out!, { node: condition, port: "inputs" });
-			graph.connect(`${source.id}:feedback`, { node: condition, port: "result" }, { node: loop, port: "children" }, true);
-			result = { input: { node: loop, port: "seed" }, scopeInput: { node: loop, port: "scope_entry" }, outputs: { out: { node: loop, port: "done" } }, settlement: { node: loop, port: "done" } };
+			graph.connect(
+				`${source.id}:feedback`,
+				{ node: condition, port: "result" },
+				{ node: loop, port: "children" },
+				true,
+			);
+			result = {
+				input: { node: loop, port: "seed" },
+				scopeInput: { node: loop, port: "scope_entry" },
+				outputs: { out: { node: loop, port: "done" } },
+				settlement: { node: loop, port: "done" },
+			};
 		} else if (source.kind === "gate" && source.reviewArea != null) {
 			const gate = create(source, source.id, "TrellisReviewGateV1");
 			reviewSpecs[source.id] = { nodeId: source.id, reviewArea: source.reviewArea };
-			nodeSpecs.push({ sourceNodeId: source.id, engineNodeId: source.id, definitionId: gate.definitionId, phase: source.parentId === null ? "step" : "children", specNamespace: "trellisReviewGatesV1" });
-			result = { input: { node: gate.node, port: "inputs" }, scopeInput: { node: gate.node, port: "inputs" }, outputs: { yes: { node: gate.node, port: "yes" }, no: { node: gate.node, port: "no" } }, settlement: null };
+			nodeSpecs.push({
+				sourceNodeId: source.id,
+				engineNodeId: source.id,
+				definitionId: gate.definitionId,
+				phase: source.parentId === null ? "step" : "children",
+				specNamespace: "trellisReviewGatesV1",
+			});
+			result = {
+				input: { node: gate.node, port: "inputs" },
+				scopeInput: { node: gate.node, port: "inputs" },
+				outputs: { yes: { node: gate.node, port: "yes" }, no: { node: gate.node, port: "no" } },
+				settlement: null,
+			};
 		} else {
 			const node = native(source, source.id, source.parentId === null ? "step" : "children");
 			const receipt = { node, port: "result" };
-			result = { input: { node, port: "inputs" }, scopeInput: { node, port: "inputs" }, outputs: { out: receipt }, settlement: receipt };
+			result = {
+				input: { node, port: "inputs" },
+				scopeInput: { node, port: "inputs" },
+				outputs: { out: receipt },
+				settlement: receipt,
+			};
 			if (source.kind === "gate") {
 				const decision = create(source, `${source.id}:decision`, "TrellisNativeDecisionV1").node;
 				graph.connect(`${source.id}:decision`, receipt, { node: decision, port: "result" });
@@ -142,10 +233,16 @@ export const compileFlow = (
 	for (const edge of doc.edges.filter((edge) => sourceNodes.get(edge.fromNodeId)!.parentId === null)) sourceEdge(edge);
 	const expansion: ConversionExpansionV1 = {
 		graphDocument: z.record(z.string(), z.json()).parse({
-			nodes: graph.nodes, edges: graph.edges, trellisSource: doc,
-			trellisRequestSpecsV1: nativeSpecs, trellisReviewGatesV1: reviewSpecs,
-			sourceAssociations, edgeAssociations, groupScopes: scopes,
-		}), nodeSpecs,
+			nodes: graph.nodes,
+			edges: graph.edges,
+			trellisSource: doc,
+			trellisRequestSpecsV1: nativeSpecs,
+			trellisReviewGatesV1: reviewSpecs,
+			sourceAssociations,
+			edgeAssociations,
+			groupScopes: scopes,
+		}),
+		nodeSpecs,
 	};
 	return {
 		expansion: diagnostics.some((item) => item.code === "conversion_native_policy_unresolved") ? null : expansion,

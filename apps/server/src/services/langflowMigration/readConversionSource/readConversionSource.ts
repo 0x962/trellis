@@ -32,12 +32,19 @@ export const readConversionSource = (graphDocument: Record<string, unknown>) => 
 	if (history.length > 0 && envelope.editedSource === undefined) throw new Error("conversion_edit_history_incomplete");
 	for (const edit of [...history, ...(envelope.editedSource ? [envelope.editedSource] : [])]) {
 		const intentBytes = retainedBytes(edit.intent);
-		const intent = ConversionEditIntentV1Schema.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(intentBytes)));
-		if (intent.requestId !== edit.intent.requestId || seen.has(intent.requestId) ||
-			intent.flowId !== envelope.source.flowId || intent.expectedVersion !== edit.derivedFrom.revision ||
+		const intent = ConversionEditIntentV1Schema.parse(
+			JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(intentBytes)),
+		);
+		if (
+			intent.requestId !== edit.intent.requestId ||
+			seen.has(intent.requestId) ||
+			intent.flowId !== envelope.source.flowId ||
+			intent.expectedVersion !== edit.derivedFrom.revision ||
 			intent.expectedDocumentHash !== edit.derivedFrom.documentHash ||
 			edit.derivedFrom.sourceHash !== sourceDigest(sourceBytes) ||
-			edit.revision !== edit.derivedFrom.revision + 1 || edit.derivedFrom.revision < revision) {
+			edit.revision !== edit.derivedFrom.revision + 1 ||
+			edit.derivedFrom.revision < revision
+		) {
 			throw new Error("conversion_edit_chain_conflict");
 		}
 		seen.add(intent.requestId);

@@ -30,11 +30,21 @@ const inputs = () => {
 	};
 	const expansion = {
 		graphDocument: {
-			nodes: [{ id: "engine-node", type: "genericNode", data: { id: "engine-node", type: "TrellisNativeCompletionV1" } }],
+			nodes: [
+				{ id: "engine-node", type: "genericNode", data: { id: "engine-node", type: "TrellisNativeCompletionV1" } },
+			],
 			edges: [],
 			trellisRequestSpecsV1: { "engine-node": spec },
 		},
-		nodeSpecs: [{ sourceNodeId: node.id, engineNodeId: "engine-node", definitionId: "native-completion-v1", phase: "step", specNamespace: "trellisRequestSpecsV1" }],
+		nodeSpecs: [
+			{
+				sourceNodeId: node.id,
+				engineNodeId: "engine-node",
+				definitionId: "native-completion-v1",
+				phase: "step",
+				specNamespace: "trellisRequestSpecsV1",
+			},
+		],
 	};
 	return { source, spec, expansion, sourceBytes: Buffer.from(JSON.stringify(source, null, 2)) };
 };
@@ -42,7 +52,9 @@ const inputs = () => {
 const catalogBytes = () => readFile(new URL("../../components/catalog/manifest.v1.json", import.meta.url));
 
 test("matches the occurrence producer's canonical bytes and hash vectors", async () => {
-	const cases = JSON.parse(await readFile(new URL("../occurrenceRequests/spec-hash-cases.json", import.meta.url), "utf8")) as {
+	const cases = JSON.parse(
+		await readFile(new URL("../occurrenceRequests/spec-hash-cases.json", import.meta.url), "utf8"),
+	) as {
 		spec: unknown;
 		canonical: string;
 		sha256: string;
@@ -61,7 +73,9 @@ test("retains complete source bytes and hashes only the shared static entry", as
 	const graph = result.graphDocument!;
 	expect(Buffer.from(graph.trellisConversionV1.source.bytesBase64, "base64")).toEqual(input.sourceBytes);
 	expect(graph.trellisConversionV1.nodeSpecs[0]!.specHash).toBe(sourceDigest(documentBytes(input.spec)));
-	expect(graph.trellisConversionV1.nodeSpecs[0]!.sourceNodeHash).toBe(sourceDigest(documentBytes(input.source.nodes[0])));
+	expect(graph.trellisConversionV1.nodeSpecs[0]!.sourceNodeHash).toBe(
+		sourceDigest(documentBytes(input.source.nodes[0])),
+	);
 	expect(result.diagnostics.map((item) => item.code)).toContain("conversion_execution_unverified");
 	expect(result.diagnostics.map((item) => item.code)).toContain("conversion_harness_policy_unverified");
 });
@@ -102,11 +116,21 @@ test("retains blocked copies and invalidates changed expansion bytes", async () 
 	expect(intake.record.targetDocumentHash).toBeNull();
 	expect(intake.record.nodeMap).toEqual({});
 	expect(await readFile(intake.expansion.exportRef)).toEqual(expansionBytes);
-	const current = { flowId: input.source.flow.id, version: input.source.flow.version, sourceBytes: input.sourceBytes, catalogBytes: catalog, expansionBytes };
+	const current = {
+		flowId: input.source.flow.id,
+		version: input.source.flow.version,
+		sourceBytes: input.sourceBytes,
+		catalogBytes: catalog,
+		expansionBytes,
+	};
 	expect(await checkConversionIntake(intake, current)).toEqual([]);
-	expect((await checkConversionIntake(intake, { ...current, expansionBytes: Buffer.from("{}") })).map((item) => item.code)).toContain("conversion_expansion_changed");
+	expect(
+		(await checkConversionIntake(intake, { ...current, expansionBytes: Buffer.from("{}") })).map((item) => item.code),
+	).toContain("conversion_expansion_changed");
 	await writeFile(intake.candidate!.exportRef, "{}");
-	expect((await checkConversionIntake(intake, current)).map((item) => item.code)).toContain("conversion_export_changed");
+	expect((await checkConversionIntake(intake, current)).map((item) => item.code)).toContain(
+		"conversion_export_changed",
+	);
 });
 
 test("reads original provenance after publication validation and rejects a changed spec", async () => {
@@ -114,17 +138,30 @@ test("reads original provenance after publication validation and rejects a chang
 	const catalog = await catalogBytes();
 	const graphDocument = inspectConversionGraph({ ...input, catalogBytes: catalog }).graphDocument!;
 	const publication: FlowPublicationV1 = {
-		publicationId: fixtureId(101), flowId: input.source.flow.id, revision: 72,
-		documentHash: "a".repeat(64), engineFlowId: "engine-flow", enginePackageDigest: "b".repeat(64),
-		componentManifestHash: sourceDigest(catalog), publishedAt: "2026-09-29T00:00:00.000Z",
+		publicationId: fixtureId(101),
+		flowId: input.source.flow.id,
+		revision: 72,
+		documentHash: "a".repeat(64),
+		engineFlowId: "engine-flow",
+		enginePackageDigest: "b".repeat(64),
+		componentManifestHash: sourceDigest(catalog),
+		publishedAt: "2026-09-29T00:00:00.000Z",
 		conversion: { converterVersion: "fixture", sourceDocumentHash: sourceDigest(input.sourceBytes) },
 	};
-	const visit = { engineNodeId: "engine-node", phase: "step" as const, specNamespace: "trellisRequestSpecsV1" as const };
+	const visit = {
+		engineNodeId: "engine-node",
+		phase: "step" as const,
+		specNamespace: "trellisRequestSpecsV1" as const,
+	};
 	const verified = { publication, graphDocument };
 	expect(readConversionBinding(verified, visit).sourceNode).toEqual(input.source.nodes[0]!);
 	expect(() => readConversionBinding(verified, { ...visit, phase: "condition" })).toThrow("conversion_visit_conflict");
-	expect(() => readConversionBinding({ ...verified, publication: { ...publication, conversion: null } }, visit)).toThrow("conversion_publication_conflict");
+	expect(() =>
+		readConversionBinding({ ...verified, publication: { ...publication, conversion: null } }, visit),
+	).toThrow("conversion_publication_conflict");
 	const changed = structuredClone(graphDocument);
 	changed.trellisConversionV1.nodeSpecs[0]!.specHash = "f".repeat(64);
-	expect(() => readConversionBinding({ publication, graphDocument: changed }, visit)).toThrow("conversion_spec_hash_conflict");
+	expect(() => readConversionBinding({ publication, graphDocument: changed }, visit)).toThrow(
+		"conversion_spec_hash_conflict",
+	);
 });

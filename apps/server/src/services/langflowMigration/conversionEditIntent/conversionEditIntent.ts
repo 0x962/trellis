@@ -1,1 +1,1 @@
-export { ConversionEditIntentV1Schema, type ConversionEditIntentV1 } from "@trellis/api";
+export { type ConversionEditIntentV1, ConversionEditIntentV1Schema } from "@trellis/api";
