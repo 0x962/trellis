@@ -8,7 +8,7 @@ import {
 	type HumanDeliveryV1,
 	readProtocolBytes,
 } from "../../../langflowContracts";
-import { acceptance } from "./components/acceptance";
+import { acceptance } from "../acceptance";
 
 export type DecisionEngine = {
 	lookup(input: DecisionLookupRequestV1): Promise<unknown>;

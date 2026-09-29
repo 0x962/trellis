@@ -3,7 +3,7 @@ import {
 	DecisionLookupResultV1Schema,
 	type HumanDeliveryV1,
 	HumanDeliveryV1Schema,
-} from "../../../../../langflowContracts";
+} from "../../../langflowContracts";
 
 export function acceptance(delivery: HumanDeliveryV1, lookup: DecisionLookupRequestV1, response: unknown) {
 	const result = DecisionLookupResultV1Schema.parse(response);
