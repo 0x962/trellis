@@ -27,7 +27,18 @@ Revocation, expiry, and unmount stop message acceptance. An unexpected frame rel
 The queue must also check the current actor, host, grant state, and expiry before each request.
 
 `draftChanged(content)` receives the complete public V1 Langflow content.
-TRL-680 passes this content to its single draft/save queue.
+`LangflowWorkspace` passes this content through `useDocumentAutosave` to the single draft/save queue.
+The wrapper sends the exact queued input to `client.flowDocumentsV1.save`.
+It checks the current actor and host against the grant before each request.
+The caller supplies `currentIdentity`, the tab identity, browser storage, the saved document, and the issued session.
+The workspace remounts when the channel changes and initializes the frame from the retained draft.
+Its topbar exposes save state and explicit retry. It reuses `FlowSettingsSheet` for metadata.
+The hook keeps the queue alive across remounts and stops later requests when the workspace releases it.
+The browser-draft dialog exports exact bytes, including unsupported records and a draft held only in memory.
+Recovery copies the selected record into a fresh tab and retains the source.
+Discard requires confirmation and the exact displayed bytes.
+`onOpenDraft(tab)` asks the route to read the saved document, issue a new session, and mount the selected tab.
+The actual route still requires the session issuer.
 The adapter creates no timer for autosave, HTTP save request, local draft store, or run request.
 A draft event cannot establish a saved revision, executable publication, or accepted decision.
 The authenticated save service must validate the document and the pinned component authority.

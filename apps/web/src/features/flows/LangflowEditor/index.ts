@@ -1,3 +1,4 @@
+export { LangflowWorkspace } from "./components/LangflowWorkspace";
 export type {
 	EditorAccessEnd,
 	LangflowEditorHandle,

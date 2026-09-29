@@ -1,23 +1,23 @@
-# Versioned discovery source
+# Flow discovery and settings
 
-`FlowDiscoveryContent` accepts a `FlowDiscoveryInput` and canonical actions from its caller.
-`flowDiscovery` keeps the selected filters through loading, failure, empty results, and an engine outage.
+`FlowsPage` reads the flow list and each saved document through the typed client.
+`FlowDiscoveryContent` presents the saved version, executable revision, and publication diagnostics.
+The settings sheet reads the document by stable flow ID.
+Metadata save and delete use the existing flow handlers.
+
+The document contract does not report live engine availability or conversion capability.
+The interface identifies these facts as unknown.
+An unpublished Langflow revision cannot permit a new run.
+A published receipt alone does not establish live engine availability.
+
+`discoveryPosition` retains filters and scroll in session storage.
 A project filter includes flows for that project and flows for every project.
+The list restores its scroll after the document results arrive.
 
-`FlowDiscoveryEntry.document` uses the public V1 contract.
-The caller supplies compatibility, diagnostics, and capability reasons from the services.
-A valid document alone does not establish migration parity or permission to start a run.
-`FlowVersionDetails` presents these fields for cards and the settings sheet.
+The settings form retains the version from the time the form opens.
+A metadata conflict retains the edits and disables Save changes.
+Reload and discard edits reads the latest document and replaces the form values.
+A deleted flow retains selectable form text and a link to the flow list.
 
-`flowPublicationReceipt` accepts only a receipt for the saved document and preserves an existing confirmed receipt.
-`flowSettingsState` retains metadata edits after a conflict or deletion.
-`flowSettingsRequest` blocks another save until the caller resolves that conflict.
-`FlowSettingsFeedback` returns to `/ai/flows` and passes the retained filters to the caller.
-The caller owns filter persistence and explicit conflict resolution.
-
-TRL-678 connects these components to the handlers from TRL-684 after the acceptance gate.
-TRL-696 owns service registration.
-The existing route and settings sheet keep their legacy handlers.
-The source tests use the exported TRL-665 fixtures.
-The batch verification owner runs the tests, web type check, and changed-file Biome check after merge.
-TRL-678 retains desktop, narrow layout, both themes, keyboard, focus, and live state acceptance.
+The shared client batch covers the focused tests, Biome, and the web type check.
+TRL-678 retains mounted desktop, narrow layout, both themes, keyboard, focus, and live state acceptance.

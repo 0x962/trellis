@@ -1,6 +1,7 @@
 import { watch } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import type { DispatchBlock } from "../contracts";
+import { dispatchChanges } from "../store/notifications";
 import type { DispatchStore } from "../store/store";
 
 export function waitForDrain(store: DispatchStore, block: DispatchBlock, signal?: AbortSignal): Promise<void> {
@@ -8,6 +9,7 @@ export function waitForDrain(store: DispatchStore, block: DispatchBlock, signal?
 		const watcher = watch(store.directory, inspect);
 		const finish = (error?: unknown) => {
 			watcher.close();
+			dispatchChanges.off(store.directory, inspect);
 			signal?.removeEventListener("abort", aborted);
 			if (error) reject(error);
 			else resolve();
@@ -23,6 +25,7 @@ export function waitForDrain(store: DispatchStore, block: DispatchBlock, signal?
 			}
 		}
 		watcher.on("error", finish);
+		dispatchChanges.on(store.directory, inspect);
 		signal?.addEventListener("abort", aborted, { once: true });
 		if (signal?.aborted) aborted();
 		else inspect();

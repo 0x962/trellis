@@ -2,17 +2,16 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { FlowExecutionListV1InputSchema, FlowExecutionViewV1Schema, missingPartsText } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { sql } from "drizzle-orm";
-import { flowReadiness } from "../../../../../packages/cli/src/commands/ready/flowReadiness.ts";
-import type { ServiceCtx } from "../../context.ts";
-import { list as listFlows } from "../../services/flows/flows.ts";
-import { getView, list } from "../../services/langflowDispatch";
-import { createCache } from "../cache.ts";
-import type { Db } from "../client.ts";
-import { openTestDb } from "../testDb.ts";
-import { reviewFixture } from "./reviewReady.fixtures.ts";
-import { ticketSummary } from "./ticketGet.ts";
+import type { ServiceCtx } from "../../../../apps/server/src/context.ts";
+import { createCache } from "../../../../apps/server/src/db/cache.ts";
+import { reviewFixture } from "../../../../apps/server/src/db/queries/reviewReady.fixtures.ts";
+import { ticketSummary } from "../../../../apps/server/src/db/queries/ticketGet.ts";
+import { openTestDb } from "../../../../apps/server/src/db/testDb.ts";
+import { list as listFlows } from "../../../../apps/server/src/services/flows/flows.ts";
+import { getView, list } from "../../../../apps/server/src/services/langflowDispatch";
+import { flowReadiness } from "../../../../packages/cli/src/commands/ready/flowReadiness.ts";
 
-let db: Db;
+let db: Awaited<ReturnType<typeof openTestDb>>;
 const ctx: ServiceCtx = {
 	actor: { kind: "human", name: "Policy" },
 	session: null,
