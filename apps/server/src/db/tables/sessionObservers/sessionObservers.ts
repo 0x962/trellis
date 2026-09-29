@@ -11,7 +11,7 @@ export const sessionObservers = pgTable(
 			.references(() => agentRuns.id, { onDelete: "cascade" }),
 		observerId: text("observer_id").notNull(),
 		enabled: boolean().notNull().default(false),
-		providerId: text("provider_id").notNull(),
+		providerId: text("provider_id"),
 		modelId: text("model_id").notNull(),
 		activityThreshold: integer("activity_threshold").notNull().default(20),
 		generationState: text("generation_state").notNull().default("idle"),

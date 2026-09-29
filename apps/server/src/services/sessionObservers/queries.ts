@@ -12,7 +12,7 @@ const messageColumns = sql`id, observer_id AS "observerId", generation, role, bo
 
 export type StoredSessionObserver = Omit<SessionObserver, "messages" | "observerId" | "providerId" | "modelId"> & {
 	observerId: string;
-	providerId: string;
+	providerId: string | null;
 	modelId: string;
 	generationClaimId: string | null;
 	generationCursor: string | null;
@@ -72,7 +72,7 @@ export const listSessionObserverCandidates = async (tx: Tx): Promise<SessionObse
 	rows<SessionObserverCandidate>(
 		tx,
 		sql`SELECT o.run_id AS "runId", o.last_consumed_cursor AS "lastConsumedCursor",
-		EXISTS (SELECT 1 FROM session_updates u WHERE u.run_id=o.run_id) AS "hasInitialUpdate",
+		EXISTS (SELECT 1 FROM session_observer_messages m WHERE m.observer_id=o.observer_id) AS "hasInitialUpdate",
 		o.activity_threshold AS "activityThreshold"
-		FROM session_observers o WHERE o.enabled ORDER BY o.run_id`,
+		FROM session_observers o WHERE o.enabled AND o.provider_id IS NOT NULL ORDER BY o.run_id`,
 	);

@@ -20,19 +20,16 @@ export type SetSessionObserverEnabledResult = {
 	requestInitialGeneration: boolean;
 };
 
-const observerProvider = async (tx: Tx): Promise<string> => {
+const providerError = `Configure an enabled Vercel AI Gateway provider that offers ${SESSION_OBSERVER_MODEL_ID}.`;
+
+const observerProvider = async (tx: Tx): Promise<string | null> => {
 	const [provider] = await rows<{ id: string }>(
 		tx,
 		sql`SELECT p.id FROM providers p JOIN provider_models m ON m.provider_id=p.id
 		WHERE p.enabled AND p.kind='vercel-ai-gateway' AND m.model_id=${SESSION_OBSERVER_MODEL_ID}
 		ORDER BY p.created_at, p.id LIMIT 1`,
 	);
-	if (provider === undefined)
-		throw invalidInput(
-			"enabled",
-			`Configure an enabled Vercel AI Gateway provider that offers ${SESSION_OBSERVER_MODEL_ID}.`,
-		);
-	return provider.id;
+	return provider?.id ?? null;
 };
 
 export const setEnabled = async (
@@ -50,17 +47,22 @@ export const setEnabled = async (
 		const observerId = ulid();
 		const providerId = await observerProvider(tx);
 		await tx.execute(sql`INSERT INTO session_observers
-			(run_id, observer_id, enabled, provider_id, model_id, activity_threshold, created_at, updated_at)
+			(run_id, observer_id, enabled, provider_id, model_id, activity_threshold, error, created_at, updated_at)
 			VALUES (${owner.runId}, ${observerId}, true, ${providerId}, ${SESSION_OBSERVER_MODEL_ID},
-			${input.activityThreshold ?? SESSION_OBSERVER_ACTIVITY_THRESHOLD}, ${ctx.now}, ${ctx.now})`);
+			${input.activityThreshold ?? SESSION_OBSERVER_ACTIVITY_THRESHOLD}, ${providerId === null ? providerError : null},
+			${ctx.now}, ${ctx.now})`);
 		return {
 			observer: await readSessionObserver(tx, owner.runId),
 			cancelGeneration: false,
-			requestInitialGeneration: true,
+			requestInitialGeneration: providerId !== null,
 		};
 	}
+	const providerId = input.enabled && existing.providerId === null ? await observerProvider(tx) : existing.providerId;
+	const error =
+		input.enabled && providerId === null ? providerError : existing.providerId === null ? null : existing.error;
 	const cancelGeneration = existing.enabled && existing.generationState === "generating" && !input.enabled;
 	await tx.execute(sql`UPDATE session_observers SET enabled=${input.enabled},
+		provider_id=${providerId}, error=${error},
 		activity_threshold=${input.activityThreshold ?? existing.activityThreshold},
 		generation_state=CASE WHEN ${input.enabled} THEN generation_state ELSE 'idle' END,
 		generation_claim_id=CASE WHEN ${input.enabled} THEN generation_claim_id ELSE NULL END,
@@ -69,7 +71,8 @@ export const setEnabled = async (
 	return {
 		observer: await readSessionObserver(tx, owner.runId),
 		cancelGeneration,
-		requestInitialGeneration: input.enabled && !existing.enabled,
+		requestInitialGeneration:
+			input.enabled && providerId !== null && (!existing.enabled || existing.providerId === null),
 	};
 };
 

@@ -34,6 +34,7 @@ export const claimSessionObserverGeneration = async (
 	if (
 		observer === null ||
 		!observer.enabled ||
+		observer.providerId === null ||
 		observer.generationState === "generating" ||
 		observer.lastConsumedCursor === input.throughCursor
 	)
