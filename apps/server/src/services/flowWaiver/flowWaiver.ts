@@ -10,7 +10,7 @@ import type { Tx } from "../../db/tx.ts";
 import { resolveActorId } from "../actorIdentity/index.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
 import { announcePullRequestUpdate } from "../pullRequests.ts";
-import { type IoCtx, type ServiceCtx } from "../support.ts";
+import type { IoCtx, ServiceCtx } from "../support.ts";
 
 type WaiverRow = {
 	pull_request_id: string;

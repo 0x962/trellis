@@ -79,9 +79,7 @@ test("preserves exact bindings and rejects mismatches", async () => {
 	expect(JSON.stringify(lookupPlan.rows)).toContain("actors_identity_equality");
 	await db.execute(sql`SET enable_seqscan = on`);
 	const actorCtx = { now: new Date(at.getTime() + 2), actorCache: new Map() } as ServiceCtx;
-	const touchedId = await db.transaction((tx) =>
-		resolveActorId(actorCtx, tx, { name: longName, kind: "agent" }),
-	);
+	const touchedId = await db.transaction((tx) => resolveActorId(actorCtx, tx, { name: longName, kind: "agent" }));
 	expect(touchedId).toBe(longActorId);
 	const validBatch = ulid();
 	await db.execute(sql`INSERT INTO activity
