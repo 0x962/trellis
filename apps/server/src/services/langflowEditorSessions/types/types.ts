@@ -1,0 +1,57 @@
+import type { ActorRef, FlowDocumentSaveV1Input, FlowDocumentV1 } from "@trellis/api";
+import type { EditorContent, EditorIdentity } from "../../../../../../integrations/langflow/editor/protocol";
+import type { EditorSession } from "../../../../../../integrations/langflow/editor/session";
+
+export type EditorDocument = Extract<FlowDocumentV1, { engine: "langflow" }>;
+export type EditorDocumentRead = { document: FlowDocumentV1; projectId: string | null };
+export type EditorDocumentSave = {
+	document: FlowDocumentSaveV1Input;
+	projectId: string | null;
+};
+
+export type EditorParentSave = {
+	channel: string;
+	actor: ActorRef;
+	input: FlowDocumentSaveV1Input;
+};
+
+export type InstalledEditorManifest = {
+	hash: string;
+	publicManifest: Record<string, unknown>;
+	assertContent: (content: EditorContent) => Promise<void>;
+};
+
+export type EditorSessionOptions = {
+	hostId: string;
+	hostToken: string;
+	parentOrigin: string;
+	editorOrigin: string;
+	actor: () => Promise<ActorRef>;
+	expiresAt: (now: Date) => Date;
+	now: () => Date;
+	installedManifest: () => Promise<InstalledEditorManifest>;
+	documents: {
+		get: (actor: ActorRef, input: { flow: string }) => Promise<EditorDocumentRead>;
+		save: (actor: ActorRef, input: EditorDocumentSave) => Promise<FlowDocumentV1>;
+	};
+};
+
+export type SavedEditorRequest = {
+	bytes: Uint8Array;
+	identity: EditorIdentity;
+	response: string;
+};
+
+export type EditorGrant = {
+	session: EditorSession;
+	actor: ActorRef;
+	projectId: string | null;
+	project: string | null;
+	revision: number;
+	documentHash: string;
+	tokenHash: string;
+	revoked: boolean;
+	conflicted: boolean;
+	busy: boolean;
+	receipts: Map<string, SavedEditorRequest>;
+};
