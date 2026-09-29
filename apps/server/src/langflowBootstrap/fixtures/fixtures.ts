@@ -36,6 +36,8 @@ export function bootstrapFixture() {
 	};
 	const configuration: LangflowBootstrapConfiguration = {
 		version: 1,
+		authorityPolicy: { durationMs: 60000, renewBeforeMs: 10000 },
+		authorityPermissions: ["native.reserve", "native.read"],
 		packageRoot: "/sealed",
 		packageId: digest,
 		qualificationFile: "/accepted/qualification.json",

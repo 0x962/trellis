@@ -86,7 +86,7 @@ export async function composeLangflowBootstrap<Supervisor extends BootstrapSuper
 		manifest: qualified.manifest,
 		dependencies: { driver, authority: deps.authority(identity), now: () => new Date() },
 	});
-	await supervisor.start();
+	const live = await supervisor.start();
 	const editor: EditorGatewayConfiguration = {
 		identity,
 		parentOrigin: configured.parentOrigin,
@@ -94,5 +94,5 @@ export async function composeLangflowBootstrap<Supervisor extends BootstrapSuper
 		grantDurationMs: configured.grantDurationMs,
 		installedManifest: async () => installed,
 	};
-	return { editor, supervisor, stop: () => supervisor.shutdown() };
+	return { editor, supervisor, live, configured, stop: () => supervisor.shutdown() };
 }

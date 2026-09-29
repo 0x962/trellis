@@ -34,3 +34,24 @@ The service archives the exact committed authority bytes through the host adapte
 The supervisor stops before the server closes its database transport.
 
 The bootstrap fixtures cover absent configuration, private file checks, identity replacement, package refusal, image mismatch, and shutdown.
+
+`authorityPolicy` supplies `durationMs` and `renewBeforeMs` for saved grants.
+`authorityPermissions` supplies the explicit permission list for initial grants.
+The bootstrap requires both fields and retains the existing gate state.
+
+`createLangflowConnections` connects admission, decisions, native observation, stops, authority recovery, and projection.
+The worker registry holds each domain's actual database services.
+The host owns the supervisor, engine clients, receipt archive, and lifecycle signal.
+The native worker uses `recordWorkspace` and `createNativeDispatchGate` for committed evidence.
+`langflowHost.authority` also carries the exact archived initial binding through the real transaction.
+
+The lifecycle requests retained recovery at startup and after each completed pass.
+It uses the existing repeating-call clock and runs domains in order.
+The wrapped service transport notifies the domain after a successful action returns.
+A rejected action leaves its durable obligation for retained recovery.
+Shutdown aborts and awaits domain calls before native callbacks, supervisor, and database transport close.
+
+`pauseOrdinary` returns a held scope after ordinary domain calls finish.
+Stops continue until that scope calls `freezeStops`.
+Both phases retain queued notices for `resume`.
+The reconciliation owner holds this scope alongside the engine, native, and database exclusions.
