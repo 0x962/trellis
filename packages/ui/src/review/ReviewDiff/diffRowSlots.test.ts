@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { DiffLine } from "./DiffLine";
 import { diffRowSlots, diffRowStyle } from "./diffRowSlots";
 import { parseReviewFiles } from "./parseReviewFiles";
 import { type ReviewRow, reviewRowSize } from "./reviewRows";
@@ -55,6 +58,20 @@ test("the Add line comment button shows on a screen that cannot hover", () => {
 
 test("hover lays a tint over the line colour, and focus draws a ring", () => {
 	expect(css).toContain("background-image: linear-gradient(var(--band-translucent), var(--band-translucent))");
-	expect(css).toMatch(/\.review-diff-line:focus-visible \{\s*outline: 2px solid var\(--accent\);/);
+	const html = renderToStaticMarkup(
+		createElement(DiffLine, {
+			file: "a.ts",
+			line: { type: "addition", text: "two", newLine: 1 },
+			side: "new",
+			index: "0",
+			select: () => {},
+			startPointer: () => {},
+			endPointer: () => {},
+		}),
+	);
+	const buttonClasses = /<button[^>]*class="([^"]*)"/.exec(html)?.[1]?.split(/\s+/);
+	expect(buttonClasses).toContain("focus-visible:outline-2");
+	expect(buttonClasses).toContain("focus-visible:-outline-offset-2");
+	expect(buttonClasses).toContain("focus-visible:outline-accent");
 	expect(css).not.toContain("outline: 0");
 });
