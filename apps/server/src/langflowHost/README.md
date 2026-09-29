@@ -43,6 +43,8 @@ The engine reads the capture issuer from a separate read-only secret file.
 Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
 An explicit `engineApiConfigFile` copies one mode-0600 startup file into the read-only secrets volume.
+An enabled configuration also requires `nativeReservationAuthenticationFile` for the outgoing Trellis bearer.
+The driver copies that separate mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
 Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
 The container label binds the SHA256 of the supplied startup file to the saved instance.
 

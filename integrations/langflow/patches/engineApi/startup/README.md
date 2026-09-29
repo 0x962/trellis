@@ -16,13 +16,18 @@ The configuration has these exact fields:
 - `engineRoot`
 - `userId`
 - `exportRoot`
+- `nativeReservationOrigin`
+- `nativeReservationAuthenticationFile`
 
 The caller supplies the selected sealed package paths and a service-user UUID.
 The caller supplies a private export root outside the sealed package and the job database.
+The caller supplies the trusted Trellis origin and an absolute container path for the outgoing bearer file.
+The outgoing bearer is separate from `TRELLIS_AUTHENTICATION_FILE`, which protects incoming engine API requests.
 The startup code resolves those exact paths and has no host checkout fallback.
 
 Startup creates the private capture ledger under `/data/config/trellis-capture`.
 It constructs `CaptureBoundary` and immediately calls `install_capture_boundary(boundary)`.
+It then calls `install_request_transport(origin=..., authentication_file=...)` before service construction.
 It then constructs the Langflow services and all private domain routers.
 The capture revoke route completes `resume_after_capture()` before it returns.
 
@@ -40,7 +45,7 @@ The common router authenticates every request with the exact bearer file.
 Capture control also requires the separate capture issuer file.
 The lifespan waits for database initialization, replays committed cancellation effects, and runs one deferred writer recovery pass before normal startup continues.
 
-Apply this fragment after the publication, authority, admission, decision, native, cancellation, backup, and capture-writer fragments.
+Apply this fragment after the publication, authority, admission, decision, native, cancellation, backup, capture-writer, and occurrence-request fragments.
 The source fixture covers inactive startup and complete configuration parsing.
 The fixture remains unexecuted while the host capacity hold applies.
 Container startup, route execution, writer exclusion, recovery, installation, and activation remain unverified.

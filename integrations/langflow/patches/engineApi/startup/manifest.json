@@ -1,16 +1,17 @@
 {
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "0001-register-private-engine-api.patch",
-  "sha256": "3e3008cbca8407050779ccd18f6f01fa437e496e7162678fbdfe20ca020214a3",
+  "sha256": "83dddae445eb1cc22ed2053c8ea903a01c2228a21f4e174c910e334ff9605ee4",
   "files": {
-    "src/backend/base/langflow/services/trellis_v1/startup.py": "01e86cdc65a425edfd250cefc57232ab692447516beae6050f679eafac8e2cc8",
+    "src/backend/base/langflow/services/trellis_v1/startup.py": "cbe0250c91e40644be726365cf288ff80ff360d4c812273cee7813891e56a0c8",
     "src/backend/base/langflow/main.py": "a2169b4076160575f02edbab5d826b3eec6fe7591d559dce3db790428976598d"
   },
   "tests": {
-    "tests/test_startup.py": "a1e2f32bd74c0d55c2c15e405364101f3f5b592f9de25195f2b77ac0eb35a1e9"
+    "tests/test_startup.py": "c030027877ebd0cc3b44abebb7421c6c260cc6946048a1a214234d03ab060197"
   },
   "requires": [
     "langflow.services.trellis_v1.capture_writer.install_capture_boundary",
+    "langflow.services.trellis_v1.occurrence_transport.install_request_transport",
     "BackgroundExecutionService.resume_after_capture",
     "all private domain router fragments"
   ]

@@ -10,6 +10,8 @@ export const containerAuthenticationFile = "/run/trellis-secrets/authentication"
 export const containerCaptureIssuerFile = "/run/trellis-secrets/capture-issuer";
 export const containerEngineApiConfigFile = "/run/trellis-secrets/engine-api.json";
 export const containerEncryptionFile = "/run/trellis-secrets/engine-secret";
+export const containerNativeReservationAuthenticationFile =
+	"/run/trellis-secrets/native-reservations.token";
 
 export const HealthSchema = z.strictObject({
 	status: z.literal("healthy"),
