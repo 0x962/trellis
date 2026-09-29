@@ -5,7 +5,7 @@ import type { BulkWrite } from "../../../table/hooks/useBulkWrite";
 import { priorityLabels } from "../../rows";
 
 // Every write the palette Selection section makes. Each function sends one
-// field through `bulk.update`, which splits the rows into runs of 200, asks
+// field through `bulk.update`, which sends one transaction, asks
 // the person before a large write, puts the new value in the cached rows
 // before the request leaves, and puts the old value back on a failure. The
 // bulk bar of the table writes through the same hook, so both surfaces

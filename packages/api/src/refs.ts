@@ -154,8 +154,8 @@ const pageRef = defineRef(
 	formatPageRef,
 );
 
-// A status name is 1 to 40 characters. The colon is reserved for the
-// `category:` form, so a name never contains one.
+// The colon in a status reference selects the `category:` form.
+// A status name reference must be nonempty and contain no colon.
 const parseStatusRef = (value: string): StatusRef | undefined => {
 	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
 	const colon = value.indexOf(":");
@@ -165,7 +165,7 @@ const parseStatusRef = (value: string): StatusRef | undefined => {
 		if (!category.success) return undefined;
 		return { kind: "category", category: category.data };
 	}
-	if (value.length < 1 || value.length > 40) return undefined;
+	if (value.length < 1) return undefined;
 	return { kind: "identifier", value };
 };
 
