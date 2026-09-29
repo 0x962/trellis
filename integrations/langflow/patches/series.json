@@ -57,7 +57,7 @@
 		{
 			"name": "backend-native-api",
 			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
-			"sha256": "3ca06f1b27d1744ad6c767e8eca624a8540cb0138d27f339e3f2d1f95c2d19d6",
+			"sha256": "07445397a869fe88f8bc32731f85ad76d110ba3085cc5f4c199566433382bbd8",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json"
 		},
@@ -114,6 +114,13 @@
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
 		{
+			"name": "backend-loop-control",
+			"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
+			"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/loopControl/manifest.json"
+		},
+		{
 			"name": "backend-capture-writers",
 			"path": "integrations/langflow/patches/externalWaits/0005-capture-boundary-writer-hooks.patch",
 			"sha256": "b65478f03a3d0f98f67017bcaa40f07ab8b5530cba6231f4ab7bded709e57210",
@@ -126,6 +133,13 @@
 			"sha256": "615191dc9bd2c64eb42387024ce30fb67c6c229e09331c84ebece37ef51e45d5",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/occurrenceRequests/manifest.json"
+		},
+		{
+			"name": "backend-occurrence-entries",
+			"path": "integrations/langflow/patches/occurrenceRequests/0002-component-entry-receipts.patch",
+			"sha256": "09e1c6a68cbcc93fceabc065414f43d2976566fe3fc41a83c58763eb3b53e8ef",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/entries-manifest.json"
 		},
 		{
 			"name": "backend-private-startup",
@@ -150,6 +164,7 @@
 		"integrations/langflow/tests/restore",
 		"integrations/langflow/tests/publications",
 		"integrations/langflow/tests/occurrenceRequests",
+		"integrations/langflow/tests/loopControl",
 		"integrations/langflow/patches/engineApi/shared/tests",
 		"integrations/langflow/patches/engineApi/control/tests",
 		"integrations/langflow/patches/engineApi/native/tests",
