@@ -1,5 +1,5 @@
 import { Play } from "@phosphor-icons/react";
-import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { type UseQueryResult, useQueries, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
