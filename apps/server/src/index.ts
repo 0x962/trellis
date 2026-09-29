@@ -180,7 +180,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			log: (message, fields) => log.info(message, fields),
 		});
 		const langflow = await startLangflowBootstrap(config, transport, (message, fields) => log.info(message, fields));
-		const { app, bye } = createApp({
+		const { app, bye, stopDocumentActions } = createApp({
 			config,
 			log,
 			transport: langflow?.transport ?? transport,
@@ -190,6 +190,14 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			editor: langflow?.editor,
 			nativeReservations: langflow?.nativeReservations,
 			groupDeadlines: langflow?.groupDeadlines,
+			documentActionRuntime:
+				langflow === undefined
+					? undefined
+					: {
+							package: langflow.qualified.candidate,
+							engineCommit: langflow.qualified.manifest.source.commit,
+							supervisor: langflow.supervisor,
+						},
 		});
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
@@ -207,6 +215,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			for (const hook of hooks) await hook.stop();
 			await pageSearchBackfill.stop();
 			await pageSweep.stop();
+			await stopDocumentActions();
 			await langflow?.stop();
 			await transport.close();
 			if (database) await database.close();
