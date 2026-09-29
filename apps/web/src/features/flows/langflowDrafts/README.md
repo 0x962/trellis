@@ -31,3 +31,17 @@ Versioned drafts use a separate namespace and export through `readBytes`.
 
 The merged verification batch runs the tests under this directory, the web type check, and Biome on these files.
 The source checkpoint does not establish browser, runtime, or publication acceptance.
+
+`documentSession` retains one queue for each storage object and exact draft identity.
+Its `attach` method grants one mounted editor access. The returned release function suspends the queue.
+A suspended queue accepts its pending receipt, retains newer bytes, and starts no further request.
+`resume` requires an explicit caller action. `setReadOnly` applies rollback access to the same queue.
+`canDispatch` checks the current grant, host, and actor immediately before each save call.
+The caller must supply a predicate that reads current authority, including grant expiry.
+`subscribe` reports edits, request progress, receipts, and storage errors to mounted consumers.
+An unsupported record stays exportable and cannot create a queue.
+
+`createDocumentRecovery` lists and exports drafts for one host, actor, and flow.
+`recover` copies exact confirmed bytes into a new tab identity. It retains the original draft and request identity.
+`discard` requires the named draft identity and its exact bytes.
+`preserveLegacy` retains the original bytes as an unsupported draft before any conversion.

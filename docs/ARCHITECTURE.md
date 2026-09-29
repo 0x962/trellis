@@ -96,6 +96,13 @@ Each attempt has one immutable identifier, a token hash, retained terminal outpu
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
+An optional status observer uses a separate saved conversation for each ticket or standalone run.
+The existing Claude harness runs that conversation with Sonnet 5.5 through the configured Claude account.
+The observer reads completed messages and tool calls after its durable cursor.
+It never writes to the worker conversation.
+An initial enablement, the configured activity threshold, completion, or a request for human input can start an update.
+Elapsed time cannot start an update.
+The observer saves its conversation, the human update, and the consumed cursor in one transaction.
 The runtime keeps up to 20 idle attempt records for resume. Other unsubscribed exited records remain for up to two days, with limits of 200 records and 256 MiB. It caches eight records on demand.
 Small exit receipts outlive terminal logs and prevent a delayed start from launching a closed attempt again.
 Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.
@@ -363,9 +370,9 @@ edge for a pair. Both foreign keys cascade on ticket deletion. `source` is
 `manual`, `parsed`, or `derived`. A check refuses an edge from a ticket to
 itself.
 
-Every dependency belongs to one project. A manual write resolves every
-ticket before it changes an edge. It refuses a cross-project edge and a cycle. A
-cycle error names the path from the target ticket back to itself. A repeated
+A new manual dependency joins tickets from one project. A manual write resolves
+every ticket before it changes an edge. It refuses a new cross-project edge and a cycle.
+A removal can delete an existing cross-project edge. A cycle error names the path from the target ticket back to itself. A repeated
 manual write changes a parsed or derived edge to manual.
 
 `TicketSummary.waitsOn` lists each dependency that is not done or canceled.
@@ -377,7 +384,8 @@ The API writes dependencies through `tickets.create` and
 `tickets.updateDependencies`. The routes are `POST /api/tickets` and
 `PATCH /api/tickets/{ticket}/dependencies`. `tickets.importDependencies` at
 `POST /api/tickets/import-dependencies` imports the dependency lines of one
-epic. `tickets.get` at `GET /api/tickets/{ticket}` reads both directions.
+epic. `tickets.dependencies` at `GET /api/tickets/{ticket}/dependencies` reads every stored edge in both directions, including completed tickets.
+Each related ticket carries its identifier, title, and status category.
 
 A dependency uses TicketRef for the target and for every related ticket. A
 TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
@@ -385,7 +393,8 @@ TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
 <TicketRef>` prints both directions and each derived pull request stack.
 The web route `/t/<KEY-n>` shows both directions in its properties rail, as
 the rows Waits on and Blocks. A pick in either row writes one edge: the Blocks
-row writes it on the ticket that the pick names. An epic route also shows the
+row writes it on the ticket that the pick names. Each picker shows current relationships with a named remove button before a search.
+A successful removal refreshes ticket details, lists, search results, and epic indicators. An epic route also shows the
 `waits` and `releases` cells.
 
 ### Ticket contract

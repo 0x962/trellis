@@ -1,23 +1,30 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type Flow, FlowSlugSchema } from "@trellis/api";
-import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
-import { useRef, useState } from "react";
+import { Button, FailureState, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { LaunchFields } from "../../../../agents/LaunchFields";
 import { FlowProjectSelect } from "../../../FlowProjectSelect";
+import { discoveryDocument } from "../../../FlowsPage/discoveryDocument";
+import { discoveryPosition } from "../../../FlowsPage/discoveryPosition";
 import { flowHarnessOf, harnessOfFlow, sameFlowHarness } from "../../../flowHarness";
 import { projectRefOfSelectValue, selectValueOfProjectKey } from "../../../flowProject";
+import { FlowSettingsFeedback } from "./components/FlowSettingsFeedback";
+import { FlowVersionDetails } from "./components/FlowVersionDetails";
+import { flowSettingsFailure } from "./flowSettingsFailure";
+import type { FlowSettingsState } from "./flowSettingsState";
 
 type FlowSettingsSheetProps = { flow: Flow; onSaved: (flow: Flow) => void; onClose: () => void };
 
-// The project, the name, the slug, the description, the briefing, and the
-// harness of a flow. Every agent of the flow reads the briefing before its
-// own instruction, and every step that names no harness launches with the
-// harness of the flow.
-export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetProps) {
+export function FlowSettingsSheet({ flow: initialFlow, onSaved, onClose }: FlowSettingsSheetProps) {
 	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
+	const [flow, setFlow] = useState(initialFlow);
+	const document = useQuery(orpc.flowDocumentsV1.get.queryOptions({ input: { flow: flow.id }, retry: false }));
+	const [result, setResult] = useState<FlowSettingsState["result"]>({ state: "editing" });
+	const [filters, setFilters] = useState<FlowSettingsState["filters"]>({ query: "", project: null });
+	useEffect(() => setFilters(discoveryPosition.readFilters(sessionStorage)), []);
 	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState(flow.name);
 	const [slug, setSlug] = useState(flow.slug);
@@ -48,7 +55,12 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 				harness: flowHarnessOf(harness),
 				expectedVersion: flow.version,
 			}),
+		onError: (error) => setResult(flowSettingsFailure(error)),
 		onSuccess: async (saved) => {
+			await Promise.all([
+				queryClient.invalidateQueries({ queryKey: orpc.flows.list.key() }),
+				queryClient.invalidateQueries({ queryKey: orpc.flowDocumentsV1.get.key() }),
+			]);
 			onSaved(saved);
 			onClose();
 			if (saved.slug !== flow.slug)
@@ -57,12 +69,50 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 	});
 	const remove = useMutation({
 		mutationFn: () => client.flows.delete({ flow: flow.id }),
+		onError: (error) => setResult(flowSettingsFailure(error)),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: orpc.flows.list.key() });
 			await navigate({ to: "/ai/flows" });
 		},
 	});
-	const pending = save.isPending || remove.isPending;
+	const reload = useMutation({
+		mutationFn: () => client.flowDocumentsV1.get({ flow: flow.id }),
+		onError: (error) => {
+			const failure = flowSettingsFailure(error);
+			if (failure.state === "deleted") setResult(failure);
+		},
+		onSuccess: (latest) => {
+			setFlow(latest.flow);
+			setName(latest.flow.name);
+			setSlug(latest.flow.slug);
+			setDescription(latest.flow.description);
+			setBriefing(latest.flow.briefing);
+			setProject(selectValueOfProjectKey(latest.flow.project));
+			setHarness(harnessOfFlow(latest.flow.harness));
+			setResult({ state: "editing" });
+			queryClient.setQueryData(orpc.flowDocumentsV1.get.queryOptions({ input: { flow: flow.id } }).queryKey, latest);
+		},
+	});
+	useEffect(() => {
+		if (reload.isSuccess) nameRef.current?.focus();
+	}, [reload.isSuccess]);
+	const pending = save.isPending || remove.isPending || reload.isPending;
+	const documentFailure = document.error ? flowSettingsFailure(document.error) : null;
+	const feedback = documentFailure?.state === "deleted" ? documentFailure : result;
+	const blocked = feedback.state === "conflict" || feedback.state === "deleted";
+	const state: FlowSettingsState = {
+		flow,
+		filters,
+		result: feedback,
+		draft: {
+			name,
+			slug,
+			description,
+			briefing,
+			project: projectRefOfSelectValue(project),
+			harness: flowHarnessOf(harness),
+		},
+	};
 
 	return (
 		<Sheet
@@ -76,10 +126,31 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 				className="flex min-h-full flex-col"
 				onSubmit={(event) => {
 					event.preventDefault();
-					if (valid && dirty && !pending) save.mutate();
+					if (valid && dirty && !pending && !blocked) save.mutate();
 				}}
 			>
 				<SheetBody>
+					{document.data && <FlowVersionDetails entry={discoveryDocument(document.data)} />}
+					{document.isPending && (
+						<p role="status" className="text-sm text-fg-muted">
+							Load saved version…
+						</p>
+					)}
+					{document.isError && feedback.state !== "deleted" && (
+						<FailureState title="Could not load the saved version" detail={document.error.message} />
+					)}
+					{reload.isError && feedback.state !== "deleted" && (
+						<FailureState title="Could not reload the flow" detail={reload.error.message} />
+					)}
+					<FlowSettingsFeedback
+						state={state}
+						onReturn={() => onClose()}
+						reloadAction={
+							<Button type="button" disabled={pending} onClick={() => reload.mutate()}>
+								Reload and discard edits
+							</Button>
+						}
+					/>
 					<FlowProjectSelect
 						value={project}
 						disabled={pending}
@@ -123,16 +194,6 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 						placeholder="What every agent of this flow reads before its own instruction."
 					/>
 					<LaunchFields allowDefault="Claude" harness={harness} disabled={pending} onChange={setHarness} />
-					{save.isError && (
-						<p role="alert" className="text-sm text-danger">
-							Could not save the flow. {save.error.message}
-						</p>
-					)}
-					{remove.isError && (
-						<p role="alert" className="text-sm text-danger">
-							Could not delete the flow. {remove.error.message}
-						</p>
-					)}
 				</SheetBody>
 				<SheetFooter
 					confirmation={
@@ -145,7 +206,12 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 								<p className="w-full text-sm text-fg-muted">
 									This permanently deletes the flow with every step and connection.
 								</p>
-								<Button type="button" variant="danger" disabled={pending} onClick={() => remove.mutate()}>
+								<Button
+									type="button"
+									variant="danger"
+									disabled={pending || feedback.state === "deleted"}
+									onClick={() => remove.mutate()}
+								>
 									Confirm delete
 								</Button>
 								<Button type="button" variant="quiet" disabled={pending} onClick={() => setConfirmDelete(false)}>
@@ -158,7 +224,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 						<Button
 							type="button"
 							variant="quiet"
-							disabled={pending || confirmDelete}
+							disabled={pending || confirmDelete || feedback.state === "deleted"}
 							onClick={() => setConfirmDelete(true)}
 						>
 							Delete flow
@@ -171,7 +237,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 					<Button
 						type="submit"
 						variant="primary"
-						disabled={!valid || !dirty || pending || confirmDelete}
+						disabled={!valid || !dirty || pending || blocked || confirmDelete}
 						aria-busy={save.isPending}
 					>
 						Save changes

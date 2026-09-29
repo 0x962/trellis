@@ -25,7 +25,7 @@ export async function exportEngineSnapshot(input: {
 		boundaryReceiptId: input.metadata.boundary.receiptId,
 		compatibility: input.metadata.compatibility,
 	};
-	const base = new URL("/trellis-v1/snapshots", endpoint);
+	const base = new URL("/api/v1/trellis/snapshots", endpoint);
 	const response = await fetch(base, {
 		method: "POST",
 		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },

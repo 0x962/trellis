@@ -9,6 +9,9 @@ A negative value represents human feedback.
 
 `record(ctx, tx, input)` locks the execution and reads the saved projection and checkpoint.
 It stores the receipt, outbox, and next public revision in the caller transaction.
+The projection service owns the view update through `saveDecisionDelivery`.
+A stale revision or unavailable action returns `FLOW_VERSION_CONFLICT` with the current revision.
+The client refreshes the view without automatic replay.
 A concurrent decision observes that revision or the existing receipt.
 
 `deliver` calls the engine outside the database transaction.

@@ -1,5 +1,5 @@
 {
-  "id": "763794ba-b84a-486b-9467-c7be88d70a75",
+  "id": "9f26ff6c-5a23-4f7a-905a-c8506c623f6b",
   "prevId": "cac33e12-8481-4af7-b985-147b6fd69046",
   "version": "7",
   "dialect": "postgresql",
@@ -5145,7 +5145,7 @@
         },
         "projects_name_check": {
           "name": "projects_name_check",
-          "value": "length(\"projects\".\"name\") >= 1"
+          "value": "length(\"projects\".\"name\") BETWEEN 1 AND 120"
         },
         "projects_color_check": {
           "name": "projects_color_check",
@@ -5298,36 +5298,6 @@
         }
       },
       "indexes": {
-        "statuses_project_name_equality": {
-          "name": "statuses_project_name_equality",
-          "columns": [
-            {
-              "expression": "(length(\"project_id\")::text || ':' || \"project_id\" || \"name\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "hash",
-          "with": {}
-        },
-        "statuses_project_slug_equality": {
-          "name": "statuses_project_slug_equality",
-          "columns": [
-            {
-              "expression": "(length(\"project_id\")::text || ':' || \"project_id\" || \"slug\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "hash",
-          "with": {}
-        },
         "statuses_default_idx": {
           "name": "statuses_default_idx",
           "columns": [
@@ -5361,7 +5331,24 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "statuses_project_id_name_unique": {
+          "name": "statuses_project_id_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "name"
+          ]
+        },
+        "statuses_project_id_slug_unique": {
+          "name": "statuses_project_id_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "slug"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "statuses_category_check": {
@@ -5370,7 +5357,11 @@
         },
         "statuses_name_check": {
           "name": "statuses_name_check",
-          "value": "length(\"statuses\".\"name\") >= 1"
+          "value": "length(\"statuses\".\"name\") BETWEEN 1 AND 40"
+        },
+        "statuses_description_check": {
+          "name": "statuses_description_check",
+          "value": "char_length(\"statuses\".\"description\") <= 2000"
         }
       },
       "isRLSEnabled": false
@@ -9156,6 +9147,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "launch_snapshot_digest": {
+          "name": "launch_snapshot_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "provenance": {
           "name": "provenance",
           "type": "jsonb",
@@ -9235,6 +9232,10 @@
       },
       "policies": {},
       "checkConstraints": {
+        "langflow_native_snapshot_digest": {
+          "name": "langflow_native_snapshot_digest",
+          "value": "\"langflow_native_handles\".\"launch_snapshot_digest\" ~ '^[0-9a-f]{64}$'"
+        },
         "langflow_native_task_digest": {
           "name": "langflow_native_task_digest",
           "value": "\"langflow_native_handles\".\"task_digest\" = encode(sha256(convert_to(\"langflow_native_handles\".\"task_key\", 'UTF8')), 'hex')"

@@ -1,0 +1,24 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "baseAssembly": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
+  "requires": [
+    "TRL-875 shared engine_api authority module and migration",
+    "TRL-670 decision ledger",
+    "TRL-669 external-wait execution service"
+  ],
+  "patches": [
+    {
+      "file": "0001-decision-http-routes.patch",
+      "sha256": "9930e526514b34da3e23771ee18851862840c5528082141ba11120fd58a2dbc7"
+    },
+    {
+      "file": "0002-require-decision-authority.patch",
+      "sha256": "9b19b24b519e17f1539085b256cf930c5f21bcfbd823a33936579ba6904fb84b"
+    }
+  ],
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/decision_api.py": "33a9a9b17bd7ca2122ca172c0bb76f331a7093bc61ae4de559f096027d67cf12",
+    "src/backend/base/langflow/services/trellis_v1/decision_api_models.py": "73ce23e0b1f3a7970d462875ec3138dfa6ec08a2877ba484fe79c0d7b7c17e30"
+  },
+  "sharedServiceHunkSha256": "9e4a46f628137ddae208eeabc6ac2298a9901fff3779956553734d7052c9a8f9"
+}

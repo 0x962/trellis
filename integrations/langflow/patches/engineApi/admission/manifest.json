@@ -1,0 +1,11 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-private-admission-routes.patch",
+  "sha256": "e7f1cae671b4a2f1da539f24589350770378f1e30d07bae01bf18405731ddf30",
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/admission_lookup.py": "f0e4c5f49470d3f3fb29ff94916e72cf795ae5c81abcd2287c880c2fef03b6f3",
+    "src/backend/base/langflow/services/trellis_v1/admission_models.py": "59b72cf298a1d5a99b35a1fcc0e19aac6e53cbbb98a536424ae88dcd1ab472e4",
+    "src/backend/base/langflow/services/trellis_v1/admission_router.py": "ba60c2639da518c56be929bd2ccaa8198fddcec035622591313097854e5458c4",
+    "src/backend/base/langflow/services/trellis_v1/admission_service.py": "412fd5f0af8705928cbadb4c3817e970c3a6f09b86456f38cc5cc87703295c4c"
+  }
+}
