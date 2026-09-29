@@ -55,6 +55,7 @@ class TrellisLoopV1(Component):
 			selected_inputs=selected_inputs,
 			selected_input_bytes=selected_input_bytes,
 			inherited_scope=scope_value,
+			metadata=self._vertex.data["node"]["trellis_metadata"],
 		)
 		return visit
 

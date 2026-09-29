@@ -21,13 +21,36 @@ const events: TrellisEvent[] = [];
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const contextOf = (actor: ActorRef) =>
-	({
+const contextOf = (actor: ActorRef): IoCtx => ({
+	actor,
+	session: null,
+	home: "/unused",
+	version: "test",
+	apiVersion: "1",
+	bootId: ulid(),
+	now: () => now,
+	ghStatus: () => ({ ok: true, user: null, reason: null, message: null, checkedAt: null }),
+	addresses: async () => [],
+	log: () => {},
+	emit: (event) => events.push(event),
+	afterCommit: () => {},
+	newTx: inTx,
+	vacuum: async () => {},
+	core: {
 		actor,
-		now: () => now,
-		emit: (event: TrellisEvent) => events.push(event),
-		core: { actor, cache, now },
-	}) as unknown as IoCtx;
+		session: null,
+		reqId: ulid(),
+		now,
+		emit: (event) => events.push(event),
+		cache,
+		actorCache: new Map(),
+		dropBlobs: () => {},
+		publicUrl: "http://trellis.test",
+	},
+	localUrl: "http://trellis.test",
+	publicUrl: "http://trellis.test",
+	background: () => {},
+});
 
 let asHuman: IoCtx;
 let asAgent: IoCtx;

@@ -3,6 +3,7 @@ from lfx.graph.group_scope import (
     GroupScopeDefinition,
     GroupSettlement,
     activate_group_occurrence,
+    complete_group_scope,
     open_group_scope,
     settle_group_child,
     settle_group_exclusions,
@@ -59,9 +60,18 @@ def occurrence() -> dict:
     }
 
 
+def metadata() -> dict:
+    return {
+        "nodeId": "group",
+        "title": "Group title",
+        "instructions": "Run each child.",
+        "actionIdentity": "group",
+    }
+
+
 def activate(graph: Graph, group_definition: GroupScopeDefinition) -> None:
     activate_group_occurrence(graph, "group-scope", occurrence(), "loop-visit-2", visit())
-    open_group_scope(graph, group_definition)
+    open_group_scope(graph, group_definition, metadata())
 
 
 def settlement(node_id: str, text: str, state: str = "completed") -> GroupSettlement:
@@ -116,10 +126,26 @@ def test_reopened_scope_replays_the_same_records():
     graph.set_run_id("group-restart")
     saved_visit = visit()
     activate_group_occurrence(graph, "group-scope", occurrence(), "loop-visit-2", saved_visit)
-    open_group_scope(graph, definition())
+    open_group_scope(graph, definition(), metadata())
     settle_group_child(graph, "group:inner:2", settlement("first", "A"))
     resumed = Graph.resume_from_checkpoint(graph.build_checkpoint())
     activate_group_occurrence(resumed, "group-scope", occurrence(), "loop-visit-2", saved_visit)
-    open_group_scope(resumed, definition())
+    open_group_scope(resumed, definition(), metadata())
     settle_group_child(resumed, "group:inner:2", settlement("first", "A"))
     assert resumed.group_scope_settlements["group:inner:2"]["first"]["outputBytes"] == "A"
+
+
+def test_completed_scope_retains_identity_metadata_and_receipts():
+    graph = Graph()
+    activate(graph, definition(parallel=True))
+    settle_group_child(graph, "group:inner:2", settlement("first", "A"))
+    settle_group_child(graph, "group:inner:2", settlement("second", "B"))
+    settle_group_child(graph, "group:inner:2", settlement("third", "C"))
+    retained = complete_group_scope(graph, "group:inner:2", "group-receipt")
+    assert retained["occurrence"] == occurrence()
+    assert retained["metadata"] == metadata()
+    assert retained["projection"]["state"] == "succeeded"
+    assert retained["projection"]["acceptedResultId"] == "group-receipt"
+    assert retained["resultReceiptIds"] == [
+        "first:receipt", "second:receipt", "third:receipt", "group-receipt",
+    ]

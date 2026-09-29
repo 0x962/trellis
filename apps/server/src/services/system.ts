@@ -132,8 +132,16 @@ export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
 export const backup = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<BackupOutput> =>
 	archive(await snapshot(ctx, tx, input));
 
+// These non-null columns identify one row through each table's equality exclusion constraint.
+const EXCLUSION_KEYS: Record<string, string[]> = {
+	provider_models: ["provider_id", "model_id"],
+	agent_start_requests: ["actor_kind", "actor_name", "request_id"],
+	langflow_start_receipts: ["actor_kind", "actor_name", "request_id"],
+	needs_you_states: ["actor_name", "item_id"],
+};
+
 // The columns a row of this table is ordered and paged by, in key order.
-const primaryKeys = async (tx: Tx) => {
+const exportKeys = async (tx: Tx) => {
 	const found = await rows<{ table_name: string; column_name: string }>(
 		tx,
 		sql`
@@ -147,7 +155,7 @@ const primaryKeys = async (tx: Tx) => {
 			ORDER BY c.relname, k.ord
 		`,
 	);
-	const keys = new Map<string, string[]>();
+	const keys = new Map(Object.entries(EXCLUSION_KEYS));
 	for (const row of found) keys.set(row.table_name, [...(keys.get(row.table_name) ?? []), row.column_name]);
 	return keys;
 };
@@ -219,7 +227,7 @@ type ExportRow = Record<string, unknown>;
 // every page reads the same snapshot.
 export async function* exportNdjson(ctx: ServiceCtx, tx: Tx, input: EmptyInput): AsyncGenerator<string> {
 	yield `${JSON.stringify({ version: EXPORT_VERSION, exportedAt: ctx.now().toISOString() })}\n`;
-	const keys = await primaryKeys(tx);
+	const keys = await exportKeys(tx);
 	const columns = await tableColumns(tx);
 	for (const table of await tableNames(tx)) {
 		const key = keys.get(table)!;

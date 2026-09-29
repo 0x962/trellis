@@ -44,10 +44,13 @@ They cover receipt replay, version races, format refusal, engine failure, valida
 They do not prove real engine validation, browser draft recovery, isolation, or installed-host behavior.
 
 `installedPublisher` creates the authenticated HTTP producer from a verified package, live ownership, and the supervisor's private token file.
-`publicationDispatch` acquires a durable permit before a new publication request.
+`publicationDispatch(gate, archive)` acquires a durable permit before a new publication request.
 It recovers an existing permit through GET only and keeps unknown outcomes unresolved.
-The producer exposes `readTerminal` for the dispatch gate's durable evidence reader.
-Its optional `recover` method permits receipt recovery for an older saved revision without another engine write.
+The adapter validates the exact authenticated response against the retained request, document, package, catalog, and permit.
+It archives the original request and response text through `DispatchReceiptArchive.writeTerminal`.
+The adapter settles the archive terminal ID. A completed permit reads its proof from the archive.
+The producer's `recover` method reads an existing permit and never acquires a new permit.
+An absent permit or unknown engine receipt returns null.
 An older receipt cannot authorize a new run.
 The engine fragment and bootstrap contract live in `integrations/langflow/patches/publications/`.
 The current catalog has no approved publication definitions.

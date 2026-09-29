@@ -1,4 +1,4 @@
-import { runGit } from "./gitProcess.ts";
+import { runGit } from "./gitProcess";
 
 export const git = (workspace: string, args: string[], signal?: AbortSignal) =>
 	runGit(workspace, args, signal, async (stream) => {

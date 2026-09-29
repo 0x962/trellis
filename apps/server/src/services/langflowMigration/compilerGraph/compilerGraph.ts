@@ -30,6 +30,12 @@ export const compilerGraph = (catalog: ReturnType<typeof compilerCatalog>) => {
 				throw new Error(`conversion_field_unavailable:${className}.${key}`);
 			fields[key] = { ...field, value };
 		}
+		native.trellis_metadata = {
+			nodeId: source.id,
+			title: source.title,
+			instructions: source.instruction,
+			actionIdentity: source.id,
+		};
 		native.template = fields;
 		const node: CompilerNode = {
 			id,
