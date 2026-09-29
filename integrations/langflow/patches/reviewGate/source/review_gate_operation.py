@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import httpx
@@ -10,7 +11,9 @@ from langflow.services.trellis_v1.review_classifications import ReviewClassifica
 from .occurrence_journal import OccurrenceConflict
 from .occurrence_models import canonical
 from .occurrence_receipts import retain_output
-from .occurrence_store import apply_waits, locked_graph, save_journal, save_wait
+from .occurrence_store import apply_waits, locked_graph, save_graph, save_journal, save_wait
+from .projection_store import record_projection_checkpoint
+from .review_gate_projection import accept_review_projection, start_review_projection
 from .review_gate_journal import allocate_review
 from .review_gate_transport import review_gate_transport
 from .review_protocol import read_review_response, read_review_wait
@@ -36,6 +39,8 @@ async def request_review_visit(graph, vertex_id, scope):
             shared = journal.get("classificationRequestBytes")
             authority = await review_authority(session, job_id, admission)
             await save_journal(session, job_id, journal)
+            await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     if shared is None:
         shared = await review_gate_transport().context(context_request, **authority)
@@ -45,9 +50,11 @@ async def request_review_visit(graph, vertex_id, scope):
             graph.get_vertex(vertex_id)
             visit = allocate_review(journal, vertex_id, scope, document, admission, shared)
             read_review_wait(visit["waitBytes"])
+            start_review_projection(visit, datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
             authority = await review_authority(session, job_id, admission)
             await save_journal(session, job_id, journal)
             waits = await save_wait(session, job_id, graph, visit["waitBytes"])
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
         apply_waits(graph, waits)
     return visit, authority
@@ -81,12 +88,11 @@ async def run_review_visit(graph, vertex_id, scope):
             stored = journal["reviewVisits"][scope.identity(vertex_id)]
             if stored["requestBytes"] != visit["requestBytes"] or stored["waitBytes"] != visit["waitBytes"]:
                 raise OccurrenceConflict("review_completion_replay_conflict")
-            prior = stored["acceptedResultId"]
-            if prior is not None and prior != result.result.classificationReceiptId:
-                raise OccurrenceConflict("review_receipt_conflict")
-            stored["acceptedResultId"] = result.result.classificationReceiptId
+            accept_review_projection(stored, result.result.classificationReceiptId)
             stored["acceptedResultBytes"] = raw.decode("utf-8")
             await save_journal(session, job_id, journal)
+            await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     if result.result.state == "failed":
         raise ValueError(result.result.error)
@@ -101,5 +107,7 @@ async def run_review_visit(graph, vertex_id, scope):
                                           output=output, result_bytes=raw.decode("utf-8"))
             journal["reviewVisits"][scope.identity(vertex_id)]["outputReceiptId"] = receipt["receiptId"]
             await save_journal(session, job_id, journal)
+            await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     return {"response": result.model_dump(mode="json"), "branch": branch, "output": output, "receipt": receipt}

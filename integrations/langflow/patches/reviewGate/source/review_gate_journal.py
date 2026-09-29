@@ -4,6 +4,7 @@ from uuid import uuid4
 from .occurrence_journal import OccurrenceConflict
 from .occurrence_models import canonical, digest
 from .review_gate_spec import review_gate_specs
+from .review_gate_projection import pending_review_projection
 
 
 def allocate_review(journal, vertex_id, scope, document, admission, shared_bytes):
@@ -47,6 +48,7 @@ def allocate_review(journal, vertex_id, scope, document, admission, shared_bytes
     visit = {
         "vertexId": vertex_id, "specHash": spec["specHash"], "facts": scope.facts(),
         "requestBytes": request_bytes, "waitBytes": canonical(wait), "acceptedResultId": None,
+        "projection": pending_review_projection(),
     }
     visits[key] = visit
     return visit
