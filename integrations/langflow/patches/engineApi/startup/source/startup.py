@@ -7,7 +7,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, FastAPI
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 CONFIG_ENV = "TRELLIS_ENGINE_API_CONFIG_FILE"
 CAPTURE_DIRECTORY = Path("/data/config/trellis-capture")
@@ -26,6 +26,15 @@ class EngineApiStartupConfig(BaseModel):
     engine_root: Path = Field(alias="engineRoot")
     user_id: UUID = Field(alias="userId")
     export_root: Path = Field(alias="exportRoot")
+    native_reservation_origin: AnyHttpUrl = Field(alias="nativeReservationOrigin")
+    native_reservation_authentication_file: Path = Field(alias="nativeReservationAuthenticationFile")
+
+    @field_validator("native_reservation_origin")
+    @classmethod
+    def require_origin(cls, value: AnyHttpUrl) -> AnyHttpUrl:
+        if value.username is not None or value.password is not None or value.path != "/" or value.query or value.fragment:
+            raise ValueError("native_reservation_origin_invalid")
+        return value
 
 
 def _private_file(path: Path) -> Path:
@@ -130,6 +139,7 @@ def create_engine_api_runtime(config: EngineApiStartupConfig) -> EngineApiRuntim
         load_engine_api_identity,
     )
     from langflow.services.trellis_v1.native_router import create_native_router
+    from langflow.services.trellis_v1.occurrence_transport import install_request_transport
 
     identity = load_engine_api_identity()
     store = CaptureGrantStore(
@@ -144,6 +154,10 @@ def create_engine_api_runtime(config: EngineApiStartupConfig) -> EngineApiRuntim
     )
     boundary = CaptureBoundary(store)
     install_capture_boundary(boundary)
+    install_request_transport(
+        origin=str(config.native_reservation_origin).removesuffix("/"),
+        authentication_file=_private_file(config.native_reservation_authentication_file),
+    )
 
     authentication_file = Path(os.environ["TRELLIS_AUTHENTICATION_FILE"])
     capture_issuer_file = Path(os.environ["TRELLIS_CAPTURE_ISSUER_FILE"])
