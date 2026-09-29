@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { HarnessStartInput } from "../../../../apps/server/src/agents/harnessHost/types.ts";
@@ -44,6 +44,19 @@ const status = (attemptId: string, pid: number, startedAt: string): RuntimeProce
 	result: null,
 });
 
+type ProcessWriteOperation = "launch" | "observation" | "prompt_receipt" | "result_receipt" | "stop";
+
+export type ProcessWriteBoundary = {
+	operation: ProcessWriteOperation;
+	phase: "before_commit" | "after_commit";
+	pause: (input: {
+		attemptId: string;
+		pid: number | null;
+		acknowledgedMessageIds: string[];
+		resultId: string | null;
+	}) => Promise<void>;
+};
+
 export class DeterministicProcessHost {
 	readonly launches: string[] = [];
 	readonly stops: string[] = [];
@@ -54,15 +67,16 @@ export class DeterministicProcessHost {
 	private constructor(
 		private readonly directory: string,
 		private readonly now: () => string,
+		private readonly boundary?: ProcessWriteBoundary,
 	) {}
 
-	static async create(directory: string, now: () => string) {
+	static async create(directory: string, now: () => string, boundary?: ProcessWriteBoundary) {
 		await mkdir(directory, { recursive: true, mode: 0o700 });
-		return new DeterministicProcessHost(directory, now);
+		return new DeterministicProcessHost(directory, now, boundary);
 	}
 
-	static open(directory: string, now: () => string) {
-		return new DeterministicProcessHost(directory, now);
+	static open(directory: string, now: () => string, boundary?: ProcessWriteBoundary) {
+		return new DeterministicProcessHost(directory, now, boundary);
 	}
 
 	loseNextLaunchResponse() {
@@ -83,7 +97,7 @@ export class DeterministicProcessHost {
 		});
 		this.children.set(input.id, child);
 		const processStatus = status(input.id, child.pid, this.now());
-		await this.write(processStatus);
+		await this.write(processStatus, "launch");
 		this.launches.push(input.id);
 		if (this.loseLaunchResponse) {
 			this.loseLaunchResponse = false;
@@ -94,22 +108,28 @@ export class DeterministicProcessHost {
 
 	async acknowledge(attemptId: string) {
 		const processStatus = await this.inspect(attemptId);
-		await this.write({
-			...processStatus,
-			acknowledgedMessageIds: [attemptId],
-			activity: { state: "working", updatedAt: this.now() },
-		});
+		await this.write(
+			{
+				...processStatus,
+				acknowledgedMessageIds: [attemptId],
+				activity: { state: "working", updatedAt: this.now() },
+			},
+			"prompt_receipt",
+		);
 	}
 
 	async complete(attemptId: string, resultId: string, text: string) {
 		const processStatus = await this.inspect(attemptId);
-		await this.write({
-			...processStatus,
-			acknowledgedMessageIds: [attemptId],
-			activity: { state: "idle", updatedAt: this.now() },
-			result: { id: resultId, text },
-			agent: { ...processStatus.agent!, outcome: "completed" },
-		});
+		await this.write(
+			{
+				...processStatus,
+				acknowledgedMessageIds: [attemptId],
+				activity: { state: "idle", updatedAt: this.now() },
+				result: { id: resultId, text },
+				agent: { ...processStatus.agent!, outcome: "completed" },
+			},
+			"result_receipt",
+		);
 	}
 
 	async inspect(attemptId: string) {
@@ -123,7 +143,7 @@ export class DeterministicProcessHost {
 				controllable: false,
 				activity: null,
 			};
-			await this.write(exited);
+			await this.write(exited, "observation");
 			return exited;
 		}
 		return { ...processStatus, checkedAt: this.now() };
@@ -147,7 +167,7 @@ export class DeterministicProcessHost {
 			controllable: false,
 			activity: null,
 		};
-		await this.write(stopped);
+		await this.write(stopped, "stop");
 		return stopped;
 	}
 
@@ -202,7 +222,23 @@ export class DeterministicProcessHost {
 		return JSON.parse(await readFile(this.path(attemptId), "utf8")) as RuntimeProcessStatus;
 	}
 
-	private async write(processStatus: RuntimeProcessStatus) {
-		await writeFile(this.path(processStatus.id), JSON.stringify(processStatus), { mode: 0o600 });
+	private async write(processStatus: RuntimeProcessStatus, operation: ProcessWriteOperation) {
+		const temporary = join(this.directory, `${processStatus.id}-${crypto.randomUUID()}.next`);
+		await writeFile(temporary, JSON.stringify(processStatus), { mode: 0o600 });
+		if (this.boundary?.operation === operation && this.boundary.phase === "before_commit")
+			await this.boundary.pause({
+				attemptId: processStatus.id,
+				pid: processStatus.pid,
+				acknowledgedMessageIds: processStatus.acknowledgedMessageIds,
+				resultId: processStatus.result?.id ?? null,
+			});
+		await rename(temporary, this.path(processStatus.id));
+		if (this.boundary?.operation === operation && this.boundary.phase === "after_commit")
+			await this.boundary.pause({
+				attemptId: processStatus.id,
+				pid: processStatus.pid,
+				acknowledgedMessageIds: processStatus.acknowledgedMessageIds,
+				resultId: processStatus.result?.id ?? null,
+			});
 	}
 }

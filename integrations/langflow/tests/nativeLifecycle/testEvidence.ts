@@ -3,6 +3,8 @@ import { nativeLifecycleFixture } from "../../fixtures/nativeHost";
 
 export const processEvidence: Record<string, unknown>[] = [];
 const cleanupEvidence: unknown[] = [];
+export const crashEvidence: Record<string, unknown>[] = [];
+export const crashCleanupEvidence: Record<string, unknown>[] = [];
 let close: (() => Promise<unknown>) | null = null;
 
 afterEach(async () => {
@@ -11,7 +13,7 @@ afterEach(async () => {
 });
 
 afterAll(() => {
-	console.log(JSON.stringify({ processEvidence, cleanupEvidence }));
+	console.log(JSON.stringify({ processEvidence, cleanupEvidence, crashEvidence, crashCleanupEvidence }));
 });
 
 export const useFixture = async (...args: Parameters<typeof nativeLifecycleFixture>) => {
