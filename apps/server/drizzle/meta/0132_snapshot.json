@@ -6244,24 +6244,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "observer_run_id": {
+          "name": "observer_run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "enabled": {
           "name": "enabled",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "provider_id": {
-          "name": "provider_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "model_id": {
-          "name": "model_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
         },
         "activity_threshold": {
           "name": "activity_threshold",
@@ -6298,6 +6292,18 @@
         },
         "last_consumed_cursor": {
           "name": "last_consumed_cursor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_attempted_cursor": {
+          "name": "last_attempted_cursor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_code": {
+          "name": "error_code",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6352,6 +6358,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "session_observers_observer_run_id_agent_runs_id_fk": {
+          "name": "session_observers_observer_run_id_agent_runs_id_fk",
+          "tableFrom": "session_observers",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "observer_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6361,6 +6380,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "observer_id"
+          ]
+        },
+        "session_observers_observer_run_id_unique": {
+          "name": "session_observers_observer_run_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "observer_run_id"
           ]
         }
       },
@@ -6382,9 +6408,13 @@
           "name": "session_observers_claim_check",
           "value": "(\"session_observers\".\"generation_state\" = 'generating') = (\"session_observers\".\"generation_claim_id\" IS NOT NULL AND \"session_observers\".\"generation_cursor\" IS NOT NULL)"
         },
+        "session_observers_error_code_check": {
+          "name": "session_observers_error_code_check",
+          "value": "\"session_observers\".\"error_code\" IS NULL OR \"session_observers\".\"error_code\" IN ('CLAUDE_ACCOUNT_UNAVAILABLE', 'CLAUDE_PROFILE_UNAVAILABLE', 'CLAUDE_MODEL_UNAVAILABLE', 'CLAUDE_CONVERSATION_LOST', 'CLAUDE_LAUNCH_UNCONFIRMED', 'CLAUDE_GENERATION_FAILED')"
+        },
         "session_observers_error_check": {
           "name": "session_observers_error_check",
-          "value": "\"session_observers\".\"error\" IS NULL OR length(btrim(\"session_observers\".\"error\")) > 0"
+          "value": "(\"session_observers\".\"error_code\" IS NULL AND \"session_observers\".\"error\" IS NULL) OR (\"session_observers\".\"error_code\" IS NOT NULL AND length(btrim(\"session_observers\".\"error\")) > 0)"
         }
       },
       "isRLSEnabled": false
