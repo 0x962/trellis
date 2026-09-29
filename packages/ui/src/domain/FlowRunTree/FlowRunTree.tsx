@@ -87,7 +87,7 @@ export function FlowRunTree({
 	}, [sizes]);
 	const selectedIndex = visible.findIndex((row) => row.key === focusKey);
 	const indexes = new Set(Array.from({ length: virtual.end - virtual.start }, (_, i) => virtual.start + i));
-	if (selectedIndex >= 0) indexes.add(selectedIndex);
+	if (visible.length > 0) indexes.add(selectedIndex >= 0 ? selectedIndex : 0);
 	const rendered = [...indexes].sort((a, b) => a - b);
 	useLayoutEffect(() => {
 		const element = viewport.current!;
