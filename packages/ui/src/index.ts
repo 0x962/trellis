@@ -190,5 +190,6 @@ export { focusInView } from "./utils/focusInView";
 export { formatClock } from "./utils/formatClock";
 export { formatDayTime } from "./utils/formatDayTime";
 export { isTextEntry } from "./utils/isTextEntry";
+export { type LinkPress, linkPress } from "./utils/linkPress";
 export { readRowMotion } from "./utils/readRowMotion";
 export { writeClipboard } from "./utils/writeClipboard";

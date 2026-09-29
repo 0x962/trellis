@@ -53,7 +53,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 				icon={<GithubMark />}
 				size="xs"
 				className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
-				onClick={() => openLink(pr.url)}
+				onClick={(event) => openLink(pr.url, event)}
 			/>
 			<PrActions ticket={ticket} pr={pr} />
 			<ReviewStateIcon reviewState={pr.reviewState} notReady={!askedForReview(pr)} />

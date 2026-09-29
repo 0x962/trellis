@@ -15,10 +15,19 @@ describe("linkBrowser", () => {
 		expect(LINK_BROWSER_WEB_PREFERENCES).toBe("nodeIntegration=no,sandbox=yes");
 	});
 
-	test("allows only HTTPS addresses", () => {
+	test("allows HTTP and HTTPS addresses without credentials", () => {
 		expect(isLinkBrowserUrl("https://example.com")).toBe(true);
-		expect(isLinkBrowserUrl("http://example.com")).toBe(false);
+		expect(isLinkBrowserUrl("http://example.com")).toBe(true);
 		expect(isLinkBrowserUrl("not a URL")).toBe(false);
 		expect(isLinkBrowserUrl(undefined)).toBe(false);
 	});
+});
+
+test.each([
+	"file:///etc/passwd",
+	"javascript:alert(1)",
+	"https://user:pass@example.com",
+	"trellis://page/01M3GHKCN2JY8QMTZ17TP3RHYG",
+])("rejects %s", (url) => {
+	expect(isLinkBrowserUrl(url)).toBe(false);
 });
