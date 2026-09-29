@@ -113,7 +113,15 @@ test("resolves a standalone session name and stores its session provenance", asy
 	expect(saved.latest).toMatchObject({ id: update.id, body: "I will add the CLI next." });
 });
 
-test("rejects another agent and a stale ticket execution attempt", async () => {
+test("rejects a human, another agent, and a stale ticket execution attempt", async () => {
+	await expect(
+		inTx((tx) =>
+			write(context(ticketRunId, ticketToken, { actor: { kind: "human", name: "Navid" } }), tx, {
+				sessionId: ticketRunId,
+				body: "Human write.",
+			}),
+		),
+	).rejects.toMatchObject({ code: "SESSION_UPDATE_FORBIDDEN", status: 403 });
 	await expect(
 		inTx((tx) => write(context(ulid(), ticketToken), tx, { sessionId: ticketRunId, body: "Wrong owner." })),
 	).rejects.toMatchObject({ code: "SESSION_UPDATE_FORBIDDEN", status: 403 });
