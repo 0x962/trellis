@@ -1179,8 +1179,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
-| provider_models | provider_id (FK providers CASCADE), model_id (CHECK 1 to 200, no space or control character). PK (provider_id, model_id). |
+| providers | id PK, name (CHECK trimmed, nonempty), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK nonempty), api_key (CHECK nonempty), enabled, created_at, updated_at. Hash equality exclusion on lower(name). |
+| provider_models | provider_id (FK providers CASCADE), model_id (CHECK nonempty, no space or control character). Hash equality exclusion on the length-prefixed provider ID and model ID. Index (provider_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
 | sessions | id PK, name (CHECK trimmed, 1 to 60), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
@@ -1226,6 +1226,20 @@ The current document cannot change that selection.
 An exact legacy request replay retains its original result after a document conversion.
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
+
+`flowDocumentsV1.editorSession` issues an editor grant through
+`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
+editor configuration with the host identity, separate origins, and installed
+component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
+The issuer requires the host bearer, the exact parent Origin, and a stored
+`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
+The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+
+A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
+The grant service holds the channel until the actual document transaction returns.
+If the response is lost after commit, the next exact request reads the durable
+save receipt before it checks the old HTTP preconditions. The accepted receipt
+advances the grant revision; the original bootstrap identity stays unchanged.
 
 A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
 Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.

@@ -32,6 +32,11 @@ Each update explains the intended result, what already works, what prevents the 
 It states evidence gaps and does not infer deployment from source proof.
 The observer does not use ticket inventories, review ledgers, recent-action lists, or invented progress percentages.
 
+The observer reads project, run, ticket, and dependency facts through their public services.
+Each failed generation logs `session-observer.generation-failed` before it saves the observer error.
+The diagnostic contains the source run ID, observer ID, claim ID, failed operation, and safe error code.
+Transcript text and raw provider errors stay outside that diagnostic.
+
 ## Superset reference
 
 The reference checkout is `superset` at commit `1019540c0`.

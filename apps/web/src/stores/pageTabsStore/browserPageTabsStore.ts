@@ -14,6 +14,7 @@ export const usePageTabsStore = createPageTabsStore({
 
 export const pageTabsActions = {
 	renameTab: (id: string, title: string | null) => usePageTabsStore.getState().renameTab(id, title),
+	setPinned: (id: string, pinned: boolean) => usePageTabsStore.getState().setPinned(id, pinned),
 	moveTab: (id: string, beforeId: string | null) => usePageTabsStore.getState().moveTab(id, beforeId),
 	reopenClosedTab: () => usePageTabsStore.getState().reopenClosedTab(),
 	addTab: (page: PageTabPage) => usePageTabsStore.getState().addTab(page),

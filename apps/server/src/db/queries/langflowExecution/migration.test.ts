@@ -24,7 +24,10 @@ test("the migration chain preserves legacy rows and durable receipts across reop
 	db = await beforeDocuments();
 	const before = (await db.execute(sql`SELECT * FROM flow_executions WHERE id='legacy-execution'`)).rows;
 	const legacyFlows = (await db.execute(sql`SELECT * FROM flows ORDER BY id`)).rows;
-	expect(await migrate(db)).toBe(3);
+	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8")) as {
+		entries: { idx: number }[];
+	};
+	expect(await migrate(db)).toBe(journal.entries.filter((entry) => entry.idx >= 133).length);
 	expect((await db.execute(sql`SELECT * FROM flows ORDER BY id`)).rows).toEqual(legacyFlows);
 	expect((await db.execute(sql`SELECT * FROM flow_executions WHERE id='legacy-execution'`)).rows).toEqual(before);
 	const fixture = await receiptFixture(true, db);

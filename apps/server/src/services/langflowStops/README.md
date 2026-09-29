@@ -8,7 +8,7 @@ Cancellation records its intent, the reservation block, exact-attempt stops, and
 The result exposes `needsStop` independently from the cancellation intent.
 The run projection must preserve this distinction.
 
-`assertExecutionActive(ctx, tx, { executionId })` locks the execution and rejects canceled work.
+`assertExecutionNotCanceled(ctx, tx, { executionId })` locks the execution and rejects canceled work.
 New reservations, launches, human decisions, and completion delivery require this guard or the equivalent storage guard.
 An existing equal request can return its saved receipt.
 A late result remains an audit record.
@@ -42,7 +42,8 @@ Warnings require the exact initial prompt receipt.
 The half and quarter thresholds use the earliest group deadline.
 Each warning has a deterministic message ID and stable text with an absolute deadline.
 The service saves the warning before it calls `HarnessHost.sendAtTurnBoundary`.
-The runtime preserves that ID before it writes input and refuses to repeat an uncertain write.
+The runtime saves the message ID before delivery. Native delivery refuses uncertain repeats.
+Queued delivery can repeat when the write succeeds but its completion record does not persist.
 A confirmed runtime prompt receipt confirms the saved warning.
 Each failed runtime read or send retains its warning and records the error.
 Other attempts still receive their warnings.

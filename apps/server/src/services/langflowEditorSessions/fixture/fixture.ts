@@ -2,6 +2,7 @@ import type { FlowDocumentSaveV1Input } from "@trellis/api";
 import { EditorSessionSchema } from "../../../../../../integrations/langflow/editor/session";
 import { save as saveFlowDocument } from "../../flowDocuments";
 import { flowId, manifestHash, saveInput, serviceFixture } from "../../flowDocuments/fixture";
+import { cookieName } from "../authorization";
 import { createLangflowEditorSessions } from "../createSessions";
 import { editorFailure } from "../failure";
 import { readDocument } from "../readDocument";
@@ -10,9 +11,9 @@ import { saveDocument } from "../saveDocument";
 import type { EditorSessionOptions } from "../types";
 
 export async function editorFixture() {
-	const fixture = await serviceFixture();
+	const fixture = await serviceFixture("langflow");
 	await fixture.run((tx) => saveFlowDocument(fixture.ctx, tx, saveInput()));
-	const setup = async () => {
+	const setup = async (issuance: "http" | "plain" = "http") => {
 		let now = new Date("2026-09-29T08:01:00Z");
 		let hash = manifestHash;
 		let actor = { kind: "human" as const, name: "test" };
@@ -59,9 +60,13 @@ export async function editorFixture() {
 					body: JSON.stringify(body),
 				}),
 			);
-		const issued = await issue();
-		const session = EditorSessionSchema.parse(await issued.json());
-		const cookie = issued.headers.get("set-cookie")!;
+		const issued =
+			issuance === "plain"
+				? await server.issue({ flow: flowId, expectedVersion: current.document.revision })
+				: await issue();
+		const session = issued instanceof Response ? EditorSessionSchema.parse(await issued.json()) : issued.session;
+		const cookie =
+			issued instanceof Response ? issued.headers.get("set-cookie")! : `${cookieName}=${issued.credential.token}`;
 		const path = `/api/trellis-editor/v1/sessions/${session.channel}`;
 		const request = (
 			operation: string,
@@ -78,7 +83,7 @@ export async function editorFixture() {
 						origin: options.editorOrigin,
 						"content-type": "application/json",
 						"x-trellis-editor-identity": JSON.stringify(session.identity),
-						"x-trellis-editor-project": "TRL",
+						"x-trellis-editor-project": current.document.flow.project ?? "",
 						...headers,
 					},
 					body,
