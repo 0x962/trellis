@@ -63,14 +63,19 @@ def test_engine_classes_match_declared_ports_and_export_complete_templates():
 	output_path.write_text(json.dumps(templates, ensure_ascii=False, indent=2))
 
 
-def test_archive_without_git_metadata_detects_changed_component_bytes(tmp_path):
+@pytest.mark.parametrize("changed_source", ["definition", "reader", "import"])
+def test_archive_without_git_metadata_detects_changed_component_bytes(tmp_path, changed_source):
 	manifest = json.loads(MANIFEST.read_bytes())
 	trellis_copy = tmp_path / "trellis"
 	engine_copy = tmp_path / "engine"
 	copy_manifest = trellis_copy / MANIFEST.relative_to(ROOT)
 	copy_manifest.parent.mkdir(parents=True)
 	copy_manifest.write_bytes(MANIFEST.read_bytes())
-	sources = [manifest["edgeHandles"]["engineSource"], manifest["edgeHandles"]["frontendSource"]]
+	sources = [
+		*manifest["runtimeSources"],
+		manifest["edgeHandles"]["engineSource"],
+		manifest["edgeHandles"]["frontendSource"],
+	]
 	for definition in manifest["definitions"]:
 		sources.extend([definition["source"], *definition["sourceDependencies"]])
 	for source in sources:
@@ -83,7 +88,11 @@ def test_archive_without_git_metadata_detects_changed_component_bytes(tmp_path):
 	assert read_catalog(trellis_copy, engine_copy, digest, engine_commit=ENGINE_COMMIT) == manifest
 	assert not (trellis_copy / ".git").exists()
 	assert not (engine_copy / ".git").exists()
-	source = manifest["definitions"][1]["source"]
+	source = {
+		"definition": manifest["definitions"][1]["source"],
+		"reader": next(item for item in manifest["runtimeSources"] if item["path"].endswith("/readCatalog.py")),
+		"import": next(item for item in manifest["runtimeSources"] if item["path"].endswith("/nativeCompletion/__init__.py")),
+	}[changed_source]
 	(trellis_copy / source["path"]).write_text("changed source\n")
 	with pytest.raises(ValueError, match="catalog_component_digest_conflict"):
 		read_catalog(trellis_copy, engine_copy, digest, engine_commit=ENGINE_COMMIT)
