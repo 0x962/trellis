@@ -119,12 +119,22 @@ diff --git a/src/components/core/parameterRenderComponent/components/tableCompon
 diff --git a/src/components/core/parameterRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/index.tsx
 --- a/src/components/core/parameterRenderComponent/index.tsx
 +++ b/src/components/core/parameterRenderComponent/index.tsx
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,6 @@
 +import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
++import { DeclaredField } from "@/customization/trellis/frontend/DeclaredField";
++import useFlowStore from "@/stores/flowStore";
  import { useTranslation } from "react-i18next";
  import type { handleOnNewValueType } from "@/CustomNodes/hooks/use-handle-new-value";
  import CodeAreaComponent from "@/components/core/parameterRenderComponent/components/codeAreaComponent";
-@@ -82,7 +83,7 @@
+@@ -69,6 +72,7 @@
+   ariaLabelledBy?: string;
+ }) {
+   const { t } = useTranslation();
++  const graph = useFlowStore((state) => state.currentFlow?.data);
+   const id = (
+     templateData.type +
+     "_" +
+@@ -82,7 +86,7 @@
        value: templateValue,
        editNode,
        handleOnNewValue: handleOnNewValue as handleOnNewValueType,
@@ -133,7 +143,7 @@ diff --git a/src/components/core/parameterRenderComponent/index.tsx b/src/compon
        nodeClass,
        handleNodeClass,
        nodeId,
-@@ -91,7 +92,7 @@
+@@ -91,7 +95,7 @@
        placeholder: placeholder || templateData?.placeholder,
        isToolMode,
        nodeInformationMetadata,
@@ -142,11 +152,16 @@ diff --git a/src/components/core/parameterRenderComponent/index.tsx b/src/compon
        showParameter,
        inspectionPanel,
        ariaLabelledBy,
-@@ -398,5 +399,5 @@
+@@ -398,5 +402,10 @@
    // combobox). Widgets that don't yet apply it themselves get nothing from
    // wrapping either way — role="group" doesn't propagate a name to a
    // focused descendant control, only to the group boundary itself.
 -  return renderComponent();
++  if (TRELLIS_EDITOR_BRIDGE) return showParameter ? (
++    <DeclaredField name={name} nodeId={nodeId} field={templateData} value={templateValue}
++      disabled={disabled} sourceBound={Boolean(graph && "trellisSource" in graph)}
++      onChange={(value) => (handleOnNewValue as handleOnNewValueType)({ value })} />
++  ) : null;
 +  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;
  }
 diff --git a/src/controllers/API/queries/_builds/use-get-builds.ts b/src/controllers/API/queries/_builds/use-get-builds.ts
@@ -614,6 +629,56 @@ new file mode 100644
 +++ b/src/customization/trellis/frameDriver/index.ts
 @@ -0,0 +1 @@
 +export { createFrameDriver } from "./frameDriver";
+diff --git a/src/customization/trellis/frontend/DeclaredField/DeclaredField.tsx b/src/customization/trellis/frontend/DeclaredField/DeclaredField.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/DeclaredField/DeclaredField.tsx
+@@ -0,0 +1,39 @@
++import { useId } from "react";
++import { Input } from "@/components/ui/input";
++import { Textarea } from "@/components/ui/textarea";
++import { Switch } from "@/components/ui/switch";
++import { Label } from "@/components/ui/label";
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
++import type { InputFieldType } from "@/types/api";
++import { NumericField } from "../NumericField";
++import { fieldPolicy } from "../fieldPolicy";
++
++export function DeclaredField({ name, nodeId, field, value, disabled = false, sourceBound, onChange }: {
++	name: string; nodeId: string; field: Partial<InputFieldType>; value: unknown;
++	disabled?: boolean; sourceBound: boolean; onChange: (value: unknown) => void;
++}) {
++	const id = useId();
++	const label = field.display_name || name;
++	const policy = fieldPolicy(name, field, sourceBound);
++	const options = field.options;
++	const choices = Array.isArray(options) && options.every((option) => typeof option === "string") ? options as string[] : null;
++	const reason = policy || (options !== undefined && options !== null && choices === null ? "The installed selector manages this field." : null);
++	const numeric = field.type === "int" || field.type === "float";
++	return <div className="flex min-w-0 flex-col gap-2" data-trellis-node={nodeId} data-trellis-field={name}>
++		<Label className="flex min-h-11 items-center" htmlFor={id}>{label}{field.required ? " (required)" : ""}</Label>
++		{reason || disabled ? <p id={id} tabIndex={0} className="whitespace-pre-wrap break-words">
++			{reason || "This field is read-only."}
++		</p> : field.type === "bool" ? <Switch id={id} checked={value === true} onCheckedChange={onChange} />
++		: numeric ? <NumericField id={id} value={value} integer={field.type === "int"}
++			positive={name === "max_rounds" || name === "minutes"} required={field.required === true} onChange={onChange} />
++		: choices ? <Select required={field.required} value={choices.includes(value as string) ? String(choices.indexOf(value as string) + 1) : ""}
++			onValueChange={(selected) => onChange(choices[Number(selected) - 1])}>
++			<SelectTrigger id={id} className="min-h-11"><SelectValue placeholder={typeof value === "string" && value ? value : "Select a value"} /></SelectTrigger>
++			<SelectContent>{choices.map((option, index) => <SelectItem key={index} value={String(index + 1)}>{option || "Empty"}</SelectItem>)}</SelectContent>
++		</Select> : field.multiline ? <Textarea id={id} value={typeof value === "string" ? value : ""}
++			required={field.required} placeholder={field.placeholder} onChange={(event) => onChange(event.target.value)} />
++		: <Input className="min-h-11" id={id} type={field.password ? "password" : "text"} value={typeof value === "string" ? value : ""}
++			required={field.required} placeholder={field.placeholder} onChange={(event) => onChange(event.target.value)} />}
++		{field.info && <p className="whitespace-pre-wrap break-words text-muted-foreground">{field.info}</p>}
++	</div>;
++}
+diff --git a/src/customization/trellis/frontend/DeclaredField/index.ts b/src/customization/trellis/frontend/DeclaredField/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/DeclaredField/index.ts
+@@ -0,0 +1 @@
++export { DeclaredField } from "./DeclaredField";
 diff --git a/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx b/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx
 new file mode 100644
 --- /dev/null
@@ -645,33 +710,35 @@ diff --git a/src/customization/trellis/frontend/EditorInteractions/EditorInterac
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/EditorInteractions/EditorInteractions.tsx
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,31 @@
 +import { useState } from "react";
 +import IconComponent from "@/components/common/genericIconComponent";
 +import ShadTooltip from "@/components/common/shadTooltipComponent";
 +import { Button } from "@/components/ui/button";
 +import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import { NativeInspector } from "../NativeInspector";
 +import { EditorOutline } from "../EditorOutline";
 +import { KeyboardConnections } from "../KeyboardConnections";
 +
 +export function EditorInteractions() {
++	const [inspected, setInspected] = useState<string | null>(null);
 +	const [open, setOpen] = useState(false);
 +	const [page, setPage] = useState<"outline" | "connections">("outline");
-+	return <Dialog open={open} onOpenChange={setOpen}>
++	return <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) setInspected(null); }}>
 +		<ShadTooltip content="Outline and keyboard connections"><DialogTrigger asChild>
 +			<Button type="button" variant="ghost" className="min-h-11 min-w-11 rounded-full" aria-label="Outline and keyboard connections"><IconComponent name="ListTree" /></Button>
 +		</DialogTrigger></ShadTooltip>
 +		<DialogContent className="max-h-screen overflow-auto">
 +			<DialogTitle>Flow interactions</DialogTitle>
 +			<DialogDescription>Find nested components and edit connections with the keyboard.</DialogDescription>
-+			<div className="flex flex-wrap gap-2">
++			{inspected === null && <div className="flex flex-wrap gap-2">
 +				<Button type="button" variant="secondary" aria-pressed={page === "outline"} onClick={() => setPage("outline")}>Outline</Button>
 +				<Button type="button" variant="secondary" aria-pressed={page === "connections"} onClick={() => setPage("connections")}>Connections</Button>
 +				<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().undo()}>Undo</Button>
 +				<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().redo()}>Redo</Button>
-+			</div>
-+			{page === "outline" ? <EditorOutline onReveal={() => setOpen(false)} /> : <KeyboardConnections />}
++			</div>}
++			{inspected !== null ? <NativeInspector key={inspected} nodeId={inspected} onClose={() => setInspected(null)} /> : page === "outline" ? <EditorOutline onReveal={() => setOpen(false)} onInspect={setInspected} /> : <KeyboardConnections />}
 +		</DialogContent>
 +	</Dialog>;
 +}
@@ -762,7 +829,7 @@ diff --git a/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx 
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,47 @@
 +import { useState } from "react";
 +import { Button } from "@/components/ui/button";
 +import { Input } from "@/components/ui/input";
@@ -771,7 +838,7 @@ new file mode 100644
 +import { deleteEditorSelection } from "../graphActions";
 +import { revealEditorFocus } from "../revealEditorFocus";
 +
-+export function EditorOutline({ onReveal }: { onReveal: () => void }) {
++export function EditorOutline({ onReveal, onInspect }: { onReveal: () => void; onInspect?: (nodeId: string) => void }) {
 +	const nodes = useFlowStore((state) => state.nodes);
 +	const edges = useFlowStore((state) => state.edges);
 +	const [query, setQuery] = useState("");
@@ -803,6 +870,7 @@ new file mode 100644
 +			<p>{pathOf(selected)}. {edges.filter((edge) => edge.source === selected || edge.target === selected).length} direct connections.</p>
 +			<div className="flex flex-wrap gap-2">
 +				<Button type="button" onClick={() => { onReveal(); requestAnimationFrame(() => revealEditorFocus({ nodeId: selected, field: null })); }}>Reveal component</Button>
++				{onInspect && <Button type="button" variant="secondary" onClick={() => onInspect(selected)}>Inspect component</Button>}
 +				<Button type="button" variant="destructive" onClick={() => { deleteEditorSelection([selected], []); setSelected(""); }}>Delete component and descendants</Button>
 +			</div>
 +			<p>Undo restores the complete graph, including descendants and connections.</p>
@@ -888,6 +956,203 @@ new file mode 100644
 +++ b/src/customization/trellis/frontend/KeyboardConnections/index.ts
 @@ -0,0 +1 @@
 +export { KeyboardConnections } from "./KeyboardConnections";
+diff --git a/src/customization/trellis/frontend/NativeInspector/NativeInspector.tsx b/src/customization/trellis/frontend/NativeInspector/NativeInspector.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/NativeInspector/NativeInspector.tsx
+@@ -0,0 +1,54 @@
++import { useId, useState } from "react";
++import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
++import { Textarea } from "@/components/ui/textarea";
++import { Label } from "@/components/ui/label";
++import useFlowStore from "@/stores/flowStore";
++import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import type { APIClassType, InputFieldType } from "@/types/api";
++import { DeclaredField } from "../DeclaredField";
++
++export function NativeInspector({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
++	const node = useFlowStore((state) => state.nodes.find((item) => item.id === nodeId));
++	const graph = useFlowStore((state) => state.currentFlow?.data);
++	const [initial] = useState(() => JSON.stringify(node!.data.node));
++	const [draft, setDraft] = useState<APIClassType>(() => structuredClone(node!.data.node) as APIClassType);
++	const [message, setMessage] = useState("");
++	const prefix = useId();
++	const bound = Boolean(graph && "trellisSource" in graph);
++	const order = [...new Set([...(draft.field_order ?? []), ...Object.keys(draft.template)])];
++	const fields = order.filter((name) => name !== "code" && typeof draft.template[name] === "object" && draft.template[name] !== null);
++	return <form className="flex min-w-0 flex-col gap-4" aria-label="Component inspector" onSubmit={(event) => {
++		event.preventDefault();
++		const state = useFlowStore.getState();
++		const current = state.nodes.find((item) => item.id === nodeId);
++		if (!current || JSON.stringify(current.data.node) !== initial) {
++			setMessage("This component changed. Cancel and reopen it before Save."); return;
++		}
++		useFlowsManagerStore.getState().takeSnapshot();
++		state.setNodes(state.nodes.map((item) => item.id === nodeId ? { ...item, data: { ...item.data, node: structuredClone(draft) } } : item));
++		onClose();
++	}}>
++		<p>{node?.data.type} · {nodeId}</p>
++		<div data-trellis-node={nodeId} data-trellis-field="display_name">
++			<Label htmlFor={`${prefix}-name`}>Name</Label>
++			<Input id={`${prefix}-name`} value={draft.display_name} onChange={(event) => setDraft({ ...draft, display_name: event.target.value })} />
++		</div>
++		<div data-trellis-node={nodeId} data-trellis-field="description">
++			<Label htmlFor={`${prefix}-description`}>Description</Label>
++			<Textarea id={`${prefix}-description`} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
++		</div>
++		{bound && <p role="status">The original flow controls these inputs. Changes require an atomic update to its source and bindings.</p>}
++		{fields.map((name) => <DeclaredField key={name} nodeId={nodeId} name={name} field={draft.template[name]}
++			value={draft.template[name].value} sourceBound={bound} onChange={(value) => {
++				setDraft((current) => ({ ...current, template: { ...current.template,
++					[name]: { ...current.template[name], value } as InputFieldType,
++				} }));
++			}} />)}
++		{message && <p role="alert">{message}</p>}
++		<div className="flex flex-wrap gap-2">
++			<Button type="submit" disabled={!node}>Save component</Button>
++			<Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
++		</div>
++	</form>;
++}
+diff --git a/src/customization/trellis/frontend/NativeInspector/__tests__/NativeInspector.test.tsx b/src/customization/trellis/frontend/NativeInspector/__tests__/NativeInspector.test.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/NativeInspector/__tests__/NativeInspector.test.tsx
+@@ -0,0 +1,97 @@
++import { act, fireEvent, render, screen } from "@testing-library/react";
++import type { AllNodeType } from "@/types/flow";
++import useFlowStore from "@/stores/flowStore";
++import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import { NativeInspector } from "../NativeInspector";
++import { DeclaredField } from "../../DeclaredField";
++
++function fixture() {
++	return { id: "component", type: "genericNode", position: { x: 1, y: 2 }, data: {
++		id: "component", type: "FixtureOnly", node: {
++			display_name: "Original", description: "Fixture only", documentation: "",
++			template: {
++				code: { type: "code", value: "sealed bytes" },
++				instruction: { type: "str", display_name: "Instruction", multiline: true, value: "Keep this", required: true },
++				max_rounds: { type: "int", display_name: "Rounds", value: 51, required: true },
++				parallel: { type: "bool", display_name: "Parallel", value: false },
++				effort: { type: "str", display_name: "Effort", options: ["low", "high"], value: "high" },
++				seed: { type: "Data", input_types: ["Data"], value: null },
++			}, outputs: [{ name: "yes", types: ["Data"], selected: "Data", group_outputs: true, method: "sealed" }],
++		},
++	} } as AllNodeType;
++}
++function reset(bound = false) {
++	useFlowsManagerStore.setState({ currentFlowId: crypto.randomUUID() });
++	useFlowStore.setState({ nodes: [fixture()], edges: [], autoSaveFlow: undefined,
++		currentFlow: { data: { nodes: [], edges: [], ...(bound ? { trellisSource: {} } : {}) } } as never,
++	});
++}
++
++test("Save preserves long input, large round counts, defaults, and immutable bytes on reopen", () => {
++	reset(); const close = jest.fn();
++	const view = render(<NativeInspector nodeId="component" onClose={close} />);
++	const original = structuredClone(useFlowStore.getState().nodes[0]);
++	const long = "instruction ".repeat(10001);
++	fireEvent.change(screen.getByLabelText("Instruction (required)"), { target: { value: long } });
++	fireEvent.change(screen.getByLabelText("Rounds (required)"), { target: { value: "1000001" } });
++	expect(useFlowStore.getState().nodes[0]).toEqual(original);
++	fireEvent.click(screen.getByRole("button", { name: "Save component" }));
++	expect(close).toHaveBeenCalledTimes(1);
++	const saved = useFlowStore.getState().nodes[0].data.node;
++	expect(saved.template.instruction.value).toBe(long);
++	expect(saved.template.max_rounds.value).toBe(1000001);
++	expect(saved.template.code).toEqual(original.data.node.template.code);
++	expect(saved.outputs).toEqual(original.data.node.outputs);
++	expect(saved.template.effort.value).toBe("high");
++	view.unmount(); render(<NativeInspector nodeId="component" onClose={close} />);
++	expect((screen.getByLabelText("Instruction (required)") as HTMLTextAreaElement).value).toBe(long);
++	expect((screen.getByLabelText("Rounds (required)") as HTMLInputElement).value).toBe("1000001");
++});
++
++test("Cancel preserves the exact graph and a concurrent component change blocks Save", () => {
++	reset(); const close = jest.fn();
++	const original = structuredClone(useFlowStore.getState().nodes);
++	const view = render(<NativeInspector nodeId="component" onClose={close} />);
++	fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Local" } });
++	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
++	expect(useFlowStore.getState().nodes).toEqual(original);
++	expect(close).toHaveBeenCalledTimes(1);
++	view.unmount(); render(<NativeInspector nodeId="component" onClose={close} />);
++	act(() => useFlowStore.setState({ nodes: [{ ...original[0], data: { ...original[0].data,
++		node: { ...original[0].data.node, description: "Concurrent" },
++	} }] }));
++	fireEvent.click(screen.getByRole("button", { name: "Save component" }));
++	expect(screen.getByRole("alert").textContent).toContain("This component changed");
++	expect(useFlowStore.getState().nodes[0].data.node.description).toBe("Concurrent");
++	expect(close).toHaveBeenCalledTimes(1);
++});
++
++test("bound inputs and internal controls cannot mutate source or request bindings", () => {
++	reset(true); const original = structuredClone(useFlowStore.getState().nodes);
++	render(<NativeInspector nodeId="component" onClose={() => {}} />);
++	expect(screen.queryByRole("spinbutton")).toBeNull();
++	expect(screen.queryByRole("switch")).toBeNull();
++	expect(screen.getByText("The original flow controls these inputs. Changes require an atomic update to its source and bindings.")).toBeTruthy();
++	fireEvent.click(screen.getByRole("button", { name: "Save component" }));
++	expect(useFlowStore.getState().nodes).toEqual(original);
++});
++
++test("a disabled native numeric field emits no replacement default", () => {
++	const changed = jest.fn();
++	render(<DeclaredField name="minutes" nodeId="node" field={{ type: "int" }} value={75}
++		disabled sourceBound={false} onChange={changed} />);
++	expect(changed).not.toHaveBeenCalled();
++});
++
++test("policy integers reject zero and retain the last valid value", () => {
++	const changed = jest.fn();
++	render(<DeclaredField name="max_rounds" nodeId="node" field={{ type: "int", required: true }}
++		value={51} sourceBound={false} onChange={changed} />);
++	const input = screen.getByRole("spinbutton") as HTMLInputElement;
++	fireEvent.change(input, { target: { value: "0" } });
++	expect(input.checkValidity()).toBe(false);
++	expect(changed).not.toHaveBeenCalled();
++	fireEvent.change(input, { target: { value: "1000001" } });
++	expect(input.checkValidity()).toBe(true);
++	expect(changed).toHaveBeenLastCalledWith(1000001);
++});
+diff --git a/src/customization/trellis/frontend/NativeInspector/index.ts b/src/customization/trellis/frontend/NativeInspector/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/NativeInspector/index.ts
+@@ -0,0 +1 @@
++export { NativeInspector } from "./NativeInspector";
+diff --git a/src/customization/trellis/frontend/NumericField/NumericField.tsx b/src/customization/trellis/frontend/NumericField/NumericField.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/NumericField/NumericField.tsx
+@@ -0,0 +1,19 @@
++import { useEffect, useState } from "react";
++import { Input } from "@/components/ui/input";
++
++export function NumericField({ id, value, integer, positive, required, onChange }: {
++	id: string; value: unknown; integer: boolean; positive: boolean; required: boolean;
++	onChange: (value: number | null) => void;
++}) {
++	const [text, setText] = useState(value == null ? "" : String(value));
++	useEffect(() => setText(value == null ? "" : String(value)), [value]);
++	return <Input className="min-h-11" id={id} type="number" min={positive ? 1 : undefined} step={integer ? 1 : "any"} inputMode={integer ? "numeric" : "decimal"} value={text} required={required}
++		onChange={(event) => {
++			const raw = event.target.value; setText(raw);
++			const number = Number(raw);
++			const empty = raw.trim() === "";
++			const valid = empty ? !required : Number.isFinite(number) && (!integer || Number.isInteger(number)) && (!positive || number > 0);
++			event.target.setCustomValidity(valid ? "" : positive ? "Enter a positive integer." : integer ? "Enter an integer." : "Enter a finite number.");
++			if (valid) onChange(empty ? null : number);
++		}} />;
++}
+diff --git a/src/customization/trellis/frontend/NumericField/index.ts b/src/customization/trellis/frontend/NumericField/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/NumericField/index.ts
+@@ -0,0 +1 @@
++export { NumericField } from "./NumericField";
 diff --git a/src/customization/trellis/frontend/entry/entry.ts b/src/customization/trellis/frontend/entry/entry.ts
 new file mode 100644
 --- /dev/null
@@ -973,6 +1238,35 @@ new file mode 100644
 +++ b/src/customization/trellis/frontend/entry/index.ts
 @@ -0,0 +1 @@
 +export { loadEditorFlow, loadEditorPalette, startEditorBridge } from "./entry";
+diff --git a/src/customization/trellis/frontend/fieldPolicy/fieldPolicy.ts b/src/customization/trellis/frontend/fieldPolicy/fieldPolicy.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/fieldPolicy/fieldPolicy.ts
+@@ -0,0 +1,18 @@
++import type { InputFieldType } from "@/types/api";
++
++const managed = new Set([
++	"code", "seed", "wait_bytes", "scope_definition", "source_node_id", "child_ids",
++	"request_spec", "request_bytes", "spec_hash", "source_node_hash",
++]);
++
++export function fieldPolicy(name: string, field: Partial<InputFieldType>, sourceBound: boolean) {
++	if (managed.has(name)) return "This field belongs to the saved flow contract.";
++	if (sourceBound) return "This field requires an update to the original flow and its bindings.";
++	if (field.readonly || field.load_from_db || field.dynamic || field.refresh_button || field.real_time_refresh) {
++		return "The installed component manages this field.";
++	}
++	if (field.input_types?.length || field.list || !["str", "string", "bool", "int", "float"].includes(field.type ?? "")) {
++		return "Use the declared ports for this field.";
++	}
++	return null;
++}
+diff --git a/src/customization/trellis/frontend/fieldPolicy/index.ts b/src/customization/trellis/frontend/fieldPolicy/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/fieldPolicy/index.ts
+@@ -0,0 +1 @@
++export { fieldPolicy } from "./fieldPolicy";
 diff --git a/src/customization/trellis/frontend/graphActions/graphActions.ts b/src/customization/trellis/frontend/graphActions/graphActions.ts
 new file mode 100644
 --- /dev/null
