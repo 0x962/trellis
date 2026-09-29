@@ -16,7 +16,7 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const lookup = () =>
 		rows<{ id: string; request: unknown }>(
 			tx,
-			sql`SELECT id,request FROM flow_executions WHERE actor_kind=${actor.kind} AND actor_name=${actor.name} AND request_id=${input.requestId}`,
+			sql`SELECT id,request FROM flow_executions WHERE ARRAY[actor_kind,actor_name,request_id]=ARRAY[${actor.kind},${actor.name},${input.requestId}]`,
 		);
 	const replay = async (row: { id: string; request: unknown }) => {
 		const { repeatOf: _repeatOf, ...request } = row.request as Record<string, unknown>;
@@ -71,7 +71,7 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const [created] = await rows<{ id: string }>(
 		tx,
 		sql`INSERT INTO flow_executions (id,flow_id,ticket_id,project_id,diff_id,actor_kind,actor_name,request_id,request,head_sha,doc,state,revision,created_at,updated_at)
-	VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${diffId ?? null},${actor.kind},${actor.name},${input.requestId},${JSON.stringify({ ...input, ...(repeatOf === undefined ? {} : { repeatOf }) })}::jsonb,${input.headSha ?? null},${JSON.stringify(doc)}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT (actor_kind,actor_name,request_id) DO NOTHING RETURNING id`,
+	VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${diffId ?? null},${actor.kind},${actor.name},${input.requestId},${JSON.stringify({ ...input, ...(repeatOf === undefined ? {} : { repeatOf }) })}::jsonb,${input.headSha ?? null},${JSON.stringify(doc)}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT DO NOTHING RETURNING id`,
 	);
 	if (!created) return replay((await lookup())[0]!);
 	ctx.emit({ type: "flows.changed", id: flow.id });
