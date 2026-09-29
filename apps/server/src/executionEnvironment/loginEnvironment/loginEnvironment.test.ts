@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as wait } from "node:timers/promises";
 import { loginEnvironment } from "./loginEnvironment.ts";
 
 const roots: string[] = [];
@@ -101,11 +102,15 @@ printf '\\0'
 		);
 	});
 
-	test("stops after the explicit timeout and retry timeout", async () => {
-		const { root, shell } = await createShell("trellis-login-env-timeout-", "exec sleep 1\n");
+	test("stops after both timeouts when a child keeps stdout open", async () => {
+		const { root, shell } = await createShell("trellis-login-env-timeout-", "sleep 0.3 & wait\n");
+		const startedAt = performance.now();
 
 		await expect(
-			loginEnvironment(shell, "/bundled/bin", { HOME: root, PATH: "/usr/bin:/bin" }, 10, 20),
-		).rejects.toThrow("The login shell did not answer within 20 ms.");
+			loginEnvironment(shell, "/bundled/bin", { HOME: root, PATH: "/usr/bin:/bin" }, 20, 40),
+		).rejects.toThrow("The login shell did not answer within 40 ms.");
+		const elapsedMs = performance.now() - startedAt;
+		await wait(350);
+		expect(elapsedMs).toBeLessThan(300);
 	});
 });

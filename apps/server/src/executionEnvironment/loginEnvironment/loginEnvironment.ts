@@ -2,40 +2,40 @@ import { spawn } from "node:child_process";
 import { StringDecoder } from "node:string_decoder";
 import { definedEnvironment, type ExecutionEnvironment } from "../executionEnvironment.ts";
 
-const addRecord = (result: ExecutionEnvironment, record: string) => {
+const addEnvironmentRecord = (environment: ExecutionEnvironment, record: string) => {
 	const match = record.match(/(?:^|\n)([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
-	if (match) result[match[1]!] = match[2]!;
+	if (match) environment[match[1]!] = match[2]!;
 };
 
-// `capture` parses each NUL-separated record as the login shell writes it. This
-// keeps the total environment size independent from a subprocess output buffer.
-const capture = (shell: string, env: ExecutionEnvironment, timeoutMs: number) => {
+// A login environment can exceed a fixed output limit, so readLoginEnvironmentOnce parses each record as the shell writes it.
+const readLoginEnvironmentOnce = (shell: string, env: ExecutionEnvironment, timeoutMs: number) => {
 	const child = spawn(shell, ["-ilc", "/usr/bin/env -0"], {
 		env: definedEnvironment(env),
 		cwd: env.HOME,
 		stdio: ["ignore", "pipe", "ignore"],
 	});
 	const decoder = new StringDecoder("utf8");
-	const result: ExecutionEnvironment = {};
-	let recordParts: string[] = [];
+	const environment: ExecutionEnvironment = {};
+	let recordFragments: string[] = [];
 	let timedOut = false;
-	const parse = (text: string) => {
+	const parseOutputChunk = (text: string) => {
 		let start = 0;
 		let separator = text.indexOf("\0");
 		while (separator !== -1) {
-			recordParts.push(text.slice(start, separator));
-			addRecord(result, recordParts.join(""));
-			recordParts = [];
+			recordFragments.push(text.slice(start, separator));
+			addEnvironmentRecord(environment, recordFragments.join(""));
+			recordFragments = [];
 			start = separator + 1;
 			separator = text.indexOf("\0", start);
 		}
-		if (start < text.length) recordParts.push(text.slice(start));
+		if (start < text.length) recordFragments.push(text.slice(start));
 	};
 
 	return new Promise<ExecutionEnvironment | undefined>((resolve, reject) => {
-		child.stdout.on("data", (chunk: Buffer) => parse(decoder.write(chunk)));
+		child.stdout.on("data", (chunk: Buffer) => parseOutputChunk(decoder.write(chunk)));
 		const timer = setTimeout(() => {
 			timedOut = true;
+			child.stdout.destroy();
 			child.kill();
 		}, timeoutMs);
 		child.once("error", (error: NodeJS.ErrnoException) => {
@@ -44,11 +44,11 @@ const capture = (shell: string, env: ExecutionEnvironment, timeoutMs: number) =>
 		});
 		child.once("close", (code) => {
 			clearTimeout(timer);
-			parse(decoder.end());
-			if (recordParts.length > 0) addRecord(result, recordParts.join(""));
+			parseOutputChunk(decoder.end());
+			if (recordFragments.length > 0) addEnvironmentRecord(environment, recordFragments.join(""));
 			if (timedOut) resolve(undefined);
 			else if (code !== 0) reject(new Error(`Login shell failed (exit ${code}).`));
-			else resolve(result);
+			else resolve(environment);
 		});
 	});
 };
@@ -64,12 +64,14 @@ export const loginEnvironment = async (
 	timeoutMs = 10000,
 	retryTimeoutMs = timeoutMs * 2,
 ): Promise<ExecutionEnvironment> => {
-	const result = (await capture(shell, env, timeoutMs)) ?? (await capture(shell, env, retryTimeoutMs));
-	if (result === undefined)
+	const environment =
+		(await readLoginEnvironmentOnce(shell, env, timeoutMs)) ??
+		(await readLoginEnvironmentOnce(shell, env, retryTimeoutMs));
+	if (environment === undefined)
 		throw new Error(
 			`The login shell did not answer within ${retryTimeoutMs} ms. Check the shell startup files, then retry.`,
 		);
-	if (!result.PATH) throw new Error("The login shell did not return PATH. Check the shell startup files.");
-	result.PATH = `${bundledBin}:${result.PATH}`;
-	return result;
+	if (!environment.PATH) throw new Error("The login shell did not return PATH. Check the shell startup files.");
+	environment.PATH = `${bundledBin}:${environment.PATH}`;
+	return environment;
 };
