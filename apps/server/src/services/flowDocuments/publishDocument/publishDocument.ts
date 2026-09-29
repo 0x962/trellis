@@ -1,17 +1,17 @@
 import { isDeepStrictEqual } from "node:util";
-import { type FlowDiagnosticV1, FlowPublicationV1Schema } from "@trellis/api";
-import { requireActor } from "../../context.ts";
+import { type FlowDiagnosticV1, type FlowPublicationV1, FlowPublicationV1Schema } from "@trellis/api";
+import { requireActor } from "../../../context.ts";
 import {
 	insertDocumentPublication,
 	readDocumentPublication,
 	readDocumentPublicationState,
 	readDocumentRevision,
 	writeDocumentPublicationState,
-} from "../../db/queries/langflowDocuments";
-import { fail, invalidInput } from "../../errors.ts";
-import { resolveFlow } from "../flows/queries.ts";
-import type { IoCtx } from "../support.ts";
-import type { DocumentPublisher, SavedDocument } from "./publisher.ts";
+} from "../../../db/queries/langflowDocuments";
+import { fail, invalidInput } from "../../../errors.ts";
+import { resolveFlow } from "../../flows/flows.ts";
+import type { IoCtx } from "../../support.ts";
+import type { DocumentPublisher, SavedDocument } from "../publisher";
 
 const diagnostic = (code: string, message: string): FlowDiagnosticV1 => ({
 	code,
@@ -61,14 +61,25 @@ export const publishDocument = async (
 		]);
 		return null;
 	}
-	let publication;
+	let publication: FlowPublicationV1 | undefined;
 	let diagnostics: FlowDiagnosticV1[];
+	let stage: "validate" | "publish" | "receipt" = "validate";
 	try {
 		diagnostics = await engine.validate(document);
 		if (!diagnostics.some((item) => item.severity === "error")) {
-			publication = FlowPublicationV1Schema.parse(await engine.publish(document));
+			stage = "publish";
+			const response = await engine.publish(document);
+			stage = "receipt";
+			publication = FlowPublicationV1Schema.parse(response);
 		}
 	} catch {
+		ctx.log("flow publication failed", {
+			flowId: key.flowId,
+			revision: key.revision,
+			requestId: ctx.core.reqId,
+			stage,
+			category: stage === "receipt" ? "invalid_receipt" : "engine_error",
+		});
 		await recordFailure("failed", [
 			diagnostic(
 				"engine_publication_failed",

@@ -5,9 +5,6 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { upsert } from "../actors.ts";
-import { assertLegacy } from "../flowDocuments/assertLegacy.ts";
-import { captureMetadata } from "../flowDocuments/captureMetadata.ts";
-import { retainCurrent } from "../flowDocuments/retainCurrent.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
 import { assertSlugFree, assertVersion, listFlows, readDoc, resolveFlow } from "./queries.ts";
@@ -28,11 +25,8 @@ export const list = async (ctx: ServiceCtx, tx: Tx, input: FlowListInput): Promi
 	return listFlows(tx, null);
 };
 
-export const get = async (ctx: ServiceCtx, tx: Tx, input: { flow: string }) => {
-	const flow = await resolveFlow(tx, input.flow);
-	await assertLegacy(ctx, tx, { flowId: flow.id, operation: "read" });
-	return readDoc(tx, flow);
-};
+export const get = async (_ctx: ServiceCtx, tx: Tx, input: { flow: string }) =>
+	readDoc(tx, await resolveFlow(tx, input.flow));
 
 // A slug from the name takes the first free form of `slug`, `slug-2`,
 // `slug-3`, and so on. A slug the caller sends must be free.
@@ -67,7 +61,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: FlowUpdateInput): P
 	const actor = requireActor(ctx);
 	const current = await resolveFlow(tx, input.flow);
 	assertVersion(current, input.expectedVersion);
-	await retainCurrent(ctx, tx, current);
 	if (input.slug !== undefined && input.slug !== current.slug) await assertSlugFree(tx, input.slug);
 	const projectId = await resolveFlowProjectId(ctx, tx, input.project);
 	await upsert(ctx, tx, actor);
@@ -80,10 +73,8 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: FlowUpdateInput): P
 			version = version + 1, updated_at = ${ctx.now}
 			WHERE id = ${current.id}`,
 	);
-	const updated = await resolveFlow(tx, current.id);
-	await captureMetadata(ctx, tx, updated);
 	ctx.emit({ type: "flows.changed", id: current.id });
-	return updated;
+	return resolveFlow(tx, current.id);
 };
 
 // The delete cascades to every node and edge of the flow.
@@ -95,3 +86,6 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, input: { flow: string }) =
 	ctx.emit({ type: "flows.changed", id: flow.id });
 	return { id: flow.id };
 };
+
+export { readDoc, resolveFlow } from "./queries.ts";
+export { replaceLegacyGraph, save } from "./save.ts";
