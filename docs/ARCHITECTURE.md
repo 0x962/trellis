@@ -139,6 +139,7 @@ The authenticated terminal stream replays retained bytes and then pushes output 
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
 A terminal input uses acknowledged 64 KiB pieces across the WebSocket and runtime socket.
 Each acknowledgement follows the write to the process, so backpressure preserves complete ordered input.
+Terminal dimensions range from 1 through 65,535 because the binary frame and the PTY `winsize` fields use unsigned 16-bit values.
 The HTTP listener gives Bun `Number.MAX_SAFE_INTEGER`, which is the largest request size that JavaScript represents exactly.
 The WebSocket listener gives Bun `0xffffffff`, because Bun 1.3.13 stores `maxPayloadLength` as an unsigned 32-bit integer.
 RFC 6455 section 5.2 defines a 63-bit WebSocket payload length, so Bun sets the smaller transport maximum.

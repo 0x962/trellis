@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
+import { MAX_TERMINAL_DIMENSION, RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import { validateRequest } from "./validateRequest";
 
 const request = (params: unknown) => ({
@@ -65,4 +65,19 @@ test("accepts complete control values above the former byte ceilings", () => {
 	];
 
 	for (const value of values) expect(validateRequest(value) === value).toBe(true);
+});
+
+test("accepts terminal dimensions through the PTY encoding range", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "resize",
+		params: { id: "attempt", cols: 1001, rows: MAX_TERMINAL_DIMENSION },
+	};
+
+	expect(validateRequest(value) === value).toBe(true);
+	for (const dimension of [0, 1.5, MAX_TERMINAL_DIMENSION + 1])
+		expect(() => validateRequest({ ...value, params: { ...value.params, cols: dimension } })).toThrow(
+			`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`,
+		);
 });

@@ -30,6 +30,7 @@ import { base } from "./base.ts";
 
 const idInput = z.strictObject({ id: UlidSchema });
 export const AgentMessageSchema = z.string().trim().min(1);
+export const TerminalDimensionSchema = z.number().int().min(1).max(0xffff);
 const sessionSchema = z.object({
 	id: z.string(),
 	daemonId: z.string(),
@@ -215,8 +216,8 @@ export const agentRuns = {
 		.input(
 			idInput.extend({
 				expectedTerminalId: z.string().optional(),
-				cols: z.number().int().min(1).max(1000),
-				rows: z.number().int().min(1).max(1000),
+				cols: TerminalDimensionSchema,
+				rows: TerminalDimensionSchema,
 			}),
 		)
 		.output(z.object({})),

@@ -1,4 +1,4 @@
-import { RUNTIME_PROTOCOL_VERSION, type RuntimeRequest } from "@trellis/runtime-protocol";
+import { MAX_TERMINAL_DIMENSION, RUNTIME_PROTOCOL_VERSION, type RuntimeRequest } from "@trellis/runtime-protocol";
 
 import { validateHarnessEvent } from "./validateHarnessEvent.ts";
 
@@ -131,9 +131,11 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			for (const key of ["cols", "rows"])
 				if (
 					params[key] !== undefined &&
-					(!Number.isInteger(params[key]) || (params[key] as number) < 1 || (params[key] as number) > 1000)
+					(!Number.isInteger(params[key]) ||
+						(params[key] as number) < 1 ||
+						(params[key] as number) > MAX_TERMINAL_DIMENSION)
 				)
-					throw new Error("Terminal dimensions must be between 1 and 1000");
+					throw new Error(`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`);
 			break;
 		case "deliver":
 		case "input":
@@ -152,8 +154,12 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			break;
 		case "resize":
 			for (const key of ["cols", "rows"])
-				if (!Number.isInteger(params[key]) || (params[key] as number) < 1 || (params[key] as number) > 1000)
-					throw new Error("Terminal dimensions must be between 1 and 1000");
+				if (
+					!Number.isInteger(params[key]) ||
+					(params[key] as number) < 1 ||
+					(params[key] as number) > MAX_TERMINAL_DIMENSION
+				)
+					throw new Error(`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`);
 			break;
 		case "subscribe":
 		case "terminal":

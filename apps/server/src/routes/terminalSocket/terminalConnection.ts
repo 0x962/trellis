@@ -1,3 +1,4 @@
+import { MAX_TERMINAL_DIMENSION } from "@trellis/runtime-protocol";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import type { ServerWebSocket } from "bun";
 import type { BunWebSocketData } from "hono/bun";
@@ -9,8 +10,8 @@ const commandSchema = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("input"), data: z.string(), userInput: z.boolean() }),
 	z.object({
 		type: z.literal("resize"),
-		cols: z.number().int().min(1).max(1000),
-		rows: z.number().int().min(1).max(1000),
+		cols: z.number().int().min(1).max(MAX_TERMINAL_DIMENSION),
+		rows: z.number().int().min(1).max(MAX_TERMINAL_DIMENSION),
 	}),
 	z.object({ type: z.literal("ack"), offset: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }),
 ]);
