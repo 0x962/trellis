@@ -77,13 +77,21 @@ const fixture = async (kind: "agent" | "session") => {
 		actor: core.actor!,
 		session: null,
 		home,
+		version: "test",
+		apiVersion: "1",
+		bootId: ulid(),
 		localUrl: "http://127.0.0.1:4521",
 		publicUrl: "http://127.0.0.1:4521",
+		ghStatus: () => ({ ok: true, user: "qa", reason: null, message: null, checkedAt: null }),
+		addresses: async () => [],
+		log: () => {},
+		afterCommit: () => {},
 		now: () => at,
 		newTx: (action) => db.transaction(action),
 		emit: () => {},
 		background: (action) => pending.push(action(io)),
-	} as IoCtx;
+		vacuum: async () => {},
+	};
 	return {
 		db,
 		home,
