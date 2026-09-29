@@ -21,6 +21,7 @@ class ScopeEdge(ScopeModel):
 class GroupChildVertices(ScopeModel):
     input_vertex_id: str
     output_vertex_id: str
+    settlement_source_vertex_id: str
 
 
 class GroupScopeDefinition(ScopeModel):
@@ -52,11 +53,31 @@ def activate_group_occurrence(
 ) -> dict:
     key = occurrence["occurrenceKey"]
     encoded_visit = {"occurrence": occurrence, "loopVisitKey": loop_visit_key, "scope": scope}
-    if key in graph.group_visit_scopes and graph.group_visit_scopes[key] != encoded_visit:
-        raise ValueError("group_scope_visit_conflict")
+    saved = graph.group_visit_scopes.get(key)
+    if saved is not None:
+        saved_scope = saved["scope"]
+        stable_fields = ("parentOccurrenceKey", "phase", "iterationPath", "inputReceiptIds")
+        if (saved["occurrence"] != occurrence or saved["loopVisitKey"] != loop_visit_key
+                or any(saved_scope[field] != scope[field] for field in stable_fields)
+                or saved_scope["groupDeadlineRefs"][:len(scope["groupDeadlineRefs"])] != scope["groupDeadlineRefs"]):
+            raise ValueError("group_scope_visit_conflict")
+        graph.group_active_occurrences[scope_vertex_id] = key
+        return saved
     graph.group_visit_scopes[key] = encoded_visit
     graph.group_active_occurrences[scope_vertex_id] = key
     return encoded_visit
+
+
+def extend_group_deadlines(
+    graph, group_occurrence_key: str, deadline_refs: tuple[str, ...], deadline_at: str | None,
+) -> dict:
+    visit = graph.group_visit_scopes[group_occurrence_key]
+    scope = visit["scope"]
+    inherited = scope["groupDeadlineRefs"]
+    if list(deadline_refs[:len(inherited)]) != inherited:
+        raise ValueError("group_deadline_ancestry_conflict")
+    visit["scope"] = {**scope, "groupDeadlineRefs": list(deadline_refs), "deadlineAt": deadline_at}
+    return visit
 
 
 def current_group_occurrence(graph, vertex_id: str) -> str:
@@ -76,6 +97,7 @@ def open_group_scope(graph, definition) -> dict:
         vertices = definition.child_vertices[source_node_id]
         graph.group_active_occurrences[vertices.input_vertex_id] = key
         graph.group_active_occurrences[vertices.output_vertex_id] = key
+        graph.group_active_occurrences[vertices.settlement_source_vertex_id] = key
         graph.group_active_occurrences[definition.settlement_vertex_ids[source_node_id]] = key
     return graph.group_visit_scopes[key]["scope"]
 
@@ -87,6 +109,7 @@ def group_visit_scope(graph, group_occurrence_key: str, vertex_id: str) -> dict:
         definition.output_vertex_id,
         *(value.input_vertex_id for value in definition.child_vertices.values()),
         *(value.output_vertex_id for value in definition.child_vertices.values()),
+        *(value.settlement_source_vertex_id for value in definition.child_vertices.values()),
         *definition.settlement_vertex_ids.values(),
     }
     if vertex_id not in vertices:
@@ -121,7 +144,8 @@ def settle_group_exclusions(graph, excluded_vertex_ids: set[str]) -> set[str]:
             child_vertices = definition.child_vertices[source_node_id]
             settlement_vertex_id = definition.settlement_vertex_ids[source_node_id]
             if not excluded_vertex_ids.intersection({
-                child_vertices.input_vertex_id, child_vertices.output_vertex_id, settlement_vertex_id,
+                child_vertices.input_vertex_id, child_vertices.output_vertex_id,
+                child_vertices.settlement_source_vertex_id, settlement_vertex_id,
             }):
                 continue
             settle_group_child(graph, key, GroupSettlement(
@@ -129,6 +153,7 @@ def settle_group_exclusions(graph, excluded_vertex_ids: set[str]) -> set[str]:
             ))
             settled_vertices.add(child_vertices.input_vertex_id)
             settled_vertices.add(child_vertices.output_vertex_id)
+            settled_vertices.add(child_vertices.settlement_source_vertex_id)
             settled_vertices.add(settlement_vertex_id)
     return settled_vertices
 

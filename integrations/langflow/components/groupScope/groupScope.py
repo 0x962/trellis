@@ -1,7 +1,16 @@
+from dataclasses import replace
+
 from lfx.custom import Component
-from lfx.graph.group_scope import GroupScopeDefinition, GroupSettlement, open_group_scope, settle_group_child
+from lfx.graph.group_scope import (
+	GroupScopeDefinition,
+	GroupSettlement,
+	extend_group_deadlines,
+	open_group_scope,
+	settle_group_child,
+)
 from lfx.io import HandleInput, MultilineInput, Output
 from lfx.schema.data import Data
+from langflow.services.trellis_v1.group_scope_deadline import reserve_group_deadline
 from langflow.services.trellis_v1.occurrence_controls import allocate_control_visit
 from langflow.services.trellis_v1.occurrence_models import VisitScope
 from langflow.services.trellis_v1.occurrence_outputs import component_output, record_control_output
@@ -22,17 +31,29 @@ class TrellisGroupScopeV1(Component):
 
 	async def open(self) -> Data:
 		definition = GroupScopeDefinition.model_validate_json(self.scope_definition)
-		if definition.minutes is not None:
-			raise RuntimeError("group_deadline_reservation_required")
 		vertex_id = self._vertex.id
-		scope = await capture_visit_scope(self.graph, vertex_id)
-		occurrence = await allocate_control_visit(self.graph, vertex_id, scope, definition.group_node_id)
+		boundary_scope = await capture_visit_scope(self.graph, vertex_id)
+		occurrence = await allocate_control_visit(self.graph, vertex_id, boundary_scope, definition.group_node_id)
+		child_scope = replace(
+			boundary_scope,
+			parent_occurrence_key=occurrence["occurrenceKey"],
+			phase="children",
+		)
 		loop_policy = self.graph.trellis_current_loop_policy()
 		loop_visit_key = None if loop_policy is None else loop_policy["visitKey"]
-		self.graph.activate_group_occurrence(
-			vertex_id, occurrence, loop_visit_key, scope.to_engine(),
+		visit = self.graph.activate_group_occurrence(
+			vertex_id, occurrence, loop_visit_key, child_scope.to_engine(),
 		)
 		open_group_scope(self.graph, definition)
+		if definition.minutes is not None:
+			deadline = await reserve_group_deadline(self.graph, vertex_id, occurrence)
+			visit = extend_group_deadlines(
+				self.graph,
+				occurrence["occurrenceKey"],
+				deadline.group_deadline_refs,
+				deadline.deadline_at,
+			)
+		child_scope = VisitScope.from_engine(visit["scope"])
 		inputs = self.boundary_inputs if isinstance(self.boundary_inputs, list) else [self.boundary_inputs]
 		result = {
 			"boundaryInputs": [item.data for item in inputs if item is not None],
@@ -40,7 +61,7 @@ class TrellisGroupScopeV1(Component):
 		}
 		output = "\n\n".join(item.data["trellisOutput"]["outputBytes"] for item in inputs if item is not None)
 		receipt = await record_control_output(
-			self.graph, vertex_id, scope, occurrence, "entries", result, output=output,
+			self.graph, vertex_id, child_scope, occurrence, "entries", result, output=output,
 		)
 		return Data(data={**result, **component_output(receipt, "succeeded")})
 
@@ -74,6 +95,7 @@ class TrellisGroupOutputV1(Component):
 	description = "Joins settled child bytes in source node order."
 	name = "TrellisGroupOutputV1"
 	inputs = [
+		HandleInput(name="scope_entry", display_name="Scope Entry", input_types=["Data"], required=False),
 		HandleInput(name="settlements", display_name="Settlements", input_types=["Data"], is_list=True, required=False),
 	]
 	outputs = [Output(name="out", display_name="Output", method="collect", types=["Data"])]

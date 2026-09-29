@@ -20,9 +20,12 @@ def definition(*, parallel: bool = False) -> GroupScopeDefinition:
         "minutes": 700,
         "childNodeIds": ["first", "second", "third"],
         "childVertices": {
-            "first": {"inputVertexId": "engine-first", "outputVertexId": "engine-first"},
-            "second": {"inputVertexId": "engine-second", "outputVertexId": "engine-second"},
-            "third": {"inputVertexId": "engine-third-in", "outputVertexId": "engine-third-out"},
+            "first": {"inputVertexId": "engine-first", "outputVertexId": "engine-first",
+                      "settlementSourceVertexId": "engine-first"},
+            "second": {"inputVertexId": "engine-second", "outputVertexId": "engine-second",
+                       "settlementSourceVertexId": "engine-second"},
+            "third": {"inputVertexId": "engine-third-in", "outputVertexId": "engine-third-out",
+                      "settlementSourceVertexId": "engine-third-result"},
         },
         "entryNodeIds": ["first", "second", "third"] if parallel else ["first"],
         "terminalNodeIds": ["first", "second", "third"] if parallel else ["third"],
@@ -37,7 +40,7 @@ def definition(*, parallel: bool = False) -> GroupScopeDefinition:
 
 def visit() -> dict:
     return {
-        "parentOccurrenceKey": "inner:2",
+        "parentOccurrenceKey": "group:inner:2",
         "phase": "children",
         "iterationPath": [{"loopNodeId": "outer", "round": 1}, {"loopNodeId": "inner", "round": 2}],
         "inputReceiptIds": ["input-b", "input-a"],
@@ -82,7 +85,7 @@ def test_connected_diamond_keeps_context_deadlines_and_source_order():
         ("outer-deadline", "group-deadline"), "2026-09-30T00:00:00Z",
     )
     child_scope = graph.group_visit_scope("group:inner:2", "engine-second")
-    assert child_scope["parentOccurrenceKey"] == "inner:2"
+    assert child_scope["parentOccurrenceKey"] == "group:inner:2"
     assert child_scope["iterationPath"] == [
         {"loopNodeId": "outer", "round": 1}, {"loopNodeId": "inner", "round": 2},
     ]

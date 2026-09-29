@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from typing import Any
 
@@ -14,7 +15,13 @@ def _edge(edge_id: str, source: str, source_port: str, target: str, target_port:
 	}
 
 
-def expand_group_scope(group: dict[str, Any], nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[str, Any]:
+def _branch_port(child: dict[str, Any], branch: str | None) -> str:
+	return child["outputPorts"][branch or "out"]
+
+
+def expand_group_scope(
+	group: dict[str, Any], nodes: list[dict[str, Any]], edges: list[dict[str, Any]],
+) -> dict[str, Any]:
 	group_id = group["id"]
 	children = [deepcopy(node) for node in nodes if node["parentId"] == group_id]
 	child_ids = [node["id"] for node in children]
@@ -41,6 +48,7 @@ def expand_group_scope(group: dict[str, Any], nodes: list[dict[str, Any]], edges
 			node_id: {
 				"inputVertexId": child_by_id[node_id]["inputVertexId"],
 				"outputVertexId": child_by_id[node_id]["outputVertexId"],
+				"settlementSourceVertexId": child_by_id[node_id]["settlementSourceVertexId"],
 			}
 			for node_id in child_ids
 		},
@@ -59,12 +67,13 @@ def expand_group_scope(group: dict[str, Any], nodes: list[dict[str, Any]], edges
 		)
 		for node_id in entry_ids
 	]
+	expanded_edges.append(_edge(f"{control_id}:{output_id}", control_id, "entries", output_id, "scope_entry"))
 	if not group["parallel"]:
 		expanded_edges.extend(
 			_edge(
 				edge["id"],
 				child_by_id[edge["fromNodeId"]]["outputVertexId"],
-				child_by_id[edge["fromNodeId"]]["outputPort"],
+				_branch_port(child_by_id[edge["fromNodeId"]], edge.get("branch")),
 				child_by_id[edge["toNodeId"]]["inputVertexId"],
 				child_by_id[edge["toNodeId"]]["inputPort"],
 			)
@@ -75,8 +84,8 @@ def expand_group_scope(group: dict[str, Any], nodes: list[dict[str, Any]], edges
 		expanded_edges.append(
 			_edge(
 				f"{node_id}:{settlement_ids[node_id]}",
-				child["outputVertexId"],
-				child["outputPort"],
+				child["settlementSourceVertexId"],
+				child["settlementOutputPort"],
 				settlement_ids[node_id],
 				"result",
 			)
@@ -91,13 +100,21 @@ def expand_group_scope(group: dict[str, Any], nodes: list[dict[str, Any]], edges
 	return {
 		"definition": definition,
 		"nodes": [
-			{"id": control_id, "component": "TrellisGroupScopeV1", "sourceNodeId": group_id},
+			{
+				"id": control_id,
+				"component": "TrellisGroupScopeV1",
+				"sourceNodeId": group_id,
+				"templateValues": {
+					"scope_definition": json.dumps(definition, separators=(",", ":"), sort_keys=True),
+				},
+			},
 			*[engine_node for child in children for engine_node in child["engineNodes"]],
 			*[
 				{
 					"id": settlement_ids[node_id],
 					"component": "TrellisGroupSettlementV1",
 					"sourceNodeId": node_id,
+					"templateValues": {"source_node_id": node_id},
 				}
 				for node_id in child_ids
 			],
