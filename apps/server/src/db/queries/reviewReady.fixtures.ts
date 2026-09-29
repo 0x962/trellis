@@ -7,6 +7,7 @@ import {
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { fixture as legacyFixture } from "../../services/legacyFlowHistory/fixture.ts";
 import type { Db } from "../client.ts";
 
 export const reviewFixture = async (db: Db) => {
@@ -71,10 +72,12 @@ export const reviewFixture = async (db: Db) => {
 			updatedAt: createdAt.toISOString(),
 		});
 		if (engine === "legacy") {
+			const legacy = legacyFixture();
 			await db.execute(sql`INSERT INTO flow_executions
 				(id,flow_id,ticket_id,project_id,actor_kind,actor_name,request_id,request,head_sha,doc,state,revision,created_at,updated_at,diff_id)
 				VALUES (${id},${flow},${ticket},${project},'human','Policy',${crypto.randomUUID()},'{}','old-head',
-				${{ flow: { name: "Review" } }},${{ status }},1,${createdAt},${createdAt},${pull})`);
+				${{ ...legacy.doc, flow: { ...legacy.doc.flow, id: flow, name: "Review" } }},
+				${{ ...legacy.state, flowId: flow, status }},1,${createdAt},${createdAt},${pull})`);
 		} else {
 			await db.execute(sql`INSERT INTO langflow_executions
 				(execution_id,flow_id,ticket_id,project_id,diff_id,reviewed_head,publication_id,publication_record_id,publication,snapshot,host_id,

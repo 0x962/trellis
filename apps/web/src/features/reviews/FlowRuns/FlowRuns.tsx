@@ -15,7 +15,7 @@ type Execution = FlowExecutionRecord | FlowExecutionViewV1;
 const live = (execution: Execution) =>
 	flowRunIsLive("snapshot" in execution ? execution.status : execution.state.status);
 
-const combineSnapshots = (queries: UseQueryResult<FlowExecutionViewV1>[]) => ({
+const combineSnapshots = (queries: UseQueryResult<Execution>[]) => ({
 	records: queries.flatMap((query) => (query.data ? [query.data] : [])),
 	pending: queries.some((query) => query.isPending),
 	error: queries.find((query) => query.error !== null)?.error,
@@ -53,16 +53,17 @@ export function FlowRuns({
 		diffId,
 		runs: runExpansionByDiff.get(diffId) ?? new Map<string, boolean>(),
 	}));
-	const legacyOptions = orpc.flowExecutions.list.queryOptions({ input: { diffId } });
-	const legacy = useQuery({
-		...legacyOptions,
-		queryKey: [...legacyOptions.queryKey, "complete-history"],
+	const indexOptions = orpc.flowDocumentsV1.list.queryOptions({ input: { diffId } });
+	const history = useQuery({
+		...indexOptions,
+		queryKey: [...indexOptions.queryKey, "complete-history"],
 		enabled: executionIds === undefined,
 		queryFn: ({ signal }) => loadRunHistory(client, diffId, signal),
 	});
 	const snapshots = useQueries({
 		combine: combineSnapshots,
-		queries: (executionIds ?? []).map((id) => {
+		queries: (executionIds?.map((id) => ({ id, engine: "langflow" })) ?? history.data ?? []).map(({ id, engine }) => {
+			if (engine === "legacy") return orpc.flowExecutions.get.queryOptions({ input: { id } });
 			const options = orpc.flowDocumentsV1.view.queryOptions({ input: { id } });
 			return {
 				...options,
@@ -76,12 +77,9 @@ export function FlowRuns({
 			};
 		}),
 	});
-	const records: Execution[] = useMemo(
-		() => (executionIds === undefined ? (legacy.data ?? []) : snapshots.records),
-		[executionIds, legacy.data, snapshots.records],
-	);
-	const pending = executionIds === undefined ? legacy.isPending : snapshots.pending;
-	const error = executionIds === undefined ? legacy.error : snapshots.error;
+	const records = snapshots.records;
+	const pending = (executionIds === undefined && history.isPending) || snapshots.pending;
+	const error = (executionIds === undefined ? history.error : null) ?? snapshots.error;
 	const indexesById = useMemo(() => new Map(records.map((run, index) => [run.id, index])), [records]);
 	const getItemKey = useCallback((index: number) => records[index]!.id, [records]);
 	const rangeExtractor = useCallback(
@@ -134,13 +132,13 @@ export function FlowRuns({
 		setExpansion({ diffId, runs });
 	};
 	const anyLive = records.some(live);
-	const refreshing = executionIds === undefined ? legacy.isFetching : snapshots.refreshing;
+	const refreshing = (executionIds === undefined && history.isFetching) || snapshots.refreshing;
 	const blocked = recoveryBlocked || pending || refreshing || Boolean(error);
 	return (
 		<section aria-label="Flows" className="flex flex-col gap-4">
 			<SectionHeader
 				title="Flows"
-				count={executionIds?.length ?? legacy.data?.length}
+				count={executionIds?.length ?? history.data?.length}
 				actions={
 					!readOnly && executionIds === undefined ? (
 						<Tooltip content="Start a flow">

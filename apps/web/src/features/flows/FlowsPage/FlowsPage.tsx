@@ -1,20 +1,35 @@
-import { Plus } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { flowProjectLabel } from "@trellis/api";
-import { Badge, Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
-import { useState } from "react";
-import { useApp } from "../../../lib/appContext";
+import { ArrowClockwise, Plus, X } from "@phosphor-icons/react";
+import { useNavigate } from "@tanstack/react-router";
+import { IconButton, Tooltip } from "@trellis/ui";
+import { useLayoutEffect, useRef, useState } from "react";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
+import { useFlowProjects } from "../FlowProjectSelect";
+import { FlowDiscoveryContent } from "./components/FlowDiscoveryContent";
+import { FlowDiscoveryFilters } from "./components/FlowDiscoveryFilters";
 import { NewFlowDialog } from "./components/NewFlowDialog";
+import { discoveryPosition } from "./discoveryPosition";
+import type { FlowDiscoveryFilters as Filters } from "./flowDiscovery";
+import { useFlowDiscovery } from "./useFlowDiscovery";
 
 export function FlowsPage() {
-	const { orpc } = useApp();
 	const navigate = useNavigate();
-	const flows = useQuery(orpc.flows.list.queryOptions({ input: {}, retry: false }));
+	const discovery = useFlowDiscovery();
+	const projects = useFlowProjects();
 	const [creating, setCreating] = useState(false);
-	const open = (slug: string) => void navigate({ to: "/ai/flows/$slug", params: { slug } });
+	const [filters, setFilters] = useState(() => discoveryPosition.readFilters(sessionStorage));
+	const scroll = useRef<HTMLDivElement>(null);
+	const restored = useRef(false);
+	useLayoutEffect(() => {
+		if (discovery.load.state !== "loaded" || restored.current || !scroll.current) return;
+		scroll.current.scrollTop = discoveryPosition.readScroll(sessionStorage);
+		restored.current = true;
+	}, [discovery.load.state]);
+	const changeFilters = (next: Filters) => {
+		discoveryPosition.writeFilters(sessionStorage, next);
+		setFilters(next);
+		if (scroll.current) scroll.current.scrollTop = 0;
+	};
 
 	return (
 		<>
@@ -27,49 +42,49 @@ export function FlowsPage() {
 			>
 				<PageTitle title="Flows" />
 			</Topbar>
-			{flows.data?.length === 0 ? (
-				<EmptyState
-					variant="page"
-					className="page-card"
-					title="No flows yet"
-					description="A flow draws how agents work together: the steps, their order, and their limits. Create a flow, then draw its steps on the canvas."
-				/>
-			) : (
-				<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
-					<div className="flex max-w-7xl flex-col gap-6">
-						<p className="text-sm text-fg-muted">
-							Draw how agents work together: the steps, their order, and their limits.
-						</p>
-						{flows.isPending ? (
-							<div role="status" aria-label="Load flows" className="flex flex-col gap-3">
-								<span className="sr-only">Load flows</span>
-								<Skeleton className="h-24 w-full" />
-								<Skeleton className="h-24 w-full" />
-							</div>
-						) : flows.isError ? (
-							<div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
-								<p className="text-sm text-danger">Could not load flows.</p>
-								<Button disabled={flows.isFetching} onClick={() => void flows.refetch()}>
-									Retry
-								</Button>
-							</div>
-						) : (
-							<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-								{flows.data.map((flow) => (
-									<EntityCard
-										key={flow.id}
-										title={flow.name}
-										description={flow.description === "" ? "No description." : flow.description}
-										badges={<Badge tone="neutral">{flowProjectLabel(flow)}</Badge>}
-										link={<Link to="/ai/flows/$slug" params={{ slug: flow.slug }} />}
-									/>
-								))}
-							</div>
-						)}
-					</div>
+			<FlowDiscoveryFilters filters={filters} projects={projects.data ?? []} onChange={changeFilters} />
+			<div
+				ref={scroll}
+				className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4"
+				onScroll={(event) => {
+					if (restored.current) discoveryPosition.writeScroll(sessionStorage, event.currentTarget.scrollTop);
+				}}
+			>
+				<div className="flex max-w-7xl flex-col gap-6">
+					<FlowDiscoveryContent
+						input={{
+							filters,
+							load: discovery.load,
+							engine: { state: "unknown", reason: "The server has not reported flow engine availability." },
+						}}
+						retryAction={
+							<Tooltip content="Retry">
+								<IconButton
+									label="Retry"
+									icon={<ArrowClockwise />}
+									disabled={discovery.refreshing}
+									onClick={() => void discovery.refresh()}
+								/>
+							</Tooltip>
+						}
+						clearFiltersAction={
+							<Tooltip content="Clear filters">
+								<IconButton
+									label="Clear filters"
+									icon={<X />}
+									onClick={() => changeFilters({ query: "", project: null })}
+								/>
+							</Tooltip>
+						}
+					/>
 				</div>
+			</div>
+			{creating && (
+				<NewFlowDialog
+					onClose={() => setCreating(false)}
+					onCreated={(flow) => void navigate({ to: "/ai/flows/$slug", params: { slug: flow.slug } })}
+				/>
 			)}
-			{creating && <NewFlowDialog onClose={() => setCreating(false)} onCreated={(flow) => open(flow.slug)} />}
 		</>
 	);
 }

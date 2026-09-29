@@ -6,6 +6,7 @@ import { contextOf, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
 import { cell, json, printList, timeCell } from "../../output.ts";
 import { listRuns } from "../flow/listRuns.ts";
+import { runProgress } from "../flow/runProgress/runProgress.ts";
 import { waitForRun } from "../flow/waitForRun/waitForRun.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
 import { flowRunText } from "./flowText.ts";
@@ -123,9 +124,9 @@ const runs = defineCommand({
 			identifier: (record) => record.id,
 			columns: [
 				{ name: "RUN", value: (record) => record.id },
-				{ name: "FLOW", value: (record) => record.doc.flow.name },
-				{ name: "STATUS", value: (record) => record.state.status },
-				{ name: "HEAD", value: (record) => cell(record.headSha) },
+				{ name: "FLOW", value: (record) => runProgress(record).name },
+				{ name: "STATUS", value: (record) => runProgress(record).status },
+				{ name: "HEAD", value: (record) => cell(runProgress(record).head) },
 				{ name: "STARTED", value: (record) => timeCell(record.createdAt) },
 			],
 		});

@@ -21,9 +21,16 @@
 			"directory": "."
 		},
 		{
+			"name": "backend-backup",
+			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
+			"sha256": "f634140024a55c8c2c33a00770318980cab508e13fc37856276e609d1dd6392d",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/backup/manifest.json"
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
-			"sha256": "9a33da5d85c5ba3ff8b57f32af57400b1c2fe3cd4a68bd5131d78829f77ebb0c",
+			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
 			"directory": "src/frontend",
 			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
 		}
@@ -33,6 +40,7 @@
 		"integrations/langflow/tests/semantics",
 		"integrations/langflow/tests/decisions",
 		"integrations/langflow/tests/nativeLifecycle",
+		"integrations/langflow/tests/restore",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],

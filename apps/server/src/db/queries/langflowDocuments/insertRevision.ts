@@ -1,8 +1,5 @@
 import type { FlowDocumentSnapshotV1 } from "@trellis/api";
-import {
-	langflowDocumentPublicationStates,
-	langflowDocumentRevisions,
-} from "../../tables/langflowDocuments/index.ts";
+import { langflowDocumentPublicationStates, langflowDocumentRevisions } from "../../tables/langflowDocuments/index.ts";
 import type { Tx } from "../../tx.ts";
 
 // Historical imports keep their recorded metadata version. The source hash check
