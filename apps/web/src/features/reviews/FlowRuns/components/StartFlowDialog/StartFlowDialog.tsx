@@ -7,12 +7,12 @@ import type {
 	FlowExecutionViewV1,
 	FlowSubmissionV1,
 } from "@trellis/api";
-import { Button, Select } from "@trellis/ui";
+import { Button, FailureState, PropertyRow, Select } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { FlowActionDialog } from "./components/FlowActionDialog";
+import { useFlowActionRequest } from "../../useFlowActionRequest";
+import { FlowActionDialog } from "../FlowActionDialog";
 import { startFlowId } from "./startFlowId";
-import { useFlowActionRequest } from "./useFlowActionRequest";
 
 type Preview = {
 	flow: string;
@@ -90,7 +90,8 @@ export function StartFlowDialog({
 			const confirmed = JSON.stringify(preview);
 			const diff = await client.pullRequests.refresh({ id: input.diffId! });
 			if (diff.fetchError) throw new Error(diff.fetchError);
-			if (diff.headSha !== input.headSha)
+			const revision = await client.reviews.refresh({ pr: diff.url });
+			if (revision.headSha !== input.headSha)
 				throw new ORPCError("FLOW_VERSION_CONFLICT", { message: "The diff head changed. Refresh the preview." });
 			const assertTarget = () => {
 				if (latest.current.blocked || JSON.stringify(latest.current.target) !== confirmed)
@@ -161,19 +162,17 @@ export function StartFlowDialog({
 				}}
 			/>
 			{preview && (
-				<dl className="grid min-w-0 gap-2 break-words text-sm">
-					<dt>Flow</dt>
-					<dd>{preview.name}</dd>
-					<dt>Saved revision</dt>
-					<dd className="tabular-nums">{preview.version}</dd>
-					<dt>Publication</dt>
-					<dd>{preview.publication ? `Published revision ${preview.version}` : "Legacy saved flow"}</dd>
-					<dt>Ticket</dt>
-					<dd>{preview.ticket}</dd>
-					<dt>Diff</dt>
-					<dd>{preview.diffId}</dd>
-					<dt>Reviewed head</dt>
-					<dd className="break-all">{preview.headSha}</dd>
+				<dl className="min-w-0 break-words text-sm">
+					<PropertyRow label="Flow">{preview.name}</PropertyRow>
+					<PropertyRow label="Saved revision">{preview.version}</PropertyRow>
+					<PropertyRow label="Publication">
+						{preview.publication ? `Published revision ${preview.version}` : "Legacy saved flow"}
+					</PropertyRow>
+					<PropertyRow label="Ticket">{preview.ticket}</PropertyRow>
+					<PropertyRow label="Diff">{preview.diffId}</PropertyRow>
+					<PropertyRow label="Reviewed head">
+						<span className="min-w-0 break-all">{preview.headSha}</span>
+					</PropertyRow>
 				</dl>
 			)}
 			{preview && changed && <p role="status">The target changed. Review the current target before you start.</p>}
@@ -196,9 +195,12 @@ export function StartFlowDialog({
 			)}
 			{flows.isPending && <p role="status">Load flows…</p>}
 			{(flows.error || start.request?.error) && (
-				<p role="alert" className="text-sm text-danger">
-					{flows.error?.message ?? start.request?.error}
-				</p>
+				<div role="alert">
+					<FailureState
+						title="The flow request did not complete"
+						detail={flows.error?.message ?? start.request?.error}
+					/>
+				</div>
 			)}
 		</FlowActionDialog>
 	);

@@ -51,3 +51,14 @@ test("legacy start replays its exact request but rejects new starts of converted
 	const rows = await h.db.execute(sql`SELECT id FROM flow_executions`);
 	expect(rows.rows).toHaveLength(1);
 });
+
+test("pagination retains every execution beyond five hundred entries", async () => {
+	await h.db.execute(sql`INSERT INTO flow_executions (id,flow_id,created_at)
+		SELECT lpad((1000+n)::text,26,'0'),${h.input.flowId},${h.input.createdAt}
+		FROM generate_series(1,501) AS n`);
+	const first = await h.db.transaction((tx) => list(h.ctx, tx, { limit: 501 }));
+	const rest = await h.db.transaction((tx) => list(h.ctx, tx, { limit: 501, offset: 501 }));
+	expect(first).toHaveLength(501);
+	expect(rest).toHaveLength(2);
+	expect(new Set([...first, ...rest].map((item) => item.id)).size).toBe(503);
+});
