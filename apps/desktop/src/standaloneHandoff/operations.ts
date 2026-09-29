@@ -43,10 +43,7 @@ export const handoffOperations: HandoffOperations = {
 		await execute("launchctl", ["bootout", `${domain}/com.trellis.server`]);
 	},
 	waitForExit: async (pid) => {
-		const deadline = Date.now() + 10_000;
 		while (alive(pid)) {
-			if (Date.now() >= deadline)
-				throw new Error(`Standalone process ${pid} has not exited. The database stays closed.`);
 			await setTimeout(50);
 		}
 	},

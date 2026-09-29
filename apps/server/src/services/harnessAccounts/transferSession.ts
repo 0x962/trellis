@@ -27,7 +27,6 @@ export async function transferSession(input: Input) {
 			cwd: input.cwd,
 			env: { ...input.env, XDG_DATA_HOME: from },
 			maxBuffer: 64 * 1024 * 1024,
-			timeout: 30000,
 		});
 		const data = z
 			.object({ info: z.object({ id: z.string() }), messages: z.array(z.unknown()) })
@@ -40,7 +39,6 @@ export async function transferSession(input: Input) {
 			cwd: input.cwd,
 			env: { ...input.env, XDG_DATA_HOME: to },
 			maxBuffer: 1024 * 1024,
-			timeout: 30000,
 		});
 		if (!imported.stdout.includes(`Imported session: ${sessionId}`))
 			throw new Error("OpenCode did not confirm the imported session.");

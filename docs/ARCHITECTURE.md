@@ -116,6 +116,8 @@ The Codex adapter maps native thread, turn, tool, result, and error events into 
 Muse runs one private `muse serve` session host per attempt. The Muse bridge speaks the Muse Session Protocol over its stdio, maps session, turn, item, and result notifications into the runtime journal, and prints the transcript to the terminal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
+The login environment reader waits for the shell to exit and its output to close.
+An explicit caller deadline stops the read and returns an error.
 A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
 `HarnessHost` exposes start, resume, send, interrupt, stop, status, and output APIs for native agent assignments.
@@ -175,7 +177,7 @@ An application replacement can reuse that version while its runtime owns active 
 The update status blocks an incompatible runtime protocol and retains the prior host until work stops.
 
 A directory handoff verifies the recorded owner against the standalone launchd service.
-After confirmation, it disables that service and waits for the owner to exit.
+After confirmation, it disables that service and waits for the owner to exit before the offline helper starts.
 The offline helper holds the database and runtime locks before it copies the database into `backups/desktop-handoff-<id>`.
 It then applies schema migrations. It pauses automation in one transaction.
 External agent records retain their states. External clients need the desktop bearer token to update tickets.
@@ -833,6 +835,7 @@ The assignment retains its account across process restarts. An explicit account 
 `agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
 A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
 Claude, Codex, and Pi transfer the selected session file. Muse copies the session directory. OpenCode exports and imports that session through its CLI.
+Each OpenCode transfer command must exit successfully before the transfer continues.
 The runtime checks the resumed provider session identifier before it accepts the process.
 
 `agentRuns.switchAccount` stops a native process and resumes its saved conversation with another account of the same harness.

@@ -102,13 +102,36 @@ printf '\\0'
 		);
 	});
 
-	test("stops after both timeouts when a child keeps stdout open", async () => {
-		const { root, shell } = await createShell("trellis-login-env-timeout-", "sleep 0.3 & wait\n");
+	test("waits for a slow login shell once and returns its complete environment", async () => {
+		const { root, shell } = await createShell(
+			"trellis-login-env-slow-",
+			"printf x >> runs\nprintf 'PATH=/custom/bin\\0FIRST=before\\0'\nsleep 10.2\nprintf 'LAST=after\\0'\n",
+		);
+		const env = await loginEnvironment(shell, "/bundled/bin", { HOME: root, PATH: "/usr/bin:/bin" });
+		expect(env).toEqual({ PATH: "/bundled/bin:/custom/bin", FIRST: "before", LAST: "after" });
+		expect(await Bun.file(join(root, "runs")).text()).toBe("x");
+	}, 20_000);
+
+	test("rejects a terminated shell after partial output", async () => {
+		const { root, shell } = await createShell(
+			"trellis-login-env-terminated-",
+			"printf 'PATH=/partial/bin\\0'\nkill -TERM $$\n",
+		);
+		await expect(loginEnvironment(shell, "/bundled/bin", { HOME: root, PATH: "/usr/bin:/bin" })).rejects.toThrow(
+			"Login shell failed",
+		);
+	});
+
+	test("honors an explicit deadline when a child keeps stdout open", async () => {
+		const { root, shell } = await createShell(
+			"trellis-login-env-timeout-",
+			"printf 'PATH=/partial/bin\\0'\nsleep 0.3 & wait\n",
+		);
 		const startedAt = performance.now();
 
-		await expect(
-			loginEnvironment(shell, "/bundled/bin", { HOME: root, PATH: "/usr/bin:/bin" }, 20, 40),
-		).rejects.toThrow("The login shell did not answer within 40 ms.");
+		await expect(loginEnvironment(shell, "/bundled/bin", { HOME: root, PATH: "/usr/bin:/bin" }, 40)).rejects.toThrow(
+			"The login shell did not answer within 40 ms.",
+		);
 		const elapsedMs = performance.now() - startedAt;
 		await wait(350);
 		expect(elapsedMs).toBeLessThan(300);
