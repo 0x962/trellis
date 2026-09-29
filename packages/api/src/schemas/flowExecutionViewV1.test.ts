@@ -15,6 +15,7 @@ import {
 	FlowDecisionDeliveryV1Schema,
 	FlowExecutionViewV1Schema,
 	FlowOccurrenceIdentityV1Schema,
+	FlowOccurrenceV1Schema,
 	FlowStopObligationV1Schema,
 	FlowSubmissionV1Schema,
 } from "./flowExecutionViewV1.ts";
@@ -23,13 +24,55 @@ import {
 	flowV1FixtureIds,
 	flowV1Time,
 	legacyDocumentV1Example,
+	legacyExecutionViewV1Example,
 	occurrenceV1Example,
 	pendingDocumentV1Example,
+	retainedOutputV1Example,
 	stopPendingV1Example,
 	unknownAdmissionV1Example,
 	unknownDecisionV1Example,
 } from "./flowV1Fixtures.ts";
 import { executionViewV1Example as schemasExample } from "./index.ts";
+
+test("legacy history preserves unknown kind and native output provenance", () => {
+	const value = FlowExecutionViewV1Schema.parse(legacyExecutionViewV1Example);
+	expect(value.occurrences[0]?.kind).toBeNull();
+	expect(value.occurrences[0]?.output).toBe(legacyExecutionViewV1Example.occurrences[0]?.output);
+	expect(value.occurrences[0]?.outputSource).toBeNull();
+});
+
+test("native output identifies its retained result even with a later attempt", () => {
+	const value = FlowExecutionViewV1Schema.parse({
+		...executionViewV1Example,
+		occurrences: [retainedOutputV1Example],
+	});
+	expect(value.occurrences[0]?.kind).toBe("agent");
+	expect(value.occurrences[0]?.outputSource?.attemptId).toBe("attempt-37");
+	expect(value.occurrences[0]?.attempts.at(-1)?.attemptId).toBe("attempt-38");
+	for (const change of [
+		{ stepId: "other-step" },
+		{ agentRunId: flowV1FixtureIds.ticket },
+		{ attemptId: "attempt-38" },
+		{ resultId: "other-result" },
+	]) {
+		expect(
+			FlowOccurrenceV1Schema.safeParse({
+				...retainedOutputV1Example,
+				outputSource: { ...retainedOutputV1Example.outputSource, ...change },
+			}).success,
+		).toBe(false);
+	}
+	expect(FlowOccurrenceV1Schema.safeParse({ ...retainedOutputV1Example, output: null }).success).toBe(false);
+});
+
+test("occurrence metadata accepts every archived kind and rejects untyped source data", () => {
+	for (const kind of ["agent", "gate", "human", "group", "loop", null]) {
+		expect(FlowOccurrenceV1Schema.parse({ ...occurrenceV1Example, kind }).kind).toBe(kind);
+	}
+	for (const change of [{ kind: "code" }, { outputSource: { attemptId: "attempt-37" } }]) {
+		expect(FlowOccurrenceV1Schema.safeParse({ ...occurrenceV1Example, ...change }).success).toBe(false);
+	}
+});
 
 test("the package exports public schemas and consumer examples", () => {
 	expect(rootExample).toBe(executionViewV1Example);

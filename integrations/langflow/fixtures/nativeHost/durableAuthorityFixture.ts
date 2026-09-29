@@ -49,6 +49,7 @@ type AuthorityState = {
 const bytes = (value: unknown) => JSON.stringify(value);
 
 export class DurableAuthorityFixture {
+	commitBoundary?: (phase: "before_commit" | "after_commit", sequence: number) => Promise<void>;
 	private constructor(private readonly directory: string) {}
 
 	static async create(directory: string, authority: DeliveryAuthorityV1, provenance: NativeLaunchProvenanceV1) {
@@ -285,7 +286,9 @@ export class DurableAuthorityFixture {
 		const temporary = join(this.directory, `authority-${state.sequence}-${crypto.randomUUID()}.next`);
 		await writeFile(temporary, bytes(state), { mode: 0o600 });
 		try {
+			await this.commitBoundary?.("before_commit", state.sequence);
 			await link(temporary, path);
+			await this.commitBoundary?.("after_commit", state.sequence);
 		} finally {
 			await unlink(temporary);
 		}

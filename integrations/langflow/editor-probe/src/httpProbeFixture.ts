@@ -98,7 +98,10 @@ const mismatchedIdentityBody = JSON.stringify({
 	graphDocument: mismatchedNodeIdentity,
 	componentManifestHash: flowV1Digest,
 });
-await expectStatus(await request("/api/trellis-editor/v1/document", { method: "PUT", body: mismatchedIdentityBody }), 403);
+await expectStatus(
+	await request("/api/trellis-editor/v1/document", { method: "PUT", body: mismatchedIdentityBody }),
+	403,
+);
 
 await expectStatus(await request("/__probe/lost-response-next", { method: "POST" }), 200);
 const firstRequestId = "b9e9b394-f091-41da-96ca-591b678aac83";
@@ -113,7 +116,8 @@ const firstBody = JSON.stringify({
 });
 let lostResponseObserved = false;
 try {
-	await request("/api/trellis-editor/v1/document", { method: "PUT", body: firstBody });
+	const lostResponse = await request("/api/trellis-editor/v1/document", { method: "PUT", body: firstBody });
+	await lostResponse.text();
 } catch {
 	lostResponseObserved = true;
 }
