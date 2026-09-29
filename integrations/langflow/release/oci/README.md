@@ -28,7 +28,9 @@ The caller owns that directory and removes it after evidence retention.
 An error keeps the directory for inspection. No command removes shared caches or other candidates.
 
 Before a build, check host capacity and coordinate the shared engine with TRL-667.
-Use the existing Docker engine and builder.
+Use the existing Docker engine and an authorized BuildKit builder with OCI export support.
+Set `BUILDX_BUILDER` to select that builder without a global selection change.
+The default Docker driver rejects the OCI export on the current OrbStack engine.
 The build command never starts an engine or creates a builder.
 Build `x86_64` in hosted CI with the same inputs after the arm64 proof.
 The architecture argument uses `x86_64`; Docker receives `linux/amd64`.
@@ -70,3 +72,36 @@ Runtime dependencies reside in the image, but an offline start still requires ex
 Upstream source distributions can select build tools outside `uv.lock` through their build-system declarations.
 Repeated byte-identical builds, source-build dependency pins, platform libraries, isolation, and native session retention remain unverified.
 No successful source build qualifies a target for production.
+
+## Hosted x86_64 candidate
+
+`.github/workflows/langflow-package-candidate.yml` accepts a draft release tag and two SHA256 values.
+The release in the same repository holds `prepared-context.tar.gz` and `arm64-proof.json`.
+The archive contains the exported `context/` directory with regular files and directories only.
+The workflow verifies both hashes and rejects paths outside that directory.
+It also checks the Dockerfile and entrypoint against its checked-out source.
+Actions, Bun, Buildx, BuildKit, Python, uv, and the loader dependency use exact pins.
+
+The arm64 proof receipt has this shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "qualification": "candidate",
+  "architecture": "arm64",
+  "contextSha256": "<prepared-context.tar.gz SHA256>",
+  "result": "passed",
+  "checks": {
+    "offlineStart": "passed",
+    "readOnlyRoot": "passed",
+    "privateData": "passed",
+    "deniedEgress": "passed",
+    "nativeSessionRetention": "passed"
+  }
+}
+```
+
+The isolation owner writes this receipt from actual arm64 results and supplies its trusted hash.
+A package build alone cannot produce a passed receipt.
+The workflow exports `langflow-x86_64-candidate` as a CI artifact.
+That artifact retains candidate status and still requires x86_64 runtime proof.

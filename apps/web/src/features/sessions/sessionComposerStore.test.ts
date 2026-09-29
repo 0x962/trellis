@@ -56,7 +56,7 @@ test("a harness change restores automatic selection", () => {
 
 test("model and effort changes retain the manual account", () => {
 	sessionComposerActions.selectAccount("manual");
-	sessionComposerActions.selectHarness(HarnessSchema.parse({ preset: "claude", model: "anthropic/claude-sonnet-5.5" }));
+	sessionComposerActions.selectHarness(HarnessSchema.parse({ preset: "claude", model: "anthropic/claude-sonnet-5" }));
 	sessionComposerActions.selectHarness({ ...useSessionComposerStore.getState().harness, effort: "medium" });
 	sessionComposerActions.automaticAccount("available");
 	expect(useSessionComposerStore.getState()).toMatchObject({ accountId: "manual", accountSelection: "manual" });

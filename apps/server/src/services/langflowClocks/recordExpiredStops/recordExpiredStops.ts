@@ -1,7 +1,7 @@
 import type { ServiceCtx } from "../../../context.ts";
 import { lockExecution, readProjectionFacts, recordStop } from "../../../db/queries/langflowExecution";
 import type { Tx } from "../../../db/tx.ts";
-import { stopObligation } from "../../langflowStops/stopObligation";
+import { stopObligation } from "../../langflowStops";
 import { earliestDeadline } from "../earliestDeadline";
 
 export async function recordExpiredStops(ctx: ServiceCtx, tx: Tx, input: { executionId: string }) {

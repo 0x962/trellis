@@ -60,6 +60,13 @@ test("the shared HTTP router calls the registered document and immutable executi
 		{ id: h.view.id, engine: "langflow" },
 		{ id: h.legacy.id, engine: "legacy" },
 	]);
+	const next = await request("/flow-executions/index-v1?limit=501&offset=1");
+	expect(next.status).toBe(200);
+	expect(await next.json()).toEqual([{ id: h.legacy.id, engine: "legacy" }]);
+	for (const query of ["limit=0", "limit=1.5", "offset=-1", "offset=invalid"]) {
+		const invalid = await request(`/flow-executions/index-v1?${query}`);
+		expect(invalid.status).toBe(400);
+	}
 	expect(calls).toContain("flowDocuments.get");
 	expect(calls).toContain("flowDocuments.view");
 	expect(calls).toContain("flowDocuments.list");
