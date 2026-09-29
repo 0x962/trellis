@@ -11,7 +11,7 @@ import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../lib/appContext";
 import { conflictCurrent, conflictMessage } from "../../../../lib/conflict";
 import { failToast } from "../../../../lib/failToast";
-import { insertRow, patchRows, readRow } from "../../utils/cacheRows";
+import { insertRow, insertRows, patchRows, readRow, readRows } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
 export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "parent" | "epic" | "wave" | "labels">>;
@@ -132,17 +132,15 @@ export const useTicketMutations = (): TicketMutations => {
 
 		const updateMany: TicketMutations["updateMany"] = async (tickets, fields, patch, verb) => {
 			if (tickets.length === 0 || refused(tickets)) return;
-			const originals = tickets.map((ticket) => readRow(queryClient, ticket.id) ?? ticket);
+			const cached = readRows(queryClient);
+			const originals = tickets.map((ticket) => cached.get(ticket.id) ?? ticket);
 			patchRows(queryClient, new Set(originals.map((row) => row.id)), (row) => patched(row, patch));
 			try {
 				const { items } = await client.tickets.updateMany({
 					tickets: originals.map((row) => row.identifier),
 					...fields,
 				});
-				for (const item of items) {
-					applySummary(item);
-					insertRow(queryClient, item);
-				}
+				insertRows(queryClient, applier.applySummaries(items));
 			} catch (error) {
 				revert(originals);
 				failToast(verb(`${originals.length} tickets`), error, () => void updateMany(originals, fields, patch, verb));
@@ -163,7 +161,7 @@ export const useTicketMutations = (): TicketMutations => {
 			if (tickets.length === 0 || refused(tickets)) return;
 			try {
 				await client.tickets.deleteMany({ tickets: tickets.map((ticket) => ticket.identifier) });
-				for (const ticket of tickets) applySummary(ticket, true);
+				applier.applySummaries(tickets, true);
 			} catch (error) {
 				failToast(`${tickets.length} tickets are not deleted.`, error, () => void removeMany(tickets));
 			}

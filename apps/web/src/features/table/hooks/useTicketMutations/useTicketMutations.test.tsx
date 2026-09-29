@@ -52,83 +52,97 @@ const ticket = (ticketNumber: number, prefix = "TRL"): TicketSummary => ({
 	completedAt: null,
 });
 
-for (const operation of ["updateMany", "removeMany"] as const) {
-	for (const fails of [false, true]) {
-		test(`${operation} sends all 201 rows once and ${fails ? "keeps every original row on failure" : "applies every result"}`, async () => {
-			const originals = Array.from({ length: 201 }, (_, index) => ticket(index + 1));
-			const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-			const key = [["tickets", "list"], { input: {}, type: "query" }];
-			queryClient.setQueryData(key, { items: originals, nextCursor: null });
-			const requests: (TicketUpdateManyInput | TicketDeleteManyInput)[] = [];
-			const app = {
-				queryClient,
-				orpc: {
-					projects: {
-						list: {
-							queryOptions: () => ({
-								queryKey: ["archived-projects"],
-								queryFn: async () => [],
-							}),
+for (const count of [201, 10_000]) {
+	for (const operation of ["updateMany", "removeMany"] as const) {
+		for (const fails of [false, true]) {
+			test(`${operation} sends all ${count} rows once and ${fails ? "keeps every original row on failure" : "applies every result"}`, async () => {
+				const originals = Array.from({ length: count }, (_, index) => ticket(index + 1));
+				let idReads = 0;
+				for (const row of originals) {
+					const id = row.id;
+					Object.defineProperty(row, "id", {
+						enumerable: true,
+						get: () => {
+							idReads++;
+							return id;
 						},
-					},
-				},
-				client: {
-					tickets: {
-						updateMany: async (input: TicketUpdateManyInput) => {
-							requests.push(input);
-							expect(
-								queryClient.getQueryData<ListOutput>(key)?.items.every((row) => row.priority === "high"),
-							).toBeTrue();
-							if (fails) throw new Error("The last ticket is unavailable.");
-							return { items: originals.map((row) => ({ ...row, priority: "high", version: 2 })) };
-						},
-						deleteMany: async (input: TicketDeleteManyInput) => {
-							requests.push(input);
-							if (fails) throw new Error("The last ticket is unavailable.");
-							return { deleted: input.tickets };
-						},
-					},
-				},
-			} as unknown as AppContext;
-			let mutations: TicketMutations;
-			const Probe = () => {
-				mutations = useTicketMutations();
-				return null;
-			};
-			const renderer = createRoot();
-			try {
-				await act(async () =>
-					renderer.render(
-						<QueryClientProvider client={queryClient}>
-							<AppProvider value={app}>
-								<Probe />
-							</AppProvider>
-						</QueryClientProvider>,
-					),
-				);
-				await act(async () => {
-					if (operation === "updateMany") {
-						await mutations.updateMany(
-							originals,
-							{ priority: "high" },
-							{ priority: "high" },
-							(subject) => `${subject} did not change.`,
-						);
-					} else await mutations.removeMany(originals);
-				});
-				expect(requests).toHaveLength(1);
-				expect(requests[0]?.tickets).toEqual(originals.map((row) => row.identifier));
-				const saved = queryClient.getQueryData<ListOutput>(key)!.items;
-				if (fails) expect(saved).toEqual(originals);
-				else if (operation === "removeMany") expect(saved).toHaveLength(0);
-				else {
-					expect(saved).toHaveLength(201);
-					expect(saved.every((row) => row.priority === "high" && row.version === 2)).toBeTrue();
+					});
 				}
-			} finally {
-				await act(async () => renderer.unmount());
-				queryClient.clear();
-			}
-		});
+				const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+				const key = [["tickets", "list"], { input: {}, type: "query" }];
+				queryClient.setQueryData(key, { items: originals, nextCursor: null });
+				const requests: (TicketUpdateManyInput | TicketDeleteManyInput)[] = [];
+				const app = {
+					queryClient,
+					orpc: {
+						projects: {
+							list: {
+								queryOptions: () => ({
+									queryKey: ["archived-projects"],
+									queryFn: async () => [],
+								}),
+							},
+						},
+					},
+					client: {
+						tickets: {
+							updateMany: async (input: TicketUpdateManyInput) => {
+								requests.push(input);
+								expect(
+									queryClient.getQueryData<ListOutput>(key)?.items.every((row) => row.priority === "high"),
+								).toBeTrue();
+								if (fails) throw new Error("The last ticket is unavailable.");
+								return { items: originals.map((row) => ({ ...row, priority: "high", version: 2 })) };
+							},
+							deleteMany: async (input: TicketDeleteManyInput) => {
+								requests.push(input);
+								if (fails) throw new Error("The last ticket is unavailable.");
+								return { deleted: input.tickets };
+							},
+						},
+					},
+				} as unknown as AppContext;
+				let mutations: TicketMutations;
+				const Probe = () => {
+					mutations = useTicketMutations();
+					return null;
+				};
+				const renderer = createRoot();
+				try {
+					await act(async () =>
+						renderer.render(
+							<QueryClientProvider client={queryClient}>
+								<AppProvider value={app}>
+									<Probe />
+								</AppProvider>
+							</QueryClientProvider>,
+						),
+					);
+					await act(async () => {
+						if (operation === "updateMany") {
+							await mutations.updateMany(
+								originals,
+								{ priority: "high" },
+								{ priority: "high" },
+								(subject) => `${subject} did not change.`,
+							);
+						} else await mutations.removeMany(originals);
+					});
+					expect(idReads).toBeLessThan(count * 60);
+					expect(requests).toHaveLength(1);
+					expect(requests[0]?.tickets).toEqual(originals.map((row) => row.identifier));
+					const saved = queryClient.getQueryData<ListOutput>(key)!.items;
+					if (fails) expect(saved).toEqual(originals);
+					else if (operation === "removeMany") expect(saved).toHaveLength(0);
+					else {
+						expect(saved).toHaveLength(count);
+						expect(saved.every((row) => row.priority === "high" && row.version === 2)).toBeTrue();
+					}
+				} finally {
+					await act(async () => renderer.unmount());
+					queryClient.clear();
+				}
+			});
+		}
 	}
 }
