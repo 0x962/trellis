@@ -13,6 +13,7 @@ import {
 import { dirname, join } from "node:path";
 import { lockHome } from "../../../homeLock";
 import type { BlockReason, DispatchState } from "../contracts";
+import { dispatchChanges } from "./notifications";
 import { DispatchStateSchema } from "./schema";
 
 export class DispatchStore {
@@ -75,6 +76,7 @@ export class DispatchStore {
 		}
 		renameSync(temporary, this.path);
 		this.syncDirectory(this.directory);
+		dispatchChanges.emit(this.directory);
 	}
 
 	private syncDirectory(path: string) {

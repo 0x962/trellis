@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { executionViewV1Example } from "@trellis/api";
+import { executionViewV1Example, legacyDocumentV1Example } from "@trellis/api";
 import { run } from "../../index.ts";
 import { fixture, legacyRun, startReply } from "./testFixture/testFixture.ts";
 
@@ -143,8 +143,11 @@ test("run filters survive pagination and run show preserves JSON", async () => {
 	expect(f.calls).toEqual([
 		{ path: "/rpc/flowDocumentsV1/list", input: { ticket: "TRL-1", flow: "review", offset: 0, limit: 500 } },
 	]);
+	const { publication: _publication, lastExecutablePublication: _last, ...snapshot } = legacyDocumentV1Example;
 	const show = fixture((call) =>
-		call.path === "/rpc/flowDocumentsV1/view" ? { ...executionViewV1Example, engine: "legacy" } : legacyRun,
+		call.path === "/rpc/flowDocumentsV1/view"
+			? { ...executionViewV1Example, engine: "legacy", snapshot, publication: null, submission: null }
+			: legacyRun,
 	);
 	expect(await run(["flow", "run", "show", legacyRun.id, "--json"], show.deps)).toBe(0);
 	expect(JSON.parse(show.text())).toEqual(legacyRun);

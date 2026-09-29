@@ -11,10 +11,21 @@ export async function list(ctx: ServiceCtx, tx: Tx, input: FlowExecutionListV1In
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	return rows<FlowExecutionIdentityV1>(
 		tx,
-		sql`SELECT id, engine FROM (
-			SELECT id, 'legacy' AS engine, flow_id, ticket_id, diff_id, created_at FROM flow_executions
+		sql`SELECT id, engine, flow_id AS "flowId", status, pending AS "pendingSubmission" FROM (
+			SELECT id, 'legacy' AS engine, flow_id, ticket_id, diff_id, created_at,
+				state->>'status' AS status, state->>'status' IS NULL AS pending FROM flow_executions
 			UNION ALL
-			SELECT execution_id AS id, 'langflow' AS engine, flow_id, ticket_id, diff_id, created_at FROM langflow_executions
+			SELECT e.execution_id AS id, 'langflow' AS engine, e.flow_id, e.ticket_id, e.diff_id, e.created_at,
+				p.view->>'status' AS status,
+				CASE WHEN p.view->>'status' IN ('succeeded','failed','canceled') THEN false
+					ELSE p.view->>'status' IS NULL
+						OR e.submission->>'state' IN ('reserved','submission_unknown')
+						OR e.admission->>'state' = 'closed'
+						OR e.authority IS NULL
+						OR (e.authority->>'expiresAt')::timestamptz <= ${ctx.now}
+				END AS pending
+			FROM langflow_executions e
+			LEFT JOIN langflow_execution_projections p ON p.execution_id=e.execution_id
 		) AS executions
 		WHERE ${flow === null ? sql`true` : sql`flow_id=${flow.id}`}
 		AND ${ticket === null ? sql`true` : sql`ticket_id=${ticket.id}`}

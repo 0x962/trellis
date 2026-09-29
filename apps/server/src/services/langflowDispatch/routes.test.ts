@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
+import { RPCHandler } from "@orpc/server/fetch";
 import { ResponseHeadersPlugin } from "@orpc/server/plugins";
 import { FlowDocumentV1Schema, FlowExecutionViewV1Schema } from "@trellis/api";
 import type { ServiceTransport } from "../../db/transport.ts";
@@ -17,17 +18,19 @@ afterAll(async () => {
 	await h.db.$client.close();
 });
 const handler = new OpenAPIHandler<ProcedureContext>(router, { plugins: [new ResponseHeadersPlugin()] });
+const rpcHandler = new RPCHandler<ProcedureContext>(router);
 const calls: string[] = [];
-const request = async (path: string, init: RequestInit = {}) => {
-	const raw = new Request(`http://localhost/api${path}`, init);
+const request = async (path: string, init: RequestInit = {}, rpc = false) => {
+	const prefix = rpc ? "/rpc" : "/api";
+	const raw = new Request(`http://localhost${prefix}${path}`, init);
 	const call: ServiceTransport["call"] = async (name, ctx, input) => {
 		calls.push(name);
 		const entry = services[name];
 		if (entry.family !== "core") throw new Error(`Expected a core service: ${name}`);
 		return h.db.transaction((tx) => entry.run({ ...h.ctx, ...ctx }, tx, input));
 	};
-	const result = await handler.handle(raw, {
-		prefix: "/api",
+	const result = await (rpc ? rpcHandler : handler).handle(raw, {
+		prefix,
 		context: {
 			headers: raw.headers,
 			reqId: "composition-http",
@@ -63,7 +66,16 @@ test("the shared HTTP router calls the registered document and immutable executi
 	const next = await request("/flow-executions/index-v1?limit=501&offset=1");
 	expect(next.status).toBe(200);
 	expect(await next.json()).toEqual([{ id: h.legacy.id, engine: "legacy" }]);
-	for (const query of ["limit=0", "limit=1.5", "offset=-1", "offset=invalid"]) {
+	for (const query of [
+		"limit=0",
+		"limit=1.5",
+		"offset=-1",
+		"offset=invalid",
+		"offset=",
+		"limit=",
+		"offset=%20",
+		"limit=true",
+	]) {
 		const invalid = await request(`/flow-executions/index-v1?${query}`);
 		expect(invalid.status).toBe(400);
 	}
@@ -126,4 +138,36 @@ test("conditional saves reject stale and excluded representations before a docum
 	}
 	const after = await request("/flows/review/document-v1");
 	expect(await after.json()).toEqual(document);
+});
+
+test("the RPC handler rejects pagination types that are not integers or decimal strings", async () => {
+	for (const json of [{ limit: true }, { offset: null }, { offset: false }, { limit: [501] }, { offset: "" }]) {
+		const before = calls.length;
+		const response = await request(
+			"/flowDocumentsV1/list",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ json }),
+			},
+			true,
+		);
+		expect(response.status).toBe(400);
+		expect(calls).toHaveLength(before);
+	}
+	for (const json of [
+		{ limit: 501, offset: 0 },
+		{ limit: "501", offset: "0" },
+	]) {
+		const response = await request(
+			"/flowDocumentsV1/list",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ json }),
+			},
+			true,
+		);
+		expect(response.status).toBe(200);
+	}
 });
