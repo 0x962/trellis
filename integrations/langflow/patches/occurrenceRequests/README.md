@@ -135,3 +135,9 @@ The current public native reader requires a step ID, which an uncertain reservat
 The canceled obligation remains pending until those producers supply durable proof.
 The fixtures cover lost responses, exact replay bytes, cancellation before dispatch, and acknowledgement before confirmation.
 These fixtures and the integrated crash cases remain deferred to the complete batch.
+
+Apply `0004-durable-cancellation-guard.patch` after the reservation fragment.
+The occurrence writers read the accepted cancellation record under the Job lock.
+An active Job status cannot override that record.
+A late handle remains retained with its unresolved stop obligation.
+Two deferred fixtures cover accepted cancellation with an active Job and a late handle after that cancellation.
