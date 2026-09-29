@@ -1,5 +1,9 @@
+export { cancelView } from "./cancelView";
+export { decisionView } from "./decisionView";
 export { documentTag } from "./documentTag";
 export { getView } from "./getView";
 export { list } from "./list";
+export { recovery } from "./recovery";
 export { saveDocument } from "./saveDocument";
 export { startLegacy } from "./startLegacy";
+export { startView } from "./startView";
