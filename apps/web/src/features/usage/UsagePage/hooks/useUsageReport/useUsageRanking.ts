@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { UsageGroupBy, UsageMetric, UsageReport } from "@trellis/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 
 export function useUsageRanking(
@@ -9,6 +9,7 @@ export function useUsageRanking(
 	metric: UsageMetric,
 	row: string | null,
 	day: string | null,
+	clearRow: () => void,
 ) {
 	const { orpc } = useApp();
 	const key = JSON.stringify([report?.computedAt, report?.days, group, metric]);
@@ -39,6 +40,9 @@ export function useUsageRanking(
 		placeholderData: (previous, query) =>
 			query?.meta?.usageScope === sessionKey ? keepPreviousData(previous) : undefined,
 	});
+	useEffect(() => {
+		if (row !== null && query.isSuccess && !query.isPlaceholderData && query.data.selected === null) clearRow();
+	}, [row, query.isSuccess, query.isPlaceholderData, query.data?.selected, clearRow]);
 	return {
 		...query,
 		changeGroupPage: (direction: -1 | 1) => setGroups({ key, page: Math.max(0, groupPage + direction) }),

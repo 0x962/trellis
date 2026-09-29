@@ -61,7 +61,9 @@ export function AgentUsage() {
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 
-	const rankingQuery = useUsageRanking(report.data, group, metric, selectedRow, selectedDay);
+	const rankingQuery = useUsageRanking(report.data, group, metric, selectedRow, selectedDay, () =>
+		setSearch({ row: undefined }),
+	);
 	const page = rankingQuery.data;
 	const rows = useMemo(() => page?.groups ?? [], [page]);
 	const selectedGroupRow = page?.selected ?? null;
