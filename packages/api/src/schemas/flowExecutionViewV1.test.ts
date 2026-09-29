@@ -106,7 +106,7 @@ test("nested rounds and condition phases preserve the occurrence identity", () =
 });
 
 test("a reservation cannot supply a group deadline without an observed launch", () => {
-	const deadline = { deadlineId: "deadline-37", groupOccurrenceKey: "loop-1/37", launchedAt: null, deadlineAt: null };
+	const deadline = { deadlineId: "deadline-37", groupOccurrenceKey: "loop-1:37", launchedAt: null, deadlineAt: null };
 	expect(FlowDeadlineV1Schema.parse(deadline)).toEqual(deadline);
 	expect(FlowDeadlineV1Schema.safeParse({ ...deadline, deadlineAt: flowV1Time }).success).toBe(false);
 });

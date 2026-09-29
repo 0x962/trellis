@@ -93,8 +93,8 @@ export const executionViewV1Example: FlowExecutionViewV1 = {
 };
 export const occurrenceV1Example: FlowOccurrenceV1 = {
 	nodeId: "node-1",
-	occurrenceKey: "loop-1/37/node-1/step",
-	parentOccurrenceKey: "loop-1/37",
+	occurrenceKey: "loop-1:37:node-1:step",
+	parentOccurrenceKey: "loop-1:37",
 	phase: "step",
 	iterationPath: [{ loopNodeId: "loop-1", round: 37 }],
 	title: "Review",
