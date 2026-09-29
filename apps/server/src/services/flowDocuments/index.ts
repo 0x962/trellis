@@ -13,3 +13,4 @@ export type { DocumentPublisher, Publication, SavedDocument } from "./publisher"
 export { type RetainedExecutionPublication, readExecutionPublication } from "./readExecutionPublication";
 export { requireCurrentPublication } from "./requireCurrentPublication";
 export { save } from "./save";
+export { type ConversionEditServices, saveConversionEdit } from "./saveConversionEdit";
