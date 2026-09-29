@@ -1,4 +1,5 @@
 import type { FlowOccurrenceV1 } from "@trellis/api";
+import type { ReviewWaitV1 } from "../../langflowContracts";
 import { reviewGateResult } from "../langflowGates";
 import type { ProjectionFacts } from "./facts.ts";
 import { nativeOccurrence } from "./nativeOccurrence.ts";
@@ -8,6 +9,7 @@ export function projectOccurrence(
 	observed: ObservedOccurrence,
 	previous: FlowOccurrenceV1 | undefined,
 	facts: ProjectionFacts,
+	reviewWait: ReviewWaitV1 | undefined,
 ): FlowOccurrenceV1 {
 	const { reviewArea: _reviewArea, acceptedResultId: _acceptedResultId, ...fields } = observed;
 	const base: FlowOccurrenceV1 = {
@@ -47,22 +49,27 @@ export function projectOccurrence(
 			decision: confirmed ? (decision.approved ? "yes" : "no") : null,
 		};
 	}
+	if (observed.kind === "gate" && observed.reviewArea !== null) {
+		if (reviewWait) return { ...base, state: "running", waitReason: "review", decision: null };
+		const receipt = facts.classification;
+		if (!receipt) return { ...base, state: "unknown", waitReason: "ownership_unknown" };
+		const gate = reviewGateResult(receipt, observed.reviewArea);
+		if (gate.state === "pending" || observed.acceptedResultId !== receipt.receiptId)
+			return {
+				...base,
+				state: "unknown",
+				waitReason: "ownership_unknown",
+				output: gate.state === "succeeded" ? gate.output : base.output,
+			};
+		if (gate.state === "failed") return { ...base, state: "failed", error: gate.error };
+		return { ...base, output: gate.output, decision: gate.decision };
+	}
 	if (
 		observed.kind === "agent" ||
 		(observed.kind === "gate" && observed.reviewArea === null) ||
 		observed.phase === "condition"
 	) {
 		return nativeOccurrence(observed, base, nativeFacts);
-	}
-	if (observed.kind === "gate" && observed.reviewArea !== null) {
-		const receipt = facts.classification;
-		if (!receipt) return { ...base, state: "unknown", waitReason: "ownership_unknown" };
-		const gate = reviewGateResult(receipt, observed.reviewArea);
-		if (gate.state === "failed") return { ...base, state: "failed", error: gate.error };
-		if (gate.state !== "succeeded") return { ...base, state: "running", waitReason: "native" };
-		if (observed.acceptedResultId !== receipt.receiptId)
-			return { ...base, state: "unknown", waitReason: "ownership_unknown", output: gate.output };
-		return { ...base, output: gate.output, decision: gate.decision };
 	}
 	return base;
 }
