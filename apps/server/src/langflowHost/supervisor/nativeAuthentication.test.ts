@@ -22,9 +22,9 @@ test("native callbacks require their own current credential and a healthy observ
 		}
 		await expect(supervisor.withAuthenticatedEngine(authorization, operation)).rejects.toThrow("authentication_denied");
 		expect(calls).toBe(0);
-		expect(await supervisor.withAuthenticatedNativeReservation(authorization, async (current) => current.identity)).toEqual(
-			live.identity,
-		);
+		expect(
+			await supervisor.withAuthenticatedNativeReservation(authorization, async (current) => current.identity),
+		).toEqual(live.identity);
 		fixture.processes.get(live.identity.instanceId)!.health = "unhealthy";
 		await expect(supervisor.withAuthenticatedNativeReservation(authorization, operation)).rejects.toThrow("unhealthy");
 		fixture.processes.get(live.identity.instanceId)!.health = "healthy";
