@@ -23,7 +23,7 @@ TRL-669 owns `src/backend/base/langflow/services/background_execution/runner.py`
 TRL-670 owns `src/backend/base/langflow/services/trellis_v1/decisions.py`. Its ledger API is `accept`, `lookup`, `pending_enqueue_obligations`, and `mark_enqueue_obligation_consumed`.
 
 ```python
-accept(*, engine_job_id: UUID, decision_bytes: bytes, payload_digest: str, fault: FaultHook | None = None) -> dict[str, Any]
+accept(*, engine_job_id: UUID, decision_bytes: bytes, payload_digest: str, authority_bytes: bytes, fault: FaultHook | None = None) -> dict[str, Any]
 lookup(*, execution_id: str, engine_job_id: UUID, engine_request_id: str, decision_id: str, payload_digest: str) -> dict[str, Any]
 pending_enqueue_obligations() -> list[dict[str, Any]]
 mark_enqueue_obligation_consumed(
@@ -51,7 +51,19 @@ TRL-669 owns `accept_trellis_human_decision`, `_consume_trellis_decision_obligat
 
 TRL-669 also owns `BackgroundExecutionService.lookup_trellis_human_decision`. That wrapper passes the exact lookup fields to `DecisionAcceptanceLedger.lookup` and returns the ledger result unchanged.
 
-Run this command from the Trellis repository after the serial patch step:
+## Current authority
+
+The source assembly includes the shared engine authority module and the decision API patches under `patches/engineApi/`.
+`authority_probe.seed_authority` commits one current grant through `commit_authority` in the fixture transaction.
+`stored_authority` reads the exact saved bytes through `read_authority(...).binding.authority_bytes`.
+The subprocesses read this saved grant before they call the acceptance service.
+The ledger checks this grant inside its transaction before it writes a decision.
+
+The lookup fixture revokes the grant after acceptance.
+It requires acceptance replay to fail and exact receipt lookup to succeed.
+The separate authority refusal fixtures set `with_authority=False` before they prepare their explicit grant state.
+
+Run this command from the Trellis repository after the combined source assembly:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 \

@@ -1,12 +1,12 @@
-import { ArrowDown, ArrowLineUp, ArrowClockwise, CaretDown, CaretRight } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowDown, ArrowLineUp, CaretDown, CaretRight } from "@phosphor-icons/react";
 import { type KeyboardEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { Tooltip } from "../../../../primitives/Tooltip";
 import { cx } from "../../../../utils/cx";
 import { FailureState } from "../../../FailureState";
 import type { SessionStatusPaneProps, SessionUpdate } from "../../types";
-import { localDay, timelineGroups, updateTitle } from "../timelineGroups";
 import { TimelineScrollAnchor } from "../TimelineScrollAnchor";
+import { localDay, timelineGroups, updateTitle } from "../timelineGroups";
 import { UpdateContent } from "../UpdateContent";
 
 type Props = Pick<SessionStatusPaneProps, "now" | "renderMarkdown" | "onOpenLink" | "historyControl"> & {
@@ -26,7 +26,7 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 	const [focused, setFocused] = useState(selected.id);
 	const [closed, setClosed] = useState(new Set<string>());
 	const [seen, setSeen] = useState(updates[0]!.id);
-	const root = useRef<HTMLUListElement>(null);
+	const root = useRef<HTMLDivElement>(null);
 	const pendingFocus = useRef<string | null>(null);
 	const helpId = useId();
 	const groups = timelineGroups(retained.updates, now);
@@ -73,7 +73,7 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 		if (update.id === latest.id) setSeen(latest.id);
 		focus(update.id);
 	};
-	const onKeyDown = (event: KeyboardEvent<HTMLLIElement>, key: string, day: string, update?: SessionUpdate) => {
+	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>, key: string, day: string, update?: SessionUpdate) => {
 		if (event.target !== event.currentTarget) return;
 		const index = nodes.indexOf(key);
 		switch (event.key) {
@@ -130,9 +130,9 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 			</p>
 			<TimelineScrollAnchor revision={revision}>
 				{newUpdate && <p className="py-2 text-xs text-agent">New update available. Use Go to latest update.</p>}
-				<ul ref={root} role="tree" aria-label="Update history" aria-describedby={helpId} className="min-w-0">
+				<div ref={root} role="tree" aria-label="Update history" aria-describedby={helpId} className="min-w-0">
 					{groups.map((group) => (
-						<li
+						<div
 							key={group.key}
 							role="treeitem"
 							aria-label={group.label}
@@ -146,11 +146,11 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 							onClick={(event) => {
 								if ((event.target as Element).closest('[role="treeitem"]') === event.currentTarget) toggle(group.key);
 							}}
-							className="outline-none focus-visible:[&>div]:outline-2 focus-visible:[&>div]:outline-accent"
+							className="outline-none focus-visible:[&>[data-row-head]]:outline-2 focus-visible:[&>[data-row-head]]:outline-accent"
 						>
 							<div
 								data-row-head
-								className="flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1 text-xs text-fg-muted hover:bg-fg/6 active:bg-fg/10 max-md:min-h-11"
+								className="flex min-h-8 scroll-mt-14 cursor-pointer items-center gap-2 rounded-sm px-1 text-xs text-fg-muted hover:bg-fg/6 active:bg-fg/10 max-md:min-h-11"
 							>
 								{closed.has(group.key) ? (
 									<CaretRight aria-hidden className="size-3" />
@@ -161,9 +161,10 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 								<span className="tabular text-fg-faint">{group.updates.length}</span>
 							</div>
 							{!closed.has(group.key) && (
-								<ul role="group" className="ms-3.5 border-s border-border-strong">
+								// biome-ignore lint/a11y/useSemanticElements: This group holds child tree items under their day.
+								<div role="group" className="ms-3.5 border-s border-border-strong">
 									{group.updates.map((update) => (
-										<li
+										<div
 											key={update.id}
 											role="treeitem"
 											aria-label={`${new Date(update.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}, ${updateTitle(update.body)}`}
@@ -178,11 +179,11 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 											onClick={(event) => {
 												if (!(event.target as Element).closest("article")) select(update);
 											}}
-											className="relative min-w-0 outline-none focus-visible:[&>div:first-child]:outline-2 focus-visible:[&>div:first-child]:outline-accent"
+											className="relative min-w-0 outline-none focus-visible:[&>[data-row-head]]:outline-2 focus-visible:[&>[data-row-head]]:outline-accent"
 										>
 											<div
 												data-row-head
-												className="relative flex min-h-11 cursor-pointer items-start rounded-sm py-2 ps-5 pe-1 hover:bg-fg/6 active:bg-fg/10 max-md:min-h-13 max-md:ps-7"
+												className="relative flex min-h-11 scroll-mt-14 cursor-pointer items-start rounded-sm py-2 ps-5 pe-1 hover:bg-fg/6 active:bg-fg/10 max-md:min-h-13 max-md:ps-7"
 											>
 												<span
 													aria-hidden
@@ -222,13 +223,13 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 													<UpdateContent update={update} renderMarkdown={renderMarkdown} onOpenLink={onOpenLink} />
 												</div>
 											)}
-										</li>
+										</div>
 									))}
-								</ul>
+								</div>
 							)}
-						</li>
+						</div>
 					))}
-				</ul>
+				</div>
 			</TimelineScrollAnchor>
 			{historyControl?.error && (
 				<FailureState

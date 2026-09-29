@@ -58,8 +58,14 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
+import {
+	finishSessionObserverGenerations,
+	finishSessionObserverRecovery,
+	prepareSessionObserverGenerations,
+	recoverSessionObserverGeneration,
+	setSessionObserverEnabled,
+} from "./sessionObserverGeneration";
 import { sessionObserverServices } from "./sessionObservers/registry";
-import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
@@ -74,7 +80,7 @@ import * as statuses from "./statuses.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } from "./systemUsage";
-import * as tickets from "./tickets.ts";
+import { ticketServices } from "./tickets/registry";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
@@ -103,8 +109,14 @@ export const services = {
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	...sessionObserverServices,
+	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
-	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
+	"sessionObservers.dispatch": prepared(
+		"mutation",
+		prepareSessionObserverGenerations,
+		finishSessionObserverGenerations,
+	),
+	"sessionObservers.recover": prepared("mutation", recoverSessionObserverGeneration, finishSessionObserverRecovery),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
@@ -198,21 +210,7 @@ export const services = {
 	"statuses.update": core("mutation", statuses.update),
 	"statuses.reorder": core("mutation", statuses.reorder),
 	"statuses.delete": core("mutation", statuses.delete),
-	"tickets.list": core("read", tickets.list),
-	"tickets.counts": core("read", tickets.counts),
-	"tickets.board": core("read", tickets.board),
-	"tickets.get": core("read", tickets.get),
-	"tickets.create": core("mutation", tickets.create),
-	"tickets.update": core("mutation", tickets.update),
-	"tickets.move": core("mutation", tickets.move),
-	"tickets.updateMany": core("mutation", tickets.updateMany),
-	"tickets.deleteMany": core("mutation", tickets.deleteMany),
-	"tickets.delete": core("mutation", tickets.delete),
-	"tickets.importContract": core("mutation", tickets.importContract),
-	"tickets.importDependencies": core("mutation", tickets.importDependencies),
-	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
-	"tickets.setContract": core("mutation", tickets.setContract),
-	"tickets.setOutcome": core("mutation", tickets.setOutcome),
+	...ticketServices,
 	"timeline.list": core("read", timeline.list),
 	"statistics.get": prepared("read", statistics.prepare, statistics.get),
 	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
@@ -270,6 +268,7 @@ export const services = {
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),
 	"actors.default": core("read", actors.default),
+	"settings.defaultActorName": core("read", settings.defaultActorName),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
 	"system.health": io("read", system.health),

@@ -32,9 +32,13 @@ export function FlowVersionDetails({ entry }: { entry: FlowDiscoveryEntry }) {
 					<span className="tabular-nums">{document.revision}</span>
 				</PropertyRow>
 				<PropertyRow label="Executable">
-					<span className="tabular-nums">{document.lastExecutablePublication?.revision ?? "None"}</span>
+					<span className="tabular-nums">
+						{document.engine === "legacy" ? "Legacy graph" : (document.lastExecutablePublication?.revision ?? "None")}
+					</span>
 				</PropertyRow>
-				<PropertyRow label="Publication">{publicationLabels[document.publication.state]}</PropertyRow>
+				<PropertyRow label="Publication">
+					{document.engine === "legacy" ? "Not required" : publicationLabels[document.publication.state]}
+				</PropertyRow>
 				<PropertyRow label="Compatibility">{compatibilityLabels[compatibility.state]}</PropertyRow>
 			</dl>
 			{document.lastExecutablePublication !== null &&

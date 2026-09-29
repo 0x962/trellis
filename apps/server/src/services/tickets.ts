@@ -2,6 +2,7 @@
 
 export { setContract } from "./tickets/contract.ts";
 export { create } from "./tickets/create.ts";
+export { dependencies } from "./tickets/dependencies";
 export { updateDependencies } from "./tickets/deps.ts";
 export { importContract } from "./tickets/importContract.ts";
 export { importDependencies } from "./tickets/importDeps.ts";
