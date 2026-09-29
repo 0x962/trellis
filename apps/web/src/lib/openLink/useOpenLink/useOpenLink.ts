@@ -14,11 +14,8 @@ export function useOpenLink() {
 		(url: string, press?: LinkPress) => {
 			const openTrellisRoute = async (href: string, linkPress?: LinkPress) => {
 				if (linkPress?.metaKey) {
-					// The browser tab store reads window.location and localStorage
-					// when its module loads. This hook is imported by page components
-					// whose fixtures render without a browser, so the store loads
-					// here, on the first press that opens a tab, and not with the
-					// module.
+					// pageTabsStore reads browser globals when its module loads. The
+					// dynamic import lets page fixtures load useOpenLink without them.
 					const { pageTabsActions } = await import("../../../stores/pageTabsStore");
 					pageTabsActions.addTab({ url: href, title: href });
 					await navigate({ href, replace: true });
