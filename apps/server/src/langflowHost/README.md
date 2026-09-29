@@ -148,3 +148,16 @@ Issuance does not settle the permit; composition retains it through engine deliv
 `readInitial(executionId)` returns the saved issuance record, or null if no issuance exists.
 Reconciliation uses this record after a crash before the database binds the grant.
 This read grants no authority to issue or dispatch under a changed owner.
+
+## Authority after cancellation
+
+`AuthorityPort.read` returns `canceled` from the durable cancellation intent.
+For a canceled execution, renewal and takeover require closed admission and issue only `execution.cancel`.
+A saved receipt with broader permissions cannot replay after cancellation.
+Takeover retains the closed barrier and original job.
+These operations do not change cancellation receipts, native stops, launch receipts, or deadlines.
+
+`AuthorityPort.commit` must recheck the cancellation intent under the execution lock.
+A canceled row accepts only cancellation authority and closed admission.
+The store must not enqueue admission when it commits that authority.
+An outage beyond the old grant expiry still requires current supervisor ownership and the normal renewal or takeover checks.
