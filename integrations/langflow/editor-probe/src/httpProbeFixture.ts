@@ -87,6 +87,19 @@ const schematicBody = JSON.stringify({
 });
 await expectStatus(await request("/api/trellis-editor/v1/document", { method: "PUT", body: schematicBody }), 403);
 
+const mismatchedNodeIdentity = structuredClone(langflowGraphFixture);
+mismatchedNodeIdentity.nodes[0]!.data.id = "another-node";
+const mismatchedIdentityBody = JSON.stringify({
+	flow: flowV1FixtureIds.flow,
+	expectedVersion: initialDocument.revision,
+	requestId: "cdcb941f-9c63-4577-be5c-de2d2b042039",
+	schemaVersion: 1,
+	engine: "langflow",
+	graphDocument: mismatchedNodeIdentity,
+	componentManifestHash: flowV1Digest,
+});
+await expectStatus(await request("/api/trellis-editor/v1/document", { method: "PUT", body: mismatchedIdentityBody }), 403);
+
 await expectStatus(await request("/__probe/lost-response-next", { method: "POST" }), 200);
 const firstRequestId = "b9e9b394-f091-41da-96ca-591b678aac83";
 const firstBody = JSON.stringify({

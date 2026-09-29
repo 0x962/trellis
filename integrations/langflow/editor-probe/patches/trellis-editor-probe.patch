@@ -415,6 +415,12 @@ diff --git a/src/pages/FlowPage/index.tsx b/src/pages/FlowPage/index.tsx
 index 52c2ade..9f20440 100644
 --- a/src/pages/FlowPage/index.tsx
 +++ b/src/pages/FlowPage/index.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useState } from "react";
++import { useCallback, useEffect, useState } from "react";
+ import { useHotkeys } from "react-hotkeys-hook";
+ import { useTranslation } from "react-i18next";
+ import { useBlocker, useParams } from "react-router-dom";
 @@ -14,6 +14,7 @@ import { useGetFlow } from "@/controllers/API/queries/flows/use-get-flow";
  import { useGetTypes } from "@/controllers/API/queries/flows/use-get-types";
  import { ENABLE_NEW_SIDEBAR } from "@/customization/feature-flags";
@@ -423,7 +429,39 @@ index 52c2ade..9f20440 100644
  import useApplyFlowToCanvas from "@/hooks/flows/use-apply-flow-to-canvas";
  import useSaveFlow from "@/hooks/flows/use-save-flow";
  import { useDocumentTitle } from "@/hooks/use-document-title";
-@@ -124,7 +125,7 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+@@ -27,6 +28,7 @@ import { usePlaygroundStore } from "@/stores/playgroundStore";
+ import { useShortcutsStore } from "@/stores/shortcuts";
+ import { useTypesStore } from "@/stores/typesStore";
++import type { FlowType } from "@/types/flow";
+ import { uiLocale } from "@/utils/format-date";
+ import { customStringify } from "@/utils/reactflowUtils";
+ import { cn } from "@/utils/utils";
+@@ -113,21 +115,32 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+   const saveFlow = useSaveFlow();
+
+   const flows = useFlowsManagerStore((state) => state.flows);
++  const setFlows = useFlowsManagerStore((state) => state.setFlows);
+   const currentFlowId = useFlowsManagerStore((state) => state.currentFlowId);
+
+   // Restore the Human Input awaiting-input badge after a reload (LE-1603 reconnect).
+   useRestoreCanvasHitl(currentFlowId);
+
+   const updatedAt = currentSavedFlow?.updated_at;
+   const autoSaving = useFlowsManagerStore((state) => state.autoSaving);
+   const stopBuilding = useFlowStore((state) => state.stopBuilding);
+
+   const { mutateAsync: getFlow } = useGetFlow();
+-  const applyFlowToCanvas = useApplyFlowToCanvas();
++  const applyLoadedFlowToCanvas = useApplyFlowToCanvas();
++  const applyFlowToCanvas = useCallback(
++    (flow: FlowType) => {
++      if (TRELLIS_EDITOR_PROBE) {
++        setFlows([flow]);
++      }
++      applyLoadedFlowToCanvas(flow);
++    },
++    [applyLoadedFlowToCanvas, setFlows],
++  );
 
    useLoadFlowForRoute({
      id,
@@ -432,7 +470,8 @@ index 52c2ade..9f20440 100644
      currentFlowId,
      types,
      getFlow,
-@@ -272,6 +273,33 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+
+@@ -272,6 +285,33 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
      setIsFullscreen,
    ]);
 

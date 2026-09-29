@@ -193,6 +193,7 @@ describe("editor behavior", () => {
 	test("prepares seven safe Langflow nodes with typed handles", () => {
 		expect(langflowGraphFixture.nodes).toHaveLength(componentKinds.length);
 		for (const node of langflowGraphFixture.nodes) {
+			expect(node.data.id).toBe(node.id);
 			expect(node.data.node.outputs[0]).toMatchObject({ name: "result", types: ["Text"] });
 			expect(Object.values(node.data.node.template).some((field) => field.input_types.includes("Text"))).toBeTrue();
 			expect(JSON.stringify(node)).not.toContain('"code"');

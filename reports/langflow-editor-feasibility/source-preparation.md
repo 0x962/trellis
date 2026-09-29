@@ -102,19 +102,23 @@ The worktree reuses dependencies from the canonical checkout because both lock f
 | `bun x --no-install tsc --noEmit -p integrations/langflow/editor-probe/tsconfig.json` | Exit 0 |
 | `bun x --no-install @biomejs/biome check integrations/langflow/editor-probe/src` | 13 files checked, no errors |
 
+These results predate the final flow-list and node-identity source fixes. Navid deferred the repeated checks until the complete Langflow merge.
+
 The pinned frontend baseline type check reports 253 diagnostics in 87 files. The rejected probe patch added no diagnostic key, location, or message.
 
 The comparison artifact has SHA256 `d93ad00e386eec4f3f0fd292e6bc9637f711d97ea22dc9b0bb35b4022910de16`.
 
-The current patch has SHA256 `263dd3566ca4f4515fae8bb4f398307a9c6ae7bcb39a779a8a05c691a1227345`. Its source manifest has SHA256 `381f1647550d114ea418a3780df8e6dc7f85e306973d65862afc6d5bbd16fa84`.
+The current patch has SHA256 `4006793d90fdae7e16e1fc6e6a97ed1c155c75a64ce851662a4a48a203375fc9`. Its source manifest has SHA256 `381f1647550d114ea418a3780df8e6dc7f85e306973d65862afc6d5bbd16fa84`.
 
-Pinned Biome 2.1.1 accepts all nine patch files. The Langflow repository root also accepts the patch with `git apply --recount --check --directory=src/frontend`.
+Pinned Biome 2.1.1 accepted all nine files in the predecessor patch. The Langflow repository root also accepted that predecessor patch.
+
+The final patch adds the flow-list initialization from source review. Navid deferred its apply check, lint, type check, build, and runtime proof.
 
 The gateway binds the submitted component manifest hash to the pinned hash. It rejects changes to component definitions under allowed type names. The HTTP write route accepts only the full Langflow graph shape. The schematic helper remains limited to source fixtures.
 
 The prior editor patch has SHA256 `a5f94d6e207b98be2a2a44e1e26b4d8d25f6b327108ebe8817ca639224941ab2`. The prior gateway source manifest has SHA256 `57852bd56f93a89b8bae795bd827ab3bd68d81b5c1d61744cb9dd027942d3a81`. The prior HTTP fixture manifest has SHA256 `17f4b2a0959b4a2a0b4190412870a4ced724b512a40a371deaaebd824bf73ca6`. TRL-667 retains those bytes in the `editor-a5f94d6e-snapshot` evidence directory.
 
-The corrected gateway source manifest has SHA256 `211e395e532d52fc8a34652a50f7b67b25d4cc7d74418348c555ccc8be20e62a`. The corrected HTTP fixture manifest has SHA256 `3e7f6a5612440cdf272c44942fbc122438bd4190e58f47267736cffe788c4d70`.
+The corrected gateway source manifest has SHA256 `f12c2c85903be8fb3fefb2807e5603c8507bea57dc04101bc6c19dfebd70fe99`. The corrected HTTP fixture manifest has SHA256 `c4e0c7d6e824e38d875fe8d0ed61697be5bf57c3d68b8bf73a1a9ba095765a39`.
 
 Navid directed integrated verification after the complete Langflow merge. The rule defers tests, builds, gateway listeners, HTTP probes, browser checks, and Review flows. No candidate process or listener runs.
 

@@ -47,11 +47,13 @@ const inputField = (name: string) => ({
 export const langflowGraphFixture = {
 	nodes: componentKinds.map((kind, index) => {
 		const fields = inspectorFields[kind];
+		const id = `${kind}-1`;
 		return {
-			id: `${kind}-1`,
+			id,
 			type: "genericNode",
 			position: { x: (index % 4) * 320, y: Math.floor(index / 4) * 300 },
 			data: {
+				id,
 				type: `Trellis${kind}`,
 				node: {
 					base_classes: ["Text"],
@@ -92,15 +94,21 @@ const langflowComponentTypes = componentKinds.map((kind) => `Trellis${kind}`) as
 
 export const LangflowGraphDocumentSchema = z.object({
 	nodes: z.array(
-		z.object({
-			id: z.string().min(1),
-			type: z.literal("genericNode"),
-			position: z.object({ x: z.number(), y: z.number() }),
-			data: z.object({
-				type: z.enum(langflowComponentTypes),
-				node: z.record(z.string(), z.json()),
+		z
+			.object({
+				id: z.string().min(1),
+				type: z.literal("genericNode"),
+				position: z.object({ x: z.number(), y: z.number() }),
+				data: z.object({
+					id: z.string().min(1),
+					type: z.enum(langflowComponentTypes),
+					node: z.record(z.string(), z.json()),
+				}),
+			})
+			.refine((node) => node.id === node.data.id, {
+				message: "The Langflow node identities do not match.",
+				path: ["data", "id"],
 			}),
-		}),
 	),
 	edges: z.array(z.record(z.string(), z.json())),
 	viewport: z.object({ x: z.number(), y: z.number(), zoom: z.number().positive() }).optional(),

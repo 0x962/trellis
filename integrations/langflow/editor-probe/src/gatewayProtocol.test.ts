@@ -155,6 +155,19 @@ describe("gateway prototype", () => {
 		expect(
 			gateway.dispatch(request({ method: "PUT", path: "/api/trellis-editor/v1/document", bodyText: schematicGraph })),
 		).toMatchObject({ status: 403, body: { error: "invalid_document" } });
+
+		const mismatchedNodeIdentity = structuredClone(langflowGraphFixture);
+		mismatchedNodeIdentity.nodes[0]!.data.id = "another-node";
+		const mismatchedIdentityGraph = saveBody({
+			expectedVersion: 2,
+			requestId: "cdcb941f-9c63-4577-be5c-de2d2b042039",
+			graphDocument: mismatchedNodeIdentity,
+		});
+		expect(
+			gateway.dispatch(
+				request({ method: "PUT", path: "/api/trellis-editor/v1/document", bodyText: mismatchedIdentityGraph }),
+			),
+		).toMatchObject({ status: 403, body: { error: "invalid_document" } });
 	});
 
 	test("rejects reads and a replay after the grant expires", () => {

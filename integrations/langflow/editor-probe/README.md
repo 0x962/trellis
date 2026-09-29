@@ -19,7 +19,7 @@ TRL-667 owns the process that runs these commands:
 ```sh
 env \
   TRL_EDITOR_ASSETS=/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-langflow-fec71dca-py312-macos-arm64/source/src/frontend/build \
-  TRL_EDITOR_EVIDENCE=/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-langflow-fec71dca-py312-macos-arm64/runs/TRL-672/gateway-263dd356-evidence.json \
+  TRL_EDITOR_EVIDENCE=/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-langflow-fec71dca-py312-macos-arm64/runs/TRL-672/gateway-4006793d-evidence.json \
   TRL_EDITOR_DEADLINE=2026-09-29T12:00:00Z \
   TRL_EDITOR_PORT=4172 \
   bun integrations/langflow/editor-probe/src/httpProbeServer.ts
