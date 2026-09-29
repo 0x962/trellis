@@ -22,7 +22,7 @@ const start = async () => {
 	const owner = existsSync(lock) ? JSON.parse(readFileSync(lock, "utf8")) : undefined;
 	writeFileSync(join(home, "desktop-service.pid"), String(process.pid), { mode: 0o600 });
 	await recordActiveRelease(home, release);
-	pruneReleases(join(userData, "releases"), [release.manifest.id, available.manifest.id]);
+	await pruneReleases(join(userData, "releases"), [release.manifest.id, available.manifest.id]);
 	process.execve!(join(root, "bin/bun"), [join(root, "bin/bun"), join(root, "apps/server/src/index.ts")], {
 		...process.env,
 		TRELLIS_EXECUTION_SHELL: userInfo().shell!,

@@ -25,6 +25,10 @@ No separate request or database session grants authority.
 This exception lets a committed stop close work from the revoked owner.
 Every other permission fails after revocation.
 A successor grant makes the old cancellation authority stale.
+`review.classify` authorizes classification for the exact saved execution, publication, job, and current capability.
+It does not authorize native reservation.
+`classification.deliver` authorizes the separate result delivery for the same exact identities.
+Neither classification permission grants the other action.
 
 The fragment also adds `LANGFLOW_SECRET_KEY_FILE` to the pinned `AuthSettings` boundary.
 The sidecar mounts the generated engine secret from a read-only Docker volume.

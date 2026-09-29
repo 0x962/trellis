@@ -51,3 +51,22 @@ test("retains a queued payload after a failed write", async () => {
 	).rejects.toThrow("closed");
 	expect(new InputLedger(path).queuedInputs()).toEqual([{ messageId: "request", data: "c3RhdHVz" }]);
 });
+
+test("long delivery keys replay once after restart and retain distinct suffixes", async () => {
+	const prefix = "broadcast_".repeat(2_000);
+	const key = `${prefix}a-recipient`;
+	const other = `${prefix}b-recipient`;
+	let ledger = new InputLedger(path);
+	let writes = 0;
+	const write = async () => {
+		writes++;
+	};
+	await Promise.all([ledger.deliver(key, "payload", write), ledger.deliver(key, "payload", write)]);
+	ledger = new InputLedger(path);
+	await ledger.deliver(key, "payload", write);
+	expect(writes).toBe(1);
+	await ledger.deliver(other, "payload", write);
+	expect(writes).toBe(2);
+	await expect(ledger.deliver(key, "changed", write)).rejects.toThrow("different bytes");
+	expect(writes).toBe(2);
+});

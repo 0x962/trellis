@@ -1,0 +1,439 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_handle.py b/src/backend/base/langflow/services/trellis_v1/occurrence_handle.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_handle.py
+@@ -0,0 +1,21 @@
++from typing import Literal
++
++from pydantic import BaseModel, ConfigDict
++
++from langflow.services.trellis_v1.native_protocol import Reference, Revision, Uuid, read_json
++
++
++class NativeHandle(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    version: Literal[1]
++    stepId: Reference
++    agentRunId: Reference
++    attemptId: Uuid
++    workspaceId: Reference | None
++    providerSessionId: Reference | None
++    state: Literal["reserved", "launching", "running", "waiting_native", "unknown", "succeeded", "failed", "canceled"]
++    revision: Revision
++
++
++def validate_handle(handle_bytes: str) -> None:
++    NativeHandle.model_validate(read_json(handle_bytes))
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py b/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
+@@ -0,0 +1,74 @@
++from __future__ import annotations
++
++import json
++from uuid import uuid4
++
++from .occurrence_models import VisitScope, canonical, validate_spec
++
++
++JOURNAL_KIND = "trellis-occurrences-v1"
++
++
++class OccurrenceConflict(ValueError):
++    pass
++
++
++class HumanRoundLimit(RuntimeError):
++    pass
++
++
++def allocate(journal: dict, vertex_id: str, scope: VisitScope, spec: dict, admission: dict, kind: str) -> dict:
++    key = scope.identity(vertex_id)
++    spec_hash = validate_spec(spec)
++    prior = journal["visits"].get(key)
++    if prior is not None:
++        if prior["specHash"] != spec_hash or prior["facts"] != scope.facts() or prior["kind"] != kind:
++            raise OccurrenceConflict("occurrence_replay_conflict")
++        return prior
++    journal["revision"] += 1
++    occurrence = scope.occurrence(spec["nodeId"], str(uuid4()))
++    binding = {field: admission[field] for field in ("executionId", "publicationId", "engineJobId", "engineEpoch")}
++    if kind == "native":
++        request = {"version": 1, **binding, **occurrence, "admissionReceipt": admission,
++                   "requestId": str(uuid4()), "specHash": spec_hash, **scope.facts()}
++    else:
++        request = {"version": 1, **binding, "occurrence": occurrence, "engineRequestId": str(uuid4()),
++                   "actionKey": str(uuid4()), "expectedRevision": journal["revision"],
++                   "deadlineRefs": list(scope.group_deadline_refs)}
++    visit = {"vertexId": vertex_id, "occurrence": occurrence, "revision": journal["revision"],
++             "specHash": spec_hash, "facts": scope.facts(), "kind": kind,
++             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None,
++             "feedback": [], "prior": []}
++    journal["visits"][key] = visit
++    return visit
++
++
++def external_wait(visit: dict) -> str:
++    wait = {"kind": visit["kind"], "waitId": visit["waitId"], "request": json.loads(visit["requestBytes"])}
++    if visit["kind"] == "native":
++        if visit["handleBytes"] is None:
++            raise OccurrenceConflict("native_handle_not_retained")
++        wait["handle"] = json.loads(visit["handleBytes"])
++    return canonical(wait)
++
++
++def replace_rejected(journal: dict, vertex_id: str, scope: VisitScope, spec: dict,
++                     admission: dict, decision: dict, max_rounds: int | None) -> tuple[str, dict]:
++    key = scope.identity(vertex_id)
++    prior = journal["visits"][key]
++    if prior["kind"] != "human" or decision["approved"] is not False:
++        raise OccurrenceConflict("human_rejection_required")
++    if decision["wait"] != json.loads(prior["requestBytes"]):
++        raise OccurrenceConflict("human_rejection_wait_conflict")
++    limit = max_rounds
++    if limit is not None and len(prior["feedback"]) + 1 >= limit:
++        prior["feedback"].append(decision)
++        prior["terminalError"] = "human_round_limit"
++        return external_wait(prior), prior
++    old_wait = external_wait(prior)
++    del journal["visits"][key]
++    replacement = allocate(journal, vertex_id, scope, spec, admission, "human")
++    replacement["feedback"] = [*prior["feedback"], decision]
++    replacement["prior"] = [*prior["prior"], {field: prior[field] for field in
++                            ("occurrence", "revision", "requestBytes", "waitId")}]
++    return old_wait, replacement
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_models.py b/src/backend/base/langflow/services/trellis_v1/occurrence_models.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_models.py
+@@ -0,0 +1,108 @@
++from __future__ import annotations
++
++import hashlib
++import json
++from dataclasses import dataclass
++from typing import Literal
++
++from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
++
++
++class Harness(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    preset: Literal["claude", "codex", "opencode", "pi", "muse", "custom"]
++    startCommand: StrictStr
++    resumeCommand: StrictStr
++    model: StrictStr | None = None
++    effort: StrictStr | None = None
++
++    @model_validator(mode="before")
++    @classmethod
++    def optional_strings(cls, value):
++        for field in ("model", "effort"):
++            if field in value and value[field] is None:
++                raise ValueError(f"{field}_must_be_absent_or_string")
++        return value
++
++
++class RequestSpec(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    nodeId: StrictStr
++    taskKeyBase: StrictStr
++    name: StrictStr
++    instruction: StrictStr
++    harness: Harness | None
++    accountId: StrictStr | None = None
++
++    @model_validator(mode="before")
++    @classmethod
++    def optional_account(cls, value):
++        if "accountId" in value and value["accountId"] is None:
++            raise ValueError("accountId_must_be_absent_or_string")
++        return value
++
++
++def canonical(value: object) -> str:
++    def ordered(item):
++        if isinstance(item, list):
++            return [ordered(child) for child in item]
++        if isinstance(item, dict):
++            def key_order(key):
++                index = key.isascii() and key.isdigit() and str(int(key)) == key and int(key) < 4294967295
++                return (0, int(key)) if index else (1, key.encode("utf-16-be", errors="surrogatepass"))
++            return {key: ordered(item[key]) for key in sorted(item, key=key_order)}
++        return item
++    text = json.dumps(ordered(value), ensure_ascii=False, separators=(",", ":"), allow_nan=False)
++    return "".join(f"\\u{ord(char):04x}" if 0xD800 <= ord(char) <= 0xDFFF else char for char in text)
++
++
++def digest(text: str) -> str:
++    return hashlib.sha256(text.encode("utf-8")).hexdigest()
++
++
++def validate_spec(value: dict) -> str:
++    RequestSpec.model_validate(value)
++    return digest(canonical(value))
++
++
++def task_key(spec: dict, occurrence: dict) -> str:
++    return canonical([spec["taskKeyBase"], occurrence["nodeId"], occurrence["parentOccurrenceKey"],
++                      occurrence["phase"], [[item["loopNodeId"], item["round"]]
++                                            for item in occurrence["iterationPath"]]])
++
++
++@dataclass(frozen=True)
++class Iteration:
++    loop_node_id: str
++    round: int
++
++
++@dataclass(frozen=True)
++class VisitScope:
++    parent_occurrence_key: str | None
++    phase: Literal["step", "children", "condition"]
++    iteration_path: tuple[Iteration, ...]
++    input_receipt_ids: tuple[str, ...]
++    group_deadline_refs: tuple[str, ...]
++    deadline_at: str | None
++
++    @classmethod
++    def from_engine(cls, value: dict) -> VisitScope:
++        return cls(value["parentOccurrenceKey"], value["phase"],
++                   tuple(Iteration(item["loopNodeId"], item["round"]) for item in value["iterationPath"]),
++                   tuple(value["inputReceiptIds"]), tuple(value["groupDeadlineRefs"]), value["deadlineAt"])
++
++    def occurrence(self, node_id: str, key: str) -> dict:
++        return {
++            "nodeId": node_id, "occurrenceKey": key,
++            "parentOccurrenceKey": self.parent_occurrence_key, "phase": self.phase,
++            "iterationPath": [{"loopNodeId": item.loop_node_id, "round": item.round} for item in self.iteration_path],
++        }
++
++    def identity(self, vertex_id: str) -> str:
++        return digest(canonical([vertex_id, self.parent_occurrence_key, self.phase,
++                                 [[item.loop_node_id, item.round] for item in self.iteration_path]]))
++
++    def facts(self) -> dict:
++        return {"inputReceiptIds": list(self.input_receipt_ids),
++                "groupDeadlineRefs": list(self.group_deadline_refs), "deadlineAt": self.deadline_at}
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py b/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
+@@ -0,0 +1,90 @@
++from __future__ import annotations
++
++import json
++
++from langflow.services.deps import get_job_service, session_scope
++from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroker
++from langflow.services.trellis_v1.native_records import request_kind
++
++from .occurrence_handle import validate_handle
++from .occurrence_journal import HumanRoundLimit, OccurrenceConflict, allocate, external_wait, replace_rejected
++from .occurrence_models import VisitScope, canonical
++from .occurrence_store import authorize_native, locked_context, save_blob, save_journal, save_wait
++from .occurrence_transport import request_transport
++
++
++async def request_native(graph, vertex_id: str, scope: VisitScope) -> str:
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, spec, journal = await locked_context(session, graph, vertex_id)
++            if spec["harness"] is None:
++                raise OccurrenceConflict("native_harness_not_resolved")
++            visit = allocate(journal, vertex_id, scope, spec, admission, "native")
++            capability_id = await authorize_native(session, job_id, admission)
++            await get_job_service().save_checkpoint_once_in_session(
++                session, job_id, request_kind(visit["waitId"]), visit["requestBytes"],
++            )
++            await save_journal(session, job_id, journal)
++            await save_blob(session, job_id, "graph", graph.build_checkpoint().model_dump_json())
++            await session.commit()
++    handle_bytes = visit["handleBytes"]
++    if handle_bytes is None:
++        handle_bytes = await request_transport().reserve(visit["requestBytes"], capability_id)
++        validate_handle(handle_bytes)
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, spec, journal = await locked_context(session, graph, vertex_id)
++            retained = allocate(journal, vertex_id, scope, spec, admission, "native")
++            if retained["requestBytes"] != visit["requestBytes"] or retained["waitId"] != visit["waitId"]:
++                raise OccurrenceConflict("native_request_identity_conflict")
++            if retained["handleBytes"] is not None and retained["handleBytes"] != handle_bytes:
++                raise OccurrenceConflict("native_handle_replay_conflict")
++            retained["handleBytes"] = handle_bytes
++            wait_bytes = external_wait(retained)
++            await save_journal(session, job_id, journal)
++            waits = await save_wait(session, job_id, graph, wait_bytes)
++            await session.commit()
++        graph.external_waits = waits
++    return wait_bytes
++
++
++async def run_native_visit(graph, vertex_id: str, scope: VisitScope) -> dict:
++    wait_bytes = await request_native(graph, vertex_id, scope)
++    await graph.await_external_completion(wait_bytes)
++    delivery = await TrellisExternalWaitBroker(get_job_service()).delivery_for(graph, wait_bytes)
++    if delivery is None:
++        raise OccurrenceConflict("native_delivery_not_retained")
++    return json.loads(delivery)["result"]
++
++
++async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_rounds: int | None) -> dict:
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, spec, journal = await locked_context(session, graph, vertex_id)
++            visit = allocate(journal, vertex_id, scope, spec, admission, "human")
++            if "maxRounds" in visit and visit["maxRounds"] != max_rounds:
++                raise OccurrenceConflict("human_round_policy_conflict")
++            visit["maxRounds"] = max_rounds
++            if "terminalError" in visit:
++                raise HumanRoundLimit(visit["terminalError"])
++            wait_bytes = external_wait(visit)
++            request = json.loads(visit["requestBytes"])
++            decision = getattr(graph, "human_input_decisions", {}).get(request["engineRequestId"])
++            if decision is not None and decision["wait"] != request:
++                raise OccurrenceConflict("human_decision_wait_conflict")
++            replacing = None
++            if decision is not None and decision["approved"] is False:
++                replacing, visit = replace_rejected(journal, vertex_id, scope, spec, admission, decision, max_rounds)
++                visit["maxRounds"] = max_rounds
++                wait_bytes = external_wait(visit)
++            await save_journal(session, job_id, journal)
++            waits = await save_wait(session, job_id, graph, wait_bytes, replacing=replacing)
++            await session.commit()
++        graph.external_waits = waits
++    if "terminalError" in visit:
++        raise HumanRoundLimit(visit["terminalError"])
++    if decision is not None and decision["approved"] is True:
++        await graph.complete_external_wait(wait_bytes, canonical(decision))
++        return decision
++    await graph.await_external_completion(wait_bytes)
++    raise OccurrenceConflict("human_wait_completed_without_decision")
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_store.py b/src/backend/base/langflow/services/trellis_v1/occurrence_store.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_store.py
+@@ -0,0 +1,86 @@
++from __future__ import annotations
++
++import json
++from datetime import datetime, timezone
++from uuid import UUID
++
++import sqlalchemy as sa
++from sqlmodel import select
++
++from langflow.services.database.models.jobs.model import Job, JobStatus
++from langflow.services.trellis_publications.contracts import PublicationRequest
++from langflow.services.trellis_publications.ledger import publications
++from langflow.services.trellis_v1.authority import read_authority, require_authority
++from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
++from langflow.services.trellis_v1.native_records import add_checkpoint, checkpoint
++
++from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict
++from .occurrence_models import canonical
++
++
++async def locked_context(session, graph, vertex_id: str):
++    job_id = UUID(str(graph.job_id))
++    graph.get_vertex(vertex_id)
++    job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
++    if job.status not in {JobStatus.IN_PROGRESS, JobStatus.SUSPENDED, JobStatus.QUEUED}:
++        raise OccurrenceConflict("occurrence_job_not_active")
++    correlation = (await session.exec(select(TrellisJobCorrelation).where(
++        TrellisJobCorrelation.engine_job_id == job_id))).one()
++    if correlation.admission_receipt_bytes is None:
++        raise OccurrenceConflict("occurrence_admission_closed")
++    admission = json.loads(correlation.admission_receipt_bytes)
++    publication = (await session.execute(sa.select(publications).where(
++        publications.c.engine_flow_id == job.flow_id))).one()
++    document = PublicationRequest.model_validate_json(publication.request_bytes)
++    document.source()
++    if (publication.receipt["publicationId"] != admission["publicationId"]
++            or correlation.execution_id != admission["executionId"]
++            or admission["engineJobId"] != str(job_id)):
++        raise OccurrenceConflict("occurrence_publication_conflict")
++    spec = document.snapshot["graphDocument"]["trellisRequestSpecsV1"][vertex_id]
++    stored = await checkpoint(session, job_id, JOURNAL_KIND)
++    journal = {"revision": 0, "visits": {}} if stored is None else json.loads(stored.blob)
++    return job_id, admission, spec, journal
++
++
++async def authorize_native(session, job_id, admission) -> str:
++    state = await read_authority(session, admission["executionId"])
++    if state is None or state.binding is None:
++        raise OccurrenceConflict("occurrence_authority_absent")
++    binding = await require_authority(
++        session, state.binding.authority_bytes, "native.reserve",
++        execution_id=admission["executionId"], publication_id=admission["publicationId"], engine_job_id=job_id,
++    )
++    return binding.authority.capability_id
++
++
++async def save_journal(session, job_id, journal) -> None:
++    await save_blob(session, job_id, JOURNAL_KIND, canonical(journal))
++
++
++async def save_blob(session, job_id, kind: str, blob: str) -> None:
++    prior = await checkpoint(session, job_id, kind)
++    if prior is None:
++        add_checkpoint(session, job_id, kind, blob)
++    else:
++        prior.blob = blob
++        prior.updated_at = datetime.now(timezone.utc)
++        session.add(prior)
++    await session.flush()
++
++
++async def save_wait(session, job_id, graph, wait_bytes: str, *, replacing: str | None = None) -> dict:
++    snapshot = graph.build_checkpoint()
++    waits = dict(snapshot.external_waits)
++    if replacing is not None:
++        old_id = json.loads(replacing)["waitId"]
++        if waits.get(old_id) != replacing:
++            raise OccurrenceConflict("occurrence_wait_replacement_conflict")
++        del waits[old_id]
++    wait_id = json.loads(wait_bytes)["waitId"]
++    if wait_id in waits and waits[wait_id] != wait_bytes:
++        raise OccurrenceConflict("occurrence_wait_bytes_conflict")
++    waits[wait_id] = wait_bytes
++    snapshot.external_waits = waits
++    await save_blob(session, job_id, "graph", snapshot.model_dump_json())
++    return waits
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_transport.py b/src/backend/base/langflow/services/trellis_v1/occurrence_transport.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_transport.py
+@@ -0,0 +1,30 @@
++from dataclasses import dataclass
++from pathlib import Path
++
++from integrations.langflow.components.catalog.nativeRequest.nativeRequest import request_native_attempt
++
++
++@dataclass(frozen=True)
++class RequestTransport:
++    origin: str
++    authentication_file: Path
++
++    async def reserve(self, request_bytes: str, capability_id: str) -> str:
++        return await request_native_attempt(
++            request_bytes, origin=self.origin, authentication_file=self.authentication_file,
++            capability_id=capability_id,
++        )
++
++
++_transport: RequestTransport | None = None
++
++
++def install_request_transport(*, origin: str, authentication_file: Path) -> None:
++    global _transport
++    _transport = RequestTransport(origin, authentication_file)
++
++
++def request_transport() -> RequestTransport:
++    if _transport is None:
++        raise RuntimeError("native_request_transport_not_installed")
++    return _transport

@@ -3,14 +3,14 @@
   "after": "8c0f2d5b3e7a",
   "migration": "9d1a3e6c4f8b",
   "patch": "0001-shared-engine-api.patch",
-  "sha256": "b977c5cb008efcb5f259328be5b156afcd69c49054f7ee2c192f749df52345b5",
+  "sha256": "baf63c24ffc0932432379a61d3d8ab158dcc6bd3b59875c73e7dfa93159f3497",
   "files": {
     "src/backend/base/langflow/alembic/versions/9d1a3e6c4f8b_add_trellis_delivery_authorities.py": "21ecad2ad14fd0e2083c42428b6918cada9b8bb26e44edd176e466e27f513a2b",
-    "src/backend/base/langflow/services/trellis_v1/authority.py": "65f690f6f78347b01f3b582f08502632f4bd81b17ec5e10281947a59701d87c9",
+    "src/backend/base/langflow/services/trellis_v1/authority.py": "ca64937030ce2062619e4e738871fb3f1c0440bef7de4ec187cfb88bf68c82e7",
     "src/backend/base/langflow/services/trellis_v1/engine_api.py": "43e1b7c18e2c81c1f97806d6273701fec61b38c824bcc57eb2635e40d0e01b10",
     "src/lfx/src/lfx/services/settings/auth.py": "c8d1c6f83253d955a3bea8a66ff8c78b88373cb7fc23bfabb0573896a2a46bde"
   },
   "tests": {
-    "tests/test_engine_api.py": "e518159480faabe6d71e52778d0d98886aeb6325dacd38a19403452ae16732c0"
+    "tests/test_engine_api.py": "8894cd47956971b45fe5a6b33d912fcb6637f159d0f085c6066ac8e8a634c216"
   }
 }

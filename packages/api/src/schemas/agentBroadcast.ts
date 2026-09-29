@@ -26,7 +26,6 @@ export const AgentBroadcastInputSchema = z.strictObject({
 	requestId: z
 		.string()
 		.min(1)
-		.max(80)
 		.regex(/^[a-zA-Z0-9_-]+$/),
 });
 export type AgentBroadcastInput = z.infer<typeof AgentBroadcastInputSchema>;

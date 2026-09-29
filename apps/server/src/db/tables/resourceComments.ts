@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { type AnyPgColumn, boolean, check, foreignKey, index, pgTable, text } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, boolean, check, foreignKey, index, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, actors, at } from "./actors.ts";
 import { epicResources } from "./epicResources.ts";
 
@@ -30,6 +30,7 @@ export const resourceComments = pgTable(
 		suffix: text(),
 		textRemoved: boolean("text_removed").notNull().default(false),
 		resolvedAt: at("resolved_at"),
+		resolvedById: uuid("resolved_by_id"),
 		resolvedByName: text("resolved_by_name"),
 		resolvedByKind: text("resolved_by_kind"),
 		...actorColumns(),
@@ -40,8 +41,8 @@ export const resourceComments = pgTable(
 		actorFk("resource_comments_actor_fk", t),
 		foreignKey({
 			name: "resource_comments_resolved_by_fk",
-			columns: [t.resolvedByName, t.resolvedByKind],
-			foreignColumns: [actors.name, actors.kind],
+			columns: [t.resolvedById],
+			foreignColumns: [actors.id],
 		}),
 		check("resource_comments_body_check", sql`length(${t.body}) >= 1`),
 		check(
@@ -56,7 +57,9 @@ export const resourceComments = pgTable(
 		),
 		check(
 			"resource_comments_resolved_check",
-			sql`(${t.resolvedAt} IS NULL) = (${t.resolvedByName} IS NULL) AND (${t.resolvedAt} IS NULL) = (${t.resolvedByKind} IS NULL)`,
+			sql`(${t.resolvedAt} IS NULL) = (${t.resolvedByName} IS NULL)
+				AND (${t.resolvedAt} IS NULL) = (${t.resolvedByKind} IS NULL)
+				AND (${t.resolvedAt} IS NULL) = (${t.resolvedById} IS NULL)`,
 		),
 		index("resource_comments_resource_id_idx").on(t.resourceId, t.createdAt),
 		index("resource_comments_thread_id_idx").on(t.threadId),

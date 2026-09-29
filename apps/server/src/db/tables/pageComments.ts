@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { check, foreignKey, index, integer, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, actors, at } from "./actors.ts";
 import { pageVersions } from "./pageVersions.ts";
 
@@ -14,6 +14,7 @@ export const pageCommentThreads = pgTable(
 		selectedText: text("selected_text"),
 		...actorColumns(),
 		resolvedAt: at("resolved_at"),
+		resolvedById: uuid("resolved_by_id"),
 		resolvedByName: text("resolved_by_name"),
 		resolvedByKind: text("resolved_by_kind"),
 		createdAt: at("created_at").notNull(),
@@ -30,8 +31,8 @@ export const pageCommentThreads = pgTable(
 		actorFk("page_comment_threads_actor_fk", t),
 		foreignKey({
 			name: "page_comment_threads_resolved_by_fk",
-			columns: [t.resolvedByName, t.resolvedByKind],
-			foreignColumns: [actors.name, actors.kind],
+			columns: [t.resolvedById],
+			foreignColumns: [actors.id],
 		}),
 		check("page_comment_threads_anchor_kind_check", sql`${t.anchorKind} IN ('element', 'text')`),
 		check(
@@ -49,7 +50,8 @@ export const pageCommentThreads = pgTable(
 		check(
 			"page_comment_threads_resolved_check",
 			sql`(${t.resolvedAt} IS NULL) = (${t.resolvedByName} IS NULL)
-				AND (${t.resolvedAt} IS NULL) = (${t.resolvedByKind} IS NULL)`,
+				AND (${t.resolvedAt} IS NULL) = (${t.resolvedByKind} IS NULL)
+				AND (${t.resolvedAt} IS NULL) = (${t.resolvedById} IS NULL)`,
 		),
 		index("page_comment_threads_page_version_created_idx").on(t.pageId, t.version, t.createdAt, t.id),
 		index("page_comment_threads_open_idx").on(t.pageId, t.createdAt, t.id).where(sql`${t.resolvedAt} IS NULL`),

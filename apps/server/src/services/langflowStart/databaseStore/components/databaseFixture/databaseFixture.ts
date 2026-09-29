@@ -51,7 +51,7 @@ export async function databaseFixture() {
 	const diff = await run((tx) => ensurePr(tx, "example/start#1"));
 	await db.execute(sql`UPDATE pull_requests SET head_sha=${"a".repeat(40)} WHERE id=${diff.id}`);
 	await db.execute(
-		sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at) VALUES (${ticket.id},${diff.id},'manual','test','human',${at})`,
+		sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id) VALUES (${ticket.id},${diff.id},'manual','test','human',${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'test']::text[]))`,
 	);
 	const sample = fixture().initial;
 	const sourceBytes = Buffer.from("immutable fixture graph");

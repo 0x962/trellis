@@ -159,8 +159,8 @@ export async function fixture() {
 		const url = `https://github.com/o/r/pull/${++number}`;
 		await db.execute(sql`INSERT INTO pull_requests (id,owner,repo,number,url,state,head_sha,created_at,updated_at)
 			VALUES (${prId},'o','r',${number},${url},'open','head',${at},${at})`);
-		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
-			VALUES (${ticket.id},${prId},'manual','qa','human',${at})`);
+		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id)
+			VALUES (${ticket.id},${prId},'manual','qa','human',${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[]))`);
 		await ctx.newTx((tx) =>
 			enqueueNoticeDeliveries(tx, {
 				prId,

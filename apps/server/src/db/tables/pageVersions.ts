@@ -45,6 +45,6 @@ export const pageVersions = pgTable(
 		),
 		index("page_versions_document_sha256_idx").on(t.documentSha256),
 		index("page_versions_source_agent_id_idx").on(t.sourceAgentId),
-		index("page_versions_actor_created_at_idx").on(t.actorKind, t.actorName, t.createdAt.desc().nullsFirst()),
+		index("page_versions_actor_created_at_idx").on(t.actorId, t.createdAt.desc().nullsFirst()),
 	],
 );

@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { withAuthorityPermit } from "../fixtures/authorityPermit";
 import { manifest } from "../fixtures/manifest";
 import { supervisorFixture } from "../fixtures/supervisorFixture";
 import { LangflowSupervisor } from "./supervisor";
@@ -31,9 +32,11 @@ test("a restart retains private data and replaces the exact previous process", a
 	const data = join(fixture.home, "langflow", "data", "receipt.json");
 	await writeFile(data, '{"deadlineAt":"2026-09-29T10:15:00.000Z","receiptId":"original"}');
 	await first.shutdown();
+	const revocation = fixture.revocations.get(live.identity.ownerId);
 	const second = await fixture.open();
 	try {
 		const replacement = await second.start();
+		expect(fixture.revocations.get(live.identity.ownerId)).toEqual(revocation);
 		expect(replacement.identity.ownerId).not.toBe(live.identity.ownerId);
 		expect(await readFile(data, "utf8")).toBe('{"deadlineAt":"2026-09-29T10:15:00.000Z","receiptId":"original"}');
 		expect([...fixture.processes.values()].filter((process) => process.state === "running")).toHaveLength(1);
@@ -51,12 +54,14 @@ test("a stale observation cannot renew or publish", async () => {
 	try {
 		await expect(supervisor.withHealthyEngine(async () => "published")).rejects.toThrow("observation_mismatch");
 		await expect(
-			supervisor.renew({
-				executionId: "execution-1",
-				requestId: crypto.randomUUID(),
-				expectedRevision: 1,
-				expiresAt: "2026-09-29T11:00:00.000Z",
-			}),
+			supervisor.renew(
+				withAuthorityPermit({
+					executionId: "execution-1",
+					requestId: crypto.randomUUID(),
+					expectedRevision: 1,
+					expiresAt: "2026-09-29T11:00:00.000Z",
+				}),
+			),
 		).rejects.toThrow("observation_mismatch");
 		expect(fixture.receipts.size).toBe(0);
 	} finally {

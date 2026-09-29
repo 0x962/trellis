@@ -88,6 +88,11 @@ export function FlowCancelDialog({
 						: "Cancellation result unknown. Wait for the saved result."}
 				</p>
 			)}
+			{"schemaVersion" in execution && cancel.request?.phase === "unknown" && status !== "canceled" && (
+				<Button type="button" disabled={recovery} onClick={() => !recovery && cancel.replay()}>
+					Retry original request
+				</Button>
+			)}
 			{cancel.request?.error && (
 				<div role="alert">
 					<FailureState title="The cancellation request did not complete" detail={cancel.request.error} />

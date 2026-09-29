@@ -59,7 +59,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/authority.py b/src/ba
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/authority.py
-@@ -0,0 +1,264 @@
+@@ -0,0 +1,266 @@
 +from __future__ import annotations
 +
 +import hashlib
@@ -78,9 +78,11 @@ new file mode 100644
 +    "native.reserve",
 +    "native.read",
 +    "completion.deliver",
++    "classification.deliver",
 +    "decision.deliver",
 +    "events.append",
 +    "execution.cancel",
++    "review.classify",
 +]
 +REFERENCE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]*$"
 +

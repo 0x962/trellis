@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ActorKindSchema, StoredActorKindSchema } from "./enums.ts";
 import { IsoDateTimeSchema } from "./primitives.ts";
 
-const ActorNameSchema = z.string().min(1).max(64);
+const ActorNameSchema = z.string().min(1);
 
 // Only a name and a kind are stored about a person or an agent. The poller
 // and the internal batches act as `system:trellis`, so a stored ref carries

@@ -4,10 +4,7 @@ import { ProjectColorSchema } from "./enums.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
 
-const ProjectNameSchema = z
-	.string()
-	.min(1, "Enter a project name of 1 to 120 characters.")
-	.max(120, "Enter a project name of 1 to 120 characters.");
+const ProjectNameSchema = z.string().min(1, "Enter a project name.");
 
 // The project fields a ticket row carries. `key` is the canonical project
 // ref and the prefix of every ticket identifier of the project.

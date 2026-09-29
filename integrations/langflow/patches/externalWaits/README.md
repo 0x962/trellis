@@ -117,7 +117,7 @@ TRL-669 owns both service consumers, both drains, retained decision lookup, star
 The queue helper returns one `DispatchDisposition`:
 
 ```python
-DispatchDisposition = Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]
+DispatchDisposition = Literal["dispatched", "execution_proven", "pending_lease", "capture_paused", "cancelled"]
 
 async def _enqueue_queued_continuation(
 	self,
@@ -131,6 +131,7 @@ async def _enqueue_queued_continuation(
 - `dispatched`: the executor accepted the job, and the service stored the exact receipt under `trellis-dispatch-v1:<enqueueObligationId>`;
 - `execution_proven`: the durable job state binds the exact continuation signal to the runner;
 - `pending_lease`: a fresh QUEUED lease blocked dispatch;
+- `capture_paused`: the active capture grant blocked dispatch and left the durable obligation pending;
 - `cancelled`: the job is canceled while the exact continuation signal remains unconsumed.
 
 A QUEUED row, lease, or continuation receipt does not prove execution.
@@ -232,6 +233,73 @@ A new envelope fails when cancellation or another terminal status already owns t
 The queue path holds the Job lock through cancellation inspection, lease claim, executor submission, and dispatch receipt storage.
 The runner consumes a STOP without replacing a completed, failed, or timed-out status.
 The initial queue path and every continuation use the same Langflow executor.
+
+## Capture writer boundary
+
+Apply `0005-capture-boundary-writer-hooks.patch` after the complete TRL-970 backend series and its capture boundary.
+Apply the private engine startup patch after `0005`.
+
+Startup calls this interface immediately after it constructs `CaptureBoundary`:
+
+```python
+def install_capture_boundary(boundary: CaptureBoundary) -> None
+```
+
+The installed boundary guards every concrete `DatabaseService` session.
+`JobRunner.run` also holds one writer admission for the full graph pass because one pass spans several transactions.
+An active durable capture grant raises `CapturePaused` before a new session or graph pass starts.
+
+The initial queue, continuation queue, and all obligation consumers retain their durable work when capture blocks dispatch.
+They do not store a dispatch receipt or mark an obligation consumed.
+The background service exposes this recovery interface:
+
+```python
+async def resume_after_capture(self) -> None
+```
+
+The capture revoke caller awaits `resume_after_capture()` before it returns its response.
+
+## Review classification continuation
+
+Apply `0006-review-classification-continuation.patch` after the complete backend series.
+The patch adds `review` as an explicit external-wait kind.
+It does not use a native attempt or a human decision record.
+
+The Python protocol module exports these strict readers:
+
+```python
+read_review_visit(value: str) -> ReviewClassificationVisit
+read_review_response(value: str) -> ReviewClassificationResponse
+read_review_wait(value: str) -> ReviewExternalWait
+read_review_delivery(value: str) -> ReviewClassificationDelivery
+serialize_review_response(value: ReviewClassificationResponse) -> str
+```
+
+The review ledger exports this interface:
+
+```python
+async def accept(self, payload: ReviewDeliveryInput, authorize) -> dict
+async def read_result(self, *, engine_job_id: UUID, engine_request_id: str) -> bytes | None
+async def pending(self) -> list[dict]
+async def mark_consumed(self, obligation: dict, continuation_receipt_bytes: bytes) -> None
+```
+
+`ReviewDeliveryInput` contains `engineWaitId`, `resultBytes`, `deliveryBytes`, and `authorityBytes` as bytes.
+The ledger rejects `claimed` results.
+It accepts one terminal response for each exact saved review wait.
+An equal delivery replay validates the retained acceptance after the graph consumes that wait.
+It stores the exact result and delivery bytes with the RESUME signal and queue obligation in one transaction.
+
+`BackgroundExecutionService.consume_review_classification_obligation` uses the existing external-completion signal.
+It marks the obligation only after `dispatched` or `execution_proven`.
+The startup drain retries each retained obligation through the same queue writer.
+
+Concurrent review visits can share one host classification receipt.
+The host delivers one terminal response for each exact saved visit.
+Each accepted response resumes only its saved occurrence.
+The method runs the existing orphan sweep and obligation drains once.
+If a durable capture grant remains active, the writer guard keeps recovery deferred.
+No capture hook adds a queue, poller, graph scheduler, or retry loop.
 
 TRL-674 owns the combined patch series.
 

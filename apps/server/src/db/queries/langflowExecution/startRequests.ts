@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { flowExecutions } from "../../tables/flowExecutions";
 import {
 	langflowExecutionProjections,
@@ -12,11 +12,7 @@ export async function readStartRequest(tx: Tx, input: StartRequestIdentity) {
 		.select()
 		.from(requests)
 		.where(
-			and(
-				eq(requests.actorKind, input.actorKind),
-				eq(requests.actorName, input.actorName),
-				eq(requests.requestId, input.requestId),
-			),
+			sql`ARRAY[${requests.actorKind}, ${requests.actorName}, ${requests.requestId}] = ARRAY[${input.actorKind}, ${input.actorName}, ${input.requestId}]`,
 		);
 	return row
 		? {
@@ -32,6 +28,12 @@ export async function saveStartRequest(
 	tx: Tx,
 	input: StartRequestIdentity & { requestBytes: string; executionId: string },
 ) {
+	const prior = await readStartRequest(tx, input);
+	if (prior) {
+		if (prior.requestBytes !== input.requestBytes || prior.executionId !== input.executionId)
+			throw new Error("identity_conflict");
+		return prior;
+	}
 	const [langflowExecution] = await tx
 		.select({ id: langflowExecutions.executionId })
 		.from(langflowExecutions)

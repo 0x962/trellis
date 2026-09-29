@@ -1,0 +1,1 @@
+export { qualificationFixture } from "./qualificationFixture";

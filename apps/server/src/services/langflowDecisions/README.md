@@ -38,9 +38,22 @@ TRL-689 owns the saved projection and engine checkpoint.
 `commitProjection` stores the original checkpoint with the public view.
 `record` reads that checkpoint through `readCheckpoint` under the execution lock.
 The engine compares the original wait across a restart.
-TRL-696 owns the engine transport, route composition, and recovery worker.
+TRL-696 owns route composition and recovery registration.
 Its human handler calls `record` with the existing public decision fields.
-Its worker enumerates decision items through `listPendingDeliveries` and calls `deliverDecision`.
+The host constructs `decisionConnection` with ServiceTransport, supervisor, engine transport, gate, archive, abort signal, and logger.
+It calls `committed({ executionId })` after the decision transaction commits.
+It calls `recover()` at startup and during serialized recovery ticks.
+TRL-696 registers `langflowDecisions.state` as an internal core mutation service through `decisionState`.
+That service requires a system actor and owns every database read, preparation, authority check, and acknowledgement transaction.
+The host retains the supervisor, HTTP client, dispatch permits, and receipt archive.
+The connection uses keyset pages over the existing decision outbox, including acknowledged rows with unsettled permits.
+`decisionEngine` uses EngineClient for `/trellis-v1/decisions/lookup` and `/trellis-v1/decisions/accept`.
+It preserves original decision bytes and reads exact issued authority bytes from the receipt archive.
+Lookup can reconcile an earlier acceptance after cancellation or authority expiry.
+A new acceptance requires current supervisor ownership and a fresh database authority check.
+An unknown acknowledgement retains the outbox and dispatch permit.
+Only a confirmed acceptance settles the permit.
+The host supplies authority renewal and engine control before another mutation.
 The handler returns a versioned view.
 The legacy decision endpoint retains its strict legacy response contract.
 

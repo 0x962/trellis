@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { migrate as runMigrations } from "drizzle-orm/pglite/migrator";
 import { type Db, openDb } from "../client";
-import { migrate } from "../migrate";
 import { cases, type LimitCase } from "./cases";
 import { seed } from "./seed";
 
@@ -63,7 +62,14 @@ test("0138 preserves the preceding database and removes only the specified text 
 		).rejects.toMatchObject({ code: "23514" });
 	}
 	expect(await retainedRows(tables)).toEqual(before);
-	expect(await migrate(db)).toBe(1);
+	const historical = journal.entries.filter((entry) => entry.idx <= 138);
+	expect(historical).toHaveLength(prior.length + 1);
+	const upgrade = historical.at(-1)!;
+	expect(upgrade.idx).toBe(138);
+	await copyFile(join(migrations, `${upgrade.tag}.sql`), join(directory, `${upgrade.tag}.sql`));
+	await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries: historical }));
+	await runMigrations(db, { migrationsFolder: directory });
+	expect((await db.$client.query("SELECT * FROM drizzle.__drizzle_migrations")).rows).toHaveLength(historical.length);
 	expect(await retainedRows(tables)).toEqual(before);
 	const afterConstraints = await constraints();
 	for (const constraint of beforeConstraints.filter((row) => row.type === "f")) {
@@ -106,6 +112,7 @@ test("0138 preserves the preceding database and removes only the specified text 
 	const archive = await db.$client.dumpDataDir();
 	await db.$client.close();
 	db = await openDb(":memory:", archive);
-	expect(await migrate(db)).toBe(0);
+	await runMigrations(db, { migrationsFolder: directory });
+	expect((await db.$client.query("SELECT * FROM drizzle.__drizzle_migrations")).rows).toHaveLength(historical.length);
 	expect(await retainedRows(tables)).toEqual(saved);
 }, 120_000);

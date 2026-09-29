@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { and, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
 	type AdmissionReceiptV1,
 	type CorrelationReceiptV1,
@@ -8,6 +8,7 @@ import {
 } from "../../../langflowContracts";
 import { langflowExecutions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
+import { assertOwnerActive } from "./ownerFence";
 import { readStartRequest, saveStartRequest } from "./startRequests";
 
 export async function readExecution(tx: Tx, input: { executionId: string }) {
@@ -45,13 +46,7 @@ export async function reserveExecution(tx: Tx, input: typeof langflowExecutions.
 		input.snapshot.revision !== input.publication.revision
 	)
 		throw new Error("execution_reservation_conflict");
-	const [inserted] = await tx
-		.insert(langflowExecutions)
-		.values(input)
-		.onConflictDoNothing({
-			target: [langflowExecutions.actorKind, langflowExecutions.actorName, langflowExecutions.requestId],
-		})
-		.returning();
+	const [inserted] = await tx.insert(langflowExecutions).values(input).onConflictDoNothing().returning();
 	if (inserted) {
 		await saveStartRequest(tx, {
 			actorKind: input.actorKind,
@@ -66,11 +61,7 @@ export async function reserveExecution(tx: Tx, input: typeof langflowExecutions.
 		.select()
 		.from(langflowExecutions)
 		.where(
-			and(
-				eq(langflowExecutions.actorKind, input.actorKind),
-				eq(langflowExecutions.actorName, input.actorName),
-				eq(langflowExecutions.requestId, input.requestId),
-			),
+			sql`ARRAY[${langflowExecutions.actorKind}, ${langflowExecutions.actorName}, ${langflowExecutions.requestId}] = ARRAY[${input.actorKind}, ${input.actorName}, ${input.requestId}]`,
 		);
 	if (existing!.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
 	return existing!;
@@ -87,6 +78,7 @@ export async function openAdmission(
 	const row = await lockExecution(tx, input);
 	if (row.cancelIntent) throw new Error("execution_canceled");
 	const { correlation, receipt, authority } = input;
+	await assertOwnerActive(tx, authority);
 	if (
 		correlation.executionId !== row.executionId ||
 		correlation.hostId !== row.hostId ||
@@ -139,7 +131,8 @@ export async function openAdmission(
 	});
 	return saved!;
 }
-export function assertAuthority(
+export async function assertAuthority(
+	tx: Tx,
 	row: Awaited<ReturnType<typeof lockExecution>>,
 	authority: DeliveryAuthorityV1,
 	permission: DeliveryAuthorityV1["permissions"][number],
@@ -153,4 +146,5 @@ export function assertAuthority(
 		Date.parse(current.expiresAt) <= now.getTime()
 	)
 		throw new Error("authority_conflict");
+	await assertOwnerActive(tx, current);
 }

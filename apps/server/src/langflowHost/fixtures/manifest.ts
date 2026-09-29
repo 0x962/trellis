@@ -32,15 +32,15 @@ export const manifest = LangflowSidecarManifestV1Schema.parse({
 	license: { spdx: "MIT", file: { path: "LICENSE", sha256: digest, sizeBytes: 1065 } },
 	data: {
 		dataHomeId: "data-home-a",
-		privateRoot: "private/data-home-a",
+		privateRoot: "data",
 		directoryMode: "0700",
 		fileMode: "0600",
 	},
-	encryptionSecret: { kind: "file-reference", relativePath: "secrets/encryption-key" },
+	encryptionSecret: { kind: "file-reference", relativePath: "run/trellis-secrets/engine-secret" },
 	health: {
 		scheme: "http",
 		host: "127.0.0.1",
-		path: "/health_check",
+		path: "/trellis-v1/health",
 		expectedStatus: 200,
 		startupTimeoutMs: 30_000,
 		requestTimeoutMs: 2_000,

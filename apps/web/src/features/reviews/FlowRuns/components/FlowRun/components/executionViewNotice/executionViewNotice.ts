@@ -5,6 +5,7 @@ const details: Record<FlowExecutionViewV1["detail"], string> = {
 	active: "The run is active.",
 	waiting_human: "The run needs a human decision.",
 	waiting_native: "The run awaits a native result.",
+	waiting_review: "The run awaits review classification.",
 	unknown: "The run state is unknown.",
 	completed: "The run is complete. Review readiness has separate checks.",
 	failed: "The run failed.",

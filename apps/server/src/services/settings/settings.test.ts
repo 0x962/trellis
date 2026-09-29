@@ -75,3 +75,15 @@ test("invalid input cannot change stored links", async () => {
 	).rejects.toThrow();
 	expect((await readSettings()).menuLinks).toEqual([actionsLink]);
 });
+
+test("default actor names retain distinct suffixes after the first 64 characters", async () => {
+	for (const suffix of ["first", "second"]) {
+		const name = `${"a".repeat(64)}-${suffix}`;
+		expect((await writeSettings({ defaultActorName: name })).defaultActorName).toBe(name);
+		expect((await readSettings()).defaultActorName).toBe(name);
+		expect(await database.db.transaction((tx) => settings.defaultActorName(ctx, tx))).toEqual({
+			name,
+			stored: true,
+		});
+	}
+});

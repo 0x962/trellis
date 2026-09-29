@@ -83,6 +83,7 @@ export function StartFlowDialog({
 	latest.current = { target, blocked: recovery || unpublished || unavailable || admissionPending };
 	const start = useFlowActionRequest<FlowExecutionStartInput, FlowExecutionViewV1>(
 		["start", ticket, diffId, selectedFlowId, repeatOf ?? "initial"],
+		(input) => client.flowExecutionsV1.start(input),
 		async (input) => {
 			const confirmed = JSON.stringify(preview);
 			const diff = await client.pullRequests.refresh({ id: input.diffId! });
@@ -100,7 +101,6 @@ export function StartFlowDialog({
 			if (current.revision !== input.expectedVersion || currentPublication !== preview!.publication)
 				throw new ORPCError("FLOW_VERSION_CONFLICT", { message: "The saved flow changed. Refresh the preview." });
 			assertTarget();
-			return client.flowExecutionsV1.start(input);
 		},
 	);
 	const blocked = recovery || unpublished || unavailable || admissionPending || !!start.request;
@@ -173,12 +173,25 @@ export function StartFlowDialog({
 			{admissionPending && <p role="status">Run admission is pending or unknown. Another request is blocked.</p>}
 			{start.request?.phase === "pending" && <p role="status">Start request pending.</p>}
 			{start.request?.phase === "unknown" && (
-				<p role="status">Start result unknown. Keep this request until its result is known.</p>
+				<>
+					<p role="status">Start result unknown. Retry uses the same confirmed target and request.</p>
+					<dl className="min-w-0 break-all text-sm">
+						<PropertyRow label="Original flow">{start.request.input.flow}</PropertyRow>
+						<PropertyRow label="Original revision">{start.request.input.expectedVersion}</PropertyRow>
+						<PropertyRow label="Original ticket">{start.request.input.ticket}</PropertyRow>
+						<PropertyRow label="Original diff">{start.request.input.diffId}</PropertyRow>
+						<PropertyRow label="Original head">{start.request.input.headSha}</PropertyRow>
+					</dl>
+					<Button type="button" disabled={recovery} onClick={() => !recovery && start.replay()}>
+						Retry original request
+					</Button>
+				</>
 			)}
 			{start.request?.result && (
 				<p role="status">Run available: {start.request.result.id}. The server can return an existing run.</p>
 			)}
-			{start.request?.phase === "conflict" && (
+			{start.request?.phase === "preflight-failed" && <p role="status">Preview failed. No start request was sent.</p>}
+			{(start.request?.phase === "conflict" || start.request?.phase === "preflight-failed") && (
 				<Button type="button" onClick={refreshPreview}>
 					Refresh preview
 				</Button>

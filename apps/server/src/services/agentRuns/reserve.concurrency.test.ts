@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { HarnessSchema } from "@trellis/api";
+import { randomBytes } from "node:crypto";
+import { AgentRunStartInputSchema, HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
@@ -57,13 +58,20 @@ test("two starts of one ticket at the same time leave one open agent run", async
 });
 
 test("two starts that carry one request id give one run", async () => {
-	const input = { ticket: "TST-2", harness, requestId: "one-click" };
+	const input = AgentRunStartInputSchema.parse({
+		ticket: "TST-2",
+		harness,
+		requestId: randomBytes(8192).toString("hex"),
+	});
 	const [first, second] = await Promise.all([
 		db.transaction((tx) => reserve(ctx, tx, input)),
 		db.transaction((tx) => reserve(ctx, tx, input)),
 	]);
 	expect(first.run.id).toBe(second.run.id);
 	expect([first.replay, second.replay].filter(Boolean)).toHaveLength(1);
+	const replay = await db.transaction((tx) => reserve(ctx, tx, input));
+	expect(replay.replay).toBe(true);
+	expect(replay.run.terminalId).toBe(first.run.terminalId);
 });
 
 test("a wave of ten tickets reserves ten runs", async () => {
@@ -87,4 +95,23 @@ test("two session starts that carry one request id give one run", async () => {
 	expect([first.replay, second.replay].filter(Boolean)).toHaveLength(1);
 	const runs = await db.execute(sql`SELECT id FROM agent_runs WHERE kind='session'`);
 	expect(runs.rows).toHaveLength(1);
+});
+
+test("long request keys retain distinct suffixes and reject changed targets", async () => {
+	const prefix = randomBytes(8192).toString("hex");
+	const options = { session: { name: "long keys", instruction: "Read", fingerprint: "same" } };
+	const input = { project: "TST", harness, requestId: `${prefix}a` };
+	const first = await db.transaction((tx) => reserve(ctx, tx, input, [], options));
+	const second = await db.transaction((tx) => reserve(ctx, tx, { ...input, requestId: `${prefix}b` }, [], options));
+	expect(first.run.id).not.toBe(second.run.id);
+	const replay = await db.transaction((tx) => reserve(ctx, tx, input, [], options));
+	expect(replay.run.id).toBe(first.run.id);
+	expect(replay.replay).toBe(true);
+	await expect(
+		db.transaction((tx) =>
+			reserve(ctx, tx, input, [], {
+				session: { ...options.session, fingerprint: "changed" },
+			}),
+		),
+	).rejects.toThrow("different assignment");
 });

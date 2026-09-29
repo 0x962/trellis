@@ -31,7 +31,7 @@ export const pageUploads = pgTable(
 				AND ${t.originalName} !~ '[[:cntrl:]]'`,
 		),
 		check("page_uploads_expiry_check", sql`${t.expiresAt} > ${t.createdAt}`),
-		index("page_uploads_project_actor_idx").on(t.projectId, t.actorKind, t.actorName, t.createdAt),
+		index("page_uploads_project_actor_idx").on(t.projectId, t.actorId, t.createdAt),
 		index("page_uploads_sha256_idx").on(t.sha256),
 		index("page_uploads_expires_at_idx").on(t.expiresAt),
 	],
