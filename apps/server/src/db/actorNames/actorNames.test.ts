@@ -22,7 +22,7 @@ test("the actor migration preserves rows and accepts distinct complete names thr
 	const journal = JSON.parse(await readFile(join(migrations, "meta/_journal.json"), "utf8")) as {
 		entries: { idx: number; tag: string }[];
 	};
-	const boundary = journal.entries.findIndex((entry) => entry.tag.endsWith("_preserve_actor_names"));
+	const boundary = journal.entries.findIndex((entry) => entry.idx === 138);
 	expect(boundary).toBeGreaterThan(0);
 	const entries = journal.entries.slice(0, boundary);
 	directory = await mkdtemp(join(tmpdir(), "trellis-actor-migration-"));
