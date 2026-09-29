@@ -1,1 +1,0 @@
-export { useTabDrag } from "./useTabDrag";

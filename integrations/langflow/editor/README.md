@@ -58,7 +58,9 @@ Selection messages carry no execution authority.
 
 `frontend/` supplies the native entry, store subscription, viewport updates, ancestor reveal, and field focus.
 The matched Langflow frontend owns its type check because these modules import its native stores and types.
-`patches/compose.py` generates `production-entry.patch` from these modules and the shared bridge schemas.
+`patches/compose.py` generates `production-entry.patch` from these modules and the schemas in `packages/api/src/schemas/`.
+It copies `flowEditorProtocolV1.ts` and `flowEditorSessionV1.ts` into the native frontend.
+The copied compatibility modules import those local files. The manifest records the original schema hashes.
 It reads the pinned source without mutation, applies the exact probe patch in temporary files, and verifies the generated patch.
 The script removes those files when it exits. `series.json` records the source pin and patch hashes.
 The native lock contains Zod 3.25.76. The copied schemas use its `zod/v4` export.

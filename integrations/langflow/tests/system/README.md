@@ -5,6 +5,8 @@ That helper applies the production migration journal to an isolated PGlite datab
 The fixtures create no substitute tables and launch no agent, engine, provider, or server.
 
 `fixture` calls the document save, publication, reservation, and projection services.
+The fixture-only `seedLangflowDocument` helper persists its initial Langflow revision before the first generic save.
+The first save increments that revision through the document service and its engine-change guard.
 It retains the request actor during reservation and uses `SYSTEM_ACTOR` only for projection initialization.
 Both operations share one transaction and its event collector.
 The public view uses a separate transaction after commit.
