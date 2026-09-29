@@ -6,7 +6,7 @@ const layoutItem = z.strictObject({ thread: z.string().min(1), x: coordinate, y:
 const messageSchema = z.discriminatedUnion("type", [
 	z.strictObject({ type: z.literal("page-ready"), nonce: z.string() }),
 	z.strictObject({ type: z.literal("page-scroll"), nonce: z.string(), x: coordinate, y: coordinate }),
-	z.strictObject({ type: z.literal("page-link"), nonce: z.string(), href: z.string().max(8192) }),
+	z.strictObject({ type: z.literal("page-link"), nonce: z.string(), href: z.string() }),
 	z.strictObject({ type: z.literal("page-comment-anchor"), nonce: z.string(), anchor: PageCommentAnchorSchema }),
 	z.strictObject({ type: z.literal("page-comment-anchor-error"), nonce: z.string(), message: z.string().max(200) }),
 	z.strictObject({ type: z.literal("page-comment-layout"), nonce: z.string(), items: z.array(layoutItem) }),

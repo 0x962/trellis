@@ -37,7 +37,7 @@ const storedPageMime = (type: string) => {
 		type !== "" &&
 		(!PageMimeSchema.safeParse(mime).success || (mime === "application/octet-stream" && !suppliedOctetStream))
 	) {
-		throw invalidInput("file", "Use a MIME type in type/subtype form with 255 characters or less.");
+		throw invalidInput("file", "Use a MIME type in type/subtype form.");
 	}
 	return mime;
 };

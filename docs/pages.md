@@ -48,8 +48,8 @@ Keep every required asset in the published directory.
 | Assets per version | 200 |
 | One asset | 0 to 100 MiB |
 | All assets in one version | 250 MiB |
-| Title | 1 to 200 characters |
-| Summary | Up to 2,000 characters |
+| Title | Nonempty, trimmed text |
+| Summary | Trimmed text |
 | Asset path | Up to 1,024 UTF-8 bytes |
 
 The host upload limit can impose a smaller per-file limit.

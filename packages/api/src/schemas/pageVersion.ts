@@ -2,7 +2,6 @@ import { z } from "zod";
 import { InternalLinkSchema } from "../internalLink";
 import { PageRefStringSchema, ProjectRefStringSchema } from "../refs.ts";
 import {
-	PAGE_TITLE_MAX,
 	PageAssetPathSchema,
 	PageAssetSchema,
 	PageRevisionSchema,
@@ -27,11 +26,7 @@ export const PAGE_RENDER_RENEW_MS = 20 * 60 * 1000;
 // The time a download link from `pages.archive` works for.
 export const PAGE_ARCHIVE_TTL_MS = 5 * 60 * 1000;
 
-export const PageVersionLabelSchema = z
-	.string()
-	.trim()
-	.min(1, `Enter a version label of 1 to ${PAGE_TITLE_MAX} characters.`)
-	.max(PAGE_TITLE_MAX, `Enter a version label of 1 to ${PAGE_TITLE_MAX} characters.`);
+export const PageVersionLabelSchema = z.string().trim().min(1, "Enter a version label.");
 
 export const PagePublishAssetSchema = z.strictObject({
 	uploadId: UlidSchema,
@@ -161,7 +156,7 @@ export type PageRenderRenewInput = z.input<typeof PageRenderRenewInputSchema>;
 export const PageContentInputSchema = z.strictObject({
 	pageId: UlidSchema,
 	version: PageVersionNumberSchema,
-	path: z.string().max(4096).default(""),
+	path: z.string().default(""),
 });
 export type PageContentInput = z.input<typeof PageContentInputSchema>;
 

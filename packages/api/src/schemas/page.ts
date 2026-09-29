@@ -3,23 +3,14 @@ import { ActorHeaderStringSchema, PageRefStringSchema, ProjectRefStringSchema } 
 import { ActorRefSchema } from "./actor.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, slugPattern, UlidSchema } from "./primitives.ts";
 
-export const PAGE_TITLE_MAX = 200;
-export const PAGE_SUMMARY_MAX = 2000;
 export const PAGE_ASSET_PATH_MAX = 1024;
 // The document of a version answers to this one name. No asset row can hold
 // it, because the CHECK of `page_assets` refuses it.
 export const PAGE_DOCUMENT_PATH = "index.html";
 
-export const PageTitleSchema = z
-	.string()
-	.trim()
-	.min(1, `Enter a page title of 1 to ${PAGE_TITLE_MAX} characters.`)
-	.max(PAGE_TITLE_MAX, `Enter a page title of 1 to ${PAGE_TITLE_MAX} characters.`);
+export const PageTitleSchema = z.string().trim().min(1, "Enter a page title.");
 
-export const PageSummaryTextSchema = z
-	.string()
-	.trim()
-	.max(PAGE_SUMMARY_MAX, `Enter a page summary of ${PAGE_SUMMARY_MAX} characters or less.`);
+export const PageSummaryTextSchema = z.string().trim();
 
 export const PageSlugSchema = z
 	.string()
@@ -76,7 +67,6 @@ const relativePath = (value: string) =>
 export const PageSourcePathSchema = z
 	.string()
 	.min(1)
-	.max(4096)
 	.refine(relativePath, "Enter a relative source path without empty, dot, or parent segments.");
 
 export const PageAssetPathSchema = PageSourcePathSchema.refine(
@@ -87,15 +77,10 @@ export const PageAssetPathSchema = PageSourcePathSchema.refine(
 	"An asset path cannot be index.html or inside .trellis/.",
 );
 
-export const PageMimeSchema = z
-	.string()
-	.min(1)
-	.max(255)
-	.refine(hasNoControl, "A MIME type cannot contain control characters.");
+export const PageMimeSchema = z.string().min(1).refine(hasNoControl, "A MIME type cannot contain control characters.");
 export const PageUploadNameSchema = z
 	.string()
 	.min(1)
-	.max(255)
 	.refine(
 		(value) => hasNoControl(value) && !value.includes("/") && !value.includes("\\"),
 		"An upload name cannot contain a slash or a control character.",
@@ -105,7 +90,7 @@ export const PageVersionSchema = z.object({
 	pageId: UlidSchema,
 	number: PageVersionNumberSchema,
 	requestId: z.uuid(),
-	label: z.string().min(1).max(PAGE_TITLE_MAX).nullable(),
+	label: z.string().min(1).nullable(),
 	documentSha256: PageSha256Schema,
 	documentSize: z.number().int().min(1),
 	sourceAgentId: UlidSchema.nullable(),
@@ -142,7 +127,7 @@ const PageUploadFileSchema = z
 	.file()
 	.refine(
 		(file) => PageUploadNameSchema.safeParse(file.name).success,
-		"Use a file name of 1 to 255 characters without a slash, a backslash, or a control character.",
+		"Use a nonempty file name without a slash, a backslash, or a control character.",
 	);
 
 export const PageUploadInputSchema = z.strictObject({
@@ -164,7 +149,7 @@ export const PageCommentFilterSchema = z.enum(["open", "none"]);
 
 export const PageListInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
-	q: z.string().max(500).optional(),
+	q: z.string().optional(),
 	author: ActorHeaderStringSchema.optional(),
 	watcher: UlidSchema.optional(),
 	comment: PageCommentFilterSchema.optional(),
