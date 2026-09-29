@@ -162,3 +162,19 @@ test("reports invalid topology and preserves source order in the manifest", () =
 	doc.nodes.reverse();
 	expect(inspectSource(doc).manifest!.nodes.map((node) => node.id)).toEqual([fixtureId(2), fixtureId(1)]);
 });
+
+test("hashes the original flow and node model values before schema transforms", () => {
+	const doc = fixtureDocument();
+	doc.flow.harness = { preset: "codex", model: " openai/gpt-6-astra " };
+	doc.nodes[0]!.harness = { preset: "codex", model: " openai/gpt-6-astra " };
+	const original = inspectSource(doc);
+	const expected = sourceDigest('{"model":" openai/gpt-6-astra ","preset":"codex"}');
+	expect(original.diagnostics).toEqual([]);
+	expect(original.manifest!.flow.fields.harness).toBe(expected);
+	expect(original.manifest!.nodes[0]!.fields.harness).toBe(expected);
+	doc.flow.harness.model = "openai/gpt-6-astra";
+	doc.nodes[0]!.harness.model = "openai/gpt-6-astra";
+	const trimmed = inspectSource(doc);
+	expect(trimmed.manifest!.flow.sha256).not.toBe(original.manifest!.flow.sha256);
+	expect(trimmed.manifest!.nodes[0]!.sha256).not.toBe(original.manifest!.nodes[0]!.sha256);
+});

@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FlowDocSchema } from "@trellis/api";
-import { documentBytes } from "../../../../apps/server/src/services/flowDocuments/documentBytes";
+import { FlowDocSchema, FlowHarnessSchema } from "@trellis/api";
+import { documentBytes } from "../../../../apps/server/src/services/flowDocuments";
 import { prepareMigration } from "../../../../apps/server/src/services/langflowMigration";
 import { sourceDigest } from "../../../../apps/server/src/services/langflowMigration/sourceDigest";
 import baseline from "../semantics/review_v71_manifest.json";
@@ -15,7 +15,7 @@ test("retained Review v71 preserves every row, field, instruction, and both inde
 	expect(run.id).toBe(baseline.runId);
 	expect(doc.flow.id).toBe(baseline.flowId);
 	expect(doc.flow.version).toBe(baseline.flowVersion);
-	expect(doc.flow.harness).toEqual(baseline.harness);
+	expect(doc.flow.harness).toEqual(FlowHarnessSchema.parse(baseline.harness));
 	expect(doc.nodes).toHaveLength(baseline.nodeCount);
 	expect(doc.edges).toHaveLength(baseline.edgeCount);
 	const projection = {
