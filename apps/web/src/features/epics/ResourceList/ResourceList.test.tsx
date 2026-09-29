@@ -1,7 +1,55 @@
 import { describe, expect, test } from "bun:test";
-import type { Resource } from "@trellis/api";
+import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import { createTrellisClient, type FetchLike, type Resource, realScheduler } from "@trellis/api";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { type AppContext, AppProvider } from "../../../lib/appContext";
+import { createLive } from "../../../lib/live";
 import { ResourceList } from "./ResourceList";
+
+// ResourceList reads the application context and the router during its
+// render, for the link hook. No case here sends a request or navigates, so
+// the fixture holds a real client over a transport that refuses every
+// request, a live connection that never starts, and a router with one
+// memory route around the element.
+const noRequest: FetchLike = (request) => {
+	throw new Error(`The test expected no request, and the app sent one to ${request.url}.`);
+};
+
+const app = (): AppContext => {
+	const queryClient = new QueryClient();
+	const client = createTrellisClient("http://127.0.0.1:4521", "human:navidkhan", noRequest);
+	const live = createLive({
+		queryClient,
+		locks: { request: async () => undefined },
+		createChannel: () => ({ postMessage: () => {}, addEventListener: () => {}, close: () => {} }),
+		EventSource: class {
+			addEventListener() {}
+			close() {}
+		},
+		scheduler: realScheduler,
+	});
+	return { queryClient, orpc: createTanstackQueryUtils(client), client, live, scheduler: realScheduler };
+};
+
+const render = async (element: ReactNode) => {
+	const context = app();
+	const root = createRootRoute({
+		component: () => (
+			<QueryClientProvider client={context.queryClient}>
+				<AppProvider value={context}>{element}</AppProvider>
+			</QueryClientProvider>
+		),
+	});
+	const router = createRouter({
+		routeTree: root,
+		history: createMemoryHistory({ initialEntries: ["/p/OP/epics/routines-e2e"] }),
+	});
+	await router.load();
+	return renderToStaticMarkup(<RouterProvider router={router} />);
+};
 
 const controls = {
 	planTitle: "Routines E2E",
@@ -54,8 +102,8 @@ const resources: Resource[] = [
 ];
 
 describe("ResourceList", () => {
-	test("groups the resources under Documents, Links, Images and Files", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
+	test("groups the resources under Documents, Links, Images and Files", async () => {
+		const html = await render(<ResourceList resources={resources} {...controls} />);
 
 		const headings = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((match) => match[1]);
 		expect(headings).toEqual(["Documents", "Links", "Images", "Files"]);
@@ -65,29 +113,29 @@ describe("ResourceList", () => {
 		expect(html.indexOf(">Files<")).toBeLessThan(html.indexOf("settle-sequence.mmd"));
 	});
 
-	test("draws the epic description first among the documents", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
+	test("draws the epic description first among the documents", async () => {
+		const html = await render(<ResourceList resources={resources} {...controls} />);
 
 		expect(html.indexOf("Routines E2E")).toBeLessThan(html.indexOf("The routine runtime"));
 		expect(html).toContain('title="The epic description"');
 	});
 
-	test("shows the detail of each kind as the tooltip of its row", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
+	test("shows the detail of each kind as the tooltip of its row", async () => {
+		const html = await render(<ResourceList resources={resources} {...controls} />);
 
 		expect(html).toContain('title="Edited Sep 19 by crisp-fjord"');
 		expect(html).toContain('title="github.com"');
 		expect(html).toContain('title="1.2 KB"');
 	});
 
-	test("names the pull request of a resource that is also evidence", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
+	test("names the pull request of a resource that is also evidence", async () => {
+		const html = await render(<ResourceList resources={resources} {...controls} />);
 
 		expect(html).toContain('title="55.0 KB · also evidence on #56930"');
 	});
 
-	test("shows no heading for a kind the epic does not hold", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} />);
+	test("shows no heading for a kind the epic does not hold", async () => {
+		const html = await render(<ResourceList resources={[]} {...controls} />);
 
 		expect(html).toContain(">Documents<");
 		expect(html).toContain("Routines E2E");
@@ -96,12 +144,12 @@ describe("ResourceList", () => {
 		expect(html).not.toContain(">Files<");
 	});
 
-	test("offers New document in every state, and no control without a writer", () => {
-		for (const html of [
-			renderToStaticMarkup(<ResourceList resources={resources} {...controls} />),
-			renderToStaticMarkup(<ResourceList resources={[]} {...controls} loading />),
-			renderToStaticMarkup(<ResourceList resources={[]} {...controls} error="The server did not answer." />),
-		]) {
+	test("offers New document in every state, and no control without a writer", async () => {
+		for (const html of await Promise.all([
+			render(<ResourceList resources={resources} {...controls} />),
+			render(<ResourceList resources={[]} {...controls} loading />),
+			render(<ResourceList resources={[]} {...controls} error="The server did not answer." />),
+		])) {
 			expect(html).toContain('aria-label="New document"');
 		}
 		const readOnly = renderToStaticMarkup(
@@ -110,7 +158,7 @@ describe("ResourceList", () => {
 		expect(readOnly).not.toContain('aria-label="New document"');
 	});
 
-	test("marks the open document, and says Untitled for a document with no title", () => {
+	test("marks the open document, and says Untitled for a document with no title", async () => {
 		const untitled: Resource = { ...resources[0]!, id: "01AAAAAAAAAAAAAAAAAAAAAAA5", name: "", body: "" };
 		const html = renderToStaticMarkup(
 			<ResourceList resources={[untitled]} {...controls} openDocId="01AAAAAAAAAAAAAAAAAAAAAAA5" />,
@@ -120,16 +168,16 @@ describe("ResourceList", () => {
 		expect(html.slice(html.indexOf('aria-current="page"'))).toContain("Untitled");
 	});
 
-	test("waits under the epic description while the resources load", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} loading />);
+	test("waits under the epic description while the resources load", async () => {
+		const html = await render(<ResourceList resources={[]} {...controls} loading />);
 
 		expect(html).toContain('aria-busy="true"');
 		expect(html).toContain("Routines E2E");
 		expect(html).not.toContain("The epic holds no resource.");
 	});
 
-	test("prints the words of the server when the read fails", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} error="The server did not answer." />);
+	test("prints the words of the server when the read fails", async () => {
+		const html = await render(<ResourceList resources={[]} {...controls} error="The server did not answer." />);
 
 		expect(html).toContain('role="alert"');
 		expect(html).toContain("The server did not answer.");
