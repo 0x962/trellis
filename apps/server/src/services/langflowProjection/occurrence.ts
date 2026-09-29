@@ -79,6 +79,7 @@ export function projectOccurrence(
 			};
 		return { ...base, output: gate.output, decision: gate.decision };
 	}
+	if (observed.kind === "group" || observed.kind === "loop") return base;
 	if (
 		observed.kind === "agent" ||
 		(observed.kind === "gate" && observed.reviewArea === null) ||
