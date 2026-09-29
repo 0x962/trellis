@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readEditorCatalog } from "../editorCatalog";
 import { editorOrigin } from "../editorOrigin";
 import { EditorContentSchema } from "../protocol";
 import { EditorBootstrapSchema } from "../session";
@@ -8,19 +9,6 @@ const documentSchema = EditorContentSchema.extend({
 	revision: z.number().int().positive(),
 	documentHash: z.string(),
 }).passthrough();
-const catalogSchema = z.object({
-	schemaVersion: z.literal(1),
-	catalogId: z.literal("trellis-components-v1"),
-	engine: z.object({ name: z.literal("langflow"), version: z.string(), commit: z.string() }),
-	definitions: z.array(
-		z.object({
-			id: z.string(),
-			className: z.string(),
-			allowedForPublication: z.boolean(),
-			frontendTemplate: z.record(z.string(), z.json()).nullable(),
-		}),
-	),
-});
 
 type Options = {
 	channel: string;
@@ -73,6 +61,7 @@ export async function openEditorReads(options: Options) {
 			throw new Error("The editor document does not match its grant.");
 		return result;
 	};
-	const catalog = async () => catalogSchema.parse(await read("component-manifest"));
+	const catalog = async () =>
+		readEditorCatalog(await read("component-manifest"), bootstrap.identity.componentManifestHash);
 	return { bootstrap, document, catalog };
 }
