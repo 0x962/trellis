@@ -8,15 +8,7 @@
 import type { LogFile } from "./logs.ts";
 import { collectLogFiles } from "./logs.ts";
 import type { UsageLogEntry } from "./parse.ts";
-import {
-	entryTimestamp,
-	forEachLine,
-	LABEL_LINE_MAX,
-	num,
-	sessionIdForFile,
-	toSessionLabel,
-	wantsLabel,
-} from "./parse.ts";
+import { entryTimestamp, forEachLine, num, sessionIdForFile, toSessionLabel } from "./parse.ts";
 
 type PiLine = {
 	type?: string;
@@ -40,14 +32,9 @@ async function parsePiLogFile(
 ): Promise<void> {
 	let sessionId = sessionIdForFile(file.path);
 	let sessionCwd: string | null = null;
-	const attempts = new Map<string, number>();
 	await forEachLine(file.path, (line) => {
 		const wanted = line.includes('"session"') || line.includes('"assistant"');
-		const wantLabel =
-			!wanted &&
-			line.length <= LABEL_LINE_MAX &&
-			line.includes('"user"') &&
-			wantsLabel(sessionId, sessionLabels, attempts);
+		const wantLabel = !wanted && line.includes('"user"') && !sessionLabels.has(sessionId);
 		if (!wanted && !wantLabel) return;
 		let parsed: PiLine;
 		try {

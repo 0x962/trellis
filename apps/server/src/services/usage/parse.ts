@@ -42,14 +42,6 @@ export function sessionIdForFile(path: string): string {
 	return basename(path).replace(/\.jsonl$/, "");
 }
 
-// Every complete user record can contain a label, regardless of record size.
-export const LABEL_LINE_MAX = Number.POSITIVE_INFINITY;
-
-// Each parser reads user records until it saves a label for the session.
-export function wantsLabel(sessionId: string, labels: Map<string, string>, _attempts?: Map<string, number>): boolean {
-	return !labels.has(sessionId);
-}
-
 // The first real user prompt of a session. A slash command, a caveat, and a
 // system reminder wrapper do not count. A multiline prompt uses its first line.
 export function toSessionLabel(text: unknown): string | null {
@@ -73,9 +65,19 @@ export async function forEachLine(path: string, onLine: (line: string) => void):
 		const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
 		onLine(line);
 	};
+	const stream = createReadStream(path, { encoding: "utf-8" });
+	const iterator = (stream as AsyncIterable<string>)[Symbol.asyncIterator]();
 	try {
-		const chunks = createReadStream(path, { encoding: "utf-8" }) as AsyncIterable<string>;
-		for await (const chunk of chunks) {
+		while (true) {
+			let next: IteratorResult<string>;
+			try {
+				next = await iterator.next();
+			} catch (error) {
+				if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+				throw error;
+			}
+			if (next.done) break;
+			const chunk = next.value;
 			let start = 0;
 			for (let end = chunk.indexOf("\n"); end !== -1; end = chunk.indexOf("\n", start)) {
 				emit(chunk.slice(start, end));
@@ -84,8 +86,8 @@ export async function forEachLine(path: string, onLine: (line: string) => void):
 			if (start < chunk.length) parts.push(chunk.slice(start));
 		}
 		if (parts.length > 0) emit("");
-	} catch {
-		// The CLI removed or truncated the file during the scan.
+	} finally {
+		stream.destroy();
 	}
 }
 
@@ -138,7 +140,7 @@ export async function parseClaudeLogFile(
 	const sessionId = sessionIdForFile(file.path);
 	await forEachLine(file.path, (line) => {
 		const assistant = line.includes('"assistant"');
-		const wantLabel = !assistant && line.includes('"user"') && wantsLabel(sessionId, sessionLabels);
+		const wantLabel = !assistant && line.includes('"user"') && !sessionLabels.has(sessionId);
 		if (!assistant && !wantLabel) return;
 		let parsed: ClaudeLine;
 		try {
@@ -222,7 +224,7 @@ export async function parseCodexLogFile(
 	await forEachLine(file.path, (line) => {
 		const isContext = line.includes('"turn_context"') || line.includes('"session_meta"');
 		const isCount = line.includes('"token_count"');
-		const wantLabel = !isContext && !isCount && line.includes('"user_message"') && wantsLabel(sessionId, sessionLabels);
+		const wantLabel = !isContext && !isCount && line.includes('"user_message"') && !sessionLabels.has(sessionId);
 		if (!isContext && !isCount && !wantLabel) return;
 		let parsed: CodexLine;
 		try {

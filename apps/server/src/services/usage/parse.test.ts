@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tempDirs } from "../../tempDir.ts";
-import { parseClaudeLogFile } from "./parse.ts";
+import { forEachLine, parseClaudeLogFile } from "./parse.ts";
 
 const tempDir = tempDirs();
 
@@ -91,5 +91,29 @@ describe("Claude usage log parsing", () => {
 				output: 11,
 			}),
 		]);
+	});
+});
+
+describe("forEachLine", () => {
+	test("returns when the file is missing", async () => {
+		const root = await tempDir("trellis-usage-parse-");
+		const lines: string[] = [];
+
+		await forEachLine(join(root, "missing.jsonl"), (line) => lines.push(line));
+
+		expect(lines).toEqual([]);
+	});
+
+	test("propagates an error from the callback", async () => {
+		const root = await tempDir("trellis-usage-parse-");
+		const path = join(root, "callback.jsonl");
+		const callbackError = new Error("callback failed");
+		await writeFile(path, "first\nsecond\n");
+
+		await expect(
+			forEachLine(path, () => {
+				throw callbackError;
+			}),
+		).rejects.toBe(callbackError);
 	});
 });
