@@ -9,7 +9,7 @@ import {
 	type FlowExecutionViewV1,
 	flowRunIsLive,
 } from "@trellis/api";
-import { Avatar, FlowRunSummary, FlowRunTree, IconButton, Tooltip } from "@trellis/ui";
+import { Avatar, FailureState, FlowRunSummary, FlowRunTree, IconButton, Tooltip } from "@trellis/ui";
 import { type ComponentProps, useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { relativeTime } from "../../../../../lib/format";
@@ -17,16 +17,16 @@ import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { allAgentRunsOptions } from "../../../../agents/allAgentRuns";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
+import { lastFocusedRun, runTreeStates } from "../../runViewState";
 import { useClock } from "../../useClock";
 import { StartFlowDialog } from "../StartFlowDialog";
 import { buildFlowRunRows } from "./buildFlowRunRows";
-import { buildExecutionViewRows } from "./buildFlowRunRows/buildExecutionViewRows";
-import { lastFocusedRun, runTreeStates } from "./buildFlowRunRows/runViewState";
+import { buildExecutionViewRows } from "./components/buildExecutionViewRows";
+import { executionViewNotice } from "./components/executionViewNotice";
 import { FlowCancelDialog } from "./components/FlowCancelDialog";
 import { FlowDecisionDialog } from "./components/FlowDecisionDialog";
 import { FlowTaskTerminal } from "./components/FlowTaskTerminal";
 import { flowRunNotice } from "./flowRunNotice";
-import { executionViewNotice } from "./flowRunNotice/executionViewNotice";
 
 type Execution = FlowExecutionRecord | FlowExecutionViewV1;
 type TerminalTarget = { task: FlowExecutionRecord["tasks"][number]; attempt?: FlowAttemptV1 };
@@ -144,6 +144,12 @@ export function FlowRun({
 			};
 		});
 	}, [rows, runs.data, targets]);
+	const completedAt = useMemo(() => endOf(execution), [execution]);
+	const notice = useMemo(
+		() =>
+			versioned ? executionViewNotice(execution, headSha, immutableOnly) : flowRunNotice(execution, rows, headSha),
+		[execution, versioned, headSha, immutableOnly, rows],
+	);
 	return (
 		<section
 			aria-label={`${flow.name} run`}
@@ -159,10 +165,8 @@ export function FlowRun({
 				status={status}
 				startedAt={startedAt}
 				startedLabel={relativeTime(new Date(startedAt).toISOString())}
-				durationMs={(live ? now : endOf(execution)) - startedAt}
-				notice={
-					versioned ? executionViewNotice(execution, headSha, immutableOnly) : flowRunNotice(execution, rows, headSha)
-				}
+				durationMs={(live ? now : completedAt) - startedAt}
+				notice={notice}
 				expanded={expanded}
 				onToggle={onToggle}
 				actions={
@@ -199,9 +203,17 @@ export function FlowRun({
 					</>
 				}
 			/>
+			{versioned && (execution.error || execution.submission?.error) && (
+				<FailureState
+					variant="section"
+					title="Flow execution error"
+					detail={[execution.error, execution.submission?.error].filter(Boolean).join("\n")}
+				/>
+			)}
 			{opened && (
 				<div hidden={!expanded}>
 					<FlowRunTree
+						onViewportChange={(state) => runTreeStates.set(execution.id, state)}
 						label={`${flow.name} steps`}
 						rows={withActors}
 						now={now}
