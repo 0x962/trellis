@@ -34,7 +34,11 @@ The caller supplies `currentIdentity`, the tab identity, browser storage, the sa
 The workspace remounts when the channel changes and initializes the frame from the retained draft.
 Its topbar exposes save state and explicit retry. It reuses `FlowSettingsSheet` for metadata.
 The hook keeps the queue alive across remounts and stops later requests when the workspace releases it.
-Recovery selection, export controls, and the actual route await the session issuer.
+The browser-draft dialog exports exact bytes, including unsupported records and a draft held only in memory.
+Recovery copies the selected record into a fresh tab and retains the source.
+Discard requires confirmation and the exact displayed bytes.
+`onOpenDraft(tab)` asks the route to read the saved document, issue a new session, and mount the selected tab.
+The actual route still requires the session issuer.
 The adapter creates no timer for autosave, HTTP save request, local draft store, or run request.
 A draft event cannot establish a saved revision, executable publication, or accepted decision.
 The authenticated save service must validate the document and the pinned component authority.
