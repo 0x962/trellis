@@ -5,7 +5,7 @@ import type { SessionStatusPaneProps, SessionUpdate, SessionUpdates } from "./ty
 
 const latest: SessionUpdate = {
 	id: "update-2",
-	sessionId: "session-1",
+	sessionId: null,
 	runId: "run-1",
 	requestId: "request-2",
 	body: "Latest **status**",
