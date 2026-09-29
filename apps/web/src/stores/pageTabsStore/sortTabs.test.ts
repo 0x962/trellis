@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
 import type { StateStorage } from "zustand/middleware";
-import { createPageTabsStore, pageTabRegion } from "./pageTabsStore";
+import { createPageTabsStore } from "./pageTabsStore";
 import { sortTabs, visibleTabName } from "./sortTabs";
+import { pageTabRegion } from "./tabGroups";
 
 const fixture = () => {
 	const entries = new Map<string, string>();
@@ -79,7 +80,7 @@ test("the store sort keeps the pinned prefix in place and sorts each region", ()
 	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([b, c, a, d]);
 	store.getState().sortTabs("ascending");
 	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([c, b, d, a]);
-	expect(store.getState().tabs.map(pageTabRegion)).toEqual(["pinned", "pinned", "unpinned", "unpinned"]);
+	expect(store.getState().tabs.map(pageTabRegion)).toEqual(["pinned", "pinned", "", ""]);
 	store.getState().sortTabs("descending");
 	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([b, c, a, d]);
 });

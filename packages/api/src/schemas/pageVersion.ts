@@ -151,7 +151,7 @@ export const PageRenderLeaseSchema = z.object({
 });
 export type PageRenderLease = z.infer<typeof PageRenderLeaseSchema>;
 
-export const PageRenderRenewInputSchema = z.strictObject({ leaseId: z.string().min(1).max(200) });
+export const PageRenderRenewInputSchema = z.strictObject({ leaseId: z.string().min(1) });
 export type PageRenderRenewInput = z.input<typeof PageRenderRenewInputSchema>;
 
 // What the content route asks the database for. `path` is the address the

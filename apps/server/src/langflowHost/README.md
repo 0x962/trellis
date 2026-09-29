@@ -26,8 +26,14 @@ The next host uses that reservation instead of an unrecorded replacement.
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
 `createOciDriver` binds the verified manifest and its image config digest to the saved instance.
 It starts the loaded config digest with pull disabled, so a missing local import fails closed.
+`importVerifiedOciImage` reloads the sealed package, archives its verified OCI layout, and loads it with no registry pull.
+It inspects the expected config digest and returns that digest as the only local image reference for `createOciDriver`.
+The import result retains the OCI manifest digest and trusted qualification digest for the caller receipt.
 `start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
 It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
+The OCI manifest maps `data` to `/data` and maps `run/trellis-secrets/engine-secret` to the read-only encryption file.
+The driver builds authenticated health requests from the declared `http`, `127.0.0.1`, and `/trellis-v1/health` values.
+The explicit host private root stays separate from the container paths and named volumes.
 `observe` checks those current objects before it requests authenticated health for the supplied challenge.
 It reports `unknown` when the container manager cannot establish the complete retained state.
 An absent PID, a cached health response, or a copied challenge does not prove current ownership.
@@ -42,6 +48,13 @@ The provisioner creates the persistent encryption secret.
 The engine reads the capture issuer from a separate read-only secret file.
 Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
+An explicit `engineApiConfigFile` copies one mode-0600 startup file into the read-only secrets volume.
+The caller also supplies `engineApiConfigSha256` from its strict package and config validation.
+An enabled configuration also requires `nativeReservationAuthenticationFile` for the outgoing Trellis bearer.
+The driver copies that separate mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
+Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
+The driver compares the original file bytes with that digest before each start, observation, and stop.
+The container label binds the same SHA256 to the saved instance.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
 It reads the exact bearer file for each operation, refuses redirects, preserves request and response bytes, and returns unknown network results.
@@ -212,3 +225,46 @@ The engine validator checks the current runtime identity and holds writer exclus
 Its ledger transaction serializes commit and revoke; the host gate remains closed through the final seal.
 After a supervised restart, the current instance can revoke an old grant for the same host and data home.
 The producer rejects an active receipt or commit for that old instance.
+
+## Requests from the engine
+
+`withAuthenticatedEngine(authorization, operation)` checks the exact bearer for the current engine instance.
+It reads the private credential file and obtains a fresh healthy observation before it calls `operation(observation)`.
+The supervisor holds its exclusion through this callback.
+A short callback can validate the saved authority, acquire a durable permit, and commit the initial claim.
+The caller checks the exact archived grant bytes and the execution authority under the database lock.
+The caller also compares the observed host and owner with that grant.
+
+The instance bearer differs from the credential for native reservation transport.
+A route behind host authentication can carry it in `X-Trellis-Engine-Authorization`.
+The callback returns no credential.
+After the callback, the durable permit remains held through the provider call and the terminal database commit.
+An unknown provider outcome retains the permit for reconciliation.
+
+## Durable supervisor authority
+
+`createAuthorityPort({control, archive, newTx})` connects the supervisor to the migrated ownership queries.
+The control supplies its current identity and `gate.read`; it can be an effect-only control.
+`newTx` is the service transaction runner.
+Each method runs its query in a separate transaction.
+Database workers construct the adapter inside a prepared service; the host can call its serializable methods through the service transport.
+
+The database retains the exact `AuthorityCommit`, including original request and authority bytes, observation, and revocation.
+After the commit returns, the adapter writes those original authority bytes to `DispatchReceiptArchive`.
+A lost response can leave the database committed before this archive write.
+`readReceipt` reads the committed record and restores its archive before it returns.
+A historical receipt without original bytes cannot supply a reconstructed grant.
+
+Owner revocation retains the first receipt and its original observation identifier.
+The supervisor checks that exact receipt through `readRevocation` before it stops the process.
+Ownership queries lock the execution before the owner rows and reject revoked grants under the same transaction.
+Native stop controls remain available after revocation.
+
+`renew` and `takeover` require a held `permit` in their input.
+Call `authorityPermitBinding(intent, engineJobId)` to obtain the exact binding before acquisition.
+The intent contains the execution, request, expected revision, and expiry; takeover also contains the expected owner and epoch.
+The producer retains that permit in `AuthorityCommit`.
+The adapter checks the outstanding permit and its exact intent before it writes ownership.
+A permit acquired before a block can complete while the block waits for its terminal evidence.
+The caller retains the permit through engine control delivery and durable acknowledgement.
+Neither grant issue nor archive recovery settles it.

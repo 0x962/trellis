@@ -6,6 +6,7 @@ import type { DispatchGate } from "../../../langflowHost";
 import { startNative } from "../../agentRuns";
 import { withAttemptOperation } from "../../langflowStops/withAttemptOperation";
 import type { IoCtx } from "../../support";
+import { nativePromptGuide } from "../nativePromptGuide";
 import { readReservation } from "../readReservation";
 import type { reserveNativeRequest } from "../reserveNativeRequest";
 
@@ -34,7 +35,7 @@ export async function dispatchNative(
 	const input = { executionId: reserved.reservation.executionId, stepId: reserved.reservation.stepId };
 	const claimed = await ctx.newTx(async (tx: Tx) => {
 		const execution = await lockExecution(tx, input);
-		assertAuthority(execution, ctx.nativeAuthority, "native.reserve", ctx.now());
+		await assertAuthority(tx, execution, ctx.nativeAuthority, "native.reserve", ctx.now());
 		if (execution.cancelIntent || execution.admission.state !== "open") throw new Error("admission_closed");
 		const current = await readReservation(tx, input);
 		if (
@@ -74,11 +75,11 @@ export async function dispatchNative(
 			authorizeLaunch: () =>
 				ctx.newTx(async (tx: Tx) => {
 					const current = await lockExecution(tx, input);
-					assertAuthority(current, ctx.nativeAuthority, "native.reserve", ctx.now());
+					await assertAuthority(tx, current, ctx.nativeAuthority, "native.reserve", ctx.now());
 					return current.cancelIntent === null && current.admission.state === "open";
 				}),
 		},
-		deps,
+		{ ...deps, guide: nativePromptGuide(claimed.limits, deps.guide) },
 	);
 	if (result.launchedAt !== undefined)
 		await ctx.newTx((tx: Tx) =>

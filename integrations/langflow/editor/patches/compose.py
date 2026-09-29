@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 
+from restrictInspectors import paths as inspector_paths, restrict_inspectors
+
 root = pathlib.Path(__file__).resolve().parents[1]
 engine = pathlib.Path(sys.argv[1]).resolve()
 schemas = root.parents[2] / 'packages/api/src/schemas'
@@ -18,10 +20,13 @@ assert hashlib.sha256(probe.read_bytes()).hexdigest() == probe_sha
 paths = {line.split(' b/')[1] for line in probe.read_text().splitlines() if line.startswith('diff --git ')}
 paths |= {
     'src/index.tsx',
+    'src/stores/flowsManagerStore.ts',
+    'src/stores/flowStore.ts',
     'src/controllers/API/queries/flows/use-get-types.ts',
     'src/hooks/flows/use-save-flow.ts',
     'src/components/core/parameterRenderComponent/index.tsx',
 }
+paths |= inspector_paths
 with tempfile.TemporaryDirectory(prefix='trellis-editor-patch-') as temporary:
     stage = pathlib.Path(temporary)
     for path in sorted(paths):
@@ -72,10 +77,12 @@ with tempfile.TemporaryDirectory(prefix='trellis-editor-patch-') as temporary:
     replace('src/controllers/API/queries/flows/use-patch-update-flow.ts',
             '    if (!TRELLIS_EDITOR_PROBE) {', '    if (TRELLIS_EDITOR_BRIDGE) throw new Error("Use the Trellis workspace to save this draft.");\n    if (!TRELLIS_EDITOR_PROBE) {')
     toolbar = 'src/components/core/flowToolbarComponent/index.tsx'
+    replace(toolbar, 'import { Panel }', f'import {{ EditorInteractions }} from "@/customization/trellis/frontend/EditorInteractions";\nimport {{ Panel }}')
     replace(toolbar, 'import { Panel }', f'import {{ TRELLIS_EDITOR_BRIDGE }} from "{mode}";\nimport {{ Panel }}')
     replace(toolbar, 'const FlowToolbar = TRELLIS_EDITOR_PROBE', '''const TrellisBridgeToolbar = () => (
   <Panel className="!m-2 rounded-md border bg-background shadow [&_button]:min-h-11" position="bottom-left">
     <CanvasControlsDropdown selectedNode={null} />
+    <EditorInteractions />
   </Panel>
 );
 const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITOR_PROBE''')
@@ -84,9 +91,20 @@ const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITO
     replace(canvas, '              onInit={setReactFlowInstance}', '              onMoveEnd={TRELLIS_EDITOR_BRIDGE ? editorViewportChanged : undefined}\n              onInit={setReactFlowInstance}')
     replace('src/components/core/parameterRenderComponent/index.tsx',
             '  return renderComponent();', '  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;')
-    for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'fieldFocus', 'frontend']:
-        for source in sorted((root / module).rglob('*.ts')):
-            if source.name.endswith('.test.ts'):
+    store = stage / 'src/stores/flowStore.ts'
+    store.write_text(f'import {{ TRELLIS_EDITOR_BRIDGE }} from "{mode}";\nimport {{ deleteEditorSelection }} from "@/customization/trellis/frontend/graphActions";\n' + store.read_text())
+    replace('src/stores/flowStore.ts', '  deleteNode: (nodeId) => {', '  deleteNode: (nodeId) => {\n    if (TRELLIS_EDITOR_BRIDGE) { deleteEditorSelection(typeof nodeId === "string" ? [nodeId] : nodeId, []); return; }')
+    replace('src/stores/flowStore.ts', '  deleteEdge: (edgeId) => {', '  deleteEdge: (edgeId) => {\n    if (TRELLIS_EDITOR_BRIDGE) { deleteEditorSelection([], typeof edgeId === "string" ? [edgeId] : edgeId); return; }')
+    replace(canvas, 'import { editorViewportChanged }', 'import { deleteEditorSelection } from "@/customization/trellis/frontend/graphActions";\nimport { editorViewportChanged }')
+    replace(canvas, '      deleteNode(lastSelection.nodes.map((node) => node.id));', '      if (TRELLIS_EDITOR_BRIDGE) { deleteEditorSelection(lastSelection.nodes.map((node) => node.id), lastSelection.edges.map((edge) => edge.id)); return; }\n      deleteNode(lastSelection.nodes.map((node) => node.id));')
+    replace(canvas, '        edgeUpdateSuccessful.current = true;', '        if (TRELLIS_EDITOR_BRIDGE) takeSnapshot();\n        edgeUpdateSuccessful.current = true;')
+    restrict_inspectors(replace, mode)
+    history = stage / 'src/stores/flowsManagerStore.ts'
+    history.write_text(f'import {{ TRELLIS_EDITOR_BRIDGE }} from "{mode}";\n' + history.read_text())
+    replace('src/stores/flowsManagerStore.ts', 'pastLength - defaultOptions.maxHistorySize + 1,', 'TRELLIS_EDITOR_BRIDGE ? 0 : pastLength - defaultOptions.maxHistorySize + 1,')
+    for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'editorCatalog', 'editorPalette', 'fieldFocus', 'frontend']:
+        for source in sorted((root / module).rglob('*')):
+            if source.suffix not in ('.ts', '.tsx') or (module != 'frontend' and source.name.endswith(('.test.ts', '.test.tsx'))):
                 continue
             target = stage / 'src/customization/trellis' / source.relative_to(root)
             target.parent.mkdir(parents=True, exist_ok=True)

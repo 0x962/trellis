@@ -1,1 +1,1 @@
-export { revealTab, useTabLayout } from "./useTabLayout";
+export { useTabLayout } from "./useTabLayout";

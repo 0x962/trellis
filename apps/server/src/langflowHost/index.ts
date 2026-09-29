@@ -1,5 +1,7 @@
 export type { RenewalInput, TakeoverInput } from "./authority";
+export { authorityPermitBinding } from "./authorityPermit";
 export { readIssuedAuthority } from "./authority/issuedBytes";
+export { type AuthorityPortInput, createAuthorityPort } from "./authorityPort";
 export {
 	CaptureAuthority,
 	type CaptureGrant,
@@ -16,6 +18,6 @@ export { createEngineClient } from "./engineClient";
 export { type HostControlIdentity, type HostRecoveryState, LangflowHostControl } from "./hostControl";
 export { type InitialAuthorityInput, InitialAuthorityIssuer } from "./initialAuthority";
 export type * from "./ociDriver";
-export { createOciDriver } from "./ociDriver";
+export { createOciDriver, importVerifiedOciImage } from "./ociDriver";
 export { DispatchReceiptArchive, type ReconciliationSources, type ValidationSource } from "./receiptArchive";
 export { LangflowSupervisor } from "./supervisor";

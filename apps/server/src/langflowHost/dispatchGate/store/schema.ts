@@ -18,6 +18,7 @@ const permit = z.strictObject({
 			"engine-delivery",
 			"decision",
 			"cancellation",
+			"review-classification",
 		]),
 		executionId: identity.nullable(),
 		attemptId: identity.nullable(),

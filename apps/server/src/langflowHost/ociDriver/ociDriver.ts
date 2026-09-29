@@ -2,22 +2,21 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import {
-	type LangflowSidecarManifestV1,
-	LangflowSidecarManifestV1Schema,
-} from "../../../../../integrations/langflow/package-probe/sidecarManifest";
+import { LangflowSidecarManifestV1Schema } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
 import type { SidecarDriver, SidecarIdentity, SidecarObservation } from "../contracts";
 import { containerCreateArgs } from "./createArgs/createArgs";
+import { engineApiConfiguration } from "./engineApiConfiguration";
+import { authenticatedHealth } from "./health";
 import {
 	assertContainer,
 	assertNetwork,
 	endpoint,
-	HealthSchema,
 	inspectContainer,
 	inspectNetwork,
 	labels,
 	names,
 } from "./identity/identity";
+import { assertManifestRuntime } from "./manifestRuntime";
 import { type OciCommandResult, runOciCommand } from "./process/process";
 import {
 	assertVolume,
@@ -28,26 +27,21 @@ import {
 	provisionStorage,
 	storageNames,
 } from "./storage/storage";
-
-export type OciDriverDependencies = {
-	run(args: string[]): Promise<OciCommandResult>;
-	fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
-};
-
-export type OciDriverOptions = {
-	manifest: LangflowSidecarManifestV1;
-	imageConfigDigest: string;
-	privateRoot: string;
-	captureIssuerFile: string;
-	dockerExecutable?: string;
-	dependencies?: Partial<OciDriverDependencies>;
-};
+import type { OciDriverOptions } from "./types";
 
 export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	const manifest = LangflowSidecarManifestV1Schema.parse(options.manifest);
 	if (manifest.target.kind !== "linux-oci") throw new Error("sidecar_oci_target_required");
+	assertManifestRuntime(manifest);
 	if (!/^sha256:[0-9a-f]{64}$/.test(options.imageConfigDigest)) throw new Error("sidecar_image_config_invalid");
 	if (!isAbsolute(options.captureIssuerFile)) throw new Error("sidecar_capture_issuer_path_invalid");
+	if (options.engineApiConfigFile && !isAbsolute(options.engineApiConfigFile)) {
+		throw new Error("sidecar_engine_api_config_path_invalid");
+	}
+	if (options.nativeReservationAuthenticationFile && !isAbsolute(options.nativeReservationAuthenticationFile)) {
+		throw new Error("sidecar_native_reservation_authentication_path_invalid");
+	}
+	const readEngineApiConfiguration = engineApiConfiguration(options);
 	const executable = options.dockerExecutable ?? "docker";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(executable, args));
 	const fetcher = options.dependencies?.fetch ?? fetch;
@@ -99,6 +93,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		const data = await privateDirectory(input.dataDirectory);
 		const authentication = await privateFile(input.authenticationFile);
 		const captureIssuer = await privateFile(options.captureIssuerFile);
+		const configuredEngineApi = await readEngineApiConfiguration();
 		if (data !== join(privateRoot, "data")) throw new Error("sidecar_data_directory_conflict");
 		if (authentication !== join(privateRoot, "secrets", `${input.identity.instanceId}.token`)) {
 			throw new Error("sidecar_authentication_file_conflict");
@@ -107,7 +102,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		if (container.state === "unknown") throw new Error("sidecar_ownership_unknown");
 		if (container.state === "found") {
 			const storage = await assertIsolation(input.identity);
-			assertContainer(container.value, input.identity, image, storage);
+			assertContainer(container.value, input.identity, image, storage, configuredEngineApi.digest);
 		} else {
 			let network = await inspectNetwork(run, instanceNames.network);
 			if (network.state === "unknown") throw new Error("sidecar_network_unknown");
@@ -137,15 +132,24 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				image: image.reference,
 				authenticationFile: authentication,
 				captureIssuerFile: captureIssuer,
+				engineApiConfigFile: configuredEngineApi.path,
+				nativeReservationAuthenticationFile: configuredEngineApi.nativeReservationAuthenticationFile,
 				storage,
 			});
-			const result = await run(containerCreateArgs({ identity: input.identity, image: image.reference, storage }));
+			const result = await run(
+				containerCreateArgs({
+					identity: input.identity,
+					image: image.reference,
+					storage,
+					engineApiConfigDigest: configuredEngineApi.digest,
+				}),
+			);
 			container = await inspectContainer(run, instanceNames.container);
 			if (result.exitCode !== 0 && container.state !== "found") throw new Error("sidecar_start_unknown");
 		}
 		if (container.state !== "found") throw new Error("sidecar_ownership_unknown");
 		let storage = await assertIsolation(input.identity);
-		assertContainer(container.value, input.identity, image, storage);
+		assertContainer(container.value, input.identity, image, storage, configuredEngineApi.digest);
 		if (!container.value.State.Running) {
 			const result = await run(["container", "start", container.value.Id]);
 			container = await inspectContainer(run, instanceNames.container);
@@ -153,11 +157,23 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		if (container.state !== "found" || !container.value.State.Running) throw new Error("sidecar_start_unconfirmed");
 		storage = await assertIsolation(input.identity);
-		assertContainer(container.value, input.identity, image, storage);
+		assertContainer(container.value, input.identity, image, storage, configuredEngineApi.digest);
 		endpoint(container.value);
 	}
 
 	async function observe(input: Parameters<SidecarDriver["observe"]>[0]): Promise<SidecarObservation> {
+		let configuredEngineApi: Awaited<ReturnType<typeof readEngineApiConfiguration>>;
+		try {
+			configuredEngineApi = await readEngineApiConfiguration();
+		} catch {
+			return {
+				identity: input.identity,
+				challenge: input.challenge,
+				state: "unknown",
+				health: "unknown",
+				endpoint: null,
+			};
+		}
 		const name = names(input.identity).container;
 		const inspected = await inspectContainer(run, name);
 		if (inspected.state !== "found") {
@@ -189,7 +205,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				throw new Error("sidecar_authentication_file_conflict");
 			}
 			const storage = await assertIsolation(input.identity);
-			assertContainer(inspected.value, input.identity, image, storage);
+			assertContainer(inspected.value, input.identity, image, storage, configuredEngineApi.digest);
 		} catch {
 			return {
 				identity: input.identity,
@@ -210,56 +226,25 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		const origin = endpoint(inspected.value);
 		const token = await readFile(authentication, "utf8");
-		const url = new URL("/trellis-v1/health", origin);
-		url.searchParams.set("challenge", input.challenge);
-		let response: Response;
-		try {
-			response = await fetcher(url, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Cache-Control": "no-store",
-					"X-Trellis-Challenge": input.challenge,
-				},
-				redirect: "error",
-				signal: AbortSignal.timeout(manifest.health.requestTimeoutMs),
-			});
-		} catch {
-			return {
-				identity: input.identity,
-				challenge: input.challenge,
-				state: "running",
-				health: "unknown",
-				endpoint: origin,
-			};
-		}
-		let health: ReturnType<typeof HealthSchema.safeParse>;
-		try {
-			health = HealthSchema.safeParse(await response.json());
-		} catch {
-			return {
-				identity: input.identity,
-				challenge: input.challenge,
-				state: "running",
-				health: "unhealthy",
-				endpoint: origin,
-			};
-		}
+		const health = await authenticatedHealth({
+			fetcher,
+			origin,
+			manifest,
+			token,
+			identity: input.identity,
+			challenge: input.challenge,
+		});
 		return {
 			identity: input.identity,
 			challenge: input.challenge,
 			state: "running",
-			health:
-				response.status === manifest.health.expectedStatus &&
-				health.success &&
-				health.data.challenge === input.challenge &&
-				isDeepStrictEqual(health.data.identity, input.identity)
-					? "healthy"
-					: "unhealthy",
+			health,
 			endpoint: origin,
 		};
 	}
 
 	async function stop(identity: SidecarIdentity) {
+		const configuredEngineApi = await readEngineApiConfiguration();
 		const instanceNames = names(identity);
 		let container = await inspectContainer(run, instanceNames.container);
 		if (container.state === "absent") {
@@ -274,14 +259,14 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		if (container.state !== "found") throw new Error("sidecar_ownership_unknown");
 		let storage = await assertIsolation(identity);
-		assertContainer(container.value, identity, image, storage);
+		assertContainer(container.value, identity, image, storage, configuredEngineApi.digest);
 		if (container.value.State.Running) {
 			await run(["container", "stop", container.value.Id]);
 			container = await inspectContainer(run, instanceNames.container);
 		}
 		if (container.state !== "found" || container.value.State.Running) throw new Error("sidecar_stop_unconfirmed");
 		storage = await assertIsolation(identity);
-		assertContainer(container.value, identity, image, storage);
+		assertContainer(container.value, identity, image, storage, configuredEngineApi.digest);
 		await run(["container", "rm", container.value.Id]);
 		container = await inspectContainer(run, instanceNames.container);
 		if (container.state !== "absent") throw new Error("sidecar_remove_unconfirmed");
