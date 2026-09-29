@@ -8,7 +8,7 @@ Changed bytes fail with `identity_conflict`.
 
 `NativeReservationCtx.resolveOccurrence` resolves configuration from the retained publication and the authenticated engine checkpoint.
 The resolver validates the full occurrence, input receipts, deadline references, and specification hash.
-It returns the exact task key, approved instruction, name, harness, and optional account.
+It returns the actual engine vertex ID, exact task key, static instruction, name, harness, optional account, and ordered input receipts.
 Its request digest binds that approval to the original request bytes.
 The private transport supplies `nativeAuthority` after authentication.
 A capability ID in a request cannot authenticate the caller.
@@ -105,3 +105,28 @@ Missing, unsafe, or corrupt files and historical null digests appear in `unavail
 Unexpected I/O failures propagate to the archive caller.
 Paired backup and restore must include these files and retain the dispatch block until their validation succeeds.
 The ordinary database backup does not contain the private launch files.
+
+## Retained prompt inputs
+
+`ApprovedNativeOccurrence.engineNodeId` identifies the actual engine vertex in `trellisRequestSpecsV1`.
+`instruction` retains the static instruction verbatim.
+`inputReceipts` holds ordered `{ receiptId, receiptBytes, receiptDigest }` values from the authenticated engine reader.
+Each digest is SHA256 of the exact UTF-8 receipt bytes.
+The receipt has `{ version: 1, receiptId, executionId, publicationId, engineJobId, nodeId, occurrenceKey, output }`.
+`output` is a string with the full native text or the complete canonical human or control result.
+The engine journal establishes input order and consumption, including NO feedback.
+
+`assembleNativePrompt` verifies the retained publication, exact static specification, task association, receipt order, and receipt bindings before reservation.
+Converted documents also require `readConversionBinding` to verify the source and obtain its original briefing.
+The prompt contains the retained briefing, execution target identifiers, node identifier, static instruction, and ordered outputs.
+A condition prompt ends with the YES-or-NO directive.
+The private launch snapshot retains the assembled instruction and its receipt bytes, digests, and publication provenance.
+
+`nativePromptGuide` adds the absolute deadline and process budget when the native service constructs the launch guide.
+The absolute deadline stays fixed across recovery.
+The existing guide observes the workspace and supplies current project context at launch.
+The reviewed head belongs to the retained execution; the runtime observer records the actual workspace commit separately.
+
+The authenticated receipt reader remains a required composition dependency.
+Missing receipts stop reservation.
+The authored prompt fixtures require execution in the integrated batch.

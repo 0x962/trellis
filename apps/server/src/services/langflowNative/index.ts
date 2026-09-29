@@ -1,9 +1,11 @@
+export { assembleNativePrompt } from "./assembleNativePrompt";
 export { dispatchNative } from "./dispatchNative";
 export { readLaunchSnapshot } from "./launchSnapshot";
 export { observeNativeAttempt } from "./observeNativeAttempt";
 export { readCompletionDelivery } from "./readCompletionDelivery";
 export { readNativeOutput } from "./readNativeOutput";
 export { readNativeSnapshotManifest } from "./readNativeSnapshotManifest";
+export type { NativePromptReceipt } from "./readPromptInputs";
 export { readReservation } from "./readReservation";
 export { recordNativeLaunch } from "./recordNativeLaunch";
 export { recordNativeObservation } from "./recordNativeObservation";
