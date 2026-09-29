@@ -1,5 +1,6 @@
 import { type AgentRun, hasAssignedProcess } from "@trellis/api";
 import type { LinkPress, SessionStatusProcessState } from "@trellis/ui";
+import type { Orpc } from "../../../../../lib/orpc";
 
 export const sessionStatusProcessState = (run: AgentRun): SessionStatusProcessState => {
 	if (
@@ -13,5 +14,7 @@ export const sessionStatusProcessState = (run: AgentRun): SessionStatusProcessSt
 
 export const sessionUpdateInput = (run: Pick<AgentRun, "id">) => ({ sessionId: run.id });
 
-export const statusLinkPress = (target: string, press: LinkPress): LinkPress =>
-	target === "_blank" ? { ...press, metaKey: true } : press;
+export const agentStatusUpdatesQueryOptions = (orpc: Orpc, run: Pick<AgentRun, "id">) =>
+	orpc.sessionUpdates.get.queryOptions({ input: sessionUpdateInput(run) });
+
+export const agentStatusLinkPress = (_target: string, press: LinkPress): LinkPress => press;

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { AgentRun } from "@trellis/api";
 import type { SessionUpdates } from "@trellis/ui";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SessionStatusContent } from "./SessionStatusContent";
+import { AgentStatusUpdatesPane } from "./AgentStatusUpdatesPane";
 
 const run = {
 	id: "run-a",
@@ -54,9 +54,9 @@ const updates: SessionUpdates = {
 	request: null,
 };
 
-const render = (value = updates) =>
+const renderPane = (value = updates) =>
 	renderToStaticMarkup(
-		<SessionStatusContent
+		<AgentStatusUpdatesPane
 			run={run}
 			updates={value}
 			now="2026-09-29T06:00:00.000Z"
@@ -65,9 +65,27 @@ const render = (value = updates) =>
 		/>,
 	);
 
-describe("SessionStatusContent", () => {
+const renderConversation = () =>
+	renderToStaticMarkup(
+		<section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+			<div className="flex min-h-0 flex-1 max-md:flex-col">
+				<div data-transcript className="flex min-h-0 min-w-0 flex-1 flex-col">
+					Transcript
+				</div>
+				<AgentStatusUpdatesPane
+					run={run}
+					updates={updates}
+					now="2026-09-29T06:00:00.000Z"
+					onOpenLink={() => {}}
+					renderMarkdown={(markdown) => <p data-markdown={markdown}>{markdown}</p>}
+				/>
+			</div>
+		</section>,
+	);
+
+describe("AgentStatusUpdatesPane", () => {
 	test("renders the saved update after the ticket completes", () => {
-		const html = render();
+		const html = renderPane();
 		expect(html).toContain("Session A **finished**.");
 		expect(html).toContain("2 min ago");
 		expect(html).toContain("Previous update");
@@ -75,7 +93,7 @@ describe("SessionStatusContent", () => {
 	});
 
 	test("keeps updates from another session out of the selected session", () => {
-		const html = render({
+		const html = renderPane({
 			...updates,
 			latest: { ...updates.latest!, body: "Only the selected session appears." },
 		});
@@ -83,11 +101,13 @@ describe("SessionStatusContent", () => {
 		expect(html).not.toContain("Session B");
 	});
 
-	test("uses the bounded desktop and narrow pane", () => {
-		const html = render();
+	test("places the bounded pane beside the transcript and above it at narrow widths", () => {
+		const html = renderConversation();
+		expect(html).toContain("max-md:flex-col");
 		expect(html).toContain("w-93.5");
 		expect(html).toContain("max-md:order-first");
 		expect(html).toContain("max-md:max-h-130");
 		expect(html).toContain('aria-label="Agent status updates"');
+		expect(html.indexOf("data-transcript")).toBeLessThan(html.indexOf('aria-label="Session status"'));
 	});
 });

@@ -13,9 +13,9 @@ import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
 import { isSessionArchived, sessionPane } from "../sessionPane";
 import { useSessionArchive } from "../useSessionArchive";
+import { AgentStatusUpdates, useSessionStatusPaneVisibility } from "./components/AgentStatusUpdates";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
-import { SessionStatus, useSessionStatusPaneVisibility } from "./components/SessionStatus";
 
 export function SessionConversation({
 	run,
@@ -176,8 +176,7 @@ export function SessionConversation({
 							}
 						/>
 					) : pane.kind === "paused" ? (
-						// The page variant draws the picture that every page-level state
-						// of the app draws. A pause is no failure, so the block keeps it.
+						// A paused session uses the page picture because a pause is not a failure.
 						<EmptyState variant="page" title={pane.title} description={pane.description} />
 					) : run.terminalId ? (
 						<NativeTerminal
@@ -198,7 +197,7 @@ export function SessionConversation({
 						/>
 					)}
 				</div>
-				<SessionStatus run={run} visible={statusPane.visible} />
+				<AgentStatusUpdates run={run} visible={statusPane.visible} />
 			</div>
 		</section>
 	);

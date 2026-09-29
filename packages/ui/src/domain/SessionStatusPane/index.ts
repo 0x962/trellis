@@ -1,4 +1,5 @@
 export { SessionStatusPane } from "./SessionStatusPane";
+export { SessionStatusPaneShell } from "./SessionStatusPaneShell";
 export type {
 	SessionStatusPaneProps,
 	SessionStatusProcessState,

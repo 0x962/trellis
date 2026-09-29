@@ -2,11 +2,11 @@ import type { AgentRun } from "@trellis/api";
 import { type LinkPress, SessionStatusPane, type SessionUpdates } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
-import { sessionStatusProcessState, statusLinkPress } from "./sessionStatusState";
+import { agentStatusLinkPress, sessionStatusProcessState } from "./agentStatusUpdatesState";
 
 const renderStatusMarkdown = (markdown: string): ReactNode => <ReadOnlyMarkdown markdown={markdown} />;
 
-export function SessionStatusContent({
+export function AgentStatusUpdatesPane({
 	run,
 	updates,
 	now,
@@ -25,7 +25,7 @@ export function SessionStatusContent({
 			processState={sessionStatusProcessState(run)}
 			now={now}
 			renderMarkdown={renderMarkdown}
-			onOpenLink={(href, target, press) => onOpenLink(href, statusLinkPress(target, press))}
+			onOpenLink={(href, target, press) => onOpenLink(href, agentStatusLinkPress(target, press))}
 		/>
 	);
 }

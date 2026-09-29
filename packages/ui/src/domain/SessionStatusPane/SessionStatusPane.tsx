@@ -4,6 +4,7 @@ import { ScrollArea } from "../../primitives/ScrollArea";
 import { cx } from "../../utils/cx";
 import { type LinkPress, linkPress } from "../../utils/linkPress";
 import { SessionStatusEmbed } from "./components/SessionStatusEmbed";
+import { SessionStatusPaneShell } from "./SessionStatusPaneShell";
 import { sessionStatusNotice, sessionUpdateAge } from "./sessionStatusText";
 import type { SessionStatusPaneProps, SessionUpdate } from "./types";
 
@@ -95,14 +96,7 @@ export function SessionStatusPane({
 		lateAfterMs,
 	});
 	return (
-		<aside
-			aria-label="Session status"
-			className={cx(
-				"order-none flex h-full min-h-0 w-93.5 shrink-0 flex-col border-s border-border bg-bg",
-				"max-md:order-first max-md:h-auto max-md:max-h-130 max-md:w-full max-md:border-s-0 max-md:border-b",
-				className,
-			)}
-		>
+		<SessionStatusPaneShell className={className}>
 			<ScrollArea label="Agent status updates" className="min-h-0 flex-1">
 				<div className="flex min-h-full flex-col gap-5 px-5.5 py-5 max-md:gap-4 max-md:p-4.5">
 					<header className="flex items-center justify-between gap-3">
@@ -162,6 +156,6 @@ export function SessionStatusPane({
 					</details>
 				</div>
 			</ScrollArea>
-		</aside>
+		</SessionStatusPaneShell>
 	);
 }
