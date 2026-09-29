@@ -90,7 +90,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		const authentication = await privateFile(input.authenticationFile);
 		const captureIssuer = await privateFile(options.captureIssuerFile);
 		const configuredEngineApi = await readEngineApiConfiguration();
-		const nativeReservation = await readNativeReservationAuthentication(input);
+		const native = await readNativeReservationAuthentication(input);
 		if (data !== join(privateRoot, "data")) throw new Error("sidecar_data_directory_conflict");
 		if (authentication !== join(privateRoot, "secrets", `${input.identity.instanceId}.token`)) {
 			throw new Error("sidecar_authentication_file_conflict");
@@ -105,7 +105,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				image,
 				storage,
 				configuredEngineApi,
-				nativeReservation.digest,
+				native.digest,
 			);
 		} else {
 			let network = await inspectNetwork(run, instanceNames.network);
@@ -137,7 +137,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				authenticationFile: authentication,
 				captureIssuerFile: captureIssuer,
 				engineApiConfigFile: configuredEngineApi.path,
-				nativeReservationAuthenticationFile: nativeReservation.file,
+				nativeReservationAuthenticationFile: native.file,
 				storage,
 			});
 			const result = await run(
@@ -146,7 +146,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 					image: image.reference,
 					storage,
 					engineApiConfigDigest: configuredEngineApi.digest,
-					nativeReservationAuthenticationDigest: nativeReservation.digest,
+					nativeReservationAuthenticationDigest: native.digest,
 				}),
 			);
 			container = await inspectContainer(run, instanceNames.container);
@@ -154,7 +154,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		if (container.state !== "found") throw new Error("sidecar_ownership_unknown");
 		let storage = await assertIsolation(input.identity);
-		assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, nativeReservation.digest);
+		assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		if (!container.value.State.Running) {
 			const result = await run(["container", "start", container.value.Id]);
 			container = await inspectContainer(run, instanceNames.container);
@@ -162,16 +162,16 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		if (container.state !== "found" || !container.value.State.Running) throw new Error("sidecar_start_unconfirmed");
 		storage = await assertIsolation(input.identity);
-		assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, nativeReservation.digest);
+		assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		endpoint(container.value);
 	}
 
 	async function observe(input: Parameters<SidecarDriver["observe"]>[0]): Promise<SidecarObservation> {
 		let configuredEngineApi: Awaited<ReturnType<typeof readEngineApiConfiguration>>;
-		let nativeReservation: Awaited<ReturnType<typeof readNativeReservationAuthentication>>;
+		let native: Awaited<ReturnType<typeof readNativeReservationAuthentication>>;
 		try {
 			configuredEngineApi = await readEngineApiConfiguration();
-			nativeReservation = await readNativeReservationAuthentication(input);
+			native = await readNativeReservationAuthentication(input);
 		} catch {
 			return {
 				identity: input.identity,
@@ -218,7 +218,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				image,
 				storage,
 				configuredEngineApi,
-				nativeReservation.digest,
+				native.digest,
 			);
 		} catch {
 			return {
@@ -259,7 +259,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 
 	async function stop(identity: SidecarIdentity, authentication: NativeReservationAuthentication) {
 		const configuredEngineApi = await readEngineApiConfiguration();
-		const nativeReservation = await readNativeReservationAuthentication({ identity, ...authentication });
+		const native = await readNativeReservationAuthentication({ identity, ...authentication });
 		const instanceNames = names(identity);
 		let container = await inspectContainer(run, instanceNames.container);
 		if (container.state === "absent") {
@@ -274,14 +274,14 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		if (container.state !== "found") throw new Error("sidecar_ownership_unknown");
 		let storage = await assertIsolation(identity);
-		assertContainerBinding(container.value, identity, image, storage, configuredEngineApi, nativeReservation.digest);
+		assertContainerBinding(container.value, identity, image, storage, configuredEngineApi, native.digest);
 		if (container.value.State.Running) {
 			await run(["container", "stop", container.value.Id]);
 			container = await inspectContainer(run, instanceNames.container);
 		}
 		if (container.state !== "found" || container.value.State.Running) throw new Error("sidecar_stop_unconfirmed");
 		storage = await assertIsolation(identity);
-		assertContainerBinding(container.value, identity, image, storage, configuredEngineApi, nativeReservation.digest);
+		assertContainerBinding(container.value, identity, image, storage, configuredEngineApi, native.digest);
 		await run(["container", "rm", container.value.Id]);
 		container = await inspectContainer(run, instanceNames.container);
 		if (container.state !== "absent") throw new Error("sidecar_remove_unconfirmed");
