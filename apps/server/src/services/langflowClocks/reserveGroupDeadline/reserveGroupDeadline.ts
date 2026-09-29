@@ -24,7 +24,7 @@ export async function reserveGroupDeadline(
 		execution.publicationId !== request.publicationId || execution.engineJobId !== request.engineJobId ||
 		authority.engineEpoch !== request.engineEpoch || execution.snapshot.documentHash !== execution.publication.documentHash ||
 		execution.admission.receipt.engineEpoch !== request.engineEpoch ||
-		request.occurrenceKey !== request.occurrence.occurrenceKey || request.occurrence.phase !== "children"
+		request.occurrenceKey !== request.occurrence.occurrenceKey
 	) throw new Error("group_execution_conflict");
 	const budgetMs = groupBudget(execution.snapshot, request);
 	const occurrence = request.occurrence;
