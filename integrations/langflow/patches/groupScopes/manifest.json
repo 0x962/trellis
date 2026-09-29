@@ -1,0 +1,46 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-executable-group-scopes.patch",
+  "sha256": "107595a82de1be9f0d4eb4ae9da28102ade5d092094a9a86bab73fec9fe0a5e1",
+  "files": {
+    "src/lfx/src/lfx/graph/group_scope.py": "d5ef55e81ef3543c4a544445475cae4ab76f4a65dbacf31624603c2a6ff09786",
+    "src/lfx/src/lfx/graph/graph/base.py": "03c8f4ecd2d6f570fdea0ddd5fefaa6e5a29f8259d7e3fd9c13b967a9bedd508",
+    "src/lfx/src/lfx/graph/checkpoint/schema.py": "1ebca5f03b714b1c9c38571cd215e8b2c0cc728e06cd85291e24f2e9cc892a70",
+    "src/lfx/src/lfx/graph/checkpoint/builder.py": "3a32105c53947a785e9e89ef2c2e98011a80e2c9de7c035c9c6f62f2c39fa984",
+    "src/lfx/src/lfx/graph/checkpoint/resume.py": "e4664c649da26062b816c6bb33d6e486e24e6151b095609ac47fff9c138f23d7"
+  },
+  "sharedHunks": {
+    "src/lfx/src/lfx/graph/graph/base.py": {
+      "baseSha256": "cd252d076b380fc4c8ca3bc36d24ff056fd2e38d2dd11227b01ce48cdfb952fa",
+      "resultSha256": "03c8f4ecd2d6f570fdea0ddd5fefaa6e5a29f8259d7e3fd9c13b967a9bedd508"
+    },
+    "src/lfx/src/lfx/graph/checkpoint/schema.py": {
+      "baseSha256": "683580302f371e5d899b4f27873a0ae9c0ff583312bf4b18382ad053e9fb4d23",
+      "resultSha256": "1ebca5f03b714b1c9c38571cd215e8b2c0cc728e06cd85291e24f2e9cc892a70"
+    },
+    "src/lfx/src/lfx/graph/checkpoint/builder.py": {
+      "baseSha256": "30809361c4985f4e45b07dd77be440ddd78992f7b7daa643652ea7c805651b00",
+      "resultSha256": "3a32105c53947a785e9e89ef2c2e98011a80e2c9de7c035c9c6f62f2c39fa984"
+    },
+    "src/lfx/src/lfx/graph/checkpoint/resume.py": {
+      "baseSha256": "380688af80797ff3c44d2f0ffdc6b008dfe6897f12f7dfcc7416800263cbd19d",
+      "resultSha256": "e4664c649da26062b816c6bb33d6e486e24e6151b095609ac47fff9c138f23d7"
+    }
+  },
+  "components": {
+    "integrations/langflow/components/groupScope/__init__.py": "120d5257438ed801bb36010338a233e23920552997ffd9cbcad86b48c2a30ea5",
+    "integrations/langflow/components/groupScope/expansion.py": "75de638dc455bb502cd5e7c34ee8a2f36a1a26fcb186eecc4812954d55750971",
+    "integrations/langflow/components/groupScope/groupScope.py": "465e7830810b05c5979ffd2c2bd1507e7d2b23221efd687a99c6db1be422ef9a"
+  },
+  "tests": {
+    "tests/test_group_scope.py": "380d0ec0af8fb7938c616124a38eb6eca7861e87d3748302ff59238b226444f5",
+    "../../tests/groupScopes/test_expansion.py": "6d77a2ff6fffe951c1c88876451de664305da824bc7d46d6c64665d4c6725ee6"
+  },
+  "requires": [
+    "langflow.services.trellis_v1.occurrence_models.VisitScope.from_engine",
+    "Graph.commit_trellis_loop_children",
+    "Graph.read_trellis_loop_visit",
+    "the composed external-wait checkpoint fields",
+    "the composed conditional-routing exclusions"
+  ]
+}
