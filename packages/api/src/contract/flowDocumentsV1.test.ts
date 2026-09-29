@@ -26,7 +26,15 @@ test("the client and server share versioned routes and retain strict legacy cont
 });
 
 test("the versioned execution index accepts pagination beyond the legacy cutoff", async () => {
-	const entries = [{ id: flowV1FixtureIds.execution, engine: "langflow" as const }];
+	const entries = [
+		{
+			id: flowV1FixtureIds.execution,
+			engine: "langflow" as const,
+			flowId: flowV1FixtureIds.flow,
+			status: "queued" as const,
+			pendingSubmission: true,
+		},
+	];
 	const client = createTrellisClient("http://localhost", "human:reviewer", async (request) => {
 		expect(new URL(request.url).pathname).toBe("/rpc/flowDocumentsV1/list");
 		return Response.json({ json: entries });
