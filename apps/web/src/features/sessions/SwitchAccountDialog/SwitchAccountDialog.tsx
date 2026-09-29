@@ -1,11 +1,12 @@
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { Command, ConfirmDialog, Dialog } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useSessionRestart } from "../useSessionRestart";
 
 export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: () => void }) {
-	const { client, orpc, queryClient } = useApp();
+	const { client, orpc } = useApp();
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
 	const choices = (accounts.data ?? []).filter((account) => account.harness === run.harness?.preset);
 	const quotas = useQueries({
@@ -14,7 +15,7 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	const [selected, setSelected] = useState<{ id: string; label: string; terminalId: string; requestId: string } | null>(
 		null,
 	);
-	const change = useMutation({
+	const change = useSessionRestart(run, {
 		mutationFn: async () => {
 			const result = await client.agentRuns.switchAccount({
 				id: run.id,
@@ -27,13 +28,9 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 			if (result.state !== "running")
 				throw new Error(`The session is ${result.state}. Inspect it before another switch.`);
 			if (result.accountId !== selected!.id) throw new Error("The session did not switch accounts.");
+			return result;
 		},
 		onSuccess: onClose,
-		onSettled: () =>
-			Promise.all([
-				queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
-				queryClient.invalidateQueries({ queryKey: orpc.sessions.key() }),
-			]),
 	});
 	const items = choices.map((account, index) => {
 		const quota = quotas[index]!;
