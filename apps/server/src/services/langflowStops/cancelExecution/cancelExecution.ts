@@ -3,6 +3,7 @@ import type { FlowExecutionCancelInput } from "@trellis/api";
 import type { ServiceCtx } from "../../../context.ts";
 import {
 	lockExecution,
+	readProjection,
 	readProjectionFacts,
 	cancelExecution as recordCancellation,
 } from "../../../db/queries/langflowExecution";
@@ -15,8 +16,9 @@ export async function cancelExecution(ctx: ServiceCtx, tx: Tx, input: FlowExecut
 	if (ctx.actor?.kind !== "human") throw invalidInput("actor", "A person must cancel a flow.");
 	const executionId = input.id;
 	const execution = await lockExecution(tx, { executionId });
-	if (execution.revision !== input.expectedRevision)
-		throw fail("FLOW_VERSION_CONFLICT", { version: execution.revision });
+	const projection = (await readProjection(tx, { executionId }))!;
+	if (projection.view.revision !== input.expectedRevision)
+		throw fail("FLOW_VERSION_CONFLICT", { version: projection.view.revision });
 	const facts = await readProjectionFacts(tx, { executionId });
 	if (execution.cancelIntent !== null)
 		return { intent: execution.cancelIntent, needsStop: facts.stops.some((stop) => stop.state !== "confirmed") };
@@ -25,7 +27,7 @@ export async function cancelExecution(ctx: ServiceCtx, tx: Tx, input: FlowExecut
 		executionId,
 		requestId: randomUUID(),
 		actor: { kind: "human", name: ctx.actor.name },
-		expectedRevision: input.expectedRevision,
+		expectedRevision: execution.revision,
 		requestedAt: ctx.now.toISOString(),
 	};
 	const obligations = facts.native.map(

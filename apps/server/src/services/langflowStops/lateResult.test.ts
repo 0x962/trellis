@@ -24,7 +24,7 @@ test("a result after cancel remains audit data and cannot authorize downstream e
 		updateNativeHandle(tx, { executionId: ids.execution, expectedRevision: 1, handle: completed }),
 	);
 	const canceled = await fixture.run((tx) =>
-		cancelExecution(fixture.core, tx, { id: ids.execution, expectedRevision: 2 }),
+		cancelExecution(fixture.core, tx, { id: ids.execution, expectedRevision: 1 }),
 	);
 	const result: NativeResultV1 = {
 		version: 1,

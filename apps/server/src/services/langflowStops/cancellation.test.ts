@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import {
+	commitProjection,
 	listPendingDeliveries,
 	readExecution,
 	readProjectionFacts,
@@ -19,7 +20,7 @@ let fixture: Awaited<ReturnType<typeof stopFixture>>;
 afterEach(async () => {
 	await fixture.db.$client.close();
 });
-const input = { id: ids.execution, expectedRevision: 2 };
+const input = { id: ids.execution, expectedRevision: 1 };
 
 test("cancel before launch commits intent and stop obligations before a failed external stop", async () => {
 	fixture = await stopFixture();
@@ -133,7 +134,40 @@ test("only a human with the current revision can cancel", async () => {
 		fixture.run((tx) => cancelExecution({ ...fixture.core, actor: { kind: "agent", name: "fixture" } }, tx, input)),
 	).rejects.toThrow();
 	await expect(
-		fixture.run((tx) => cancelExecution(fixture.core, tx, { ...input, expectedRevision: 1 })),
+		fixture.run((tx) => cancelExecution(fixture.core, tx, { ...input, expectedRevision: 2 })),
 	).rejects.toThrow();
 	expect((await fixture.run((tx) => readExecution(tx, { executionId: input.id })))!.cancelIntent).toBeNull();
+});
+
+test("cancel validates the visible revision and records the separate storage revision", async () => {
+	fixture = await stopFixture();
+	for (const revision of [1, 2]) {
+		await fixture.run((tx) =>
+			commitProjection(tx, {
+				executionId: input.id,
+				expectedRevision: revision,
+				view: { ...fixture.view, revision: revision + 1 },
+				event: null,
+				sourceBytes: null,
+			}),
+		);
+	}
+	const stored = await fixture.run((tx) => readExecution(tx, { executionId: input.id }));
+	expect(stored!.revision).toBe(2);
+	await expect(
+		fixture.run((tx) =>
+			cancelExecution(fixture.core, tx, {
+				...input,
+				expectedRevision: 2,
+			}),
+		),
+	).rejects.toMatchObject({ data: { version: 3 } });
+	const canceled = await fixture.run((tx) =>
+		cancelExecution(fixture.core, tx, {
+			...input,
+			expectedRevision: 3,
+		}),
+	);
+	expect(canceled.intent.expectedRevision).toBe(2);
+	expect(canceled.needsStop).toBe(true);
 });
