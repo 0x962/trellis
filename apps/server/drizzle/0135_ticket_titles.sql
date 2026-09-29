@@ -1,0 +1,2 @@
+ALTER TABLE "tickets" DROP CONSTRAINT "tickets_title_check";--> statement-breakpoint
+ALTER TABLE "tickets" ADD CONSTRAINT "tickets_title_check" CHECK ("tickets"."title" = btrim("tickets"."title") AND length("tickets"."title") >= 1);

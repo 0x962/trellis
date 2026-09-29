@@ -20,12 +20,7 @@ import { StatusSummarySchema } from "./status.ts";
 import { TicketPrSchema } from "./ticketPr.ts";
 import { WaveLinkSchema } from "./wave.ts";
 
-// A title is stored trimmed. The limit keeps a row under the summary budget.
-export const TicketTitleSchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a title of 1 to 500 characters.")
-	.max(500, "Enter a title of 1 to 500 characters.");
+export const TicketTitleSchema = z.string().trim().min(1, "Enter a title.");
 
 export const TicketIdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
