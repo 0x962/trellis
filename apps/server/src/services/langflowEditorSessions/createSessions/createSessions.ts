@@ -151,6 +151,7 @@ export function createLangflowEditorSessions(options: EditorSessionOptions) {
 				channel: grant.session.channel,
 				identity: grant.session.identity,
 				parentOrigin: options.parentOrigin,
+				project: grant.project,
 				expiresAt: grant.session.expiresAt,
 			});
 		if (operation === "/grant") return c.json(grant.session);
