@@ -8,9 +8,9 @@ import {
 import { ids } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import { type NativeResultV1, protocolDigest } from "../../langflowContracts";
-import { assertExecutionActive } from "./assertExecutionActive";
+import { stopFixture } from "../langflowTestFixture";
+import { assertExecutionNotCanceled } from "./assertExecutionNotCanceled";
 import { cancelExecution } from "./cancelExecution";
-import { stopFixture } from "./testFixture";
 
 let fixture: Awaited<ReturnType<typeof stopFixture>>;
 afterEach(async () => {
@@ -66,6 +66,6 @@ test("a result after cancel remains audit data and cannot authorize downstream e
 	);
 	expect(pending.every((row) => row.kind === "cancel")).toBe(true);
 	await expect(
-		fixture.run((tx) => assertExecutionActive(fixture.core, tx, { executionId: ids.execution })),
+		fixture.run((tx) => assertExecutionNotCanceled(fixture.core, tx, { executionId: ids.execution })),
 	).rejects.toThrow("canceled");
 });

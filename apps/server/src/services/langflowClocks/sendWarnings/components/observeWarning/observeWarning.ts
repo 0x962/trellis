@@ -1,5 +1,5 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import type { JobsLog } from "../../../jobs.ts";
+import type { JobsLog } from "../../../../../jobs.ts";
 
 export async function observeWarning(
 	log: JobsLog,

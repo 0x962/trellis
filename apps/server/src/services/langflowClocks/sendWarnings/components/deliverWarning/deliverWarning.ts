@@ -1,11 +1,11 @@
-import type { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
+import type { HarnessHost } from "../../../../../agents/harnessHost/harnessHost.ts";
 import {
 	confirmWarning,
 	lockExecution,
 	readProjectionFacts,
 	reserveWarning,
-} from "../../../db/queries/langflowExecution";
-import type { IoCtx } from "../../support.ts";
+} from "../../../../../db/queries/langflowExecution";
+import type { IoCtx } from "../../../../support.ts";
 
 import { observeWarning } from "../observeWarning";
 
@@ -31,8 +31,8 @@ export async function deliverWarning(
 			return execution.cancelIntent === null && !facts.stops.some((stop) => stop.attemptId === attemptId);
 		});
 		if (!allowed) return;
-		// The runtime preserves messageId before it writes the warning to the native attempt.
-		// An uncertain write cannot send the same warning twice after a host restart.
+		// The runtime saves messageId before delivery. Native delivery refuses uncertain repeats.
+		// Queued delivery can repeat when the write succeeds but its completion record does not persist.
 		status = await observeWarning(ctx.log, { executionId, attemptId, messageId }, () =>
 			host.sendAtTurnBoundary(attemptId, payload.text, messageId),
 		);

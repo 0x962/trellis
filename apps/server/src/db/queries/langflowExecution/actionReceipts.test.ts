@@ -10,7 +10,7 @@ let db: Db;
 afterEach(async () => {
 	await db.$client.close();
 });
-function input(overrides: Partial<Omit<ActionReceiptInput, "sourceBytes">> = {}): ActionReceiptInput {
+function input(overrides: Partial<Extract<ActionReceiptInput, { outcome: "completed" }>> = {}): ActionReceiptInput {
 	const requestBytes = '{ "operation": "start", "source": "é" }\r\n';
 	const fields = {
 		permit: {
@@ -29,8 +29,11 @@ function input(overrides: Partial<Omit<ActionReceiptInput, "sourceBytes">> = {})
 		},
 		requestBytes,
 		requestDigest: protocolDigest(requestBytes),
+		outcome: "completed" as const,
 		executionId: "execution-1",
 		viewRevision: 2,
+		errorCode: null,
+		errorBytes: null,
 		receiptId: "receipt-1",
 		recordedAt: "2026-09-29T20:00:00.000Z",
 		...overrides,
@@ -39,7 +42,7 @@ function input(overrides: Partial<Omit<ActionReceiptInput, "sourceBytes">> = {})
 }
 test("retains immutable exact action receipts through rollback, replay, and archive restore", async () => {
 	db = await beforeDocuments(136);
-	expect(await migrate(db)).toBe(1);
+	expect(await migrate(db)).toBe(2);
 	const original = input();
 	await expect(
 		db.transaction(async (tx) => {

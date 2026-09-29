@@ -24,7 +24,8 @@ The next host uses that reservation instead of an unrecorded replacement.
 ## Driver boundary
 
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
-`createOciDriver` binds the manifest image digest and the separate image config digest to the saved instance.
+`createOciDriver` binds the verified manifest and its image config digest to the saved instance.
+It starts the loaded config digest with pull disabled, so a missing local import fails closed.
 `start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
 It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
 `observe` checks those current objects before it requests authenticated health for the supplied challenge.
