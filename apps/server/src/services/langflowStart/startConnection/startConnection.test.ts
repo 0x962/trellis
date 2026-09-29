@@ -68,8 +68,12 @@ test("recovery repeats the exact admission and authority bytes after a lost ackn
 test("a committed acknowledgement repairs archive settlement without another engine call", async () => {
 	const f = await fixture();
 	const settle = f.control.gate.settle.bind(f.control.gate);
-	f.control.gate.settle = async () => { throw new Error("crash_before_settlement"); };
-	await expect((await f.connect()).committed({ executionId: f.executionId })).rejects.toThrow("crash_before_settlement");
+	f.control.gate.settle = async () => {
+		throw new Error("crash_before_settlement");
+	};
+	await expect((await f.connect()).committed({ executionId: f.executionId })).rejects.toThrow(
+		"crash_before_settlement",
+	);
 	f.control.gate.settle = settle;
 	await (await f.connect()).recover();
 	expect(count(f, "admission/open")).toBe(1);
@@ -87,7 +91,9 @@ test("canceled reservations with unknown correlation only repeat lookup", async 
 	const f = await fixture();
 	f.behavior.unknownLookup = true;
 	await (await f.connect()).committed({ executionId: f.executionId });
-	await f.database.db.execute(sql`UPDATE langflow_executions SET cancel_intent=${JSON.stringify({ version: 1, executionId: f.executionId, requestId: crypto.randomUUID(), actor: { kind: "human", name: "test" }, expectedRevision: 1, requestedAt: f.database.ctx.now.toISOString() })}::jsonb WHERE execution_id=${f.executionId}`);
+	await f.database.db.execute(
+		sql`UPDATE langflow_executions SET cancel_intent=${JSON.stringify({ version: 1, executionId: f.executionId, requestId: crypto.randomUUID(), actor: { kind: "human", name: "test" }, expectedRevision: 1, requestedAt: f.database.ctx.now.toISOString() })}::jsonb WHERE execution_id=${f.executionId}`,
+	);
 	const before = f.requests.length;
 	await (await f.connect()).recover();
 	expect(f.requests).toHaveLength(before + 1);
@@ -98,11 +104,18 @@ test("canceled reservations with unknown correlation only repeat lookup", async 
 
 test("internal state rejects a human actor and a different host", async () => {
 	const f = await fixture();
-	await expect(f.database.run((tx) => startState(f.database.ctx, tx, {
-		operation: "read", hostId: f.control.identity.hostId, input: { executionId: f.executionId },
-	}))).rejects.toThrow("langflow_internal_start_required");
-	await expect(f.state({ operation: "read", hostId: "foreign", input: { executionId: f.executionId } }))
-		.rejects.toThrow("start_host_conflict");
+	await expect(
+		f.database.run((tx) =>
+			startState(f.database.ctx, tx, {
+				operation: "read",
+				hostId: f.control.identity.hostId,
+				input: { executionId: f.executionId },
+			}),
+		),
+	).rejects.toThrow("langflow_internal_start_required");
+	await expect(
+		f.state({ operation: "read", hostId: "foreign", input: { executionId: f.executionId } }),
+	).rejects.toThrow("start_host_conflict");
 });
 
 test("an aborted host prevents new requests", async () => {
@@ -112,7 +125,6 @@ test("an aborted host prevents new requests", async () => {
 	await expect(connection.committed({ executionId: f.executionId })).rejects.toThrow();
 	expect(f.requests).toHaveLength(0);
 });
-
 
 test("a crash before association recovers the archived grant before admission", async () => {
 	const f = await fixture();
@@ -130,9 +142,17 @@ test("cancellation recovers an unknown submission under a cancel-only grant", as
 	const f = await fixture();
 	f.behavior.loseSubmission = true;
 	await (await f.connect()).committed({ executionId: f.executionId });
-	const cancelIntent = { version: 1, executionId: f.executionId, requestId: crypto.randomUUID(),
-		actor: { kind: "human", name: "test" }, expectedRevision: 1, requestedAt: f.database.ctx.now.toISOString() };
-	await f.database.db.execute(sql`UPDATE langflow_executions SET cancel_intent=${JSON.stringify(cancelIntent)}::jsonb WHERE execution_id=${f.executionId}`);
+	const cancelIntent = {
+		version: 1,
+		executionId: f.executionId,
+		requestId: crypto.randomUUID(),
+		actor: { kind: "human", name: "test" },
+		expectedRevision: 1,
+		requestedAt: f.database.ctx.now.toISOString(),
+	};
+	await f.database.db.execute(
+		sql`UPDATE langflow_executions SET cancel_intent=${JSON.stringify(cancelIntent)}::jsonb WHERE execution_id=${f.executionId}`,
+	);
 	await (await f.connect()).recover();
 	const row = await f.database.run((tx) => f.database.store.readSubmission(tx, { executionId: f.executionId }));
 	expect(row.correlation).not.toBeNull();
@@ -149,8 +169,10 @@ test("recovery settles a retained admission delivery after the original start pe
 	const original = permit(f);
 	const row = await f.database.run((tx) => f.database.store.readSubmission(tx, { executionId: f.executionId }));
 	if (row.admission.state !== "open") throw new Error("fixture_admission_missing");
-	const delivery = f.control.gate.acquire({ ...original.permit.binding,
-		effectId: `${original.permit.binding.effectId}:${row.admission.receipt.admissionId}` });
+	const delivery = f.control.gate.acquire({
+		...original.permit.binding,
+		effectId: `${original.permit.binding.effectId}:${row.admission.receipt.admissionId}`,
+	});
 	await (await f.connect()).recover();
 	expect(f.control.gate.recoverPermit(delivery.binding)?.terminal?.outcome).toBe("completed");
 	expect(count(f, "admission/open")).toBe(1);

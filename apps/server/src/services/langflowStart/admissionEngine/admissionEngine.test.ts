@@ -5,8 +5,12 @@ import { fixture } from "../components/fixture/fixture";
 import { reconcile } from "../reconcile/reconcile";
 import { createAdmissionEngine } from "./admissionEngine";
 
-const received = (body: unknown): EngineResponse => ({ state: "received", status: 200,
-	contentType: "application/json", bytes: new TextEncoder().encode(JSON.stringify(body)) });
+const received = (body: unknown): EngineResponse => ({
+	state: "received",
+	status: 200,
+	contentType: "application/json",
+	bytes: new TextEncoder().encode(JSON.stringify(body)),
+});
 
 async function admission() {
 	const f = fixture();
@@ -19,11 +23,24 @@ async function admission() {
 	const authorityBytes = await f.readAuthorityBytes(authority);
 	const requests: EngineRequest[] = [];
 	const replies: EngineResponse[] = [];
-	const engine = createAdmissionEngine({ signal: new AbortController().signal,
+	const engine = createAdmissionEngine({
+		signal: new AbortController().signal,
 		admissionBytes: async () => ({ payloadBytes, confirmed: false }),
-		request: async (request) => { requests.push(request); return replies.shift()!; } });
-	return { engine, replies, requests, payloadBytes, receipt, authority, authorityBytes,
-		current: received({ authority, authorityBytes, authorityDigest: protocolDigest(authorityBytes), revokedAt: null }) };
+		request: async (request) => {
+			requests.push(request);
+			return replies.shift()!;
+		},
+	});
+	return {
+		engine,
+		replies,
+		requests,
+		payloadBytes,
+		receipt,
+		authority,
+		authorityBytes,
+		current: received({ authority, authorityBytes, authorityDigest: protocolDigest(authorityBytes), revokedAt: null }),
+	};
 }
 
 test("admission preserves the stored receipt and original authority text", async () => {
@@ -41,11 +58,19 @@ test("an equivalent but reserialized receipt does not confirm admission", async 
 
 test("a lost authority acknowledgement prevents admission", async () => {
 	const f = await admission();
-	f.replies.push({ state: "received", status: 404, contentType: "application/json",
-		bytes: new TextEncoder().encode('{"detail":"engine_authority_not_found"}') }, { state: "unknown" });
+	f.replies.push(
+		{
+			state: "received",
+			status: 404,
+			contentType: "application/json",
+			bytes: new TextEncoder().encode('{"detail":"engine_authority_not_found"}'),
+		},
+		{ state: "unknown" },
+	);
 	expect((await f.engine.admit(f)).state).toBe("unknown");
 	expect(f.requests.map((request) => request.path)).toEqual([
-		`/trellis-v1/authority/${f.receipt.executionId}`, "/trellis-v1/authority/commit",
+		`/trellis-v1/authority/${f.receipt.executionId}`,
+		"/trellis-v1/authority/commit",
 	]);
 });
 
@@ -57,19 +82,37 @@ for (const response of [
 ] satisfies EngineResponse[]) {
 	test(`unusable lookup response stays unknown: ${JSON.stringify(response)}`, async () => {
 		const key = { version: 1 as const, hostId: "h", executionId: "e" };
-		const engine = createAdmissionEngine({ signal: new AbortController().signal,
-			admissionBytes: async () => null, request: async () => response });
+		const engine = createAdmissionEngine({
+			signal: new AbortController().signal,
+			admissionBytes: async () => null,
+			request: async () => response,
+		});
 		expect(await engine.lookup(key)).toEqual({ state: "unknown", key });
 	});
 }
 
 test("a body stream failure from EngineClient remains unknown", async () => {
-	const client = createEngineClient({ endpoint: "http://127.0.0.1:7860", authenticationFile: "/private/fixture",
-		dependencies: { readAuthenticationFile: async () => "fixture", fetch: async () =>
-			new Response(new ReadableStream({ start(controller) { controller.error(new Error("lost_body")); } }),
-				{ headers: { "Content-Type": "application/json" } }) } });
-	const engine = createAdmissionEngine({ request: client.request, signal: new AbortController().signal,
-		admissionBytes: async () => null });
+	const client = createEngineClient({
+		endpoint: "http://127.0.0.1:7860",
+		authenticationFile: "/private/fixture",
+		dependencies: {
+			readAuthenticationFile: async () => "fixture",
+			fetch: async () =>
+				new Response(
+					new ReadableStream({
+						start(controller) {
+							controller.error(new Error("lost_body"));
+						},
+					}),
+					{ headers: { "Content-Type": "application/json" } },
+				),
+		},
+	});
+	const engine = createAdmissionEngine({
+		request: client.request,
+		signal: new AbortController().signal,
+		admissionBytes: async () => null,
+	});
 	const key = { version: 1 as const, hostId: "h", executionId: "e" };
 	expect(await engine.lookup(key)).toEqual({ state: "unknown", key });
 });

@@ -5,7 +5,9 @@ type ExecutionKey = { executionId: string };
 export type StartRepository = {
 	read(input: ExecutionKey): Promise<StartExecution>;
 	markUnknown(input: ExecutionKey): Promise<StartExecution>;
-	bind(input: ExecutionKey & { correlation: CorrelationReceiptV1; authority: DeliveryAuthorityV1 }): Promise<StartExecution>;
+	bind(
+		input: ExecutionKey & { correlation: CorrelationReceiptV1; authority: DeliveryAuthorityV1 },
+	): Promise<StartExecution>;
 	open(input: ExecutionKey & { now: Date }): Promise<StartExecution>;
 	confirm(input: ExecutionKey & { receipt: AdmissionReceiptV1 }): Promise<void>;
 };
