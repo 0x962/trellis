@@ -24,7 +24,7 @@ type NewReservation = Extract<Awaited<ReturnType<typeof reserve>>, { replay: fal
 export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, input: { requestBytes: string }) {
 	const request = readProtocolBytes(NativeRequestV1Schema, input.requestBytes);
 	const execution = await lockExecution(tx, request);
-	assertAuthority(execution, ctx.nativeAuthority, "native.reserve", ctx.now);
+	await assertAuthority(tx, execution, ctx.nativeAuthority, "native.reserve", ctx.now);
 	const semanticKey = JSON.stringify([
 		request.nodeId,
 		request.parentOccurrenceKey,

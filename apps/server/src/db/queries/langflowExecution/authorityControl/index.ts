@@ -1,0 +1,1 @@
+export { authorityControl } from "./authorityControl";
