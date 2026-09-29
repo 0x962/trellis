@@ -673,45 +673,106 @@ diff --git a/src/customization/trellis/frontend/DeclaredField/DeclaredField.tsx 
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/DeclaredField/DeclaredField.tsx
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,100 @@
 +import { useId } from "react";
 +import { Input } from "@/components/ui/input";
-+import { Textarea } from "@/components/ui/textarea";
-+import { Switch } from "@/components/ui/switch";
 +import { Label } from "@/components/ui/label";
 +import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
++import { Switch } from "@/components/ui/switch";
++import { Textarea } from "@/components/ui/textarea";
 +import type { InputFieldType } from "@/types/api";
-+import { NumericField } from "../NumericField";
 +import { fieldPolicy } from "../fieldPolicy";
++import { NumericField } from "../NumericField";
 +
-+export function DeclaredField({ name, nodeId, field, value, disabled = false, sourceBound, onChange }: {
-+	name: string; nodeId: string; field: Partial<InputFieldType>; value: unknown;
-+	disabled?: boolean; sourceBound: boolean; onChange: (value: unknown) => void;
++export function DeclaredField({
++	name,
++	nodeId,
++	field,
++	value,
++	disabled = false,
++	sourceBound,
++	onChange,
++}: {
++	name: string;
++	nodeId: string;
++	field: Partial<InputFieldType>;
++	value: unknown;
++	disabled?: boolean;
++	sourceBound: boolean;
++	onChange: (value: unknown) => void;
 +}) {
 +	const id = useId();
 +	const label = field.display_name || name;
 +	const policy = fieldPolicy(name, field, sourceBound);
 +	const options = field.options;
-+	const choices = Array.isArray(options) && options.every((option) => typeof option === "string") ? options as string[] : null;
-+	const reason = policy || (options !== undefined && options !== null && choices === null ? "The installed selector manages this field." : null);
++	const choices =
++		Array.isArray(options) && options.every((option) => typeof option === "string") ? (options as string[]) : null;
++	const reason =
++		policy ||
++		(options !== undefined && options !== null && choices === null
++			? "The installed selector manages this field."
++			: null);
 +	const numeric = field.type === "int" || field.type === "float";
-+	return <div className="flex min-w-0 flex-col gap-2" data-trellis-node={nodeId} data-trellis-field={name}>
-+		<Label className="flex min-h-11 items-center" htmlFor={id}>{label}{field.required ? " (required)" : ""}</Label>
-+		{reason || disabled ? <p id={id} tabIndex={0} className="whitespace-pre-wrap break-words">
-+			{reason || "This field is read-only."}
-+		</p> : field.type === "bool" ? <Switch id={id} checked={value === true} onCheckedChange={onChange} />
-+		: numeric ? <NumericField id={id} value={value} integer={field.type === "int"}
-+			positive={name === "max_rounds" || name === "minutes"} required={field.required === true} onChange={onChange} />
-+		: choices ? <Select required={field.required} value={choices.includes(value as string) ? String(choices.indexOf(value as string) + 1) : ""}
-+			onValueChange={(selected) => onChange(choices[Number(selected) - 1])}>
-+			<SelectTrigger id={id} className="min-h-11"><SelectValue placeholder={typeof value === "string" && value ? value : "Select a value"} /></SelectTrigger>
-+			<SelectContent>{choices.map((option, index) => <SelectItem key={index} value={String(index + 1)}>{option || "Empty"}</SelectItem>)}</SelectContent>
-+		</Select> : field.multiline ? <Textarea id={id} value={typeof value === "string" ? value : ""}
-+			required={field.required} placeholder={field.placeholder} onChange={(event) => onChange(event.target.value)} />
-+		: <Input className="min-h-11" id={id} type={field.password ? "password" : "text"} value={typeof value === "string" ? value : ""}
-+			required={field.required} placeholder={field.placeholder} onChange={(event) => onChange(event.target.value)} />}
-+		{field.info && <p className="whitespace-pre-wrap break-words text-muted-foreground">{field.info}</p>}
-+	</div>;
++	return (
++		<div className="flex min-w-0 flex-col gap-2" data-trellis-node={nodeId} data-trellis-field={name}>
++			<Label className="flex min-h-11 items-center" htmlFor={id}>
++				{label}
++				{field.required ? " (required)" : ""}
++			</Label>
++			{reason || disabled ? (
++				<p id={id} tabIndex={-1} className="whitespace-pre-wrap break-words">
++					{reason || "This field is read-only."}
++				</p>
++			) : field.type === "bool" ? (
++				<Switch id={id} checked={value === true} onCheckedChange={onChange} />
++			) : numeric ? (
++				<NumericField
++					id={id}
++					value={value}
++					integer={field.type === "int"}
++					positive={name === "max_rounds" || name === "minutes"}
++					required={field.required === true}
++					onChange={onChange}
++				/>
++			) : choices ? (
++				<Select
++					required={field.required}
++					value={choices.includes(value as string) ? String(choices.indexOf(value as string) + 1) : ""}
++					onValueChange={(selected) => onChange(choices[Number(selected) - 1])}
++				>
++					<SelectTrigger id={id} className="min-h-11">
++						<SelectValue placeholder={typeof value === "string" && value ? value : "Select a value"} />
++					</SelectTrigger>
++					<SelectContent>
++						{choices.map((option, index) => (
++							<SelectItem key={index} value={String(index + 1)}>
++								{option || "Empty"}
++							</SelectItem>
++						))}
++					</SelectContent>
++				</Select>
++			) : field.multiline ? (
++				<Textarea
++					id={id}
++					value={typeof value === "string" ? value : ""}
++					required={field.required}
++					placeholder={field.placeholder}
++					onChange={(event) => onChange(event.target.value)}
++				/>
++			) : (
++				<Input
++					className="min-h-11"
++					id={id}
++					type={field.password ? "password" : "text"}
++					value={typeof value === "string" ? value : ""}
++					required={field.required}
++					placeholder={field.placeholder}
++					onChange={(event) => onChange(event.target.value)}
++				/>
++			)}
++			{field.info && <p className="whitespace-pre-wrap break-words text-muted-foreground">{field.info}</p>}
++		</div>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/DeclaredField/index.ts b/src/customization/trellis/frontend/DeclaredField/index.ts
 new file mode 100644
@@ -723,22 +784,40 @@ diff --git a/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx b/
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/EditorChoice/EditorChoice.tsx
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,34 @@
 +import { useId } from "react";
 +import { Label } from "@/components/ui/label";
 +import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 +
-+export function EditorChoice({ label, value, choices, onChange }: {
-+	label: string; value: string; choices: { value: string; label: string }[]; onChange: (value: string) => void;
++export function EditorChoice({
++	label,
++	value,
++	choices,
++	onChange,
++}: {
++	label: string;
++	value: string;
++	choices: { value: string; label: string }[];
++	onChange: (value: string) => void;
 +}) {
 +	const id = useId();
-+	return <div className="flex min-w-0 flex-col gap-2">
-+		<Label htmlFor={id}>{label}</Label>
-+		<Select value={value} onValueChange={onChange}>
-+			<SelectTrigger id={id} className="min-h-11 w-full"><SelectValue placeholder={`Select ${label.toLowerCase()}`} /></SelectTrigger>
-+			<SelectContent>{choices.map((choice) => <SelectItem key={choice.value} value={choice.value}>{choice.label}</SelectItem>)}</SelectContent>
-+		</Select>
-+	</div>;
++	return (
++		<div className="flex min-w-0 flex-col gap-2">
++			<Label htmlFor={id}>{label}</Label>
++			<Select value={value} onValueChange={onChange}>
++				<SelectTrigger id={id} className="min-h-11 w-full">
++					<SelectValue placeholder={`Select ${label.toLowerCase()}`} />
++				</SelectTrigger>
++				<SelectContent>
++					{choices.map((choice) => (
++						<SelectItem key={choice.value} value={choice.value}>
++							{choice.label}
++						</SelectItem>
++					))}
++				</SelectContent>
++			</Select>
++		</div>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/EditorChoice/index.ts b/src/customization/trellis/frontend/EditorChoice/index.ts
 new file mode 100644
@@ -750,60 +829,113 @@ diff --git a/src/customization/trellis/frontend/EditorInteractions/EditorInterac
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/EditorInteractions/EditorInteractions.tsx
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,74 @@
 +import { useState } from "react";
 +import IconComponent from "@/components/common/genericIconComponent";
 +import ShadTooltip from "@/components/common/shadTooltipComponent";
 +import { Button } from "@/components/ui/button";
-+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
++import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
-+import { NativeInspector } from "../NativeInspector";
 +import { EditorOutline } from "../EditorOutline";
 +import { KeyboardConnections } from "../KeyboardConnections";
++import { NativeInspector } from "../NativeInspector";
 +
 +export function EditorInteractions() {
 +	const [inspected, setInspected] = useState<string | null>(null);
 +	const [open, setOpen] = useState(false);
 +	const [page, setPage] = useState<"outline" | "connections">("outline");
-+	return <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) setInspected(null); }}>
-+		<ShadTooltip content="Outline and keyboard connections"><DialogTrigger asChild>
-+			<Button type="button" variant="ghost" className="min-h-11 min-w-11 rounded-full" aria-label="Outline and keyboard connections"><IconComponent name="ListTree" /></Button>
-+		</DialogTrigger></ShadTooltip>
-+		<DialogContent className="max-h-screen overflow-auto">
-+			<DialogTitle>Flow interactions</DialogTitle>
-+			<DialogDescription>Find nested components and edit connections with the keyboard.</DialogDescription>
-+			{inspected === null && <div className="flex flex-wrap gap-2">
-+				<Button type="button" variant="secondary" aria-pressed={page === "outline"} onClick={() => setPage("outline")}>Outline</Button>
-+				<Button type="button" variant="secondary" aria-pressed={page === "connections"} onClick={() => setPage("connections")}>Connections</Button>
-+				<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().undo()}>Undo</Button>
-+				<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().redo()}>Redo</Button>
-+			</div>}
-+			{inspected !== null ? <NativeInspector key={inspected} nodeId={inspected} onClose={() => setInspected(null)} /> : page === "outline" ? <EditorOutline onReveal={() => setOpen(false)} onInspect={setInspected} /> : <KeyboardConnections />}
-+		</DialogContent>
-+	</Dialog>;
++	return (
++		<Dialog
++			open={open}
++			onOpenChange={(value) => {
++				setOpen(value);
++				if (!value) setInspected(null);
++			}}
++		>
++			<ShadTooltip content="Outline and keyboard connections">
++				<DialogTrigger asChild>
++					<Button
++						type="button"
++						variant="ghost"
++						className="min-h-11 min-w-11 rounded-full"
++						aria-label="Outline and keyboard connections"
++					>
++						<IconComponent name="ListTree" />
++					</Button>
++				</DialogTrigger>
++			</ShadTooltip>
++			<DialogContent className="max-h-screen overflow-auto">
++				<DialogTitle>Flow interactions</DialogTitle>
++				<DialogDescription>Find nested components and edit connections with the keyboard.</DialogDescription>
++				{inspected === null && (
++					<div className="flex flex-wrap gap-2">
++						<Button
++							type="button"
++							variant="secondary"
++							aria-pressed={page === "outline"}
++							onClick={() => setPage("outline")}
++						>
++							Outline
++						</Button>
++						<Button
++							type="button"
++							variant="secondary"
++							aria-pressed={page === "connections"}
++							onClick={() => setPage("connections")}
++						>
++							Connections
++						</Button>
++						<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().undo()}>
++							Undo
++						</Button>
++						<Button type="button" variant="secondary" onClick={() => useFlowsManagerStore.getState().redo()}>
++							Redo
++						</Button>
++					</div>
++				)}
++				{inspected !== null ? (
++					<NativeInspector key={inspected} nodeId={inspected} onClose={() => setInspected(null)} />
++				) : page === "outline" ? (
++					<EditorOutline onReveal={() => setOpen(false)} onInspect={setInspected} />
++				) : (
++					<KeyboardConnections />
++				)}
++			</DialogContent>
++		</Dialog>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/EditorInteractions/__tests__/EditorInteractions.test.tsx b/src/customization/trellis/frontend/EditorInteractions/__tests__/EditorInteractions.test.tsx
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/EditorInteractions/__tests__/EditorInteractions.test.tsx
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,99 @@
 +import { act, fireEvent, render, screen } from "@testing-library/react";
 +import userEvent from "@testing-library/user-event";
-+import type { AllNodeType } from "@/types/flow";
 +import useFlowStore from "@/stores/flowStore";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
-+import { KeyboardConnections } from "../../KeyboardConnections";
++import type { AllNodeType } from "@/types/flow";
 +import { EditorOutline } from "../../EditorOutline";
 +import { connectEditorPorts, deleteEditorSelection } from "../../graphActions";
 +import { graphPorts } from "../../graphPorts";
++import { KeyboardConnections } from "../../KeyboardConnections";
 +
 +function node(id: string, parentId?: string): AllNodeType {
-+	return { id, parentId, type: "genericNode", position: { x: 0, y: 0 }, data: {
-+		id, type: "FixtureOnly", node: { display_name: id, description: "Interaction fixture only",
-+			template: { value: { type: "Data", input_types: ["Data"], display_name: "Input", list: false, show: true } },
-+			outputs: [{ name: "result", display_name: "Result", types: ["Data"], method: "fixture" }],
++	return {
++		id,
++		parentId,
++		type: "genericNode",
++		position: { x: 0, y: 0 },
++		data: {
++			id,
++			type: "FixtureOnly",
++			node: {
++				display_name: id,
++				description: "Interaction fixture only",
++				template: { value: { type: "Data", input_types: ["Data"], display_name: "Input", list: false, show: true } },
++				outputs: [{ name: "result", display_name: "Result", types: ["Data"], method: "fixture" }],
++			},
 +		},
-+	} } as AllNodeType;
++	} as AllNodeType;
 +}
 +function reset(nodes = [node("source"), node("target")]) {
 +	useFlowsManagerStore.setState({ currentFlowId: crypto.randomUUID() });
@@ -811,22 +943,30 @@ new file mode 100644
 +}
 +function connect(source = "source", target = "target") {
 +	const nodes = useFlowStore.getState().nodes;
-+	return connectEditorPorts({ source, target,
++	return connectEditorPorts({
++		source,
++		target,
 +		sourceHandle: graphPorts(nodes.find((item) => item.id === source)!).outputs[0].handle,
 +		targetHandle: graphPorts(nodes.find((item) => item.id === target)!).inputs[0].handle,
 +	});
 +}
 +
 +test("keyboard selectors create a native edge and reject an occupied single input", async () => {
-+	reset(); const user = userEvent.setup(); render(<KeyboardConnections />);
++	reset();
++	const user = userEvent.setup();
++	render(<KeyboardConnections />);
 +	async function choose(label: string) {
 +		const control = screen.getByRole("combobox", { name: label });
-+		control.focus(); await user.keyboard("{Enter}{Home}{Enter}");
++		control.focus();
++		await user.keyboard("{Enter}{Home}{Enter}");
 +	}
-+	await choose("Source component"); await choose("Output port");
-+	await choose("Target component"); await choose("Input port");
++	await choose("Source component");
++	await choose("Output port");
++	await choose("Target component");
++	await choose("Input port");
 +	const save = screen.getByRole("button", { name: "Save connection" });
-+	save.focus(); await user.keyboard("{Enter}");
++	save.focus();
++	await user.keyboard("{Enter}");
 +	expect(useFlowStore.getState().edges).toHaveLength(1);
 +	expect(connect()).toBe(false);
 +});
@@ -837,8 +977,17 @@ new file mode 100644
 +	const before = structuredClone({ nodes: useFlowStore.getState().nodes, edges: useFlowStore.getState().edges });
 +	const edge = before.edges[0];
 +	const nodes = useFlowStore.getState().nodes;
-+	expect(connectEditorPorts({ source: "source", target: "grandchild", sourceHandle: edge.sourceHandle!,
-+		targetHandle: graphPorts(nodes[4]).inputs[0].handle }, edge.id)).toBe(true);
++	expect(
++		connectEditorPorts(
++			{
++				source: "source",
++				target: "grandchild",
++				sourceHandle: edge.sourceHandle!,
++				targetHandle: graphPorts(nodes[4]).inputs[0].handle,
++			},
++			edge.id,
++		),
++	).toBe(true);
 +	useFlowsManagerStore.getState().undo();
 +	expect(useFlowStore.getState().edges).toEqual(before.edges);
 +	deleteEditorSelection(["group", "source"], []);
@@ -869,7 +1018,7 @@ diff --git a/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx 
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/EditorOutline/EditorOutline.tsx
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,85 @@
 +import { useState } from "react";
 +import { Button } from "@/components/ui/button";
 +import { Input } from "@/components/ui/input";
@@ -885,37 +1034,75 @@ new file mode 100644
 +	const [selected, setSelected] = useState("");
 +	const byId = new Map(nodes.map((node) => [node.id, node]));
 +	const pathOf = (id: string) => {
-+		const labels: string[] = []; const seen = new Set<string>();
++		const labels: string[] = [];
++		const seen = new Set<string>();
 +		let node = byId.get(id);
 +		while (node && !seen.has(node.id)) {
-+			seen.add(node.id); labels.unshift(node.data.node?.display_name || node.data.type || node.id);
++			seen.add(node.id);
++			labels.unshift(node.data.node?.display_name || node.data.type || node.id);
 +			node = node.parentId ? byId.get(node.parentId) : undefined;
 +		}
 +		return labels.join(" / ");
 +	};
 +	const matches = nodes.filter((node) => `${pathOf(node.id)} ${node.id}`.toLowerCase().includes(query.toLowerCase()));
 +	const selection = byId.get(selected);
-+	return <section aria-label="Component outline" className="flex min-w-0 flex-col gap-4">
-+		<Label htmlFor="trellis-outline-search">Find a component</Label>
-+		<Input id="trellis-outline-search" value={query} onChange={(event) => setQuery(event.target.value)} />
-+		<p role="status">{matches.length} components. Paths include every ancestor.</p>
-+		<ul aria-label="Components" className="max-h-60 overflow-auto">
-+			{matches.map((node) => <li key={node.id}>
-+				<Button type="button" variant="ghost" className="h-auto min-h-11 w-full justify-start whitespace-normal break-words text-left" aria-pressed={selected === node.id} onClick={() => setSelected(node.id)}>
-+					{pathOf(node.id)} · {node.id}
-+				</Button>
-+			</li>)}
-+		</ul>
-+		{selection && <div className="flex flex-col gap-2">
-+			<p>{pathOf(selected)}. {edges.filter((edge) => edge.source === selected || edge.target === selected).length} direct connections.</p>
-+			<div className="flex flex-wrap gap-2">
-+				<Button type="button" onClick={() => { onReveal(); requestAnimationFrame(() => revealEditorFocus({ nodeId: selected, field: null })); }}>Reveal component</Button>
-+				{onInspect && <Button type="button" variant="secondary" onClick={() => onInspect(selected)}>Inspect component</Button>}
-+				<Button type="button" variant="destructive" onClick={() => { deleteEditorSelection([selected], []); setSelected(""); }}>Delete component and descendants</Button>
-+			</div>
-+			<p>Undo restores the complete graph, including descendants and connections.</p>
-+		</div>}
-+	</section>;
++	return (
++		<section aria-label="Component outline" className="flex min-w-0 flex-col gap-4">
++			<Label htmlFor="trellis-outline-search">Find a component</Label>
++			<Input id="trellis-outline-search" value={query} onChange={(event) => setQuery(event.target.value)} />
++			<p role="status">{matches.length} components. Paths include every ancestor.</p>
++			<ul aria-label="Components" className="max-h-60 overflow-auto">
++				{matches.map((node) => (
++					<li key={node.id}>
++						<Button
++							type="button"
++							variant="ghost"
++							className="h-auto min-h-11 w-full justify-start whitespace-normal break-words text-left"
++							aria-pressed={selected === node.id}
++							onClick={() => setSelected(node.id)}
++						>
++							{pathOf(node.id)} · {node.id}
++						</Button>
++					</li>
++				))}
++			</ul>
++			{selection && (
++				<div className="flex flex-col gap-2">
++					<p>
++						{pathOf(selected)}. {edges.filter((edge) => edge.source === selected || edge.target === selected).length}{" "}
++						direct connections.
++					</p>
++					<div className="flex flex-wrap gap-2">
++						<Button
++							type="button"
++							onClick={() => {
++								onReveal();
++								requestAnimationFrame(() => revealEditorFocus({ nodeId: selected, field: null }));
++							}}
++						>
++							Reveal component
++						</Button>
++						{onInspect && (
++							<Button type="button" variant="secondary" onClick={() => onInspect(selected)}>
++								Inspect component
++							</Button>
++						)}
++						<Button
++							type="button"
++							variant="destructive"
++							onClick={() => {
++								deleteEditorSelection([selected], []);
++								setSelected("");
++							}}
++						>
++							Delete component and descendants
++						</Button>
++					</div>
++					<p>Undo restores the complete graph, including descendants and connections.</p>
++				</div>
++			)}
++		</section>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/EditorOutline/index.ts b/src/customization/trellis/frontend/EditorOutline/index.ts
 new file mode 100644
@@ -927,9 +1114,9 @@ diff --git a/src/customization/trellis/frontend/KeyboardConnections/KeyboardConn
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/KeyboardConnections/KeyboardConnections.tsx
-@@ -0,0 +1,62 @@
-+import { useState } from "react";
+@@ -0,0 +1,147 @@
 +import type { Connection } from "@xyflow/react";
++import { useState } from "react";
 +import { Button } from "@/components/ui/button";
 +import useFlowStore from "@/stores/flowStore";
 +import { isValidConnection } from "@/utils/reactflowUtils";
@@ -950,45 +1137,130 @@ new file mode 100644
 +	const targetNode = nodes.find((node) => node.id === target);
 +	const retained = edges.filter((edge) => edge.id !== edgeId);
 +	const connection: Connection = { source, target, sourceHandle: output, targetHandle: input };
-+	const valid = Boolean(sourceNode && targetNode && graphPorts(sourceNode).outputs.some((port) => port.handle === output) && graphPorts(targetNode).inputs.some((port) => port.handle === input) && output && input && isValidConnection(connection, nodes, retained));
-+	const targets = output ? nodes.filter((node) => graphPorts(node).inputs.some((port) =>
-+		isValidConnection({ source, target: node.id, sourceHandle: output, targetHandle: port.handle }, nodes, retained))) : [];
-+	const inputs = targetNode && output ? graphPorts(targetNode).inputs.filter((port) =>
-+		isValidConnection({ ...connection, targetHandle: port.handle }, nodes, retained)) : [];
-+	const nodeChoice = (node: typeof nodes[number]) => ({ value: node.id, label: `${node.data.node?.display_name || node.data.type} · ${node.id}` });
++	const valid = Boolean(
++		sourceNode &&
++			targetNode &&
++			graphPorts(sourceNode).outputs.some((port) => port.handle === output) &&
++			graphPorts(targetNode).inputs.some((port) => port.handle === input) &&
++			output &&
++			input &&
++			isValidConnection(connection, nodes, retained),
++	);
++	const targets = output
++		? nodes.filter((node) =>
++				graphPorts(node).inputs.some((port) =>
++					isValidConnection(
++						{ source, target: node.id, sourceHandle: output, targetHandle: port.handle },
++						nodes,
++						retained,
++					),
++				),
++			)
++		: [];
++	const inputs =
++		targetNode && output
++			? graphPorts(targetNode).inputs.filter((port) =>
++					isValidConnection({ ...connection, targetHandle: port.handle }, nodes, retained),
++				)
++			: [];
++	const nodeChoice = (node: (typeof nodes)[number]) => ({
++		value: node.id,
++		label: `${node.data.node?.display_name || node.data.type} · ${node.id}`,
++	});
 +	function chooseEdge(id: string) {
-+		setEdgeId(id); setMessage("");
++		setEdgeId(id);
++		setMessage("");
 +		const edge = edges.find((item) => item.id === id);
-+		setSource(edge?.source ?? ""); setOutput(edge?.sourceHandle ?? "");
-+		setTarget(edge?.target ?? ""); setInput(edge?.targetHandle ?? "");
++		setSource(edge?.source ?? "");
++		setOutput(edge?.sourceHandle ?? "");
++		setTarget(edge?.target ?? "");
++		setInput(edge?.targetHandle ?? "");
 +	}
-+	return <form className="flex flex-col gap-4" aria-label="Keyboard connections" onSubmit={(event) => {
-+		event.preventDefault();
-+		if (!valid || !connectEditorPorts(connection, edgeId === "new" ? undefined : edgeId)) {
-+			setMessage("Select compatible ports. The graph may have changed."); return;
-+		}
-+		chooseEdge("new"); setMessage("Connection saved. Undo restores the previous graph.");
-+	}}>
-+		<EditorChoice label="Connection" value={edgeId} onChange={chooseEdge} choices={[
-+			{ value: "new", label: "New connection" }, ...edges.map((edge) => ({ value: edge.id, label: `${edge.source} → ${edge.target} · ${edge.id}` })),
-+		]} />
-+		<EditorChoice label="Source component" value={source} choices={nodes.filter((node) => graphPorts(node).outputs.length).map(nodeChoice)} onChange={(id) => {
-+			setSource(id); setOutput(""); setTarget(""); setInput("");
-+		}} />
-+		<EditorChoice label="Output port" value={output} choices={(sourceNode ? graphPorts(sourceNode).outputs : []).map((port) => ({ value: port.handle, label: port.label }))} onChange={(id) => {
-+			setOutput(id); setTarget(""); setInput("");
-+		}} />
-+		<EditorChoice label="Target component" value={target} choices={targets.map(nodeChoice)} onChange={(id) => { setTarget(id); setInput(""); }} />
-+		<EditorChoice label="Input port" value={input} choices={inputs.map((port) => ({ value: port.handle, label: port.label }))} onChange={setInput} />
-+		<p role="status">{message || "Only compatible ports are available. Feedback ports name the loop boundary."}</p>
-+		<div className="flex flex-wrap gap-2">
-+			<Button type="submit" disabled={!valid}>Save connection</Button>
-+			<Button type="button" variant="secondary" onClick={() => chooseEdge("new")}>Cancel</Button>
-+			<Button type="button" variant="destructive" disabled={edgeId === "new" || !edges.some((edge) => edge.id === edgeId)} onClick={() => {
-+				deleteEditorSelection([], [edgeId]); chooseEdge("new"); setMessage("Connection deleted. Undo restores it.");
-+			}}>Delete connection</Button>
-+		</div>
-+	</form>;
++	return (
++		<form
++			className="flex flex-col gap-4"
++			aria-label="Keyboard connections"
++			onSubmit={(event) => {
++				event.preventDefault();
++				if (!valid || !connectEditorPorts(connection, edgeId === "new" ? undefined : edgeId)) {
++					setMessage("Select compatible ports. The graph may have changed.");
++					return;
++				}
++				chooseEdge("new");
++				setMessage("Connection saved. Undo restores the previous graph.");
++			}}
++		>
++			<EditorChoice
++				label="Connection"
++				value={edgeId}
++				onChange={chooseEdge}
++				choices={[
++					{ value: "new", label: "New connection" },
++					...edges.map((edge) => ({ value: edge.id, label: `${edge.source} → ${edge.target} · ${edge.id}` })),
++				]}
++			/>
++			<EditorChoice
++				label="Source component"
++				value={source}
++				choices={nodes.filter((node) => graphPorts(node).outputs.length).map(nodeChoice)}
++				onChange={(id) => {
++					setSource(id);
++					setOutput("");
++					setTarget("");
++					setInput("");
++				}}
++			/>
++			<EditorChoice
++				label="Output port"
++				value={output}
++				choices={(sourceNode ? graphPorts(sourceNode).outputs : []).map((port) => ({
++					value: port.handle,
++					label: port.label,
++				}))}
++				onChange={(id) => {
++					setOutput(id);
++					setTarget("");
++					setInput("");
++				}}
++			/>
++			<EditorChoice
++				label="Target component"
++				value={target}
++				choices={targets.map(nodeChoice)}
++				onChange={(id) => {
++					setTarget(id);
++					setInput("");
++				}}
++			/>
++			<EditorChoice
++				label="Input port"
++				value={input}
++				choices={inputs.map((port) => ({ value: port.handle, label: port.label }))}
++				onChange={setInput}
++			/>
++			<p role="status">{message || "Only compatible ports are available. Feedback ports name the loop boundary."}</p>
++			<div className="flex flex-wrap gap-2">
++				<Button type="submit" disabled={!valid}>
++					Save connection
++				</Button>
++				<Button type="button" variant="secondary" onClick={() => chooseEdge("new")}>
++					Cancel
++				</Button>
++				<Button
++					type="button"
++					variant="destructive"
++					disabled={edgeId === "new" || !edges.some((edge) => edge.id === edgeId)}
++					onClick={() => {
++						deleteEditorSelection([], [edgeId]);
++						chooseEdge("new");
++						setMessage("Connection deleted. Undo restores it.");
++					}}
++				>
++					Delete connection
++				</Button>
++			</div>
++		</form>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/KeyboardConnections/index.ts b/src/customization/trellis/frontend/KeyboardConnections/index.ts
 new file mode 100644
@@ -1000,12 +1272,12 @@ diff --git a/src/customization/trellis/frontend/NativeInspector/NativeInspector.
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/NativeInspector/NativeInspector.tsx
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,95 @@
 +import { useId, useState } from "react";
 +import { Button } from "@/components/ui/button";
 +import { Input } from "@/components/ui/input";
-+import { Textarea } from "@/components/ui/textarea";
 +import { Label } from "@/components/ui/label";
++import { Textarea } from "@/components/ui/textarea";
 +import useFlowStore from "@/stores/flowStore";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
 +import type { APIClassType, InputFieldType } from "@/types/api";
@@ -1020,77 +1292,138 @@ new file mode 100644
 +	const prefix = useId();
 +	const bound = Boolean(graph && "trellisSource" in graph);
 +	const order = [...new Set([...(draft.field_order ?? []), ...Object.keys(draft.template)])];
-+	const fields = order.filter((name) => name !== "code" && typeof draft.template[name] === "object" && draft.template[name] !== null);
-+	return <form className="flex min-w-0 flex-col gap-4" aria-label="Component inspector" onSubmit={(event) => {
-+		event.preventDefault();
-+		const state = useFlowStore.getState();
-+		const current = state.nodes.find((item) => item.id === nodeId);
-+		if (!current || JSON.stringify(current.data.node) !== initial) {
-+			setMessage("This component changed. Cancel and reopen it before Save."); return;
-+		}
-+		useFlowsManagerStore.getState().takeSnapshot();
-+		state.setNodes(state.nodes.map((item) => item.id === nodeId ? { ...item, data: { ...item.data, node: structuredClone(draft) } } : item));
-+		onClose();
-+	}}>
-+		<p>{node?.data.type} · {nodeId}</p>
-+		<div data-trellis-node={nodeId} data-trellis-field="display_name">
-+			<Label htmlFor={`${prefix}-name`}>Name</Label>
-+			<Input id={`${prefix}-name`} value={draft.display_name} onChange={(event) => setDraft({ ...draft, display_name: event.target.value })} />
-+		</div>
-+		<div data-trellis-node={nodeId} data-trellis-field="description">
-+			<Label htmlFor={`${prefix}-description`}>Description</Label>
-+			<Textarea id={`${prefix}-description`} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
-+		</div>
-+		{bound && <p role="status">The original flow controls these inputs. Changes require an atomic update to its source and bindings.</p>}
-+		{fields.map((name) => <DeclaredField key={name} nodeId={nodeId} name={name} field={draft.template[name]}
-+			value={draft.template[name].value} sourceBound={bound} onChange={(value) => {
-+				setDraft((current) => ({ ...current, template: { ...current.template,
-+					[name]: { ...current.template[name], value } as InputFieldType,
-+				} }));
-+			}} />)}
-+		{message && <p role="alert">{message}</p>}
-+		<div className="flex flex-wrap gap-2">
-+			<Button type="submit" disabled={!node}>Save component</Button>
-+			<Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-+		</div>
-+	</form>;
++	const fields = order.filter(
++		(name) => name !== "code" && typeof draft.template[name] === "object" && draft.template[name] !== null,
++	);
++	return (
++		<form
++			className="flex min-w-0 flex-col gap-4"
++			aria-label="Component inspector"
++			onSubmit={(event) => {
++				event.preventDefault();
++				const state = useFlowStore.getState();
++				const current = state.nodes.find((item) => item.id === nodeId);
++				if (!current || JSON.stringify(current.data.node) !== initial) {
++					setMessage("This component changed. Cancel and reopen it before Save.");
++					return;
++				}
++				useFlowsManagerStore.getState().takeSnapshot();
++				state.setNodes(
++					state.nodes.map((item) =>
++						item.id === nodeId ? { ...item, data: { ...item.data, node: structuredClone(draft) } } : item,
++					),
++				);
++				onClose();
++			}}
++		>
++			<p>
++				{node?.data.type} · {nodeId}
++			</p>
++			<div data-trellis-node={nodeId} data-trellis-field="display_name">
++				<Label htmlFor={`${prefix}-name`}>Name</Label>
++				<Input
++					id={`${prefix}-name`}
++					value={draft.display_name}
++					onChange={(event) => setDraft({ ...draft, display_name: event.target.value })}
++				/>
++			</div>
++			<div data-trellis-node={nodeId} data-trellis-field="description">
++				<Label htmlFor={`${prefix}-description`}>Description</Label>
++				<Textarea
++					id={`${prefix}-description`}
++					value={draft.description}
++					onChange={(event) => setDraft({ ...draft, description: event.target.value })}
++				/>
++			</div>
++			{bound && (
++				<p role="status">
++					The original flow controls these inputs. Changes require an atomic update to its source and bindings.
++				</p>
++			)}
++			{fields.map((name) => (
++				<DeclaredField
++					key={name}
++					nodeId={nodeId}
++					name={name}
++					field={draft.template[name]}
++					value={draft.template[name].value}
++					sourceBound={bound}
++					onChange={(value) => {
++						setDraft((current) => ({
++							...current,
++							template: { ...current.template, [name]: { ...current.template[name], value } as InputFieldType },
++						}));
++					}}
++				/>
++			))}
++			{message && <p role="alert">{message}</p>}
++			<div className="flex flex-wrap gap-2">
++				<Button type="submit" disabled={!node}>
++					Save component
++				</Button>
++				<Button type="button" variant="secondary" onClick={onClose}>
++					Cancel
++				</Button>
++			</div>
++		</form>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/NativeInspector/__tests__/NativeInspector.test.tsx b/src/customization/trellis/frontend/NativeInspector/__tests__/NativeInspector.test.tsx
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/NativeInspector/__tests__/NativeInspector.test.tsx
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,149 @@
 +import { act, fireEvent, render, screen } from "@testing-library/react";
-+import type { AllNodeType } from "@/types/flow";
 +import useFlowStore from "@/stores/flowStore";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
-+import { NativeInspector } from "../NativeInspector";
++import type { AllNodeType } from "@/types/flow";
 +import { DeclaredField } from "../../DeclaredField";
++import { NativeInspector } from "../NativeInspector";
 +
 +function fixture() {
-+	return { id: "component", type: "genericNode", position: { x: 1, y: 2 }, data: {
-+		id: "component", type: "FixtureOnly", node: {
-+			display_name: "Original", description: "Fixture only", documentation: "",
-+			template: {
-+				code: { type: "code", value: "sealed bytes" },
-+				instruction: { type: "str", display_name: "Instruction", multiline: true, value: "Keep this", required: true },
-+				max_rounds: { type: "int", display_name: "Rounds", value: 51, required: true },
-+				parallel: { type: "bool", display_name: "Parallel", value: false },
-+				effort: { type: "str", display_name: "Effort", options: ["low", "high"], value: "high" },
-+				seed: { type: "Data", input_types: ["Data"], value: null },
-+			}, outputs: [{ name: "yes", types: ["Data"], selected: "Data", group_outputs: true, method: "sealed" }],
++	return {
++		id: "component",
++		type: "genericNode",
++		position: { x: 1, y: 2 },
++		data: {
++			id: "component",
++			type: "FixtureOnly",
++			node: {
++				display_name: "Original",
++				description: "Fixture only",
++				documentation: "",
++				template: {
++					code: { type: "code", value: "sealed bytes" },
++					instruction: {
++						type: "str",
++						display_name: "Instruction",
++						multiline: true,
++						value: "Keep this",
++						required: true,
++					},
++					max_rounds: { type: "int", display_name: "Rounds", value: 51, required: true },
++					parallel: { type: "bool", display_name: "Parallel", value: false },
++					effort: { type: "str", display_name: "Effort", options: ["low", "high"], value: "high" },
++					seed: { type: "Data", input_types: ["Data"], value: null },
++				},
++				outputs: [{ name: "yes", types: ["Data"], selected: "Data", group_outputs: true, method: "sealed" }],
++			},
 +		},
-+	} } as AllNodeType;
++	} as AllNodeType;
 +}
 +function reset(bound = false) {
 +	useFlowsManagerStore.setState({ currentFlowId: crypto.randomUUID() });
-+	useFlowStore.setState({ nodes: [fixture()], edges: [], autoSaveFlow: undefined,
++	useFlowStore.setState({
++		nodes: [fixture()],
++		edges: [],
++		autoSaveFlow: undefined,
 +		currentFlow: { data: { nodes: [], edges: [], ...(bound ? { trellisSource: {} } : {}) } } as never,
 +	});
 +}
 +
 +test("Save preserves long input, large round counts, defaults, and immutable bytes on reopen", () => {
-+	reset(); const close = jest.fn();
++	reset();
++	const close = jest.fn();
 +	const view = render(<NativeInspector nodeId="component" onClose={close} />);
 +	const original = structuredClone(useFlowStore.getState().nodes[0]);
 +	const long = "instruction ".repeat(10001);
@@ -1105,23 +1438,33 @@ new file mode 100644
 +	expect(saved.template.code).toEqual(original.data.node.template.code);
 +	expect(saved.outputs).toEqual(original.data.node.outputs);
 +	expect(saved.template.effort.value).toBe("high");
-+	view.unmount(); render(<NativeInspector nodeId="component" onClose={close} />);
++	view.unmount();
++	render(<NativeInspector nodeId="component" onClose={close} />);
 +	expect((screen.getByLabelText("Instruction (required)") as HTMLTextAreaElement).value).toBe(long);
 +	expect((screen.getByLabelText("Rounds (required)") as HTMLInputElement).value).toBe("1000001");
 +});
 +
 +test("Cancel preserves the exact graph and a concurrent component change blocks Save", () => {
-+	reset(); const close = jest.fn();
++	reset();
++	const close = jest.fn();
 +	const original = structuredClone(useFlowStore.getState().nodes);
 +	const view = render(<NativeInspector nodeId="component" onClose={close} />);
 +	fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Local" } });
 +	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 +	expect(useFlowStore.getState().nodes).toEqual(original);
 +	expect(close).toHaveBeenCalledTimes(1);
-+	view.unmount(); render(<NativeInspector nodeId="component" onClose={close} />);
-+	act(() => useFlowStore.setState({ nodes: [{ ...original[0], data: { ...original[0].data,
-+		node: { ...original[0].data.node, description: "Concurrent" },
-+	} }] }));
++	view.unmount();
++	render(<NativeInspector nodeId="component" onClose={close} />);
++	act(() =>
++		useFlowStore.setState({
++			nodes: [
++				{
++					...original[0],
++					data: { ...original[0].data, node: { ...original[0].data.node, description: "Concurrent" } },
++				},
++			],
++		}),
++	);
 +	fireEvent.click(screen.getByRole("button", { name: "Save component" }));
 +	expect(screen.getByRole("alert").textContent).toContain("This component changed");
 +	expect(useFlowStore.getState().nodes[0].data.node.description).toBe("Concurrent");
@@ -1129,26 +1472,48 @@ new file mode 100644
 +});
 +
 +test("bound inputs and internal controls cannot mutate source or request bindings", () => {
-+	reset(true); const original = structuredClone(useFlowStore.getState().nodes);
++	reset(true);
++	const original = structuredClone(useFlowStore.getState().nodes);
 +	render(<NativeInspector nodeId="component" onClose={() => {}} />);
 +	expect(screen.queryByRole("spinbutton")).toBeNull();
 +	expect(screen.queryByRole("switch")).toBeNull();
-+	expect(screen.getByText("The original flow controls these inputs. Changes require an atomic update to its source and bindings.")).toBeTruthy();
++	expect(
++		screen.getByText(
++			"The original flow controls these inputs. Changes require an atomic update to its source and bindings.",
++		),
++	).toBeTruthy();
 +	fireEvent.click(screen.getByRole("button", { name: "Save component" }));
 +	expect(useFlowStore.getState().nodes).toEqual(original);
 +});
 +
 +test("a disabled native numeric field emits no replacement default", () => {
 +	const changed = jest.fn();
-+	render(<DeclaredField name="minutes" nodeId="node" field={{ type: "int" }} value={75}
-+		disabled sourceBound={false} onChange={changed} />);
++	render(
++		<DeclaredField
++			name="minutes"
++			nodeId="node"
++			field={{ type: "int" }}
++			value={75}
++			disabled
++			sourceBound={false}
++			onChange={changed}
++		/>,
++	);
 +	expect(changed).not.toHaveBeenCalled();
 +});
 +
 +test("policy integers reject zero and retain the last valid value", () => {
 +	const changed = jest.fn();
-+	render(<DeclaredField name="max_rounds" nodeId="node" field={{ type: "int", required: true }}
-+		value={51} sourceBound={false} onChange={changed} />);
++	render(
++		<DeclaredField
++			name="max_rounds"
++			nodeId="node"
++			field={{ type: "int", required: true }}
++			value={51}
++			sourceBound={false}
++			onChange={changed}
++		/>,
++	);
 +	const input = screen.getByRole("spinbutton") as HTMLInputElement;
 +	fireEvent.change(input, { target: { value: "0" } });
 +	expect(input.checkValidity()).toBe(false);
@@ -1167,25 +1532,58 @@ diff --git a/src/customization/trellis/frontend/NumericField/NumericField.tsx b/
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/NumericField/NumericField.tsx
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,52 @@
 +import { useEffect, useState } from "react";
 +import { Input } from "@/components/ui/input";
 +
-+export function NumericField({ id, value, integer, positive, required, onChange }: {
-+	id: string; value: unknown; integer: boolean; positive: boolean; required: boolean;
++export function NumericField({
++	id,
++	value,
++	integer,
++	positive,
++	required,
++	onChange,
++}: {
++	id: string;
++	value: unknown;
++	integer: boolean;
++	positive: boolean;
++	required: boolean;
 +	onChange: (value: number | null) => void;
 +}) {
 +	const [text, setText] = useState(value == null ? "" : String(value));
 +	useEffect(() => setText(value == null ? "" : String(value)), [value]);
-+	return <Input className="min-h-11" id={id} type="number" min={positive ? 1 : undefined} step={integer ? 1 : "any"} inputMode={integer ? "numeric" : "decimal"} value={text} required={required}
-+		onChange={(event) => {
-+			const raw = event.target.value; setText(raw);
-+			const number = Number(raw);
-+			const empty = raw.trim() === "";
-+			const valid = empty ? !required : Number.isFinite(number) && (!integer || Number.isInteger(number)) && (!positive || number > 0);
-+			event.target.setCustomValidity(valid ? "" : positive ? "Enter a positive integer." : integer ? "Enter an integer." : "Enter a finite number.");
-+			if (valid) onChange(empty ? null : number);
-+		}} />;
++	return (
++		<Input
++			className="min-h-11"
++			id={id}
++			type="number"
++			min={positive ? 1 : undefined}
++			step={integer ? 1 : "any"}
++			inputMode={integer ? "numeric" : "decimal"}
++			value={text}
++			required={required}
++			onChange={(event) => {
++				const raw = event.target.value;
++				setText(raw);
++				const number = Number(raw);
++				const empty = raw.trim() === "";
++				const valid = empty
++					? !required
++					: Number.isFinite(number) && (!integer || Number.isInteger(number)) && (!positive || number > 0);
++				event.target.setCustomValidity(
++					valid
++						? ""
++						: positive
++							? "Enter a positive integer."
++							: integer
++								? "Enter an integer."
++								: "Enter a finite number.",
++				);
++				if (valid) onChange(empty ? null : number);
++			}}
++		/>
++	);
 +}
 diff --git a/src/customization/trellis/frontend/NumericField/index.ts b/src/customization/trellis/frontend/NumericField/index.ts
 new file mode 100644
@@ -1282,12 +1680,20 @@ diff --git a/src/customization/trellis/frontend/fieldPolicy/fieldPolicy.ts b/src
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/fieldPolicy/fieldPolicy.ts
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,30 @@
 +import type { InputFieldType } from "@/types/api";
 +
 +const managed = new Set([
-+	"code", "seed", "wait_bytes", "scope_definition", "source_node_id", "child_ids",
-+	"request_spec", "request_bytes", "spec_hash", "source_node_hash",
++	"code",
++	"seed",
++	"wait_bytes",
++	"scope_definition",
++	"source_node_id",
++	"child_ids",
++	"request_spec",
++	"request_bytes",
++	"spec_hash",
++	"source_node_hash",
 +]);
 +
 +export function fieldPolicy(name: string, field: Partial<InputFieldType>, sourceBound: boolean) {
@@ -1296,7 +1702,11 @@ new file mode 100644
 +	if (field.readonly || field.load_from_db || field.dynamic || field.refresh_button || field.real_time_refresh) {
 +		return "The installed component manages this field.";
 +	}
-+	if (field.input_types?.length || field.list || !["str", "string", "bool", "int", "float"].includes(field.type ?? "")) {
++	if (
++		field.input_types?.length ||
++		field.list ||
++		!["str", "string", "bool", "int", "float"].includes(field.type ?? "")
++	) {
 +		return "Use the declared ports for this field.";
 +	}
 +	return null;
@@ -1311,7 +1721,7 @@ diff --git a/src/customization/trellis/frontend/graphActions/graphActions.ts b/s
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/graphActions/graphActions.ts
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,31 @@
 +import type { Connection } from "@xyflow/react";
 +import useFlowStore from "@/stores/flowStore";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
@@ -1337,7 +1747,9 @@ new file mode 100644
 +		for (const node of state.nodes) if (node.parentId && removed.has(node.parentId)) removed.add(node.id);
 +	}
 +	useFlowsManagerStore.getState().takeSnapshot();
-+	const edges = state.edges.filter((edge) => !edgeIds.includes(edge.id) && !removed.has(edge.source) && !removed.has(edge.target));
++	const edges = state.edges.filter(
++		(edge) => !edgeIds.includes(edge.id) && !removed.has(edge.source) && !removed.has(edge.target),
++	);
 +	state.setNodes(state.nodes.filter((node) => !removed.has(node.id)));
 +	state.setEdges(edges);
 +}
@@ -1351,7 +1763,7 @@ diff --git a/src/customization/trellis/frontend/graphPorts/graphPorts.ts b/src/c
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/graphPorts/graphPorts.ts
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,40 @@
 +import { computeDisplayHandle } from "@/CustomNodes/GenericNode/components/RenderInputParameters/utils";
 +import type { AllNodeType } from "@/types/flow";
 +import { scapedJSONStringfy } from "@/utils/reactflowUtils";
@@ -1362,20 +1774,33 @@ new file mode 100644
 +	const outputs: EditorPort[] = [];
 +	for (const [name, field] of Object.entries(node.data.node?.template ?? {})) {
 +		if (name === "code" || typeof field !== "object" || field === null || !computeDisplayHandle(field, false)) continue;
-+		const handle = { inputTypes: field.input_types, type: field.type, id: node.id, fieldName: name,
-+			...(field.proxy ? { proxy: field.proxy } : {}) };
-+		inputs.push({ handle: scapedJSONStringfy(handle), field: name,
-+			label: `${field.display_name || name} (${field.input_types?.join(", ") || field.type})` });
++		const handle = {
++			inputTypes: field.input_types,
++			type: field.type,
++			id: node.id,
++			fieldName: name,
++			...(field.proxy ? { proxy: field.proxy } : {}),
++		};
++		inputs.push({
++			handle: scapedJSONStringfy(handle),
++			field: name,
++			label: `${field.display_name || name} (${field.input_types?.join(", ") || field.type})`,
++		});
 +	}
 +	for (const output of node.data.node?.outputs ?? []) {
 +		const selected = output.selected ?? output.types[0];
 +		const handle = { output_types: [selected], id: node.id, dataType: node.data.type, name: output.name };
-+		outputs.push({ handle: scapedJSONStringfy(handle), field: output.name,
-+			label: `${output.display_name || output.name} (${selected})` });
-+		if (output.allows_loop) inputs.push({
-+			handle: scapedJSONStringfy({ ...handle, output_types: [selected, ...(output.loop_types ?? [])] }),
-+			field: output.name, label: `${output.display_name || output.name}: feedback (${selected})`,
++		outputs.push({
++			handle: scapedJSONStringfy(handle),
++			field: output.name,
++			label: `${output.display_name || output.name} (${selected})`,
 +		});
++		if (output.allows_loop)
++			inputs.push({
++				handle: scapedJSONStringfy({ ...handle, output_types: [selected, ...(output.loop_types ?? [])] }),
++				field: output.name,
++				label: `${output.display_name || output.name}: feedback (${selected})`,
++			});
 +	}
 +	return { inputs, outputs };
 +}
@@ -1401,9 +1826,9 @@ diff --git a/src/customization/trellis/frontend/nativeDriver/components/suspendN
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/__tests__/suspendNativeEditor.test.ts
-@@ -0,0 +1,35 @@
-+import { suspendNativeEditor } from "../suspendNativeEditor";
+@@ -0,0 +1,37 @@
 +import type { EditorContent } from "../../../../../protocol";
++import { suspendNativeEditor } from "../suspendNativeEditor";
 +
 +const content: EditorContent = {
 +	schemaVersion: 1,
@@ -1412,7 +1837,9 @@ new file mode 100644
 +	graphDocument: { nodes: [{ id: "last-edit" }], edges: [] },
 +};
 +
-+beforeEach(() => { document.body.innerHTML = '<div id="root"></div>'; });
++beforeEach(() => {
++	document.body.innerHTML = '<div id="root"></div>';
++});
 +
 +test("captures the current draft after the native root becomes inert", () => {
 +	const result = suspendNativeEditor(document, () => {
@@ -1447,14 +1874,17 @@ diff --git a/src/customization/trellis/frontend/nativeDriver/components/suspendN
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/suspendNativeEditor.ts
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,18 @@
 +import type { EditorContent } from "../../../../protocol";
 +
 +export function suspendNativeEditor(document: Document, content: () => EditorContent) {
 +	const controls = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
-+	if (Array.from(document.querySelectorAll<HTMLElement>(controls)).some(
-+		(control) => !control.hidden && control.dataset.state !== "closed" && control.getAttribute("aria-hidden") !== "true",
-+	)) {
++	if (
++		Array.from(document.querySelectorAll<HTMLElement>(controls)).some(
++			(control) =>
++				!control.hidden && control.dataset.state !== "closed" && control.getAttribute("aria-hidden") !== "true",
++		)
++	) {
 +		return { state: "refused", reason: "open-control" } as const;
 +	}
 +	if (document.querySelector("input:invalid, textarea:invalid, select:invalid")) {

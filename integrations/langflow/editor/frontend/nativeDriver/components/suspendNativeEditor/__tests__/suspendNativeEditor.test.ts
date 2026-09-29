@@ -1,5 +1,5 @@
-import { suspendNativeEditor } from "../suspendNativeEditor";
 import type { EditorContent } from "../../../../../protocol";
+import { suspendNativeEditor } from "../suspendNativeEditor";
 
 const content: EditorContent = {
 	schemaVersion: 1,
@@ -8,7 +8,9 @@ const content: EditorContent = {
 	graphDocument: { nodes: [{ id: "last-edit" }], edges: [] },
 };
 
-beforeEach(() => { document.body.innerHTML = '<div id="root"></div>'; });
+beforeEach(() => {
+	document.body.innerHTML = '<div id="root"></div>';
+});
 
 test("captures the current draft after the native root becomes inert", () => {
 	const result = suspendNativeEditor(document, () => {
