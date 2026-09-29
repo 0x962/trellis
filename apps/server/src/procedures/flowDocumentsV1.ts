@@ -1,13 +1,8 @@
-import { implement } from "@orpc/server";
-import {
-	ActorHeaderSchema,
-	actorHeaderGrammar,
-	type FlowDocumentSaveV1Input,
-	type FlowDocumentV1,
-	type FlowExecutionViewV1,
-} from "@trellis/api";
-import { fail } from "../errors.ts";
-import { flowDocumentsV1 as contract } from "@trellis/api/contract";
+import { implement, ORPCError, ValidationError } from "@orpc/server";
+import type { FlowDocumentSaveV1Input, FlowDocumentV1, FlowExecutionViewV1 } from "@trellis/api";
+import { ActorHeaderSchema, actorHeaderGrammar } from "@trellis/api";
+import { flowDocumentsV1 } from "@trellis/api/contract";
+import { fail, type InputIssue, invalidIssues } from "../errors.ts";
 import type { ProcedureContext } from "./base.ts";
 
 type Handlers = {
@@ -17,7 +12,7 @@ type Handlers = {
 };
 
 export const createFlowDocumentsV1 = (handlers: Handlers) => {
-	const base = implement(contract).$context<ProcedureContext>();
+	const base = implement(flowDocumentsV1).$context<ProcedureContext>();
 	const actor = base.middleware(async ({ context, next, procedure }) => {
 		const header = context.headers.get("x-trellis-actor");
 		const parsed = ActorHeaderSchema.safeParse(header);
@@ -28,10 +23,20 @@ export const createFlowDocumentsV1 = (handlers: Handlers) => {
 		if (!parsed.success) throw fail("ACTOR_INVALID", { grammar: actorHeaderGrammar });
 		return next({ context: { actor: parsed.data } });
 	});
-	const os = base.use(actor);
-	return os.router({
-		get: os.get.handler(({ context, input }) => handlers.get(context, input)),
-		save: os.save.handler(({ context, input }) => handlers.save(context, input)),
-		view: os.view.handler(({ context, input }) => handlers.view(context, input)),
+	const validation = base.middleware(async ({ next }) => {
+		try {
+			return await next();
+		} catch (error) {
+			if (error instanceof ORPCError && error.code === "BAD_REQUEST" && error.cause instanceof ValidationError) {
+				throw invalidIssues(error.cause.issues as InputIssue[]);
+			}
+			throw error;
+		}
+	});
+	const routes = base.use(validation).use(actor);
+	return routes.router({
+		get: routes.get.handler(({ context, input }) => handlers.get(context, input)),
+		save: routes.save.handler(({ context, input }) => handlers.save(context, input)),
+		view: routes.view.handler(({ context, input }) => handlers.view(context, input)),
 	});
 };
