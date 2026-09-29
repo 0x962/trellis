@@ -24,12 +24,13 @@ export const actors = pgTable(
 );
 
 export const actorColumns = () => ({
+	actorId: uuid("actor_id").notNull(),
 	actorName: text("actor_name").notNull(),
 	actorKind: text("actor_kind").notNull(),
 });
 
-export const actorFk = (name: string, t: { actorName: AnyPgColumn; actorKind: AnyPgColumn }) =>
-	foreignKey({ name, columns: [t.actorName, t.actorKind], foreignColumns: [actors.name, actors.kind] });
+export const actorFk = (name: string, t: { actorId: AnyPgColumn }) =>
+	foreignKey({ name, columns: [t.actorId], foreignColumns: [actors.id] });
 
 export const settings = pgTable("settings", {
 	key: text().primaryKey(),

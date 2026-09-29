@@ -97,6 +97,7 @@ test("returns one UUID for concurrent equal requests", async () => {
 
 test("uses full equality when two actor pairs have the same hash", async () => {
 	const { db, context } = await openFixture();
+	const at = new Date("2026-09-29T20:03:30.000Z");
 	const actors = [
 		{ kind: "human", name: "15601" },
 		{ kind: "human", name: "180514" },
@@ -109,10 +110,22 @@ test("uses full equality when two actor pairs have the same hash", async () => {
 			)
 		).rows,
 	).toEqual([{ equal: true }]);
-	const ids = await db.transaction((tx) =>
-		Promise.all(actors.map((actor) => resolveActorId(context(new Date("2026-09-29T20:03:30.000Z")), tx, actor))),
-	);
+	const ids = await db.transaction((tx) => Promise.all(actors.map((actor) => resolveActorId(context(at), tx, actor))));
 	expect(ids[0]).not.toBe(ids[1]);
+	await expect(
+		db.execute(
+			sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+				VALUES (${actors[0].name}, ${actors[0].kind}, ${at}, ${at})`,
+		),
+	).rejects.toMatchObject({ code: "23P01", constraint: "actors_identity_equality" });
+	const plan = await db.transaction(async (tx) => {
+		await tx.execute(sql`SET LOCAL enable_seqscan=off`);
+		return tx.execute(
+			sql`EXPLAIN (COSTS OFF) SELECT id FROM actors
+				WHERE ARRAY[kind, name]::text[] = ARRAY[${actors[0].kind}, ${actors[0].name}]::text[]`,
+		);
+	});
+	expect(plan.rows).toContainEqual({ "QUERY PLAN": expect.stringContaining("actors_identity_equality") });
 	expect(
 		await db.transaction((tx) => Promise.all(actors.map((actor) => findActorId(context(new Date()), tx, actor)))),
 	).toEqual(ids);
