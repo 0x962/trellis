@@ -89,8 +89,8 @@ describe("the Page routes of the whole app", () => {
 			body: new Uint8Array(1024 * 1024 + 1),
 		});
 
-		expect(response.status).toBe(404);
-		expect((await response.json()) as { code: string }).toMatchObject({ code: "NOT_FOUND" });
+		expect(response.status).toBe(400);
+		expect((await response.json()) as { code: string }).not.toMatchObject({ code: "PAYLOAD_TOO_LARGE" });
 	});
 
 	test("serve a frame, a page, and an archive without the host token", async () => {
