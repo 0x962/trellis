@@ -90,6 +90,7 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		privateRoot: root,
 		captureIssuerFile: captureIssuer,
 		engineApiConfigFile: engineApiConfig,
+		engineApiConfigSha256: engineApiConfigDigest,
 		nativeReservationAuthenticationFile: nativeReservationAuthentication,
 		dependencies: {
 			run,
@@ -141,6 +142,15 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 			health: "healthy",
 			endpoint: "http://127.0.0.1:49152",
 		});
+		await writeFile(engineApiConfig, `${engineApiConfigContent}\n`, { mode: 0o600 });
+		expect(
+			await driver.observe({
+				identity,
+				challenge: "00000000-0000-4000-8000-000000000004",
+				authenticationFile: authentication,
+			}),
+		).toMatchObject({ state: "unknown", health: "unknown", endpoint: null });
+		await writeFile(engineApiConfig, engineApiConfigContent, { mode: 0o600 });
 		await driver.stop(identity);
 		expect(container).toBeNull();
 		expect(network).toBeFalse();

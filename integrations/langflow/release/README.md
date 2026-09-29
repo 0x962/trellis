@@ -148,3 +148,20 @@ Both runtime home IDs must equal the explicit `dataHomeId` from `LangflowHostCon
 Runtime paths, secrets, and ownership stay outside the proof subject and package identity.
 The supervisor creates its live owner and instance IDs. The manifest's epoch fields do not establish execution authority.
 The supervisor's full manifest digest identifies the instance configuration. It differs from the immutable package ID.
+
+### OCI container paths
+
+`QualificationRuntimeSchema` fixes these container values:
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| `data.privateRoot` | `data` | `/data` from the container root |
+| `encryptionSecret.relativePath` | `run/trellis-secrets/engine-secret` | `/run/trellis-secrets/engine-secret` from the container root |
+| `health.scheme` | `http` | Published loopback endpoint |
+| `health.host` | `127.0.0.1` | Published loopback endpoint |
+| `health.path` | `/trellis-v1/health` | Authenticated health route |
+
+The host private root is separate configuration at `join(config.home, "langflow")`.
+The driver uses named volumes for `/data` and `/run/trellis-secrets`.
+The driver must reject declared paths or endpoints that conflict with its actual mounts and inspected loopback endpoint.
+The exact mapping does not establish that the runtime probes passed.

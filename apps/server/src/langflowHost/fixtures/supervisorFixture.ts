@@ -62,6 +62,8 @@ export async function supervisorFixture() {
 		authority: {
 			async revokeOwner({ identity, observationId }) {
 				trace.push("revoke");
+				const saved = revocations.get(identity.ownerId);
+				if (saved) return saved;
 				const receipt = { id: crypto.randomUUID(), identity, observationId };
 				revocations.set(identity.ownerId, receipt);
 				return receipt;

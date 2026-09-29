@@ -60,6 +60,7 @@ export class LangflowSupervisor {
 				manifest: this.manifest,
 				dataDirectory: this.state.dataDirectory,
 				authenticationFile: this.state.authenticationFile(identity),
+				...(await this.state.nativeReservationAuthentication(identity)),
 			});
 			return this.live();
 		});
@@ -76,6 +77,22 @@ export class LangflowSupervisor {
 		return this.exclusive(async () => {
 			if (!this.identity) throw new Error("sidecar_unavailable");
 			await authenticateEngine(this.state.authenticationFile(this.identity), authorization);
+			return operation(await this.live());
+		});
+	}
+
+	async withAuthenticatedNativeReservation<T>(
+		authorization: string | null,
+		operation: (observation: LiveOwnership) => Promise<T>,
+	) {
+		return this.exclusive(async () => {
+			if (!this.identity) throw new Error("sidecar_unavailable");
+			const credential = await this.state.nativeReservationAuthentication(this.identity);
+			await authenticateEngine(
+				credential.nativeReservationAuthenticationFile,
+				authorization,
+				credential.nativeReservationAuthenticationSha256,
+			);
 			return operation(await this.live());
 		});
 	}
@@ -105,11 +122,16 @@ export class LangflowSupervisor {
 		}
 		const observation = await this.observe(identity);
 		const revoked = await this.deps.authority.revokeOwner({ identity, observationId: observation.challenge });
-		if (!isDeepStrictEqual(revoked.identity, identity) || revoked.observationId !== observation.challenge) {
+		const retained = await this.deps.authority.readRevocation({
+			dataHomeId: identity.dataHomeId,
+			hostId: identity.hostId,
+			ownerId: identity.ownerId,
+		});
+		if (!isDeepStrictEqual(revoked.identity, identity) || !isDeepStrictEqual(retained, revoked)) {
 			throw new Error("sidecar_revocation_mismatch");
 		}
 		if (observation.state === "running") {
-			await this.deps.driver.stop(identity);
+			await this.deps.driver.stop(identity, await this.state.nativeReservationAuthentication(identity));
 			const stopped = await this.observe(identity);
 			if (stopped.state !== "exited" && stopped.state !== "absent") throw new Error("sidecar_stop_unconfirmed");
 		}
@@ -121,6 +143,7 @@ export class LangflowSupervisor {
 			identity,
 			challenge,
 			authenticationFile: this.state.authenticationFile(identity),
+			...(await this.state.nativeReservationAuthentication(identity)),
 		});
 		if (!isDeepStrictEqual(observation.identity, identity) || observation.challenge !== challenge) {
 			throw new Error("sidecar_observation_mismatch");

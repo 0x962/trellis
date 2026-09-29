@@ -1,7 +1,6 @@
-import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
-import { promisify } from "node:util";
+import { streamCommand } from "../streamCommand/index.ts";
 import type { StandaloneCandidate, StandaloneHandoffResult } from "./types.ts";
 
 export type HandoffOperations = {
@@ -12,7 +11,11 @@ export type HandoffOperations = {
 	waitForExit: (pid: number) => Promise<void>;
 	prepare: (resources: string, candidate: StandaloneCandidate) => Promise<StandaloneHandoffResult>;
 };
-const execute = promisify(execFile);
+const execute = async (command: string, args: string[]) => {
+	const chunks: string[] = [];
+	await streamCommand(command, args, (text) => chunks.push(text));
+	return { stdout: chunks.join("") };
+};
 const alive = (pid: number) => {
 	try {
 		process.kill(pid, 0);
@@ -43,10 +46,7 @@ export const handoffOperations: HandoffOperations = {
 		await execute("launchctl", ["bootout", `${domain}/com.trellis.server`]);
 	},
 	waitForExit: async (pid) => {
-		const deadline = Date.now() + 10_000;
 		while (alive(pid)) {
-			if (Date.now() >= deadline)
-				throw new Error(`Standalone process ${pid} has not exited. The database stays closed.`);
 			await setTimeout(50);
 		}
 	},
@@ -60,7 +60,7 @@ export const handoffOperations: HandoffOperations = {
 		];
 		if (candidate.service) args.push("--restore-standalone-service");
 		try {
-			const { stdout } = await execute(join(resources, "bin/bun"), args, { maxBuffer: 4 * 1024 * 1024 });
+			const { stdout } = await execute(join(resources, "bin/bun"), args);
 			return JSON.parse(stdout);
 		} catch (error) {
 			const failure = error as Error & { stderr?: string };

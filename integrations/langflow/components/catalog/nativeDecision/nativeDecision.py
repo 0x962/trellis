@@ -1,3 +1,5 @@
+from langflow.services.trellis_v1.occurrence_outputs import component_output, record_forwarded_output
+from langflow.services.trellis_v1.occurrence_scope import capture_visit_scope
 from lfx.custom import Component
 from lfx.io import HandleInput, Output
 from lfx.schema.data import Data
@@ -22,7 +24,7 @@ class TrellisNativeDecisionV1(Component):
 		Output(name="no", display_name="No", method="no", types=["Data"], group_outputs=True),
 	]
 
-	def _route(self) -> Data:
+	async def _route(self) -> Data:
 		result = self.result.data
 		answer = result["output"].strip(ECMASCRIPT_WHITESPACE).lower()
 		if result["exitKind"] != "completed" or answer not in ("yes", "no"):
@@ -30,10 +32,12 @@ class TrellisNativeDecisionV1(Component):
 		rejected = "no" if answer == "yes" else "yes"
 		self.stop(rejected)
 		self.graph.exclude_branch_conditionally(self._id, output_name=rejected)
-		return self.result
+		scope = await capture_visit_scope(self.graph, self._vertex.id)
+		receipt = await record_forwarded_output(self.graph, self._vertex.id, scope, answer, result)
+		return Data(data={**result, **component_output(receipt, "succeeded")})
 
-	def yes(self) -> Data:
-		return self._route()
+	async def yes(self) -> Data:
+		return await self._route()
 
-	def no(self) -> Data:
-		return self._route()
+	async def no(self) -> Data:
+		return await self._route()

@@ -84,7 +84,7 @@ The browser route `/p/<KEY>/pages/<slug>?version=<number>` selects a historical 
 
 Select text, open the context menu on an element, or focus an element and press **C**.
 Enter the comment in the trusted Trellis editor. Submit it with **Comment** or Enter.
-A selected text anchor permits up to 2,000 characters.
+Trellis preserves the complete comment body and selected text.
 The anchor belongs to the exact version that the reader sees.
 
 The viewer places numbered pins beside matching anchors. A pin opens its thread.

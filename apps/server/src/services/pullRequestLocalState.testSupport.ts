@@ -10,7 +10,7 @@ import { upsertPullRequests } from "../gh/pollerWrite.ts";
 import { candidates } from "./needsYou/candidates.ts";
 import { setLocalState } from "./pullRequestLocalState.ts";
 import { link } from "./pullRequests.ts";
-import type { ServiceCtx } from "./support.ts";
+import type { IoCtx } from "./support.ts";
 
 export const openPullRequestLocalStateTest = async () => {
 	const db = await openTestDb();
@@ -34,11 +34,12 @@ export const openPullRequestLocalStateTest = async () => {
 	const ctxOf = (actor: ActorRef, now: Date = at) =>
 		({
 			actor,
+			core: { actor, now, actorCache: new Map() } as IoCtx["core"],
 			now: () => now,
 			emit: (event: { type: string }) => {
 				events.push(event);
 			},
-		}) as unknown as ServiceCtx;
+		}) as unknown as IoCtx;
 
 	const newTicket = async (title: string) => {
 		ticketNumber += 1;
@@ -64,8 +65,8 @@ export const openPullRequestLocalStateTest = async () => {
 		await db.execute(sql`INSERT INTO pr_summaries (pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
 			VALUES (${id}, ${headSha}, 'It adds the rule.', 'The glyph lied.', 'nothing', ${at}, ${at})`);
 		await db.execute(sql`INSERT INTO pr_evidence_documents
-			(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${headSha}, 'Proof.', 'claude-code', 'agent', ${at}, ${at})`);
+			(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at, actor_id)
+			VALUES (${id}, ${headSha}, 'Proof.', 'claude-code', 'agent', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['agent', 'claude-code']::text[]))`);
 	};
 
 	const readyPullRequest = async (title: string, number: number) => {

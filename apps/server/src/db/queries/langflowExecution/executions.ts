@@ -8,6 +8,7 @@ import {
 } from "../../../langflowContracts";
 import { langflowExecutions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
+import { assertOwnerActive } from "./ownerFence";
 import { readStartRequest, saveStartRequest } from "./startRequests";
 
 export async function readExecution(tx: Tx, input: { executionId: string }) {
@@ -77,6 +78,7 @@ export async function openAdmission(
 	const row = await lockExecution(tx, input);
 	if (row.cancelIntent) throw new Error("execution_canceled");
 	const { correlation, receipt, authority } = input;
+	await assertOwnerActive(tx, authority);
 	if (
 		correlation.executionId !== row.executionId ||
 		correlation.hostId !== row.hostId ||
@@ -129,7 +131,8 @@ export async function openAdmission(
 	});
 	return saved!;
 }
-export function assertAuthority(
+export async function assertAuthority(
+	tx: Tx,
 	row: Awaited<ReturnType<typeof lockExecution>>,
 	authority: DeliveryAuthorityV1,
 	permission: DeliveryAuthorityV1["permissions"][number],
@@ -143,4 +146,5 @@ export function assertAuthority(
 		Date.parse(current.expiresAt) <= now.getTime()
 	)
 		throw new Error("authority_conflict");
+	await assertOwnerActive(tx, current);
 }

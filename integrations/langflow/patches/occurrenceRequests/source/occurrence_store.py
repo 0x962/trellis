@@ -19,8 +19,14 @@ from .occurrence_models import canonical
 
 
 async def locked_context(session, graph, vertex_id: str):
-    job_id = UUID(str(graph.job_id))
+    job_id, admission, document, journal = await locked_graph(session, graph)
     graph.get_vertex(vertex_id)
+    spec = document.snapshot["graphDocument"]["trellisRequestSpecsV1"][vertex_id]
+    return job_id, admission, spec, journal
+
+
+async def locked_graph(session, graph):
+    job_id = UUID(str(graph.job_id))
     job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
     if job.status not in {JobStatus.IN_PROGRESS, JobStatus.SUSPENDED, JobStatus.QUEUED}:
         raise OccurrenceConflict("occurrence_job_not_active")
@@ -37,10 +43,9 @@ async def locked_context(session, graph, vertex_id: str):
             or correlation.execution_id != admission["executionId"]
             or admission["engineJobId"] != str(job_id)):
         raise OccurrenceConflict("occurrence_publication_conflict")
-    spec = document.snapshot["graphDocument"]["trellisRequestSpecsV1"][vertex_id]
     stored = await checkpoint(session, job_id, JOURNAL_KIND)
     journal = {"revision": 0, "visits": {}} if stored is None else json.loads(stored.blob)
-    return job_id, admission, spec, journal
+    return job_id, admission, document, journal
 
 
 async def authorize_native(session, job_id, admission) -> str:
@@ -70,7 +75,7 @@ async def save_blob(session, job_id, kind: str, blob: str) -> None:
 
 
 async def save_wait(session, job_id, graph, wait_bytes: str, *, replacing: str | None = None) -> dict:
-    snapshot = graph.build_checkpoint()
+    snapshot = checkpoint_root(graph).build_checkpoint()
     waits = dict(snapshot.external_waits)
     if replacing is not None:
         old_id = json.loads(replacing)["waitId"]
@@ -84,3 +89,16 @@ async def save_wait(session, job_id, graph, wait_bytes: str, *, replacing: str |
     snapshot.external_waits = waits
     await save_blob(session, job_id, "graph", snapshot.model_dump_json())
     return waits
+
+
+def checkpoint_root(graph):
+    return getattr(graph, "trellis_checkpoint_root", graph)
+
+
+async def save_graph(session, job_id, graph):
+    await save_blob(session, job_id, "graph", checkpoint_root(graph).build_checkpoint().model_dump_json())
+
+
+def apply_waits(graph, waits):
+    graph.external_waits.clear()
+    graph.external_waits.update(waits)

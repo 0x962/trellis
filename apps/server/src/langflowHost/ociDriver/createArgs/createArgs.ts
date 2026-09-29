@@ -2,6 +2,7 @@ import type { SidecarIdentity } from "../../contracts";
 import {
 	containerAuthenticationFile,
 	containerCaptureIssuerFile,
+	containerDataDirectory,
 	containerEncryptionFile,
 	containerEngineApiConfigFile,
 	containerLabels,
@@ -36,7 +37,7 @@ export function containerCreateArgs(input: {
 		"--publish",
 		"127.0.0.1::7860",
 		"--mount",
-		`type=volume,src=${input.storage.data},dst=/data`,
+		`type=volume,src=${input.storage.data},dst=${containerDataDirectory}`,
 		"--mount",
 		`type=volume,src=${input.storage.secrets},dst=/run/trellis-secrets,readonly`,
 		...environment(input.identity, input.engineApiConfigDigest !== null),

@@ -7,9 +7,10 @@ import { sql } from "drizzle-orm";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
 import { announcePullRequestUpdate } from "../pullRequests.ts";
-import { type ServiceCtx, touchActor } from "../support.ts";
+import { type IoCtx, type ServiceCtx } from "../support.ts";
 
 type WaiverRow = {
 	pull_request_id: string;
@@ -57,11 +58,11 @@ export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise
 
 // A second write at the same head replaces the sentence and keeps the first
 // `created_at`, the way the evidence document does.
-export const write = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PullRequestFlowWaiver> => {
+export const write = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<PullRequestFlowWaiver> => {
 	const input = PullRequestFlowWaiverWriteInputSchema.parse(rawInput);
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
-	const actorId = await touchActor(tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(
 		sql`INSERT INTO pr_flow_waivers (pull_request_id, head_sha, reason, actor_id, actor_name, actor_kind, created_at, updated_at)
 			VALUES (${pullRequest.id}, ${input.headSha}, ${input.reason}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at})

@@ -12,7 +12,8 @@ import { openTestDb, openTestDbFromArchive } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
 import { versions } from "./content.ts";
-import { get, list, pin } from "./pages.ts";
+import { get, list } from "./pages.ts";
+import { pin } from "./pin";
 import { preparePublish, publish } from "./publish.ts";
 import { prepareUpload, upload } from "./uploads.ts";
 

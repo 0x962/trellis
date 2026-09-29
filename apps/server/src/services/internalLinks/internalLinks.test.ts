@@ -36,16 +36,16 @@ beforeAll(async () => {
 		(id, project_id, number, title, status_id, position, created_at, updated_at)
 		VALUES (${ids.ticket}, ${ids.project}, 480, 'Stable links', ${ids.status}, 0, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics
-		(id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${ids.epic}, ${ids.project}, 'internal-links', 'Internal links', 'Navid', 'human', ${at}, ${at})`);
+		(id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id)
+		VALUES (${ids.epic}, ${ids.project}, 'internal-links', 'Internal links', 'Navid', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Navid']::text[]))`);
 	await db.execute(sql`INSERT INTO epic_resources
-		(id, epic_id, kind, name, body, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${ids.resource}, ${ids.epic}, 'doc', 'Contract', 'Stable links', 'Navid', 'human', ${at}, ${at})`);
+		(id, epic_id, kind, name, body, actor_name, actor_kind, created_at, updated_at, actor_id)
+		VALUES (${ids.resource}, ${ids.epic}, 'doc', 'Contract', 'Stable links', 'Navid', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Navid']::text[]))`);
 	await db.execute(sql`INSERT INTO pages
 		(id, project_id, slug, title, creator_actor_name, creator_actor_kind,
-		 actor_name, actor_kind, created_at, updated_at)
+		 actor_name, actor_kind, created_at, updated_at, actor_id, creator_actor_id)
 		VALUES (${ids.page}, ${ids.project}, 'link-guide', 'Link guide', 'Navid', 'human',
-		 'Navid', 'human', ${at}, ${at})`);
+		 'Navid', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Navid']::text[]), (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Navid']::text[]))`);
 	await db.execute(sql`INSERT INTO pull_requests
 		(id, owner, repo, number, url, state, created_at, updated_at)
 		VALUES (${ids.pullRequest}, 'acme', 'app', 12, 'https://github.com/acme/app/pull/12', 'open', ${at}, ${at})`);
@@ -92,7 +92,8 @@ test("keeps each link after route names change", async () => {
 
 test("reports a deleted Page and a missing record", async () => {
 	await db.execute(sql`UPDATE pages SET deleted_at = ${at}, deleted_actor_name = 'Navid',
-		deleted_actor_kind = 'human' WHERE id = ${ids.page}`);
+		deleted_actor_kind = 'human',
+		deleted_actor_id = (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Navid']) WHERE id = ${ids.page}`);
 
 	await expect(pathOf("page", ids.page)).rejects.toMatchObject({ code: "PAGE_DELETED" });
 	await expect(pathOf("resource", ulid())).rejects.toMatchObject({

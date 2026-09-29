@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { touchActor } from "../../services/support.ts";
+import type { ServiceCtx } from "../../context.ts";
+import { resolveActorId } from "../../services/actorIdentity/index.ts";
 import { rows } from "../queries/support.ts";
 import { openTestDb, openTestDbFromArchive } from "../testDb.ts";
 import { actorRelationshipMapping } from "./mapping.ts";
@@ -77,8 +78,9 @@ test("preserves exact bindings and rejects mismatches", async () => {
 		WHERE ARRAY[kind, name]::text[] = ARRAY['agent', ${longName}]::text[]`);
 	expect(JSON.stringify(lookupPlan.rows)).toContain("actors_identity_equality");
 	await db.execute(sql`SET enable_seqscan = on`);
+	const actorCtx = { now: new Date(at.getTime() + 2), actorCache: new Map() } as ServiceCtx;
 	const touchedId = await db.transaction((tx) =>
-		touchActor(tx, { name: longName, kind: "agent" }, new Date(at.getTime() + 2)),
+		resolveActorId(actorCtx, tx, { name: longName, kind: "agent" }),
 	);
 	expect(touchedId).toBe(longActorId);
 	const validBatch = ulid();

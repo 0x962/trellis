@@ -1,4 +1,5 @@
 export * from "./actions";
+export * from "./authorityControl";
 export * from "./classifications";
 export * from "./effects";
 export * from "./executions";

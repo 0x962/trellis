@@ -52,12 +52,12 @@ export async function qualificationFixture() {
 		qualificationSha256: "0".repeat(64),
 		dataHomeId: "fixture-home",
 		runtime: {
-			data: { dataHomeId: "fixture-home", privateRoot: "langflow", directoryMode: "0700", fileMode: "0600" },
-			encryptionSecret: { kind: "file-reference", relativePath: "secrets/encryption" },
+			data: { dataHomeId: "fixture-home", privateRoot: "data", directoryMode: "0700", fileMode: "0600" },
+			encryptionSecret: { kind: "file-reference", relativePath: "run/trellis-secrets/engine-secret" },
 			health: {
 				scheme: "http",
 				host: "127.0.0.1",
-				path: "/health_check",
+				path: "/trellis-v1/health",
 				expectedStatus: 200,
 				startupTimeoutMs: 30000,
 				requestTimeoutMs: 5000,

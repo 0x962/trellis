@@ -106,3 +106,8 @@ class VisitScope:
     def facts(self) -> dict:
         return {"inputReceiptIds": list(self.input_receipt_ids),
                 "groupDeadlineRefs": list(self.group_deadline_refs), "deadlineAt": self.deadline_at}
+
+    def to_engine(self) -> dict:
+        return {"parentOccurrenceKey": self.parent_occurrence_key, "phase": self.phase,
+                "iterationPath": [{"loopNodeId": item.loop_node_id, "round": item.round}
+                                  for item in self.iteration_path], **self.facts()}

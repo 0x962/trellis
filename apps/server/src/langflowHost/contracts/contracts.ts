@@ -5,6 +5,7 @@ import type {
 	RenewalReceiptV1,
 	TakeoverReceiptV1,
 } from "../../langflowContracts";
+import type { DispatchPermit } from "../dispatchGate/contracts";
 
 export type SidecarIdentity = {
 	dataHomeId: string;
@@ -35,19 +36,28 @@ export type OwnerRevocation = {
 	observationId: string;
 };
 
+export type NativeReservationAuthentication = {
+	nativeReservationAuthenticationFile: string;
+	nativeReservationAuthenticationSha256: string;
+};
+
 export type SidecarDriver = {
 	start(input: {
 		identity: SidecarIdentity;
 		manifest: LangflowSidecarManifestV1;
 		dataDirectory: string;
 		authenticationFile: string;
+		nativeReservationAuthenticationFile: string;
+		nativeReservationAuthenticationSha256: string;
 	}): Promise<void>;
 	observe(input: {
 		identity: SidecarIdentity;
 		challenge: string;
 		authenticationFile: string;
+		nativeReservationAuthenticationFile: string;
+		nativeReservationAuthenticationSha256: string;
 	}): Promise<SidecarObservation>;
-	stop(identity: SidecarIdentity): Promise<void>;
+	stop(identity: SidecarIdentity, authentication: NativeReservationAuthentication): Promise<void>;
 };
 
 export type OwnershipSnapshot = {
@@ -57,6 +67,7 @@ export type OwnershipSnapshot = {
 };
 
 export type AuthorityCommit = {
+	permit: DispatchPermit;
 	requestBytes: string;
 	authorityBytes: string;
 	receipt: RenewalReceiptV1 | TakeoverReceiptV1;

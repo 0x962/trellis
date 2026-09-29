@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { randomBytes } from "node:crypto";
 import { protocolDigest } from "../../langflowContracts/index.ts";
+import { migratedDatabase } from "../../services/langflowTestFixture/components/migratedDatabase/index.ts";
 import type { Db } from "../client.ts";
 import { reserveExecution } from "../queries/langflowExecution/executions.ts";
 import { receiptFixture } from "../queries/langflowExecution/fixtures/fixture.ts";
@@ -10,15 +11,9 @@ let db: Db;
 let base: Awaited<ReturnType<typeof receiptFixture>>["input"];
 
 beforeAll(async () => {
-	const fixture = await receiptFixture(false);
+	const fixture = await receiptFixture(false, await migratedDatabase());
 	db = fixture.db;
 	base = fixture.input;
-	await db.$client.exec(`
-		ALTER TABLE "langflow_executions" ADD CONSTRAINT "langflow_start_actor_request_identity"
-			EXCLUDE USING hash ((ARRAY["actor_kind", "actor_name", "request_id"]) WITH =);
-		ALTER TABLE "langflow_start_receipts" ADD CONSTRAINT "langflow_start_receipts_identity"
-			EXCLUDE USING hash ((ARRAY["actor_kind", "actor_name", "request_id"]) WITH =);
-	`);
 });
 
 afterAll(async () => db.$client.close());

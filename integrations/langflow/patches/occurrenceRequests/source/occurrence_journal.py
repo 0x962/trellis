@@ -69,6 +69,7 @@ def replace_rejected(journal: dict, vertex_id: str, scope: VisitScope, spec: dic
     del journal["visits"][key]
     replacement = allocate(journal, vertex_id, scope, spec, admission, "human")
     replacement["feedback"] = [*prior["feedback"], decision]
+    replacement["feedbackReceiptIds"] = list(prior.get("feedbackReceiptIds", []))
     replacement["prior"] = [*prior["prior"], {field: prior[field] for field in
                             ("occurrence", "revision", "requestBytes", "waitId")}]
     return old_wait, replacement

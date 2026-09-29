@@ -11,6 +11,7 @@ import {
 import * as pageContent from "../content.ts";
 import { finishWatchDispatch, prepareWatchDispatch } from "../dispatchWatches";
 import * as pages from "../pages.ts";
+import { pin } from "../pin";
 import { preparePublish, publish } from "../publish.ts";
 import { purgeExpiredPages } from "../retention";
 import * as pageUploads from "../uploads.ts";
@@ -37,7 +38,7 @@ export const pageServices = {
 	"pages.pull": core("read", pageContent.pull),
 	"pages.versionFile": core("read", pageContent.versionFile),
 	"pages.update": core("mutation", pages.update),
-	"pages.pin": core("mutation", pages.pin),
+	"pages.pin": core("mutation", pin),
 	"pages.delete": core("mutation", pages.remove),
 	"pages.restore": core("mutation", pages.restore),
 };

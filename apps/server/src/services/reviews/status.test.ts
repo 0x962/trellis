@@ -48,11 +48,10 @@ beforeAll(async () => {
 		'fail', ${at}, ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES
-		(${laterNumberTicket}, ${prId}, 'manual', 'Test', 'human', ${at}),
-		(${lowerNumberTicket}, ${prId}, 'manual', 'Test', 'human', ${at}),
-		(${firstProjectTicket}, ${prId}, 'manual', 'Test', 'human', ${at})`);
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id) VALUES
+		(${laterNumberTicket}, ${prId}, 'manual', 'Test', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test']::text[])),
+		(${lowerNumberTicket}, ${prId}, 'manual', 'Test', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test']::text[])),
+		(${firstProjectTicket}, ${prId}, 'manual', 'Test', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test']::text[]))`);
 });
 
 afterAll(async () => {
