@@ -7,7 +7,6 @@ for (const entry of ["index.ts", "../flowExecutions/queries.ts", "../flowExecuti
 			entrypoints: [new URL(entry, import.meta.url).pathname],
 			target: "bun",
 			packages: "external",
-			write: false,
 			plugins: [
 				{
 					name: "forbid-schedulers",

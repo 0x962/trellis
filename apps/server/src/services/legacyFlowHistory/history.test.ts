@@ -98,7 +98,7 @@ test("keeps task deletion and ticket deletion cascades", async () => {
 	await restored.$client.close();
 });
 
-test("diff deletion clears the association and project deletion removes history", async () => {
+test("diff deletion clears the association and project deletion preserves the ticket restriction", async () => {
 	const archive = await db.$client.dumpDataDir("none");
 	const restored = await openTestDbFromArchive(archive);
 	await restored.execute(sql`INSERT INTO pull_requests (id,owner,repo,number,url,state,created_at,updated_at)
@@ -110,6 +110,11 @@ test("diff deletion clears the association and project deletion removes history"
 	const unlinked = await restored.transaction((tx) => getView(ctx, tx, { id: record.id }));
 	expect(unlinked.diffId).toBeNull();
 	expect(unlinked.reviewedHead).toBe(record.headSha);
+	await expect(restored.execute(sql`DELETE FROM projects WHERE id=${record.projectId}`)).rejects.toMatchObject({
+		code: "23001",
+	});
+	expect(await restored.transaction((tx) => getMany(ctx, tx, [record.id]))).toHaveLength(1);
+	await restored.execute(sql`DELETE FROM tickets WHERE id=${record.ticketId}`);
 	await restored.execute(sql`DELETE FROM projects WHERE id=${record.projectId}`);
 	expect(await restored.transaction((tx) => getMany(ctx, tx, [record.id]))).toEqual([]);
 	await restored.$client.close();
