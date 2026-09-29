@@ -32,6 +32,7 @@ erDiagram
     flows ||--o{ langflow_document_conversions : retains
     langflow_document_revisions ||--o| langflow_document_publications : binds
     langflow_document_revisions ||--o{ langflow_document_save_receipts : acknowledges
+    langflow_document_revisions ||--|| langflow_document_publication_states : reports
     flows {
         text id PK
         text project_id FK
@@ -62,6 +63,12 @@ erDiagram
         integer revision FK
         jsonb receipt
     }
+    langflow_document_publication_states {
+        text flow_id PK,FK
+        integer revision PK,FK
+        integer version
+        jsonb state
+    }
     langflow_document_conversions {
         text migration_id PK
         text flow_id FK
@@ -72,10 +79,25 @@ erDiagram
     }
 ```
 
+## Publication progress and service reads
+
+`readLatestDocumentRevision(tx, {flowId})` returns the newest stored revision or undefined.
+`readLastDocumentPublication(tx, {flowId})` returns the latest immutable publication or undefined.
+`readDocumentSaveReceipt(tx, {flowId, requestId})` returns the original bytes and response before a caller changes legacy rows.
+
+Each imported or saved revision starts with a publication-state row at version 1.
+`readDocumentPublicationState(tx, {flowId, revision})` returns `{version, state}` and gives an immutable publication precedence over progress.
+`writeDocumentPublicationState` takes the exact flow, revision, expected state version, and unpublished state.
+It returns `updated` with the new state version, `conflict` with the current state version, or `published` with the immutable receipt.
+Both publication insertion and progress updates lock the same document revision.
+A late failure cannot replace a published result. A late result for one revision cannot change another revision's state.
+The mutable table retains pending, blocked, and failed results across a restart. The original save receipt remains immutable.
+
 ## Schema and migration handoff
 
 Principal reserves document migration 0133 after the stable observer migration 0132.
-TRL-683 takes the receipt migration after the document migration.
+TRL-683 owns schema adoption and generation of document migration 0133, then receipt migration 0134.
+Principal supplies the exact stable predecessor. The owner preserves the existing 0131 hash-exclusion SQL and snapshots.
 This source checkpoint does not change `schema.ts`, the migration files, or the journal.
 
 The proposed `schema.ts` export is:
@@ -84,6 +106,7 @@ The proposed `schema.ts` export is:
 export {
     langflowDocumentConversions,
     langflowDocumentPublications,
+    langflowDocumentPublicationStates,
     langflowDocumentRevisions,
     langflowDocumentSaveReceipts,
 } from "./tables/langflowDocuments/index.ts";
@@ -95,19 +118,19 @@ The unique `(flow_id, revision)` pair forbids a replacement engine mapping for t
 The composite foreign key checks the document hash and component manifest as well as the flow ID and revision.
 TRL-683 can reference this publication ID from its execution receipt tables.
 
-The migration must install `immutableDocumentRowsSql` from `immutableRows.ts` after it creates all four tables.
+The migration must install `immutableDocumentRowsSql` from `immutableRows.ts` after it creates the immutable tables.
 Those triggers reject updates. Flow deletion still cascades through these tables under the existing catalog deletion policy.
 The migration owner must also preserve all declared checks, unique constraints, and foreign keys.
 The fixture creates the declared tables in memory and uses the same trigger source.
 It does not prove migration generation, upgrade, restore, or installed-host behavior.
 
-TRL-684 owns the service composition, public error mapping, publication progress, and metadata revision integration.
+TRL-684 owns the service composition, public error mapping, engine publication, and metadata revision integration.
 TRL-675 retains the real migration, legacy preservation, restore, and engine acceptance requirements.
 No service registry imports these queries in this checkpoint.
 
 ## Verification handoff
 
-Run the three test files under `apps/server/src/db/queries/langflowDocuments/` in the combined verification environment.
+Run the four test files under `apps/server/src/db/queries/langflowDocuments/` in the combined verification environment.
 They cover request uniqueness, exact retry output, metadata conflicts, caller rollback, immutable publication identity, catalog scope, deletion, and legacy bytes.
 Run the server type check and Biome on both owned folders after the merged batch.
 These checks remain unexecuted at source publication, as the ticket requires.

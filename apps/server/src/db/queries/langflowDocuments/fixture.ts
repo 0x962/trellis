@@ -4,6 +4,7 @@ import { openDb } from "../../client.ts";
 import {
 	langflowDocumentConversions,
 	langflowDocumentPublications,
+	langflowDocumentPublicationStates,
 	langflowDocumentRevisions,
 	langflowDocumentSaveReceipts,
 } from "../../tables/langflowDocuments/index.ts";
@@ -45,6 +46,7 @@ export const documentFixture = async () => {
 	for (const table of [
 		langflowDocumentRevisions,
 		langflowDocumentPublications,
+		langflowDocumentPublicationStates,
 		langflowDocumentSaveReceipts,
 		langflowDocumentConversions,
 	]) {
