@@ -30,7 +30,9 @@ test("derives a frozen manifest from exact synthetic evidence and preserves cand
 	expect(loaded.qualificationSha256).toBe(input.options.qualificationSha256);
 	expect(await readFile(join(input.options.packageRoot, "package.json"), "utf8")).toBe(before);
 	input.options.runtime.epochOwnership.ownerId = "another-owner";
-	expect((await loadQualifiedPackage(input.options)).candidate.enginePackageDigest).toBe(loaded.candidate.enginePackageDigest);
+	expect((await loadQualifiedPackage(input.options)).candidate.enginePackageDigest).toBe(
+		loaded.candidate.enginePackageDigest,
+	);
 });
 
 test.each(["missing", "changed", "untrusted"])("rejects %s qualification bytes", async (kind) => {

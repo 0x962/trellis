@@ -122,8 +122,7 @@ export const LangflowSidecarManifestV1Schema = z
 	})
 	.refine(
 		(value) =>
-			value.target.kind !== "linux-oci" ||
-			value.encryptionSecret.relativePath === "run/trellis-secrets/engine-secret",
+			value.target.kind !== "linux-oci" || value.encryptionSecret.relativePath === "run/trellis-secrets/engine-secret",
 		{ path: ["encryptionSecret", "relativePath"] },
 	)
 	.refine(
