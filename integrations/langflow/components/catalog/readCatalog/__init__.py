@@ -1,1 +1,1 @@
-from .readCatalog import read_catalog
+from .readCatalog import read_catalog as read_catalog
