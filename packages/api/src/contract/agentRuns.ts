@@ -29,6 +29,7 @@ import { TicketGetInputSchema } from "../schemas/ticket.ts";
 import { base } from "./base.ts";
 
 const idInput = z.strictObject({ id: UlidSchema });
+export const AgentMessageSchema = z.string().trim().min(1);
 const sessionSchema = z.object({
 	id: z.string(),
 	daemonId: z.string(),
@@ -226,7 +227,7 @@ export const agentRuns = {
 			path: "/agent-runs/{id}/send",
 			summary: "Send an agent a follow-up. With interrupt, stop the current turn first.",
 		})
-		.input(idInput.extend({ text: z.string().trim().min(1).max(20000), interrupt: z.boolean().optional() }))
+		.input(idInput.extend({ text: AgentMessageSchema, interrupt: z.boolean().optional() }))
 		.output(AgentRunSchema),
 	output: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

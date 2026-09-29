@@ -24,6 +24,8 @@ export type ActionContext = {
 	// Opens a URL outside the app.
 	openUrl: (url: string) => void;
 	navigate: (to: string) => void;
+	back: () => void;
+	forward: () => void;
 };
 
 // The fields a branch name needs.

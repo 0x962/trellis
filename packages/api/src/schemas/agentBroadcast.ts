@@ -22,7 +22,7 @@ export type AgentBroadcastCounts = z.infer<typeof AgentBroadcastCountsSchema>;
 
 export const AgentBroadcastInputSchema = z.strictObject({
 	group: AgentBroadcastGroupSchema,
-	text: z.string().trim().min(1).max(20000),
+	text: z.string().trim().min(1),
 	requestId: z
 		.string()
 		.min(1)
