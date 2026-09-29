@@ -1,7 +1,8 @@
 import type { FlowDocumentSaveV1Input, FlowPublicationV1 } from "@trellis/api";
 import type { ServiceCtx } from "../../../context.ts";
 import { createCache } from "../../../db/cache.ts";
-import { documentFixture } from "../../../db/queries/langflowDocuments/fixture.ts";
+import { flows } from "../../../db/tables/flows.ts";
+import { openTestDb } from "../../../db/testDb.ts";
 import type { IoCtx } from "../../support.ts";
 import type { DocumentPublisher } from "../publisher";
 
@@ -20,14 +21,16 @@ export const saveInput = (expectedVersion = 1): FlowDocumentSaveV1Input => ({
 });
 
 export const serviceFixture = async () => {
-	const db = await documentFixture();
-	await db.$client.exec(`
-		CREATE TABLE actors (name text, kind text, first_seen_at timestamptz, last_seen_at timestamptz, PRIMARY KEY(name, kind));
-		CREATE TABLE flow_nodes (id text PRIMARY KEY, flow_id text, parent_id text, kind text, title text,
-			instruction text, parallel boolean, minutes integer, max_rounds integer, harness jsonb, review_area text,
-			x double precision, y double precision, width double precision, height double precision);
-		CREATE TABLE flow_edges (id text PRIMARY KEY, flow_id text, from_node_id text, to_node_id text, branch text);
-	`);
+	const db = await openTestDb();
+	await db.insert(flows).values({
+		id: flowId,
+		slug: "review",
+		name: "Review",
+		description: "Review a proposed change.",
+		briefing: "Read the ticket.",
+		createdAt: new Date("2026-09-29T06:00:00Z"),
+		updatedAt: new Date("2026-09-29T06:00:00Z"),
+	});
 	const ctx: ServiceCtx = {
 		actor: { kind: "human", name: "test" },
 		session: null,

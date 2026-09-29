@@ -32,7 +32,7 @@ def create_backup_router(*, database, settings, export_root: Path, authenticatio
             raise HTTPException(status_code=401, detail="engine_snapshot_unauthorized",
                                 headers={"WWW-Authenticate": "Bearer"})
 
-    router = APIRouter(prefix="/trellis-v1/snapshots", dependencies=[Depends(authenticate)])
+    router = APIRouter(prefix="/snapshots", dependencies=[Depends(authenticate)])
 
     @router.post("", response_model=EngineSnapshotReceipt)
     async def capture(binding: SnapshotBinding) -> EngineSnapshotReceipt:

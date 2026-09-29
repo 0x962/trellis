@@ -99,3 +99,65 @@ An unconfigured home returns `{state: "unavailable", generation: null}`.
 A configured home returns `{state: "open" | "blocked", generation: number}`.
 Corrupt or incomplete control files fail the read; the query must never report them as open.
 The open state is advisory; each mutation still acquires a permit before its first effect.
+
+## Original authority bytes
+
+`ExecutionAuthority` serializes a newly issued grant once in `AuthorityCommit.authorityBytes`.
+`AuthorityPort.commit` must save this UTF-8 text atomically with its receipt and ownership transition.
+`AuthorityPort.readReceipt` must return the original text on every later read.
+`readIssuedAuthority(commit)` checks its parsed grant against the receipt and returns the original bytes and digest.
+The HTTP client must send these bytes unchanged to the engine control and domain endpoints.
+An old record without retained bytes requires reconciliation; JSONB does not establish the original encoding.
+
+`DispatchReceiptArchive.writeAuthority({authorityBytes, issuanceReceiptId})` retains the original bytes outside restored data.
+It returns an immutable archive identifier with the bytes, digest, parsed authority, and issuing receipt identifier.
+The trusted producer must retain this archive identifier with its control receipt before it sends the grant.
+`readAuthority(id)` returns the original bytes after restart.
+The archive checks the target home and host, but the engine must still check current ownership, permissions, expiry, and revocation.
+
+## Access for public effects
+
+`LangflowHostControl.openEffects({home, readTerminal})` returns the saved identity and a `DispatchEffects` instance.
+The instance exposes `read`, `acquire`, `recoverPermit`, and `settle`.
+Public actions supply the reader that validates their committed terminal evidence.
+The instance shares the durable permits with the full control.
+A blocked home still permits settlement of an existing effect, so the full control can finish its drain.
+Only the full control exposes reconciliation and block management.
+
+`DispatchReceiptArchive.open` accepts the identity and `gate.read` from either control.
+Compose its terminal reader after both objects exist; only a later settlement calls the reader.
+
+## Initial authority
+
+`new InitialAuthorityIssuer(control, supervisor, archive)` owns the first grant for an execution.
+`issue(input)` obtains a fresh observation through `supervisor.withHealthyEngine`.
+The input contains the execution, host, project, publication, publication digest, submission digest, exact correlation, expiry, permissions, and held delivery permit.
+The producer requires the same target home and host, exact correlation, and an outstanding admission or recovery permit.
+It writes epoch 1 and revision 1 with the observed owner and a new capability identifier.
+It stores one immutable receipt under the external control directory before it returns.
+A repeated request retains that receipt and its original bytes.
+A changed owner requires takeover, and a changed request conflicts.
+
+The result contains `id`, `issuanceReceiptId`, `authority`, `authorityBytes`, `authorityDigest`, `observation`, and `correlation`.
+`id` identifies the authority archive record.
+`readAuthorityBytes(authority)` checks the exact stored authority and returns its original UTF-8 text.
+The archive supports this lookup for initial, renewed, and transferred grants after their producer calls `writeAuthority`.
+The lookup writes no file and grants no permission to dispatch.
+Issuance does not settle the permit; composition retains it through engine delivery and durable acknowledgement.
+
+`readInitial(executionId)` returns the saved issuance record, or null if no issuance exists.
+Reconciliation uses this record after a crash before the database binds the grant.
+This read grants no authority to issue or dispatch under a changed owner.
+
+## Authority after cancellation
+
+`AuthorityPort.read` returns `canceled` from the durable cancellation intent.
+For a canceled execution, renewal and takeover require closed admission and issue only `execution.cancel`.
+A saved receipt with broader permissions cannot replay after cancellation.
+Takeover retains the closed barrier and original job.
+These operations do not change cancellation receipts, native stops, launch receipts, or deadlines.
+
+`AuthorityPort.commit` must recheck the cancellation intent under the execution lock.
+A canceled row accepts only cancellation authority and closed admission.
+The store must not enqueue admission when it commits that authority.
+An outage beyond the old grant expiry still requires current supervisor ownership and the normal renewal or takeover checks.

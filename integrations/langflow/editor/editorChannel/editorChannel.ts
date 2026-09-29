@@ -37,6 +37,7 @@ export function createEditorChannel(options: Options) {
 	if (!Number.isFinite(expiresAt)) throw new Error("The editor grant needs an expiry time.");
 	let revoked = false;
 	let ready = false;
+	let connected = false;
 	let receivedSequence = 0;
 	let sentSequence = 0;
 	const active = () => !revoked && options.now() < expiresAt;
@@ -46,12 +47,15 @@ export function createEditorChannel(options: Options) {
 		identity,
 		sequence: ++sentSequence,
 	});
-	const initialize = () => {
-		if (!active() || sentSequence !== 0) return;
+	const sendInitial = () => {
+		if (!active()) return;
 		options.send({ ...envelope(), type: "initialize", content: structuredClone(content) }, options.editorOrigin);
 	};
+	const initialize = () => {
+		if (sentSequence === 0) sendInitial();
+	};
 	const receive = (event: { origin: string; data: unknown }, fromCurrentFrame: boolean) => {
-		if (!active() || sentSequence === 0 || !fromCurrentFrame || event.origin !== options.editorOrigin) return false;
+		if (!active() || !fromCurrentFrame || event.origin !== options.editorOrigin) return false;
 		const parsed = EditorEventSchema.safeParse(event.data);
 		if (!parsed.success) return false;
 		const message = parsed.data;
@@ -61,6 +65,14 @@ export function createEditorChannel(options: Options) {
 			message.sequence <= receivedSequence
 		)
 			return false;
+		if (message.type === "connected") {
+			if (connected || ready) return false;
+			connected = true;
+			receivedSequence = message.sequence;
+			sendInitial();
+			return true;
+		}
+		if (sentSequence === 0) return false;
 		if (message.type === "ready") {
 			if (ready) return false;
 			ready = true;

@@ -2,7 +2,9 @@
 
 TRL-667 runs these fixtures in the existing pinned environment after source merge.
 The batch needs the matched backend patches for the external-wait definition.
-No fixture installs a dependency, starts a server, or calls a provider.
+The native request fixture uses one local HTTP server with synthetic responses.
+It closes the server and its thread after each case.
+No fixture installs a dependency or calls a provider.
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 "$LANGFLOW_PYTHON" -m pytest -q \
@@ -17,10 +19,16 @@ The fixtures export `catalog-frontend-templates.json` under that root.
 The export contains actual engine templates, including the complete component code.
 It contains synthetic configuration only.
 
-The graph cases exercise the actual Langflow graph and both new component classes.
+The graph cases exercise the actual Langflow graph and the catalog component classes.
 They check branch exclusion, original result identity, source order, empty text, and retained output references.
 The other cases refuse ambiguous answers, incomplete results, missing children, and source digest changes.
 The archive case checks source verification without Git metadata.
+The HTTP cases check exact request/response bytes, explicit credentials, proxy isolation, and one request after errors.
+They prove the client boundary only; the server handler is synthetic.
+The native completion case uses a private SQLite database and the actual engine migrations.
+It suspends a real graph, stores the synthetic completion through the public broker, and resumes the graph.
+It checks the exact saved result and cleared wait.
+The database lives under the batch pytest directory.
 
 These fixtures do not launch a native agent, create a human request, invoke Jev, or qualify a group or loop conversion.
 The converter owner retains the complete source-field round trip and private Review v71 proof.

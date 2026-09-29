@@ -29,8 +29,14 @@ test("stored executions retain their engine and archived data after document con
 test("the combined index pages and filters across engines", async () => {
 	const all = await h.db.transaction((tx) => list(h.ctx, tx, { flow: "review", limit: 501 }));
 	expect(all).toEqual([
-		{ id: h.view.id, engine: "langflow" },
-		{ id: h.legacy.id, engine: "legacy" },
+		{ id: h.view.id, engine: "langflow", flowId: h.view.flowId, status: h.view.status, pendingSubmission: false },
+		{
+			id: h.legacy.id,
+			engine: "legacy",
+			flowId: h.legacy.flowId,
+			status: h.legacy.state.status,
+			pendingSubmission: false,
+		},
 	]);
 	expect(await h.db.transaction((tx) => list(h.ctx, tx, { limit: 1, offset: 1 }))).toEqual([all[1]!]);
 	expect(await h.db.transaction((tx) => list(h.ctx, tx, { diffId: h.input.diffId! }))).toEqual([all[0]!]);

@@ -25,15 +25,17 @@ describe("human receipt", () => {
 	test("rejects stale revision without rebinding to the next occurrence", async () => {
 		const f = testFixture();
 		f.view.revision++;
-		await expect(async () => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).rejects.toMatchObject({
+		await expect(
+			Promise.resolve().then(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)),
+		).rejects.toMatchObject({
 			code: "FLOW_VERSION_CONFLICT",
 			data: { version: f.view.revision },
 		});
 	});
 	test("requires the exact action and occurrence", async () => {
 		const f = testFixture();
-		await expect(async () =>
-			createReceipt(f.ctx, f.view, f.checkpoint, { ...f.input, key: "next-human" }),
+		await expect(
+			Promise.resolve().then(() => createReceipt(f.ctx, f.view, f.checkpoint, { ...f.input, key: "next-human" })),
 		).rejects.toMatchObject({ code: "FLOW_VERSION_CONFLICT", data: { version: f.view.revision } });
 		f.view.occurrences[0]!.iterationPath = [{ loopNodeId: "outer", round: 99 }];
 		expect(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).toThrow("identity_conflict");
@@ -63,7 +65,9 @@ describe("human receipt", () => {
 			acceptedReceiptId: null,
 			confirmedAt: null,
 		});
-		await expect(async () => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).rejects.toMatchObject({
+		await expect(
+			Promise.resolve().then(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)),
+		).rejects.toMatchObject({
 			code: "FLOW_VERSION_CONFLICT",
 			data: { version: f.view.revision },
 		});

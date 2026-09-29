@@ -10,7 +10,10 @@ import { useFlowActionRequest } from "./useFlowActionRequest";
 
 async function fixture(send: (input: string) => Promise<string>) {
 	const queryClient = new QueryClient();
-	const app = { queryClient, orpc: { flowExecutions: { list: { key: () => ["runs"] } } } } as unknown as AppContext;
+	const app = {
+		queryClient,
+		orpc: { flowExecutions: { list: { key: () => ["runs"] } }, flowDocumentsV1: { key: () => ["flow-v1"] } },
+	} as unknown as AppContext;
 	let action: ReturnType<typeof useFlowActionRequest<string, string>>;
 	const Probe = ({ target }: { target: string }) => {
 		action = useFlowActionRequest([target], send);

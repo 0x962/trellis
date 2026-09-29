@@ -3,9 +3,9 @@ import { createHash } from "node:crypto";
 import { FlowExecutionViewV1Schema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { openTestDbFromArchive } from "../../db/testDb.ts";
-import { getView } from "../langflowDispatch/getView";
-import { httpFixture } from "./httpFixture.ts";
-import { migratedFixture } from "./migratedFixture.ts";
+import { getView } from "../langflowDispatch";
+import { httpFixture } from "./components/httpFixture";
+import { migratedFixture } from "./components/migratedFixture";
 
 let h: Awaited<ReturnType<typeof migratedFixture>>;
 beforeAll(async () => {

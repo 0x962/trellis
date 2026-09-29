@@ -7,11 +7,11 @@ import { flowExecutions, flows, projects, pullRequests, statuses, tickets } from
 import { ids, now } from "./fixture";
 
 export const migrationsDir = join(import.meta.dir, "../../../../../drizzle");
-export async function beforeDocuments() {
+export async function beforeDocuments(beforeIndex = 133) {
 	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8")) as {
 		entries: { idx: number; tag: string }[];
 	};
-	const entries = journal.entries.filter((entry) => entry.idx < 133);
+	const entries = journal.entries.filter((entry) => entry.idx < beforeIndex);
 	const directory = await mkdtemp(join(tmpdir(), "trellis-langflow-migration-"));
 	await mkdir(join(directory, "meta"));
 	await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));

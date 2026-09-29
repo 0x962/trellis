@@ -8,6 +8,9 @@ test("reads beyond 500 runs and propagates cancellation to every page", async ()
 	const records: FlowExecutionIdentityV1[] = Array.from({ length: 501 }, (_, index) => ({
 		id: `execution-${index}`,
 		engine: index % 2 === 0 ? "langflow" : "legacy",
+		flowId: "00000000000000000000000001",
+		status: "succeeded",
+		pendingSubmission: false,
 	}));
 	const client = {
 		flowDocumentsV1: {
