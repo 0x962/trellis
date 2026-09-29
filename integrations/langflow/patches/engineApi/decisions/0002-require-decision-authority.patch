@@ -1,0 +1,49 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/decisions.py b/src/backend/base/langflow/services/trellis_v1/decisions.py
+--- a/src/backend/base/langflow/services/trellis_v1/decisions.py
++++ b/src/backend/base/langflow/services/trellis_v1/decisions.py
+@@ -177,6 +177,7 @@
+         engine_job_id: UUID,
+         decision_bytes: bytes,
+         payload_digest: str,
++        authority_bytes: bytes,
+         fault: FaultHook | None = None,
+     ) -> dict[str, Any]:
+         if hashlib.sha256(decision_bytes).hexdigest() != payload_digest:
+@@ -188,6 +189,18 @@
+         await _call_fault(fault, "before_transaction")
+         async with self._open_session() as session:
+             job = (await session.exec(select(Job).where(Job.job_id == engine_job_id).with_for_update())).first()
++            from langflow.services.trellis_v1.engine_api import require_authority
++
++            binding = await require_authority(
++                session,
++                authority_bytes,
++                "decision.deliver",
++                execution_id=decision.wait.execution_id,
++                publication_id=decision.wait.publication_id,
++                engine_job_id=engine_job_id,
++            )
++            if decision.wait.engine_epoch > binding.engine_epoch:
++                raise DecisionConflictError("The decision wait exceeds the current engine epoch.")
+             existing = await session.get(TrellisDecisionAcceptance, decision.decision_id)
+             if existing is not None:
+                 self._verify_replay(existing, decision, decision_bytes, payload_digest)
+diff --git a/src/backend/base/langflow/services/background_execution/service.py b/src/backend/base/langflow/services/background_execution/service.py
+--- a/src/backend/base/langflow/services/background_execution/service.py
++++ b/src/backend/base/langflow/services/background_execution/service.py
+@@ -4,6 +4,7 @@
+         engine_job_id: UUID,
+         decision_bytes: bytes,
+         payload_digest: str,
++        authority_bytes: bytes,
+     ) -> dict[str, Any]:
+         """Commit and queue one exact human decision."""
+         from langflow.services.trellis_v1.decisions import DecisionAcceptanceLedger
+@@ -12,6 +13,7 @@
+             engine_job_id=engine_job_id,
+             decision_bytes=decision_bytes,
+             payload_digest=payload_digest,
++            authority_bytes=authority_bytes,
+         )
+         await self._consume_trellis_decision_obligation(receipt)
+         return receipt

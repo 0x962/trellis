@@ -2,24 +2,17 @@ import { FailureState } from "@trellis/ui";
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createEditorChannel } from "../../../../../../integrations/langflow/editor/editorChannel";
 import { editorOrigin } from "../../../../../../integrations/langflow/editor/editorOrigin";
-import type {
-	EditorContent,
-	EditorFocus,
-	EditorIdentity,
-} from "../../../../../../integrations/langflow/editor/protocol";
+import type { EditorContent, EditorFocus } from "../../../../../../integrations/langflow/editor/protocol";
+import type { EditorSession } from "../../../../../../integrations/langflow/editor/session";
 
 export type LangflowEditorHandle = {
 	selectIssue: (focus: EditorFocus) => void;
 	restoreFocus: () => void;
 };
 
-export type LangflowEditorSession = {
-	channel: string;
-	identity: EditorIdentity;
-	content: EditorContent;
-	editorOrigin: string;
-	expiresAt: string;
-};
+export type LangflowEditorSession = EditorSession;
+
+export type EditorAccessEnd = "revoked" | "expired" | "reloaded";
 
 export type LangflowEditorProps = {
 	ref?: Ref<LangflowEditorHandle>;
@@ -27,9 +20,13 @@ export type LangflowEditorProps = {
 	grantActive: boolean;
 	draftChanged: (content: EditorContent) => void;
 	selectionChanged: (focus: EditorFocus | null) => void;
+	onAccessEnded: (reason: EditorAccessEnd) => void;
 };
 
 export function LangflowEditor(props: LangflowEditorProps) {
+	useEffect(() => {
+		if (!props.grantActive) props.onAccessEnded("revoked");
+	}, [props.grantActive, props.onAccessEnded]);
 	if (!props.grantActive) {
 		return <FailureState title="Editor access ended" description="Your flow needs a new editor session." />;
 	}
@@ -37,12 +34,12 @@ export function LangflowEditor(props: LangflowEditorProps) {
 	return <EditorFrame key={JSON.stringify([channel, identity, origin, expiresAt])} {...props} />;
 }
 
-function EditorFrame({ ref, session, draftChanged, selectionChanged }: LangflowEditorProps) {
+function EditorFrame({ ref, session, draftChanged, selectionChanged, onAccessEnded }: LangflowEditorProps) {
 	const [initial] = useState(() => structuredClone(session));
 	if (!Number.isFinite(Date.parse(initial.expiresAt))) throw new Error("The editor grant needs an expiry time.");
 	const frame = useRef<HTMLIFrameElement>(null);
 	const channel = useRef<ReturnType<typeof createEditorChannel> | null>(null);
-	const callbacks = useRef({ draftChanged, selectionChanged });
+	const callbacks = useRef({ draftChanged, selectionChanged, onAccessEnded });
 	const focus = useRef<EditorFocus | null>(null);
 	const loaded = useRef(false);
 	const [state, setState] = useState<"pending" | "ready" | "expired" | "reloaded">(
@@ -50,8 +47,11 @@ function EditorFrame({ ref, session, draftChanged, selectionChanged }: LangflowE
 	);
 	const origin = editorOrigin(initial.editorOrigin, window.location.origin);
 	useEffect(() => {
-		callbacks.current = { draftChanged, selectionChanged };
-	}, [draftChanged, selectionChanged]);
+		callbacks.current = { draftChanged, selectionChanged, onAccessEnded };
+	}, [draftChanged, selectionChanged, onAccessEnded]);
+	useEffect(() => {
+		if (state === "expired" || state === "reloaded") callbacks.current.onAccessEnded(state);
+	}, [state]);
 	useImperativeHandle(
 		ref,
 		() => ({
@@ -113,7 +113,7 @@ function EditorFrame({ ref, session, draftChanged, selectionChanged }: LangflowE
 			<iframe
 				ref={frame}
 				title="Langflow graph editor"
-				src={`${origin}/flow/${encodeURIComponent(initial.identity.flowId)}/`}
+				src={`${origin}/flow/${encodeURIComponent(initial.identity.flowId)}/?trellisChannel=${encodeURIComponent(initial.channel)}`}
 				sandbox="allow-scripts allow-same-origin"
 				referrerPolicy="no-referrer"
 				className={`min-h-0 w-full min-w-0 flex-1 border-0 ${state === "pending" ? "invisible" : ""}`}

@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq, or } from "drizzle-orm";
 import { ulid } from "ulid";
+import { bindLaunchSnapshot } from "../../../db/queries/langflowExecution";
 import { assertAuthority, lockExecution } from "../../../db/queries/langflowExecution/executions";
 import { reserveNative } from "../../../db/queries/langflowExecution/native";
 import { langflowNativeHandles } from "../../../db/tables/langflowExecution";
@@ -11,8 +12,10 @@ import {
 	protocolDigest,
 	readProtocolBytes,
 } from "../../../langflowContracts";
-import { reserve } from "../../agentRuns/reserve";
+import { reserve } from "../../agentRuns";
+import { assertExecutionActive } from "../../langflowStops/assertExecutionActive";
 import { projectLaunchConfig } from "../../projectLaunchConfig";
+import { writeLaunchSnapshot } from "../launchSnapshot";
 import type { NativeReservationCtx } from "../types";
 
 type NewReservation = Extract<Awaited<ReturnType<typeof reserve>>, { replay: false }>;
@@ -34,9 +37,9 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 			and(
 				eq(langflowNativeHandles.executionId, request.executionId),
 				or(
-					eq(langflowNativeHandles.semanticKey, semanticKey),
+					eq(langflowNativeHandles.semanticDigest, protocolDigest(semanticKey)),
 					eq(langflowNativeHandles.requestId, request.requestId),
-					eq(langflowNativeHandles.occurrenceKey, request.occurrenceKey),
+					eq(langflowNativeHandles.occurrenceDigest, protocolDigest(request.occurrenceKey)),
 				),
 			),
 		);
@@ -44,6 +47,7 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 		if (existing.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
 		return { replay: true as const, reservation: existing, launch: null };
 	}
+	await assertExecutionActive(ctx, tx, request);
 	if (
 		execution.cancelIntent ||
 		execution.admission.state !== "open" ||
@@ -56,6 +60,15 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 	if (approved.requestDigest !== protocolDigest(input.requestBytes) || approved.specHash !== request.specHash)
 		throw new Error("native_spec_conflict");
 	const config = await projectLaunchConfig(tx, { projectId: execution.projectId, harness: approved.harness });
+	const permit = ctx.dispatchGate.acquire({
+		effectId: `native-reservation:${request.executionId}:${request.requestId}`,
+		kind: "native-dispatch",
+		executionId: request.executionId,
+		attemptId: null,
+		jobId: request.engineJobId,
+		requestId: request.requestId,
+		payloadDigest: protocolDigest(input.requestBytes),
+	});
 	// reserve returns a new attempt when its input omits requestId.
 	const launch = (await reserve(ctx, tx, { ticket: execution.ticketId, accountId: approved.accountId }, [], {
 		config,
@@ -78,5 +91,21 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 		authority: ctx.nativeAuthority,
 		now: ctx.now,
 	});
-	return { replay: false as const, reservation, launch };
+	const digest = await writeLaunchSnapshot(
+		ctx.home,
+		launch.attempt.id,
+		JSON.stringify({
+			executionId: request.executionId,
+			stepId: handle.stepId,
+			requestDigest: reservation.requestDigest,
+			launch,
+		}),
+	);
+	await bindLaunchSnapshot(tx, {
+		executionId: request.executionId,
+		stepId: handle.stepId,
+		attemptId: handle.attemptId,
+		digest,
+	});
+	return { replay: false as const, reservation: { ...reservation, launchSnapshotDigest: digest }, launch, permit };
 }

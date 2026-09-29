@@ -1,4 +1,4 @@
-import { type AgentRun, type SessionUpdatesGetInput, hasAssignedProcess } from "@trellis/api";
+import { type AgentRun, hasAssignedProcess, type SessionUpdatesGetInput } from "@trellis/api";
 import type { LinkPress, SessionStatusProcessState } from "@trellis/ui";
 import type { Orpc } from "../../../../../lib/orpc";
 

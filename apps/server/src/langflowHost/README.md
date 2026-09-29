@@ -79,3 +79,38 @@ biome check apps/server/src/langflowHost
 The fixtures use real private files and kernel locks with an in-memory driver and authority store.
 They cover competing supervisors, restart data, stale observations, health loss, expiry, revocation, and receipt replay.
 They do not establish OCI isolation, durable database CAS, host-crash recovery, installed behavior, or full ENG-F17 and ENG-F21 acceptance.
+
+## Persistent host control
+
+`LangflowHostControl.create({home, evidence})` explicitly initializes authority for a home.
+It stores independent UUIDs for `hostId` and `dataHomeId` beside the canonical home.
+The directory is `${realpath(home)}.langflow-authority`, with `identity.json` and a `dispatch` subdirectory.
+These files stay outside the home and all exported or restored roots.
+The first durable state is blocked for initialization.
+Trusted reconciliation must establish package, stores, ownership, native attempts, and stops before dispatch opens.
+
+`LangflowHostControl.open({home, evidence})` returns `{identity, gate}` with the saved identities and durable `DispatchGate`.
+It refuses missing or invalid state and never initializes a replacement during restart.
+Composition stores this control in its trusted context and supplies the same target identity to the supervisor.
+A move to another home requires explicit identity adoption and reconciliation before any effects.
+
+`LangflowHostControl.recovery(home)` reads the durable gate for the global recovery query.
+An unconfigured home returns `{state: "unavailable", generation: null}`.
+A configured home returns `{state: "open" | "blocked", generation: number}`.
+Corrupt or incomplete control files fail the read; the query must never report them as open.
+The open state is advisory; each mutation still acquires a permit before its first effect.
+
+## Original authority bytes
+
+`ExecutionAuthority` serializes a newly issued grant once in `AuthorityCommit.authorityBytes`.
+`AuthorityPort.commit` must save this UTF-8 text atomically with its receipt and ownership transition.
+`AuthorityPort.readReceipt` must return the original text on every later read.
+`readIssuedAuthority(commit)` checks its parsed grant against the receipt and returns the original bytes and digest.
+The HTTP client must send these bytes unchanged to the engine control and domain endpoints.
+An old record without retained bytes requires reconciliation; JSONB does not establish the original encoding.
+
+`DispatchReceiptArchive.writeAuthority({authorityBytes, issuanceReceiptId})` retains the original bytes outside restored data.
+It returns an immutable archive identifier with the bytes, digest, parsed authority, and issuing receipt identifier.
+The trusted producer must retain this archive identifier with its control receipt before it sends the grant.
+`readAuthority(id)` returns the original bytes after restart.
+The archive checks the target home and host, but the engine must still check current ownership, permissions, expiry, and revocation.

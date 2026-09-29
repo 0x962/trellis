@@ -59,7 +59,13 @@ export class ExecutionAuthority {
 				expiresAt: input.expiresAt,
 			},
 		});
-		return this.store.commit({ requestBytes, receipt, observation, revocation: null });
+		return this.store.commit({
+			requestBytes,
+			authorityBytes: JSON.stringify(receipt.authority),
+			receipt,
+			observation,
+			revocation: null,
+		});
 	}
 
 	async takeover(observation: LiveOwnership, input: TakeoverInput) {
@@ -138,6 +144,12 @@ export class ExecutionAuthority {
 							},
 						},
 		});
-		return this.store.commit({ requestBytes, receipt, observation, revocation });
+		return this.store.commit({
+			requestBytes,
+			authorityBytes: JSON.stringify(receipt.authority),
+			receipt,
+			observation,
+			revocation,
+		});
 	}
 }
