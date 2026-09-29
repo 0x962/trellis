@@ -23,7 +23,7 @@ import { sessionSlug, temporarySessionName, uniqueDirectoryName } from "./sessio
 export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start: typeof startNative = startNative) => {
 	const typed = input.name === undefined ? null : input.name.trim();
 	if (typed === "") throw invalidInput("name", "Enter a name.");
-	const files = await prepareFiles(ctx, input.files);
+	const files = await prepareFiles(input.files);
 	const fingerprint = createHash("sha256")
 		.update(
 			JSON.stringify({

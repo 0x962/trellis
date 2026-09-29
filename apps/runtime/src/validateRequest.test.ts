@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
+import { MAX_TERMINAL_DIMENSION, RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import { validateRequest } from "./validateRequest";
 
 const request = (params: unknown) => ({
@@ -32,4 +32,62 @@ test("accepts a full large turn result", () => {
 	};
 	expect(validateRequest(value) === value).toBe(true);
 	expect(() => validateRequest({ ...value, params: { ...value.params, result: 12 } })).toThrow("must be a string");
+});
+
+test("accepts complete control values above the former byte ceilings", () => {
+	const token = `token-${"文".repeat(1024)}`;
+	const input = Buffer.alloc(1024 * 1024 + 1, 120).toString("base64");
+	const values = [
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "registerNativeDelivery",
+			params: { id: "attempt", token, messageId: "message", promptDigest: "a".repeat(64) },
+		},
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "observe",
+			params: { id: "attempt", token, event: { kind: "idle" } },
+		},
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "turn",
+			params: { id: "attempt", token, event: "Stop" },
+		},
+		{
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method: "input",
+			params: { id: "attempt", data: input, userInput: true },
+		},
+	];
+
+	for (const value of values) expect(validateRequest(value) === value).toBe(true);
+});
+
+test("accepts terminal dimensions through the PTY encoding range", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "resize",
+		params: { id: "attempt", cols: 1001, rows: MAX_TERMINAL_DIMENSION },
+	};
+
+	expect(validateRequest(value) === value).toBe(true);
+	for (const dimension of [0, 1.5, MAX_TERMINAL_DIMENSION + 1])
+		expect(() => validateRequest({ ...value, params: { ...value.params, cols: dimension } })).toThrow(
+			`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`,
+		);
+});
+
+test("accepts a queued delivery", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "queueInput",
+		params: { id: "attempt", messageId: "status-request", data: "c3RhdHVz" },
+	};
+	expect(validateRequest(value) === value).toBe(true);
 });

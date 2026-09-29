@@ -16,7 +16,7 @@ export const attachments = {
 		.input(AttachmentListInputSchema)
 		.output(z.array(AttachmentSchema)),
 	upload: base
-		.errors(pickErrors(["PAYLOAD_TOO_LARGE", "PROJECT_ARCHIVED"]))
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({
 			method: "POST",
 			path: "/tickets/{ticket}/attachments",

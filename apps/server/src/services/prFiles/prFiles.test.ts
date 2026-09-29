@@ -25,7 +25,7 @@ const now = new Date("2026-09-20T12:00:00.000Z");
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const ctx = () => ({ actor, home, maxUploadBytes: 1024, now: () => now, newTx: inTx }) as unknown as IoCtx & PrepareCtx;
+const ctx = () => ({ actor, home, now: () => now, newTx: inTx }) as unknown as IoCtx & PrepareCtx;
 
 beforeAll(async () => {
 	home = await mkdtemp(join(tmpdir(), "trellis-pr-files-"));
@@ -112,11 +112,14 @@ test("stores an animated image with its media type", async () => {
 	expect(existsSync(blobPath(home, stored.sha256))).toBe(true);
 });
 
-test("refuses a file over the upload cap", async () => {
+test("stores valid bytes above the former configured limit", async () => {
+	const fileId = ulid();
 	const file = new File(["x".repeat(2048)], "big.png", { type: "image/png" });
-	await expect(prepareUpload(ctx(), { id: pullRequestId, fileId: ulid(), file })).rejects.toMatchObject({
-		code: "PAYLOAD_TOO_LARGE",
-	});
+	const prepared = await prepareUpload(ctx(), { id: pullRequestId, fileId, file });
+	const stored = await inTx((tx) => upload(ctx(), tx, prepared));
+
+	expect(stored).toMatchObject({ id: fileId, size: 2048 });
+	expect(existsSync(blobPath(home, stored.sha256))).toBe(true);
 });
 
 test("answers not found for an unknown file", async () => {

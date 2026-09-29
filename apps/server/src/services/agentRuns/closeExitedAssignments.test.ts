@@ -17,7 +17,6 @@ beforeAll(async () => {
 		home: "/nowhere",
 		actor: { kind: "human", name: "qa" },
 		session: null,
-		maxUploadBytes: 1024,
 		version: "test",
 		apiVersion: "1",
 		bootId: ulid(),

@@ -38,9 +38,16 @@ export const prepareResume = (
 	input: Input,
 	start: typeof startNative = startNative,
 	switchRunning = false,
-) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning));
+	recover: typeof recoverPreviousAttempt = recoverPreviousAttempt,
+) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning, recover));
 
-async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, switchRunning: boolean) {
+async function resume(
+	ctx: ResumeCtx,
+	input: Input,
+	start: typeof startNative,
+	switchRunning: boolean,
+	recover: typeof recoverPreviousAttempt,
+) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (input.requireAssigned && run.closedAt !== null)
 		throw invalidInput("id", "This assignment closed before the message could resume it.");
@@ -70,7 +77,7 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 			"This assignment has another attempt. Read its current session before you resume it.",
 		);
 	const host = nativeHost(ctx.home);
-	let previous = await recoverPreviousAttempt(ctx, input.expectedTerminalId);
+	let previous = await recover(ctx, input.expectedTerminalId);
 	if (previous.status === "running" && previous.controllable && !switchRunning) return { id: run.id };
 	if (previous.status !== "exited" && !switchRunning)
 		throw invalidInput("id", "Trellis could not recover this agent. Try Resume again.");

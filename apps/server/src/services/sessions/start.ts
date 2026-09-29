@@ -13,6 +13,7 @@ import { reserveAttempt } from "../assignments/attempts.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
+import { failOutstandingSessionUpdateRequestForRun } from "../sessionUpdates";
 import type { IoCtx } from "../support.ts";
 import { archivedSessionRefusal } from "./archived.ts";
 import { prepareSessionRepository } from "./directory.ts";
@@ -81,6 +82,11 @@ export const prepareStart = async (
 			session_id = ${resume ? run.sessionId : session.harness.preset === "custom" ? randomUUID() : null}, updated_at = ${ctx.now()}
 			WHERE id = ${run.id} RETURNING ${columns}`,
 			);
+			if (run.terminalId !== null)
+				await failOutstandingSessionUpdateRequestForRun(ctx.core, tx, {
+					runId: run.id,
+					error: "The agent restarted before it saved the status update.",
+				});
 			return { run: updated!, config: selected.config, attempt };
 		});
 		launchSession(

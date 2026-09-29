@@ -23,7 +23,6 @@ export type ServiceCtx = {
 	actor: ActorRef;
 	session: string | null;
 	home: string;
-	maxUploadBytes: number;
 	version: string;
 	apiVersion: string;
 	bootId: string;
