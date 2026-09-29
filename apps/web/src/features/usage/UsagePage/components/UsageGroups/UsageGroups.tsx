@@ -2,6 +2,7 @@ import { ArrowSquareOut } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
 import { IconButton, ProviderIcon, RankedBars, SectionHeader, Tooltip } from "@trellis/ui";
+import { useMemo } from "react";
 import { formatMetric, harnessProvider, modelProvider, rowTone } from "../../../formatUsage";
 
 export type UsageGroupsProps = {
@@ -60,12 +61,11 @@ function rowIcon(group: UsageGroupBy, row: UsageGroupRow) {
 // row is the selected slice that the chart and the session list follow.
 export function UsageGroups({ group, rows, metric, total, days, selectedRow, onSelectRow }: UsageGroupsProps) {
 	const label = group === "kind" ? "agent kind" : group;
-	return (
-		<section aria-label="Breakdown" className="flex flex-col gap-3">
-			<SectionHeader title={`Breakdown by ${label}`} count={rows.length} />
-			<RankedBars
-				label={`By ${label}`}
-				rows={rows.map((row, rank) => ({
+	const rankedRows = useMemo(
+		() =>
+			rows.map((row, rank) => {
+				const valuesByDay = new Map(row.days.map((slice) => [slice.day, slice[metric]]));
+				return {
 					key: row.key,
 					label: row.label,
 					icon: rowIcon(group, row),
@@ -74,12 +74,16 @@ export function UsageGroups({ group, rows, metric, total, days, selectedRow, onS
 					valueLabel: `${row.approximate && metric === "usd" ? "~" : ""}${formatMetric(metric, row[metric])}`,
 					share: total > 0 ? row[metric] / total : 0,
 					tone: rowTone(row, rank, group),
-					spark: days.map((day) => row.days.find((slice) => slice.day === day)?.[metric] ?? 0),
+					spark: days.map((day) => valuesByDay.get(day) ?? 0),
 					action: <RowLink row={row} />,
-				}))}
-				selected={selectedRow}
-				onSelect={onSelectRow}
-			/>
+				};
+			}),
+		[days, group, metric, rows, total],
+	);
+	return (
+		<section aria-label="Breakdown" className="flex flex-col gap-3">
+			<SectionHeader title={`Breakdown by ${label}`} count={rows.length} />
+			<RankedBars label={`By ${label}`} rows={rankedRows} selected={selectedRow} onSelect={onSelectRow} />
 		</section>
 	);
 }

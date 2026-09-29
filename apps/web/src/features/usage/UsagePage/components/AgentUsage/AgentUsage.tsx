@@ -11,6 +11,7 @@ import {
 	Skeleton,
 	UsageChart,
 } from "@trellis/ui";
+import { useMemo } from "react";
 import { formatDayLabel, formatMetric, localDayKey } from "../../../formatUsage";
 import { useUsageReport } from "../../hooks/useUsageReport";
 import { UsageAccounts } from "../UsageAccounts";
@@ -35,7 +36,7 @@ const groupOptions = [
 	{ value: "harness", label: "Harness" },
 ] as const;
 
-const filterValue = (value: string) => (value.length > 22 ? `${value.slice(0, 22)}…` : value);
+const truncateFilterValue = (value: string) => (value.length > 22 ? `${value.slice(0, 22)}…` : value);
 
 export const groupLabel: Record<UsageGroupBy, string> = {
 	ticket: "ticket",
@@ -59,11 +60,29 @@ export function AgentUsage() {
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 
 	const ranking = report.data?.rankings[metric];
-	const rows = ranking?.groups[group] ?? [];
-	const row = selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null);
-	const chartDays = report.data?.buckets.map((bucket) => bucket.day) ?? [];
-	const dayTotals = report.data?.buckets.map((bucket) => bucket[metric]) ?? [];
-	const series = usageChartSeries(chartDays, dayTotals, rows, row, metric, group);
+	const rows = useMemo(() => ranking?.groups[group] ?? [], [group, ranking]);
+	const selectedGroupRow = useMemo(
+		() => (selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null)),
+		[rows, selectedRow],
+	);
+	const buckets = report.data?.buckets;
+	const chartDays = useMemo(() => buckets?.map((bucket) => bucket.day) ?? [], [buckets]);
+	const dayTotals = useMemo(() => buckets?.map((bucket) => bucket[metric]) ?? [], [buckets, metric]);
+	const series = useMemo(
+		() => usageChartSeries(chartDays, dayTotals, rows, selectedGroupRow, metric, group),
+		[chartDays, dayTotals, group, metric, rows, selectedGroupRow],
+	);
+	const sessions = ranking?.sessions;
+	const filteredSessions = useMemo(
+		() =>
+			(sessions ?? []).filter(
+				(session) =>
+					(selectedGroupRow === null || session.groupKeys[group] === selectedGroupRow.key) &&
+					(selectedDay === null ||
+						(localDayKey(session.firstAt) <= selectedDay && selectedDay <= localDayKey(session.lastAt))),
+			),
+		[group, selectedDay, selectedGroupRow, sessions],
+	);
 	const metricLabel = metricOptions.find((option) => option.value === metric)!.label;
 	const selectedGroupLabel = groupOptions.find((option) => option.value === group)!.label;
 
@@ -76,14 +95,14 @@ export function AgentUsage() {
 				</div>
 				<FilterBar
 					filters={
-						(row !== null || selectedDay !== null) && (
+						(selectedGroupRow !== null || selectedDay !== null) && (
 							<div className="flex flex-wrap items-center gap-2">
-								{row !== null && (
+								{selectedGroupRow !== null && (
 									<Chip
 										label={selectedGroupLabel}
-										value={filterValue(row.label)}
+										value={truncateFilterValue(selectedGroupRow.label)}
 										onRemove={() => setSearch({ row: undefined })}
-										removeLabel={`Remove ${selectedGroupLabel.toLowerCase()} filter for ${row.label}`}
+										removeLabel={`Remove ${selectedGroupLabel.toLowerCase()} filter for ${selectedGroupRow.label}`}
 									/>
 								)}
 								{selectedDay !== null && (
@@ -116,7 +135,7 @@ export function AgentUsage() {
 				<div role="status" aria-label="Load usage" className="flex flex-col gap-4">
 					<span className="sr-only">Load usage</span>
 					<Skeleton height="h-24" />
-					<div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,0.75fr)]">
+					<div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(calc(var(--spacing)*76),0.75fr)]">
 						<Skeleton height="h-64" />
 						<Skeleton height="h-64" />
 					</div>
@@ -144,14 +163,14 @@ export function AgentUsage() {
 			) : (
 				<>
 					<UsageTotals totals={report.data.totals} pricingTableUpdated={report.data.pricingTableUpdated} />
-					<div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,0.75fr)]">
+					<div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(calc(var(--spacing)*76),0.75fr)]">
 						<section aria-label="Per day" className="flex min-w-0 flex-col gap-3">
 							<SectionHeader
-								title={row ? `${row.label} per day` : `${metricLabel} per day`}
-								count={formatMetric(metric, row ? row[metric] : report.data.totals[metric])}
+								title={selectedGroupRow ? `${selectedGroupRow.label} per day` : `${metricLabel} per day`}
+								count={formatMetric(metric, selectedGroupRow ? selectedGroupRow[metric] : report.data.totals[metric])}
 							/>
 							<UsageChart
-								label={row ? `${row.label} per day` : `${metricLabel} per day`}
+								label={selectedGroupRow ? `${selectedGroupRow.label} per day` : `${metricLabel} per day`}
 								days={chartDays}
 								series={series}
 								format={(value) => formatMetric(metric, value)}
@@ -172,15 +191,10 @@ export function AgentUsage() {
 						/>
 					</div>
 					<UsageSessions
-						sessions={(ranking?.sessions ?? []).filter(
-							(session) =>
-								(row === null || session.groupKeys[group] === row.key) &&
-								(selectedDay === null ||
-									(localDayKey(session.firstAt) <= selectedDay && selectedDay <= localDayKey(session.lastAt))),
-						)}
+						sessions={filteredSessions}
 						metric={metric}
 						groupLabel={groupLabel[group]}
-						filtered={row?.label ?? null}
+						filtered={selectedGroupRow?.label ?? null}
 					/>
 				</>
 			)}
