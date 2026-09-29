@@ -10,6 +10,8 @@ export function containerCreateArgs(input: {
 	return [
 		"container",
 		"create",
+		"--pull",
+		"never",
 		"--name",
 		instanceNames.container,
 		"--network",

@@ -7,7 +7,9 @@ Both operations use local files only.
 `loadCandidatePackage(root, expectedPackageId): Promise<CandidatePackage>` is the read-only composition interface.
 The barrel `integrations/langflow/release/index.ts` exports its function and type.
 It returns `enginePackageDigest`, `componentManifestHash`, `targetArchitecture`, `engine`, `editor`, and `manifestPath`.
-`engine` contains `layoutDirectory`, `image`, and `imageDigest`.
+`engine` contains `layoutDirectory`, `image`, `imageDigest`, and `imageConfigDigest`.
+`imageDigest` identifies the OCI manifest; `imageConfigDigest` identifies its verified config blob.
+The runtime uses the config digest for a local Docker image and retains both identities in its receipt.
 `editor.rootDirectory` names the verified editor assets.
 Its qualification stays `candidate`; the loader never admits a runtime.
 
