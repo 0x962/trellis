@@ -64,13 +64,26 @@ test("an upgrade preserves an existing session and its provider conversation", a
 	const sessionQuery = sql`
 		SELECT id, name, directory, harness, run_id, created_at, updated_at FROM sessions WHERE id = 'session'
 	`;
-	const runQuery = sql`SELECT * FROM agent_runs WHERE id = 'run'`;
+	const runColumns = await db.execute<{ column_name: string }>(sql`
+		SELECT column_name FROM information_schema.columns
+		WHERE table_schema = 'public' AND table_name = 'agent_runs'
+		ORDER BY ordinal_position
+	`);
+	expect(runColumns.rows.length).toBeGreaterThan(0);
+	const projection = sql.join(
+		runColumns.rows.map(({ column_name }) => sql.identifier(column_name)),
+		sql`, `,
+	);
+	const runQuery = sql`SELECT ${projection} FROM agent_runs WHERE id = 'run'`;
 	const originalSession = await db.execute(sessionQuery);
 	const originalRun = await db.execute(runQuery);
 
 	expect(await migrate(db)).toBe(journal.entries.length - earlierEntries.length);
 	expect((await db.execute(sessionQuery)).rows).toEqual(originalSession.rows);
 	expect((await db.execute(runQuery)).rows).toEqual(originalRun.rows);
+	expect((await db.execute(sql`SELECT activity_at, pinned_at FROM agent_runs WHERE id = 'run'`)).rows).toEqual([
+		{ activity_at: "2026-09-24 12:00:00+00", pinned_at: null },
+	]);
 	expect((await db.execute(sql`SELECT archived_at FROM sessions WHERE id = 'session'`)).rows).toEqual([
 		{ archived_at: null },
 	]);
