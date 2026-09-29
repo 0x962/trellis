@@ -10,7 +10,7 @@ import {
 	saveSessionObserverSummary,
 	setEnabled,
 } from "../sessionObservers/index.ts";
-import { at, context, seed } from "../sessionObservers/testFixture.ts";
+import { at, context, seed } from "../sessionObservers/testFixture";
 import type { IoCtx } from "../support.ts";
 import { listUsageRuns } from "../usage/queries.ts";
 import { ensureSessionObserverRun } from "./ensureSessionObserverRun.ts";

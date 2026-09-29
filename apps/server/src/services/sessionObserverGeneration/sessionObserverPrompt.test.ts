@@ -49,7 +49,7 @@ test("activity time does not select a trigger", () => {
 	const candidate = {
 		runId: "01M3Q1029QFFHAX2H0YZXYD8KS",
 		lastConsumedCursor: null,
-		hasInitialUpdate: true,
+		hasObserverMessages: true,
 		activityThreshold: 20,
 	};
 	expect(
@@ -69,7 +69,7 @@ test("complete tools reach the threshold when message coverage is unavailable", 
 	const candidate = {
 		runId: "01M3Q1029QFFHAX2H0YZXYD8KS",
 		lastConsumedCursor: null,
-		hasInitialUpdate: true,
+		hasObserverMessages: true,
 		activityThreshold: 20,
 	};
 	expect(
@@ -86,7 +86,7 @@ test("initial, completion, and human input do not wait for the threshold", () =>
 	const candidate = {
 		runId: "01M3Q1029QFFHAX2H0YZXYD8KS",
 		lastConsumedCursor: null,
-		hasInitialUpdate: false,
+		hasObserverMessages: false,
 		activityThreshold: 20,
 	};
 	expect(
@@ -94,13 +94,13 @@ test("initial, completion, and human input do not wait for the threshold", () =>
 	).toBe("initial");
 	expect(
 		sessionObserverTrigger(
-			{ ...candidate, hasInitialUpdate: true },
+			{ ...candidate, hasObserverMessages: true },
 			{ itemCount: 0, completed: true, needsInput: false, unavailable: false },
 		),
 	).toBe("completed");
 	expect(
 		sessionObserverTrigger(
-			{ ...candidate, hasInitialUpdate: true },
+			{ ...candidate, hasObserverMessages: true },
 			{ itemCount: 0, completed: false, needsInput: true, unavailable: false },
 		),
 	).toBe("needs-input");

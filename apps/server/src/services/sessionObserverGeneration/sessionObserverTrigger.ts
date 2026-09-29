@@ -1,11 +1,10 @@
+import type { SessionObserverCandidate } from "../sessionObservers";
 import type { SessionObserverTrigger } from "./sessionObserverPrompt.ts";
 
-export type SessionObserverGenerationCandidate = {
-	runId: string;
-	lastConsumedCursor: string | null;
-	hasInitialUpdate: boolean;
-	activityThreshold: number;
-};
+export type SessionObserverGenerationCandidate = Pick<
+	SessionObserverCandidate,
+	"runId" | "lastConsumedCursor" | "hasObserverMessages" | "activityThreshold"
+>;
 
 export type SessionObserverActivityState = {
 	itemCount: number;
@@ -20,7 +19,7 @@ export const sessionObserverTrigger = (
 ): SessionObserverTrigger | null => {
 	if (activity.needsInput) return "needs-input";
 	if (activity.completed) return "completed";
-	if (!candidate.hasInitialUpdate) return "initial";
+	if (!candidate.hasObserverMessages) return "initial";
 	if (activity.itemCount >= candidate.activityThreshold) return "threshold";
 	return null;
 };

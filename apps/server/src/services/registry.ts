@@ -71,7 +71,7 @@ import {
 	recoverSessionObserverGeneration,
 	setSessionObserverEnabled,
 } from "./sessionObserverGeneration";
-import { get as getSessionObserver, history as getSessionObserverHistory } from "./sessionObservers";
+import { sessionObserverServices } from "./sessionObservers/registry";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
@@ -91,8 +91,6 @@ import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 import * as waves from "./waves/waves.ts";
-
-export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
@@ -115,8 +113,7 @@ export const services = {
 	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
-	"sessionObservers.get": core("read", getSessionObserver),
-	"sessionObservers.history": core("read", getSessionObserverHistory),
+	...sessionObserverServices,
 	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
 	"sessionObservers.dispatch": prepared(
@@ -312,3 +309,4 @@ export const services = {
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;
+export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";

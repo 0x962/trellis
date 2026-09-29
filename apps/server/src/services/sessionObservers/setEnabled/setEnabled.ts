@@ -6,34 +6,17 @@ import {
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import type { ServiceCtx } from "../../context.ts";
-import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
-import { resolveSessionUpdateOwner } from "../sessionUpdates/owner.ts";
-import { emptySessionObserver, readSessionObserver, sessionObserverByRun } from "./queries.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { fail } from "../../../errors.ts";
+import { resolveSessionUpdateOwner } from "../../sessionUpdates";
+import { disableSessionObserverForDeletion } from "../disableSessionObserverForDeletion";
+import { emptySessionObserver, readSessionObserver, sessionObserverByRun } from "../queries";
 
 export type SetSessionObserverEnabledResult = {
 	observer: SessionObserver;
 	cancelGeneration: boolean;
 	requestInitialGeneration: boolean;
-};
-
-export type DisableSessionObserverForDeletionResult = {
-	observerRunId: string | null;
-	cancelGeneration: boolean;
-};
-
-export const disableSessionObserverForDeletion = async (
-	tx: Tx,
-	input: { runId: string; now: Date },
-): Promise<DisableSessionObserverForDeletionResult> => {
-	const observer = await sessionObserverByRun(tx, { runId: input.runId, lock: true });
-	if (observer === null) return { observerRunId: null, cancelGeneration: false };
-	const cancelGeneration = observer.enabled && observer.generationState === "generating";
-	await tx.execute(sql`UPDATE session_observers SET enabled=false, generation_state='idle',
-		generation_claim_id=NULL, generation_cursor=NULL, updated_at=${input.now}
-		WHERE run_id=${input.runId}`);
-	return { observerRunId: observer.observerRunId, cancelGeneration };
 };
 
 export const setEnabled = async (
@@ -42,7 +25,7 @@ export const setEnabled = async (
 	value: SessionObserverSetEnabledInput,
 ): Promise<SetSessionObserverEnabledResult> => {
 	const input = SessionObserverSetEnabledInputSchema.parse(value);
-	if (ctx.actor?.kind !== "human") throw invalidInput("actor", "Only a person can change the session observer.");
+	if (ctx.actor?.kind !== "human") throw fail("SESSION_OBSERVER_FORBIDDEN");
 	const owner = await resolveSessionUpdateOwner(tx, input.sessionId);
 	const existing = await sessionObserverByRun(tx, { runId: owner.runId, lock: true });
 	if (existing === null && !input.enabled)
@@ -80,9 +63,3 @@ export const setEnabled = async (
 		requestInitialGeneration: becameEnabled,
 	};
 };
-
-export const setEnabledForProcedure = async (
-	ctx: ServiceCtx,
-	tx: Tx,
-	input: SessionObserverSetEnabledInput,
-): Promise<SessionObserver> => (await setEnabled(ctx, tx, input)).observer;

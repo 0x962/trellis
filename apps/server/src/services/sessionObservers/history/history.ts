@@ -3,10 +3,10 @@ import {
 	type SessionObserverHistoryInput,
 	SessionObserverHistoryInputSchema,
 } from "@trellis/api";
-import type { ServiceCtx } from "../../context.ts";
-import type { Tx } from "../../db/tx.ts";
-import { resolveSessionUpdateOwner } from "../sessionUpdates/owner.ts";
-import { readSessionObserverHistory } from "./queries.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { resolveSessionUpdateOwner } from "../../sessionUpdates";
+import { readSessionObserverHistory } from "../queries";
 
 export const history = async (
 	_ctx: ServiceCtx,

@@ -1,11 +1,11 @@
 import type { SessionUpdate, SessionUpdateEmbed } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import type { ServiceCtx } from "../../context.ts";
-import { rows } from "../../db/queries/support.ts";
-import type { Tx } from "../../db/tx.ts";
-import type { SessionUpdateOwner } from "./owner.ts";
-import { sessionUpdateByRequest } from "./queries.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { rows } from "../../../db/queries/support.ts";
+import type { Tx } from "../../../db/tx.ts";
+import type { SessionUpdateOwner } from "../owner.ts";
+import { sessionUpdateByRequest } from "../queries.ts";
 
 export type SaveSessionUpdateInput = {
 	owner: SessionUpdateOwner;

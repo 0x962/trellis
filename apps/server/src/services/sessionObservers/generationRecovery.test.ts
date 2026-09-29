@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { openTestDbFromArchive } from "../../db/testDb.ts";
-import { getSessionUpdates } from "../sessionUpdates/queries.ts";
+import { get as getSessionUpdates } from "../sessionUpdates";
 import {
 	claimSessionObserverGeneration,
 	disableSessionObserverForDeletion,
@@ -10,12 +10,11 @@ import {
 	linkSessionObserverRun,
 	readSessionObserverSummaryForClaim,
 	recoverSessionObserverGenerations,
-	retrySessionObserverGeneration,
 	saveSessionObserverGeneration,
 	saveSessionObserverSummary,
 	setEnabled,
 } from "./index.ts";
-import { at, context, seed } from "./testFixture.ts";
+import { at, context, seed } from "./testFixture";
 
 test("links one hidden run only while the exact observer claim remains active", async () => {
 	const value = await seed();
@@ -43,6 +42,11 @@ test("links one hidden run only while the exact observer claim remains active", 
 			observerRunId: claim!.observerId,
 			harnessPreset: "claude",
 			modelId: "anthropic/claude-sonnet-5.5",
+		});
+		await value.db.execute(sql`UPDATE agent_runs SET harness=NULL WHERE id=${claim!.observerId}`);
+		expect(await value.db.transaction((tx) => getObserver(ctx, tx, { sessionId: value.ticketRunId }))).toMatchObject({
+			harnessPreset: null,
+			modelId: null,
 		});
 		expect(
 			await value.db.transaction((tx) =>
@@ -146,10 +150,13 @@ test("keeps failed activity pending without repeating the same request", async (
 		).toBeNull();
 		const observer = await value.db.transaction((tx) => getObserver(ctx, tx, { sessionId: value.ticketRunId }));
 		expect(observer).toMatchObject({ lastConsumedCursor: null, lastAttemptedCursor: "cursor-1", error: failure });
-		expect(await value.db.transaction((tx) => getSessionUpdates(tx, { runId: value.ticketRunId }))).toMatchObject({
+		expect(
+			await value.db.transaction((tx) => getSessionUpdates(ctx, tx, { sessionId: value.ticketRunId })),
+		).toMatchObject({
 			latest: null,
 		});
-		await value.db.transaction((tx) => retrySessionObserverGeneration(ctx, tx, { runId: value.ticketRunId }));
+		await value.db.transaction((tx) => setEnabled(ctx, tx, { sessionId: value.ticketRunId, enabled: false }));
+		await value.db.transaction((tx) => setEnabled(ctx, tx, { sessionId: value.ticketRunId, enabled: true }));
 		expect(
 			await value.db.transaction((tx) =>
 				claimSessionObserverGeneration(tx, { runId: value.ticketRunId, throughCursor: "cursor-1" }),
@@ -217,7 +224,9 @@ test("saves one durable summary without completing its generation", async () => 
 			lastConsumedCursor: null,
 			lastAttemptedCursor: null,
 		});
-		expect(await value.db.transaction((tx) => getSessionUpdates(tx, { runId: value.ticketRunId }))).toMatchObject({
+		expect(
+			await value.db.transaction((tx) => getSessionUpdates(ctx, tx, { sessionId: value.ticketRunId })),
+		).toMatchObject({
 			latest: null,
 		});
 	} finally {

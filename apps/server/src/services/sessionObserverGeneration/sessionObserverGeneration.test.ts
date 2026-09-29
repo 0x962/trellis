@@ -44,7 +44,7 @@ const reply = (text: string, providerSessionId = "provider-session-1") => ({
 });
 
 const fixture = (options: {
-	hasInitialUpdate?: boolean;
+	hasObserverMessages?: boolean;
 	completed?: boolean;
 	needsInput?: boolean;
 	unavailable?: boolean;
@@ -80,7 +80,7 @@ const fixture = (options: {
 			{
 				runId,
 				lastConsumedCursor: "cursor-1",
-				hasInitialUpdate: options.hasInitialUpdate ?? true,
+				hasObserverMessages: options.hasObserverMessages ?? true,
 				activityThreshold: 20,
 			},
 		],
@@ -157,7 +157,7 @@ test("completion and a request for human input bypass the count", async () => {
 });
 
 test("initial generation works when activity is unavailable", async () => {
-	const { calls, deps } = fixture({ hasInitialUpdate: false, items: [], unavailable: true });
+	const { calls, deps } = fixture({ hasObserverMessages: false, items: [], unavailable: true });
 	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
 	expect(calls.generate).toHaveLength(1);
 	expect((calls.generate[0] as { userContext: string }).userContext).toContain("Some message coverage is unavailable.");
@@ -192,7 +192,7 @@ test("a completed user correction updates standalone session context", async () 
 		name: null,
 		body: "Use 20 completed activity items and never a timer.",
 	};
-	const { calls, deps } = fixture({ hasInitialUpdate: false, items: [correction] });
+	const { calls, deps } = fixture({ hasObserverMessages: false, items: [correction] });
 	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
 	const prompt = (calls.generate[0] as { userContext: string }).userContext;
 	expect(prompt).toContain("Explain session progress without a worker prompt.");
