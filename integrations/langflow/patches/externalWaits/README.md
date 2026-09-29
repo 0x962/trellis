@@ -11,6 +11,12 @@ It stores each completion delivery and receipt under the wait identity.
 An equal duplicate returns the stored receipt.
 A changed delivery for the same wait identity fails.
 
+`TrellisExternalWaitBroker.delivery_for(graph, wait_bytes)` returns the exact saved `CompletionDeliveryV1` bytes.
+It returns `None` when the wait has no completion.
+It rejects a saved envelope when its exact `ExternalWaitV1` bytes differ from `wait_bytes`.
+The component caller reads `delivery.result` as the accepted `NativeResultV1`.
+This method does not create a request, reserve a handle, schedule work, or add another wait store.
+
 `TrellisExternalWaitBroker.save_completion` receives the current durable authority epoch.
 It accepts a native completion only when these values match the saved wait:
 
@@ -156,6 +162,12 @@ Run this fixture command after Root merges the complete Langflow source set:
 
 ```sh
 python -m pytest -q -c "$LANGFLOW_SOURCE_ROOT/pyproject.toml" "$TRELLIS_ROOT/integrations/langflow/tests/semantics"
+```
+
+Run the exact delivery boundary with this focused target:
+
+```sh
+python -m pytest -q -c "$LANGFLOW_SOURCE_ROOT/pyproject.toml" "$TRELLIS_ROOT/integrations/langflow/tests/semantics/test_completion_replay.py"
 ```
 
 The fixture requires these variables:

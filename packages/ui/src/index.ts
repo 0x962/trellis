@@ -151,6 +151,7 @@ export {
 	type CommandProps,
 	type CommandRootProps,
 	type CommandRowProps,
+	type CommandVirtualProps,
 } from "./primitives/Command";
 export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDialog";
 export { Dialog, type DialogProps } from "./primitives/Dialog";

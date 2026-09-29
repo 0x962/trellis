@@ -1,6 +1,6 @@
 export type EffectBinding = {
 	effectId: string;
-	kind: "admission" | "publication" | "recovery" | "native-dispatch" | "engine-delivery" | "decision";
+	kind: "admission" | "publication" | "recovery" | "native-dispatch" | "engine-delivery" | "decision" | "cancellation";
 	executionId: string | null;
 	attemptId: string | null;
 	jobId: string | null;
@@ -23,7 +23,8 @@ export type BlockReason =
 			sourceDataHomeId: string;
 			manifestDigest: string;
 	  }
-	| { kind: "capture"; snapshotId: string };
+	| { kind: "capture"; snapshotId: string }
+	| { kind: "initialize" };
 
 export type DispatchBlock = {
 	id: string;

@@ -61,7 +61,7 @@ test("both engines remain readable after archive restore and saved flow deletion
 	for (const [index, id] of ids.entries()) {
 		const response = await request(`/flow-executions/${id}/view-v1`);
 		expect(response.status).toBe(200);
-		expect(FlowExecutionViewV1Schema.parse(await response.json())).toEqual(expected[index]);
+		expect(FlowExecutionViewV1Schema.parse(await response.json())).toEqual(expected[index]!);
 	}
 	expect((await restored.execute(sql`SELECT doc::text AS doc,state::text AS state FROM flow_executions`)).rows).toEqual(
 		h.retained,

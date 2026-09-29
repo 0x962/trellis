@@ -9,7 +9,15 @@ const permit = z.strictObject({
 	generation,
 	binding: z.strictObject({
 		effectId: identity,
-		kind: z.enum(["admission", "publication", "recovery", "native-dispatch", "engine-delivery", "decision"]),
+		kind: z.enum([
+			"admission",
+			"publication",
+			"recovery",
+			"native-dispatch",
+			"engine-delivery",
+			"decision",
+			"cancellation",
+		]),
 		executionId: identity.nullable(),
 		attemptId: identity.nullable(),
 		jobId: identity.nullable(),
@@ -24,6 +32,7 @@ const block = z.strictObject({
 	requestId: identity,
 	reason: z.discriminatedUnion("kind", [
 		z.strictObject({ kind: z.literal("capture"), snapshotId: identity }),
+		z.strictObject({ kind: z.literal("initialize") }),
 		z.strictObject({
 			kind: z.literal("restore"),
 			directory: identity,

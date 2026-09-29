@@ -1,10 +1,12 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
-import type { KeyboardEventHandler } from "react";
+import type { KeyboardEventHandler, RefObject } from "react";
 import { Kbd } from "../../../Kbd";
 
 export type CommandFieldProps = {
 	placeholder?: string;
+	label?: string;
+	inputRef?: RefObject<HTMLInputElement | null>;
 	// The ticket the list acts on. It is pinned before the field in place
 	// of the search icon.
 	context?: string;
@@ -18,6 +20,8 @@ export type CommandFieldProps = {
 export function CommandField({
 	placeholder = "Search tickets",
 	context,
+	label,
+	inputRef,
 	value,
 	onValueChange,
 	onKeyDown,
@@ -36,6 +40,8 @@ export function CommandField({
 				</span>
 			)}
 			<Cmdk.Input
+				ref={inputRef}
+				aria-label={label}
 				placeholder={placeholder}
 				value={value}
 				onValueChange={onValueChange}
