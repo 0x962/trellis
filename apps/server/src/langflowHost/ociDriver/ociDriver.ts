@@ -3,12 +3,7 @@ import { readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { LangflowSidecarManifestV1Schema } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
-import type {
-	NativeReservationAuthentication,
-	SidecarDriver,
-	SidecarIdentity,
-	SidecarObservation,
-} from "../contracts";
+import type { NativeReservationAuthentication, SidecarDriver, SidecarIdentity, SidecarObservation } from "../contracts";
 import { assertContainerBinding } from "./containerBinding";
 import { containerCreateArgs } from "./createArgs/createArgs";
 import { engineApiConfiguration } from "./engineApiConfiguration";
