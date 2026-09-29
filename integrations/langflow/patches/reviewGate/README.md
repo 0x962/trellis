@@ -22,6 +22,8 @@ The component is `integrations.langflow.components.jevGate.jevGate.TrellisReview
 
 Each review record stores `requestBytes`, `waitBytes`, and `acceptedResultId`. The operation sets `acceptedResultId` to the classification receipt ID after it reads the accepted terminal result from the TRL-995 ledger. `acceptedResultBytes` retains those exact bytes. `outputReceiptId` identifies the output on the selected branch.
 
+`review_gate_history.read_review_history(session, job_id)` returns every retained review visit, including consumed waits. It adds `state` from the accepted result. It checks the exact accepted bytes against the ledger. A visit without an accepted result remains pending.
+
 The host delivers one response for each saved review wait. The same classification receipt serves all these responses. A later visit can reuse that result. Each delivery has an `engine-delivery` permit. An unknown response retains that permit for exact replay. A claimed result never enters the acceptance route.
 
 ## Source assembly
