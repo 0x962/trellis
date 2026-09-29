@@ -1,9 +1,10 @@
 import { afterEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { openDb, type Db } from "../../client";
+import { type Db, openDb } from "../../client";
 import { classificationStore } from "./classification";
 import { readExecution, reserveExecution } from "./executions";
 import { ids, receiptFixture } from "./fixtures/fixture";
+
 let db: Db;
 afterEach(async () => {
 	await db.$client.close();

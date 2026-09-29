@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 import {
-	langflowNativeHandles,
 	langflowCompletions,
-	langflowDecisions,
-	langflowStops,
 	langflowDeadlines,
+	langflowDecisions,
+	langflowNativeHandles,
+	langflowStops,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 export async function readProjectionFacts(tx: Tx, input: { executionId: string }) {

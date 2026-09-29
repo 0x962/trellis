@@ -2,15 +2,17 @@ import { isDeepStrictEqual } from "node:util";
 import { and, eq } from "drizzle-orm";
 import { ulid } from "ulid";
 import {
-	langflowClassifications as table,
 	type ClassificationBinding,
 	type ClassificationReceipt,
 	type ClassificationResult,
+	langflowClassifications as table,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
 import { readProjection } from "./projections";
+
 export type { ClassificationBinding, ClassificationReceipt, ClassificationResult };
+
 async function read(tx: Tx, input: { executionId: string }) {
 	const [row] = await tx.select().from(table).where(eq(table.executionId, input.executionId));
 	return row?.receipt ?? null;

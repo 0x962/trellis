@@ -1,7 +1,12 @@
 import { isDeepStrictEqual } from "node:util";
-import { eq } from "drizzle-orm";
-import { protocolDigest, type CorrelationReceiptV1, type DeliveryAuthorityV1 } from "../../../langflowContracts";
-import { langflowExecutions } from "../../tables/langflowExecution";
+import { and, eq } from "drizzle-orm";
+import {
+	type AdmissionReceiptV1,
+	type CorrelationReceiptV1,
+	type DeliveryAuthorityV1,
+	protocolDigest,
+} from "../../../langflowContracts";
+import { langflowExecutions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
 export async function bindExecution(
@@ -53,4 +58,24 @@ export async function markSubmissionUnknown(tx: Tx, input: { executionId: string
 		.where(eq(langflowExecutions.executionId, row.executionId))
 		.returning();
 	return saved!;
+}
+
+export async function confirmAdmission(tx: Tx, input: { executionId: string; receipt: AdmissionReceiptV1 }) {
+	await lockExecution(tx, input);
+	const [record] = await tx
+		.select()
+		.from(langflowOutbox)
+		.where(
+			and(
+				eq(langflowOutbox.executionId, input.executionId),
+				eq(langflowOutbox.kind, "admission"),
+				eq(langflowOutbox.id, input.receipt.admissionId),
+			),
+		);
+	if (!record || !isDeepStrictEqual(JSON.parse(record.payloadBytes), input.receipt))
+		throw new Error("admission_receipt_conflict");
+	await tx
+		.update(langflowOutbox)
+		.set({ receipt: input.receipt })
+		.where(and(eq(langflowOutbox.kind, "admission"), eq(langflowOutbox.id, input.receipt.admissionId)));
 }
