@@ -39,7 +39,7 @@ export function groupDeadlines(options: {
 					}) as Promise<GroupDeadlineResult>,
 			});
 			const work = handler(request).catch((error: unknown) => {
-				if (error instanceof Error && error.message === "authentication_denied")
+				if (error instanceof Error && error.message === "sidecar_authentication_denied")
 					throw new ORPCError("UNAUTHORIZED", { status: 401 });
 				throw error;
 			});
