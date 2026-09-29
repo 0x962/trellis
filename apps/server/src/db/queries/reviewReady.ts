@@ -2,17 +2,17 @@ import type { Check, LocalPrState, Mergeable, PrState, ReviewReadyFacts } from "
 import { type SQL, sql } from "drizzle-orm";
 import { flowAppliesToProject } from "./flowScope.ts";
 
-// The V1 projector validates native results and human receipts before it stores a successful status.
+// `project` in services/langflowProjection/project.ts checks native results and human receipts before it returns a succeeded status.
 // Both engines retain their original agent runs so review comments keep their session attribution.
 export const flowReviewExecutionsSql = sql`
 	SELECT execution.id, execution.flow_id, execution.ticket_id, execution.diff_id,
-		execution.head_sha AS reviewed_head, execution.created_at,
+		execution.created_at,
 		execution.doc->'flow'->>'name' AS name, execution.state->>'status' AS status,
 		ARRAY(SELECT task.run_id FROM flow_execution_tasks task WHERE task.execution_id = execution.id) AS agent_run_ids
 	FROM flow_executions execution
 	UNION ALL
 	SELECT execution.execution_id AS id, execution.flow_id, execution.ticket_id, execution.diff_id,
-		execution.reviewed_head, execution.created_at,
+		execution.created_at,
 		projection.view->'snapshot'->'flow'->>'name' AS name, projection.view->>'status' AS status,
 		ARRAY(
 			SELECT DISTINCT attempt->>'agentRunId'

@@ -42,7 +42,7 @@ def _bytes(value: dict) -> str:
 	return json.dumps(value, separators=(",", ":"))
 
 
-def test_equal_completion_replay_returns_exact_saved_bytes() -> None:
+def test_equal_completion_replay_returns_exact_saved_receipt_and_delivery_bytes() -> None:
 	async def run() -> None:
 		job_id = UUID("00000000-0000-4000-8000-000000000001")
 		wait = json.dumps({"kind": "admission", "waitId": "wait-1", "barrierId": "barrier-1"}, separators=(",", ":"))
@@ -50,6 +50,8 @@ def test_equal_completion_replay_returns_exact_saved_bytes() -> None:
 		receipt = json.dumps({"engineWaitId": "wait-1"}, separators=(",", ":"))
 		jobs = _MemoryJobs()
 		broker = TrellisExternalWaitBroker(jobs)
+		graph = SimpleNamespace(job_id=str(job_id))
+		assert await broker.delivery_for(graph, wait) is None
 		first = await broker.save_completion(
 			job_id=job_id,
 			authority_epoch=1,
@@ -66,8 +68,13 @@ def test_equal_completion_replay_returns_exact_saved_bytes() -> None:
 		)
 		assert first == second
 		assert first == receipt
-		graph = SimpleNamespace(job_id=str(job_id))
 		assert await broker.receipt_for(graph, wait) == receipt
+		assert await broker.delivery_for(graph, wait) == delivery
+		changed_wait = json.dumps(
+			{"kind": "admission", "waitId": "wait-1", "barrierId": "barrier-2"}, separators=(",", ":")
+		)
+		with pytest.raises(RuntimeError, match="external_wait_identity_conflict"):
+			await broker.delivery_for(graph, changed_wait)
 
 	asyncio.run(run())
 

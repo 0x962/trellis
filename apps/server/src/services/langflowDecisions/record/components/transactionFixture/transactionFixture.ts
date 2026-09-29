@@ -1,11 +1,15 @@
 import type { ServiceCtx } from "../../../../../context.ts";
 import { createCache } from "../../../../../db/cache.ts";
+import { migrate } from "../../../../../db/migrate.ts";
 import { receiptFixture } from "../../../../../db/queries/langflowExecution/fixtures/fixture.ts";
+import { beforeDocuments } from "../../../../../db/queries/langflowExecution/fixtures/migration.ts";
 import { commitProjection } from "../../../../../db/queries/langflowExecution/projections.ts";
 import { testFixture } from "../../../testFixture";
 
 export async function transactionFixture() {
-	const storage = await receiptFixture();
+	const database = await beforeDocuments();
+	await migrate(database);
+	const storage = await receiptFixture(true, database);
 	const fixture = testFixture();
 	const view = {
 		...storage.view,

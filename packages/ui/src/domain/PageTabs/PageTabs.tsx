@@ -1,171 +1,299 @@
-import { Plus, X } from "@phosphor-icons/react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Plus } from "@phosphor-icons/react";
+import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconButton } from "../../primitives/IconButton";
-import { TabsList, TabsRoot, TabsTab } from "../../primitives/Tabs";
+import { TabsList, TabsRoot } from "../../primitives/Tabs";
 import { Tooltip } from "../../primitives/Tooltip";
-import { cx } from "../../utils/cx";
-import { hitArea } from "../../utils/hitArea";
+import { moveKeys, moveTargetForKey } from "./components/moveTargets";
+import { PageTab } from "./components/PageTab";
+import { TabActions } from "./components/TabActions";
+import { TabGroupHeader } from "./components/TabGroupHeader";
+import { TabGroupPicker } from "./components/TabGroupPicker";
+import { TabPicker } from "./components/TabPicker";
+import { dropTargetId, slotIndexOf } from "./components/tabSlots";
+import { useFocusAfterChange } from "./components/useFocusAfterChange";
+import { useTabDrag } from "./components/useTabDrag";
+import { revealTab, useTabLayout } from "./components/useTabLayout";
+import { useTabRegions } from "./components/useTabRegions";
 
-export type PageTabItem = {
-	id: string;
-	title: string;
-};
-
+export type PageTabItem = { id: string; title: string; pinned: boolean; groupId?: string };
+export type PageTabGroupItem = { id: string; name: string; collapsed: boolean };
+export type PageTabSortDirection = "ascending" | "descending";
 export type PageTabsProps = {
+	// The pinned tabs come first. The strip draws them in a region of their
+	// own before the other tabs, and a move never crosses that boundary.
 	tabs: readonly PageTabItem[];
+	// The groups in strip order. The tabs of one group are contiguous in
+	// `tabs`, after the pinned tabs, and a header box precedes them.
+	groups?: readonly PageTabGroupItem[];
 	activeId: string;
 	onAdd: () => void;
 	onSelect: (id: string) => void;
 	onClose: (id: string) => void;
+	onMove?: (id: string, beforeId: string | null) => void;
+	onRename?: (id: string, title: string | null) => void;
+	onSort?: (direction: PageTabSortDirection) => void;
+	onPin?: (id: string, pinned: boolean) => void;
+	// Creates a group that holds the tab, and returns the id of the group.
+	onCreateGroup?: (name: string, tabId: string) => string;
+	onRenameGroup?: (id: string, name: string) => void;
+	onRemoveGroup?: (id: string) => void;
+	onGroupCollapse?: (id: string, collapsed: boolean) => void;
+	onSetTabGroup?: (tabId: string, groupId: string | null) => void;
 	"aria-label"?: string;
 };
 
-const tabWidthPx = 160;
-const tabGapPx = 2;
-const tabStepPx = tabWidthPx + tabGapPx;
-const tabOverscan = 3;
-
-type TabRange = {
-	start: number;
-	end: number;
-};
-
-const rangeAround = (index: number, count: number): TabRange => ({
-	start: Math.max(0, index - tabOverscan),
-	end: Math.min(count - 1, index + tabOverscan),
-});
-
-const rangeInView = (element: HTMLDivElement, count: number): TabRange => ({
-	start: Math.max(0, Math.floor(element.scrollLeft / tabStepPx) - tabOverscan),
-	end: Math.min(count - 1, Math.ceil((element.scrollLeft + element.clientWidth) / tabStepPx) + tabOverscan),
-});
-
-const scrollTabIntoView = (element: HTMLDivElement, index: number) => {
-	const tabLeft = index * tabStepPx;
-	const tabRight = tabLeft + tabWidthPx;
-	if (tabLeft < element.scrollLeft) element.scrollLeft = tabLeft;
-	if (tabRight > element.scrollLeft + element.clientWidth) element.scrollLeft = tabRight - element.clientWidth;
-};
+// The width of one pinned tab, the `w-24` of PageTab.
+const pinnedWidth = 96;
 
 export function PageTabs({
 	tabs,
+	groups = [],
 	activeId,
 	onAdd,
 	onSelect,
 	onClose,
+	onMove,
+	onRename,
+	onSort,
+	onPin,
+	onCreateGroup,
+	onRenameGroup,
+	onRemoveGroup,
+	onGroupCollapse,
+	onSetTabGroup,
 	"aria-label": ariaLabel = "Open pages",
 }: PageTabsProps) {
-	const tabListElement = useRef<HTMLDivElement>(null);
-	const focusActiveAfterChange = useRef(false);
-	const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
-	const [renderRange, setRenderRange] = useState(() => rangeAround(activeIndex, tabs.length));
+	const [editingId, setEditingId] = useState<string | null>(null);
+	const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+	const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+	const {
+		activeIndex,
+		activeTab,
+		activeGroupId,
+		pinnedCount,
+		activePinned,
+		regionStart,
+		regionEnd,
+		slots,
+		activeSlot,
+		otherGroups,
+	} = useTabRegions(tabs, groups, activeId);
+	const layout = useTabLayout(slots, activeSlot);
+	const listRef = useRef<HTMLDivElement>(null);
+	const pinnedRef = useRef<HTMLDivElement>(null);
+	const addButton = useRef<HTMLButtonElement>(null);
+	const focusAfterChange = useFocusAfterChange(listRef, addButton, activeId);
+	const [announcement, setAnnouncement] = useState("");
 	const items = useMemo(() => tabs.map((tab) => ({ value: tab.id })), [tabs]);
-	const renderedIndexes = useMemo(() => {
-		const indexes = Array.from(
-			{ length: Math.max(0, renderRange.end - renderRange.start + 1) },
-			(_, offset) => renderRange.start + offset,
-		).filter((index) => index < tabs.length);
-		if (!indexes.includes(activeIndex)) indexes.push(activeIndex);
-		return indexes.sort((left, right) => left - right);
-	}, [activeIndex, renderRange, tabs.length]);
-	const updateRenderRange = useCallback(
-		(element: HTMLDivElement) => {
-			const nextRange = rangeInView(element, tabs.length);
-			setRenderRange((currentRange) =>
-				currentRange.start === nextRange.start && currentRange.end === nextRange.end ? currentRange : nextRange,
-			);
-		},
-		[tabs.length],
-	);
-
+	// The pinned region scrolls on its own, so a narrow strip keeps the
+	// active pinned tab in view.
 	useLayoutEffect(() => {
-		const element = tabListElement.current;
-		if (!element) return;
-		scrollTabIntoView(element, activeIndex);
-		updateRenderRange(element);
-		const activeTab = Array.from(element.querySelectorAll<HTMLElement>('[role="tab"]')).find(
-			(tabElement) => tabElement.dataset.pageTabId === activeId,
+		if (activePinned) revealTab(pinnedRef.current!, activeIndex * pinnedWidth, pinnedWidth);
+	}, [activePinned, activeIndex]);
+	const close = (id: string) => {
+		focusAfterChange.current = listRef.current!.contains(document.activeElement);
+		onClose(id);
+	};
+	const move = (id: string, beforeId: string | null) => {
+		focusAfterChange.current = true;
+		onMove!(id, beforeId);
+		const title = tabs.find((tab) => tab.id === id)!.title;
+		setAnnouncement(
+			`${title} moved ${beforeId === null ? "to the end" : `before ${tabs.find((tab) => tab.id === beforeId)!.title}`}.`,
 		);
-		if (focusActiveAfterChange.current) activeTab?.focus();
-		focusActiveAfterChange.current = false;
-		const resizeObserver = new ResizeObserver(() => {
-			scrollTabIntoView(element, activeIndex);
-			updateRenderRange(element);
-		});
-		resizeObserver.observe(element);
-		return () => resizeObserver.disconnect();
-	}, [activeId, activeIndex, updateRenderRange]);
-
+	};
+	const select = (id: string) => {
+		focusAfterChange.current = true;
+		onSelect(id);
+	};
+	const sort = (direction: PageTabSortDirection) => {
+		focusAfterChange.current = true;
+		onSort!(direction);
+		setAnnouncement(`Tabs sorted ${direction === "ascending" ? "A to Z" : "Z to A"}.`);
+	};
+	const pinnedDrag = useTabDrag({
+		listRef: pinnedRef,
+		slotWidth: pinnedWidth,
+		slotCount: pinnedCount,
+		enabled: onMove !== undefined,
+		onDrop: (id, index) => {
+			const before = tabs[index]?.id ?? null;
+			if (before !== id && tabs[index - 1]?.id !== id) move(id, before);
+		},
+	});
+	const drag = useTabDrag({
+		listRef: layout.ref,
+		slotWidth: layout.width,
+		slotCount: slots.length,
+		enabled: onMove !== undefined,
+		onDrop: (id, index) => {
+			const before = dropTargetId(slots, index);
+			const origin = slotIndexOf(slots, id);
+			if (before !== id && index !== origin && index !== origin + 1) move(id, before);
+		},
+	});
+	const draggedSlot = drag.draggedId === null ? -1 : slotIndexOf(slots, drag.draggedId);
+	const renderedIndexes =
+		draggedSlot >= 0 && !layout.indexes.includes(draggedSlot)
+			? [...layout.indexes, draggedSlot].sort((a, b) => a - b)
+			: layout.indexes;
+	const pageTab = (index: number, style: CSSProperties, pointerDown: typeof drag.pointerDown, separator: boolean) => {
+		const tab = tabs[index]!;
+		return (
+			<PageTab
+				key={tab.id}
+				tab={tab}
+				index={index}
+				count={tabs.length}
+				style={style}
+				active={tab.id === activeId}
+				separator={separator}
+				onClose={() => close(tab.id)}
+				editing={editingId === tab.id}
+				onEditingChange={(focus) => {
+					setEditingId(null);
+					focusAfterChange.current = focus;
+				}}
+				onRename={(title) => onRename!(tab.id, title)}
+				onPointerDown={(event) => pointerDown(tab.id, event)}
+			/>
+		);
+	};
+	const dropMarker = (left: number) => (
+		<div className="pointer-events-none absolute inset-y-1 z-20 w-0.5 rounded-round bg-accent" style={{ left }} />
+	);
+	const canPickGroup =
+		onSetTabGroup !== undefined && activeTab !== undefined && !activeTab.pinned && otherGroups.length > 0;
 	return (
-		<div className="flex min-w-0 items-end border-b border-border bg-surface px-1 text-sm">
+		<div className="relative flex min-w-0 items-end bg-surface px-1 pt-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
 			<TabsRoot
 				value={activeId}
 				onValueChange={(value) => onSelect(value as string)}
 				className="flex min-w-0 flex-1 items-end"
 			>
 				<TabsList
+					ref={listRef}
 					items={items}
 					value={activeId}
-					onValueChange={(value) => {
-						focusActiveAfterChange.current = true;
-						onSelect(value);
-					}}
-					ref={tabListElement}
+					onValueChange={select}
 					aria-label={ariaLabel}
-					className="relative block h-8 min-w-0 flex-1 overflow-x-auto"
-					onScroll={(event) => updateRenderRange(event.currentTarget)}
+					className="flex h-9 min-w-0 flex-1 max-sm:h-11 pointer-coarse:h-11"
+					onKeyDownCapture={(event) => {
+						if (!(event.target instanceof HTMLElement) || event.target.getAttribute("role") !== "tab") return;
+						if (event.key === "Delete") {
+							event.preventDefault();
+							event.stopPropagation();
+							close(activeId);
+							return;
+						}
+						if (!onMove || !event.altKey || !event.shiftKey) return;
+						if (!(moveKeys as readonly string[]).includes(event.key)) return;
+						event.preventDefault();
+						event.stopPropagation();
+						const target = moveTargetForKey(event.key, tabs, activeIndex, regionStart, regionEnd);
+						if (target !== undefined) move(activeId, target);
+					}}
 				>
-					<div className="relative h-full" style={{ width: tabs.length * tabStepPx - tabGapPx }}>
-						{renderedIndexes.map((index) => {
-							const tab = tabs[index]!;
-							const active = tab.id === activeId;
-							return (
-								<div
-									key={tab.id}
-									className={cx(
-										"absolute top-0 left-0 flex h-8 items-center rounded-t-md border-x border-t",
-										active
-											? "border-border bg-bg text-fg"
-											: "border-transparent text-fg-muted hover:bg-fg/6 hover:text-fg",
-									)}
-									style={{ transform: `translateX(${index * tabStepPx}px)`, width: tabWidthPx }}
-								>
-									<TabsTab
-										value={tab.id}
-										data-page-tab-id={tab.id}
-										title={tab.title}
-										className={cx(
-											"h-8 min-w-0 flex-1 truncate rounded-tl-md px-2 font-medium select-none",
-											"focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-											hitArea.tab32,
-										)}
-									>
-										{tab.title}
-									</TabsTab>
-									<Tooltip content={`Close ${tab.title}`}>
-										<IconButton
-											label={`Close ${tab.title}`}
-											icon={<X />}
-											size="xs"
-											tabIndex={active ? 0 : -1}
-											className="mr-1"
-											onClick={(event) => {
-												focusActiveAfterChange.current = event.detail === 0;
-												onClose(tab.id);
-											}}
+					{pinnedCount > 0 && (
+						<div
+							ref={pinnedRef}
+							className="relative flex h-full max-w-1/2 shrink-0 overflow-x-auto overscroll-x-contain border-r border-border pr-1 mr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+							{...pinnedDrag.listHandlers}
+						>
+							{Array.from({ length: pinnedCount }, (_, index) =>
+								pageTab(
+									index,
+									{},
+									pinnedDrag.pointerDown,
+									index !== activeIndex && index + 1 !== activeIndex && index < pinnedCount - 1,
+								),
+							)}
+							{pinnedDrag.dropIndex !== null &&
+								dropMarker(Math.min(pinnedDrag.dropIndex * pinnedWidth, pinnedCount * pinnedWidth - 2))}
+						</div>
+					)}
+					<div
+						ref={layout.ref}
+						className="relative h-full min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+						onScroll={layout.onScroll}
+						{...drag.listHandlers}
+					>
+						<div className="relative h-full" style={{ width: slots.length * layout.width }}>
+							{renderedIndexes.map((index) => {
+								const slot = slots[index]!;
+								const style = { left: index * layout.width, width: layout.width };
+								if (slot.kind === "group")
+									return (
+										<TabGroupHeader
+											key={`group:${slot.group.id}`}
+											group={slot.group}
+											count={slot.count}
+											style={style}
+											editing={editingGroupId === slot.group.id}
+											onEditingChange={(editing) => setEditingGroupId(editing ? slot.group.id : null)}
+											onRename={onRenameGroup}
+											onRemove={onRemoveGroup}
+											onCollapse={onGroupCollapse!}
 										/>
-									</Tooltip>
-								</div>
-							);
-						})}
+									);
+								return pageTab(
+									slot.tabIndex,
+									style,
+									drag.pointerDown,
+									index !== activeSlot &&
+										index + 1 !== activeSlot &&
+										index < slots.length - 1 &&
+										slots[index + 1]!.kind === "tab",
+								);
+							})}
+							{drag.dropIndex !== null &&
+								dropMarker(Math.min(drag.dropIndex * layout.width, slots.length * layout.width - 2))}
+						</div>
 					</div>
 				</TabsList>
 			</TabsRoot>
-			<div className="flex shrink-0 items-center border-l border-border bg-surface pl-1">
+			<div className="relative flex h-9 shrink-0 items-center gap-1 px-1 max-sm:h-11 pointer-coarse:h-11">
 				<Tooltip content="Add tab">
-					<IconButton label="Add tab" icon={<Plus />} size="xs" onClick={onAdd} />
+					<IconButton
+						ref={addButton}
+						label="Add tab"
+						icon={<Plus />}
+						onClick={onAdd}
+						className="max-sm:h-11 max-sm:min-w-11"
+					/>
 				</Tooltip>
+				<TabPicker tabs={tabs} activeId={activeId} onSelect={onSelect} />
+				{canPickGroup && (
+					<TabGroupPicker
+						groups={otherGroups}
+						open={groupPickerOpen}
+						onOpenChange={setGroupPickerOpen}
+						onSelect={(groupId) => onSetTabGroup!(activeId, groupId)}
+					/>
+				)}
+				{tabs.length > 0 && (onMove || onRename || onPin || onSort || onSetTabGroup) && (
+					<TabActions
+						tabs={tabs}
+						activeIndex={activeIndex}
+						regionStart={regionStart}
+						regionEnd={regionEnd}
+						onMove={onMove ? move : undefined}
+						onSort={onSort ? sort : undefined}
+						onPin={onPin}
+						onRename={onRename ? () => setEditingId(activeId) : undefined}
+						onRestore={onRename ? () => onRename(activeId, null) : undefined}
+						onCreateGroup={
+							onCreateGroup && onSetTabGroup ? () => setEditingGroupId(onCreateGroup("New group", activeId)) : undefined
+						}
+						onPickGroup={canPickGroup ? () => setGroupPickerOpen(true) : undefined}
+						onLeaveGroup={onSetTabGroup && activeGroupId !== null ? () => onSetTabGroup(activeId, null) : undefined}
+						onClose={() => close(activeId)}
+					/>
+				)}
 			</div>
+			<span role="status" aria-live="polite" className="sr-only">
+				{announcement}
+			</span>
 		</div>
 	);
 }

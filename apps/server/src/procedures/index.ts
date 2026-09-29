@@ -3,6 +3,7 @@ import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
 import { epics } from "./epics.ts";
 import { flowDocumentProcedures } from "./flowDocumentRoutes";
+import { flowExecutionProcedures } from "./flowExecutionRoutes";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -47,6 +48,7 @@ export const router = os.router({
 	flows,
 	flowDocumentsV1: flowDocumentProcedures,
 	flowExecutions,
+	flowExecutionsV1: flowExecutionProcedures,
 	labels,
 	labelGroups,
 	projects,

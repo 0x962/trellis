@@ -1,0 +1,2 @@
+ALTER TABLE "langflow_native_handles" ADD COLUMN "launch_snapshot_digest" text;--> statement-breakpoint
+ALTER TABLE "langflow_native_handles" ADD CONSTRAINT "langflow_native_snapshot_digest" CHECK ("langflow_native_handles"."launch_snapshot_digest" ~ '^[0-9a-f]{64}$');

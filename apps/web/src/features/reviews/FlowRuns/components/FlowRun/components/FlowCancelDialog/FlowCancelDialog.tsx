@@ -3,24 +3,24 @@ import { Button, FailureState } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
 import { useFlowActionRequest } from "../../../../useFlowActionRequest";
+import { useFlowRecovery } from "../../../../useFlowRecovery";
 import { FlowActionDialog } from "../../../FlowActionDialog";
 
 export function FlowCancelDialog({
 	execution,
 	onClose,
 	recoveryBlocked,
-	onCancelV1,
 }: {
 	execution: FlowExecutionRecord | FlowExecutionViewV1;
 	onClose: () => void;
 	recoveryBlocked?: boolean;
-	onCancelV1?: (input: FlowExecutionCancelInput) => Promise<FlowExecutionViewV1>;
 }) {
 	const { client } = useApp();
-	const recovery = recoveryBlocked ?? "schemaVersion" in execution;
+	const { blocked: recovery } = useFlowRecovery(recoveryBlocked);
 	const cancel = useFlowActionRequest<FlowExecutionCancelInput, FlowExecutionRecord | FlowExecutionViewV1>(
 		["cancel", execution.id],
-		(input) => ("schemaVersion" in execution ? onCancelV1!(input) : client.flowExecutions.cancel(input)),
+		(input) =>
+			"schemaVersion" in execution ? client.flowExecutionsV1.cancel(input) : client.flowExecutions.cancel(input),
 	);
 	const [preview, setPreview] = useState(execution);
 	const receipt = cancel.request?.result;
@@ -35,9 +35,7 @@ export function FlowCancelDialog({
 		[current],
 	);
 	const changed = execution.id !== preview.id || execution.revision !== preview.revision;
-	const unavailable = "schemaVersion" in execution && !onCancelV1;
-	const blocked =
-		recovery || unavailable || changed || !!cancel.request || (status !== "running" && status !== "waiting");
+	const blocked = recovery || changed || !!cancel.request || (status !== "running" && status !== "waiting");
 	return (
 		<FlowActionDialog
 			title="Cancel this run?"
@@ -75,7 +73,6 @@ export function FlowCancelDialog({
 				</>
 			)}
 			{recovery && <p role="status">Recovery blocks changes to this run.</p>}
-			{unavailable && <p role="status">Cancellation transport is unavailable.</p>}
 			{stops.length > 0 && (
 				<p role="status">
 					The host has not confirmed that every flow worker stopped. Unresolved stops: {stops.length}.
