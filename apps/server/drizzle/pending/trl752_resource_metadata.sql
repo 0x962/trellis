@@ -1,0 +1,7 @@
+ALTER TABLE "epic_resources" DROP CONSTRAINT "epic_resources_name_check";
+--> statement-breakpoint
+ALTER TABLE "epic_resources" DROP CONSTRAINT "epic_resources_url_check";
+--> statement-breakpoint
+ALTER TABLE "epic_resources" ADD CONSTRAINT "epic_resources_name_check" CHECK ("epic_resources"."name" = btrim("epic_resources"."name") AND ("epic_resources"."kind" = 'doc' OR length("epic_resources"."name") >= 1));
+--> statement-breakpoint
+ALTER TABLE "epic_resources" ADD CONSTRAINT "epic_resources_url_check" CHECK ("epic_resources"."url" IS NULL OR length("epic_resources"."url") >= 1);
