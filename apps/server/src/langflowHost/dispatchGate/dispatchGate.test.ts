@@ -207,7 +207,7 @@ test("review classification retains its exact permit across restart without a na
 	};
 	const permit = f.gate.acquire(request);
 	const reopened = DispatchGate.open(f.input);
-	expect(reopened.recoverPermit(request)).toEqual(permit);
+	expect(reopened.recoverPermit(request)?.permit).toEqual(permit);
 	await expect(reopened.settle(permit, "unknown")).rejects.toThrow("terminal_unknown");
 	expect(reopened.read().permits[0]?.terminal).toBeNull();
 	const block = reopened.closeDispatch({ requestId: "capture", reason: { kind: "capture", snapshotId: "s" } });

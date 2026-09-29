@@ -26,6 +26,9 @@ The next host uses that reservation instead of an unrecorded replacement.
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
 `createOciDriver` binds the verified manifest and its image config digest to the saved instance.
 It starts the loaded config digest with pull disabled, so a missing local import fails closed.
+`importVerifiedOciImage` reloads the sealed package, archives its verified OCI layout, and loads it with no registry pull.
+It inspects the expected config digest and returns that digest as the only local image reference for `createOciDriver`.
+The import result retains the OCI manifest digest and trusted qualification digest for the caller receipt.
 `start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
 It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
 `observe` checks those current objects before it requests authenticated health for the supplied challenge.
@@ -217,3 +220,18 @@ The engine validator checks the current runtime identity and holds writer exclus
 Its ledger transaction serializes commit and revoke; the host gate remains closed through the final seal.
 After a supervised restart, the current instance can revoke an old grant for the same host and data home.
 The producer rejects an active receipt or commit for that old instance.
+
+## Requests from the engine
+
+`withAuthenticatedEngine(authorization, operation)` checks the exact bearer for the current engine instance.
+It reads the private credential file and obtains a fresh healthy observation before it calls `operation(observation)`.
+The supervisor holds its exclusion through this callback.
+A short callback can validate the saved authority, acquire a durable permit, and commit the initial claim.
+The caller checks the exact archived grant bytes and the execution authority under the database lock.
+The caller also compares the observed host and owner with that grant.
+
+The instance bearer differs from the credential for native reservation transport.
+A route behind host authentication can carry it in `X-Trellis-Engine-Authorization`.
+The callback returns no credential.
+After the callback, the durable permit remains held through the provider call and the terminal database commit.
+An unknown provider outcome retains the permit for reconciliation.
