@@ -38,11 +38,20 @@ export const EditorEventSchema = z.discriminatedUnion("type", [
 	z.strictObject({ ...envelope, type: z.literal("ready") }),
 	z.strictObject({ ...envelope, type: z.literal("draft-changed"), content: EditorContentSchema }),
 	z.strictObject({ ...envelope, type: z.literal("selection-changed"), focus: EditorFocusSchema.nullable() }),
+	z.strictObject({ ...envelope, type: z.literal("editing-suspended"), requestId: z.uuid(), content: EditorContentSchema }),
+	z.strictObject({
+		...envelope,
+		type: z.literal("editing-suspend-refused"),
+		requestId: z.uuid(),
+		reason: z.enum(["open-control", "invalid-field"]),
+	}),
 ]);
 export type EditorEvent = z.infer<typeof EditorEventSchema>;
 
 export const EditorCommandSchema = z.discriminatedUnion("type", [
 	z.strictObject({ ...envelope, type: z.literal("initialize"), content: EditorContentSchema }),
+	z.strictObject({ ...envelope, type: z.literal("suspend-editing"), requestId: z.uuid() }),
+	z.strictObject({ ...envelope, type: z.literal("resume-editing"), requestId: z.uuid() }),
 	z.strictObject({ ...envelope, type: z.literal("select-issue"), focus: EditorFocusSchema }),
 	z.strictObject({ ...envelope, type: z.literal("restore-focus"), focus: EditorFocusSchema.nullable() }),
 ]);

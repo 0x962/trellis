@@ -4,6 +4,7 @@ import type { FlowType } from "@/types/flow";
 import { observeFieldFocus } from "../../fieldFocus";
 import type { EditorContent, EditorFocus } from "../../protocol";
 import { revealEditorFocus } from "../revealEditorFocus";
+import { suspendNativeEditor } from "./components/suspendNativeEditor";
 
 let viewportChanged = () => {};
 export function editorViewportChanged() {
@@ -31,22 +32,22 @@ export function nativeDriver(flowId: string) {
 		const graph = content.graphDocument as NonNullable<FlowType["data"]>;
 		await useFlowStore.getState().reactFlowInstance!.setViewport(graph.viewport);
 	};
+	const content = (): EditorContent => {
+		const state = useFlowStore.getState();
+		return {
+			...original,
+			graphDocument: {
+				...original.graphDocument,
+				nodes: structuredClone(state.nodes),
+				edges: structuredClone(state.edges),
+				viewport: state.reactFlowInstance!.getViewport(),
+			} as EditorContent["graphDocument"],
+		};
+	};
 	const subscribe = (callbacks: {
 		draftChanged: (content: EditorContent) => void;
 		selectionChanged: (focus: EditorFocus | null) => void;
 	}) => {
-		const content = (): EditorContent => {
-			const state = useFlowStore.getState();
-			return {
-				...original,
-				graphDocument: {
-					...original.graphDocument,
-					nodes: structuredClone(state.nodes),
-					edges: structuredClone(state.edges),
-					viewport: state.reactFlowInstance!.getViewport(),
-				} as EditorContent["graphDocument"],
-			};
-		};
 		let previous = JSON.stringify(content());
 		let selection = useFlowStore.getState().nodes.find((node) => node.selected)?.id ?? null;
 		const stopFocus = observeFieldFocus(document, callbacks.selectionChanged);
@@ -71,5 +72,16 @@ export function nativeDriver(flowId: string) {
 			viewportChanged = () => {};
 		};
 	};
-	return { initialize, subscribe, selectIssue: revealEditorFocus, restoreFocus: revealEditorFocus };
+	const suspendEditing = () => suspendNativeEditor(document, content);
+	const resumeEditing = () => {
+		document.getElementById("root")!.inert = false;
+	};
+	return {
+		initialize,
+		subscribe,
+		selectIssue: revealEditorFocus,
+		restoreFocus: revealEditorFocus,
+		suspendEditing,
+		resumeEditing,
+	};
 }

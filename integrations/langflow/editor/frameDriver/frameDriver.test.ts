@@ -27,6 +27,8 @@ function fixture(initialize: (content: EditorContent) => Promise<void> = async (
 	const focused: (EditorFocus | null)[] = [];
 	let now = 0;
 	let unsubscribed = 0;
+	let resumed = 0;
+	let refusal: "open-control" | "invalid-field" | null = null;
 	let callbacks: {
 		draftChanged: (content: EditorContent) => void;
 		selectionChanged: (focus: EditorFocus | null) => void;
@@ -44,6 +46,8 @@ function fixture(initialize: (content: EditorContent) => Promise<void> = async (
 		},
 		driver: {
 			initialize,
+			suspendEditing: () => refusal ? { state: "refused", reason: refusal } : { state: "suspended", content },
+			resumeEditing: () => { resumed++; },
 			subscribe: (listener) => {
 				callbacks = listener;
 				return () => {
@@ -65,6 +69,8 @@ function fixture(initialize: (content: EditorContent) => Promise<void> = async (
 		receive,
 		sent,
 		focused,
+		resumed: () => resumed,
+		refuse: (reason: "open-control" | "invalid-field") => { refusal = reason; },
 		callbacks: () => callbacks,
 		unsubscribed: () => unsubscribed,
 		expire: () => {
@@ -154,4 +160,31 @@ test("connect announces the installed listener once before hydration", async () 
 	expired.expire();
 	expired.driver.connect();
 	expect(expired.sent).toHaveLength(0);
+});
+
+
+test("acknowledges the final draft and permits only the matching resume", async () => {
+	const f = fixture();
+	await f.receive(initial);
+	const requestId = crypto.randomUUID();
+	expect(await f.receive({ ...envelope, sequence: 2, type: "suspend-editing", requestId })).toBe(true);
+	expect(f.sent.at(-1)).toMatchObject({ type: "editing-suspended", requestId, content });
+	expect(await f.receive({ ...envelope, sequence: 3, type: "restore-focus", focus: null })).toBe(false);
+	expect(await f.receive({ ...envelope, sequence: 3, type: "resume-editing", requestId: crypto.randomUUID() })).toBe(false);
+	expect(f.resumed()).toBe(0);
+	expect(await f.receive({ ...envelope, sequence: 4, type: "resume-editing", requestId })).toBe(true);
+	expect(f.resumed()).toBe(1);
+	expect(await f.receive({ ...envelope, sequence: 5, type: "resume-editing", requestId })).toBe(false);
+});
+
+test("an unfinished control refuses suspension without a final draft", async () => {
+	for (const reason of ["open-control", "invalid-field"] as const) {
+		const f = fixture();
+		await f.receive(initial);
+		f.refuse(reason);
+		const requestId = crypto.randomUUID();
+		await f.receive({ ...envelope, sequence: 2, type: "suspend-editing", requestId });
+		expect(f.sent.at(-1)).toMatchObject({ type: "editing-suspend-refused", requestId, reason });
+		expect(await f.receive({ ...envelope, sequence: 3, type: "restore-focus", focus: null })).toBe(true);
+	}
 });

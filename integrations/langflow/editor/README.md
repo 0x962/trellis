@@ -44,6 +44,15 @@ The adapter creates no timer for autosave, HTTP save request, local draft store,
 A draft event cannot establish a saved revision, executable publication, or accepted decision.
 The authenticated save service must validate the document and the pinned component authority.
 
+`suspendEditing()` makes the frame inert and requests its final complete draft.
+The child refuses while an open control or invalid field needs attention.
+The parent validates the correlated acknowledgement and delivers its content to `draftChanged` before the promise resolves.
+Only then can the caller acquire the explicit-edit lease from the queue.
+The caller keeps autosave authority active while it freezes frame interaction.
+`resumeEditing()` requires a live channel and the original suspension request.
+The caller must release the queue lease and check current authority before it resumes the frame.
+A committed edit requires a fresh grant. Access loss rejects an outstanding acknowledgement.
+
 `selectIssue({ nodeId, field })` asks the frame to reveal the node's ancestors and focus its field.
 `restoreFocus()` sends the last selection back to the frame.
 `frameDriver/` validates parent commands against the bootstrap identity, origin, channel, and sequence.
