@@ -192,5 +192,10 @@ test("allocated review waits preserve pending state before invocation", () => {
 	f.observed.occurrences[0]!.state = "pending";
 	f.observed.occurrences[0]!.startedAt = null;
 	const result = run(f);
-	expect(result.occurrences[0]).toMatchObject({ state: "pending", waitReason: "review", startedAt: null, attempts: [] });
+	expect(result.occurrences[0]).toMatchObject({
+		state: "pending",
+		waitReason: "review",
+		startedAt: null,
+		attempts: [],
+	});
 });

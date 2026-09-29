@@ -16,10 +16,15 @@ export function nativeOccurrence(
 		attemptId: provenance.attemptId,
 		workspaceId: handle.workspaceId,
 		workspaceCommit:
-			workspaceObservations.find((item) => item.executionId === provenance.request.executionId &&
-				item.stepId === provenance.stepId && item.attemptId === provenance.attemptId &&
-				item.workspaceId === handle.workspaceId)?.workspaceCommit ??
-			base.attempts.find((attempt) => attempt.attemptId === provenance.attemptId)?.workspaceCommit ?? null,
+			workspaceObservations.find(
+				(item) =>
+					item.executionId === provenance.request.executionId &&
+					item.stepId === provenance.stepId &&
+					item.attemptId === provenance.attemptId &&
+					item.workspaceId === handle.workspaceId,
+			)?.workspaceCommit ??
+			base.attempts.find((attempt) => attempt.attemptId === provenance.attemptId)?.workspaceCommit ??
+			null,
 		providerSessionId: handle.providerSessionId,
 		state: handle.state === "unknown" ? "unknown" : completion ? "exited" : launchReceipt ? "launched" : "reserved",
 		launchedAt: launchReceipt?.launchedAt ?? null,

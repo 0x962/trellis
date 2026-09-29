@@ -4,9 +4,9 @@ import { DeliveryAuthorityV1Schema } from "../../../langflowContracts";
 import { fixture } from "../testFixture";
 import { createProjectionDomain } from "./createProjectionDomain";
 
-const authority = DeliveryAuthorityV1Schema.parse(JSON.parse(readFileSync(
-	new URL("../../../langflowContracts/fixtures/authority.json", import.meta.url), "utf8",
-)));
+const authority = DeliveryAuthorityV1Schema.parse(
+	JSON.parse(readFileSync(new URL("../../../langflowContracts/fixtures/authority.json", import.meta.url), "utf8")),
+);
 
 test("each engine read follows a fresh public revision and keeps original authority bytes", async () => {
 	const calls: string[] = [];
@@ -18,15 +18,28 @@ test("each engine read follows a fresh public revision and keeps original author
 		readAuthorityBytes: () => authorityBytes,
 		state: async ({ executionId }) => {
 			calls.push(`state:${after}`);
-			return { executionId, publicationId: authority.publicationId, engineJobId: authority.engineJobId,
-				authority, expectedRevision: 10 + after, after };
+			return {
+				executionId,
+				publicationId: authority.publicationId,
+				engineJobId: authority.engineJobId,
+				authority,
+				expectedRevision: 10 + after,
+				after,
+			};
 		},
-		engine: { request: async (input) => {
-			calls.push(`read:${after}`);
-			expect(JSON.parse(input.body!).authorityBytes).toBe(authorityBytes);
-			expect(input.capabilityId).toBe(authority.capabilityId);
-			return { state: "received", status: 200, contentType: "application/json", bytes: new TextEncoder().encode("{}") };
-		} },
+		engine: {
+			request: async (input) => {
+				calls.push(`read:${after}`);
+				expect(JSON.parse(input.body!).authorityBytes).toBe(authorityBytes);
+				expect(input.capabilityId).toBe(authority.capabilityId);
+				return {
+					state: "received",
+					status: 200,
+					contentType: "application/json",
+					bytes: new TextEncoder().encode("{}"),
+				};
+			},
+		},
 		apply: async ({ prepared, authorityBytes: original }) => {
 			calls.push(`apply:${after}`);
 			expect(prepared.expectedRevision).toBe(10 + after);
@@ -43,9 +56,18 @@ test("each engine read follows a fresh public revision and keeps original author
 test("a canceled host signal prevents recovery and engine requests", async () => {
 	const abort = new AbortController();
 	abort.abort();
-	const unexpected = async (): Promise<never> => { throw new Error("unexpected_call"); };
-	const domain = createProjectionDomain({ hostId: "host", signal: abort.signal, state: unexpected,
-		apply: unexpected, recovery: unexpected, engine: { request: unexpected }, readAuthorityBytes: () => "" });
+	const unexpected = async (): Promise<never> => {
+		throw new Error("unexpected_call");
+	};
+	const domain = createProjectionDomain({
+		hostId: "host",
+		signal: abort.signal,
+		state: unexpected,
+		apply: unexpected,
+		recovery: unexpected,
+		engine: { request: unexpected },
+		readAuthorityBytes: () => "",
+	});
 	await domain.recover();
 	await domain.committed({ executionId: "execution" });
 });

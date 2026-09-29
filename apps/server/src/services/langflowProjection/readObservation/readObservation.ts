@@ -11,7 +11,7 @@ import {
 	protocolDigest,
 	ReviewWaitV1Schema,
 } from "../../../langflowContracts";
-import { documentBytes, readExecutionPublication, type RetainedExecutionPublication } from "../../flowDocuments";
+import { documentBytes, type RetainedExecutionPublication, readExecutionPublication } from "../../flowDocuments";
 import { type ObservedOccurrence, ProjectionObservationSchema } from "../observation";
 
 const projection = z.strictObject({
@@ -52,7 +52,10 @@ const graphSchema = z.looseObject({
 });
 const specSchema = z.looseObject({ nodeId: z.string(), name: z.string(), instruction: z.string() });
 const gateSpecSchema = z.strictObject({ nodeId: z.string(), reviewArea: z.enum(["frontend", "backend"]) });
-const observedFacts = (value: z.infer<typeof projection> | undefined, acceptedResultId: string | null = null): z.infer<typeof projection> =>
+const observedFacts = (
+	value: z.infer<typeof projection> | undefined,
+	acceptedResultId: string | null = null,
+): z.infer<typeof projection> =>
 	value ?? { state: "unknown", acceptedResultId, startedAt: null, endedAt: null, error: null, skipReason: null };
 const nodeKinds = new Map<string, ObservedOccurrence["kind"]>([
 	["TrellisNativeAgentV1", "agent"],
@@ -74,9 +77,18 @@ export function readObservation(
 		if (kind === undefined) throw new Error("projection_node_metadata_missing");
 		return kind;
 	};
-	const binding = (request: { executionId: string; publicationId: string; engineJobId: string; engineEpoch: number }) => {
-		if (request.executionId !== execution.executionId || request.publicationId !== execution.publicationId ||
-			request.engineJobId !== snapshot.engineJobId || request.engineEpoch > snapshot.engineEpoch)
+	const binding = (request: {
+		executionId: string;
+		publicationId: string;
+		engineJobId: string;
+		engineEpoch: number;
+	}) => {
+		if (
+			request.executionId !== execution.executionId ||
+			request.publicationId !== execution.publicationId ||
+			request.engineJobId !== snapshot.engineJobId ||
+			request.engineEpoch > snapshot.engineEpoch
+		)
 			throw new Error("projection_occurrence_binding_conflict");
 	};
 	const rows: ObservedOccurrence[] = [];
@@ -91,17 +103,31 @@ export function readObservation(
 			if ((current.kind === "human") !== (kind === "human")) throw new Error("projection_kind_conflict");
 			for (const item of [...current.prior, current]) {
 				const rawRequest: unknown = JSON.parse(item.requestBytes);
-				const request = current.kind === "human" ? HumanWaitV1Schema.parse(rawRequest) : NativeRequestV1Schema.parse(rawRequest);
+				const request =
+					current.kind === "human" ? HumanWaitV1Schema.parse(rawRequest) : NativeRequestV1Schema.parse(rawRequest);
 				binding(request);
-				const occurrence = "occurrence" in request ? request.occurrence : OccurrenceV1Schema.parse({
-					nodeId: request.nodeId, occurrenceKey: request.occurrenceKey, parentOccurrenceKey: request.parentOccurrenceKey,
-					phase: request.phase, iterationPath: request.iterationPath,
-				});
+				const occurrence =
+					"occurrence" in request
+						? request.occurrence
+						: OccurrenceV1Schema.parse({
+								nodeId: request.nodeId,
+								occurrenceKey: request.occurrenceKey,
+								parentOccurrenceKey: request.parentOccurrenceKey,
+								phase: request.phase,
+								iterationPath: request.iterationPath,
+							});
 				if (!isDeepStrictEqual(occurrence, item.occurrence) || occurrence.nodeId !== spec.nodeId)
 					throw new Error("projection_occurrence_identity_conflict");
-				rows.push({ ...occurrence, ...observedFacts(item.projection), kind, reviewArea: null, title: spec.name,
-					instruction: spec.instruction, actionKey: "actionKey" in request ? request.actionKey : request.requestId,
-					deadlineRefs: "deadlineRefs" in request ? request.deadlineRefs : request.groupDeadlineRefs });
+				rows.push({
+					...occurrence,
+					...observedFacts(item.projection),
+					kind,
+					reviewArea: null,
+					title: spec.name,
+					instruction: spec.instruction,
+					actionKey: "actionKey" in request ? request.actionKey : request.requestId,
+					deadlineRefs: "deadlineRefs" in request ? request.deadlineRefs : request.groupDeadlineRefs,
+				});
 			}
 		}
 		for (const item of Object.values(journal.reviewVisits ?? {})) {
@@ -109,19 +135,34 @@ export function readObservation(
 			const spec = gateSpecSchema.parse(rawSpec);
 			const wait = z.looseObject({ request: ReviewWaitV1Schema }).parse(JSON.parse(item.waitBytes)).request;
 			binding(wait);
-			if (archivedKind(item.vertexId) !== "gate" || spec.nodeId !== wait.occurrence.nodeId ||
-				spec.reviewArea !== wait.reviewArea || observedFacts(item.projection, item.acceptedResultId).acceptedResultId !== item.acceptedResultId ||
-				protocolDigest(documentBytes(rawSpec).toString("utf8")) !== item.specHash)
+			if (
+				archivedKind(item.vertexId) !== "gate" ||
+				spec.nodeId !== wait.occurrence.nodeId ||
+				spec.reviewArea !== wait.reviewArea ||
+				observedFacts(item.projection, item.acceptedResultId).acceptedResultId !== item.acceptedResultId ||
+				protocolDigest(documentBytes(rawSpec).toString("utf8")) !== item.specHash
+			)
 				throw new Error("projection_review_identity_conflict");
-			rows.push({ ...wait.occurrence, ...observedFacts(item.projection, item.acceptedResultId), kind: "gate", reviewArea: spec.reviewArea,
-				title: spec.nodeId, instruction: "", actionKey: wait.actionKey, deadlineRefs: wait.deadlineRefs });
+			rows.push({
+				...wait.occurrence,
+				...observedFacts(item.projection, item.acceptedResultId),
+				kind: "gate",
+				reviewArea: spec.reviewArea,
+				title: spec.nodeId,
+				instruction: "",
+				actionKey: wait.actionKey,
+				deadlineRefs: wait.deadlineRefs,
+			});
 		}
 	}
 	const savedGraph = z.record(z.string(), z.json()).parse(JSON.parse(snapshot.graphCheckpointBytes));
 	for (const key of ["trellis_loop_visits", "group_visit_scopes"])
 		if (savedGraph[key] !== undefined && Object.keys(z.record(z.string(), z.json()).parse(savedGraph[key])).length > 0)
 			throw new Error("projection_container_history_missing");
-	const outcome = snapshot.jobOutcomeBytes === null ? null : EngineProjectionOutcomeV1Schema.parse(JSON.parse(snapshot.jobOutcomeBytes));
+	const outcome =
+		snapshot.jobOutcomeBytes === null
+			? null
+			: EngineProjectionOutcomeV1Schema.parse(JSON.parse(snapshot.jobOutcomeBytes));
 	return ProjectionObservationSchema.parse({
 		expectedRevision,
 		checkpoint: EngineCheckpointV1Schema.parse(JSON.parse(snapshot.checkpointBytes)),

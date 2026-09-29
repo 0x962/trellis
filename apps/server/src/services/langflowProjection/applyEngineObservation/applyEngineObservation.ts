@@ -2,7 +2,12 @@ import { isDeepStrictEqual } from "node:util";
 import type { ServiceCtx } from "../../../context";
 import { lockExecution, readEngineSnapshot, readProjection } from "../../../db/queries/langflowExecution";
 import type { Tx } from "../../../db/tx";
-import { DeliveryAuthorityV1Schema, EngineProjectionSnapshotV1Schema, protocolDigest, SourceEventV1Schema } from "../../../langflowContracts";
+import {
+	DeliveryAuthorityV1Schema,
+	EngineProjectionSnapshotV1Schema,
+	protocolDigest,
+	SourceEventV1Schema,
+} from "../../../langflowContracts";
 import { EngineProjectionResponseV1Schema } from "../engineObservation/schema";
 import type { PreparedProjection } from "../projectionState";
 import { readObservation } from "../readObservation";
@@ -18,8 +23,12 @@ export async function applyEngineObservation(
 	const execution = await lockExecution(tx, prepared);
 	const stored = await readProjection(tx, prepared);
 	const previous = await readEngineSnapshot(tx, prepared);
-	if (!stored || stored.view.revision !== prepared.expectedRevision ||
-		(previous?.sourceCursor ?? 0) !== prepared.after || !isDeepStrictEqual(execution.authority, prepared.authority))
+	if (
+		!stored ||
+		stored.view.revision !== prepared.expectedRevision ||
+		(previous?.sourceCursor ?? 0) !== prepared.after ||
+		!isDeepStrictEqual(execution.authority, prepared.authority)
+	)
 		throw new Error("projection_conflict");
 	const authority = DeliveryAuthorityV1Schema.parse(JSON.parse(input.authorityBytes));
 	if (!isDeepStrictEqual(authority, prepared.authority)) throw new Error("authority_conflict");
@@ -35,17 +44,26 @@ export async function applyEngineObservation(
 	if (snapshot.engineEpoch !== authority.engineEpoch) throw new Error("stale_owner");
 	let sourceBytes: string | null = null;
 	if (response.state !== "unchanged") {
-		if (protocolDigest(snapshotBytes) !== response.snapshotDigest ||
+		if (
+			protocolDigest(snapshotBytes) !== response.snapshotDigest ||
 			protocolDigest(response.sourceBytes) !== response.sourceDigest ||
-			snapshot.sourceCursor !== response.sourceCursor || response.sourceCursor <= prepared.after ||
-			(response.state === "snapshot" && response.sourceCursor !== prepared.after + 1))
+			snapshot.sourceCursor !== response.sourceCursor ||
+			response.sourceCursor <= prepared.after ||
+			(response.state === "snapshot" && response.sourceCursor !== prepared.after + 1)
+		)
 			throw new Error("projection_cursor_conflict");
 		const source = SourceEventV1Schema.parse(JSON.parse(response.sourceBytes));
 		const checkpoint: { checkpointId: string; revision: number } = JSON.parse(snapshot.checkpointBytes);
-		if (source.executionId !== snapshot.executionId || source.publicationId !== snapshot.publicationId ||
-			source.engineJobId !== snapshot.engineJobId || source.engineEpoch !== snapshot.engineEpoch ||
-			source.payload.kind !== "checkpoint_saved" || source.payload.receiptId !== checkpoint.checkpointId ||
-			source.sourceEventId !== checkpoint.checkpointId || checkpoint.revision !== snapshot.sourceCursor)
+		if (
+			source.executionId !== snapshot.executionId ||
+			source.publicationId !== snapshot.publicationId ||
+			source.engineJobId !== snapshot.engineJobId ||
+			source.engineEpoch !== snapshot.engineEpoch ||
+			source.payload.kind !== "checkpoint_saved" ||
+			source.payload.receiptId !== checkpoint.checkpointId ||
+			source.sourceEventId !== checkpoint.checkpointId ||
+			checkpoint.revision !== snapshot.sourceCursor
+		)
 			throw new Error("projection_event_binding_conflict");
 		sourceBytes = response.sourceBytes;
 	}
@@ -57,5 +75,5 @@ export async function applyEngineObservation(
 		engineSnapshot: { sourceCursor: snapshot.sourceCursor, snapshotBytes },
 	});
 	if (result.state === "duplicate") throw new Error("projection_cursor_conflict");
-	return { state: response.state === "unchanged" ? "unchanged" as const : "advanced" as const, view: result.view };
+	return { state: response.state === "unchanged" ? ("unchanged" as const) : ("advanced" as const), view: result.view };
 }
