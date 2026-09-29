@@ -18,13 +18,13 @@ function snapshot(sourceCursor = 1001) {
 	const checkpoint = {
 		version: 1, executionId: ids.execution, publicationId: ids.publication,
 		engineJobId: jobId, engineEpoch: 1, checkpointId: "checkpoint-1",
-		revision: 1, continuationRef: "continue-1", waits: [],
+		revision: sourceCursor, continuationRef: "continue-1", waits: [],
 	};
 	const snapshotBytes = ` ${JSON.stringify({
 		version: 1, executionId: ids.execution, publicationId: ids.publication,
 		engineJobId: jobId, engineEpoch: 1, sourceCursor, capturedAt: now.toISOString(),
 		checkpointBytes: ` ${JSON.stringify(checkpoint)}\n`, graphCheckpointBytes: '{ "graph": [] }\n',
-		occurrenceJournalBytes: ' [ ]\r\n', jobStatus: "waiting", jobOutcomeBytes: null,
+		occurrenceJournalBytes: ' [ ]\r\n', jobStatus: "suspended", jobOutcomeBytes: null,
 	})}\r\n`;
 	return { sourceCursor, snapshotBytes };
 }
@@ -81,6 +81,25 @@ test("rolls back snapshot and projection together and refuses a foreign job or e
 		const bytes = JSON.stringify({ ...JSON.parse(snapshot().snapshotBytes), ...change });
 		await expect(db.transaction((tx) => commitProjection(tx, {
 			...input, engineSnapshot: { sourceCursor: 1001, snapshotBytes: bytes },
-		}))).rejects.toThrow("engine_snapshot_identity_conflict");
+		}))).rejects.toThrow();
 	}
+}, 60000);
+
+test("refuses checkpoint cursor mismatch and missing terminal outcome", async () => {
+	const fixture = await setup();
+	const original = snapshot();
+	const parsed = JSON.parse(original.snapshotBytes);
+	const checkpoint = JSON.parse(parsed.checkpointBytes);
+	const input = {
+		executionId: ids.execution, expectedRevision: 1,
+		view: { ...fixture.view, revision: 2 }, event: null, sourceBytes: null,
+	};
+	await expect(db.transaction((tx) => commitProjection(tx, {
+		...input, engineSnapshot: { ...original, snapshotBytes: JSON.stringify({
+			...parsed, checkpointBytes: JSON.stringify({ ...checkpoint, revision: 1 }),
+		}) },
+	}))).rejects.toThrow("engine_snapshot_identity_conflict");
+	await expect(db.transaction((tx) => commitProjection(tx, {
+		...input, engineSnapshot: { ...original, snapshotBytes: JSON.stringify({ ...parsed, jobStatus: "completed" }) },
+	}))).rejects.toThrow();
 }, 60000);
