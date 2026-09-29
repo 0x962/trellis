@@ -73,7 +73,7 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, description, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES ('01J00000000000000000000101', '01J00000000000000000000100',
-			'Todo', 'Existing status.', 'todo', 'todo', 'muted', 0, true, ${at}, ${at})`);
+			'Todo', 'Existing status.', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	const originalProject = (await db.execute(sql`SELECT * FROM projects WHERE key = 'OLD'`)).rows;
 	const originalStatuses = (
 		await db.execute(sql`SELECT * FROM statuses WHERE project_id = '01J00000000000000000000100' ORDER BY id`)
