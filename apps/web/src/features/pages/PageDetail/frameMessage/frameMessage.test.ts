@@ -33,9 +33,6 @@ test("accepts strict comment anchors and bounded pin positions", () => {
 			items: [{ thread: "01M3D5Q1S0KXJ0BVEHDVFFVMS8", x: 20, y: 40 }],
 		}),
 	).toMatchObject({ type: "page-comment-layout", items: [{ x: 20, y: 40 }] });
-	expect(
-		message({ type: "page-comment-anchor-error", nonce: "nonce", message: "Select 2,000 characters or fewer." }),
-	).toMatchObject({ type: "page-comment-anchor-error" });
 });
 test("accepts and validates pin positions after item 500", () => {
 	const items = Array.from({ length: 501 }, (_, index) => ({ thread: `thread-${index}`, x: index, y: index + 1 }));
@@ -67,4 +64,20 @@ test("refuses mutations and invalid coordinates even from the right frame", () =
 		null,
 	])
 		expect(message(data)).toBeNull();
+});
+
+test("large anchors retain frame isolation and structural validation", () => {
+	const anchor = {
+		kind: "text" as const,
+		path: `html>${"div:nth-of-type(1)>".repeat(300)}p`,
+		quote: "界".repeat(20000),
+		prefix: "",
+		suffix: "",
+	};
+	const data = { type: "page-comment-anchor" as const, nonce: "nonce", anchor };
+	expect(message(data)).toEqual(data);
+	expect(message(data, {} as Window)).toBeNull();
+	expect(message({ ...data, nonce: "foreign" })).toBeNull();
+	expect(message({ ...data, anchor: { ...anchor, action: "delete" } })).toBeNull();
+	expect(message({ ...data, anchor: { ...anchor, path: "main<script>" } })).toBeNull();
 });
