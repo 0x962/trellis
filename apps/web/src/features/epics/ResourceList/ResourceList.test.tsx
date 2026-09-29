@@ -152,15 +152,13 @@ describe("ResourceList", () => {
 		])) {
 			expect(html).toContain('aria-label="New document"');
 		}
-		const readOnly = renderToStaticMarkup(
-			<ResourceList resources={resources} {...controls} onNewDocument={undefined} />,
-		);
+		const readOnly = await render(<ResourceList resources={resources} {...controls} onNewDocument={undefined} />);
 		expect(readOnly).not.toContain('aria-label="New document"');
 	});
 
 	test("marks the open document, and says Untitled for a document with no title", async () => {
 		const untitled: Resource = { ...resources[0]!, id: "01AAAAAAAAAAAAAAAAAAAAAAA5", name: "", body: "" };
-		const html = renderToStaticMarkup(
+		const html = await render(
 			<ResourceList resources={[untitled]} {...controls} openDocId="01AAAAAAAAAAAAAAAAAAAAAAA5" />,
 		);
 
