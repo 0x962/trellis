@@ -37,15 +37,7 @@ class TrellisLoopV1(Component):
 		scope_value = getattr(self, "_trellis_inherited_scope", None)
 		if scope_value is None:
 			scope = await capture_visit_scope(self.graph, self._vertex.id)
-			scope_value = {
-				"parentOccurrenceKey": scope.parent_occurrence_key,
-				"phase": scope.phase,
-				"iterationPath": [
-					{"loopNodeId": item.loop_node_id, "round": item.round}
-					for item in scope.iteration_path
-				],
-				**scope.facts(),
-			}
+			scope_value = scope.to_engine()
 			self._trellis_inherited_scope = scope_value
 		visit = await self.graph.begin_trellis_loop_visit(
 			loop_node_id=self._id,
