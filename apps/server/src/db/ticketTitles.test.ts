@@ -21,14 +21,15 @@ const projectId = ulid();
 const statusId = ulid();
 const originalId = ulid();
 const originalTitle = "Existing title 漢字";
-const title = "漢字 café 🧪 ".repeat(120).trim();
+const title = "漢字 café 𠮷 ".repeat(120).trim();
 const at = "2026-09-29T20:00:00.000Z";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => withTx(db, fn).then(({ result }) => result);
 
 beforeAll(async () => {
 	const migrationsDir = join(import.meta.dir, "../../drizzle");
 	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8"));
-	const entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 136);
+	const migrationIndex = journal.entries.findIndex((entry: { tag: string }) => entry.tag.endsWith("_ticket_titles"));
+	const entries = journal.entries.slice(0, migrationIndex);
 	const directory = await mkdtemp(join(tmpdir(), "trellis-ticket-title-"));
 	await mkdir(join(directory, "meta"));
 	await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
@@ -69,7 +70,7 @@ test("the forward migration preserves rows and complete multibyte titles across 
 	await expect(db.execute(sql`UPDATE tickets SET title = ${title} WHERE id = ${originalId}`)).rejects.toThrow(
 		"tickets_title_check",
 	);
-	expect(await migrate(db)).toBe(1);
+	expect(await migrate(db)).toBeGreaterThanOrEqual(1);
 	expect((await db.execute(sql`SELECT * FROM tickets WHERE id = ${originalId}`)).rows).toEqual(before);
 	const created = await run((tx) => create(ctx, tx, { project: "TTL", title }));
 	expect(TicketSchema.parse(created).title).toBe(title);
