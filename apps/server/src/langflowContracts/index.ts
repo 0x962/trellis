@@ -6,6 +6,7 @@ export * from "./failures";
 export * from "./human";
 export * from "./native";
 export * from "./primitives";
+export * from "./projection";
 export * from "./protocolBytes";
 export * from "./results";
 export * from "./review";
