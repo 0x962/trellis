@@ -7,6 +7,8 @@ export type CandidatePackage = {
 	readonly qualification: "candidate";
 	readonly enginePackageDigest: string;
 	readonly componentManifestHash: string;
+	readonly componentManifestPath: string;
+	readonly engineOverlayHash: string;
 	readonly targetArchitecture: "arm64" | "x86_64";
 	readonly engine: {
 		readonly layoutDirectory: string;
@@ -36,6 +38,8 @@ export async function loadCandidatePackage(root: string, expectedPackageId: stri
 		qualification: "candidate",
 		enginePackageDigest: packageId,
 		componentManifestHash: recipe.components.catalog.sha256,
+		componentManifestPath: join(absolute, "payload", recipe.components.catalog.path),
+		engineOverlayHash: recipe.patchSet.sha256,
 		targetArchitecture: recipe.target.architecture,
 		engine: Object.freeze({
 			layoutDirectory,
