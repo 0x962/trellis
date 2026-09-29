@@ -14,6 +14,8 @@ import type { Db } from "./client.ts";
 import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test'])`;
+
 // One root TST with a todo status, a started status, a human review status,
 // a done status, and a canceled status. The epic TST/plan holds the waves Foundation,
 // Surfaces, and Integrate in that order, and the epic TST/flat holds none.
@@ -85,13 +87,13 @@ const insertPullRequest = async (
 			VALUES (${id}, ${headSha}, 'It changes the page.', 'The page was wrong.', 'nothing',
 				'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 		await db.execute(sql`INSERT INTO pr_evidence_documents
-			(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${headSha}, 'Proof.', 'Test', 'human',
+			(pull_request_id, head_sha, body, actor_id, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${id}, ${headSha}, 'Proof.', ${actorId}, 'Test', 'human',
 				'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 	}
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', '2026-09-18T10:00:00.000Z')`);
+		ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${id}, 'manual', ${actorId}, 'Test', 'human', '2026-09-18T10:00:00.000Z')`);
 	if (options.openThread)
 		await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at)
 			VALUES (${ulid()}, ${id}, ${{ status: "open" }}, '2026-09-18T10:00:00.000Z')`);
