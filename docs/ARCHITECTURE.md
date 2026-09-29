@@ -1234,6 +1234,12 @@ component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE
 The issuer requires the host bearer, the exact parent Origin, and a stored
 `defaultActorName`. An actor header identifies a request; it does not authenticate a person.
 The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+The HTTP adapter calls the plain issuer, sets the credential cookie, and returns the session.
+Its service calls retain the request ID and database timing collector.
+`flowDocumentsV1.editorHost` reads the current host and data-home identifiers from the host control directory.
+It returns their combined identity, or `null` when the editor has no configuration.
+Grant operations reject a changed host identity.
+Version conflicts return 412, concurrent channel saves return 409, and an unconfigured actor returns 503.
 
 A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
 The grant service holds the channel until the actual document transaction returns.
