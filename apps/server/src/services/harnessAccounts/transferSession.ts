@@ -1,12 +1,10 @@
-import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { promisify } from "node:util";
 import type { AccountHarness } from "@trellis/api";
 import { z } from "zod";
+import { transferOpenCode } from "./transferOpenCode";
 
-const exec = promisify(execFile);
 type Input = {
 	harness: AccountHarness;
 	from: string;
@@ -23,27 +21,7 @@ export async function transferSession(input: Input) {
 		.parse(sessionId);
 	if ((await realpath(from)) === (await realpath(to))) return;
 	if (harness === "opencode") {
-		const exported = await exec("opencode", ["export", sessionId], {
-			cwd: input.cwd,
-			env: { ...input.env, XDG_DATA_HOME: from },
-			maxBuffer: 64 * 1024 * 1024,
-			timeout: 30000,
-		});
-		const data = z
-			.object({ info: z.object({ id: z.string() }), messages: z.array(z.unknown()) })
-			.parse(JSON.parse(exported.stdout));
-		if (data.info.id !== sessionId) throw new Error("OpenCode exported a different session.");
-		await mkdir(input.directory, { recursive: true, mode: 0o700 });
-		const path = join(input.directory, "session.json");
-		await writeFile(path, exported.stdout, { mode: 0o600 });
-		const imported = await exec("opencode", ["import", path], {
-			cwd: input.cwd,
-			env: { ...input.env, XDG_DATA_HOME: to },
-			maxBuffer: 1024 * 1024,
-			timeout: 30000,
-		});
-		if (!imported.stdout.includes(`Imported session: ${sessionId}`))
-			throw new Error("OpenCode did not confirm the imported session.");
+		await transferOpenCode(input);
 		return;
 	}
 	if (harness === "muse") {
