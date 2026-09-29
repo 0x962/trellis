@@ -52,7 +52,6 @@ export function bootstrapFixture() {
 		editorOrigin: "http://127.0.0.1:7860",
 		engineApiConfigFile: "/private/engine.json",
 		captureIssuerFile: "/private/capture.key",
-		nativeReservationAuthenticationFile: "/private/native.key",
 	};
 	const forbidden = async (): Promise<never> => { throw new Error("unexpected_authority_operation"); };
 	const authority: AuthorityPort = {
