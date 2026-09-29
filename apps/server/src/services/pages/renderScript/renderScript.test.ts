@@ -64,7 +64,7 @@ test("an oversized selection reports its limit without an element anchor", () =>
 	}
 });
 
-test("the Page runtime measures a visible region and keeps every selected pin reachable", () => {
+test("the Page runtime reports every pin in the visible region", () => {
 	const listeners = new Map<string, EventListener[]>();
 	const frames: FrameRequestCallback[] = [];
 	const sent: { type: string; items?: { thread: string }[] }[] = [];
@@ -155,11 +155,12 @@ test("the Page runtime measures a visible region and keeps every selected pin re
 			observer as unknown as IntersectionObserver,
 		);
 		flush();
-		expect(layouts().at(-1)?.items).toHaveLength(200);
+		expect(layouts().at(-1)?.items).toHaveLength(501);
+		expect(layouts().at(-1)?.items?.at(-1)?.thread).toBe("thread-500");
 		dispatch("scroll", {});
 		flush();
 		expect(queryCount).toBe(501);
-		expect(layouts().at(-1)?.items).toHaveLength(200);
+		expect(layouts().at(-1)?.items).toHaveLength(501);
 		for (const comment of comments) {
 			dispatch("message", {
 				source: parent,

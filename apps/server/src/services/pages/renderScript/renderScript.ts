@@ -102,7 +102,6 @@ const contentRuntime = (nonce: string) => {
 		element: Element;
 		target: Element | Range;
 	};
-	const layoutLimit = 200;
 	let activeThread: string | null = null;
 	let commentsByElement = new Map<Element, ResolvedComment[]>();
 	let resolvedByThread = new Map<string, ResolvedComment>();
@@ -114,7 +113,7 @@ const contentRuntime = (nonce: string) => {
 		const items: { thread: string; x: number; y: number }[] = [];
 		const included = new Set<string>();
 		const add = (comment: ResolvedComment | undefined) => {
-			if (comment === undefined || included.has(comment.thread) || items.length === layoutLimit) return;
+			if (comment === undefined || included.has(comment.thread)) return;
 			const rect = comment.target.getBoundingClientRect();
 			if (
 				comment.thread !== activeThread &&
@@ -131,7 +130,6 @@ const contentRuntime = (nonce: string) => {
 		add(activeThread === null ? undefined : resolvedByThread.get(activeThread));
 		for (const element of visibleElements) {
 			for (const comment of commentsByElement.get(element) ?? []) add(comment);
-			if (items.length === layoutLimit) break;
 		}
 		send({ type: "page-comment-layout", items });
 	};

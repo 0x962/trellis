@@ -11,8 +11,6 @@ type PinView = {
 	onClick: () => void;
 };
 
-const PIN_RENDER_LIMIT = 200;
-
 const pinLabel = ({ number, thread }: NumberedThread) => {
 	const author = thread.creator.displayName ?? thread.creator.name;
 	const state = thread.resolved === null ? "open" : "resolved";
@@ -55,12 +53,10 @@ export function PageCommentPins({
 	);
 	const selectedPosition = selectedThread === null ? undefined : positions.get(selectedThread);
 	const visible: { pin: PinView; position: { x: number; y: number } }[] = [];
-	const otherLimit = PIN_RENDER_LIMIT - (selectedPosition === undefined ? 0 : 1);
 	for (const [threadId, position] of positions) {
 		if (threadId === selectedThread) continue;
 		const pin = pins.get(threadId);
 		if (pin !== undefined) visible.push({ pin, position });
-		if (visible.length === otherLimit) break;
 	}
 	if (selectedThread !== null && selectedPosition !== undefined) {
 		const pin = pins.get(selectedThread);

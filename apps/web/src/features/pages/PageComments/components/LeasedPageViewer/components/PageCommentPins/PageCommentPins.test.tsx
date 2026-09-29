@@ -29,14 +29,13 @@ const thread = (index: number): PageCommentThread => {
 	};
 };
 
-test("bounds mounted pins and keeps pin 501 reachable", () => {
+test("renders more than 200 visible pins before any selection", () => {
 	const comments = Array.from({ length: 501 }, (_, index) => ({ number: index + 1, thread: thread(index) }));
 	const positions = new Map(comments.map(({ thread }, index) => [thread.id, { x: index, y: index }]));
-	const selected = comments[500]!.thread.id;
 	const html = renderToStaticMarkup(
-		<PageCommentPins threads={comments} positions={positions} selectedThread={selected} onOpenThread={() => {}} />,
+		<PageCommentPins threads={comments} positions={positions} selectedThread={null} onOpenThread={() => {}} />,
 	);
 
-	expect(html.match(/<button/g)).toHaveLength(200);
-	expect(html).toContain('aria-label="Comment 501, Navid, open, element main" aria-pressed="true"');
+	expect(html.match(/<button/g)).toHaveLength(501);
+	expect(html).toContain('aria-label="Comment 501, Navid, open, element main" aria-pressed="false"');
 });
