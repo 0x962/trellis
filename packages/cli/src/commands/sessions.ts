@@ -45,7 +45,7 @@ const sessionList: ListSpec<SessionDetail> = {
 const updateRecord: RecordSpec<SessionUpdate> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
-		{ name: "session", value: (row) => cell(row.sessionId) },
+		{ name: "session", value: (row) => row.sessionId },
 		{ name: "run", value: (row) => row.runId },
 		{ name: "request", value: (row) => cell(row.requestId) },
 		{ name: "created", value: (row) => row.createdAt },
