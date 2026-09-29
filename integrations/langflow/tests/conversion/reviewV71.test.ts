@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FlowDocSchema, FlowHarnessSchema } from "@trellis/api";
-import { documentBytes } from "../../../../apps/server/src/services/flowDocuments/documentBytes";
+import { documentBytes } from "../../../../apps/server/src/services/flowDocuments";
 import { prepareMigration } from "../../../../apps/server/src/services/langflowMigration";
 import { sourceDigest } from "../../../../apps/server/src/services/langflowMigration/sourceDigest";
 import baseline from "../semantics/review_v71_manifest.json";

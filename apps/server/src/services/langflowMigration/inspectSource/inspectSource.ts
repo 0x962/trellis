@@ -8,7 +8,7 @@ import {
 	validateFlowGraph,
 } from "@trellis/api";
 import { z } from "zod";
-import { documentBytes } from "../../flowDocuments/documentBytes";
+import { documentBytes } from "../../flowDocuments";
 import { sourceDigest } from "../sourceDigest";
 import type { SourceInspection, SourceRowManifest } from "../types";
 
@@ -51,7 +51,8 @@ export const inspectSource = (source: unknown): SourceInspection => {
 			}),
 		};
 	}
-	const doc = parsed.data;
+	// ModelIdSchema trims model names. Hash the original rows to retain each source value.
+	const doc = source as z.input<typeof SourceSchema>;
 	const diagnostics: FlowDiagnosticV1[] = validateFlowGraph(doc, "save").map((issue) => ({
 		code: `source_${issue.code}`,
 		message: issue.message,
