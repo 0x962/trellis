@@ -79,30 +79,51 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, classNa
 								onClick={() => onSelect(pressed ? null : row.key)}
 								className={cx(
 									"grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-md px-2 py-1.5 text-left transition-colors duration-hover ease-out",
+									"max-md:gap-x-2 max-md:gap-y-1 max-md:py-2",
 									"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 									pressed ? "bg-accent-soft" : "hover:bg-band",
 								)}
 							>
-								<span className="flex min-w-0 items-center gap-2">
+								<span className="flex min-w-0 items-center gap-2 max-md:col-span-2 max-md:items-start">
 									{row.icon !== undefined && <span className="inline-flex shrink-0 text-fg-muted">{row.icon}</span>}
-									<span className="truncate text-sm font-medium text-fg">{row.label}</span>
-									{row.detail !== undefined && (
-										<span className="min-w-0 truncate text-xs text-fg-muted">{row.detail}</span>
+									<span className="flex min-w-0 items-baseline gap-2 max-md:flex-col max-md:items-start max-md:gap-0.5">
+										<span
+											title={row.label}
+											className="min-w-0 truncate text-sm font-medium text-fg max-md:overflow-visible max-md:whitespace-normal max-md:[overflow-wrap:anywhere]"
+										>
+											{row.label}
+										</span>
+										{row.detail !== undefined && (
+											<span className="min-w-0 truncate text-xs text-fg-muted max-md:overflow-visible max-md:whitespace-normal max-md:[overflow-wrap:anywhere]">
+												{row.detail}
+											</span>
+										)}
+									</span>
+								</span>
+								<span className="flex items-center gap-3 max-md:col-span-2 max-md:row-start-2 max-md:justify-start max-md:gap-2">
+									{row.spark && (
+										<span className="max-md:hidden">
+											<Spark values={row.spark} />
+										</span>
 									)}
+									<span className="w-20 text-right text-sm text-fg tabular max-md:w-auto max-md:text-left">
+										{row.valueLabel}
+									</span>
+									<span className="w-10 text-right text-xs text-fg-faint tabular max-md:w-auto max-md:text-left">
+										{Math.round(row.share * 100)}%
+									</span>
 								</span>
-								<span className="flex items-center gap-3">
-									{row.spark && <Spark values={row.spark} />}
-									<span className="w-20 text-right text-sm text-fg tabular">{row.valueLabel}</span>
-									<span className="w-10 text-right text-xs text-fg-faint tabular">{Math.round(row.share * 100)}%</span>
-								</span>
-								<span aria-hidden="true" className="col-span-2 block h-1.5 w-full rounded-hairline bg-border">
+								<span
+									aria-hidden="true"
+									className="col-span-2 block h-1.5 w-full rounded-hairline bg-border max-md:row-start-3"
+								>
 									<span
 										className={cx("block h-1.5 rounded-hairline", chartBgClass[row.tone])}
 										style={{ width: `${max > 0 ? Math.max(1, (100 * row.value) / max) : 0}%` }}
 									/>
 								</span>
 							</button>
-							<span className="flex w-7 shrink-0 justify-center">{row.action}</span>
+							<span className="flex w-7 shrink-0 justify-center pointer-coarse:w-11">{row.action}</span>
 						</li>
 					);
 				})}
