@@ -2,6 +2,7 @@ import json
 from uuid import uuid4
 
 from langflow.services.deps import session_scope
+from langflow.services.trellis_v1.projection_store import record_projection_checkpoint
 
 from .occurrence_journal import OccurrenceConflict
 from .occurrence_models import digest
@@ -32,5 +33,6 @@ async def allocate_control_visit(graph, vertex_id, scope, node_id):
                 raise OccurrenceConflict("control_visit_replay_conflict")
             await save_journal(session, job_id, journal)
             await save_graph(session, job_id, graph)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
     return saved["occurrence"]

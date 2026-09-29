@@ -1,3 +1,4 @@
+import { EngineProjectionSnapshotV1Schema } from "../../../../langflowContracts/projection";
 import { eq } from "drizzle-orm";
 import { EngineCheckpointV1Schema, protocolDigest } from "../../../../langflowContracts";
 import { langflowExecutionProjections } from "../../../tables/langflowExecution";
@@ -23,7 +24,7 @@ export async function prepareEngineSnapshot(
 	execution: Awaited<ReturnType<typeof lockExecution>>,
 	input: EngineSnapshotInput,
 ) {
-	const snapshot = JSON.parse(input.snapshotBytes);
+	const snapshot = EngineProjectionSnapshotV1Schema.parse(JSON.parse(input.snapshotBytes));
 	const checkpoint = EngineCheckpointV1Schema.parse(JSON.parse(snapshot.checkpointBytes));
 	if (
 		!Number.isSafeInteger(input.sourceCursor) || input.sourceCursor < 0 ||
@@ -31,7 +32,8 @@ export async function prepareEngineSnapshot(
 		snapshot.publicationId !== execution.publicationId || snapshot.engineJobId !== execution.engineJobId ||
 		snapshot.engineEpoch !== execution.authority?.engineEpoch || snapshot.sourceCursor !== input.sourceCursor ||
 		checkpoint.executionId !== execution.executionId || checkpoint.publicationId !== execution.publicationId ||
-		checkpoint.engineJobId !== execution.engineJobId || checkpoint.engineEpoch !== snapshot.engineEpoch
+		checkpoint.engineJobId !== execution.engineJobId || checkpoint.engineEpoch !== snapshot.engineEpoch ||
+		checkpoint.revision !== input.sourceCursor
 	)
 		throw new Error("engine_snapshot_identity_conflict");
 	const previous = await readEngineSnapshot(tx, execution);

@@ -181,10 +181,10 @@ const statusRef = defineRef(
 	formatStatusRef,
 );
 
-// A label name and a label group name are 1 to 80 characters with no comma
+// A label name and a label group name contain nonempty text with no comma
 // and no slash. The slash is reserved for the `group/name` form, so a ref
 // holds one slash at most. The server matches a name without regard to case.
-const isLabelName = (value: string) => value.length >= 1 && value.length <= 80 && !value.includes(",");
+const isLabelName = (value: string) => value.length >= 1 && !value.includes(",");
 
 const parseLabelRef = (value: string): LabelRef | undefined => {
 	const text = value.trim();

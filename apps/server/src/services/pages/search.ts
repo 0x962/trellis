@@ -12,6 +12,7 @@ export type PageSearchInput = {
 	projectIds?: readonly string[];
 	rankProjectIds?: readonly string[];
 	limit: number;
+	offset?: number;
 };
 
 const scopeOf = (ids: SQL | undefined) => (ids === undefined ? sql`true` : sql`p.project_id = ANY(${ids})`);
@@ -46,7 +47,7 @@ export const pageSearchStatement = (actorId: string | null, input: PageSearchInp
 		JOIN ranked ON ranked.id = p.id
 		ORDER BY ${projectOrder} ranked.search_rank DESC, ranked.search_score DESC,
 			latest.created_at DESC, p.id DESC
-		LIMIT ${input.limit}`;
+		LIMIT ${input.limit} OFFSET ${input.offset ?? 0}`;
 };
 
 export const searchPages = async (ctx: ServiceCtx, tx: Tx, input: PageSearchInput): Promise<PageSummary[]> => {
