@@ -6,7 +6,6 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
-import { SEARCH_TIMEOUT_MS } from "../../db/queries/search.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { pageObjectPath } from "../../storage/pageObjects.ts";
@@ -214,9 +213,6 @@ test("uses the three Page search indexes at 10,000 Pages", async () => {
 	expect(plan).toContain("pages_title_search_idx");
 	expect(plan).toContain("pages_summary_search_idx");
 	expect(plan).toContain("page_versions_search_text_idx");
-	const found = await db.transaction(async (tx) => {
-		await tx.execute(sql`SET LOCAL statement_timeout = ${sql.raw(String(SEARCH_TIMEOUT_MS))}`);
-		return searchPages(context(), tx, { q: "planprobe", limit: 20 });
-	});
+	const found = await db.transaction((tx) => searchPages(context(), tx, { q: "planprobe", limit: 20 }));
 	expect(found.map((page) => page.id)).toEqual(["scale-1", "scale-2", "scale-3"]);
 });

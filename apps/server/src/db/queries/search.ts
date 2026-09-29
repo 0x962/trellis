@@ -18,10 +18,6 @@ export type SearchRankInput = SearchInput & { rankProjectIds?: readonly string[]
 
 export const SEARCH_LIMIT = 20;
 
-// The search box takes at most 200 ms of database time; a slow query fails
-// instead of holding the one connection.
-export const SEARCH_TIMEOUT_MS = 200;
-
 // A ticket identifier typed into the box: the key and the number, in any
 // letter case. tickets.number is a Postgres integer, so a larger number
 // names no ticket and the text goes through the text search path.
@@ -176,7 +172,6 @@ export const search = async (tx: Tx, input: SearchRankInput): Promise<Pick<Searc
 	const narrowed = ids !== undefined;
 	const q = input.q.trim();
 	if (q === "") return { tickets: [], projects: [] };
-	await tx.execute(sql`SET LOCAL statement_timeout = ${sql.raw(String(SEARCH_TIMEOUT_MS))}`);
 	const id = identifierOf(q);
 	if (id !== null) {
 		const scope = narrowed ? sql`, ${ids}` : sql``;

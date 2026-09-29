@@ -1596,8 +1596,10 @@ every leading token as a whole lexeme and the last token as a prefix.
 The result unions with a trigram match on the title, ranked by
 `word_similarity`, when the text is 3 characters or longer. Text hits sort
 first, so the trigram index runs only when the text hits fill less than the
-page. The query dedupes, limits to 20 rows, and runs under a 200 ms statement
-timeout. The client debounces by 120 ms, keeps one search in flight, and drops a
+page. The query dedupes and limits each page to 20 rows.
+
+Search uses the database settings of its caller.
+The client debounces by 120 ms, keeps one search in flight, and drops a
 superseded one on both sides.
 
 Search responses include at most 50 matches per type and a nullable `nextOffset`.
