@@ -24,7 +24,7 @@ export async function deliverClassification(ctx: ReviewGateInvocationCtx,
 				authority.hostId !== observation.identity.hostId || authority.ownerId !== observation.identity.ownerId ||
 				ctx.control.archive.readAuthorityBytes(authority) !== input.authorityBytes) throw new Error("authority_conflict");
 			await assertOwnerActive(tx, authority);
-			assertAuthority(execution, authority, "classification.deliver", ctx.now());
+			await assertAuthority(tx, execution, authority, "classification.deliver", ctx.now());
 			if (execution.cancelIntent) return null;
 			return { execution, authority, gates: publishedGates(execution) };
 		});

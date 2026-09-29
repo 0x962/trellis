@@ -10,10 +10,20 @@ export const langflowExecutionProjections = pgTable("langflow_execution_projecti
 		.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 	view: jsonb().$type<FlowExecutionViewV1>().notNull(),
 	checkpoint: jsonb().$type<EngineCheckpointV1>(),
+	sourceCursor: bigint("source_cursor", { mode: "number" }).notNull().default(0),
+	snapshotBytes: text("snapshot_bytes"),
+	snapshotDigest: text("snapshot_digest"),
 	revision: bigint({ mode: "number" }).notNull(),
 	lastEventSeq: bigint("last_event_seq", { mode: "number" }).notNull(),
 	firstAvailableSeq: bigint("first_available_seq", { mode: "number" }).notNull(),
-});
+}, (t) => [
+	check("langflow_projection_source_cursor", sql`${t.sourceCursor} >= 0 AND ${t.sourceCursor} <= 9007199254740991`),
+	check("langflow_projection_snapshot_bytes", sql`
+		(${t.snapshotBytes} IS NULL AND ${t.snapshotDigest} IS NULL AND ${t.sourceCursor} = 0)
+		OR (${t.snapshotBytes} IS NOT NULL AND ${t.snapshotDigest} IS NOT NULL
+			AND ${t.snapshotDigest} = encode(sha256(convert_to(${t.snapshotBytes}, 'UTF8')), 'hex'))
+	`),
+]);
 export const langflowSourceEvents = pgTable(
 	"langflow_source_events",
 	{

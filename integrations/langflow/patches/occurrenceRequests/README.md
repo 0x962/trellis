@@ -149,3 +149,21 @@ These bytes remain available after the graph removes a completed wait.
 Before handle confirmation, the returned wait has kind `native_reservation`.
 A completion caller must require kind `native` before it delivers a native result.
 The authenticated route uses the original request bytes and the existing `native.read` permission.
+
+## Occurrence state and checkpoint events
+
+Apply `0006-occurrence-projection-writes.patch` after the retained wait fragment and the projection checkpoint fragment.
+Each native or human visit retains `projection` in the occurrence journal.
+New native requests start as `pending`. Dispatch records `unknown` before the external request.
+New human waits start as `waiting_human`.
+Accepted native results retain `completionId`; accepted human decisions retain `decisionId`.
+Receipt acceptance preserves the occurrence state and its nullable times.
+
+A replacement human wait retains the old projection in `prior`.
+That old occurrence has state `skipped`, reason `human_feedback_replaced`, and the actual replacement time.
+The new occurrence has its own request, wait, revision, and projection.
+
+The writers call `record_projection_checkpoint(session, job_id)` after the journal and graph writes, before commit.
+The helper retains the exact bytes and a durable event sequence in the same transaction.
+The graph owner supplies actual vertex completion facts. The native observer supplies actual process times and state.
+The fixtures cover receipt identity, replacement history, and uncertain dispatch before HTTP. Execution remains deferred.

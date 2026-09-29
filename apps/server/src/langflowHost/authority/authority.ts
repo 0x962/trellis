@@ -1,7 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
-import { protocolDigest, RenewalReceiptV1Schema, TakeoverReceiptV1Schema } from "../../langflowContracts";
 import type { AuthorityPort, LiveOwnership, OwnershipSnapshot } from "../contracts";
 import type { DispatchPermit } from "../dispatchGate/contracts";
+import { renewalCommit } from "./components/renewalCommit";
+import { takeoverCommit } from "./components/takeoverCommit";
 
 export type RenewalIntent = {
 	executionId: string;
@@ -37,45 +38,14 @@ export class ExecutionAuthority {
 				throw new Error("identity_conflict");
 			return receipt;
 		}
-		const { authority: current, canceled } = snapshot;
+		const { authority: current } = snapshot;
 		if (
 			current.hostId !== observation.identity.hostId ||
 			current.ownerId !== observation.identity.ownerId ||
 			current.ownershipRevision !== input.expectedRevision
 		)
 			throw new Error("ownership_conflict");
-		const request = {
-			version: 1 as const,
-			requestId: input.requestId,
-			executionId: input.executionId,
-			ownerId: current.ownerId,
-			engineEpoch: current.engineEpoch,
-			expectedRevision: input.expectedRevision,
-			supervisorObservationId: observation.id,
-		};
-		const requestBytes = JSON.stringify(request);
-		const receipt = RenewalReceiptV1Schema.parse({
-			version: 1,
-			request,
-			requestDigest: protocolDigest(requestBytes),
-			renewalId: crypto.randomUUID(),
-			authority: {
-				...current,
-				permissions: canceled ? ["execution.cancel"] : current.permissions,
-				ownershipRevision: current.ownershipRevision + 1,
-				capabilityId: crypto.randomUUID(),
-				issuedAt: observation.observedAt,
-				expiresAt: input.expiresAt,
-			},
-		});
-		return this.store.commit({
-			permit: input.permit,
-			requestBytes,
-			authorityBytes: JSON.stringify(receipt.authority),
-			receipt,
-			observation,
-			revocation: null,
-		});
+		return this.store.commit(renewalCommit(observation, input, snapshot));
 	}
 
 	async takeover(observation: LiveOwnership, input: TakeoverInput) {
@@ -96,7 +66,7 @@ export class ExecutionAuthority {
 				throw new Error("identity_conflict");
 			return receipt;
 		}
-		const { authority: current, admission, canceled } = snapshot;
+		const { authority: current } = snapshot;
 		if (
 			current.hostId !== observation.identity.hostId ||
 			current.ownerId !== input.expectedOwnerId ||
@@ -117,55 +87,7 @@ export class ExecutionAuthority {
 			revocation.identity.ownerId !== current.ownerId
 		)
 			throw new Error("owner_not_revoked");
-		const request = {
-			version: 1 as const,
-			executionId: input.executionId,
-			requestId: input.requestId,
-			expectedOwnerId: input.expectedOwnerId,
-			expectedEpoch: input.expectedEpoch,
-			expectedRevision: input.expectedRevision,
-			newOwnerId: observation.identity.ownerId,
-			supervisorObservationId: observation.id,
-			priorOwnerRevocationId: revocation.id,
-		};
-		const requestBytes = JSON.stringify(request);
-		const receipt = TakeoverReceiptV1Schema.parse({
-			version: 1,
-			request,
-			requestDigest: protocolDigest(requestBytes),
-			transferId: crypto.randomUUID(),
-			committedAt: observation.observedAt,
-			authority: {
-				...current,
-				permissions: canceled ? ["execution.cancel"] : current.permissions,
-				ownerId: observation.identity.ownerId,
-				engineEpoch: current.engineEpoch + 1,
-				ownershipRevision: current.ownershipRevision + 1,
-				capabilityId: crypto.randomUUID(),
-				issuedAt: observation.observedAt,
-				expiresAt: input.expiresAt,
-			},
-			admission:
-				admission.state === "closed"
-					? admission
-					: {
-							state: "open",
-							receipt: {
-								...admission.receipt,
-								engineEpoch: current.engineEpoch + 1,
-								admissionId: crypto.randomUUID(),
-								committedAt: observation.observedAt,
-							},
-						},
-		});
-		return this.store.commit({
-			permit: input.permit,
-			requestBytes,
-			authorityBytes: JSON.stringify(receipt.authority),
-			receipt,
-			observation,
-			revocation,
-		});
+		return this.store.commit(takeoverCommit(observation, input, snapshot, revocation));
 	}
 	private assertCancellation(snapshot: OwnershipSnapshot, savedPermissions?: string[]) {
 		if (!snapshot.canceled) return;

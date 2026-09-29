@@ -8,7 +8,7 @@ import { authorityControl } from "../../authorityControl";
 import { ids, jobId, now, receiptFixture, submissionBytes } from "../../fixtures/fixture";
 import { beforeDocuments } from "../../fixtures/migration";
 
-export async function recoveryFixture(open = false) {
+export async function recoveryFixture(open = false, revoke = true) {
 	const db: Db = await beforeDocuments(140);
 	await migrate(db);
 	const original = await receiptFixture(open, db);
@@ -65,9 +65,9 @@ export async function recoveryFixture(open = false) {
 		},
 		authorityBytes: ` ${JSON.stringify(original.authority)}\r\n`,
 	};
-	const revocation = await db.transaction((tx) =>
+	const revocation = revoke ? await db.transaction((tx) =>
 		authorityControl.revokeOwner(tx, { identity, observationId: "retire-1" }),
-	);
+	) : null;
 	const request = {
 		version: 1 as const,
 		executionId: ids.execution,
@@ -77,7 +77,7 @@ export async function recoveryFixture(open = false) {
 		expectedRevision: 1,
 		newOwnerId: "owner-2",
 		supervisorObservationId: "observation-2",
-		priorOwnerRevocationId: revocation.id,
+		priorOwnerRevocationId: revocation?.id ?? "unused",
 	};
 	const authority = {
 		...original.authority,

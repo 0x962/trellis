@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { recordLaunch, reserveNative } from "../../../db/queries/langflowExecution";
 import { ids, now } from "../../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../../db/queries/langflowExecution/fixtures/native";
-import { langflowExecutions } from "../../../db/tables/langflowExecution";
+import { langflowExecutions, langflowExecutionProjections } from "../../../db/tables/langflowExecution";
 import { cancelView } from "../../langflowStops";
 import { stopFixture } from "../../langflowTestFixture";
 import type { GroupDeadlineScope } from "../groupDeadlineContract";
@@ -21,11 +21,16 @@ async function setup(minutes = 2, launched = false) {
 		childVertexIds: { child: "child" }, entryNodeIds: ["child"], terminalNodeIds: ["child"],
 		settlementVertexIds: { child: "settle" }, edges: [],
 	};
-	await fixture.run((tx) => tx.update(langflowExecutions).set({ snapshot: {
-		...fixture.input.snapshot, engine: "langflow", componentManifestHash: fixture.input.publication.componentManifestHash, graphDocument: { nodes: [{ id: "scope", data: {
+	const snapshot = {
+		...fixture.input.snapshot, engine: "langflow" as const, componentManifestHash: fixture.input.publication.componentManifestHash, graphDocument: { nodes: [{ id: "scope", data: {
 			type: "TrellisGroupScopeV1", node: { template: { scope_definition: { value: JSON.stringify(groupDefinition) } } },
 		} }] },
-	} }).where(eq(langflowExecutions.executionId, ids.execution)));
+	};
+	await fixture.run(async (tx) => {
+		await tx.update(langflowExecutions).set({ snapshot }).where(eq(langflowExecutions.executionId, ids.execution));
+		await tx.update(langflowExecutionProjections).set({ view: { ...fixture.view, snapshot } })
+			.where(eq(langflowExecutionProjections.executionId, ids.execution));
+	});
 	const request: GroupDeadlineScope = {
 		executionId: ids.execution, publicationId: ids.publication, engineJobId: fixture.request.engineJobId,
 		engineEpoch: 1, scopeVertexId: "scope", occurrenceKey: "group.501", groupDefinition,
