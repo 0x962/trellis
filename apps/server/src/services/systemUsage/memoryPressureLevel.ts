@@ -1,12 +1,11 @@
 import type { MemoryPressureLevel } from "@trellis/api";
 
-// `sysctl -n kern.memorystatus_vm_pressure_level` prints one number and a
-// newline. The XNU kernel defines 1 as normal, 2 as warning, and 4 as
-// critical, and it publishes no other value.
+// `sysctl -n kern.memorystatus_vm_pressure_level` prints one integer and a
+// newline. The API keeps an unrecognized integer so the UI can identify it as
+// unknown.
 export const parseMemoryPressureLevel = (stdout: string): MemoryPressureLevel => {
 	const level = Number(stdout.trim());
-	if (level !== 1 && level !== 2 && level !== 4)
-		throw new Error(`kern.memorystatus_vm_pressure_level reported ${stdout.trim()}`);
+	if (!Number.isInteger(level)) throw new Error(`kern.memorystatus_vm_pressure_level reported ${stdout.trim()}`);
 	return level;
 };
 

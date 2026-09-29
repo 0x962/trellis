@@ -56,6 +56,7 @@ export {
 } from "./domain/MergeConflictMark";
 export { PageCommentPin, type PageCommentPinProps } from "./domain/PageCommentPin";
 export { PageRow, type PageRowProps } from "./domain/PageRow";
+export { type PageTabItem, PageTabs, type PageTabsProps } from "./domain/PageTabs";
 export * from "./domain/PageVersionRow";
 export * from "./domain/PageViewer";
 export { PinMark, type PinMarkProps } from "./domain/PinMark";
@@ -100,6 +101,7 @@ export {
 	type ReviewStatusSummaryProps,
 } from "./domain/ReviewStatusSummary";
 export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from "./domain/RunLine";
+export * from "./domain/SessionStatusPane";
 export * from "./domain/SettingsListRow";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
@@ -180,7 +182,16 @@ export { Skeleton, type SkeletonProps } from "./primitives/Skeleton";
 export { Spinner, type SpinnerProps } from "./primitives/Spinner";
 export { StatTile, type StatTileProps } from "./primitives/StatTile";
 export { Switch, type SwitchProps } from "./primitives/Switch";
-export { type TabItem, Tabs, type TabsProps } from "./primitives/Tabs";
+export {
+	type TabItem,
+	Tabs,
+	TabsList,
+	type TabsListItem,
+	type TabsListProps,
+	type TabsProps,
+	TabsRoot,
+	TabsTab,
+} from "./primitives/Tabs";
 export { Textarea, type TextareaProps } from "./primitives/Textarea";
 export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
@@ -190,5 +201,6 @@ export { focusInView } from "./utils/focusInView";
 export { formatClock } from "./utils/formatClock";
 export { formatDayTime } from "./utils/formatDayTime";
 export { isTextEntry } from "./utils/isTextEntry";
+export { type LinkPress, linkPress } from "./utils/linkPress";
 export { readRowMotion } from "./utils/readRowMotion";
 export { writeClipboard } from "./utils/writeClipboard";

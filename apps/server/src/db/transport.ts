@@ -37,8 +37,6 @@ export type {
 } from "./transportTypes";
 export { createWorkerTransport } from "./workerTransport.ts";
 
-const MB = 1024 * 1024;
-
 // The time between two sweeps of finished agent files.
 export const FILE_SWEEP_MS = 60 * 60 * 1000;
 
@@ -81,7 +79,6 @@ export const createInlineTransport = ({
 		actor: ctx.actor ?? SYSTEM_ACTOR,
 		session: ctx.session,
 		home: config.home,
-		maxUploadBytes: config.maxUploadMb * MB,
 		version: runtime.version,
 		apiVersion: API_VERSION,
 		bootId: runtime.bootId,
@@ -168,6 +165,7 @@ export const createInlineTransport = ({
 	let jobs: Jobs | null = null;
 	let pageDelivery: ReturnType<typeof startRepeatingCall> | null = null;
 	let reviewDelivery: ReturnType<typeof startReviewDeliveryLoop> | null = null;
+	let sessionStatusRequests: ReturnType<typeof startRepeatingCall> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let fileSweep: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
@@ -224,6 +222,12 @@ export const createInlineTransport = ({
 				log: options.log,
 				call: () => backgroundCall("reviews.dispatchDeliveries", {}),
 			});
+			sessionStatusRequests = startRepeatingCall({
+				clock,
+				log: options.log,
+				failureLogMessage: "Session status request dispatch failed",
+				call: () => backgroundCall("sessionStatusRequests.dispatch", {}),
+			});
 			jobs = startBackgroundJobs({
 				db,
 				cache,
@@ -243,6 +247,7 @@ export const createInlineTransport = ({
 
 	const close = async () => {
 		await sessionMonitor?.stop();
+		await sessionStatusRequests?.stop();
 		await reviewDelivery?.stop();
 		await pageDelivery?.stop();
 		await flowReconcile?.stop();

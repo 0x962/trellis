@@ -73,6 +73,26 @@ describe("MachinePressureMonitor", () => {
 		);
 	});
 
+	test("does not infer pressure from an unrecognized memory level", () => {
+		const monitor = new MachinePressureMonitor();
+		expect(monitor.update({ ...normal(0), memory: { value: 3, sampledAt: 0 } }, 0).memory).toMatchObject({
+			tier: "normal",
+			reading: { value: 3 },
+		});
+	});
+
+	test("keeps critical memory active through an unrecognized level", () => {
+		const monitor = new MachinePressureMonitor();
+		expect(monitor.update({ ...normal(0), memory: { value: 4, sampledAt: 0 } }, 0).memory.tier).toBe("danger");
+		expect(monitor.update({ ...normal(1), memory: { value: 3, sampledAt: 1 } }, 1).memory).toMatchObject({
+			tier: "danger",
+			reading: { value: 3 },
+		});
+		expect(monitor.update({ ...normal(30_001), memory: { value: 3, sampledAt: 30_001 } }, 30_001).memory.tier).toBe(
+			"danger",
+		);
+	});
+
 	test("moves thermal danger through warning before it clears", () => {
 		const monitor = new MachinePressureMonitor();
 		expect(monitor.update({ ...normal(0), thermal: { value: "serious", sampledAt: 0 } }, 0).thermal.tier).toBe(

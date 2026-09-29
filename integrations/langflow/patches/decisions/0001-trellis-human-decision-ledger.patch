@@ -1,0 +1,428 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/decisions.py b/src/backend/base/langflow/services/trellis_v1/decisions.py
+new file mode 100644
+index 000000000..93aef6b3b
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/decisions.py
+@@ -0,0 +1,422 @@
++"""Store one durable engine acceptance for each Trellis human decision."""
++
++from __future__ import annotations
++
++import hashlib
++import inspect
++import json
++from collections.abc import Awaitable, Callable
++from datetime import datetime, timezone
++from typing import Annotated, Any, Literal
++from uuid import UUID, uuid4
++
++from pydantic import BaseModel, ConfigDict, Field as PydanticField, StringConstraints, field_validator
++from sqlalchemy import Column, DateTime, LargeBinary, String, Text, UniqueConstraint
++from sqlmodel import Field, SQLModel, col, select
++
++from langflow.services.database.models.jobs.model import (
++    ExecutionSignal,
++    Job,
++    JobCheckpoint,
++    JobEvent,
++    JobStatus,
++    SignalType,
++)
++from langflow.services.deps import session_scope
++from langflow.services.jobs.exceptions import HUMAN_INPUT_REQUIRED_EVENT
++
++REFERENCE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]*$"
++PENDING_WAIT_FIELD = "trellis_wait_v1"
++Reference = Annotated[str, StringConstraints(pattern=REFERENCE_PATTERN)]
++
++FaultHook = Callable[[str], Awaitable[None] | None]
++SessionScope = Callable[[], Any]
++
++
++class DecisionConflictError(ValueError):
++    """The decision identity already belongs to different bytes or a different human wait."""
++
++
++class DecisionNotPendingError(ValueError):
++    """The decision does not match the human wait that currently suspends the engine job."""
++
++
++class _ProtocolModel(BaseModel):
++    model_config = ConfigDict(extra="forbid", populate_by_name=True)
++
++
++class _IterationV1(_ProtocolModel):
++    loop_node_id: Reference = PydanticField(alias="loopNodeId")
++    round: int = PydanticField(gt=0)
++
++
++class _OccurrenceV1(_ProtocolModel):
++    node_id: Reference = PydanticField(alias="nodeId")
++    occurrence_key: Reference = PydanticField(alias="occurrenceKey")
++    parent_occurrence_key: Reference | None = PydanticField(alias="parentOccurrenceKey")
++    phase: Literal["step", "children", "condition"]
++    iteration_path: list[_IterationV1] = PydanticField(alias="iterationPath")
++
++
++class _HumanWaitV1(_ProtocolModel):
++    version: Literal[1]
++    execution_id: Reference = PydanticField(alias="executionId")
++    publication_id: Reference = PydanticField(alias="publicationId")
++    engine_job_id: UUID = PydanticField(alias="engineJobId")
++    engine_epoch: int = PydanticField(alias="engineEpoch", gt=0)
++    occurrence: _OccurrenceV1
++    engine_request_id: Reference = PydanticField(alias="engineRequestId")
++    action_key: Reference = PydanticField(alias="actionKey")
++    expected_revision: int = PydanticField(alias="expectedRevision", gt=0)
++    deadline_refs: list[Reference] = PydanticField(alias="deadlineRefs")
++
++
++class _HumanActorV1(_ProtocolModel):
++    kind: Literal["human"]
++    name: str = PydanticField(min_length=1)
++
++
++class HumanDecisionReceiptV1(_ProtocolModel):
++    version: Literal[1]
++    decision_id: Reference = PydanticField(alias="decisionId")
++    wait: _HumanWaitV1
++    actor: _HumanActorV1
++    approved: bool
++    output: str
++    recorded_at: datetime = PydanticField(alias="recordedAt")
++
++    @field_validator("recorded_at")
++    @classmethod
++    def require_timestamp_offset(cls, value: datetime) -> datetime:
++        if value.tzinfo is None:
++            raise ValueError("recordedAt requires a UTC offset.")
++        return value
++
++
++class TrellisDecisionAcceptance(SQLModel, table=True):  # type: ignore[call-arg]
++    """The accepted receipt and exact Trellis bytes for one permanent decision identity."""
++
++    __tablename__ = "trellis_decision_acceptances_v1"
++    __table_args__ = (
++        UniqueConstraint(
++            "engine_job_id",
++            "engine_request_id",
++            name="uq_trellis_decision_acceptance_wait_v1",
++        ),
++    )
++
++    decision_id: str = Field(sa_column=Column(Text, primary_key=True))
++    execution_id: str = Field(sa_column=Column(Text, nullable=False))
++    engine_job_id: UUID = Field(index=True, nullable=False)
++    engine_request_id: str = Field(sa_column=Column(Text, nullable=False))
++    payload_digest: str = Field(sa_column=Column(String(64), nullable=False))
++    decision_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    receipt_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    acceptance_id: UUID = Field(nullable=False)
++    signal_id: UUID = Field(nullable=False)
++    enqueue_obligation_id: UUID = Field(nullable=False)
++    accepted_at: datetime = Field(
++        default_factory=lambda: datetime.now(timezone.utc),
++        sa_column=Column(DateTime(timezone=True), nullable=False),
++    )
++
++
++class TrellisDecisionEnqueueObligation(SQLModel, table=True):  # type: ignore[call-arg]
++    """A durable request for Langflow to continue the job after decision acceptance."""
++
++    __tablename__ = "trellis_decision_enqueue_obligations_v1"
++
++    id: UUID = Field(primary_key=True)
++    decision_id: str = Field(sa_column=Column(Text, unique=True, nullable=False))
++    engine_job_id: UUID = Field(index=True, nullable=False)
++    created_at: datetime = Field(
++        default_factory=lambda: datetime.now(timezone.utc),
++        sa_column=Column(DateTime(timezone=True), nullable=False),
++    )
++    consumed_at: datetime | None = Field(
++        default=None,
++        sa_column=Column(DateTime(timezone=True), nullable=True),
++    )
++    continuation_receipt_bytes: bytes | None = Field(
++        default=None,
++        sa_column=Column(LargeBinary, nullable=True),
++    )
++
++
++def _receipt(row: TrellisDecisionAcceptance) -> dict[str, Any]:
++    return json.loads(row.receipt_bytes)
++
++
++async def _call_fault(hook: FaultHook | None, point: str) -> None:
++    if hook is None:
++        return
++    result = hook(point)
++    if inspect.isawaitable(result):
++        await result
++
++
++def _unwrap_pause_payload(payload: dict[str, Any] | None) -> dict[str, Any] | None:
++    if not isinstance(payload, dict) or "request_id" in payload:
++        return payload
++    for key in ("value", "data"):
++        inner = payload.get(key)
++        if isinstance(inner, dict) and "request_id" in inner:
++            return inner
++    return payload
++
++
++class DecisionAcceptanceLedger:
++    """Commit a human decision, its resume signal, and its queue obligation in one transaction."""
++
++    def __init__(self, *, open_session: SessionScope = session_scope) -> None:
++        self._open_session = open_session
++
++    async def accept(
++        self,
++        *,
++        engine_job_id: UUID,
++        decision_bytes: bytes,
++        payload_digest: str,
++        fault: FaultHook | None = None,
++    ) -> dict[str, Any]:
++        if hashlib.sha256(decision_bytes).hexdigest() != payload_digest:
++            raise DecisionConflictError("The payload digest does not match the exact decision bytes.")
++        decision = HumanDecisionReceiptV1.model_validate_json(decision_bytes)
++        if decision.wait.engine_job_id != engine_job_id:
++            raise DecisionConflictError("The decision names a different engine job.")
++
++        await _call_fault(fault, "before_transaction")
++        async with self._open_session() as session:
++            job = (await session.exec(select(Job).where(Job.job_id == engine_job_id).with_for_update())).first()
++            existing = await session.get(TrellisDecisionAcceptance, decision.decision_id)
++            if existing is not None:
++                self._verify_replay(existing, decision, decision_bytes, payload_digest)
++                return _receipt(existing)
++
++            duplicate_wait = (
++                await session.exec(
++                    select(TrellisDecisionAcceptance).where(
++                        TrellisDecisionAcceptance.engine_job_id == engine_job_id,
++                        TrellisDecisionAcceptance.engine_request_id == decision.wait.engine_request_id,
++                    )
++                )
++            ).first()
++            if duplicate_wait is not None:
++                raise DecisionConflictError("The human wait already has a different accepted decision.")
++
++            if job is None or job.status != JobStatus.SUSPENDED:
++                raise DecisionNotPendingError("The engine job does not have a pending human wait.")
++            pending = await self._pending_wait(session, engine_job_id)
++            expected_wait = pending.get(PENDING_WAIT_FIELD) if pending is not None else None
++            received_wait = decision.wait.model_dump(mode="json", by_alias=True)
++            if (
++                pending is None
++                or pending.get("request_id") != decision.wait.engine_request_id
++                or expected_wait != received_wait
++            ):
++                raise DecisionNotPendingError("The decision does not match the pending human wait.")
++
++            accepted_at = datetime.now(timezone.utc)
++            acceptance_id = uuid4()
++            signal_id = uuid4()
++            enqueue_obligation_id = uuid4()
++            receipt_bytes = json.dumps(
++                {
++                    "version": 1,
++                    "executionId": decision.wait.execution_id,
++                    "engineJobId": str(engine_job_id),
++                    "engineRequestId": decision.wait.engine_request_id,
++                    "decisionId": decision.decision_id,
++                    "payloadDigest": payload_digest,
++                    "acceptanceId": str(acceptance_id),
++                    "signalId": str(signal_id),
++                    "enqueueObligationId": str(enqueue_obligation_id),
++                    "acceptedAt": accepted_at.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
++                },
++                separators=(",", ":"),
++            ).encode()
++            acceptance = TrellisDecisionAcceptance(
++                decision_id=decision.decision_id,
++                execution_id=decision.wait.execution_id,
++                engine_job_id=engine_job_id,
++                engine_request_id=decision.wait.engine_request_id,
++                payload_digest=payload_digest,
++                decision_bytes=decision_bytes,
++                receipt_bytes=receipt_bytes,
++                acceptance_id=acceptance_id,
++                signal_id=signal_id,
++                enqueue_obligation_id=enqueue_obligation_id,
++                accepted_at=accepted_at,
++            )
++            session.add(acceptance)
++            await session.flush()
++            await _call_fault(fault, "after_acceptance")
++
++            session.add(
++                ExecutionSignal(
++                    id=acceptance.signal_id,
++                    job_id=engine_job_id,
++                    signal_type=SignalType.RESUME,
++                    data={
++                        "kind": "trellis_human_decision_v1",
++                        "engineRequestId": decision.wait.engine_request_id,
++                        "decisionId": decision.decision_id,
++                        "enqueueObligationId": str(acceptance.enqueue_obligation_id),
++                        "decision": json.loads(decision_bytes),
++                    },
++                )
++            )
++            await session.flush()
++            await _call_fault(fault, "after_signal")
++
++            session.add(
++                TrellisDecisionEnqueueObligation(
++                    id=acceptance.enqueue_obligation_id,
++                    decision_id=decision.decision_id,
++                    engine_job_id=engine_job_id,
++                )
++            )
++            await session.flush()
++            await _call_fault(fault, "after_enqueue_obligation")
++            saved_receipt = _receipt(acceptance)
++
++        await _call_fault(fault, "after_commit")
++        return saved_receipt
++
++    async def lookup(
++        self,
++        *,
++        execution_id: str,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str,
++        payload_digest: str,
++    ) -> dict[str, Any]:
++        lookup = {
++            "version": 1,
++            "executionId": execution_id,
++            "engineJobId": str(engine_job_id),
++            "engineRequestId": engine_request_id,
++            "decisionId": decision_id,
++            "payloadDigest": payload_digest,
++        }
++        async with self._open_session() as session:
++            acceptance = await session.get(TrellisDecisionAcceptance, decision_id)
++            if acceptance is None:
++                return {"state": "absent", "lookup": lookup, "authoritative": True}
++            if (
++                acceptance.execution_id != execution_id
++                or acceptance.engine_job_id != engine_job_id
++                or acceptance.engine_request_id != engine_request_id
++                or acceptance.payload_digest != payload_digest
++            ):
++                return {"state": "conflict", "lookup": lookup, "acceptedDigest": acceptance.payload_digest}
++            return {"state": "accepted", "receipt": _receipt(acceptance)}
++
++    async def pending_enqueue_obligations(self) -> list[dict[str, Any]]:
++        async with self._open_session() as session:
++            rows = (
++                await session.exec(
++                    select(TrellisDecisionAcceptance)
++                    .join(
++                        TrellisDecisionEnqueueObligation,
++                        TrellisDecisionEnqueueObligation.decision_id == TrellisDecisionAcceptance.decision_id,
++                    )
++                    .where(TrellisDecisionEnqueueObligation.consumed_at.is_(None))
++                    .order_by(TrellisDecisionEnqueueObligation.created_at)
++                )
++            ).all()
++            return [_receipt(row) for row in rows]
++
++    async def mark_enqueue_obligation_consumed(
++        self,
++        *,
++        engine_job_id: UUID,
++        engine_request_id: str,
++        decision_id: str,
++        signal_id: UUID,
++        enqueue_obligation_id: UUID,
++        continuation_receipt_bytes: bytes,
++    ) -> None:
++        async with self._open_session() as session:
++            obligation = (
++                await session.exec(
++                    select(TrellisDecisionEnqueueObligation)
++                    .where(TrellisDecisionEnqueueObligation.id == enqueue_obligation_id)
++                    .with_for_update()
++                )
++            ).first()
++            if obligation is None:
++                raise DecisionConflictError("The enqueue obligation does not exist.")
++            acceptance = (
++                await session.exec(
++                    select(TrellisDecisionAcceptance)
++                    .where(TrellisDecisionAcceptance.decision_id == obligation.decision_id)
++                    .with_for_update()
++                )
++            ).first()
++            if (
++                acceptance is None
++                or acceptance.engine_job_id != engine_job_id
++                or acceptance.engine_request_id != engine_request_id
++                or acceptance.decision_id != decision_id
++                or acceptance.signal_id != signal_id
++                or acceptance.enqueue_obligation_id != enqueue_obligation_id
++                or obligation.engine_job_id != engine_job_id
++            ):
++                raise DecisionConflictError("The continuation receipt does not match the accepted decision.")
++            continuation = (
++                await session.exec(
++                    select(JobCheckpoint)
++                    .where(JobCheckpoint.job_id == engine_job_id)
++                    .where(JobCheckpoint.kind == f"trellis-continuation-v1:{enqueue_obligation_id}")
++                    .with_for_update()
++                )
++            ).first()
++            if continuation is None or continuation.blob.encode() != continuation_receipt_bytes:
++                raise DecisionConflictError("The saved continuation receipt has different bytes.")
++            saved_continuation = json.loads(continuation_receipt_bytes)
++            expected_continuation = {
++                "engineJobId": str(engine_job_id),
++                "engineRequestId": engine_request_id,
++                "decisionId": decision_id,
++                "signalId": str(signal_id),
++                "enqueueObligationId": str(enqueue_obligation_id),
++            }
++            if any(saved_continuation.get(key) != value for key, value in expected_continuation.items()):
++                raise DecisionConflictError("The saved continuation receipt has different identities.")
++            if obligation.continuation_receipt_bytes is not None:
++                if obligation.continuation_receipt_bytes != continuation_receipt_bytes:
++                    raise DecisionConflictError("The enqueue obligation already has different continuation bytes.")
++                return
++            obligation.continuation_receipt_bytes = continuation_receipt_bytes
++            obligation.consumed_at = datetime.now(timezone.utc)
++            session.add(obligation)
++            await session.flush()
++
++    @staticmethod
++    async def _pending_wait(session: Any, engine_job_id: UUID) -> dict[str, Any] | None:
++        row = (
++            await session.exec(
++                select(JobEvent)
++                .where(JobEvent.job_id == engine_job_id)
++                .where(JobEvent.event_type == HUMAN_INPUT_REQUIRED_EVENT)
++                .order_by(col(JobEvent.seq).desc())
++            )
++        ).first()
++        return _unwrap_pause_payload(row.payload) if row is not None else None
++
++    @staticmethod
++    def _verify_replay(
++        existing: TrellisDecisionAcceptance,
++        decision: HumanDecisionReceiptV1,
++        decision_bytes: bytes,
++        payload_digest: str,
++    ) -> None:
++        if (
++            existing.engine_job_id != decision.wait.engine_job_id
++            or existing.engine_request_id != decision.wait.engine_request_id
++            or existing.payload_digest != payload_digest
++            or existing.decision_bytes != decision_bytes
++        ):
++            raise DecisionConflictError("The decision identity already belongs to different bytes or a different wait.")

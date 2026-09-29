@@ -30,6 +30,8 @@ const readings = (at: number): MachinePressureReadings => ({
 	disk: null,
 });
 
+const onlyMachine = (view: ReturnType<typeof machinePressureView>) => view.machines[0]!;
+
 describe("thermalReadingForOrigin", () => {
 	test("uses a desktop state only for the server origin that supplied the page", () => {
 		const desktop = {
@@ -46,28 +48,39 @@ describe("thermalReadingForOrigin", () => {
 });
 
 describe("machinePressureView", () => {
-	test("labels the source machine and each active reading", () => {
+	test("labels the source machine and every reading", () => {
 		const monitor = new MachinePressureMonitor();
 		monitor.update(readings(0), 0);
-		const view = machinePressureView(sample, monitor.update(readings(15_000), 15_000), 15_000);
+		const pressureView = machinePressureView(sample, monitor.update(readings(15_000), 15_000), 15_000);
+		const view = onlyMachine(pressureView);
 		expect(view.name).toBe("Canary-JQV57W1HPL");
 		expect(view.readings.map(({ label, value, unit }) => ({ label, value, unit }))).toEqual([
 			{ label: "CPU load", value: "4.3", unit: "per core" },
-			{ label: "Memory pressure", value: "Critical", unit: "level 4" },
-			{ label: "Thermal state", value: "Critical", unit: undefined },
+			{ label: "Memory pressure", value: "Critical", unit: undefined },
+			{ label: "Thermal pressure", value: "Critical", unit: undefined },
 			{ label: "Processor temperature", value: "97", unit: "°C" },
+			{ label: "Disk space", value: "Unavailable", unit: undefined },
 		]);
-		expect(view.readings.at(-1)?.detail).toBe("PMU tdie6 sensor · 2.5 ms read");
+		expect(view.readings.find(({ key }) => key === "temperature")?.detail).toBe("PMU tdie6 sensor · 2.5 ms read");
 		expect(view.ageText).toBe("Last read 0 s ago.");
+		expect(pressureView.machinesWithAlerts[0]?.readings.map(({ key }) => key)).toEqual([
+			"cpuLoad",
+			"memory",
+			"thermal",
+			"temperature",
+		]);
 	});
 
-	test("omits a lost temperature while other high signals stay visible", () => {
+	test("shows a lost temperature while other high signals stay visible", () => {
 		const monitor = new MachinePressureMonitor();
 		monitor.update(readings(0), 0);
 		monitor.update(readings(15_000), 15_000);
 		const lost = monitor.update({ ...readings(15_001), temperature: null, temperatureReader: "lost" }, 15_001);
-		const view = machinePressureView(sample, lost, 15_001);
-		expect(view.readings.map(({ key }) => key)).toEqual(["cpuLoad", "memory", "thermal"]);
+		const view = onlyMachine(machinePressureView(sample, lost, 15_001));
+		expect(view.readings.find(({ key }) => key === "temperature")).toMatchObject({
+			value: "Unavailable",
+			freshness: "lost",
+		});
 		expect(view.ageText).toBe("Last read 0 s ago.");
 	});
 
@@ -76,9 +89,36 @@ describe("machinePressureView", () => {
 		monitor.update(readings(0), 0);
 		monitor.update(readings(15_000), 15_000);
 		const stale = monitor.update(readings(15_000), 49_001);
-		const view = machinePressureView(sample, stale, 49_001);
-		expect(view.readings.every((reading) => reading.freshness === "stale")).toBe(true);
+		const view = onlyMachine(machinePressureView(sample, stale, 49_001));
+		expect(view.readings.filter(({ key }) => key !== "disk").every((reading) => reading.freshness === "stale")).toBe(
+			true,
+		);
 		expect(view.ageText).toBe("Last read 34 s ago.");
+	});
+
+	test("shows normal, unknown, and unavailable readings without an alert tone", () => {
+		const monitor = new MachinePressureMonitor();
+		const state = monitor.update(
+			{
+				...readings(0),
+				cpuLoad: { value: 0.4, sampledAt: 0 },
+				memory: { value: 3, sampledAt: 0 },
+				thermal: { value: "unknown", sampledAt: 0 },
+				temperature: null,
+				temperatureReader: "unavailable",
+			},
+			0,
+		);
+		const pressureView = machinePressureView({ ...sample, memoryLevel: 3 }, state, 0);
+		const view = onlyMachine(pressureView);
+		expect(view.readings).toMatchObject([
+			{ key: "cpuLoad", value: "0.4", tone: "normal" },
+			{ key: "memory", value: "Unknown", tone: "normal" },
+			{ key: "thermal", value: "Unknown", tone: "normal" },
+			{ key: "temperature", value: "Unavailable", freshness: "unavailable" },
+			{ key: "disk", value: "Unavailable", freshness: "unavailable" },
+		]);
+		expect(pressureView.machinesWithAlerts).toEqual([]);
 	});
 });
 
@@ -94,16 +134,21 @@ test("disk details keep the host volume identity through failure and recovery", 
 		usedPercent: 98,
 	};
 	const input = { ...readings(0), disk: { value: disk, sampledAt: 0 } };
-	const low = machinePressureView({ ...sample, hostname: "remote-host", disk }, monitor.update(input, 0), 0);
+	const low = onlyMachine(
+		machinePressureView({ ...sample, hostname: "remote-host", disk }, monitor.update(input, 0), 0),
+	);
 	expect(low.name).toBe("remote-host");
 	expect(low.readings.find((s) => s.key === "disk")).toMatchObject({
 		value: "2.0 GiB",
 		unit: "available",
 		detail: "100.0 GiB total · 98.0% used. Volume 42 · /remote/agents",
 	});
-	expect(low.details).toEqual([]);
-	const stale = machinePressureView(sample, monitor.update(readings(1), 1), 1);
+	const stale = onlyMachine(machinePressureView(sample, monitor.update(readings(1), 1), 1));
 	expect(stale.readings.find((s) => s.key === "disk")).toMatchObject({ value: "2.0 GiB", freshness: "stale" });
-	const lost = machinePressureView(sample, monitor.update(readings(60_000), 60_000), 60_000);
-	expect(lost.details).toMatchObject([{ key: "disk", value: "Unavailable", freshness: "lost" }]);
+	const lost = onlyMachine(machinePressureView(sample, monitor.update(readings(60_000), 60_000), 60_000));
+	expect(lost.readings.find((s) => s.key === "disk")).toMatchObject({
+		key: "disk",
+		value: "Unavailable",
+		freshness: "lost",
+	});
 });

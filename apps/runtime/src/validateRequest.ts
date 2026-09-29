@@ -1,4 +1,4 @@
-import { RUNTIME_PROTOCOL_VERSION, type RuntimeRequest } from "@trellis/runtime-protocol";
+import { MAX_TERMINAL_DIMENSION, RUNTIME_PROTOCOL_VERSION, type RuntimeRequest } from "@trellis/runtime-protocol";
 
 import { validateHarnessEvent } from "./validateHarnessEvent.ts";
 
@@ -21,6 +21,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			"turn",
 			"input",
 			"deliver",
+			"queueInput",
 			"resize",
 			"stop",
 			"output",
@@ -81,21 +82,18 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("Message identifier must contain letters, numbers, underscores, or hyphens");
 			break;
 		case "registerNativeDelivery":
-			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
-				throw new Error("An attempt token is required");
+			if (typeof params.token !== "string" || !params.token) throw new Error("An attempt token is required");
 			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
 				throw new Error("A message identifier is required");
 			if (typeof params.promptDigest !== "string" || !/^[a-f0-9]{64}$/.test(params.promptDigest))
 				throw new Error("A SHA256 prompt digest is required");
 			break;
 		case "observe":
-			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
-				throw new Error("An attempt token is required");
+			if (typeof params.token !== "string" || !params.token) throw new Error("An attempt token is required");
 			validateHarnessEvent(params.event);
 			break;
 		case "turn":
-			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
-				throw new Error("An attempt token is required");
+			if (typeof params.token !== "string" || !params.token) throw new Error("An attempt token is required");
 			if (!["SessionStart", "UserPromptSubmit", "Stop"].includes(params.event as string))
 				throw new Error("Unknown turn event");
 			if (params.result !== undefined && typeof params.result !== "string")
@@ -109,11 +107,9 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "start":
 			if (
 				params.timeoutMs !== undefined &&
-				(!Number.isSafeInteger(params.timeoutMs) ||
-					(params.timeoutMs as number) < 1 ||
-					(params.timeoutMs as number) > 86400000)
+				(!Number.isSafeInteger(params.timeoutMs) || (params.timeoutMs as number) < 1)
 			)
-				throw new Error("Process timeout must be between 1 and 86400000 milliseconds");
+				throw new Error("Process timeout must be a positive safe integer");
 			if (
 				typeof params.command !== "string" ||
 				!params.command ||
@@ -134,16 +130,19 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			for (const key of ["cols", "rows"])
 				if (
 					params[key] !== undefined &&
-					(!Number.isInteger(params[key]) || (params[key] as number) < 1 || (params[key] as number) > 1000)
+					(!Number.isInteger(params[key]) ||
+						(params[key] as number) < 1 ||
+						(params[key] as number) > MAX_TERMINAL_DIMENSION)
 				)
-					throw new Error("Terminal dimensions must be between 1 and 1000");
+					throw new Error(`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`);
 			break;
+		case "queueInput":
 		case "deliver":
 		case "input":
 			if (params.userInput !== undefined && typeof params.userInput !== "boolean")
 				throw new Error("The user input flag must be a boolean");
 			if (
-				request.method === "deliver" &&
+				(request.method === "deliver" || request.method === "queueInput") &&
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
 			)
 				throw new Error("Message identifier is required");
@@ -155,8 +154,12 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			break;
 		case "resize":
 			for (const key of ["cols", "rows"])
-				if (!Number.isInteger(params[key]) || (params[key] as number) < 1 || (params[key] as number) > 1000)
-					throw new Error("Terminal dimensions must be between 1 and 1000");
+				if (
+					!Number.isInteger(params[key]) ||
+					(params[key] as number) < 1 ||
+					(params[key] as number) > MAX_TERMINAL_DIMENSION
+				)
+					throw new Error(`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`);
 			break;
 		case "subscribe":
 		case "terminal":

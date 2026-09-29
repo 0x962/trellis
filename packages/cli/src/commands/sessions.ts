@@ -1,9 +1,17 @@
-import { type Session, type SessionDetail, sessionStatus, sessionStatusLabels } from "@trellis/api";
+import {
+	type Session,
+	type SessionDetail,
+	type SessionUpdate,
+	type SessionUpdates,
+	sessionStatus,
+	sessionStatusLabels,
+} from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf } from "../context.ts";
 import { usageError } from "../errors.ts";
 import { cell, type ListSpec, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
+import { sessionUpdateInput } from "./sessionUpdateInput.ts";
 
 const sessionRecord: RecordSpec<Session> = {
 	fields: [
@@ -32,6 +40,35 @@ const sessionList: ListSpec<SessionDetail> = {
 		{ name: "archived", value: (row) => timeCell(row.archivedAt) },
 	],
 	identifier: (row) => row.id,
+};
+
+const updateRecord: RecordSpec<SessionUpdate> = {
+	fields: [
+		{ name: "id", value: (row) => row.id },
+		{ name: "session", value: (row) => cell(row.sessionId) },
+		{ name: "run", value: (row) => row.runId },
+		{ name: "request", value: (row) => cell(row.requestId) },
+		{ name: "created", value: (row) => row.createdAt },
+		{ name: "embeds", value: (row) => String(row.embeds.length) },
+		{ name: "body", value: (row) => row.body },
+	],
+	identifier: (row) => row.id,
+};
+
+const updatesRecord: RecordSpec<SessionUpdates> = {
+	fields: [
+		{ name: "latest", value: (row) => cell(row.latest?.id) },
+		{ name: "latest at", value: (row) => cell(row.latest?.createdAt) },
+		{ name: "latest body", value: (row) => cell(row.latest?.body) },
+		{ name: "previous", value: (row) => cell(row.previous?.id) },
+		{ name: "previous at", value: (row) => cell(row.previous?.createdAt) },
+		{ name: "previous body", value: (row) => cell(row.previous?.body) },
+		{ name: "request", value: (row) => cell(row.request?.requestId) },
+		{ name: "requested", value: (row) => cell(row.request?.requestedAt) },
+		{ name: "request state", value: (row) => cell(row.request?.state) },
+		{ name: "request error", value: (row) => cell(row.request?.error) },
+	],
+	identifier: (row) => row.latest?.id ?? row.request?.requestId ?? "none",
 };
 
 const list = defineCommand({
@@ -105,7 +142,44 @@ const archiveCommand = (name: string, description: string, archived: boolean) =>
 const archive = archiveCommand("archive", "Archive a session, which stops its agent and keeps its files", true);
 const unarchive = archiveCommand("unarchive", "Bring an archived session back to the session list", false);
 
+const statusRead = defineCommand({
+	meta: { name: "read", description: "Read the latest and previous status updates of a session" },
+	args: { session: { type: "positional", required: true, description: "Session id, run id, or name" } },
+	async run(context) {
+		const ctx = contextOf(context);
+		const updates = await clientOf(ctx).sessionUpdates.get({ sessionId: context.args.session });
+		printRecord(ctx.out, ctx.format, updates, updatesRecord);
+	},
+});
+
+const statusWrite = defineCommand({
+	meta: { name: "write", description: "Save a rich status update for the current agent session" },
+	args: {
+		session: { type: "positional", required: true, description: "Session id, run id, or name" },
+		body: { type: "string", required: true, description: "Markdown body, or - for standard input" },
+		"request-id": { type: "string", description: "Status request ID from Trellis" },
+		embed: { type: "string", description: "Comma-separated HTML file paths" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const update = await clientOf(ctx).sessionUpdates.write(
+			await sessionUpdateInput(ctx, {
+				session: context.args.session,
+				body: context.args.body,
+				requestId: context.args["request-id"],
+				embed: context.args.embed,
+			}),
+		);
+		printRecord(ctx.out, ctx.format, update, updateRecord);
+	},
+});
+
+const status = defineCommand({
+	meta: { name: "status", description: "Read or write rich status updates" },
+	subCommands: { read: statusRead, write: statusWrite },
+});
+
 export default defineCommand({
 	meta: { name: "sessions", description: "List, move, rename, and archive sessions" },
-	subCommands: { list, move, rename, archive, unarchive },
+	subCommands: { list, move, rename, archive, unarchive, status },
 });

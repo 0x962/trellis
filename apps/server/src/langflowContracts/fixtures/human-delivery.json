@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "decision": {
+    "version": 1,
+    "decisionId": "decision-1",
+    "wait": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "occurrence": {
+        "nodeId": "node-human",
+        "occurrenceKey": "outer-2.inner-3.human",
+        "parentOccurrenceKey": "outer-2.inner-3",
+        "phase": "step",
+        "iterationPath": [
+          {
+            "loopNodeId": "outer",
+            "round": 2
+          },
+          {
+            "loopNodeId": "inner",
+            "round": 3
+          }
+        ]
+      },
+      "engineRequestId": "human-request-1",
+      "actionKey": "human-action-1",
+      "expectedRevision": 5,
+      "deadlineRefs": [
+        "deadline-1"
+      ]
+    },
+    "actor": {
+      "kind": "human",
+      "name": "fixture-human"
+    },
+    "approved": true,
+    "output": "Approved fixture",
+    "recordedAt": "2026-09-29T06:00:00.000Z"
+  },
+  "payloadDigest": "dcf169b7f9dd00e968f9e54c0c6799f724e97a36cac9046ba5b5834cccf60e3c",
+  "state": "confirmed",
+  "acceptance": {
+    "version": 1,
+    "executionId": "execution-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineRequestId": "human-request-1",
+    "decisionId": "decision-1",
+    "payloadDigest": "dcf169b7f9dd00e968f9e54c0c6799f724e97a36cac9046ba5b5834cccf60e3c",
+    "acceptanceId": "acceptance-1",
+    "signalId": "signal-1",
+    "enqueueObligationId": "enqueue-1",
+    "acceptedAt": "2026-09-29T06:00:00.000Z"
+  }
+}

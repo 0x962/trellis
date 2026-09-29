@@ -1,0 +1,150 @@
+import {
+	MachinePressure,
+	type MachinePressureMachineView,
+	type MachinePressureReadingView,
+} from "../../../../../domain/MachinePressure";
+import { Section } from "../../../Section";
+
+const readings = {
+	disk: {
+		key: "disk",
+		label: "Disk space",
+		value: "2.0 GiB",
+		unit: "available",
+		tone: "danger",
+		freshness: "live",
+		detail: "926.4 GiB total · 99.8% used. Volume 16777232 · /Users/navidkhan/.trellis/agents",
+	},
+	cpuLoad: {
+		key: "cpuLoad",
+		label: "CPU load",
+		value: "4.3",
+		unit: "per core",
+		tone: "danger",
+		freshness: "live",
+	},
+	memory: {
+		key: "memory",
+		label: "Memory pressure",
+		value: "Critical",
+		tone: "danger",
+		freshness: "live",
+	},
+	thermal: {
+		key: "thermal",
+		label: "Thermal pressure",
+		value: "Serious",
+		tone: "danger",
+		freshness: "live",
+	},
+	temperature: {
+		key: "temperature",
+		label: "Processor temperature",
+		value: "97",
+		unit: "°C",
+		tone: "danger",
+		freshness: "live",
+		detail: "PMU tdie6 sensor · 2.5 ms read",
+	},
+} as const satisfies Record<string, MachinePressureReadingView>;
+
+const machine = (
+	items: MachinePressureReadingView[],
+	extra: Partial<MachinePressureMachineView> = {},
+): MachinePressureMachineView[] => [
+	{
+		id: "server",
+		name: "Canary-JQV57W1HPL",
+		readings: items,
+		runs: ["TRL-441 4.2 GB", "TRL-454 3.1 GB"],
+		ageText: "Last read 2 s ago.",
+		...extra,
+	},
+];
+
+const machinesWithAlerts = (items: MachinePressureReadingView[]) => {
+	const alerts = items.filter((item) => item.tone !== "normal");
+	return alerts.length > 0 ? machine(alerts) : [];
+};
+
+const usageLink = (
+	<a
+		href="#machine-pressure"
+		className="font-medium text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+	>
+		Open Usage for the full reading.
+	</a>
+);
+
+const Example = ({ label, items }: { label: string; items: MachinePressureReadingView[] }) => (
+	<div className="w-56 rounded-md border border-border bg-bg p-2">
+		<p className="mb-1 text-xs text-fg-faint">{label}</p>
+		<MachinePressure machines={machine(items)} machinesWithAlerts={machinesWithAlerts(items)} usageLink={usageLink} />
+	</div>
+);
+
+export function MachinePressureSection() {
+	const all = Object.values(readings);
+	return (
+		<Section
+			name="MachinePressure"
+			note="each high signal, every signal, normal, unavailable, stale, and lost readings, and the collapsed rail"
+			className="items-start"
+		>
+			<div id="machine-pressure" className="flex flex-col gap-3">
+				{Object.entries(readings).map(([key, reading]) => (
+					<Example key={key} label={`${reading.label} alone`} items={[reading]} />
+				))}
+			</div>
+			<div className="w-56 rounded-md border border-border bg-bg p-2">
+				<p className="mb-1 text-xs text-fg-faint">All signals, panel open</p>
+				<MachinePressure machines={machine(all)} machinesWithAlerts={machine(all)} usageLink={usageLink} open />
+			</div>
+			<div className="flex flex-col gap-3">
+				<Example
+					label="Normal and unavailable"
+					items={[
+						{ ...readings.cpuLoad, value: "0.4", tone: "normal" },
+						{
+							...readings.temperature,
+							value: "Unavailable",
+							unit: undefined,
+							detail: undefined,
+							tone: "normal",
+							freshness: "unavailable",
+						},
+					]}
+				/>
+				<div className="w-56 rounded-md border border-border bg-bg p-2">
+					<p className="mb-1 text-xs text-fg-faint">Stale sample</p>
+					<MachinePressure
+						machines={machine([{ ...readings.cpuLoad, freshness: "stale" }], {
+							ageText: "Last read 34 s ago.",
+						})}
+						machinesWithAlerts={machine([{ ...readings.cpuLoad, freshness: "stale" }], {
+							ageText: "Last read 34 s ago.",
+						})}
+						usageLink={usageLink}
+					/>
+				</div>
+				<Example
+					label="Lost reader"
+					items={[
+						{
+							...readings.temperature,
+							value: "Unavailable",
+							unit: undefined,
+							detail: undefined,
+							tone: "normal",
+							freshness: "lost",
+						},
+					]}
+				/>
+			</div>
+			<div className="rounded-md border border-border bg-bg p-2">
+				<p className="mb-1 text-xs text-fg-faint">Collapsed rail</p>
+				<MachinePressure machines={machine(all)} machinesWithAlerts={machine(all)} usageLink={usageLink} collapsed />
+			</div>
+		</Section>
+	);
+}

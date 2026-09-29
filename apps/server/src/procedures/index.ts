@@ -20,6 +20,7 @@ import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
 import { sessions } from "./sessions.ts";
+import { sessionUpdates } from "./sessionUpdates.ts";
 import { statistics } from "./statistics.ts";
 import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
@@ -39,6 +40,7 @@ export const router = os.router({
 	reviews,
 	agentRuns,
 	sessions,
+	sessionUpdates,
 	flows,
 	flowExecutions,
 	labels,

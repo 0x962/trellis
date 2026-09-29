@@ -1,9 +1,11 @@
 import { createRouter, type RouterHistory } from "@tanstack/react-router";
 import { NavigationKeys } from "./features/shell/NavigationKeys";
+import { createPageTabsHistory } from "./features/shell/pageTabsHistory";
 import { RouteError } from "./features/shell/RouteError";
 import type { RouterContext } from "./lib/appContext";
 import { parseSearchString, stringifySearchObject } from "./lib/searchParams";
 import { routeTree } from "./routeTree.gen";
+import { usePageTabsStore } from "./stores/pageTabsStore";
 
 // One router over the generated tree. Every search param crosses the URL
 // in the shared grammar: comma lists, no brackets, no quotes. A route's
@@ -13,7 +15,13 @@ export const createAppRouter = (context: RouterContext, history?: RouterHistory)
 		routeTree,
 		InnerWrap: NavigationKeys,
 		context,
-		history,
+		history:
+			history ??
+			createPageTabsHistory({
+				store: usePageTabsStore,
+				browser: window,
+				initialTitle: document.title,
+			}),
 		parseSearch: parseSearchString,
 		stringifySearch: stringifySearchObject,
 		// A route sees only the search fields its own validateSearch returned, so a

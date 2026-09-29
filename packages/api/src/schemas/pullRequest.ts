@@ -13,8 +13,6 @@ import {
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ReviewGapSchema } from "./reviewReady.ts";
 
-export const MAX_CHANGED_FILES = 100;
-
 export const ChangedFileSchema = z.object({
 	path: z.string().min(1),
 	change: z.enum(["change", "new", "deleted", "rename-pure", "rename-changed"]),
@@ -49,7 +47,7 @@ export const PullRequestSchema = z.object({
 	additions: CountSchema.nullable(),
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
-	files: z.array(ChangedFileSchema).max(MAX_CHANGED_FILES).nullable(),
+	files: z.array(ChangedFileSchema).nullable(),
 	url: z.string().min(1),
 	title: z.string(),
 	state: PrStateSchema,
@@ -108,6 +106,16 @@ export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+const PullRequestDiffCursorSchema = z
+	.string()
+	.regex(/^[a-f0-9]{64}:[1-9][0-9]*:[a-f0-9]{64}$/)
+	.refine((cursor) => Number.isSafeInteger(Number(cursor.split(":")[1])), "The byte offset must be a safe integer.");
+
+export const PullRequestDiffInputSchema = PullRequestIdInputSchema.extend({
+	cursor: PullRequestDiffCursorSchema.optional(),
+});
+export type PullRequestDiffInput = z.infer<typeof PullRequestDiffInputSchema>;
+
 // `not-ready` was called `draft` until the review readiness rule landed. The
 // body accepts the old word and stores the new one, so an older CLI and a
 // script keep working. Every answer carries `not-ready`.
@@ -164,11 +172,8 @@ export const PullRequestSummaryWriteOutputSchema = z.object({
 });
 export type PullRequestSummaryWriteOutput = z.infer<typeof PullRequestSummaryWriteOutputSchema>;
 
-// A diff over 1 MB is cut and `truncated` is true; `url` opens the whole
-// diff on GitHub.
 export const PullRequestDiffOutputSchema = z.object({
 	diff: z.string(),
-	truncated: z.boolean(),
-	url: z.string().min(1),
+	nextCursor: PullRequestDiffCursorSchema.nullable(),
 });
 export type PullRequestDiffOutput = z.infer<typeof PullRequestDiffOutputSchema>;

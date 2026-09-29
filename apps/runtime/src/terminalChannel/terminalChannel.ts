@@ -13,11 +13,12 @@ export async function serveTerminalChannel(
 	initial: Buffer,
 ) {
 	const controller = new AbortController();
-	const decoder = new TerminalFrameDecoder(1024 * 1024 + 2);
+	const decoder = new TerminalFrameDecoder();
 	const pending: Command[] = [];
 	let pendingBytes = 0;
 	let draining = false;
 	let writable = false;
+	let inputPaused = false;
 	const abort = () => {
 		controller.abort();
 		pending.length = 0;
@@ -28,6 +29,27 @@ export async function serveTerminalChannel(
 		abort();
 		socket.end(encodeTerminalFrame({ type: "error", message: (error as Error).message }));
 	};
+	const write = (frame: TerminalFrame) =>
+		new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => {
+				socket.destroy();
+				reject(new Error("Terminal subscriber did not accept output within 30 seconds"));
+			}, 30_000);
+			socket.write(encodeTerminalFrame(frame), (error) => {
+				clearTimeout(timer);
+				if (error) reject(error);
+				else resolve();
+			});
+		});
+	const applyInputBackpressure = () => {
+		if (!inputPaused && (pendingBytes >= 1024 * 1024 || pending.length >= 1024)) {
+			inputPaused = true;
+			socket.pause();
+		} else if (inputPaused && pendingBytes < 512 * 1024 && pending.length < 512) {
+			inputPaused = false;
+			socket.resume();
+		}
+	};
 	const drain = async () => {
 		if (draining) return;
 		draining = true;
@@ -37,6 +59,8 @@ export async function serveTerminalChannel(
 				await store.inputBytes(params.id, Buffer.from(command.data), command.userInput);
 				pendingBytes -= command.data.byteLength;
 			} else store.resize(params.id, command.cols, command.rows);
+			applyInputBackpressure();
+			await write({ type: "ack" });
 		}
 		draining = false;
 	};
@@ -47,10 +71,9 @@ export async function serveTerminalChannel(
 				if (frame.type !== "input" && frame.type !== "resize") throw new Error("Unexpected terminal client frame");
 				if (!writable) throw new Error("This session has no running interactive terminal");
 				const size = frame.type === "input" ? frame.data.byteLength : 0;
-				if (pendingBytes + size > 1024 * 1024 || pending.length >= 1024)
-					throw new Error("The terminal input buffer is full");
 				pendingBytes += size;
 				pending.push(frame);
+				applyInputBackpressure();
 			}
 			void drain().catch(fail);
 		} catch (error) {
@@ -73,23 +96,12 @@ export async function serveTerminalChannel(
 			async (event) => {
 				if (event.type === "session")
 					writable = event.session.mode === "pty" && event.session.status === "running" && event.session.controllable;
-				const bytes = encodeTerminalFrame(event);
-				await new Promise<void>((resolve, reject) => {
-					const timer = setTimeout(() => {
-						socket.destroy();
-						reject(new Error("Terminal subscriber did not accept output within 30 seconds"));
-					}, 30_000);
-					socket.write(bytes, (error) => {
-						clearTimeout(timer);
-						if (error) reject(error);
-						else resolve();
-					});
-				});
+				await write(event);
 			},
 			controller.signal,
 		);
 		if (initial.length) receive(initial);
-		socket.resume();
+		if (!inputPaused) socket.resume();
 		await output;
 		socket.end();
 	} catch (error) {

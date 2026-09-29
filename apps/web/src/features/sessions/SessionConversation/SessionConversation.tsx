@@ -1,11 +1,12 @@
+import { SidebarSimple } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, Button, EmptyState, toast } from "@trellis/ui";
+import { Avatar, Button, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
-import { agentMarkState } from "../../agents/agentMarkState";
 import { agentProfileOf } from "../../agents/agentProfileOf";
+import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
@@ -13,6 +14,7 @@ import { SessionName } from "../SessionName";
 import { isSessionArchived, sessionPane } from "../sessionPane";
 import { SessionPaneState } from "../sessionPane/SessionPaneState";
 import { useSessionArchive } from "../useSessionArchive";
+import { AgentStatusUpdates, useSessionStatusPaneVisibility } from "./components/AgentStatusUpdates";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -43,6 +45,7 @@ export function SessionConversation({
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const [renaming, setRenaming] = useState(false);
+	const statusPane = useSessionStatusPaneVisibility();
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const headingElement = headingRef ?? localHeading;
 	const focusHeading = useCallback(() => headingElement.current?.focus(), [headingElement]);
@@ -105,7 +108,7 @@ export function SessionConversation({
 					name={name}
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
-					state={start.isPending ? "starting" : agentMarkState(run)}
+					state={start.isPending ? "starting" : isAgentWorking(run) ? "working" : "static"}
 					status={start.isPending ? "starting" : sessionStatus(run)}
 					className="size-7 shrink-0"
 				/>
@@ -125,6 +128,14 @@ export function SessionConversation({
 					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
+				<Tooltip content={statusPane.visible ? "Hide session status" : "Show session status"}>
+					<IconButton
+						label={statusPane.visible ? "Hide session status" : "Show session status"}
+						icon={<SidebarSimple />}
+						pressed={statusPane.visible}
+						onClick={statusPane.toggle}
+					/>
+				</Tooltip>
 				<SessionBarActions
 					run={run}
 					session={session}
@@ -145,43 +156,46 @@ export function SessionConversation({
 				</p>
 			)}
 			<PendingQuestions run={run} readOnly={readOnly} />
-			<div className="flex min-h-0 flex-1 flex-col">
-				{pane.kind === "archived" ? (
-					<EmptyState
-						variant="page"
-						image={null}
-						title={pane.title}
-						description={pane.description}
-						action={
-							<Button
-								size="md"
-								processing={archive.isPending}
-								onClick={() => archive.mutate({ session: session!, archived: false })}
-							>
-								Unarchive
-							</Button>
-						}
-					/>
-				) : pane.kind !== "terminal" ? (
-					<SessionPaneState pane={pane} />
-				) : run.terminalId ? (
-					<NativeTerminal
-						key={run.terminalId}
-						run={run}
-						layout="fill"
-						readOnly={readOnly}
-						autoFocus={autoFocusTerminal}
-						autoFocusDelay={autoFocusTerminalDelay}
-						onLeave={leaveTerminal}
-					/>
-				) : (
-					<EmptyState
-						variant="page"
-						image={null}
-						title="This session has no process"
-						description="Trellis starts no process for this runtime."
-					/>
-				)}
+			<div className="flex min-h-0 flex-1 max-md:flex-col">
+				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+					{pane.kind === "archived" ? (
+						<EmptyState
+							variant="page"
+							image={null}
+							title={pane.title}
+							description={pane.description}
+							action={
+								<Button
+									size="md"
+									processing={archive.isPending}
+									onClick={() => archive.mutate({ session: session!, archived: false })}
+								>
+									Unarchive
+								</Button>
+							}
+						/>
+					) : pane.kind !== "terminal" ? (
+						<SessionPaneState pane={pane} />
+					) : run.terminalId ? (
+						<NativeTerminal
+							key={run.terminalId}
+							run={run}
+							layout="fill"
+							readOnly={readOnly}
+							autoFocus={autoFocusTerminal}
+							autoFocusDelay={autoFocusTerminalDelay}
+							onLeave={leaveTerminal}
+						/>
+					) : (
+						<EmptyState
+							variant="page"
+							image={null}
+							title="This session has no process"
+							description="Trellis starts no process for this runtime."
+						/>
+					)}
+				</div>
+				<AgentStatusUpdates run={run} visible={statusPane.visible} />
 			</div>
 		</section>
 	);

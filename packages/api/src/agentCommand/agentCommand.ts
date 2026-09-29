@@ -6,7 +6,6 @@ export const AgentCommandSchema = z
 	.string()
 	.trim()
 	.min(1, "Enter the agent command.")
-	.max(20000)
 	.refine(
 		(value) =>
 			[...value.matchAll(/\{\{([^{}]+)\}\}/g)].every((match) =>

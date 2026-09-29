@@ -92,7 +92,6 @@ beforeAll(async () => {
 		actor,
 		session: null,
 		home: "",
-		maxUploadBytes: 1024,
 		version: "test",
 		apiVersion: "test",
 		bootId: "test",

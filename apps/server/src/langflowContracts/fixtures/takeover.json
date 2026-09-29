@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "request": {
+    "version": 1,
+    "executionId": "execution-1",
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "expectedOwnerId": "owner-1",
+    "expectedEpoch": 1,
+    "expectedRevision": 1,
+    "newOwnerId": "owner-2",
+    "supervisorObservationId": "observation-2",
+    "priorOwnerRevocationId": "revocation-1"
+  },
+  "requestDigest": "07fb21316d074457ed087e8229d05cfcdf0ebac950ae117ebff7ac26706f103f",
+  "transferId": "transfer-1",
+  "committedAt": "2026-09-29T06:00:00.000Z",
+  "authority": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 2,
+    "hostId": "host-1",
+    "projectId": "project-1",
+    "publicationDigest": "3f662004cb4676be8aa8eae1a6a2328aeb693df48ceebb81f492e6b34872f4e7",
+    "ownerId": "owner-2",
+    "ownershipRevision": 2,
+    "capabilityId": "capability-2",
+    "permissions": [
+      "native.reserve",
+      "completion.deliver",
+      "decision.deliver"
+    ],
+    "issuedAt": "2026-09-29T06:00:00.000Z",
+    "expiresAt": "2026-09-29T07:00:00.000Z"
+  },
+  "admission": {
+    "state": "open",
+    "receipt": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 2,
+      "admissionId": "admission-2",
+      "submissionDigest": "293f1d2ee206a7cbebe633764a26ea455bd39f494a774a7289f8663da31916a2",
+      "committedAt": "2026-09-29T06:00:00.000Z"
+    }
+  }
+}

@@ -11,6 +11,7 @@ const exitCodes: Record<ErrorCode, number> = {
 	INVALID_CURSOR: 4,
 	INVALID_PR_URL: 4,
 	AGENT_CANNOT_DELETE: 4,
+	SESSION_UPDATE_FORBIDDEN: 4,
 	NOT_FOUND: 3,
 	DUPLICATE: 4,
 	KEY_LOCKED: 4,
@@ -38,7 +39,6 @@ const exitCodes: Record<ErrorCode, number> = {
 	FLOW_VERSION_CONFLICT: 4,
 	FLOW_NOT_IN_PROJECT: 4,
 	SESSION_ATTENTION_CHANGED: 4,
-	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
 	RUNNER_UNAVAILABLE: 6,
 	RESTART_FAILED: 6,
@@ -141,8 +141,6 @@ const detail = (code: string, message: string, data: Data): string => {
 			return `${message} It holds ${data.tickets} tickets and ${data.flows} flows.`;
 		case "DUPLICATE":
 			return `${message} Field: ${data.field}.`;
-		case "PAYLOAD_TOO_LARGE":
-			return `${message} The limit is ${data.maxBytes} bytes.`;
 		case "GH_UNAVAILABLE":
 		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;

@@ -29,6 +29,11 @@ export const columns = sql`${listColumns}, instruction`;
 
 export const storedRows = <T extends StoredRun>(tx: Tx, query: ReturnType<typeof sql>) => rows<T>(tx, query);
 
+export const findRun = async (tx: Tx, input: { runId: string }): Promise<{ id: string } | null> => {
+	const [run] = await rows<{ id: string }>(tx, sql`SELECT id FROM agent_runs WHERE id=${input.runId}`);
+	return run ?? null;
+};
+
 export const getRun = async (tx: Tx, id: string) => {
 	const [run] = await storedRows<LaunchRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id = ${id}`);
 	if (run === undefined) throw fail("NOT_FOUND", { kind: "agent", ref: id });

@@ -528,6 +528,8 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis session move <session-id> --no-project` | Remove its project association. |
 | `trellis session archive <session-id>` | Stop the agent of a session without a project and put the session away. |
 | `trellis session unarchive <session-id>` | Bring an archived session back to the session list. |
+| `trellis session status read <session-id>` | Read the latest and previous agent updates. |
+| `trellis session status write <session-id> --body -` | Save a rich agent update from standard input. |
 
 `agent start` accepts `--harness`, `--account`, `--model`, `--effort`, and `--request-id`.
 Use `trellis model list` and `trellis account list` to inspect available choices.
@@ -563,6 +565,18 @@ An archived session keeps its workspace, its files, and its conversation.
 It runs no agent and belongs to no project.
 Unarchive it before you start its agent or move it to a project.
 
+When Trellis asks for a status update, use the session and request IDs from that request.
+Explain the work, its purpose, your current action, your findings, your uncertainty, and your next step.
+Write useful Markdown prose instead of a fixed grid of fields.
+Do not repeat process metadata that Trellis already records.
+
+~~~sh
+trellis session status write <session-id> --request-id <request-id> --body - < update.md
+~~~
+
+Add `--embed report.html` to attach an optional HTML view.
+Separate several HTML file paths with commas.
+
 ## Diffs, explanations, and evidence
 
 | Command | Purpose |
@@ -573,7 +587,7 @@ Unarchive it before you start its agent or move it to a project.
 | `trellis diff show <diff>` | Read identity, branches, external state, local state, CI, and review gaps. |
 | `trellis diff unlink <diff> --ticket <ticket>` | Remove the relationship with that ticket. |
 | `trellis diff refresh <diff>` | Fetch the latest diff state. |
-| `trellis diff patch <diff>` | Read the code patch. The output has a 1 MB limit. |
+| `trellis diff patch <diff>` | Read the complete code patch. |
 | `trellis diff summary write <diff> --headline <text> --why <text> --watch <text>` | Write or update the human explanation. |
 | `trellis diff summary show <diff>` | Read the stored explanation. |
 | `trellis diff summary export <diff>` | Print a GitHub pull request body from the explanation. |

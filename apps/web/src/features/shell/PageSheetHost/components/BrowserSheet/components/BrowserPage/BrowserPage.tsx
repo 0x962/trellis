@@ -21,10 +21,6 @@ type PageTitleUpdate = Event & { title: string };
 const BACK = -1;
 const FORWARD = 1;
 
-// The web page inside the browser sheet: the `<webview>` that Chromium draws,
-// the header controls that move through its history, and the state of the
-// load. `apps/desktop/src/secureLinkBrowser` strips the preload, forces the
-// partition, and refuses an address that is not HTTPS.
 export function BrowserPage({ url }: BrowserPageProps) {
 	const [webview, setWebview] = useState<HTMLWebViewElement | null>(null);
 	const urlError = linkUrlError(url);

@@ -93,8 +93,3 @@ export const harnessTone: Record<UsageHarness, ChartTone> = {
 // "everything else".
 export const rowTone = (row: UsageGroupRow, rank: number, group: UsageGroupBy): ChartTone =>
 	group === "harness" && row.harness ? harnessTone[row.harness] : (rankedTones[rank] ?? otherTone);
-
-// How many rows a chart draws as their own series before the rest fold
-// into one "Other" series. One ranked tone covers each of these rows, so no
-// row falls back to the tone of the "Other" series and takes its color.
-export const CHART_TOP_ROWS = rankedTones.length;

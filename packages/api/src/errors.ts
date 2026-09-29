@@ -85,6 +85,11 @@ export const errors = {
 		message: "An agent cannot delete a ticket, an epic, a wave, a project, a label, or a label group without force.",
 		data: z.undefined(),
 	},
+	SESSION_UPDATE_FORBIDDEN: {
+		status: 403,
+		message: "Only the current agent of the session can save its update.",
+		data: z.undefined(),
+	},
 	NOT_FOUND: {
 		status: 404,
 		message: "No row matches the ref.",
@@ -227,11 +232,6 @@ export const errors = {
 		status: 500,
 		message: "The backup command failed.",
 		data: z.object({ command: z.string().min(1), code: z.number().int(), stderr: z.string() }),
-	},
-	PAYLOAD_TOO_LARGE: {
-		status: 413,
-		message: "The upload is over the size limit.",
-		data: z.object({ maxBytes: CountSchema }),
 	},
 	GH_UNAVAILABLE: {
 		status: 503,

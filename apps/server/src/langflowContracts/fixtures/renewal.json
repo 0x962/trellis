@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "request": {
+    "version": 1,
+    "requestId": "00000000-0000-4000-8000-000000000004",
+    "executionId": "execution-1",
+    "ownerId": "owner-2",
+    "engineEpoch": 2,
+    "expectedRevision": 2,
+    "supervisorObservationId": "observation-3"
+  },
+  "requestDigest": "a136972f58b882ddbb886493c10b2c68464760adb4cd58ff5a8d76109c217ee5",
+  "renewalId": "renewal-1",
+  "authority": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 2,
+    "hostId": "host-1",
+    "projectId": "project-1",
+    "publicationDigest": "3f662004cb4676be8aa8eae1a6a2328aeb693df48ceebb81f492e6b34872f4e7",
+    "ownerId": "owner-2",
+    "ownershipRevision": 3,
+    "capabilityId": "capability-3",
+    "permissions": [
+      "native.reserve",
+      "completion.deliver",
+      "decision.deliver"
+    ],
+    "issuedAt": "2026-09-29T07:00:00.000Z",
+    "expiresAt": "2026-09-29T08:00:00.000Z"
+  }
+}

@@ -1,8 +1,10 @@
 import { Plus } from "@phosphor-icons/react";
+import { useMemo } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Skeleton } from "../../primitives/Skeleton";
 import { Tooltip } from "../../primitives/Tooltip";
+import type { LinkPress } from "../../utils/linkPress";
 import { type ResourceKind, type ResourceListRow, ResourceRow } from "./components/ResourceRow";
 
 export type ResourceListProps = {
@@ -11,7 +13,7 @@ export type ResourceListProps = {
 	loading?: boolean;
 	// Why the resources did not arrive, in the words of the server.
 	error?: string | null;
-	onOpen: (id: string) => void;
+	onOpen: (id: string, press: LinkPress) => void;
 	// The id of the row whose document is open beside the list.
 	selectedId?: string | null;
 	// A caller that gives `onNewDocument` gets a New document button beside
@@ -39,6 +41,11 @@ export function ResourceList({
 	onNewDocument,
 	newDocumentPending = false,
 }: ResourceListProps) {
+	const groupedRows = useMemo(() => {
+		const members: Record<ResourceKind, ResourceListRow[]> = { doc: [], link: [], image: [], file: [] };
+		for (const row of rows) members[row.kind].push(row);
+		return groups.map((group) => ({ ...group, rows: members[group.kind] }));
+	}, [rows]);
 	const body =
 		error !== null ? (
 			<p role="alert" className="px-2 py-1 text-sm text-danger">
@@ -51,8 +58,7 @@ export function ResourceList({
 		) : null;
 	return (
 		<nav aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col">
-			{groups.map(({ kind, title }) => {
-				const members = rows.filter((row) => row.kind === kind);
+			{groupedRows.map(({ kind, title, rows: members }) => {
 				if (kind !== "doc" && members.length === 0) return null;
 				return (
 					<section key={kind} aria-label={title} className="flex min-w-0 flex-col not-first:mt-3">

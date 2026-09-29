@@ -1,6 +1,7 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useCallback, useEffect } from "react";
 import { useApp } from "../../../lib/appContext";
+import { backNavigation } from "../../../lib/backNavigation";
 import { useGlobalHotkeys } from "../../../lib/hotkeys";
 import { commandActions } from "../../command/commandStore";
 import { SequenceHint } from "../../command/SequenceHint";
@@ -21,6 +22,8 @@ export function GlobalHotkeys() {
 	const onPalette = useCallback(() => commandActions.toggle("commands"), []);
 	const onSearch = useCallback(() => commandActions.toggle("search"), []);
 	const onProjectPicker = useCallback(() => commandActions.open("projects"), []);
+	const onBack = useCallback(() => void backNavigation(router), [router]);
+	const onForward = useCallback(() => router.history.forward(), [router]);
 
 	// The ticket context and the selection belong to one route.
 	useEffect(() => commandActions.setRoute(pathname), [pathname]);
@@ -32,6 +35,8 @@ export function GlobalHotkeys() {
 		onSearch,
 		onCompose,
 		onProjectPicker,
+		onBack,
+		onForward,
 		scheduler,
 	});
 

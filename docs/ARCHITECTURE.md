@@ -91,7 +91,7 @@ The desktop supplies thermal state through the trusted preload bridge.
 The renderer combines that state only when the desktop host origin exactly matches the page origin.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 15. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 16. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
@@ -137,6 +137,12 @@ Overview holds the summary and the evidence document. Checks holds every GitHub 
 The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
+A terminal input uses acknowledged 64 KiB pieces across the WebSocket and runtime socket.
+Each acknowledgement follows the write to the process, so backpressure preserves complete ordered input.
+Terminal dimensions range from 1 through 65,535 because the binary frame and the PTY `winsize` fields use unsigned 16-bit values.
+The HTTP listener gives Bun `Number.MAX_SAFE_INTEGER`, which is the largest request size that JavaScript represents exactly.
+The WebSocket listener gives Bun `0xffffffff`, because Bun 1.3.13 stores `maxPayloadLength` as an unsigned 32-bit integer.
+RFC 6455 section 5.2 defines a 63-bit WebSocket payload length, so Bun sets the smaller transport maximum.
 A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
 Live output uses a memory buffer and an ordered asynchronous disk log.
 Parser acknowledgments bound output across the browser connection.
@@ -570,9 +576,9 @@ opens in the in-app browser and an image opens in a sheet. Other browsers open
 links and images in a new tab. A file downloads from its blob URL.
 
 The in-app browser is one sheet in the shell sheet stack, and every link in the
-app reaches it. On desktop a control that leads to an HTTPS page opens that
-sheet over the page the person reads. The sheet header carries Open in browser,
-which hands the address to the browser of the operating system.
+app reaches it. On desktop, HTTP and HTTPS links open that sheet over the current page.
+Command-click and the Open in browser control send external URLs to the system browser.
+The browser sheet uses a separate partition, disables Node integration, and keeps its sandbox.
 
 The epic route shows the resources of an epic. The ticket route `/t/<KEY-n>`
 draws none.
@@ -744,6 +750,13 @@ After 48 hours without activity, an unpinned row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
+Terminal links include plain addresses and labeled OSC 8 hyperlinks.
+`useOpenLink()(url, press)` handles terminal links, document anchors, and resource links.
+`openAppLink` resolves record links through `internalLinks.resolve` and passes the route and press to its navigation callback.
+`LinkPress` retains `metaKey`, `ctrlKey`, `shiftKey`, `altKey`, and `button`.
+The terminal copies those five fields into a plain record for plain and OSC 8 links.
+HTTP and HTTPS links use `openLink`. Other schemes and web addresses with credentials produce an error.
+Published Page messages still require confirmation in the trusted viewer before navigation.
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
@@ -1133,8 +1146,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | activity | id bigint IDENTITY PK, batch_id, project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (project_id, id), (created_at). |
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
-| flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
-| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
+| flows | id PK, slug (UNIQUE, CHECK slug regex), name (CHECK nonblank), description, briefing, harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
+| flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
 | providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
@@ -1299,7 +1312,7 @@ AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
 LABEL_AMBIGUOUS 409, LABEL_GROUP_CONFLICT 409,
 INVALID_ANCHOR 409,
-VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
+VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412,
 GH_UNAVAILABLE 503, RUNNER_UNAVAILABLE 503.
 
 The API carries no version prefix. `apiVersion` appears in health and in
@@ -1485,9 +1498,9 @@ checks block a queued pull request.
 
 ## Attachments
 
-An upload arrives as multipart through oRPC `z.file()`. The Hono `bodyLimit` is
-50 MB, and `TRELLIS_MAX_UPLOAD_MB` changes it. The server hashes the stream with
-`Bun.CryptoHasher` in 1 MB chunks while it writes `attachments/tmp/<ulid>`. It
+An upload arrives as multipart through oRPC `z.file()`. The server hashes the
+stream with `Bun.CryptoHasher` in 1 MB chunks while it writes
+`attachments/tmp/<ulid>`. It
 then calls `finalize(sha)` under the blob lock, which renames or dedupes the
 file and writes the database row.
 

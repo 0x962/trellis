@@ -37,6 +37,8 @@ export type BootOptions = {
 };
 
 const MB = 1024 * 1024;
+const MAX_HTTP_BODY_BYTES = Number.MAX_SAFE_INTEGER;
+const MAX_WEBSOCKET_MESSAGE_BYTES = 0xffffffff;
 
 // A client that connected just before SIGTERM gets this long to send its
 // request before the listener closes.
@@ -96,10 +98,15 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			port: config.port,
 			hostname: config.host,
 			idleTimeout: 0,
+			// Bun reads maxRequestBodySize through a JavaScript integer. Number.MAX_SAFE_INTEGER
+			// is the largest byte count that JavaScript represents exactly.
+			maxRequestBodySize: MAX_HTTP_BODY_BYTES,
 			fetch: (request, server) => handler(request, server),
 			websocket: {
 				...websocket,
-				maxPayloadLength: 1024 * 1024,
+				// Bun 1.3.13 stores maxPayloadLength as an unsigned 32-bit integer. RFC 6455
+				// section 5.2 permits a 63-bit payload length, so Bun sets the active maximum.
+				maxPayloadLength: MAX_WEBSOCKET_MESSAGE_BYTES,
 				backpressureLimit: 8 * 1024 * 1024,
 				closeOnBackpressureLimit: true,
 			},

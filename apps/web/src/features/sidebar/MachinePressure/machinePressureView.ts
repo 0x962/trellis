@@ -1,7 +1,8 @@
 import {
-	activeMachinePressureSignals,
 	type MachinePressure as MachinePressureSample,
 	type MachinePressureState,
+	machinePressureSignalKeys,
+	memoryPressureName,
 	type ThermalState,
 } from "@trellis/api";
 import type { MachinePressureMachineView, MachinePressureReadingView } from "@trellis/ui";
@@ -31,67 +32,81 @@ const diskView = (signal: MachinePressureState["disk"], path: string): MachinePr
 	};
 };
 
-const readingView = (signal: ReturnType<typeof activeMachinePressureSignals>[number]): MachinePressureReadingView => {
-	if (signal.key === "disk") return diskView(signal as MachinePressureState["disk"], "");
-	const freshness = signal.freshness === "stale" ? "stale" : "live";
-	const tone = signal.tier === "danger" ? "danger" : "warning";
+type NonDiskSignalKey = Exclude<keyof MachinePressureState, "disk">;
+
+const readingView = (signal: MachinePressureState[NonDiskSignalKey]): MachinePressureReadingView => {
+	const tone = signal.tier;
 	if (signal.key === "cpuLoad")
 		return {
 			key: signal.key,
 			label: "CPU load",
-			value: (signal.reading!.value as number).toFixed(1),
-			unit: "per core",
+			value: signal.reading ? (signal.reading.value as number).toFixed(1) : "Unavailable",
+			unit: signal.reading ? "per core" : undefined,
 			tone,
-			freshness,
+			freshness: signal.freshness,
 		};
 	if (signal.key === "memory") {
-		const level = signal.reading!.value as number;
 		return {
 			key: signal.key,
 			label: "Memory pressure",
-			value: level === 4 ? "Critical" : "Warning",
-			unit: `level ${level}`,
+			value: memoryPressureName(signal.reading ? (signal.reading.value as number) : null),
 			tone,
-			freshness,
+			freshness: signal.freshness,
 		};
 	}
 	if (signal.key === "thermal")
 		return {
 			key: signal.key,
-			label: "Thermal state",
-			value: titleCase(signal.reading!.value as string),
+			label: "Thermal pressure",
+			value: signal.reading ? titleCase(signal.reading.value as string) : "Unavailable",
 			tone,
-			freshness,
+			freshness: signal.freshness,
 		};
 	const reading = signal.reading as MachinePressureState["temperature"]["reading"];
 	return {
 		key: signal.key,
 		label: "Processor temperature",
-		value: reading!.value.toFixed(0),
-		unit: "°C",
+		value: reading ? reading.value.toFixed(0) : "Unavailable",
+		unit: reading ? "°C" : undefined,
 		tone,
-		freshness,
-		detail: `${reading!.sensor} sensor · ${reading!.readDurationMs.toFixed(1)} ms read`,
+		freshness: signal.freshness,
+		detail: reading ? `${reading.sensor} sensor · ${reading.readDurationMs.toFixed(1)} ms read` : undefined,
 	};
 };
 
 const ageText = (state: MachinePressureState, now: number): string | undefined => {
-	const active = activeMachinePressureSignals(state);
-	if (active.length === 0) return undefined;
-	const sampledAt = Math.min(...active.map((signal) => signal.reading!.sampledAt));
+	const sampled = machinePressureSignalKeys.flatMap((key) =>
+		state[key].reading ? [state[key].reading.sampledAt] : [],
+	);
+	if (sampled.length === 0) return undefined;
+	const sampledAt = Math.min(...sampled);
 	const seconds = Math.max(0, Math.floor((now - sampledAt) / 1_000));
 	return `Last read ${seconds} s ago.`;
+};
+
+export type MachinePressureView = {
+	machines: MachinePressureMachineView[];
+	machinesWithAlerts: MachinePressureMachineView[];
 };
 
 export const machinePressureView = (
 	sample: MachinePressureSample,
 	state: MachinePressureState,
 	now: number,
-): MachinePressureMachineView => ({
-	id: "server",
-	name: sample.hostname,
-	readings: activeMachinePressureSignals(state).map(readingView),
-	details: state.disk.tier === "normal" ? [diskView(state.disk, sample.disk.path)] : [],
-	runs: sample.runs.map((run) => `${run.ticketIdentifier ?? run.name} ${formatBytes(run.memoryBytes)}`),
-	ageText: ageText(state, now),
-});
+): MachinePressureView => {
+	const readings = machinePressureSignalKeys.map((key) =>
+		key === "disk" ? diskView(state.disk, sample.disk.path) : readingView(state[key]),
+	);
+	const machine = {
+		id: "server",
+		name: sample.hostname,
+		readings,
+		runs: sample.runs.map((run) => `${run.ticketIdentifier ?? run.name} ${formatBytes(run.memoryBytes)}`),
+		ageText: ageText(state, now),
+	};
+	const alertReadings = readings.filter((reading) => reading.tone !== "normal");
+	return {
+		machines: [machine],
+		machinesWithAlerts: alertReadings.length > 0 ? [{ ...machine, readings: alertReadings }] : [],
+	};
+};

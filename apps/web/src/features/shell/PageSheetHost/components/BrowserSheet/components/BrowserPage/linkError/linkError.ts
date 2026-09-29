@@ -15,4 +15,5 @@ export const linkLoadError = (event: Pick<LinkLoadFailure, "errorCode" | "errorD
 	return event.errorDescription;
 };
 
-export const linkUrlError = (url: string) => (isLinkBrowserUrl(url) ? null : "Trellis opens only HTTPS links.");
+export const linkUrlError = (url: string) =>
+	isLinkBrowserUrl(url) ? null : "This link has an unsupported or invalid address.";

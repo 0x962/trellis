@@ -1,6 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { LINK_BROWSER_PARTITION } from "@trellis/api";
 import { secureLinkBrowser } from "./secureLinkBrowser.ts";
+
+afterEach(() => mock.restore());
 
 const attachWebview = (src: string) => {
 	let refused = false;
@@ -44,11 +46,29 @@ describe("secureLinkBrowser", () => {
 		});
 	});
 
-	test("refuses an HTTP page", () => {
-		expect(attachWebview("http://example.com").refused).toBe(true);
+	test("allows an HTTP page", () => {
+		expect(attachWebview("http://example.com").refused).toBe(false);
 	});
 
 	test("refuses a URL that does not parse", () => {
 		expect(attachWebview("not a URL").refused).toBe(true);
 	});
+});
+
+test.each([
+	"file:///etc/passwd",
+	"javascript:alert(1)",
+	"https://user:pass@example.com",
+	"trellis://page/01M3GHKCN2JY8QMTZ17TP3RHYG",
+])("rejects %s", (url) => {
+	expect(attachWebview(url).refused).toBe(true);
+});
+
+test("omits credentials and private URL fields from rejection logs", () => {
+	const warning = spyOn(console, "warn").mockImplementation(() => {});
+	expect(
+		attachWebview("https://private-user:private-password@example.com/private-path?token=private-token").refused,
+	).toBe(true);
+	expect(warning).toHaveBeenCalledTimes(1);
+	expect(JSON.stringify(warning.mock.calls)).not.toContain("private-");
 });

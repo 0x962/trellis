@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { RuntimeDelivery, RuntimeNativeDelivery } from "@trellis/runtime-protocol";
 
-type Entry = RuntimeDelivery & { hash: string; acknowledged?: boolean; transport?: "native" };
+type Entry = RuntimeDelivery & {
+	hash: string;
+	acknowledged?: boolean;
+	transport?: "native" | "queued";
+	data?: string;
+};
 export class InputLedger {
 	private readonly entries: Map<string, Entry>;
 	private readonly pending = new Map<string, Promise<void>>();
@@ -50,6 +55,48 @@ export class InputLedger {
 		this.entries.set(messageId, { messageId, hash: promptDigest, status: "unknown", transport: "native" });
 		this.save();
 		return { messageId, claimed: true, status: "unknown" };
+	}
+	queueInput(messageId: string, data: string): RuntimeDelivery {
+		const hash = createHash("sha256").update(data).digest("hex");
+		const existing = this.entries.get(messageId);
+		if (existing) {
+			if (existing.transport !== "queued" || existing.hash !== hash)
+				throw new Error(`Message ${messageId} already has different bytes or transport`);
+			return { messageId, status: existing.status };
+		}
+		this.entries.set(messageId, { messageId, status: "unknown", hash, transport: "queued", data });
+		this.save();
+		return { messageId, status: "unknown" };
+	}
+	queuedInputs() {
+		return [...this.entries.values()].flatMap((entry) =>
+			entry.transport === "queued" && entry.status === "unknown" && entry.data !== undefined
+				? [{ messageId: entry.messageId, data: entry.data }]
+				: [],
+		);
+	}
+	async flushQueuedInput(messageId: string, write: (data: string) => Promise<unknown>): Promise<RuntimeDelivery> {
+		const entry = this.entries.get(messageId)!;
+		if (entry.transport !== "queued") throw new Error(`Message ${messageId} uses another transport`);
+		if (entry.status === "written") return { messageId, status: "written" };
+		const current = this.pending.get(messageId);
+		if (current !== undefined) {
+			await current;
+			return { messageId, status: entry.status };
+		}
+		const pending = (async () => {
+			await write(entry.data!);
+			entry.status = "written";
+			delete entry.data;
+			this.save();
+		})();
+		this.pending.set(messageId, pending);
+		try {
+			await pending;
+		} finally {
+			this.pending.delete(messageId);
+		}
+		return { messageId, status: entry.status };
 	}
 	async deliver(messageId: string, data: string, write: () => Promise<unknown>): Promise<RuntimeDelivery> {
 		const hash = createHash("sha256").update(data).digest("hex");

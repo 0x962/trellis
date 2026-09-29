@@ -47,7 +47,7 @@ export const SessionCreateInputSchema = z
 		name: SessionNameSchema.optional().describe(
 			"The session name, stored as it is typed. Omit it to show New session until the first exchange supplies a name.",
 		),
-		prompt: z.string().trim().max(20000).describe("The initial prompt sent to the agent."),
+		prompt: z.string().trim().describe("The initial prompt sent to the agent."),
 		harness: HarnessSchema.optional().describe("The agent program, model, and effort. Sessions default to Claude."),
 		accountId: UlidSchema.optional().describe("Configured harness account from harnessAccounts.list."),
 	})

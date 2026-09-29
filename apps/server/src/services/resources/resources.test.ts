@@ -70,7 +70,6 @@ beforeAll(async () => {
 		actor,
 		session: null,
 		home,
-		maxUploadBytes: 1024,
 		version: "test",
 		apiVersion: "1",
 		bootId: ulid(),
@@ -197,18 +196,19 @@ test("stores an image and returns the pull request that shows it", async () => {
 });
 
 test("stores and removes a file", async () => {
+	const body = "x".repeat(2048);
 	const resource = await inTx((tx) =>
 		add(context, tx, {
 			epic: "TRL/resources",
 			kind: "file",
 			name: "migration.mmd",
-			file: new File(["diagram"], "migration.mmd", { type: "text/plain" }),
+			file: new File([body], "migration.mmd", { type: "text/plain" }),
 		}),
 	);
 	const path = blobPath(home, resource.blob!.sha256);
 	expect(await inTx((tx) => readBlob(context, tx, { id: resource.id }))).toMatchObject({
 		mime: "text/plain",
-		size: 7,
+		size: body.length,
 	});
 	expect(existsSync(path)).toBe(true);
 	expect(await gcBlobs(context, [resource.blob!.sha256])).toEqual({ removed: [] });

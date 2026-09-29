@@ -49,7 +49,6 @@ type PreparedUpload = { id: string; fileId: string; sha256: string; filename: st
 export const prepareUpload = async (ctx: PrepareCtx, rawInput: unknown): Promise<PreparedUpload> => {
 	const input = PullRequestFileUploadInputSchema.parse(rawInput);
 	await ctx.newTx((tx) => findPullRequestRow(tx, input.id));
-	if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
 	const stored = await storeFile(ctx.home, input.file);
 	return {
 		id: input.id,
