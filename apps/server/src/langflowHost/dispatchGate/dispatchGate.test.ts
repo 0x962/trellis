@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
@@ -123,7 +123,7 @@ test("restore retains the envelope and source identity separately from the targe
 	};
 	const block = await f.gate.blockDispatch({ requestId: "restore", reason });
 	expect(block.dataHomeId).toBe("target-home");
-	expect(block.reason).toEqual(reason);
+	expect(block.reason).toEqual({ ...reason, directory: realpathSync(envelope) });
 	expect(f.gate.closeDispatch({ requestId: "restore", reason })).toEqual(block);
 	expect(() => f.gate.closeDispatch({ requestId: "restore", reason: { ...reason, snapshotId: "other" } })).toThrow(
 		"dispatch_block_conflict",
