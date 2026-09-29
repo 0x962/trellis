@@ -234,6 +234,36 @@ test("a sort reorders inside each group and the tail, and keeps the groups in pl
 	expect(order(store)).toEqual([b, c, d, a, e]);
 });
 
+test("the selected tab never lands in a collapsed group", () => {
+	const { store, a, b, c, d, g, h } = grouped();
+	const collapsed = (id: string) => store.getState().groups.find((group) => group.id === id)!.collapsed;
+	// Collapse of the selected group, when the only tabs outside it sit in a
+	// collapsed group.
+	store.getState().selectTab(a);
+	store.getState().setTabGroup(a, g);
+	store.getState().setGroupCollapsed(h, true);
+	store.getState().selectTab(b);
+	store.getState().setGroupCollapsed(g, true);
+	expect(store.getState().activeId).toBe(d);
+	expect(collapsed(h)).toBe(false);
+	expect(collapsed(g)).toBe(true);
+	// Close of the last tab of the selected group, when the next tab sits in
+	// a collapsed group.
+	store.getState().setGroupCollapsed(g, false);
+	store.getState().selectTab(d);
+	store.getState().setGroupCollapsed(g, true);
+	store.getState().closeTab(d);
+	expect(store.getState().activeId).toBe(a);
+	expect(collapsed(g)).toBe(false);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g]);
+	// Reopen of a tab whose stored group was collapsed at the close.
+	store.getState().reopenClosedTab();
+	expect(store.getState().activeId).toBe(d);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g, h]);
+	expect(collapsed(h)).toBe(false);
+	expect(order(store)).toEqual([b, c, a, d]);
+});
+
 test("the store caps neither groups nor tabs", () => {
 	const { store } = grouped();
 	for (let index = 0; index < 500; index++) {

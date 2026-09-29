@@ -76,7 +76,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						if (outside.length === 0) return state;
 						const end = groupEnd(state.tabs, state.groups, id);
 						const next = state.tabs.slice(end).find((item) => item.groupId !== id) ?? outside.at(-1)!;
-						return { groups, activeId: next.id };
+						return { groups: expandGroupOf(groups, next), activeId: next.id };
 					}),
 				removeGroup: (id) =>
 					set((state) => {
@@ -150,13 +150,10 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						const record: ClosedPageTab = { tab: closed, index, replacementId: replacement?.id ?? null };
 						if (emptied) record.group = { group: state.groups[groupIndex]!, index: groupIndex };
 						const next = tabs[Math.min(index, tabs.length - 1)]!;
+						const groups = emptied ? state.groups.filter((group) => group.id !== closed.groupId) : state.groups;
 						return {
 							tabs,
-							groups: emptied
-								? state.groups.filter((group) => group.id !== closed.groupId)
-								: state.activeId === id
-									? expandGroupOf(state.groups, next)
-									: state.groups,
+							groups: state.activeId === id ? expandGroupOf(groups, next) : groups,
 							activeId: state.activeId === id ? next.id : state.activeId,
 							closedTabs: [...state.closedTabs, record],
 						};
@@ -175,10 +172,15 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 									item.forwardHistory.length === 0
 								),
 						);
-						const groups = closed.group ? [...state.groups] : expandGroupOf(state.groups, closed.tab);
+						const groups = [...state.groups];
 						if (closed.group) groups.splice(closed.group.index, 0, closed.group.group);
 						tabs.splice(insertIndex(tabs, groups, closed.tab, closed.index), 0, closed.tab);
-						return { tabs, groups, activeId: closed.tab.id, closedTabs: state.closedTabs.slice(0, -1) };
+						return {
+							tabs,
+							groups: expandGroupOf(groups, closed.tab),
+							activeId: closed.tab.id,
+							closedTabs: state.closedTabs.slice(0, -1),
+						};
 					}),
 				navigate: (page) =>
 					set((state) =>
