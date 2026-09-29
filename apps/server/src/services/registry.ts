@@ -58,8 +58,14 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
+import {
+	finishSessionObserverGenerations,
+	finishSessionObserverRecovery,
+	prepareSessionObserverGenerations,
+	recoverSessionObserverGeneration,
+	setSessionObserverEnabled,
+} from "./sessionObserverGeneration";
 import { sessionObserverServices } from "./sessionObservers/registry";
-import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
@@ -103,8 +109,14 @@ export const services = {
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	...sessionObserverServices,
+	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
-	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
+	"sessionObservers.dispatch": prepared(
+		"mutation",
+		prepareSessionObserverGenerations,
+		finishSessionObserverGenerations,
+	),
+	"sessionObservers.recover": prepared("mutation", recoverSessionObserverGeneration, finishSessionObserverRecovery),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
