@@ -1288,7 +1288,7 @@ returns one canonical spelling.
 | tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same project; `wave` joins a wave and its epic |
 | tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic and the wave; `wave: null` clears the wave |
 | tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
-| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
+| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | all supplied refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project; open first, then done, then by updated desc |
 | epics.get | GET /api/epics/{epic} | the summary, its waves in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
