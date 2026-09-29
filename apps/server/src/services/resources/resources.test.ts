@@ -94,21 +94,25 @@ afterAll(async () => {
 	await db.$client.close();
 });
 
-test("stores a doc without a blob", async () => {
-	const body = "a".repeat(200_000);
+test("preserves complete multibyte document text through create, edit, and read", async () => {
+	const body = `  # Plan\n${"文é𝄞\n".repeat(60_000)}tail  `;
 	const resource = await inTx((tx) =>
-		add(context, tx, { epic: "TRL/resources", kind: "doc", name: "Plan", body, ticket: "TRL-196" }),
+		add(
+			context,
+			tx,
+			ResourceAddInputSchema.parse({ epic: "TRL/resources", kind: "doc", name: "Plan", body, ticket: "TRL-196" }),
+		),
 	);
 
 	expect(resource).toMatchObject({ kind: "doc", name: "Plan", body, url: null, blob: null, ticketId });
 	expect((await inTx((tx) => epicView(context.core, tx, epicId))).resourceCount).toBe(1);
-	expect(
-		ResourceAddInputSchema.safeParse({ epic: "TRL/resources", kind: "doc", name: "Plan", body: `${body}a` }).success,
-	).toBe(false);
-
-	const saved = await inTx((tx) => update(context, tx, { id: resource.id, body: "# Updated plan" }));
-	expect(saved).toMatchObject({ id: resource.id, body: "# Updated plan", updatedAt: now.toISOString() });
-	expect(ResourceUpdateInputSchema.safeParse({ id: resource.id, body: `${body}a` }).success).toBe(false);
+	expect((await inTx((tx) => get(context, tx, { id: resource.id }))).body).toBe(body);
+	const edited = `${body}\n${"変更\n".repeat(80_000)}end  `;
+	const saved = await inTx((tx) =>
+		update(context, tx, ResourceUpdateInputSchema.parse({ id: resource.id, body: edited })),
+	);
+	expect(saved).toMatchObject({ id: resource.id, body: edited, updatedAt: now.toISOString() });
+	expect((await inTx((tx) => get(context, tx, { id: resource.id }))).body).toBe(edited);
 });
 
 test("stores a doc with an empty title, then renames it and keeps its body", async () => {

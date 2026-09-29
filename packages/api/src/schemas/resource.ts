@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { EpicRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { EPIC_DESCRIPTION_MAX } from "./epic.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const ResourceKindSchema = z.enum(["doc", "link", "image", "file"]);
-export const ResourceBodySchema = z.string().max(EPIC_DESCRIPTION_MAX);
+export const ResourceBodySchema = z.string();
 
 export const ResourceNameSchema = z
 	.string()

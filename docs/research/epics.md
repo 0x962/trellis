@@ -17,7 +17,7 @@ Table `epics`, in `apps/server/src/db/tables/epics.ts`, exported from `apps/serv
 | root_id | text NOT NULL; FK (project_id, root_id) → projects (id, root_id), the shape of `tickets_project_fk` |
 | slug | text NOT NULL, CHECK `slugPattern` (`^[a-z0-9]+(-[a-z0-9]+)*$`), UNIQUE (root_id, slug) |
 | name | text NOT NULL, CHECK trimmed and 1 to 120 |
-| description | text NOT NULL DEFAULT '', CHECK length <= 200000 |
+| description | text NOT NULL DEFAULT '' |
 | actor columns | `actorColumns()` and `actorFk` from `tables/actors.ts`, the last writer, as `notes` |
 | created_at, updated_at | `at()` NOT NULL |
 | | UNIQUE (id, root_id); index (project_id) |
