@@ -7,8 +7,8 @@ import { rows } from "../../../db/queries/support";
 import { langflowCompletions } from "../../../db/tables/langflowExecution";
 import type { Tx } from "../../../db/tx";
 import { NativeHandleV1Schema } from "../../../langflowContracts";
-import { observedCompletion } from "../observedCompletion";
 import { readReservation } from "../readReservation";
+import { observedCompletion } from "./components/observedCompletion";
 
 type WorkspaceObservation = {
 	executionId: string;
@@ -38,7 +38,7 @@ export async function recordNativeObservation(
 			(runtime.result.id !== prior.resultId || runtime.result.text !== prior.completion.result.output)
 		)
 			throw new Error("identity_conflict");
-		return { handle: reserved.handle, completion: prior };
+		return { handle: reserved.handle, completion: prior, reason: null };
 	}
 	const sessionId = runtime.agent?.sessionId ?? null;
 	if (
@@ -77,10 +77,11 @@ export async function recordNativeObservation(
 			workspaceId,
 			workspaceCommit: input.workspaceCommit,
 		});
-	if (observed.state !== "completed") return { handle, completion: null };
+	if (observed.state !== "completed")
+		return { handle, completion: null, reason: "reason" in observed ? observed.reason : null };
 	const completion = await recordCompletion(tx, {
 		resultBytes: observed.resultBytes,
 		completion: { ...observed.completion, handle },
 	});
-	return { handle, completion };
+	return { handle, completion, reason: null };
 }

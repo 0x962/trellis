@@ -4,7 +4,7 @@ import {
 	type NativeHandleV1,
 	type NativeLaunchProvenanceV1,
 	protocolDigest,
-} from "../../../langflowContracts";
+} from "../../../../../langflowContracts";
 
 export function observedCompletion(input: {
 	provenance: NativeLaunchProvenanceV1;
