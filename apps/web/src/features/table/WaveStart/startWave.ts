@@ -1,7 +1,5 @@
 import type { AgentRun, AgentRunListOutput, TicketSummary } from "@trellis/api";
 
-// The first page after the server accepts one more assigned agent run. The
-// new run replaces a row with the same id.
 export const startedRunList = (current: AgentRunListOutput | undefined, run: AgentRun): AgentRunListOutput => ({
 	items: [run, ...(current?.items ?? []).filter((item) => item.id !== run.id)],
 	nextCursor: current?.nextCursor ?? null,

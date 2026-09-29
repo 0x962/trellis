@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { AgentRun, TrellisClient } from "@trellis/api";
-import { readAgentRunPages } from "./agentRunPages";
+import { allAgentRuns } from "./allAgentRuns";
 
 test("reads each agent run page in order", async () => {
 	const first = { id: "first" } as AgentRun;
@@ -15,9 +15,9 @@ test("reads each agent run page in order", async () => {
 		},
 	} as unknown as TrellisClient;
 
-	expect(await readAgentRunPages(client, { project: "TRL", windowHours: null, limit: 1 })).toEqual([first, second]);
+	expect(await allAgentRuns(client, { project: "TRL", allHistory: true, limit: 1 })).toEqual([first, second]);
 	expect(calls).toEqual([
-		{ project: "TRL", windowHours: null, limit: 1, cursor: undefined },
-		{ project: "TRL", windowHours: null, limit: 1, cursor: "next" },
+		{ project: "TRL", allHistory: true, limit: 1, cursor: undefined },
+		{ project: "TRL", allHistory: true, limit: 1, cursor: "next" },
 	]);
 });

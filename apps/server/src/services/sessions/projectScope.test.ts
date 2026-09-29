@@ -6,7 +6,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { list } from "../agentRuns/agentRuns.ts";
+import { list } from "../agentRuns/list.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import { move } from "./move.ts";
 import { getSession } from "./queries.ts";

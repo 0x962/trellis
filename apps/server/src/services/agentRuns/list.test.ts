@@ -7,7 +7,7 @@ import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { recordObservedActivity } from "./activity.ts";
-import { list } from "./agentRuns.ts";
+import { latestByEpicTicket, list } from "./list.ts";
 import { projectRun } from "./liveState.ts";
 import { getRun } from "./queries.ts";
 
@@ -26,14 +26,25 @@ const olderRun = ulid();
 const flowRun = ulid();
 const bulkProjectId = ulid();
 const stableProjectId = ulid();
+const epicProjectId = ulid();
+const statusId = ulid();
+const epicId = ulid();
+const epicTicketIds = [ulid(), ulid()];
+const epicRunIds = {
+	assigned: ulid(),
+	closedAfterAssigned: ulid(),
+	closedWithLateAttempt: ulid(),
+	closedLater: ulid(),
+};
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const listRuns = (input: {
 	project?: string;
 	ids?: string[];
 	assigned?: boolean;
 	includePinnedHistory?: boolean;
+	allHistory?: boolean;
 	limit?: number;
-	windowHours?: number | null;
+	windowHours?: number;
 	cursor?: string;
 }) => run((tx) => list(ctx, tx, AgentRunListInputSchema.parse(input)));
 
@@ -42,7 +53,24 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES
 		(${projectId}, 'LST', 'list', 'List', ${hoursAgo(300)}, ${hoursAgo(300)}),
 		(${bulkProjectId}, 'BLK', 'bulk', 'Bulk', ${hoursAgo(300)}, ${hoursAgo(300)}),
-		(${stableProjectId}, 'STB', 'stable', 'Stable', ${hoursAgo(300)}, ${hoursAgo(300)})`);
+		(${stableProjectId}, 'STB', 'stable', 'Stable', ${hoursAgo(300)}, ${hoursAgo(300)}),
+		(${epicProjectId}, 'EPH', 'epic-history', 'Epic history', ${hoursAgo(300)}, ${hoursAgo(300)})`);
+	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+		VALUES ('dana', 'human', ${hoursAgo(300)}, ${hoursAgo(300)})`);
+	await db.execute(sql`INSERT INTO statuses
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${statusId}, ${epicProjectId}, 'Todo', 'todo', 'todo', 'neutral', 0, true,
+			${hoursAgo(300)}, ${hoursAgo(300)})`);
+	await db.execute(sql`INSERT INTO epics
+		(id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${epicId}, ${epicProjectId}, 'history', 'History', 'dana', 'human',
+			${hoursAgo(300)}, ${hoursAgo(300)})`);
+	await db.execute(sql`INSERT INTO tickets
+		(id, project_id, number, title, status_id, epic_id, position, created_at, updated_at) VALUES
+		(${epicTicketIds[0]}, ${epicProjectId}, 1, 'Assigned', ${statusId}, ${epicId}, 1,
+			${hoursAgo(300)}, ${hoursAgo(300)}),
+		(${epicTicketIds[1]}, ${epicProjectId}, 2, 'Retried', ${statusId}, ${epicId}, 2,
+			${hoursAgo(300)}, ${hoursAgo(300)})`);
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_id, project_key, pinned_at, closed_at, created_at, updated_at) VALUES
 		(${openRun}, 'open', 'session', 'Open prompt.', ${projectId}, 'LST', NULL, NULL, ${hoursAgo(200)}, ${hoursAgo(200)}),
@@ -51,6 +79,17 @@ beforeAll(async () => {
 		(${oldRun}, 'old', 'session', 'Old prompt.', ${projectId}, 'LST', ${hoursAgo(1)}, ${hoursAgo(40)}, ${hoursAgo(48)}, ${hoursAgo(40)}),
 		(${olderRun}, 'older', 'session', 'Older prompt.', ${projectId}, 'LST', ${hoursAgo(2)}, ${hoursAgo(100)}, ${hoursAgo(120)}, ${hoursAgo(100)}),
 		(${flowRun}, 'flow', 'flow', 'Review.', ${projectId}, 'LST', NULL, ${hoursAgo(1)}, ${hoursAgo(1)}, ${hoursAgo(1)})`);
+	await db.execute(sql`INSERT INTO agent_runs
+		(id, name, kind, instruction, project_id, project_key, ticket_id, ticket_identifier,
+			closed_at, activity_at, created_at, updated_at) VALUES
+		(${epicRunIds.assigned}, 'assigned', 'agent', 'Prompt.', ${epicProjectId}, 'EPH',
+			${epicTicketIds[0]}, 'EPH-1', NULL, ${hoursAgo(20)}, ${hoursAgo(20)}, ${hoursAgo(20)}),
+		(${epicRunIds.closedAfterAssigned}, 'closed', 'agent', 'Prompt.', ${epicProjectId}, 'EPH',
+			${epicTicketIds[0]}, 'EPH-1', ${hoursAgo(1)}, ${hoursAgo(1)}, ${hoursAgo(2)}, ${hoursAgo(1)}),
+		(${epicRunIds.closedWithLateAttempt}, 'retried', 'agent', 'Prompt.', ${epicProjectId}, 'EPH',
+			${epicTicketIds[1]}, 'EPH-2', ${hoursAgo(10)}, ${hoursAgo(10)}, ${hoursAgo(100)}, ${hoursAgo(10)}),
+		(${epicRunIds.closedLater}, 'later', 'agent', 'Prompt.', ${epicProjectId}, 'EPH',
+			${epicTicketIds[1]}, 'EPH-2', ${hoursAgo(4)}, ${hoursAgo(4)}, ${hoursAgo(5)}, ${hoursAgo(4)})`);
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_id, project_key, closed_at, created_at, updated_at)
 		SELECT '01ARZ3NDEKTSV4RRFFQ69G' || lpad(n::text, 4, '0'), 'bulk-' || n, 'session', 'Prompt.',
@@ -66,7 +105,9 @@ beforeAll(async () => {
 			${hoursAgo(1)}::timestamptz - n * interval '1 second'
 		FROM generate_series(1, 5) AS n`);
 	await db.execute(sql`INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
-		VALUES (${ulid()}, ${recentActivityRun}, 1, 'hash', ${hoursAgo(1.5)})`);
+		VALUES
+		(${ulid()}, ${recentActivityRun}, 1, 'hash', ${hoursAgo(1.5)}),
+		(${ulid()}, ${epicRunIds.closedWithLateAttempt}, 1, 'hash', ${hoursAgo(1)})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	ctx = {
@@ -177,7 +218,7 @@ test("the cursor reads more than 1000 run ids without a duplicate or a missing r
 });
 
 test("a new run does not change the remaining cursor pages", async () => {
-	const first = await listRuns({ project: stableProjectId, windowHours: null, limit: 2 });
+	const first = await listRuns({ project: stableProjectId, allHistory: true, limit: 2 });
 	const newRun = ulid();
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_id, project_key, closed_at, created_at, updated_at) VALUES
@@ -185,7 +226,7 @@ test("a new run does not change the remaining cursor pages", async () => {
 	const remaining: string[] = [];
 	let cursor = first.nextCursor ?? undefined;
 	while (cursor !== undefined) {
-		const page = await listRuns({ project: stableProjectId, windowHours: null, limit: 2, cursor });
+		const page = await listRuns({ project: stableProjectId, allHistory: true, limit: 2, cursor });
 		remaining.push(...page.items.map((row) => row.id));
 		cursor = page.nextCursor ?? undefined;
 	}
@@ -198,8 +239,21 @@ test("a new run does not change the remaining cursor pages", async () => {
 	expect(remaining).not.toContain(newRun);
 });
 
-test("the input accepts complete filters and an unbounded history window", () => {
+test("the input accepts complete filters and an all-history request", () => {
 	const ids = Array.from({ length: 1001 }, () => ulid());
-	expect(AgentRunListInputSchema.parse({ ids, windowHours: null }).ids).toHaveLength(1001);
+	expect(AgentRunListInputSchema.parse({ ids, allHistory: true })).toMatchObject({ ids, allHistory: true });
 	expect(AgentWorkspaceLineStatsInputSchema.parse({ ticketIds: ids }).ticketIds).toHaveLength(1001);
+});
+
+test("an invalid or mismatched cursor fails", async () => {
+	await expect(listRuns({ cursor: "invalid" })).rejects.toMatchObject({ code: "INVALID_CURSOR" });
+	const first = await listRuns({ project: stableProjectId, limit: 1 });
+	await expect(listRuns({ project: bulkProjectId, limit: 1, cursor: first.nextCursor! })).rejects.toMatchObject({
+		code: "INVALID_CURSOR",
+	});
+});
+
+test("the epic query returns the latest useful agent run for each ticket", async () => {
+	const found = await run((tx) => latestByEpicTicket(ctx, tx, { epic: "EPH/history" }));
+	expect(found.map((item) => item.id)).toEqual([epicRunIds.closedAfterAssigned, epicRunIds.closedWithLateAttempt]);
 });

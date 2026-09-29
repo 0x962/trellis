@@ -1,7 +1,7 @@
 import { AGENT_RUN_LIST_MAX_LIMIT, type AgentRun, type AgentRunListRequest, type TrellisClient } from "@trellis/api";
 import type { Orpc } from "../../../lib/orpc";
 
-export const readAgentRunPages = async (client: TrellisClient, input: AgentRunListRequest): Promise<AgentRun[]> => {
+export const allAgentRuns = async (client: TrellisClient, input: AgentRunListRequest): Promise<AgentRun[]> => {
 	const items: AgentRun[] = [];
 	let cursor: string | undefined;
 	do {
@@ -16,7 +16,7 @@ export const readAgentRunPages = async (client: TrellisClient, input: AgentRunLi
 	return items;
 };
 
-export const agentRunPagesOptions = (orpc: Orpc, client: TrellisClient, input: AgentRunListRequest) => ({
+export const allAgentRunsOptions = (orpc: Orpc, client: TrellisClient, input: AgentRunListRequest) => ({
 	...orpc.agentRuns.list.queryOptions({ input }),
-	queryFn: () => readAgentRunPages(client, input),
+	queryFn: () => allAgentRuns(client, input),
 });

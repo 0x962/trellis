@@ -1,32 +1,10 @@
-import {
-	AGENT_RUN_LIST_LIMIT,
-	AGENT_RUN_LIST_MAX_LIMIT,
-	AGENT_RUN_LIST_WINDOW_HOURS,
-	AgentBroadcastGroupSchema,
-	type AgentBroadcastResult,
-	type AgentRun,
-	type AgentRunListInput,
-	HarnessSchema,
-	type TrellisClient,
-} from "@trellis/api";
+import { AgentBroadcastGroupSchema, type AgentBroadcastResult, type AgentRun, HarnessSchema } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, wantsJson } from "../context.ts";
-import { cell, json, type ListSpec, printListPages, printRecord, type RecordSpec } from "../output.ts";
-import { positiveInteger } from "./page/revision.ts";
-
-const agentList: ListSpec<AgentRun> = {
-	columns: [
-		{ name: "id", value: (row) => row.id },
-		{ name: "kind", value: (row) => row.kind },
-		{ name: "name", value: (row) => cell(row.name) },
-		{ name: "state", value: (row) => row.state },
-		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
-		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
-	],
-	identifier: (row) => row.id,
-};
+import { cell, json, printRecord, type RecordSpec } from "../output.ts";
+import { list } from "./agents/list.ts";
 
 const agentRecord: RecordSpec<AgentRun> = {
 	fields: [
@@ -55,60 +33,6 @@ const broadcastRecord: RecordSpec<AgentBroadcastResult> = {
 	],
 	identifier: (row) => row.group,
 };
-
-const agentPages = async function* (
-	client: TrellisClient,
-	query: Partial<Omit<AgentRunListInput, "cursor" | "limit" | "includePinnedHistory">>,
-	want: number,
-) {
-	let cursor: string | undefined;
-	let taken = 0;
-	while (taken < want) {
-		const page = await client.agentRuns.list({
-			...query,
-			cursor,
-			limit: Math.min(want - taken, AGENT_RUN_LIST_MAX_LIMIT),
-		});
-		taken += page.items.length;
-		yield page.items;
-		if (page.nextCursor === null) return;
-		cursor = page.nextCursor;
-	}
-};
-
-const list = defineCommand({
-	meta: { name: "list", description: "List agents by ticket or by project" },
-	args: {
-		ticket: { type: "string", description: "Keep the agents of this ticket" },
-		project: { type: "string", description: "Keep the agents of this project" },
-		"window-hours": {
-			type: "string",
-			description: `How many hours of closed agents to keep, on top of the open ones (default ${AGENT_RUN_LIST_WINDOW_HOURS})`,
-		},
-		limit: { type: "string", description: `How many agents to print at most (default ${AGENT_RUN_LIST_LIMIT})` },
-		all: { type: "boolean", description: "Print every matching agent" },
-	},
-	async run(context) {
-		const ctx = contextOf(context);
-		const { args } = context;
-		const want = args.all ? Number.POSITIVE_INFINITY : (positiveInteger(args.limit, "--limit") ?? AGENT_RUN_LIST_LIMIT);
-		await printListPages(
-			ctx.out,
-			ctx.format,
-			agentPages(
-				clientOf(ctx),
-				compact({
-					ticket: args.ticket,
-					project: args.project,
-					windowHours:
-						args["window-hours"] === undefined ? (args.all ? null : undefined) : Number(args["window-hours"]),
-				}),
-				want,
-			),
-			agentList,
-		);
-	},
-});
 
 const start = defineCommand({
 	meta: { name: "start", description: "Assign an agent to a ticket" },

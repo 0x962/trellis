@@ -25,6 +25,7 @@ import {
 	AgentWorkspaceSummarySchema,
 	TicketMetricsSchema,
 } from "../schemas/agentRun.ts";
+import { EpicRefInputSchema } from "../schemas/epic.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { AgentAnswerInputSchema, AgentSeenInputSchema } from "../schemas/sessionActivity.ts";
 import { TicketGetInputSchema } from "../schemas/ticket.ts";
@@ -238,9 +239,18 @@ export const agentRuns = {
 		.input(idInput)
 		.output(z.object({ text: z.string() })),
 	list: base
+		.errors(pickErrors(["INVALID_CURSOR"]))
 		.route({ method: "GET", path: "/agent-runs", summary: "List agents" })
 		.input(AgentRunListInputSchema)
 		.output(AgentRunListOutputSchema),
+	latestByEpicTicket: base
+		.route({
+			method: "GET",
+			path: "/epics/{+epic}/agent-runs/latest",
+			summary: "Read the latest agent of each epic ticket",
+		})
+		.input(EpicRefInputSchema)
+		.output(z.array(AgentRunSchema)),
 	setPinned: base
 		.route({ method: "PUT", path: "/agent-runs/{id}/pinned", summary: "Pin or unpin a saved session" })
 		.input(AgentRunPinInputSchema)

@@ -100,7 +100,7 @@ test("agent list follows every cursor for all rows", async () => {
 	expect(await run(["agent", "list", "--all", "--project", "TRL"], deps)).toBe(0);
 	expect(JSON.parse(output).map((row: { name: string }) => row.name)).toEqual(["First", "Second"]);
 	expect(calls).toEqual([
-		{ project: "TRL", windowHours: null, limit: 1000 },
-		{ project: "TRL", windowHours: null, cursor: "next", limit: 1000 },
+		{ project: "TRL", allHistory: true, limit: 1000 },
+		{ project: "TRL", allHistory: true, cursor: "next", limit: 1000 },
 	]);
 });

@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import type { AgentRun, Project, TicketSummary, WaveSummary } from "@trellis/api";
+import type { AgentRun, TicketSummary, WaveSummary } from "@trellis/api";
 import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref } from "../../../lib/projectUrl";
 import { useUiStore } from "../../../stores/uiStore";
-import { agentRunPagesOptions } from "../../agents/agentRunPages";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
@@ -31,17 +30,8 @@ import { EpicEmptyState } from "./components/EpicEmptyState";
 import { EpicLoadError } from "./components/EpicLoadError";
 import { EpicResources } from "./components/EpicResources";
 import { EpicTopbarActions } from "./components/EpicTopbarActions";
-
-export type EpicPageProps = {
-	project: Project;
-	// The epic slug from the URL: `/p/OP/epics/<slug>`.
-	slug: string;
-	// The validated search of the URL. It holds the same params as the
-	// project table, and never `epic`, because the path names the epic.
-	search: Partial<View>;
-	// Receives the next URL search after a filter or a display change.
-	onSearchChange: (next: Partial<View>) => void;
-};
+import type { EpicPageProps } from "./EpicPageProps";
+import { useEpicAgentRuns } from "./hooks/useEpicAgentRuns";
 
 const noRuns: readonly AgentRun[] = [];
 const noWaves: readonly WaveSummary[] = [];
@@ -67,7 +57,7 @@ const breadcrumbLinkClass =
 // New wave adds a wave at the end of the epic, and every wave header of the
 // table carries the actions of its wave (`useWaveEditing`).
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
-	const { client, orpc, queryClient } = useApp();
+	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
 	const resourceId = useLocation({ select: (location) => location.hash });
 	const mutations = useTicketMutations();
@@ -79,38 +69,19 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const splat = `${project.key}/epics/${slug}`;
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
-	// The assigned runs come from the query that the actor cell of every row
-	// reads, so the row marks and the wave start dialog cost no request of
-	// their own.
-	const assignedRunsQuery = useQuery({
-		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
-		refetchOnWindowFocus: "always",
-	});
-	const assignedRuns = assignedRunsQuery.data?.items;
-	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
+	const epicAgentRuns = useEpicAgentRuns(ref);
+	const runs = epicAgentRuns.data ?? noRuns;
+	const assigned = useMemo(() => assignedTicketIds(runs), [runs]);
 	// A Set, because each row tests membership. Null until the query
 	// succeeds: an empty set would read a ticket whose agent works as a
 	// ticket that waits for the person, and the row would move when the
 	// answer lands.
 	const workingTicketIds = useMemo(
-		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
-		[assignedRunsQuery.status, assignedRuns],
+		() => (epicAgentRuns.status === "success" ? new Set(epicWorkingTicketIds(runs)) : null),
+		[epicAgentRuns.status, runs],
 	);
-	// Prior runs keep their line after a person removes the assignment. This
-	// query follows every cursor because an old run can own that line.
-	const priorRunsQuery = useQuery({
-		...agentRunPagesOptions(orpc, client, {
-			project: project.id,
-			assigned: false,
-			windowHours: null,
-			limit: 1000,
-		}),
-		refetchOnWindowFocus: "always",
-	});
-	const agentLines = useMemo(
-		() => agentLinesByTicket([...(assignedRuns ?? noRuns), ...(priorRunsQuery.data ?? noRuns)]),
-		[assignedRuns, priorRunsQuery.data],
-	);
+	// `agentLinesByTicket` shows closed runs in the epic table, so `useEpicAgentRuns` reads one exact row per ticket.
+	const agentLines = useMemo(() => agentLinesByTicket(runs), [runs]);
 
 	const waveEditing = useWaveEditing({
 		epicRef: ref,
@@ -273,7 +244,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 											tableKind="epic"
 											search={tableSearch}
 											workingTicketIds={workingTicketIds}
-											assignedTicketIds={assignedRunsQuery.status === "success" ? assigned : undefined}
+											assignedTicketIds={epicAgentRuns.status === "success" ? assigned : undefined}
 											prRows
 											agentLines={agentLines}
 											waveEditing={readOnly ? undefined : waveEditing}

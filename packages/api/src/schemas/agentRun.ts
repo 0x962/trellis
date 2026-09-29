@@ -92,25 +92,20 @@ export const AgentRunRetryInputSchema = z.strictObject({
 	requestId: z.string().min(1).max(200),
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
-// The default list keeps every open run and each closed run that changed
-// during the last day. Pass null as `windowHours` to read all history.
 export const AGENT_RUN_LIST_WINDOW_HOURS = 24;
 // One request reads at most this many rows unless the caller selects a
 // smaller page. A caller follows `nextCursor` to read more rows.
 export const AGENT_RUN_LIST_LIMIT = 200;
 // The largest page that one request reads.
 export const AGENT_RUN_LIST_MAX_LIMIT = 1000;
-// `ids` and `ticket` are bounds of their own, so the window does not apply
-// to them. A caller that names a run by its ID reads that run at any age.
-// `includePinnedHistory` keeps every pinned ticket agent and session that
-// matches the filters. It sorts those pinned runs before the other runs.
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),
 	ids: z.array(z.string().min(1)).optional(),
 	assigned: z.boolean().optional(),
 	includePinnedHistory: booleanString.default(false),
-	windowHours: z.coerce.number().int().min(1).nullable().default(AGENT_RUN_LIST_WINDOW_HOURS),
+	allHistory: booleanString.default(false),
+	windowHours: z.coerce.number().int().min(1).default(AGENT_RUN_LIST_WINDOW_HOURS),
 	limit: z.coerce.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
 	cursor: z.string().optional(),
 });

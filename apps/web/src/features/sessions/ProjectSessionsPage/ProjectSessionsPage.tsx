@@ -6,7 +6,7 @@ import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { agentRunPagesOptions } from "../../agents/agentRunPages";
+import { allAgentRunsOptions } from "../../agents/allAgentRuns";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { ProjectSectionMenu } from "../../shell/ProjectSectionMenu";
@@ -30,13 +30,11 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
-	// The current list uses a 48-hour window. The Archived list follows all
-	// history pages only while a person reads it.
-	const runsOptions = agentRunPagesOptions(
+	const runsOptions = allAgentRunsOptions(
 		orpc,
 		client,
 		showArchived
-			? { project: project.id, includePinnedHistory: true, windowHours: null, limit: 1000 }
+			? { project: project.id, includePinnedHistory: true, allHistory: true, limit: 1000 }
 			: { project: project.id, includePinnedHistory: true, windowHours: 48, limit: 1000 },
 	);
 	const selectedRunOptions = orpc.agentRuns.list.queryOptions({ input: { ids: hash ? [hash] : [] } });

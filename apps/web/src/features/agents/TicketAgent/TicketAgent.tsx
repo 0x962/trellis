@@ -7,7 +7,7 @@ import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { agentKindOf } from "../agentKindOf";
 import { agentMarkState } from "../agentMarkState";
 import { agentProfileOf } from "../agentProfileOf";
-import { agentRunPagesOptions } from "../agentRunPages";
+import { allAgentRunsOptions } from "../allAgentRuns";
 import { agentLabel } from "./agentLabel";
 import { AssignAgent } from "./components/AssignAgent";
 
@@ -20,7 +20,7 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
 	const query = useQuery({
-		...agentRunPagesOptions(orpc, client, { ticket }),
+		...allAgentRunsOptions(orpc, client, { ticket }),
 		retry: false,
 		refetchInterval: 2000,
 	});
