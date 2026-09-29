@@ -16,6 +16,7 @@ from langflow.services.trellis_v1.backup import (
     capture_engine_snapshot,
     snapshot_file,
 )
+from langflow.services.trellis_v1.backup_compatibility import EngineSnapshotCompatibility, read_snapshot_compatibility
 from langflow.services.trellis_v1.capture_grants import CaptureConflict
 
 
@@ -34,6 +35,12 @@ def create_backup_router(*, database, settings, export_root: Path, authenticatio
                                 headers={"WWW-Authenticate": "Bearer"})
 
     router = APIRouter(prefix="/snapshots", dependencies=[Depends(authenticate)])
+
+    @router.get("/compatibility", response_model=EngineSnapshotCompatibility)
+    async def compatibility() -> EngineSnapshotCompatibility:
+        return await read_snapshot_compatibility(
+            database, settings, package_digest=package_digest, data_home_id=data_home_id, host_id=host_id,
+        )
 
     @router.post("", response_model=EngineSnapshotReceipt)
     async def capture(binding: SnapshotBinding) -> EngineSnapshotReceipt:

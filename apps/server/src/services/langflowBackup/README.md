@@ -34,8 +34,8 @@ The caller owns barrier cleanup and incomplete export retention.
 `SidecarDriver` supplies `start`, `observe`, and `stop`; it supplies no engine snapshot transport.
 The `engineSnapshot` module supplies the authenticated SQLite export client.
 Its independent Langflow backup fragment supplies the configured engine export and router.
-TRL-696 owns producer registration and the barrier composition.
-The injected boundary is a required interface, not a supplied production adapter.
+`capturePairedSnapshot` composes the host gate, capture grant, exports, and seal.
+TRL-696 owns producer registration and the public system procedure.
 Unknown ownership blocks effect admission but does not prevent a quiesced export of retained bytes.
 
 ## Isolated restore
@@ -75,3 +75,57 @@ The SQLite fixture does not run Langflow or prove its checkpoint export protocol
 The injected fixture gate proves the restore call order and retained block only.
 Actual engine snapshot transport, integrated host enforcement, process reconciliation, and installed ENG-F16 acceptance remain integration requirements.
 No production restore, provider call, or conversation reset forms part of these fixtures.
+
+## Paired domain entrypoints
+
+`capturePairedSnapshot(context, input)` accepts a snapshot UUID, request ID, new export directory, and abort signal.
+Its context holds the real host control, supervisor, capture authority, authentication file, and two database worker ports.
+The worker ports call `readTrellisSnapshotVersion` and `captureTrellisSnapshot` through `ServiceTransport`.
+TRL-696 owns their registration and the public system procedure.
+
+`readTrellisSnapshotVersion(ctx, tx)` returns the installed Trellis version and a SHA256 of the ordered migration records.
+`captureTrellisSnapshot(ctx, tx, input)` exports verified private launch files, run identity references, canonical stop facts, and the complete `system.snapshot` output.
+The input includes the destination, expected Trellis version, and exact dispatch block.
+`TrellisCaptureResult` supplies the staging path, unavailable history, native inventory status, and verified version.
+The worker holds the database queue through that operation.
+Complete workspace and provider conversation exports remain unavailable; their retained run references appear in the manifest.
+
+The capture sequence closes the host gate, drains durable permits, and commits the exact capture grant to the engine.
+The grant excludes engine writers through both exports and the manifest seal.
+The adapter then revokes the grant and returns `requires-reconciliation` with the host gate closed.
+Errors retain the current grant, block, journal, and partial exports.
+The supervisor checks the exact engine instance before export.
+The host control stores the immutable operation journal under its external `paired-snapshots/<snapshotId>` directory.
+The journal records an export attempt before the snapshot POST.
+
+`readPairedRecovery` reads that journal, current permits, and current capture grants without a network mutation.
+`finishPairedCapture` verifies a complete seal and recovers revocation with the same grant bytes.
+It never sends another export POST and never releases the host gate.
+An incomplete or unavailable seal keeps capture recovery blocked.
+
+`restorePairedSnapshot` accepts a source snapshot, new envelope, new target home, request ID, compatibility, and abort signal.
+Its context provides the current live home.
+The target home, source, live home, and envelope must remain separate.
+After the restore marker exists, it creates external host control with the exact restore block before it copies payload files.
+`LangflowHostControl.initialize` creates this block with an empty permit store.
+The host later opens that control with its actual evidence producer.
+The target home remains empty; the verified payload stays under the envelope.
+A separate owner must install those bytes and verify the live engine before release.
+The source and all later live records remain intact.
+
+`readPairedSeal` verifies the stored inventory and exact engine binding, database file, encryption secret, and version receipts.
+It returns retained source bytes and their digests for the manifest, engine receipt, native inventory, stop records, and Trellis file inventory.
+Captured stop records name the source block; current restore reconciliation must query facts for the target block.
+These retained bytes do not identify the database currently open in a live engine.
+TRL-676 owns the actual current-store verifier, authority and attempt reconciliation, and final gate release.
+TRL-1058 supplies the durable engine lease for live reads across that release.
+The restore marker remains until that complete producer proves the exact restored state.
+
+## Retained work and cleanup
+
+Each operation owns its new export directory, journal, and any staging path recorded in its Trellis stage.
+Each restore owns its new target home, external control, envelope, and partial payload.
+A failure keeps these paths for inspection and explicit recovery.
+Cleanup must first settle capture revocation and preserve the operation evidence.
+This module does not delete source snapshots, live homes, unknown workspaces, or provider conversations.
+The integrated runner must supply these exact paths to its cleanup owner.
