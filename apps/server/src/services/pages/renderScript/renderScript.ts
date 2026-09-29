@@ -97,26 +97,72 @@ const contentRuntime = (nonce: string) => {
 		thread: string;
 		anchor: PageCommentAnchor;
 	}[];
+	type ResolvedComment = {
+		thread: string;
+		element: Element;
+		target: Element | Range;
+	};
+	const layoutLimit = 200;
+	let activeThread: string | null = null;
+	let commentsByElement = new Map<Element, ResolvedComment[]>();
+	let resolvedByThread = new Map<string, ResolvedComment>();
+	let visibleElements = new Set<Element>();
+	let visibilityObserver: IntersectionObserver | null = null;
 	let layoutFrame = 0;
 	const reportLayout = () => {
 		layoutFrame = 0;
-		const items = [];
-		for (const comment of comments) {
-			const element = document.querySelector(comment.anchor.path);
-			if (element === null) continue;
-			const target = comment.anchor.kind === "text" ? textRange(element, comment.anchor) : element;
-			if (target === null) continue;
-			const rect = target.getBoundingClientRect();
+		const items: { thread: string; x: number; y: number }[] = [];
+		const included = new Set<string>();
+		const add = (comment: ResolvedComment | undefined) => {
+			if (comment === undefined || included.has(comment.thread) || items.length === layoutLimit) return;
+			const rect = comment.target.getBoundingClientRect();
+			if (
+				comment.thread !== activeThread &&
+				(rect.bottom < 0 || rect.top > innerHeight || rect.right < 0 || rect.left > innerWidth)
+			)
+				return;
 			items.push({
 				thread: comment.thread,
 				x: Math.max(14, Math.min(innerWidth - 14, rect.right)),
 				y: Math.max(14, Math.min(innerHeight - 14, rect.top + Math.min(rect.height / 2, 14))),
 			});
+			included.add(comment.thread);
+		};
+		add(activeThread === null ? undefined : resolvedByThread.get(activeThread));
+		for (const element of visibleElements) {
+			for (const comment of commentsByElement.get(element) ?? []) add(comment);
+			if (items.length === layoutLimit) break;
 		}
 		send({ type: "page-comment-layout", items });
 	};
 	const scheduleLayout = () => {
 		if (layoutFrame === 0) layoutFrame = requestAnimationFrame(reportLayout);
+	};
+	const resolveComments = () => {
+		visibilityObserver?.disconnect();
+		commentsByElement = new Map();
+		resolvedByThread = new Map();
+		visibleElements = new Set();
+		for (const comment of comments) {
+			const element = document.querySelector(comment.anchor.path);
+			if (element === null) continue;
+			const target = comment.anchor.kind === "text" ? textRange(element, comment.anchor) : element;
+			if (target === null) continue;
+			const resolved = { thread: comment.thread, element, target };
+			resolvedByThread.set(comment.thread, resolved);
+			const elementComments = commentsByElement.get(element);
+			if (elementComments === undefined) commentsByElement.set(element, [resolved]);
+			else elementComments.push(resolved);
+		}
+		visibilityObserver = new IntersectionObserver((entries) => {
+			for (const entry of entries) {
+				if (entry.isIntersecting) visibleElements.add(entry.target);
+				else visibleElements.delete(entry.target);
+			}
+			scheduleLayout();
+		});
+		for (const element of commentsByElement.keys()) visibilityObserver.observe(element);
+		scheduleLayout();
 	};
 	addEventListener("scroll", () => send({ type: "page-scroll", x: scrollX, y: scrollY }), { passive: true });
 	addEventListener("scroll", scheduleLayout, { passive: true });
@@ -167,9 +213,9 @@ const contentRuntime = (nonce: string) => {
 		if (event.source !== parent || event.data?.nonce !== nonce) return;
 		const data = event.data;
 		if (data.type === "page-comment-reveal" && typeof data.thread === "string") {
-			const comment = comments.find((candidate) => candidate.thread === data.thread);
-			const element = comment === undefined ? null : document.querySelector(comment.anchor.path);
-			element?.scrollIntoView({
+			activeThread = data.thread;
+			const comment = resolvedByThread.get(data.thread);
+			comment?.element.scrollIntoView({
 				block: "center",
 				behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
 			});
@@ -178,7 +224,7 @@ const contentRuntime = (nonce: string) => {
 		}
 		if (data.type === "page-comments-state" && Array.isArray(data.comments)) {
 			comments = data.comments;
-			scheduleLayout();
+			resolveComments();
 			return;
 		}
 		if (data.type !== "page-state") return;

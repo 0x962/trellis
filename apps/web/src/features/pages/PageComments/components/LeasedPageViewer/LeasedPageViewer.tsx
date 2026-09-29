@@ -159,7 +159,7 @@ export function LeasedPageViewer({
 				{!failed && readyLease === lease?.id && (
 					<div className="pointer-events-none absolute inset-0">
 						<PageCommentPins
-							comments={comments}
+							threads={comments}
 							positions={pinPositions}
 							selectedThread={selectedThread}
 							onOpenThread={onOpenThread}
