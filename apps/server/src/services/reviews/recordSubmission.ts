@@ -4,7 +4,7 @@ import { ulid } from "ulid";
 import { localReviewState } from "../../db/queries/pullRequestRows.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { type ServiceCtx, type TicketRow, touchTicket, writeActivity } from "../support.ts";
+import { type IoCtx, type TicketRow, touchTicket, writeActivity } from "../support.ts";
 import { messageAuthor } from "./deliveryAuthor.ts";
 import { enqueueReviewDeliveries } from "./enqueueReviewDeliveries.ts";
 
@@ -29,7 +29,7 @@ export type SubmissionInput = {
 
 // Stores one local verdict and queues it for each agent that holds a linked
 // ticket. The delivery loop sends the queued rows after this transaction.
-export const recordSubmission = async (ctx: ServiceCtx, tx: Tx, input: SubmissionInput) => {
+export const recordSubmission = async (ctx: IoCtx, tx: Tx, input: SubmissionInput) => {
 	const id = ulid();
 	const [pullRequest] = await rows<{ state: PrState; ciState: CiState; reviewState: ReviewState }>(
 		tx,
