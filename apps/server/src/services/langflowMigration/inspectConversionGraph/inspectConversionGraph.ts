@@ -66,7 +66,7 @@ export const inspectConversionGraph = (input: {
 			continue;
 		}
 		const isReview = association.specNamespace === "trellisReviewGatesV1";
-		if (association.phase !== (node.kind === "loop" ? "condition" : "step") ||
+		if (association.phase !== (node.kind === "loop" ? "condition" : node.parentId === null ? "step" : "children") ||
 			(isReview ? node.kind !== "gate" || node.reviewArea == null || spec.data.reviewArea !== node.reviewArea
 				: node.kind === "group" || node.reviewArea != null)) {
 			fail("conversion_role_conflict", path, "The specification namespace and phase do not match the source node behavior.");

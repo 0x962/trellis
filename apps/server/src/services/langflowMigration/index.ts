@@ -1,6 +1,8 @@
 export { applyConversionEdit } from "./applyConversionEdit";
 export { checkConversionIntake } from "./checkConversionIntake";
 export { checkMigrationSource } from "./checkMigrationSource";
+export { createConversionProducer } from "./createConversionProducer";
+export type { ConcreteConversionProducer, ConversionCompileResult, ConversionCompilerInput } from "./conversionCompilerTypes";
 export { ConversionEditIntentV1Schema } from "./conversionEditIntent";
 export type { ConversionEditIntentV1 } from "./conversionEditIntent";
 export type {
