@@ -15,7 +15,7 @@ export { DispatchGate } from "./dispatchGate";
 export type * from "./dispatchGate/contracts";
 export type * from "./engineClient";
 export { createEngineClient } from "./engineClient";
-export { type HostControlIdentity, type HostRecoveryState, LangflowHostControl } from "./hostControl";
+export { type HostControlIdentity, type HostControlInitialization, type HostRecoveryState, LangflowHostControl } from "./hostControl";
 export { type InitialAuthorityInput, InitialAuthorityIssuer } from "./initialAuthority";
 export type * from "./ociDriver";
 export { createOciDriver, importVerifiedOciImage } from "./ociDriver";

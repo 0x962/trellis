@@ -12,7 +12,7 @@ import {
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import { DispatchEffects } from "../dispatchEffects";
-import { type DispatchEvidence, DispatchGate } from "../dispatchGate";
+import { type BlockReason, type DispatchEvidence, DispatchGate } from "../dispatchGate";
 import { DispatchStore } from "../dispatchGate/store/store";
 
 const IdentitySchema = z.strictObject({
@@ -26,6 +26,10 @@ export type HostRecoveryState =
 	| { state: "unavailable"; generation: null }
 	| { state: "open" | "blocked"; generation: number };
 type ControlInput = { home: string; evidence: DispatchEvidence };
+export type HostControlInitialization = {
+	home: string;
+	initialBlock: { requestId: string; reason: Exclude<BlockReason, { kind: "capture" }> };
+};
 
 export class LangflowHostControl {
 	private constructor(
@@ -37,9 +41,28 @@ export class LangflowHostControl {
 		return `${realpathSync(home)}.langflow-authority`;
 	}
 
-	static create(input: ControlInput) {
+	static create(input: ControlInput & { initialBlock?: HostControlInitialization["initialBlock"] }) {
+		LangflowHostControl.initialize({
+			home: input.home,
+			initialBlock: input.initialBlock ?? { requestId: crypto.randomUUID(), reason: { kind: "initialize" } },
+		});
+		return LangflowHostControl.open(input);
+	}
+
+	static initialize(input: HostControlInitialization) {
 		const home = realpathSync(input.home);
 		const directory = LangflowHostControl.directory(home);
+		const initialBlock = structuredClone(input.initialBlock);
+		if (initialBlock.reason.kind === "restore") {
+			initialBlock.reason.directory = realpathSync(initialBlock.reason.directory);
+			const restored = initialBlock.reason.directory;
+			if (
+				home === restored || home.startsWith(`${restored}/`) || restored.startsWith(`${home}/`) ||
+				directory === restored || directory.startsWith(`${restored}/`)
+			) {
+				throw new Error("dispatch_control_inside_restore");
+			}
+		}
 		mkdirSync(directory, { mode: 0o700 });
 		const identity: HostControlIdentity = {
 			version: 1,
@@ -54,12 +77,7 @@ export class LangflowHostControl {
 		} finally {
 			closeSync(fd);
 		}
-		const gate = DispatchGate.create({
-			directory: join(directory, "dispatch"),
-			dataHomeId: identity.dataHomeId,
-			evidence: input.evidence,
-			initialBlock: { requestId: crypto.randomUUID(), reason: { kind: "initialize" } },
-		});
+		const store = DispatchStore.create(join(directory, "dispatch"), identity.dataHomeId, initialBlock);
 		for (const path of [directory, dirname(directory)]) {
 			const directoryFd = openSync(path, "r");
 			try {
@@ -68,7 +86,7 @@ export class LangflowHostControl {
 				closeSync(directoryFd);
 			}
 		}
-		return new LangflowHostControl(identity, gate);
+		return { identity, block: store.read().block };
 	}
 
 	static open(input: ControlInput) {

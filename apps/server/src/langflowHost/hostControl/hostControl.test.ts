@@ -112,3 +112,53 @@ test("public effects settle under a block without access to reconciliation", asy
 	expect(control.gate.read().block).toEqual(block);
 	expect(control.gate.recoverPermit(binding)?.terminal?.id).toBe("committed");
 });
+
+
+test("explicit initialization preserves the exact restore block with an independent target identity", () => {
+	const input = fixture();
+	const directory = join(input.root, "restore-envelope");
+	mkdirSync(directory);
+	const initialBlock = {
+		requestId: crypto.randomUUID(),
+		reason: {
+			kind: "restore" as const,
+			directory,
+			snapshotId: "paired-snapshot",
+			sourceDataHomeId: crypto.randomUUID(),
+			manifestDigest: "a".repeat(64),
+		},
+	};
+	const created = LangflowHostControl.initialize({ home: input.home, initialBlock });
+	expect(created.identity.dataHomeId).not.toBe(initialBlock.reason.sourceDataHomeId);
+	expect(created.block?.requestId).toBe(initialBlock.requestId);
+	expect(created.block?.reason).toEqual({ ...initialBlock.reason, directory: realpathSync(directory) });
+	expect(LangflowHostControl.open(input).gate.read().block).toEqual(created.block);
+	expect(LangflowHostControl.recovery(input.home)).toEqual({ state: "blocked", generation: 1 });
+	expect(() => LangflowHostControl.initialize({ home: input.home, initialBlock })).toThrow();
+	expect(LangflowHostControl.readIdentity(input.home)).toEqual(created.identity);
+});
+
+test("the create constructor never exposes an open gate before a restore block", () => {
+	const input = fixture();
+	const directory = join(input.root, "envelope");
+	mkdirSync(directory);
+	const initialBlock = {
+		requestId: crypto.randomUUID(),
+		reason: { kind: "restore" as const, directory, snapshotId: "snapshot", sourceDataHomeId: "source", manifestDigest: "a".repeat(64) },
+	};
+	const control = LangflowHostControl.create({ ...input, initialBlock });
+	expect(control.gate.read().permits).toEqual([]);
+	expect(control.gate.read().block?.reason).toEqual({ ...initialBlock.reason, directory: realpathSync(directory) });
+});
+
+test("restore initialization refuses a target inside the recovery envelope", () => {
+	const input = fixture();
+	expect(() => LangflowHostControl.initialize({
+		home: input.home,
+		initialBlock: {
+			requestId: crypto.randomUUID(),
+			reason: { kind: "restore", directory: input.root, snapshotId: "snapshot", sourceDataHomeId: "source", manifestDigest: "a".repeat(64) },
+		},
+	})).toThrow("dispatch_control_inside_restore");
+	expect(LangflowHostControl.recovery(input.home).state).toBe("unavailable");
+});
