@@ -6,11 +6,9 @@ export function createEvidence(root: string, attemptId: string) {
 	let pending = Promise.resolve();
 	return (value: Record<string, unknown>) => {
 		pending = pending.then(() =>
-			appendFile(
-				file,
-				`${JSON.stringify({ at: new Date().toISOString(), pid: process.pid, attemptId, ...value })}\n`,
-				{ mode: 0o600 },
-			),
+			appendFile(file, `${JSON.stringify({ at: new Date().toISOString(), pid: process.pid, attemptId, ...value })}\n`, {
+				mode: 0o600,
+			}),
 		);
 		return pending;
 	};

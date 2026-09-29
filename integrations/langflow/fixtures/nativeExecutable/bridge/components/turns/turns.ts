@@ -28,20 +28,30 @@ export function createTurns(input: {
 			await writeFile(temporary, JSON.stringify(input.state), { mode: 0o600, flag: "wx" });
 			await rename(temporary, input.statePath);
 			await input.evidence({
-				kind: "prompt-received", sessionId, turnId, sequence: input.state.sequence,
-				promptSha256: hash(prompt), promptBytes: Buffer.byteLength(prompt),
+				kind: "prompt-received",
+				sessionId,
+				turnId,
+				sequence: input.state.sequence,
+				promptSha256: hash(prompt),
+				promptBytes: Buffer.byteLength(prompt),
 			});
 			await input.emit({ kind: "working", sessionId, turnId });
 			await input.emit({ kind: "prompt", sessionId, turnId, activityId: `prompt-${turnId}`, prompt });
 			if (selected.mode === "hold") return;
 			const messageId = `result-${turnId}`;
 			await input.emit({
-				kind: "message", sessionId, turnId,
+				kind: "message",
+				sessionId,
+				turnId,
 				message: { id: messageId, text: selected.result, complete: true },
 			});
 			await input.emit({
-				kind: "idle", sessionId, turnId, outcome: "completed",
-				result: selected.result, resultActivityIds: [messageId],
+				kind: "idle",
+				sessionId,
+				turnId,
+				outcome: "completed",
+				result: selected.result,
+				resultActivityIds: [messageId],
 			});
 			await input.evidence({ kind: "result-observed", sessionId, turnId, resultSha256: hash(selected.result) });
 			active = null;

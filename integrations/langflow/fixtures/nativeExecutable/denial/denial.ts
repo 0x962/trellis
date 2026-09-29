@@ -3,7 +3,10 @@ import type { NativeFixturePlan } from "../plan/plan.ts";
 
 export async function assertProviderDenial(plan: NativeFixturePlan) {
 	const results: { address: string; port: number; code: string }[] = [];
-	for (const [address, port] of [["127.0.0.1", plan.denialPorts.ipv4], ["::1", plan.denialPorts.ipv6]] as const) {
+	for (const [address, port] of [
+		["127.0.0.1", plan.denialPorts.ipv4],
+		["::1", plan.denialPorts.ipv6],
+	] as const) {
 		const code = await new Promise<string>((resolve, reject) => {
 			const socket = createConnection({ host: address, port });
 			const timer = setTimeout(
