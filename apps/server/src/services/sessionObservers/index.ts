@@ -15,6 +15,9 @@ export {
 export { get } from "./get.ts";
 export { history } from "./history.ts";
 export { linkSessionObserverRun } from "./linkRun.ts";
+export { lockEnabledObserver } from "./lockEnabledObserver/index.ts";
+export { observerClaimIsActive } from "./observerClaimIsActive/index.ts";
+export { observerMembership } from "./observerMembership/index.ts";
 export {
 	emptySessionObserver,
 	listSessionObserverCandidates,
@@ -25,6 +28,7 @@ export {
 	sessionObserverByRun,
 	sessionObserverMessages,
 } from "./queries.ts";
+export { readObserverSummaryBody } from "./readObserverSummaryBody/index.ts";
 export { readSessionObserverSummaryForClaim } from "./readSummary.ts";
 export {
 	type DisableSessionObserverForDeletionResult,

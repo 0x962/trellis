@@ -175,6 +175,43 @@ test("an initial start receives the full guide", async () => {
 	expect(await promptForLaunch(false, undefined, async () => "# Trellis\nFull guide")).toBe("# Trellis\nFull guide");
 });
 
+test("observer launch failure logs only safe cause and identity fields", async () => {
+	const id = await seed("session");
+	const attemptId = crypto.randomUUID();
+	await db.execute(sql`UPDATE agent_runs SET terminal_id=${attemptId} WHERE id=${id}`);
+	const run = await db.transaction((tx) => getRun(tx, id));
+	const logs: unknown[] = [];
+	await expect(
+		startNative(
+			{ ...ctx, log: (message, fields) => logs.push({ message, fields }) },
+			{
+				run,
+				config: { directory: home, harness: { preset: "claude" }, accountId: null },
+				resume: false,
+				attempt: { id: attemptId, generation: 1, token: "private-token" },
+				textOnly: { system: "private instruction", sessionId: crypto.randomUUID() },
+			},
+			{
+				environment: async () => {
+					throw Object.assign(new Error("private profile and prompt"), { code: "HARNESS_NOT_INSTALLED" });
+				},
+			},
+		),
+	).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
+	expect(logs).toEqual([
+		{
+			message: "observer launch failed",
+			fields: {
+				code: "HARNESS_NOT_INSTALLED",
+				runId: id,
+				attemptId,
+				accountId: null,
+			},
+		},
+	]);
+	expect((await db.transaction((tx) => getRun(tx, id))).error).toBe("The Claude observer launch failed.");
+});
+
 test("a resume receives only its new message", async () => {
 	expect(await promptForLaunch(true, "Read this comment.", async () => "Do the saved assignment.")).toBe(
 		"Read this comment.",

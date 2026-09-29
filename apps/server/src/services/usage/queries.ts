@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { observerConversationIdentities } from "../agentRuns/observerRuns/index.ts";
 import type { UsageProject, UsageRun } from "./aggregate.ts";
 import type { UsageAccountRow } from "./roots.ts";
 
@@ -25,10 +26,7 @@ export const listUsageRuns = async (tx: Tx, home: string, cutoff: Date): Promise
 			a.name AS "accountName", identities.session_id AS "sessionId"
 		FROM agent_runs r
 		LEFT JOIN LATERAL (
-			SELECT r.session_id
-			UNION
-			SELECT target->>'providerSessionId' FROM agent_start_requests
-			WHERE run_id=r.id AND actor_kind='system' AND actor_name='session-observer'
+			${observerConversationIdentities(sql`r.id`, sql`r.session_id`)}
 		) identities ON true
 		LEFT JOIN tickets t ON t.id = r.ticket_id
 		LEFT JOIN projects p ON p.id = r.project_id

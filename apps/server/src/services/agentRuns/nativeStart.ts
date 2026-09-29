@@ -23,6 +23,7 @@ import type { IoCtx, ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
 import { launchedHarness } from "./launchedHarness";
+import { observerLaunchFailureCode } from "./observerLaunchFailure/index.ts";
 import type { LaunchRun } from "./queries.ts";
 
 class MissingNativeSessionIdentity extends Error {}
@@ -238,6 +239,13 @@ const start = async (
 		);
 		if (retireIdleAttempt) await client.stop(previousTerminalId!);
 	} catch (error) {
+		if (input.textOnly)
+			ctx.log("observer launch failed", {
+				code: observerLaunchFailureCode(error),
+				runId: run.id,
+				attemptId: terminalId,
+				accountId: run.accountId,
+			});
 		await ctx.newTx((tx) =>
 			tx.execute(
 				sql`UPDATE agent_runs SET account_id = ${!launchSubmitted && resume && input.previousAccountId !== undefined ? input.previousAccountId : (run.accountId ?? null)}, terminal_id = ${launchSubmitted || input.preserveAssignmentOnFailure || run.kind === "flow" ? terminalId : previousTerminalId}, session_lost = session_lost OR ${error instanceof MissingNativeSessionIdentity}, closed_at = ${launchSubmitted || input.preserveAssignmentOnFailure ? null : ctx.now()}, error = ${input.textOnly ? "The Claude observer launch failed." : error instanceof Error ? error.message : String(error)}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,

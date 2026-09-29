@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { reserveObserverDelivery } from "../agentRuns/observerRuns/index.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import {
 	claimSessionObserverGeneration,
@@ -13,10 +14,9 @@ import {
 import { at, context, seed } from "../sessionObservers/testFixture.ts";
 import type { IoCtx } from "../support.ts";
 import { listUsageRuns } from "../usage/queries.ts";
-import { ensureSessionObserverRun } from "./ensureSessionObserverRun.ts";
-import { removeSessionObserverWorkspace } from "./removeSessionObserverWorkspace.ts";
-import { reserveObserverDelivery } from "./reserveObserverDelivery.ts";
-import { rolloverSessionObserverConversation } from "./rolloverSessionObserverConversation.ts";
+import { ensureSessionObserverRun } from "./ensureSessionObserverRun/index.ts";
+import { removeSessionObserverWorkspace } from "./removeSessionObserverWorkspace/index.ts";
+import { rolloverSessionObserverConversation } from "./rolloverSessionObserverConversation/index.ts";
 import { SESSION_OBSERVER_MODEL } from "./types.ts";
 
 test("reserves one hidden Claude conversation and reuses its exact delivery after claim recovery", async () => {

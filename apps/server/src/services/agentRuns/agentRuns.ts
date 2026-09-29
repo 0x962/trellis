@@ -13,6 +13,7 @@ import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import type { Tx } from "../../db/tx.ts";
 import { latestAttemptActivityByRuns, listExecutionAttempts } from "../assignments.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
+import { observerMembership } from "../sessionObservers/index.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { resolveTicketAge } from "../tickets.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
@@ -81,7 +82,7 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const assignedWhere =
 		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
 	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}
-		AND NOT EXISTS (SELECT 1 FROM session_observers o WHERE o.observer_id=agent_runs.id)`;
+		AND NOT ${observerMembership(sql`agent_runs.id`)}`;
 	const window = withinWindow(input, ticket === null ? null : ticket.id, ctx.now);
 	if (input.includePinnedHistory) {
 		const runs = await storedRows<StoredRun>(
