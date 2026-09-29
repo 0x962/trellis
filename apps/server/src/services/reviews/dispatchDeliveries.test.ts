@@ -43,13 +43,26 @@ const timingOutSend = ((..._args: unknown[]) => sendDeadline(new Promise(() => {
 const events: Record<string, unknown>[] = [];
 // Every line the dispatcher writes, so a test reads why a message stopped.
 const logs: { message: string; fields: Record<string, unknown> }[] = [];
-const ctx = () =>
-	({
-		home: "/tmp/trellis-dispatch",
-		newTx: run,
-		emit: (event: never) => events.push(event),
-		log: (message: string, fields: Record<string, unknown>) => logs.push({ message, fields }),
-	}) as unknown as IoCtx;
+const ctx = (): IoCtx => ({
+	actor: { kind: "human", name: "dana" },
+	session: null,
+	home: "/tmp/trellis-dispatch",
+	version: "test",
+	apiVersion: "1",
+	bootId: rootId,
+	now: () => new Date(at),
+	ghStatus: () => ({ ok: true, user: "dana", reason: null, message: null, checkedAt: null }),
+	addresses: async () => [],
+	newTx: run,
+	emit: (event) => events.push(event),
+	log: (message, fields = {}) => logs.push({ message, fields }),
+	afterCommit: () => {},
+	vacuum: async () => {},
+	core,
+	localUrl: core.publicUrl,
+	publicUrl: core.publicUrl,
+	background: () => {},
+});
 
 // Each seeded pull request needs its own number, because the table holds one
 // row per owner, repository and number.
@@ -79,7 +92,7 @@ const queueReview = async (title: string, threads: number) => {
 	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 	const stored = await run((tx) =>
-		recordSubmission(serviceCtx, tx, {
+		recordSubmission(serviceCtx(), tx, {
 			prId,
 			verdict: "comment",
 			url,
@@ -101,13 +114,11 @@ const queueReview = async (title: string, threads: number) => {
 // passed and the dispatcher may send every row at once. The clock stays
 // inside the day that a message may wait.
 const threadClock = () => new Date(Date.now() - 60_000);
-const threadCtx = (actor: { kind: "human" | "agent"; name: string }) =>
-	({
-		actor,
-		session: null,
-		now: threadClock,
-		emit: () => {},
-	}) as never;
+const threadCtx = (actor: { kind: "human" | "agent"; name: string }): IoCtx => ({
+	...submissionCtx(actor),
+	now: threadClock,
+	core: { ...core, actor, now: threadClock() },
+});
 
 const queueComments = async (
 	title: string,
@@ -160,11 +171,15 @@ beforeAll(async () => {
 	};
 }, 30_000);
 
-// `recordSubmission` reads the actor and the clock of a service call, which
-// the transaction context of this suite does not carry.
-const submissionCtx = (actor: { kind: "human" | "agent"; name: string }) =>
-	({ actor, core: { ...core, actor, now: new Date(at) }, now: () => new Date(at), emit: () => {} }) as never;
-const serviceCtx = submissionCtx({ kind: "human", name: "dana" });
+// beforeAll initializes core and its actor cache, so each submission reads
+// that context when the test calls it.
+const submissionCtx = (actor: { kind: "human" | "agent"; name: string }): IoCtx => ({
+	...ctx(),
+	actor,
+	core: { ...core, actor, now: new Date(at) },
+	emit: () => {},
+});
+const serviceCtx = () => submissionCtx({ kind: "human", name: "dana" });
 
 afterAll(async () => db.$client.close());
 
@@ -241,7 +256,7 @@ test("each local verdict queues for the agent of the linked ticket", async () =>
 		await startRun(runId, ticket.id, ticket.identifier);
 
 		const result = await run((tx) =>
-			submit(serviceCtx, tx, {
+			submit(serviceCtx(), tx, {
 				pr: url,
 				headSha: "reviewed-head",
 				verdict,
@@ -314,7 +329,7 @@ test("a moved head stores the verdict on the current revision and keeps older th
 		})}::jsonb, ${at})`);
 
 	const result = await run((tx) =>
-		submit(serviceCtx, tx, {
+		submit(serviceCtx(), tx, {
 			pr: url,
 			headSha: "old-head",
 			verdict: "request_changes",
@@ -340,7 +355,7 @@ test("a review with no agent assignment reports no recipient and waits for the t
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 
 	const stored = await run((tx) =>
-		recordSubmission(serviceCtx, tx, {
+		recordSubmission(serviceCtx(), tx, {
 			prId,
 			verdict: "comment",
 			url: `https://github.com/o/r/pull/${prNumber}`,
