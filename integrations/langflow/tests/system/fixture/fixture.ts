@@ -75,14 +75,28 @@ export async function fixture() {
 			await initialize({ ...context, actor: SYSTEM_ACTOR }, tx, { executionId: reservation.execution.executionId });
 		return reservation;
 	};
-	const io = {
+	const io: IoCtx = {
+		actor: { kind: "human", name: "fixture" },
+		session: null,
+		home: import.meta.dir,
+		version: "fixture",
+		apiVersion: "1",
+		bootId: ulid(),
+		now: () => now,
+		ghStatus: () => ({ ok: true, user: "fixture", reason: null, message: null, checkedAt: null }),
+		addresses: async () => [],
+		afterCommit: () => {},
+		vacuum: async () => {},
+		localUrl: "http://localhost",
+		publicUrl: "http://localhost",
+		background: () => {},
 		core: ctx,
 		newTx: db.transaction.bind(db),
 		emit: (event: TrellisEvent) => {
 			events.push(event);
 		},
 		log: () => {},
-	} as IoCtx;
+	};
 	return {
 		db,
 		ctx,
