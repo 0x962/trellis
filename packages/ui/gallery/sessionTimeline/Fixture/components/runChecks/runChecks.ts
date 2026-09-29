@@ -33,7 +33,7 @@ export function runChecks(add: () => void) {
 	key("End");
 	assert(document.activeElement === row("update-11"), "End reaches last update");
 	key("Home");
-	assert(document.activeElement === tree.firstElementChild, "Home reaches first day");
+	assert(document.activeElement === tree.querySelector('[role="treeitem"][aria-level="1"]'), "Home reaches first day");
 	flushSync(() => row("update-0").click());
 	const viewport = tree.closest<HTMLElement>(".overflow-auto")!;
 	assert(
@@ -58,7 +58,8 @@ export function runChecks(add: () => void) {
 	);
 	assert(tree.querySelectorAll('[tabindex="0"]').length === 1, "One tree tab stop");
 	const target = row("update-0").querySelector("[data-row-head] > span")!.getBoundingClientRect();
-	assert(target.width >= (innerWidth < 768 ? 44 : 28) && target.height >= 44, "Dot hit target");
+	const compact = getComputedStyle(tree).getPropertyValue("--timeline-compact").trim() === "1";
+	assert(target.width >= (compact ? 44 : 28) && target.height >= 44, "Dot hit target");
 	assert(tree.scrollWidth <= tree.clientWidth, "Tree fits its width");
 	assert(tree.querySelector('iframe[sandbox="allow-scripts"]') !== null, "Selected update keeps its isolated embed");
 	return checks;

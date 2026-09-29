@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { Button, EmptyState, FailureState, SessionStatusPaneShell } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useOpenLink } from "../../../../../lib/openLink";
 import { AgentStatusUpdatesPane } from "./AgentStatusUpdatesPane";
@@ -12,6 +12,18 @@ export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; obse
 	const openLink = useOpenLink();
 	const [now, setNow] = useState(() => scheduler.now());
 	const query = useInfiniteQuery(agentStatusUpdatesQueryOptions(orpc, run));
+
+	const pages = query.data?.pages;
+	const updates = useMemo(
+		() =>
+			pages === undefined
+				? undefined
+				: {
+						...pages[0]!,
+						history: [...new Map(pages.flatMap((page) => page.history!).map((update) => [update.id, update])).values()],
+					},
+		[pages],
+	);
 
 	useEffect(() => {
 		let timer: unknown;
@@ -28,12 +40,7 @@ export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; obse
 			<AgentStatusUpdatesPane
 				key={run.id}
 				run={run}
-				updates={{
-					...query.data.pages[0]!,
-					history: [
-						...new Map(query.data.pages.flatMap((page) => page.history!).map((update) => [update.id, update])).values(),
-					],
-				}}
+				updates={updates!}
 				historyControl={{
 					hasMore: query.hasNextPage,
 					loading: query.isFetchingNextPage,

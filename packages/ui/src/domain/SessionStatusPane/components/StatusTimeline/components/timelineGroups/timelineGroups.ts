@@ -1,4 +1,4 @@
-import type { SessionUpdate } from "../../types";
+import type { SessionUpdate } from "../../../../types";
 
 export const localDay = (value: string) => {
 	const date = new Date(value);
@@ -13,6 +13,7 @@ export const updateTitle = (body: string) =>
 		.trim() || "Status update";
 
 export function timelineGroups(updates: SessionUpdate[], now: string) {
+	const day = localDay(now);
 	const yesterday = new Date(now);
 	yesterday.setDate(yesterday.getDate() - 1);
 	const groups = new Map<string, { key: string; label: string; updates: SessionUpdate[] }>();
@@ -23,7 +24,7 @@ export function timelineGroups(updates: SessionUpdate[], now: string) {
 		let group = groups.get(key);
 		if (!group) {
 			const label =
-				key === localDay(now)
+				key === day
 					? "Today"
 					: key === localDay(yesterday.toISOString())
 						? "Yesterday"

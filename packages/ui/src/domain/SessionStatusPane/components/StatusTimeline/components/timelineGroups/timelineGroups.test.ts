@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { SessionUpdate } from "../../types";
+import type { SessionUpdate } from "../../../../types";
 import { localDay, timelineGroups } from "./timelineGroups";
 
 const update = (id: string, date: Date): SessionUpdate => ({
