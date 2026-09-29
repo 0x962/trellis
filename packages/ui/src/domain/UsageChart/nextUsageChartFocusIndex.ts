@@ -1,4 +1,4 @@
-export const usageChartFocusIndex = (key: string, index: number, count: number) => {
+export const nextUsageChartFocusIndex = (key: string, index: number, count: number) => {
 	if (count === 0) return null;
 	if (key === "ArrowLeft") return Math.max(0, index - 1);
 	if (key === "ArrowRight") return Math.min(count - 1, index + 1);
@@ -7,4 +7,4 @@ export const usageChartFocusIndex = (key: string, index: number, count: number) 
 	return null;
 };
 
-export const usageChartSelectKey = (key: string) => key === "Enter" || key === " ";
+export const isUsageChartSelectKey = (key: string) => key === "Enter" || key === " ";

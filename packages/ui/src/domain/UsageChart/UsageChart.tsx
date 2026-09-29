@@ -1,7 +1,8 @@
-import { type KeyboardEvent, type MouseEvent, useId, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useId, useMemo, useState } from "react";
 import { cx } from "../../utils/cx";
 import { type ChartTone, chartFillClass, chartToneClass } from "../chartTones";
-import { usageChartFocusIndex, usageChartSelectKey } from "./usageChartFocusIndex";
+import { UsageChartSelectionMarker } from "./components/UsageChartSelectionMarker";
+import { isUsageChartSelectKey, nextUsageChartFocusIndex } from "./nextUsageChartFocusIndex";
 
 export type UsageChartTone = ChartTone;
 
@@ -33,16 +34,6 @@ export type UsageChartProps = {
 // The gridlines, top first, as the share of the top value each one marks.
 const GRID_LINES = [1, 0.75, 0.5, 0.25, 0] as const;
 
-const chartBorderColor: Record<ChartTone, string> = {
-	agent: "var(--agent)",
-	fg: "var(--fg)",
-	faint: "var(--fg-faint)",
-	success: "var(--success)",
-	warning: "var(--warning)",
-	danger: "var(--danger)",
-	accent: "var(--accent)",
-};
-
 // A round number at or above `max`, so the top gridline prints a short
 // figure such as 50 instead of 47.3.
 const niceMax = (max: number) => {
@@ -70,10 +61,11 @@ export function UsageChart({
 	const [cursor, setCursor] = useState(() => ({ day: selectedDay ?? days[0] ?? null, index: 0 }));
 	const instructionsId = useId();
 	const count = days.length;
+	const dayIndexByDay = useMemo(() => new Map(days.map((day, index) => [day, index])), [days]);
 	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
 	const top = max ?? niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
-	const selectedIndex = selectedDay === null ? -1 : days.indexOf(selectedDay);
-	const cursorIndex = cursor.day === null ? -1 : days.indexOf(cursor.day);
+	const selectedIndex = selectedDay === null ? -1 : (dayIndexByDay.get(selectedDay) ?? -1);
+	const cursorIndex = cursor.day === null ? -1 : (dayIndexByDay.get(cursor.day) ?? -1);
 	const focusIndex =
 		count === 0
 			? -1
@@ -83,7 +75,7 @@ export function UsageChart({
 					? selectedIndex
 					: Math.min(cursor.index, count - 1);
 	const focusDay = focusIndex < 0 ? null : days[focusIndex]!;
-	const hoverIndex = hoverDay === null ? -1 : days.indexOf(hoverDay);
+	const hoverIndex = hoverDay === null ? -1 : (dayIndexByDay.get(hoverDay) ?? -1);
 	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
 	// A bar takes 70% of its day slot, so a short range keeps a gap between bars.
@@ -97,18 +89,18 @@ export function UsageChart({
 		const bounds = event.currentTarget.getBoundingClientRect();
 		return Math.min(count - 1, Math.max(0, Math.floor(((event.clientX - bounds.left) / bounds.width) * count)));
 	};
-	const moveFocus = (event: KeyboardEvent<HTMLButtonElement>) => {
-		if (usageChartSelectKey(event.key)) {
+	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (isUsageChartSelectKey(event.key)) {
 			event.preventDefault();
-			select(focusIndex);
+			toggleDaySelection(focusIndex);
 			return;
 		}
-		const nextIndex = usageChartFocusIndex(event.key, focusIndex, count);
+		const nextIndex = nextUsageChartFocusIndex(event.key, focusIndex, count);
 		if (nextIndex === null) return;
 		event.preventDefault();
 		setCursor({ day: days[nextIndex]!, index: nextIndex });
 	};
-	function select(index: number) {
+	function toggleDaySelection(index: number) {
 		const day = days[index]!;
 		setCursor({ day, index });
 		onSelectDay(selectedDay === day ? null : day);
@@ -177,7 +169,7 @@ export function UsageChart({
 											x2="50.5"
 											y2={point(0, row.values[0] ?? 0).y}
 											stroke="currentColor"
-											strokeWidth="2"
+											strokeWidth="calc(var(--border-width-hairline) * 2)"
 											strokeLinecap="round"
 											vectorEffect="non-scaling-stroke"
 											className={chartToneClass[row.tones?.[0] ?? row.tone]}
@@ -195,7 +187,7 @@ export function UsageChart({
 														x2={to.x}
 														y2={to.y}
 														stroke="currentColor"
-														strokeWidth="2"
+														strokeWidth="calc(var(--border-width-hairline) * 2)"
 														strokeLinecap="round"
 														strokeLinejoin="round"
 														vectorEffect="non-scaling-stroke"
@@ -206,53 +198,26 @@ export function UsageChart({
 										</g>
 									),
 								)}
-						{variant === "line" && selectedIndex >= 0 && (
-							<g data-selected-day={selectedDay ?? undefined}>
-								<line
-									x1={point(selectedIndex, 0).x}
-									y1="0"
-									x2={point(selectedIndex, 0).x}
-									y2="100"
-									stroke="currentColor"
-									strokeWidth="1"
-									strokeDasharray="3 3"
-									vectorEffect="non-scaling-stroke"
-									className="text-accent"
-								/>
-							</g>
-						)}
-						{variant === "bar" && selectedIndex >= 0 && (
-							<line
-								data-selected-day={selectedDay ?? undefined}
-								x1={selectedIndex * slot + (slot - barWidth) / 2}
-								y1="99"
-								x2={selectedIndex * slot + (slot + barWidth) / 2}
-								y2="99"
-								stroke="currentColor"
-								strokeWidth="2"
-								vectorEffect="non-scaling-stroke"
-								className="text-fg"
-							/>
-						)}
+						<UsageChartSelectionMarker
+							variant={variant}
+							selectedDay={selectedDay}
+							selectedIndex={selectedIndex}
+							series={series}
+							point={point}
+							slot={slot}
+							barWidth={barWidth}
+						/>
 					</svg>
-					{variant === "line" &&
-						selectedIndex >= 0 &&
-						series.map((row) => {
-							const selectedPoint = point(selectedIndex, row.values[selectedIndex] ?? 0);
-							return (
-								<span
-									key={row.key}
-									aria-hidden="true"
-									data-selected-series={row.key}
-									className="pointer-events-none absolute block size-2 -translate-x-1/2 -translate-y-1/2 rounded-round border-2 bg-bg"
-									style={{
-										left: `${selectedPoint.x}%`,
-										top: `${selectedPoint.y}%`,
-										borderColor: chartBorderColor[row.tones?.[selectedIndex] ?? row.tone],
-									}}
-								/>
-							);
-						})}
+					<UsageChartSelectionMarker
+						variant={variant}
+						selectedDay={selectedDay}
+						selectedIndex={selectedIndex}
+						series={series}
+						point={point}
+						slot={slot}
+						barWidth={barWidth}
+						overlay
+					/>
 					{focusDay !== null && (
 						<button
 							type="button"
@@ -264,8 +229,8 @@ export function UsageChart({
 							onPointerLeave={() => setHoverDay(null)}
 							onFocus={() => setHasFocus(true)}
 							onBlur={() => setHasFocus(false)}
-							onKeyDown={moveFocus}
-							onClick={(event) => select(event.detail === 0 ? focusIndex : indexAtPointer(event))}
+							onKeyDown={handleKeyDown}
+							onClick={(event) => toggleDaySelection(event.detail === 0 ? focusIndex : indexAtPointer(event))}
 							className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 						/>
 					)}

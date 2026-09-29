@@ -44,7 +44,7 @@ describe("UsageChart states", () => {
 
 		expect(html).toContain('data-selected-day="2026-09-28"');
 		expect(html).toContain('data-selected-series="cost"');
-		expect(html).toContain('stroke-dasharray="3 3"');
+		expect(html).toContain('stroke-dasharray="var(--spacing) var(--spacing)"');
 		expect(html).toContain("09-28");
 		expect(html).toContain("$4");
 	});
