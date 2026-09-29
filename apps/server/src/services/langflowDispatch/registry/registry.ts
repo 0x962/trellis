@@ -18,8 +18,10 @@ import { authorityExecutions } from "../authorityExecutions";
 import { nativeReservationState } from "../nativeReservationState";
 import { nativeRuntimeWorker } from "../nativeRuntimeWorker";
 import { prepareNativeReservation } from "../prepareNativeReservation";
+import { reserveObservedGroupDeadline } from "../reserveGroupDeadline";
 
 export const flowServices = {
+	"langflowClocks.reserveGroupDeadline": io("mutation", reserveObservedGroupDeadline),
 	"langflowHost.executions": io("read", authorityExecutions),
 	"langflowStart.state": core("mutation", startState),
 	"langflowDecisions.state": core("mutation", decisionState),

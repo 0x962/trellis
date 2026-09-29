@@ -173,6 +173,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			gh: ghState,
 			editor: langflow?.editor,
 			nativeReservations: langflow?.nativeReservations,
+			groupDeadlines: langflow?.groupDeadlines,
 		});
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
