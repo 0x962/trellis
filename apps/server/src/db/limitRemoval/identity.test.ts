@@ -1,14 +1,22 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { randomBytes } from "node:crypto";
-import { openTestDb } from "../testDb";
+import { rm } from "node:fs/promises";
+import { openPriorDatabase } from "../actorIdentityMigration/history";
+import type { Db } from "../client";
+import { migrate } from "../migrate";
 import { seed } from "./seed";
 
-let db: Awaited<ReturnType<typeof openTestDb>>;
+let db: Db;
+let directory: string;
 beforeAll(async () => {
-	db = await openTestDb();
+	({ db, directory } = await openPriorDatabase());
 	await seed(db);
+	await migrate(db);
 }, 60_000);
-afterAll(async () => db.$client.close());
+afterAll(async () => {
+	await db.$client.close();
+	await rm(directory, { recursive: true });
+});
 
 async function clone(table: string, where: string, patch: Record<string, unknown>) {
 	const columns = (
