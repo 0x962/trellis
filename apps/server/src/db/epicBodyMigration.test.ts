@@ -41,8 +41,12 @@ test("the forward migration preserves epic plans and document bodies", async () 
 	await db.execute(sql`INSERT INTO epic_resources
 		(id, epic_id, kind, name, body, actor_name, actor_kind, created_at, updated_at)
 		VALUES ('body-resource', 'body-epic', 'doc', 'Body document', ${original}, 'body-test', 'human', ${at}, ${at})`);
-	const epicBefore = (await db.execute(sql`SELECT * FROM epics WHERE id='body-epic'`)).rows;
-	const resourceBefore = (await db.execute(sql`SELECT * FROM epic_resources WHERE id='body-resource'`)).rows;
+	const epicRow = sql`SELECT id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
+		FROM epics WHERE id='body-epic'`;
+	const resourceRow = sql`SELECT id, epic_id, kind, name, body, url, blob_sha256, blob_size, mime, ticket_id,
+		actor_name, actor_kind, created_at, updated_at FROM epic_resources WHERE id='body-resource'`;
+	const epicBefore = (await db.execute(epicRow)).rows;
+	const resourceBefore = (await db.execute(resourceRow)).rows;
 	await expect(db.execute(sql`UPDATE epics SET description=${complete} WHERE id='body-epic'`)).rejects.toThrow(
 		"epics_description_check",
 	);
@@ -51,8 +55,8 @@ test("the forward migration preserves epic plans and document bodies", async () 
 	);
 
 	expect(await migrate(db)).toBeGreaterThan(0);
-	expect((await db.execute(sql`SELECT * FROM epics WHERE id='body-epic'`)).rows).toEqual(epicBefore);
-	expect((await db.execute(sql`SELECT * FROM epic_resources WHERE id='body-resource'`)).rows).toEqual(resourceBefore);
+	expect((await db.execute(epicRow)).rows).toEqual(epicBefore);
+	expect((await db.execute(resourceRow)).rows).toEqual(resourceBefore);
 	await db.execute(sql`UPDATE epics SET description=${complete} WHERE id='body-epic'`);
 	await db.execute(sql`UPDATE epic_resources SET body=${complete} WHERE id='body-resource'`);
 	expect((await db.execute(sql`SELECT description FROM epics WHERE id='body-epic'`)).rows).toEqual([
