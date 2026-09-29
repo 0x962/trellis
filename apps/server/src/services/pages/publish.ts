@@ -6,7 +6,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { pageObjectPath } from "../../storage/pageObjects.ts";
-import { upsert } from "../actors.ts";
+import { findActorId, resolveActorId } from "../actorIdentity/index.ts";
 import { watchableAgent } from "../agentRuns.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
@@ -21,13 +21,15 @@ type PreparedPublish = { input: PublishInput; searchText: string };
 
 export const preparePublish = async (ctx: IoCtx & PrepareCtx, rawInput: unknown): Promise<PreparedPublish> => {
 	const input = PagePublishInputSchema.parse(rawInput);
-	const [document] = await ctx.newTx((tx) =>
-		rows<{ sha256: string }>(
+	const document = await ctx.newTx(async (tx) => {
+		const actorId = await findActorId(ctx.core, tx, ctx.actor);
+		if (actorId === null) return undefined;
+		const [owned] = await rows<{ sha256: string }>(
 			tx,
-			sql`SELECT sha256 FROM page_uploads
-				WHERE id = ${input.document} AND actor_name = ${ctx.actor.name} AND actor_kind = ${ctx.actor.kind}`,
-		),
-	);
+			sql`SELECT sha256 FROM page_uploads WHERE id = ${input.document} AND actor_id = ${actorId}`,
+		);
+		return owned;
+	});
 	return {
 		input,
 		searchText:
@@ -70,14 +72,18 @@ const idList = (ids: string[]) =>
 // past its expiry serves no caller, so each of those reads as absent.
 const lockUploads = async (ctx: ServiceCtx, tx: Tx, projectId: string, ids: string[]) => {
 	const actor = requireActor(ctx);
-	const found = await rows<StagedRow>(
-		tx,
-		sql`SELECT id, sha256, size, mime FROM page_uploads
-			WHERE id IN (${idList(ids)})
-			AND project_id = ${projectId} AND actor_name = ${actor.name} AND actor_kind = ${actor.kind}
-			AND expires_at > ${ctx.now}
-			FOR UPDATE`,
-	);
+	const actorId = await findActorId(ctx, tx, actor);
+	const found =
+		actorId === null
+			? []
+			: await rows<StagedRow>(
+					tx,
+					sql`SELECT id, sha256, size, mime FROM page_uploads
+						WHERE id IN (${idList(ids)})
+						AND project_id = ${projectId} AND actor_id = ${actorId}
+						AND expires_at > ${ctx.now}
+						FOR UPDATE`,
+				);
 	const byId = new Map(found.map((row) => [row.id, row]));
 	for (const id of ids) if (!byId.has(id)) throw fail("NOT_FOUND", { kind: "page upload", ref: id });
 	return byId;
@@ -168,23 +174,23 @@ const publishWithText = async (
 	const document = staged.get(input.document)!;
 	if (document.size === 0) throw invalidInput("document", "A page document must contain at least one byte.");
 
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	if (page === undefined) {
 		const slug = await freeSlug(tx, projectId, deriveSlug(input.title!));
 		await tx.execute(sql`INSERT INTO pages (
 			id, project_id, slug, title, summary, version, latest_version,
-			creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at
+			creator_actor_id, creator_actor_name, creator_actor_kind, actor_id, actor_name, actor_kind, created_at, updated_at
 		) VALUES (
 			${pageId}, ${projectId}, ${slug}, ${input.title!}, ${input.summary ?? ""}, 1, 1,
-			${actor.name}, ${actor.kind}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now}
+			${actorId}, ${actor.name}, ${actor.kind}, ${actorId}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now}
 		)`);
 	}
 	await tx.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, label, document_sha256, document_size,
-		search_text, search_indexed, source_agent_id, source_path, actor_name, actor_kind, created_at
+		search_text, search_indexed, source_agent_id, source_path, actor_id, actor_name, actor_kind, created_at
 	) VALUES (
 		${pageId}, ${number}, ${input.requestId}, ${input.label ?? null}, ${document.sha256}, ${document.size},
-		${searchText}, true, ${await sourceAgentId(ctx, tx)}, ${input.sourcePath}, ${actor.name}, ${actor.kind}, ${ctx.now}
+		${searchText}, true, ${await sourceAgentId(ctx, tx)}, ${input.sourcePath}, ${actorId}, ${actor.name}, ${actor.kind}, ${ctx.now}
 	)`);
 	// One statement for every asset. The server holds one database
 	// connection, so each statement of this transaction makes every other
@@ -202,7 +208,8 @@ const publishWithText = async (
 	if (page !== undefined) {
 		const summarySet = input.summary === undefined ? sql`` : sql`summary = ${input.summary},`;
 		await tx.execute(sql`UPDATE pages SET ${summarySet} latest_version = ${number}, version = version + 1,
-			actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${pageId}`);
+			actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now}
+			WHERE id = ${pageId}`);
 	}
 	// A staged upload becomes the input of one version. The object file stays,
 	// because the new version row and its asset rows hold its hash.

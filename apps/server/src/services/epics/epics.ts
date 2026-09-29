@@ -18,6 +18,7 @@ import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
@@ -90,7 +91,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const project = await resolveProject(ctx, tx, input.project);
 	assertProjectActive(ctx, project.id);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	let slug: string;
 	if (input.slug === undefined) slug = await freeSlug(tx, project.id, deriveSlug(input.name));
 	else {
@@ -99,9 +100,9 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	}
 	const id = ulid();
 	await tx.execute(
-		sql`INSERT INTO epics (id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
+		sql`INSERT INTO epics (id, project_id, slug, name, description, actor_id, actor_name, actor_kind, created_at, updated_at)
 			VALUES (${id}, ${project.id}, ${slug}, ${input.name}, ${input.description ?? ""},
-				${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
+				${actorId}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	ctx.emit({ type: "epics.changed", projectId: project.id, id });
 	return epicView(ctx, tx, id);
@@ -114,12 +115,13 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const existing = await resolveEpic(ctx, tx, input.epic);
 	assertProjectActive(ctx, existing.project_id);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	if (input.slug !== undefined) await assertSlugFree(tx, existing.project_id, input.slug, existing.id);
 	await tx.execute(
 		sql`UPDATE epics SET name = ${input.name ?? existing.name}, slug = ${input.slug ?? existing.slug},
 			description = ${input.description ?? existing.description},
-			actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${existing.id}`,
+			actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now}
+			WHERE id = ${existing.id}`,
 	);
 	ctx.emit({ type: "epics.changed", projectId: existing.project_id, id: existing.id });
 	return epicView(ctx, tx, existing.id);

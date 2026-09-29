@@ -23,28 +23,41 @@ export class RuntimeClient {
 	private capabilities: string[] | undefined;
 	constructor(
 		readonly socketPath: string,
-		readonly timeoutMs = 10_000,
+		readonly timeoutMs?: number,
 	) {}
-	call<M extends RuntimeMethod>(method: M, params: RuntimeMethods[M]["params"]): Promise<RuntimeMethods[M]["result"]> {
+	call<M extends RuntimeMethod>(
+		method: M,
+		params: RuntimeMethods[M]["params"],
+		signal?: AbortSignal,
+	): Promise<RuntimeMethods[M]["result"]> {
 		return new Promise((resolve, reject) => {
+			signal?.throwIfAborted();
 			const socket = new Socket();
 			const id = randomUUID();
 			const chunks: string[] = [];
 			let settled = false;
-			const fail = (error: Error) => {
+			const cleanup = () => {
+				signal?.removeEventListener("abort", abort);
+				socket.setTimeout(0);
+			};
+			const fail = (error: unknown) => {
 				if (settled) return;
 				settled = true;
+				cleanup();
 				socket.destroy();
 				reject(error);
 			};
+			const abort = () => fail(signal!.reason);
+			signal?.addEventListener("abort", abort, { once: true });
 			socket.setEncoding("utf8");
-			socket.setTimeout(this.timeoutMs, () =>
-				fail(
-					Object.assign(new Error(`Runtime ${method} response is unknown: request timed out`), {
-						code: "RUNTIME_TIMEOUT",
-					}),
-				),
-			);
+			if (this.timeoutMs !== undefined)
+				socket.setTimeout(this.timeoutMs, () =>
+					fail(
+						Object.assign(new Error(`Runtime ${method} response is unknown: request timed out`), {
+							code: "RUNTIME_TIMEOUT",
+						}),
+					),
+				);
 			socket.once("error", fail);
 			socket.once("close", () => {
 				if (!settled) fail(new Error(`Runtime ${method} response is unknown: connection closed`));
@@ -53,6 +66,7 @@ export class RuntimeClient {
 				socket.write(`${JSON.stringify({ id, version: RUNTIME_PROTOCOL_VERSION, method, params })}\n`),
 			);
 			socket.on("data", (chunk) => {
+				if (settled) return;
 				const text = chunk.toString();
 				chunks.push(text);
 				if (!text.includes("\n")) return;
@@ -70,6 +84,7 @@ export class RuntimeClient {
 					return;
 				}
 				settled = true;
+				cleanup();
 				socket.end();
 				if ("error" in reply) reject(Object.assign(new Error(reply.error.message), { code: reply.error.code }));
 				else resolve(reply.result as RuntimeMethods[M]["result"]);
@@ -119,25 +134,27 @@ export class RuntimeClient {
 	shutdown() {
 		return this.call("shutdown", {});
 	}
-	async hello() {
-		const hello = await this.call("hello", {});
+	async hello(signal?: AbortSignal) {
+		const hello = await this.call("hello", {}, signal);
 		this.capabilities = hello.capabilities ?? [];
 		return hello;
 	}
-	// Reads the sessions one page at a time and stops at the limit of the
-	// input. A page that passes `timeoutMs` ends the read: `complete` is then
-	// false, and the sessions are the ones the earlier pages carried.
-	async list(input: RuntimeListInput = {}): Promise<RuntimeSessionList> {
-		if (this.capabilities === undefined) await this.hello();
-		if (!this.capabilities!.includes("list-pages")) return { sessions: await this.call("list", input), complete: true };
+	// An explicit timeoutMs preserves completed pages with complete=false.
+	// Cancellation rejects the whole list, including its hello request.
+	async list(input: RuntimeListInput = {}, signal?: AbortSignal): Promise<RuntimeSessionList> {
+		signal?.throwIfAborted();
+		if (this.capabilities === undefined) await this.hello(signal);
+		if (!this.capabilities!.includes("list-pages"))
+			return { sessions: await this.call("list", input, signal), complete: true };
 		const limit = listLimit(input);
 		const sessions: RuntimeProcessStatus[] = [];
 		let cursor: string | undefined;
 		do {
 			let page: RuntimeListPage;
 			try {
-				page = await this.listPage({ ...input, limit: limit - sessions.length, cursor });
+				page = await this.listPage({ ...input, limit: limit - sessions.length, cursor }, signal);
 			} catch (error) {
+				signal?.throwIfAborted();
 				if ((error as { code?: string }).code !== "RUNTIME_TIMEOUT") throw error;
 				return { sessions, complete: false };
 			}
@@ -146,8 +163,8 @@ export class RuntimeClient {
 		} while (cursor !== undefined && sessions.length < limit);
 		return { sessions, complete: true };
 	}
-	listPage(input: RuntimeListPageInput = {}) {
-		return this.call("listPage", input);
+	listPage(input: RuntimeListPageInput = {}, signal?: AbortSignal) {
+		return this.call("listPage", input, signal);
 	}
 	start(spec: LaunchSpec) {
 		return this.call("start", spec);

@@ -6,7 +6,7 @@ import {
 	PageUploadSchema,
 	PageVersionSchema,
 } from "./page.ts";
-import { PAGE_COMMENT_ANCHOR_MAX_BYTES, PageCommentAnchorSchema, PageCommentThreadSchema } from "./pageComment.ts";
+import { PageCommentAnchorSchema, PageCommentBodySchema, PageCommentThreadSchema } from "./pageComment.ts";
 import { PagePublishInputSchema } from "./pageVersion.ts";
 import { SlugSchema } from "./primitives.ts";
 
@@ -88,38 +88,32 @@ test("the Pages project route is not a project slug", () => {
 	expect(SlugSchema.safeParse("pages").success).toBe(false);
 });
 
-test("a Page comment anchor limits the serialized UTF-8 size", () => {
-	const withinLimit = {
+test("Page comments preserve large bodies and anchors", () => {
+	const body = "Comment 界\n".repeat(2000);
+	const anchor = {
 		kind: "text" as const,
-		path: "界".repeat(3000),
-		quote: "界".repeat(1000),
-		prefix: "",
-		suffix: "",
+		path: `html>${"div:nth-of-type(1)>".repeat(300)}p`,
+		quote: "Selected 界\n".repeat(3000),
+		prefix: "Before",
+		suffix: "After",
 	};
-	const overLimit = { ...withinLimit, path: "界".repeat(4000), quote: "界".repeat(2000) };
-
-	expect(PageCommentAnchorSchema.safeParse(withinLimit).success).toBe(true);
-	expect(PageCommentAnchorSchema.safeParse(overLimit).success).toBe(false);
-});
-
-test("a Page comment anchor uses the stored JSONB byte limit", () => {
-	const atLimit = {
-		kind: "text" as const,
-		path: "界".repeat(4000),
-		quote: "界".repeat(1438),
-		prefix: "a",
-		suffix: "",
-	};
-	const overLimit = { ...atLimit, prefix: "aa" };
-	const separatorBytes = Object.keys(atLimit).length * 2 - 1;
-	const compactAtLimitBytes = new TextEncoder().encode(JSON.stringify(atLimit)).byteLength;
-	const compactOverLimitBytes = new TextEncoder().encode(JSON.stringify(overLimit)).byteLength;
-
-	expect(compactAtLimitBytes + separatorBytes).toBe(PAGE_COMMENT_ANCHOR_MAX_BYTES);
-	expect(compactOverLimitBytes).toBeLessThanOrEqual(PAGE_COMMENT_ANCHOR_MAX_BYTES);
-	expect(compactOverLimitBytes + separatorBytes).toBe(PAGE_COMMENT_ANCHOR_MAX_BYTES + 1);
-	expect(PageCommentAnchorSchema.safeParse(atLimit).success).toBe(true);
-	expect(PageCommentAnchorSchema.safeParse(overLimit).success).toBe(false);
+	expect(new TextEncoder().encode(JSON.stringify(anchor)).byteLength).toBeGreaterThan(16 * 1024);
+	expect(PageCommentBodySchema.parse(body)).toBe(body.trim());
+	expect(PageCommentAnchorSchema.parse(anchor)).toEqual(anchor);
+	expect(PageCommentAnchorSchema.parse({ kind: "element", path: anchor.path })).toEqual({
+		kind: "element",
+		path: anchor.path,
+	});
+	expect(PageCommentBodySchema.safeParse(" \n ").success).toBe(false);
+	for (const invalid of [
+		{ ...anchor, quote: "" },
+		{ ...anchor, quote: 123 },
+		{ ...anchor, action: "delete" },
+		{ ...anchor, prefix: "x".repeat(33) },
+		{ ...anchor, suffix: "x".repeat(33) },
+		{ ...anchor, kind: "unknown" },
+	])
+		expect(PageCommentAnchorSchema.safeParse(invalid).success).toBe(false);
 });
 
 test("a Page comment anchor accepts only generated element paths", () => {

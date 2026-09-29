@@ -6,7 +6,8 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { get, list, pin, remove, restore, update } from "./pages.ts";
+import { get, list, remove, restore, update } from "./pages.ts";
+import { pin } from "./pin";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const cache = createCache();

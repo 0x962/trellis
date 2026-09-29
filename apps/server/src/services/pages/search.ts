@@ -4,6 +4,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { tsquery } from "../../db/queries/fts.ts";
 import { rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { findActorId } from "../actorIdentity/index.ts";
 import { pageSelect, type RawPage, toSummary } from "./rows.ts";
 
 export type PageSearchInput = {
@@ -17,7 +18,7 @@ const scopeOf = (ids: SQL | undefined) => (ids === undefined ? sql`true` : sql`p
 
 const searchVector = (value: SQL) => sql`to_tsvector('english', ${value})`;
 
-export const pageSearchStatement = (ctx: ServiceCtx, input: PageSearchInput): SQL => {
+export const pageSearchStatement = (actorId: string | null, input: PageSearchInput): SQL => {
 	const query = tsquery(input.q.trim());
 	const projectIds = input.projectIds === undefined ? undefined : textArray(input.projectIds);
 	const rankProjectIds = input.rankProjectIds === undefined ? undefined : textArray(input.rankProjectIds);
@@ -41,7 +42,7 @@ export const pageSearchStatement = (ctx: ServiceCtx, input: PageSearchInput): SQ
 			SELECT DISTINCT ON (id) id, search_rank, search_score
 			FROM hits ORDER BY id, search_rank DESC, search_score DESC
 		)
-		${pageSelect(ctx, sql`ranked.search_rank`)}
+		${pageSelect(actorId, sql`ranked.search_rank`)}
 		JOIN ranked ON ranked.id = p.id
 		ORDER BY ${projectOrder} ranked.search_rank DESC, ranked.search_score DESC,
 			latest.created_at DESC, p.id DESC
@@ -51,6 +52,7 @@ export const pageSearchStatement = (ctx: ServiceCtx, input: PageSearchInput): SQ
 export const searchPages = async (ctx: ServiceCtx, tx: Tx, input: PageSearchInput): Promise<PageSummary[]> => {
 	const q = input.q.trim();
 	if (q === "") return [];
-	const found = await rows<RawPage>(tx, pageSearchStatement(ctx, { ...input, q }));
+	const actorId = ctx.actor === null ? null : await findActorId(ctx, tx, ctx.actor);
+	const found = await rows<RawPage>(tx, pageSearchStatement(actorId, { ...input, q }));
 	return found.map(toSummary);
 };
