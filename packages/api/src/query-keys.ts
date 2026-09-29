@@ -175,6 +175,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			return;
 		}
 		const parentsThatLostAChild = patchTicket(change);
+		if (change.deleted || fields.some((field) => ["after", "status", "title", "project"].includes(field))) {
+			enqueue([family("tickets", "dependencies")]);
+		}
 		const membership = change.created || change.deleted;
 		if (changesMembership(change)) enqueue(membershipMatchers);
 		if ((membership || fields.some((field) => parentFields.has(field))) && summary.parent !== null) {

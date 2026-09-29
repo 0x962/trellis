@@ -145,6 +145,7 @@ export function InlineEdit({
 	};
 
 	const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+		event.stopPropagation();
 		if (inlineEditAction({ kind: "key", key: event.key }, draft, value).kind === "ignore") return;
 		// The field can stand inside a row that is a link. Enter must not
 		// follow that link, and Escape must not close the page over it.

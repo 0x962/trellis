@@ -21,5 +21,6 @@ export type LangflowStartEngine = {
 	admit: (input: {
 		receipt: AdmissionReceiptV1;
 		authority: DeliveryAuthorityV1;
+		authorityBytes: string;
 	}) => Promise<{ state: "admitted"; receipt: AdmissionReceiptV1 } | { state: "pending" | "unknown" }>;
 };

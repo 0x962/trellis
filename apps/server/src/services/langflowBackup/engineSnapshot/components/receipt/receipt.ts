@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { SnapshotCompatibilitySchema } from "../../../manifest/manifest";
 
-export const EngineSnapshotBindingSchema = z.strictObject({
+const EngineSnapshotBindingSchema = z.strictObject({
 	snapshotId: z.uuid(),
 	sourceDataHomeId: z.string().min(1),
 	sourceHostId: z.string().min(1),
@@ -20,5 +20,3 @@ export const EngineSnapshotReceiptSchema = z.strictObject({
 	revisions: z.array(z.string().min(1)),
 	tables: z.array(z.string().min(1)),
 });
-export type EngineSnapshotBinding = z.infer<typeof EngineSnapshotBindingSchema>;
-export type EngineSnapshotReceipt = z.infer<typeof EngineSnapshotReceiptSchema>;

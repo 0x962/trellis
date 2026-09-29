@@ -155,3 +155,41 @@ test("a store that leaves admission closed fails before engine delivery", async 
 	);
 	expect(f.trace).not.toContain("admit");
 });
+
+test("admission recovery preserves the original authority text", async () => {
+	const f = fixture();
+	const delivered: string[] = [];
+	f.engine.admit = async ({ receipt, authority, authorityBytes }) => {
+		expect(authorityBytes).toBe(await f.readAuthorityBytes(authority));
+		expect(authorityBytes).not.toBe(JSON.stringify(authority));
+		delivered.push(authorityBytes);
+		return delivered.length === 1 ? { state: "unknown" } : { state: "admitted", receipt };
+	};
+	expect((await run(f)).disposition).toBe("unknown");
+	f.authorize = async () => {
+		throw new Error("duplicate_authorization");
+	};
+	expect((await run(f)).disposition).toBe("queued");
+	expect(delivered[0]).toBe(delivered[1]);
+});
+
+test("different authority bytes fail before engine admission", async () => {
+	const f = fixture();
+	const read = f.readAuthorityBytes;
+	f.readAuthorityBytes = async (authority) =>
+		JSON.stringify({
+			...JSON.parse(await read(authority)),
+			capabilityId: "foreign-capability",
+		});
+	await expect(run(f)).rejects.toThrow("authority_bytes_conflict");
+	expect(f.trace).not.toContain("admit");
+});
+
+test("missing original authority bytes prevent engine admission", async () => {
+	const f = fixture();
+	f.readAuthorityBytes = async () => {
+		throw new Error("authority_bytes_missing");
+	};
+	await expect(run(f)).rejects.toThrow("authority_bytes_missing");
+	expect(f.trace).not.toContain("admit");
+});

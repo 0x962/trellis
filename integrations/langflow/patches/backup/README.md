@@ -6,6 +6,8 @@ TRL-674 places this independent fragment after the backend and schema fragments 
 
 `create_backup_router` receives the configured `DatabaseService`, `SettingsService`, private export root, authentication file, installed package digest, source home, and host.
 The router serves `POST /trellis-v1/snapshots` and `GET /trellis-v1/snapshots/{snapshotId}/{database|secret}`.
+The domain router uses `/snapshots` beneath the common `/trellis-v1` router.
+TRL-875 owns that common router and registration.
 Every operation requires the private bearer token.
 The export root uses mode 0700; each export file uses mode 0600.
 Snapshot IDs select new directories and cannot overwrite an earlier export.
@@ -21,10 +23,12 @@ The receipt identifies both exported files by SHA256 and size, and retains the c
 `engineDatabaseVersion` joins the sorted Alembic revision IDs with commas.
 PostgreSQL requires a separate producer; this exporter rejects it.
 
-The required `snapshot_boundary(binding)` context manager validates the durable grant and holds engine writers closed during export.
+The service `capture_engine_snapshot` requires `snapshot_boundary(binding)` to validate the durable grant and hold engine writers closed during export.
+The context exit keeps the outer host block closed.
+Only reconciliation with the completed seal receipt can reopen that block.
 The trusted host holds the same coordinated pause across this operation, the Trellis snapshot, all native exports, and manifest completion.
 A request field cannot grant that pause.
-TRL-849 supplies durable host exclusion; TRL-696 supplies its composition and router registration.
+TRL-849 supplies durable host exclusion; TRL-696 supplies Trellis-side composition.
 The producer does not release the outer pause, start jobs, or activate restored data.
 
 `exportEngineSnapshot` in `services/langflowBackup/engineSnapshot` calls this protocol through the authenticated loopback endpoint.

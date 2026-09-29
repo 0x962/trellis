@@ -2,7 +2,10 @@ import { afterEach, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { readDecision, readProjection } from "../../../db/queries/langflowExecution";
 import { langflowDecisions, langflowOutbox } from "../../../db/tables/langflowExecution";
+import { openTestDbFromArchive } from "../../../db/testDb.ts";
+import { getView } from "../../langflowProjection";
 import { deliver } from "../deliver";
+import { deliverDecision } from "../deliverDecision";
 import { prepareDelivery } from "../prepareDelivery";
 import { recordAcknowledgement } from "../recordAcknowledgement";
 import { accepted } from "../testFixture";
@@ -104,4 +107,60 @@ test("native actors cannot record a human decision or an acknowledgement", async
 		),
 	).rejects.toThrow("authority_conflict");
 	expect(await db.select().from(langflowDecisions)).toHaveLength(0);
+});
+
+test("restored delivery reconciles a lost response through the same receipt and public revision", async () => {
+	const f = await transactionFixture();
+	db = f.db;
+	const recorded = await db.transaction((tx) => record(f.ctx, tx, f.input));
+	const decisionId = recorded.decisionDeliveries[0]!.decisionId;
+	const input = { executionId: f.input.id, decisionId, authority: f.authority };
+	let receipt: ReturnType<typeof accepted> | undefined;
+	let lookup: Parameters<typeof accepted>[0];
+	let acceptCalls = 0;
+	const engine = {
+		lookup: async (request: Parameters<typeof accepted>[0]) => {
+			lookup = request;
+			return receipt ? { state: "accepted", receipt } : { state: "absent", authoritative: true, lookup: request };
+		},
+		accept: async () => {
+			acceptCalls++;
+			receipt = accepted(lookup);
+			throw new TypeError("lost response after engine commit");
+		},
+	};
+	const context = () => ({ core: f.system, newTx: db.transaction.bind(db), log: () => {} });
+	const unknown = (await deliverDecision(context(), input, engine))!;
+	expect(unknown.revision).toBe(recorded.revision + 2);
+	expect(unknown.decisionDeliveries[0]).toMatchObject({
+		decisionId,
+		actionKey: f.input.key,
+		state: "unknown",
+		output: f.input.output,
+	});
+	const saved = await db.transaction((tx) => readDecision(tx, input));
+	const archive = await db.$client.dumpDataDir("none");
+	await db.$client.close();
+	db = await openTestDbFromArchive(archive);
+	const restored = await db.transaction((tx) => getView(f.ctx, tx, { id: f.input.id }));
+	expect(restored).toEqual(unknown);
+	await expect(db.transaction((tx) => record(f.ctx, tx, f.input))).rejects.toMatchObject({
+		code: "FLOW_VERSION_CONFLICT",
+		data: { version: unknown.revision },
+	});
+	const confirmed = (await deliverDecision(context(), input, engine))!;
+	expect(confirmed.revision).toBe(unknown.revision + 2);
+	expect(confirmed.decisionDeliveries[0]).toMatchObject({
+		decisionId,
+		actionKey: f.input.key,
+		state: "confirmed",
+		acceptedReceiptId: receipt!.acceptanceId,
+	});
+	expect(acceptCalls).toBe(1);
+	expect(await db.select().from(langflowDecisions)).toHaveLength(1);
+	const outbox = await db.select().from(langflowOutbox).where(eq(langflowOutbox.kind, "decision"));
+	expect(outbox).toHaveLength(1);
+	expect(outbox[0]!.payloadBytes).toBe(saved!.payloadBytes);
+	expect(outbox[0]!.receipt).toEqual(receipt!);
+	expect(await deliverDecision(context(), input, engine)).toBeNull();
 });

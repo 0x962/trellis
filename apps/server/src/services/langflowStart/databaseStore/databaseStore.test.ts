@@ -109,6 +109,8 @@ test("lost admission response recovers the same committed receipt and job", asyn
 		projectId: execution.projectId,
 		publicationDigest: execution.publication.documentHash,
 	};
+	const issuedBytes = `${JSON.stringify(authority, null, 2)}\n`;
+	const readAuthorityBytes = async () => issuedBytes;
 	const key = { executionId: execution.executionId };
 	const context = { newTx: f.run, now: () => f.ctx.now, log: sample.context.log };
 	let calls = 0;
@@ -119,7 +121,8 @@ test("lost admission response recovers the same committed receipt and job", asyn
 		submit: async () => {
 			throw new Error("duplicate_submission");
 		},
-		admit: async ({ receipt }: Parameters<typeof sample.engine.admit>[0]) => {
+		admit: async ({ receipt, authorityBytes }: Parameters<typeof sample.engine.admit>[0]) => {
+			expect(authorityBytes).toBe(issuedBytes);
 			const [row] = await f.db
 				.select()
 				.from(langflowExecutions)
@@ -133,12 +136,15 @@ test("lost admission response recovers the same committed receipt and job", asyn
 		},
 	};
 	expect(
-		(await reconcile(context, key, { store: f.store, engine, authorize: async () => authority })).disposition,
+		(
+			await reconcile(context, key, { store: f.store, engine, authorize: async () => authority, readAuthorityBytes })
+		).disposition,
 	).toBe("unknown");
 	expect(
 		(
 			await reconcile(context, key, {
 				store: databaseStore(f.ctx),
+				readAuthorityBytes,
 				engine,
 				authorize: async () => {
 					throw new Error("duplicate_authority");

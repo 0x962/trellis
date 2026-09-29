@@ -67,6 +67,7 @@ const start = async (
 		textOnly?: HarnessStartInput["textOnly"];
 		signal?: AbortSignal;
 		authorizeLaunch?: () => Promise<boolean>;
+		withLaunchOperation?: <T>(action: () => Promise<T>) => Promise<T>;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -157,6 +158,8 @@ const start = async (
 			)
 				return { id: run.id };
 			if (hostIsShuttingDown(ctx.home)) return { id: run.id };
+			input.signal?.throwIfAborted();
+			if (input.authorizeLaunch && !(await input.authorizeLaunch())) return { id: run.id };
 			launchSubmitted = true;
 			await client.start(spec);
 			session = await client.inspect(terminalId);
@@ -224,7 +227,7 @@ const start = async (
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 		}
-		launchedAt = session.startedAt;
+		launchedAt = session.pid === null ? undefined : session.startedAt;
 		const harness = launchedHarness(config.harness, session.agent?.model);
 		ctx.log("agent run launched", {
 			run: run.id,
@@ -263,4 +266,6 @@ const start = async (
 };
 
 export const startNative = (...args: Parameters<typeof start>) =>
-	workspaceOperation(args[1].run.workspaceId ?? agentWorkspace(args[0].home, args[1].run.id), () => start(...args));
+	workspaceOperation(args[1].run.workspaceId ?? agentWorkspace(args[0].home, args[1].run.id), () =>
+		args[1].withLaunchOperation ? args[1].withLaunchOperation(() => start(...args)) : start(...args),
+	);
