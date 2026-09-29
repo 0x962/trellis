@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { MachinePressureMonitor, type MachinePressureReadings } from "@trellis/api";
-import type { MachinePressureMachineView } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import type { DesktopBridge, DesktopThermalSample } from "../../../lib/desktopBridge";
-import { machinePressureView, thermalReadingForOrigin } from "./machinePressureView";
+import { type MachinePressureView, machinePressureView, thermalReadingForOrigin } from "./machinePressureView";
 
 const PRESSURE_POLL_MS = 5_000;
 
@@ -42,7 +41,7 @@ function useDesktopThermalSample(refreshedAt: number): ThermalCycle {
 export function useMachinePressure(includeRuns: boolean) {
 	const { orpc } = useApp();
 	const monitor = useRef(new MachinePressureMonitor());
-	const [machines, setMachines] = useState<MachinePressureMachineView[]>([]);
+	const [view, setView] = useState<MachinePressureView>({ machines: [], machinesWithAlerts: [] });
 	const pressure = useQuery({
 		...orpc.system.pressure.queryOptions({ input: { includeRuns } }),
 		refetchInterval: PRESSURE_POLL_MS,
@@ -86,8 +85,7 @@ export function useMachinePressure(includeRuns: boolean) {
 			temperatureReader: processorTemperature.state,
 		};
 		const state = monitor.current.update(readings, now);
-		const machine = machinePressureView(sample, state, now);
-		setMachines([machine]);
+		setView(machinePressureView(sample, state, now));
 	}, [pressure.errorUpdatedAt, sample, sampleUpdatedAt, thermalCycle]);
-	return machines;
+	return view;
 }
