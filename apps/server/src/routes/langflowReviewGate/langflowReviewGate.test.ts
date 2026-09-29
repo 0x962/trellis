@@ -7,7 +7,9 @@ import { invocationFixture } from "./components/fixture";
 
 let h: Awaited<ReturnType<typeof testFixture>>;
 const cleanups: Array<() => void> = [];
-beforeAll(async () => { h = await testFixture(); }, 30_000);
+beforeAll(async () => {
+	h = await testFixture();
+}, 30_000);
 afterAll(async () => {
 	await h.db.$client.close();
 	for (const cleanup of cleanups) cleanup();
@@ -27,22 +29,37 @@ const fixture = async (choice = "both", wait?: () => Promise<void>) => {
 };
 
 for (const [choice, front, back] of [
-	["frontend", true, false], ["backend", false, true], ["both", true, true], ["neither", false, false],
-] as const) test(`mounted HTTP retains one ${choice} receipt for both branches`, async () => {
-	const f = await fixture(choice);
-	const first = await (await f.send()).json();
-	const second = await (await f.send()).json();
-	expect(first).toEqual(second);
-	expect(first).toMatchObject({ result: { state: "succeeded", relevance: { frontend: front, backend: back } } });
-	const backend = { ...f.request, requestId: crypto.randomUUID(), nodeId: "back", occurrenceKey: "back:step:1",
-		specHash: protocolDigest(JSON.stringify({ nodeId: "back", reviewArea: "backend" })) };
-	f.requests.set(backend.occurrenceKey, JSON.stringify(backend));
-	expect(await (await f.send(backend)).json()).toMatchObject({ result: first.result });
-	expect(f.calls()).toBe(1);
-	expect(f.gate.read().permits.filter((entry) => entry.permit.binding.kind === "review-classification")).toHaveLength(1);
-	expect(f.gate.read().permits[0]!.terminal).not.toBeNull();
-	expect(await h.run((tx) => tx.select().from(langflowNativeHandles).where(eq(langflowNativeHandles.executionId, f.request.executionId)))).toEqual([]);
-});
+	["frontend", true, false],
+	["backend", false, true],
+	["both", true, true],
+	["neither", false, false],
+] as const)
+	test(`mounted HTTP retains one ${choice} receipt for both branches`, async () => {
+		const f = await fixture(choice);
+		const first = await (await f.send()).json();
+		const second = await (await f.send()).json();
+		expect(first).toEqual(second);
+		expect(first).toMatchObject({ result: { state: "succeeded", relevance: { frontend: front, backend: back } } });
+		const backend = {
+			...f.request,
+			requestId: crypto.randomUUID(),
+			nodeId: "back",
+			occurrenceKey: "back:step:1",
+			specHash: protocolDigest(JSON.stringify({ nodeId: "back", reviewArea: "backend" })),
+		};
+		f.requests.set(backend.occurrenceKey, JSON.stringify(backend));
+		expect(await (await f.send(backend)).json()).toMatchObject({ result: first.result });
+		expect(f.calls()).toBe(1);
+		expect(f.gate.read().permits.filter((entry) => entry.permit.binding.kind === "review-classification")).toHaveLength(
+			1,
+		);
+		expect(f.gate.read().permits[0]!.terminal).not.toBeNull();
+		expect(
+			await h.run((tx) =>
+				tx.select().from(langflowNativeHandles).where(eq(langflowNativeHandles.executionId, f.request.executionId)),
+			),
+		).toEqual([]);
+	});
 
 test("unauthenticated calls fail before a provider call", async () => {
 	const f = await fixture();
@@ -50,14 +67,21 @@ test("unauthenticated calls fail before a provider call", async () => {
 	expect((await f.send(f.request, { Authorization: "Bearer wrong" })).status).toBe(401);
 	expect((await f.send(f.request, { "X-Trellis-Capability-Id": "wrong" })).status).toBe(403);
 	expect((await f.send(f.request, { Origin: "https://foreign.example" })).status).toBe(403);
-	f.ctx.withAuthenticatedNativeReservation = async () => { throw new Error("authority_conflict"); };
+	f.ctx.withAuthenticatedNativeReservation = async () => {
+		throw new Error("authority_conflict");
+	};
 	expect((await f.send()).status).toBe(403);
 	expect(f.calls()).toBe(0);
 });
 
 test("changed execution identities, occurrence bytes and request gate lists fail", async () => {
 	const f = await fixture();
-	for (const changes of [{ publicationId: "other" }, { engineEpoch: 2 }, { diffId: "other" }, { reviewedHead: "changed" }])
+	for (const changes of [
+		{ publicationId: "other" },
+		{ engineEpoch: 2 },
+		{ diffId: "other" },
+		{ reviewedHead: "changed" },
+	])
 		expect((await f.send({ ...f.request, ...changes })).status).toBe(409);
 	expect((await f.send({ ...f.request, occurrenceKey: "unrecorded" })).status).toBe(409);
 	expect((await f.send({ ...f.request, gates: [] })).status).toBe(400);
@@ -75,26 +99,42 @@ test("expired authority refuses a retained receipt", async () => {
 test("pending frontend and backend reads cannot settle an interrupted provider", async () => {
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
-	const f = await fixture("both", async () => { entered.resolve(); await release.promise; });
+	const f = await fixture("both", async () => {
+		entered.resolve();
+		await release.promise;
+	});
 	const running = f.send();
 	await entered.promise;
 	const pending = await (await f.send()).json();
 	expect(pending.result.state).toBe("claimed");
-	const backend = { ...f.request, requestId: crypto.randomUUID(), nodeId: "back", occurrenceKey: "back:step:1",
-		specHash: protocolDigest(JSON.stringify({ nodeId: "back", reviewArea: "backend" })) };
+	const backend = {
+		...f.request,
+		requestId: crypto.randomUUID(),
+		nodeId: "back",
+		occurrenceKey: "back:step:1",
+		specHash: protocolDigest(JSON.stringify({ nodeId: "back", reviewArea: "backend" })),
+	};
 	f.requests.set(backend.occurrenceKey, JSON.stringify(backend));
-	expect(await (await f.send(backend)).json()).toMatchObject({ result: { state: "claimed", classificationReceiptId: pending.result.classificationReceiptId } });
+	expect(await (await f.send(backend)).json()).toMatchObject({
+		result: { state: "claimed", classificationReceiptId: pending.result.classificationReceiptId },
+	});
 	await f.interrupt();
-	expect(await (await f.send()).json()).toMatchObject({ result: { state: "failed", classificationReceiptId: pending.result.classificationReceiptId } });
+	expect(await (await f.send()).json()).toMatchObject({
+		result: { state: "failed", classificationReceiptId: pending.result.classificationReceiptId },
+	});
 	expect(f.gate.read().permits[0]!.terminal).toBeNull();
 	release.resolve();
-	expect(await (await running).json()).toMatchObject({ result: { state: "failed", classificationReceiptId: pending.result.classificationReceiptId } });
+	expect(await (await running).json()).toMatchObject({
+		result: { state: "failed", classificationReceiptId: pending.result.classificationReceiptId },
+	});
 	expect(f.gate.read().permits[0]!.terminal).not.toBeNull();
 	expect(f.calls()).toBe(1);
 });
 
 test("an unknown transport outcome retains its permit after failed replay", async () => {
-	const f = await fixture("both", async () => { throw new Error("transport outcome unknown"); });
+	const f = await fixture("both", async () => {
+		throw new Error("transport outcome unknown");
+	});
 	const failed = await (await f.send()).json();
 	expect(failed.result.state).toBe("failed");
 	expect(await (await f.send()).json()).toEqual(failed);
@@ -105,13 +145,27 @@ test("an unknown transport outcome retains its permit after failed replay", asyn
 test("cancellation preserves the failed classification for replay", async () => {
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
-	const f = await fixture("both", async () => { entered.resolve(); await release.promise; });
+	const f = await fixture("both", async () => {
+		entered.resolve();
+		await release.promise;
+	});
 	const running = f.send();
 	await entered.promise;
-	await h.run((tx) => tx.update(langflowExecutions).set({ cancelIntent: {
-		version: 1, executionId: f.request.executionId, requestId: crypto.randomUUID(),
-		expectedRevision: 1, actor: { kind: "human", name: "Test" }, requestedAt: h.ctx.now.toISOString(),
-	} }).where(eq(langflowExecutions.executionId, f.request.executionId)));
+	await h.run((tx) =>
+		tx
+			.update(langflowExecutions)
+			.set({
+				cancelIntent: {
+					version: 1,
+					executionId: f.request.executionId,
+					requestId: crypto.randomUUID(),
+					expectedRevision: 1,
+					actor: { kind: "human", name: "Test" },
+					requestedAt: h.ctx.now.toISOString(),
+				},
+			})
+			.where(eq(langflowExecutions.executionId, f.request.executionId)),
+	);
 	release.resolve();
 	expect((await (await running).json()).result.state).toBe("failed");
 	expect((await (await f.send()).json()).result.state).toBe("failed");
@@ -122,8 +176,13 @@ for (const error of ["Changed file list is incomplete.", "Pull request head chan
 	test(`complete-path boundary preserves ${error}`, async () => {
 		let calls = 0;
 		const f = await invocationFixture(h, {
-			pullRequestChangedFilePaths: async () => { throw new Error(error); },
-			evaluate: async () => { calls++; return { answers: { area: { type: "choice" as const, choice: "both" } } }; },
+			pullRequestChangedFilePaths: async () => {
+				throw new Error(error);
+			},
+			evaluate: async () => {
+				calls++;
+				return { answers: { area: { type: "choice" as const, choice: "both" } } };
+			},
 		});
 		cleanups.push(f.cleanup);
 		const result = await (await f.send()).json();
@@ -135,8 +194,13 @@ for (const error of ["Changed file list is incomplete.", "Pull request head chan
 test("a changed saved document cannot authorize classification", async () => {
 	const f = await fixture();
 	await h.run(async (tx) => {
-		const [row] = await tx.select().from(langflowExecutions).where(eq(langflowExecutions.executionId, f.request.executionId));
-		await tx.update(langflowExecutions).set({ snapshot: { ...row!.snapshot, documentHash: "b".repeat(64) } })
+		const [row] = await tx
+			.select()
+			.from(langflowExecutions)
+			.where(eq(langflowExecutions.executionId, f.request.executionId));
+		await tx
+			.update(langflowExecutions)
+			.set({ snapshot: { ...row!.snapshot, documentHash: "b".repeat(64) } })
 			.where(eq(langflowExecutions.executionId, f.request.executionId));
 	});
 	expect((await f.send()).status).toBe(409);
@@ -149,9 +213,15 @@ test("context reconstructs the shared bytes without a provider or claim", async 
 	expect(response.status).toBe(200);
 	const context = await response.json();
 	expect(context.requestDigest).toBe(f.request.classificationRequestDigest);
-	expect(JSON.parse(context.requestBytes)).toMatchObject({ executionId: f.request.executionId,
-		diffId: f.request.diffId, reviewedHead: f.request.reviewedHead,
-		gates: [{ nodeId: "back", reviewArea: "backend" }, { nodeId: "front", reviewArea: "frontend" }] });
+	expect(JSON.parse(context.requestBytes)).toMatchObject({
+		executionId: f.request.executionId,
+		diffId: f.request.diffId,
+		reviewedHead: f.request.reviewedHead,
+		gates: [
+			{ nodeId: "back", reviewArea: "backend" },
+			{ nodeId: "front", reviewArea: "frontend" },
+		],
+	});
 	expect(f.calls()).toBe(0);
 	expect(f.gate.read().permits).toHaveLength(0);
 });
