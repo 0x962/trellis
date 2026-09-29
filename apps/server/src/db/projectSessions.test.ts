@@ -301,9 +301,7 @@ test("completion acknowledgement is monotonic and rejects a replaced attempt", a
 test("alert activity includes ticket agents and sessions but excludes flow agents", async () => {
 	const sessions = await db.transaction(listSessions);
 	const entries = await db.transaction(activityRows);
-	const sessionIds = await db.transaction((tx) =>
-		sessionIdsForRuns(ctx.core, tx, { runIds: entries.map((run) => run.id) }),
-	);
+	const sessionIds = await db.transaction((tx) => sessionIdsForRuns(tx, { runIds: entries.map((run) => run.id) }));
 	const ticketRun = entries.find((run) => run.ticketId === ticketId)!;
 	expect(ticketRun.kind).toBe("agent");
 	expect(sessionIds[ticketRun.id] ?? null).toBeNull();

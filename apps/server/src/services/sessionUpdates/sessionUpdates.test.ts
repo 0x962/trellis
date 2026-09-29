@@ -7,8 +7,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb, openTestDbFromArchive } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { beginSessionUpdateRequest, setSessionUpdateRequestState } from "./requests.ts";
-import { get, write } from "./sessionUpdates.ts";
+import { beginSessionUpdateRequest, get, setSessionUpdateRequestState, write } from "./index.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const cache = createCache();
@@ -99,6 +98,17 @@ test("saves one requested reply for a ticket agent without a sessions row", asyn
 	const sessions = await db.execute(sql`SELECT id FROM sessions WHERE run_id=${ticketRunId}`);
 	expect(sessions.rows).toEqual([]);
 	expect(events).toContainEqual({ type: "session-updates.changed", id: ticketRunId });
+});
+
+test("rejects a status request for an unknown run", async () => {
+	await expect(
+		inTx((tx) =>
+			beginSessionUpdateRequest(context(ticketRunId, ticketToken), tx, {
+				runId: ulid(),
+				requestId: crypto.randomUUID(),
+			}),
+		),
+	).rejects.toThrow();
 });
 
 test("resolves a standalone session name and stores its session provenance", async () => {

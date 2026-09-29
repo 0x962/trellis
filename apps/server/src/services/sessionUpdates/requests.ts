@@ -4,6 +4,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
+import { sessionIdsForRuns } from "../sessions/index.ts";
 import { getSessionUpdateRequest } from "./queries.ts";
 
 type RequestCtx = Pick<ServiceCtx, "emit" | "now">;
@@ -18,11 +19,11 @@ export const beginSessionUpdateRequest = async (
 	tx: Tx,
 	input: { runId: string; requestId: string },
 ): Promise<SessionUpdateRequest | null> => {
+	const sessionIds = await sessionIdsForRuns(tx, { runIds: [input.runId] });
 	const inserted = await rows<SessionUpdateRequest>(
 		tx,
 		sql`INSERT INTO session_update_requests (request_id, run_id, session_id, requested_at, state, error)
-		SELECT ${input.requestId}, agent_runs.id, sessions.id, ${ctx.now}, 'pending', NULL
-		FROM agent_runs LEFT JOIN sessions ON sessions.run_id=agent_runs.id WHERE agent_runs.id=${input.runId}
+		VALUES (${input.requestId}, ${input.runId}, ${sessionIds[input.runId] ?? null}, ${ctx.now}, 'pending', NULL)
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 	);
 	if (inserted[0] !== undefined) {
