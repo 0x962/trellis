@@ -11,7 +11,7 @@ const { update } = legacyServices;
 
 let h: Awaited<ReturnType<typeof serviceFixture>>;
 beforeEach(async () => {
-	h = await serviceFixture();
+	h = await serviceFixture("langflow");
 });
 afterEach(async () => {
 	await h.db.$client.close();

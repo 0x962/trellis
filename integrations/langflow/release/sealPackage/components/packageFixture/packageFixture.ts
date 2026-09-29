@@ -62,5 +62,5 @@ export async function packageFixture(architecture: "arm64" | "x86_64" = "arm64")
 		},
 		license: { spdx: "MIT", file: await file("LICENSE", "fixture notice") },
 	};
-	return { root, staging, recipe, layer, file };
+	return { root, staging, recipe, config, layer, file };
 }

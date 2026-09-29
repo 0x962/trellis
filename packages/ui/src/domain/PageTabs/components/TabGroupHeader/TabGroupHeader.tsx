@@ -1,5 +1,5 @@
 import { CaretDown, CaretRight, DotsThree } from "@phosphor-icons/react";
-import { useLayoutEffect, useRef } from "react";
+import { type CSSProperties, useLayoutEffect, useRef } from "react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { InlineEdit } from "../../../../primitives/InlineEdit";
 import { Menu, type MenuItem } from "../../../../primitives/Menu";
@@ -9,8 +9,7 @@ import type { PageTabGroupItem, PageTabsProps } from "../../PageTabs";
 type Props = {
 	group: PageTabGroupItem;
 	count: number;
-	index: number;
-	width: number;
+	style: CSSProperties;
 	editing: boolean;
 	onEditingChange: (editing: boolean) => void;
 	onRename: PageTabsProps["onRenameGroup"];
@@ -24,8 +23,7 @@ type Props = {
 export function TabGroupHeader({
 	group,
 	count,
-	index,
-	width,
+	style,
 	editing,
 	onEditingChange,
 	onRename,
@@ -56,7 +54,7 @@ export function TabGroupHeader({
 			role="presentation"
 			data-page-tab-group={group.id}
 			className="group/header absolute top-0 left-0 flex h-9 items-center gap-1 pr-1 pl-2 text-fg-muted max-sm:h-11 pointer-coarse:h-11"
-			style={{ left: index * width, width }}
+			style={style}
 		>
 			<InlineEdit
 				label="Group name"

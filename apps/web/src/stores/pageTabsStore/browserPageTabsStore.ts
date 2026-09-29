@@ -19,6 +19,7 @@ export const pageTabsActions = {
 	setGroupCollapsed: (id: string, collapsed: boolean) => usePageTabsStore.getState().setGroupCollapsed(id, collapsed),
 	setTabGroup: (id: string, groupId: string | null) => usePageTabsStore.getState().setTabGroup(id, groupId),
 	renameTab: (id: string, title: string | null) => usePageTabsStore.getState().renameTab(id, title),
+	setPinned: (id: string, pinned: boolean) => usePageTabsStore.getState().setPinned(id, pinned),
 	moveTab: (id: string, beforeId: string | null) => usePageTabsStore.getState().moveTab(id, beforeId),
 	reopenClosedTab: () => usePageTabsStore.getState().reopenClosedTab(),
 	addTab: (page: PageTabPage) => usePageTabsStore.getState().addTab(page),

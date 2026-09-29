@@ -6,10 +6,10 @@ const groups = [
 	{ id: "h", name: "Later", collapsed: true },
 ];
 const tabs = [
-	{ id: "b", title: "B", groupId: "g" },
-	{ id: "c", title: "C", groupId: "g" },
-	{ id: "d", title: "D", groupId: "h" },
-	{ id: "a", title: "A" },
+	{ id: "b", title: "B", pinned: false, groupId: "g" },
+	{ id: "c", title: "C", pinned: false, groupId: "g" },
+	{ id: "d", title: "D", pinned: false, groupId: "h" },
+	{ id: "a", title: "A", pinned: false },
 ];
 
 test("a header precedes each block and a collapsed group hides its tabs", () => {
@@ -23,6 +23,7 @@ test("a header precedes each block and a collapsed group hides its tabs", () => 
 	]);
 	expect(slotIndexOf(slots, "c")).toBe(2);
 	expect(slotIndexOf(slots, "d")).toBe(-1);
+	expect(tabSlots(tabs, groups, 3)[1]).toMatchObject({ kind: "tab", tabIndex: 3 });
 });
 
 test("a drop on a header lands before the first tab of the group", () => {

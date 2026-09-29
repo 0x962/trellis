@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { insertDocumentConversion } from "../../../db/queries/langflowDocuments";
 import { flows } from "../../../db/tables/flows.ts";
-import { flowId, manifestHash, packageDigest, publisher, saveInput, serviceFixture } from "../fixture";
+import { resolveFlow } from "../../flows/flows.ts";
+import {
+	flowId,
+	manifestHash,
+	packageDigest,
+	publisher,
+	saveInput,
+	seedLangflowDocument,
+	serviceFixture,
+} from "../fixture";
 import { legacyServices } from "../legacyServices";
 import { publishDocument } from "../publishDocument";
 import { save } from "../save";
@@ -25,6 +34,7 @@ afterEach(async () => {
 const read = (availability: DiscoveryAvailability = unknown) => h.run((tx) => discovery(h.ctx, tx, {}, availability));
 
 test("discovery retains dense counts and excludes graph bytes and instructions", async () => {
+	await h.run(async (tx) => seedLangflowDocument(tx, { flow: await resolveFlow(tx, flowId), savedAt: h.ctx.now }));
 	const input = saveInput();
 	input.graphDocument = {
 		nodes: Array.from({ length: 501 }, (_, index) => ({ id: `node-${index}`, instruction: "private-node-text" })),
@@ -48,6 +58,7 @@ test("discovery retains dense counts and excludes graph bytes and instructions",
 });
 
 test("a publication cannot establish availability or authorize a later saved revision", async () => {
+	await h.run(async (tx) => seedLangflowDocument(tx, { flow: await resolveFlow(tx, flowId), savedAt: h.ctx.now }));
 	await h.run((tx) => save(h.ctx, tx, saveInput()));
 	const publication = await publishDocument(h.io, { flow: flowId, revision: 2 }, publisher());
 	expect((await read()).entries[0]?.capabilities.start.state).toBe("unknown");

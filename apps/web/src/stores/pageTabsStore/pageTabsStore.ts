@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
-import { expandGroupOf, groupEnd, insertIndex, tailStart } from "./tabGroups";
+import { expandGroupOf, groupEnd, insertIndex, liveGroups, tailStart } from "./tabGroups";
 
 export type PageTabPage = {
 	url: string;
@@ -10,7 +10,9 @@ export type PageTabPage = {
 export type PageTab = PageTabPage & {
 	id: string;
 	customTitle?: string;
-	// The group the tab belongs to. Absent means the tab is ungrouped.
+	pinned?: boolean;
+	// The group the tab belongs to. Absent means the tab is ungrouped. A
+	// pinned tab has no group.
 	groupId?: string;
 	backHistory: PageTabPage[];
 	forwardHistory: PageTabPage[];
@@ -22,7 +24,7 @@ export type PageTabGroup = {
 	collapsed: boolean;
 };
 
-export type PageTabItem = Pick<PageTab, "id" | "title" | "groupId">;
+export type PageTabItem = Pick<PageTab, "id" | "title" | "groupId"> & { pinned: boolean };
 
 // A tab that closed, with what reopen needs to put it back: its position, the
 // home tab that replaced it when it was the last tab, and its group when the
@@ -34,10 +36,9 @@ export type ClosedPageTab = {
 	group?: { group: PageTabGroup; index: number };
 };
 
-// The tab strip has one order, `tabs`: the blocks of the groups in `groups`
-// order, then the ungrouped tail. Every tab of a group sits inside its
-// block. A move never crosses a region boundary; a group action moves a tab
-// from one region to another.
+// The tab strip has one order, `tabs`: the pinned tabs, then the block of
+// each group in `groups` order, then the ungrouped tail. Every tab of a
+// group sits inside its block. `tabGroups.ts` holds the region rules.
 export type PageTabsState = {
 	tabs: PageTab[];
 	groups: PageTabGroup[];
@@ -49,6 +50,7 @@ export type PageTabsState = {
 	setGroupCollapsed: (id: string, collapsed: boolean) => void;
 	setTabGroup: (id: string, groupId: string | null) => void;
 	renameTab: (id: string, title: string | null) => void;
+	setPinned: (id: string, pinned: boolean) => void;
 	moveTab: (id: string, beforeId: string | null) => void;
 	reopenClosedTab: () => void;
 	addTab: (page: PageTabPage) => string;
@@ -100,7 +102,12 @@ export const pageTabsUiProjection = (
 	groups: readonly PageTabGroup[],
 	activeId: string,
 ): PageTabsUiState => ({
-	tabs: tabs.map(({ id, title, customTitle, groupId }) => ({ id, title: customTitle ?? title, groupId })),
+	tabs: tabs.map(({ id, title, customTitle, pinned, groupId }) => ({
+		id,
+		title: customTitle ?? title,
+		pinned: pinned === true,
+		groupId,
+	})),
 	groups,
 	activeId,
 });
@@ -149,15 +156,12 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 				setTabGroup: (id, groupId) =>
 					set((state) => {
 						const current = state.tabs.find((item) => item.id === id)!;
-						if ((current.groupId ?? null) === groupId) return state;
+						if (current.pinned || (current.groupId ?? null) === groupId) return state;
 						const { groupId: _, ...bare } = current;
 						const moved = groupId === null ? bare : { ...bare, groupId };
 						const rest = state.tabs.filter((item) => item.id !== id);
 						rest.splice(groupId === null ? tailStart(rest) : groupEnd(rest, state.groups, groupId), 0, moved);
-						// The group the tab leaves goes away when it holds no other tab.
-						const groups = state.groups.filter(
-							(group) => group.id !== current.groupId || rest.some((item) => item.groupId === group.id),
-						);
+						const groups = liveGroups(rest, state.groups, current.groupId);
 						return { tabs: rest, groups: id === state.activeId ? expandGroupOf(groups, moved) : groups };
 					}),
 				addTab: (page) => {
@@ -182,6 +186,17 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 							item.id === id ? { ...item, customTitle: title?.trim() || undefined } : item,
 						),
 					})),
+				setPinned: (id, pinned) =>
+					set((state) => {
+						const { pinned: _pinned, groupId, ...current } = state.tabs.find((item) => item.id === id)!;
+						if ((_pinned === true) === pinned) return state;
+						// A pin leaves the group; an unpin lands at the start of the
+						// ungrouped tail.
+						const moving: PageTab = pinned ? { ...current, pinned: true } : current;
+						const tabs = state.tabs.filter((item) => item.id !== id);
+						tabs.splice(pinned ? insertIndex(tabs, state.groups, moving, tabs.length) : tailStart(tabs), 0, moving);
+						return { tabs, groups: liveGroups(tabs, state.groups, groupId) };
+					}),
 				moveTab: (id, beforeId) =>
 					set((state) => {
 						if (id === beforeId) return state;

@@ -202,6 +202,24 @@ test("saved state without groups reads as no group", () => {
 	expect(restored.getState().tabs).toEqual(store.getState().tabs);
 });
 
+test("a pin leaves the group and an unpin lands at the start of the tail", () => {
+	const { store, a, b, c, d, g, h } = grouped();
+	store.getState().setPinned(c, true);
+	expect(order(store)).toEqual([c, b, d, a]);
+	expect(store.getState().tabs.map(pageTabRegion)).toEqual(["pinned", g, h, ""]);
+	store.getState().setPinned(d, true);
+	expect(order(store)).toEqual([c, d, b, a]);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g]);
+	store.getState().setPinned(c, false);
+	expect(order(store)).toEqual([d, b, c, a]);
+	expect(store.getState().tabs.map(pageTabRegion)).toEqual(["pinned", g, "", ""]);
+	expect(store.getState().tabs.find((tab) => tab.id === c)).not.toHaveProperty("groupId");
+	store.getState().setTabGroup(d, g);
+	expect(order(store)).toEqual([d, b, c, a]);
+	store.getState().moveTab(d, a);
+	expect(order(store)).toEqual([d, b, c, a]);
+});
+
 test("the store caps neither groups nor tabs", () => {
 	const { store } = grouped();
 	for (let index = 0; index < 500; index++) {

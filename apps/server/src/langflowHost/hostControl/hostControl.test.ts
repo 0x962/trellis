@@ -39,7 +39,9 @@ function fixture() {
 test("production control initializes closed outside the home and retains identities on restart", async () => {
 	const input = fixture();
 	expect(LangflowHostControl.recovery(input.home)).toEqual({ state: "unavailable", generation: null });
+	expect(() => LangflowHostControl.readIdentity(input.home)).toThrow();
 	const control = LangflowHostControl.create(input);
+	expect(LangflowHostControl.readIdentity(input.home)).toEqual(control.identity);
 	expect(LangflowHostControl.directory(input.home)).toBe(`${realpathSync(input.home)}.langflow-authority`);
 	expect(LangflowHostControl.recovery(input.home)).toEqual({ state: "blocked", generation: 1 });
 	const restarted = LangflowHostControl.open(input);

@@ -1,5 +1,5 @@
-import { X } from "@phosphor-icons/react";
-import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
+import { PushPinSimple, X } from "@phosphor-icons/react";
+import { type CSSProperties, type PointerEvent, useLayoutEffect, useRef, useState } from "react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { InlineEdit } from "../../../../primitives/InlineEdit";
 import { TabsTab } from "../../../../primitives/Tabs";
@@ -9,12 +9,9 @@ import type { PageTabItem } from "../../PageTabs";
 
 type Props = {
 	tab: PageTabItem;
-	// The box of the strip the tab draws in.
 	index: number;
-	// The place of the tab among all open tabs, for a screen reader.
-	position: number;
 	count: number;
-	width: number;
+	style: CSSProperties;
 	active: boolean;
 	separator: boolean;
 	onClose: () => void;
@@ -24,12 +21,15 @@ type Props = {
 	onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
 };
 
+// One tab of the strip. A pinned tab is narrow and draws no close button, so
+// a slip of the pointer cannot close it. Its full name reaches a reader
+// through the accessible name and the tooltip. The menu, the Delete key, and
+// the middle button of a normal tab close a tab.
 export function PageTab({
 	tab,
 	index,
-	position,
 	count,
-	width,
+	style,
 	active,
 	separator,
 	onClose,
@@ -53,11 +53,12 @@ export function PageTab({
 		<div
 			role="presentation"
 			className={cx(
-				"group absolute top-0 left-0 flex h-9 items-center rounded-t-lg border-x border-t max-sm:h-11 pointer-coarse:h-11",
+				"group flex h-9 items-center rounded-t-lg border-x border-t max-sm:h-11 pointer-coarse:h-11",
+				tab.pinned ? "relative w-24 shrink-0" : "absolute top-0 left-0",
 				active ? "z-10 border-border bg-bg text-fg" : "border-transparent text-fg-muted hover:bg-fg/6 hover:text-fg",
 				separator && "after:absolute after:right-0 after:top-2.5 after:h-4 after:w-px after:bg-border",
 			)}
-			style={{ left: index * width, width }}
+			style={style}
 		>
 			<InlineEdit
 				label="Tab name"
@@ -72,11 +73,11 @@ export function PageTab({
 				<Tooltip
 					content={tab.title}
 					className="max-w-[min(24rem,calc(100vw-var(--spacing)*4))] break-words"
-					open={truncated ? undefined : false}
+					open={truncated || tab.pinned ? undefined : false}
 				>
 					<TabsTab
 						onAuxClick={(event) => {
-							if (event.button === 1) {
+							if (event.button === 1 && !tab.pinned) {
 								event.preventDefault();
 								onClose();
 							}
@@ -87,30 +88,38 @@ export function PageTab({
 						value={tab.id}
 						tabIndex={active ? 0 : -1}
 						data-page-tab-id={tab.id}
-						aria-posinset={position + 1}
+						data-pinned={tab.pinned || undefined}
+						aria-label={tab.pinned ? `Pinned: ${tab.title}` : undefined}
+						aria-posinset={index + 1}
 						aria-setsize={count}
-						className="flex h-9 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center rounded-tl-lg px-3 text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+						className={cx(
+							"flex h-9 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center gap-1.5 rounded-tl-lg text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+							tab.pinned ? "rounded-tr-lg px-2" : "px-3",
+						)}
 						onPointerDown={onPointerDown}
 					>
+						{tab.pinned && <PushPinSimple aria-hidden="true" className="size-3 shrink-0" />}
 						<span ref={label} className={cx("block truncate", active && "font-medium")}>
 							{tab.title}
 						</span>
 					</TabsTab>
 				</Tooltip>
 			</InlineEdit>
-			<Tooltip content={`Close ${tab.title}`}>
-				<IconButton
-					label={`Close ${tab.title}`}
-					icon={<X />}
-					size="sm"
-					tabIndex={active ? 0 : -1}
-					className="mr-1 text-fg-muted max-sm:h-11 max-sm:min-w-11"
-					onClick={(event) => {
-						event.stopPropagation();
-						onClose();
-					}}
-				/>
-			</Tooltip>
+			{!tab.pinned && (
+				<Tooltip content={`Close ${tab.title}`}>
+					<IconButton
+						label={`Close ${tab.title}`}
+						icon={<X />}
+						size="sm"
+						tabIndex={active ? 0 : -1}
+						className="mr-1 text-fg-muted max-sm:h-11 max-sm:min-w-11"
+						onClick={(event) => {
+							event.stopPropagation();
+							onClose();
+						}}
+					/>
+				</Tooltip>
+			)}
 		</div>
 	);
 }
