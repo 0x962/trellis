@@ -198,11 +198,60 @@
 			"manifest": "reports/langflow-feasibility-review/backend-projection-composition.json"
 		},
 		{
+			"name": "backend-loop-scope-inputs",
+			"path": "integrations/langflow/patches/occurrenceRequests/0007-loop-scope-inputs.patch",
+			"sha256": "841a23db7ce8cda9b4979856a3a22d713f3e9991f7e2b309cc4bae361de4cec1",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/loop-inputs-manifest.json"
+		},
+		{
+			"name": "backend-lifecycle-projection",
+			"path": "integrations/langflow/patches/externalWaits/0007-authoritative-lifecycle-projection.patch",
+			"sha256": "088a817aab6d42e9576fe4a45e1a150fcbefbe825f09779ec3778ef0476178f8",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/externalWaits/lifecycle-projection-manifest.json"
+		},
+		{
+			"name": "backend-loop-metadata-wrapper",
+			"path": "integrations/langflow/patches/externalWaits/0009-loop-metadata-wrapper.patch",
+			"sha256": "0474eb22c82ee6006c7bef6bc34eb18a2822a6ed1f98632ddf9d4741e7d8e292",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/externalWaits/loop-metadata-wrapper-manifest.json"
+		},
+		{
+			"name": "backend-group-scopes",
+			"path": "reports/langflow-feasibility-review/backend-group-scopes.patch",
+			"sha256": "41062d29b3edbaf100a9176022c51262bf0cfea7ba29a2b31b90faf353f43c3d",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-group-loop-composition.json"
+		},
+		{
+			"name": "backend-container-history",
+			"path": "reports/langflow-feasibility-review/backend-container-history.patch",
+			"sha256": "830df102d712e108a317f5f28f9662a5f90fe50c0c9b4ee04093e9a937ea6217",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-group-loop-composition.json"
+		},
+		{
 			"name": "backend-private-startup",
 			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
 			"sha256": "db28d1e0b4f86596d2506e0648a17d83da509a189ea70d234f7ade328db9a5fe",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/engineApi/startup/manifest.json"
+		},
+		{
+			"name": "backend-review-startup",
+			"path": "integrations/langflow/patches/engineApi/reviewStartup/0001-register-review-gate-startup.patch",
+			"sha256": "25883e05f5bfc680deba630a11e92ddb4c19ccfe2eef78d3d7bed11df404c13f",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/reviewStartup/manifest.json"
+		},
+		{
+			"name": "backend-group-startup",
+			"path": "integrations/langflow/patches/engineApi/groupStartup/0001-register-group-scope-startup.patch",
+			"sha256": "440db15a728fb14ffe62192ccc5f1b15520b3c1f236f5bcafa7336fce59669f5",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/groupStartup/manifest.json"
 		},
 		{
 			"name": "editor",
@@ -221,6 +270,8 @@
 		"integrations/langflow/tests/publications",
 		"integrations/langflow/tests/occurrenceRequests",
 		"integrations/langflow/tests/loopControl",
+		"integrations/langflow/tests/groupScopes",
+		"integrations/langflow/patches/groupScopes/tests",
 		"integrations/langflow/tests/reviewGate",
 		"integrations/langflow/patches/engineApi/shared/tests",
 		"integrations/langflow/patches/engineApi/control/tests",
@@ -229,6 +280,7 @@
 		"integrations/langflow/patches/engineApi/admission/tests",
 		"integrations/langflow/patches/engineApi/decisions/tests",
 		"integrations/langflow/patches/engineApi/startup/tests",
+		"integrations/langflow/patches/engineApi/reviewStartup/tests",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],

@@ -1,0 +1,192 @@
+{
+	"version": 1,
+	"ticket": "TRL-1156",
+	"sourceBase": "cff2c0a9bedcd5fd0286b5cc15a20e2e867a5f63",
+	"priorCheckpoint": {
+		"pullRequest": 1014,
+		"mergeCommit": "1032674e9eb49f712c7618f0ad0774b5b9c36016",
+		"receipt": "reports/langflow-feasibility-review/backend-fixed-series-composition.json",
+		"unchanged": true
+	},
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"series": {
+		"path": "integrations/langflow/patches/series.json",
+		"sha256": "5bf5642978a1eb2e3ff9070bbfc27ec23fc17edbf0abc529d26fe7ef4c4a9f2d",
+		"patches": 37
+	},
+	"adopted": [
+		{
+			"pullRequest": 956,
+			"mergeCommit": "6b440fff091a9def79c8a35119024e087d937806",
+			"purpose": "Exclude loop activation edges from selected input receipts."
+		},
+		{
+			"pullRequest": 958,
+			"mergeCommit": "cd10c27f497848000518de594a0f410eab9ee0ed",
+			"manifestRepair": "b5fe25149fba9c0da41d1d64503ecc9780fb0064",
+			"purpose": "Retain actual vertex lifecycle facts."
+		},
+		{
+			"pullRequest": 877,
+			"mergeCommit": "82687f72f83db7277bbcb515211e9a015d6830ac",
+			"purpose": "Compose ordered group scopes and their checkpoint fields."
+		},
+		{
+			"pullRequest": 1032,
+			"mergeCommit": "f52c03adbd53356370fc2b05cad44a4d744983eb",
+			"purpose": "Retain group and loop occurrence history."
+		},
+		{
+			"pullRequest": 1037,
+			"mergeCommit": "c79b793b00d8a53844804719d3ea103863e5f1be",
+			"purpose": "Forward exact loop metadata through the Graph method."
+		},
+		{
+			"pullRequest": 962,
+			"mergeCommit": "a9c565989506f44ab04fdf23851c8974c59b96b7",
+			"purpose": "Register the review router and outgoing transport."
+		},
+		{
+			"pullRequest": 1035,
+			"mergeCommit": "34aefe25221aef531d286a5c4a66cb9a171ac276",
+			"purpose": "Register the group router and deadline transport."
+		},
+		{
+			"pullRequest": 1045,
+			"mergeCommit": "cff2c0a9bedcd5fd0286b5cc15a20e2e867a5f63",
+			"purpose": "Let only the actual body group commit its loop."
+		}
+	],
+	"groupPatch": {
+		"authorPath": "integrations/langflow/patches/groupScopes/0001-executable-group-scopes.patch",
+		"authorSha256": "eabba03a359d6e43497052873f6d8745e9bf2c10574d4d4153ab54ffcf4f3c37",
+		"path": "reports/langflow-feasibility-review/backend-group-scopes.patch",
+		"sha256": "41062d29b3edbaf100a9176022c51262bf0cfea7ba29a2b31b90faf353f43c3d",
+		"change": "Adjust schema and builder hunk context to retain external waits and loop fields.",
+		"authorAddedAndRemovedLinesUnchanged": true,
+		"sharedHunks": {
+			"src/lfx/src/lfx/graph/graph/base.py": {
+				"baseSha256": "d4c7b3347ab93f4f4e7772d9a784c5c19d8d2a981f87a5bd2661b003fda29a45",
+				"resultSha256": "8e3a49fd65f45e9574bed3993fa03ab56b10a2da430c854ef4f7f56f39bf6f86"
+			},
+			"src/lfx/src/lfx/graph/checkpoint/schema.py": {
+				"baseSha256": "2493f6cf06285d10f8a39ce73a9e3a1a95b4fbf0ea10851d7dad1eee904b84e8",
+				"resultSha256": "36f0bb032230f153e7e2469e723e369e50ae9ad30a5bc579e30962865b62cd19"
+			},
+			"src/lfx/src/lfx/graph/checkpoint/builder.py": {
+				"baseSha256": "0c1ae4e33f38e74e60fb37758c7282c98ebc70c6f05c8edea9a7c7adf4ea7eab",
+				"resultSha256": "2a0d87294aa5b0b4327d02ba2afc089fbac45631bd7be13fcff8a968b7e74deb"
+			},
+			"src/lfx/src/lfx/graph/checkpoint/resume.py": {
+				"baseSha256": "55f149b1dec906e3156de697f70721ed7c4c4b535ad712abc4f45682498e0883",
+				"resultSha256": "7c6446c6922722ca8b6e49ae133f67fc2a89698f621d3d617ef859c83b4dd976"
+			}
+		}
+	},
+	"hostDependencies": [
+		{
+			"pullRequest": 967,
+			"mergeCommit": "994743f6e767e68cbf2be875c6c281e0c4f4514c",
+			"purpose": "Keep the saved occurrence phase in each deadline identity."
+		},
+		{
+			"pullRequest": 1023,
+			"mergeCommit": "f64a2ae806cd0c6b7f543843a1cbf910d4079130",
+			"route": "POST /api/langflow-private/v1/group-deadlines",
+			"registration": "apps/server/src/app.ts",
+			"composition": "apps/server/src/services/langflowBootstrap/groupDeadlines/groupDeadlines.ts"
+		}
+	],
+	"startup": {
+		"order": [
+			"backend-private-startup",
+			"backend-review-startup",
+			"backend-group-startup"
+		],
+		"authorResultSha256": "0c8b9b8510d38dd3a405e29f8dd1b50c8c1dddc2c8260cc050d4cabcfd0a5724",
+		"matched": true,
+		"groupRoute": "POST /trellis-v1/group-scopes/read",
+		"transport": "Use the current per-instance native reservation origin and authentication file before service construction."
+	},
+	"sourceComposition": {
+		"method": "Read pinned Git blobs and compose patch text in memory. Do not import or compile engine modules.",
+		"files": 97,
+		"aggregateSha256": "4feb8af405264114f411db0aa28b5460ee5c9cce328c87670b32e447d04749e3",
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"sourceHashes": "reports/langflow-feasibility-review/backend-group-loop-sources.json",
+		"allPatchDigestsMatch": true,
+		"candidateMutated": false
+	},
+	"fixtures": {
+		"source": "cff2c0a9bedcd5fd0286b5cc15a20e2e867a5f63",
+		"count": 118,
+		"aggregateSha256": "d4ee08dc61f96b2426c6def0d02b89763376579deb0e651904a6b8c6e1f75213",
+		"hashes": "reports/langflow-feasibility-review/backend-group-loop-fixtures.json",
+		"executed": false
+	},
+	"catalog": {
+		"path": "integrations/langflow/components/catalog/manifest.v1.json",
+		"sha256": "b74ef5072f82aee14933a467cd12297711267dbcb4b89121157786c886d8ba48",
+		"sourceReferences": 111,
+		"allReferencesMatch": false,
+		"qualifiedExport": false,
+		"mismatches": [
+			{
+				"path": "integrations/langflow/components/groupScope/groupScope.py",
+				"expected": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6",
+				"actual": "ed130a55cfb9b02f760df649185036a2807eba2c269cefb83e7d00180215a866"
+			},
+			{
+				"path": "integrations/langflow/patches/groupScopes/0001-executable-group-scopes.patch",
+				"expected": "f78ee6fd8e11844925d2e3d668e9877e442398f08c5a7810fbf3e50b1a83914a",
+				"actual": "eabba03a359d6e43497052873f6d8745e9bf2c10574d4d4153ab54ffcf4f3c37"
+			},
+			{
+				"path": "integrations/langflow/components/groupScope/groupScope.py",
+				"expected": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6",
+				"actual": "ed130a55cfb9b02f760df649185036a2807eba2c269cefb83e7d00180215a866"
+			},
+			{
+				"path": "integrations/langflow/patches/groupScopes/0001-executable-group-scopes.patch",
+				"expected": "f78ee6fd8e11844925d2e3d668e9877e442398f08c5a7810fbf3e50b1a83914a",
+				"actual": "eabba03a359d6e43497052873f6d8745e9bf2c10574d4d4153ab54ffcf4f3c37"
+			},
+			{
+				"path": "integrations/langflow/components/groupScope/groupScope.py",
+				"expected": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6",
+				"actual": "ed130a55cfb9b02f760df649185036a2807eba2c269cefb83e7d00180215a866"
+			},
+			{
+				"path": "integrations/langflow/patches/groupScopes/0001-executable-group-scopes.patch",
+				"expected": "f78ee6fd8e11844925d2e3d668e9877e442398f08c5a7810fbf3e50b1a83914a",
+				"actual": "eabba03a359d6e43497052873f6d8745e9bf2c10574d4d4153ab54ffcf4f3c37"
+			}
+		],
+		"owner": "TRL-845"
+	},
+	"boundaries": {
+		"tests": false,
+		"linters": false,
+		"engineImports": false,
+		"build": false,
+		"review": false,
+		"runtime": false,
+		"activation": false
+	},
+	"remaining": [
+		"The existing candidate lacks asgi_lifespan. No dependency installation or substitute is authorized.",
+		"The complete engineering and UI acceptance gates remain open.",
+		"The package export must use this exact series and matching component source.",
+		"Reconciliation and authority recovery remain outside this checkpoint.",
+		"The catalog retains old group hashes. TRL-845 owns the reference repair.",
+		"Principal holds merges of new implementation during the fixed diagnostic batch."
+	],
+	"containerHistoryPatch": {
+		"authorPath": "integrations/langflow/patches/externalWaits/0008-container-lifecycle-history.patch",
+		"authorSha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d",
+		"path": "reports/langflow-feasibility-review/backend-container-history.patch",
+		"sha256": "830df102d712e108a317f5f28f9662a5f90fe50c0c9b4ee04093e9a937ea6217",
+		"authorAddedAndRemovedLinesUnchanged": true,
+		"change": "Use the new loop body helper as context before open_group_scope."
+	}
+}

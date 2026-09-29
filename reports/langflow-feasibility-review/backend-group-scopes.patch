@@ -1,0 +1,525 @@
+diff --git a/src/lfx/src/lfx/graph/group_scope.py b/src/lfx/src/lfx/graph/group_scope.py
+new file mode 100644
+--- /dev/null
++++ b/src/lfx/src/lfx/graph/group_scope.py
+@@ -0,0 +1,189 @@
++from __future__ import annotations
++
++from typing import Literal
++
++from pydantic import BaseModel, ConfigDict, Field
++
++
++class ScopeModel(BaseModel):
++    model_config = ConfigDict(alias_generator=lambda value: "".join(
++        [value.split("_")[0], *[part.title() for part in value.split("_")[1:]]]
++    ), populate_by_name=True, extra="forbid", frozen=True)
++
++
++class ScopeEdge(ScopeModel):
++    id: str
++    from_node_id: str
++    to_node_id: str
++    branch: str | None = None
++
++
++class GroupChildVertices(ScopeModel):
++    input_vertex_id: str
++    output_vertex_id: str
++    settlement_source_vertex_id: str
++
++
++class GroupScopeDefinition(ScopeModel):
++    version: Literal[1]
++    group_node_id: str
++    parent_group_node_id: str | None
++    scope_vertex_id: str
++    output_vertex_id: str
++    parallel: bool
++    minutes: int | None = Field(default=None, gt=0)
++    child_node_ids: tuple[str, ...]
++    child_vertices: dict[str, GroupChildVertices]
++    entry_node_ids: tuple[str, ...]
++    terminal_node_ids: tuple[str, ...]
++    settlement_vertex_ids: dict[str, str]
++    edges: tuple[ScopeEdge, ...]
++
++
++class GroupSettlement(ScopeModel):
++    node_id: str
++    occurrence_key: str | None
++    state: Literal["completed", "failed", "skipped"]
++    output_bytes: str
++    receipt_id: str | None
++
++
++def activate_group_occurrence(
++    graph, scope_vertex_id: str, occurrence: dict, loop_visit_key: str | None, scope: dict,
++) -> dict:
++    key = occurrence["occurrenceKey"]
++    encoded_visit = {"occurrence": occurrence, "loopVisitKey": loop_visit_key, "scope": scope}
++    saved = graph.group_visit_scopes.get(key)
++    if saved is not None:
++        saved_scope = saved["scope"]
++        stable_fields = ("parentOccurrenceKey", "phase", "iterationPath", "inputReceiptIds")
++        if (saved["occurrence"] != occurrence or saved["loopVisitKey"] != loop_visit_key
++                or any(saved_scope[field] != scope[field] for field in stable_fields)
++                or saved_scope["groupDeadlineRefs"][:len(scope["groupDeadlineRefs"])] != scope["groupDeadlineRefs"]):
++            raise ValueError("group_scope_visit_conflict")
++        graph.group_active_occurrences[scope_vertex_id] = key
++        return saved
++    graph.group_visit_scopes[key] = encoded_visit
++    graph.group_active_occurrences[scope_vertex_id] = key
++    return encoded_visit
++
++
++def extend_group_deadlines(
++    graph, group_occurrence_key: str, deadline_refs: tuple[str, ...], deadline_at: str | None,
++) -> dict:
++    visit = graph.group_visit_scopes[group_occurrence_key]
++    scope = visit["scope"]
++    inherited = scope["groupDeadlineRefs"]
++    if list(deadline_refs[:len(inherited)]) != inherited:
++        raise ValueError("group_deadline_ancestry_conflict")
++    visit["scope"] = {**scope, "groupDeadlineRefs": list(deadline_refs), "deadlineAt": deadline_at}
++    return visit
++
++
++def current_group_occurrence(graph, vertex_id: str) -> str:
++    return graph.group_active_occurrences[vertex_id]
++
++
++def loop_body_visit_key(graph, definition: GroupScopeDefinition, scope_vertex_id: str) -> str | None:
++    if definition.scope_vertex_id != scope_vertex_id:
++        raise ValueError("group_scope_vertex_conflict")
++    policy = graph.trellis_current_loop_policy()
++    if policy is None:
++        return None
++    visit = graph.read_trellis_loop_visit(policy["visitKey"])
++    if (visit["loopNodeId"] != definition.group_node_id
++            or visit["metadata"]["nodeId"] != definition.group_node_id):
++        return None
++    return policy["visitKey"]
++
++
++def open_group_scope(graph, definition) -> dict:
++    key = current_group_occurrence(graph, definition.scope_vertex_id)
++    saved_definition = graph.group_scope_definitions.get(key)
++    encoded_definition = definition.model_dump(by_alias=True)
++    if saved_definition is not None and saved_definition != encoded_definition:
++        raise ValueError("group_scope_definition_conflict")
++    graph.group_scope_definitions[key] = encoded_definition
++    graph.group_scope_settlements.setdefault(key, {})
++    graph.group_active_occurrences[definition.output_vertex_id] = key
++    for source_node_id in definition.child_node_ids:
++        vertices = definition.child_vertices[source_node_id]
++        graph.group_active_occurrences[vertices.input_vertex_id] = key
++        graph.group_active_occurrences[vertices.output_vertex_id] = key
++        graph.group_active_occurrences[vertices.settlement_source_vertex_id] = key
++        graph.group_active_occurrences[definition.settlement_vertex_ids[source_node_id]] = key
++    return graph.group_visit_scopes[key]["scope"]
++
++
++def group_visit_scope(graph, group_occurrence_key: str, vertex_id: str) -> dict:
++    definition = GroupScopeDefinition.model_validate(graph.group_scope_definitions[group_occurrence_key])
++    vertices = {
++        definition.scope_vertex_id,
++        definition.output_vertex_id,
++        *(value.input_vertex_id for value in definition.child_vertices.values()),
++        *(value.output_vertex_id for value in definition.child_vertices.values()),
++        *(value.settlement_source_vertex_id for value in definition.child_vertices.values()),
++        *definition.settlement_vertex_ids.values(),
++    }
++    if vertex_id not in vertices:
++        raise ValueError("group_scope_vertex_unknown")
++    return graph.group_visit_scopes[group_occurrence_key]["scope"]
++
++
++def group_scope_visit(graph, group_occurrence_key: str) -> dict:
++    return graph.group_visit_scopes[group_occurrence_key]
++
++
++def settle_group_child(graph, group_occurrence_key: str, settlement: GroupSettlement) -> GroupSettlement:
++    definition = GroupScopeDefinition.model_validate(graph.group_scope_definitions[group_occurrence_key])
++    if settlement.node_id not in definition.child_node_ids:
++        raise ValueError("group_scope_child_unknown")
++    records = graph.group_scope_settlements[group_occurrence_key]
++    encoded = settlement.model_dump(by_alias=True)
++    if settlement.node_id in records and records[settlement.node_id] != encoded:
++        raise ValueError("group_scope_settlement_conflict")
++    records[settlement.node_id] = encoded
++    return settlement
++
++
++def settle_group_exclusions(graph, excluded_vertex_ids: set[str]) -> set[str]:
++    settled_vertices: set[str] = set()
++    active_keys = {graph.group_active_occurrences[vertex_id] for vertex_id in excluded_vertex_ids
++                   if vertex_id in graph.group_active_occurrences}
++    for key in active_keys:
++        raw_definition = graph.group_scope_definitions[key]
++        definition = GroupScopeDefinition.model_validate(raw_definition)
++        for source_node_id in definition.child_node_ids:
++            child_vertices = definition.child_vertices[source_node_id]
++            settlement_vertex_id = definition.settlement_vertex_ids[source_node_id]
++            if not excluded_vertex_ids.intersection({
++                child_vertices.input_vertex_id, child_vertices.output_vertex_id,
++                child_vertices.settlement_source_vertex_id, settlement_vertex_id,
++            }):
++                continue
++            settle_group_child(graph, key, GroupSettlement(
++                nodeId=source_node_id, occurrenceKey=None, state="skipped", outputBytes="", receiptId=None,
++            ))
++            settled_vertices.add(child_vertices.input_vertex_id)
++            settled_vertices.add(child_vertices.output_vertex_id)
++            settled_vertices.add(child_vertices.settlement_source_vertex_id)
++            settled_vertices.add(settlement_vertex_id)
++    return settled_vertices
++
++
++def group_scope_output(graph, group_occurrence_key: str) -> dict:
++    definition = GroupScopeDefinition.model_validate(graph.group_scope_definitions[group_occurrence_key])
++    records = graph.group_scope_settlements[group_occurrence_key]
++    if set(records) != set(definition.child_node_ids):
++        raise ValueError("group_scope_incomplete")
++    ordered = [GroupSettlement.model_validate(records[node_id]) for node_id in definition.child_node_ids]
++    return {
++        "groupOccurrenceKey": group_occurrence_key,
++        "outputBytes": "\n\n".join(item.output_bytes for item in ordered if item.state != "skipped"),
++        "children": [item.model_dump(by_alias=True) for item in ordered],
++    }
++
++
++def group_scope_deadlines(graph, group_occurrence_key: str) -> tuple[tuple[str, ...], str | None]:
++    scope = graph.group_visit_scopes[group_occurrence_key]["scope"]
++    return tuple(scope["groupDeadlineRefs"]), scope["deadlineAt"]
+diff --git a/src/backend/base/langflow/services/trellis_v1/group_scope_deadline.py b/src/backend/base/langflow/services/trellis_v1/group_scope_deadline.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/group_scope_deadline.py
+@@ -0,0 +1,88 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++from pathlib import Path
++
++import httpx
++from pydantic import BaseModel, ConfigDict, Field
++
++from langflow.services.deps import session_scope
++
++from .occurrence_models import canonical
++from .occurrence_store import authorize_native, locked_graph, save_graph
++
++
++class DeadlineModel(BaseModel):
++    model_config = ConfigDict(alias_generator=lambda value: "".join(
++        [value.split("_")[0], *[part.title() for part in value.split("_")[1:]]]
++    ), populate_by_name=True, extra="forbid", frozen=True)
++
++
++class GroupDeadline(DeadlineModel):
++    deadline_id: str = Field(min_length=1)
++    group_occurrence_key: str = Field(min_length=1)
++    budget_ms: int = Field(gt=0)
++    launched_at: str | None
++    deadline_at: str | None
++    launch_receipt_id: str | None
++
++
++class GroupDeadlineResult(DeadlineModel):
++    deadline: GroupDeadline
++    group_deadline_refs: tuple[str, ...]
++    deadline_at: str | None
++
++
++@dataclass(frozen=True)
++class GroupDeadlineTransport:
++    origin: str
++    authentication_file: Path
++
++    async def reserve(self, request_bytes: str, capability_id: str) -> GroupDeadlineResult:
++        headers = {
++            "Content-Type": "application/json",
++            "Authorization": f"Bearer {self.authentication_file.read_bytes().decode('utf-8')}",
++            "X-Trellis-Capability-Id": capability_id,
++        }
++        async with httpx.AsyncClient(trust_env=False, follow_redirects=False, timeout=None) as client:
++            response = await client.post(
++                f"{self.origin.rstrip('/')}/api/langflow-private/v1/group-deadlines",
++                content=request_bytes.encode("utf-8"),
++                headers=headers,
++            )
++            response.raise_for_status()
++            return GroupDeadlineResult.model_validate_json(response.content)
++
++
++_transport: GroupDeadlineTransport | None = None
++
++
++def install_group_deadline_transport(*, origin: str, authentication_file: Path) -> None:
++    global _transport
++    _transport = GroupDeadlineTransport(origin, authentication_file)
++
++
++def group_deadline_transport() -> GroupDeadlineTransport:
++    if _transport is None:
++        raise RuntimeError("group_deadline_transport_not_installed")
++    return _transport
++
++
++async def reserve_group_deadline(graph, vertex_id: str, occurrence: dict) -> GroupDeadlineResult:
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, _, _ = await locked_graph(session, graph)
++            capability_id = await authorize_native(session, job_id, admission)
++            await save_graph(session, job_id, graph)
++            await session.commit()
++    request = {
++        **{field: admission[field] for field in ("executionId", "publicationId", "engineJobId", "engineEpoch")},
++        "scopeVertexId": vertex_id,
++        "occurrenceKey": occurrence["occurrenceKey"],
++    }
++    result = await group_deadline_transport().reserve(canonical(request), capability_id)
++    if result.deadline.group_occurrence_key != occurrence["occurrenceKey"]:
++        raise ValueError("group_deadline_occurrence_conflict")
++    if not result.group_deadline_refs or result.group_deadline_refs[-1] != result.deadline.deadline_id:
++        raise ValueError("group_deadline_reference_conflict")
++    return result
+diff --git a/src/backend/base/langflow/services/trellis_v1/group_scope_reader.py b/src/backend/base/langflow/services/trellis_v1/group_scope_reader.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/group_scope_reader.py
+@@ -0,0 +1,145 @@
++from __future__ import annotations
++
++import json
++from typing import Annotated
++from uuid import UUID
++
++import sqlalchemy as sa
++from fastapi import APIRouter, Header, HTTPException
++from pydantic import BaseModel, ConfigDict, Field
++from sqlmodel import select
++
++from langflow.services.database.models.jobs.model import Job, JobStatus
++from langflow.services.deps import session_scope
++from langflow.services.trellis_publications.contracts import PublicationRequest
++from langflow.services.trellis_publications.ledger import publications
++from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
++from langflow.services.trellis_v1.engine_api import EngineApiSecurity
++from langflow.services.trellis_v1.native_records import checkpoint
++from langflow.services.trellis_v1.occurrence_journal import JOURNAL_KIND, OccurrenceConflict
++from langflow.services.trellis_v1.occurrence_models import VisitScope, digest
++
++
++class GroupScopeReadInput(BaseModel):
++    model_config = ConfigDict(extra="forbid", populate_by_name=True)
++
++    execution_id: str = Field(alias="executionId", min_length=1)
++    publication_id: str = Field(alias="publicationId", min_length=1)
++    engine_job_id: UUID = Field(alias="engineJobId")
++    engine_epoch: int = Field(alias="engineEpoch")
++    scope_vertex_id: str = Field(alias="scopeVertexId", min_length=1)
++    occurrence_key: str = Field(alias="occurrenceKey", min_length=1)
++
++
++class GroupScopeReadMissing(ValueError):
++    pass
++
++
++def _saved_control(journal: dict, occurrence_key: str) -> tuple[str, dict]:
++    for key, control in journal.get("controls", {}).items():
++        if control["occurrence"]["occurrenceKey"] == occurrence_key:
++            return key, control
++    raise GroupScopeReadMissing("group_scope_control_missing")
++
++
++def _verify_group_entry(graph_checkpoint: dict, definition: dict, occurrence: dict, allocation_scope: dict) -> None:
++    occurrence_key = occurrence["occurrenceKey"]
++    entered_definition = graph_checkpoint["group_scope_definitions"].get(occurrence_key)
++    entered_visit = graph_checkpoint["group_visit_scopes"].get(occurrence_key)
++    if entered_definition != definition or entered_visit is None:
++        raise OccurrenceConflict("group_scope_entry_conflict")
++    entered_scope = entered_visit["scope"]
++    if (entered_visit["occurrence"] != occurrence
++            or entered_scope["parentOccurrenceKey"] != occurrence_key
++            or entered_scope["phase"] != "children"
++            or entered_scope["iterationPath"] != occurrence["iterationPath"]
++            or entered_scope["inputReceiptIds"] != allocation_scope["inputReceiptIds"]
++            or entered_scope["groupDeadlineRefs"][:len(allocation_scope["groupDeadlineRefs"])]
++            != allocation_scope["groupDeadlineRefs"]):
++        raise OccurrenceConflict("group_scope_entry_identity_conflict")
++
++
++async def read_group_scope(session, input: GroupScopeReadInput) -> dict:
++    job = (await session.exec(select(Job).where(Job.job_id == input.engine_job_id).with_for_update())).one_or_none()
++    if job is None:
++        raise GroupScopeReadMissing("group_scope_job_missing")
++    if job.status not in {JobStatus.IN_PROGRESS, JobStatus.SUSPENDED, JobStatus.QUEUED}:
++        raise OccurrenceConflict("group_scope_job_not_active")
++    correlation = (await session.exec(select(TrellisJobCorrelation).where(
++        TrellisJobCorrelation.engine_job_id == input.engine_job_id))).one_or_none()
++    if correlation is None or correlation.admission_receipt_bytes is None:
++        raise OccurrenceConflict("group_scope_admission_closed")
++    admission = json.loads(correlation.admission_receipt_bytes)
++    binding = {
++        "executionId": input.execution_id,
++        "publicationId": input.publication_id,
++        "engineJobId": str(input.engine_job_id),
++        "engineEpoch": input.engine_epoch,
++    }
++    if any(admission[field] != value for field, value in binding.items()):
++        raise OccurrenceConflict("group_scope_binding_conflict")
++    publication = (await session.execute(sa.select(publications).where(
++        publications.c.engine_flow_id == job.flow_id))).one_or_none()
++    if publication is None or publication.receipt["publicationId"] != input.publication_id:
++        raise OccurrenceConflict("group_scope_publication_conflict")
++    document = PublicationRequest.model_validate_json(publication.request_bytes)
++    document.source()
++    node = next((item for item in document.snapshot["graphDocument"]["nodes"]
++                 if item["id"] == input.scope_vertex_id), None)
++    if node is None:
++        raise GroupScopeReadMissing("group_scope_vertex_missing")
++    if node["data"]["type"] != "TrellisGroupScopeV1":
++        raise OccurrenceConflict("group_scope_component_type_conflict")
++    raw_definition = node["data"]["node"]["template"]["scope_definition"]["value"]
++    definition = json.loads(raw_definition)
++    stored = await checkpoint(session, input.engine_job_id, JOURNAL_KIND)
++    if stored is None:
++        raise GroupScopeReadMissing("group_scope_journal_missing")
++    journal = json.loads(stored.blob)
++    control_key, control = _saved_control(journal, input.occurrence_key)
++    occurrence = control["occurrence"]
++    if occurrence["nodeId"] != definition["groupNodeId"]:
++        raise OccurrenceConflict("group_scope_source_node_conflict")
++    scope_value = {
++        "parentOccurrenceKey": occurrence["parentOccurrenceKey"],
++        "phase": occurrence["phase"],
++        "iterationPath": occurrence["iterationPath"],
++        **control["facts"]["scope"],
++    }
++    scope = VisitScope.from_engine(scope_value)
++    if scope.identity(input.scope_vertex_id) != control_key:
++        raise OccurrenceConflict("group_scope_control_identity_conflict")
++    if control["facts"]["definitionHash"] != digest(raw_definition):
++        raise OccurrenceConflict("group_scope_definition_conflict")
++    graph_state = await checkpoint(session, input.engine_job_id, "graph")
++    if graph_state is None:
++        raise GroupScopeReadMissing("group_scope_entry_missing")
++    graph_checkpoint = json.loads(graph_state.blob)
++    _verify_group_entry(graph_checkpoint, definition, occurrence, scope_value)
++    return {
++        **binding,
++        "scopeVertexId": input.scope_vertex_id,
++        "occurrence": occurrence,
++        "scope": scope.to_engine(),
++        "groupDefinition": definition,
++    }
++
++
++def create_group_scope_router(*, security: EngineApiSecurity, open_session=session_scope) -> APIRouter:
++    router = APIRouter(prefix="/group-scopes")
++
++    @router.post("/read")
++    async def read(
++        input: GroupScopeReadInput,
++        authorization: Annotated[str | None, Header()] = None,
++    ) -> dict:
++        await security.require_transport_auth(authorization)
++        try:
++            async with open_session() as session:
++                return await read_group_scope(session, input)
++        except GroupScopeReadMissing as error:
++            raise HTTPException(status_code=404, detail=str(error)) from error
++        except OccurrenceConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++
++    return router
+diff --git a/src/lfx/src/lfx/graph/graph/base.py b/src/lfx/src/lfx/graph/graph/base.py
+--- a/src/lfx/src/lfx/graph/graph/base.py
++++ b/src/lfx/src/lfx/graph/graph/base.py
+@@ -208,4 +208,8 @@ class Graph:
+         # Conditional routing system (separate from ACTIVE/INACTIVE cycle management)
+         self.conditionally_excluded_vertices: set = set()  # Vertices excluded by conditional routing
+         self.conditional_exclusion_sources: dict[str, set[str]] = {}  # Maps source vertex -> excluded vertices
++        self.group_scope_definitions: dict[str, dict] = {}
++        self.group_visit_scopes: dict[str, dict] = {}
++        self.group_scope_settlements: dict[str, dict[str, dict]] = {}
++        self.group_active_occurrences: dict[str, str] = {}
+         self.edges: list[CycleEdge] = []
+@@ -1532,5 +1535,35 @@ class Graph:
+         self.conditionally_excluded_vertices.update(excluded)
+         if excluded:
+             self.conditional_exclusion_sources[vertex_id] = excluded
++        from lfx.graph.group_scope import settle_group_exclusions
++
++        for settled_vertex_id in settle_group_exclusions(self, excluded):
++            self.run_manager.remove_from_predecessors(settled_vertex_id)
++
++    def activate_group_occurrence(
++        self, scope_vertex_id: str, occurrence: dict, loop_visit_key: str | None, scope: dict,
++    ) -> dict:
++        from lfx.graph.group_scope import activate_group_occurrence
++        return activate_group_occurrence(self, scope_vertex_id, occurrence, loop_visit_key, scope)
++
++    def current_group_occurrence(self, vertex_id: str) -> str:
++        from lfx.graph.group_scope import current_group_occurrence
++        return current_group_occurrence(self, vertex_id)
++
++    def group_visit_scope(self, group_occurrence_key: str, vertex_id: str) -> dict:
++        from lfx.graph.group_scope import group_visit_scope
++        return group_visit_scope(self, group_occurrence_key, vertex_id)
++
++    def group_scope_visit(self, group_occurrence_key: str) -> dict:
++        from lfx.graph.group_scope import group_scope_visit
++        return group_scope_visit(self, group_occurrence_key)
++
++    def group_scope_output(self, group_occurrence_key: str) -> dict:
++        from lfx.graph.group_scope import group_scope_output
++        return group_scope_output(self, group_occurrence_key)
++
++    def group_scope_deadlines(self, group_occurrence_key: str) -> tuple[tuple[str, ...], str | None]:
++        from lfx.graph.group_scope import group_scope_deadlines
++        return group_scope_deadlines(self, group_occurrence_key)
+ 
+     def exclude_branch_conditionally(self, vertex_id: str, output_name: str | None = None) -> None:
+diff --git a/src/lfx/src/lfx/graph/checkpoint/schema.py b/src/lfx/src/lfx/graph/checkpoint/schema.py
+--- a/src/lfx/src/lfx/graph/checkpoint/schema.py
++++ b/src/lfx/src/lfx/graph/checkpoint/schema.py
+@@ -56,6 +56,10 @@ class GraphCheckpoint(BaseModel):
+     vertex_results: dict[str, VertexCheckpointData] = Field(default_factory=dict)
+     pause_context: dict[str, Any] | None = None
+     human_input_decisions: dict[str, Any] = Field(default_factory=dict)
++    group_scope_definitions: dict[str, dict] = Field(default_factory=dict)
++    group_visit_scopes: dict[str, dict] = Field(default_factory=dict)
++    group_scope_settlements: dict[str, dict[str, dict]] = Field(default_factory=dict)
++    group_active_occurrences: dict[str, str] = Field(default_factory=dict)
+     external_waits: dict[str, str] = Field(default_factory=dict)
+     trellis_loop_visits: dict[str, dict[str, Any]] = Field(default_factory=dict)
+     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+diff --git a/src/lfx/src/lfx/graph/checkpoint/builder.py b/src/lfx/src/lfx/graph/checkpoint/builder.py
+--- a/src/lfx/src/lfx/graph/checkpoint/builder.py
++++ b/src/lfx/src/lfx/graph/checkpoint/builder.py
+@@ -74,6 +74,10 @@ def build_checkpoint(graph: Graph) -> GraphCheckpoint:
+         vertex_results={vertex.id: _vertex_data(vertex) for vertex in graph.vertices},
+         pause_context=graph.pause_info,
+         human_input_decisions=dict(getattr(graph, "human_input_decisions", {}) or {}),
++        group_scope_definitions=dict(graph.group_scope_definitions),
++        group_visit_scopes=dict(graph.group_visit_scopes),
++        group_scope_settlements=dict(graph.group_scope_settlements),
++        group_active_occurrences=dict(graph.group_active_occurrences),
+         external_waits=dict(getattr(graph, "external_waits", {}) or {}),
+         trellis_loop_visits=dict(getattr(graph, "trellis_loop_visits", {}) or {}),
+     )
+diff --git a/src/lfx/src/lfx/graph/checkpoint/resume.py b/src/lfx/src/lfx/graph/checkpoint/resume.py
+--- a/src/lfx/src/lfx/graph/checkpoint/resume.py
++++ b/src/lfx/src/lfx/graph/checkpoint/resume.py
+@@ -202,4 +202,8 @@ def restore_graph_from_checkpoint(checkpoint: GraphCheckpoint, *, store: Checkpo
+     }
+     graph.conditionally_excluded_vertices = {str(v) for v in checkpoint.conditionally_excluded_vertices}
+     graph.human_input_decisions = dict(checkpoint.human_input_decisions)
++    graph.group_scope_definitions = dict(checkpoint.group_scope_definitions)
++    graph.group_visit_scopes = dict(checkpoint.group_visit_scopes)
++    graph.group_scope_settlements = dict(checkpoint.group_scope_settlements)
++    graph.group_active_occurrences = dict(checkpoint.group_active_occurrences)
+     graph.activated_vertices = list(checkpoint.activated_vertices)

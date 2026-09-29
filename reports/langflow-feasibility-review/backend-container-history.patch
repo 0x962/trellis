@@ -1,0 +1,284 @@
+diff --git a/src/lfx/src/lfx/graph/group_scope.py b/src/lfx/src/lfx/graph/group_scope.py
+--- a/src/lfx/src/lfx/graph/group_scope.py
++++ b/src/lfx/src/lfx/graph/group_scope.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++from datetime import datetime, timezone
+ from typing import Literal
+ 
+ from pydantic import BaseModel, ConfigDict, Field
+@@ -98,7 +99,7 @@ def loop_body_visit_key(graph, definition: GroupScopeDefinition, scope_vertex_id: str) -> str | None:
+     return policy["visitKey"]
+ 
+ 
+-def open_group_scope(graph, definition) -> dict:
++def open_group_scope(graph, definition, metadata: dict) -> dict:
+     key = current_group_occurrence(graph, definition.scope_vertex_id)
+     saved_definition = graph.group_scope_definitions.get(key)
+     encoded_definition = definition.model_dump(by_alias=True)
+@@ -92,6 +93,20 @@ def open_group_scope(graph, definition, metadata: dict) -> dict:
+         raise ValueError("group_scope_definition_conflict")
+     graph.group_scope_definitions[key] = encoded_definition
+     graph.group_scope_settlements.setdefault(key, {})
++    visit = graph.group_visit_scopes[key]
++    saved_metadata = visit.get("metadata")
++    if saved_metadata is not None and saved_metadata != metadata:
++        raise ValueError("group_scope_metadata_conflict")
++    visit["metadata"] = metadata
++    visit.setdefault("projection", {
++        "state": "running",
++        "acceptedResultId": None,
++        "startedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
++        "endedAt": None,
++        "error": None,
++        "skipReason": None,
++    })
++    visit.setdefault("resultReceiptIds", [])
+     graph.group_active_occurrences[definition.output_vertex_id] = key
+     for source_node_id in definition.child_node_ids:
+         vertices = definition.child_vertices[source_node_id]
+@@ -102,6 +118,30 @@ def open_group_scope(graph, definition) -> dict:
+     return graph.group_visit_scopes[key]["scope"]
+ 
+ 
++def complete_group_scope(graph, group_occurrence_key: str, receipt_id: str) -> dict:
++    visit = graph.group_visit_scopes[group_occurrence_key]
++    records = graph.group_scope_settlements[group_occurrence_key]
++    definition = GroupScopeDefinition.model_validate(graph.group_scope_definitions[group_occurrence_key])
++    receipt_ids = [
++        records[node_id]["receiptId"]
++        for node_id in definition.child_node_ids
++        if records[node_id]["receiptId"] is not None
++    ]
++    receipt_ids.append(receipt_id)
++    projection = visit["projection"]
++    if projection["state"] == "succeeded":
++        if projection["acceptedResultId"] != receipt_id or visit["resultReceiptIds"] != receipt_ids:
++            raise ValueError("group_scope_result_conflict")
++        return visit
++    projection.update(
++        state="succeeded",
++        acceptedResultId=receipt_id,
++        endedAt=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
++    )
++    visit["resultReceiptIds"] = receipt_ids
++    return visit
++
++
+ def group_visit_scope(graph, group_occurrence_key: str, vertex_id: str) -> dict:
+     definition = GroupScopeDefinition.model_validate(graph.group_scope_definitions[group_occurrence_key])
+     vertices = {
+diff --git a/src/lfx/src/lfx/graph/loop_control.py b/src/lfx/src/lfx/graph/loop_control.py
+--- a/src/lfx/src/lfx/graph/loop_control.py
++++ b/src/lfx/src/lfx/graph/loop_control.py
+@@ -3,6 +3,7 @@ from __future__ import annotations
+ import copy
+ import hashlib
+ import json
++from datetime import datetime, timezone
+ from typing import Any
+ 
+ 
+@@ -67,6 +68,39 @@ def _inherited_scope(state: dict[str, Any]) -> dict[str, Any]:
+     }
+ 
+ 
++def _now() -> str:
++    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
++
++
++def _history_row(state: dict[str, Any]) -> dict[str, Any]:
++    return {
++        "occurrence": {
++            "nodeId": state["loopNodeId"],
++            "occurrenceKey": state["visitOccurrenceKey"],
++            "parentOccurrenceKey": state["parentOccurrenceKey"],
++            "phase": state["inheritedPhase"],
++            "iterationPath": copy.deepcopy(state["iterationPath"]),
++        },
++        "metadata": copy.deepcopy(state["metadata"]),
++        "projection": {
++            "state": "running",
++            "acceptedResultId": None,
++            "startedAt": _now(),
++            "endedAt": None,
++            "error": None,
++            "skipReason": None,
++        },
++        "resultReceiptIds": [],
++    }
++
++
++def _current_history(state: dict[str, Any]) -> dict[str, Any]:
++    return next(
++        row for row in state["history"]
++        if row["occurrence"]["occurrenceKey"] == state["visitOccurrenceKey"]
++    )
++
++
+ async def _save(graph: Any) -> None:
+     if graph.checkpoint_store is None:
+         raise RuntimeError("loop_checkpoint_store_unavailable")
+@@ -81,6 +115,7 @@ async def begin_visit(
+     selected_inputs: list[Any] | dict[str, Any],
+     selected_input_bytes: str,
+     inherited_scope: dict[str, Any],
++    metadata: dict[str, Any],
+ ) -> dict[str, Any]:
+     if max_rounds < 1:
+         raise ValueError("loop_max_rounds_invalid")
+@@ -112,8 +147,11 @@ async def begin_visit(
+         "feedbackBytes": None,
+         "priorOutputs": [],
+         "skippedBranches": [],
++        "metadata": copy.deepcopy(metadata),
++        "history": [],
+     }
+     state["iterationPath"] = _iteration_path(state)
++    state["history"].append(_history_row(state))
+     states[visit_key] = state
+     graph.trellis_loop_visits = states
+     await _save(graph)
+@@ -127,6 +165,10 @@ async def commit_children(graph: Any, visit_key: str, output: dict[str, Any]) -> dict[str, Any]:
+     children = output["children"]
+     state["inputReceiptIds"] = [child["receiptId"] for child in children]
+     state["childOutput"] = copy.deepcopy(output)
++    current = _current_history(state)
++    current["resultReceiptIds"] = [
++        child["receiptId"] for child in children if child["receiptId"] is not None
++    ]
+     state["phase"] = "condition"
+     await _save(graph)
+     return copy.deepcopy(state)
+@@ -207,14 +249,21 @@ async def commit_condition(graph: Any, visit_key: str, result: dict[str, Any]) -> dict[str, Any]:
+         raise ValueError("native_gate_decision_unknown")
+     state["conditionResult"] = copy.deepcopy(result)
+     state["feedbackBytes"] = result["output"]
++    current = _current_history(state)
++    current["resultReceiptIds"].append(result["trellisOutput"]["receiptId"])
++    current["projection"]["acceptedResultId"] = result["completionId"]
+     if answer == "yes":
+         state["skippedBranches"].append("no")
+         state["phase"] = "completed"
++        current["projection"].update(state="succeeded", endedAt=_now())
+         await _save(graph)
+         return copy.deepcopy(state)
+     state["skippedBranches"].append("yes")
+     if state["round"] == state["maxRounds"]:
+         state["phase"] = "failed"
++        current["projection"].update(
++            state="failed", endedAt=_now(), error="loop_rounds_exhausted",
++        )
+         await _save(graph)
+         raise RuntimeError("loop_rounds_exhausted")
+     state["priorOutputs"].append(copy.deepcopy(state["childOutput"]))
+@@ -226,5 +275,7 @@ async def commit_condition(graph: Any, visit_key: str, result: dict[str, Any]) -> dict[str, Any]:
+     state["inputReceiptIds"] = []
+     state["childOutput"] = None
+     state["conditionResult"] = None
++    current["projection"].update(state="succeeded", endedAt=_now())
++    state["history"].append(_history_row(state))
+     await _save(graph)
+     return copy.deepcopy(state)
+diff --git a/src/backend/base/langflow/services/checkpoint/store.py b/src/backend/base/langflow/services/checkpoint/store.py
+--- a/src/backend/base/langflow/services/checkpoint/store.py
++++ b/src/backend/base/langflow/services/checkpoint/store.py
+@@ -79,7 +79,9 @@ class JobScopedCheckpointStore(CheckpointStore, Service):
+         if checkpoint.job_id is None:
+             msg = "GraphCheckpoint.job_id is required to persist a durable checkpoint"
+             raise ValueError(msg)
+-        await self._jobs.save_checkpoint(UUID(checkpoint.job_id), _KIND, checkpoint.model_dump_json())
++        await self._jobs.save_graph_projection_checkpoint(
++            UUID(checkpoint.job_id), checkpoint.model_dump_json()
++        )
+ 
+     async def load(self, checkpoint_id: str) -> GraphCheckpoint | None:
+         raise NotImplementedError(_SCAN_UNSUPPORTED.format(method="load(checkpoint_id)"))
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -352,6 +352,23 @@ class JobService(Service):
+             )
+             await session.exec(stmt)
+ 
++    async def save_graph_projection_checkpoint(self, job_id: UUID, blob: str) -> None:
++        """Store the graph and its Trellis projection under one Job lock."""
++        from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
++        from langflow.services.trellis_v1.projection_store import record_projection_checkpoint, save_blob
++
++        async with session_scope() as session:
++            (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
++            await save_blob(session, job_id, "graph", blob)
++            correlation = (
++                await session.exec(
++                    select(TrellisJobCorrelation).where(TrellisJobCorrelation.engine_job_id == job_id)
++                )
++            ).first()
++            if correlation is not None and correlation.admission_receipt_bytes is not None:
++                await record_projection_checkpoint(session, job_id)
++            await session.flush()
++
+     async def save_checkpoint_once(self, job_id: UUID, kind: str, blob: str) -> str:
+         """Store immutable bytes once and return the saved bytes."""
+         async with session_scope() as session:
+diff --git a/src/backend/base/langflow/services/trellis_v1/container_projection.py b/src/backend/base/langflow/services/trellis_v1/container_projection.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/container_projection.py
+@@ -0,0 +1,35 @@
++from __future__ import annotations
++
++import json
++from datetime import datetime, timezone
++
++from langflow.services.trellis_v1.native_records import checkpoint
++from langflow.services.trellis_v1.occurrence_models import canonical
++from langflow.services.trellis_v1.occurrence_store import save_blob
++
++
++TERMINAL_STATES = {"succeeded", "failed", "canceled", "skipped"}
++
++
++def _finish(row, state, *, error, observed_at):
++    projection = row["projection"]
++    if projection["state"] in TERMINAL_STATES:
++        return False
++    projection.update(state=state, endedAt=observed_at, error=error, skipReason=None)
++    return True
++
++
++async def terminalize_container_history(session, job_id, *, state, error=None):
++    saved = await checkpoint(session, job_id, "graph")
++    if saved is None:
++        return
++    graph = json.loads(saved.blob)
++    observed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
++    changed = False
++    for visit in graph["group_visit_scopes"].values():
++        changed = _finish(visit, state, error=error, observed_at=observed_at) or changed
++    for loop in graph["trellis_loop_visits"].values():
++        for visit in loop["history"]:
++            changed = _finish(visit, state, error=error, observed_at=observed_at) or changed
++    if changed:
++        await save_blob(session, job_id, "graph", canonical(graph))
+diff --git a/src/backend/base/langflow/services/trellis_v1/terminal_projection.py b/src/backend/base/langflow/services/trellis_v1/terminal_projection.py
+--- a/src/backend/base/langflow/services/trellis_v1/terminal_projection.py
++++ b/src/backend/base/langflow/services/trellis_v1/terminal_projection.py
+@@ -6,6 +6,7 @@ from sqlmodel import select
+ 
+ from langflow.services.database.models.jobs.model import JobStatus
+ from langflow.services.trellis_v1.authority import read_authority
++from langflow.services.trellis_v1.container_projection import terminalize_container_history
+ from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
+ from langflow.services.trellis_v1.native_records import checkpoint
+ from langflow.services.trellis_v1.occurrence_models import canonical
+@@ -49,6 +50,8 @@ async def save_terminal_projection(session, job, *, failure):
+         await save_blob(session, job.job_id, OUTCOME_KIND, outcome_bytes)
+     if job.status in {JobStatus.FAILED, JobStatus.TIMED_OUT}:
+         await terminalize_active_visits(session, job.job_id, state="failed", error=failure["reason"])
++        await terminalize_container_history(session, job.job_id, state="failed", error=failure["reason"])
+     elif job.status == JobStatus.CANCELLED:
+         await terminalize_active_visits(session, job.job_id, state="canceled")
++        await terminalize_container_history(session, job.job_id, state="canceled")
+     await record_projection_checkpoint(session, job.job_id)
