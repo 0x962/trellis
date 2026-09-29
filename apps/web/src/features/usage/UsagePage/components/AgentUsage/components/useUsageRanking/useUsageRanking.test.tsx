@@ -150,7 +150,9 @@ test.each(["reopened URL", "refreshed report"])("clears a missing group from %s"
 	const initial = createReport();
 	const next = createReport();
 	next.computedAt = "2026-09-29T13:00:00.000Z";
-	next.rankings.usd.groups.account = next.rankings.usd.groups.account.filter((row) => row.key !== "account:account-240");
+	next.rankings.usd.groups.account = next.rankings.usd.groups.account.filter(
+		(row) => row.key !== "account:account-240",
+	);
 	next.rankings.usd.sessions = next.rankings.usd.sessions.filter((session) => session.sessionId !== "session-240");
 	const reports = new Map([initial, next].map((report) => [report.computedAt, report]));
 	const requests: UsageRankingInput[] = [];
