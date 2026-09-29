@@ -36,11 +36,20 @@ The process owner can set `TRL_EDITOR_GRAPH_CASE=required-density` or `TRL_EDITO
 
 The focused source checks use the matching dependencies from the canonical Trellis checkout. They do not install a package or start a process:
 
+The browser fixture spaces rows 800 pixels apart so the expanded cards do not overlap. The dense node identities, fields, edges, and viewport stay unchanged. The editor starts at the saved viewport and exposes its existing zoom controls. ReactFlow receives render-only dimensions and empty handles for unmeasured nodes. It measures visible cards before it draws their edges. The save hook reads the complete graph from the flow store.
+
 ```sh
 bun test \
+  integrations/langflow/editor-probe/src/canvasProjection.test.ts \
   integrations/langflow/editor-probe/src/editorBoundary.test.ts \
   integrations/langflow/editor-probe/src/gatewayProtocol.test.ts \
   integrations/langflow/editor-probe/src/probeGraph.test.ts
 bun x --no-install tsc --noEmit -p integrations/langflow/editor-probe/tsconfig.json
 bun x --no-install @biomejs/biome check integrations/langflow/editor-probe/src
+```
+
+The read-only visibility check uses the existing pinned ReactFlow dependency. It starts no browser or server:
+
+```sh
+bun integrations/langflow/editor-probe/frontend/canvasVisibility.ts "$LANGFLOW_SOURCE/src/frontend"
 ```
