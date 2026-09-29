@@ -3,6 +3,7 @@ export {
 	appendSessionObserverMessages,
 	claimSessionObserverGeneration,
 	failSessionObserverGeneration,
+	type RecoveredSessionObserverGeneration,
 	recoverSessionObserverGenerations,
 	retrySessionObserverGeneration,
 	type SaveSessionObserverGenerationInput,
