@@ -1,7 +1,46 @@
 import { expect, test } from "bun:test";
 import { parseClaudeEvent } from "../../agents/harnesses/claude/parseClaudeEvent.ts";
-import { readSessionObserverActivity } from "./read.ts";
+import { readSessionObserverActivity } from "./sessionObserverActivity.ts";
 import { annotated, fixture, line, outputReader } from "./testFixture.ts";
+
+test("an older runtime journal preserves explicit message completion and result identities", async () => {
+	const f = await fixture();
+	const observedAt = f.at.toISOString();
+	const records = ["first", "second", "first"].map((id) =>
+		line({
+			observedAt,
+			event: {
+				kind: "message",
+				turnId: "turn",
+				message: { id, text: id, complete: true },
+			},
+		}),
+	);
+	records.push(
+		line({
+			observedAt,
+			event: {
+				kind: "idle",
+				turnId: "turn",
+				outcome: "completed",
+				result: "first\n\nsecond",
+				resultActivityIds: ["first", "second"],
+			},
+		}),
+	);
+	const logs = new Map([
+		[f.attempts[0]!, Buffer.alloc(0)],
+		[f.attempts[1]!, Buffer.concat(records)],
+	]);
+	const result = await readSessionObserverActivity(f.context, { runId: f.runId, after: null }, outputReader(logs));
+	expect(result.items).toMatchObject([
+		{ id: "assistant:first", text: "first" },
+		{ id: "assistant:second", text: "second" },
+	]);
+	expect(result.items).toHaveLength(2);
+	expect(result.context).toEqual([]);
+	expect(result.signals).toMatchObject([{ kind: "completion", messageAvailability: "complete" }]);
+});
 
 test("20 completed Claude tools reach the threshold with unproven message context", async () => {
 	const f = await fixture();

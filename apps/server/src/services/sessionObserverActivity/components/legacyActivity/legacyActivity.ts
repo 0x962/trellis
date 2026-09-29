@@ -22,9 +22,9 @@ export class LegacyActivity {
 		const activity = this.activity(activityEvent, observedAt);
 		const signal = this.signal(activityEvent, observedAt);
 		if (
-			event.turnId === undefined &&
 			(event.kind === "idle" || (event.kind === "error" && !event.willRetry)) &&
-			this.turn !== null
+			this.turn !== null &&
+			this.turn.id === activityEvent.turnId
 		)
 			this.turn.open = false;
 		const freshActivity = activity !== undefined && !this.activities.has(activity.id) ? activity : undefined;
@@ -32,7 +32,7 @@ export class LegacyActivity {
 		if (freshActivity !== undefined) this.activities.add(freshActivity.id);
 		if (freshSignal !== undefined) this.signals.add(freshSignal.id);
 		return {
-			...(event.kind === "message" && event.message !== undefined
+			...(event.kind === "message" && event.message !== undefined && !event.message.complete
 				? {
 						context: {
 							id: this.messageId("assistant", activityEvent, event.message.text),
@@ -51,7 +51,11 @@ export class LegacyActivity {
 	}
 
 	private withTurn(event: HarnessEvent): HarnessEvent {
-		if (event.turnId !== undefined) return event;
+		if (event.turnId !== undefined) {
+			if (this.turn === null || event.kind === "prompt" || event.kind === "working")
+				this.turn = { id: event.turnId, open: true };
+			return event;
+		}
 		if (this.turn === null || event.kind === "prompt" || (event.kind === "working" && !this.turn.open))
 			this.turn = { id: `runtime-turn-${++this.turnSequence}`, open: true };
 		return { ...event, turnId: this.turn.id };
@@ -104,11 +108,22 @@ export class LegacyActivity {
 		if (event.kind === "message" && event.message !== undefined) {
 			const id = this.messageId("assistant", event, event.message.text);
 			const incomplete = this.incompleteMessages.get(event.turnId!) ?? new Map<string, string>();
-			incomplete.set(id, event.message.text);
-			this.incompleteMessages.set(event.turnId!, incomplete);
-			return;
+			if (event.message.complete) incomplete.delete(id);
+			else incomplete.set(id, event.message.text);
+			if (incomplete.size === 0) this.incompleteMessages.delete(event.turnId!);
+			else this.incompleteMessages.set(event.turnId!, incomplete);
+			if (!event.message.complete) return;
+			return {
+				id,
+				kind: "message",
+				role: "assistant",
+				text: event.message.text,
+				at: event.message.at ?? observedAt,
+				turnId: event.turnId,
+			};
 		}
 		if (event.kind === "idle" && event.result) {
+			if (event.resultActivityIds !== undefined) return;
 			const id = this.messageId("assistant", event, event.result);
 			const incomplete = this.incompleteMessages.get(event.turnId!);
 			incomplete?.delete(id);

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { RuntimeHarnessActivityItem } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import { readSessionObserverActivity } from "./read.ts";
+import { readSessionObserverActivity } from "./sessionObserverActivity.ts";
 import { annotated, fixture, line, outputReader } from "./testFixture.ts";
 
 test("reads complete legacy work once across attempts and a restart", async () => {

@@ -1,4 +1,4 @@
-export { readSessionObserverActivity } from "./read.ts";
+export { readSessionObserverActivity } from "./sessionObserverActivity.ts";
 export type {
 	SessionObserverActivityContext,
 	SessionObserverActivityCursor,

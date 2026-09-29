@@ -207,10 +207,8 @@ export class CodexAppServerEvents {
 				];
 			}
 		}
-		// Codex streams an agent message in small pieces. Each message event
-		// sends the whole run to every open page, and the agent line shows one
-		// line of text, so the parser sends the first sentence once it is
-		// complete, and the whole message at item/completed when it holds more.
+		// The agent line needs one sentence during a turn. The observer needs
+		// the complete message to count completed work.
 		if (method === "item/agentMessage/delta") {
 			const { itemId } = itemUpdate.parse(params);
 			const stream = this.streams.get(itemId) ?? { text: "", sent: null };

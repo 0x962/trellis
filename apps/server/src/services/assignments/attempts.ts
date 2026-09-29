@@ -6,7 +6,7 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 
 export type ExecutionAttempt = { id: string; generation: number; token: string };
-export type ExecutionAttemptRecord = { id: string; runId: string };
+export type ExecutionAttemptRecord = { id: string; runId: string; generation: number; createdAt: string };
 export type LatestAttemptActivity = { runId: string; activityAt: string };
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("hex");
 
@@ -15,7 +15,8 @@ export const listExecutionAttempts = (tx: Tx, runIds: string[]) =>
 		? Promise.resolve([] as ExecutionAttemptRecord[])
 		: rows<ExecutionAttemptRecord>(
 				tx,
-				sql`SELECT id, run_id AS "runId" FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) ORDER BY generation`,
+				sql`SELECT id, run_id AS "runId", generation, ${iso(sql`created_at`)} AS "createdAt"
+				FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) ORDER BY generation`,
 			);
 
 export const latestAttemptActivityByRuns = (tx: Tx, runIds: string[]) =>
