@@ -43,7 +43,7 @@ def grant_bytes(*, permission="decision.deliver"):
 
 
 async def seed(database_url, payload, authority_bytes):
-    await _initialize(database_url, payload)
+    await _initialize(database_url, payload, with_authority=False)
     engine, sessions = open_session(database_url)
     async with sessions() as session:
         await commit_authority(session, authority_bytes, expected_capability_id=None)
@@ -58,7 +58,7 @@ def test_refused_authority_leaves_all_decision_records_absent(tmp_path, monkeypa
 
     async def run():
         if refusal == "absent":
-            await _initialize(database_url, payload)
+            await _initialize(database_url, payload, with_authority=False)
         else:
             await seed(database_url, payload, authority_bytes)
         engine, sessions = open_session(database_url)
