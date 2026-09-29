@@ -1,13 +1,20 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { type PageTabItem, PageTabs } from "@trellis/ui";
 import { useCallback, useEffect, useMemo } from "react";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import {
+	type PageTab,
 	pageTabsActions,
 	pageTabsSelectors,
 	pageTabsUiProjection,
 	usePageTabsStore,
 } from "../../../stores/pageTabsStore";
 import { pageTabTitle } from "./pageTabTitle";
+
+const pageTabItemsEqual = (left: readonly PageTab[], right: readonly PageTab[]) =>
+	left === right ||
+	(left.length === right.length &&
+		left.every((tab, index) => tab.id === right[index]!.id && tab.title === right[index]!.title));
 
 const activeTab = () => {
 	const state = usePageTabsStore.getState();
@@ -28,9 +35,9 @@ const focusPageTab = (id: string) => {
 export function PageTabsHost() {
 	const router = useRouter();
 	const resolvedHref = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).href });
-	const tabs = usePageTabsStore(pageTabsSelectors.tabs);
+	const tabs = useStoreWithEqualityFn(usePageTabsStore, pageTabsSelectors.tabs, pageTabItemsEqual);
 	const activeId = usePageTabsStore(pageTabsSelectors.activeId);
-	const ui = useMemo<{ tabs: readonly PageTabItem[]; activeId: string }>(
+	const pageTabsView = useMemo<{ tabs: readonly PageTabItem[]; activeId: string }>(
 		() => pageTabsUiProjection(tabs, activeId),
 		[tabs, activeId],
 	);
@@ -77,5 +84,7 @@ export function PageTabsHost() {
 		return () => observer.disconnect();
 	}, [resolvedHref]);
 
-	return <PageTabs tabs={ui.tabs} activeId={ui.activeId} onAdd={add} onSelect={select} onClose={close} />;
+	return (
+		<PageTabs tabs={pageTabsView.tabs} activeId={pageTabsView.activeId} onAdd={add} onSelect={select} onClose={close} />
+	);
 }

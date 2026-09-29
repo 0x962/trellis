@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import type { StateStorage } from "zustand/middleware";
-import { createPageTabsStore } from "../../../stores/pageTabsStore/pageTabsStore";
 import { createPageTabsHistory } from "./pageTabsHistory";
 
 const memoryStorage = (): StateStorage => ({
@@ -8,6 +7,19 @@ const memoryStorage = (): StateStorage => ({
 	removeItem: () => {},
 	setItem: () => {},
 });
+
+const browserStorage = memoryStorage();
+Object.defineProperty(globalThis, "window", {
+	configurable: true,
+	value: {
+		location: { pathname: "/", search: "", hash: "", origin: "http://trellis.test" },
+		localStorage: browserStorage,
+	},
+});
+Object.defineProperty(globalThis, "document", { configurable: true, value: { title: "Trellis" } });
+const { createPageTabsStore } = await import("../../../stores/pageTabsStore");
+Reflect.deleteProperty(globalThis, "window");
+Reflect.deleteProperty(globalThis, "document");
 
 const createStore = () => {
 	let id = 0;

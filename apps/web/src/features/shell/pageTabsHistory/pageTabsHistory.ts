@@ -1,5 +1,5 @@
 import { createHistory, type HistoryLocation, type RouterHistory } from "@tanstack/react-router";
-import type { PageTabsState } from "../../../stores/pageTabsStore/pageTabsStore";
+import type { PageTabsState } from "../../../stores/pageTabsStore";
 
 type PageTabsStore = {
 	getState: () => PageTabsState;

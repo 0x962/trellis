@@ -4,16 +4,16 @@ import { useCallback } from "react";
 import { pageTabsActions } from "../../../stores/pageTabsStore";
 import { useApp } from "../../appContext";
 import { errorMessage } from "../../conflict";
-import { internalAppHref } from "../internalAppHref";
 import { openAppLink } from "../openAppLink";
 import { openLink } from "../openLink";
+import { sameOriginRouteHref } from "../sameOriginRouteHref";
 
 export function useOpenLink() {
 	const { client } = useApp();
 	const navigate = useNavigate();
 	return useCallback(
 		(url: string, press?: LinkPress) => {
-			const navigateInApp = async (href: string, linkPress?: LinkPress) => {
+			const openTrellisRoute = async (href: string, linkPress?: LinkPress) => {
 				if (linkPress?.metaKey) {
 					pageTabsActions.addTab({ url: href, title: href });
 					await navigate({ href, replace: true });
@@ -21,9 +21,9 @@ export function useOpenLink() {
 				}
 				await navigate({ href });
 			};
-			const href = internalAppHref(url, location.origin);
+			const href = sameOriginRouteHref(url, location.origin);
 			if (href !== null) {
-				void navigateInApp(href, press).catch((error: unknown) =>
+				void openTrellisRoute(href, press).catch((error: unknown) =>
 					toast.error("The link did not open", { description: errorMessage(error) }),
 				);
 				return;
@@ -32,7 +32,7 @@ export function useOpenLink() {
 				url,
 				{
 					resolve: (input) => client.internalLinks.resolve(input),
-					navigate: navigateInApp,
+					navigate: openTrellisRoute,
 					openWebLink: openLink,
 				},
 				press,

@@ -1,0 +1,1 @@
+export { sameOriginRouteHref } from "./sameOriginRouteHref";
