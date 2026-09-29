@@ -132,6 +132,10 @@ The PR598 HTTP fixture also failed its lost-response assertion. Its evidence rec
 
 The next Aside load reached the Langflow sign-in error. The server log records an `ENOENT` error for `built-assets/health_check`, followed by process exit. The current gateway handles `/health_check` as a protected route and returns 404 for missing assets. Its session response supplies a fixture user after the grant check, without an access token. The focused fixtures cover session denial, grant expiry, and process survival after a missing asset. The four changed TypeScript files pass Biome. The new source and HTTP fixtures await the shared execution batch.
 
+The PR642 batch passed 31 tests with 119 assertions and the focused TypeScript check. Biome passed with five unused-suppression warnings. Its HTTP check still recorded an automatic replay before the lost-response assertion.
+
+Bun 1.3.13 sets `allow_retry` when it reuses a pooled connection. Its close handler then resends the original request. The scripted HTTP client uses `keepalive: false` to select a fresh connection. It checks for one accepted write before its explicit retry. This client setting does not change the editor or prove browser behavior. Sources: [connection reuse](https://github.com/oven-sh/bun/blob/bun-v1.3.13/src/http/HTTPContext.zig#L630-L689), [close handler](https://github.com/oven-sh/bun/blob/bun-v1.3.13/src/http.zig#L270-L275), and [fetch option](https://github.com/oven-sh/bun/blob/bun-v1.3.13/src/bun.js/webcore/fetch.zig#L577-L602).
+
 The first test attempt stopped before tests because the worktree had no Zod package. The approved local links fixed the dependency gap without an install.
 
 ## Mounting decision
