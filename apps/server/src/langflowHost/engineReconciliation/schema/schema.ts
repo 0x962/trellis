@@ -62,13 +62,15 @@ export function parseEngineLeaseRecord(sourceBytes: string, leaseBytes: string) 
 		acknowledgementBytes: record.acknowledgementBytes,
 	});
 	if (
-		record.leaseBytes !== leaseBytes || record.leaseDigest !== protocolDigest(leaseBytes) ||
+		record.leaseBytes !== leaseBytes ||
+		record.leaseDigest !== protocolDigest(leaseBytes) ||
 		record.identityDigest !== protocolDigest(record.identityBytes) ||
 		record.receiptId !== protocolDigest(receiptBytes) ||
 		!isDeepStrictEqual(record.identity, LiveEngineIdentitySchema.parse(JSON.parse(record.identityBytes))) ||
 		!isDeepStrictEqual(record.identity.runtime, lease.identity) ||
 		lease.block.dataHomeId !== lease.identity.dataHomeId ||
 		(record.state === "active" && record.acknowledgementBytes !== null)
-	) throw new Error("engine_reconciliation_receipt_conflict");
+	)
+		throw new Error("engine_reconciliation_receipt_conflict");
 	return record;
 }

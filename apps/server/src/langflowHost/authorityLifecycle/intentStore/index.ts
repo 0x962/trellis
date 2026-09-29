@@ -1,1 +1,6 @@
-export { AuthorityIntentStore, AuthorityLeasePolicySchema, type AuthorityLeasePolicy, type AuthorityPlan } from "./intentStore";
+export {
+	AuthorityIntentStore,
+	type AuthorityLeasePolicy,
+	AuthorityLeasePolicySchema,
+	type AuthorityPlan,
+} from "./intentStore";

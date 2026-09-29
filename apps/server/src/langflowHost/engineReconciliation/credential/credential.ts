@@ -12,7 +12,10 @@ export function reconciliationIssuerPath(identity: HostControlIdentity) {
 }
 
 export function readReconciliationIssuer(identity: HostControlIdentity) {
-	const fd = openSync(reconciliationIssuerPath(identity), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+	const fd = openSync(
+		reconciliationIssuerPath(identity),
+		constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+	);
 	try {
 		const stat = fstatSync(fd);
 		if (!stat.isFile() || stat.uid !== process.getuid?.() || (stat.mode & 0o777) !== 0o600)

@@ -9,10 +9,12 @@ import type { EffectBinding } from "../../dispatchGate";
 import { type HostControlIdentity, LangflowHostControl } from "../../hostControl";
 import { ReceiptObjectStore } from "../../objectStore";
 
-export const AuthorityLeasePolicySchema = z.strictObject({
-	durationMs: z.number().int().positive().safe(),
-	renewBeforeMs: z.number().int().nonnegative().safe(),
-}).refine((value) => value.renewBeforeMs < value.durationMs);
+export const AuthorityLeasePolicySchema = z
+	.strictObject({
+		durationMs: z.number().int().positive().safe(),
+		renewBeforeMs: z.number().int().nonnegative().safe(),
+	})
+	.refine((value) => value.renewBeforeMs < value.durationMs);
 export type AuthorityLeasePolicy = z.infer<typeof AuthorityLeasePolicySchema>;
 const intent = z.strictObject({
 	executionId: z.string().min(1),
@@ -42,7 +44,12 @@ export class AuthorityIntentStore {
 		this.objects = new ReceiptObjectStore(this.directory);
 	}
 
-	prepare(priorAuthorityBytes: string, observation: LiveOwnership, policy: AuthorityLeasePolicy, initial = false): AuthorityPlan {
+	prepare(
+		priorAuthorityBytes: string,
+		observation: LiveOwnership,
+		policy: AuthorityLeasePolicy,
+		initial = false,
+	): AuthorityPlan {
 		const prior = DeliveryAuthorityV1Schema.parse(JSON.parse(priorAuthorityBytes));
 		if (prior.hostId !== this.identity.hostId || observation.identity.dataHomeId !== this.identity.dataHomeId) {
 			throw new Error("authority_intent_home_conflict");
@@ -108,7 +115,10 @@ export class AuthorityIntentStore {
 			if (saved) {
 				const sourceBytes = this.objects.read(saved);
 				const value = JSON.parse(sourceBytes);
-				if (value.initialRecordBytes !== request.initialRecordBytes || !isDeepStrictEqual(JSON.parse(value.successorCommitBytes), commit)) {
+				if (
+					value.initialRecordBytes !== request.initialRecordBytes ||
+					!isDeepStrictEqual(JSON.parse(value.successorCommitBytes), commit)
+				) {
 					throw new Error("initial_recovery_delivery_conflict");
 				}
 				return sourceBytes;

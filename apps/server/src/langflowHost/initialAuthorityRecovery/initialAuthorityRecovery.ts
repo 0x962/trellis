@@ -22,7 +22,8 @@ export class InitialAuthorityRecovery {
 			if (!initial || input.admission.state !== "closed") throw new Error("initial_recovery_unavailable");
 			const original = initial.authority;
 			if (
-				("expectedOwnerId" in input && (original.ownerId !== input.expectedOwnerId || original.engineEpoch !== input.expectedEpoch)) ||
+				("expectedOwnerId" in input &&
+					(original.ownerId !== input.expectedOwnerId || original.engineEpoch !== input.expectedEpoch)) ||
 				original.ownershipRevision !== input.expectedRevision ||
 				original.hostId !== observation.identity.hostId ||
 				initial.observation.identity.dataHomeId !== observation.identity.dataHomeId
@@ -39,16 +40,30 @@ export class InitialAuthorityRecovery {
 					throw new Error("initial_recovery_replay_conflict");
 				return saved;
 			}
-			this.archive.writeAuthority({ authorityBytes: initial.authorityBytes, issuanceReceiptId: initial.issuanceReceiptId });
+			this.archive.writeAuthority({
+				authorityBytes: initial.authorityBytes,
+				issuanceReceiptId: initial.issuanceReceiptId,
+			});
 			const snapshot = { authority: original, admission: input.admission, canceled: input.canceled };
 			if (!("expectedOwnerId" in input)) {
 				if (!isDeepStrictEqual(initial.observation.identity, observation.identity)) {
 					throw new Error("initial_recovery_identity_conflict");
 				}
-				return this.store.recoverInitialBinding({ initialRecordBytes: initial.sourceBytes, takeover: renewalCommit(observation, input, snapshot) });
+				return this.store.recoverInitialBinding({
+					initialRecordBytes: initial.sourceBytes,
+					takeover: renewalCommit(observation, input, snapshot),
+				});
 			}
-			const revocation = await this.store.readRevocation({ dataHomeId: observation.identity.dataHomeId, hostId: original.hostId, ownerId: original.ownerId });
-			if (!revocation || !isDeepStrictEqual(revocation.identity, initial.observation.identity) || original.ownerId === observation.identity.ownerId) {
+			const revocation = await this.store.readRevocation({
+				dataHomeId: observation.identity.dataHomeId,
+				hostId: original.hostId,
+				ownerId: original.ownerId,
+			});
+			if (
+				!revocation ||
+				!isDeepStrictEqual(revocation.identity, initial.observation.identity) ||
+				original.ownerId === observation.identity.ownerId
+			) {
 				throw new Error("initial_recovery_owner_not_revoked");
 			}
 			const takeover = takeoverCommit(observation, input, snapshot, revocation);

@@ -3,7 +3,6 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
-import type { Db } from "../../db/client";
 import { ids, receiptFixture } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { langflowExecutions } from "../../db/tables/langflowExecution";
 import { protocolDigest } from "../../langflowContracts";
@@ -14,7 +13,7 @@ import { DispatchReceiptArchive } from "../receiptArchive";
 import { createAuthorityPort } from "./authorityPort";
 
 const roots: string[] = [];
-const databases: Db[] = [];
+const databases: Awaited<ReturnType<typeof receiptFixture>>["db"][] = [];
 afterEach(async () => {
 	for (const db of databases.splice(0)) await db.$client.close();
 	for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
@@ -167,9 +166,9 @@ test("a foreign home or observation cannot mutate the ownership record", async (
 			},
 		}),
 	).rejects.toThrow("authority_control_home_mismatch");
-	await expect(
-		port.commit({ ...f.commit, observation: { ...f.commit.observation, id: "foreign" } }),
-	).rejects.toThrow("authority_observation_mismatch");
+	await expect(port.commit({ ...f.commit, observation: { ...f.commit.observation, id: "foreign" } })).rejects.toThrow(
+		"authority_observation_mismatch",
+	);
 	expect((await port.read(ids.execution)).authority.ownershipRevision).toBe(1);
 });
 

@@ -1,6 +1,14 @@
 export type { RenewalInput, TakeoverInput } from "./authority";
-export { authorityPermitBinding } from "./authorityPermit";
 export { readIssuedAuthority } from "./authority/issuedBytes";
+export {
+	type AuthorityLeasePolicy,
+	AuthorityLeasePolicySchema,
+	AuthorityLifecycle,
+	type AuthorityLifecycleInput,
+	type AuthorityRecoveryResult,
+} from "./authorityLifecycle";
+export { provisionAuthorityRecoveryIssuer } from "./authorityLifecycle/recoveryIssuer";
+export { authorityPermitBinding } from "./authorityPermit";
 export { type AuthorityPortInput, createAuthorityPort } from "./authorityPort";
 export {
 	CaptureAuthority,
@@ -15,24 +23,20 @@ export { DispatchGate } from "./dispatchGate";
 export type * from "./dispatchGate/contracts";
 export type * from "./engineClient";
 export { createEngineClient } from "./engineClient";
-export { type HostControlIdentity, type HostControlInitialization, type HostRecoveryState, LangflowHostControl } from "./hostControl";
-export { type InitialAuthorityInput, InitialAuthorityIssuer } from "./initialAuthority";
-export type * from "./ociDriver";
-export { createOciDriver, importVerifiedOciImage } from "./ociDriver";
-export { DispatchReceiptArchive, type ReconciliationSources, type ValidationSource } from "./receiptArchive";
-export { LangflowSupervisor } from "./supervisor";
-export {
-	AuthorityLifecycle,
-	type AuthorityLifecycleInput,
-	type AuthorityRecoveryResult,
-	AuthorityLeasePolicySchema,
-	type AuthorityLeasePolicy,
-} from "./authorityLifecycle";
-export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
-
-export { provisionAuthorityRecoveryIssuer } from "./authorityLifecycle/recoveryIssuer";
 export {
 	EngineReconciliation,
 	type EngineReconciliationInput,
 	provisionReconciliationIssuer,
 } from "./engineReconciliation";
+export {
+	type HostControlIdentity,
+	type HostControlInitialization,
+	type HostRecoveryState,
+	LangflowHostControl,
+} from "./hostControl";
+export { type InitialAuthorityInput, InitialAuthorityIssuer } from "./initialAuthority";
+export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
+export type * from "./ociDriver";
+export { createOciDriver, importVerifiedOciImage } from "./ociDriver";
+export { DispatchReceiptArchive, type ReconciliationSources, type ValidationSource } from "./receiptArchive";
+export { LangflowSupervisor } from "./supervisor";

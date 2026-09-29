@@ -12,8 +12,8 @@ import type { DispatchReceiptArchive } from "../receiptArchive";
 import type { LangflowSupervisor } from "../supervisor";
 import { deliverAuthority } from "./deliverAuthority";
 import { deliverInitialAuthority } from "./deliverInitialAuthority";
-import { readAuthorityRecoveryIssuer } from "./recoveryIssuer";
 import { AuthorityIntentStore, type AuthorityLeasePolicy, AuthorityLeasePolicySchema } from "./intentStore";
+import { readAuthorityRecoveryIssuer } from "./recoveryIssuer";
 
 export type AuthorityLifecycleInput = {
 	control: { identity: HostControlIdentity; gate: DispatchEffects };
@@ -44,7 +44,12 @@ export class AuthorityLifecycle {
 		this.intents = new AuthorityIntentStore(input.control.identity);
 	}
 
-	async recoverInitial(request: { executionId: string; canceled: boolean; admission: AdmissionStateV1; signal: AbortSignal }) {
+	async recoverInitial(request: {
+		executionId: string;
+		canceled: boolean;
+		admission: AdmissionStateV1;
+		signal: AbortSignal;
+	}) {
 		request.signal.throwIfAborted();
 		const initial = this.input.initial;
 		if (!initial) throw new Error("initial_recovery_not_configured");
@@ -58,7 +63,12 @@ export class AuthorityLifecycle {
 		if (entry?.terminal) throw new Error("initial_recovery_already_settled");
 		const permit = entry?.permit ?? this.input.control.gate.acquire(binding);
 		request.signal.throwIfAborted();
-		const producer = new InitialAuthorityRecovery(this.input.supervisor, initial.issuer, initial.store, this.input.archive);
+		const producer = new InitialAuthorityRecovery(
+			this.input.supervisor,
+			initial.issuer,
+			initial.store,
+			this.input.archive,
+		);
 		return producer.recover({ ...plan.intent, permit, canceled: request.canceled, admission: request.admission });
 	}
 
@@ -100,10 +110,14 @@ export class AuthorityLifecycle {
 		if (!isDeepStrictEqual(LangflowHostControl.readIdentity(control.identity.home), control.identity)) {
 			throw new Error("authority_lifecycle_home_changed");
 		}
-		const pending = control.gate.read().permits.filter((entry) =>
-			!entry.terminal && entry.permit.binding.executionId === request.executionId &&
-			entry.permit.binding.effectId.startsWith("authority:"),
-		);
+		const pending = control.gate
+			.read()
+			.permits.filter(
+				(entry) =>
+					!entry.terminal &&
+					entry.permit.binding.executionId === request.executionId &&
+					entry.permit.binding.effectId.startsWith("authority:"),
+			);
 		if (pending.length > 1) throw new Error("authority_lifecycle_multiple_pending");
 		if (pending[0]) {
 			const retained = this.intents.recover(pending[0].permit.binding);
@@ -115,14 +129,17 @@ export class AuthorityLifecycle {
 		const plan = pending[0]
 			? this.intents.recover(pending[0].permit.binding)
 			: await supervisor.withHealthyEngine(async (observation) => {
-				if (
-					snapshot.authority.ownerId === observation.identity.ownerId &&
-					Date.parse(snapshot.authority.expiresAt) - Date.parse(observation.observedAt) > this.policy.renewBeforeMs &&
-					(!snapshot.canceled || (snapshot.authority.permissions.length === 1 && snapshot.authority.permissions[0] === "execution.cancel"))
-				) return null;
-				return this.intents.prepare(archive.readAuthorityBytes(snapshot.authority), observation, this.policy);
-			});
-		if (plan === null) return { executionId: request.executionId, state: "current", expiresAt: snapshot.authority.expiresAt };
+					if (
+						snapshot.authority.ownerId === observation.identity.ownerId &&
+						Date.parse(snapshot.authority.expiresAt) - Date.parse(observation.observedAt) > this.policy.renewBeforeMs &&
+						(!snapshot.canceled ||
+							(snapshot.authority.permissions.length === 1 && snapshot.authority.permissions[0] === "execution.cancel"))
+					)
+						return null;
+					return this.intents.prepare(archive.readAuthorityBytes(snapshot.authority), observation, this.policy);
+				});
+		if (plan === null)
+			return { executionId: request.executionId, state: "current", expiresAt: snapshot.authority.expiresAt };
 		const prior = DeliveryAuthorityV1Schema.parse(JSON.parse(plan.priorAuthorityBytes));
 		const binding = authorityPermitBinding(plan.intent, prior.engineJobId);
 		const existing = control.gate.recoverPermit(binding);
@@ -147,11 +164,17 @@ export class AuthorityLifecycle {
 				commit.receipt.authority.ownerId !== observation.identity.ownerId ||
 				commit.receipt.authority.hostId !== observation.identity.hostId ||
 				control.identity.dataHomeId !== observation.identity.dataHomeId
-			) throw new Error("authority_lifecycle_owner_changed");
+			)
+				throw new Error("authority_lifecycle_owner_changed");
 			request.signal.throwIfAborted();
 			const client = createEngineClient({
 				endpoint: observation.endpoint,
-				authenticationFile: join(control.identity.home, "langflow", "secrets", `${observation.identity.instanceId}.token`),
+				authenticationFile: join(
+					control.identity.home,
+					"langflow",
+					"secrets",
+					`${observation.identity.instanceId}.token`,
+				),
 				dependencies: this.input.engineDependencies,
 			});
 			let delivered = plan.initial
@@ -167,7 +190,12 @@ export class AuthorityLifecycle {
 				const fetcher = this.input.engineDependencies?.fetch ?? fetch;
 				const recoveryClient = createEngineClient({
 					endpoint: observation.endpoint,
-					authenticationFile: join(control.identity.home, "langflow", "secrets", `${observation.identity.instanceId}.token`),
+					authenticationFile: join(
+						control.identity.home,
+						"langflow",
+						"secrets",
+						`${observation.identity.instanceId}.token`,
+					),
 					dependencies: {
 						...this.input.engineDependencies,
 						fetch: (url, init) => {

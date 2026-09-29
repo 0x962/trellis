@@ -57,8 +57,11 @@ export class LangflowHostControl {
 			initialBlock.reason.directory = realpathSync(initialBlock.reason.directory);
 			const restored = initialBlock.reason.directory;
 			if (
-				home === restored || home.startsWith(`${restored}/`) || restored.startsWith(`${home}/`) ||
-				directory === restored || directory.startsWith(`${restored}/`)
+				home === restored ||
+				home.startsWith(`${restored}/`) ||
+				restored.startsWith(`${home}/`) ||
+				directory === restored ||
+				directory.startsWith(`${restored}/`)
 			) {
 				throw new Error("dispatch_control_inside_restore");
 			}
