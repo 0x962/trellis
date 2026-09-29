@@ -6,7 +6,7 @@ const currentPage = {
 };
 
 export const usePageTabsStore = createPageTabsStore({
-	host: window.location.origin,
+	origin: window.location.origin,
 	initialPage: currentPage,
 	homePage: { url: "/needs-you", title: "Needs you" },
 	storage: window.localStorage,
@@ -17,6 +17,7 @@ export const pageTabsActions = {
 	selectTab: (id: string) => usePageTabsStore.getState().selectTab(id),
 	closeTab: (id: string) => usePageTabsStore.getState().closeTab(id),
 	navigate: (page: PageTabPage) => usePageTabsStore.getState().navigate(page),
+	replace: (page: PageTabPage) => usePageTabsStore.getState().replace(page),
 	goBack: () => usePageTabsStore.getState().goBack(),
 	goForward: () => usePageTabsStore.getState().goForward(),
 	setTitle: (title: string) => usePageTabsStore.getState().setTitle(title),

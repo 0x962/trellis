@@ -21,6 +21,7 @@ export type PageTabsState = {
 	selectTab: (id: string) => void;
 	closeTab: (id: string) => void;
 	navigate: (page: PageTabPage) => void;
+	replace: (page: PageTabPage) => void;
 	goBack: () => void;
 	goForward: () => void;
 	setTitle: (title: string) => void;
@@ -32,14 +33,14 @@ export type PageTabsUiState = {
 };
 
 export type CreatePageTabsStoreOptions = {
-	host: string;
+	origin: string;
 	initialPage: PageTabPage;
 	homePage: PageTabPage;
 	storage: StateStorage;
 	createId?: () => string;
 };
 
-export const pageTabsStorageKey = (host: string) => `trellis-page-tabs:${encodeURIComponent(host)}`;
+export const pageTabsStorageKey = (origin: string) => `trellis-page-tabs:${encodeURIComponent(origin)}`;
 
 const tab = (id: string, page: PageTabPage): PageTab => ({
 	id,
@@ -52,9 +53,14 @@ const updateActiveTab = (state: PageTabsState, update: (current: PageTab) => Pag
 	tabs: state.tabs.map((item) => (item.id === state.activeId ? update(item) : item)),
 });
 
-export const pageTabsUiState = (state: PageTabsState): PageTabsUiState => ({
-	tabs: state.tabs.map(({ id, title }) => ({ id, title })),
-	activeId: state.activeId,
+export const pageTabsSelectors = {
+	tabs: (state: PageTabsState) => state.tabs,
+	activeId: (state: PageTabsState) => state.activeId,
+};
+
+export const pageTabsUiProjection = (tabs: readonly PageTab[], activeId: string): PageTabsUiState => ({
+	tabs: tabs.map(({ id, title }) => ({ id, title })),
+	activeId,
 });
 
 export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
@@ -96,6 +102,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 							};
 						}),
 					),
+				replace: (page) => set((state) => updateActiveTab(state, (current) => ({ ...current, ...page }))),
 				goBack: () =>
 					set((state) =>
 						updateActiveTab(state, (current) => {
@@ -125,7 +132,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 				setTitle: (title) => set((state) => updateActiveTab(state, (current) => ({ ...current, title }))),
 			}),
 			{
-				name: pageTabsStorageKey(options.host),
+				name: pageTabsStorageKey(options.origin),
 				storage: createJSONStorage(() => options.storage),
 				partialize: (state) => ({ tabs: state.tabs, activeId: state.activeId }),
 			},

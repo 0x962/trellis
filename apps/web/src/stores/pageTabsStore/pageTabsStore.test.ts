@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { StateStorage } from "zustand/middleware";
-import { createPageTabsStore, pageTabsStorageKey, pageTabsUiState } from "./pageTabsStore";
+import { createPageTabsStore, pageTabsSelectors, pageTabsStorageKey, pageTabsUiProjection } from "./pageTabsStore";
 
 const memoryStorage = (entries = new Map<string, string>()): StateStorage => ({
 	getItem: (key) => entries.get(key) ?? null,
@@ -13,9 +13,9 @@ const idSequence = () => {
 	return () => `tab-${++value}`;
 };
 
-const createStore = (storage = memoryStorage(), host = "host-a", createId = idSequence()) =>
+const createStore = (storage = memoryStorage(), origin = "http://host-a", createId = idSequence()) =>
 	createPageTabsStore({
-		host,
+		origin,
 		initialPage: { url: "/needs-you", title: "Needs you" },
 		homePage: { url: "/needs-you", title: "Needs you" },
 		storage,
@@ -78,6 +78,21 @@ test("a navigation after Back replaces the forward history", () => {
 	expect(activeTab(store).url).toBe("/search");
 });
 
+test("replace updates the current page without a history entry", () => {
+	const store = createStore();
+	store.getState().navigate({ url: "/p/TRL?priority=high", title: "Trellis" });
+	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().goBack();
+	store.getState().replace({ url: "/p/TRL?priority=high&sort=-updatedAt", title: "Trellis" });
+
+	expect(activeTab(store)).toMatchObject({
+		url: "/p/TRL?priority=high&sort=-updatedAt",
+		title: "Trellis",
+		backHistory: [{ url: "/needs-you", title: "Needs you" }],
+		forwardHistory: [{ url: "/search", title: "Search" }],
+	});
+});
+
 test("a navigation to the current URL updates its title without a history entry", () => {
 	const store = createStore();
 	store.getState().navigate({ url: "/needs-you", title: "Needs you (2)" });
@@ -130,33 +145,43 @@ test("closing the last tab opens one usable home tab", () => {
 	expect(store.getState().activeId).toBe("tab-2");
 });
 
-test("tabs and the active selection restore for the same host", () => {
+test("tabs and the active selection restore for the same origin", () => {
 	const storage = memoryStorage();
-	const store = createStore(storage, "host-a", idSequence());
+	const store = createStore(storage, "http://host-a", idSequence());
 	store.getState().navigate({ url: "/p/TRL", title: "Trellis" });
 	const activeId = store.getState().addTab({ url: "/search", title: "Search" });
 
-	const restored = createStore(storage, "host-a", idSequence());
+	const restored = createStore(storage, "http://host-a", idSequence());
 
 	expect(restored.getState().tabs).toEqual(store.getState().tabs);
 	expect(restored.getState().activeId).toBe(activeId);
 });
 
-test("different hosts use separate saved tabs", () => {
+test("different origins use separate saved tabs", () => {
 	const storage = memoryStorage();
-	const first = createStore(storage, "host-a", idSequence());
+	const first = createStore(storage, "http://host-a", idSequence());
 	first.getState().navigate({ url: "/p/TRL", title: "Trellis" });
 
-	const second = createStore(storage, "host-b", idSequence());
+	const second = createStore(storage, "http://host-b", idSequence());
 
 	expect(activeTab(second).url).toBe("/needs-you");
-	expect(pageTabsStorageKey("host-a")).not.toBe(pageTabsStorageKey("host-b"));
+	expect(pageTabsStorageKey("http://host-a")).not.toBe(pageTabsStorageKey("http://host-b"));
 });
 
 test("the UI projection contains the structural tab fields", () => {
 	const store = createStore();
-	const projection = pageTabsUiState(store.getState());
+	const tabs = pageTabsSelectors.tabs(store.getState());
+	const activeId = pageTabsSelectors.activeId(store.getState());
+	const projection = pageTabsUiProjection(tabs, activeId);
 
 	expect(projection.activeId).toBe("tab-1");
 	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Needs you" }]);
+});
+
+test("the UI selectors return stable store fields", () => {
+	const store = createStore();
+	const state = store.getState();
+
+	expect(pageTabsSelectors.tabs(state)).toBe(state.tabs);
+	expect(pageTabsSelectors.activeId(state)).toBe(state.activeId);
 });
