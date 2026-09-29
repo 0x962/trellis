@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 
+from restrictInspectors import paths as inspector_paths, restrict_inspectors
+
 root = pathlib.Path(__file__).resolve().parents[1]
 engine = pathlib.Path(sys.argv[1]).resolve()
 schemas = root.parents[2] / 'packages/api/src/schemas'
@@ -22,6 +24,7 @@ paths |= {
     'src/hooks/flows/use-save-flow.ts',
     'src/components/core/parameterRenderComponent/index.tsx',
 }
+paths |= inspector_paths
 with tempfile.TemporaryDirectory(prefix='trellis-editor-patch-') as temporary:
     stage = pathlib.Path(temporary)
     for path in sorted(paths):
@@ -84,6 +87,7 @@ const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITO
     replace(canvas, '              onInit={setReactFlowInstance}', '              onMoveEnd={TRELLIS_EDITOR_BRIDGE ? editorViewportChanged : undefined}\n              onInit={setReactFlowInstance}')
     replace('src/components/core/parameterRenderComponent/index.tsx',
             '  return renderComponent();', '  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;')
+    restrict_inspectors(replace, mode)
     for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'editorCatalog', 'editorPalette', 'fieldFocus', 'frontend']:
         for source in sorted((root / module).rglob('*.ts')):
             if source.name.endswith('.test.ts'):
