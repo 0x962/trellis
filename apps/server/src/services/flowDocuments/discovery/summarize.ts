@@ -59,7 +59,7 @@ export const summarize = (
 	const mutation: DiscoveryCapability = hasActor ? { state: "allowed" } : blocked("An actor is required.");
 	let start: DiscoveryCapability;
 	if (!hasActor) start = mutation;
-	else if (engine === "legacy") start = unknown("The legacy execution authority is not part of this observation.");
+	else if (engine === "legacy") start = unknown("The legacy engine has no current availability report.");
 	else if (missingRevision || publication.state !== "published") start = blocked("Publish the current saved revision.");
 	else if (availability.state !== "available")
 		start = availability.state === "unknown" ? unknown(availability.reason) : blocked(availability.reason);
@@ -88,8 +88,8 @@ export const summarize = (
 				: engine === "langflow"
 					? blocked("This document already uses Langflow.")
 					: facts.conversionState === "blocked"
-						? blocked("The retained conversion report contains unresolved requirements.")
-						: unknown("An accepted conversion mapping has not been established."),
+						? blocked("This flow cannot be converted yet. Read the conversion report.")
+						: unknown("The conversion is not yet verified."),
 			start,
 		},
 	};
