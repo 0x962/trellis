@@ -78,7 +78,7 @@ export async function editorFixture() {
 						origin: options.editorOrigin,
 						"content-type": "application/json",
 						"x-trellis-editor-identity": JSON.stringify(session.identity),
-						"x-trellis-editor-project": "TRL",
+						"x-trellis-editor-project": current.document.flow.project ?? "",
 						...headers,
 					},
 					body,
