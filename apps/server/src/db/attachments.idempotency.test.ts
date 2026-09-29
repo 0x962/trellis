@@ -4,14 +4,28 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import type { ServiceCtx } from "../context.ts";
 import { prepareUpload, upload } from "../services/attachments.ts";
 import type { IoCtx } from "../services/support.ts";
 import { blobPath } from "../storage/blobs.ts";
+import { createCache } from "./cache.ts";
 import { withTx } from "./tx.ts";
 
 const at = new Date("2026-09-17T06:00:00.000Z");
 const FORMER_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
 const LARGE_UPLOAD_BYTES = FORMER_UPLOAD_LIMIT_BYTES + 1;
+
+const coreContext = (): ServiceCtx => ({
+	actor: { name: "test", kind: "human" },
+	session: null,
+	reqId: ulid(),
+	now: at,
+	cache: createCache(),
+	actorCache: new Map(),
+	emit: () => undefined,
+	dropBlobs: () => undefined,
+	publicUrl: "http://127.0.0.1:4521",
+});
 
 const pausedFile = (bytes: Uint8Array<ArrayBuffer>, name: string, type: string) => {
 	const started = Promise.withResolvers<void>();
@@ -46,7 +60,10 @@ describe("attachments.upload idempotency", () => {
 		const ticketId = ulid();
 		const uploadId = ulid();
 		const ctx: IoCtx = {
-			core: { now: at, actorCache: new Map() } as IoCtx["core"],
+			core: coreContext(),
+			localUrl: "http://127.0.0.1:4521",
+			publicUrl: "http://127.0.0.1:4521",
+			background: () => undefined,
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,
@@ -133,7 +150,11 @@ describe("attachments.upload idempotency", () => {
 		const statusId = ulid();
 		const ticketId = ulid();
 		const uploadId = ulid();
-		const ctx: ServiceCtx = {
+		const ctx: IoCtx = {
+			core: coreContext(),
+			localUrl: "http://127.0.0.1:4521",
+			publicUrl: "http://127.0.0.1:4521",
+			background: () => undefined,
 			actor: { name: "test", kind: "human" },
 			session: null,
 			home,
