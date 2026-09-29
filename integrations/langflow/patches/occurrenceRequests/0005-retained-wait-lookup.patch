@@ -1,0 +1,74 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py b/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
+@@ -37,7 +37,7 @@
+                    "deadlineRefs": list(scope.group_deadline_refs)}
+     visit = {"vertexId": vertex_id, "occurrence": occurrence, "revision": journal["revision"],
+              "specHash": spec_hash, "facts": scope.facts(), "kind": kind,
+-             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None,
++             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None, "waitBytes": None,
+              "feedback": [], "prior": []}
+     journal["visits"][key] = visit
+     return visit
+@@ -71,5 +71,5 @@
+     replacement["feedback"] = [*prior["feedback"], decision]
+     replacement["feedbackReceiptIds"] = list(prior.get("feedbackReceiptIds", []))
+     replacement["prior"] = [*prior["prior"], {field: prior[field] for field in
+-                            ("occurrence", "revision", "requestBytes", "waitId")}]
++                            ("occurrence", "revision", "requestBytes", "waitId", "waitBytes")}]
+     return old_wait, replacement
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py b/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
+@@ -27,8 +27,9 @@
+                 session, job_id, request_kind(visit["waitId"]), visit["requestBytes"],
+             )
+             await save_reservation_obligation(session, job_id, visit, scope.identity(vertex_id))
++            wait_bytes = external_wait(visit) if visit["handleBytes"] is not None else reservation_wait(visit)
++            visit["waitBytes"] = wait_bytes
+             await save_journal(session, job_id, journal)
+-            wait_bytes = external_wait(visit) if visit["handleBytes"] is not None else reservation_wait(visit)
+             waits = await save_wait(session, job_id, graph, wait_bytes)
+             await session.commit()
+         apply_waits(graph, waits)
+@@ -61,6 +62,7 @@
+             if "terminalError" in visit:
+                 raise HumanRoundLimit(visit["terminalError"])
+             wait_bytes = external_wait(visit)
++            visit["waitBytes"] = wait_bytes
+             request = json.loads(visit["requestBytes"])
+             decision = getattr(graph, "human_input_decisions", {}).get(request["engineRequestId"])
+             if decision is not None and decision["wait"] != request:
+@@ -79,6 +81,7 @@
+                 visit["maxRounds"] = max_rounds
+                 visit.setdefault("feedbackReceiptIds", []).append(feedback_receipt["receiptId"])
+                 wait_bytes = external_wait(visit)
++            visit["waitBytes"] = wait_bytes
+             await save_journal(session, job_id, journal)
+             waits = await save_wait(session, job_id, graph, wait_bytes, replacing=replacing)
+             await session.commit()
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py b/src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py
+@@ -93,6 +93,7 @@
+                 raise OccurrenceConflict("native_handle_replay_conflict")
+             visit["handleBytes"] = handle_bytes
+             wait_bytes = external_wait(visit)
++            visit["waitBytes"] = wait_bytes
+             graph_row = await checkpoint(session, job_id, "graph")
+             snapshot = json.loads(graph_row.blob)
+             waits = snapshot["external_waits"]
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py b/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py
+@@ -75,7 +75,10 @@
+     visit = matches[0]
+     if visit["kind"] != "native":
+         raise OccurrenceConflict("input_request_kind_conflict")
++    if visit["waitBytes"] is None:
++        raise OccurrenceConflict("native_wait_not_retained")
+     return {"engineNodeId": visit["vertexId"], "requestBytes": visit["requestBytes"],
++            "engineWaitId": visit["waitId"], "waitBytes": visit["waitBytes"],
+             "occurrence": visit["occurrence"], "scope": visit["facts"],
+             "admissionReceipt": request["admissionReceipt"],
+             "inputReceipts": [await read_receipt(session, job_id, request, receipt_id)

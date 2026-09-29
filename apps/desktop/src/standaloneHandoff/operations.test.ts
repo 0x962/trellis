@@ -1,4 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -42,3 +44,16 @@ test("a failed handoff rejects valid JSON and preserves the end of stderr", asyn
 	`);
 	await expect(handoffOperations.prepare(root, candidate)).rejects.toThrow("FINAL FAILURE");
 });
+
+test("waits for a standalone process that exits after ten seconds", async () => {
+	const child = spawn("/bin/sleep", ["10.2"], { stdio: "ignore" });
+	const exited = once(child, "close");
+	try {
+		await handoffOperations.waitForExit(child.pid!);
+		expect(await exited).toEqual([0, null]);
+		expect(handoffOperations.alive(child.pid!)).toBe(false);
+	} finally {
+		child.kill();
+		await exited;
+	}
+}, 30_000);

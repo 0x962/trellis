@@ -1,8 +1,7 @@
 import { afterAll, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { type Db, openDb } from "../client.ts";
-import { migrate } from "../migrate.ts";
-import { actorRoles, foreignKeys, openPriorDatabase, originalRows } from "./history.ts";
+import { actorRoles, foreignKeys, migrateActorUpgrade, openPriorDatabase, originalRows } from "./history.ts";
 import { seedActorHistory } from "./seed.ts";
 
 let db: Db;
@@ -17,7 +16,7 @@ test("0139 preserves every actor role and rejects mismatched UUID bindings", asy
 	const tables = await seedActorHistory(db);
 	const before = await originalRows(db, tables);
 	const priorKeys = await foreignKeys(db);
-	expect(await migrate(db)).toBe(1);
+	expect(await migrateActorUpgrade(db, directory)).toBe(1);
 	expect(await originalRows(db, tables)).toEqual(before);
 	const afterKeys = await foreignKeys(db);
 	expect(afterKeys.filter((key) => key.target !== "actors")).toEqual(
@@ -87,7 +86,7 @@ test("0139 preserves every actor role and rejects mismatched UUID bindings", asy
 	const archive = await db.$client.dumpDataDir();
 	await db.$client.close();
 	db = await openDb(":memory:", archive);
-	expect(await migrate(db)).toBe(0);
+	expect(await migrateActorUpgrade(db, directory)).toBe(0);
 	expect(await originalRows(db, tables)).toEqual(saved);
 	expect((await db.$client.query("SELECT name,kind,id FROM actors ORDER BY name,kind")).rows).toEqual(ids);
 	await db.$client.exec("BEGIN");

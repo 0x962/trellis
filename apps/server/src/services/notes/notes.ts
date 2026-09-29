@@ -12,6 +12,7 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { noteSelect, type RawNote, toNote } from "./rows.ts";
@@ -79,12 +80,12 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const project = await resolveProject(ctx, tx, input.project);
 	assertProjectActive(ctx, project.id);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	await assertTitleFree(tx, project.id, input.title, null);
 	const id = ulid();
 	await tx.execute(
-		sql`INSERT INTO notes (id, project_id, title, body, audience, expires_at, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${project.id}, ${input.title}, ${input.body}, ${input.audience}, ${input.expiresAt}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
+		sql`INSERT INTO notes (id, project_id, title, body, audience, expires_at, actor_id, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${id}, ${project.id}, ${input.title}, ${input.body}, ${input.audience}, ${input.expiresAt}, ${actorId}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	ctx.emit({ type: "notes.changed", projectId: project.id });
 	return toNote(await byId(tx, id), ctx.cache.get(project.id).key);
@@ -97,13 +98,14 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const existing = await byId(tx, input.id);
 	assertProjectActive(ctx, existing.project_id);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	if (input.title !== undefined) await assertTitleFree(tx, existing.project_id, input.title, existing.id);
 	await tx.execute(
 		sql`UPDATE notes SET title = ${input.title ?? existing.title}, body = ${input.body ?? existing.body},
 			audience = ${input.audience ?? existing.audience},
 			expires_at = ${input.expiresAt === undefined ? existing.expires_at : input.expiresAt},
-			actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${existing.id}`,
+			actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now}
+			WHERE id = ${existing.id}`,
 	);
 	ctx.emit({ type: "notes.changed", projectId: existing.project_id });
 	return toNote(await byId(tx, existing.id), ctx.cache.get(existing.project_id).key);

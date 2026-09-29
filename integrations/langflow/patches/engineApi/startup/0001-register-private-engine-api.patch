@@ -2,7 +2,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/startup.py b/src/back
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/startup.py
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,221 @@
 +from __future__ import annotations
 +
 +import os
@@ -143,6 +143,7 @@ new file mode 100644
 +        create_engine_api_router,
 +        load_engine_api_identity,
 +    )
++    from langflow.services.trellis_v1.projection_router import create_projection_router
 +    from langflow.services.trellis_v1.native_router import create_native_router
 +    from langflow.services.trellis_v1.occurrence_transport import install_request_transport
 +
@@ -182,6 +183,7 @@ new file mode 100644
 +        ),
 +        create_decision_router(security=security, execution_service=background),
 +        create_native_router(jobs=jobs, executor=background, security=security, open_session=session_scope),
++        create_projection_router(security=security, open_session=session_scope),
 +        create_cancellation_router(security=security, sessions=session_scope, background=background),
 +        create_backup_router(
 +            database=database,

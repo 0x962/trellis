@@ -13,6 +13,10 @@ const configDigest = `sha256:${"b".repeat(64)}`;
 const engineApiConfigContent =
 	'{"version":1,"nativeReservationOrigin":"http://host.docker.internal:4521","nativeReservationAuthenticationFile":"/run/trellis-secrets/native-reservations.token"}';
 const engineApiConfigDigest = createHash("sha256").update(engineApiConfigContent).digest("hex");
+const nativeReservationAuthenticationContent = "exact-outgoing-bearer";
+const nativeReservationAuthenticationDigest = createHash("sha256")
+	.update(nativeReservationAuthenticationContent)
+	.digest("hex");
 const identity: SidecarIdentity = {
 	dataHomeId: "data-home-a",
 	hostId: "host-1",
@@ -27,14 +31,18 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 	const authentication = join(root, "secrets", `${identity.instanceId}.token`);
 	const captureIssuer = join(root, "capture-issuer.key");
 	const engineApiConfig = join(root, "engine-api.json");
-	const nativeReservationAuthentication = join(root, "native-reservations.token");
+	const nativeReservationAuthentication = join(
+		root,
+		"secrets",
+		`${identity.instanceId}.native-reservations.token`,
+	);
 	await mkdir(join(root, "secrets"), { recursive: true, mode: 0o700 });
 	await mkdir(data, { recursive: true, mode: 0o700 });
 	await chmod(data, 0o700);
 	await writeFile(authentication, "exact-private-bearer", { mode: 0o600 });
 	await writeFile(captureIssuer, "exact-capture-issuer", { mode: 0o600 });
 	await writeFile(engineApiConfig, engineApiConfigContent, { mode: 0o600 });
-	await writeFile(nativeReservationAuthentication, "exact-outgoing-bearer", { mode: 0o600 });
+	await writeFile(nativeReservationAuthentication, nativeReservationAuthenticationContent, { mode: 0o600 });
 	let network = false;
 	const volumes = new Map<string, VolumeInspection>();
 	let container: ReturnType<typeof containerInspection> | null = null;
@@ -91,7 +99,6 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		captureIssuerFile: captureIssuer,
 		engineApiConfigFile: engineApiConfig,
 		engineApiConfigSha256: engineApiConfigDigest,
-		nativeReservationAuthenticationFile: nativeReservationAuthentication,
 		dependencies: {
 			run,
 			fetch: async (input, init) => {
@@ -105,7 +112,14 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		},
 	});
 	try {
-		await driver.start({ identity, manifest, dataDirectory: data, authenticationFile: authentication });
+		await driver.start({
+			identity,
+			manifest,
+			dataDirectory: data,
+			authenticationFile: authentication,
+			nativeReservationAuthenticationFile: nativeReservationAuthentication,
+			nativeReservationAuthenticationSha256: nativeReservationAuthenticationDigest,
+		});
 		const create = commands.find((args) => args[0] === "container" && args[1] === "create")!;
 		expect(create).toContain("--read-only");
 		expect(create.slice(create.indexOf("--pull"), create.indexOf("--pull") + 2)).toEqual(["--pull", "never"]);
@@ -115,6 +129,9 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		expect(create).toContain("/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m");
 		expect(create).toContain("127.0.0.1::7860");
 		expect(create).toContain(`io.trellis.langflow.engine-api-config-digest=${engineApiConfigDigest}`);
+		expect(create).toContain(
+			`io.trellis.langflow.native-reservation-authentication-sha256=${nativeReservationAuthenticationDigest}`,
+		);
 		expect(create).not.toContain("--privileged");
 		const provision = commands.find((args) => args[0] === "container" && args[1] === "run")!;
 		expect(provision.slice(provision.indexOf("--pull"), provision.indexOf("--pull") + 2)).toEqual(["--pull", "never"]);
@@ -134,6 +151,8 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 			identity,
 			challenge: "00000000-0000-4000-8000-000000000002",
 			authenticationFile: authentication,
+			nativeReservationAuthenticationFile: nativeReservationAuthentication,
+			nativeReservationAuthenticationSha256: nativeReservationAuthenticationDigest,
 		});
 		expect(observation).toEqual({
 			identity,
@@ -148,10 +167,26 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 				identity,
 				challenge: "00000000-0000-4000-8000-000000000004",
 				authenticationFile: authentication,
+				nativeReservationAuthenticationFile: nativeReservationAuthentication,
+				nativeReservationAuthenticationSha256: nativeReservationAuthenticationDigest,
 			}),
 		).toMatchObject({ state: "unknown", health: "unknown", endpoint: null });
 		await writeFile(engineApiConfig, engineApiConfigContent, { mode: 0o600 });
-		await driver.stop(identity);
+		await writeFile(nativeReservationAuthentication, `${nativeReservationAuthenticationContent}\n`, { mode: 0o600 });
+		expect(
+			await driver.observe({
+				identity,
+				challenge: "00000000-0000-4000-8000-000000000005",
+				authenticationFile: authentication,
+				nativeReservationAuthenticationFile: nativeReservationAuthentication,
+				nativeReservationAuthenticationSha256: nativeReservationAuthenticationDigest,
+			}),
+		).toMatchObject({ state: "unknown", health: "unknown", endpoint: null });
+		await writeFile(nativeReservationAuthentication, nativeReservationAuthenticationContent, { mode: 0o600 });
+		await driver.stop(identity, {
+			nativeReservationAuthenticationFile: nativeReservationAuthentication,
+			nativeReservationAuthenticationSha256: nativeReservationAuthenticationDigest,
+		});
 		expect(container).toBeNull();
 		expect(network).toBeFalse();
 		const dataVolumeName = storageNames(identity).data;
@@ -161,6 +196,8 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 				identity,
 				challenge: "00000000-0000-4000-8000-000000000003",
 				authenticationFile: authentication,
+				nativeReservationAuthenticationFile: nativeReservationAuthentication,
+				nativeReservationAuthenticationSha256: nativeReservationAuthenticationDigest,
 			}),
 		).toMatchObject({ state: "unknown", health: "unknown", endpoint: null });
 	} finally {
@@ -209,6 +246,8 @@ function containerInspection(running: boolean) {
 			Labels: {
 				...labels(),
 				"io.trellis.langflow.engine-api-config-digest": engineApiConfigDigest,
+				"io.trellis.langflow.native-reservation-authentication-sha256":
+					nativeReservationAuthenticationDigest,
 			},
 		},
 		HostConfig: {

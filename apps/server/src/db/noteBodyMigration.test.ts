@@ -42,12 +42,15 @@ test("the forward migration preserves existing notes and accepts complete multib
 	await db.execute(sql`INSERT INTO notes
 		(id, project_id, title, body, audience, expires_at, actor_name, actor_kind, created_at, updated_at)
 		VALUES (${noteId}, ${projectId}, 'Existing note', ${original}, 'worker', NULL, 'Note author', 'human', ${at}, ${at})`);
-	const before = (await db.execute(sql`SELECT * FROM notes WHERE id = ${noteId}`)).rows;
+	const historicalNote = sql`SELECT
+		id, project_id, title, body, audience, expires_at, actor_name, actor_kind, created_at, updated_at
+		FROM notes WHERE id = ${noteId}`;
+	const before = (await db.execute(historicalNote)).rows;
 	await expect(db.execute(sql`UPDATE notes SET body = ${body} WHERE id = ${noteId}`)).rejects.toThrow(
 		"notes_body_check",
 	);
 	expect(await migrate(db)).toBeGreaterThan(0);
-	expect((await db.execute(sql`SELECT * FROM notes WHERE id = ${noteId}`)).rows).toEqual(before);
+	expect((await db.execute(historicalNote)).rows).toEqual(before);
 	await db.execute(sql`UPDATE notes SET body = ${body} WHERE id = ${noteId}`);
 	expect((await db.execute(sql`SELECT body FROM notes WHERE id = ${noteId}`)).rows).toEqual([{ body }]);
 	await expect(db.execute(sql`UPDATE notes SET body = '' WHERE id = ${noteId}`)).rejects.toThrow("notes_body_check");

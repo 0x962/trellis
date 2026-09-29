@@ -1,9 +1,9 @@
 {
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "0001-register-private-engine-api.patch",
-  "sha256": "83dddae445eb1cc22ed2053c8ea903a01c2228a21f4e174c910e334ff9605ee4",
+  "sha256": "db28d1e0b4f86596d2506e0648a17d83da509a189ea70d234f7ade328db9a5fe",
   "files": {
-    "src/backend/base/langflow/services/trellis_v1/startup.py": "cbe0250c91e40644be726365cf288ff80ff360d4c812273cee7813891e56a0c8",
+    "src/backend/base/langflow/services/trellis_v1/startup.py": "c1405e5cc67a7f52b80e16e7bbdd81a2d6ab68ec2d4f17ea01785c4705c1b57b",
     "src/backend/base/langflow/main.py": "a2169b4076160575f02edbab5d826b3eec6fe7591d559dce3db790428976598d"
   },
   "tests": {

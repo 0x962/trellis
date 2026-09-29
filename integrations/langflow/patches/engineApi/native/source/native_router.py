@@ -17,7 +17,7 @@ from langflow.services.trellis_v1.native_protocol import (
     CompletionInput, InputReceiptsInput, LaunchBinding, LookupInput, NativeConflict, read_json,
 )
 from langflow.services.trellis_v1.occurrence_journal import OccurrenceConflict
-from langflow.services.trellis_v1.occurrence_receipts import read_input_receipts
+from langflow.services.trellis_v1.occurrence_receipts import read_input_receipts, read_native_visit
 
 
 def create_native_router(*, jobs, executor, security: EngineApiSecurity, open_session=session_scope) -> APIRouter:
@@ -60,8 +60,7 @@ def create_native_router(*, jobs, executor, security: EngineApiSecurity, open_se
         except AuthorityUnauthorized as error:
             raise HTTPException(status_code=401, detail="native_authority_invalid") from error
 
-    @router.post("/input-receipts")
-    async def input_receipts(request: Request, payload: InputReceiptsInput) -> JSONResponse:
+    async def read_visit_records(request: Request, payload: InputReceiptsInput, reader) -> JSONResponse:
         await security.require_transport_auth(request.headers.get("authorization"))
         try:
             original = read_json(payload.requestBytes)
@@ -72,7 +71,7 @@ def create_native_router(*, jobs, executor, security: EngineApiSecurity, open_se
                 if job is None:
                     raise NativeConflict("native_job_missing")
                 await authorize(request, payload.authorityBytes, "native.read")(session, binding.model_dump())
-                receipts = await read_input_receipts(session, job_id, payload.requestBytes)
+                receipts = await reader(session, job_id, payload.requestBytes)
             return JSONResponse(content=receipts, headers={"Cache-Control": "no-store"})
         except (NativeConflict, OccurrenceConflict, AuthorityConflict) as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
@@ -80,5 +79,13 @@ def create_native_router(*, jobs, executor, security: EngineApiSecurity, open_se
             raise HTTPException(status_code=401, detail="native_authority_invalid") from error
         except (ValidationError, JSONDecodeError, UnicodeError) as error:
             raise HTTPException(status_code=422, detail="native_request_invalid") from error
+
+    @router.post("/input-receipts")
+    async def input_receipts(request: Request, payload: InputReceiptsInput) -> JSONResponse:
+        return await read_visit_records(request, payload, read_input_receipts)
+
+    @router.post("/visit")
+    async def visit(request: Request, payload: InputReceiptsInput) -> JSONResponse:
+        return await read_visit_records(request, payload, read_native_visit)
 
     return router

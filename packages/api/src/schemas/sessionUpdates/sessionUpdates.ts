@@ -43,7 +43,7 @@ export type SessionUpdates = z.infer<typeof SessionUpdatesSchema>;
 
 export const SessionUpdatesGetInputSchema = z.strictObject({
 	sessionId: SessionRefSchema,
-	history: z.strictObject({ before: HistoryCursorSchema.optional() }).optional(),
+	history: z.strictObject({ include: z.literal([true, "true"]), before: HistoryCursorSchema.optional() }).optional(),
 });
 export type SessionUpdatesGetInput = z.infer<typeof SessionUpdatesGetInputSchema>;
 

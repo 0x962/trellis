@@ -12,6 +12,7 @@ from langflow.services.trellis_publications.contracts import PublicationRequest
 from langflow.services.trellis_publications.ledger import publications
 from langflow.services.trellis_v1.authority import read_authority, require_authority
 from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
+from langflow.services.trellis_v1.cancellation import assert_not_cancelled
 from langflow.services.trellis_v1.native_records import add_checkpoint, checkpoint
 
 from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict
@@ -30,6 +31,7 @@ async def locked_graph(session, graph):
     job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
     if job.status not in {JobStatus.IN_PROGRESS, JobStatus.SUSPENDED, JobStatus.QUEUED}:
         raise OccurrenceConflict("occurrence_job_not_active")
+    await assert_not_cancelled(session, job_id)
     correlation = (await session.exec(select(TrellisJobCorrelation).where(
         TrellisJobCorrelation.engine_job_id == job_id))).one()
     if correlation.admission_receipt_bytes is None:
@@ -49,6 +51,7 @@ async def locked_graph(session, graph):
 
 
 async def authorize_native(session, job_id, admission) -> str:
+    await assert_not_cancelled(session, job_id)
     state = await read_authority(session, admission["executionId"])
     if state is None or state.binding is None:
         raise OccurrenceConflict("occurrence_authority_absent")

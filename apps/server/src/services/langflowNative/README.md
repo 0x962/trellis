@@ -130,3 +130,45 @@ The reviewed head belongs to the retained execution; the runtime observer record
 The authenticated receipt reader remains a required composition dependency.
 Missing receipts stop reservation.
 The authored prompt fixtures require execution in the integrated batch.
+
+## Resolve a retained engine visit
+
+`readNativeVisit(client, { requestBytes, authorityBytes, capabilityId, signal })` calls the private engine through the existing `createEngineClient`.
+The supervisor supplies its current endpoint and outgoing authentication file.
+Call this reader before the Trellis transaction while the supervisor retains the connection.
+An unknown response, refused request, malformed response, or changed request string stops the read.
+
+`resolveNativeOccurrence(ctx, tx, { requestBytes, visit })` locks the current execution and validates its current grant with `native.reserve`.
+It checks admission, cancellation, the original request bytes, the full occurrence, input order, and deadline references.
+It reads the static specification from the retained publication and refuses unresolved model or effort settings.
+It derives the exact task association and calls `assembleNativePrompt` before it returns `ApprovedNativeOccurrence`.
+The incoming route supplies this service through `NativeReservationCtx.resolveOccurrence`.
+The route authenticates the caller before either read.
+
+The engine visit reader returns `engineNodeId`, `requestBytes`, `engineWaitId`, `waitBytes`, `occurrence`, `scope`, `admissionReceipt`, and `inputReceipts`.
+The reader verifies the wait identity and original request inside `waitBytes`, then preserves those bytes unchanged.
+A `native_reservation` wait precedes the handle; a `native` wait retains the handle for the exact occurrence.
+The scope contains `inputReceiptIds`, `groupDeadlineRefs`, and `deadlineAt`.
+The engine journal owns these values; the resolver compares them with the original request without constructing a visit from the editor.
+The database check repeats authority validation after the external read because ownership can change between the two transactions.
+
+## Exact request lookup and dispatch evidence
+
+`readNativeRequest(ctx, tx, { requestBytes })` checks the current `native.read` grant and locks the execution.
+It verifies the saved admission receipt and exact request bytes before it returns an existing handle.
+Call it before an external visit read to recover a lost reservation response.
+An absent request returns `pending` while the execution can still reserve attempts.
+An absent request returns `cancelled_absent` with the saved cancellation intent when the execution permanently refuses new reservations.
+A reserved request returns its exact handle and matching stop obligation.
+Only a confirmed exit receipt produces `exited`; a missing stop remains `pending`.
+The caller retains original request bytes and compares the returned request digest.
+
+`createNativeDispatchGate({ newTx, dataHomeId, gate, archive })` supplies the native `acquire` and `settle` methods.
+Pass this wrapper to native reservation and recovery callers.
+It reads committed reservation or launch evidence, writes a terminal archive record, and settles the real gate with that record ID.
+`readNativeDispatchEvidence(ctx, tx, { permit, receiptId? })` exposes the same evidence for permit recovery.
+It returns null when the required reservation or launch receipt is missing.
+The evidence retains the original request and immutable attempt provenance.
+Private launch snapshots and tokens stay outside this evidence.
+The archive verifies the saved permit, data home, and generation before settlement.
+Unknown effects keep their permits pending.

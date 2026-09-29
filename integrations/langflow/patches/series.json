@@ -55,13 +55,6 @@
 			"manifest": "integrations/langflow/patches/engineApi/control/manifest.json"
 		},
 		{
-			"name": "backend-native-api",
-			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
-			"sha256": "3ca06f1b27d1744ad6c767e8eca624a8540cb0138d27f339e3f2d1f95c2d19d6",
-			"directory": ".",
-			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json"
-		},
-		{
 			"name": "backend-admission-api",
 			"path": "integrations/langflow/patches/engineApi/admission/0001-private-admission-routes.patch",
 			"sha256": "cf9dcae728c9470ac2c89d61984d34124e8ec62d92d7e2b26c569f5c36c5045c",
@@ -114,6 +107,13 @@
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
 		{
+			"name": "backend-loop-control",
+			"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
+			"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/loopControl/manifest.json"
+		},
+		{
 			"name": "backend-capture-writers",
 			"path": "integrations/langflow/patches/externalWaits/0005-capture-boundary-writer-hooks.patch",
 			"sha256": "b65478f03a3d0f98f67017bcaa40f07ab8b5530cba6231f4ab7bded709e57210",
@@ -126,6 +126,55 @@
 			"sha256": "615191dc9bd2c64eb42387024ce30fb67c6c229e09331c84ebece37ef51e45d5",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/occurrenceRequests/manifest.json"
+		},
+		{
+			"name": "backend-occurrence-entries",
+			"path": "integrations/langflow/patches/occurrenceRequests/0002-component-entry-receipts.patch",
+			"sha256": "09e1c6a68cbcc93fceabc065414f43d2976566fe3fc41a83c58763eb3b53e8ef",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/entries-manifest.json"
+		},
+		{
+			"name": "backend-native-api",
+			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
+			"sha256": "923fab17ff5cf60b80cc87c445194762b8ecb7ba5a22a7e518d20f7784522461",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json"
+		},
+		{
+			"name": "backend-reservation-obligations",
+			"path": "integrations/langflow/patches/occurrenceRequests/0003-native-reservation-obligations.patch",
+			"sha256": "a265d58575658d0f30a9d16d0e24650e6bb68553572b579938117f704d558c1d",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/reservations-manifest.json"
+		},
+		{
+			"name": "backend-reservation-cancellation",
+			"path": "integrations/langflow/patches/occurrenceRequests/0004-durable-cancellation-guard.patch",
+			"sha256": "ed8dd34207db1e5f326ca461f1f5e9c3047facc8ee1bf0e2d692740e5ce6fdec",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/cancellation-manifest.json"
+		},
+		{
+			"name": "backend-retained-wait-lookup",
+			"path": "integrations/langflow/patches/occurrenceRequests/0005-retained-wait-lookup.patch",
+			"sha256": "0e3247b8536448628f00cdd03e38b816db89e2b8b371c7e97cda682f2fe75b60",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/retained-wait-manifest.json"
+		},
+		{
+			"name": "backend-review-continuation",
+			"path": "integrations/langflow/patches/externalWaits/0006-review-classification-continuation.patch",
+			"sha256": "a6dbce79978dd55a67177299e42f3e3cb209265e50687d14c427ad1f2972528f",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/externalWaits/review-classification-manifest.json"
+		},
+		{
+			"name": "backend-review-gate",
+			"path": "integrations/langflow/patches/reviewGate/0001-review-gate-invocation.patch",
+			"sha256": "f09c69661e81d68b881769d046e78aa7b9a00678fbe5349d0731dff6c64414f1",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-recovery-composition.json"
 		},
 		{
 			"name": "backend-private-startup",
@@ -150,6 +199,8 @@
 		"integrations/langflow/tests/restore",
 		"integrations/langflow/tests/publications",
 		"integrations/langflow/tests/occurrenceRequests",
+		"integrations/langflow/tests/loopControl",
+		"integrations/langflow/tests/reviewGate",
 		"integrations/langflow/patches/engineApi/shared/tests",
 		"integrations/langflow/patches/engineApi/control/tests",
 		"integrations/langflow/patches/engineApi/native/tests",

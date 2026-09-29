@@ -11,8 +11,7 @@ const nameSchema = (noun: "label" | "group") =>
 	z
 		.string()
 		.trim()
-		.min(1, `Enter a ${noun} name of 1 to 80 characters.`)
-		.max(80, `Enter a ${noun} name of 1 to 80 characters.`)
+		.min(1, `Enter a ${noun} name.`)
 		.regex(/^[^,/]*$/, `A ${noun} name cannot contain a comma or a slash.`)
 		.refine((name) => name.toLowerCase() !== "none", `A ${noun} cannot take the name "none".`);
 
@@ -20,10 +19,7 @@ export const LabelNameSchema = nameSchema("label");
 export const LabelGroupNameSchema = nameSchema("group");
 
 // Plain text that states when to use the label.
-export const LabelDescriptionSchema = z
-	.string()
-	.trim()
-	.max(255, "Enter a label description of 255 characters or less.");
+export const LabelDescriptionSchema = z.string().trim();
 
 // A project owns its labels and its label groups, so `projectId` is the id
 // of that project. `groupId` is null for a label with no group. `ticketCount` is the number of tickets that hold the label.

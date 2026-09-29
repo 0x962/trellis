@@ -23,8 +23,6 @@ test("the Page runtime emits anchors and pin positions without a mutation messag
 	const source = sourceOf(script);
 	expect(() => new Function(source)).not.toThrow();
 	expect(source).toContain("page-comment-anchor");
-	expect(source).toContain("page-comment-anchor-error");
-	expect(source).toContain("Select 2,000 characters or fewer.");
 	expect(source).toContain("page-comment-layout");
 	expect(source).toContain("page-comment-reveal");
 	expect(source).toContain("prefers-reduced-motion: reduce");
@@ -35,7 +33,7 @@ test("the Page runtime emits anchors and pin positions without a mutation messag
 	expect(source).not.toContain("suffix ??");
 });
 
-test("an oversized selection reports its limit without an element anchor", () => {
+test("the Page runtime preserves a large selection in its text anchor", () => {
 	const listeners = new Map<string, EventListener>();
 	const sent: object[] = [];
 	class FakeElement {
@@ -44,6 +42,7 @@ test("an oversized selection reports its limit without an element anchor", () =>
 		previousElementSibling = null;
 	}
 	const root = new FakeElement();
+	const quote = "Selected 界\n".repeat(3000);
 	const saved = {
 		Element: globalThis.Element,
 		addEventListener: globalThis.addEventListener,
@@ -58,8 +57,15 @@ test("an oversized selection reports its limit without an element anchor", () =>
 		({
 			rangeCount: 1,
 			isCollapsed: false,
-			toString: () => "x".repeat(2001),
-			getRangeAt: () => ({ commonAncestorContainer: root }),
+			toString: () => quote,
+			getRangeAt: () => ({
+				commonAncestorContainer: root,
+				cloneRange: () => ({
+					selectNodeContents() {},
+					setEnd() {},
+					toString: () => "",
+				}),
+			}),
 		}) as unknown as Selection;
 	globalThis.addEventListener = ((type: string, listener: EventListener) => {
 		listeners.set(type, listener);
@@ -68,7 +74,11 @@ test("an oversized selection reports its limit without an element anchor", () =>
 		new Function(sourceOf(pageDocumentScript("nonce")))();
 		listeners.get("contextmenu")!({ target: root, preventDefault: () => {} } as unknown as Event);
 		expect(sent).toEqual([
-			{ type: "page-comment-anchor-error", message: "Select 2,000 characters or fewer.", nonce: "nonce" },
+			{
+				type: "page-comment-anchor",
+				anchor: { kind: "text", path: "main:nth-of-type(1)", quote, prefix: "", suffix: "" },
+				nonce: "nonce",
+			},
 		]);
 	} finally {
 		globalThis.Element = saved.Element;

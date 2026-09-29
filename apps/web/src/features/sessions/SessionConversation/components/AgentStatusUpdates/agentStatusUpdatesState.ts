@@ -18,7 +18,7 @@ export const agentStatusUpdatesQueryOptions = (orpc: Orpc, run: Pick<AgentRun, "
 	orpc.sessionUpdates.get.infiniteOptions({
 		input: (before: NonNullable<SessionUpdatesGetInput["history"]>["before"]) => ({
 			...sessionUpdateInput(run),
-			history: { before },
+			history: { include: true, before },
 		}),
 		initialPageParam: undefined as NonNullable<SessionUpdatesGetInput["history"]>["before"],
 		getNextPageParam: (result) => result.nextCursor ?? undefined,

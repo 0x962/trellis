@@ -50,11 +50,12 @@ Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
 An explicit `engineApiConfigFile` copies one mode-0600 startup file into the read-only secrets volume.
 The caller also supplies `engineApiConfigSha256` from its strict package and config validation.
-An enabled configuration also requires `nativeReservationAuthenticationFile` for the outgoing Trellis bearer.
-The driver copies that separate mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
-Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
-The driver compares the original file bytes with that digest before each start, observation, and stop.
-The container label binds the same SHA256 to the saved instance.
+Each saved instance supplies `nativeReservationAuthenticationFile` for its outgoing Trellis bearer.
+The start, observation, and stop inputs supply `nativeReservationAuthenticationSha256` for the exact file bytes.
+The driver copies the mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
+Only `engineApiConfigFile` sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
+The driver compares both source files with their digests before each start, observation, and stop.
+The container labels bind both digests to the saved instance.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
 It reads the exact bearer file for each operation, refuses redirects, preserves request and response bytes, and returns unknown network results.
@@ -240,6 +241,16 @@ A route behind host authentication can carry it in `X-Trellis-Engine-Authorizati
 The callback returns no credential.
 After the callback, the durable permit remains held through the provider call and the terminal database commit.
 An unknown provider outcome retains the permit for reconciliation.
+
+`withAuthenticatedNativeReservation(authorization, operation)` authenticates the separate credential for requests from the engine to Trellis.
+`PrivateState.reserve` creates fresh bytes for each instance and saves their SHA256 with the complete instance identity.
+The token and its identity record use mode 0600 under the private secrets directory.
+The driver receives `nativeReservationAuthenticationFile` and `nativeReservationAuthenticationSha256` on start, observe, and stop.
+The driver copies those bytes to the runtime secret and checks the digest against its retained container label.
+The callback verifies the saved identity, credential digest, and exact bearer before it obtains a fresh healthy observation.
+It holds supervisor exclusion until the callback returns.
+The route must acquire its durable effect permit within that callback before it dispatches work outside the supervisor scope.
+Unknown results retain that permit for reconciliation.
 
 ## Durable supervisor authority
 

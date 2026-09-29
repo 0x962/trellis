@@ -37,7 +37,7 @@ def allocate(journal: dict, vertex_id: str, scope: VisitScope, spec: dict, admis
                    "deadlineRefs": list(scope.group_deadline_refs)}
     visit = {"vertexId": vertex_id, "occurrence": occurrence, "revision": journal["revision"],
              "specHash": spec_hash, "facts": scope.facts(), "kind": kind,
-             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None,
+             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None, "waitBytes": None,
              "feedback": [], "prior": []}
     journal["visits"][key] = visit
     return visit
@@ -71,5 +71,5 @@ def replace_rejected(journal: dict, vertex_id: str, scope: VisitScope, spec: dic
     replacement["feedback"] = [*prior["feedback"], decision]
     replacement["feedbackReceiptIds"] = list(prior.get("feedbackReceiptIds", []))
     replacement["prior"] = [*prior["prior"], {field: prior[field] for field in
-                            ("occurrence", "revision", "requestBytes", "waitId")}]
+                            ("occurrence", "revision", "requestBytes", "waitId", "waitBytes")}]
     return old_wait, replacement

@@ -25,7 +25,15 @@ const now = new Date("2026-09-20T12:00:00.000Z");
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const ctx = () => ({ actor, home, now: () => now, newTx: inTx }) as unknown as IoCtx & PrepareCtx;
+const actorCache = new Map<string, number>();
+const ctx = () =>
+	({
+		actor,
+		core: { now, actorCache } as IoCtx["core"],
+		home,
+		now: () => now,
+		newTx: inTx,
+	}) as unknown as IoCtx & PrepareCtx;
 
 beforeAll(async () => {
 	home = await mkdtemp(join(tmpdir(), "trellis-pr-files-"));
