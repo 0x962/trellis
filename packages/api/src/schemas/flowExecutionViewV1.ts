@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FlowNodeKindSchema } from "./flow.ts";
 import {
 	FlowDigestV1Schema,
 	FlowDocumentSnapshotV1Schema,
@@ -88,13 +89,25 @@ export const FlowDecisionDeliveryV1Schema = z.discriminatedUnion("state", [
 ]);
 export type FlowDecisionDeliveryV1 = z.infer<typeof FlowDecisionDeliveryV1Schema>;
 
+export const FlowOutputSourceV1Schema = z.strictObject({
+	stepId: opaqueId,
+	agentRunId: UlidSchema,
+	attemptId: opaqueId,
+	resultId: opaqueId,
+});
+export type FlowOutputSourceV1 = z.infer<typeof FlowOutputSourceV1Schema>;
+
 export const FlowOccurrenceV1Schema = FlowOccurrenceIdentityV1Schema.extend({
+	kind: FlowNodeKindSchema.nullable().describe("The archived node kind. Null means that the kind is unknown."),
 	title: z.string(),
 	instruction: z.string(),
 	actionKey: opaqueId,
 	state: FlowStepStateSchema,
 	waitReason: z.enum(["human", "native", "ownership_unknown", "admission"]).nullable(),
 	output: z.string().nullable(),
+	outputSource: FlowOutputSourceV1Schema.nullable().describe(
+		"The retained native result that supplies the output. Null means that no native result binding is available.",
+	),
 	decision: z.enum(["yes", "no"]).nullable(),
 	error: z.string().nullable(),
 	skipReason: z.string().nullable(),
@@ -102,7 +115,19 @@ export const FlowOccurrenceV1Schema = FlowOccurrenceIdentityV1Schema.extend({
 	endedAt: IsoDateTimeSchema.nullable(),
 	deadlineRefs: z.array(opaqueId),
 	attempts: z.array(FlowAttemptV1Schema),
-});
+}).refine(
+	({ outputSource, output, attempts }) =>
+		outputSource === null ||
+		(output !== null &&
+			attempts.some(
+				(attempt) =>
+					attempt.stepId === outputSource.stepId &&
+					attempt.agentRunId === outputSource.agentRunId &&
+					attempt.attemptId === outputSource.attemptId &&
+					attempt.resultId === outputSource.resultId,
+			)),
+	"Native output must identify an exact retained attempt and result.",
+);
 export type FlowOccurrenceV1 = z.infer<typeof FlowOccurrenceV1Schema>;
 
 export const FlowSubmissionV1Schema = z
