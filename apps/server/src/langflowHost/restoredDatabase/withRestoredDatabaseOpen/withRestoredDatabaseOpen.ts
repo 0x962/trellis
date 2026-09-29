@@ -7,8 +7,8 @@ import { closed, context } from "../components/context";
 import { databaseInventory } from "../components/inventory";
 import {
 	InstalledDatabaseSchema,
-	OpenedDatabaseEvidenceSchema,
 	type OpenedDatabaseEvidence,
+	OpenedDatabaseEvidenceSchema,
 	type VerifiedRestoredDatabase,
 } from "../components/schema";
 
