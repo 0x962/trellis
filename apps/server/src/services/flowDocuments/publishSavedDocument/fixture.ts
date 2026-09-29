@@ -7,8 +7,12 @@ export const publicationFixture = async () => {
 	const fixture = await serviceFixture("langflow");
 	const document = await fixture.run((tx) => get(fixture.ctx, tx, { flow: flowId }));
 	const input: PublishDocumentV1Input = {
-		flowId, expectedVersion: document.revision, expectedDocumentHash: document.documentHash,
-		componentManifestHash: manifestHash, enginePackageDigest: packageDigest, requestId: crypto.randomUUID(),
+		flowId,
+		expectedVersion: document.revision,
+		expectedDocumentHash: document.documentHash,
+		componentManifestHash: manifestHash,
+		enginePackageDigest: packageDigest,
+		requestId: crypto.randomUUID(),
 	};
 	const engine = publisher();
 	const services: DocumentActionServices = {
