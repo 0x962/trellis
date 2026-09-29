@@ -1,0 +1,36 @@
+{
+	"upstreamCommit": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"baseAssemblySha256": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
+	"reader": {
+		"sourceCommit": "2decc93057be7d34baaa71d97007eb28a597e933",
+		"sourcePath": "integrations/langflow/patches/externalWaits/0001-durable-external-waits.patch",
+		"sourceSha256": "dd756b42bfd408ad6f5d3132cd37209b316bfdebeccda8ec749051a9ab7c86cb",
+		"priorSourceCommit": "d3d77accb69ba68dff97fd2b462ffd3b4877d85a",
+		"priorSourceSha256": "52c504473d7994d491db219f274d2d6df195c6b1b0ecfa902b68dd23f40169d5",
+		"path": "reports/langflow-feasibility-review/backend-delivery-reader.patch",
+		"sha256": "4860d0768a44e0779ae569640c9e74b33c0916b19efb14a5071560da6dae835c",
+		"composition": "The incremental patch contains the exact difference between the two author versions of external_waits.py. Apply it once after the base assembly."
+	},
+	"transactions": {
+		"sourceCommit": "6cd75315fbf80b3bfd1d300e7882fa1b3f2abb07",
+		"path": "integrations/langflow/patches/externalWaits/0002-queue-bootstrap-and-completion-transactions.patch",
+		"sha256": "4e6430b4dc0afdf1eeb9bf8abd6225ca0399cdd244299f5a429f482d9c3a6310",
+		"composition": "Apply the unchanged author patch after the delivery reader."
+	},
+	"pendingComposition": [
+		"TRL-875 shared transport and durable authority",
+		"TRL-894 decision authority and router",
+		"TRL-899 cancellation checkpoint and consumers",
+		"Admission authority inside the job transaction"
+	],
+	"verification": {
+		"command": "python3 integrations/langflow/tests/combinedFeasibility/checkSeries.py <pinned-engine-source>",
+		"method": "Read immutable Git blobs. Apply exact hunk lines in memory. Compare the reader with both author versions. Compile Python source without execution.",
+		"patchCount": 7,
+		"fileCount": 34,
+		"aggregateSha256": "5442d011f24b14362214bbc42327f8bb641f05484d476c005ded146ee2d053da",
+		"aggregateFormat": "SHA256 of compact JSON mapping sorted source paths to SHA256 values."
+	},
+	"runtimeVerified": false,
+	"technicalAcceptance": false
+}

@@ -16,7 +16,7 @@ const colorFlag = {
 	description: "Label color; the server picks an unused hue when absent",
 } satisfies ArgDef;
 
-const descriptionFlag = { type: "string", description: "What the label means, 255 characters or less" } as const;
+const descriptionFlag = { type: "string", description: "What the label means" } as const;
 
 // One label, after a create or an update. `--json` and `--jsonl` print the
 // procedure output, which names the group by its id and not by its name. A

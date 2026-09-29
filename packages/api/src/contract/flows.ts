@@ -13,6 +13,7 @@ import {
 	FlowUpdateInputSchema,
 } from "../schemas/flow.ts";
 import { base } from "./base.ts";
+import { flowDocumentV1Errors } from "./flowDocumentsV1.ts";
 
 // `{flow}` is the ULID or the slug of a flow.
 export const flows = {
@@ -22,6 +23,7 @@ export const flows = {
 		.output(z.array(FlowSummarySchema)),
 	get: base
 		.route({ method: "GET", path: "/flows/{flow}", summary: "Read a flow with its nodes and edges" })
+		.errors({ FLOW_UNSUPPORTED_FORMAT: flowDocumentV1Errors.FLOW_UNSUPPORTED_FORMAT })
 		.input(FlowGetInputSchema)
 		.output(FlowDocSchema),
 	create: base
@@ -35,12 +37,18 @@ export const flows = {
 			path: "/flows/{flow}",
 			summary: "Update the project, name, slug, description, or briefing",
 		})
-		.errors(pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT"]))
+		.errors({
+			...pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT"]),
+			FLOW_UNSUPPORTED_FORMAT: flowDocumentV1Errors.FLOW_UNSUPPORTED_FORMAT,
+		})
 		.input(FlowUpdateInputSchema)
 		.output(FlowSchema),
 	save: base
 		.route({ method: "PUT", path: "/flows/{flow}/graph", summary: "Replace every node and edge of a flow" })
-		.errors(pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT"]))
+		.errors({
+			...pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT"]),
+			FLOW_UNSUPPORTED_FORMAT: flowDocumentV1Errors.FLOW_UNSUPPORTED_FORMAT,
+		})
 		.input(FlowSaveInputSchema)
 		.output(FlowDocSchema),
 	delete: base

@@ -21,6 +21,7 @@ import {
 	AgentWorkspaceInputSchema,
 	AgentWorkspaceLineStatSchema,
 	AgentWorkspaceLineStatsInputSchema,
+	AgentWorkspacePageInputSchema,
 	AgentWorkspaceSchema,
 	AgentWorkspaceSummarySchema,
 	TicketMetricsSchema,
@@ -135,7 +136,7 @@ export const agentRuns = {
 		.output(AgentWorkspaceSummarySchema),
 	workspace: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
-		.input(AgentWorkspaceInputSchema)
+		.input(AgentWorkspacePageInputSchema)
 		.output(AgentWorkspaceSchema),
 	file: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace/file", summary: "Read a workspace file" })
@@ -152,7 +153,7 @@ export const agentRuns = {
 			idInput.extend({
 				accountId: UlidSchema,
 				expectedTerminalId: z.string().min(1),
-				requestId: z.string().min(1).max(200),
+				requestId: z.string().min(1),
 				confirmInterrupt: z.boolean().default(false),
 			}),
 		)
@@ -168,7 +169,7 @@ export const agentRuns = {
 			idInput.extend({
 				model: ModelIdSchema,
 				expectedTerminalId: z.string().min(1),
-				requestId: z.string().min(1).max(200),
+				requestId: z.string().min(1),
 			}),
 		)
 		.output(AgentRunSchema),
@@ -187,7 +188,7 @@ export const agentRuns = {
 					"Canonical model ID from models.list for this resume. Defaults to the previous attempt's model.",
 				),
 				expectedTerminalId: z.string().min(1),
-				requestId: z.string().min(1).max(200),
+				requestId: z.string().min(1),
 			}),
 		)
 		.output(AgentRunSchema),

@@ -39,7 +39,7 @@ const toolInput = (args: string | undefined) => {
 // yields one receipt per prompt. The text of the last completed agent
 // message of a turn is the result of that turn.
 export class MuseSessionEvents {
-	private readonly answers = new Map<string, string>();
+	private readonly answers = new Map<string, { id: string; text: string }>();
 	private readonly prompts = new Set<string>();
 	private readonly batches = new Map<string, string[]>();
 	constructor(private readonly sessionId: string) {}
@@ -102,7 +102,7 @@ export class MuseSessionEvents {
 		if (method === "turn/completed") {
 			const turnId = z.string().parse(params.turnId);
 			const terminal = z.string().parse(params.terminal);
-			const result = this.answers.get(turnId);
+			const answer = this.answers.get(turnId);
 			this.answers.delete(turnId);
 			if (terminal === "failed") {
 				const error = z.looseObject({ message: z.string() }).optional().parse(params.error);
@@ -121,7 +121,7 @@ export class MuseSessionEvents {
 					kind: "idle",
 					...identity,
 					outcome: terminal === "cancelled" ? "interrupted" : "completed",
-					...(result ? { result } : {}),
+					...(answer ? { result: answer.text, resultActivityIds: [answer.id] } : {}),
 				},
 			];
 		}
@@ -133,17 +133,25 @@ export class MuseSessionEvents {
 				this.prompts.add(value.itemId);
 				const batch = value.commandId === undefined ? undefined : this.batches.get(value.commandId);
 				if (value.commandId !== undefined) this.batches.delete(value.commandId);
-				return (batch ?? [value.text ?? ""]).map((prompt) => ({
+				return (batch ?? [value.text ?? ""]).map((prompt, index) => ({
 					kind: "prompt" as const,
 					sessionId: this.sessionId,
 					...turn,
+					activityId: `${value.itemId}:prompt:${index}`,
 					prompt,
 				}));
 			}
 			if (value.kind === "agentMessage") {
 				if (method !== "item/completed" || !value.text) return [];
-				if (value.turnId) this.answers.set(value.turnId, value.text);
-				return [{ kind: "message", ...identity, ...turn, message: { text: value.text } }];
+				if (value.turnId) this.answers.set(value.turnId, { id: value.itemId, text: value.text });
+				return [
+					{
+						kind: "message",
+						...identity,
+						...turn,
+						message: { id: value.itemId, text: value.text, complete: true },
+					},
+				];
 			}
 			if (value.kind === "toolCall") {
 				const tool = {

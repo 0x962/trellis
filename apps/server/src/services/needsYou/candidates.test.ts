@@ -30,11 +30,10 @@ const addPullRequest = async (ticketId: string, number: number, draft: boolean, 
 		(pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
 		VALUES (${id}, ${headSha}, 'It adds the page.', 'The page was missing.', 'nothing', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO pr_evidence_documents
-		(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${id}, ${headSha}, 'Proof.', 'Test', 'human', ${at}, ${at})`);
+		(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at, actor_id)
+		VALUES (${id}, ${headSha}, 'Proof.', 'Test', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test']::text[]))`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', ${at})`);
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test']::text[]))`);
 };
 
 beforeAll(async () => {

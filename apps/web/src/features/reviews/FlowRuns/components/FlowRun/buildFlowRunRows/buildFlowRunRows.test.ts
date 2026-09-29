@@ -226,7 +226,7 @@ test("names the gate answer on a skipped branch", () => {
 	expect(rows.find((row) => row.title === "backendGate")).toMatchObject({
 		state: "succeeded",
 		meta: "No",
-		output: null,
+		output: "NO",
 	});
 	expect(rows.find((row) => row.title === "backendChecks")).toMatchObject({
 		state: "skipped",
@@ -248,4 +248,21 @@ test("orders a sequential box along its wires with yes before no", () => {
 		edges: [edge("gate", "yes", "yes"), edge("gate", "no", "no"), edge("yes", "join"), edge("no", "join")],
 	};
 	expect(scopeOrder(branches, null).map((item) => item.id)).toEqual(["gate", "yes", "no", "join"]);
+});
+
+test("retains round 51 and marks unavailable past loop decisions as unknown", () => {
+	const execution = record([
+		step("root/1/loop", null, { phase: "condition", round: 51, state: "succeeded", decision: "yes", output: "YES" }),
+	]);
+	execution.doc = {
+		...doc,
+		nodes: [node("loop", "loop", null, { maxRounds: 51 }), node("worker", "agent", "loop")],
+		edges: [],
+	};
+	const rows = buildFlowRunRows(execution);
+	const conditions = rows.filter((row) => row.title === "Exit question");
+	expect(conditions).toHaveLength(51);
+	expect(conditions[0]).toMatchObject({ state: "unknown", meta: "Historical decision unavailable", output: null });
+	expect(conditions[50]).toMatchObject({ state: "succeeded", meta: "Yes", output: "YES" });
+	expect(rows.some((row) => row.title === "Round 51")).toBe(true);
 });

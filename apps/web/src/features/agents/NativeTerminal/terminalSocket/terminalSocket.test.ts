@@ -117,3 +117,43 @@ test("acknowledges output while acknowledged input pieces wait", async () => {
 	);
 	expect(inputBytes.toString()).toBe(input);
 });
+
+test("ignores events from a detached attempt and preserves a replacement connection error", async () => {
+	const oldSocket = new FakeSocket();
+	const newSocket = new FakeSocket();
+	const oldController = new AbortController();
+	const newController = new AbortController();
+	const observed: string[] = [];
+	const connect = (terminalId: string, socket: FakeSocket, controller: AbortController) =>
+		createTerminalSocket({
+			run: { id: "run", terminalId, sessionId: "conversation" },
+			offset: 0,
+			signal: controller.signal,
+			onOutput: async () => {},
+			onSession: (session) => observed.push(`${terminalId}:${session.status}`),
+			origin: "http://127.0.0.1:4521",
+			createSocket: (url) => {
+				expect(new URL(url).searchParams.get("attemptId")).toBe(terminalId);
+				return socket as unknown as WebSocket;
+			},
+		});
+	const old = connect("old-attempt", oldSocket, oldController);
+	oldController.abort();
+	await old.done;
+	const replacement = connect("new-attempt", newSocket, newController);
+	oldSocket.emit(
+		"message",
+		new MessageEvent("message", { data: JSON.stringify({ type: "session", session: { status: "exited" } }) }),
+	);
+	oldSocket.emit("error", new Event("error"));
+	oldSocket.emit("close", new Event("close"));
+	newSocket.emit(
+		"message",
+		new MessageEvent("message", { data: JSON.stringify({ type: "session", session: { status: "running" } }) }),
+	);
+	expect(observed).toEqual(["new-attempt:running"]);
+	const failure = replacement.done.catch((error: unknown) => error);
+	newSocket.emit("error", new Event("error"));
+	expect(await failure).toEqual(new Error("The terminal connection failed."));
+	newController.abort();
+});

@@ -5,6 +5,8 @@ import type { Db } from "../client.ts";
 import { openTestDb } from "../testDb.ts";
 import { flowAnsweredSql } from "./reviewReady.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['agent', 'Builder'])`;
+
 // One project TST with one flow, one ticket TST-1, and one pull request the
 // ticket links. Each test moves the head of that pull request and asks
 // `flowAnsweredSql` whether the flow check still needs a run.
@@ -50,8 +52,8 @@ beforeAll(async () => {
 		VALUES (${flow}, ${project}, 'review', 'Review', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
 		VALUES (${pull}, 'acme', 'app', 1, 'https://github.com/acme/app/pull/1', 'open', 'commit1', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket}, ${pull}, 'manual', 'Builder', 'agent', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${ticket}, ${pull}, 'manual', ${actorId}, 'Builder', 'agent', ${at})`);
 });
 
 afterAll(async () => {
@@ -80,8 +82,8 @@ test("keeps a succeeded run through three later commits", async () => {
 
 test("keeps the agent's sentence through a later commit", async () => {
 	await db.execute(sql`DELETE FROM flow_executions WHERE ticket_id = ${ticket}`);
-	await db.execute(sql`INSERT INTO pr_flow_waivers (pull_request_id, head_sha, reason, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${pull}, 'commit4', 'This change edits only the README.', 'Builder', 'agent', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO pr_flow_waivers (pull_request_id, head_sha, reason, actor_id, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${pull}, 'commit4', 'This change edits only the README.', ${actorId}, 'Builder', 'agent', ${at}, ${at})`);
 	await push("commit5");
 
 	expect(await answered()).toBe(true);
@@ -92,8 +94,8 @@ test("a completed review applies only to its diff when a ticket has two diffs", 
 	await insertRun("commit5", "succeeded");
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
 		VALUES (${other}, 'acme', 'app', 2, 'https://github.com/acme/app/pull/2', 'open', 'commit5', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket}, ${other}, 'manual', 'Builder', 'agent', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${ticket}, ${other}, 'manual', ${actorId}, 'Builder', 'agent', ${at})`);
 	expect(await answered(other)).toBe(false);
 	await insertRun("commit5", "succeeded", other);
 	expect(await answered(other)).toBe(true);

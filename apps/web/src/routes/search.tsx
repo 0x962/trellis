@@ -6,6 +6,7 @@ import { searchDebounceMs } from "../features/command/hooks/useCommandSearch";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusRing";
 import { SearchResults } from "../features/search/SearchResults";
+import { searchOptions } from "../features/search/searchOptions";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { useApp } from "../lib/appContext";
@@ -38,9 +39,7 @@ export const Route = createFileRoute("/search")({
 			throw redirect({ href, replace: true });
 		}
 		if (deps.q !== undefined) {
-			await context.queryClient.ensureQueryData(
-				context.orpc.search.query.queryOptions({ input: { q: deps.q, rankProject: deps.rankProject } }),
-			);
+			await context.queryClient.ensureInfiniteQueryData(searchOptions(context.orpc, deps.q, deps.rankProject));
 		}
 	},
 	component: SearchPage,
@@ -113,7 +112,7 @@ function SearchPage() {
 						<input
 							id={id}
 							type="search"
-							placeholder="Search tickets and projects"
+							placeholder="Search tickets, Pages, and projects"
 							value={draft}
 							// biome-ignore lint/a11y/noAutofocus: The field is the one control of the search page.
 							autoFocus
@@ -141,8 +140,8 @@ function SearchPage() {
 					{q === undefined ? (
 						<EmptyState
 							variant="page"
-							title="Search tickets and projects"
-							description="A ticket ID such as CDE-42 opens the ticket. A word also matches ticket text and project names."
+							title="Search tickets, Pages, and projects"
+							description="A ticket ID such as CDE-42 opens the ticket. A word also matches tickets, Pages, and project names."
 						/>
 					) : (
 						<SearchResults q={q} filters={search} />

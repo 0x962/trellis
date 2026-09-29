@@ -1,0 +1,79 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "Trellis frontend template export V1",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schemaVersion", "kind", "catalogId", "componentManifestHash", "engine", "engineOverlayHash", "allowedForPublication", "supportedMappings", "legacyMappings", "blockers", "definitions"],
+	"properties": {
+		"schemaVersion": {"const": 1},
+		"kind": {"const": "trellis-frontend-templates"},
+		"catalogId": {"type": "string", "minLength": 1},
+		"componentManifestHash": {"$ref": "#/$defs/sha256"},
+		"engineOverlayHash": {"$ref": "#/$defs/sha256"},
+		"engine": {
+			"type": "object", "additionalProperties": false,
+			"required": ["name", "version", "commit"],
+			"properties": {
+				"name": {"const": "langflow"},
+				"version": {"type": "string", "minLength": 1},
+				"commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+			}
+		},
+		"allowedForPublication": {"type": "boolean"},
+		"supportedMappings": {"type": "array"},
+		"legacyMappings": {"type": "array", "items": {"type": "object"}},
+		"blockers": {"type": "object", "additionalProperties": {"type": "string"}},
+		"definitions": {"type": "array", "items": {"$ref": "#/$defs/definition"}}
+	},
+	"$defs": {
+		"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+		"source": {
+			"type": "object", "additionalProperties": false,
+			"required": ["root", "path", "sha256"],
+			"properties": {
+				"root": {"enum": ["trellis", "engine"]},
+				"path": {"type": "string", "minLength": 1},
+				"sha256": {"$ref": "#/$defs/sha256"}
+			}
+		},
+		"definition": {
+			"type": "object", "additionalProperties": false,
+			"required": ["id", "version", "className", "source", "qualification", "allowedForPublication", "frontendTemplate"],
+			"properties": {
+				"id": {"type": "string", "minLength": 1},
+				"version": {"type": "integer", "minimum": 1},
+				"className": {"type": "string", "minLength": 1},
+				"source": {"$ref": "#/$defs/source"},
+				"qualification": {"type": "string", "minLength": 1},
+				"allowedForPublication": {"type": "boolean"},
+				"frontendTemplate": {"$ref": "#/$defs/frontendTemplate"}
+			}
+		},
+		"frontendTemplate": {
+			"type": "object", "required": ["id", "data"],
+			"properties": {
+				"id": {"type": "string", "minLength": 1},
+				"data": {
+					"type": "object", "required": ["id", "type", "node"],
+					"properties": {
+						"id": {"type": "string", "minLength": 1},
+						"type": {"type": "string", "minLength": 1},
+						"node": {
+							"type": "object", "required": ["template", "outputs"],
+							"properties": {
+								"outputs": {"type": "array", "items": {"type": "object"}},
+								"template": {
+									"type": "object", "required": ["code"],
+									"properties": {"code": {
+										"type": "object", "required": ["value"],
+										"properties": {"value": {"type": "string"}}
+									}}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

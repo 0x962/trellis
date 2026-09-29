@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlmodel import select
 
+from integrations.langflow.tests.decisions.authority_probe import stored_authority
 from integrations.langflow.tests.decisions.decision_probe import (
     JOB_ID,
     decision_bytes,
@@ -129,6 +130,7 @@ def test_valid_large_output_and_round_values_remain_exact(tmp_path: Path) -> Non
             engine_job_id=JOB_ID,
             decision_bytes=payload,
             payload_digest=digest(payload),
+            authority_bytes=await stored_authority(database_url),
         )
         async with session_scope() as session:
             acceptance = await session.get(TrellisDecisionAcceptance, "decision-1")

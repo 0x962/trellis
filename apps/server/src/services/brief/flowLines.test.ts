@@ -15,7 +15,7 @@ test("names the available flows without a second workflow guide", () => {
 	).toEqual([
 		"## Available flows",
 		"",
-		"- flow:review: review, Read the diff and report every fault.",
-		"- flow:e2e: e2e, End to end",
+		"- flow:review: review, Read the diff and report every fault.; document: trellis flow document show flow:review",
+		"- flow:e2e: e2e, End to end; document: trellis flow document show flow:e2e",
 	]);
 });

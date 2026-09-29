@@ -87,6 +87,7 @@ export const TrellisPlugin = async ({ client }) => {
 				event: "prompt",
 				sessionId,
 				turnId,
+				activityId: output.message.id,
 				prompt: output.parts
 					.filter((p) => p.type === "text")
 					.map((p) => p.text)
@@ -119,7 +120,12 @@ export const TrellisPlugin = async ({ client }) => {
 		"experimental.text.complete": async (input, output) => {
 			if (matches(input.sessionID)) {
 				parts.set(input.partID, output.text);
-				await send({ event: "message", sessionId, turnId, message: { text: output.text } });
+				await send({
+					event: "message",
+					sessionId,
+					turnId,
+					message: { id: input.partID, text: output.text, complete: false },
+				});
 			}
 		},
 		event: async ({ event }) => {
@@ -159,7 +165,15 @@ export const TrellisPlugin = async ({ client }) => {
 				}
 				if (p.status.type === "idle") {
 					working = false;
-					await send({ event: "idle", sessionId, turnId, result: [...parts.values()].join("\n"), outcome });
+					await send({
+						event: "idle",
+						messageAvailability: "unavailable",
+						sessionId,
+						turnId,
+						result: [...parts.values()].join("\n"),
+						resultActivityIds: [...parts.keys()],
+						outcome,
+					});
 				}
 			}
 		},

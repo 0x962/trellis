@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { generateOperationKey } from "@orpc/tanstack-query";
-import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
 import { type AgentRun, createEventApplier } from "@trellis/api";
 import type { LinkPress, SessionUpdates } from "@trellis/ui";
 import type { Orpc } from "../../../../../lib/orpc";
@@ -87,22 +87,27 @@ describe("session status state", () => {
 		const orpc = {
 			sessionUpdates: {
 				get: {
-					queryOptions: ({ input }: { input: { sessionId: string } }) => ({
-						queryKey: generateOperationKey(["sessionUpdates", "get"], { input }),
-						queryFn: async () => updates.get(input.sessionId)!,
+					infiniteOptions: ({ input }: { input: (cursor: undefined) => { sessionId: string } }) => ({
+						queryKey: generateOperationKey(["sessionUpdates", "get"], { input: input(undefined) }),
+						queryFn: async () => updates.get(input(undefined).sessionId)!,
+						initialPageParam: undefined,
+						getNextPageParam: () => undefined,
 					}),
 				},
 			},
 		} as unknown as Orpc;
 		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-		const observer = new QueryObserver(queryClient, agentStatusUpdatesQueryOptions(orpc, run({ id: firstRunId })));
+		const observer = new InfiniteQueryObserver(
+			queryClient,
+			agentStatusUpdatesQueryOptions(orpc, run({ id: firstRunId })),
+		);
 		const unsubscribe = observer.subscribe(() => {});
 
 		await observer.refetch();
-		expect(observer.getCurrentResult().data?.latest?.body).toBe("Update A");
+		expect(observer.getCurrentResult().data?.pages[0]?.latest?.body).toBe("Update A");
 		observer.setOptions(agentStatusUpdatesQueryOptions(orpc, run({ id: secondRunId })));
 		await observer.refetch();
-		expect(observer.getCurrentResult().data?.latest?.body).toBe("Update B");
+		expect(observer.getCurrentResult().data?.pages[0]?.latest?.body).toBe("Update B");
 
 		let flush = () => {};
 		const applier = createEventApplier(queryClient, {
@@ -119,7 +124,7 @@ describe("session status state", () => {
 		applier.applyEvent({ type: "session-updates.changed", id: secondRunId });
 		flush();
 		await Bun.sleep(1);
-		expect(observer.getCurrentResult().data?.latest?.body).toBe("Update B after the event");
+		expect(observer.getCurrentResult().data?.pages[0]?.latest?.body).toBe("Update B after the event");
 
 		unsubscribe();
 		queryClient.clear();

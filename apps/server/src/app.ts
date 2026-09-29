@@ -12,6 +12,7 @@ import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
+import { type EditorGatewayConfiguration, editorGateway } from "./editorGateway";
 import type { Bus } from "./events/bus.ts";
 import type { GhAccess } from "./ghState.ts";
 import { isAllowedHost } from "./hostCheck.ts";
@@ -42,6 +43,7 @@ export type AppOptions = {
 	bus: Bus;
 	runtime: Runtime;
 	clock?: Clock;
+	editor?: EditorGatewayConfiguration;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
 	chooseDirectory?: () => Promise<string | null>;
@@ -108,10 +110,12 @@ export const createApp = ({
 	bus,
 	runtime,
 	clock = realClock,
+	editor,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
 }: AppOptions) => {
 	const app = new Hono();
+	const editorSessions = editor === undefined ? undefined : editorGateway(config, transport, editor);
 	// The database timing of each procedure request, by its request. The
 	// request log line reads it. A streaming batch writes its line when its
 	// headers go out, so that line counts only the calls done by then.
@@ -169,6 +173,12 @@ export const createApp = ({
 	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
 	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config, transport, log }));
 
+	if (editorSessions)
+		app.all("/api/trellis-editor/v1/*", (c) => {
+			const timing = createDbTiming();
+			timings.set(c.req.raw, timing);
+			return editorSessions.fetch(c.req.raw, { reqId: c.get("requestId"), timing });
+		});
 	app.use(hostAuth(config.authToken));
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
@@ -198,6 +208,7 @@ export const createApp = ({
 		timings.set(c.req.raw, timing);
 		return {
 			headers: c.req.raw.headers,
+			editorGateway: editorSessions,
 			reqId: c.get("requestId"),
 			transport,
 			actor: null,

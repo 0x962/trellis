@@ -1,0 +1,278 @@
+diff --git a/src/backend/base/langflow/services/background_execution/service.py b/src/backend/base/langflow/services/background_execution/service.py
+index fc0f709..2445054 100644
+--- a/src/backend/base/langflow/services/background_execution/service.py
++++ b/src/backend/base/langflow/services/background_execution/service.py
+@@ -18,6 +18,7 @@ from __future__ import annotations
+ 
+ import asyncio
+ import contextlib
++import hashlib
+ import json
+ import math
+ import os
+@@ -717,6 +718,105 @@ class BackgroundExecutionService(Service):
+         await job_service.write_signal(job_id, SignalType.STOP)
+         await self._executor.cancel(str(job_id))
+ 
++    async def enqueue_trellis_submission(
++        self,
++        *,
++        engine_job_id: UUID,
++        flow_id: UUID,
++        user_id: UUID,
++        request_bytes: bytes,
++    ) -> Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]:
++        """Dispatch an existing Trellis job through the Langflow queue."""
++        await self.start()
++        request = json.loads(request_bytes)
++        job_service = get_job_service()
++        request_digest = hashlib.sha256(request_bytes).hexdigest()
++        saved_request = await job_service.load_checkpoint(engine_job_id, "trellis-submission-request-v1")
++        if saved_request is None:
++            request_metadata = self._persisted_request_metadata(
++                job_id=engine_job_id,
++                flow_id=flow_id,
++                request=request,
++            )
++            job = await job_service.bind_trellis_submission_request(
++                engine_job_id=engine_job_id,
++                flow_id=flow_id,
++                user_id=user_id,
++                request_digest=request_digest,
++                request_metadata=request_metadata,
++            )
++        else:
++            if saved_request != request_digest:
++                raise RuntimeError("trellis_submission_request_conflict")
++            job = await job_service.get_job_by_job_id(engine_job_id)
++            if job is None:
++                raise RuntimeError("trellis_submission_job_missing")
++            if job.flow_id != flow_id or job.user_id != user_id:
++                raise RuntimeError("trellis_submission_job_conflict")
++        dispatch_kind = "trellis-submission-dispatch-v1"
++        dispatch_receipt = await job_service.load_checkpoint(engine_job_id, dispatch_kind)
++        if dispatch_receipt is not None:
++            if dispatch_receipt != request_digest:
++                raise RuntimeError("trellis_submission_dispatch_conflict")
++            return "dispatched"
++        if job.status == JobStatus.CANCELLED:
++            return "cancelled"
++        if job.status in {
++            JobStatus.IN_PROGRESS,
++            JobStatus.SUSPENDED,
++            JobStatus.COMPLETED,
++            JobStatus.FAILED,
++            JobStatus.TIMED_OUT,
++        }:
++            return "execution_proven"
++        if job.status != JobStatus.QUEUED:
++            raise RuntimeError("trellis_submission_dispatch_state_conflict")
++        if self._scaled:
++            await self._backend.enqueue(str(engine_job_id))
++            await job_service.save_checkpoint_once(engine_job_id, dispatch_kind, request_digest)
++            return "dispatched"
++        lease_heartbeat = datetime.now(timezone.utc).isoformat()
++        if not await job_service.claim_queued_lease(
++            engine_job_id,
++            owner=self._owner,
++            lease_ttl_s=self._settings.background_lease_ttl_s,
++            heartbeat_at=lease_heartbeat,
++        ):
++            refreshed = await job_service.get_job_by_job_id(engine_job_id)
++            if refreshed is None:
++                raise RuntimeError("trellis_submission_job_missing")
++            if refreshed.status == JobStatus.CANCELLED:
++                return "cancelled"
++            if refreshed.status != JobStatus.QUEUED:
++                return "execution_proven"
++
++            async def retry() -> None:
++                await self.enqueue_trellis_submission(
++                    engine_job_id=engine_job_id,
++                    flow_id=flow_id,
++                    user_id=user_id,
++                    request_bytes=request_bytes,
++                )
++
++            self._schedule_trellis_lease_retry(f"submission:{engine_job_id}", retry)
++            return "pending_lease"
++        try:
++            await self._enqueue(
++                job_id=engine_job_id,
++                flow_id=flow_id,
++                request=request,
++                user=self._user_stub(user_id),
++            )
++            await job_service.save_checkpoint_once(engine_job_id, dispatch_kind, request_digest)
++        except Exception:
++            await job_service.release_queued_lease(
++                engine_job_id,
++                owner=self._owner,
++                heartbeat_at=lease_heartbeat,
++            )
++            raise
++        return "dispatched"
++
+     async def accept_trellis_human_decision(
+         self,
+         *,
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+index 2fbe717..dfdbe88 100644
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -356,26 +356,71 @@ class JobService(Service):
+ 
+     async def save_checkpoint_once(self, job_id: UUID, kind: str, blob: str) -> str:
+         """Store immutable bytes once and return the saved bytes."""
++        async with session_scope() as session:
++            return await self.save_checkpoint_once_in_session(session, job_id, kind, blob)
++
++    async def save_checkpoint_once_in_session(
++        self,
++        session: AsyncSession,
++        job_id: UUID,
++        kind: str,
++        blob: str,
++    ) -> str:
++        """Store immutable bytes inside the caller transaction."""
+         now = datetime.now(timezone.utc)
++        if session.get_bind().dialect.name == "postgresql":
++            from sqlalchemy.dialects.postgresql import insert as dialect_insert
++        else:
++            from sqlalchemy.dialects.sqlite import insert as dialect_insert
++        insert = (
++            dialect_insert(JobCheckpoint)
++            .values(id=uuid4(), job_id=job_id, kind=kind, blob=blob, created_at=now, updated_at=now)
++            .on_conflict_do_nothing(index_elements=["job_id", "kind"])
++        )
++        await session.exec(insert)
++        saved = (
++            await session.exec(
++                select(JobCheckpoint).where(JobCheckpoint.job_id == job_id).where(JobCheckpoint.kind == kind)
++            )
++        ).one()
++        if saved.blob != blob:
++            raise RuntimeError("checkpoint_identity_conflict")
++        return saved.blob
++
++    async def bind_trellis_submission_request(
++        self,
++        *,
++        engine_job_id: UUID,
++        flow_id: UUID,
++        user_id: UUID,
++        request_digest: str,
++        request_metadata: dict,
++    ) -> Job:
++        """Bind one exact build request to an existing Trellis job."""
+         async with session_scope() as session:
+-            if session.get_bind().dialect.name == "postgresql":
+-                from sqlalchemy.dialects.postgresql import insert as dialect_insert
+-            else:
+-                from sqlalchemy.dialects.sqlite import insert as dialect_insert
+-            insert = (
+-                dialect_insert(JobCheckpoint)
+-                .values(id=uuid4(), job_id=job_id, kind=kind, blob=blob, created_at=now, updated_at=now)
+-                .on_conflict_do_nothing(index_elements=["job_id", "kind"])
++            job = await session.get(Job, engine_job_id, with_for_update=True)
++            if job is None:
++                raise RuntimeError("trellis_submission_job_missing")
++            if job.flow_id != flow_id or job.user_id != user_id:
++                raise RuntimeError("trellis_submission_job_conflict")
++            await self.save_checkpoint_once_in_session(
++                session,
++                engine_job_id,
++                "trellis-submission-request-v1",
++                request_digest,
+             )
+-            await session.exec(insert)
+-            saved = (
+-                await session.exec(
+-                    select(JobCheckpoint).where(JobCheckpoint.job_id == job_id).where(JobCheckpoint.kind == kind)
+-                )
+-            ).one()
+-            if saved.blob != blob:
+-                raise RuntimeError("checkpoint_identity_conflict")
+-            return saved.blob
++            metadata = dict(job.job_metadata or {})
++            if "request" not in metadata:
++                if job.status != JobStatus.QUEUED:
++                    raise RuntimeError("trellis_submission_state_conflict")
++                for key, value in request_metadata.items():
++                    if key in metadata and metadata[key] != value:
++                        raise RuntimeError("trellis_submission_metadata_conflict")
++                    metadata[key] = value
++                job.job_metadata = metadata
++                session.add(job)
++                await session.flush()
++            return job
+ 
+     async def consume_suspended_continuation(
+         self,
+diff --git a/src/backend/base/langflow/services/trellis_v1/external_waits.py b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+index 08f2c07..2038fab 100644
+--- a/src/backend/base/langflow/services/trellis_v1/external_waits.py
++++ b/src/backend/base/langflow/services/trellis_v1/external_waits.py
+@@ -6,6 +6,7 @@ from uuid import UUID
+ 
+ if TYPE_CHECKING:
+     from lfx.graph.graph.base import Graph
++    from sqlmodel.ext.asyncio.session import AsyncSession
+ 
+     from langflow.services.jobs.service import JobService
+ 
+@@ -64,6 +65,43 @@ class TrellisExternalWaitBroker:
+         delivery_bytes: str,
+         receipt_bytes: str,
+     ) -> str:
++        kind, envelope_bytes = self._completion_blob(
++            authority_epoch=authority_epoch,
++            wait_bytes=wait_bytes,
++            delivery_bytes=delivery_bytes,
++            receipt_bytes=receipt_bytes,
++        )
++        saved = await self._jobs.save_checkpoint_once(job_id, kind, envelope_bytes)
++        return json.loads(saved)["receiptBytes"]
++
++    async def save_completion_in_session(
++        self,
++        session: AsyncSession,
++        *,
++        job_id: UUID,
++        authority_epoch: int,
++        wait_bytes: bytes,
++        delivery_bytes: bytes,
++        receipt_bytes: bytes,
++    ) -> bytes:
++        """Store one completion envelope inside the caller transaction."""
++        kind, envelope_bytes = self._completion_blob(
++            authority_epoch=authority_epoch,
++            wait_bytes=wait_bytes.decode(),
++            delivery_bytes=delivery_bytes.decode(),
++            receipt_bytes=receipt_bytes.decode(),
++        )
++        saved = await self._jobs.save_checkpoint_once_in_session(session, job_id, kind, envelope_bytes)
++        return json.loads(saved)["receiptBytes"].encode()
++
++    def _completion_blob(
++        self,
++        *,
++        authority_epoch: int,
++        wait_bytes: str,
++        delivery_bytes: str,
++        receipt_bytes: str,
++    ) -> tuple[str, str]:
+         wait = json.loads(wait_bytes)
+         delivery = json.loads(delivery_bytes)
+         receipt = json.loads(receipt_bytes)
+@@ -101,9 +139,4 @@ class TrellisExternalWaitBroker:
+             },
+             separators=(",", ":"),
+         )
+-        saved = await self._jobs.save_checkpoint_once(
+-            job_id,
+-            self.completion_kind(wait_id),
+-            envelope_bytes,
+-        )
+-        return json.loads(saved)["receiptBytes"]
++        return self.completion_kind(wait_id), envelope_bytes

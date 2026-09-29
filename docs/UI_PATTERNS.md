@@ -179,6 +179,8 @@ The sheet header holds Back, Forward, Reload, and Open in browser, which hands t
 Place filter chips beside the page title. Align Filter and Display at the right in the shared `FilterBar`.
 Filter uses the funnel icon. Display uses the sliders icon. Both use circular `IconButton` triggers with tooltips.
 The filter picker uses `FilterPopover` and `Command`. Selected filters use `Chip`, with an edit action and a remove action.
+
+Use `Command.Virtual` for a large, flat collection. It accepts stable item IDs, labels, optional search keywords, and the current item. It uses the shared Command field, rows, and empty state. Search and keyboard selection use the full collection while the list mounts nearby rows and the selected row. Arrow keys, Home, End, Page Up, and Page Down move the selection. Enter selects an item.
 The `f` shortcut opens the filter picker.
 The `epic` stage of the picker lists the epics of the project from `epics.list` and the choice No epic.
 The chip prints the epic name, or No epic for `none`.

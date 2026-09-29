@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { observerConversationIdentities } from "../agentRuns/observerRuns/index.ts";
 import type { UsageProject, UsageRun } from "./aggregate.ts";
 import type { UsageAccountRow } from "./roots.ts";
 
@@ -22,8 +23,11 @@ export const listUsageRuns = async (tx: Tx, home: string, cutoff: Date): Promise
 		tx,
 		sql`SELECT r.id, r.kind, r.name, r.ticket_identifier AS "ticketIdentifier",
 			t.title AS "ticketTitle", r.project_key AS "projectKey", coalesce(p.name, r.project_key) AS "projectName",
-			a.name AS "accountName", r.session_id AS "sessionId"
+			a.name AS "accountName", identities.session_id AS "sessionId"
 		FROM agent_runs r
+		LEFT JOIN LATERAL (
+			${observerConversationIdentities(sql`r.id`, sql`r.session_id`)}
+		) identities ON true
 		LEFT JOIN tickets t ON t.id = r.ticket_id
 		LEFT JOIN projects p ON p.id = r.project_id
 		LEFT JOIN harness_accounts a ON a.id = r.account_id

@@ -1,66 +1,19 @@
+import type { HarnessAttention, HarnessEvent, HarnessTool, RecordedTokenUsage } from "./harnessEvents/index.ts";
+
+export type {
+	HarnessAttention,
+	HarnessEvent,
+	HarnessInputRequest,
+	HarnessTool,
+	RecordedTokenUsage,
+	RuntimeHarnessActivityContext,
+	RuntimeHarnessActivityItem,
+	RuntimeHarnessActivitySignal,
+	RuntimeHarnessObservation,
+} from "./harnessEvents/index.ts";
 export const RUNTIME_PROTOCOL_VERSION = 16;
 export const MAX_TERMINAL_DIMENSION = 0xffff;
-export type HarnessInputRequest = {
-	id: string;
-	kind: "question" | "permission" | "elicitation";
-	title: string;
-	blocking: boolean;
-	questions?: Array<{
-		id: string;
-		question: string;
-		options: Array<{ label: string; description?: string }>;
-		multiple: boolean;
-		minSelections?: number;
-		maxSelections?: number;
-	}>;
-};
-export type HarnessAttention = {
-	sequence: number;
-	completion: { sequence: number; at: string } | null;
-	failure: { sequence: number; at: string } | null;
-	requests: Array<HarnessInputRequest & { sequence: number; at: string }>;
-};
-export type RecordedTokenUsage = { totalTokens: number };
-export type HarnessTool = {
-	id: string;
-	name: string;
-	input?: unknown;
-	output?: unknown;
-};
-
-export type HarnessEvent = {
-	willRetry?: boolean;
-	turnId?: string;
-	outcome?: "completed" | "interrupted" | "failed";
-	kind:
-		| "session"
-		| "prompt"
-		| "working"
-		| "idle"
-		| "message"
-		| "tool-start"
-		| "tool-update"
-		| "tool-end"
-		| "error"
-		| "input-request"
-		| "input-resolved";
-	inputRequest?: HarnessInputRequest;
-	requestId?: string;
-	message?: { text: string; at?: string };
-	sessionId?: string;
-	model?: string;
-	prompt?: string;
-	result?: string;
-	tool?: HarnessTool;
-	error?: string;
-	tokenUsage?: RecordedTokenUsage;
-};
-
 export type RuntimeStream = "stdout" | "stderr" | "events";
-export interface RuntimeHarnessObservation {
-	observedAt: string;
-	event: HarnessEvent;
-}
 export interface RuntimeAgentMetadata {
 	attention?: HarnessAttention;
 	sessionId: string | null;

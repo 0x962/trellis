@@ -140,10 +140,14 @@ async def test_human_wait_reads_the_accepted_decision_by_engine_request_id() -> 
 
 	component = TrellisExternalWaitComponent()
 	component.wait_bytes = json.dumps(wait, separators=(",", ":"))
-	component.graph = SimpleNamespace(
-		human_input_decisions={request_id: decision},
-		await_external_completion=unexpected_completion,
-		complete_external_wait=complete_wait,
+	component.set_vertex(
+		SimpleNamespace(
+			graph=SimpleNamespace(
+				human_input_decisions={request_id: decision},
+				await_external_completion=unexpected_completion,
+				complete_external_wait=complete_wait,
+			)
+		)
 	)
 	result = await component.wait()
 	assert json.loads(result.text) == decision
@@ -240,7 +244,8 @@ async def test_published_human_identities_compose_without_rewriting(real_service
 		wait["waitId"]: json.dumps(wait, separators=(",", ":"))
 		for wait in checkpoint_fixture["waits"]
 	}
-	await real_services_job_service.create_job(job_id=job_id, flow_id=uuid4(), user_id=uuid4())
+	if await real_services_job_service.get_job_by_job_id(job_id) is None:
+		await real_services_job_service.create_job(job_id=job_id, flow_id=uuid4(), user_id=uuid4())
 	await real_services_job_service.update_job_status(job_id, JobStatus.IN_PROGRESS)
 	checkpoint = GraphCheckpoint(run_id=str(job_id), job_id=str(job_id), external_waits=waits)
 	await real_services_job_service.save_checkpoint(job_id, "graph", checkpoint.model_dump_json())

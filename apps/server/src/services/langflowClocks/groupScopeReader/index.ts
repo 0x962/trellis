@@ -1,0 +1,1 @@
+export { groupScopeReader } from "./groupScopeReader";

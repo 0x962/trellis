@@ -1,7 +1,7 @@
 import { SidebarSimple } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, Button, EmptyState, FailureState, IconButton, Tooltip, toast } from "@trellis/ui";
+import { Avatar, Button, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -12,13 +12,18 @@ import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionName } from "../SessionName";
 import { isSessionArchived, sessionPane } from "../sessionPane";
+import { SessionPaneState } from "../sessionPane/SessionPaneState";
 import { useSessionArchive } from "../useSessionArchive";
-import { AgentStatusUpdates, useSessionStatusPaneVisibility } from "./components/AgentStatusUpdates";
+import { useSessionRestart } from "../useSessionRestart";
+import { useSessionRestartState } from "../useSessionRestartState";
+import { AgentStatusUpdates } from "./components/AgentStatusUpdates";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
+import { sessionObserverEnabled } from "./sessionObserverState";
+import { useSessionStatusObserver } from "./useSessionStatusObserver";
 
 export function SessionConversation({
-	run,
+	run: observedRun,
 	session,
 	readOnly = false,
 	autoFocusTerminal = false,
@@ -43,8 +48,9 @@ export function SessionConversation({
 	headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
 	const { client, orpc, queryClient } = useApp();
+	const { run, pending: restarting, busy: restartBusy } = useSessionRestartState(observedRun);
 	const [renaming, setRenaming] = useState(false);
-	const statusPane = useSessionStatusPaneVisibility();
+	const statusObserver = useSessionStatusObserver(run);
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const headingElement = headingRef ?? localHeading;
 	const focusHeading = useCallback(() => headingElement.current?.focus(), [headingElement]);
@@ -55,18 +61,16 @@ export function SessionConversation({
 			queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
 			queryClient.invalidateQueries({ queryKey: orpc.sessions.key() }),
 		]);
-	const start = useMutation({
+	const start = useSessionRestart(run, {
 		mutationFn: async () => {
-			if (session) await client.sessions.start({ id: session.id });
-			else
-				await client.agentRuns.resume({
-					id: run.id,
-					expectedTerminalId: run.terminalId!,
-					requestId: crypto.randomUUID(),
-				});
+			if (session) return (await client.sessions.start({ id: session.id })).run;
+			return client.agentRuns.resume({
+				id: run.id,
+				expectedTerminalId: run.terminalId!,
+				requestId: crypto.randomUUID(),
+			});
 		},
 		onError: (failure) => toast(failure.message),
-		onSettled: refresh,
 	});
 	const archive = useSessionArchive();
 	// A pause stops the process and keeps the assignment, the conversation
@@ -85,7 +89,7 @@ export function SessionConversation({
 	// on window focus returns the numbers of the first read and runs git for
 	// nothing.
 	const summary = useWorkspaceSummary(run, { focus: !archived }).data;
-	const busy = start.isPending || pause.isPending;
+	const busy = restartBusy || start.isPending || pause.isPending;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
 	const heading = (
 		<h2
@@ -98,7 +102,14 @@ export function SessionConversation({
 			{name}
 		</h2>
 	);
-	const pane = sessionPane(run, archived);
+	const pane = sessionPane(run, archived, restarting);
+	const observerEnabled = sessionObserverEnabled(statusObserver.observer.data);
+	const observerFailed = statusObserver.observer.isError;
+	const observerLabel = observerFailed
+		? "Retry status observer"
+		: observerEnabled
+			? "Disable status observer"
+			: "Enable status observer";
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -107,8 +118,8 @@ export function SessionConversation({
 					name={name}
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
-					state={isAgentWorking(run) ? "working" : "static"}
-					status={sessionStatus(run)}
+					state={restarting ? "starting" : isAgentWorking(run) ? "working" : "static"}
+					status={restarting ? "starting" : sessionStatus(run)}
 					className="size-7 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">
@@ -127,12 +138,21 @@ export function SessionConversation({
 					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
-				<Tooltip content={statusPane.visible ? "Hide session status" : "Show session status"}>
+				<Tooltip content={observerLabel}>
 					<IconButton
-						label={statusPane.visible ? "Hide session status" : "Show session status"}
+						label={observerLabel}
 						icon={<SidebarSimple />}
-						pressed={statusPane.visible}
-						onClick={statusPane.toggle}
+						pressed={observerEnabled}
+						processing={
+							statusObserver.observer.isPending ||
+							statusObserver.setEnabled.isPending ||
+							(observerFailed && statusObserver.observer.isFetching)
+						}
+						disabled={readOnly && !observerFailed}
+						onClick={() => {
+							if (observerFailed) void statusObserver.observer.refetch();
+							else statusObserver.setEnabled.mutate(!observerEnabled);
+						}}
 					/>
 				</Tooltip>
 				<SessionBarActions
@@ -157,9 +177,7 @@ export function SessionConversation({
 			<PendingQuestions run={run} readOnly={readOnly} />
 			<div className="flex min-h-0 flex-1 max-md:flex-col">
 				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
-					{pane.kind === "failed" ? (
-						<FailureState variant="page" title={pane.title} description={pane.description} detail={pane.detail} />
-					) : pane.kind === "archived" ? (
+					{pane.kind === "archived" ? (
 						<EmptyState
 							variant="page"
 							image={null}
@@ -175,9 +193,8 @@ export function SessionConversation({
 								</Button>
 							}
 						/>
-					) : pane.kind === "paused" ? (
-						// A paused session uses the page picture because a pause is not a failure.
-						<EmptyState variant="page" title={pane.title} description={pane.description} />
+					) : pane.kind !== "terminal" ? (
+						<SessionPaneState pane={pane} />
 					) : run.terminalId ? (
 						<NativeTerminal
 							key={run.terminalId}
@@ -197,7 +214,9 @@ export function SessionConversation({
 						/>
 					)}
 				</div>
-				<AgentStatusUpdates run={run} visible={statusPane.visible} />
+				{observerEnabled && (
+					<AgentStatusUpdates run={run} observerError={statusObserver.observer.data?.error?.message ?? null} />
+				)}
 			</div>
 		</section>
 	);

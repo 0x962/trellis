@@ -90,6 +90,11 @@ export const errors = {
 		message: "Only the current agent of the session can save its update.",
 		data: z.undefined(),
 	},
+	SESSION_OBSERVER_FORBIDDEN: {
+		status: 403,
+		message: "Only a person can change the session observer.",
+		data: z.undefined(),
+	},
 	NOT_FOUND: {
 		status: 404,
 		message: "No row matches the ref.",

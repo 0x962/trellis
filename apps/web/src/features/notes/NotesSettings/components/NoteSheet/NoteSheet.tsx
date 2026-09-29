@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import {
-	NOTE_BODY_MAX,
 	NOTE_TITLE_MAX,
 	type Note,
 	type NoteAudience,
@@ -105,7 +104,6 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 						label="Body"
 						required
 						rows={12}
-						maxLength={NOTE_BODY_MAX}
 						disabled={readOnly || pending}
 						value={body}
 						onChange={(event) => setBody(event.target.value)}

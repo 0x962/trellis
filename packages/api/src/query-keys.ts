@@ -11,8 +11,10 @@ import {
 	ticketDetail,
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
+import type { TicketSummary } from "./schemas/ticket.ts";
 import { summaryOf, type Ticket, ticketContractFields } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
+import { createSummaryBatchApplier } from "./summaryBatch/index.ts";
 import {
 	holdsTicketRow,
 	holdsTicketRows,
@@ -94,6 +96,7 @@ const toResultChange = (result: Ticket): HeldChange => {
 
 export type EventApplier = {
 	applyEvent: (event: unknown) => void;
+	applySummaries: (summaries: readonly TicketSummary[], deleted?: boolean) => readonly TicketSummary[];
 	beginMutation: (ticketId: string) => void;
 	endMutation: (ticketId: string, result?: Ticket) => void;
 };
@@ -170,11 +173,14 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		enqueue([family("needsYou")]);
 		if (change.deleted) {
 			tombstones.add(summary.id);
-			dropTicketQueries(queryClient, summary);
+			dropTicketQueries(queryClient, [summary]);
 		} else if (tombstones.has(summary.id)) {
 			return;
 		}
 		const parentsThatLostAChild = patchTicket(change);
+		if (change.deleted || fields.some((field) => ["after", "status", "title", "project"].includes(field))) {
+			enqueue([family("tickets", "dependencies")]);
+		}
 		const membership = change.created || change.deleted;
 		if (changesMembership(change)) enqueue(membershipMatchers);
 		if ((membership || fields.some((field) => parentFields.has(field))) && summary.parent !== null) {
@@ -236,7 +242,18 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		for (const change of held.sort((a, b) => a.summary.version - b.summary.version)) applyChange(change);
 	};
 
-	return { applyEvent, beginMutation, endMutation };
+	const applySummaries = createSummaryBatchApplier(queryClient, {
+		enqueue,
+		settle,
+		tombstones,
+		hold: (summary) => {
+			const held = waiting.get(summary.id);
+			if (held === undefined) return false;
+			held.push({ summary, fields: [], deleted: false, created: false });
+			return true;
+		},
+	});
+	return { applyEvent, applySummaries, beginMutation, endMutation };
 };
 
 const childCount = (detail: unknown) => (detail as { children: unknown[] }).children.length;

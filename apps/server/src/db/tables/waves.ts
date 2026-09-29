@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { check, index, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { epics } from "./epics.ts";
 
@@ -8,6 +8,9 @@ import { epics } from "./epics.ts";
 // pair gives the wave its `KEY/epic-slug/wave-slug` ref. The wave keeps no
 // state column: its counts and its state derive from the tickets that point
 // at it.
+// `waves_epic_slug_equality` keeps each slug unique within its epic.
+// The migration creates this hash index as an equality exclusion constraint,
+// so long slugs fit. The slug syntax excludes the separator slash.
 export const waves = pgTable(
 	"waves",
 	{
@@ -22,9 +25,9 @@ export const waves = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		unique("waves_epic_id_slug_unique").on(t.epicId, t.slug),
+		index("waves_epic_slug_equality").using("hash", sql`(${t.epicId} || '/' || ${t.slug})`),
 		check("waves_slug_check", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
-		check("waves_name_check", sql`${t.name} = btrim(${t.name}) AND length(${t.name}) BETWEEN 1 AND 120`),
+		check("waves_name_check", sql`${t.name} = btrim(${t.name}) AND length(${t.name}) >= 1`),
 		check("waves_position_check", sql`${t.position} >= 0`),
 		index("waves_epic_id_position_idx").on(t.epicId, t.position),
 	],

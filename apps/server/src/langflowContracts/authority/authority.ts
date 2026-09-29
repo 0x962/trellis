@@ -19,7 +19,18 @@ export const DeliveryAuthorityV1Schema = z
 		ownershipRevision: RevisionSchema,
 		capabilityId: ReferenceSchema,
 		permissions: z
-			.array(z.enum(["native.reserve", "native.read", "completion.deliver", "decision.deliver", "events.append"]))
+			.array(
+				z.enum([
+					"native.reserve",
+					"native.read",
+					"completion.deliver",
+					"decision.deliver",
+					"events.append",
+					"execution.cancel",
+					"review.classify",
+					"classification.deliver",
+				]),
+			)
 			.min(1),
 		issuedAt: TimestampSchema,
 		expiresAt: TimestampSchema,

@@ -36,6 +36,7 @@ from real_transaction_fixture_support import (
     LiveBus,
     assert_patched_imports,
     create_correlation_table,
+    real_services_job_service,
     row_counts,
 )
 

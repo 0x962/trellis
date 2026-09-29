@@ -51,7 +51,7 @@ export const langflowGraphFixture = {
 		return {
 			id,
 			type: "genericNode",
-			position: { x: (index % 4) * 320, y: Math.floor(index / 4) * 300 },
+			position: { x: (index % 4) * 360, y: Math.floor(index / 4) * 800 },
 			data: {
 				id,
 				type: `Trellis${kind}`,

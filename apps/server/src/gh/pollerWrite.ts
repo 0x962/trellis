@@ -1,9 +1,10 @@
 import type { CiState, PrState } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { SYSTEM_ACTOR } from "../context.ts";
+import { type ServiceCtx, SYSTEM_ACTOR } from "../context.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Emit, Tx } from "../db/tx.ts";
+import { resolveActorId } from "../services/actorIdentity/index.ts";
 import type { PullRequestRow } from "./graphql.ts";
 import type { DueRow } from "./pollerDue.ts";
 
@@ -84,12 +85,7 @@ export const storeFetchErrors = (tx: Tx, failed: PolledFailure[]) =>
 
 // Records that the system actor `trellis` acted. Every activity row points
 // at the actors table, so this row exists before any of them.
-export const touchSystemActor = (tx: Tx, at: Date) =>
-	tx.execute(sql`
-		INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
-		VALUES (${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, ${at}, ${at})
-		ON CONFLICT (name, kind) DO UPDATE SET last_seen_at = ${at}
-	`);
+export const touchSystemActor = (ctx: ServiceCtx, tx: Tx) => resolveActorId(ctx, tx, SYSTEM_ACTOR);
 
 export const linkedTickets = (tx: Tx, prIds: string[]) =>
 	rows<LinkRow>(
@@ -110,7 +106,7 @@ const label = (state: PrState, ciState: CiState) => `${state}/${ciState}`;
 
 const moved = (entry: Polled) => entry.stored.state !== entry.row.state || entry.stored.ci_state !== entry.row.ciState;
 
-const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
+const activityValues = (actorId: string, at: Date, entry: Polled, links: LinkRow[]) => {
 	const batchId = ulid();
 	const meta = JSON.stringify({
 		pullRequestId: entry.stored.id,
@@ -119,7 +115,7 @@ const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
 	});
 	return ticketsOf(links, entry.stored.id).map(
 		(link) => sql`(
-			${batchId}, ${link.project_id}, ${link.ticket_id},
+			${actorId}, ${batchId}, ${link.project_id}, ${link.ticket_id},
 			${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, 'pr.state_changed', ${meta}::jsonb, ${at}
 		)`,
 	);
@@ -127,17 +123,17 @@ const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
 
 // One timeline row per linked ticket, for a pull request whose state or ci
 // state moved. A title edit writes none: nobody wants a timeline line for it.
-const writeStateChanges = async (tx: Tx, at: Date, changed: Polled[], links: LinkRow[]) => {
-	const values = changed.flatMap((entry) => activityValues(at, entry, links));
-	if (values.length === 0) return;
-	await touchSystemActor(tx, at);
+const writeStateChanges = async (ctx: ServiceCtx, tx: Tx, at: Date, changed: Polled[], links: LinkRow[]) => {
+	if (changed.every((entry) => ticketsOf(links, entry.stored.id).length === 0)) return;
+	const actorId = await touchSystemActor(ctx, tx);
+	const values = changed.flatMap((entry) => activityValues(actorId, at, entry, links));
 	await tx.execute(sql`
-		INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
+		INSERT INTO activity (actor_id, batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
 		VALUES ${joined(values)}
 	`);
 };
 
-export const writePolled = async (tx: Tx, emit: Emit, input: WriteInput) => {
+export const writePolled = async (ctx: ServiceCtx, tx: Tx, emit: Emit, input: WriteInput) => {
 	if (input.failed.length > 0) await storeFetchErrors(tx, input.failed);
 	if (input.written.length === 0) return;
 	const prIds = input.written.map((entry) => entry.stored.id);
@@ -151,7 +147,7 @@ export const writePolled = async (tx: Tx, emit: Emit, input: WriteInput) => {
 	if (ticketIds.length > 0) {
 		await tx.execute(sql`UPDATE tickets SET version = version + 1 WHERE id = ANY(${textArray(ticketIds)})`);
 	}
-	await writeStateChanges(tx, input.at, input.written.filter(moved), links);
+	await writeStateChanges(ctx, tx, input.at, input.written.filter(moved), links);
 	for (const entry of input.written) {
 		const linked = ticketsOf(links, entry.stored.id);
 		emit({

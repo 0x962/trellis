@@ -85,6 +85,7 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 				{
 					kind: "prompt",
 					sessionId: event.session_id,
+					...(event.prompt_id ? { activityId: event.prompt_id, turnId: event.prompt_id } : {}),
 					...(event.model ? { model: fromHarnessModel("claude", event.model) } : {}),
 					prompt: z.string().parse(event.prompt),
 				},

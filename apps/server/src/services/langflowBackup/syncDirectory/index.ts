@@ -1,0 +1,1 @@
+export { syncDirectory } from "./syncDirectory";

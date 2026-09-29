@@ -9,14 +9,17 @@ from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
 
+import pytest_asyncio
 from sqlmodel import func, select
 
 from lfx.graph.checkpoint.schema import GraphCheckpoint
 from lfx.graph.graph.base import Graph
 from langflow.services.background_execution.runner import JobRunner
 from langflow.services.background_execution.service import BackgroundExecutionService
+from langflow.services.database.factory import DatabaseServiceFactory
 from langflow.services.database.models.jobs.model import Job, JobStatus
 from langflow.services.deps import get_db_service, get_settings_service, session_scope
+from langflow.services.jobs.service import JobService
 from langflow.services.trellis_v1.correlation import (
     CorrelationCoordinator,
     JobServiceCorrelationStore,
@@ -27,6 +30,32 @@ from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroke
 from correlation_fixture_support import FLOW_ID, JOB_ID, USER_ID
 
 SOURCE_ROOT = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
+
+
+def private_database_service(database_url: str):
+    settings = get_settings_service().settings.model_copy(
+        update={"database_url": database_url}
+    )
+    return DatabaseServiceFactory().create(SimpleNamespace(settings=settings))
+
+
+@pytest_asyncio.fixture
+async def real_services_job_service(real_services_db_url: str):
+    from lfx.services.manager import get_service_manager
+    from lfx.services.schema import ServiceType
+
+    manager = get_service_manager()
+    original = manager.services.pop(ServiceType.DATABASE_SERVICE, None)
+    database_service = private_database_service(real_services_db_url)
+    manager.services[ServiceType.DATABASE_SERVICE] = database_service
+    try:
+        await database_service.run_migrations()
+        yield JobService()
+    finally:
+        manager.services.pop(ServiceType.DATABASE_SERVICE, None)
+        await database_service.teardown()
+        if original is not None:
+            manager.services[ServiceType.DATABASE_SERVICE] = original
 
 
 async def create_correlation_table() -> None:
@@ -77,6 +106,9 @@ class LiveBus:
 class BackgroundHarness:
     _enqueue_queued_continuation = (
         BackgroundExecutionService._enqueue_queued_continuation
+    )
+    _continuation_execution_proof = (
+        BackgroundExecutionService._continuation_execution_proof
     )
 
     def __init__(self) -> None:
@@ -136,13 +168,12 @@ def terminate_child(
 
 
 async def configure_child_database():
-    from langflow.services.database.factory import DatabaseServiceFactory
     from lfx.services.manager import get_service_manager
     from lfx.services.schema import ServiceType
 
-    settings_service = get_settings_service()
-    settings_service.settings.database_url = os.environ["TRL668_CHILD_DATABASE_URL"]
-    database_service = DatabaseServiceFactory().create(settings_service)
+    database_service = private_database_service(
+        os.environ["TRL668_CHILD_DATABASE_URL"]
+    )
     manager = get_service_manager()
     manager.services.pop(ServiceType.DATABASE_SERVICE, None)
     manager.services[ServiceType.DATABASE_SERVICE] = database_service

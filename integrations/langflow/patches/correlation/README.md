@@ -30,7 +30,7 @@ It marks the obligation only after TRL-669 proves dispatch or prior execution.
 
 The shared `JobService` hunk has this ownership split:
 
-1. TRL-668 adds type-only correlation imports.
+1. TRL-668 adds the runtime `cast` import and type-only correlation imports.
 2. TRL-668 adds correlation methods immediately after `create_job`.
 3. TRL-669 adds `json` and `ExternalWaitPending` imports.
 4. TRL-669 adds checkpoint and continuation methods after `save_checkpoint`.

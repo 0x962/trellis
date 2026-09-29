@@ -30,6 +30,23 @@ const setup = () => {
 const key = (procedure: string, input: Record<string, unknown> = {}) =>
 	generateOperationKey(["agentRuns", procedure], { input });
 
+test("flow events refresh versioned documents and views with legacy queries", () => {
+	const { client, applier, flush } = setup();
+	const changed = [
+		generateOperationKey(["flows", "list"], {}),
+		generateOperationKey(["flowExecutions", "list"], {}),
+		generateOperationKey(["flowDocumentsV1", "get"], { input: { flow: "review" } }),
+		generateOperationKey(["flowDocumentsV1", "view"], { input: { id: runId } }),
+	];
+	const untouched = key("output", { id: runId });
+	for (const queryKey of [...changed, untouched]) client.setQueryData(queryKey, {});
+	applier.applyEvent({ type: "flows.changed", id: runId });
+	flush();
+	for (const queryKey of changed) expect(client.getQueryState(queryKey)?.isInvalidated).toBe(true);
+	expect(client.getQueryState(untouched)?.isInvalidated).toBe(false);
+	client.clear();
+});
+
 test("status events refresh agent state without restarting workspace counts", async () => {
 	const { client, applier, flush } = setup();
 	let listReads = 0;

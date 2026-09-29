@@ -79,7 +79,6 @@ export const AgentRunStartInputSchema = z
 		requestId: z
 			.string()
 			.min(1)
-			.max(200)
 			.regex(/^[\x21-\x7e]+$/)
 			.optional(),
 		ticket: z.string().min(1),
@@ -89,7 +88,7 @@ export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;
 export const AgentRunRetryInputSchema = z.strictObject({
 	id: UlidSchema,
 	expectedTerminalId: z.string().min(1),
-	requestId: z.string().min(1).max(200),
+	requestId: z.string().min(1),
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
 export const AGENT_RUN_LIST_WINDOW_HOURS = 24;
@@ -130,6 +129,7 @@ export const AgentRunPinOutputSchema = z.object({
 export type AgentRunPinOutput = z.infer<typeof AgentRunPinOutputSchema>;
 
 export const AgentWorkspaceInputSchema = z.object({ runId: UlidSchema });
+export const AgentWorkspacePageInputSchema = AgentWorkspaceInputSchema.extend({ cursor: z.string().optional() });
 export const AgentWorkspaceLineStatsInputSchema = z.strictObject({
 	ticketIds: z.array(UlidSchema).min(1),
 });
@@ -169,10 +169,11 @@ export const AgentWorkspaceSummarySchema = z.discriminatedUnion("state", [
 export type AgentWorkspaceSummary = z.infer<typeof AgentWorkspaceSummarySchema>;
 export type ReadyWorkspaceSummary = Extract<AgentWorkspaceSummary, { state: "ready" }>;
 export const AgentWorkspaceFileInputSchema = AgentWorkspaceInputSchema.extend({
-	path: z.string().min(1).max(4096),
+	path: z.string().min(1),
 });
 export const AgentWorkspaceSchema = z.object({
 	runId: UlidSchema,
+	phase: z.enum(["files", "diff"]),
 	files: z.array(
 		z.object({
 			path: z.string(),
@@ -181,6 +182,7 @@ export const AgentWorkspaceSchema = z.object({
 	),
 	diff: z.string(),
 	truncated: z.boolean(),
+	nextCursor: z.string().nullable(),
 });
 export const AgentWorkspaceFileSchema = z.object({
 	path: z.string(),

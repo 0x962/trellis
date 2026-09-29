@@ -29,9 +29,12 @@ export type HarnessStartInput = {
 	token?: string;
 	timeoutMs?: number;
 	kind?: "builder" | "reviewer";
+	textOnly?: { system: string; sessionId: string };
+	signal?: AbortSignal;
 };
 export type HarnessDescriptor = {
 	fingerprint: string;
+	textOnly?: true;
 	effort?: HarnessEffort;
 	prompt: string;
 	sessionId?: string;

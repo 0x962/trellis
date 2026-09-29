@@ -35,24 +35,19 @@ export const stepNames = [
 	"OS user",
 ] as const;
 
-// The name grammar of `x-trellis-actor`: printable ASCII without the colon,
-// 1 to 64 characters. It equals `actorHeaderPattern` in
-// packages/api/src/refs.ts.
-const namePattern = /^[\x20-\x39\x3B-\x7E]{1,64}$/;
+// The actor name uses printable ASCII so it can travel in an HTTP header.
+const namePattern = /^[\x20-\x39\x3B-\x7E]+(?![\s\S])/;
 
 export const actorGrammar =
-	"Expected <human|agent>:<name>, the name 1 to 64 printable ASCII characters without a colon.";
+	"Expected <human|agent>:<name>, with a nonempty name of printable ASCII characters without a colon.";
 
-// NFKD splits a letter from its accent, so dropping the combining marks
-// leaves the base letter. Every other character outside the grammar is
-// dropped too, and the rest is cut to the 64-character limit.
+// NFKD separates accents from letters, so accent removal preserves the base letter.
 export const cleanName = (raw: string): string =>
 	raw
 		.normalize("NFKD")
 		.replace(/\p{M}/gu, "")
 		.replace(/[^\x20-\x39\x3B-\x7E]/g, "")
-		.trim()
-		.slice(0, 64);
+		.trim();
 
 type Explicit = { kind?: ActorKind; name?: string };
 

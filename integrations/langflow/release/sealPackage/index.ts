@@ -1,0 +1,1 @@
+export { sealPackage } from "./sealPackage";

@@ -16,14 +16,13 @@ const refsIn = (input: Record<string, unknown>) => {
 // the identifier in a ref field. The cancel comes first, so a fetch in
 // flight is dropped before its result can reach the cache. An input ref
 // keeps the spelling the caller used, so the compare is upper-case.
-export const dropTicketQueries = (queryClient: QueryClient, summary: TicketSummary) => {
-	const refs = new Set([summary.id, summary.identifier.toUpperCase()]);
+export const dropTicketQueries = (queryClient: QueryClient, summaries: readonly TicketSummary[]) => {
+	const refs = new Set(summaries.flatMap((summary) => [summary.id, summary.identifier.toUpperCase()]));
+	const ids = new Set(summaries.map((summary) => summary.id));
 	const namesTicket = (query: Query) => {
 		const input = (query.queryKey[1] as { input?: Record<string, unknown> } | undefined)?.input;
 		const inInput = input !== undefined && refsIn(input).some((value) => refs.has(value.toUpperCase()));
-		return (
-			inInput || (isDetail(query.queryKey) && (query.state.data as { id?: unknown } | undefined)?.id === summary.id)
-		);
+		return inInput || (isDetail(query.queryKey) && ids.has((query.state.data as { id: string } | undefined)?.id ?? ""));
 	};
 	const targets = new Set(queryClient.getQueryCache().getAll().filter(namesTicket));
 	if (targets.size === 0) return;

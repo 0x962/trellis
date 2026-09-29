@@ -1,20 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { Button, EmptyState, FailureState, SessionStatusPaneShell } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useOpenLink } from "../../../../../lib/openLink";
 import { AgentStatusUpdatesPane } from "./AgentStatusUpdatesPane";
 import { agentStatusUpdatesQueryOptions } from "./agentStatusUpdatesState";
 
-export function AgentStatusUpdates({ run, visible }: { run: AgentRun; visible: boolean }) {
+export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; observerError: string | null }) {
 	const { orpc, scheduler } = useApp();
 	const openLink = useOpenLink();
 	const [now, setNow] = useState(() => scheduler.now());
-	const query = useQuery(agentStatusUpdatesQueryOptions(orpc, run));
+	const query = useInfiniteQuery(agentStatusUpdatesQueryOptions(orpc, run));
+
+	const pages = query.data?.pages;
+	const updates = useMemo(
+		() =>
+			pages === undefined
+				? undefined
+				: {
+						...pages[0]!,
+						history: [...new Map(pages.flatMap((page) => page.history!).map((update) => [update.id, update])).values()],
+					},
+		[pages],
+	);
 
 	useEffect(() => {
-		if (!visible) return;
 		let timer: unknown;
 		const tick = () => {
 			setNow(scheduler.now());
@@ -22,12 +33,25 @@ export function AgentStatusUpdates({ run, visible }: { run: AgentRun; visible: b
 		};
 		tick();
 		return () => scheduler.clearTimeout(timer);
-	}, [scheduler, visible]);
+	}, [scheduler]);
 
-	if (!visible) return null;
 	if (query.data !== undefined)
 		return (
-			<AgentStatusUpdatesPane run={run} updates={query.data} now={new Date(now).toISOString()} onOpenLink={openLink} />
+			<AgentStatusUpdatesPane
+				key={run.id}
+				run={run}
+				updates={updates!}
+				historyControl={{
+					hasMore: query.hasNextPage,
+					loading: query.isFetchingNextPage,
+					error: query.isError,
+					load: () => void query.fetchNextPage(),
+					retry: () => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch()),
+				}}
+				now={new Date(now).toISOString()}
+				observerError={observerError}
+				onOpenLink={openLink}
+			/>
 		);
 
 	return (

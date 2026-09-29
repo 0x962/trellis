@@ -20,12 +20,7 @@ import { StatusSummarySchema } from "./status.ts";
 import { TicketPrSchema } from "./ticketPr.ts";
 import { WaveLinkSchema } from "./wave.ts";
 
-// A title is stored trimmed. The limit keeps a row under the summary budget.
-export const TicketTitleSchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a title of 1 to 500 characters.")
-	.max(500, "Enter a title of 1 to 500 characters.");
+export const TicketTitleSchema = z.string().trim().min(1, "Enter a title.");
 
 export const TicketIdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
@@ -168,7 +163,7 @@ export type PrFilter = z.infer<typeof PrFilterSchema>;
 export const PrFilterInputSchema = z.preprocess((value) => (value === "draft" ? "not-ready" : value), PrFilterSchema);
 
 // The last actor filter: `kind:name` or a bare `name`.
-const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B-\x7E]{1,64}$/);
+const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B-\x7E]+(?![\s\S])/);
 
 // The list grammar shared by the API query string, the web URL, and the CLI
 // flags. Every list field takes an array or one comma-separated string.
@@ -250,3 +245,16 @@ export type CountsOutput = z.infer<typeof CountsOutputSchema>;
 export const TicketGetInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 });
+
+export const TicketDependencySchema = z.object({
+	identifier: TicketIdentifierSchema,
+	title: TicketTitleSchema,
+	status: StatusCategorySchema,
+});
+export type TicketDependency = z.infer<typeof TicketDependencySchema>;
+
+export const TicketDependenciesSchema = z.object({
+	waitsOn: z.array(TicketDependencySchema),
+	blocks: z.array(TicketDependencySchema),
+});
+export type TicketDependencies = z.infer<typeof TicketDependenciesSchema>;

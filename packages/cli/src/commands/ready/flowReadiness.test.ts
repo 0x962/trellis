@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { FlowSummary } from "@trellis/api";
+import type { FlowExecutionViewV1, FlowSummary } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import {
 	type FlowReadiness,
@@ -26,7 +26,14 @@ const ref = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/tr
 
 const clientWith = (
 	flows: FlowSummary[],
-	records: Array<{ slug: string; name: string; status: string; flowId?: string }>,
+	records: Array<{
+		slug: string;
+		name: string;
+		status: string;
+		detail?: FlowExecutionViewV1["detail"];
+		flowId?: string;
+		diffId?: string;
+	}>,
 	waiver: { headSha: string; reason: string } | null = null,
 ) => {
 	const sent: unknown[] = [];
@@ -38,15 +45,23 @@ const clientWith = (
 				return flows;
 			},
 		},
-		flowExecutions: {
+		flowDocumentsV1: {
 			list: async (input: unknown) => {
 				sent.push(input);
 				const offset = (input as { offset?: number }).offset ?? 0;
-				return records.slice(offset, offset + 500).map((record) => ({
+				return records
+					.slice(offset, offset + 500)
+					.map((_, index) => ({ id: String(offset + index), engine: "langflow" }));
+			},
+			view: async ({ id }: { id: string }) => {
+				const record = records[Number(id)]!;
+				return {
 					flowId: record.flowId ?? `flow:${record.slug}`,
-					doc: { flow: { slug: record.slug, name: record.name } },
-					state: { status: record.status },
-				}));
+					diffId: record.diffId ?? ref.id,
+					status: record.status,
+					detail: record.detail,
+					failureKind: null,
+				};
 			},
 		},
 		pullRequests: { readFlowWaiver: async () => waiver },
@@ -220,3 +235,37 @@ test("an older error does not recommend a repeat of the active run", () => {
 	]);
 	expect(flowRunMissingLines(state, 131)).toEqual(["    The Review flow is still at work."]);
 });
+
+test("a success for another diff does not supply review credit", async () => {
+	const { client } = clientWith(
+		[flow("review", "Review", "")],
+		[{ slug: "review", name: "Review", status: "succeeded", diffId: "another-diff" }],
+	);
+	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(false);
+});
+
+test("a newer failure keeps an older success for the same diff and applicable flow", async () => {
+	const { client } = clientWith(
+		[flow("review", "Review", "")],
+		[
+			{ slug: "review", name: "Review", status: "failed" },
+			{ slug: "review", name: "Review", status: "succeeded" },
+		],
+	);
+	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(true);
+});
+
+for (const detail of ["waiting_human", "waiting_native", "unknown"] as const) {
+	test(`retains ${detail} in the missing review explanation`, async () => {
+		const { client } = clientWith(
+			[flow("review", "Review", "")],
+			[{ slug: "review", name: "Review", status: "waiting", detail }],
+		);
+		const result = await flowReadiness(client, ref, "TRL-1");
+		expect(result.satisfied).toBe(false);
+		expect(result.runs[0]?.detail).toBe(detail);
+		const lines = flowRunMissingLines(result, 131).join("\n");
+		expect(lines.includes("Ask the user")).toBe(detail === "waiting_human");
+		expect(lines.includes("native attempt")).toBe(detail === "waiting_native");
+	});
+}

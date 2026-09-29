@@ -34,6 +34,7 @@ test("a recorded Codex turn names each command, read, edit and search, and strea
 		"working",
 		"prompt",
 		"message: I’ll follow the sequence, but `update_plan` is not available in this session.",
+		"message: I’ll follow the sequence, but `update_plan` is not available in this session.\n",
 		"tool-start Read /work/README.md",
 		"tool-update Read",
 		"tool-end Read",
@@ -57,6 +58,7 @@ test("a recorded Codex turn reports stdin to a running command and a wait for a 
 	expect(replay("stdinAndAgent")).toEqual([
 		"working",
 		"message: I’ll run the command, enter the text, then ask one sub-agent to reply.",
+		"message: I’ll run the command, enter the text, then ask one sub-agent to reply.\n",
 		"tool-start Shell read -r name; echo hello $name",
 		"tool-update Shell",
 		"tool-update Shell",
@@ -69,6 +71,20 @@ test("a recorded Codex turn reports stdin to a running command and a wait for a 
 const started = (item: Record<string, unknown>) => ({
 	method: "item/started",
 	params: { threadId: "thread", turnId: "turn", item },
+});
+
+test("a complete message remains observable when it equals its preview", () => {
+	const parser = new CodexAppServerEvents("thread");
+	const params = { threadId: "thread", turnId: "turn", itemId: "answer" };
+	expect(parser.parse({ method: "item/agentMessage/delta", params: { ...params, delta: "Done. " } })).toMatchObject([
+		{ message: { id: "answer", text: "Done.", complete: false } },
+	]);
+	expect(
+		parser.parse({
+			method: "item/completed",
+			params: { ...params, item: { id: "answer", type: "agentMessage", text: "Done." } },
+		}),
+	).toMatchObject([{ message: { id: "answer", text: "Done.", complete: true } }]);
 });
 
 // Items that a Trellis runtime event log recorded from Codex runs on

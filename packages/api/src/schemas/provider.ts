@@ -14,20 +14,14 @@ export type ProviderKind = z.infer<typeof ProviderKindSchema>;
 export const ProviderModelIdSchema = z
 	.string()
 	.min(1, MODEL_ID_MESSAGE)
-	.max(200, MODEL_ID_MESSAGE)
 	.regex(/^[^\s\p{Cc}]+$/u, MODEL_ID_MESSAGE);
 export type ProviderModelId = z.infer<typeof ProviderModelIdSchema>;
 
-const ProviderNameSchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a provider name of 1 to 120 characters.")
-	.max(120, "Enter a provider name of 1 to 120 characters.");
+const ProviderNameSchema = z.string().trim().min(1, "Enter a provider name.");
 
 const ProviderBaseUrlSchema = z
 	.string()
 	.trim()
-	.max(2000, BASE_URL_MESSAGE)
 	.url(BASE_URL_MESSAGE)
 	.refine((value) => {
 		const url = URL.parse(value);
@@ -44,15 +38,10 @@ const ProviderBaseUrlSchema = z
 		);
 	}, BASE_URL_MESSAGE);
 
-const ProviderApiKeySchema = z
-	.string()
-	.trim()
-	.min(1, "Paste the API key of the provider.")
-	.max(4000, "Paste the API key of the provider.");
+const ProviderApiKeySchema = z.string().trim().min(1, "Paste the API key of the provider.");
 
 const ProviderModelIdsSchema = z
 	.array(ProviderModelIdSchema)
-	.max(200, "A provider offers at most 200 models.")
 	.refine((models) => new Set(models).size === models.length, "Name each model once.");
 
 export const ProviderSchema = z.object({

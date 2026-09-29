@@ -1,0 +1,1 @@
+export { PageTab } from "./PageTab";

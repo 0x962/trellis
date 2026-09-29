@@ -2,6 +2,8 @@ import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
 import { epics } from "./epics.ts";
+import { flowDocumentProcedures } from "./flowDocumentRoutes";
+import { flowExecutionProcedures } from "./flowExecutionRoutes";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -19,6 +21,7 @@ import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
+import { sessionObservers } from "./sessionObservers.ts";
 import { sessions } from "./sessions.ts";
 import { sessionUpdates } from "./sessionUpdates.ts";
 import { statistics } from "./statistics.ts";
@@ -40,9 +43,12 @@ export const router = os.router({
 	reviews,
 	agentRuns,
 	sessions,
+	sessionObservers,
 	sessionUpdates,
 	flows,
+	flowDocumentsV1: flowDocumentProcedures,
 	flowExecutions,
+	flowExecutionsV1: flowExecutionProcedures,
 	labels,
 	labelGroups,
 	projects,

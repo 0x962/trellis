@@ -11,7 +11,24 @@ It stores each completion delivery and receipt under the wait identity.
 An equal duplicate returns the stored receipt.
 A changed delivery for the same wait identity fails.
 
+`TrellisExternalWaitBroker.delivery_for(graph, wait_bytes)` returns the exact saved `CompletionDeliveryV1` bytes.
+It returns `None` when the wait has no completion.
+It rejects a saved envelope when its exact `ExternalWaitV1` bytes differ from `wait_bytes`.
+The component caller reads `delivery.result` as the accepted `NativeResultV1`.
+This method does not create a request, reserve a handle, schedule work, or add another wait store.
+
+`TrellisExternalWaitBroker.save_completion` receives the current durable authority epoch.
+It accepts a native completion only when these values match the saved wait:
+
+- the execution, publication, job, and launch epoch;
+- the step, agent run, and attempt;
+- the current authority epoch and `completion.deliver` permission;
+- the receipt execution, job, completion, and result digest.
+
+The caller reads the current authority epoch from the durable correlation row in the same completion transaction.
+
 The graph checkpoint preserves all pending wait bytes.
+A vertex rethrows `ExternalWaitPending` without converting it to `ComponentBuildError`.
 A worker restart restores the same wait set and reruns only the unfinished vertices.
 The existing graph queue then releases successors after those vertices finish.
 
@@ -100,7 +117,7 @@ TRL-669 owns both service consumers, both drains, retained decision lookup, star
 The queue helper returns one `DispatchDisposition`:
 
 ```python
-DispatchDisposition = Literal["dispatched", "execution_proven", "pending_lease", "cancelled"]
+DispatchDisposition = Literal["dispatched", "execution_proven", "pending_lease", "capture_paused", "cancelled"]
 
 async def _enqueue_queued_continuation(
 	self,
@@ -114,6 +131,7 @@ async def _enqueue_queued_continuation(
 - `dispatched`: the executor accepted the job, and the service stored the exact receipt under `trellis-dispatch-v1:<enqueueObligationId>`;
 - `execution_proven`: the durable job state binds the exact continuation signal to the runner;
 - `pending_lease`: a fresh QUEUED lease blocked dispatch;
+- `capture_paused`: the active capture grant blocked dispatch and left the durable obligation pending;
 - `cancelled`: the job is canceled while the exact continuation signal remains unconsumed.
 
 A QUEUED row, lease, or continuation receipt does not prove execution.
@@ -132,6 +150,157 @@ The startup queue sweep uses the same retry mechanism for every fresh QUEUED lea
 This includes a crash after executor submission and obligation consumption but before the runner claim.
 The recovery does not depend on a pending Trellis obligation.
 
+## Engine API transaction handoff
+
+Apply `0002-queue-bootstrap-and-completion-transactions.patch` after the durable wait patch.
+It adds this initial dispatch interface:
+
+```python
+async def enqueue_trellis_submission(
+	self,
+	*,
+	engine_job_id: UUID,
+	flow_id: UUID,
+	user_id: UUID,
+	request_bytes: bytes,
+) -> DispatchDisposition
+```
+
+The job and correlation must exist before this call.
+The method binds the exact build request to the existing job.
+It uses the existing Langflow executor and lease path.
+An equal replay returns `dispatched` or `execution_proven`.
+A changed job binding, request, or dispatch digest fails.
+A fresh foreign lease returns `pending_lease` and schedules one existing lease retry.
+
+The patch also adds this caller transaction interface:
+
+```python
+async def save_checkpoint_once_in_session(
+	self,
+	session: AsyncSession,
+	job_id: UUID,
+	kind: str,
+	blob: str,
+) -> str
+
+async def save_completion_in_session(
+	self,
+	session: AsyncSession,
+	*,
+	job_id: UUID,
+	authority_epoch: int,
+	wait_bytes: bytes,
+	delivery_bytes: bytes,
+	receipt_bytes: bytes,
+) -> bytes
+```
+
+The native completion ledger calls `save_completion_in_session` inside its locked job transaction.
+The same transaction writes the exact RESUME signal and the pending dispatch obligation.
+The helper writes no signal, obligation, queue claim, or commit.
+The service consumes the obligation after the caller commits.
+
+The occurrence producer stores exact native request bytes under `trellis-native-request-v1:<sha256(waitId)>`.
+The completion ledger compares the delivery request digest with those saved bytes.
+The completion envelope does not reconstruct request bytes from its parsed request object.
+
+Apply `0003-native-completion-obligation-consumer.patch` after the native engine API patch.
+It adds this service interface:
+
+```python
+async def consume_external_completion_obligation(
+	self,
+	obligation: dict[str, Any],
+) -> None
+```
+
+The method claims the exact saved continuation and uses the existing Langflow queue path.
+It marks the native obligation only after `dispatched` or `execution_proven`.
+It leaves `pending_lease` and `cancelled` obligations pending.
+The existing startup drain reads `NativeCompletionLedger.pending()` and calls the same method.
+No ledger method calls the queue or the executor.
+
+Apply `0004-cancellation-ordered-dispatch.patch` after the control guards and native completion consumer.
+Apply each control guard once.
+The admission transaction locks the Job row, checks authority, checks cancellation, and then reads or writes its receipt.
+
+The completion transaction locks the Job row before it reads or writes the completion envelope.
+An equal saved envelope returns its original receipt after a later cancellation.
+Changed replay bytes fail.
+A new envelope fails when cancellation or another terminal status already owns the job.
+
+The queue path holds the Job lock through cancellation inspection, lease claim, executor submission, and dispatch receipt storage.
+The runner consumes a STOP without replacing a completed, failed, or timed-out status.
+The initial queue path and every continuation use the same Langflow executor.
+
+## Capture writer boundary
+
+Apply `0005-capture-boundary-writer-hooks.patch` after the complete TRL-970 backend series and its capture boundary.
+Apply the private engine startup patch after `0005`.
+
+Startup calls this interface immediately after it constructs `CaptureBoundary`:
+
+```python
+def install_capture_boundary(boundary: CaptureBoundary) -> None
+```
+
+The installed boundary guards every concrete `DatabaseService` session.
+`JobRunner.run` also holds one writer admission for the full graph pass because one pass spans several transactions.
+An active durable capture grant raises `CapturePaused` before a new session or graph pass starts.
+
+The initial queue, continuation queue, and all obligation consumers retain their durable work when capture blocks dispatch.
+They do not store a dispatch receipt or mark an obligation consumed.
+The background service exposes this recovery interface:
+
+```python
+async def resume_after_capture(self) -> None
+```
+
+The capture revoke caller awaits `resume_after_capture()` before it returns its response.
+
+## Review classification continuation
+
+Apply `0006-review-classification-continuation.patch` after the complete backend series.
+The patch adds `review` as an explicit external-wait kind.
+It does not use a native attempt or a human decision record.
+
+The Python protocol module exports these strict readers:
+
+```python
+read_review_visit(value: str) -> ReviewClassificationVisit
+read_review_response(value: str) -> ReviewClassificationResponse
+read_review_wait(value: str) -> ReviewExternalWait
+read_review_delivery(value: str) -> ReviewClassificationDelivery
+serialize_review_response(value: ReviewClassificationResponse) -> str
+```
+
+The review ledger exports this interface:
+
+```python
+async def accept(self, payload: ReviewDeliveryInput, authorize) -> dict
+async def read_result(self, *, engine_job_id: UUID, engine_request_id: str) -> bytes | None
+async def pending(self) -> list[dict]
+async def mark_consumed(self, obligation: dict, continuation_receipt_bytes: bytes) -> None
+```
+
+`ReviewDeliveryInput` contains `engineWaitId`, `resultBytes`, `deliveryBytes`, and `authorityBytes` as bytes.
+The ledger rejects `claimed` results.
+It accepts one terminal response for each exact saved review wait.
+An equal delivery replay validates the retained acceptance after the graph consumes that wait.
+It stores the exact result and delivery bytes with the RESUME signal and queue obligation in one transaction.
+
+`BackgroundExecutionService.consume_review_classification_obligation` uses the existing external-completion signal.
+It marks the obligation only after `dispatched` or `execution_proven`.
+The startup drain retries each retained obligation through the same queue writer.
+
+Concurrent review visits can share one host classification receipt.
+The host delivers one terminal response for each exact saved visit.
+Each accepted response resumes only its saved occurrence.
+The method runs the existing orphan sweep and obligation drains once.
+If a durable capture grant remains active, the writer guard keeps recovery deferred.
+No capture hook adds a queue, poller, graph scheduler, or retry loop.
+
 TRL-674 owns the combined patch series.
 
 The probe uses these cases without a product ceiling:
@@ -145,6 +314,12 @@ Run this fixture command after Root merges the complete Langflow source set:
 
 ```sh
 python -m pytest -q -c "$LANGFLOW_SOURCE_ROOT/pyproject.toml" "$TRELLIS_ROOT/integrations/langflow/tests/semantics"
+```
+
+Run the exact delivery boundary with this focused target:
+
+```sh
+python -m pytest -q -c "$LANGFLOW_SOURCE_ROOT/pyproject.toml" "$TRELLIS_ROOT/integrations/langflow/tests/semantics/test_completion_replay.py"
 ```
 
 The fixture requires these variables:

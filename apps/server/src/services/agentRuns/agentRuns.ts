@@ -1,10 +1,4 @@
-import {
-	AGENT_RUN_LIST_MAX_LIMIT,
-	AGENT_RUN_LIST_WINDOW_HOURS,
-	type AgentRun,
-	type AgentRunStartInput,
-	type TicketGetInputSchema,
-} from "@trellis/api";
+import type { AgentRun, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
@@ -14,9 +8,9 @@ import { listExecutionAttempts } from "../assignments.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { resolveTicketAge } from "../tickets.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
+import { openAgentRuns, unresolvedAttemptRuns } from "./components/operationalQueries/index.ts";
 import { launchRun } from "./launchRun";
 import { launchState } from "./launchState";
-import { prepareList } from "./list.ts";
 import { observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun, listColumns, type StoredRun, storedRows } from "./queries.ts";
@@ -39,23 +33,14 @@ const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessSt
 		.map(({ id, state, error }) => ({ id, state, error }));
 
 export const listUnresolvedAttempts = async (tx: Tx, input: { sessions: RuntimeProcessStatus[]; home: string }) => {
-	const runs = await storedRows<StoredRun>(
+	const runs = await unresolvedAttemptRuns(
 		tx,
-		sql`SELECT ${listColumns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
+		input.sessions.map((session) => session.id),
 	);
 	return projectUnresolvedAttempts(runs, input.sessions, input.home);
 };
 
-export const prepareOpenRuns = async (ctx: Ctx) =>
-	(
-		await prepareList(ctx, {
-			assigned: true,
-			includePinnedHistory: false,
-			allHistory: false,
-			windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
-			limit: AGENT_RUN_LIST_MAX_LIMIT,
-		})
-	).items;
+export const prepareOpenAgentRuns = async (ctx: Ctx) => observeRuns(ctx, await ctx.newTx(openAgentRuns));
 
 export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;

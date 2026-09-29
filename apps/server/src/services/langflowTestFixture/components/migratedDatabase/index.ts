@@ -1,0 +1,1 @@
+export { migratedDatabase } from "./migratedDatabase";

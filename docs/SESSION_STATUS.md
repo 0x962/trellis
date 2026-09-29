@@ -3,6 +3,40 @@
 Trellis derives session status from provider events and the runtime process record.
 Terminal output alone does not establish that an agent needs input or has completed a turn.
 
+## Status observer
+
+A person can enable one status observer for a ticket agent or a standalone session.
+The observer is off by default and uses its own saved conversation.
+It never sends a prompt or command to the worker.
+
+The observer writes an initial update after enablement.
+It writes another update after 20 completed activity items by default.
+A completed tool call or a complete user or assistant message is one activity item.
+Token deltas, tool progress, replayed events, and observer output do not count.
+The stored observer contract keeps the threshold as a configurable positive value.
+
+Completion and a request for human input cause an update before the activity threshold.
+Elapsed time does not cause an update.
+New work stays pending while one update runs.
+Disablement invalidates the active claim before it cancels the provider request.
+
+The observer uses `anthropic/claude-sonnet-5.5` through the existing Claude harness and its configured account.
+Its Claude conversation remains separate from the worker conversation and resumes through the existing runtime.
+It reads the user goal, relevant ticket requirements, the epic purpose, related dependency outcomes, its prior conversation, and new completed work.
+It treats transcript and tool text as evidence, not instructions.
+If the source exceeds the model context capacity, it creates explicit incremental summaries before it retries.
+An update after a failed reply includes the saved summary and all unconsumed activity.
+The summary does not establish which later activity the observer has read.
+
+Each update explains the intended result, what already works, what prevents the result, the current work, and the next expected result.
+It states evidence gaps and does not infer deployment from source proof.
+The observer does not use ticket inventories, review ledgers, recent-action lists, or invented progress percentages.
+
+The observer reads project, run, ticket, and dependency facts through their public services.
+Each failed generation logs `session-observer.generation-failed` before it saves the observer error.
+The diagnostic contains the source run ID, observer ID, claim ID, failed operation, and safe error code.
+Transcript text and raw provider errors stay outside that diagnostic.
+
 ## Superset reference
 
 The reference checkout is `superset` at commit `1019540c0`.

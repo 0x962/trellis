@@ -43,6 +43,7 @@ export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";
 export * from "./tables/resourceComments.ts";
 export * from "./tables/reviews.ts";
+export * from "./tables/sessionObservers/index.ts";
 export * from "./tables/sessions.ts";
 export * from "./tables/sessionUpdates.ts";
 export * from "./tables/ticketDeps.ts";
@@ -122,7 +123,7 @@ export const tickets = pgTable(
 		check("tickets_wave_needs_epic", sql`${t.waveId} IS NULL OR ${t.epicId} IS NOT NULL`),
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
-		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
+		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) >= 1`),
 		check("tickets_files_check", sql`jsonb_typeof(${t.files}) = 'array'`),
 		check("tickets_leave_alone_check", sql`jsonb_typeof(${t.leaveAlone}) = 'array'`),
 		check("tickets_verify_check", sql`jsonb_typeof(${t.verify}) = 'array'`),
@@ -174,7 +175,7 @@ export const comments = pgTable(
 	(t) => [
 		actorFk("comments_actor_fk", t),
 		unique("comments_id_ticket_id_unique").on(t.id, t.ticketId),
-		unique("comments_dedupe_unique").on(t.ticketId, t.actorKind, t.actorName, t.dedupeKey),
+		unique("comments_dedupe_unique").on(t.ticketId, t.actorId, t.dedupeKey),
 		foreignKey({
 			name: "comments_parent_fk",
 			columns: [t.parentId, t.ticketId],
@@ -205,10 +206,7 @@ export const attachments = pgTable(
 	},
 	(t) => [
 		actorFk("attachments_actor_fk", t),
-		check(
-			"attachments_filename_check",
-			sql`length(${t.filename}) BETWEEN 1 AND 255 AND position('/' IN ${t.filename}) = 0`,
-		),
+		check("attachments_filename_check", sql`length(${t.filename}) >= 1 AND position('/' IN ${t.filename}) = 0`),
 		check("attachments_size_check", sql`${t.size} > 0`),
 		check("attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 		index("attachments_ticket_id_idx").on(t.ticketId),
@@ -282,6 +280,14 @@ export * from "./tables/commentDeliveries.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/harnessAccounts.ts";
+export {
+	langflowDocumentConversions,
+	langflowDocumentPublicationStates,
+	langflowDocumentPublications,
+	langflowDocumentRevisions,
+	langflowDocumentSaveReceipts,
+} from "./tables/langflowDocuments/index.ts";
+export * from "./tables/langflowExecution/index.ts";
 export * from "./tables/nativeMigrations.ts";
 export * from "./tables/needsYouStates.ts";
 export * from "./tables/notes.ts";

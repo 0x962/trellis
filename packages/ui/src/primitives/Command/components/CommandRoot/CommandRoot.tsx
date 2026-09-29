@@ -1,5 +1,5 @@
 import { Command as Cmdk } from "cmdk";
-import type { ReactNode } from "react";
+import type { KeyboardEventHandler, ReactNode } from "react";
 import { cx } from "../../../../utils/cx";
 
 export type CommandRootProps = {
@@ -13,6 +13,7 @@ export type CommandRootProps = {
 	shouldFilter?: boolean;
 	children: ReactNode;
 	className?: string;
+	onKeyDownCapture?: KeyboardEventHandler<HTMLDivElement>;
 };
 
 // The frame of a composed Command: a field, a list of groups and rows, and
@@ -24,9 +25,11 @@ export function CommandRoot({
 	shouldFilter,
 	children,
 	className,
+	onKeyDownCapture,
 }: CommandRootProps) {
 	return (
 		<Cmdk
+			onKeyDownCapture={onKeyDownCapture}
 			label={label}
 			value={value}
 			onValueChange={onValueChange}

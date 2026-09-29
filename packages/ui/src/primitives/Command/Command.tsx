@@ -12,6 +12,7 @@ import { CommandGroup as GroupSection } from "./components/CommandGroup";
 import { CommandList } from "./components/CommandList";
 import { CommandRoot } from "./components/CommandRoot";
 import { CommandRow } from "./components/CommandRow";
+import { CommandVirtual } from "./components/CommandVirtual";
 import { currentOption } from "./currentOption";
 
 export type CommandItem = {
@@ -185,6 +186,7 @@ export function Command({
 }
 
 // The composed form: a palette builds its own field, groups, and rows.
+Command.Virtual = CommandVirtual;
 Command.Dialog = CommandDialog;
 Command.Root = CommandRoot;
 Command.Field = CommandField;

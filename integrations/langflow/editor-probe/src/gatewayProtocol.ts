@@ -7,6 +7,7 @@ import { authorizeEditorRequest } from "./editorGrant.ts";
 import { editorGrantFixture } from "./fixtures.ts";
 import { dispatchGatewaySave, documentReceipt, type GatewaySaveState, sha256 } from "./gatewaySave.ts";
 import { langflowComponentManifest, langflowGraphFixture } from "./langflowGraphFixture.ts";
+import { narrowFrame } from "./narrowFrame.ts";
 
 export const probeSessionCookie = "trellis_editor_probe=fixture-session";
 
@@ -63,11 +64,11 @@ const flowView = (revision: number, graphDocument: unknown) => ({
 	version: revision,
 });
 
-export function createGatewayProtocol(input: { expiresAt: string }) {
+export function createGatewayProtocol(input: { expiresAt: string; graphDocument?: unknown }) {
 	const state: GatewaySaveState = {
 		currentRevision: editorGrantFixture.revision,
 		grant: { ...editorGrantFixture, expiresAt: input.expiresAt },
-		graphDocument: structuredClone(langflowGraphFixture),
+		graphDocument: structuredClone(input.graphDocument ?? langflowGraphFixture),
 		loseNextSaveResponse: false,
 		savedRequests: new Map(),
 	};
@@ -149,6 +150,9 @@ export function createGatewayProtocol(input: { expiresAt: string }) {
 		if (request.method === "GET" && request.path === "/api/trellis-editor/v1/document") {
 			return authorizedRead(request, "document:read", documentReceipt(state.currentRevision, state.graphDocument));
 		}
+		if (request.method === "GET" && request.path === "/__probe/narrow") {
+			return authorizedRead(request, "document:read", narrowFrame);
+		}
 		if (request.method === "PUT" && request.path === "/api/trellis-editor/v1/document") {
 			return dispatchGatewaySave({ request, state, record });
 		}
@@ -171,10 +175,16 @@ export function createGatewayProtocol(input: { expiresAt: string }) {
 			return record(request, { status: 200, body: snapshot() });
 		}
 		if (request.method === "GET" && request.path === "/api/v1/session") {
-			return record(request, { status: 200, body: { authenticated: false } });
+			return authorizedRead(request, "document:read", {
+				authenticated: true,
+				user: { id: "editor-fixture-user", username: "Editor fixture", is_active: true, is_superuser: false },
+			});
 		}
 		if (request.method === "GET" && request.path === "/api/v1/auto_login") {
-			return record(request, { status: 200, body: {} });
+			return authorizedRead(request, "document:read", {});
+		}
+		if (request.method === "GET" && request.path === "/health_check") {
+			return authorizedRead(request, "document:read", { status: "ok" });
 		}
 		if (request.method === "GET" && request.path === "/api/v1/version") {
 			return record(request, {

@@ -42,7 +42,7 @@ export class HarnessHost {
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
 		const descriptor = await this.prepare(input, sessionId);
-		return this.launchDescriptor({ ...descriptor, prompt: input.prompt, sessionId });
+		return this.launchDescriptor(descriptor, undefined, true, input.signal);
 	}
 	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
 		const descriptor = await this.descriptor(id);
@@ -56,10 +56,18 @@ export class HarnessHost {
 		descriptor: HarnessDescriptor,
 		timeoutMs?: number,
 		start = true,
+		signal?: AbortSignal,
 	): Promise<HarnessStarted> {
 		const { spec, harness, sessionId, prompt } = descriptor;
+		signal?.throwIfAborted();
 		if (start) await this.options.runtime.start(timeoutMs === undefined ? spec : { ...spec, timeoutMs });
+		signal?.throwIfAborted();
 		const limitMs = this.options.confirmationLimitMs;
+		if (descriptor.textOnly) {
+			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId, { limitMs, signal });
+			signal?.throwIfAborted();
+			if (!current.acknowledgedMessageIds.includes(spec.id)) await this.send(spec.id, prompt, spec.id);
+		}
 		if (harness === "opencode" && sessionId !== undefined) {
 			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId, { limitMs });
 			if (!current.acknowledgedMessageIds.includes(spec.id))
@@ -68,7 +76,7 @@ export class HarnessHost {
 		const process = await this.waitFor(
 			spec.id,
 			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(spec.id),
-			{ limitMs },
+			{ limitMs, signal },
 		);
 		if (sessionId !== undefined && process.agent?.sessionId !== sessionId)
 			throw new Error(
@@ -86,11 +94,11 @@ export class HarnessHost {
 	async waitFor(
 		id: string,
 		matches: (session: RuntimeProcessStatus) => boolean,
-		options: { rejectAgentError?: boolean; limitMs?: number } = {},
+		options: { rejectAgentError?: boolean; limitMs?: number; signal?: AbortSignal } = {},
 	): Promise<RuntimeProcessStatus> {
 		const timeoutMs = this.options.observationTimeoutMs ?? 15000;
 		const controller = new AbortController();
-		const signal = controller.signal;
+		const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
 		let lastProgressAt = Date.now();
 		let overLimit = false;
 		let timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -124,6 +132,7 @@ export class HarnessHost {
 					);
 			}
 		} catch (error) {
+			options.signal?.throwIfAborted();
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(

@@ -42,6 +42,20 @@ test("draws pins only for visible threads of the viewed version", () => {
 	expect(pageCommentPins(numbered, 1, false).map(({ number }) => number)).toEqual([1]);
 });
 
+test("keeps every eligible pin after the former 500-pin boundary", () => {
+	const threads = Array.from({ length: 502 }, (_, index) =>
+		thread(`01M3D5Q1S0KXJ0BVEHD${index.toString().padStart(6, "0")}`, 2, index === 500),
+	);
+	const numbered = numberPageComments(threads);
+	const openPins = pageCommentPins(numbered, 2, false);
+	const allPins = pageCommentPins(numbered, 2, true);
+
+	expect(openPins).toHaveLength(501);
+	expect(openPins.at(500)?.thread.id).toBe(threads[501]?.id);
+	expect(allPins).toHaveLength(502);
+	expect(allPins.at(500)?.thread.id).toBe(threads[500]?.id);
+});
+
 test("opens an old thread on its historical version", () => {
 	expect(pageCommentSearch(1, 2)).toEqual({ version: 1 });
 	expect(pageCommentSearch(2, 2)).toEqual({});

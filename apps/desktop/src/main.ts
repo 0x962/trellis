@@ -253,6 +253,9 @@ else {
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate(
 					appMenu({
+						tabCommand: (command, target) => {
+							if (window && target === window) window.webContents.send("trellis:tab-command", command);
+						},
 						openSettings: () => void navigate("trellis://open/settings#desktop"),
 						openWindow: () => void openWindow(),
 						openLogs: menuAction("showDataDirectory", "Local logs"),

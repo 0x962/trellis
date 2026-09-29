@@ -45,12 +45,6 @@ export const sessionIdsForRuns = async (tx: Tx, input: { runIds: string[] }) => 
 	return Object.fromEntries(found.map((session) => [session.runId, session.id]));
 };
 
-export const statusRequestSessions = (tx: Tx) =>
-	rows<{ sessionId: string; runId: string }>(
-		tx,
-		sql`SELECT id AS "sessionId", run_id AS "runId" FROM sessions WHERE archived_at IS NULL ORDER BY id`,
-	);
-
 // Every session, newest first. `archived` keeps only the archived sessions or
 // only the active ones; without it the answer holds both groups, which is
 // what one sidebar read needs.

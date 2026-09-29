@@ -19,9 +19,16 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 		].includes(event.kind as string)
 	)
 		throw new Error("Unknown provider event kind");
-	for (const field of ["requestId", "sessionId", "model", "prompt", "result", "error", "turnId"])
+	if (event.messageAvailability !== undefined && event.messageAvailability !== "unavailable")
+		throw new Error("Provider message availability must be unavailable");
+	for (const field of ["activityId", "requestId", "sessionId", "model", "prompt", "result", "error", "turnId"])
 		if (event[field] !== undefined && typeof event[field] !== "string")
 			throw new Error(`Provider ${field} must be a string`);
+	if (
+		event.resultActivityIds !== undefined &&
+		(!Array.isArray(event.resultActivityIds) || event.resultActivityIds.some((id) => typeof id !== "string" || !id))
+	)
+		throw new Error("Provider result activity identifiers must be nonempty strings");
 	if (event.kind === "input-request") {
 		const request = event.inputRequest as Record<string, unknown> | undefined;
 		if (
@@ -77,6 +84,10 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 	if (event.kind === "message" || event.message !== undefined) {
 		const message = event.message as Record<string, unknown> | undefined;
 		if (!message || typeof message.text !== "string") throw new Error("A provider message requires text");
+		if (message.id !== undefined && (typeof message.id !== "string" || !message.id))
+			throw new Error("A provider message identifier must be a nonempty string");
+		if (message.complete !== undefined && typeof message.complete !== "boolean")
+			throw new Error("A provider message completion flag must be a boolean");
 		if (message.at !== undefined && (typeof message.at !== "string" || !Number.isFinite(Date.parse(message.at))))
 			throw new Error("A provider message timestamp must be a date string");
 	}

@@ -9,7 +9,11 @@ import { base } from "./base.ts";
 
 export const sessionUpdates = {
 	get: base
-		.route({ method: "GET", path: "/session-updates/{sessionId}", summary: "Read the latest session updates" })
+		.route({
+			method: "GET",
+			path: "/session-updates/{sessionId}",
+			summary: "Read session updates and retained history",
+		})
 		.input(SessionUpdatesGetInputSchema)
 		.output(SessionUpdatesSchema),
 	write: base

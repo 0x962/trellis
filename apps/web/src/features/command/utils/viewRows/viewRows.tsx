@@ -1,4 +1,5 @@
 import {
+	ArrowCounterClockwise,
 	ArrowLeft,
 	ArrowRight,
 	ArrowsDownUp,
@@ -16,6 +17,7 @@ import {
 	SquaresFour,
 	Table,
 	Tray,
+	X,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { projectHref } from "../../../../lib/projectUrl";
@@ -24,6 +26,7 @@ import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { composerActions } from "../../../composer";
 import { itemsOfSection } from "../../items";
+import { dispatchPageTabCommand } from "../../pageTabCommands";
 import { capsOf, type PaletteRow, type RowDeps } from "../../rows";
 import { projectRows } from "../projectRows";
 import { routeDefaults } from "../routeDefaults";
@@ -42,6 +45,11 @@ const icons: Record<string, ReactNode> = {
 	"goto.providers": <Plugs />,
 	"goto.settings": <Gear />,
 	"goto.project": <FolderOpen />,
+	"view.newTab": <Plus />,
+	"view.closeTab": <X />,
+	"view.reopenTab": <ArrowCounterClockwise />,
+	"view.nextTab": <ArrowRight />,
+	"view.previousTab": <ArrowLeft />,
 	"view.filter": <Funnel />,
 	"view.sort": <ArrowsDownUp />,
 	"view.group": <Rows />,
@@ -107,6 +115,12 @@ export const gotoProjectRows = (deps: RowDeps): PaletteRow[] =>
 
 export const viewRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
+		"view.newTab": run(deps, () => dispatchPageTabCommand("new")),
+		"view.closeTab": run(deps, () => dispatchPageTabCommand("close")),
+		"view.reopenTab": run(deps, () => dispatchPageTabCommand("reopen")),
+		"view.nextTab": run(deps, () => dispatchPageTabCommand("next")),
+		"view.previousTab": run(deps, () => dispatchPageTabCommand("previous")),
+
 		"view.filter": run(deps, () =>
 			document.querySelector<HTMLElement>("[data-filter-bar] [data-filter-button]")?.focus(),
 		),

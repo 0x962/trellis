@@ -1,0 +1,1 @@
+export { catalogDiagnostics } from "./catalogDiagnostics";

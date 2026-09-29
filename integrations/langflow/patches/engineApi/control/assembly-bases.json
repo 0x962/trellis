@@ -1,0 +1,5 @@
+{
+  "externalWaits/0001-durable-external-waits.patch": "dd756b42bfd408ad6f5d3132cd37209b316bfdebeccda8ec749051a9ab7c86cb",
+  "externalWaits/0002-queue-bootstrap-and-completion-transactions.patch": "4e6430b4dc0afdf1eeb9bf8abd6225ca0399cdd244299f5a429f482d9c3a6310",
+  "correlation/0001-permanent-correlation-and-admission.patch": "58d3412cd52414fabcc8ea91a6ea0cfb8fc3e7fe6b38b72b2cef56e04e57424e"
+}

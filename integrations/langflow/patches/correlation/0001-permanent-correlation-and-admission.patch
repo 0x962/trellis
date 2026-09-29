@@ -528,7 +528,13 @@ diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/ba
 index 1e82a698e..03a3463c1 100644
 --- a/src/backend/base/langflow/services/jobs/service.py
 +++ b/src/backend/base/langflow/services/jobs/service.py
-@@ -9,3 +9,13 @@ from typing import TYPE_CHECKING
+@@ -5,7 +5,17 @@
+ import asyncio
+ import contextlib
+-from typing import TYPE_CHECKING
+-
++from typing import TYPE_CHECKING, cast
++
  if TYPE_CHECKING:
      from collections.abc import Sequence
 +

@@ -2,12 +2,14 @@ import { execFile } from "node:child_process";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { ORPCError } from "@orpc/server";
 import { sql } from "drizzle-orm";
 import { executionEnvironment } from "../../executionEnvironment";
 import { upsert } from "../actors.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import { type StopRunDeps, stopRunProcess } from "../agentRuns/stopRunProcess.ts";
+import { ObserverHarnessError, removeSessionObserverWorkspace } from "../sessionObserverHarness/index.ts";
 import type { IoCtx } from "../support.ts";
 import { removeSessionDirectory } from "./directory.ts";
 import { sessionOperation } from "./operation.ts";
@@ -19,10 +21,21 @@ export const prepareDelete = async (
 	ctx: IoCtx,
 	input: { id: string },
 	deps: StopRunDeps = { process: sessionProcess, stop: stopNative },
+	removeObserver = removeSessionObserverWorkspace,
 ) => {
 	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
 	return sessionOperation(ctx.home, session.runId, async () => {
 		await ctx.newTx((tx) => getSession(tx, session.id));
+		await removeObserver(ctx, { sourceRunId: session.runId }).catch((error) => {
+			if (error instanceof ObserverHarnessError && error.code === "OBSERVER_CANCEL_UNCONFIRMED")
+				throw new ORPCError("RUNNER_UNAVAILABLE", {
+					defined: true,
+					status: 503,
+					message: error.message,
+					data: { reason: "error" },
+				});
+			throw error;
+		});
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		await stopRunProcess(ctx, run, deps);
 		if (session.directory === join(ctx.home, "agents", run.id, "work")) {

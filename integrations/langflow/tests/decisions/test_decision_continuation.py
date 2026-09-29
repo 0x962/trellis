@@ -28,15 +28,11 @@ sys.path.insert(0, str(TRELLIS_669_ROOT))
 
 pytest_plugins = ["tests.unit.background_execution.conftest"]
 
+from integrations.langflow.tests.decisions.authority_probe import seed_authority, stored_authority
 from integrations.langflow.components.trellis_external_wait import TrellisExternalWaitComponent
-from integrations.langflow.tests.decisions.decision_service_probe import crash, pending_receipts, service
 from langflow.services.database.models.jobs.model import JobCheckpoint, JobStatus
 from langflow.services.jobs.exceptions import HUMAN_INPUT_REQUIRED_EVENT
 from langflow.services.jobs.service import JobService
-from langflow.services.trellis_v1.decisions import (
-    TrellisDecisionAcceptance,
-    TrellisDecisionEnqueueObligation,
-)
 from lfx.components.input_output import ChatOutput
 from lfx.graph import Graph
 from lfx.graph.external_wait import ExternalWaitPending
@@ -61,6 +57,12 @@ async def test_accepted_decision_survives_every_service_fault_and_runs_one_succe
     real_services_db_url: str,
     real_services_job_service: JobService,
 ) -> None:
+    from integrations.langflow.tests.decisions.decision_service_probe import crash, pending_receipts, service
+    from langflow.services.trellis_v1.decisions import (
+        TrellisDecisionAcceptance,
+        TrellisDecisionEnqueueObligation,
+    )
+
     assert hashlib.sha256(CHECKPOINT_FIXTURE.read_bytes()).hexdigest() == (
         "37bab5d39fa9a85ba0ec1c9c381e8386dd75debb9770db7257bfdc7f126ec65d"
     )
@@ -115,6 +117,8 @@ async def test_accepted_decision_survives_every_service_fault_and_runs_one_succe
     engine, session_scope = open_session(real_services_db_url)
     async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
+    async with session_scope() as session:
+        await seed_authority(session, saved_decision["wait"])
 
     crash(real_services_db_url, graph_store_path, dispatch_log_path, "after_acceptance_commit", 91)
 
@@ -167,6 +171,7 @@ async def test_accepted_decision_survives_every_service_fault_and_runs_one_succe
         engine_job_id=JOB_ID,
         decision_bytes=payload,
         payload_digest=hashlib.sha256(payload).hexdigest(),
+        authority_bytes=await stored_authority(real_services_db_url),
     )
     assert replay == receipt
     await background.sweep_orphans_on_startup()

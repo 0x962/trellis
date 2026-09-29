@@ -1,0 +1,98 @@
+name: Langflow package candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Draft release with prepared-context.tar.gz and arm64-proof.json
+        required: true
+        type: string
+      context_sha256:
+        description: SHA256 of prepared-context.tar.gz
+        required: true
+        type: string
+      arm64_proof_sha256:
+        description: SHA256 of the passed arm64 proof receipt
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  x86_64:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.3.13
+      - name: Install the verified Buildx release
+        id: buildx
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 https://github.com/docker/buildx/releases/download/v0.33.0/buildx-v0.33.0.linux-amd64 --output "$RUNNER_TEMP/docker-buildx"
+          printf '%s  %s\n' 9426a15411f35f635afef3f5d3bae53155c3e30d26dee430cc968e13d34be49f "$RUNNER_TEMP/docker-buildx" | sha256sum --check
+          mkdir -p "$HOME/.docker/cli-plugins"
+          install -m 0755 "$RUNNER_TEMP/docker-buildx" "$HOME/.docker/cli-plugins/docker-buildx"
+          docker buildx create --name trellis-langflow-ci --driver docker-container --driver-opt image=moby/buildkit@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8 --use
+      - name: Fetch exact candidate inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/trellis-langflow-download"
+          gh release download "$RELEASE_TAG" --pattern prepared-context.tar.gz --pattern arm64-proof.json --dir "$RUNNER_TEMP/trellis-langflow-download"
+      - name: Verify proof and extract the private context
+        env:
+          CONTEXT_SHA256: ${{ inputs.context_sha256 }}
+          ARM64_PROOF_SHA256: ${{ inputs.arm64_proof_sha256 }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, tarfile
+          download = pathlib.Path(os.environ['RUNNER_TEMP']) / 'trellis-langflow-download'
+          for name, variable in [('prepared-context.tar.gz', 'CONTEXT_SHA256'), ('arm64-proof.json', 'ARM64_PROOF_SHA256')]:
+              expected = os.environ[variable]
+              assert re.fullmatch('[0-9a-f]{64}', expected), variable
+              with (download / name).open('rb') as stream:
+                  assert hashlib.file_digest(stream, 'sha256').hexdigest() == expected, name
+          proof = json.loads((download / 'arm64-proof.json').read_text())
+          assert proof['schemaVersion'] == 1
+          assert proof['qualification'] == 'candidate'
+          assert proof['architecture'] == 'arm64'
+          assert proof['contextSha256'] == os.environ['CONTEXT_SHA256']
+          assert proof['result'] == 'passed'
+          for check in ['offlineStart', 'readOnlyRoot', 'privateData', 'deniedEgress', 'nativeSessionRetention']:
+              assert proof['checks'][check] == 'passed', check
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'trellis-langflow-oci-ci'
+          root.mkdir(mode=0o700)
+          with tarfile.open(download / 'prepared-context.tar.gz', 'r:gz') as archive:
+              names = set()
+              for member in archive.getmembers():
+                  path = pathlib.PurePosixPath(member.name)
+                  assert not path.is_absolute() and '..' not in path.parts
+                  assert path.parts and path.parts[0] == 'context'
+                  assert member.isfile() or member.isdir()
+                  assert member.name not in names
+                  names.add(member.name)
+              archive.extractall(root, filter='data')
+          for name in ['Dockerfile', 'entrypoint.sh']:
+              assert (root / 'context' / name).read_bytes() == pathlib.Path('integrations/langflow/release/oci', name).read_bytes(), name
+          with open(os.environ['GITHUB_ENV'], 'a') as environment:
+              environment.write(f'CANDIDATE_ROOT={root}\n')
+          PY
+      - name: Install the pinned loader dependency
+        run: bun install --cwd integrations/langflow/release --ignore-scripts
+      - name: Build the x86_64 candidate
+        run: bun integrations/langflow/release/oci/buildCandidate/buildCandidate.ts "$CANDIDATE_ROOT" x86_64
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: langflow-x86_64-candidate
+          path: ${{ env.CANDIDATE_ROOT }}/x86_64
+          if-no-files-found: error
+          compression-level: 0
+      - name: Remove the job builder
+        if: ${{ always() && steps.buildx.outcome == 'success' }}
+        run: docker buildx rm trellis-langflow-ci

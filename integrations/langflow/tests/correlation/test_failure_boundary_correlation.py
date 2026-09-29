@@ -34,6 +34,7 @@ from real_transaction_fixture_support import (
     background_service,
     configure_child_database,
     correlation_coordinator,
+    real_services_job_service,
     row_counts,
     terminate_child,
     wait_for_status,
@@ -155,7 +156,7 @@ async def _child_boundary() -> None:
         job_service.mark_trellis_admission_obligation_consumed = terminate_before_mark
         factory = await _frame_source_factory(job_service, coordinator)
         service = background_service(factory)
-        await service.start()
+        await service.sweep_orphans_on_startup()
         await asyncio.sleep(10)
         raise AssertionError("dispatch boundary did not terminate")
     if phase == "native_after_acknowledgement":
@@ -208,7 +209,7 @@ async def test_service_deaths_recover_one_admitted_native_effect(
     ) == contract_bytes("correlation")
     factory = await _frame_source_factory(real_services_job_service, coordinator)
     service = background_service(factory)
-    await service.start()
+    await service.sweep_orphans_on_startup()
     try:
         await wait_for_status(real_services_job_service, JobStatus.COMPLETED)
     finally:

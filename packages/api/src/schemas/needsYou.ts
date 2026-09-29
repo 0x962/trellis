@@ -19,7 +19,7 @@ export const NeedsYouCursorSchema = z.object({
 	query: z.string(),
 	key: z.string(),
 	age: IsoDateTimeSchema,
-	id: z.string().max(200),
+	id: z.string(),
 });
 export const NeedsYouListInputSchema = z.object({
 	section: NeedsYouSectionSchema.optional(),
@@ -58,8 +58,8 @@ export const NeedsYouSummarySchema = z.object({
 	nextWakeAt: IsoDateTimeSchema.nullable(),
 });
 export const NeedsYouUpdateInputSchema = z.discriminatedUnion("action", [
-	z.object({ id: z.string().min(1).max(200), action: z.literal("snooze"), until: IsoDateTimeSchema }),
-	z.object({ id: z.string().min(1).max(200), action: z.literal("ignore") }),
-	z.object({ id: z.string().min(1).max(200), action: z.literal("restore") }),
+	z.object({ id: z.string().min(1), action: z.literal("snooze"), until: IsoDateTimeSchema }),
+	z.object({ id: z.string().min(1), action: z.literal("ignore") }),
+	z.object({ id: z.string().min(1), action: z.literal("restore") }),
 ]);
 export type NeedsYouUpdateInput = z.infer<typeof NeedsYouUpdateInputSchema>;

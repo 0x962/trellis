@@ -63,6 +63,7 @@ export class DeterministicProcessHost {
 	private readonly children = new Map<string, ReturnType<typeof Bun.spawn>>();
 	private loseLaunchResponse = false;
 	private stopError: string | null = null;
+	private delaySession = false;
 
 	private constructor(
 		private readonly directory: string,
@@ -83,6 +84,10 @@ export class DeterministicProcessHost {
 		this.loseLaunchResponse = true;
 	}
 
+	delayNextSession() {
+		this.delaySession = true;
+	}
+
 	failStops(message: string | null) {
 		this.stopError = message;
 	}
@@ -97,6 +102,10 @@ export class DeterministicProcessHost {
 		});
 		this.children.set(input.id, child);
 		const processStatus = status(input.id, child.pid, this.now());
+		if (this.delaySession) {
+			processStatus.agent!.sessionId = null;
+			this.delaySession = false;
+		}
 		await this.write(processStatus, "launch");
 		this.launches.push(input.id);
 		if (this.loseLaunchResponse) {
@@ -106,13 +115,18 @@ export class DeterministicProcessHost {
 		return { process: processStatus };
 	}
 
-	async acknowledge(attemptId: string) {
+	async attachSession(attemptId: string, sessionId: string) {
+		const processStatus = await this.inspect(attemptId);
+		await this.write({ ...processStatus, agent: { ...processStatus.agent!, sessionId } }, "observation");
+	}
+
+	async acknowledge(attemptId: string, messageId = attemptId, activityState: "working" | "idle" = "working") {
 		const processStatus = await this.inspect(attemptId);
 		await this.write(
 			{
 				...processStatus,
-				acknowledgedMessageIds: [attemptId],
-				activity: { state: "working", updatedAt: this.now() },
+				acknowledgedMessageIds: [messageId],
+				activity: { state: activityState, updatedAt: this.now() },
 			},
 			"prompt_receipt",
 		);
@@ -195,9 +209,15 @@ export class DeterministicProcessHost {
 				process.kill(processStatus.pid, "SIGTERM");
 			}
 		}
-		await Promise.all([...this.children.values()].map((child) => child.exited));
+		const exits = await Promise.all(
+			[...this.children.entries()].map(async ([attemptId, child]) => ({
+				attemptId,
+				pid: child.pid,
+				exitCode: await child.exited,
+			})),
+		);
 		for (const pid of pids) while (this.alive(pid)) await Bun.sleep(5);
-		return { pids, survivingPids: pids.filter((pid) => this.alive(pid)) };
+		return { pids, exits, survivingPids: pids.filter((pid) => this.alive(pid)) };
 	}
 
 	private alive(pid: number) {

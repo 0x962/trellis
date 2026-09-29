@@ -2,8 +2,14 @@ import { z } from "zod";
 import { HumanWaitV1Schema } from "../human";
 import { NativeHandleV1Schema, NativeRequestV1Schema } from "../native";
 import { EngineJobBindingV1Schema, ReferenceSchema, RevisionSchema } from "../primitives";
+import { ReviewWaitV1Schema } from "../review";
 
 export const ExternalWaitV1Schema = z.discriminatedUnion("kind", [
+	z.strictObject({
+		kind: z.literal("native_reservation"),
+		waitId: ReferenceSchema,
+		request: NativeRequestV1Schema,
+	}),
 	z.strictObject({
 		kind: z.literal("native"),
 		waitId: ReferenceSchema,
@@ -11,6 +17,7 @@ export const ExternalWaitV1Schema = z.discriminatedUnion("kind", [
 		handle: NativeHandleV1Schema,
 	}),
 	z.strictObject({ kind: z.literal("human"), waitId: ReferenceSchema, request: HumanWaitV1Schema }),
+	z.strictObject({ kind: z.literal("review"), waitId: ReferenceSchema, request: ReviewWaitV1Schema }),
 	z.strictObject({ kind: z.literal("admission"), waitId: ReferenceSchema, barrierId: ReferenceSchema }),
 ]);
 export const EngineCheckpointV1Schema = z

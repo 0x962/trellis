@@ -7,13 +7,16 @@ import { z } from "zod";
 import type { HarnessEvent, HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 const envelope = z.object({
+	messageAvailability: z.literal("unavailable").optional(),
 	event: z.enum(["session", "prompt", "working", "idle", "message", "tool-start", "tool-update", "tool-end", "error"]),
-	message: z.object({ text: z.string() }).optional(),
+	activityId: z.string().optional(),
+	message: z.object({ id: z.string().optional(), text: z.string(), complete: z.boolean().optional() }).optional(),
 	sessionId: z.string(),
 	turnId: z.string().optional(),
 	model: z.string().optional(),
 	prompt: z.string().optional(),
 	result: z.string().optional(),
+	resultActivityIds: z.array(z.string()).optional(),
 	tool: z
 		.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })
 		.optional(),

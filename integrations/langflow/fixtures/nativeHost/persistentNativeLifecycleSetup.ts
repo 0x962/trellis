@@ -2,7 +2,7 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { node } from "../../../../apps/server/src/agents/nativeFlow/testDoc.ts";
+import { edge, node } from "../../../../apps/server/src/agents/nativeFlow/testDoc.ts";
 import type { ServiceCtx as CoreCtx } from "../../../../apps/server/src/context.ts";
 import { createCache } from "../../../../apps/server/src/db/cache.ts";
 import { openDatabase } from "../../../../apps/server/src/db/open.ts";
@@ -35,7 +35,7 @@ const writeJson = async (path: string, value: unknown) => {
 	await rename(temporary, path);
 };
 
-export async function createPersistentNativeLifecycleFixture(home: string) {
+export async function createPersistentNativeLifecycleFixture(home: string, humanFirst = false) {
 	await mkdir(home, { recursive: true, mode: 0o700 });
 	const database = await openDatabase(join(home, "db"));
 	const at = new Date("2026-09-29T10:00:00.000Z");
@@ -53,8 +53,8 @@ export async function createPersistentNativeLifecycleFixture(home: string) {
 		saveFlow(core, tx, {
 			flow: flow.id,
 			expectedVersion: flow.version,
-			nodes: [node("agent", "agent", null)],
-			edges: [],
+			nodes: humanFirst ? [node("human", "human", null), node("agent", "agent", null)] : [node("agent", "agent", null)],
+			edges: humanFirst ? [edge("human", "agent")] : [],
 		}),
 	);
 	const ticket = await database.db.transaction((tx) =>

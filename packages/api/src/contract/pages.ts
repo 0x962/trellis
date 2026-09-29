@@ -13,8 +13,8 @@ import {
 	PageUpdateInputSchema,
 	PageUploadInputSchema,
 	PageUploadSchema,
-	PageWatcherOptionSchema,
 	PageWatcherOptionsInputSchema,
+	PageWatcherOptionsOutputSchema,
 	PageWatchInputSchema,
 } from "../schemas/page.ts";
 import {
@@ -46,9 +46,14 @@ const revisionErrors = pickErrors(["PROJECT_ARCHIVED", "PAGE_VERSION_CONFLICT"])
 
 export const pages = {
 	watcherOptions: base
-		.route({ method: "GET", path: "/pages/watcher-options/{+page}", summary: "List up to 100 eligible Page watchers" })
+		.errors(pickErrors(["INVALID_CURSOR"]))
+		.route({
+			method: "GET",
+			path: "/pages/watcher-options/{+page}",
+			summary: "List one page of eligible Page watchers",
+		})
 		.input(PageWatcherOptionsInputSchema)
-		.output(z.array(PageWatcherOptionSchema)),
+		.output(PageWatcherOptionsOutputSchema),
 	watch: base
 		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({ method: "PUT", path: "/pages/watch/{+page}", summary: "Assign or remove the Page watcher" })

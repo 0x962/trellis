@@ -19,7 +19,8 @@ class TrellisExternalWaitComponent(Component):
         wait = json.loads(self.wait_bytes)
         if wait["kind"] == "human":
             request_id = wait["request"]["engineRequestId"]
-            decision = self.graph.human_input_decisions.get(request_id)
+            decisions = getattr(self.graph, "human_input_decisions", {})
+            decision = decisions.get(request_id)
             if decision is not None:
                 decision_bytes = json.dumps(decision, separators=(",", ":"))
                 receipt_bytes = await self.graph.complete_external_wait(self.wait_bytes, decision_bytes)

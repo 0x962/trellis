@@ -24,7 +24,7 @@ export type ChangeSource = "selection" | "row";
 
 // Applies one inline or bulk change to the target rows. A change from the
 // selection writes through `bulk.update`, which asks before a large write,
-// sends the refs in runs of 200, and reports the tickets it left out. A
+// sends the refs in one transaction, and reports the tickets it left out. A
 // change from one row writes through `mutations.update`, which sends the
 // version of that row.
 //

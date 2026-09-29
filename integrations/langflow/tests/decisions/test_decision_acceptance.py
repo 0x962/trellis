@@ -5,10 +5,13 @@ import hashlib
 import json
 import multiprocessing
 import os
+from datetime import datetime, timezone
 from pathlib import Path
+
 import pytest
 from sqlmodel import SQLModel, func, select
 
+from integrations.langflow.tests.decisions.authority_probe import seed_authority, stored_authority
 from integrations.langflow.tests.decisions.decision_probe import (
     CHECKPOINT_FIXTURE,
     FLOW_ID,
@@ -27,6 +30,7 @@ from langflow.services.database.models.jobs.model import (
     JobType,
 )
 from langflow.services.jobs.exceptions import HUMAN_INPUT_REQUIRED_EVENT
+from langflow.services.trellis_v1.authority import AuthorityUnauthorized, revoke_authority
 from langflow.services.trellis_v1.decisions import (
     DecisionAcceptanceLedger,
     DecisionConflictError,
@@ -39,7 +43,9 @@ def _wait(payload: bytes) -> dict:
     return json.loads(payload)["wait"]
 
 
-async def _initialize(database_url: str, payload: bytes | None = None) -> None:
+async def _initialize(
+    database_url: str, payload: bytes | None = None, *, with_authority: bool = True
+) -> None:
     engine, session_scope = open_session(database_url)
     async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
@@ -67,6 +73,8 @@ async def _initialize(database_url: str, payload: bytes | None = None) -> None:
                 },
             )
         )
+        if with_authority:
+            await seed_authority(session, _wait(payload))
     await engine.dispose()
 
 
@@ -83,6 +91,7 @@ async def _accept(database_url: str, *, fault_point: str | None = None) -> dict:
         engine_job_id=JOB_ID,
         decision_bytes=payload,
         payload_digest=digest(payload),
+        authority_bytes=await stored_authority(database_url),
         fault=fault,
     )
     await engine.dispose()
@@ -177,6 +186,7 @@ def test_changed_bytes_conflict_with_the_saved_decision(tmp_path: Path) -> None:
                 engine_job_id=JOB_ID,
                 decision_bytes=changed,
                 payload_digest=digest(changed),
+                authority_bytes=await stored_authority(database_url),
             )
         await engine.dispose()
 
@@ -212,6 +222,22 @@ def test_lookup_confirms_only_the_exact_saved_identity(tmp_path: Path) -> None:
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'lookup.db'}"
     asyncio.run(_initialize(database_url))
     receipt = asyncio.run(_accept(database_url))
+
+    async def revoke() -> None:
+        authority = json.loads(await stored_authority(database_url))
+        engine, session_scope = open_session(database_url)
+        async with session_scope() as session:
+            await revoke_authority(
+                session,
+                "execution-1",
+                expected_capability_id=authority["capabilityId"],
+                revoked_at=datetime.now(timezone.utc),
+            )
+        await engine.dispose()
+
+    asyncio.run(revoke())
+    with pytest.raises(AuthorityUnauthorized):
+        asyncio.run(_accept(database_url))
 
     async def lookup(payload_digest: str, engine_request_id: str) -> dict:
         engine, session_scope = open_session(database_url)

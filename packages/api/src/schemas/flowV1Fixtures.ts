@@ -108,6 +108,7 @@ export const executionViewV1Example: FlowExecutionViewV1 = {
 	decisionDeliveries: [],
 };
 export const occurrenceV1Example: FlowOccurrenceV1 = {
+	kind: "agent",
 	nodeId: "node-1",
 	occurrenceKey: "loop-1:37:node-1:step",
 	parentOccurrenceKey: "loop-1:37",
@@ -119,6 +120,7 @@ export const occurrenceV1Example: FlowOccurrenceV1 = {
 	state: "unknown",
 	waitReason: "ownership_unknown",
 	output: null,
+	outputSource: null,
 	decision: null,
 	error: null,
 	skipReason: null,
@@ -152,6 +154,51 @@ export const unknownAdmissionV1Example: FlowExecutionViewV1 = {
 		ownership: "unknown",
 		error: "The engine response is unknown.",
 	},
+};
+export const retainedOutputV1Example: FlowOccurrenceV1 = {
+	...occurrenceV1Example,
+	state: "succeeded",
+	waitReason: null,
+	output: "The retained result belongs to attempt 37.",
+	outputSource: {
+		stepId: "step-37",
+		agentRunId: flowV1FixtureIds.agentRun,
+		attemptId: "attempt-37",
+		resultId: "result-37",
+	},
+	attempts: [
+		{
+			...occurrenceV1Example.attempts[0]!,
+			state: "exited",
+			resultId: "result-37",
+		},
+		{
+			...occurrenceV1Example.attempts[0]!,
+			attemptId: "attempt-38",
+			state: "reserved",
+		},
+	],
+};
+const {
+	publication: _legacyPublication,
+	lastExecutablePublication: _legacyExecutable,
+	...legacySnapshot
+} = legacyDocumentV1Example;
+export const legacyExecutionViewV1Example: FlowExecutionViewV1 = {
+	...executionViewV1Example,
+	engine: "legacy",
+	snapshot: legacySnapshot,
+	publication: null,
+	submission: null,
+	occurrences: [
+		{
+			...occurrenceV1Example,
+			kind: null,
+			output: "Historical output with no retained native result binding.",
+			outputSource: null,
+			attempts: [],
+		},
+	],
 };
 export const stopPendingV1Example: FlowExecutionViewV1 = {
 	...executionViewV1Example,

@@ -1,0 +1,61 @@
+{
+	"version": 1,
+	"sourceBase": "eb3d526cd9d666ebbb2c3bb75dbee1fff7a8f044",
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"priorComposition": {
+		"mergeCommit": "f7ac57e67b2565a06e0e393bc43234774c76547b",
+		"manifest": "reports/langflow-feasibility-review/backend-api-composition.json",
+		"aggregateSha256": "10407d5f49f743163180e3f052028779b434bbcd25510f19309bf223c4379f1d"
+	},
+	"insertAfter": "backend-backup",
+	"insertBefore": "editor",
+	"patchOrder": [
+		{
+			"name": "backend-capture-writers",
+			"sourceCommit": "8e2064786f1a17899fb0115b5b584e0c45888a6f",
+			"mergeCommit": "eb3d526cd9d666ebbb2c3bb75dbee1fff7a8f044",
+			"path": "integrations/langflow/patches/externalWaits/0005-capture-boundary-writer-hooks.patch",
+			"sha256": "b65478f03a3d0f98f67017bcaa40f07ab8b5530cba6231f4ab7bded709e57210",
+			"directory": "."
+		},
+		{
+			"name": "backend-private-startup",
+			"mergeCommit": "132ab85854a421d7b0934141f00396c698988d95",
+			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
+			"sha256": "3e3008cbca8407050779ccd18f6f01fa437e496e7162678fbdfe20ca020214a3",
+			"directory": "."
+		}
+	],
+	"sourceComposition": {
+		"method": "Compose the ordered patches against pinned Git blobs in memory with checkSeries.apply_patch; hash the resulting source bytes without imports or runtime execution.",
+		"patches": 19,
+		"files": 63,
+		"aggregateSha256": "a2c393012d584e855d715e92fcde67c59fa27f9bdf62bc3b41b76f93d4a8b902",
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"changedSourceHashes": {
+			"src/backend/base/langflow/main.py": "a2169b4076160575f02edbab5d826b3eec6fe7591d559dce3db790428976598d",
+			"src/backend/base/langflow/services/background_execution/runner.py": "5e2b95b6a8f0ab0a420d1fdf42755e6eac8b066ac624444c9051d41a505cdbac",
+			"src/backend/base/langflow/services/background_execution/service.py": "0e58fbf3a50175417a2e1307440e82b85b52fe67505aa4358afd5611b8344cf3",
+			"src/backend/base/langflow/services/database/service.py": "1a080108dd2d925055d2a5807dbe786de5335a640f57fbe6b954f7d6673b1fdd",
+			"src/backend/base/langflow/services/trellis_v1/capture_writer.py": "b5c55008203b7f73723f3dc5cb5fe894a6dffb6119cecc447c13b0b407461602",
+			"src/backend/base/langflow/services/trellis_v1/startup.py": "01e86cdc65a425edfd250cefc57232ab692447516beae6050f679eafac8e2cc8"
+		},
+		"authorPatchBytesChanged": false,
+		"sharedGuardApplicationCount": 1,
+		"candidateMutated": false
+	},
+	"addedFixtureHashes": {
+		"integrations/langflow/patches/engineApi/startup/tests/test_startup.py": "a1e2f32bd74c0d55c2c15e405364101f3f5b592f9de25195f2b77ac0eb35a1e9"
+	},
+	"activationVariable": "TRELLIS_ENGINE_API_CONFIG_FILE",
+	"remainingProof": [
+		"Combined imports and actual private route startup remain unverified.",
+		"Capture exclusion, deferral, durable restart, and recovery require matched engine tests.",
+		"Occurrence requests, group scopes, and loop control retain their separate source owners.",
+		"The package needs matching component catalog and editor assets.",
+		"Tests, linters, builds, and Review remain deferred until the complete batch."
+	],
+	"packageExportApproved": false,
+	"technicalAcceptance": false,
+	"productionApproval": false
+}

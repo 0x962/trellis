@@ -7,6 +7,8 @@ import type {
 	DesktopUpdateStatus,
 } from "./desktopSettings/desktopSettings.ts";
 
+import type { TabCommand } from "./tabMenu";
+
 const refreshThermalState = (): Promise<DesktopThermalSample> => ipcRenderer.invoke("trellis:thermal-ready");
 
 contextBridge.exposeInMainWorld(
@@ -42,6 +44,11 @@ contextBridge.exposeInMainWorld(
 		updateStatus: (): Promise<DesktopUpdateStatus> => ipcRenderer.invoke("trellis:desktop-update-status"),
 		setOpenAtLogin: (enabled: boolean): Promise<void> => ipcRenderer.invoke("trellis:set-open-at-login", enabled),
 		run: (action: DesktopAction): Promise<void> => ipcRenderer.invoke("trellis:desktop-action", action),
+		onTabCommand: (listener: (command: TabCommand) => void) => {
+			const handler = (_event: IpcRendererEvent, command: TabCommand) => listener(command);
+			ipcRenderer.on("trellis:tab-command", handler);
+			return () => ipcRenderer.removeListener("trellis:tab-command", handler);
+		},
 		onBrowserCopyLink: (listener: () => void) => {
 			const handler = () => listener();
 			ipcRenderer.on("trellis:browser-copy-link", handler);

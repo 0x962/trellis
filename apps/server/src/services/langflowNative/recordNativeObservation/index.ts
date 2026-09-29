@@ -1,0 +1,1 @@
+export { recordNativeObservation } from "./recordNativeObservation";

@@ -1,7 +1,8 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { type PageTabItem, PageTabs } from "@trellis/ui";
+import { PageTabs } from "@trellis/ui";
 import { useCallback, useEffect, useMemo } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import type { DesktopBridge } from "../../../lib/desktopBridge";
 import {
 	type PageTab,
 	pageTabsActions,
@@ -9,12 +10,20 @@ import {
 	pageTabsUiProjection,
 	usePageTabsStore,
 } from "../../../stores/pageTabsStore";
+import { onPageTabCommand, type PageTabCommand } from "../../command/pageTabCommands";
 import { pageTabTitle } from "./pageTabTitle";
 
 const pageTabItemsEqual = (left: readonly PageTab[], right: readonly PageTab[]) =>
 	left === right ||
 	(left.length === right.length &&
-		left.every((tab, index) => tab.id === right[index]!.id && tab.title === right[index]!.title));
+		left.every(
+			(tab, index) =>
+				tab.id === right[index]!.id &&
+				tab.title === right[index]!.title &&
+				tab.customTitle === right[index]!.customTitle &&
+				tab.pinned === right[index]!.pinned &&
+				tab.groupId === right[index]!.groupId,
+		));
 
 const activeTab = () => {
 	const state = usePageTabsStore.getState();
@@ -36,11 +45,9 @@ export function PageTabsHost() {
 	const router = useRouter();
 	const resolvedHref = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).href });
 	const tabs = useStoreWithEqualityFn(usePageTabsStore, pageTabsSelectors.tabs, pageTabItemsEqual);
+	const groups = usePageTabsStore(pageTabsSelectors.groups);
 	const activeId = usePageTabsStore(pageTabsSelectors.activeId);
-	const pageTabsView = useMemo<{ tabs: readonly PageTabItem[]; activeId: string }>(
-		() => pageTabsUiProjection(tabs, activeId),
-		[tabs, activeId],
-	);
+	const pageTabsView = useMemo(() => pageTabsUiProjection(tabs, groups), [tabs, groups]);
 
 	const showActiveTab = useCallback(
 		(restoreFocus = false) => {
@@ -64,6 +71,19 @@ export function PageTabsHost() {
 		},
 		[showActiveTab],
 	);
+	const createGroup = useCallback((name: string, tabId: string) => {
+		const id = pageTabsActions.createGroup(name);
+		pageTabsActions.setTabGroup(tabId, id);
+		return id;
+	}, []);
+	const collapseGroup = useCallback(
+		(id: string, collapsed: boolean) => {
+			const priorActiveId = usePageTabsStore.getState().activeId;
+			pageTabsActions.setGroupCollapsed(id, collapsed);
+			if (usePageTabsStore.getState().activeId !== priorActiveId) showActiveTab();
+		},
+		[showActiveTab],
+	);
 	const close = useCallback(
 		(id: string) => {
 			const priorActiveId = usePageTabsStore.getState().activeId;
@@ -73,6 +93,36 @@ export function PageTabsHost() {
 		},
 		[showActiveTab],
 	);
+
+	useEffect(() => {
+		const execute = (command: PageTabCommand) => {
+			const state = usePageTabsStore.getState();
+			switch (command) {
+				case "new":
+					state.addTab({ url: "/needs-you", title: "Needs you" });
+					break;
+				case "close":
+					state.closeTab(state.activeId);
+					break;
+				case "reopen":
+					if (state.closedTabs.length === 0) return;
+					state.reopenClosedTab();
+					break;
+				case "next":
+				case "previous":
+					state.selectAdjacentTab(command === "next" ? 1 : -1);
+					break;
+			}
+			showActiveTab(true);
+		};
+		const unsubscribe = onPageTabCommand(execute);
+		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+		const unsubscribeDesktop = desktop?.onTabCommand?.(execute);
+		return () => {
+			unsubscribe();
+			unsubscribeDesktop?.();
+		};
+	}, [showActiveTab]);
 
 	useEffect(() => {
 		const saveTitle = () => {
@@ -85,6 +135,22 @@ export function PageTabsHost() {
 	}, [resolvedHref]);
 
 	return (
-		<PageTabs tabs={pageTabsView.tabs} activeId={pageTabsView.activeId} onAdd={add} onSelect={select} onClose={close} />
+		<PageTabs
+			tabs={pageTabsView.tabs}
+			groups={pageTabsView.groups}
+			activeId={activeId}
+			onAdd={add}
+			onSelect={select}
+			onClose={close}
+			onMove={pageTabsActions.moveTab}
+			onRename={pageTabsActions.renameTab}
+			onSort={pageTabsActions.sortTabs}
+			onPin={pageTabsActions.setPinned}
+			onCreateGroup={createGroup}
+			onRenameGroup={pageTabsActions.renameGroup}
+			onRemoveGroup={pageTabsActions.removeGroup}
+			onGroupCollapse={collapseGroup}
+			onSetTabGroup={pageTabsActions.setTabGroup}
+		/>
 	);
 }

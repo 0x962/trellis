@@ -10,6 +10,7 @@ from uuid import UUID
 
 import pytest
 
+from integrations.langflow.tests.decisions.authority_probe import stored_authority
 from integrations.langflow.tests.decisions.decision_probe import JOB_ID, decision_bytes
 from langflow.services.background_execution.service import BackgroundExecutionService
 from langflow.services.database.factory import DatabaseServiceFactory
@@ -100,6 +101,7 @@ async def _fault_process(
             engine_job_id=JOB_ID,
             decision_bytes=payload,
             payload_digest=hashlib.sha256(payload).hexdigest(),
+            authority_bytes=await stored_authority(database_url),
         )
 
     if fault_point == "before_continuation_receipt":
