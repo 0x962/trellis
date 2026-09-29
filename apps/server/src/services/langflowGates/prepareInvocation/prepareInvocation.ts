@@ -35,7 +35,7 @@ export async function prepareInvocation(
 				ctx.control.archive.readAuthorityBytes(authority) !== input.authorityBytes)
 				throw new Error("authority_conflict");
 			await assertOwnerActive(tx, authority);
-			assertAuthority(execution, authority, "review.classify", ctx.now());
+			await assertAuthority(tx, execution, authority, "review.classify", ctx.now());
 			if (execution.publicationId !== request.publicationId || execution.engineJobId !== request.engineJobId ||
 				authority.engineEpoch < request.engineEpoch || execution.diffId !== request.diffId || execution.reviewedHead !== request.reviewedHead)
 				throw new Error("review_gate_identity_conflict");
