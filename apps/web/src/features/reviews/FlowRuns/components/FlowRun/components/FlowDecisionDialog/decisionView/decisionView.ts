@@ -13,8 +13,9 @@ export function decisionView(execution: FlowExecutionRecord | FlowExecutionViewV
 				.map((item) => ({ key: item.occurrenceKey, title: item.title, text: item.output! })),
 		};
 	}
+	const nodes = new Map(execution.doc.nodes.map((node) => [node.id, node]));
 	const step = execution.state.steps.find((item) => item.actionKey === actionKey);
-	const node = execution.doc.nodes.find((item) => item.id === step?.nodeId);
+	const node = step ? nodes.get(step.nodeId) : undefined;
 	return {
 		title: node?.title ?? "Decision unavailable",
 		instruction: node?.instruction ?? "The selected step is absent from this run.",
@@ -24,7 +25,7 @@ export function decisionView(execution: FlowExecutionRecord | FlowExecutionViewV
 			.filter((item) => item.state === "succeeded" && item.output !== null)
 			.map((item) => ({
 				key: item.key,
-				title: execution.doc.nodes.find((node) => node.id === item.nodeId)!.title,
+				title: nodes.get(item.nodeId)!.title,
 				text: item.output!,
 			})),
 	};

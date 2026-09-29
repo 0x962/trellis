@@ -1,5 +1,6 @@
 import type { FlowDocumentSnapshotV1, FlowPublicationV1 } from "@trellis/api";
-import { bigint, index, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { bigint, check, index, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import type {
 	AdmissionStateV1,
 	CancelIntentV1,
@@ -9,6 +10,7 @@ import type {
 } from "../../../langflowContracts";
 import { tickets } from "../../schema";
 import { at } from "../actors";
+import { flowExecutions } from "../flowExecutions";
 import { langflowDocumentPublications } from "../langflowDocuments";
 import { projects } from "../projects";
 import { pullRequests } from "../pullRequests";
@@ -66,9 +68,17 @@ export const langflowStartReceipts = pgTable(
 		actorName: text("actor_name").notNull(),
 		requestId: text("request_id").notNull(),
 		requestBytes: text("request_bytes").notNull(),
-		executionId: text("execution_id")
-			.notNull()
-			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
+		executionId: text("execution_id").notNull(),
+		langflowExecutionId: text("langflow_execution_id").references(() => langflowExecutions.executionId, {
+			onDelete: "cascade",
+		}),
+		legacyExecutionId: text("legacy_execution_id").references(() => flowExecutions.id, { onDelete: "cascade" }),
 	},
-	(t) => [primaryKey({ columns: [t.actorKind, t.actorName, t.requestId] })],
+	(t) => [
+		primaryKey({ columns: [t.actorKind, t.actorName, t.requestId] }),
+		check(
+			"langflow_start_receipt_target",
+			sql`((${t.langflowExecutionId} = ${t.executionId} AND ${t.legacyExecutionId} IS NULL) OR (${t.legacyExecutionId} = ${t.executionId} AND ${t.langflowExecutionId} IS NULL)) IS TRUE`,
+		),
+	],
 );

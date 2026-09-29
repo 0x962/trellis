@@ -1,4 +1,5 @@
-import { jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import type {
 	GroupDeadlineV1,
 	HumanDeliveryV1,
@@ -68,9 +69,16 @@ export const langflowDeadlines = pgTable(
 			.notNull()
 			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 		groupOccurrenceKey: text("group_occurrence_key").notNull(),
+		groupDigest: text("group_digest").notNull(),
 		deadline: jsonb().$type<GroupDeadlineV1>().notNull(),
 	},
-	(t) => [unique("langflow_deadline_group").on(t.executionId, t.groupOccurrenceKey)],
+	(t) => [
+		unique("langflow_deadline_group").on(t.executionId, t.groupDigest),
+		check(
+			"langflow_deadline_digest",
+			sql`${t.groupDigest} = encode(sha256(convert_to(${t.groupOccurrenceKey}, 'UTF8')), 'hex')`,
+		),
+	],
 );
 
 export const langflowWarnings = pgTable(

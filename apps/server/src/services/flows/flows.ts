@@ -88,4 +88,5 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, input: { flow: string }) =
 };
 
 export { readDoc, resolveFlow } from "./queries.ts";
-export { replaceLegacyGraph, save } from "./save.ts";
+export { replaceLegacyGraph } from "./replaceLegacyGraph";
+export { save } from "./save.ts";

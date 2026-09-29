@@ -1,0 +1,55 @@
+import {
+	DecisionDeliveryV1Schema,
+	type DecisionLookupRequestV1,
+	DecisionLookupResultV1Schema,
+	type DeliveryAuthorityV1,
+	HumanDecisionReceiptV1Schema,
+	type HumanDeliveryV1,
+	readProtocolBytes,
+} from "../../../langflowContracts";
+import { acceptance } from "../acceptance";
+
+export type DecisionEngine = {
+	lookup(input: DecisionLookupRequestV1): Promise<unknown>;
+	accept(input: { decisionBytes: string; payloadDigest: string; authority: DeliveryAuthorityV1 }): Promise<unknown>;
+};
+export type PreparedDecision = {
+	payloadBytes: string;
+	delivery: HumanDeliveryV1;
+	authority: DeliveryAuthorityV1;
+};
+
+export async function deliver(prepared: PreparedDecision, engine: DecisionEngine): Promise<HumanDeliveryV1> {
+	const { delivery, payloadBytes, authority } = prepared;
+	if (delivery.state === "confirmed") return delivery;
+	const decision = readProtocolBytes(HumanDecisionReceiptV1Schema, payloadBytes, delivery.payloadDigest);
+	const request = DecisionDeliveryV1Schema.parse({
+		version: 1,
+		decision,
+		payloadDigest: delivery.payloadDigest,
+		authority,
+	});
+	const lookup: DecisionLookupRequestV1 = {
+		version: 1,
+		executionId: decision.wait.executionId,
+		engineJobId: decision.wait.engineJobId,
+		engineRequestId: decision.wait.engineRequestId,
+		decisionId: decision.decisionId,
+		payloadDigest: delivery.payloadDigest,
+	};
+	let response: unknown;
+	try {
+		response = await engine.lookup(lookup);
+	} catch {
+		return { ...delivery, state: "unknown", acceptance: null };
+	}
+	const checked = acceptance(delivery, lookup, response);
+	const result = DecisionLookupResultV1Schema.parse(response);
+	if (result.state !== "absent") return checked;
+	try {
+		response = await engine.accept({ decisionBytes: payloadBytes, payloadDigest: request.payloadDigest, authority });
+	} catch {
+		return { ...delivery, state: "unknown", acceptance: null };
+	}
+	return acceptance(delivery, lookup, { state: "accepted", receipt: response });
+}
