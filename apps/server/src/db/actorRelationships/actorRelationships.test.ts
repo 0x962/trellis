@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { touchActor } from "../../services/support.ts";
 import { rows } from "../queries/support.ts";
 import { openTestDb, openTestDbFromArchive } from "../testDb.ts";
 import { actorRelationshipMapping } from "./mapping.ts";
@@ -87,6 +88,15 @@ test("preserves exact bindings and rejects mismatches", async () => {
 			VALUES (${longName}, 'agent', ${at}, ${at}) RETURNING id`,
 		)
 	)[0]!.id;
+	await db.execute(sql`SET enable_seqscan = off`);
+	const lookupPlan = await db.execute(sql`EXPLAIN SELECT id FROM actors
+		WHERE ARRAY[kind, name]::text[] = ARRAY['agent', ${longName}]::text[]`);
+	expect(JSON.stringify(lookupPlan.rows)).toContain("actors_identity_equality");
+	await db.execute(sql`SET enable_seqscan = on`);
+	const touchedId = await db.transaction((tx) =>
+		touchActor(tx, { name: longName, kind: "agent" }, new Date(at.getTime() + 2)),
+	);
+	expect(touchedId).toBe(longActorId);
 	const validBatch = ulid();
 	await db.execute(sql`INSERT INTO activity
 		(batch_id, project_id, actor_id, actor_name, actor_kind, action, meta, created_at)

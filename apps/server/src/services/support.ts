@@ -100,7 +100,8 @@ export const assertProjectActive = (ticket: TicketRow) => {
 export const touchActor = async (tx: Tx, actor: ActorRef, at: Date) => {
 	const [found] = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM actors WHERE name = ${actor.name} AND kind = ${actor.kind}`,
+		sql`SELECT id FROM actors
+			WHERE ARRAY[kind, name]::text[] = ARRAY[${actor.kind}, ${actor.name}]::text[]`,
 	);
 	if (found !== undefined) {
 		await tx.execute(sql`UPDATE actors SET last_seen_at = ${at} WHERE id = ${found.id}`);
@@ -114,7 +115,8 @@ export const touchActor = async (tx: Tx, actor: ActorRef, at: Date) => {
 	if (inserted !== undefined) return inserted.id;
 	const [concurrent] = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM actors WHERE name = ${actor.name} AND kind = ${actor.kind}`,
+		sql`SELECT id FROM actors
+			WHERE ARRAY[kind, name]::text[] = ARRAY[${actor.kind}, ${actor.name}]::text[]`,
 	);
 	await tx.execute(sql`UPDATE actors SET last_seen_at = ${at} WHERE id = ${concurrent!.id}`);
 	return concurrent!.id;
