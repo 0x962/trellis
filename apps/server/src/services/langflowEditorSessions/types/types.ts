@@ -9,6 +9,16 @@ export type EditorDocumentSave = {
 	projectId: string | null;
 };
 
+export type EditorSessionIssueInput = {
+	flow: string;
+	expectedVersion: number;
+};
+
+export type EditorSessionIssueResult = {
+	session: EditorSession;
+	credential: { token: string; expiresAt: Date };
+};
+
 export type EditorParentSave = {
 	channel: string;
 	actor: ActorRef;

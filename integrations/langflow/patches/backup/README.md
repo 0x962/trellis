@@ -38,7 +38,8 @@ The caller holds the coordinated pause until `captureSnapshot` finishes its mani
 Native workspace and conversation exports remain separate required producers.
 
 The Python fixture creates a real suspended job, checkpoint, and correlation receipt with Langflow services.
-It exports through the router, reopens the copy, and checks the original identity and checkpoint.
+It mounts the backup domain with `create_engine_api_router` and `EngineApiSecurity`.
+It exports through that common router, reopens the copy, and checks the original identity and checkpoint.
 It also checks that a later checkpoint write remains in the source database.
 Its pause fixture verifies the callback contract; integrated effect exclusion and restored ownership remain separate proof requirements.
 TRL-667 owns candidate patch application and the matched batch command.

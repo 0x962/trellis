@@ -3,6 +3,9 @@
 `get(ctx, tx, { flow })` returns the current `FlowDocumentV1` and its publication state.
 `save(ctx, tx, input)` accepts `FlowDocumentSaveV1Input` and returns its first saved receipt.
 The caller commits the supplied transaction before it requests publication.
+An ordinary save retains the current engine. An engine change requires explicit conversion.
+The save holds the flow row lock through its version check, engine check, and writes.
+An exact request replay returns its first receipt before those checks.
 
 Request identity uses deterministic JSON from the complete validated input.
 Object keys sort by name. Array order and string content remain unchanged.
