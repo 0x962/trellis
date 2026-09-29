@@ -1,0 +1,188 @@
+{
+	"version": 1,
+	"ticket": "TRL-1088",
+	"fixedSource": "03ff35d268e5e06c8fecbbc7664903e92c86af60",
+	"sourceBase": "b79d68f69e43e0f1a73beda2adc19b1231d5025b",
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"series": {
+		"path": "integrations/langflow/patches/series.json",
+		"sha256": "3922620ff2c05d1b35b5a0100a6320f007f7ad1724317170e7e2efed5b3d092b",
+		"patches": 30,
+		"orderChanged": false
+	},
+	"corrections": [
+		{
+			"name": "backend-backup",
+			"mergeCommit": "67489c5f68e2144d3c1cafa5e7790005097c9e7f",
+			"beforeSha256": "659e9d3f6f56af961c2e0d15261d655232f8fd0c3c526678f1db933f72fda04c",
+			"sha256": "e1dd700f9fff43d39f6f6750d483eac3e2a47c4463d3e9cd4d938691f8951ab9"
+		},
+		{
+			"name": "backend-loop-control",
+			"mergeCommit": "435edf67ef5e9610078ae8c66af98d630702529e",
+			"beforeSha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419",
+			"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415"
+		},
+		{
+			"name": "backend-projection-store",
+			"mergeCommit": "1ab310eebd2af07ef32e02a47dabbf69905b65ee",
+			"beforeSha256": "9484d9d7587a1acfaa48cf52b16bbeb1bddd6b3d51d49fa381b79d4556a0bd5f",
+			"sha256": "5a27a8e056520a6bd403a105fd4f0347ea579c8b3f8a59d47a1a768b454de3af"
+		}
+	],
+	"sourceComposition": {
+		"method": "Read pinned Git blobs and compose every patch in memory without engine imports or filesystem writes.",
+		"files": 90,
+		"aggregateSha256": "5ad43090f4135df9c38f711dd7ee8e1828809ef4a036dbd9999838820a499f0a",
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"sourceHashes": "reports/langflow-feasibility-review/backend-fixed-series-sources.json",
+		"allPatchBytesMatchFixedSource": true,
+		"changedFragmentSourceHashesMatch": true,
+		"candidateMutated": false,
+		"engineImportsExecuted": false
+	},
+	"reader": {
+		"path": "integrations/langflow/tests/combinedFeasibility/checkSeries.py",
+		"sha256": "e6ae88c9329642b3714b2962beb9a131e07a4310b706c4cd9e85a5600e822d7e",
+		"change": "Place a zero-context insertion after the specified old line. Retain the same origin for later hunk offsets.",
+		"regressionFixture": "integrations/langflow/tests/combinedFeasibility/test_check_series.py",
+		"regressionExecuted": false,
+		"priorSource": "2d493101a213e97052d0011f7951b10fc01c22e0",
+		"priorAggregateUnchanged": "d1722c6057f3777b06c864f6d9bafe9a151145f4cd962acbb39f159deb868a1f"
+	},
+	"fixtures": {
+		"source": "ce2ad224846919915d15b49bc82850394e996a18",
+		"count": 112,
+		"aggregateSha256": "daddfd12568187716121c727792258422bc4a98e0fd4ad6aa927806684bc5253",
+		"changesFromFixedSource": [
+			"integrations/langflow/tests/nativeLifecycle/nativeAdapter.test.ts",
+			"reports/langflow-large-graph-design/denseGraph/denseGraph.ts",
+			"reports/langflow-large-graph-design/denseGraph/index.ts"
+		],
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"directories": "series.json fixtureSources",
+		"allBytesMatchSource": true
+	},
+	"metadata": {
+		"formatCommand": "/Users/navidkhan/projects/trellis/node_modules/.bin/biome format --write <the 24 files below>",
+		"parsedValuesUnchanged": true,
+		"receiptFixturesChanged": false,
+		"referencePolicy": "Historical receipts retain their commit-qualified hashes. These hashes bind the current metadata bytes.",
+		"files": {
+			"integrations/langflow/patches/backup/manifest.json": {
+				"beforeSha256": "b56bbff2d54f4d2632669b27a2540e78fc1320038e288771aabe72ddce596929",
+				"sha256": "9f5800fbea8c78e97c189326c58fa58a71bbb8e406b7253c0d6e5c51abae2b1e"
+			},
+			"integrations/langflow/patches/engineApi/admission/manifest.json": {
+				"beforeSha256": "8a0c7dbe6cc88387736287aadf4758ba5612b918ca2d4fba81e1733c1007f469",
+				"sha256": "ab3d205cab8ae826e00c043ea4937d4e34522eb7c0852e0231fefc413144bbff"
+			},
+			"integrations/langflow/patches/engineApi/control/assembly-bases.json": {
+				"beforeSha256": "2267947a4af83003af591c4c3282ecc2a8276028f73f3e6baae4776e40e560f0",
+				"sha256": "ba385522e38644e16b5dbcb05ecce7922c5feb48e0ecc7819d36e89d2e3d047d"
+			},
+			"integrations/langflow/patches/engineApi/control/manifest.json": {
+				"beforeSha256": "124c0d1b82b6c66945ba4a595140c6827b653595039b58ff26961ba788579f03",
+				"sha256": "4b1fde52020af5b6e88ecdd75d1417125b74f35983ad96357fcbb3a83f64ee2e"
+			},
+			"integrations/langflow/patches/engineApi/decisions/manifest.json": {
+				"beforeSha256": "91978f7106f73c4be9652e8613fe60368f1bd80e94af608aaf86133a52010ff2",
+				"sha256": "da1f61260f6c6b0057f745732d3dcf36e65bf97b7c43aeb06fe563ef3f9d55f9"
+			},
+			"integrations/langflow/patches/engineApi/native/manifest.json": {
+				"beforeSha256": "2faf322746fac999ec438e4d385b49084db58079e4214dccc7fe0bc6eff5de24",
+				"sha256": "222ebd7bdd4b64af6cf405daf5e56f53858a6ce9edbda3ade984e7d5c9139004"
+			},
+			"integrations/langflow/patches/engineApi/projection/manifest.json": {
+				"beforeSha256": "b2a956ea28b47a3ef7b0bfc73e1735d63c82de3a2ef309325918f3798c11493b",
+				"sha256": "f12da78e2a0b1b6d0ad38b225ce5eb1295c2231b096642f3c7279296e02f5757"
+			},
+			"integrations/langflow/patches/engineApi/reconciliation/manifest.json": {
+				"beforeSha256": "00b54caf181d188c999417f311ab88ee5fa27abe8acbb7c488c8655d3488c421",
+				"sha256": "e5ae4cb7c0a7fdf9f28a5b07790096cc93aa23341a5cb71165bf8f1cdfa7caaa"
+			},
+			"integrations/langflow/patches/engineApi/shared/manifest.json": {
+				"beforeSha256": "0af3820261507cc6998a8276cbbde5a6f79a6e0bdfe403b5d19cc2ef87174d2f",
+				"sha256": "1cf27c163f70444ea72762647bb7a101b10c281949d4f8f9d8674c671f2f7dc9"
+			},
+			"integrations/langflow/patches/engineApi/startup/manifest.json": {
+				"beforeSha256": "fe7fa29d24af45e662d895831c095a7505aa19532ae1b8bb4230eb9fb2ecfb11",
+				"sha256": "ae3bef167247842326506abfed70951aa4cb2d8deeeeae8b1c31131ca433529a"
+			},
+			"integrations/langflow/patches/externalWaits/review-classification-manifest.json": {
+				"beforeSha256": "f28577e6f86ac56dcf20a5204dc0094e31d25f1584d94ba4579759dbf98538d9",
+				"sha256": "c56a50c3638ef229779c9ba40ffd39a63708ccbc7bd2949e158d49d7ff5fba1f"
+			},
+			"integrations/langflow/patches/groupScopes/manifest.json": {
+				"beforeSha256": "780a75f01bbfdda81dd95c9003dfa7bac24fbfcb6d2ec0f51feb02b732c6d5eb",
+				"sha256": "acdd308cfd7ae08b918045b04231eea7ac4796b624107ff1df185ccb49ed7df5"
+			},
+			"integrations/langflow/patches/loopControl/manifest.json": {
+				"beforeSha256": "6d596bfc44d632cbacdbe8ea07781e6bbf766c110684d230ad989bfd15427e06",
+				"sha256": "309f3ab7856759240a459a99739246f3bb7043a73bae89595298bc80d365e99b"
+			},
+			"integrations/langflow/patches/occurrenceRequests/cancellation-manifest.json": {
+				"beforeSha256": "4d685aeba42aaec9a5b076ba3b0b71bc8331962975e719f643a72b27304bf5d2",
+				"sha256": "f020fac9777878ede8cf2caac46b58c86b44d811607c0a3211ef4c4ae3a9d21d"
+			},
+			"integrations/langflow/patches/occurrenceRequests/entries-manifest.json": {
+				"beforeSha256": "dd4e988dc0040eaada0fc37eb2d84ce609bf482eaa59531c8fc0591fc7554a6a",
+				"sha256": "4e0224b9b2c37b35327a2760303479860a91a2bce8527e03107b00d79b5a7df7"
+			},
+			"integrations/langflow/patches/occurrenceRequests/loop-inputs-manifest.json": {
+				"beforeSha256": "33173c95cb9e2e0986a5b406efff1d34118781e2e697198f2bb7374c4d759379",
+				"sha256": "f654a672c5aa8923ef02bc9b765861d4d147d6174f55e9979513f29f07336a3e"
+			},
+			"integrations/langflow/patches/occurrenceRequests/manifest.json": {
+				"beforeSha256": "db97cfca7061449601b87c0bb951ce067daec0e910248272ddbb5e758a6fdd4c",
+				"sha256": "64c0f692bd6ced4707c94031d4460ce51f12d3e4f89bdf991dde64eb7b44d398"
+			},
+			"integrations/langflow/patches/occurrenceRequests/projection-writes-manifest.json": {
+				"beforeSha256": "af9e5e04aa3bd10faff7d6342f6f1db2460b2d2af7c63c9ce1002ace086aecb9",
+				"sha256": "1d8bfe59ee1770b0e7067107a9c655b759e2e757ee98195fe19d74c816a9242e"
+			},
+			"integrations/langflow/patches/occurrenceRequests/request-spec.schema.json": {
+				"beforeSha256": "fc00465b9e66a6762976fd548b61f1f0fa00fd02bf8474a1df43aff86e69e29c",
+				"sha256": "6fd2fdd45c8c3f632ce7a864723e5fc8fc9ccd8bc073109ee92ff9ddd8c56bf1"
+			},
+			"integrations/langflow/patches/occurrenceRequests/reservations-manifest.json": {
+				"beforeSha256": "790e14181680c0071417191a1ad71a0cbc3f36f5e499be21f4357ec0082eec13",
+				"sha256": "67022c8870437cae210b9510e0d8d25c24fdce0243eca07e87b29c080589f703"
+			},
+			"integrations/langflow/patches/occurrenceRequests/retained-wait-manifest.json": {
+				"beforeSha256": "c2e5c8fa81469767037d0b39d98196de59ba91518ca89610df31c7513ddd0ce3",
+				"sha256": "aa30f3d5e737498f8f7fdbc063ba8158f52b00d2a13db5d956ef95e7427b0b89"
+			},
+			"integrations/langflow/patches/publications/manifest.json": {
+				"beforeSha256": "a78e4a2e8d0dfa104ee9c9526952a943a72265d46da34600aae02d1e62b8ed69",
+				"sha256": "2895182cc57372fb7321870c51aa9691cd41879e2fe887226432623c7f57fb81"
+			},
+			"reports/langflow-feasibility-review/backend-source-assembly.json": {
+				"beforeSha256": "31f00459c519556e3ffeec7f781960206969f304ab9b091a1849afe6f18fdac8",
+				"sha256": "dfc10d654290202434e7403ec213cfdea1caaf5db2afc2db07ed9f20ed7ebca2"
+			},
+			"reports/langflow-feasibility-review/early-admission-manifest.json": {
+				"beforeSha256": "1393b642cc66dd98cbec16e1992944fdc09749e097f3aae681a0b656e12f2975",
+				"sha256": "508bd068f7d63134394630bccc19dd09013956a90444ff923b988ab7f9b1d11c"
+			}
+		}
+	},
+	"remainingProof": [
+		"Missing asgi_lifespan prevents the full tests.conftest plugin from loading in the candidate.",
+		"Regression tests, engine imports, runtime checks, and Review remain deferred.",
+		"The corrected series does not add group scopes, the deadline repair, reconciliation, review startup, or later lifecycle fragments.",
+		"The complete assembly requires a separate checkpoint and explicit source match before execution.",
+		"Formatting changes metadata bytes only. It does not establish engine behavior or package qualification."
+	],
+	"technicalAcceptance": false,
+	"packageExportApproved": false,
+	"productionApproval": false,
+	"fixtureSnapshotBeforeBaseRefresh": {
+		"source": "03ff35d268e5e06c8fecbbc7664903e92c86af60",
+		"count": 112,
+		"aggregateSha256": "2bdf37390e27657542e4166fbd441a104826bd3db49bb6ffd4edb9ca3cea44f6",
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"directories": "series.json fixtureSources",
+		"allBytesMatchFixedSource": true
+	}
+}
