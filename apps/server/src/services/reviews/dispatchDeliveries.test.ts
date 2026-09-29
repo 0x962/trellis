@@ -76,8 +76,8 @@ const queueReview = async (title: string, threads: number) => {
 	const url = `https://github.com/o/r/pull/${prNumber++}`;
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
 		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 	const stored = await run((tx) =>
 		recordSubmission(serviceCtx, tx, {
 			prId,
@@ -122,8 +122,8 @@ const queueComments = async (
 	const url = `https://github.com/o/r/pull/${++prNumber}`;
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
 		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 	const threads = [];
 	for (const note of notes) threads.push(await run((tx) => add(threadCtx(reviewer), tx, { pr: url, ...note })));
 	const queued = (await db.execute(sql`SELECT id FROM review_deliveries WHERE ticket_id = ${ticket.id} ORDER BY id`))
@@ -235,8 +235,8 @@ test("each local verdict queues for the agent of the linked ticket", async () =>
 		const url = `https://github.com/o/r/pull/${++prNumber}`;
 		await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
 			VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', 'reviewed-head', ${at}, ${at})`);
-		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-			VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+			VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 		const runId = ulid();
 		await startRun(runId, ticket.id, ticket.identifier);
 
@@ -267,8 +267,8 @@ test("a moved head stores the verdict on the current revision and keeps older th
 	const runId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
 		VALUES (${prId}, 'o', 'r', ${number}, ${url}, 'open', 'current-head', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 	await startRun(runId, ticket.id, ticket.identifier);
 	await db.execute(sql`INSERT INTO review_revisions (id, pr_id, base_sha, head_sha, document, created_at) VALUES
 		(${oldRevisionId}, ${prId}, 'base-head', 'old-head', ${JSON.stringify({
@@ -336,8 +336,8 @@ test("a review with no agent assignment reports no recipient and waits for the t
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
 		VALUES (${prId}, 'o', 'r', ${++prNumber}, ${`https://github.com/o/r/pull/${prNumber}`}, 'open', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 
 	const stored = await run((tx) =>
 		recordSubmission(serviceCtx, tx, {
@@ -442,8 +442,8 @@ const seedTicketPr = async (title: string) => {
 	const url = `https://github.com/o/r/pull/${++prNumber}`;
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
 		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', 'seed-head', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 	return { ticket, prId, url };
 };
 

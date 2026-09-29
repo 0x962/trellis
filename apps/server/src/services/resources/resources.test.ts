@@ -48,8 +48,7 @@ beforeAll(async () => {
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epicId}, ${projectId}, 'resources', 'Resources', ${actor.name}, ${actor.kind}, ${now}, ${now})`);
+		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id) VALUES (${epicId}, ${projectId}, 'resources', 'Resources', ${actor.name}, ${actor.kind}, ${now}, ${now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[]))`);
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, number, title, status_id, epic_id, position, created_at, updated_at
 	) VALUES (${ticketId}, ${projectId}, 196, 'Add resources', ${statusId}, ${epicId}, 1024, ${now}, ${now})`);
@@ -124,8 +123,8 @@ test("stores a doc with an empty title, then renames it and keeps its body", asy
 		ResourceAddInputSchema.safeParse({ epic: "TRL/resources", kind: "link", name: "", url: "https://a.b" }).success,
 	).toBe(false);
 	await expect(
-		db.execute(sql`INSERT INTO epic_resources (id, epic_id, kind, name, url, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${ulid()}, ${epicId}, 'link', '', 'https://a.b', ${actor.name}, ${actor.kind}, ${now}, ${now})`),
+		db.execute(sql`INSERT INTO epic_resources (id, epic_id, kind, name, url, actor_name, actor_kind, created_at, updated_at, actor_id)
+			VALUES (${ulid()}, ${epicId}, 'link', '', 'https://a.b', ${actor.name}, ${actor.kind}, ${now}, ${now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[]))`),
 	).rejects.toThrow("epic_resources_name_check");
 });
 
@@ -162,14 +161,11 @@ test("stores an image and returns the pull request that shows it", async () => {
 		'open', 'head', ${now}, ${now}
 	)`);
 	await db.execute(sql`INSERT INTO pr_files (
-		id, pull_request_id, blob_sha256, filename, mime, size, actor_name, actor_kind, created_at
-	) VALUES (
+		id, pull_request_id, blob_sha256, filename, mime, size, actor_name, actor_kind, created_at, actor_id) VALUES (
 		${ulid()}, ${pullRequestId}, ${resource.blob!.sha256}, 'migration.png', 'image/png', 5,
-		${actor.name}, ${actor.kind}, ${now}
-	)`);
+		${actor.name}, ${actor.kind}, ${now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[]))`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticketId}, ${pullRequestId}, 'manual', ${actor.name}, ${actor.kind}, ${now})`);
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id) VALUES (${ticketId}, ${pullRequestId}, 'manual', ${actor.name}, ${actor.kind}, ${now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[]))`);
 
 	const found = await inTx((tx) => list(context, tx, { epic: epicId }));
 	expect(found.find((item) => item.id === resource.id)).toMatchObject({

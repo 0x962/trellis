@@ -53,7 +53,7 @@ async function setup(status = "todo", state = "open") {
 	const diff = await run((tx) => ensurePr(tx, `example/start#${ticket.number}`));
 	await db.execute(sql`UPDATE pull_requests SET head_sha=${"a".repeat(40)},state=${state} WHERE id=${diff.id}`);
 	await db.execute(
-		sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at) VALUES (${ticket.id},${diff.id},'manual','test','human',${at})`,
+		sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id) VALUES (${ticket.id},${diff.id},'manual','test','human',${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'test']::text[]))`,
 	);
 	const input = {
 		flow: flow.id,
@@ -195,8 +195,8 @@ test("a Done ticket requires a selected merged diff when it has several links", 
 	const f = await setup("done", "merged");
 	const other = await setup("done", "open");
 	await db.execute(sql`INSERT INTO ticket_pull_requests
-		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
-		VALUES (${f.ticket.id},${other.diff.id},'manual','test','human',${at})`);
+		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id)
+		VALUES (${f.ticket.id},${other.diff.id},'manual','test','human',${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'test']::text[]))`);
 	const { diffId: _diffId, ...ambiguous } = f.input;
 	await expect(f.start(ambiguous)).rejects.toThrow("Reopen the ticket");
 	await expect(f.start({ ...f.input, diffId: other.diff.id })).rejects.toThrow("Reopen the ticket");

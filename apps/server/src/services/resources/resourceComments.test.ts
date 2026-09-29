@@ -50,8 +50,7 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${projectId}, 'TRL', 'trl', 'Trellis', ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epicId}, ${projectId}, 'comments', 'Comments', ${agent.name}, ${agent.kind}, ${now}, ${now})`);
+		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id) VALUES (${epicId}, ${projectId}, 'comments', 'Comments', ${agent.name}, ${agent.kind}, ${now}, ${now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${agent.kind}, ${agent.name}]::text[]))`);
 	cache = createCache();
 	await inTx(cache.rebuild);
 	asHuman = contextOf(human);
