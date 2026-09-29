@@ -25,7 +25,7 @@ const otherActor = { name: "Page agent", kind: "agent" as const };
 
 const inTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-const contextOf = (actor: ActorRef, maxUploadBytes = 50 * 1024 * 1024) =>
+const contextOf = (actor: ActorRef) =>
 	({
 		core: {
 			actor,
@@ -41,7 +41,7 @@ const contextOf = (actor: ActorRef, maxUploadBytes = 50 * 1024 * 1024) =>
 		actor,
 		session: null,
 		home,
-		maxUploadBytes,
+		maxUploadBytes: 50 * 1024 * 1024,
 		now: () => at,
 		log: () => {},
 		newTx: inTx,
@@ -214,7 +214,7 @@ test("uses the streamed size when a declared size exceeds the former Page asset 
 	const file = new File([], "large.bin", { type: "application/octet-stream" });
 	Object.defineProperty(file, "size", { value: 100 * 1024 * 1024 + 1 });
 
-	const ctx = contextOf(human, 200 * 1024 * 1024);
+	const ctx = contextOf(human);
 	const prepared = await prepareUpload(ctx, { project: projectId, file });
 	const stored = await inTx((tx) => upload(ctx, tx, prepared));
 
@@ -226,7 +226,7 @@ test("accepts streamed bytes over the shared upload limit", async () => {
 	const file = new File(["12345"], "large.bin", { type: "application/octet-stream" });
 	Object.defineProperty(file, "size", { value: 4 });
 
-	const ctx = contextOf(human, 4);
+	const ctx = contextOf(human);
 	const prepared = await prepareUpload(ctx, { project: projectId, file });
 	const stored = await inTx((tx) => upload(ctx, tx, prepared));
 

@@ -51,7 +51,7 @@ export const prepareUpload = async (ctx: IoCtx & PrepareCtx, rawInput: unknown):
 		return resolved;
 	});
 	const id = input.id ?? ulid();
-	const staged = (await stagePageObject(ctx.home, input.file))!;
+	const staged = await stagePageObject(ctx.home, input.file);
 	return {
 		id,
 		projectId: project.id,
