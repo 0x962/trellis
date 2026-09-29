@@ -129,7 +129,7 @@ test("stores graph counts and node values above the former limits", async () => 
 	const doc = await run((tx) => save(ctx, tx, { flow: flow.id, expectedVersion: flow.version, nodes, edges }));
 	expect(doc.nodes).toHaveLength(501);
 	expect(doc.edges).toHaveLength(2001);
-	expect(doc.nodes[0]).toMatchObject({
+	expect(doc.nodes.find((node) => node.id === nodes[0]!.id)).toMatchObject({
 		title: "t".repeat(121),
 		minutes: 1441,
 		x: 1_000_001,
@@ -137,5 +137,8 @@ test("stores graph counts and node values above the former limits", async () => 
 		width: 100_001,
 		height: 100_001,
 	});
-	expect(doc.nodes[1]).toMatchObject({ instruction: "i".repeat(200_001), maxRounds: 51 });
+	expect(doc.nodes.find((node) => node.id === nodes[1]!.id)).toMatchObject({
+		instruction: "i".repeat(200_001),
+		maxRounds: 51,
+	});
 }, 30_000);
