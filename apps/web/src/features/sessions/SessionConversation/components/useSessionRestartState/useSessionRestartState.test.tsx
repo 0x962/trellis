@@ -3,9 +3,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { act } from "react";
 import { createRoot } from "test-renderer";
-import { type AppContext, AppProvider } from "../../../lib/appContext";
-import { sessionPane } from "../sessionPane";
-import { useSessionRestart } from "../useSessionRestart";
+import { type AppContext, AppProvider } from "../../../../../lib/appContext";
+import { sessionPane } from "../../../sessionPane";
+import { useSessionRestart } from "../../../useSessionRestart";
 import { useSessionRestartState } from "./useSessionRestartState";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

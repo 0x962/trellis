@@ -1,8 +1,8 @@
 import { useMutationState } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
 import { useState } from "react";
-import { type SessionRestart, type SessionRestartView, sessionRestartView } from "../sessionRestartView";
-import { sessionRestartKey } from "../useSessionRestart";
+import { sessionRestartKey } from "../../../useSessionRestart";
+import { type SessionRestart, type SessionRestartView, sessionRestartView } from "./components/sessionRestartView";
 
 export function useSessionRestartState(run: AgentRun) {
 	const restarts = useMutationState<SessionRestart>({
