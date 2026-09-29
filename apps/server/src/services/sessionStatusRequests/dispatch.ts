@@ -3,12 +3,12 @@ import type { SessionUpdateRequest } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
-import { getSessionUpdateRequest } from "../sessionUpdates/queries.ts";
 import {
 	beginSessionUpdateRequest,
+	getSessionUpdateRequest,
 	sessionUpdateRequestIsOutstanding,
 	setSessionUpdateRequestState,
-} from "../sessionUpdates/requests.ts";
+} from "../sessionUpdates";
 import type { IoCtx } from "../support.ts";
 import { type SessionStatusRequestCandidate, sessionStatusRequestCandidates } from "./candidates.ts";
 import { sessionStatusRequestPrompt } from "./prompt.ts";

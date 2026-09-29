@@ -8,13 +8,14 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { getSessionUpdateRequest, getSessionUpdates } from "../sessionUpdates/queries.ts";
 import {
 	beginSessionUpdateRequest,
+	getSessionUpdateRequest,
+	get as getSessionUpdates,
 	sessionUpdateRequestIsOutstanding,
 	setSessionUpdateRequestState,
-} from "../sessionUpdates/requests.ts";
-import { write } from "../sessionUpdates/sessionUpdates.ts";
+	write,
+} from "../sessionUpdates";
 import type { IoCtx } from "../support.ts";
 import { prepareSessionStatusRequests, type SessionStatusRequestDeps } from "./dispatch.ts";
 
@@ -102,7 +103,7 @@ test("a completed status turn clears its outstanding request", async () => {
 		);
 		await prepareSessionStatusRequests(value.io, {}, dependencies(value, requestId));
 
-		const saved = await value.inTx((tx) => getSessionUpdates(tx, { sessionId: value.sessionId }));
+		const saved = await value.inTx((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionId }));
 		expect(saved.request).toMatchObject({ requestId, state: "failed" });
 		expect(sessionUpdateRequestIsOutstanding(saved.request!.state)).toBe(false);
 	} finally {
@@ -127,7 +128,7 @@ test("an agent reply wins the race with completion", async () => {
 		};
 		await prepareSessionStatusRequests(value.io, {}, deps);
 
-		const saved = await value.inTx((tx) => getSessionUpdates(tx, { sessionId: value.sessionId }));
+		const saved = await value.inTx((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionId }));
 		expect(saved.latest?.body).toBe("The status reply won the race.");
 		expect(saved.request).toMatchObject({ requestId, state: "answered", error: null });
 		expect(sessionUpdateRequestIsOutstanding(saved.request!.state)).toBe(false);
