@@ -3,7 +3,7 @@ import { activity as agentActivity } from "./agentActivity";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import { answerQuestion } from "./agentRuns/answerQuestion.ts";
 import * as agentAttention from "./agentRuns/attention.ts";
-import * as agentBroadcast from "./agentRuns/broadcast";
+import * as broadcast from "./agentRuns/broadcast";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { setPinned as setAgentRunPinned } from "./agentRuns/pin.ts";
@@ -64,6 +64,7 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
+import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
@@ -86,14 +87,11 @@ import * as waves from "./waves/waves.ts";
 
 export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
 
+const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
 	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
-	"agentRuns.broadcastRecipients": prepared(
-		"read",
-		agentBroadcast.prepareBroadcastRecipients,
-		agentBroadcast.broadcastRecipients,
-	),
-	"agentRuns.broadcast": prepared("mutation", agentBroadcast.prepareBroadcast, agentBroadcast.broadcast),
+	"agentRuns.broadcastRecipients": prepared("read", prepareBroadcastRecipients, broadcastRecipients),
+	"agentRuns.broadcast": prepared("mutation", broadcast.prepareBroadcast, broadcast.broadcast),
 	"agentRuns.seen": prepared("mutation", agentAttention.prepareSeen, agentAttention.seen),
 	"agentRuns.answer": prepared("mutation", answerQuestion, agentTerminal.result),
 	"sessions.activity": prepared("read", sessions.activity, agentTerminal.result),
@@ -111,6 +109,7 @@ export const services = {
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	...sessionUpdateServices,
+	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),

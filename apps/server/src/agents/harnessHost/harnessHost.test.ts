@@ -114,3 +114,36 @@ test("the wait without a limit still ends on the idle clock", async () => {
 		"made no observed progress for 60 ms",
 	);
 });
+
+test.each(["claude", "pi"] as const)("%s queues a follow-up without a slash command", async (harness) => {
+	const directory = await mkdtemp(join(tmpdir(), "trellis-harness-host-test-"));
+	made.push(directory);
+	await mkdir(join(directory, "attempt"), { recursive: true });
+	await writeFile(
+		join(directory, "attempt", "launch.json"),
+		JSON.stringify({
+			fingerprint: "test",
+			prompt: "Work",
+			harness,
+			spec: { id: "attempt", command: harness, args: [], cwd: "/tmp", env: {} },
+		}),
+	);
+	const queued: Array<{ id: string; messageId: string; data: string }> = [];
+	const host = new HarnessHost({
+		runtime: {
+			queueInput: async (id: string, messageId: string, data: string) => {
+				queued.push({ id, messageId, data });
+				return { messageId, status: "unknown" as const };
+			},
+			inspect: async () => working(1),
+		} as unknown as RuntimeClient,
+		directory,
+		agentsDirectory: join(directory, "agents"),
+		env: {},
+		bun: process.execPath,
+	});
+	await host.sendAtTurnBoundary("attempt", "Report status.", "request");
+	expect(queued).toHaveLength(1);
+	expect(Buffer.from(queued[0]!.data, "base64").toString()).toContain("Report status.");
+	expect(Buffer.from(queued[0]!.data, "base64").toString()).not.toContain("/btw");
+});

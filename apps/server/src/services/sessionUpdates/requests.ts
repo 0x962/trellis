@@ -71,3 +71,18 @@ export const setSessionUpdateRequestState = async (
 	ctx.emit({ type: "session-updates.changed", id: input.runId });
 	return request;
 };
+
+export const failOutstandingSessionUpdateRequestForRun = async (
+	ctx: RequestCtx,
+	tx: Tx,
+	input: { runId: string; error: string },
+) => {
+	const request = await getSessionUpdateRequest(tx, { runId: input.runId });
+	if (request === null || !sessionUpdateRequestIsOutstanding(request.state)) return null;
+	return setSessionUpdateRequestState(ctx, tx, {
+		runId: input.runId,
+		requestId: request.requestId,
+		state: "failed",
+		error: input.error,
+	});
+};
