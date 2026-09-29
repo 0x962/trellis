@@ -139,7 +139,9 @@ export class CodexAppServerEvents {
 					error: z.looseObject({ message: z.string() }).nullish(),
 				})
 				.parse(params.turn);
-			const result = [...(this.answers.get(turn.id)?.values() ?? [])].join("\n\n");
+			const answers = this.answers.get(turn.id);
+			const result = [...(answers?.values() ?? [])].join("\n\n");
+			const resultActivityIds = [...(answers?.keys() ?? [])];
 			this.answers.delete(turn.id);
 			if (turn.status === "failed")
 				return [
@@ -152,7 +154,15 @@ export class CodexAppServerEvents {
 						error: z.string().parse(turn.error?.message),
 					},
 				];
-			return [{ kind: "idle", ...identity, turnId: turn.id, outcome: turn.status, ...(result ? { result } : {}) }];
+			return [
+				{
+					kind: "idle",
+					...identity,
+					turnId: turn.id,
+					outcome: turn.status,
+					...(result ? { result, resultActivityIds } : {}),
+				},
+			];
 		}
 		if (method === "item/started" || method === "item/completed") {
 			const item = itemSchema.parse(params.item);
@@ -168,6 +178,7 @@ export class CodexAppServerEvents {
 					{
 						kind: "prompt",
 						...identity,
+						activityId: item.id,
 						prompt: content
 							.filter((part) => part.type === "text")
 							.map((part) => part.text)
@@ -183,10 +194,8 @@ export class CodexAppServerEvents {
 			}
 			if (item.type === "agentMessage" && method === "item/completed") {
 				const text = z.string().parse(item.text);
-				const sent = this.streams.get(item.id)?.sent;
 				this.streams.delete(item.id);
-				if (sent === text.trim()) return [];
-				return [{ kind: "message", ...identity, message: { text } }];
+				return [{ kind: "message", ...identity, message: { id: item.id, text, complete: true } }];
 			}
 			if (codexToolTypes.has(item.type)) {
 				const tool = codexTool(item);
@@ -212,7 +221,7 @@ export class CodexAppServerEvents {
 			const end = sentenceEnd.exec(text);
 			if (end === null) return [];
 			stream.sent = text.slice(0, end.index + 1).trim();
-			return [{ kind: "message", ...identity, message: { text: stream.sent } }];
+			return [{ kind: "message", ...identity, message: { id: itemId, text: stream.sent, complete: false } }];
 		}
 		// A plan update is the update_plan tool call of Codex. It starts and
 		// ends at once, and its target is the step in progress.

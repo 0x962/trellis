@@ -855,6 +855,19 @@ The runtime restores tool records, messages, and native turn activity from its e
 Codex, Pi, and OpenCode report completed assistant messages during a turn.
 Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.
 
+`sessionObserverActivity` reads completed work from the runtime event journal for one assigned run.
+Its opaque cursor retains a byte position for each attempt. A read returns counted items, uncertain message context, and urgent signals.
+Each complete tool contributes one item with its input, final output, and preceding output updates.
+Each proven complete logical message contributes one item. Previews and replayed items do not increase the count.
+Completion and human-input signals can trigger an observer before its normal threshold.
+
+Codex and Muse supply logical message identifiers and completion events.
+Claude transcript snapshots and OpenCode text parts retain context with unproven completeness.
+Pi messages without identifiers also retain context with unproven completeness.
+A completion signal states unavailable message coverage without suppressing completed tool counts.
+The reader reports missing journal data separately. Legacy journals reconstruct tool state before the saved position and emit only new completed items.
+The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 16.
+
 `isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
 Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.
 Harness events establish turn activity. Terminal output alone does not establish active work, and a working turn does not prove progress.
