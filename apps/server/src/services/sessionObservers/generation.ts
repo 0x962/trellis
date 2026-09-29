@@ -178,13 +178,22 @@ export const failSessionObserverGeneration = async (
 	return readSessionObserver(tx, input.runId);
 };
 
-export const recoverSessionObserverGenerations = async (ctx: ServiceCtx, tx: Tx): Promise<string[]> => {
-	const recovered = await rows<{ runId: string }>(
+export type RecoveredSessionObserverGeneration = {
+	runId: string;
+	observerRunId: string | null;
+};
+
+export const recoverSessionObserverGenerations = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+): Promise<RecoveredSessionObserverGeneration[]> => {
+	const recovered = await rows<RecoveredSessionObserverGeneration>(
 		tx,
 		sql`UPDATE session_observers SET generation_state='idle', generation_claim_id=NULL,
-		generation_cursor=NULL, updated_at=${ctx.now} WHERE generation_state='generating' RETURNING run_id AS "runId"`,
+		generation_cursor=NULL, updated_at=${ctx.now} WHERE generation_state='generating'
+		RETURNING run_id AS "runId", observer_run_id AS "observerRunId"`,
 	);
-	return recovered.map(({ runId }) => runId);
+	return recovered;
 };
 
 export const retrySessionObserverGeneration = async (

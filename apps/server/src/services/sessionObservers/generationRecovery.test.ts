@@ -63,6 +63,18 @@ test("recovers an abandoned claim once and rejects its late result", async () =>
 	const abandoned = await value.db.transaction((tx) =>
 		claimSessionObserverGeneration(tx, { runId: value.standaloneRunId, throughCursor: "cursor-1" }),
 	);
+	await value.db.transaction(async (tx) => {
+		await tx.execute(sql`INSERT INTO agent_runs
+			(id, name, runtime, harness, kind, instruction, project_key, created_at, updated_at)
+			VALUES (${abandoned!.observerId}, 'Session observer', 'native',
+			'{"preset":"claude","model":"anthropic/claude-sonnet-5.5","effort":"medium"}'::jsonb,
+			'session', 'Observe the session.', '', ${at}, ${at})`);
+		await linkSessionObserverRun(tx, {
+			runId: value.standaloneRunId,
+			claimId: abandoned!.claimId,
+			observerRunId: abandoned!.observerId,
+		});
+	});
 	const archive = await value.db.$client.dumpDataDir("none");
 	await value.db.$client.close();
 	const restarted = await openTestDbFromArchive(archive);
@@ -71,7 +83,7 @@ test("recovers an abandoned claim once and rejects its late result", async () =>
 			await restarted.transaction((tx) =>
 				recoverSessionObserverGenerations(context([], new Date(at.getTime() + 1)), tx),
 			),
-		).toEqual([value.standaloneRunId]);
+		).toEqual([{ runId: value.standaloneRunId, observerRunId: abandoned!.observerId }]);
 		const replacement = await restarted.transaction((tx) =>
 			claimSessionObserverGeneration(tx, { runId: value.standaloneRunId, throughCursor: "cursor-1" }),
 		);
