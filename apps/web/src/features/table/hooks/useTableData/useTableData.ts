@@ -90,11 +90,12 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		refetchOnWindowFocus: "always",
 	});
 	const rows = useMemo(() => pageRows(active.data?.pages) ?? noRows, [active.data]);
+	const activePageCount = active.data?.pages.length ?? 0;
 
 	useEffect(() => {
-		if (!shouldLoadNextPage(true, active.hasNextPage, active.isFetchingNextPage)) return;
+		if (activePageCount === 0 || !shouldLoadNextPage(true, active.hasNextPage, active.isFetchingNextPage)) return;
 		void active.fetchNextPage();
-	}, [active.hasNextPage, active.isFetchingNextPage, active.fetchNextPage]);
+	}, [active.hasNextPage, active.isFetchingNextPage, active.fetchNextPage, activePageCount]);
 
 	// An empty status list in the query means every status, so the pass waits
 	// for the closed statuses of the scope.
@@ -110,11 +111,14 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		refetchOnWindowFocus: "always",
 	});
 	const inlineRows = useMemo(() => pageRows(inlinePass.data?.pages) ?? noRows, [inlinePass.data]);
+	const inlinePageCount = inlinePass.data?.pages.length ?? 0;
 
 	useEffect(() => {
-		if (!shouldLoadNextPage(inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage)) return;
+		if (inlinePageCount === 0 || !shouldLoadNextPage(inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage)) {
+			return;
+		}
 		void inlinePass.fetchNextPage();
-	}, [inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage, inlinePass.fetchNextPage]);
+	}, [inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage, inlinePass.fetchNextPage, inlinePageCount]);
 
 	const counts = useQuery({
 		...orpc.tickets.counts.queryOptions({
