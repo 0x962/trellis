@@ -57,7 +57,10 @@ export const generateSessionObserverNarrative = async <T extends SessionObserver
 	input: {
 		messages: readonly SessionObserverMessage[];
 		summaryStored?: boolean;
-		beforeNarrativeAfterSummary?: (summary: SessionObserverMessage, generations: T[]) => Promise<void>;
+		beforeNarrativeAfterSummary?: (
+			summary: SessionObserverMessage & { role: "user" },
+			generations: T[],
+		) => Promise<void>;
 	},
 	generate: (input: SessionObserverTurnInput) => Promise<T>,
 ): Promise<{ generation: T; incrementalSummary: SessionObserverMessage | null; summaryGenerations: T[] }> => {

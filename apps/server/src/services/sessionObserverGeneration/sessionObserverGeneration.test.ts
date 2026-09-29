@@ -6,6 +6,7 @@ import {
 	recoverSessionObserverGeneration,
 	type SessionObserverGenerationDeps,
 } from "./sessionObserverGeneration.ts";
+import type { SessionObserverActivityItem } from "./sessionObserverPrompt.ts";
 
 const runId = "01M3Q1029QFFHAX2H0YZXYD8KS";
 const observerId = "01M3Q1029QFFHAX2H0YZXYD8KT";
@@ -47,7 +48,7 @@ const fixture = (options: {
 	completed?: boolean;
 	needsInput?: boolean;
 	unavailable?: boolean;
-	items?: typeof activity;
+	items?: SessionObserverActivityItem[];
 	context?: Array<{ kind: "message"; role: "assistant"; body: string }>;
 	messages?: SessionObserverMessage[];
 	save?: object | null;

@@ -237,6 +237,7 @@ const dispatchCandidate = async (
 	try {
 		const claim = await ensureClaimRun(ctx, deps, claimed);
 		if (claim === null || claim.observerRunId === null) return "discarded" as const;
+		const observerRunId = claim.observerRunId;
 		const context = await deps.context(ctx, { runId: candidate.runId });
 		const userMessage = sessionObserverInput({
 			context,
@@ -253,7 +254,7 @@ const dispatchCandidate = async (
 		const generate = (turn: { instruction: string; userContext: string; deliveryId: string }) =>
 			deps.generate(ctx, {
 				observerId: claim.observerId,
-				observerRunId: claim.observerRunId,
+				observerRunId,
 				sourceRunId: claim.runId,
 				claimId: claim.claimId,
 				throughCursor: claim.throughCursor,
@@ -277,7 +278,7 @@ const dispatchCandidate = async (
 					if (providerSessionId === undefined) throw new Error("The observer summary has no conversation identity.");
 					await deps.rollover(ctx, {
 						sourceRunId: claim.runId,
-						observerRunId: claim.observerRunId,
+						observerRunId,
 						claimId: claim.claimId,
 						expectedProviderSessionId: providerSessionId,
 						summaryMessageId: saved.id,
