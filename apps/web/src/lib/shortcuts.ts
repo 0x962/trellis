@@ -32,6 +32,8 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "gotoFilters", keys: "g s", scope: "global", label: "Focus the filter bar" },
 	{ id: "toggleSidebar", keys: "[", scope: "global", label: "Collapse or expand the sidebar" },
 	{ id: "toggleTheme", keys: "mod+\\", scope: "global", label: "Switch between dark and light" },
+	{ id: "historyBack", keys: "mod+[", scope: "global", label: "Go back in this tab" },
+	{ id: "historyForward", keys: "mod+]", scope: "global", label: "Go forward in this tab" },
 	{
 		id: "escape",
 		keys: "escape",
