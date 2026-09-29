@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessObservations } from "./harnessObservations.ts";
@@ -21,6 +21,99 @@ const fixture = (checkpoint?: string) => {
 };
 const at = "2026-09-18T12:00:00.000Z";
 const request = { id: "q1", kind: "question" as const, title: "Choose a color", blocking: true };
+const recorded = (path: string) =>
+	readFileSync(`${path}.bytes`, "utf8")
+		.trim()
+		.split("\n")
+		.filter(Boolean)
+		.map((line) => JSON.parse(line));
+
+test("records one complete logical message after preview and replay events", () => {
+	const { observations: state, path } = fixture();
+	state.append({ kind: "prompt", turnId: "turn", activityId: "user", prompt: "Do the work." }, at);
+	state.append(
+		{ kind: "message", turnId: "turn", message: { id: "assistant", text: "I will start.", complete: false } },
+		at,
+	);
+	state.append(
+		{
+			kind: "message",
+			turnId: "turn",
+			message: { id: "assistant", text: "I will start. The file is open.", complete: true },
+		},
+		at,
+	);
+	state.append(
+		{
+			kind: "message",
+			turnId: "turn",
+			message: { id: "assistant", text: "I will start. The file is open.", complete: true },
+		},
+		at,
+	);
+	state.append(
+		{
+			kind: "idle",
+			turnId: "turn",
+			outcome: "completed",
+			result: "I will start. The file is open.",
+			resultActivityIds: ["assistant"],
+		},
+		at,
+	);
+
+	const rows = recorded(path);
+	expect(rows.map((row) => row.activity?.id).filter(Boolean)).toEqual(["user:user", "assistant:assistant"]);
+	expect(rows.map((row) => row.signal?.kind).filter(Boolean)).toEqual(["completion"]);
+	expect(rows.at(-1)?.signal).toMatchObject({ messageAvailability: "complete" });
+});
+
+test("reports an unproven provider message at completion", () => {
+	const { observations: state, path } = fixture();
+	state.append({ kind: "message", turnId: "turn", message: { id: "assistant", text: "Still working." } }, at);
+	state.append({ kind: "idle", turnId: "turn", outcome: "completed", result: "Done." }, at);
+
+	const rows = recorded(path);
+	expect(rows.map((row) => row.activity).filter(Boolean)).toMatchObject([
+		{ kind: "message", role: "assistant", text: "Done." },
+	]);
+	expect(rows.at(-1)?.signal).toMatchObject({ messageAvailability: "unavailable" });
+});
+
+test("separates turns when provider events have no turn or message identifier", () => {
+	const { observations: state, path } = fixture();
+	for (const prompt of ["First request.", "Second request."]) {
+		state.append({ kind: "prompt", prompt }, at);
+		state.append({ kind: "working" }, at);
+		state.append({ kind: "message", message: { text: "Done.", complete: true } }, at);
+		state.append({ kind: "idle", outcome: "completed", result: "Done." }, at);
+	}
+
+	const rows = recorded(path);
+	expect(rows.map((row) => row.activity?.kind).filter(Boolean)).toEqual(["message", "message", "message", "message"]);
+	expect(rows.map((row) => row.signal?.kind).filter(Boolean)).toEqual(["completion", "completion"]);
+});
+
+test("combines tool updates with one completed tool item", () => {
+	const { observations: state, path } = fixture();
+	state.append(
+		{ kind: "tool-start", turnId: "turn", tool: { id: "tool", name: "Shell", input: { command: "work" } } },
+		at,
+	);
+	state.append({ kind: "tool-update", turnId: "turn", tool: { id: "tool", name: "Shell", output: "one" } }, at);
+	state.append({ kind: "tool-update", turnId: "turn", tool: { id: "tool", name: "Shell", output: "two" } }, at);
+	state.append({ kind: "tool-end", turnId: "turn", tool: { id: "tool", name: "Shell" } }, at);
+	state.append({ kind: "tool-end", turnId: "turn", tool: { id: "tool", name: "Shell" } }, at);
+
+	const activities = recorded(path)
+		.map((row) => row.activity)
+		.filter(Boolean);
+	expect(activities).toHaveLength(1);
+	expect(activities[0]).toMatchObject({
+		id: "tool:tool",
+		tool: { input: { command: "work" }, updates: ["one", "two"] },
+	});
+});
 
 test("pending questions survive activity and journal replay, then resolve by identifier", () => {
 	const { observations: state, path } = fixture();
@@ -149,7 +242,11 @@ test("a checkpoint answers for the events it covers, and later events still appl
 	const { observations: state, path, checkpointPath } = fixture("agent.json");
 	state.append({ kind: "session", sessionId: "provider-conversation", model: "opus" }, at);
 	state.append({ kind: "working", turnId: "turn-1" }, at);
-	state.append({ kind: "tool-start", turnId: "turn-1", tool: { id: "tool", name: "Bash" } }, at);
+	state.append(
+		{ kind: "tool-start", turnId: "turn-1", tool: { id: "tool", name: "Bash", input: { command: "work" } } },
+		at,
+	);
+	state.append({ kind: "tool-update", turnId: "turn-1", tool: { id: "tool", name: "Bash", output: "saved" } }, at);
 	state.saveCheckpoint();
 	const loaded = new HarnessObservations(path, checkpointPath);
 	expect(loaded.checkpointed).toBe(true);
@@ -160,6 +257,10 @@ test("a checkpoint answers for the events it covers, and later events still appl
 	loaded.append({ kind: "tool-end", turnId: "turn-1", tool: { id: "tool", name: "Bash" } }, at);
 	expect(loaded.agent!.tool).toBe(null);
 	expect(loaded.agent!.lastTool!.status).toBe("completed");
+	expect(recorded(path).at(-1)?.activity).toMatchObject({
+		id: "tool:tool",
+		tool: { input: { command: "work" }, updates: ["saved"] },
+	});
 });
 
 test("a checkpoint written after more events covers those events too", () => {

@@ -46,6 +46,7 @@ export default async function(pi) {
 }
 
 type PiMessage = {
+	id?: string;
 	role: string;
 	stopReason?: string;
 	errorMessage?: string;
@@ -84,7 +85,15 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 			?.filter((part) => part.type === "text")
 			.map((part) => part.text)
 			.join("\n");
-		return text ? [{ kind: "message", ...identity, message: { text } }] : [];
+		return text
+			? [
+					{
+						kind: "message",
+						...identity,
+						message: { id: payload.message.id, text, complete: payload.message.id !== undefined },
+					},
+				]
+			: [];
 	}
 	if (event === "agent_end") {
 		const assistant = payload.messages?.findLast((message) => message.role === "assistant");
@@ -104,7 +113,10 @@ export function parsePiEvent(envelope: PiEnvelope): HarnessEvent[] {
 			{
 				kind: "idle",
 				...identity,
-				...(result ? { result } : {}),
+				...(payload.messages?.some((message) => message.role === "assistant" && message.id === undefined)
+					? { messageAvailability: "unavailable" as const }
+					: {}),
+				...(result ? { result, ...(assistant?.id ? { resultActivityIds: [assistant.id] } : {}) } : {}),
 				outcome: assistant?.stopReason === "aborted" ? "interrupted" : "completed",
 			},
 		];

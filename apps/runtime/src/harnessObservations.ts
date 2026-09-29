@@ -6,6 +6,7 @@ import type {
 	RuntimeHarnessObservation,
 	RuntimeProcessStatus,
 } from "@trellis/runtime-protocol";
+import { CompletedActivity, type CompletedActivityState } from "./completedActivity/index.ts";
 import { SessionLog } from "./sessionLog.ts";
 
 // The state that the events up to `offset` produced. `offset` is a position
@@ -17,6 +18,7 @@ type Checkpoint = {
 	agent: RuntimeAgentMetadata | null;
 	activity: RuntimeProcessStatus["activity"];
 	tools: NonNullable<RuntimeAgentMetadata["lastTool"]>[];
+	completedActivity?: CompletedActivityState;
 };
 
 // Holds the agent state that the provider event log describes: the model, the
@@ -32,6 +34,7 @@ export class HarnessObservations {
 	agent: RuntimeAgentMetadata | null = null;
 	activity: RuntimeProcessStatus["activity"] = null;
 	private readonly tools = new Map<string, NonNullable<RuntimeAgentMetadata["lastTool"]>>();
+	private completed = new CompletedActivity();
 	private sequence = 0;
 	private readonly checkpointPath: string | undefined;
 	private readEnd = 0;
@@ -42,11 +45,14 @@ export class HarnessObservations {
 		this.checkpointed = checkpointPath !== undefined && existsSync(checkpointPath);
 		if (this.checkpointed) {
 			const saved = JSON.parse(readFileSync(checkpointPath!, "utf8")) as Checkpoint;
-			this.agent = saved.agent;
-			this.activity = saved.activity;
-			this.sequence = saved.sequence;
-			for (const tool of saved.tools) this.tools.set(tool.id, tool);
-			offset = saved.offset;
+			if (saved.completedActivity !== undefined) {
+				this.agent = saved.agent;
+				this.activity = saved.activity;
+				this.sequence = saved.sequence;
+				for (const tool of saved.tools) this.tools.set(tool.id, tool);
+				this.completed = new CompletedActivity(saved.completedActivity);
+				offset = saved.offset;
+			}
 		}
 		let pending = "";
 		const decoder = new StringDecoder("utf8");
@@ -59,6 +65,7 @@ export class HarnessObservations {
 			while (end >= 0) {
 				const observation = JSON.parse(pending.slice(0, end)) as RuntimeHarnessObservation;
 				this.apply(observation.event, observation.observedAt);
+				this.completed.restore(observation);
 				pending = pending.slice(end + 1);
 				end = pending.indexOf("\n");
 			}
@@ -77,13 +84,15 @@ export class HarnessObservations {
 			agent: this.agent,
 			activity: this.activity,
 			tools: [...this.tools.values()],
+			completedActivity: this.completed.snapshot(),
 		};
 		writeFileSync(`${this.checkpointPath}.tmp`, JSON.stringify(checkpoint), { mode: 0o600 });
 		renameSync(`${this.checkpointPath}.tmp`, this.checkpointPath);
 	}
 	append(event: HarnessEvent, observedAt: string): boolean {
 		const accepted = this.apply(event, observedAt);
-		const line = Buffer.from(`${JSON.stringify({ observedAt, event })}\n`);
+		const derived = this.completed.derive(event, observedAt);
+		const line = Buffer.from(`${JSON.stringify({ observedAt, event, activityVersion: 1, ...derived })}\n`);
 		this.log.append(line);
 		// The checkpoint names the position this state covers, so the position
 		// moves with every event the log takes.
