@@ -1,0 +1,1 @@
+export { readNativeOutput } from "./readNativeOutput";
