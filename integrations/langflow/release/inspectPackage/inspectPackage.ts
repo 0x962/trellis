@@ -3,6 +3,7 @@ import { canonicalBytes } from "../canonicalBytes";
 import { PackageRecipeSchema } from "../packageRecipe";
 import { type PayloadFile, payloadFiles } from "../payloadFiles";
 import { verifyOci } from "./components/verifyOci";
+import { verifyTemplates } from "./components/verifyTemplates";
 
 export async function inspectPackage(root: string, input: unknown) {
 	const recipe = PackageRecipeSchema.parse(input);
@@ -19,6 +20,7 @@ export async function inspectPackage(root: string, input: unknown) {
 		...recipe.patchSet.patches,
 		...recipe.components.entries.map((entry) => entry.source),
 		...(recipe.componentSupportFiles ?? []),
+		...(recipe.frontendTemplates ? [recipe.frontendTemplates] : []),
 		...recipe.editor.assets,
 	];
 	for (const reference of references) {
@@ -38,6 +40,7 @@ export async function inspectPackage(root: string, input: unknown) {
 		throw new Error("package_patch_order");
 	const patchDigest = createHash("sha256").update(canonicalBytes(recipe.patchSet.patches)).digest("hex");
 	if (patchDigest !== recipe.patchSet.sha256) throw new Error("package_patch_digest");
+	await verifyTemplates(root, recipe);
 	if (recipe.editor.assets.some((asset) => !asset.path.startsWith(`${recipe.editor.root}/`))) {
 		throw new Error("package_editor_path");
 	}

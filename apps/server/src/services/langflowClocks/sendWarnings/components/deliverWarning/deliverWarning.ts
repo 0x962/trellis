@@ -7,7 +7,7 @@ import {
 } from "../../../../../db/queries/langflowExecution";
 import type { IoCtx } from "../../../../support.ts";
 
-import { observeWarning } from "../observeWarning";
+import { runWarningOperation } from "../runWarningOperation";
 
 type Warning = Awaited<ReturnType<typeof reserveWarning>>;
 
@@ -17,7 +17,7 @@ export async function deliverWarning(
 	host: Pick<HarnessHost, "status" | "sendAtTurnBoundary">,
 ) {
 	const { executionId, attemptId, messageId } = warning;
-	let status = await observeWarning(ctx.log, { executionId, attemptId, messageId }, () => host.status(attemptId));
+	let status = await runWarningOperation(ctx.log, { executionId, attemptId, messageId }, () => host.status(attemptId));
 	if (status === null) return;
 	if (status.id !== attemptId) throw new Error("warning_attempt_conflict");
 	if (!status.acknowledgedMessageIds.includes(messageId)) {
@@ -33,7 +33,7 @@ export async function deliverWarning(
 		if (!allowed) return;
 		// The runtime saves messageId before delivery. Native delivery refuses uncertain repeats.
 		// Queued delivery can repeat when the write succeeds but its completion record does not persist.
-		status = await observeWarning(ctx.log, { executionId, attemptId, messageId }, () =>
+		status = await runWarningOperation(ctx.log, { executionId, attemptId, messageId }, () =>
 			host.sendAtTurnBoundary(attemptId, payload.text, messageId),
 		);
 		if (status === null) return;

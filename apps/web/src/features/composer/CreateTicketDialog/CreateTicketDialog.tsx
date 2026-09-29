@@ -168,7 +168,6 @@ export function CreateTicketDialog() {
 							aria-invalid={(titleMissing && draft.title.trim() === "") || undefined}
 							aria-describedby={titleMissing && draft.title.trim() === "" ? titleErrorId : undefined}
 							autoComplete="off"
-							maxLength={500}
 							placeholder="Ticket title"
 							value={draft.title}
 							onChange={(event) => setDraft({ ...draft, title: event.target.value })}
