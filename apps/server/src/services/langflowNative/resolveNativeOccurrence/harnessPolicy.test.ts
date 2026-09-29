@@ -31,7 +31,8 @@ async function resolve(harness: Record<string, string>) {
 	return db.transaction((tx) => resolveNativeOccurrence(ctx, tx, { requestBytes: visit.requestBytes, visit }));
 }
 
-for (const harness of [muse, custom]) {
+const validPolicies: Record<string, string>[] = [muse, custom];
+for (const harness of validPolicies) {
 	test(`preserves explicit ${harness.preset} policy without unsupported fields`, async () => {
 		const approved = await resolve(harness);
 		expect(approved.harness).toEqual(harness);
