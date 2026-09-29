@@ -64,7 +64,7 @@ export class LangflowSupervisor {
 				authenticationFile: this.state.authenticationFile(identity),
 				...(await this.state.nativeReservationAuthentication(identity)),
 			});
-			return this.live();
+			return this.live(identity);
 		});
 	}
 
