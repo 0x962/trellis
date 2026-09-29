@@ -96,6 +96,12 @@ Each attempt has one immutable identifier, a token hash, retained terminal outpu
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
+An optional status observer uses a separate saved conversation for each ticket or standalone run.
+The observer reads completed messages and tool calls after its durable cursor.
+It never writes to the worker conversation.
+An initial enablement, the configured activity threshold, completion, or a request for human input can start an update.
+Elapsed time cannot start an update.
+The observer saves its conversation, the human update, and the consumed cursor in one transaction.
 The runtime keeps up to 20 idle attempt records for resume. Other unsubscribed exited records remain for up to two days, with limits of 200 records and 256 MiB. It caches eight records on demand.
 Small exit receipts outlive terminal logs and prevent a delayed start from launching a closed attempt again.
 Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.

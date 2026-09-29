@@ -565,17 +565,10 @@ An archived session keeps its workspace, its files, and its conversation.
 It runs no agent and belongs to no project.
 Unarchive it before you start its agent or move it to a project.
 
-When Trellis asks for a status update, use the session and request IDs from that request.
-Explain the work, its purpose, your current action, your findings, your uncertainty, and your next step.
-Write useful Markdown prose instead of a fixed grid of fields.
-Do not repeat process metadata that Trellis already records.
-
-~~~sh
-trellis session status write <session-id> --request-id <request-id> --body - < update.md
-~~~
-
-Add `--embed report.html` to attach an optional HTML view.
-Separate several HTML file paths with commas.
+An enabled status observer writes updates without a worker prompt.
+It reacts to completed work, completion, or a request for human input.
+Elapsed time does not cause an update.
+The observer conversation stays separate from the worker conversation.
 
 ## Diffs, explanations, and evidence
 
