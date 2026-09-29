@@ -197,3 +197,23 @@ test("a process exit retains its permit and another process can settle it during
 	await drain;
 	expect(f.gate.read().permits[0]?.terminal?.id).toBe("terminal");
 });
+
+test("review classification retains its exact permit across restart without a native attempt", async () => {
+	const f = fixture();
+	const request: EffectBinding = {
+		...binding("review-classification:execution"),
+		kind: "review-classification",
+		attemptId: null,
+	};
+	const permit = f.gate.acquire(request);
+	const reopened = DispatchGate.open(f.input);
+	expect(reopened.recoverPermit(request)).toEqual(permit);
+	await expect(reopened.settle(permit, "unknown")).rejects.toThrow("terminal_unknown");
+	expect(reopened.read().permits[0]?.terminal).toBeNull();
+	const block = reopened.closeDispatch({ requestId: "capture", reason: { kind: "capture", snapshotId: "s" } });
+	expect(() => reopened.acquire({ ...request, effectId: "next" })).toThrow("dispatch_blocked");
+	f.terminals.set("classification", permit);
+	await reopened.settle(permit, "classification");
+	await reopened.waitForDrain(block);
+	expect(reopened.read().permits[0]?.terminal?.permit.binding).toEqual(request);
+});

@@ -43,6 +43,8 @@ The engine reads the capture issuer from a separate read-only secret file.
 Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
 An explicit `engineApiConfigFile` copies one mode-0600 startup file into the read-only secrets volume.
+An enabled configuration also requires `nativeReservationAuthenticationFile` for the outgoing Trellis bearer.
+The driver copies that separate mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
 Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
 The container label binds the SHA256 of the supplied startup file to the saved instance.
 
@@ -215,3 +217,18 @@ The engine validator checks the current runtime identity and holds writer exclus
 Its ledger transaction serializes commit and revoke; the host gate remains closed through the final seal.
 After a supervised restart, the current instance can revoke an old grant for the same host and data home.
 The producer rejects an active receipt or commit for that old instance.
+
+## Requests from the engine
+
+`withAuthenticatedEngine(authorization, operation)` checks the exact bearer for the current engine instance.
+It reads the private credential file and obtains a fresh healthy observation before it calls `operation(observation)`.
+The supervisor holds its exclusion through this callback.
+A short callback can validate the saved authority, acquire a durable permit, and commit the initial claim.
+The caller checks the exact archived grant bytes and the execution authority under the database lock.
+The caller also compares the observed host and owner with that grant.
+
+The instance bearer differs from the credential for native reservation transport.
+A route behind host authentication can carry it in `X-Trellis-Engine-Authorization`.
+The callback returns no credential.
+After the callback, the durable permit remains held through the provider call and the terminal database commit.
+An unknown provider outcome retains the permit for reconciliation.

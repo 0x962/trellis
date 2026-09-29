@@ -261,3 +261,11 @@ test("replay rejects missing sequences, wrong executions, tokens, and missing oc
 	expect(contracts.FailureV1Schema.safeParse({ kind: "error", reason: "human_rejected" }).success).toBe(false);
 	expect(contracts.FailureV1Schema.safeParse({ kind: "feedback", reason: "worker_lost" }).success).toBe(false);
 });
+
+test("review classification authority preserves the engine binding without native permissions", () => {
+	const authority = fixture("authority");
+	const parsed = contracts.DeliveryAuthorityV1Schema.parse({ ...authority, permissions: ["review.classify"] });
+	expect(parsed).toEqual({ ...authority, permissions: ["review.classify"] });
+	expect(parsed.permissions).not.toContain("native.reserve");
+	expect(parsed.permissions).not.toContain("native.read");
+});

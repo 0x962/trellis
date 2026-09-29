@@ -33,8 +33,11 @@ def test_configuration_preserves_the_selected_paths(monkeypatch, tmp_path: Path)
     trellis_root = tmp_path / "trellis"
     engine_root = tmp_path / "engine"
     export_root = tmp_path / "export"
+    native_reservation_authentication = tmp_path / "native-reservations.token"
     trellis_root.mkdir()
     engine_root.mkdir()
+    native_reservation_authentication.write_text("outgoing-token")
+    native_reservation_authentication.chmod(0o600)
     config = tmp_path / "engine-api.json"
     config.write_text(
         "{"
@@ -46,7 +49,9 @@ def test_configuration_preserves_the_selected_paths(monkeypatch, tmp_path: Path)
         f'"trellisRoot":"{trellis_root}",'
         f'"engineRoot":"{engine_root}",'
         '"userId":"00000000-0000-4000-8000-000000000001",'
-        f'"exportRoot":"{export_root}"'
+        f'"exportRoot":"{export_root}",'
+        '"nativeReservationOrigin":"http://host.docker.internal:4521",'
+        f'"nativeReservationAuthenticationFile":"{native_reservation_authentication}"'
         "}"
     )
     config.chmod(0o600)
@@ -57,6 +62,8 @@ def test_configuration_preserves_the_selected_paths(monkeypatch, tmp_path: Path)
     assert parsed.trellis_root == trellis_root
     assert parsed.engine_root == engine_root
     assert parsed.export_root == export_root
+    assert str(parsed.native_reservation_origin) == "http://host.docker.internal:4521/"
+    assert parsed.native_reservation_authentication_file == native_reservation_authentication
 
 
 def test_capture_revoke_runs_recovery_before_return():
