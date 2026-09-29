@@ -1,0 +1,1 @@
+export { useTabRegions } from "./useTabRegions";

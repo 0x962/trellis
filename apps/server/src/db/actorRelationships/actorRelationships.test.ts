@@ -20,28 +20,6 @@ const longName = (() => {
 	}).join("");
 })();
 
-const applyActorRelationshipSql = async () => {
-	const source = await Bun.file(`${import.meta.dir}/actorRelationships.sql`).text();
-	for (const statement of source.split("--> statement-breakpoint").map((part) => part.trim())) {
-		if (statement.length > 0) await db.execute(sql.raw(statement));
-	}
-};
-
-const applyPageActorIndexes = async () => {
-	await db.execute(sql`ALTER TABLE page_pins DROP CONSTRAINT page_pins_pkey`);
-	await db.execute(sql`ALTER TABLE page_pins ADD CONSTRAINT page_pins_pkey PRIMARY KEY (page_id, actor_id)`);
-	await db.execute(sql`DROP INDEX page_pins_actor_idx`);
-	await db.execute(sql`CREATE INDEX page_pins_actor_idx ON page_pins USING btree (actor_id, created_at, page_id)`);
-	await db.execute(sql`DROP INDEX page_uploads_project_actor_idx`);
-	await db.execute(
-		sql`CREATE INDEX page_uploads_project_actor_idx ON page_uploads USING btree (project_id, actor_id, created_at)`,
-	);
-	await db.execute(sql`DROP INDEX page_versions_actor_created_at_idx`);
-	await db.execute(
-		sql`CREATE INDEX page_versions_actor_created_at_idx ON page_versions USING btree (actor_id, created_at DESC NULLS FIRST)`,
-	);
-};
-
 const readRows = <T>(database: Awaited<ReturnType<typeof openTestDb>>, query: SQL) =>
 	database.transaction((tx) => rows<T>(tx, query));
 
@@ -51,10 +29,16 @@ beforeAll(async () => {
 		VALUES (${shortName}, 'agent', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${projectId}, 'REL', 'relationships', 'Relationships', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO activity (batch_id, project_id, actor_name, actor_kind, action, meta, created_at)
-		VALUES (${ulid()}, ${projectId}, ${shortName}, 'agent', 'seeded', '{}'::jsonb, ${at})`);
-	await applyActorRelationshipSql();
-	await applyPageActorIndexes();
+	const shortActorId = (
+		await readRows<{ id: string }>(
+			db,
+			sql`SELECT id FROM actors
+				WHERE ARRAY[kind, name]::text[] = ARRAY['agent', ${shortName}]::text[]`,
+		)
+	)[0]!.id;
+	await db.execute(sql`INSERT INTO activity
+		(batch_id, project_id, actor_id, actor_name, actor_kind, action, meta, created_at)
+		VALUES (${ulid()}, ${projectId}, ${shortActorId}, ${shortName}, 'agent', 'seeded', '{}'::jsonb, ${at})`);
 }, 60_000);
 
 afterAll(async () => {

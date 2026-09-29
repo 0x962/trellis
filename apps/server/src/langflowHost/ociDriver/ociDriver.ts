@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import {
 	type LangflowSidecarManifestV1,
@@ -38,6 +38,8 @@ export type OciDriverOptions = {
 	manifest: LangflowSidecarManifestV1;
 	imageConfigDigest: string;
 	privateRoot: string;
+	captureIssuerFile: string;
+	engineApiConfigFile?: string;
 	dockerExecutable?: string;
 	dependencies?: Partial<OciDriverDependencies>;
 };
@@ -46,6 +48,10 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	const manifest = LangflowSidecarManifestV1Schema.parse(options.manifest);
 	if (manifest.target.kind !== "linux-oci") throw new Error("sidecar_oci_target_required");
 	if (!/^sha256:[0-9a-f]{64}$/.test(options.imageConfigDigest)) throw new Error("sidecar_image_config_invalid");
+	if (!isAbsolute(options.captureIssuerFile)) throw new Error("sidecar_capture_issuer_path_invalid");
+	if (options.engineApiConfigFile && !isAbsolute(options.engineApiConfigFile)) {
+		throw new Error("sidecar_engine_api_config_path_invalid");
+	}
 	const executable = options.dockerExecutable ?? "docker";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(executable, args));
 	const fetcher = options.dependencies?.fetch ?? fetch;
@@ -55,6 +61,15 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		reference: options.imageConfigDigest,
 		configDigest: options.imageConfigDigest,
 	};
+
+	async function engineApiConfig() {
+		if (!options.engineApiConfigFile) return { path: null, digest: null };
+		const path = await privateFile(options.engineApiConfigFile);
+		const digest = createHash("sha256")
+			.update(await readFile(path))
+			.digest("hex");
+		return { path, digest };
+	}
 
 	async function assertIsolation(identity: SidecarIdentity) {
 		const instanceNames = names(identity);
@@ -96,6 +111,8 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		const instanceNames = names(input.identity);
 		const data = await privateDirectory(input.dataDirectory);
 		const authentication = await privateFile(input.authenticationFile);
+		const captureIssuer = await privateFile(options.captureIssuerFile);
+		const configuredEngineApi = await engineApiConfig();
 		if (data !== join(privateRoot, "data")) throw new Error("sidecar_data_directory_conflict");
 		if (authentication !== join(privateRoot, "secrets", `${input.identity.instanceId}.token`)) {
 			throw new Error("sidecar_authentication_file_conflict");
@@ -104,7 +121,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		if (container.state === "unknown") throw new Error("sidecar_ownership_unknown");
 		if (container.state === "found") {
 			const storage = await assertIsolation(input.identity);
-			assertContainer(container.value, input.identity, image, storage);
+			assertContainer(container.value, input.identity, image, storage, configuredEngineApi.digest);
 		} else {
 			let network = await inspectNetwork(run, instanceNames.network);
 			if (network.state === "unknown") throw new Error("sidecar_network_unknown");
@@ -130,14 +147,27 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				else if (volume.state === "absent") await createVolume(run, input.identity, privateRootDigest, kind);
 				else throw new Error("sidecar_volume_unknown");
 			}
-			await provisionStorage(run, { image: image.reference, authenticationFile: authentication, storage });
-			const result = await run(containerCreateArgs({ identity: input.identity, image: image.reference, storage }));
+			await provisionStorage(run, {
+				image: image.reference,
+				authenticationFile: authentication,
+				captureIssuerFile: captureIssuer,
+				engineApiConfigFile: configuredEngineApi.path,
+				storage,
+			});
+			const result = await run(
+				containerCreateArgs({
+					identity: input.identity,
+					image: image.reference,
+					storage,
+					engineApiConfigDigest: configuredEngineApi.digest,
+				}),
+			);
 			container = await inspectContainer(run, instanceNames.container);
 			if (result.exitCode !== 0 && container.state !== "found") throw new Error("sidecar_start_unknown");
 		}
 		if (container.state !== "found") throw new Error("sidecar_ownership_unknown");
 		let storage = await assertIsolation(input.identity);
-		assertContainer(container.value, input.identity, image, storage);
+		assertContainer(container.value, input.identity, image, storage, configuredEngineApi.digest);
 		if (!container.value.State.Running) {
 			const result = await run(["container", "start", container.value.Id]);
 			container = await inspectContainer(run, instanceNames.container);
@@ -145,7 +175,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		}
 		if (container.state !== "found" || !container.value.State.Running) throw new Error("sidecar_start_unconfirmed");
 		storage = await assertIsolation(input.identity);
-		assertContainer(container.value, input.identity, image, storage);
+		assertContainer(container.value, input.identity, image, storage, configuredEngineApi.digest);
 		endpoint(container.value);
 	}
 
@@ -177,11 +207,12 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		let authentication: string;
 		try {
 			authentication = await privateFile(input.authenticationFile);
+			const configuredEngineApi = await engineApiConfig();
 			if (authentication !== join(privateRoot, "secrets", `${input.identity.instanceId}.token`)) {
 				throw new Error("sidecar_authentication_file_conflict");
 			}
 			const storage = await assertIsolation(input.identity);
-			assertContainer(inspected.value, input.identity, image, storage);
+			assertContainer(inspected.value, input.identity, image, storage, configuredEngineApi.digest);
 		} catch {
 			return {
 				identity: input.identity,
@@ -265,15 +296,16 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 			return;
 		}
 		if (container.state !== "found") throw new Error("sidecar_ownership_unknown");
+		const configuredEngineApi = await engineApiConfig();
 		let storage = await assertIsolation(identity);
-		assertContainer(container.value, identity, image, storage);
+		assertContainer(container.value, identity, image, storage, configuredEngineApi.digest);
 		if (container.value.State.Running) {
 			await run(["container", "stop", container.value.Id]);
 			container = await inspectContainer(run, instanceNames.container);
 		}
 		if (container.state !== "found" || container.value.State.Running) throw new Error("sidecar_stop_unconfirmed");
 		storage = await assertIsolation(identity);
-		assertContainer(container.value, identity, image, storage);
+		assertContainer(container.value, identity, image, storage, configuredEngineApi.digest);
 		await run(["container", "rm", container.value.Id]);
 		container = await inspectContainer(run, instanceNames.container);
 		if (container.state !== "absent") throw new Error("sidecar_remove_unconfirmed");

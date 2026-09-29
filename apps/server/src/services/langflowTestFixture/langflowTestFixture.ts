@@ -5,7 +5,7 @@ import { ids, now, receiptFixture } from "../../db/queries/langflowExecution/fix
 import { handle, nativeRequest } from "../../db/queries/langflowExecution/fixtures/native";
 import type { Tx } from "../../db/tx.ts";
 import type { GroupDeadlineV1 } from "../../langflowContracts";
-import { recordLaunchClocks } from "../langflowClocks/recordLaunchClocks";
+import { recordLaunchClocks } from "../langflowClocks";
 
 import { migratedDatabase } from "./components/migratedDatabase";
 

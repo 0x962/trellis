@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CaptureRecordSchema } from "../../captureAuthority/schema/schema";
 
 const identity = z.string().min(1);
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -66,4 +67,5 @@ export const DispatchStateSchema = z.strictObject({
 	block: block.nullable(),
 	permits: z.array(z.strictObject({ permit, terminal: TerminalReceiptSchema.nullable() })),
 	reconciliations: z.array(ReconciliationReceiptSchema),
+	captureGrants: z.array(CaptureRecordSchema).default([]),
 });

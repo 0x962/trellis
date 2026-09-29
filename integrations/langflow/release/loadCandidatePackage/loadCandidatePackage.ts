@@ -7,6 +7,8 @@ export type CandidatePackage = {
 	readonly qualification: "candidate";
 	readonly enginePackageDigest: string;
 	readonly componentManifestHash: string;
+	readonly componentManifestPath: string;
+	readonly engineOverlayHash: string;
 	readonly targetArchitecture: "arm64" | "x86_64";
 	readonly engine: {
 		readonly layoutDirectory: string;
@@ -15,6 +17,11 @@ export type CandidatePackage = {
 		readonly imageConfigDigest: string;
 	};
 	readonly editor: { readonly rootDirectory: string };
+	readonly frontendTemplates: {
+		readonly path: string;
+		readonly sha256: string;
+		readonly engineOverlayHash: string;
+	} | null;
 	readonly manifestPath: string;
 };
 
@@ -31,6 +38,8 @@ export async function loadCandidatePackage(root: string, expectedPackageId: stri
 		qualification: "candidate",
 		enginePackageDigest: packageId,
 		componentManifestHash: recipe.components.catalog.sha256,
+		componentManifestPath: join(absolute, "payload", recipe.components.catalog.path),
+		engineOverlayHash: recipe.patchSet.sha256,
 		targetArchitecture: recipe.target.architecture,
 		engine: Object.freeze({
 			layoutDirectory,
@@ -39,6 +48,13 @@ export async function loadCandidatePackage(root: string, expectedPackageId: stri
 			imageConfigDigest: manifest.config.digest,
 		}),
 		editor: Object.freeze({ rootDirectory: join(absolute, "payload", recipe.editor.root) }),
+		frontendTemplates: recipe.frontendTemplates
+			? Object.freeze({
+					path: join(absolute, "payload", recipe.frontendTemplates.path),
+					sha256: recipe.frontendTemplates.sha256,
+					engineOverlayHash: recipe.patchSet.sha256,
+				})
+			: null,
 		manifestPath: join(absolute, "package.json"),
 	});
 }
