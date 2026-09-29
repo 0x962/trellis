@@ -48,7 +48,7 @@ test("the shared HTTP router calls the registered document and immutable executi
 	for (const [id, engine] of [
 		[h.legacy.id, "legacy"],
 		[h.view.id, "langflow"],
-	]) {
+	] as const) {
 		const response = await request(`/flow-executions/${id}/view-v1`);
 		expect(response.status).toBe(200);
 		expect(FlowExecutionViewV1Schema.parse(await response.json()).engine).toBe(engine);
