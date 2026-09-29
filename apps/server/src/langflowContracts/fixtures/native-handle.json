@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "stepId": "step-1",
+  "agentRunId": "agent-1",
+  "attemptId": "00000000-0000-4000-8000-000000000002",
+  "workspaceId": null,
+  "providerSessionId": null,
+  "state": "reserved",
+  "revision": 1
+}

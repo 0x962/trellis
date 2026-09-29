@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "provenance": {
+    "version": 1,
+    "request": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "nodeId": "node-review",
+      "occurrenceKey": "outer-2.inner-3.review",
+      "parentOccurrenceKey": "outer-2.inner-3",
+      "phase": "step",
+      "iterationPath": [
+        {
+          "loopNodeId": "outer",
+          "round": 2
+        },
+        {
+          "loopNodeId": "inner",
+          "round": 3
+        }
+      ],
+      "admissionReceipt": {
+        "version": 1,
+        "executionId": "execution-1",
+        "publicationId": "publication-1",
+        "engineJobId": "00000000-0000-4000-8000-000000000001",
+        "engineEpoch": 1,
+        "admissionId": "admission-1",
+        "submissionDigest": "293f1d2ee206a7cbebe633764a26ea455bd39f494a774a7289f8663da31916a2",
+        "committedAt": "2026-09-29T06:00:00.000Z"
+      },
+      "requestId": "00000000-0000-4000-8000-000000000003",
+      "specHash": "d4f02eaafd1a9e9de7d10972ca8e47fa7a985825c3c9c1e249c72683cb3e4f19",
+      "inputReceiptIds": [
+        "completion-input-1"
+      ],
+      "groupDeadlineRefs": [
+        "deadline-1"
+      ],
+      "deadlineAt": null
+    },
+    "requestDigest": "df0e65439e55792482c1a9335d644754c1004b80aeda4bba0a58caa75c55d672",
+    "stepId": "step-1",
+    "agentRunId": "agent-1",
+    "attemptId": "00000000-0000-4000-8000-000000000002",
+    "reservedAt": "2026-09-29T06:00:00.000Z"
+  },
+  "handle": {
+    "version": 1,
+    "stepId": "step-1",
+    "agentRunId": "agent-1",
+    "attemptId": "00000000-0000-4000-8000-000000000002",
+    "workspaceId": "workspace-1",
+    "providerSessionId": "session-1",
+    "state": "succeeded",
+    "revision": 2
+  },
+  "result": {
+    "version": 1,
+    "launchBinding": {
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1
+    },
+    "requestDigest": "df0e65439e55792482c1a9335d644754c1004b80aeda4bba0a58caa75c55d672",
+    "completionId": "completion-1",
+    "stepId": "step-1",
+    "agentRunId": "agent-1",
+    "attemptId": "00000000-0000-4000-8000-000000000002",
+    "providerSessionId": "session-1",
+    "promptReceiptId": "00000000-0000-4000-8000-000000000002",
+    "resultId": "result-1",
+    "resultVersion": 1,
+    "output": "YES\n",
+    "outputHash": "a115e91c2e84c3078fa06914eff28d07590ddfaa47a55fb4f31dd7c5b3566194",
+    "artifactRefs": [
+      {
+        "artifactId": "artifact-1",
+        "contentHash": "c7c5c1d70c5dec4416ab6158afd0b223ef40c29b1dc1f97ed9428b94d4cadb1c"
+      }
+    ],
+    "exitKind": "completed"
+  }
+}
