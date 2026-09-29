@@ -7,6 +7,7 @@ import { authorizeEditorRequest } from "./editorGrant.ts";
 import { editorGrantFixture } from "./fixtures.ts";
 import { dispatchGatewaySave, documentReceipt, type GatewaySaveState, sha256 } from "./gatewaySave.ts";
 import { langflowComponentManifest, langflowGraphFixture } from "./langflowGraphFixture.ts";
+import { narrowFrame } from "./narrowFrame.ts";
 
 export const probeSessionCookie = "trellis_editor_probe=fixture-session";
 
@@ -63,11 +64,11 @@ const flowView = (revision: number, graphDocument: unknown) => ({
 	version: revision,
 });
 
-export function createGatewayProtocol(input: { expiresAt: string }) {
+export function createGatewayProtocol(input: { expiresAt: string; graphDocument?: unknown }) {
 	const state: GatewaySaveState = {
 		currentRevision: editorGrantFixture.revision,
 		grant: { ...editorGrantFixture, expiresAt: input.expiresAt },
-		graphDocument: structuredClone(langflowGraphFixture),
+		graphDocument: structuredClone(input.graphDocument ?? langflowGraphFixture),
 		loseNextSaveResponse: false,
 		savedRequests: new Map(),
 	};
@@ -148,6 +149,9 @@ export function createGatewayProtocol(input: { expiresAt: string }) {
 		}
 		if (request.method === "GET" && request.path === "/api/trellis-editor/v1/document") {
 			return authorizedRead(request, "document:read", documentReceipt(state.currentRevision, state.graphDocument));
+		}
+		if (request.method === "GET" && request.path === "/__probe/narrow") {
+			return authorizedRead(request, "document:read", narrowFrame);
 		}
 		if (request.method === "PUT" && request.path === "/api/trellis-editor/v1/document") {
 			return dispatchGatewaySave({ request, state, record });

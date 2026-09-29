@@ -119,7 +119,7 @@ export function FlowRunRow({
 				<span
 					title={row.title}
 					className={cx(
-						"min-w-0 flex-1 truncate text-sm font-medium",
+						"min-w-0 flex-1 truncate text-sm font-medium max-md:overflow-visible max-md:whitespace-normal max-md:break-words",
 						dimStates.has(row.state) ? "text-fg-muted" : "text-fg",
 					)}
 				>

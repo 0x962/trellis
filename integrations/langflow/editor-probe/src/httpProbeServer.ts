@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { extname, relative, resolve } from "node:path";
 import { createGatewayProtocol, probeSessionCookie } from "./gatewayProtocol.ts";
+import { probeGraph } from "./probeGraph.ts";
 
 // This standalone probe runs outside Turbo and reads its private asset directory from the process owner.
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: The probe does not run through a cached Turbo task.
@@ -13,9 +14,11 @@ const evidencePath = resolve(process.env.TRL_EDITOR_EVIDENCE!);
 const expiresAt = process.env.TRL_EDITOR_DEADLINE!;
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: The probe does not run through a cached Turbo task.
 const port = Number(process.env.TRL_EDITOR_PORT!);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: The process owner selects the isolated fixture.
+const graphDocument = probeGraph(process.env.TRL_EDITOR_GRAPH_CASE);
 const host = "127.0.0.1";
 const origin = `http://${host}:${port}`;
-const protocol = createGatewayProtocol({ expiresAt });
+const protocol = createGatewayProtocol({ expiresAt, graphDocument });
 
 const mimeTypes: Record<string, string> = {
 	".css": "text/css; charset=utf-8",
@@ -72,6 +75,11 @@ const serveApi = async (request: IncomingMessage, response: ServerResponse, path
 		now: new Date().toISOString(),
 	});
 	writeEvidence();
+	if (path === "/__probe/narrow" && result.status === 200) {
+		response.writeHead(200, { ...securityHeaders, "content-type": "text/html; charset=utf-8" });
+		response.end(result.body as string);
+		return;
+	}
 	if (result.disconnect) {
 		// A partial response makes the client observe a lost receipt after the gateway accepts the save.
 		// An empty disconnect can trigger a transparent transport retry of the PUT request.

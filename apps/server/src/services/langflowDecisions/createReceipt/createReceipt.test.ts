@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { protocolDigest } from "../../../langflowContracts";
-import { testFixture } from "../testFixture/testFixture.ts";
+import { testFixture } from "../testFixture";
 import { createReceipt } from "./createReceipt.ts";
 
 describe("human receipt", () => {

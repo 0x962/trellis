@@ -1,10 +1,10 @@
 import { Play } from "@phosphor-icons/react";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { type UseQueryResult, useQueries, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
 import { EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
-import { type ComponentProps, useEffect, useRef, useState } from "react";
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
 import { loadRunHistory } from "./components/loadRunHistory";
@@ -14,6 +14,13 @@ import { lastFocusedRun, runExpansionByDiff, runListOffsets } from "./runViewSta
 type Execution = FlowExecutionRecord | FlowExecutionViewV1;
 const live = (execution: Execution) =>
 	flowRunIsLive("snapshot" in execution ? execution.status : execution.state.status);
+
+const combineSnapshots = (queries: UseQueryResult<FlowExecutionViewV1>[]) => ({
+	records: queries.flatMap((query) => (query.data ? [query.data] : [])),
+	pending: queries.some((query) => query.isPending),
+	error: queries.find((query) => query.error !== null)?.error,
+	refreshing: queries.some((query) => query.isFetching),
+});
 
 type Props = {
 	ticket: string;
@@ -54,6 +61,7 @@ export function FlowRuns({
 		queryFn: ({ signal }) => loadRunHistory(client, diffId, signal),
 	});
 	const snapshots = useQueries({
+		combine: combineSnapshots,
 		queries: (executionIds ?? []).map((id) => {
 			const options = orpc.flowDocumentsV1.view.queryOptions({ input: { id } });
 			return {
@@ -68,26 +76,34 @@ export function FlowRuns({
 			};
 		}),
 	});
-	const records: Execution[] =
-		executionIds === undefined ? (legacy.data ?? []) : snapshots.flatMap((query) => (query.data ? [query.data] : []));
-	const pending = executionIds === undefined ? legacy.isPending : snapshots.some((query) => query.isPending);
-	const error = executionIds === undefined ? legacy.error : snapshots.find((query) => query.error !== null)?.error;
+	const records: Execution[] = useMemo(
+		() => (executionIds === undefined ? (legacy.data ?? []) : snapshots.records),
+		[executionIds, legacy.data, snapshots.records],
+	);
+	const pending = executionIds === undefined ? legacy.isPending : snapshots.pending;
+	const error = executionIds === undefined ? legacy.error : snapshots.error;
+	const indexesById = useMemo(() => new Map(records.map((run, index) => [run.id, index])), [records]);
+	const getItemKey = useCallback((index: number) => records[index]!.id, [records]);
+	const rangeExtractor = useCallback(
+		(range: Parameters<typeof defaultRangeExtractor>[0]) => {
+			const indexes = new Set(defaultRangeExtractor(range));
+			for (const id of [targetId, lastFocusedRun.id]) {
+				const index = id === null ? undefined : indexesById.get(id);
+				if (index !== undefined) indexes.add(index);
+			}
+			return [...indexes].sort((a, b) => a - b);
+		},
+		[indexesById, targetId],
+	);
 	const viewport = useRef<HTMLDivElement>(null);
 	const list = useVirtualizer({
 		count: records.length,
 		getScrollElement: () => viewport.current,
 		estimateSize: () => 120,
-		getItemKey: (index) => records[index]!.id,
+		getItemKey,
 		overscan: 3,
 		initialOffset: () => runListOffsets.get(diffId) ?? 0,
-		rangeExtractor: (range) => {
-			const indexes = new Set(defaultRangeExtractor(range));
-			for (const id of [targetId, lastFocusedRun.id]) {
-				const index = records.findIndex((run) => run.id === id);
-				if (index >= 0) indexes.add(index);
-			}
-			return [...indexes].sort((a, b) => a - b);
-		},
+		rangeExtractor,
 	});
 	const targetScroll = useRef(() => {});
 	targetScroll.current = () =>
@@ -118,7 +134,7 @@ export function FlowRuns({
 		setExpansion({ diffId, runs });
 	};
 	const anyLive = records.some(live);
-	const refreshing = executionIds === undefined ? legacy.isFetching : snapshots.some((query) => query.isFetching);
+	const refreshing = executionIds === undefined ? legacy.isFetching : snapshots.refreshing;
 	const blocked = recoveryBlocked || pending || refreshing || Boolean(error);
 	return (
 		<section aria-label="Flows" className="flex flex-col gap-4">

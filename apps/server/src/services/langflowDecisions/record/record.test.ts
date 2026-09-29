@@ -5,8 +5,8 @@ import { langflowDecisions, langflowOutbox } from "../../../db/tables/langflowEx
 import { deliver } from "../deliver";
 import { prepareDelivery } from "../prepareDelivery";
 import { recordAcknowledgement } from "../recordAcknowledgement";
-import { accepted } from "../testFixture/testFixture.ts";
-import { transactionFixture } from "../transactionFixture/transactionFixture.ts";
+import { accepted } from "../testFixture";
+import { transactionFixture } from "./components/transactionFixture";
 import { record } from "./record.ts";
 
 let db: Awaited<ReturnType<typeof transactionFixture>>["db"];
@@ -73,7 +73,7 @@ test("a failed acknowledgement commit recovers from the permanent engine accepta
 			return receipt;
 		},
 	};
-	const delivery = await deliver(first, engine);
+	const delivery = await deliver(first, engine, () => {});
 	await expect(
 		db.transaction(async (tx) => {
 			await recordAcknowledgement(f.system, tx, { ...key, delivery });
@@ -82,12 +82,12 @@ test("a failed acknowledgement commit recovers from the permanent engine accepta
 	).rejects.toThrow("crash before acknowledgement commit");
 	expect((await db.transaction((tx) => readDecision(tx, key)))!.delivery.state).toBe("pending");
 	const next = (await db.transaction((tx) => prepareDelivery(f.system, tx, { ...key, authority: f.authority })))!;
-	const recovered = await deliver(next, engine);
+	const recovered = await deliver(next, engine, () => {});
 	await db.transaction((tx) => recordAcknowledgement(f.system, tx, { ...key, delivery: recovered }));
 	expect(calls).toBe(1);
 	expect((await db.transaction((tx) => readDecision(tx, key)))!.delivery.state).toBe("confirmed");
 	const [outbox] = await db.select().from(langflowOutbox).where(eq(langflowOutbox.id, decisionId));
-	expect(outbox!.receipt).toEqual(receipt);
+	expect(outbox!.receipt).toEqual(receipt!);
 	const unknown = { ...first.delivery, state: "unknown" as const, acceptance: null };
 	const late = await db.transaction((tx) => recordAcknowledgement(f.system, tx, { ...key, delivery: unknown }));
 	expect(late.decisionDeliveries[0]!.state).toBe("confirmed");
