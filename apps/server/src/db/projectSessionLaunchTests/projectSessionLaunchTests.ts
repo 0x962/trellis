@@ -88,6 +88,7 @@ export function projectSessionLaunchTests() {
 				},
 			),
 		).rejects.toThrow("Trellis could not recover this agent. Try Resume again.");
+		if (before.terminalId === null) throw new Error("Expected an attempt before recovery.");
 		expect(recovered).toEqual([before.terminalId]);
 		expect(launches).toHaveLength(count);
 		expect(await db.transaction((tx) => getRun(tx, session.runId))).toEqual(before);
@@ -203,6 +204,7 @@ export function projectSessionLaunchTests() {
 					expect(detail.run.state).toBe("interrupted");
 					expect(detail.run.error).toBe(reason);
 					expect(detail.run.assigned).toBe(true);
+					if (run.terminalId === null) throw new Error("Expected the failed launch to retain its attempt.");
 					expect(reads).toEqual([[run.terminalId]]);
 				},
 			);
