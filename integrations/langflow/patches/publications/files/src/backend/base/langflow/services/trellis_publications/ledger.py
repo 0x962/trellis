@@ -82,3 +82,19 @@ async def publish(request: PublicationRequest, raw: bytes, package: InstalledPub
                 raise
             return replay(prior, raw)
     return receipt
+
+
+async def resolve_publication(session, snapshot: dict, publication: dict) -> dict:
+    row = (await session.execute(sa.select(publications).where(
+        publications.c.flow_id == snapshot["flow"]["id"],
+        publications.c.revision == snapshot["revision"]))).first()
+    if row is None or row.receipt != publication:
+        raise HTTPException(409, "publication_snapshot_conflict")
+    request = PublicationRequest.model_validate_json(row.request_bytes)
+    if request.snapshot != snapshot:
+        raise HTTPException(409, "publication_snapshot_conflict")
+    request.source()
+    flow = await session.get(Flow, row.engine_flow_id)
+    if flow is None or flow.data != snapshot["graphDocument"] or flow.user_id is None:
+        raise HTTPException(409, "publication_engine_flow_conflict")
+    return {"flow_id": flow.id, "user_id": flow.user_id}

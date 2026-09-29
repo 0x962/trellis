@@ -3,5 +3,5 @@
   "after": "7b9e1c4a2d6f",
   "migration": "8c0f2d5b3e7a",
   "patch": "integrations/langflow/patches/publications/0001-immutable-publications.patch",
-  "sha256": "4a11cf754e0cb79459f7fa8a04e4278dd953f263f8e86d8c0692c9a548f75bee"
+  "sha256": "b3e863aaa70eead267947af2cad9bf5eeb75abcb56ff66294f76e4e6bb8f2815"
 }
