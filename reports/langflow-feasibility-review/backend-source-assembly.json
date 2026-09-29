@@ -11,9 +11,9 @@
     },
     {
       "ticket": "TRL-669",
-      "commit": "e85b94878f74d6c303fae84c783b281b75432237",
+      "commit": "d3d77accb69ba68dff97fd2b462ffd3b4877d85a",
       "path": "integrations/langflow/patches/externalWaits/0001-durable-external-waits.patch",
-      "sha256": "9d8f87f5d0ca574d236a5fd273fe1ec38edfce6729e78a73f6be33f9ff386af1"
+      "sha256": "52c504473d7994d491db219f274d2d6df195c6b1b0ecfa902b68dd23f40169d5"
     },
     {
       "ticket": "TRL-670",
@@ -218,7 +218,7 @@
         "TRL-669"
       ],
       "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "resultSha256": "f6bec59071ed73a158eeebe800f2556e3c1cd11a836bea22916f343f39df6aeb",
+      "resultSha256": "ca52d663334e47be94ea111760016b87a351b4c78c68509c7779ea97a4271584",
       "edits": 1,
       "new": true
     },
@@ -271,17 +271,20 @@
       "resultSha256": "b09df208321834faa311dbf90228bc256c4f0642164a965587f1fee2370406b9",
       "edits": 3,
       "new": false
+    },
+    {
+      "path": "src/lfx/src/lfx/graph/vertex/base.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "e7c2b954491af354d9f5b3f253c90928a93e44905e7c6bd41233f7910820394c",
+      "resultSha256": "510ad689f6547deef6542a010788a7070cbaa663ac6f3d0a40ec208e80c5bb89",
+      "edits": 2,
+      "new": false
     }
   ],
-  "patch": "backend-source-assembly.cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee.patch",
-  "patchSha256": "cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee",
-  "repair": {
-    "ticket": "TRL-791",
-    "sourceTicket": "TRL-779",
-    "change": "Include the source-owned cast import in the combined jobs service.",
-    "priorPatchSha256": "4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0",
-    "verification": "Pinned jobs-service hunk lines and counts match. The resulting file hash derives from those pinned bytes. Runtime checks remain pending."
-  },
+  "patch": "backend-source-assembly.a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85.patch",
+  "patchSha256": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
   "sourceIntegrity": [
     "All patch hunk counts match their source bodies.",
     "All old source lines match pinned Git objects.",
@@ -293,5 +296,31 @@
     "23ec0871323484f671df9ffc1c9a0bf6a4c00b1171b82314e545225f3050513b"
   ],
   "technicalAcceptance": false,
-  "productionApproval": false
+  "productionApproval": false,
+  "repairs": [
+    {
+      "ticket": "TRL-791",
+      "sourceTicket": "TRL-779",
+      "change": "Include the source-owned cast import in the combined jobs service.",
+      "priorPatchSha256": "4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0",
+      "verification": "Pinned jobs-service hunk lines and counts match. The resulting file hash derives from those pinned bytes. Runtime checks remain pending."
+    },
+    {
+      "ticket": "TRL-813",
+      "sourceTickets": [
+        "TRL-801",
+        "TRL-810"
+      ],
+      "change": "Include completion authority checks and preserve ExternalWaitPending through the vertex boundary.",
+      "priorPatchSha256": "cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee",
+      "correctedHunkCounts": [
+        {
+          "path": "src/lfx/src/lfx/graph/vertex/base.py",
+          "original": "@@ -788,2 +789,4 @@ class Vertex:",
+          "normalized": "@@ -788,4 +789,6 @@ class Vertex:"
+        }
+      ],
+      "verification": "All 13 file results derive from exact pinned Git objects. Runtime checks remain pending with TRL-667."
+    }
+  ]
 }
