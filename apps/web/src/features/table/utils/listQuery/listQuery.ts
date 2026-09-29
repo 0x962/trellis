@@ -1,7 +1,6 @@
 import type { ListQueryInput, Status, StatusCategory } from "@trellis/api";
 import { toListQuery, type View } from "../../../filters/grammar";
 
-// The automatic list query loads every matching ticket in pages of this size.
 export const pageSize = 200;
 // A closed group loads on expand, one page at a time.
 export const closedPageSize = 50;

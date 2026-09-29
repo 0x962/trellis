@@ -62,11 +62,7 @@ const noRows: TicketSummary[] = [];
 const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQueryInput =>
 	cursor === undefined ? input : { ...input, cursor };
 
-// The active query reads the open categories in 200-row pages until the
-// cursor runs out. A closed group reads its own pages of 50 after its
-// header expands. Every page uses a `tickets.list` key, so a live patch
-// and a mutation response reach every row. A wave group for one epic also
-// reads every Done and Canceled row in 200-row pages.
+// Every page uses a `tickets.list` key, so each ticket update reaches every loaded row.
 export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {
 	const { orpc, queryClient } = useApp();
 	const statuses = useScopeStatuses(project);

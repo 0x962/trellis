@@ -23,11 +23,11 @@ const status = {
 	updatedAt: "2026-09-29T00:00:00.000Z",
 } satisfies Status;
 
-const ticket = (number: number, prefix = "TRL"): TicketSummary => ({
-	id: `ticket-${prefix}-${number}`,
-	identifier: `${prefix}-${number}`,
-	number,
-	title: `Ticket ${number}`,
+const ticket = (ticketNumber: number, prefix = "TRL"): TicketSummary => ({
+	id: `ticket-${prefix}-${ticketNumber}`,
+	identifier: `${prefix}-${ticketNumber}`,
+	number: ticketNumber,
+	title: `Ticket ${ticketNumber}`,
 	priority: "none",
 	status,
 	project: { id: status.projectId, key: "TRL" },
@@ -45,7 +45,7 @@ const ticket = (number: number, prefix = "TRL"): TicketSummary => ({
 	pr: null,
 	prRows: [],
 	lastActor: null,
-	position: number,
+	position: ticketNumber,
 	version: 1,
 	createdAt: "2026-09-29T00:00:00.000Z",
 	updatedAt: "2026-09-29T00:00:00.000Z",
@@ -59,11 +59,11 @@ test("useTableData follows cursors and replaces rows after a filter change", asy
 	const list = async (input: ListQueryInput): Promise<ListOutput> => {
 		requests.push(input);
 		if (input.q === "old") return { items: [ticket(1, "OLD")], nextCursor: null };
-		const number = pageNumber(input.cursor);
-		const count = number === 11 ? 1 : 200;
+		const currentPageNumber = pageNumber(input.cursor);
+		const count = currentPageNumber === 11 ? 1 : 200;
 		return {
-			items: Array.from({ length: count }, (_value, index) => ticket((number - 1) * 200 + index + 1)),
-			nextCursor: number === 11 ? null : `page-${number + 1}`,
+			items: Array.from({ length: count }, (_value, index) => ticket((currentPageNumber - 1) * 200 + index + 1)),
+			nextCursor: currentPageNumber === 11 ? null : `page-${currentPageNumber + 1}`,
 		};
 	};
 	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
