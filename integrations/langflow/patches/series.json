@@ -9,10 +9,16 @@
 	"patches": [
 		{
 			"name": "backend",
-			"path": "reports/langflow-feasibility-review/backend-source-assembly.4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0.patch",
-			"sha256": "4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0",
+			"path": "reports/langflow-feasibility-review/backend-source-assembly.a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85.patch",
+			"sha256": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
 			"directory": ".",
 			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
+		},
+		{
+			"name": "backend-schema",
+			"path": "integrations/langflow/patches/schema/0001-trellis-feasibility-tables.patch",
+			"sha256": "ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6",
+			"directory": "."
 		},
 		{
 			"name": "editor",
@@ -30,7 +36,7 @@
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],
-	"verification": "Pending after the complete source merge.",
+	"verification": "The first batch failed. Verification of the merged repair batch remains pending with TRL-667.",
 	"technicalAcceptance": false,
 	"productionApproval": false
 }
