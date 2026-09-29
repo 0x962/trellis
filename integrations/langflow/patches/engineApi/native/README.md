@@ -6,18 +6,20 @@ The source files install under `langflow.services.trellis_v1` in the pinned engi
 `native_records.py` reads the original graph wait and native request checkpoint.
 `native_router.py` exposes the private HTTP routes.
 
-`create_native_router(jobs, executor, authorize, open_session)` requires trusted host dependencies.
-`authorize(request, permission, binding)` must authenticate the private Bearer value and capability header.
-It must return the current persisted `DeliveryAuthorityV1` after it checks identity, epoch, expiry, and admission.
-The binding comes from a saved wait or the validated native result.
-The ledger calls this function while it holds the engine job lock.
-TRL-875 owns this authentication and router registration.
+`create_native_router(jobs, executor, security, open_session)` requires trusted host dependencies.
+`security` is the shared `EngineApiSecurity` from TRL-875.
+Each route verifies the startup bearer and the capability header.
+The ledger locks the job before the route calls `security.require_authority` in that same session.
+This check binds the exact authority bytes to the execution, publication, job, expiry, and permission.
+The shared router mounts the relative `/native` routes under `/trellis-v1`.
 
 | Route | Permission | Body or result |
 | --- | --- | --- |
-| `POST /trellis-v1/native/completions` | `completion.deliver` | `{engineWaitId,resultBytes,deliveryBytes}`; exact `CompletionReceiptV1` response bytes |
-| `GET /trellis-v1/native/jobs/{job_id}/waits/{wait_id}` | `native.read` | Saved wait, result, and acceptance bytes with `waiting` or `completed` state |
+| `POST /trellis-v1/native/completions` | `completion.deliver` | `{engineWaitId,resultBytes,deliveryBytes,authorityBytes}`; exact `CompletionReceiptV1` response bytes |
+| `POST /trellis-v1/native/lookup` | `native.read` | `{jobId,waitId,authorityBytes}`; saved wait, result, and acceptance bytes |
 
+`authorityBytes` contains the exact persisted grant serialization.
+`X-Trellis-Capability-Id` must match that grant.
 `resultBytes` contains the exact original `NativeResultV1` serialization.
 `deliveryBytes` contains `CompletionDeliveryV1` with the current grant and original result digest.
 A replay can carry a renewed grant but must preserve the original result bytes.
@@ -45,7 +47,10 @@ The obligation holds `version`, `engineJobId`, `engineWaitId`, `completionId`, `
 
 The pending key is `trellis-native-obligation-v1:<enqueueObligationId>`.
 Its JSON holds the obligation fields plus `state: "pending"` and `continuationReceiptBytes: null`.
-The consumer owns the later state update.
+`NativeCompletionLedger.pending()` returns the pending obligation objects.
+`mark_consumed(obligation, continuation_receipt_bytes)` verifies the saved obligation and exact durable continuation receipt before it marks consumption.
+The consumer calls this method only after confirmed dispatch.
+An equal receipt replays; changed bytes or identities fail.
 The resume signal uses `trellis_external_completion_v1`, the exact wait ID as `engineRequestId`, null `decisionId`, and the obligation ID.
 
 ## Assembly and verification

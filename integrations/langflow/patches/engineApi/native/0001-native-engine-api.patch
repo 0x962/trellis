@@ -2,7 +2,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/native_ledger.py b/sr
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/native_ledger.py
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,135 @@
 +from __future__ import annotations
 +
 +from datetime import datetime, timezone
@@ -10,7 +10,7 @@ new file mode 100644
 +
 +from sqlmodel import select
 +
-+from langflow.services.database.models.jobs.model import ExecutionSignal, Job, JobStatus, SignalType
++from langflow.services.database.models.jobs.model import ExecutionSignal, Job, JobCheckpoint, JobStatus, SignalType
 +from langflow.services.deps import session_scope
 +from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroker
 +from langflow.services.trellis_v1.native_protocol import (
@@ -34,7 +34,7 @@ new file mode 100644
 +        job_id = UUID(result["launchBinding"]["engineJobId"])
 +        async with self._open_session() as session:
 +            job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).first()
-+            authority = await authorize(result["launchBinding"])
++            authority = await authorize(session, result["launchBinding"])
 +            retained = await checkpoint(session, job_id, acceptance_kind(payload.engineWaitId))
 +            if retained is not None:
 +                saved = read_json(retained.blob)
@@ -54,11 +54,11 @@ new file mode 100644
 +                "version": 1, "executionId": result["launchBinding"]["executionId"], "engineJobId": str(job_id),
 +                "completionId": result["completionId"], "resultDigest": read_json(payload.deliveryBytes)["resultDigest"],
 +                "engineWaitId": payload.engineWaitId, "continuationReceiptId": str(obligation_id),
-+                "acceptedAt": datetime.now(timezone.utc).isoformat(),
++                "acceptedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
 +            })
 +            await TrellisExternalWaitBroker(self._jobs).save_completion_in_session(
-+                session, job_id=job_id, authority_epoch=authority["engineEpoch"], wait_bytes=wait_bytes,
-+                delivery_bytes=payload.deliveryBytes, receipt_bytes=receipt_bytes,
++                session, job_id=job_id, authority_epoch=authority["engineEpoch"], wait_bytes=wait_bytes.encode("utf-8"),
++                delivery_bytes=payload.deliveryBytes.encode("utf-8"), receipt_bytes=receipt_bytes.encode("utf-8"),
 +            )
 +            obligation = {
 +                "version": 1, "engineJobId": str(job_id), "engineWaitId": payload.engineWaitId,
@@ -81,6 +81,7 @@ new file mode 100644
 +
 +    async def observe(self, job_id: UUID, wait_id: str, authorize) -> dict:
 +        async with self._open_session() as session:
++            await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())
 +            retained = await checkpoint(session, job_id, acceptance_kind(wait_id))
 +            accepted = None if retained is None else read_json(retained.blob)
 +            wait_bytes = accepted["waitBytes"] if accepted else await saved_wait(session, job_id, wait_id)
@@ -89,18 +90,59 @@ new file mode 100644
 +            wait = read_json(wait_bytes)
 +            if wait["kind"] != "native":
 +                raise NativeConflict("native_wait_kind_conflict")
-+            await authorize(wait["request"])
++            await authorize(session, wait["request"])
 +            return {
 +                "version": 1, "engineJobId": str(job_id), "engineWaitId": wait_id,
 +                "state": "waiting" if accepted is None else "completed", "waitBytes": wait_bytes,
 +                "resultBytes": None if accepted is None else accepted["resultBytes"],
 +                "receiptBytes": None if accepted is None else accepted["obligation"]["receiptBytes"],
 +            }
++
++    async def pending(self) -> list[dict]:
++        async with self._open_session() as session:
++            rows = (await session.exec(select(JobCheckpoint).where(
++                JobCheckpoint.kind.startswith("trellis-native-obligation-v1:"),
++            ))).all()
++            return [
++                {key: value for key, value in saved.items() if key not in {"state", "continuationReceiptBytes"}}
++                for row in rows if (saved := read_json(row.blob))["state"] == "pending"
++            ]
++
++    async def mark_consumed(self, obligation: dict, continuation_receipt_bytes: bytes) -> None:
++        job_id = UUID(obligation["engineJobId"])
++        async with self._open_session() as session:
++            await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())
++            row = await checkpoint(session, job_id, f"trellis-native-obligation-v1:{obligation['enqueueObligationId']}")
++            if row is None:
++                raise NativeConflict("native_obligation_missing")
++            saved = read_json(row.blob)
++            expected = {key: value for key, value in saved.items() if key not in {"state", "continuationReceiptBytes"}}
++            if expected != obligation:
++                raise NativeConflict("native_obligation_conflict")
++            continuation = await checkpoint(session, job_id, f"trellis-continuation-v1:{obligation['enqueueObligationId']}")
++            if continuation is None or continuation.blob.encode("utf-8") != continuation_receipt_bytes:
++                raise NativeConflict("native_continuation_bytes_conflict")
++            receipt = read_json(continuation.blob)
++            binding = {
++                "engineJobId": obligation["engineJobId"], "engineRequestId": obligation["engineWaitId"],
++                "decisionId": None, "signalId": obligation["signalId"],
++                "enqueueObligationId": obligation["enqueueObligationId"],
++            }
++            if any(receipt.get(key) != value for key, value in binding.items()):
++                raise NativeConflict("native_continuation_identity_conflict")
++            if saved["continuationReceiptBytes"] is not None:
++                if saved["continuationReceiptBytes"] != continuation.blob:
++                    raise NativeConflict("native_consumption_replay_conflict")
++                return
++            row.blob = serialized({**saved, "state": "consumed", "continuationReceiptBytes": continuation.blob})
++            row.updated_at = datetime.now(timezone.utc)
++            session.add(row)
++            await session.flush()
 diff --git a/src/backend/base/langflow/services/trellis_v1/native_protocol.py b/src/backend/base/langflow/services/trellis_v1/native_protocol.py
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/native_protocol.py
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,131 @@
 +from __future__ import annotations
 +
 +import hashlib
@@ -170,6 +212,13 @@ new file mode 100644
 +    engineWaitId: Reference
 +    resultBytes: str
 +    deliveryBytes: str
++    authorityBytes: str
++
++
++class LookupInput(ProtocolModel):
++    jobId: Uuid
++    waitId: Reference
++    authorityBytes: str
 +
 +
 +def digest(value: str) -> str:
@@ -269,7 +318,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/native_router.py b/sr
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/native_router.py
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,56 @@
 +from __future__ import annotations
 +
 +from json import JSONDecodeError
@@ -280,36 +329,49 @@ new file mode 100644
 +from starlette.responses import Response
 +
 +from langflow.services.deps import session_scope
++from langflow.services.trellis_v1.engine_api import AuthorityConflict, AuthorityUnauthorized, EngineApiSecurity
 +from langflow.services.trellis_v1.native_ledger import NativeCompletionLedger
-+from langflow.services.trellis_v1.native_protocol import CompletionInput, NativeConflict
++from langflow.services.trellis_v1.native_protocol import CompletionInput, LookupInput, NativeConflict
 +
 +
-+def create_native_router(*, jobs, executor, authorize, open_session=session_scope) -> APIRouter:
++def create_native_router(*, jobs, executor, security: EngineApiSecurity, open_session=session_scope) -> APIRouter:
 +    ledger = NativeCompletionLedger(jobs, open_session=open_session)
-+    router = APIRouter(prefix="/trellis-v1/native")
++    router = APIRouter(prefix="/native")
++
++    def authorize(request: Request, authority_bytes: str, permission: str):
++        async def current_authority(session, binding):
++            grant = await security.require_authority(
++                session, authority_bytes.encode("utf-8"), permission,
++                execution_id=binding["executionId"], publication_id=binding["publicationId"],
++                engine_job_id=UUID(binding["engineJobId"]),
++            )
++            if request.headers.get("x-trellis-capability-id") != grant.authority.capability_id:
++                raise AuthorityUnauthorized("native_capability_conflict")
++            return grant.authority.model_dump(by_alias=True, mode="json")
++        return current_authority
 +
 +    @router.post("/completions")
 +    async def complete(request: Request, payload: CompletionInput) -> Response:
-+        async def current_authority(binding):
-+            return await authorize(request, "completion.deliver", binding)
-+
++        await security.require_transport_auth(request.headers.get("authorization"))
 +        try:
-+            obligation = await ledger.accept(payload, current_authority)
-+        except NativeConflict as error:
++            obligation = await ledger.accept(payload, authorize(request, payload.authorityBytes, "completion.deliver"))
++        except (NativeConflict, AuthorityConflict) as error:
 +            raise HTTPException(status_code=409, detail=str(error)) from error
++        except AuthorityUnauthorized as error:
++            raise HTTPException(status_code=401, detail="native_authority_invalid") from error
 +        except (ValidationError, JSONDecodeError, UnicodeError) as error:
 +            raise HTTPException(status_code=422, detail="native_completion_invalid") from error
 +        await executor.consume_external_completion_obligation(obligation)
 +        return Response(content=obligation["receiptBytes"], media_type="application/json", headers={"Cache-Control": "no-store"})
 +
-+    @router.get("/jobs/{job_id}/waits/{wait_id}")
-+    async def observe(request: Request, job_id: UUID, wait_id: str) -> dict:
-+        async def current_authority(binding):
-+            return await authorize(request, "native.read", binding)
-+
++    @router.post("/lookup")
++    async def observe(request: Request, payload: LookupInput) -> dict:
++        await security.require_transport_auth(request.headers.get("authorization"))
 +        try:
-+            return await ledger.observe(job_id, wait_id, current_authority)
-+        except NativeConflict as error:
++            return await ledger.observe(UUID(payload.jobId), payload.waitId, authorize(request, payload.authorityBytes, "native.read"))
++        except (NativeConflict, AuthorityConflict) as error:
 +            raise HTTPException(status_code=409, detail=str(error)) from error
++        except AuthorityUnauthorized as error:
++            raise HTTPException(status_code=401, detail="native_authority_invalid") from error
 +
 +    return router

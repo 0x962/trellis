@@ -1,11 +1,11 @@
 {
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "0001-native-engine-api.patch",
-  "sha256": "35d6af1fa6133c0a1b747282b61232f0750cf72fbfc8ad28dba3021655de7692",
+  "sha256": "3ca06f1b27d1744ad6c767e8eca624a8540cb0138d27f339e3f2d1f95c2d19d6",
   "files": {
-    "src/backend/base/langflow/services/trellis_v1/native_ledger.py": "d6ff68795cd3fa0fb4bb3fdebfaf41537614b5976dd816ea6882378dac0ade77",
-    "src/backend/base/langflow/services/trellis_v1/native_protocol.py": "70765bc38fc5780a9ae6e9606475ad94dd65c69a8e2061e604b4ce5de52c5645",
+    "src/backend/base/langflow/services/trellis_v1/native_ledger.py": "9f135f6a0c5233b25b47d299499ecb4165749b46f33e5a3757fa688bce801d36",
+    "src/backend/base/langflow/services/trellis_v1/native_protocol.py": "103c5cee778846342b0c7ead8ee20babc3b5299646ae780b34778db0bc355fdf",
     "src/backend/base/langflow/services/trellis_v1/native_records.py": "421b92a54571fbb0d9ef53e11b479b7e7b35ffb385f53346620ed12eccb3dbfe",
-    "src/backend/base/langflow/services/trellis_v1/native_router.py": "bb4c200ff00fcf615a688de44befaee62f24a3a4903050092847a6ba8f7a4353"
+    "src/backend/base/langflow/services/trellis_v1/native_router.py": "aaadcac970e2600a492056910cc1e99c734341387910a72ee089ddaf991190b5"
   }
 }

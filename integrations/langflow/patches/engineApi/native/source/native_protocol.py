@@ -67,6 +67,13 @@ class CompletionInput(ProtocolModel):
     engineWaitId: Reference
     resultBytes: str
     deliveryBytes: str
+    authorityBytes: str
+
+
+class LookupInput(ProtocolModel):
+    jobId: Uuid
+    waitId: Reference
+    authorityBytes: str
 
 
 def digest(value: str) -> str:

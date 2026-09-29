@@ -28,7 +28,7 @@ def fixture():
     delivery["result"] = result
     result_bytes = serialized(result)
     delivery["resultDigest"] = digest(result_bytes)
-    payload = CompletionInput(engineWaitId=wait["waitId"], resultBytes=result_bytes, deliveryBytes=serialized(delivery))
+    payload = CompletionInput(engineWaitId=wait["waitId"], resultBytes=result_bytes, deliveryBytes=serialized(delivery), authorityBytes=serialized(delivery["authority"]))
     return payload, wait, request_bytes, delivery["authority"]
 
 
