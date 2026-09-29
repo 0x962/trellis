@@ -6,6 +6,7 @@ import type { DispatchGate } from "../../../langflowHost";
 import { startNative } from "../../agentRuns";
 import { withAttemptOperation } from "../../langflowStops/withAttemptOperation";
 import type { IoCtx } from "../../support";
+import { nativePromptGuide } from "../nativePromptGuide";
 import { readReservation } from "../readReservation";
 import type { reserveNativeRequest } from "../reserveNativeRequest";
 
@@ -78,7 +79,7 @@ export async function dispatchNative(
 					return current.cancelIntent === null && current.admission.state === "open";
 				}),
 		},
-		deps,
+		{ ...deps, guide: nativePromptGuide(claimed.limits, deps.guide) },
 	);
 	if (result.launchedAt !== undefined)
 		await ctx.newTx((tx: Tx) =>
