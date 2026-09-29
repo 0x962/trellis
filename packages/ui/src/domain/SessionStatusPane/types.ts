@@ -37,8 +37,9 @@ export type SessionStatusPaneProps = {
 	updates: SessionUpdates;
 	processState: SessionStatusProcessState;
 	now: string;
+	observerError?: string | null;
 	renderMarkdown: (markdown: string) => ReactNode;
 	onOpenLink: (href: string, target: string, press: LinkPress) => void;
-	lateAfterMs?: number;
+	onOpenObserverProvider?: () => void;
 	className?: string;
 };
