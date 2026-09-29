@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import type { FlowAttemptV1, FlowExecutionRecord } from "@trellis/api";
+import { FailureState, OutputBlock, PropertyRow } from "@trellis/ui";
 import { useApp } from "../../../../../../../lib/appContext";
 import { NativeTerminal } from "../../../../../../agents/NativeTerminal";
-import { FlowActionDialog } from "../../../StartFlowDialog/components/FlowActionDialog";
+import { FlowActionDialog } from "../../../FlowActionDialog";
 
 type Target = { runId: string; attemptId: string; resultId: string | null };
 
@@ -37,22 +38,24 @@ export function FlowTaskTerminal({
 	});
 	return (
 		<FlowActionDialog title="Flow task terminal" onClose={onClose}>
-			<dl className="grid min-w-0 gap-2 break-all text-sm">
-				<dt>Agent run</dt>
-				<dd>{target.runId}</dd>
-				<dt>Attempt</dt>
-				<dd>{target.attemptId}</dd>
-				<dt>Reviewed head</dt>
-				<dd>{reviewedHead ?? "Unknown"}</dd>
-				<dt>Workspace commit</dt>
-				<dd>{attempt?.workspaceCommit ?? "Unknown"}</dd>
+			<dl className="min-w-0 text-sm">
+				<PropertyRow label="Agent run">
+					<span className="min-w-0 break-all">{target.runId}</span>
+				</PropertyRow>
+				<PropertyRow label="Attempt">
+					<span className="min-w-0 break-all">{target.attemptId}</span>
+				</PropertyRow>
+				<PropertyRow label="Reviewed head">
+					<span className="min-w-0 break-all">{reviewedHead ?? "Unknown"}</span>
+				</PropertyRow>
+				<PropertyRow label="Workspace commit">
+					<span className="min-w-0 break-all">{attempt?.workspaceCommit ?? "Unknown"}</span>
+				</PropertyRow>
 			</dl>
 			{runs.isPending ? (
 				<p role="status">Load task terminal…</p>
 			) : runs.isError ? (
-				<p role="alert" className="text-sm text-danger">
-					{runs.error.message}
-				</p>
+				<FailureState title="The terminal is unavailable" detail={runs.error.message} />
 			) : run ? (
 				<NativeTerminal key={`${target.runId}:${target.attemptId}`} run={run} readOnly={recoveryBlocked ?? !!attempt} />
 			) : (
@@ -63,12 +66,10 @@ export function FlowTaskTerminal({
 					) : retained.isPending ? (
 						<p role="status">Load retained output…</p>
 					) : retained.isError ? (
-						<p role="alert" className="text-sm text-danger">
-							{retained.error.message}
-						</p>
+						<FailureState title="The retained output is unavailable" detail={retained.error.message} />
 					) : (
 						<section aria-label="Retained attempt output">
-							<pre className="whitespace-pre-wrap break-words text-sm">{retained.data}</pre>
+							<OutputBlock text={retained.data} />
 						</section>
 					)}
 				</>

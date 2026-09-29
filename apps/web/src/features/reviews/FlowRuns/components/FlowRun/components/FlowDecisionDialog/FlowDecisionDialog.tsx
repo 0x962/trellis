@@ -1,9 +1,10 @@
+import { skipToken, useQuery } from "@tanstack/react-query";
 import type { FlowExecutionDecisionInput, FlowExecutionRecord, FlowExecutionViewV1 } from "@trellis/api";
-import { Button, FlowDecisionContext, Textarea } from "@trellis/ui";
-import { useState } from "react";
+import { Button, FailureState, FlowDecisionContext, Textarea } from "@trellis/ui";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
-import { FlowActionDialog } from "../../../StartFlowDialog/components/FlowActionDialog";
-import { useFlowActionRequest } from "../../../StartFlowDialog/useFlowActionRequest";
+import { useFlowActionRequest } from "../../../../useFlowActionRequest";
+import { FlowActionDialog } from "../../../FlowActionDialog";
 import { decisionView } from "./decisionView";
 
 export function FlowDecisionDialog({
@@ -19,7 +20,7 @@ export function FlowDecisionDialog({
 	recoveryBlocked?: boolean;
 	onDecideV1?: (input: FlowExecutionDecisionInput) => Promise<FlowExecutionViewV1>;
 }) {
-	const { client } = useApp();
+	const { client, queryClient } = useApp();
 	const recovery = recoveryBlocked ?? "schemaVersion" in execution;
 	const decide = useFlowActionRequest<FlowExecutionDecisionInput, FlowExecutionRecord | FlowExecutionViewV1>(
 		["decision", execution.id, actionKey],
@@ -27,14 +28,19 @@ export function FlowDecisionDialog({
 	);
 	const [preview, setPreview] = useState(execution);
 	const [previewKey] = useState(actionKey);
-	const [output, setOutput] = useState(
-		() => decide.request?.input.output ?? decisionView(execution, actionKey).delivery?.output ?? "",
-	);
+	const draftKey = ["flow-decision-notes", execution.id, actionKey];
+	const notes = useQuery({
+		queryKey: draftKey,
+		queryFn: skipToken,
+		initialData: () => decide.request?.input.output ?? decisionView(execution, actionKey).delivery?.output ?? "",
+		gcTime: Infinity,
+	});
+	const [output, setOutput] = useState(notes.data!);
 	const receipt = decide.request?.result;
 	const submitted = !!decide.request && decide.request.phase !== "conflict";
 	const current = receipt && receipt.revision > execution.revision ? receipt : execution;
-	const view = decisionView(current, actionKey);
-	const shown = decisionView(preview, previewKey);
+	const view = useMemo(() => decisionView(current, actionKey), [current, actionKey]);
+	const shown = useMemo(() => decisionView(preview, previewKey), [preview, previewKey]);
 	const changed = actionKey !== previewKey || execution.id !== preview.id || execution.revision !== preview.revision;
 	const unavailable = "schemaVersion" in execution && !onDecideV1;
 	const blocked = recovery || unavailable || changed || !view.waiting || !!view.delivery || !!decide.request;
@@ -64,7 +70,10 @@ export function FlowDecisionDialog({
 			<Textarea
 				label="Decision notes"
 				value={output}
-				onChange={(event) => setOutput(event.target.value)}
+				onChange={(event) => {
+					setOutput(event.target.value);
+					queryClient.setQueryData(draftKey, event.target.value);
+				}}
 				disabled={submitted || !!view.delivery}
 			/>
 			{(changed || decide.request?.phase === "conflict") && !submitted && !view.delivery && (
@@ -98,9 +107,7 @@ export function FlowDecisionDialog({
 				</p>
 			)}
 			{decide.request?.error && (
-				<p role="alert" className="text-sm text-danger">
-					{decide.request.error}
-				</p>
+				<FailureState title="The decision request did not complete" detail={decide.request.error} />
 			)}
 		</FlowActionDialog>
 	);

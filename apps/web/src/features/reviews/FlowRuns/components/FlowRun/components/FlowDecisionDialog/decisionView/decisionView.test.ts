@@ -18,7 +18,7 @@ test("every delivery state retains rejection and complete notes", () => {
 						acceptedReceiptId: "receipt",
 						confirmedAt: "2026-09-29T17:00:00Z",
 					}
-				: { ...unknownDecisionV1Example, state, approved: false };
+				: { ...unknownDecisionV1Example, state, approved: false, acceptedReceiptId: null, confirmedAt: null };
 		const execution = { ...executionViewV1Example, decisionDeliveries: [{ ...delivery, output: "n".repeat(200_001) }] };
 		const view = decisionView(execution, occurrenceV1Example.actionKey);
 		expect(view.delivery?.state).toBe(state);

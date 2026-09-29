@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useApp } from "../../../../../../lib/appContext";
+import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
+import { useApp } from "../../../../lib/appContext";
 
 type Request<Input, Result> = {
 	input: Input;
@@ -13,6 +13,7 @@ export function useFlowActionRequest<Input, Result>(key: string[], send: (input:
 	const queryKey = ["flow-action-request", ...key];
 	const request = useQuery<Request<Input, Result> | null>({
 		queryKey,
+		queryFn: skipToken,
 		initialData: null,
 		enabled: false,
 		gcTime: Infinity,

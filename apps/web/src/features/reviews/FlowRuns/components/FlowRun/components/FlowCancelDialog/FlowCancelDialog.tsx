@@ -1,9 +1,9 @@
 import type { FlowExecutionCancelInput, FlowExecutionRecord, FlowExecutionViewV1 } from "@trellis/api";
-import { Button } from "@trellis/ui";
-import { useState } from "react";
+import { Button, FailureState } from "@trellis/ui";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
-import { FlowActionDialog } from "../../../StartFlowDialog/components/FlowActionDialog";
-import { useFlowActionRequest } from "../../../StartFlowDialog/useFlowActionRequest";
+import { useFlowActionRequest } from "../../../../useFlowActionRequest";
+import { FlowActionDialog } from "../../../FlowActionDialog";
 
 export function FlowCancelDialog({
 	execution,
@@ -27,10 +27,13 @@ export function FlowCancelDialog({
 	const submitted = !!cancel.request && cancel.request.phase !== "conflict";
 	const current = receipt && receipt.revision > execution.revision ? receipt : execution;
 	const status = "schemaVersion" in current ? current.status : current.state.status;
-	const stops =
-		"schemaVersion" in current
-			? current.stopObligations.filter((stop) => stop.state !== "confirmed")
-			: current.state.steps.filter((step) => step.needsStop);
+	const stops = useMemo(
+		() =>
+			"schemaVersion" in current
+				? current.stopObligations.filter((stop) => stop.state !== "confirmed")
+				: current.state.steps.filter((step) => step.needsStop),
+		[current],
+	);
 	const changed = execution.id !== preview.id || execution.revision !== preview.revision;
 	const unavailable = "schemaVersion" in execution && !onCancelV1;
 	const blocked =
@@ -89,9 +92,7 @@ export function FlowCancelDialog({
 				</p>
 			)}
 			{cancel.request?.error && (
-				<p role="alert" className="text-sm text-danger">
-					{cancel.request.error}
-				</p>
+				<FailureState title="The cancellation request did not complete" detail={cancel.request.error} />
 			)}
 		</FlowActionDialog>
 	);
