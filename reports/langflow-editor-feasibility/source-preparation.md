@@ -2,7 +2,7 @@
 
 ## Result
 
-The source supports a pinned full-editor fork as the primary probe. A separate authenticated editor remains the smaller alternative.
+Navid selected the pinned full-editor fork inside Trellis. Note `01M3Q242R632TB5G9CSYVX909R` records the decision.
 
 TRL-667 measured the shared unmodified candidate and its isolation profile. Source review accepts the direct-load and gateway boundaries. No accepted patched editor or browser proof exists yet.
 
@@ -108,11 +108,11 @@ The pinned frontend baseline type check reports 253 diagnostics in 87 files. The
 
 The comparison artifact has SHA256 `d93ad00e386eec4f3f0fd292e6bc9637f711d97ea22dc9b0bb35b4022910de16`.
 
-The current patch has SHA256 `4006793d90fdae7e16e1fc6e6a97ed1c155c75a64ce851662a4a48a203375fc9`. Its source manifest has SHA256 `381f1647550d114ea418a3780df8e6dc7f85e306973d65862afc6d5bbd16fa84`.
+The current patch has SHA256 `ec23fcc90f8e9799c323716a453ca52f5b4438cf3d0734b3908e1291c179d5d1`. Its source manifest has SHA256 `381f1647550d114ea418a3780df8e6dc7f85e306973d65862afc6d5bbd16fa84`.
 
 Pinned Biome 2.1.1 accepted all nine files in the predecessor patch. The Langflow repository root also accepted that predecessor patch.
 
-The final patch adds the flow-list initialization from source review. Navid deferred its apply check, lint, type check, build, and runtime proof.
+The final patch adds the flow-list initialization from source review. Its `git apply --numstat` command and pinned-source apply check exit 0.
 
 The gateway binds the submitted component manifest hash to the pinned hash. It rejects changes to component definitions under allowed type names. The HTTP write route accepts only the full Langflow graph shape. The schematic helper remains limited to source fixtures.
 
@@ -120,13 +120,13 @@ The prior editor patch has SHA256 `a5f94d6e207b98be2a2a44e1e26b4d8d25f6b327108eb
 
 The corrected gateway source manifest has SHA256 `f12c2c85903be8fb3fefb2807e5603c8507bea57dc04101bc6c19dfebd70fe99`. The corrected HTTP fixture manifest has SHA256 `c4e0c7d6e824e38d875fe8d0ed61697be5bf57c3d68b8bf73a1a9ba095765a39`.
 
-Navid directed integrated verification after the complete Langflow merge. The rule defers tests, builds, gateway listeners, HTTP probes, browser checks, and Review flows. No candidate process or listener runs.
+Integrated verification starts after the repaired source merges. No candidate process or listener runs during this repair.
 
 The first test attempt stopped before tests because the worktree had no Zod package. The approved local links fixed the dependency gap without an install.
 
-## Mounting options
+## Mounting decision
 
-### Option A: isolated full-editor fork
+### Full editor inside Trellis
 
 Keep the current Trellis `/ai/flows/<slug>` route and topbar. Mount a pinned fork on an isolated editor origin inside the remaining workspace.
 
@@ -140,25 +140,11 @@ The save gateway validates the grant and the public V1 document. It also validat
 
 The parent and editor can exchange display messages for height, focus return, and selection. A browser message never authorizes a save, run, decision, or component change.
 
-This option preserves one Trellis workspace and one save owner. It needs a maintained fork across the four source seams.
-
-### Option B: separate authenticated editor
-
-Open the pinned full editor in a separate authenticated window. Keep the Trellis route as a read-only summary with an Open editor action.
-
-The separate editor uses the same grant, catalog, and save gateway. It receives no execution or provider authority.
-
-This option needs fewer source patches. It duplicates navigation, loses the Trellis topbar during edits, and splits focus and return behavior across two windows.
-
-### Decision state
-
-Option A is the current proposal. It is not an approved architecture.
-
-TRL-674 records Navid's choice after the full source, runtime, browser, and isolation evidence exists.
+This mount preserves one Trellis workspace and one save owner. It needs a maintained fork across the four source seams.
 
 ## Required candidate proof
 
-1. Apply the frozen probe patch through a serialized TRL-667 window.
+1. Apply the repaired probe patch in the existing TRL-667 candidate.
 2. Run the focused source checks against the patched candidate.
 3. Start one bounded local editor with no provider credentials.
 4. Use Aside for desktop, 320-pixel, keyboard, focus, scroll, and network proof.
@@ -173,4 +159,3 @@ TRL-674 records Navid's choice after the full source, runtime, browser, and isol
 - No actual HTTP route proof exists for the server denials.
 - No actual editor test proves the save and explicit Retry sequence.
 - The focused source fixtures pass. The patched editor remains unmeasured.
-- Navid has not selected the full-editor fork or the separate editor.
