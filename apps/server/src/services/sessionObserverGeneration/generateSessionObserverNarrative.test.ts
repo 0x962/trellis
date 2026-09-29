@@ -17,8 +17,9 @@ test("uses separate delivery receipts for context summaries and the final narrat
 	const result = await generateSessionObserverNarrative(
 		{
 			messages: [{ role: "user", body: "A context that exceeds capacity." }],
-			beforeNarrativeAfterSummary: async (summary) => {
+			beforeNarrativeAfterSummary: async (summary, generations) => {
 				savedSummaries.push(summary.body);
+				expect(generations.map((generation) => generation.usageId)).toEqual(["usage-2"]);
 			},
 		},
 		generate,

@@ -55,7 +55,7 @@ const summarizePart = async <T extends SessionObserverTurn>(
 export const generateSessionObserverNarrative = async <T extends SessionObserverTurn>(
 	input: {
 		messages: readonly SessionObserverMessage[];
-		beforeNarrativeAfterSummary?: (summary: SessionObserverMessage) => Promise<void>;
+		beforeNarrativeAfterSummary?: (summary: SessionObserverMessage, generations: T[]) => Promise<void>;
 	},
 	generate: (input: SessionObserverTurnInput) => Promise<T>,
 ): Promise<{ generation: T; incrementalSummary: SessionObserverMessage | null; summaryGenerations: T[] }> => {
@@ -79,7 +79,7 @@ export const generateSessionObserverNarrative = async <T extends SessionObserver
 				.map((summary, index) => `## Part ${index + 1}\n\n${summary.text}`)
 				.join("\n\n")}`,
 		};
-		await input.beforeNarrativeAfterSummary?.(incrementalSummary);
+		await input.beforeNarrativeAfterSummary?.(incrementalSummary, summaries);
 		return {
 			generation: await generate({
 				instruction: sessionObserverInstruction,

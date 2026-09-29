@@ -1,7 +1,10 @@
 import type { SessionObserverSetEnabledInput } from "@trellis/api";
 import type { Tx } from "../../db/tx.ts";
 import type { SessionObserverActivityItem as StoredActivityItem } from "../sessionObserverActivity";
-import { readSessionObserverActivity } from "../sessionObserverActivity";
+import {
+	readSessionObserverActivity,
+	type SessionObserverActivityContext as StoredActivityContext,
+} from "../sessionObserverActivity";
 import {
 	claimSessionObserverGeneration,
 	failSessionObserverGeneration,
@@ -100,6 +103,12 @@ const activityItem = (item: StoredActivityItem): SessionObserverActivityItem =>
 				}),
 			};
 
+const activityContext = (item: StoredActivityContext): SessionObserverActivityContext => ({
+	kind: "message",
+	role: item.role,
+	body: item.text,
+});
+
 const dependencies: SessionObserverGenerationDeps = {
 	candidates: (ctx) => ctx.newTx(listSessionObserverCandidates),
 	activity: async (ctx, input) => {
@@ -107,10 +116,14 @@ const dependencies: SessionObserverGenerationDeps = {
 		return {
 			cursor: read.cursor,
 			items: read.items.map(activityItem),
-			context: [],
+			context: read.context.map(activityContext),
 			completed: read.signals.some((signal) => signal.kind === "completion"),
 			needsInput: read.signals.some((signal) => signal.kind === "input-request"),
-			unavailable: read.signals.some((signal) => signal.kind === "unavailable"),
+			unavailable: read.signals.some(
+				(signal) =>
+					signal.kind === "unavailable" ||
+					(signal.kind === "completion" && signal.messageAvailability === "unavailable"),
+			),
 		};
 	},
 	claim: (ctx, input) => ctx.newTx((tx) => claimSessionObserverGeneration(tx, input)),

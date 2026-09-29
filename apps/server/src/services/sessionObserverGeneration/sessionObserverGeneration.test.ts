@@ -106,7 +106,16 @@ test("initial generation works when activity is unavailable", async () => {
 	);
 });
 
-test("20 completed tools trigger with unavailable messages, signals, and uncertain context", async () => {
+test("20 completed tools reach the threshold when message coverage is unavailable", async () => {
+	const { calls, deps } = fixture({ unavailable: true });
+	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
+	expect(calls.generate).toHaveLength(1);
+	const prompt = (calls.generate[0] as { messages: Array<{ body: string }> }).messages.at(-1)?.body;
+	expect(prompt).toContain("Trigger: threshold");
+	expect(prompt).toContain("Some message coverage is unavailable.");
+});
+
+test("completed tools, urgent signals, and uncertain context stay separate", async () => {
 	const { calls, deps } = fixture({
 		unavailable: true,
 		completed: true,
@@ -116,6 +125,7 @@ test("20 completed tools trigger with unavailable messages, signals, and uncerta
 	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
 	expect(calls.generate).toHaveLength(1);
 	const prompt = (calls.generate[0] as { messages: Array<{ body: string }> }).messages.at(-1)?.body;
+	expect(prompt).toContain("Trigger: needs-input");
 	expect(prompt).toContain("Some message coverage is unavailable.");
 	expect(prompt).toContain("An unproven complete assistant message.");
 });
