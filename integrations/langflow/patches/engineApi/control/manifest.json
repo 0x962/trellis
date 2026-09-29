@@ -1,0 +1,11 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-private-engine-cancellation.patch",
+  "sha256": "e57bf8343c708ed34f67d2e626762647d73414d8f1c4ba9cea6ff995d661ccd7",
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/cancellation.py": "a0455ef06adc382c6d60b198a4e8a8e3846afe2c348fea2c7c186f505a5b103f",
+    "src/backend/base/langflow/services/trellis_v1/cancellation_effects.py": "b4c88c56f134a1a1bddeb20dbf2a3afb5ba6783327b437bf5c8a9e4624305418",
+    "src/backend/base/langflow/services/trellis_v1/cancellation_models.py": "45d8d6c82ed99b23ad9092acb163ae7361fc8b9772aeb90c7925ce3a4d70db5d",
+    "src/backend/base/langflow/services/trellis_v1/cancellation_router.py": "00aa0cd0edb192b534885726ab09338c593f3eec92000369c84719ef79a5d18e"
+  }
+}
