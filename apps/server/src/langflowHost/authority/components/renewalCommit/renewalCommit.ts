@@ -2,7 +2,11 @@ import { protocolDigest, RenewalReceiptV1Schema } from "../../../../langflowCont
 import type { AuthorityCommit, LiveOwnership, OwnershipSnapshot } from "../../../contracts";
 import type { RenewalInput } from "../../authority";
 
-export function renewalCommit(observation: LiveOwnership, input: RenewalInput, snapshot: OwnershipSnapshot): AuthorityCommit {
+export function renewalCommit(
+	observation: LiveOwnership,
+	input: RenewalInput,
+	snapshot: OwnershipSnapshot,
+): AuthorityCommit {
 	const { authority: current, canceled } = snapshot;
 	const request = {
 		version: 1 as const,

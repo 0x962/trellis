@@ -17,23 +17,48 @@ function fixture() {
 	roots.push(root);
 	const home = join(root, "home");
 	mkdirSync(home);
-	const control = LangflowHostControl.create({ home, evidence: {
-		readTerminal: async () => { throw new Error("unexpected_terminal"); },
-		withReconciliation: async (block, id, commit) => commit({
-			id, block, packageDigest: "a".repeat(64), trellisDatabaseReceiptId: "db", engineDatabaseReceiptId: "engine",
-			secretReceiptId: "secret", ownershipReceiptId: "owner", nativeAttemptsReceiptId: "native",
-			stopObligationsReceiptId: "stops", snapshotSealReceiptId: null,
-		}),
-	} });
+	const control = LangflowHostControl.create({
+		home,
+		evidence: {
+			readTerminal: async () => {
+				throw new Error("unexpected_terminal");
+			},
+			withReconciliation: async (block, id, commit) =>
+				commit({
+					id,
+					block,
+					packageDigest: "a".repeat(64),
+					trellisDatabaseReceiptId: "db",
+					engineDatabaseReceiptId: "engine",
+					secretReceiptId: "secret",
+					ownershipReceiptId: "owner",
+					nativeAttemptsReceiptId: "native",
+					stopObligationsReceiptId: "stops",
+					snapshotSealReceiptId: null,
+				}),
+		},
+	});
 	const block = control.gate.read().block!;
 	const observation: LiveOwnership = {
-		id: crypto.randomUUID(), observedAt: "2026-09-29T12:00:00.000Z", endpoint: "http://127.0.0.1:7860",
-		identity: { dataHomeId: control.identity.dataHomeId, hostId: control.identity.hostId,
-			ownerId: crypto.randomUUID(), instanceId: crypto.randomUUID(), manifestDigest: "a".repeat(64) },
+		id: crypto.randomUUID(),
+		observedAt: "2026-09-29T12:00:00.000Z",
+		endpoint: "http://127.0.0.1:7860",
+		identity: {
+			dataHomeId: control.identity.dataHomeId,
+			hostId: control.identity.hostId,
+			ownerId: crypto.randomUUID(),
+			instanceId: crypto.randomUUID(),
+			manifestDigest: "a".repeat(64),
+		},
 	};
 	const live = {
 		runtime: observation.identity,
-		package: { enginePackageDigest: "a".repeat(64), componentManifestHash: "b".repeat(64), engineCommit: "c".repeat(40), engineConfigSha256: "d".repeat(64) },
+		package: {
+			enginePackageDigest: "a".repeat(64),
+			componentManifestHash: "b".repeat(64),
+			engineCommit: "c".repeat(40),
+			engineConfigSha256: "d".repeat(64),
+		},
 		database: { path: "/data/config/langflow.db", contentSha256: "e".repeat(64), size: 42, alembicHeads: ["head"] },
 		secret: { sha256: "f".repeat(64) },
 	};
@@ -41,33 +66,53 @@ function fixture() {
 	const requests: { url: string; body: string | undefined }[] = [];
 	let unknown = false;
 	let savedLease = "";
-	const make = () => new EngineReconciliation({
-		control,
-		supervisor: { withHealthyEngine: async (operation) => operation(observation) },
-		dependencies: {
-			readAuthenticationFile: async () => "engine-token",
-			fetch: async (url, init) => {
-				const path = new URL(String(url)).pathname;
-				const body = typeof init?.body === "string" ? init.body : undefined;
-				requests.push({ url: path, body });
-				expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer engine-token");
-				expect(new Headers(init?.headers).get("X-Trellis-Reconciliation-Issuer")).toMatch(/^[a-f0-9]{64}$/);
-				if (unknown) { unknown = false; throw new Error("lost_response"); }
-				if (path.endsWith("/identity")) return Response.json(live);
-				const input = body ? JSON.parse(body) : null;
-				if (input?.leaseBytes) savedLease = input.leaseBytes;
-				const state = path.endsWith("/release") ? "released" : "active";
-				const acknowledgementBytes = input?.acknowledgementBytes ?? null;
-				const identityBytes = JSON.stringify(live);
-				return Response.json({
-					leaseBytes: savedLease, leaseDigest: protocolDigest(savedLease), state, identity: live,
-					identityBytes, identityDigest: protocolDigest(identityBytes), acknowledgementBytes,
-					receiptId: protocolDigest(JSON.stringify({ leaseBytes: savedLease, state, identityBytes, acknowledgementBytes })),
-				});
+	const make = () =>
+		new EngineReconciliation({
+			control,
+			supervisor: { withHealthyEngine: async (operation) => operation(observation) },
+			dependencies: {
+				readAuthenticationFile: async () => "engine-token",
+				fetch: async (url, init) => {
+					const path = new URL(String(url)).pathname;
+					const body = typeof init?.body === "string" ? init.body : undefined;
+					requests.push({ url: path, body });
+					expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer engine-token");
+					expect(new Headers(init?.headers).get("X-Trellis-Reconciliation-Issuer")).toMatch(/^[a-f0-9]{64}$/);
+					if (unknown) {
+						unknown = false;
+						throw new Error("lost_response");
+					}
+					if (path.endsWith("/identity")) return Response.json(live);
+					const input = body ? JSON.parse(body) : null;
+					if (input?.leaseBytes) savedLease = input.leaseBytes;
+					const state = path.endsWith("/release") ? "released" : "active";
+					const acknowledgementBytes = input?.acknowledgementBytes ?? null;
+					const identityBytes = JSON.stringify(live);
+					return Response.json({
+						leaseBytes: savedLease,
+						leaseDigest: protocolDigest(savedLease),
+						state,
+						identity: live,
+						identityBytes,
+						identityDigest: protocolDigest(identityBytes),
+						acknowledgementBytes,
+						receiptId: protocolDigest(
+							JSON.stringify({ leaseBytes: savedLease, state, identityBytes, acknowledgementBytes }),
+						),
+					});
+				},
 			},
+		});
+	return {
+		control,
+		block,
+		observation,
+		requests,
+		make,
+		loseResponse: () => {
+			unknown = true;
 		},
-	});
-	return { control, block, observation, requests, make, loseResponse: () => { unknown = true; } };
+	};
 }
 
 test("unknown acquisition retains exact lease bytes across a reopened client", async () => {

@@ -91,7 +91,12 @@ export class InitialAuthorityIssuer {
 		) {
 			throw new Error("initial_authority_home_conflict");
 		}
-		return { id, sourceBytes, ...record, authority: DeliveryAuthorityV1Schema.parse(JSON.parse(record.authorityBytes)) };
+		return {
+			id,
+			sourceBytes,
+			...record,
+			authority: DeliveryAuthorityV1Schema.parse(JSON.parse(record.authorityBytes)),
+		};
 	}
 
 	readAuthorityBytes(authority: DeliveryAuthorityV1): string {

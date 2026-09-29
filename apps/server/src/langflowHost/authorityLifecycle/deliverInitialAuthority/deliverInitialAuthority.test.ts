@@ -55,9 +55,11 @@ test("a receipt for different successor bytes cannot settle recovery", async () 
 			fetch: async () => Response.json({ ...receipt, successorCommitDigest: "a".repeat(64) }),
 		},
 	});
-	await expect(deliverInitialAuthority({
-		client,
-		requestBytes,
-		signal: new AbortController().signal,
-	})).rejects.toThrow("initial_recovery_engine_receipt_conflict");
+	await expect(
+		deliverInitialAuthority({
+			client,
+			requestBytes,
+			signal: new AbortController().signal,
+		}),
+	).rejects.toThrow("initial_recovery_engine_receipt_conflict");
 });

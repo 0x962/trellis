@@ -112,12 +112,15 @@ test("cancellation recovery narrows renewed and transferred authority after expi
 		fixture.setTime("2026-09-29T12:00:00.000Z");
 		const closed = (await fixture.dependencies.authority.read(original.executionId)).admission;
 		const renewed = await first.renew(
-			withAuthorityPermit({
-				executionId: original.executionId,
-				requestId: crypto.randomUUID(),
-				expectedRevision: broad.authority.ownershipRevision,
-				expiresAt: "2026-09-29T13:00:00.000Z",
-			}, original.engineJobId),
+			withAuthorityPermit(
+				{
+					executionId: original.executionId,
+					requestId: crypto.randomUUID(),
+					expectedRevision: broad.authority.ownershipRevision,
+					expiresAt: "2026-09-29T13:00:00.000Z",
+				},
+				original.engineJobId,
+			),
 		);
 		expect(renewed.authority.permissions).toEqual(["execution.cancel"]);
 		expect((await fixture.dependencies.authority.read(original.executionId)).admission).toEqual(closed);
@@ -126,14 +129,17 @@ test("cancellation recovery narrows renewed and transferred authority after expi
 		replacement = await fixture.open();
 		await replacement.start();
 		const transferred = await replacement.takeover(
-			withAuthorityPermit({
-				executionId: original.executionId,
-				requestId: crypto.randomUUID(),
-				expectedOwnerId: renewed.authority.ownerId,
-				expectedEpoch: renewed.authority.engineEpoch,
-				expectedRevision: renewed.authority.ownershipRevision,
-				expiresAt: "2026-09-29T15:00:00.000Z",
-			}, original.engineJobId),
+			withAuthorityPermit(
+				{
+					executionId: original.executionId,
+					requestId: crypto.randomUUID(),
+					expectedOwnerId: renewed.authority.ownerId,
+					expectedEpoch: renewed.authority.engineEpoch,
+					expectedRevision: renewed.authority.ownershipRevision,
+					expiresAt: "2026-09-29T15:00:00.000Z",
+				},
+				original.engineJobId,
+			),
 		);
 		expect(transferred.authority.permissions).toEqual(["execution.cancel"]);
 		if (!("transferId" in transferred)) throw new Error("wrong_receipt");

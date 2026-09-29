@@ -17,7 +17,8 @@ function stateOf(response: EngineResponse) {
 	if (response.state !== "received" || response.status !== 200) return null;
 	const sourceBytes = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);
 	const state = StateSchema.parse(JSON.parse(sourceBytes));
-	if (protocolDigest(state.authorityBytes) !== state.authorityDigest) throw new Error("engine_authority_digest_conflict");
+	if (protocolDigest(state.authorityBytes) !== state.authorityDigest)
+		throw new Error("engine_authority_digest_conflict");
 	DeliveryAuthorityV1Schema.parse(JSON.parse(state.authorityBytes));
 	return { ...state, sourceBytes };
 }

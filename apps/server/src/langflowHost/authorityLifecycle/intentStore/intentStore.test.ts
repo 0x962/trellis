@@ -23,7 +23,12 @@ function context() {
 	const identity: HostControlIdentity = { version: 1, home, hostId: authority.hostId, dataHomeId: crypto.randomUUID() };
 	const observation: LiveOwnership = {
 		id: crypto.randomUUID(),
-		identity: { ...identity, ownerId: authority.ownerId, instanceId: crypto.randomUUID(), manifestDigest: "a".repeat(64) },
+		identity: {
+			...identity,
+			ownerId: authority.ownerId,
+			instanceId: crypto.randomUUID(),
+			manifestDigest: "a".repeat(64),
+		},
 		observedAt: "2026-09-29T12:00:00.000Z",
 		endpoint: "http://127.0.0.1:7860",
 	};
@@ -33,9 +38,16 @@ function context() {
 test("a crash before acquisition preserves the exact request and expiry", () => {
 	const f = context();
 	const bytes = `${JSON.stringify(f.authority, null, 2)}\n`;
-	const first = new AuthorityIntentStore(f.identity).prepare(bytes, f.observation, { durationMs: 60000, renewBeforeMs: 10000 });
+	const first = new AuthorityIntentStore(f.identity).prepare(bytes, f.observation, {
+		durationMs: 60000,
+		renewBeforeMs: 10000,
+	});
 	const reopened = new AuthorityIntentStore(f.identity);
-	const replay = reopened.prepare(bytes, { ...f.observation, observedAt: "2026-09-29T12:01:00.000Z" }, { durationMs: 60000, renewBeforeMs: 10000 });
+	const replay = reopened.prepare(
+		bytes,
+		{ ...f.observation, observedAt: "2026-09-29T12:01:00.000Z" },
+		{ durationMs: 60000, renewBeforeMs: 10000 },
+	);
 	expect(replay).toEqual(first);
 	expect(replay.intent.expiresAt).toBe("2026-09-29T12:01:00.000Z");
 	expect(replay.priorAuthorityBytes).toBe(bytes);
@@ -47,5 +59,11 @@ test("an uncommitted plan cannot silently move to another owner", () => {
 	const store = new AuthorityIntentStore(f.identity);
 	const bytes = JSON.stringify(f.authority);
 	store.prepare(bytes, f.observation, { durationMs: 60000, renewBeforeMs: 10000 });
-	expect(() => store.prepare(bytes, { ...f.observation, identity: { ...f.observation.identity, ownerId: crypto.randomUUID() } }, { durationMs: 60000, renewBeforeMs: 10000 })).toThrow("authority_intent_owner_changed");
+	expect(() =>
+		store.prepare(
+			bytes,
+			{ ...f.observation, identity: { ...f.observation.identity, ownerId: crypto.randomUUID() } },
+			{ durationMs: 60000, renewBeforeMs: 10000 },
+		),
+	).toThrow("authority_intent_owner_changed");
 });

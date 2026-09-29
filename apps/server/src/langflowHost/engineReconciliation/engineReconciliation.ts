@@ -38,7 +38,12 @@ export class EngineReconciliation {
 				const lease = EngineLeaseSchema.parse({
 					version: 1,
 					id: crypto.randomUUID(),
-					block: { id: block.id, dataHomeId: block.dataHomeId, generation: block.generation, requestId: block.requestId },
+					block: {
+						id: block.id,
+						dataHomeId: block.dataHomeId,
+						generation: block.generation,
+						requestId: block.requestId,
+					},
 					identity: observation.identity,
 					issuerDigest: protocolDigest(readReconciliationIssuer(this.input.control.identity)),
 				});
@@ -51,7 +56,10 @@ export class EngineReconciliation {
 			}
 		});
 		const response = await this.request(leaseBytes, {
-			method: "POST", path: "/trellis-v1/reconciliation-leases", body: JSON.stringify({ leaseBytes }), signal,
+			method: "POST",
+			path: "/trellis-v1/reconciliation-leases",
+			body: JSON.stringify({ leaseBytes }),
+			signal,
 		});
 		if (response === null) return null;
 		this.assertClosed(block);
@@ -65,13 +73,17 @@ export class EngineReconciliation {
 		const leaseBytes = this.leaseBytes(block);
 		const lease = EngineLeaseSchema.parse(JSON.parse(leaseBytes));
 		const sourceBytes = await this.request(leaseBytes, {
-			method: "GET", path: `/trellis-v1/reconciliation-leases/${lease.id}`, signal,
+			method: "GET",
+			path: `/trellis-v1/reconciliation-leases/${lease.id}`,
+			signal,
 		});
 		if (sourceBytes === null) return null;
 		const record = this.record(sourceBytes, leaseBytes);
 		if (record.state !== "active") throw new Error("engine_reconciliation_lease_released");
 		const currentBytes = await this.request(leaseBytes, {
-			method: "GET", path: `/trellis-v1/reconciliation-leases/${lease.id}/identity`, signal,
+			method: "GET",
+			path: `/trellis-v1/reconciliation-leases/${lease.id}/identity`,
+			signal,
 		});
 		if (currentBytes === null) return null;
 		const current = LiveEngineIdentitySchema.parse(JSON.parse(currentBytes));
@@ -90,13 +102,19 @@ export class EngineReconciliation {
 		const leaseBytes = this.leaseBytes(block);
 		const lease = EngineLeaseSchema.parse(JSON.parse(leaseBytes));
 		const acknowledgementBytes = JSON.stringify({
-			version: 1, leaseId: lease.id, blockId: block.id, dataHomeId: block.dataHomeId,
-			generation: block.generation, reconciliationReceiptId,
+			version: 1,
+			leaseId: lease.id,
+			blockId: block.id,
+			dataHomeId: block.dataHomeId,
+			generation: block.generation,
+			reconciliationReceiptId,
 		});
 		this.objects.bind(JSON.stringify(["acknowledgement", lease.id]), this.objects.write(acknowledgementBytes));
 		const sourceBytes = await this.request(leaseBytes, {
-			method: "POST", path: `/trellis-v1/reconciliation-leases/${lease.id}/release`,
-			body: JSON.stringify({ leaseBytes, acknowledgementBytes }), signal,
+			method: "POST",
+			path: `/trellis-v1/reconciliation-leases/${lease.id}/release`,
+			body: JSON.stringify({ leaseBytes, acknowledgementBytes }),
+			signal,
 		});
 		if (sourceBytes === null) return null;
 		const record = this.record(sourceBytes, leaseBytes);
@@ -148,12 +166,20 @@ export class EngineReconciliation {
 			const fetcher = this.input.dependencies?.fetch ?? fetch;
 			const client = createEngineClient({
 				endpoint: observation.endpoint,
-				authenticationFile: join(this.input.control.identity.home, "langflow", "secrets", `${lease.identity.instanceId}.token`),
-				dependencies: { ...this.input.dependencies, fetch: (url, init) => {
-					const headers = new Headers(init?.headers);
-					headers.set("X-Trellis-Reconciliation-Issuer", issuer);
-					return fetcher(url, { ...init, headers });
-				} },
+				authenticationFile: join(
+					this.input.control.identity.home,
+					"langflow",
+					"secrets",
+					`${lease.identity.instanceId}.token`,
+				),
+				dependencies: {
+					...this.input.dependencies,
+					fetch: (url, init) => {
+						const headers = new Headers(init?.headers);
+						headers.set("X-Trellis-Reconciliation-Issuer", issuer);
+						return fetcher(url, { ...init, headers });
+					},
+				},
 			});
 			const response = await client.request(request);
 			if (response.state !== "received" || response.status !== 200) return null;

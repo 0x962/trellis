@@ -34,6 +34,7 @@ export async function deliverInitialAuthority(input: {
 		receipt.originalAuthorityDigest !== protocolDigest(request.originalAuthorityBytes) ||
 		receipt.successorAuthorityDigest !== protocolDigest(commit.authorityBytes) ||
 		receipt.successorCommitDigest !== protocolDigest(request.successorCommitBytes)
-	) throw new Error("initial_recovery_engine_receipt_conflict");
+	)
+		throw new Error("initial_recovery_engine_receipt_conflict");
 	return { state: "confirmed" as const, sourceBytes };
 }
