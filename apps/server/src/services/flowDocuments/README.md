@@ -85,3 +85,33 @@ Output selection must name a sealed output and one of its sealed types.
 Component code, input metadata, output contracts, and other component metadata must match the sealed template.
 A valid draft does not authorize publication, conversion, or execution.
 The publisher still applies its independent validation and catalog approval rules.
+
+## Explicit document actions
+
+`activateConversion(ctx, input, services)` captures a legacy document under the flow lock.
+The compiler creates a candidate from that immutable source outside the transaction.
+`inspectConversionGraph` checks source associations and qualification diagnostics.
+`createConversionValidator(base, publisher, savedAt)` binds the candidate to the next revision and the installed publisher.
+The final transaction checks the saved source, version, request identity, and installed package again.
+A qualified conversion creates a Langflow draft with pending publication.
+The original legacy revision remains stored.
+
+`publishSavedDocument(ctx, input, services)` publishes a committed Langflow revision.
+The domain stores the exact intent before it calls the engine.
+An existing pending intent permits immutable receipt recovery only.
+An unknown result returns `{ state: "pending", requestId }` and retains that request identity.
+A completed request returns its original `{ requestId, document }` before current version or package checks.
+A publication can complete for its captured revision after a newer draft exists.
+New runs still require publication of the current revision.
+
+Both operations consume the API-owned identity schemas.
+`DocumentActionServices` requires explicit publisher, conversion factory, and installed identity callbacks from the verified host bootstrap.
+The conversion factory can return `null`; that result produces blocked diagnostics.
+The concrete compiler retains catalog, template, policy, and execution qualification requirements.
+Conversion and publication use separate user actions.
+
+`saveConversionEdit(ctx, input, services)` consumes the six-operation edit intent from the API contract.
+It preserves the exact validated intent bytes as receipt identity.
+Preparation runs outside the transaction, and the final flow lock protects the shared version.
+The commit saves generated content, flow briefing, harness, and the original response together.
+The preparation result retains the original source and each derived edit in its provenance.
