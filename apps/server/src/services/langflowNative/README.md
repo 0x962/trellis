@@ -145,7 +145,9 @@ It derives the exact task association and calls `assembleNativePrompt` before it
 The incoming route supplies this service through `NativeReservationCtx.resolveOccurrence`.
 The route authenticates the caller before either read.
 
-The engine visit reader returns `engineNodeId`, `requestBytes`, `occurrence`, `scope`, `admissionReceipt`, and `inputReceipts`.
+The engine visit reader returns `engineNodeId`, `requestBytes`, `engineWaitId`, `waitBytes`, `occurrence`, `scope`, `admissionReceipt`, and `inputReceipts`.
+The reader verifies the wait identity and original request inside `waitBytes`, then preserves those bytes unchanged.
+A `native_reservation` wait precedes the handle; a `native` wait retains the handle for the exact occurrence.
 The scope contains `inputReceiptIds`, `groupDeadlineRefs`, and `deadlineAt`.
 The engine journal owns these values; the resolver compares them with the original request without constructing a visit from the editor.
 The database check repeats authority validation after the external read because ownership can change between the two transactions.

@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { handle } from "../../../db/queries/langflowExecution/fixtures/native";
 import { createEngineClient } from "../../../langflowHost/engineClient";
 import { promptFixture } from "../assembleNativePrompt/fixture";
 import { readNativeVisit } from "./readNativeVisit";
@@ -7,8 +8,10 @@ function fixture() {
 	const { request, approved } = promptFixture();
 	request.admissionReceipt = { ...request.admissionReceipt, executionId: request.executionId, publicationId: request.publicationId };
 	const requestBytes = JSON.stringify(request, null, 2);
+	const engineWaitId = "00000000-0000-4000-8000-000000000099";
 	return { requestBytes, visit: {
 		engineNodeId: "vertex", requestBytes,
+		engineWaitId, waitBytes: JSON.stringify({ kind: "native_reservation", waitId: engineWaitId, request }, null, 2),
 		occurrence: { nodeId: request.nodeId, occurrenceKey: request.occurrenceKey, parentOccurrenceKey: request.parentOccurrenceKey,
 			phase: request.phase, iterationPath: request.iterationPath },
 		scope: { inputReceiptIds: request.inputReceiptIds, groupDeadlineRefs: request.groupDeadlineRefs, deadlineAt: request.deadlineAt },
@@ -35,6 +38,26 @@ test("uses the actual private client and preserves the original request string",
 	} });
 	expect(await readNativeVisit(client, { requestBytes, authorityBytes: "original grant bytes", capabilityId: "capability", signal })).toEqual(visit);
 	expect(calls).toBe(1);
+});
+
+test("preserves native wait bytes and rejects another wait or original request", async () => {
+	const { requestBytes, visit } = fixture();
+	const nativeWait = { kind: "native", waitId: visit.engineWaitId, request: JSON.parse(requestBytes), handle };
+	const read = async (waitBytes: string) => {
+		const client = createEngineClient({ endpoint: "http://127.0.0.1:49000", authenticationFile: "/fixture/token", dependencies: {
+			readAuthenticationFile: async () => "private-token",
+			fetch: async () => Response.json({ ...visit, waitBytes }),
+		} });
+		return readNativeVisit(client, { requestBytes, authorityBytes: "grant", capabilityId: "capability", signal: new AbortController().signal });
+	};
+	const original = JSON.stringify(nativeWait, null, 4) + "\n";
+	expect((await read(original)).waitBytes).toBe(original);
+	for (const changed of [
+		{ ...nativeWait, waitId: crypto.randomUUID() },
+		{ ...nativeWait, request: { ...nativeWait.request, occurrenceKey: "another" } },
+		{ ...nativeWait, handle: null },
+		{ ...nativeWait, kind: "human" },
+	]) await expect(read(JSON.stringify(changed))).rejects.toThrow();
 });
 
 test("rejects uncertain transport, refusal, and changed response bytes without retries", async () => {
