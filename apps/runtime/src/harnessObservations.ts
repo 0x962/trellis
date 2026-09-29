@@ -6,7 +6,10 @@ import type {
 	RuntimeHarnessObservation,
 	RuntimeProcessStatus,
 } from "@trellis/runtime-protocol";
-import { CompletedActivity, type CompletedActivityState } from "./completedActivity/index.ts";
+import {
+	CompletedActivity,
+	type CompletedActivityState,
+} from "./harnessObservations/components/completedActivity/index.ts";
 import { SessionLog } from "./sessionLog.ts";
 
 // The state that the events up to `offset` produced. `offset` is a position
@@ -29,7 +32,7 @@ type Checkpoint = {
 // instead of the whole log.
 export class HarnessObservations {
 	readonly log: SessionLog;
-	// True when the constructor loaded the state from a checkpoint file.
+	// True when a checkpoint file exists at construction.
 	readonly checkpointed: boolean;
 	agent: RuntimeAgentMetadata | null = null;
 	activity: RuntimeProcessStatus["activity"] = null;

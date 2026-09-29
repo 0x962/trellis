@@ -3,6 +3,28 @@ import { CompletedActivity } from "./completedActivity.ts";
 
 const at = "2026-09-29T12:00:00.000Z";
 
+test("a repeated status request belongs to each explicit provider turn", () => {
+	const state = new CompletedActivity();
+	for (const turnId of ["turn-one", "turn-two"]) {
+		state.derive({ kind: "working", turnId }, at);
+		const question = state.derive(
+			{
+				kind: "input-request",
+				inputRequest: {
+					id: "codex:waitingOnUserInput",
+					kind: "question",
+					title: "Choose",
+					blocking: true,
+				},
+			},
+			at,
+		);
+		expect(question.signal).toMatchObject({ id: `input:${turnId}:codex:waitingOnUserInput`, turnId });
+		state.derive({ kind: "input-resolved", requestId: "codex:waitingOnUserInput" }, at);
+		state.derive({ kind: "idle", turnId, outcome: "completed" }, at);
+	}
+});
+
 test("a saved activity state suppresses replay and retains open tool evidence", () => {
 	const first = new CompletedActivity();
 	const message = {

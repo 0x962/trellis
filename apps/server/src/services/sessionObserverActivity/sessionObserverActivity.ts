@@ -1,9 +1,8 @@
 import type { RuntimeHarnessObservation, RuntimeOutput } from "@trellis/runtime-protocol";
-import { sql } from "drizzle-orm";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
-import { iso, rows } from "../../db/queries/support.ts";
+import { listExecutionAttempts } from "../assignments.ts";
 import type { IoCtx } from "../support.ts";
-import { LegacyActivity } from "./legacyActivity/index.ts";
+import { LegacyActivity } from "./components/legacyActivity/index.ts";
 import type {
 	SessionObserverActivityContext,
 	SessionObserverActivityCursor,
@@ -48,13 +47,7 @@ const decodeCursor = (cursor: SessionObserverActivityCursor | null, runId: strin
 };
 
 const attemptsForRun = (ctx: Pick<IoCtx, "newTx">, runId: string) =>
-	ctx.newTx((tx) =>
-		rows<Attempt>(
-			tx,
-			sql`SELECT id, generation, ${iso(sql`created_at`)} AS "createdAt"
-			FROM agent_execution_attempts WHERE run_id=${runId} ORDER BY generation`,
-		),
-	);
+	ctx.newTx((tx) => listExecutionAttempts(tx, [runId]));
 
 const attemptIdentity = (attempt: Attempt) => ({ attemptId: attempt.id, attemptGeneration: attempt.generation });
 

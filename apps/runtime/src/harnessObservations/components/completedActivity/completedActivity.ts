@@ -66,9 +66,9 @@ export class CompletedActivity {
 		const activity = this.activityItem(activityEvent, observedAt);
 		const signal = this.activitySignal(activityEvent, observedAt);
 		if (
-			event.turnId === undefined &&
 			(event.kind === "idle" || (event.kind === "error" && !event.willRetry)) &&
-			this.activityTurn !== null
+			this.activityTurn !== null &&
+			this.activityTurn.id === activityEvent.turnId
 		)
 			this.activityTurn.open = false;
 		return {
@@ -94,7 +94,11 @@ export class CompletedActivity {
 		};
 	}
 	private withActivityTurn(event: HarnessEvent): HarnessEvent {
-		if (event.turnId !== undefined) return event;
+		if (event.turnId !== undefined) {
+			if (this.activityTurn === null || event.kind === "prompt" || event.kind === "working")
+				this.activityTurn = { id: event.turnId, open: true };
+			return event;
+		}
 		if (this.activityTurn === null || event.kind === "prompt" || (event.kind === "working" && !this.activityTurn.open))
 			this.activityTurn = { id: `runtime-turn-${++this.activityTurnSequence}`, open: true };
 		return { ...event, turnId: this.activityTurn.id };
