@@ -35,7 +35,7 @@ test("keeps the full row content and selection semantics", () => {
 
 	expect(html).toContain('aria-label="Usage by ticket"');
 	expect(html).toContain('aria-pressed="true"');
-	expect(html).toContain('title="TRL-663 A long ticket title that needs its full value"');
+	expect(html).not.toContain("title=");
 	expect(html).toContain("A detailed project name that also needs room");
 	expect(html).toContain("$987,654.32");
 	expect(html).toContain("75%");
@@ -44,14 +44,14 @@ test("keeps the full row content and selection semantics", () => {
 	expect(html).toContain("Open ticket");
 });
 
-test("uses a readable narrow row without the spark", () => {
+test("uses a readable narrow row", () => {
 	const html = render();
 
 	expect(html).toContain("max-md:col-span-2 max-md:items-start");
 	expect(html).toContain("max-md:flex-col max-md:items-start");
 	expect(html).toContain("max-md:[overflow-wrap:anywhere]");
 	expect(html).toContain("max-md:col-span-2 max-md:row-start-2");
-	expect(html).toContain("max-md:hidden");
+	expect(html).not.toContain("max-md:hidden");
 	expect(html).toContain("max-md:row-start-3");
 	expect(html).toContain("pointer-coarse:w-11");
 });
