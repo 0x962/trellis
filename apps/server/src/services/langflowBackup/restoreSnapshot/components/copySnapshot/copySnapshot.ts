@@ -1,8 +1,8 @@
 import { constants } from "node:fs";
 import { mkdir, open } from "node:fs/promises";
 import { join } from "node:path";
-import type { SnapshotManifest } from "../manifest";
-import { syncDirectory } from "../syncDirectory";
+import type { SnapshotManifest } from "../../../manifest";
+import { syncDirectory } from "../../../syncDirectory";
 
 export async function copySnapshot(source: string, target: string, manifest: SnapshotManifest) {
 	for (const path of manifest.directories) await mkdir(join(target, path), { mode: 0o700 });
