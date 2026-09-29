@@ -1,4 +1,4 @@
-import { createConnection, createServer, type AddressInfo } from "node:net";
+import { type AddressInfo, createConnection, createServer } from "node:net";
 
 export async function openNetworkControls(timeoutMs: number) {
 	const servers = [] as ReturnType<typeof createServer>[];
@@ -34,7 +34,12 @@ export async function openNetworkControls(timeoutMs: number) {
 		ports: { ipv4: receipts[0]!.port, ipv6: receipts[1]!.port },
 		receipts,
 		async close() {
-			await Promise.all(servers.map((server) => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))));
+			await Promise.all(
+				servers.map(
+					(server) =>
+						new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve()))),
+				),
+			);
 		},
 	};
 }

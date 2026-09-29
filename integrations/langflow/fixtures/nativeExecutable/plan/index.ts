@@ -1,1 +1,1 @@
-export { NativeFixturePlanSchema, type NativeFixturePlan } from "./plan.ts";
+export { type NativeFixturePlan, NativeFixturePlanSchema } from "./plan.ts";

@@ -16,7 +16,10 @@ const quote = (text: string) => `'${text.replaceAll("'", "'\\''")}'`;
 export async function prepareNativeExecutable(raw: unknown) {
 	const input = InputSchema.parse(raw);
 	if (process.platform !== "darwin") throw new Error("This fixture requires the macOS network sandbox.");
-	if (await realpath(dirname(input.root)) !== await realpath(tmpdir()) || !basename(input.root).startsWith("trellis-"))
+	if (
+		(await realpath(dirname(input.root))) !== (await realpath(tmpdir())) ||
+		!basename(input.root).startsWith("trellis-")
+	)
 		throw new Error("Use a new trellis-prefixed directory directly under TMPDIR.");
 	const bun = await realpath(input.bun);
 	const source = fileURLToPath(new URL("../", import.meta.url));
@@ -30,12 +33,16 @@ export async function prepareNativeExecutable(raw: unknown) {
 	await privateFile("profile/config.toml", 'model = "deterministic-native-fixture"\n');
 	await privateFile("bin/codex", "#!/bin/sh\nexit 78\n", 0o700);
 	const policy = join(source, "provider-denial.sb");
-	await privateFile("bin/native-fixture", [
-		"#!/bin/sh",
-		"set -eu",
-		`exec /usr/bin/sandbox-exec -f ${quote(policy)} -D RUNTIME_SOCKET="$TRELLIS_HARNESS_SOCKET" -D CONTROL_SOCKET="$TRELLIS_CODEX_CONTROL_SOCKET" ${quote(bun)} "$@"`,
-		"",
-	].join("\n"), 0o700);
+	await privateFile(
+		"bin/native-fixture",
+		[
+			"#!/bin/sh",
+			"set -eu",
+			`exec /usr/bin/sandbox-exec -f ${quote(policy)} -D RUNTIME_SOCKET="$TRELLIS_HARNESS_SOCKET" -D CONTROL_SOCKET="$TRELLIS_CODEX_CONTROL_SOCKET" ${quote(bun)} "$@"`,
+			"",
+		].join("\n"),
+		0o700,
+	);
 	const environment = {
 		HOME: join(root, "home"),
 		CODEX_HOME: join(root, "profile"),
