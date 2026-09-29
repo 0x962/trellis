@@ -10,7 +10,7 @@ export type SessionUpdateEmbed = z.infer<typeof SessionUpdateEmbedSchema>;
 
 export const SessionUpdateSchema = z.strictObject({
 	id: UlidSchema,
-	sessionId: UlidSchema,
+	sessionId: UlidSchema.nullable(),
 	runId: UlidSchema,
 	requestId: z.string().uuid().nullable(),
 	body: z.string(),
