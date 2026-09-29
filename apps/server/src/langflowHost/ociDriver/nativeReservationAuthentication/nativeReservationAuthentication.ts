@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { SidecarIdentity } from "../../contracts";
+import type { NativeReservationAuthentication, SidecarIdentity } from "../../contracts";
 import { privateFile } from "../storage/storage";
 
 export async function nativeReservationAuthentication(input: {
@@ -25,11 +25,7 @@ export async function nativeReservationAuthentication(input: {
 }
 
 export function nativeReservationAuthenticationReader(privateRoot: string) {
-	return (input: {
-		identity: SidecarIdentity;
-		nativeReservationAuthenticationFile: string;
-		nativeReservationAuthenticationSha256: string;
-	}) =>
+	return (input: { identity: SidecarIdentity } & NativeReservationAuthentication) =>
 		nativeReservationAuthentication({
 			privateRoot,
 			identity: input.identity,

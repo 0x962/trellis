@@ -3,7 +3,12 @@ import { readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { LangflowSidecarManifestV1Schema } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
-import type { SidecarDriver, SidecarIdentity, SidecarObservation } from "../contracts";
+import type {
+	NativeReservationAuthentication,
+	SidecarDriver,
+	SidecarIdentity,
+	SidecarObservation,
+} from "../contracts";
 import { assertContainerBinding } from "./containerBinding";
 import { containerCreateArgs } from "./createArgs/createArgs";
 import { engineApiConfiguration } from "./engineApiConfiguration";
@@ -257,7 +262,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		};
 	}
 
-	async function stop(identity: SidecarIdentity, authentication: Parameters<SidecarDriver["stop"]>[1]) {
+	async function stop(identity: SidecarIdentity, authentication: NativeReservationAuthentication) {
 		const configuredEngineApi = await readEngineApiConfiguration();
 		const nativeReservation = await readNativeReservationAuthentication({ identity, ...authentication });
 		const instanceNames = names(identity);
