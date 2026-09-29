@@ -152,8 +152,8 @@ test("ignores events from a detached attempt and preserves a replacement connect
 		new MessageEvent("message", { data: JSON.stringify({ type: "session", session: { status: "running" } }) }),
 	);
 	expect(observed).toEqual(["new-attempt:running"]);
-	const failure = expect(replacement.done).rejects.toThrow("The terminal connection failed.");
+	const failure = replacement.done.catch((error: unknown) => error);
 	newSocket.emit("error", new Event("error"));
-	await failure;
+	expect(await failure).toEqual(new Error("The terminal connection failed."));
 	newController.abort();
 });
