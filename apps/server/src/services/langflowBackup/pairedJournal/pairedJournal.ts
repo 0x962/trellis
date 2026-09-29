@@ -19,7 +19,20 @@ export const PairedRequestSchema = z.strictObject({
 	createdAt: z.iso.datetime(),
 });
 export type PairedRequest = z.infer<typeof PairedRequestSchema>;
-export const pairedStages = ["request", "block", "grant", "active", "exporting", "engine", "trellis", "sealed", "revoking", "revoked", "restored", "reconciled"] as const;
+export const pairedStages = [
+	"request",
+	"block",
+	"grant",
+	"active",
+	"exporting",
+	"engine",
+	"trellis",
+	"sealed",
+	"revoking",
+	"revoked",
+	"restored",
+	"reconciled",
+] as const;
 type Stage = (typeof pairedStages)[number];
 type JournalControl = { identity: HostControlIdentity };
 
@@ -34,7 +47,12 @@ export class PairedJournal {
 		await mkdir(parent, { recursive: true, mode: 0o700 });
 		await syncDirectory(dirname(parent));
 		const stat = await lstat(parent);
-		if (!stat.isDirectory() || stat.isSymbolicLink() || (stat.mode & 0o777) !== 0o700 || stat.uid !== process.getuid?.())
+		if (
+			!stat.isDirectory() ||
+			stat.isSymbolicLink() ||
+			(stat.mode & 0o777) !== 0o700 ||
+			stat.uid !== process.getuid?.()
+		)
 			throw new Error("paired_journal_directory_unsafe");
 		const directory = join(parent, value.snapshotId);
 		await mkdir(directory, { mode: 0o700 });
