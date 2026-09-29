@@ -1,4 +1,5 @@
 export type { RenewalInput, TakeoverInput } from "./authority";
+export { authorityPermitBinding } from "./authorityPermit";
 export { readIssuedAuthority } from "./authority/issuedBytes";
 export { type AuthorityPortInput, createAuthorityPort } from "./authorityPort";
 export {

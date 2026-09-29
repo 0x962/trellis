@@ -251,3 +251,12 @@ Owner revocation retains the first receipt and its original observation identifi
 The supervisor checks that exact receipt through `readRevocation` before it stops the process.
 Ownership queries lock the execution before the owner rows and reject revoked grants under the same transaction.
 Native stop controls remain available after revocation.
+
+`renew` and `takeover` require a held `permit` in their input.
+Call `authorityPermitBinding(intent, engineJobId)` to obtain the exact binding before acquisition.
+The intent contains the execution, request, expected revision, and expiry; takeover also contains the expected owner and epoch.
+The producer retains that permit in `AuthorityCommit`.
+The adapter checks the outstanding permit and its exact intent before it writes ownership.
+A permit acquired before a block can complete while the block waits for its terminal evidence.
+The caller retains the permit through engine control delivery and durable acknowledgement.
+Neither grant issue nor archive recovery settles it.

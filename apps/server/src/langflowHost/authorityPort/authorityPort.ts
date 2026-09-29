@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 import { authorityControl } from "../../db/queries/langflowExecution";
 import type { Tx } from "../../db/tx";
 import { readIssuedAuthority } from "../authority/issuedBytes";
+import { authorityPermitBinding } from "../authorityPermit";
 import type { AuthorityCommit, AuthorityPort, SidecarIdentity } from "../contracts";
 import type { DispatchEffects } from "../dispatchEffects";
 import { type HostControlIdentity, LangflowHostControl } from "../hostControl";
@@ -75,6 +76,19 @@ export function createAuthorityPort(input: AuthorityPortInput): AuthorityPort {
 		},
 		async commit(request) {
 			issuedFor(request);
+			const expected = authorityPermitBinding(
+				{ ...request.receipt.request, expiresAt: request.receipt.authority.expiresAt },
+				request.receipt.authority.engineJobId,
+			);
+			const entry = input.control.gate.read().permits.find((item) => item.permit.id === request.permit.id);
+			if (
+				!entry ||
+				entry.terminal !== null ||
+				!isDeepStrictEqual(entry.permit, request.permit) ||
+				!isDeepStrictEqual(entry.permit.binding, expected) ||
+				entry.permit.dataHomeId !== identity.dataHomeId
+			)
+				throw new Error("authority_permit_not_held");
 			if (request.revocation) scope(request.revocation.identity);
 			const saved = await input.newTx((tx) => authorityControl.commit(tx, request));
 			return archive(saved).receipt;

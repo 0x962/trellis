@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { withAuthorityPermit } from "../fixtures/authorityPermit";
 import { manifest } from "../fixtures/manifest";
 import { supervisorFixture } from "../fixtures/supervisorFixture";
 import { LangflowSupervisor } from "./supervisor";
@@ -53,12 +54,14 @@ test("a stale observation cannot renew or publish", async () => {
 	try {
 		await expect(supervisor.withHealthyEngine(async () => "published")).rejects.toThrow("observation_mismatch");
 		await expect(
-			supervisor.renew({
-				executionId: "execution-1",
-				requestId: crypto.randomUUID(),
-				expectedRevision: 1,
-				expiresAt: "2026-09-29T11:00:00.000Z",
-			}),
+			supervisor.renew(
+				withAuthorityPermit({
+					executionId: "execution-1",
+					requestId: crypto.randomUUID(),
+					expectedRevision: 1,
+					expiresAt: "2026-09-29T11:00:00.000Z",
+				}),
+			),
 		).rejects.toThrow("observation_mismatch");
 		expect(fixture.receipts.size).toBe(0);
 	} finally {

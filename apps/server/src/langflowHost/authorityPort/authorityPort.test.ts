@@ -7,6 +7,7 @@ import type { Db } from "../../db/client";
 import { ids, receiptFixture } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { langflowExecutions } from "../../db/tables/langflowExecution";
 import { protocolDigest } from "../../langflowContracts";
+import { authorityPermitBinding } from "../authorityPermit";
 import type { AuthorityCommit, LiveOwnership } from "../contracts";
 import { LangflowHostControl } from "../hostControl";
 import { DispatchReceiptArchive } from "../receiptArchive";
@@ -23,17 +24,31 @@ async function fixture() {
 	roots.push(root);
 	const home = join(root, "home");
 	mkdirSync(home);
-	LangflowHostControl.create({
+	const initialControl = LangflowHostControl.create({
 		home,
 		evidence: {
 			async readTerminal() {
 				throw new Error("terminal_unavailable");
 			},
-			async withReconciliation() {
-				throw new Error("reconciliation_unavailable");
+			async withReconciliation(block, id, commit) {
+				commit({
+					id,
+					block,
+					packageDigest: "a".repeat(64),
+					trellisDatabaseReceiptId: "fixture-db",
+					engineDatabaseReceiptId: "fixture-engine",
+					secretReceiptId: "fixture-secret",
+					ownershipReceiptId: "fixture-owner",
+					nativeAttemptsReceiptId: "fixture-attempts",
+					stopObligationsReceiptId: "fixture-stops",
+					snapshotSealReceiptId: null,
+				});
 			},
 		},
 	});
+	const initial = initialControl.gate.read().block;
+	if (!initial) throw new Error("fixture_block_missing");
+	await initialControl.gate.reconcile(initial, "fixture-ready");
 	const control = LangflowHostControl.openEffects({
 		home,
 		async readTerminal() {
@@ -78,7 +93,11 @@ async function fixture() {
 		issuedAt: observation.observedAt,
 		expiresAt: "2026-09-29T08:00:00.000Z",
 	};
+	const permit = control.gate.acquire(
+		authorityPermitBinding({ ...request, expiresAt: next.expiresAt }, next.engineJobId),
+	);
 	const commit: AuthorityCommit = {
+		permit,
 		requestBytes,
 		authorityBytes: `${JSON.stringify(next, null, 2)}\n`,
 		receipt: {
@@ -91,7 +110,7 @@ async function fixture() {
 		observation,
 		revocation: null,
 	};
-	return { control, archive, db, commit };
+	return { control, archive, db, commit, fullControl: initialControl };
 }
 
 test("the production adapter restores exact issued bytes after a lost commit response", async () => {
@@ -108,6 +127,10 @@ test("the production adapter restores exact issued bytes after a lost commit res
 			return result;
 		},
 	});
+	const block = f.fullControl.gate.closeDispatch({
+		requestId: "capture",
+		reason: { kind: "capture", snapshotId: "fixture-snapshot" },
+	});
 	await expect(port.commit(f.commit)).rejects.toThrow("commit_response_lost");
 	expect(() => f.archive.readAuthorityBytes(f.commit.receipt.authority)).toThrow();
 	const reopened = createAuthorityPort({ ...f, newTx: (operation) => f.db.transaction(operation) });
@@ -115,6 +138,8 @@ test("the production adapter restores exact issued bytes after a lost commit res
 	expect(f.archive.readAuthorityBytes(f.commit.receipt.authority)).toBe(f.commit.authorityBytes);
 	expect(await reopened.commit(f.commit)).toEqual(f.commit.receipt);
 	expect((await reopened.read(ids.execution)).authority).toEqual(f.commit.receipt.authority);
+	expect(f.control.gate.read().permits[0]?.terminal).toBeNull();
+	expect(f.control.gate.read().block).toEqual(block);
 });
 
 test("revocation survives reopening and rejects a grant from the retired owner", async () => {
@@ -145,5 +170,19 @@ test("a foreign home or observation cannot mutate the ownership record", async (
 	await expect(
 		port.commit({ ...f.commit, observation: { ...f.commit.observation, id: "foreign" } }),
 	).rejects.toThrow("authority_observation_mismatch");
+	expect((await port.read(ids.execution)).authority.ownershipRevision).toBe(1);
+});
+
+test("authority writes require the exact outstanding permit", async () => {
+	const f = await fixture();
+	const port = createAuthorityPort({ ...f, newTx: (operation) => f.db.transaction(operation) });
+	await expect(port.commit({ ...f.commit, permit: { ...f.commit.permit, id: crypto.randomUUID() } })).rejects.toThrow(
+		"authority_permit_not_held",
+	);
+	const permit = {
+		...f.commit.permit,
+		binding: { ...f.commit.permit.binding, payloadDigest: "0".repeat(64) },
+	};
+	await expect(port.commit({ ...f.commit, permit })).rejects.toThrow("authority_permit_not_held");
 	expect((await port.read(ids.execution)).authority.ownershipRevision).toBe(1);
 });
