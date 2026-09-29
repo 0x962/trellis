@@ -7,7 +7,7 @@ import {
 	langflowOutbox,
 } from "../../../../apps/server/src/db/tables/langflowExecution";
 import { prepareDelivery, record } from "../../../../apps/server/src/services/langflowDecisions";
-import { assertExecutionActive, cancelExecution } from "../../../../apps/server/src/services/langflowStops";
+import { assertExecutionNotCanceled, cancelExecution } from "../../../../apps/server/src/services/langflowStops";
 import { fixture } from "./fixture";
 import { humanWait } from "./humanWait";
 
@@ -48,7 +48,7 @@ test("cancel after a human decision retains its exact bytes and blocks delivery"
 	);
 	expect(cancellation.needsStop).toBe(false);
 	expect(await h.run((ctx, tx) => prepareDelivery(ctx, tx, { ...key, authority: f.authority }), h.system)).toBeNull();
-	await expect(h.run((ctx, tx) => assertExecutionActive(ctx, tx, key))).rejects.toThrow("canceled");
+	await expect(h.run((ctx, tx) => assertExecutionNotCanceled(ctx, tx, key))).rejects.toThrow("canceled");
 	const after = await h.run((_ctx, tx) => readDecision(tx, key));
 	expect(after).toEqual(before);
 	const [outbox] = await h.db.select().from(langflowOutbox).where(eq(langflowOutbox.id, decisionId));
