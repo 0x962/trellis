@@ -16,6 +16,8 @@ Both run-list spellings read pages until a short page. The 500-row request size 
 The local wait defaults to 60 minutes. A finite positive value has no application ceiling.
 A timeout stops local polls and retains the last response. It sends no cancel request.
 The server owns reused starts and execution-error retries. The CLI sends one start request per invocation.
+`flowReadiness` imports the shared `flowReviewCredit` policy from `@trellis/api`.
+The policy checks the diff ID, applicable flow IDs, and status for both engine formats.
 
 ## Missing integration for TRL-696
 
@@ -74,7 +76,7 @@ Navid must approve the support set. Native mobile scope remains a separate decis
 
 Run these checks through the existing batch owner:
 
-- `bun test packages/cli/src/commands/flow packages/cli/src/commands/flows packages/cli/src/commands/ready/flowReadiness.test.ts`
+- `bun test packages/cli/src/commands/flow packages/cli/src/commands/flows packages/cli/src/commands/ready`
 - `bun run --cwd packages/cli typecheck`
 - Changed-file Biome checks and the agent guide checks
 
