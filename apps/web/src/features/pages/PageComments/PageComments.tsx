@@ -46,7 +46,7 @@ export function PageComments({
 	const [warnCancel, setWarnCancel] = useState(false);
 	const numbered = useMemo(() => numberPageComments(comments.threads), [comments.threads]);
 	const currentPins = useMemo(
-		() => pageCommentPins(numbered, version, showResolved).slice(0, 500),
+		() => pageCommentPins(numbered, version, showResolved),
 		[numbered, showResolved, version],
 	);
 	const select = (id: string) => {
