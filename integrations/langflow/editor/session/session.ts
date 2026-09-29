@@ -28,6 +28,7 @@ export const EditorBootstrapSchema = z.strictObject({
 	channel: z.uuid(),
 	identity: EditorIdentitySchema,
 	parentOrigin: origin,
+	project: z.string().nullable(),
 	expiresAt: z.iso.datetime(),
 });
 export type EditorBootstrap = z.infer<typeof EditorBootstrapSchema>;

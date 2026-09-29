@@ -146,3 +146,31 @@ test("sends issue and focus commands without graph writes", () => {
 	expect(f.selections).toEqual([focus]);
 	expect(f.drafts).toEqual([]);
 });
+
+test("a late frame connection recovers initialization after the load event", () => {
+	const f = fixture();
+	f.channel.initialize();
+	expect(f.sent).toHaveLength(1);
+	expect(f.receive({ ...envelope, type: "connected" })).toBe(true);
+	expect(f.sent.map((command) => command.sequence)).toEqual([1, 2]);
+	expect(f.sent[1]).toEqual({ ...f.sent[0], sequence: 2 });
+	expect(f.receive({ ...envelope, type: "connected", sequence: 2 })).toBe(false);
+	expect(f.receive({ ...envelope, type: "ready", sequence: 2 })).toBe(true);
+	expect(f.receive({ ...envelope, type: "connected", sequence: 3 })).toBe(false);
+	expect(f.ready()).toBe(1);
+});
+
+test("an early connection initializes once and retains the origin and expiry checks", () => {
+	const f = fixture();
+	const connected = { ...envelope, type: "connected" };
+	expect(f.receive(connected, "https://other.test")).toBe(false);
+	expect(f.receive(connected, undefined, false)).toBe(false);
+	expect(f.sent).toHaveLength(0);
+	expect(f.receive(connected)).toBe(true);
+	f.channel.initialize();
+	expect(f.sent).toHaveLength(1);
+	const expired = fixture();
+	expired.expire();
+	expect(expired.receive(connected)).toBe(false);
+	expect(expired.sent).toHaveLength(0);
+});

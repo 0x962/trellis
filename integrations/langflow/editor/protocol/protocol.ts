@@ -34,6 +34,7 @@ const envelope = {
 };
 
 export const EditorEventSchema = z.discriminatedUnion("type", [
+	z.strictObject({ ...envelope, type: z.literal("connected") }),
 	z.strictObject({ ...envelope, type: z.literal("ready") }),
 	z.strictObject({ ...envelope, type: z.literal("draft-changed"), content: EditorContentSchema }),
 	z.strictObject({ ...envelope, type: z.literal("selection-changed"), focus: EditorFocusSchema.nullable() }),
