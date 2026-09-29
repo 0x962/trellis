@@ -129,7 +129,7 @@ export class DispatchReceiptArchive {
 
 	private assertPermit(permit: DispatchPermit) {
 		if (permit.dataHomeId !== this.control.identity.dataHomeId) throw new Error("receipt_home_mismatch");
-		const entry = this.control.gate.recoverPermit(permit.binding);
+		const entry = this.control.gate.read().permits.find((item) => item.permit.id === permit.id);
 		if (!entry || !isDeepStrictEqual(entry.permit, permit)) throw new Error("receipt_permit_unknown");
 	}
 

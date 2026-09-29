@@ -76,7 +76,10 @@ test("terminal evidence retains exact bytes and permit across restart", async ()
 		home: f.home,
 		readTerminal: (saved, id) => reopened.readTerminal(saved, id),
 	});
-	reopened = DispatchReceiptArchive.open(effects);
+	reopened = DispatchReceiptArchive.open({
+		identity: effects.identity,
+		gate: { read: () => effects.gate.read() },
+	});
 	expect(await reopened.readTerminal(permit, receipt.id)).toEqual(receipt);
 	expect(JSON.parse(reopened.readRecordBytes(receipt.id)).source).toEqual(proof);
 	expect(reopened.writeTerminal({ permit, outcome: "completed", ...proof }).id).toBe(receipt.id);
