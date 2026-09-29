@@ -13,6 +13,9 @@ export const usePageTabsStore = createPageTabsStore({
 });
 
 export const pageTabsActions = {
+	renameTab: (id: string, title: string | null) => usePageTabsStore.getState().renameTab(id, title),
+	moveTab: (id: string, beforeId: string | null) => usePageTabsStore.getState().moveTab(id, beforeId),
+	reopenClosedTab: () => usePageTabsStore.getState().reopenClosedTab(),
 	addTab: (page: PageTabPage) => usePageTabsStore.getState().addTab(page),
 	selectTab: (id: string) => usePageTabsStore.getState().selectTab(id),
 	closeTab: (id: string) => usePageTabsStore.getState().closeTab(id),

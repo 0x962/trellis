@@ -1,7 +1,9 @@
 import type { MenuItemConstructorOptions } from "electron";
+import { type TabCommand, tabMenu } from "../tabMenu";
 
 export type AppMenuActions = {
 	openSettings: () => void;
+	tabCommand: (command: TabCommand) => void;
 	openWindow: () => void;
 	openLogs: () => void;
 	reconnectHost: () => void;
@@ -32,7 +34,12 @@ export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] =
 	},
 	{
 		label: "File",
-		submenu: [{ label: "Open Trellis", accelerator: "Cmd+N", click: actions.openWindow }, { role: "close" }],
+		submenu: [
+			{ label: "Open Trellis", accelerator: "Cmd+N", click: actions.openWindow },
+			...tabMenu(actions.tabCommand),
+			{ type: "separator" },
+			{ role: "close", label: "Close window", accelerator: "CommandOrControl+Shift+W" },
+		],
 	},
 	{ role: "editMenu" },
 	{
