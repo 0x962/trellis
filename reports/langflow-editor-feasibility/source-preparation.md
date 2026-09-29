@@ -167,8 +167,21 @@ This mount preserves one Trellis workspace and one save owner. It needs a mainta
 
 ## Open gaps
 
-- The fork build passed, but the browser has not rendered the graph.
-- No network trace proves secret-free requests.
-- The HTTP denial assertions passed before the failed lost-response assertion. The complete HTTP fixture remains incomplete.
-- No actual editor test proves the save and explicit Retry sequence.
-- Desktop, 320-pixel, keyboard, focus, and dense-graph interaction proof remain open.
+- The actual desktop editor passes the sequence below. The 320-pixel and dense cases await the next batch.
+- The retained gateway evidence reports no forbidden secret on saves. A complete browser request audit remains open.
+- Stock run controls remain visible. The gateway denies their requests. Stock workflow and variable requests also remain active.
+- The seven-node fixture cards overlap. Canonical Trellis controls and selectors remain with the production adapter.
+
+## Actual editor batch, September 29
+
+The PR648 HTTP fixture passed with `lostResponseObserved: true`, replay revision 3, later revision 4, and 40 evidence events. Its manifests and focused TypeScript check passed. TRL-667 retained the result under `runs/editor-ab6f56dd` in the sole candidate.
+
+Aside loaded the retained compiled editor at a measured 1440-by-900-pixel viewport. All seven component types rendered. An instruction edit and Save produced revisions 3 and 4.
+
+After an injected lost response, the toolbar showed Retry save. A newer local draft remained unsaved until the explicit Retry. The gateway replayed the original identity and byte hash at revision 5, then accepted the newer draft at revision 6. The repeated request used ID `33abd09e-703c-4615-84e8-c23470f8ab30` and SHA256 `f27cc683d89fc2ecdf51626874ab9203eba44a00104197238920901496aa256b`.
+
+Enter on the Agent output and Native gate question created a typed edge. The gateway saved that edge at revision 7. After an injected conflict, the toolbar showed disabled Reload required. A later instruction edit sent no new PUT. Escape closed the expanded text editor and returned focus to its Expand text editor button.
+
+The Run component action received HTTP 403 from the workflow route. The browser also attempted external font and Discord requests, with zero transfer size and duration in its resource entries. The gateway CSP permits only same-origin connections. These observations do not establish production isolation.
+
+TRL-672 attachments retain the screenshots and `editor-desktop-proof.json`. TRL-667 owns `browser-evidence.json` and the server log for this batch. The browser tab is closed and its listener is released for cleanup.
