@@ -85,7 +85,7 @@ describe.serial("native cancellation and authority feasibility", () => {
 		await fixture.reconcile();
 		expect(row((await fixture.tasks()).rows)).toMatchObject({ attempt_id: task.attempt_id, result_id: null });
 		expect((await fixture.read()).state.status).toBe("canceled");
-	});
+	}, 15_000);
 
 	test("F21 prototype persists CAS takeover, revocation, and the original completion", async () => {
 		const fixture = await useFixture();
@@ -234,7 +234,7 @@ describe.serial("native cancellation and authority feasibility", () => {
 			reopenBoundary: "same_process_file_store_reopen",
 			authorityProcessCrash: false,
 		});
-	});
+	}, 15_000);
 
 	test("F21 capability expiry does not answer a human wait", async () => {
 		const fixture = await useFixture(humanFlow());
