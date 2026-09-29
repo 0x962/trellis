@@ -14,13 +14,13 @@ beforeAll(async () => {
 		VALUES ('deadline-status', 'deadline-project', 'Todo', 'todo', 'todo', 'fg-muted', 0, now(), now())`);
 	await db.execute(sql`INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
 		VALUES ('deadline-ticket', 'deadline-project', 1, 'Slow search', 'deadline-status', 0, now(), now())`);
-	await db.execute(sql`ALTER FUNCTION pg_temp.search_identifier(text, int, text, int)
+	await db.execute(sql`ALTER FUNCTION pg_temp.search_identifier(text, int, text, int, bigint)
 		RENAME TO search_identifier_without_delay`);
-	await db.execute(sql`CREATE FUNCTION pg_temp.search_identifier(text, int, text, int)
+	await db.execute(sql`CREATE FUNCTION pg_temp.search_identifier(text, int, text, int, bigint)
 		RETURNS SETOF search_row LANGUAGE plpgsql AS $body$
 		BEGIN
 			PERFORM pg_sleep(0.3);
-			RETURN QUERY SELECT * FROM pg_temp.search_identifier_without_delay($1, $2, $3, $4);
+			RETURN QUERY SELECT * FROM pg_temp.search_identifier_without_delay($1, $2, $3, $4, $5);
 		END $body$`);
 }, 30_000);
 

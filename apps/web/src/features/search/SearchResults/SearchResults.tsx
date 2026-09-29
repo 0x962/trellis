@@ -1,11 +1,25 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { ArrowDown } from "@phosphor-icons/react";
+import { useQuery, useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EmptyState, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
+import {
+	Button,
+	EmptyState,
+	FailureState,
+	IconButton,
+	PageRow,
+	PriorityIcon,
+	ProjectKey,
+	StatusIcon,
+	Tooltip,
+	useMediaQuery,
+} from "@trellis/ui";
+import { useMemo } from "react";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
 import { projectColorsByKey } from "../../../lib/projectChipColor";
 import type { View } from "../../filters/grammar";
 import { TicketLink } from "../../shell/TicketLink";
+import { searchOptions } from "../searchOptions";
 import { highlight } from "../utils/highlight";
 import { ResultGroup } from "./components/ResultGroup";
 
@@ -31,36 +45,44 @@ const phoneLinkClass =
 export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const { orpc } = useApp();
 	const phone = useMediaQuery("(max-width: 767px)");
-	const { tickets, projects } = useSuspenseQuery(
-		orpc.search.query.queryOptions({ input: { q, rankProject: filters.rankProject } }),
-	).data;
+	const query = useSuspenseInfiniteQuery(searchOptions(orpc, q, filters.rankProject));
+	const tickets = useMemo(() => query.data.pages.flatMap((page) => page.tickets), [query.data.pages]);
+	const projects = useMemo(() => query.data.pages.flatMap((page) => page.projects), [query.data.pages]);
+	const pages = useMemo(() => query.data.pages.flatMap((page) => page.pages), [query.data.pages]);
 	// A ticket row carries a project key without its color. The project list
 	// supplies that color.
 	const colors = useQuery({
 		...orpc.projects.list.queryOptions({ input: {} }),
 		select: projectColorsByKey,
 	}).data;
-	const visibleTickets = tickets.filter(
-		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
+	const visibleTickets = useMemo(
+		() => tickets.filter((ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority)),
+		[tickets, filters.priority],
 	);
-	if (visibleTickets.length === 0 && projects.length === 0) {
+	if (visibleTickets.length === 0 && projects.length === 0 && pages.length === 0 && !query.hasNextPage) {
 		return (
 			<EmptyState
 				variant="page"
 				title={`No results for '${q}'`}
-				description="No ticket or project holds this text. Check the spelling, or search for one word."
+				description="No ticket, project, or Page holds this text. Check the spelling, or search for one word."
 			/>
 		);
 	}
 	return (
 		<div className="flex flex-col">
-			<p className="flex h-8 items-center px-5 text-sm text-fg-muted tabular">
-				{formatCount(visibleTickets.length)} {visibleTickets.length === 1 ? "ticket" : "tickets"}
+			<p aria-live="polite" className="flex min-h-8 flex-wrap items-center px-5 text-sm text-fg-muted tabular">
+				Loaded: {formatCount(visibleTickets.length)} {visibleTickets.length === 1 ? "ticket" : "tickets"}
 				{projects.length > 0 && ` · ${formatCount(projects.length)} ${projects.length === 1 ? "project" : "projects"}`}
+				{pages.length > 0 && ` · ${formatCount(pages.length)} ${pages.length === 1 ? "Page" : "Pages"}`}
 			</p>
 			{visibleTickets.length > 0 && (
-				<ResultGroup label="Tickets" count={visibleTickets.length}>
-					{visibleTickets.map((ticket) => {
+				<ResultGroup
+					label="Tickets"
+					count={query.hasNextPage ? undefined : visibleTickets.length}
+					items={visibleTickets}
+					rowHeight={phone ? 56 : 36}
+				>
+					{(ticket) => {
 						const segments = ticket.project.key.split(".");
 						if (phone) {
 							return (
@@ -107,12 +129,17 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								</td>
 							</tr>
 						);
-					})}
+					}}
 				</ResultGroup>
 			)}
 			{projects.length > 0 && (
-				<ResultGroup label="Projects" count={projects.length}>
-					{projects.map((project) =>
+				<ResultGroup
+					label="Projects"
+					count={query.hasNextPage ? undefined : projects.length}
+					items={projects}
+					rowHeight={phone ? 56 : 36}
+				>
+					{(project) =>
 						phone ? (
 							<tr key={project.id} className={phoneRowClass}>
 								<td data-line="phone" colSpan={6}>
@@ -140,9 +167,59 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									{project.key}
 								</td>
 							</tr>
-						),
+						)
+					}
+				</ResultGroup>
+			)}
+			{pages.length > 0 && (
+				<ResultGroup
+					label="Pages"
+					count={query.hasNextPage ? undefined : pages.length}
+					items={pages}
+					rowHeight={phone ? 80 : 56}
+					layout="list"
+				>
+					{(page) => (
+						<PageRow
+							key={page.id}
+							variant="search"
+							title={page.title}
+							titleContent={highlight(page.title, q)}
+							summary={page.summary}
+							latestVersion={page.latestVersion}
+							publishedBy={page.publishedBy.displayName ?? page.publishedBy.name}
+							publishedAt={page.publishedAt}
+							age={compactRelativeTime(page.publishedAt)}
+							watcher={page.watcher?.agent.name ?? null}
+							openThreadCount={page.openThreadCount}
+							pinned={page.pinned}
+							deleted={false}
+							project={<ProjectKey projectKey={page.projectKey} color={colors?.[page.projectKey] ?? null} />}
+							link={<Link to="/p/$" params={{ _splat: `${page.projectKey}/pages/${page.slug}` }} search={{}} />}
+						/>
 					)}
 				</ResultGroup>
+			)}
+			{query.isFetchNextPageError && (
+				<FailureState
+					variant="section"
+					title="More results did not load"
+					detail={query.error?.message}
+					action={<Button onClick={() => void query.fetchNextPage()}>Retry</Button>}
+				/>
+			)}
+			{query.hasNextPage && (
+				<div className="flex justify-center py-2">
+					<Tooltip content="Load more results">
+						<IconButton
+							label="Load more results"
+							icon={<ArrowDown />}
+							disabled={query.isFetching}
+							processing={query.isFetchingNextPage}
+							onClick={() => void query.fetchNextPage()}
+						/>
+					</Tooltip>
+				</div>
 			)}
 		</div>
 	);

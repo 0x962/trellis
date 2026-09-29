@@ -1,0 +1,1 @@
+export { searchOptions } from "./searchOptions";
