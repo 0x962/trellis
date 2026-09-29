@@ -1,18 +1,8 @@
 import { ArrowSquareOut } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
-import { IconButton, ProviderIcon, RankedBars, SectionHeader, Segmented, Tooltip } from "@trellis/ui";
+import { IconButton, ProviderIcon, RankedBars, SectionHeader, Tooltip } from "@trellis/ui";
 import { formatMetric, harnessProvider, modelProvider, rowTone } from "../../../formatUsage";
-
-const groupOptions = [
-	{ value: "ticket", label: "Ticket" },
-	{ value: "agent", label: "Agent" },
-	{ value: "project", label: "Project" },
-	{ value: "kind", label: "Kind" },
-	{ value: "account", label: "Account" },
-	{ value: "model", label: "Model" },
-	{ value: "harness", label: "Harness" },
-] as const;
 
 export type UsageGroupsProps = {
 	group: UsageGroupBy;
@@ -22,7 +12,6 @@ export type UsageGroupsProps = {
 	// The days of the range, for the sparkline of each row.
 	days: readonly string[];
 	selectedRow: string | null;
-	onGroupChange: (group: UsageGroupBy) => void;
 	onSelectRow: (key: string | null) => void;
 };
 
@@ -69,25 +58,13 @@ function rowIcon(group: UsageGroupBy, row: UsageGroupRow) {
 // The range sliced one way at a time, as ranked bars. The bar of a row is
 // its share of the largest row, the sparkline is its days, and a pressed
 // row is the selected slice that the chart and the session list follow.
-export function UsageGroups({
-	group,
-	rows,
-	metric,
-	total,
-	days,
-	selectedRow,
-	onGroupChange,
-	onSelectRow,
-}: UsageGroupsProps) {
+export function UsageGroups({ group, rows, metric, total, days, selectedRow, onSelectRow }: UsageGroupsProps) {
+	const label = group === "kind" ? "agent kind" : group;
 	return (
 		<section aria-label="Breakdown" className="flex flex-col gap-3">
-			<SectionHeader
-				title="Breakdown"
-				count={rows.length}
-				actions={<Segmented label="Group by" options={groupOptions} value={group} onValueChange={onGroupChange} />}
-			/>
+			<SectionHeader title={`Breakdown by ${label}`} count={rows.length} />
 			<RankedBars
-				label={`By ${groupOptions.find((option) => option.value === group)?.label.toLowerCase()}`}
+				label={`By ${label}`}
 				rows={rows.map((row, rank) => ({
 					key: row.key,
 					label: row.label,
