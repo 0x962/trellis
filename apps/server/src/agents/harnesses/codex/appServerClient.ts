@@ -16,7 +16,7 @@ export class CodexAppServerClient {
 		notify: (message: unknown) => void,
 		handleRequest?: (message: { id: string | number; method: string; params?: unknown }) => Promise<unknown>,
 	) {
-		this.socket = new WebSocket(`ws+unix://${path}:/`, { perMessageDeflate: false, maxPayload: 16 * 1024 * 1024 });
+		this.socket = new WebSocket(`ws+unix://${path}:/`, { perMessageDeflate: false, maxPayload: 0 });
 		this.opened = new Promise((resolve, reject) => {
 			this.socket.once("open", resolve);
 			this.socket.once("error", reject);
