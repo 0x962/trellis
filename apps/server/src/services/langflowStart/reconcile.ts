@@ -65,10 +65,12 @@ export async function reconcile(ctx: ReconcileContext, input: { executionId: str
 			throw new Error("authority_conflict");
 		execution = await ctx.newTx((tx) => deps.store.bind(tx, { ...input, correlation, authority }));
 	}
-	if (execution.canceled) return { execution, disposition: "reused" as const };
+	if (execution.canceled || execution.submission.state === "failed")
+		return { execution, disposition: "reused" as const };
 	if (execution.admission.state === "closed")
 		execution = await ctx.newTx((tx) => deps.store.openAdmission(tx, { ...input, now: ctx.now() }));
-	if (execution.canceled) return { execution, disposition: "reused" as const };
+	if (execution.canceled || execution.submission.state === "failed")
+		return { execution, disposition: "reused" as const };
 	if (execution.admission.state !== "open" || execution.authority === null)
 		return { execution, disposition: "pending" as const };
 	const result = await deps.engine.admit({ receipt: execution.admission.receipt, authority: execution.authority });

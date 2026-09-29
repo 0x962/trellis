@@ -2,7 +2,12 @@
 
 `reserve(ctx, tx, input, deps)` validates a start and writes its permanent receipt in the caller transaction.
 `reconcile(ctx, input, deps)` recovers engine correlation and opens admission after the exact job association commits.
-The `StartStore` port requires the TRL-683 receipt queries.
+`databaseStore(ctx)` implements `StartStore` through the receipt queries.
+`reserveStart(ctx, tx, input, {hostId})` supplies this store and the current publication service.
+It returns `StartReservation`: `{execution: StartRun, disposition: "queued" | "reused"}`.
+`StartRun` contains either a retained legacy record or the immutable Langflow reservation.
+The composition service initializes the public projection in the reservation transaction.
+After commit, it reads the public view in a new transaction.
 The publication dependency uses the TRL-684 `requireCurrentPublication` service.
 TRL-696 owns composition and route registration.
 
@@ -51,14 +56,14 @@ A repeated call returns that receipt and preserves every dependent record.
 
 ## Retained verification gaps
 
-The current source contains the service logic and fixture ports.
-The TRL-683 handoff does not yet provide request aliases, closed-admission binding, or the required unknown-state update.
-The production store adapter and legacy reuse integration therefore remain incomplete.
+The database adapter uses permanent aliases, closed-admission association, and durable delivery obligations.
+Its declaration-based database fixtures require separate production migration proof.
 The legacy start route remains active.
 
 `reserve.test.ts` uses the existing project, ticket, flow, and diff queries with an in-memory receipt store.
 `reconcile.test.ts` checks transaction order and recovery through simulated store and engine ports.
-These fixtures do not establish persistent database or real-engine proof.
+`database.test.ts` uses the actual receipt queries with declared tables and a simulated engine.
+These fixtures do not establish real-engine or installed-host proof.
 The required commands run after the combined merge:
 
 - `bun test apps/server/src/services/langflowStart/`

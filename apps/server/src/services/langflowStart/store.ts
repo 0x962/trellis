@@ -45,7 +45,7 @@ export type StartStore = {
 		input: { flowId: string; diffId: string },
 	) => Promise<{
 		execution: StartRun;
-		status: FlowExecutionViewV1["status"];
+		status: FlowExecutionViewV1["status"] | null;
 		failureKind: FlowExecutionViewV1["failureKind"];
 	} | null>;
 	reserve: (tx: Tx, input: StartExecution & StartIdentity) => Promise<StartExecution>;
