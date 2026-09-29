@@ -18,7 +18,7 @@ export async function prepareDelivery(
 ): Promise<PreparedDecision | null> {
 	if (ctx.actor?.kind !== "system") throw new Error("authority_conflict");
 	const execution = await lockExecution(tx, input);
-	assertAuthority(execution, input.authority, "decision.deliver", ctx.now);
+	await assertAuthority(tx, execution, input.authority, "decision.deliver", ctx.now);
 	if (execution.cancelIntent) return null;
 	const stored = await readDecision(tx, input);
 	if (!stored) throw fail("NOT_FOUND", { kind: "human decision", ref: input.decisionId });
