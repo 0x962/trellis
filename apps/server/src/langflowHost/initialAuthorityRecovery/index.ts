@@ -1,0 +1,1 @@
+export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";

@@ -106,6 +106,8 @@ test("initial issuance retains one original grant and pending permit across rest
 	expect(first.authority.ownerId).toBe(f.observation.identity.ownerId);
 	expect(restarted.readAuthorityBytes(first.authority)).toBe(first.authorityBytes);
 	expect(restarted.readInitial("e")?.authorityBytes).toBe(first.authorityBytes);
+	const initial = restarted.readInitial("e");
+	expect(JSON.parse(initial!.sourceBytes).authorityBytes).toBe(first.authorityBytes);
 	expect(f.control.gate.recoverPermit(f.input.permit.binding)?.terminal).toBeNull();
 	const block = f.control.gate.closeDispatch({ requestId: "capture", reason: { kind: "capture", snapshotId: "s" } });
 	expect(restarted.readAuthorityBytes(first.authority)).toBe(first.authorityBytes);

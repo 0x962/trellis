@@ -278,3 +278,37 @@ The adapter checks the outstanding permit and its exact intent before it writes 
 A permit acquired before a block can complete while the block waits for its terminal evidence.
 The caller retains the permit through engine control delivery and durable acknowledgement.
 Neither grant issue nor archive recovery settles it.
+
+## Authority recovery
+
+`AuthorityLifecycle` runs as a domain of the shared host lifecycle.
+`recover({signal})` reads pending permits and pages through retained executions.
+`committed({executionId,signal})` checks one execution before admission opens.
+Both methods return the state `current`, `confirmed`, or `pending` and the retained grant expiry.
+The composition owner awaits each call and aborts its signal before engine or database shutdown.
+The module creates no interval or detached work.
+
+The lease policy supplies `durationMs` and `renewBeforeMs`.
+The saved expiry determines when renewal is due; native deadlines and launch receipts stay separate.
+Before acquisition, the existing object store retains the immutable request and expiry outside the restored data home.
+The pending permit retains the lookup key across a lost response.
+The producer uses the exact archived predecessor bytes and the current supervisor observation.
+The adapter reads stop obligations under the same execution lock as takeover commit.
+A noncanceled native attempt can survive takeover; a recorded stop obligation must first be confirmed.
+A canceled attempt requires its exact confirmed stop and exit.
+
+The private engine client reads the current grant before it sends a control mutation.
+Takeover confirms revocation of the exact predecessor before it sends the successor.
+A later lookup must confirm the exact successor bytes before the archive can settle its permit.
+An unknown reply, foreign grant, changed owner, or missing engine record retains the permit.
+An intent for a retired target owner requires reconciliation; it cannot move silently to another owner.
+
+`InitialAuthorityIssuer.readInitial(executionId)` returns `sourceBytes` from the immutable issuance record.
+`InitialAuthorityRecovery(supervisor,issuer,store,archive).recover(input)` uses those bytes to recover an unbound execution.
+The input contains the renewal or takeover intent, held permit, canceled state, and closed admission from the retained execution.
+`AuthorityLifecycle.recoverInitial` retains that intent before permit acquisition and calls this producer.
+A changed owner requires the exact original revocation and a healthy successor observation.
+The same owner uses renewal while admission stays closed.
+The store commits the original association and successor authority in one transaction.
+Canceled executions receive only `execution.cancel`; the producer leaves the original permit outstanding.
+The engine must support recovery when the original grant never reached its ledger before this path can complete.
