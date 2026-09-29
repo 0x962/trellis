@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
 	"dependencies": {
-		"projection": "9484d9d7587a1acfaa48cf52b16bbeb1bddd6b3d51d49fa381b79d4556a0bd5f",
+		"projection": "5a27a8e056520a6bd403a105fd4f0347ea579c8b3f8a59d47a1a768b454de3af",
 		"occurrenceProjection": "9de2291dc680331270a33b8e22c65b4a50b628b7c43b1f32f371518b468702a3",
 		"reviewProjection": "eafe242778b51a2bf6c468f82fa5e176c39238449d927298c79d5e8ba6b3e82c"
 	},
