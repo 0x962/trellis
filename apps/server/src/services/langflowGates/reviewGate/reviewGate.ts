@@ -1,4 +1,5 @@
 import {
+	type ClassificationReceipt,
 	type ClassificationResult,
 	classificationStore,
 } from "../../../db/queries/langflowExecution/classification.ts";
@@ -22,6 +23,9 @@ export async function reviewGate(
 	input: ReviewGateInput,
 	store: Pick<typeof classificationStore, "claim" | "finish"> = classificationStore,
 	deps?: ClassificationDependencies,
+	lifecycle?: {
+		afterValidatedResponse(receipt: ClassificationReceipt): Promise<void>;
+	},
 ): Promise<ReviewGateResult> {
 	const gate = input.publication.gates.find((gate) => gate.nodeId === input.gateNodeId)!;
 	const claim = await ctx.newTx((tx) =>
@@ -43,6 +47,7 @@ export async function reviewGate(
 	let receipt = claim.receipt;
 	if (claim.acquired) {
 		let outcome: ClassificationResult;
+		let responseReceived = false;
 		try {
 			const pull = await ctx.newTx(async (tx) => {
 				const row = await findPullRequestRow(tx, input.diffId);
@@ -56,12 +61,14 @@ export async function reviewGate(
 					deps,
 				),
 			};
+			responseReceived = true;
 		} catch (cause) {
 			outcome = { state: "failed", error: `Jev gate: ${cause instanceof Error ? cause.message : String(cause)}` };
 		}
 		receipt = await ctx.newTx((tx) =>
 			store.finish(tx, { receiptId: receipt.receiptId, ownerToken: receipt.ownerToken, result: outcome }),
 		);
+		if (responseReceived) await lifecycle?.afterValidatedResponse(receipt);
 	}
 	const result = reviewGateResult(receipt, gate.reviewArea);
 	ctx.log("flow.review-gate", {

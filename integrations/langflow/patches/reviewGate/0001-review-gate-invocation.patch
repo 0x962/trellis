@@ -1,0 +1,356 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_journal.py b/src/backend/base/langflow/services/trellis_v1/review_gate_journal.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/review_gate_journal.py
+@@ -0,0 +1,52 @@
++import json
++from uuid import uuid4
++
++from .occurrence_journal import OccurrenceConflict
++from .occurrence_models import canonical, digest
++from .review_gate_spec import review_gate_specs
++
++
++def allocate_review(journal, vertex_id, scope, document, admission, shared_bytes):
++    shared = json.loads(shared_bytes)
++    specs = review_gate_specs(document)
++    spec = specs[vertex_id]
++    gates = [{"nodeId": value["nodeId"], "reviewArea": value["reviewArea"]} for value in specs.values()]
++    gates.sort(key=lambda entry: entry["nodeId"].encode("utf-16-be", errors="surrogatepass"))
++    if (shared["gates"] != gates or shared["classificationRequestId"] != journal["classificationRequestId"]
++            or any(shared[field] != admission[field] for field in ("executionId", "publicationId", "engineJobId"))):
++        raise OccurrenceConflict("review_classification_context_conflict")
++    if "classificationRequestBytes" in journal and journal["classificationRequestBytes"] != shared_bytes:
++        raise OccurrenceConflict("review_classification_context_conflict")
++    journal["classificationRequestBytes"] = shared_bytes
++    key = scope.identity(vertex_id)
++    visits = journal.setdefault("reviewVisits", {})
++    if key in visits:
++        prior = visits[key]
++        if prior["specHash"] != spec["specHash"] or prior["facts"] != scope.facts():
++            raise OccurrenceConflict("review_visit_replay_conflict")
++        return prior
++    journal["revision"] += 1
++    occurrence = scope.occurrence(spec["nodeId"], str(uuid4()))
++    binding = {field: admission[field] for field in ("executionId", "publicationId", "engineJobId", "engineEpoch")}
++    request = {
++        "version": 1, **binding, **occurrence, "requestId": str(uuid4()),
++        "classificationRequestId": shared["classificationRequestId"],
++        "classificationRequestDigest": digest(shared_bytes), "diffId": shared["diffId"],
++        "reviewedHead": shared["reviewedHead"], "specHash": spec["specHash"],
++    }
++    request_bytes = canonical(request)
++    wait = {
++        "kind": "review", "waitId": str(uuid4()),
++        "request": {
++            "version": 1, **binding, "occurrence": occurrence,
++            "engineRequestId": request["requestId"], "actionKey": str(uuid4()),
++            "reviewArea": spec["reviewArea"], "visit": request, "visitDigest": digest(request_bytes),
++            "deadlineRefs": list(scope.group_deadline_refs),
++        },
++    }
++    visit = {
++        "vertexId": vertex_id, "specHash": spec["specHash"], "facts": scope.facts(),
++        "requestBytes": request_bytes, "waitBytes": canonical(wait), "acceptedResultId": None,
++    }
++    visits[key] = visit
++    return visit
+diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_operation.py b/src/backend/base/langflow/services/trellis_v1/review_gate_operation.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/review_gate_operation.py
+@@ -0,0 +1,105 @@
++import json
++from uuid import UUID, uuid4
++
++import httpx
++
++from langflow.services.deps import get_job_service, session_scope
++from langflow.services.trellis_v1.authority import read_authority, require_authority
++from langflow.services.trellis_v1.review_classifications import ReviewClassificationLedger
++
++from .occurrence_journal import OccurrenceConflict
++from .occurrence_models import canonical
++from .occurrence_receipts import retain_output
++from .occurrence_store import apply_waits, locked_graph, save_journal, save_wait
++from .review_gate_journal import allocate_review
++from .review_gate_transport import review_gate_transport
++from .review_protocol import read_review_response, read_review_wait
++
++
++async def review_authority(session, job_id, admission):
++    state = await read_authority(session, admission["executionId"])
++    if state is None or state.binding is None:
++        raise OccurrenceConflict("review_authority_absent")
++    grant = await require_authority(session, state.binding.authority_bytes, "review.classify",
++                                    execution_id=admission["executionId"], publication_id=admission["publicationId"],
++                                    engine_job_id=job_id)
++    return {"authority_bytes": grant.authority_bytes.decode("utf-8"), "capability_id": grant.authority.capability_id}
++
++
++async def request_review_visit(graph, vertex_id, scope):
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            journal.setdefault("classificationRequestId", str(uuid4()))
++            context_request = canonical({"version": 1, "classificationRequestId": journal["classificationRequestId"],
++                                         **{key: admission[key] for key in ("executionId", "publicationId", "engineJobId", "engineEpoch")}})
++            shared = journal.get("classificationRequestBytes")
++            authority = await review_authority(session, job_id, admission)
++            await save_journal(session, job_id, journal)
++            await session.commit()
++    if shared is None:
++        shared = await review_gate_transport().context(context_request, **authority)
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            graph.get_vertex(vertex_id)
++            visit = allocate_review(journal, vertex_id, scope, document, admission, shared)
++            read_review_wait(visit["waitBytes"])
++            authority = await review_authority(session, job_id, admission)
++            await save_journal(session, job_id, journal)
++            waits = await save_wait(session, job_id, graph, visit["waitBytes"])
++            await session.commit()
++        apply_waits(graph, waits)
++    return visit, authority
++
++
++async def run_review_visit(graph, vertex_id, scope):
++    visit, authority = await request_review_visit(graph, vertex_id, scope)
++    wait = read_review_wait(visit["waitBytes"])
++    ledger = ReviewClassificationLedger(get_job_service())
++    async def accepted():
++        return await ledger.read_result(engine_job_id=UUID(wait.request.engineJobId), engine_request_id=wait.request.engineRequestId)
++    raw = await accepted()
++    if raw is None:
++        try:
++            await review_gate_transport().invoke(visit["requestBytes"], **authority)
++        except httpx.TransportError:
++            pass
++        except httpx.HTTPStatusError as error:
++            if error.response.status_code < 500:
++                raise
++    await graph.await_external_completion(visit["waitBytes"])
++    raw = await accepted()
++    if raw is None:
++        raise OccurrenceConflict("review_completion_not_retained")
++    result = read_review_response(raw.decode("utf-8"))
++    if result.visit != wait.request.visit or result.visitDigest != wait.request.visitDigest or result.result.state == "claimed":
++        raise OccurrenceConflict("review_completion_binding_conflict")
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            stored = journal["reviewVisits"][scope.identity(vertex_id)]
++            if stored["requestBytes"] != visit["requestBytes"] or stored["waitBytes"] != visit["waitBytes"]:
++                raise OccurrenceConflict("review_completion_replay_conflict")
++            prior = stored["acceptedResultId"]
++            if prior is not None and prior != result.result.classificationReceiptId:
++                raise OccurrenceConflict("review_receipt_conflict")
++            stored["acceptedResultId"] = result.result.classificationReceiptId
++            stored["acceptedResultBytes"] = raw.decode("utf-8")
++            await save_journal(session, job_id, journal)
++            await session.commit()
++    if result.result.state == "failed":
++        raise ValueError(result.result.error)
++    relevance = result.result.relevance
++    branch = "yes" if getattr(relevance, wait.request.reviewArea) else "no"
++    output = json.dumps({"frontend": relevance.frontend, "backend": relevance.backend}, separators=(",", ":"))
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            receipt = await retain_output(session, job_id, admission, journal, vertex_id=vertex_id, scope=scope,
++                                          occurrence=wait.request.occurrence.model_dump(mode="json"), port=branch,
++                                          output=output, result_bytes=raw.decode("utf-8"))
++            journal["reviewVisits"][scope.identity(vertex_id)]["outputReceiptId"] = receipt["receiptId"]
++            await save_journal(session, job_id, journal)
++            await session.commit()
++    return {"response": result.model_dump(mode="json"), "branch": branch, "output": output, "receipt": receipt}
+diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_reader.py b/src/backend/base/langflow/services/trellis_v1/review_gate_reader.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/review_gate_reader.py
+@@ -0,0 +1,38 @@
++import json
++from uuid import UUID
++
++from sqlmodel import select
++
++from langflow.services.database.models.jobs.model import Job
++from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
++from langflow.services.trellis_v1.native_records import checkpoint
++
++from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict
++from .review_protocol import read_review_visit
++
++
++async def read_review_visits(session, request_bytes):
++    request = read_review_visit(request_bytes)
++    job_id = UUID(str(request.engineJobId))
++    await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())
++    correlation = (await session.exec(select(TrellisJobCorrelation).where(
++        TrellisJobCorrelation.engine_job_id == job_id))).one()
++    admission = json.loads(correlation.admission_receipt_bytes)
++    if any(getattr(request, key) != admission[key] for key in ("executionId", "publicationId", "engineJobId")):
++        raise OccurrenceConflict("review_visit_binding_conflict")
++    row = await checkpoint(session, job_id, JOURNAL_KIND)
++    if row is None:
++        raise OccurrenceConflict("review_visit_not_retained")
++    journal = json.loads(row.blob)
++    visits = list(journal.get("reviewVisits", {}).values())
++    exact = [visit for visit in visits if visit["requestBytes"] == request_bytes]
++    if len(exact) != 1:
++        raise OccurrenceConflict("review_visit_not_retained")
++    matches = []
++    for visit in visits:
++        saved = read_review_visit(visit["requestBytes"])
++        if (saved.classificationRequestId == request.classificationRequestId
++                and saved.classificationRequestDigest == request.classificationRequestDigest):
++            matches.append({"engineVertexId": visit["vertexId"], "requestBytes": visit["requestBytes"],
++                            "waitBytes": visit["waitBytes"]})
++    return {"requestBytes": request_bytes, "engineVertexId": exact[0]["vertexId"], "visits": matches}
+diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_router.py b/src/backend/base/langflow/services/trellis_v1/review_gate_router.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/review_gate_router.py
+@@ -0,0 +1,72 @@
++from json import JSONDecodeError
++from uuid import UUID
++
++from fastapi import APIRouter, HTTPException, Request
++from pydantic import BaseModel, ConfigDict, StrictStr, ValidationError
++from starlette.responses import Response
++
++from langflow.services.deps import session_scope
++from langflow.services.trellis_v1.engine_api import AuthorityConflict, AuthorityUnauthorized, EngineApiSecurity
++from langflow.services.trellis_v1.review_classifications import ReviewClassificationLedger
++from langflow.services.trellis_v1.review_protocol import ReviewConflict, ReviewDeliveryInput, read_review_visit
++
++from .occurrence_journal import OccurrenceConflict
++from .review_gate_reader import read_review_visits
++
++
++class ReviewVisitLookup(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    requestBytes: StrictStr
++    authorityBytes: StrictStr
++
++
++def create_review_gate_router(*, jobs, executor, security: EngineApiSecurity, open_session=session_scope):
++    ledger = ReviewClassificationLedger(jobs, open_session=open_session)
++    router = APIRouter(prefix="/review-classifications")
++
++    def authorize(request, authority_bytes, permission):
++        async def current(session, binding):
++            grant = await security.require_authority(
++                session, authority_bytes, permission,
++                execution_id=binding["executionId"], publication_id=binding["publicationId"],
++                engine_job_id=UUID(binding["engineJobId"]),
++            )
++            if request.headers.get("x-trellis-capability-id") != grant.authority.capability_id:
++                raise AuthorityUnauthorized("review_capability_conflict")
++            return grant.authority.model_dump(by_alias=True, mode="json")
++        return current
++
++    @router.post("/visits")
++    async def visits(request: Request, payload: ReviewVisitLookup):
++        await security.require_transport_auth(request.headers.get("authorization"))
++        try:
++            visit = read_review_visit(payload.requestBytes)
++            async with open_session() as session:
++                result = await read_review_visits(session, payload.requestBytes)
++                await authorize(request, payload.authorityBytes.encode("utf-8"), "review.classify")(
++                    session, visit.model_dump(mode="json"),
++                )
++                return result
++        except AuthorityUnauthorized as error:
++            raise HTTPException(401, "review_authority_invalid") from error
++        except (AuthorityConflict, OccurrenceConflict, ReviewConflict) as error:
++            raise HTTPException(409, str(error)) from error
++        except (ValidationError, JSONDecodeError, UnicodeError) as error:
++            raise HTTPException(422, "review_visit_invalid") from error
++
++    @router.post("/accept")
++    async def accept(request: Request, payload: ReviewDeliveryInput):
++        await security.require_transport_auth(request.headers.get("authorization"))
++        try:
++            obligation = await ledger.accept(payload, authorize(request, payload.authorityBytes, "classification.deliver"))
++        except AuthorityUnauthorized as error:
++            raise HTTPException(401, "review_authority_invalid") from error
++        except (AuthorityConflict, ReviewConflict) as error:
++            raise HTTPException(409, str(error)) from error
++        except (ValidationError, JSONDecodeError, UnicodeError) as error:
++            raise HTTPException(422, "review_delivery_invalid") from error
++        await executor.consume_review_classification_obligation(obligation)
++        return Response(content=obligation["receiptBytes"], media_type="application/json",
++                        headers={"Cache-Control": "no-store"})
++
++    return router
+diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_spec.py b/src/backend/base/langflow/services/trellis_v1/review_gate_spec.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/review_gate_spec.py
+@@ -0,0 +1,27 @@
++from typing import Literal
++
++from pydantic import BaseModel, ConfigDict, StrictStr
++
++from .occurrence_journal import OccurrenceConflict
++from .occurrence_models import canonical, digest
++
++
++class ReviewGateSpec(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    nodeId: StrictStr
++    reviewArea: Literal["frontend", "backend"]
++
++
++def review_gate_specs(document):
++    graph = document.snapshot["graphDocument"]
++    entries = graph["trellisReviewGatesV1"]
++    result = {}
++    for vertex_id, raw in entries.items():
++        spec = ReviewGateSpec.model_validate(raw).model_dump()
++        vertices = [node for node in graph["nodes"] if node["id"] == vertex_id]
++        if len(vertices) != 1 or vertices[0]["data"]["type"] != "TrellisReviewGateV1":
++            raise OccurrenceConflict("review_gate_definition_conflict")
++        result[vertex_id] = {**spec, "specHash": digest(canonical(spec))}
++    if len({entry["nodeId"] for entry in result.values()}) != len(result):
++        raise OccurrenceConflict("review_gate_node_conflict")
++    return result
+diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_transport.py b/src/backend/base/langflow/services/trellis_v1/review_gate_transport.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/review_gate_transport.py
+@@ -0,0 +1,32 @@
++from dataclasses import dataclass
++from pathlib import Path
++
++from integrations.langflow.components.jevGate.client import invoke_review_gate, read_review_context
++
++
++@dataclass(frozen=True)
++class ReviewGateTransport:
++    origin: str
++    authentication_file: Path
++
++    async def context(self, request_bytes, *, authority_bytes, capability_id):
++        return await read_review_context(request_bytes, origin=self.origin, authentication_file=self.authentication_file,
++                                         authority_bytes=authority_bytes, capability_id=capability_id)
++
++    async def invoke(self, request_bytes, *, authority_bytes, capability_id):
++        return await invoke_review_gate(request_bytes, origin=self.origin, authentication_file=self.authentication_file,
++                                        authority_bytes=authority_bytes, capability_id=capability_id)
++
++
++_transport: ReviewGateTransport | None = None
++
++
++def install_review_gate_transport(*, origin: str, authentication_file: Path) -> None:
++    global _transport
++    _transport = ReviewGateTransport(origin, authentication_file)
++
++
++def review_gate_transport() -> ReviewGateTransport:
++    if _transport is None:
++        raise RuntimeError("review_gate_transport_not_installed")
++    return _transport
