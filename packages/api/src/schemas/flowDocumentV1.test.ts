@@ -120,11 +120,11 @@ test("the unsupported-format error directs legacy clients to a versioned route",
 	expect(flowDocumentV1Errors.FLOW_VERSION_CONFLICT.data.parse({ version: 2 })).toEqual({ version: 2 });
 });
 
-test("versioned route exports do not register services in the live contract", () => {
+test("the live contract registers separate versioned routes", () => {
 	expect(flowDocumentsV1.get["~orpc"].route).toMatchObject({ method: "GET", path: "/flows/{flow}/document-v1" });
 	expect(flowDocumentsV1.save["~orpc"].route).toMatchObject({ method: "PUT", path: "/flows/{flow}/document-v1" });
 	expect(flowDocumentsV1.view["~orpc"].route).toMatchObject({ method: "GET", path: "/flow-executions/{id}/view-v1" });
-	expect(contract).not.toHaveProperty("flowDocumentsV1");
+	expect(contract.flowDocumentsV1.view["~orpc"].outputSchema).toBe(flowDocumentsV1.view["~orpc"].outputSchema);
 });
 
 test("legacy saves reject unknown node and edge bytes", () => {

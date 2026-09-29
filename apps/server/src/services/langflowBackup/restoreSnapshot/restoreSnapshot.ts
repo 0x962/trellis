@@ -1,10 +1,10 @@
 import { mkdir, open, realpath, rename } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { copySnapshot } from "../copySnapshot";
 import { manifestName, recoveryName, type SnapshotCompatibility, type SnapshotManifest } from "../manifest";
 import { readSnapshot } from "../readSnapshot";
 import { syncDirectory } from "../syncDirectory";
+import { copySnapshot } from "./components/copySnapshot";
 
 export type RestoreContext = {
 	blockDispatch(input: { directory: string; manifest: SnapshotManifest }): Promise<void>;

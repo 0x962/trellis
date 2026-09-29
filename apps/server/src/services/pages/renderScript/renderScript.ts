@@ -97,26 +97,102 @@ const contentRuntime = (nonce: string) => {
 		thread: string;
 		anchor: PageCommentAnchor;
 	}[];
+	type ResolvedComment = {
+		thread: string;
+		anchor: PageCommentAnchor;
+		element: Element;
+		target: Element | Range;
+	};
+	let activeThread: string | null = null;
+	let commentsByElement = new Map<Element, ResolvedComment[]>();
+	let resolvedByThread = new Map<string, ResolvedComment>();
+	const visibleElements = new Set<Element>();
+	const visibilityObserver = new IntersectionObserver((entries) => {
+		for (const entry of entries) {
+			if (!commentsByElement.has(entry.target)) continue;
+			if (entry.isIntersecting) visibleElements.add(entry.target);
+			else visibleElements.delete(entry.target);
+		}
+		scheduleLayout();
+	});
 	let layoutFrame = 0;
+	let anchorsDirty = false;
+	let contentChanges: MutationRecord[] = [];
 	const reportLayout = () => {
 		layoutFrame = 0;
-		const items = [];
-		for (const comment of comments) {
-			const element = document.querySelector(comment.anchor.path);
-			if (element === null) continue;
-			const target = comment.anchor.kind === "text" ? textRange(element, comment.anchor) : element;
-			if (target === null) continue;
-			const rect = target.getBoundingClientRect();
+		refreshComments();
+		const items: { thread: string; x: number; y: number }[] = [];
+		const included = new Set<string>();
+		const add = (comment: ResolvedComment | undefined) => {
+			if (comment === undefined || included.has(comment.thread)) return;
+			const rect = comment.target.getBoundingClientRect();
+			if (
+				comment.thread !== activeThread &&
+				(rect.bottom < 0 || rect.top > innerHeight || rect.right < 0 || rect.left > innerWidth)
+			)
+				return;
 			items.push({
 				thread: comment.thread,
 				x: Math.max(14, Math.min(innerWidth - 14, rect.right)),
 				y: Math.max(14, Math.min(innerHeight - 14, rect.top + Math.min(rect.height / 2, 14))),
 			});
+			included.add(comment.thread);
+		};
+		add(activeThread === null ? undefined : resolvedByThread.get(activeThread));
+		for (const element of visibleElements) {
+			for (const comment of commentsByElement.get(element) ?? []) add(comment);
 		}
 		send({ type: "page-comment-layout", items });
 	};
 	const scheduleLayout = () => {
 		if (layoutFrame === 0) layoutFrame = requestAnimationFrame(reportLayout);
+	};
+	const resolveComments = (changes: MutationRecord[]) => {
+		const previousElements = commentsByElement;
+		const previousThreads = resolvedByThread;
+		commentsByElement = new Map();
+		resolvedByThread = new Map();
+		for (const comment of comments) {
+			const element = document.querySelector(comment.anchor.path);
+			if (element === null) continue;
+			const previous = previousThreads.get(comment.thread);
+			const reuse =
+				previous?.element === element &&
+				previous.anchor === comment.anchor &&
+				!changes.some((change) => change.type !== "attributes" && element.contains(change.target));
+			const target = reuse
+				? previous.target
+				: comment.anchor.kind === "text"
+					? textRange(element, comment.anchor)
+					: element;
+			if (target === null) continue;
+			const resolved = { ...comment, element, target };
+			resolvedByThread.set(comment.thread, resolved);
+			const elementComments = commentsByElement.get(element);
+			if (elementComments === undefined) commentsByElement.set(element, [resolved]);
+			else elementComments.push(resolved);
+		}
+		for (const element of previousElements.keys()) {
+			if (!commentsByElement.has(element)) {
+				visibilityObserver.unobserve(element);
+				visibleElements.delete(element);
+			}
+		}
+		for (const element of commentsByElement.keys()) {
+			if (!previousElements.has(element)) visibilityObserver.observe(element);
+		}
+	};
+	const contentObserver = new MutationObserver((changes) => {
+		contentChanges = contentChanges.concat(changes);
+		scheduleLayout();
+	});
+	contentObserver.observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
+	const refreshComments = () => {
+		contentChanges = contentChanges.concat(contentObserver.takeRecords());
+		if (!anchorsDirty && contentChanges.length === 0) return;
+		anchorsDirty = false;
+		resolveComments(contentChanges);
+		contentChanges = [];
 	};
 	addEventListener("scroll", () => send({ type: "page-scroll", x: scrollX, y: scrollY }), { passive: true });
 	addEventListener("scroll", scheduleLayout, { passive: true });
@@ -167,9 +243,10 @@ const contentRuntime = (nonce: string) => {
 		if (event.source !== parent || event.data?.nonce !== nonce) return;
 		const data = event.data;
 		if (data.type === "page-comment-reveal" && typeof data.thread === "string") {
-			const comment = comments.find((candidate) => candidate.thread === data.thread);
-			const element = comment === undefined ? null : document.querySelector(comment.anchor.path);
-			element?.scrollIntoView({
+			activeThread = data.thread;
+			refreshComments();
+			const comment = resolvedByThread.get(data.thread);
+			comment?.element.scrollIntoView({
 				block: "center",
 				behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
 			});
@@ -178,6 +255,8 @@ const contentRuntime = (nonce: string) => {
 		}
 		if (data.type === "page-comments-state" && Array.isArray(data.comments)) {
 			comments = data.comments;
+			anchorsDirty = true;
+			refreshComments();
 			scheduleLayout();
 			return;
 		}

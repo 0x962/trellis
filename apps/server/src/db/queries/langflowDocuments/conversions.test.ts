@@ -40,15 +40,17 @@ describe("legacy source preservation", () => {
 			db.transaction((tx) => insertDocumentRevision(tx, { snapshot, sourceBytes, savedAt })),
 		).rejects.toThrow();
 		await expect(
-			db.insert(langflowDocumentRevisions).values({
-				flowId,
-				revision: 2,
-				documentHash: snapshot.documentHash,
-				componentManifestHash: null,
-				sourceBytes: Buffer.from("different bytes"),
-				snapshot: { ...snapshot, revision: 2, flow: { ...snapshot.flow, version: 2 } },
-				savedAt,
-			}),
+			Promise.resolve(
+				db.insert(langflowDocumentRevisions).values({
+					flowId,
+					revision: 2,
+					documentHash: snapshot.documentHash,
+					componentManifestHash: null,
+					sourceBytes: Buffer.from("different bytes"),
+					snapshot: { ...snapshot, revision: 2, flow: { ...snapshot.flow, version: 2 } },
+					savedAt,
+				}),
+			),
 		).rejects.toThrow();
 	});
 
