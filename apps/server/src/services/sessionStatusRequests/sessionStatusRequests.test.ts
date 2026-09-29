@@ -2,10 +2,10 @@ import { expect, test } from "bun:test";
 import type { SessionUpdateRequest } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { IoCtx } from "../support.ts";
-import { prepareSessionStatusRequests, type SessionStatusRequestDeps } from "./dispatch.ts";
+import { prepareSessionStatusRequests, type SessionStatusRequestDeps } from "./sessionStatusRequests.ts";
 
 const now = new Date("2026-09-29T12:05:00.000Z");
-const candidate = { sessionId: "01M3NTSP1HRSKKKW47PYJECRXB", runId: "run", terminalId: "attempt" };
+const candidate = { sessionId: "01M3NTSP1HRSKKKW47PYJECRXB", terminalId: "attempt" };
 const process = (overrides: Partial<RuntimeProcessStatus> = {}): RuntimeProcessStatus => ({
 	id: "attempt",
 	daemonId: "runtime",
@@ -46,6 +46,7 @@ const request = (
 const fixture = (input: {
 	current?: SessionUpdateRequest | null;
 	process?: RuntimeProcessStatus;
+	runtimeError?: Error;
 	sendError?: Error;
 }) => {
 	let current = input.current ?? null;
@@ -54,7 +55,10 @@ const fixture = (input: {
 	let begins = 0;
 	const deps: SessionStatusRequestDeps = {
 		candidates: async () => [candidate],
-		runtime: async () => [input.process ?? process()],
+		runtime: async () => {
+			if (input.runtimeError) throw input.runtimeError;
+			return [input.process ?? process()];
+		},
 		requests: async () => new Map([[candidate.sessionId, current]]),
 		beginRequest: async (_ctx, _sessionId, requestId) => {
 			begins++;
@@ -194,4 +198,10 @@ test("fails a pending request when the process pauses before delivery", async ()
 		state: "failed",
 		error: "The agent stopped before Trellis sent the status request.",
 	});
+});
+
+test("keeps the request unchanged when the runtime read fails", async () => {
+	const unavailable = fixture({ current: request("pending"), runtimeError: new Error("connect ECONNREFUSED") });
+	await expect(unavailable.run()).rejects.toThrow("connect ECONNREFUSED");
+	expect(unavailable.stats()).toMatchObject({ begins: 0, sent: [], states: [] });
 });

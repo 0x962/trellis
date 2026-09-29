@@ -131,7 +131,7 @@ test.each(["claude", "pi"] as const)("%s queues a follow-up without a slash comm
 	const queued: Array<{ id: string; messageId: string; data: string }> = [];
 	const host = new HarnessHost({
 		runtime: {
-			queue: async (id: string, messageId: string, data: string) => {
+			queueInput: async (id: string, messageId: string, data: string) => {
 				queued.push({ id, messageId, data });
 				return { messageId, status: "unknown" as const };
 			},

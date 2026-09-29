@@ -86,7 +86,7 @@ test("accepts a queued delivery", () => {
 	const value = {
 		id: "request",
 		version: RUNTIME_PROTOCOL_VERSION,
-		method: "queue",
+		method: "queueInput",
 		params: { id: "attempt", messageId: "status-request", data: "c3RhdHVz" },
 	};
 	expect(validateRequest(value) === value).toBe(true);

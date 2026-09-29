@@ -1,1 +1,1 @@
-export { finishSessionStatusRequests, prepareSessionStatusRequests } from "./dispatch.ts";
+export { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests.ts";

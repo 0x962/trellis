@@ -56,7 +56,7 @@ export class InputLedger {
 		this.save();
 		return { messageId, claimed: true, status: "unknown" };
 	}
-	queue(messageId: string, data: string): RuntimeDelivery {
+	queueInput(messageId: string, data: string): RuntimeDelivery {
 		const hash = createHash("sha256").update(data).digest("hex");
 		const existing = this.entries.get(messageId);
 		if (existing) {
@@ -68,14 +68,14 @@ export class InputLedger {
 		this.save();
 		return { messageId, status: "unknown" };
 	}
-	queued() {
+	queuedInputs() {
 		return [...this.entries.values()].flatMap((entry) =>
 			entry.transport === "queued" && entry.status === "unknown" && entry.data !== undefined
 				? [{ messageId: entry.messageId, data: entry.data }]
 				: [],
 		);
 	}
-	async flushQueued(messageId: string, write: (data: string) => Promise<unknown>): Promise<RuntimeDelivery> {
+	async flushQueuedInput(messageId: string, write: (data: string) => Promise<unknown>): Promise<RuntimeDelivery> {
 		const entry = this.entries.get(messageId)!;
 		if (entry.transport !== "queued") throw new Error(`Message ${messageId} uses another transport`);
 		if (entry.status === "written") return { messageId, status: "written" };

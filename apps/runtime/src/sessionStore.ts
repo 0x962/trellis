@@ -21,6 +21,7 @@ import { matchesProcessFilters } from "./matchesProcessFilters.ts";
 import { observeHarness } from "./observeHarness.ts";
 import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
+import { flushQueuedInputs, queueInput } from "./queuedInput";
 import { recoverAttemptRecord } from "./recoverAttemptRecord";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
 import { defaultRetainOptions, type RetainOptions } from "./retainExited.ts";
@@ -33,7 +34,6 @@ import { watchRecoveredSession } from "./watchRecoveredSession.ts";
 // Resume requires the saved provider identity and launch directory. Idle exits stay
 // on disk until a successful resume or explicit stop releases their records.
 const sweepIntervalMs = 60 * 60 * 1000;
-
 export class SessionStore {
 	private readonly records: SessionRecords;
 	private readonly exits = new ProcessExitWatcher();
@@ -72,7 +72,6 @@ export class SessionStore {
 	private save(record: Record) {
 		this.records.save(record);
 	}
-
 	private get(id: string) {
 		const record = this.records.get(id);
 		if (!record) throw Object.assign(new Error(`Session ${id} does not exist`), { code: "SESSION_NOT_FOUND" });
@@ -139,31 +138,23 @@ export class SessionStore {
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
 		return registerNativeDelivery(this.get(input.id), input);
 	}
-	private async flushQueued(record: Record) {
-		if (record.process === undefined || record.activity?.state === "working") return;
-		for (const message of record.ledger.queued())
-			await record.ledger.flushQueued(message.messageId, (data) => this.input(record.session.id, data));
-	}
-	async queue(id: string, messageId: string, data: string) {
-		const record = this.get(id);
-		const delivery = record.ledger.queue(messageId, data);
-		await this.flushQueued(record);
-		return delivery.status === "written" || record.ledger.delivered(messageId)
-			? { messageId, status: "written" as const }
-			: delivery;
+	async queueInput(id: string, messageId: string, data: string) {
+		return queueInput(this.get(id), messageId, data, (input) => this.input(id, input));
 	}
 	observe({ id, token, event, expected }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
 		authenticateSession(record, token);
 		assertExpectedTurn(record, expected);
 		observeHarness(record, event);
-		if (record.activity?.state !== "working") void this.flushQueued(record).catch(() => undefined);
+		if (record.activity?.state !== "working")
+			void flushQueuedInputs(record, (input) => this.input(record.session.id, input));
 		return this.inspect(id);
 	}
 	turn(input: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
 		const record = this.get(input.id);
 		observeLegacyTurn(record, input);
-		if (record.activity?.state !== "working") void this.flushQueued(record).catch(() => undefined);
+		if (record.activity?.state !== "working")
+			void flushQueuedInputs(record, (input) => this.input(record.session.id, input));
 		return this.inspect(input.id);
 	}
 	subscribe(

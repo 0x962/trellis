@@ -14,6 +14,7 @@ import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.
 import { assertProjectActive } from "../refs.ts";
 import { archivedSessionRefusal, runArchivedAt } from "../sessions/archived.ts";
 import { sessionOperation } from "../sessions/operation.ts";
+import { failOutstandingSessionUpdateRequestForRun } from "../sessionUpdates";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
@@ -171,6 +172,10 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 			true,
 		);
 		if (!reserved) throw invalidInput("id", "This assignment or flow no longer permits a resume.");
+		await failOutstandingSessionUpdateRequestForRun(ctx.core, tx, {
+			runId: run.id,
+			error: "The agent restarted before it saved the status update.",
+		});
 		await recordRequest(ctx.core, tx, {
 			...request,
 			target: { ...target, ...(input.prompt === undefined ? {} : { resumeMessageAttemptId: reserved.attempt!.id }) },

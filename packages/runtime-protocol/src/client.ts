@@ -158,8 +158,8 @@ export class RuntimeClient {
 	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
 		return this.call("deliver", { id, messageId, data, expected });
 	}
-	queue(id: string, messageId: string, data: string) {
-		return this.call("queue", { id, messageId, data });
+	queueInput(id: string, messageId: string, data: string) {
+		return this.call("queueInput", { id, messageId, data });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { openTestDb } from "../../db/testDb.ts";
-import { sessionStatusRequestCandidates } from "./candidates.ts";
+import { sessionStatusRequestCandidates } from "./sessionStatusRequests.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const at = new Date("2026-09-29T12:00:00.000Z");
@@ -69,8 +69,8 @@ test("lists active ticket and standalone sessions only", async () => {
 	expect(found).toHaveLength(2);
 	expect(found).toEqual(
 		expect.arrayContaining([
-			{ sessionId: activeTicketSessionId, runId: activeTicketRunId, terminalId: "active-ticket-attempt" },
-			{ sessionId: standaloneSessionId, runId: standaloneRunId, terminalId: "standalone-attempt" },
+			{ sessionId: activeTicketSessionId, terminalId: "active-ticket-attempt" },
+			{ sessionId: standaloneSessionId, terminalId: "standalone-attempt" },
 		]),
 	);
 });

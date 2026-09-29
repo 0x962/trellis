@@ -71,3 +71,25 @@ export const setSessionUpdateRequestState = async (
 	ctx.emit({ type: "session-updates.changed", id: input.runId });
 	return request;
 };
+
+export const failOutstandingSessionUpdateRequestForRun = async (
+	ctx: RequestCtx,
+	tx: Tx,
+	input: { runId: string; error: string },
+) => {
+	const [request] = await rows<SessionUpdateRequest & { sessionId: string }>(
+		tx,
+		sql`SELECT request.session_id AS "sessionId", ${columns}
+		FROM session_update_requests request
+		JOIN sessions session ON session.id = request.session_id
+		WHERE session.run_id=${input.runId} AND request.state IN ('pending', 'sent')
+		ORDER BY request.requested_at DESC LIMIT 1`,
+	);
+	if (request === undefined) return null;
+	return setSessionUpdateRequestState(ctx, tx, {
+		sessionId: request.sessionId,
+		requestId: request.requestId,
+		state: "failed",
+		error: input.error,
+	});
+};

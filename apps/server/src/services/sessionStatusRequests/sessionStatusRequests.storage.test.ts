@@ -10,6 +10,7 @@ import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import {
 	beginSessionUpdateRequest,
+	failOutstandingSessionUpdateRequestForRun,
 	getSessionUpdateRequest,
 	get as getSessionUpdates,
 	sessionUpdateRequestIsOutstanding,
@@ -17,7 +18,7 @@ import {
 	write,
 } from "../sessionUpdates";
 import type { IoCtx } from "../support.ts";
-import { prepareSessionStatusRequests, type SessionStatusRequestDeps } from "./dispatch.ts";
+import { prepareSessionStatusRequests, type SessionStatusRequestDeps } from "./sessionStatusRequests.ts";
 
 const at = new Date("2026-09-29T12:05:00.000Z");
 
@@ -81,9 +82,13 @@ const processStatus = (terminalId: string, requestId: string): RuntimeProcessSta
 	result: null,
 });
 
-const dependencies = (value: Awaited<ReturnType<typeof fixture>>, requestId: string): SessionStatusRequestDeps => ({
-	candidates: async () => [{ sessionId: value.sessionId, runId: value.runId, terminalId: value.terminalId }],
-	runtime: async () => [processStatus(value.terminalId, requestId)],
+const dependencies = (
+	value: Awaited<ReturnType<typeof fixture>>,
+	requestId: string,
+	terminalId = value.terminalId,
+): SessionStatusRequestDeps => ({
+	candidates: async () => [{ sessionId: value.sessionId, terminalId }],
+	runtime: async () => [processStatus(terminalId, requestId)],
 	requests: async () =>
 		new Map([[value.sessionId, await value.inTx((tx) => getSessionUpdateRequest(tx, { sessionId: value.sessionId }))]]),
 	beginRequest: (_ctx, sessionId, nextRequestId) =>
@@ -130,6 +135,73 @@ test("an agent reply wins the race with completion", async () => {
 
 		const saved = await value.inTx((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionId }));
 		expect(saved.latest?.body).toBe("The status reply won the race.");
+		expect(saved.request).toMatchObject({ requestId, state: "answered", error: null });
+		expect(sessionUpdateRequestIsOutstanding(saved.request!.state)).toBe(false);
+	} finally {
+		await value.db.$client.close();
+	}
+});
+
+test("a replacement attempt clears the old request and preserves a late reply", async () => {
+	const value = await fixture();
+	try {
+		const requestId = crypto.randomUUID();
+		await value.inTx((tx) => beginSessionUpdateRequest(value.core, tx, { sessionId: value.sessionId, requestId }));
+		await value.inTx((tx) =>
+			setSessionUpdateRequestState(value.core, tx, { sessionId: value.sessionId, requestId, state: "sent" }),
+		);
+
+		const replacementTerminalId = crypto.randomUUID();
+		const replacementToken = crypto.randomUUID();
+		await value.inTx(async (tx) => {
+			await tx.execute(sql`INSERT INTO agent_execution_attempts
+				(id, run_id, generation, token_hash, created_at) VALUES
+				(${replacementTerminalId}, ${value.runId}, 2,
+				${createHash("sha256").update(replacementToken).digest("hex")}, ${at})`);
+			await tx.execute(sql`UPDATE agent_runs SET terminal_id=${replacementTerminalId} WHERE id=${value.runId}`);
+			await failOutstandingSessionUpdateRequestForRun(value.core, tx, {
+				runId: value.runId,
+				error: "The agent restarted before it saved the status update.",
+			});
+		});
+
+		let saved = await value.inTx((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionId }));
+		expect(saved.request).toMatchObject({ requestId, state: "failed" });
+		expect(sessionUpdateRequestIsOutstanding(saved.request!.state)).toBe(false);
+
+		const replacementCore = {
+			...value.core,
+			attemptToken: replacementToken,
+		};
+		await value.inTx((tx) =>
+			write(replacementCore, tx, {
+				sessionId: value.sessionId,
+				requestId,
+				body: "The old attempt completed after its replacement started.",
+			}),
+		);
+		await value.inTx((tx) =>
+			failOutstandingSessionUpdateRequestForRun(value.core, tx, {
+				runId: value.runId,
+				error: "The agent restarted before it saved the status update.",
+			}),
+		);
+
+		const deps = dependencies(value, requestId, replacementTerminalId);
+		deps.runtime = async () => [
+			{
+				...processStatus(replacementTerminalId, requestId),
+				acknowledgedMessageIds: [],
+				activity: { state: "working", updatedAt: at.toISOString(), workingSince: at.toISOString() },
+			},
+		];
+		deps.send = async () => {
+			throw new Error("The replacement attempt received a duplicate request.");
+		};
+		await prepareSessionStatusRequests(value.io, {}, deps);
+
+		saved = await value.inTx((tx) => getSessionUpdates(value.core, tx, { sessionId: value.sessionId }));
+		expect(saved.latest?.body).toBe("The old attempt completed after its replacement started.");
 		expect(saved.request).toMatchObject({ requestId, state: "answered", error: null });
 		expect(sessionUpdateRequestIsOutstanding(saved.request!.state)).toBe(false);
 	} finally {

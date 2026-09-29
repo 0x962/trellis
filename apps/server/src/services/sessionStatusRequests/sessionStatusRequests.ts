@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { SessionUpdateRequest } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { nativeHost } from "../../agents/native/harnessHost.ts";
-import { readRuntimeSessions } from "../agentRuns/liveState.ts";
+import type { Tx } from "../../db/tx.ts";
+import { requestStatusAtTurnBoundary, statusRequestProcesses, statusRequestRuns } from "../agentRuns.ts";
+import { activeProjectIds } from "../projects.ts";
+import { statusRequestSessions } from "../sessions";
 import {
 	beginSessionUpdateRequest,
 	getSessionUpdateRequest,
@@ -10,10 +12,51 @@ import {
 	setSessionUpdateRequestState,
 } from "../sessionUpdates";
 import type { IoCtx } from "../support.ts";
-import { type SessionStatusRequestCandidate, sessionStatusRequestCandidates } from "./candidates.ts";
-import { sessionStatusRequestPrompt } from "./prompt.ts";
+import { incompleteTicketIds } from "../tickets.ts";
 
-export const SESSION_STATUS_REQUEST_INTERVAL_MS = 5 * 60 * 1000;
+const SESSION_STATUS_REQUEST_INTERVAL_MS = 5 * 60 * 1000;
+
+export type SessionStatusRequestCandidate = {
+	sessionId: string;
+	terminalId: string;
+};
+
+export const sessionStatusRequestCandidates = async (tx: Tx): Promise<SessionStatusRequestCandidate[]> => {
+	const sessions = await statusRequestSessions(tx);
+	if (sessions.length === 0) return [];
+	const sessionByRun = new Map(sessions.map((session) => [session.runId, session.sessionId]));
+	const runs = await statusRequestRuns(
+		tx,
+		sessions.map((session) => session.runId),
+	);
+	const projectIds = [...new Set(runs.flatMap((run) => (run.projectId === null ? [] : [run.projectId])))];
+	const ticketIds = [...new Set(runs.flatMap((run) => (run.ticketId === null ? [] : [run.ticketId])))];
+	const activeProjects = new Set(projectIds.length === 0 ? [] : await activeProjectIds(tx, projectIds));
+	const incompleteTickets = new Set(ticketIds.length === 0 ? [] : await incompleteTicketIds(tx, ticketIds));
+	return runs
+		.flatMap((run) => {
+			const sessionId = sessionByRun.get(run.id);
+			if (sessionId === undefined) return [];
+			if (run.projectId !== null && !activeProjects.has(run.projectId)) return [];
+			if (run.kind === "agent" && (run.ticketId === null || !incompleteTickets.has(run.ticketId))) return [];
+			return [{ sessionId, terminalId: run.terminalId }];
+		})
+		.sort((left, right) => left.sessionId.localeCompare(right.sessionId));
+};
+
+const sessionStatusRequestPrompt = (sessionId: string, requestId: string) => `Provide a status update for this session.
+
+Explain the purpose, actions, findings, uncertainty, and next step in useful prose. Use Markdown. You can include optional HTML files as embeds.
+
+Save the Markdown reply with this exact command:
+
+trellis session status write ${sessionId} --request-id ${requestId} --body -
+
+Pass the Markdown body on standard input. To attach HTML files, use this form:
+
+trellis session status write ${sessionId} --request-id ${requestId} --body - --embed report.html,details.html
+
+Use one --embed flag with a comma-separated path list. Do not send the answer as chat text alone. A sent request is not a saved update. After the write succeeds, continue the assigned work.`;
 
 export type SessionStatusRequestDeps = {
 	candidates: (ctx: IoCtx) => Promise<SessionStatusRequestCandidate[]>;
@@ -30,7 +73,7 @@ export type SessionStatusRequestDeps = {
 
 const dependencies: SessionStatusRequestDeps = {
 	candidates: (ctx) => ctx.newTx(sessionStatusRequestCandidates),
-	runtime: (ctx, terminalIds) => readRuntimeSessions(ctx.home, { ids: terminalIds }),
+	runtime: statusRequestProcesses,
 	requests: (ctx, sessionIds) =>
 		ctx.newTx(async (tx) => {
 			const requests = new Map<string, SessionUpdateRequest | null>();
@@ -40,14 +83,14 @@ const dependencies: SessionStatusRequestDeps = {
 	beginRequest: (ctx, sessionId, requestId) =>
 		ctx.newTx((tx) => beginSessionUpdateRequest(ctx.core, tx, { sessionId, requestId })),
 	setRequest: (ctx, input) => ctx.newTx((tx) => setSessionUpdateRequestState(ctx.core, tx, input)),
-	send: (ctx, input) => nativeHost(ctx.home).sendAtTurnBoundary(input.terminalId, input.text, input.requestId),
+	send: (ctx, input) => requestStatusAtTurnBoundary(ctx, input),
 	requestId: randomUUID,
 };
 
-const active = (process: RuntimeProcessStatus | undefined) =>
+const canReceiveStatusRequest = (process: RuntimeProcessStatus | undefined) =>
 	process?.status === "running" && process.controllable && process.activity?.state === "working";
 
-const due = (request: SessionUpdateRequest | null, process: RuntimeProcessStatus, now: Date) => {
+const statusRequestIsDue = (request: SessionUpdateRequest | null, process: RuntimeProcessStatus, now: Date) => {
 	const last = request?.requestedAt ?? process.activity?.workingSince ?? process.activity?.updatedAt;
 	return last !== undefined && Date.parse(last) <= now.getTime() - SESSION_STATUS_REQUEST_INTERVAL_MS;
 };
@@ -107,12 +150,15 @@ const dispatchCandidate = async (
 		});
 		return;
 	}
-	if (request?.state === "pending" && !active(process)) {
+	if (request?.state === "pending" && !canReceiveStatusRequest(process)) {
 		await failRequest(ctx, deps, candidate, request, "The agent stopped before Trellis sent the status request.");
 		return;
 	}
-	if (!active(process)) return;
-	if (!(request !== null && sessionUpdateRequestIsOutstanding(request.state)) && !due(request, process!, ctx.now()))
+	if (!canReceiveStatusRequest(process)) return;
+	if (
+		!(request !== null && sessionUpdateRequestIsOutstanding(request.state)) &&
+		!statusRequestIsDue(request, process!, ctx.now())
+	)
 		return;
 	if (request?.state !== "pending") {
 		const requestId = deps.requestId();

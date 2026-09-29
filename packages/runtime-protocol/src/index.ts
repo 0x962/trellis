@@ -254,7 +254,7 @@ export interface RuntimeMethods {
 		params: { id: string; messageId: string; data: string; expected?: RuntimeExpectedTurn };
 		result: RuntimeDelivery;
 	};
-	queue: {
+	queueInput: {
 		params: { id: string; messageId: string; data: string };
 		result: RuntimeDelivery;
 	};

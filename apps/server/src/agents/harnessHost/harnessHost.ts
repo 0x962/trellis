@@ -235,7 +235,7 @@ export class HarnessHost {
 		if (descriptor.harness === "opencode" || descriptor.harness === "codex" || descriptor.harness === "muse")
 			return this.send(id, text, messageId);
 		const data = Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64");
-		await this.options.runtime.queue(id, messageId, data);
+		await this.options.runtime.queueInput(id, messageId, data);
 		return this.status(id);
 	}
 	async interrupt(id: string, { waitForIdle = true } = {}) {
