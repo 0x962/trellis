@@ -42,8 +42,8 @@ export function sessionIdForFile(path: string): string {
 	return basename(path).replace(/\.jsonl$/, "");
 }
 
-// The first real user prompt of a session. A slash command, a caveat, and a
-// system reminder wrapper do not count. A multiline prompt uses its first line.
+// toSessionLabel returns the first line of a user prompt. It ignores a slash
+// command, a caveat, and a system reminder.
 export function toSessionLabel(text: unknown): string | null {
 	if (typeof text !== "string") return null;
 	const trimmed = text.trim();
@@ -57,12 +57,12 @@ export function toSessionLabel(text: unknown): string | null {
 // trailing `\r` removed. The stream retains only the parts of the current
 // line, because JSON.parse needs one complete transcript record.
 export async function forEachLine(path: string, onLine: (line: string) => void): Promise<void> {
-	let parts: string[] = [];
-	const emit = (tail: string) => {
-		parts.push(tail);
-		const raw = parts.join("");
-		parts = [];
-		const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+	let lineParts: string[] = [];
+	const emitLine = (lineTail: string) => {
+		lineParts.push(lineTail);
+		const rawLine = lineParts.join("");
+		lineParts = [];
+		const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
 		onLine(line);
 	};
 	const stream = createReadStream(path, { encoding: "utf-8" });
@@ -80,12 +80,12 @@ export async function forEachLine(path: string, onLine: (line: string) => void):
 			const chunk = next.value;
 			let start = 0;
 			for (let end = chunk.indexOf("\n"); end !== -1; end = chunk.indexOf("\n", start)) {
-				emit(chunk.slice(start, end));
+				emitLine(chunk.slice(start, end));
 				start = end + 1;
 			}
-			if (start < chunk.length) parts.push(chunk.slice(start));
+			if (start < chunk.length) lineParts.push(chunk.slice(start));
 		}
-		if (parts.length > 0) emit("");
+		if (lineParts.length > 0) emitLine("");
 	} finally {
 		stream.destroy();
 	}
