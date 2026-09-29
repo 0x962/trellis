@@ -1,0 +1,72 @@
+{
+	"version": 1,
+	"sourceBase": "d5295c6a1012669f37bfa98c10afbc66a11904f8",
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"priorComposition": {
+		"mergeCommit": "7883ae7f6fe3b9de0a41697b98dc5e7fa2513339",
+		"manifest": "reports/langflow-feasibility-review/backend-occurrence-composition.json",
+		"aggregateSha256": "534d3f94d43a20011faddc00a0e85936baaac711130407fa7dcf97a02c844fe3"
+	},
+	"fragments": [
+		{
+			"name": "backend-loop-control",
+			"mergeCommit": "d5295c6a1012669f37bfa98c10afbc66a11904f8",
+			"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
+			"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419",
+			"manifest": "integrations/langflow/patches/loopControl/manifest.json",
+			"manifestSha256": "68e8e373ccc0ac30448d5dcfacf31b7c6da4f860d127cfce402a4ba8c44f203e",
+			"insertAfter": "backend-backup"
+		},
+		{
+			"name": "backend-occurrence-entries",
+			"mergeCommit": "3220dd1f83a84f529618064d95be4e39040a5bd3",
+			"path": "integrations/langflow/patches/occurrenceRequests/0002-component-entry-receipts.patch",
+			"sha256": "09e1c6a68cbcc93fceabc065414f43d2976566fe3fc41a83c58763eb3b53e8ef",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/entries-manifest.json",
+			"manifestSha256": "dd4e988dc0040eaada0fc37eb2d84ce609bf482eaa59531c8fc0591fc7554a6a",
+			"insertAfter": "backend-occurrence-requests"
+		},
+		{
+			"name": "backend-native-api",
+			"mergeCommit": "757a455e86f5e09f94a1fa6a38035990fcd9e99e",
+			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
+			"sha256": "07445397a869fe88f8bc32731f85ad76d110ba3085cc5f4c199566433382bbd8",
+			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json",
+			"manifestSha256": "0b9e25211b655e56ca4b4a7aa32a3e72c2941f187854511f438c2b6e5fb067f8",
+			"runtimeDependency": "backend-occurrence-entries"
+		}
+	],
+	"sourceComposition": {
+		"method": "Compose every patch against pinned Git blobs in memory; compare all four loop base and result hashes with the author manifest.",
+		"patches": 22,
+		"files": 74,
+		"aggregateSha256": "80e5d23b57569a3badd9cb11d5ff873576fd1c06cad83ddbdb69e39cc3e6fa9a",
+		"aggregateEncoding": "SHA256 of the sorted path-to-SHA256 JSON object with compact separators.",
+		"loopSharedHashesMatch": true,
+		"authorPatchBytesChanged": false,
+		"candidateMutated": false,
+		"importsExecuted": false
+	},
+	"component": {
+		"path": "integrations/langflow/components/trellisLoop/trellisLoop.py",
+		"sha256": "4e625fad001dfad9941c30f81b775cbe2349bb8bfa236b47bc59118ef7bca21a",
+		"definitionId": "trellis.loop.v1",
+		"catalogPublicationApproved": false
+	},
+	"fixtureHashes": {
+		"integrations/langflow/tests/loopControl/test_loop_control.py": "f2640c65718c85d5da42d1530f57c487ef46f1bfecea7b7659797ae2fa7200ee",
+		"integrations/langflow/tests/occurrenceRequests/test_occurrence_receipts.py": "40d3170d9ad3d643765a04c9e1c2dcb74d0d3b2277160150c7bd313a150774a0",
+		"integrations/langflow/patches/engineApi/native/tests/test_native_input_receipts.py": "1d5dc195b43f5d225cdf4a3b88ac178446e6e9a019a172fd74e8c401207980e5"
+	},
+	"remainingProof": [
+		"Group scopes remain a component and runtime prerequisite.",
+		"The component catalog and converted graph must use the matched loop and occurrence sources.",
+		"Root scope, input provenance, and exact output receipts require actual engine traces.",
+		"Pre-handle uncertain-response recovery and native visit dispatch retain separate owners.",
+		"Shared permissions do not prove review classification behavior.",
+		"Tests, linters, runtime checks, builds, and Review remain deferred until the complete batch."
+	],
+	"packageExportApproved": false,
+	"technicalAcceptance": false,
+	"productionApproval": false
+}
