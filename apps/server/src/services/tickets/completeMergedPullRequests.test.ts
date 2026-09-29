@@ -76,8 +76,8 @@ const pr = async (number: number, state: "open" | "closed" | "merged") => {
 
 const link = (ticketId: string, prId: string) =>
 	db.execute(sql`INSERT INTO ticket_pull_requests
-		(ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticketId}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+		(ticket_id, pull_request_id, source, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${ticketId}, ${prId}, 'manual', 'dana', 'human', ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'dana']::text[]))`);
 
 const ticketState = async (ticketId: string) => {
 	const [row] = (

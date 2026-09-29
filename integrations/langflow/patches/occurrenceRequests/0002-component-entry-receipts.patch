@@ -1,0 +1,443 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_controls.py b/src/backend/base/langflow/services/trellis_v1/occurrence_controls.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_controls.py
+@@ -0,0 +1,36 @@
++import json
++from uuid import uuid4
++
++from langflow.services.deps import session_scope
++
++from .occurrence_journal import OccurrenceConflict
++from .occurrence_models import digest
++from .occurrence_store import locked_graph, save_graph, save_journal
++
++
++async def allocate_control_visit(graph, vertex_id, scope, node_id):
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            nodes = document.snapshot["graphDocument"]["nodes"]
++            node = next(item for item in nodes if item["id"] == vertex_id)
++            if node["data"]["type"] != "TrellisGroupScopeV1":
++                raise OccurrenceConflict("control_component_type_conflict")
++            raw = node["data"]["node"]["template"]["scope_definition"]["value"]
++            definition = json.loads(raw)
++            if definition["groupNodeId"] != node_id:
++                raise OccurrenceConflict("control_source_node_conflict")
++            key = scope.identity(vertex_id)
++            controls = journal.setdefault("controls", {})
++            saved = controls.get(key)
++            facts = {"definitionHash": digest(raw), "scope": scope.facts()}
++            if saved is None:
++                journal["revision"] += 1
++                saved = {"occurrence": scope.occurrence(node_id, str(uuid4())), "facts": facts}
++                controls[key] = saved
++            elif saved["facts"] != facts:
++                raise OccurrenceConflict("control_visit_replay_conflict")
++            await save_journal(session, job_id, journal)
++            await save_graph(session, job_id, graph)
++            await session.commit()
++    return saved["occurrence"]
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py b/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_journal.py
+@@ -69,6 +69,7 @@
+     del journal["visits"][key]
+     replacement = allocate(journal, vertex_id, scope, spec, admission, "human")
+     replacement["feedback"] = [*prior["feedback"], decision]
++    replacement["feedbackReceiptIds"] = list(prior.get("feedbackReceiptIds", []))
+     replacement["prior"] = [*prior["prior"], {field: prior[field] for field in
+                             ("occurrence", "revision", "requestBytes", "waitId")}]
+     return old_wait, replacement
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_models.py b/src/backend/base/langflow/services/trellis_v1/occurrence_models.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_models.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_models.py
+@@ -106,3 +106,8 @@
+     def facts(self) -> dict:
+         return {"inputReceiptIds": list(self.input_receipt_ids),
+                 "groupDeadlineRefs": list(self.group_deadline_refs), "deadlineAt": self.deadline_at}
++
++    def to_engine(self) -> dict:
++        return {"parentOccurrenceKey": self.parent_occurrence_key, "phase": self.phase,
++                "iterationPath": [{"loopNodeId": item.loop_node_id, "round": item.round}
++                                  for item in self.iteration_path], **self.facts()}
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_outputs.py b/src/backend/base/langflow/services/trellis_v1/occurrence_outputs.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_outputs.py
+@@ -0,0 +1,72 @@
++import json
++
++from langflow.services.deps import session_scope
++
++from .occurrence_models import canonical
++from langflow.services.trellis_v1.native_records import checkpoint
++
++from .occurrence_journal import OccurrenceConflict
++from .occurrence_receipts import original_decision, receipt_kind, retain_output
++from .occurrence_store import locked_context, locked_graph, save_graph, save_journal
++
++
++async def record_visit_output(graph, vertex_id, scope, result, *, port="result", human=False):
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, spec, journal = await locked_context(session, graph, vertex_id)
++            visit = journal["visits"][scope.identity(vertex_id)]
++            raw = await original_decision(session, job_id, result) if human else canonical(result)
++            receipt = await retain_output(
++                session, job_id, admission, journal, vertex_id=vertex_id, scope=scope,
++                occurrence=visit["occurrence"], port=port, output=raw if human else result["output"], result_bytes=raw,
++            )
++            visit.setdefault("outputReceiptIds", {})[port] = receipt["receiptId"]
++            if human:
++                journal.setdefault("outputFeedback", {})[receipt["receiptId"]] = list(visit.get("feedbackReceiptIds", []))
++            await save_journal(session, job_id, journal)
++            await save_graph(session, job_id, graph)
++            await session.commit()
++    return receipt
++
++
++async def record_control_output(graph, vertex_id, scope, occurrence, port, result, *, output: str):
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            raw = canonical(result)
++            receipt = await retain_output(
++                session, job_id, admission, journal, vertex_id=vertex_id, scope=scope,
++                occurrence=occurrence, port=port, output=output, result_bytes=raw,
++            )
++            await save_journal(session, job_id, journal)
++            await save_graph(session, job_id, graph)
++            await session.commit()
++    return receipt
++
++
++def component_output(receipt, state):
++    output = json.loads(receipt["receiptBytes"])
++    return {"trellisOutput": {"occurrenceKey": output["occurrenceKey"], "state": state,
++                              "outputBytes": output["output"], "receiptId": receipt["receiptId"]}}
++
++
++async def record_forwarded_output(graph, vertex_id, scope, port, result):
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            if len(scope.input_receipt_ids) != 1:
++                raise OccurrenceConflict("gate_input_receipt_count")
++            row = await checkpoint(session, job_id, receipt_kind(scope.input_receipt_ids[0]))
++            source = json.loads(row.blob)
++            original = {key: value for key, value in result.items() if key != "trellisOutput"}
++            if json.loads(source["resultBytes"]) != original:
++                raise OccurrenceConflict("gate_input_result_conflict")
++            receipt = await retain_output(
++                session, job_id, admission, journal, vertex_id=vertex_id, scope=scope,
++                occurrence=source["source"]["occurrence"], port=port,
++                output=json.loads(source["receiptBytes"])["output"], result_bytes=source["resultBytes"],
++            )
++            await save_journal(session, job_id, journal)
++            await save_graph(session, job_id, graph)
++            await session.commit()
++    return receipt
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py b/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py
+@@ -0,0 +1,97 @@
++import json
++from uuid import uuid4
++
++from sqlmodel import select
++
++from langflow.services.database.models.jobs.model import Job
++from langflow.services.trellis_v1.decisions import TrellisDecisionAcceptance
++from langflow.services.trellis_v1.native_records import add_checkpoint, checkpoint
++
++from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict
++from .occurrence_models import canonical, digest
++
++
++def output_key(vertex_id, scope, port):
++    return digest(canonical([vertex_id, scope.parent_occurrence_key,
++                             [[item.loop_node_id, item.round] for item in scope.iteration_path], port]))
++
++
++def receipt_kind(receipt_id):
++    return f"trellis-output-v1:{receipt_id}"
++
++
++async def retain_output(session, job_id, admission, journal, *, vertex_id, scope, occurrence, port,
++                        output, result_bytes):
++    key = output_key(vertex_id, scope, port)
++    outputs = journal.setdefault("outputs", {})
++    if key in outputs:
++        record = await checkpoint(session, job_id, receipt_kind(outputs[key]))
++        saved = json.loads(record.blob)
++        if saved["resultBytes"] != result_bytes or json.loads(saved["receiptBytes"])["output"] != output:
++            raise OccurrenceConflict("output_receipt_replay_conflict")
++        return saved
++    receipt_id = f"output:{uuid4()}"
++    receipt_bytes = canonical({
++        "version": 1, "receiptId": receipt_id, "executionId": admission["executionId"],
++        "publicationId": admission["publicationId"], "engineJobId": str(job_id),
++        "nodeId": occurrence["nodeId"], "occurrenceKey": occurrence["occurrenceKey"], "output": output,
++    })
++    saved = {"receiptId": receipt_id, "receiptBytes": receipt_bytes, "receiptDigest": digest(receipt_bytes),
++             "source": {"engineVertexId": vertex_id, "occurrence": occurrence, "outputPort": port},
++             "resultBytes": result_bytes, "outputHash": digest(output)}
++    add_checkpoint(session, job_id, receipt_kind(receipt_id), canonical(saved))
++    outputs[key] = receipt_id
++    await session.flush()
++    return saved
++
++
++async def read_receipt(session, job_id, admission, receipt_id):
++    row = await checkpoint(session, job_id, receipt_kind(receipt_id))
++    if row is None:
++        raise OccurrenceConflict("input_receipt_missing")
++    saved = json.loads(row.blob)
++    receipt = json.loads(saved["receiptBytes"])
++    if (saved["receiptId"] != receipt_id or receipt["receiptId"] != receipt_id
++            or receipt["executionId"] != admission["executionId"]
++            or receipt["publicationId"] != admission["publicationId"] or receipt["engineJobId"] != str(job_id)
++            or digest(saved["receiptBytes"]) != saved["receiptDigest"]
++            or digest(receipt["output"]) != saved["outputHash"]):
++        raise OccurrenceConflict("input_receipt_binding_conflict")
++    return {field: saved[field] for field in ("receiptId", "receiptBytes", "receiptDigest")}
++
++
++async def read_native_visit(session, job_id, request_bytes):
++    await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())
++    row = await checkpoint(session, job_id, JOURNAL_KIND)
++    if row is None:
++        raise OccurrenceConflict("input_request_not_retained")
++    journal = json.loads(row.blob)
++    matches = [visit for visit in journal["visits"].values() if visit["requestBytes"] == request_bytes]
++    if len(matches) != 1:
++        raise OccurrenceConflict("input_request_not_retained")
++    request = json.loads(request_bytes)
++    if request["engineJobId"] != str(job_id):
++        raise OccurrenceConflict("input_request_job_conflict")
++    visit = matches[0]
++    if visit["kind"] != "native":
++        raise OccurrenceConflict("input_request_kind_conflict")
++    return {"engineNodeId": visit["vertexId"], "requestBytes": visit["requestBytes"],
++            "occurrence": visit["occurrence"], "scope": visit["facts"],
++            "admissionReceipt": request["admissionReceipt"],
++            "inputReceipts": [await read_receipt(session, job_id, request, receipt_id)
++                              for receipt_id in request["inputReceiptIds"]]}
++
++
++async def read_input_receipts(session, job_id, request_bytes):
++    return (await read_native_visit(session, job_id, request_bytes))["inputReceipts"]
++
++
++async def original_decision(session, job_id, decision):
++    row = (await session.exec(select(TrellisDecisionAcceptance).where(
++        TrellisDecisionAcceptance.decision_id == decision["decisionId"],
++        TrellisDecisionAcceptance.engine_job_id == job_id,
++    ))).one()
++    raw = bytes(row.decision_bytes).decode("utf-8")
++    if json.loads(raw) != decision or digest(raw) != row.payload_digest:
++        raise OccurrenceConflict("human_decision_original_bytes_conflict")
++    return raw
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py b/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_requests.py
+@@ -9,7 +9,9 @@
+ from .occurrence_handle import validate_handle
+ from .occurrence_journal import HumanRoundLimit, OccurrenceConflict, allocate, external_wait, replace_rejected
+ from .occurrence_models import VisitScope, canonical
+-from .occurrence_store import authorize_native, locked_context, save_blob, save_journal, save_wait
++from .occurrence_outputs import record_visit_output
++from .occurrence_receipts import original_decision, retain_output
++from .occurrence_store import apply_waits, authorize_native, locked_context, save_graph, save_journal, save_wait
+ from .occurrence_transport import request_transport
+ 
+ 
+@@ -25,7 +27,7 @@
+                 session, job_id, request_kind(visit["waitId"]), visit["requestBytes"],
+             )
+             await save_journal(session, job_id, journal)
+-            await save_blob(session, job_id, "graph", graph.build_checkpoint().model_dump_json())
++            await save_graph(session, job_id, graph)
+             await session.commit()
+     handle_bytes = visit["handleBytes"]
+     if handle_bytes is None:
+@@ -44,7 +46,7 @@
+             await save_journal(session, job_id, journal)
+             waits = await save_wait(session, job_id, graph, wait_bytes)
+             await session.commit()
+-        graph.external_waits = waits
++        apply_waits(graph, waits)
+     return wait_bytes
+ 
+ 
+@@ -54,10 +56,13 @@
+     delivery = await TrellisExternalWaitBroker(get_job_service()).delivery_for(graph, wait_bytes)
+     if delivery is None:
+         raise OccurrenceConflict("native_delivery_not_retained")
+-    return json.loads(delivery)["result"]
++    result = json.loads(delivery)["result"]
++    await record_visit_output(graph, vertex_id, scope, result)
++    return result
+ 
+ 
+-async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_rounds: int | None) -> dict:
++async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_rounds: int | None,
++                          loop_condition: bool = False) -> dict:
+     async with graph._external_wait_lock:
+         async with session_scope() as session:
+             job_id, admission, spec, journal = await locked_context(session, graph, vertex_id)
+@@ -73,17 +78,27 @@
+             if decision is not None and decision["wait"] != request:
+                 raise OccurrenceConflict("human_decision_wait_conflict")
+             replacing = None
+-            if decision is not None and decision["approved"] is False:
++            feedback_receipt = None
++            if decision is not None:
++                raw = await original_decision(session, job_id, decision)
++                feedback_receipt = await retain_output(
++                    session, job_id, admission, journal, vertex_id=vertex_id, scope=scope,
++                    occurrence=visit["occurrence"], port=f"decision:{decision['decisionId']}",
++                    output=raw, result_bytes=raw,
++                )
++            if decision is not None and decision["approved"] is False and not loop_condition:
+                 replacing, visit = replace_rejected(journal, vertex_id, scope, spec, admission, decision, max_rounds)
+                 visit["maxRounds"] = max_rounds
++                visit.setdefault("feedbackReceiptIds", []).append(feedback_receipt["receiptId"])
+                 wait_bytes = external_wait(visit)
+             await save_journal(session, job_id, journal)
+             waits = await save_wait(session, job_id, graph, wait_bytes, replacing=replacing)
+             await session.commit()
+-        graph.external_waits = waits
++        apply_waits(graph, waits)
+     if "terminalError" in visit:
+         raise HumanRoundLimit(visit["terminalError"])
+-    if decision is not None and decision["approved"] is True:
++    if decision is not None and (decision["approved"] is True or loop_condition):
++        await record_visit_output(graph, vertex_id, scope, decision, human=True)
+         await graph.complete_external_wait(wait_bytes, canonical(decision))
+         return decision
+     await graph.await_external_completion(wait_bytes)
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_scope.py b/src/backend/base/langflow/services/trellis_v1/occurrence_scope.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_scope.py
+@@ -0,0 +1,59 @@
++from dataclasses import replace
++
++from langflow.services.deps import session_scope
++
++from .occurrence_journal import OccurrenceConflict
++from .occurrence_models import VisitScope
++from .occurrence_receipts import output_key, read_receipt
++from .occurrence_store import locked_graph, save_graph, save_journal
++
++
++def inherited_scope(graph, vertex_id):
++    groups = getattr(graph, "group_active_occurrences", {})
++    if vertex_id in groups:
++        return VisitScope.from_engine(graph.group_visit_scope(groups[vertex_id], vertex_id))
++    active_loop = getattr(graph, "trellis_loop_active_visit_key", None)
++    if active_loop is not None:
++        return VisitScope.from_engine(graph.trellis_current_visit_scope())
++    if "trellisVisitScope" in graph.context:
++        return VisitScope.from_engine(graph.context["trellisVisitScope"])
++    return VisitScope(None, "step", (), (), (), None)
++
++
++async def capture_visit_scope(graph, vertex_id):
++    vertex = graph.get_vertex(vertex_id)
++    inherited = inherited_scope(graph, vertex_id)
++    async with graph._external_wait_lock:
++        async with session_scope() as session:
++            job_id, admission, document, journal = await locked_graph(session, graph)
++            scope_key = inherited.identity(vertex_id)
++            scopes = journal.setdefault("scopes", {})
++            if scope_key in scopes:
++                return VisitScope.from_engine(scopes[scope_key]["scope"])
++            receipt_ids = []
++            selected = []
++            excluded = graph.inactivated_vertices | graph.conditionally_excluded_vertices
++            edges = [] if inherited.phase == "condition" else vertex.incoming_edges
++            for edge in edges:
++                if edge.source_id in excluded:
++                    continue
++                key = output_key(edge.source_id, inherited, edge.source_handle.name)
++                receipt_id = journal.get("outputs", {}).get(key)
++                if receipt_id is None:
++                    raise OccurrenceConflict("incoming_edge_receipt_not_retained")
++                receipt_ids.extend(journal.get("outputFeedback", {}).get(receipt_id, []))
++                receipt_ids.append(receipt_id)
++                selected.append({"edgeId": edge.to_data()["id"], "source": edge.source_id,
++                                 "sourcePort": edge.source_handle.name, "receiptId": receipt_id})
++            if not selected:
++                receipt_ids = list(inherited.input_receipt_ids)
++            for receipt_id in receipt_ids:
++                await read_receipt(session, job_id, admission, receipt_id)
++            scope = replace(inherited, input_receipt_ids=tuple(receipt_ids))
++            encoded = scope.to_engine()
++            scopes[scope_key] = {"scope": encoded, "selectedEdges": selected,
++                                 "publicationId": admission["publicationId"]}
++            await save_journal(session, job_id, journal)
++            await save_graph(session, job_id, graph)
++            await session.commit()
++    return scope
+diff --git a/src/backend/base/langflow/services/trellis_v1/occurrence_store.py b/src/backend/base/langflow/services/trellis_v1/occurrence_store.py
+--- a/src/backend/base/langflow/services/trellis_v1/occurrence_store.py
++++ b/src/backend/base/langflow/services/trellis_v1/occurrence_store.py
+@@ -19,8 +19,14 @@
+ 
+ 
+ async def locked_context(session, graph, vertex_id: str):
++    job_id, admission, document, journal = await locked_graph(session, graph)
++    graph.get_vertex(vertex_id)
++    spec = document.snapshot["graphDocument"]["trellisRequestSpecsV1"][vertex_id]
++    return job_id, admission, spec, journal
++
++
++async def locked_graph(session, graph):
+     job_id = UUID(str(graph.job_id))
+-    graph.get_vertex(vertex_id)
+     job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
+     if job.status not in {JobStatus.IN_PROGRESS, JobStatus.SUSPENDED, JobStatus.QUEUED}:
+         raise OccurrenceConflict("occurrence_job_not_active")
+@@ -37,10 +43,9 @@
+             or correlation.execution_id != admission["executionId"]
+             or admission["engineJobId"] != str(job_id)):
+         raise OccurrenceConflict("occurrence_publication_conflict")
+-    spec = document.snapshot["graphDocument"]["trellisRequestSpecsV1"][vertex_id]
+     stored = await checkpoint(session, job_id, JOURNAL_KIND)
+     journal = {"revision": 0, "visits": {}} if stored is None else json.loads(stored.blob)
+-    return job_id, admission, spec, journal
++    return job_id, admission, document, journal
+ 
+ 
+ async def authorize_native(session, job_id, admission) -> str:
+@@ -70,7 +75,7 @@
+ 
+ 
+ async def save_wait(session, job_id, graph, wait_bytes: str, *, replacing: str | None = None) -> dict:
+-    snapshot = graph.build_checkpoint()
++    snapshot = checkpoint_root(graph).build_checkpoint()
+     waits = dict(snapshot.external_waits)
+     if replacing is not None:
+         old_id = json.loads(replacing)["waitId"]
+@@ -84,3 +89,16 @@
+     snapshot.external_waits = waits
+     await save_blob(session, job_id, "graph", snapshot.model_dump_json())
+     return waits
++
++
++def checkpoint_root(graph):
++    return getattr(graph, "trellis_checkpoint_root", graph)
++
++
++async def save_graph(session, job_id, graph):
++    await save_blob(session, job_id, "graph", checkpoint_root(graph).build_checkpoint().model_dump_json())
++
++
++def apply_waits(graph, waits):
++    graph.external_waits.clear()
++    graph.external_waits.update(waits)
