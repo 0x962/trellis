@@ -146,6 +146,12 @@ export async function recordCompletion(tx: Tx, input: { resultBytes: string; com
 		!reserved ||
 		!isDeepStrictEqual(reserved.provenance, input.completion.provenance) ||
 		!isDeepStrictEqual(result, input.completion.result) ||
+		!isDeepStrictEqual(input.completion.handle, reserved.handle) ||
+		result.agentRunId !== reserved.agentRunId ||
+		result.launchBinding.executionId !== reserved.executionId ||
+		result.launchBinding.publicationId !== reserved.provenance.request.publicationId ||
+		result.launchBinding.engineJobId !== reserved.provenance.request.engineJobId ||
+		result.launchBinding.engineEpoch !== reserved.provenance.request.engineEpoch ||
 		reserved.attemptId !== result.attemptId ||
 		reserved.handle.providerSessionId !== result.providerSessionId ||
 		result.promptReceiptId !== reserved.attemptId ||
@@ -167,14 +173,12 @@ export async function recordCompletion(tx: Tx, input: { resultBytes: string; com
 			completion: input.completion,
 		})
 		.returning();
-	await tx
-		.insert(langflowOutbox)
-		.values({
-			id: result.completionId,
-			executionId: result.launchBinding.executionId,
-			kind: "completion",
-			payloadBytes: input.resultBytes,
-		});
+	await tx.insert(langflowOutbox).values({
+		id: result.completionId,
+		executionId: result.launchBinding.executionId,
+		kind: "completion",
+		payloadBytes: input.resultBytes,
+	});
 	return saved!;
 }
 export async function confirmCompletion(tx: Tx, input: { receipt: CompletionReceiptV1 }) {
