@@ -31,7 +31,7 @@ test("the versioned execution index accepts pagination beyond the legacy cutoff"
 			id: flowV1FixtureIds.execution,
 			engine: "langflow" as const,
 			flowId: flowV1FixtureIds.flow,
-			status: "queued" as const,
+			status: "running" as const,
 			pendingSubmission: true,
 		},
 	];
