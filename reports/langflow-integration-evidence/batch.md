@@ -20,6 +20,7 @@ Keep each command's exit status and full private output.
 | TRL-676, TRL-683, and TRL-1003 | Durable AuthorityPort, supervisor, admission, recovery, and cancellation composition |
 | TRL-667 and TRL-685 | Matched sealed package, deterministic native account, isolation proof, and qualification bytes |
 | TRL-674 | Final matched series and the complete acceptance matrix |
+| TRL-691/1028 | Actual decision delivery and recovery through `decisionConnection`, with the TRL-696 lifecycle mounts |
 
 The source checkpoint is not a qualification receipt.
 The prior macOS Python candidate is outside the selected OCI isolation boundary.
@@ -100,3 +101,24 @@ Cursors follow retained records; token streams remain separate.
 D15 covers desktop, narrow web, CLI, and agent CLI. Native-mobile flow UI remains outside this replacement.
 TRL-698 owns installed-platform and rollback proof. Principal owns cutover timing after restore proof.
 Human release authority remains separate from every command result.
+
+## Human decision ordering
+
+PR913 supplies `decisionConnection(deps)` from `services/langflowDecisions` at source `59d5abd8a050626777cc986028a75a8951bcceac`.
+It returns `committed({executionId})` and `recover()`.
+TRL-696 must supply `langflowDecisions.state` and serialized postcommit/startup/recurring mounts with one abort signal and stop/await.
+The source handoff does not establish those mounts or their execution.
+
+Use each scenario's explicit `deliveryState` in the HTTP assertions.
+Cancel before acceptance: the engine must prevent a new acceptance; public confirmation is not required.
+Accept before cancel: recovery can confirm the original acceptance through read-only lookup.
+Neither outcome establishes successor execution.
+Retain original decision payload bytes, digest, identities, public delivery, outbox acknowledgement, and engine acceptance/queue/cancel evidence.
+Public `acceptedReceiptId` is the engine acceptance ID; checkpoint `acceptedResultId` is the decision ID.
+
+The ledger fault points are `before_transaction`, `after_acceptance`, `after_signal`, `after_enqueue_obligation`, and `after_commit`.
+The process probes cover `after_acceptance_commit`, `before_continuation_receipt`, `after_queue_lease_before_submit`, `after_dispatch_before_mark`, and `after_obligation_mark`.
+These controls belong to the existing Python fixtures, not to private HTTP parameters.
+Real lost-acknowledgement proof requires response loss after the actual engine commit.
+TRL-669 owns startup obligation drain and queue execution proof.
+No control or engine outcome was executed for this source handoff.

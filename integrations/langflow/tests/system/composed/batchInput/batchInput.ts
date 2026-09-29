@@ -10,7 +10,16 @@ import { LoadQualifiedPackageInputSchema } from "../../../../release";
 const path = z.string().refine(isAbsolute);
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const visit = FlowOccurrenceIdentityV1Schema.omit({ occurrenceKey: true, parentOccurrenceKey: true });
-const decision = z.strictObject({ visit, approved: z.boolean(), output: z.string() });
+const decision = z.strictObject({
+	visit,
+	approved: z.boolean(),
+	output: z.string(),
+	deliveryState: z.enum(["recorded", "pending", "unknown", "confirmed"]),
+});
+const cancellation = z.discriminatedUnion("when", [
+	z.strictObject({ when: z.literal("visit"), visit }),
+	z.strictObject({ when: z.literal("decisions_recorded") }),
+]);
 const expectedOccurrence = z.strictObject({
 	visit,
 	parentVisit: visit.nullable(),
@@ -46,10 +55,13 @@ export const BatchInputSchema = z.strictObject({
 		projectId: UlidSchema,
 		documentHash: hash,
 		decisions: z.array(decision),
-		cancelAt: visit.nullable(),
+		cancel: cancellation.nullable(),
 		expectedStatus: z.enum(["succeeded", "failed", "canceled"]),
 		expectedOccurrences: z.array(expectedOccurrence).min(1),
-	})).min(1),
+	}).refine(
+		(value) => value.cancel?.when !== "decisions_recorded" || value.decisions.length > 0,
+		"Cancellation after decisions requires at least one decision.",
+	)).min(1),
 });
 
 export type BatchInput = z.infer<typeof BatchInputSchema>;
