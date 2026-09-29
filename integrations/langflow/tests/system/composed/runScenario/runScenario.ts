@@ -1,9 +1,5 @@
 import assert from "node:assert/strict";
-import {
-	FlowDocumentV1Schema,
-	FlowExecutionViewV1Schema,
-	FlowRecoveryV1Schema,
-} from "@trellis/api";
+import { FlowDocumentV1Schema, FlowExecutionViewV1Schema, FlowRecoveryV1Schema } from "@trellis/api";
 import type { loadQualifiedPackage } from "../../../../release";
 import type { BatchInput, Scenario } from "../batchInput";
 import type { httpClient } from "../httpClient";
@@ -16,9 +12,7 @@ export async function runScenario(
 	qualified: Awaited<ReturnType<typeof loadQualifiedPackage>>,
 	request: ReturnType<typeof httpClient>,
 ) {
-	const recovery = FlowRecoveryV1Schema.parse(
-		await request("GET", "/flow-executions/recovery-v1"),
-	);
+	const recovery = FlowRecoveryV1Schema.parse(await request("GET", "/flow-executions/recovery-v1"));
 	assert.equal(recovery.state, "open", "host_recovery_not_open");
 	const document = FlowDocumentV1Schema.parse(
 		await request("GET", `/flows/${encodeURIComponent(scenario.start.flow)}/document-v1`),
@@ -30,9 +24,7 @@ export async function runScenario(
 	const publication = document.publication.publication;
 	assert.equal(publication.enginePackageDigest, qualified.candidate.enginePackageDigest);
 	assert.equal(publication.componentManifestHash, qualified.candidate.componentManifestHash);
-	let view = FlowExecutionViewV1Schema.parse(
-		await request("POST", "/flow-executions/start-v1", scenario.start),
-	);
+	let view = FlowExecutionViewV1Schema.parse(await request("POST", "/flow-executions/start-v1", scenario.start));
 	const executionId = view.id;
 	const sent = new Map<number, { key: string; occurrenceKey: string }>();
 	let canceled = false;
@@ -55,26 +47,29 @@ export async function runScenario(
 		previousRevision = view.revision;
 		previousEvent = view.lastEventSeq;
 		if (
-			cancellation !== null && !canceled && (
-				cancellation.when === "decisions_recorded"
-					? sent.size === scenario.decisions.length
-					: view.occurrences.some((row) =>
-						sameVisit(row, cancellation.visit) &&
-						["running", "waiting_human"].includes(row.state),
-					)
-			)
+			cancellation !== null &&
+			!canceled &&
+			(cancellation.when === "decisions_recorded"
+				? sent.size === scenario.decisions.length
+				: view.occurrences.some(
+						(row) => sameVisit(row, cancellation.visit) && ["running", "waiting_human"].includes(row.state),
+					))
 		) {
-			view = FlowExecutionViewV1Schema.parse(await request(
-				"POST", `/flow-executions/${executionId}/cancel-v1`,
-				{ id: executionId, expectedRevision: view.revision },
-			));
+			view = FlowExecutionViewV1Schema.parse(
+				await request("POST", `/flow-executions/${executionId}/cancel-v1`, {
+					id: executionId,
+					expectedRevision: view.revision,
+				}),
+			);
 			canceled = true;
 			continue;
 		}
-		const next = scenario.decisions.findIndex((decision, index) =>
-			!sent.has(index) && view.occurrences.some((row) =>
-				sameVisit(row, decision.visit) && row.state === "waiting_human" && row.waitReason === "human",
-			),
+		const next = scenario.decisions.findIndex(
+			(decision, index) =>
+				!sent.has(index) &&
+				view.occurrences.some(
+					(row) => sameVisit(row, decision.visit) && row.state === "waiting_human" && row.waitReason === "human",
+				),
 		);
 		if (next !== -1 && !canceled) {
 			const decision = scenario.decisions[next]!;
@@ -82,13 +77,15 @@ export async function runScenario(
 			assert.equal(matches.length, 1, "human_wait_not_unique");
 			const row = matches[0]!;
 			sent.set(next, { key: row.actionKey, occurrenceKey: row.occurrenceKey });
-			view = FlowExecutionViewV1Schema.parse(await request(
-				"POST", `/flow-executions/${executionId}/decision-v1`,
-				{
-					id: executionId, key: row.actionKey, expectedRevision: view.revision,
-					approved: decision.approved, output: decision.output,
-				},
-			));
+			view = FlowExecutionViewV1Schema.parse(
+				await request("POST", `/flow-executions/${executionId}/decision-v1`, {
+					id: executionId,
+					key: row.actionKey,
+					expectedRevision: view.revision,
+					approved: decision.approved,
+					output: decision.output,
+				}),
+			);
 			continue;
 		}
 		if (
@@ -98,10 +95,11 @@ export async function runScenario(
 			assert.equal(sent.size, scenario.decisions.length, "expected_decision_not_observed");
 			const deliveriesMatch = scenario.decisions.every((expected, index) => {
 				const identity = sent.get(index)!;
-				return view.decisionDeliveries.some((delivery) =>
-					delivery.actionKey === identity.key &&
-					delivery.occurrenceKey === identity.occurrenceKey &&
-					delivery.state === expected.deliveryState,
+				return view.decisionDeliveries.some(
+					(delivery) =>
+						delivery.actionKey === identity.key &&
+						delivery.occurrenceKey === identity.occurrenceKey &&
+						delivery.state === expected.deliveryState,
 				);
 			});
 			if (deliveriesMatch) break;
@@ -109,17 +107,15 @@ export async function runScenario(
 		const remaining = Date.parse(input.deadlineAt) - Date.now();
 		assert.ok(remaining > 0, "batch_deadline_elapsed");
 		await Bun.sleep(Math.min(input.pollIntervalMs, remaining, 2_147_483_647));
-		view = FlowExecutionViewV1Schema.parse(
-			await request("GET", `/flow-executions/${executionId}/view-v1`),
-		);
+		view = FlowExecutionViewV1Schema.parse(await request("GET", `/flow-executions/${executionId}/view-v1`));
 	}
 	assert.equal(canceled, cancellation !== null);
 	assert.equal(sent.size, scenario.decisions.length, "expected_decision_not_observed");
 	assert.equal(view.decisionDeliveries.length, sent.size);
 	for (const [index, identity] of sent) {
 		const expected = scenario.decisions[index]!;
-		const matches = view.decisionDeliveries.filter((delivery) =>
-			delivery.actionKey === identity.key && delivery.occurrenceKey === identity.occurrenceKey,
+		const matches = view.decisionDeliveries.filter(
+			(delivery) => delivery.actionKey === identity.key && delivery.occurrenceKey === identity.occurrenceKey,
 		);
 		assert.equal(matches.length, 1, "decision_receipt_not_unique");
 		assert.equal(matches[0]!.approved, expected.approved);
@@ -127,9 +123,7 @@ export async function runScenario(
 		assert.equal(matches[0]!.state, expected.deliveryState);
 	}
 	await verifyView(view, scenario, request);
-	const replay = FlowExecutionViewV1Schema.parse(
-		await request("POST", "/flow-executions/start-v1", scenario.start),
-	);
+	const replay = FlowExecutionViewV1Schema.parse(await request("POST", "/flow-executions/start-v1", scenario.start));
 	assert.equal(replay.id, executionId, "terminal_start_replay_changed_execution");
 	return { name: scenario.name, executionId, status: view.status, revision: view.revision };
 }
