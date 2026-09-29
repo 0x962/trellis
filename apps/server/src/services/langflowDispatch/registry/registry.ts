@@ -7,14 +7,36 @@ import { prepareFlowReconcile } from "../../flowExecutions/prepareFlowReconcile.
 import { get as getFlowExecution } from "../../flowExecutions/queries.ts";
 import * as flows from "../../flows/flows.ts";
 import * as langflowDispatch from "../../langflowDispatch";
-import { core, prepared, type ServiceEntry } from "../../registryEntry";
+import * as editorSessions from "../../langflowEditorSessions";
+import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
 
 export const flowServices = {
+	"langflowEditor.readDocument": core("read", editorSessions.readDocument),
+	"langflowEditor.saveDocument": core("mutation", editorSessions.saveDocument),
+	"langflowEditor.readSaveReceipt": core("read", editorSessions.readSaveReceipt),
 	"flowExecutions.start": core("mutation", langflowDispatch.startLegacy),
+	"flowDocuments.discovery": io("read", langflowDispatch.discovery),
 	"flowDocuments.get": core("read", flowDocuments.get),
 	"flowDocuments.save": core("mutation", langflowDispatch.saveDocument),
 	"flowDocuments.view": core("read", langflowDispatch.getView),
 	"flowDocuments.list": core("read", langflowDispatch.list),
+	"flowExecutionsV1.output": core("read", langflowDispatch.output),
+	"flowExecutionsV1.recovery": io("read", langflowDispatch.recovery),
+	"flowExecutionsV1.start": prepared(
+		"mutation",
+		(ctx, input) => langflowDispatch.prepareAction(ctx, { operation: "start", input }),
+		agentTerminal.result,
+	),
+	"flowExecutionsV1.decision": prepared(
+		"mutation",
+		(ctx, input) => langflowDispatch.prepareAction(ctx, { operation: "decision", input }),
+		agentTerminal.result,
+	),
+	"flowExecutionsV1.cancel": prepared(
+		"mutation",
+		(ctx, input) => langflowDispatch.prepareAction(ctx, { operation: "cancel", input }),
+		agentTerminal.result,
+	),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
 	"flowExecutions.decide": core("mutation", decideFlowExecution),

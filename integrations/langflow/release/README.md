@@ -7,7 +7,9 @@ Both operations use local files only.
 `loadCandidatePackage(root, expectedPackageId): Promise<CandidatePackage>` is the read-only composition interface.
 The barrel `integrations/langflow/release/index.ts` exports its function and type.
 It returns `enginePackageDigest`, `componentManifestHash`, `targetArchitecture`, `engine`, `editor`, and `manifestPath`.
-`engine` contains `layoutDirectory`, `image`, and `imageDigest`.
+`engine` contains `layoutDirectory`, `image`, `imageDigest`, and `imageConfigDigest`.
+`imageDigest` identifies the OCI manifest; `imageConfigDigest` identifies its verified config blob.
+The runtime uses the config digest for a local Docker image and retains both identities in its receipt.
 `editor.rootDirectory` names the verified editor assets.
 Its qualification stays `candidate`; the loader never admits a runtime.
 
@@ -22,6 +24,31 @@ The recipe retains the pinned source, ordered patches, both dependency locks, de
 `patchSet.sha256` hashes the canonical JSON of `patchSet.patches`, including each patch directory and order.
 `directory` uses `.` for the source root or a normalized relative path.
 The caller supplies measurements from the actual build.
+
+`componentSupportFiles` optionally lists catalog dependencies and reader support files.
+Each entry binds its payload path, SHA256, and byte size.
+The assembler verifies and copies those files with the same rules as component sources.
+The caller retains every source dependency and handle source named by the catalog.
+An omitted inventory stays absent from the canonical recipe and preserves existing package IDs.
+The field records file identity; it does not approve a catalog mapping or alter the loader output.
+
+`stageComponentCatalog` prepares these recipe fields from the original catalog bytes.
+It accepts `trellisRoot`, `engineRoot`, `expectedManifestSha256`, `engineCommit`, and a new `output` directory.
+The catalog must declare `runtimeSources` as well as definition dependencies and edge-handle sources.
+The function verifies all declared hashes and retains original paths below `catalog/trellis` and `catalog/engine`.
+Its result contains `components`, `componentSupportFiles`, and absolute `roots` beneath the output for the catalog reader.
+The caller copies those recipe fields into the complete package recipe and adds its other measured inputs.
+The original manifest retains its publication flags and diagnostics unchanged.
+The function checks copied bytes and rejects output beneath either source root.
+
+`frontendTemplates` optionally names the separate `frontend-templates.v1.json` export with its path, hash, and size.
+The assembler preserves its original bytes and checks its catalog hash, engine commit, and overlay hash against the recipe.
+Supply `recipe.patchSet.sha256` as the exporter's `engine_overlay_sha256` input.
+This hash covers the canonical ordered recipe patch records; a source-file aggregate is a different identity.
+The loader returns `frontendTemplates: { path, sha256, engineOverlayHash }` with an absolute path, or `null` when absent.
+`componentManifestPath` names the verified catalog file; `engineOverlayHash` exposes `recipe.patchSet.sha256` directly.
+The installed provider reads the verified artifact and retains its publication blockers and complete template metadata.
+The template producer owns the export schema and actual engine trace.
 
 `target.layout` names an OCI image layout inside the payload.
 Each package contains one image manifest for one target architecture.
@@ -59,7 +86,8 @@ The adapter must retain an independently trusted package digest.
 The adapter must verify the package before import or use.
 The release owner retains installation, restart, exact process confirmation, and native session retention.
 
-The OCI image build, approved base digest, restricted component catalog, production editor assets, and installer adapters remain dependencies.
+The arm64 OCI candidate build passes with pinned base images.
+The restricted component catalog, production editor assets, runtime qualification, and installer adapters remain dependencies.
 TRL-667 owns the retained candidate and its environment.
 TRL-676 owns the lifecycle interface. TRL-679 owns the editor handoff.
 TRL-696 owns composition. Principal owns the production installer.

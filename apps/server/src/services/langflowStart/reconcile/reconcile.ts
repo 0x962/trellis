@@ -21,6 +21,7 @@ export type ReconcileContext = {
 export type ReconcileDependencies = {
 	store: StartStore;
 	engine: LangflowStartEngine;
+	readAuthorityBytes: (authority: DeliveryAuthorityV1) => Promise<string>;
 	authorize: (input: { execution: StartExecution; correlation: CorrelationReceiptV1 }) => Promise<DeliveryAuthorityV1>;
 };
 
@@ -79,7 +80,14 @@ export async function reconcile(ctx: ReconcileContext, input: { executionId: str
 	if (execution.canceled || execution.submission.state === "failed")
 		return { execution, disposition: "reused" as const };
 	if (execution.admission.state !== "open" || execution.authority === null) throw new Error("admission_not_committed");
-	const result = await deps.engine.admit({ receipt: execution.admission.receipt, authority: execution.authority });
+	const authorityBytes = await deps.readAuthorityBytes(execution.authority);
+	const issuedAuthority = DeliveryAuthorityV1Schema.parse(JSON.parse(authorityBytes));
+	if (!isDeepStrictEqual(issuedAuthority, execution.authority)) throw new Error("authority_bytes_conflict");
+	const result = await deps.engine.admit({
+		receipt: execution.admission.receipt,
+		authority: execution.authority,
+		authorityBytes,
+	});
 	if (result.state === "admitted") {
 		const receipt = AdmissionReceiptV1Schema.parse(result.receipt);
 		if (!isDeepStrictEqual(receipt, execution.admission.receipt)) throw new Error("admission_conflict");

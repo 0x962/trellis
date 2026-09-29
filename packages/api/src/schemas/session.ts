@@ -5,7 +5,7 @@ import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The name stores user input, the temporary name, or the agent name from the first exchange.
 // Two sessions can use the same name.
-export const SessionNameSchema = z.string().trim().min(1, "Enter a name.").max(60);
+export const SessionNameSchema = z.string().trim().min(1, "Enter a name.");
 export const SessionGeneratedNameSchema = SessionNameSchema.refine(
 	(name) => name.split(/\s+/).length <= 8,
 	"Use eight words or fewer.",
@@ -43,7 +43,7 @@ export const SessionCreateInputSchema = z
 	.strictObject({
 		project: z.string().min(1).optional(),
 		requestId: z.string().uuid().optional(),
-		files: z.array(z.file()).max(20).optional(),
+		files: z.array(z.file()).optional(),
 		name: SessionNameSchema.optional().describe(
 			"The session name, stored as it is typed. Omit it to show New session until the first exchange supplies a name.",
 		),
