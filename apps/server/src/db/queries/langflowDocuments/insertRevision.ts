@@ -1,5 +1,8 @@
 import type { FlowDocumentSnapshotV1 } from "@trellis/api";
-import { langflowDocumentRevisions } from "../../tables/langflowDocuments/index.ts";
+import {
+	langflowDocumentPublicationStates,
+	langflowDocumentRevisions,
+} from "../../tables/langflowDocuments/index.ts";
 import type { Tx } from "../../tx.ts";
 
 // Historical imports keep their recorded metadata version. The source hash check
@@ -19,6 +22,12 @@ export const insertDocumentRevision = async (
 		documentHash: snapshot.documentHash,
 		componentManifestHash: snapshot.componentManifestHash,
 		...input,
+	});
+	await tx.insert(langflowDocumentPublicationStates).values({
+		flowId: snapshot.flow.id,
+		revision: snapshot.revision,
+		version: 1,
+		state: { state: snapshot.engine === "langflow" ? "pending" : "not_requested", revision: snapshot.revision },
 	});
 	return snapshot;
 };
