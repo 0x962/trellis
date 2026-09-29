@@ -1,0 +1,140 @@
+diff --git a/src/backend/base/langflow/alembic/versions/7b9e1c4a2d6f_add_trellis_feasibility_tables.py b/src/backend/base/langflow/alembic/versions/7b9e1c4a2d6f_add_trellis_feasibility_tables.py
+new file mode 100644
+index 000000000..fd0d51b0d
+--- /dev/null
++++ b/src/backend/base/langflow/alembic/versions/7b9e1c4a2d6f_add_trellis_feasibility_tables.py
+@@ -0,0 +1,134 @@
++"""Add the Trellis correlation and human decision tables.
++
++Revision ID: 7b9e1c4a2d6f
++Revises: 386662af02e9
++Create Date: 2026-09-29
++
++Phase: EXPAND
++"""
++
++from collections.abc import Sequence
++
++import sqlalchemy as sa
++from alembic import op
++
++revision: str = "7b9e1c4a2d6f"  # pragma: allowlist secret
++down_revision: str | None = "386662af02e9"  # pragma: allowlist secret
++branch_labels: str | Sequence[str] | None = None
++depends_on: str | Sequence[str] | None = None
++
++
++def upgrade() -> None:
++    from langflow.utils import migration
++
++    conn = op.get_bind()
++    if not migration.table_exists("trellis_job_correlations", conn):
++        op.create_table(
++            "trellis_job_correlations",
++            sa.Column("actor_kind", sa.Text(), nullable=False),
++            sa.Column("actor_name", sa.Text(), nullable=False),
++            sa.Column("request_id", sa.Uuid(), nullable=False),
++            sa.Column("host_id", sa.Text(), nullable=False),
++            sa.Column("execution_id", sa.Text(), nullable=False),
++            sa.Column("engine_job_id", sa.Uuid(), nullable=False),
++            sa.Column("engine_session_id", sa.Text(), nullable=False),
++            sa.Column("barrier_id", sa.Text(), nullable=False),
++            sa.Column("submission_bytes", sa.LargeBinary(), nullable=False),
++            sa.Column("submission_bytes_digest", sa.Text(), nullable=False),
++            sa.Column("correlation_receipt_bytes", sa.LargeBinary(), nullable=False),
++            sa.Column("admission_receipt_bytes", sa.LargeBinary(), nullable=True),
++            sa.Column("continuation_engine_request_id", sa.Text(), nullable=True),
++            sa.Column("continuation_signal_id", sa.Uuid(), nullable=True),
++            sa.Column("enqueue_obligation_id", sa.Uuid(), nullable=True),
++            sa.Column("continuation_receipt_bytes", sa.LargeBinary(), nullable=True),
++            sa.Column("enqueue_obligation_consumed_at", sa.DateTime(timezone=True), nullable=True),
++            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
++            sa.PrimaryKeyConstraint(
++                "actor_kind",
++                "actor_name",
++                "request_id",
++                name="pk_trellis_job_correlations",
++            ),
++            sa.UniqueConstraint(
++                "host_id",
++                "execution_id",
++                name="uq_trellis_job_correlations_engine_key",
++            ),
++            sa.UniqueConstraint(
++                "engine_session_id",
++                name="uq_trellis_job_correlations_engine_session",
++            ),
++            sa.UniqueConstraint(
++                "enqueue_obligation_id",
++                name="uq_trellis_job_correlations_enqueue_obligation_id",
++            ),
++        )
++        op.create_index(
++            "ix_trellis_job_correlations_engine_job_id",
++            "trellis_job_correlations",
++            ["engine_job_id"],
++            unique=True,
++        )
++
++    if not migration.table_exists("trellis_decision_acceptances_v1", conn):
++        op.create_table(
++            "trellis_decision_acceptances_v1",
++            sa.Column("decision_id", sa.Text(), nullable=False),
++            sa.Column("execution_id", sa.Text(), nullable=False),
++            sa.Column("engine_job_id", sa.Uuid(), nullable=False),
++            sa.Column("engine_request_id", sa.Text(), nullable=False),
++            sa.Column("payload_digest", sa.String(length=64), nullable=False),
++            sa.Column("decision_bytes", sa.LargeBinary(), nullable=False),
++            sa.Column("receipt_bytes", sa.LargeBinary(), nullable=False),
++            sa.Column("acceptance_id", sa.Uuid(), nullable=False),
++            sa.Column("signal_id", sa.Uuid(), nullable=False),
++            sa.Column("enqueue_obligation_id", sa.Uuid(), nullable=False),
++            sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
++            sa.PrimaryKeyConstraint("decision_id", name="pk_trellis_decision_acceptances_v1"),
++            sa.UniqueConstraint(
++                "engine_job_id",
++                "engine_request_id",
++                name="uq_trellis_decision_acceptance_wait_v1",
++            ),
++        )
++        op.create_index(
++            "ix_trellis_decision_acceptances_v1_engine_job_id",
++            "trellis_decision_acceptances_v1",
++            ["engine_job_id"],
++            unique=False,
++        )
++
++    if not migration.table_exists("trellis_decision_enqueue_obligations_v1", conn):
++        op.create_table(
++            "trellis_decision_enqueue_obligations_v1",
++            sa.Column("id", sa.Uuid(), nullable=False),
++            sa.Column("decision_id", sa.Text(), nullable=False),
++            sa.Column("engine_job_id", sa.Uuid(), nullable=False),
++            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
++            sa.Column("consumed_at", sa.DateTime(timezone=True), nullable=True),
++            sa.Column("continuation_receipt_bytes", sa.LargeBinary(), nullable=True),
++            sa.PrimaryKeyConstraint("id", name="pk_trellis_decision_enqueue_obligations_v1"),
++            sa.UniqueConstraint(
++                "decision_id",
++                name="uq_trellis_decision_enqueue_obligations_v1_decision_id",
++            ),
++        )
++        op.create_index(
++            "ix_trellis_decision_enqueue_obligations_v1_engine_job_id",
++            "trellis_decision_enqueue_obligations_v1",
++            ["engine_job_id"],
++            unique=False,
++        )
++
++
++def downgrade() -> None:
++    from langflow.utils import migration
++
++    conn = op.get_bind()
++    for table_name in (
++        "trellis_decision_enqueue_obligations_v1",
++        "trellis_decision_acceptances_v1",
++        "trellis_job_correlations",
++    ):
++        if migration.table_exists(table_name, conn):
++            op.drop_table(table_name)
