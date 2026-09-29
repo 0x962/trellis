@@ -3,7 +3,11 @@
 <h1>Feasibility assessment</h1>
 <p>Assessment date: 29 September 2026. Owner: TRL-674.</p>
 <p>The replacement does not pass feasibility. Langflow activation remains blocked. Independent source checkpoints may proceed from stable contracts under Navid's delivery delegation. This gate does not block a Trellis-only release of unrelated fixes. The merged source contains useful contracts and fixtures, but it does not establish all required engine behavior. TRL-674 remains In Progress. A source merge does not complete a feasibility parent.</p>
-<h2>Latest integrated results</h2>
+<h2>Current decisions and evidence</h2>
+<p>Navid delegates D1, D13, and D15 through the coordinator in message <code>47a14203-5f37-4f7e-b230-8888b3500f02</code>. Project note <code>01M3QANZR50GFPPAA20W1ADENE</code> records these decisions. They remove the remaining engineering approval queue. They waive no technical proof or release requirement.</p>
+<p>The PR 663 matched batch reports fifteen passes, one loop failure, and three PostgreSQL skips. The frozen Review v71 fixture passes exact branch, group, and private output comparisons. The loop fails with <code>KeyError: feedbackPath</code> before its combined assertion completes. The candidate retains <code>runs/semantics-4a46a87d/result.json</code> and its command, log, and restoration records. The verified log digest is <code>1325b5a8526af508232044e6fc7b4f679725761d6c5ef767b76471d24c4e43bc</code>. The later diagnostic passes, but it changes both tracing and test selection. It does not replace the failed suite result.</p>
+<p>PR 612 adds three passing native cancellation cases and 64 assertions. Engine cancellation remains open: TRL-669 owns completion transaction ordering against cancellation. The authorized OrbStack start succeeds, but Docker socket checks time out. TRL-685 owns host diagnosis. No OCI isolation result or rendered editor acceptance follows from these receipts.</p>
+<h2>Earlier integrated results</h2>
 <p>This section records the repaired batches. The sections marked “First batch” below preserve earlier results. No required engineering probe passes its complete acceptance condition yet.</p>
 <p>PR 641 supplies the combined backend patch <code>a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85</code>. The schema patch remains <code>ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6</code>. The semantics command uses source <code>7bb522a10c76ab231fadc815dd57bcfc53169095</code>. It reports twelve passes, four failures, and three PostgreSQL skips in 8.43 seconds. The human-wait graph resumes one successor. This case does not prove all human-decision crash windows.</p>
 <div class="table"><table><thead><tr><th>Failed case</th><th>Observed result</th><th>Owner</th></tr></thead><tbody>
@@ -17,7 +21,7 @@
 <p>The preceding correlation repair batch reports fifteen passes, one failure, and five PostgreSQL skips in 120.83 seconds. The service-death case fails, so ENG-F1 and F22 remain incomplete. The preceding decision batch reports eleven passes, one failure, and one PostgreSQL skip. PR 630 repairs its vertex suspension boundary; the newer human-wait result does not replace the full decision fault matrix. ENG-F20 remains incomplete.</p>
 <p>The native follow-up in PR 591 reports eight passes and 158 assertions in 21.23 seconds. Separate processes now prove owner death, a takeover race, durable reopen, and unchanged native provenance in the isolated fixture. This closes the earlier same-process-only gap, not production supervisor proof. ENG-F4 and F21 remain incomplete. ENG-F6 still needs Langflow deadline traces. ENG-F7 still lacks the complete cancellation-writer and output/decision race matrix.</p>
 <p>PR 642 reports thirty-one passing gateway source tests and a passing type check. Its HTTP loss fixture failed because the transport replayed the accepted request. The PR 648 HTTP fixture now passes: it observes the lost response, replays revision 3, and saves a distinct request as revision 4. The fixture records forty events. Its manifests and focused type check pass. The candidate retains this evidence under <code>runs/editor-ab6f56dd</code>.</p>
-<p>HTTP acceptance does not establish browser acceptance. TRL-672 owns the separate rendered proof. Linux OCI isolation remains unproved. The stopped shared engine awaits host-owner release.</p>
+<p>HTTP acceptance does not establish browser acceptance. TRL-672 owns the separate rendered proof. Linux OCI isolation remains unproved. The current engine availability result appears above.</p>
 <h2>First batch: source and authority</h2>
 <p>The source batch ends at <code>1753c14fcf5ae2a71d99c300574a79ee7e219895</code>. The first source inspection uses <code>79004c939030861009f709986cd8ec2f18dc83f3</code>. Principal reports ten forced type checks with no cached tasks at that commit. That report does not establish Python, browser, or installed behavior.</p>
 <p>Langflow remains pinned to <code>fec71dca901949c09ed4d63315804337cd2eb13d</code>, tree <code>e6ac634257b30645b6c35bcc707ed271789877d6</code>. <code>integrations/langflow/patches/series.json</code> specifies backend first, then editor under <code>src/frontend</code>. The backend patch digest is <code>4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0</code>. The editor patch digest is <code>4006793d90fdae7e16e1fc6e6a97ed1c155c75a64ce851662a4a48a203375fc9</code>. These identify the rejected first batch, not an accepted release. The assessment now includes repaired source through <code>523572708</code>; it does not apply those repairs to the reported first-batch results.</p>
@@ -79,9 +83,9 @@
 <tr><td>UI-F6</td><td>Dense graph and repeated-round navigation</td><td>Dense fixtures exist. Rendered and live-engine results remain open.</td></tr>
 </tbody></table></div>
 <h2>Decisions D1-D20</h2>
-<p>The delivery delegation permits routine engineering decisions. It does not supply missing human acceptance or platform proof.</p>
+<p>The delivery delegation supplies the engineering decisions below. It does not establish runtime or platform proof.</p>
 <div class="table"><table><thead><tr><th>Decision</th><th>Disposition</th></tr></thead><tbody>
-<tr><td>D1: maintained backend patch</td><td>Human acceptance remains open after the technical assessment. Current source does not pass feasibility.</td></tr>
+<tr><td>D1: maintained backend patch</td><td>Proceed with the bounded maintained backend patch under Navid's delegation. Every required engine proof remains mandatory. No further engineering approval queue applies.</td></tr>
 <tr><td>D2: editor mount</td><td>Navid selects the full Langflow editor inside the Trellis workspace. Note <code>01M3Q242R632TB5G9CSYVX909R</code> records the choice.</td></tr>
 <tr><td>D3: save concurrency</td><td>Keep the public V1 <code>expectedVersion</code> and request-identity contract.</td></tr>
 <tr><td>D4: format compatibility</td><td>Keep versioned endpoints and explicit unsupported legacy writes.</td></tr>
@@ -93,9 +97,9 @@
 <tr><td>D10: historical deletion</td><td>Preserve current cascade behavior. No stronger retention promise.</td></tr>
 <tr><td>D11: missing history</td><td>Preserve available bytes and explicit missing-data diagnostics.</td></tr>
 <tr><td>D12: runtime and isolation</td><td>The delegated choice selects Linux OCI arm64 on existing local Docker first, then Linux OCI x86_64 in existing hosted CI. Keep CPython 3.12.12 and the immutable source/lock. Both targets remain unproved. The direct macOS Python candidate fails full filesystem isolation and is not an accepted boundary.</td></tr>
-<tr><td>D13: event retention</td><td>Event cursor lifetime and storage budget remain open. Token streams stay outside milestone retention.</td></tr>
+<tr><td>D13: event retention</td><td>Preserve all durable execution milestones and receipts through the existing execution and history lifecycle. Cursor availability follows retained records. Add no arbitrary event ceiling or silent prune. Keep token streams separate.</td></tr>
 <tr><td>D14: Review prompts</td><td>Preserve Review v71 instructions and independent roots.</td></tr>
-<tr><td>D15: client scope</td><td>Preserve desktop and narrow web. Native-mobile addition remains unapproved. The named external-client inventory remains open.</td></tr>
+<tr><td>D15: client scope</td><td>Complete the actual inventory for desktop, narrow web, CLI, and agent CLI consumers. Native-mobile flow UI stays outside this replacement. Inventory completion remains engineering work, not an approval request.</td></tr>
 <tr><td>D16: cutover and rollback</td><td>Principal selects the release window after restore proof. Drain existing legacy runs and unresolved stops.</td></tr>
 <tr><td>D17: decision ledger</td><td>Preserve atomic acceptance, resume signal, obligation, and exact lookup. Require ENG-F20 proof.</td></tr>
 <tr><td>D18: engine authority</td><td>Preserve compare-and-set transfer and immutable launch provenance. Require ENG-F21 proof.</td></tr>
