@@ -62,6 +62,7 @@ tests = {
             "tests": tests,
             "requires": [
                 "langflow.services.trellis_v1.capture_writer.install_capture_boundary",
+                "langflow.services.trellis_v1.occurrence_transport.install_request_transport",
                 "BackgroundExecutionService.resume_after_capture",
                 "all private domain router fragments",
             ],

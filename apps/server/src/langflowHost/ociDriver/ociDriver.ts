@@ -40,6 +40,7 @@ export type OciDriverOptions = {
 	privateRoot: string;
 	captureIssuerFile: string;
 	engineApiConfigFile?: string;
+	nativeReservationAuthenticationFile?: string;
 	dockerExecutable?: string;
 	dependencies?: Partial<OciDriverDependencies>;
 };
@@ -52,6 +53,12 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	if (options.engineApiConfigFile && !isAbsolute(options.engineApiConfigFile)) {
 		throw new Error("sidecar_engine_api_config_path_invalid");
 	}
+	if (options.nativeReservationAuthenticationFile && !isAbsolute(options.nativeReservationAuthenticationFile)) {
+		throw new Error("sidecar_native_reservation_authentication_path_invalid");
+	}
+	if (Boolean(options.engineApiConfigFile) !== Boolean(options.nativeReservationAuthenticationFile)) {
+		throw new Error("sidecar_engine_api_configuration_incomplete");
+	}
 	const executable = options.dockerExecutable ?? "docker";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(executable, args));
 	const fetcher = options.dependencies?.fetch ?? fetch;
@@ -63,12 +70,15 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	};
 
 	async function engineApiConfig() {
-		if (!options.engineApiConfigFile) return { path: null, digest: null };
+		if (!options.engineApiConfigFile || !options.nativeReservationAuthenticationFile) {
+			return { path: null, digest: null, nativeReservationAuthenticationFile: null };
+		}
 		const path = await privateFile(options.engineApiConfigFile);
+		const nativeReservationAuthenticationFile = await privateFile(options.nativeReservationAuthenticationFile);
 		const digest = createHash("sha256")
 			.update(await readFile(path))
 			.digest("hex");
-		return { path, digest };
+		return { path, digest, nativeReservationAuthenticationFile };
 	}
 
 	async function assertIsolation(identity: SidecarIdentity) {
@@ -152,6 +162,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 				authenticationFile: authentication,
 				captureIssuerFile: captureIssuer,
 				engineApiConfigFile: configuredEngineApi.path,
+				nativeReservationAuthenticationFile: configuredEngineApi.nativeReservationAuthenticationFile,
 				storage,
 			});
 			const result = await run(

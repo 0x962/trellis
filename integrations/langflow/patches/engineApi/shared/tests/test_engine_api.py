@@ -174,3 +174,55 @@ async def test_revocation_retains_only_the_cancel_permission():
         engine_job_id=UUID("00000000-0000-4000-8000-000000000001"),
     )
     assert accepted.engine_epoch == 2
+
+
+@pytest.mark.asyncio
+async def test_review_classification_uses_its_own_permission():
+    session = Session()
+    current = authority_bytes(permissions=["review.classify"])
+    await commit_authority(session, current, expected_capability_id=None)
+
+    accepted = await require_authority(
+        session,
+        current,
+        "review.classify",
+        execution_id="execution-1",
+        publication_id="publication-1",
+        engine_job_id=UUID("00000000-0000-4000-8000-000000000001"),
+    )
+    assert accepted.authority.permissions == ("review.classify",)
+    with pytest.raises(AuthorityUnauthorized, match="authority_not_current"):
+        await require_authority(
+            session,
+            current,
+            "native.reserve",
+            execution_id="execution-1",
+            publication_id="publication-1",
+            engine_job_id=UUID("00000000-0000-4000-8000-000000000001"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_classification_delivery_uses_its_own_permission():
+    session = Session()
+    current = authority_bytes(permissions=["classification.deliver"])
+    await commit_authority(session, current, expected_capability_id=None)
+
+    accepted = await require_authority(
+        session,
+        current,
+        "classification.deliver",
+        execution_id="execution-1",
+        publication_id="publication-1",
+        engine_job_id=UUID("00000000-0000-4000-8000-000000000001"),
+    )
+    assert accepted.authority.permissions == ("classification.deliver",)
+    with pytest.raises(AuthorityUnauthorized, match="authority_not_current"):
+        await require_authority(
+            session,
+            current,
+            "review.classify",
+            execution_id="execution-1",
+            publication_id="publication-1",
+            engine_job_id=UUID("00000000-0000-4000-8000-000000000001"),
+        )
