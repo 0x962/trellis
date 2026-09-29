@@ -12,6 +12,7 @@ import { openTestDb } from "./testDb.ts";
 
 const at = new Date("2026-09-24T12:00:00.000Z");
 const human = { name: "Test", kind: "human" } as const;
+const humanActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${human.kind}, ${human.name}]::text[])`;
 const agent = { name: "page-agent", kind: "agent" } as const;
 const projectId = ulid();
 const pageId = ulid();
@@ -32,10 +33,10 @@ const insertVersion = (
 ) =>
 	db.execute(sql`INSERT INTO page_versions
 		(page_id, number, request_id, document_sha256, document_size, search_text, source_agent_id, source_path,
-		 actor_name, actor_kind, created_at)
+		 actor_name, actor_kind, created_at, actor_id)
 		VALUES (${pageId}, ${number}, ${overrides?.requestId ?? crypto.randomUUID()},
 			${overrides?.sha ?? documentSha}, ${overrides?.size ?? 100}, '', ${agentId},
-			${overrides?.path ?? "pages/index.html"}, ${human.name}, ${human.kind}, ${at})`);
+			${overrides?.path ?? "pages/index.html"}, ${human.name}, ${human.kind}, ${at}, ${humanActorId})`);
 
 beforeAll(async () => {
 	db = await openTestDb();
@@ -48,9 +49,9 @@ beforeAll(async () => {
 		VALUES (${agentId}, 'page-agent', 'session', '', ${projectId}, 'TST', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO pages
 		(id, project_id, slug, title, summary, version, latest_version,
-		 creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
+		 creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at, actor_id, creator_actor_id)
 		VALUES (${pageId}, ${projectId}, 'release-report', 'Release report', '', 1, 1,
-			${human.name}, ${human.kind}, ${human.name}, ${human.kind}, ${at}, ${at})`);
+			${human.name}, ${human.kind}, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId}, ${humanActorId})`);
 	await insertVersion(1);
 }, 30_000);
 
@@ -66,9 +67,9 @@ test("Page rows enforce stable project identity, revisions, actors, and soft del
 	);
 	await constraint(
 		db.execute(sql`INSERT INTO pages
-			(id, project_id, slug, title, creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
+			(id, project_id, slug, title, creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at, actor_id, creator_actor_id)
 			VALUES (${ulid()}, ${projectId}, 'release-report', 'Other', ${human.name}, ${human.kind},
-				${human.name}, ${human.kind}, ${at}, ${at})`),
+				${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId}, ${humanActorId})`),
 		"pages_project_id_slug_unique",
 	);
 	await constraint(db.execute(sql`UPDATE pages SET title = ' padded ' WHERE id = ${pageId}`), "pages_title_check");
@@ -151,18 +152,18 @@ test("Page versions enforce immutable request, document, source, and asset recor
 
 test("Page uploads, comments, watches, and pins enforce their row state", async () => {
 	await db.execute(sql`INSERT INTO page_uploads
-		(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at)
+		(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at, actor_id)
 		VALUES (${ulid()}, ${projectId}, ${assetSha}, 100, 'text/css', 'app.css',
-			${human.name}, ${human.kind}, ${at}, ${new Date(at.getTime() + 86_400_000)})`);
+			${human.name}, ${human.kind}, ${at}, ${new Date(at.getTime() + 86_400_000)}, ${humanActorId})`);
 	await db.execute(sql`INSERT INTO page_uploads
-		(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at)
+		(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at, actor_id)
 		VALUES (${ulid()}, ${projectId}, ${emptySha}, 0, 'text/plain', 'empty.txt',
-			${human.name}, ${human.kind}, ${at}, ${new Date(at.getTime() + 86_400_000)})`);
+			${human.name}, ${human.kind}, ${at}, ${new Date(at.getTime() + 86_400_000)}, ${humanActorId})`);
 	await constraint(
 		db.execute(sql`INSERT INTO page_uploads
-			(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at)
+			(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at, actor_id)
 			VALUES (${ulid()}, ${projectId}, ${assetSha}, 100, 'text/css', 'app.css',
-				${human.name}, ${human.kind}, ${at}, ${at})`),
+				${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_uploads_expiry_check",
 	);
 
@@ -179,44 +180,43 @@ test("Page uploads, comments, watches, and pins enforce their row state", async 
 		{ size: PAGE_COMMENT_ANCHOR_MAX_BYTES },
 	]);
 	await db.execute(sql`INSERT INTO page_comment_threads
-		(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at)
+		(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
 		VALUES (${threadId}, ${pageId}, 1, 'text', ${{ kind: "text", path: "body/p[1]", quote: "Result", prefix: "", suffix: "" }}::jsonb,
-			'Result', ${human.name}, ${human.kind}, ${at}, ${at})`);
+			'Result', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comment_threads
-			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at)
+			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
 			VALUES (${ulid()}, ${pageId}, 1, 'element', ${{ kind: "element", path: "body" }}::jsonb,
-				'Result', ${human.name}, ${human.kind}, ${at}, ${at})`),
+				'Result', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_comment_threads_selected_text_check",
 	);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comment_threads
-			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${ulid()}, ${pageId}, 1, 'text', ${{ kind: "text", path: "body", quote: "Result", prefix: "", suffix: "" }}::jsonb,
-				NULL, ${human.name}, ${human.kind}, ${at}, ${at})`),
+			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
+			VALUES (${ulid()}, ${pageId}, 1, 'text', ${{ kind: "text", path: "body", quote: "Result", prefix: "", suffix: "" }}::jsonb, NULL, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_comment_threads_selected_text_check",
 	);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comment_threads
-			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at)
+			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
 			VALUES (${ulid()}, ${pageId}, 1, 'text', ${{ kind: "element", path: "body" }}::jsonb,
-				'Result', ${human.name}, ${human.kind}, ${at}, ${at})`),
+				'Result', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_comment_threads_anchor_check",
 	);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comment_threads
-			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at)
+			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
 			VALUES (${ulid()}, ${pageId}, 1, 'text', ${{ path: "body" }}::jsonb,
-				'Result', ${human.name}, ${human.kind}, ${at}, ${at})`),
+				'Result', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_comment_threads_anchor_check",
 	);
 	await db.execute(sql`INSERT INTO page_comments
-		(id, thread_id, body, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${ulid()}, ${threadId}, 'Change this result.', ${human.name}, ${human.kind}, ${at}, ${at})`);
+		(id, thread_id, body, actor_name, actor_kind, created_at, updated_at, actor_id)
+		VALUES (${ulid()}, ${threadId}, 'Change this result.', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comments
-			(id, thread_id, body, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${ulid()}, ${threadId}, ${"x".repeat(10001)}, ${human.name}, ${human.kind}, ${at}, ${at})`),
+			(id, thread_id, body, actor_name, actor_kind, created_at, updated_at, actor_id)
+			VALUES (${ulid()}, ${threadId}, ${"x".repeat(10001)}, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_comments_body_check",
 	);
 
@@ -249,11 +249,11 @@ test("Page uploads, comments, watches, and pins enforce their row state", async 
 		sql`SELECT reservation_id, reservation_end_id FROM page_watches WHERE page_id = ${pageId}`,
 	);
 	expect(reserved.rows).toEqual([{ reservation_id: reservationId, reservation_end_id: reservationEndId }]);
-	await db.execute(sql`INSERT INTO page_pins (page_id, actor_name, actor_kind, created_at)
-		VALUES (${pageId}, ${human.name}, ${human.kind}, ${at})`);
+	await db.execute(sql`INSERT INTO page_pins (page_id, actor_name, actor_kind, created_at, actor_id)
+		VALUES (${pageId}, ${human.name}, ${human.kind}, ${at}, ${humanActorId})`);
 	await constraint(
-		db.execute(sql`INSERT INTO page_pins (page_id, actor_name, actor_kind, created_at)
-			VALUES (${pageId}, ${human.name}, ${human.kind}, ${at})`),
+		db.execute(sql`INSERT INTO page_pins (page_id, actor_name, actor_kind, created_at, actor_id)
+			VALUES (${pageId}, ${human.name}, ${human.kind}, ${at}, ${humanActorId})`),
 		"page_pins_pkey",
 	);
 });

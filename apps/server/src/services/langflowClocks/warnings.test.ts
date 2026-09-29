@@ -8,8 +8,8 @@ import {
 } from "../../db/queries/langflowExecution";
 import { ids, now } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
-import { cancelExecution } from "../langflowStops/cancelExecution";
-import { stopFixture } from "../langflowStops/testFixture";
+import { cancelExecution } from "../langflowStops";
+import { stopFixture } from "../langflowTestFixture";
 import { recordLaunchClocks } from "./recordLaunchClocks";
 import { sendWarnings } from "./sendWarnings";
 

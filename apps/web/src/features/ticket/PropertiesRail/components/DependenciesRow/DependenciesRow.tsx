@@ -1,9 +1,10 @@
-import type { Ticket, TicketSummary } from "@trellis/api";
+import { useQuery } from "@tanstack/react-query";
+import type { Ticket, TicketDependency } from "@trellis/api";
 import { Button, PropertyRow, TicketId } from "@trellis/ui";
+import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { failToast } from "../../../../../lib/failToast";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
-import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { usePickerStore } from "../../../stores/pickerStore";
 
 export type DependenciesRowProps = {
@@ -29,52 +30,56 @@ function Identifiers({ tickets, empty }: { tickets: readonly { identifier: strin
 	);
 }
 
-// The two directions of the dependency chain, one row each. Waits on lists
-// the tickets that hold this ticket back. Blocks lists the tickets that this
-// ticket holds back. One edge joins both rows, so a pick in either row writes
-// the same kind of record and the other row shows it at once.
-//
-// Each pick writes one edge and leaves the picker open for another pick. The
-// server drops a ticket that is done from both lists.
 export function DependenciesRow({ ticket }: DependenciesRowProps) {
 	const { client, orpc, queryClient } = useApp();
-	const { write } = useTicketWrite(ticket.identifier);
 	const open = usePickerStore((state) => state.open);
 	const setOpen = usePickerStore((state) => state.setOpen);
 
-	const refreshSearch = () => queryClient.invalidateQueries({ queryKey: orpc.search.key() });
+	const busy = useRef(false);
+	const [pending, setPending] = useState<string | null>(null);
+	const relationships = useQuery({
+		...orpc.tickets.dependencies.queryOptions({ input: { ticket: ticket.identifier } }),
+		enabled: open === "dependencies" || open === "blocks",
+		staleTime: 0,
+	});
 
-	const toggleWaitsOn = async (dependency: TicketSummary, next: boolean) => {
-		const change = next ? { after: [dependency.identifier] } : { notAfter: [dependency.identifier] };
+	const changeEdge = async (related: { identifier: string }, direction: "waitsOn" | "blocks", next: boolean) => {
+		if (busy.current) return;
+		busy.current = true;
+		setPending(related.identifier);
+		const target = direction === "waitsOn" ? ticket.identifier : related.identifier;
+		const dependency = direction === "waitsOn" ? related.identifier : ticket.identifier;
 		try {
-			await write((used) => used.tickets.updateDependencies({ ticket: ticket.identifier, ...change }));
-			await refreshSearch();
+			await client.tickets.updateDependencies({
+				ticket: target,
+				...(next ? { after: [dependency] } : { notAfter: [dependency] }),
+			});
+			await Promise.all([
+				queryClient.invalidateQueries({ queryKey: orpc.tickets.key() }),
+				queryClient.invalidateQueries({ queryKey: orpc.search.key() }),
+				queryClient.invalidateQueries({ queryKey: orpc.epics.key() }),
+				queryClient.invalidateQueries({ queryKey: orpc.needsYou.key() }),
+			]);
 		} catch (error) {
 			failToast(
-				`The dependencies of ${ticket.identifier} did not change.`,
+				`The dependencies of ${target} did not change.`,
 				error,
-				() => void toggleWaitsOn(dependency, next),
+				() => void changeEdge(related, direction, next),
 			);
+		} finally {
+			busy.current = false;
+			setPending(null);
 		}
 	};
-
-	// This row writes the edge on the other ticket, because a ticket stores
-	// only the tickets it waits on. The write therefore takes no optimistic
-	// row here; the reread of this ticket brings the new Blocks list.
-	const toggleBlocks = async (released: TicketSummary, next: boolean) => {
-		const change = next ? { after: [ticket.identifier] } : { notAfter: [ticket.identifier] };
-		try {
-			await client.tickets.updateDependencies({ ticket: released.identifier, ...change });
-			await queryClient.invalidateQueries({ queryKey: orpc.tickets.get.key() });
-			await refreshSearch();
-		} catch (error) {
-			failToast(
-				`The dependencies of ${released.identifier} did not change.`,
-				error,
-				() => void toggleBlocks(released, next),
-			);
-		}
-	};
+	const selection = (direction: "waitsOn" | "blocks") => ({
+		items: relationships.data?.[direction] ?? [],
+		onRemove: (related: TicketDependency) => changeEdge(related, direction, false),
+		pending: pending !== null,
+		removing: pending,
+		loading: relationships.isPending,
+		error: relationships.error,
+		retry: () => void relationships.refetch(),
+	});
 
 	return (
 		<>
@@ -82,8 +87,8 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 				<TicketPicker
 					project={ticket.project.key}
 					exclude={[ticket.identifier]}
-					isChecked={(candidate) => candidate.releases.some((release) => release.identifier === ticket.identifier)}
-					onToggle={(dependency, next) => void toggleWaitsOn(dependency, next)}
+					selection={selection("waitsOn")}
+					onAdd={(dependency) => void changeEdge(dependency, "waitsOn", true)}
 					allowNone={false}
 					label="Waits on"
 					placeholder="Set the tickets this one waits on: an identifier or a title"
@@ -100,8 +105,8 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 				<TicketPicker
 					project={ticket.project.key}
 					exclude={[ticket.identifier]}
-					isChecked={(candidate) => candidate.waitsOn.some((dependency) => dependency.identifier === ticket.identifier)}
-					onToggle={(released, next) => void toggleBlocks(released, next)}
+					selection={selection("blocks")}
+					onAdd={(released) => void changeEdge(released, "blocks", true)}
 					allowNone={false}
 					label="Blocks"
 					placeholder="Set the tickets this one blocks: an identifier or a title"

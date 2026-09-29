@@ -1,9 +1,14 @@
 {
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "0001-consistent-engine-snapshot.patch",
-  "sha256": "12850efffc6a5a6f665beb689927e01679e38d98a4250872bdfae729dc1e0c9f",
+  "sha256": "659e9d3f6f56af961c2e0d15261d655232f8fd0c3c526678f1db933f72fda04c",
   "files": {
-    "src/backend/base/langflow/services/trellis_v1/backup.py": "aee617407140bb6cc3fa33a973ec5f19040eba7c820d5541b1daa6446738663b",
-    "src/backend/base/langflow/services/trellis_v1/backup_router.py": "17c5b5804bb7be0353c0cbbdf0d1f6103b0ad9570be064371cfaaed53b60657c"
+    "src/backend/base/langflow/services/trellis_v1/backup.py": "64a3f01883af8df5f00dcd792f0203037fa73dd0529e9a4e9cb739a10e65de53",
+    "src/backend/base/langflow/services/trellis_v1/backup_router.py": "c4736c913e6b2b2aaa5e38aa80168dda3b974d2876c6881a5b5d36b20f56cbe6",
+    "src/backend/base/langflow/services/trellis_v1/capture_boundary.py": "562e99e5e87a79e42b3007d1f4c47fb8df36e04eccb51a7e34f03e554c9a8c6a",
+    "src/backend/base/langflow/services/trellis_v1/capture_grants.py": "9d54e01bf793679d38035f7ab70412a64a282c041f4c20d7eee61332cc649b60",
+    "src/backend/base/langflow/services/trellis_v1/capture_router.py": "496025b29089e3b62aaf8f37cc452eb1a50f840a2cd448b780d6d26cf5dc163e",
+    "src/backend/base/langflow/services/trellis_v1/capture_store.py": "5f4340dfd1313a919979e89543fd242de01ce2dafbc6cd78a6cc326921ce7c9c",
+    "src/backend/base/langflow/services/trellis_v1/capture_tasks.py": "a42326a23d7eef71db42e0eea0c88dde5a853bf558e6e601e0c6c934805855bd"
   }
 }

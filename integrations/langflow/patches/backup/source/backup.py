@@ -4,12 +4,23 @@ import asyncio
 import hashlib
 import os
 import sqlite3
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal
 from uuid import UUID
 
 import aiosqlite
 from pydantic import BaseModel, ConfigDict, Field
+
+from langflow.services.trellis_v1.capture_tasks import finish_capture_task
+
+
+class SnapshotConflict(ValueError):
+    pass
+
+
+class SnapshotMissing(FileNotFoundError):
+    pass
 
 
 class Compatibility(BaseModel):
@@ -77,19 +88,22 @@ def inspect_database(path: Path) -> tuple[list[str], list[str]]:
     return revisions, tables
 
 
-async def export_engine_snapshot(database, settings, root: Path, binding: SnapshotBinding, *, package_digest: str,
+async def _export_engine_snapshot(database, settings, root: Path, binding: SnapshotBinding, *, package_digest: str,
                                  data_home_id: str, host_id: str) -> EngineSnapshotReceipt:
     if database.engine.dialect.name != "sqlite":
         raise ValueError("engine_snapshot_database_unsupported")
     if (binding.compatibility.enginePackageDigest, binding.sourceDataHomeId, binding.sourceHostId) != (
         package_digest, data_home_id, host_id
     ):
-        raise ValueError("engine_snapshot_identity_conflict")
+        raise SnapshotConflict("engine_snapshot_identity_conflict")
     secret = settings.auth_settings.SECRET_KEY.get_secret_value().encode("utf-8")
     if hashlib.sha256(secret).hexdigest() != binding.compatibility.secretVersion:
-        raise ValueError("engine_snapshot_secret_conflict")
+        raise SnapshotConflict("engine_snapshot_secret_conflict")
     directory = root / str(binding.snapshotId)
-    directory.mkdir(mode=0o700)
+    try:
+        directory.mkdir(mode=0o700)
+    except FileExistsError as error:
+        raise SnapshotConflict("engine_snapshot_exists") from error
     target = directory / "database.sqlite"
     write_private(target, b"")
     async with database.engine.connect() as connection:
@@ -98,7 +112,7 @@ async def export_engine_snapshot(database, settings, root: Path, binding: Snapsh
             await raw.driver_connection.backup(destination)
     revisions, tables = await asyncio.to_thread(inspect_database, target)
     if ",".join(revisions) != binding.compatibility.engineDatabaseVersion:
-        raise ValueError("engine_snapshot_database_version_conflict")
+        raise SnapshotConflict("engine_snapshot_database_version_conflict")
     if not {"job", "job_checkpoints", "execution_signals", "trellis_job_correlations",
             "trellis_decision_acceptances_v1", "trellis_decision_enqueue_obligations_v1"}.issubset(tables):
         raise ValueError("engine_snapshot_job_tables_missing")
@@ -116,3 +130,28 @@ async def export_engine_snapshot(database, settings, root: Path, binding: Snapsh
     sync_directory(directory)
     sync_directory(root)
     return receipt
+
+
+async def capture_engine_snapshot(database, settings, root: Path, binding: SnapshotBinding, *, package_digest: str,
+                                  data_home_id: str, host_id: str,
+                                  snapshot_boundary: Callable[[SnapshotBinding], AbstractAsyncContextManager]) -> EngineSnapshotReceipt:
+    async with snapshot_boundary(binding):
+        return await finish_capture_task(_export_engine_snapshot(
+            database, settings, root, binding, package_digest=package_digest,
+            data_home_id=data_home_id, host_id=host_id,
+        ))
+
+
+def snapshot_file(root: Path, snapshot_id: UUID, part: str) -> Path:
+    names = {"database": "database.sqlite", "secret": "secret"}
+    if part not in names:
+        raise SnapshotMissing("engine_snapshot_part_not_found")
+    directory = root / str(snapshot_id)
+    try:
+        receipt_bytes = (directory / "receipt.json").read_bytes()
+    except FileNotFoundError as error:
+        raise SnapshotMissing("engine_snapshot_not_found") from error
+    receipt = EngineSnapshotReceipt.model_validate_json(receipt_bytes)
+    if receipt.binding.snapshotId != snapshot_id:
+        raise SnapshotConflict("engine_snapshot_receipt_conflict")
+    return directory / names[part]

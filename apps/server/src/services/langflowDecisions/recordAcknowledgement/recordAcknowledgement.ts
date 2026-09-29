@@ -4,7 +4,7 @@ import { lockExecution, readDecision, updateDecisionDelivery } from "../../../db
 import type { Tx } from "../../../db/tx.ts";
 import { fail } from "../../../errors.ts";
 import { type HumanDeliveryV1, HumanDeliveryV1Schema } from "../../../langflowContracts";
-import { saveDelivery } from "../saveDelivery/saveDelivery.ts";
+import { saveDecisionDelivery } from "../../langflowProjection";
 
 export async function recordAcknowledgement(
 	ctx: ServiceCtx,
@@ -31,5 +31,5 @@ export async function recordAcknowledgement(
 			? { ...key, state: "confirmed", acceptance: delivery.acceptance }
 			: { ...key, state: "unknown" },
 	);
-	return saveDelivery(ctx, tx, saved);
+	return saveDecisionDelivery(ctx, tx, saved);
 }

@@ -21,6 +21,8 @@ export const PackageRecipeSchema = z.strictObject({
 	}),
 	lock: sidecar.lock,
 	components: sidecar.components,
+	componentSupportFiles: z.array(DigestFileSchema).optional(),
+	frontendTemplates: DigestFileSchema.optional(),
 	python: sidecar.python.extend({ version: z.literal("3.12.12") }),
 	target: z.strictObject({
 		kind: z.literal("linux-oci"),

@@ -5,7 +5,7 @@ export type MenuLinkIcon = z.infer<typeof MenuLinkIconSchema>;
 
 export const MenuLinkSchema = z.strictObject({
 	id: z.uuid(),
-	label: z.string().trim().min(1, "Enter a label.").max(80),
+	label: z.string().trim().min(1, "Enter a label."),
 	icon: MenuLinkIconSchema,
 	url: z.url({ protocol: /^https$/ }).refine((value) => {
 		if (!URL.canParse(value)) return false;
@@ -21,7 +21,7 @@ export const SettingsSchema = z.object({
 		.refine((links) => new Set(links.map((link) => link.id)).size === links.length, "Use a unique ID for each link.")
 		.optional(),
 	notifications: z.object({ sound: z.boolean(), native: z.boolean(), volume: z.number().min(0).max(100) }).optional(),
-	defaultActorName: z.string().max(64, "Enter a default name of 64 characters or less."),
+	defaultActorName: z.string(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

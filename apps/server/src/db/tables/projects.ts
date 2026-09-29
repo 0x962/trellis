@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { checkIn, PROJECT_COLORS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
 
@@ -36,7 +36,7 @@ export const projects = pgTable(
 			"projects_slug_check",
 			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'pages', 'settings')`,
 		),
-		check("projects_name_check", sql`length(${t.name}) BETWEEN 1 AND 120`),
+		check("projects_name_check", sql`length(${t.name}) >= 1`),
 		checkIn(t.color, PROJECT_COLORS),
 		uniqueIndex("projects_color_idx").on(t.color).where(sql`${t.archivedAt} IS NULL`),
 	],
@@ -61,6 +61,9 @@ export const repos = pgTable(
 
 // One status per project is the default for a new ticket. `description` is
 // markdown that describes the status.
+// The status hash indexes support equality exclusion constraints in the migration.
+// They compare complete values without the B-tree entry size limit.
+// The project ID length keeps each project and value pair distinct.
 export const statuses = pgTable(
 	"statuses",
 	{
@@ -79,11 +82,16 @@ export const statuses = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		unique("statuses_project_id_name_unique").on(t.projectId, t.name),
-		unique("statuses_project_id_slug_unique").on(t.projectId, t.slug),
+		index("statuses_project_name_equality").using(
+			"hash",
+			sql`(length(${t.projectId})::text || ':' || ${t.projectId} || ${t.name})`,
+		),
+		index("statuses_project_slug_equality").using(
+			"hash",
+			sql`(length(${t.projectId})::text || ':' || ${t.projectId} || ${t.slug})`,
+		),
 		uniqueIndex("statuses_default_idx").on(t.projectId).where(sql`${t.isDefault}`),
 		checkIn(t.category, STATUS_CATEGORIES),
-		check("statuses_name_check", sql`length(${t.name}) BETWEEN 1 AND 40`),
-		check("statuses_description_check", sql`char_length(${t.description}) <= 2000`),
+		check("statuses_name_check", sql`length(${t.name}) >= 1`),
 	],
 );

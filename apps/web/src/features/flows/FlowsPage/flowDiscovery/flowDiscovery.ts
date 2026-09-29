@@ -15,7 +15,7 @@ export type FlowDiscoveryInput = {
 		| { state: "loading" }
 		| { state: "failed"; message: string }
 		| { state: "loaded"; entries: FlowDiscoveryEntry[] };
-	engine: { state: "available" } | { state: "unavailable"; reason: string };
+	engine: { state: "available" } | { state: "unavailable" | "unknown"; reason: string };
 };
 
 export function flowDiscovery(input: FlowDiscoveryInput) {
