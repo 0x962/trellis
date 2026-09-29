@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadCandidatePackage } from "../loadCandidatePackage";
+import { LoadQualifiedPackageInputSchema } from "../loadQualifiedPackageInput";
 import { sealPackage } from "../sealPackage";
 import { qualificationFixture } from "./components/qualificationFixture";
 import { loadQualifiedPackage } from "./loadQualifiedPackage";
@@ -121,4 +122,21 @@ test("rejects qualification when the sealed package has no frontend template exp
 	input.proof.subject.packageId = sealed.packageId;
 	await input.saveProof();
 	await expect(loadQualifiedPackage(input.options)).rejects.toThrow("qualification_templates_required");
+});
+
+test.each([
+	["data", "privateRoot", "langflow"],
+	["data", "privateRoot", "/data"],
+	["encryptionSecret", "relativePath", "secrets/encryption"],
+	["encryptionSecret", "relativePath", "/run/trellis-secrets/engine-secret"],
+	["health", "path", "/health_check"],
+	["health", "scheme", "https"],
+	["health", "host", "0.0.0.0"],
+] as const)("rejects a conflicting %s.%s value %s", async (section, key, value) => {
+	const input = await fixture();
+	const runtime = {
+		...input.options.runtime,
+		[section]: { ...input.options.runtime[section], [key]: value },
+	};
+	expect(() => LoadQualifiedPackageInputSchema.parse({ ...input.options, runtime })).toThrow();
 });
