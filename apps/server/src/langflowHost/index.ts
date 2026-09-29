@@ -49,3 +49,8 @@ export {
 	type OpenedDatabaseRecord,
 	type VerifiedRestoredDatabase,
 } from "./restoredDatabase";
+export {
+	reconcileHostControl,
+	type HostReconciliationInput,
+	type HostReconciliationResult,
+} from "./hostReconciliation";
