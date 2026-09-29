@@ -72,6 +72,10 @@
 		"name": "Claude Sonnet 5"
 	},
 	{
+		"id": "anthropic/claude-sonnet-5.5",
+		"name": "Claude Sonnet 5.5"
+	},
+	{
 		"id": "google/gemini-2.5-flash",
 		"name": "Gemini 2.5 Flash"
 	},

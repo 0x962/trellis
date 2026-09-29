@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createFlowExecution } from "../../agents/nativeFlow/createFlowExecution.ts";
 import { requireActor, type ServiceCtx } from "../../context.ts";
+import { statusById } from "../../db/queries/statusById.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
@@ -27,16 +28,16 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	if (previous) return replay(previous);
 	const ticket = await resolveTicket(ctx, tx, input.ticket);
 	assertProjectActive(ctx, ticket.projectId);
-	if (ticket.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before a flow starts.");
 	const resolved = await resolveFlow(tx, input.flow);
 	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR UPDATE`);
 	const flow = await resolveFlow(tx, resolved.id);
 	// A flow can serve its own project or every project.
 	const flowProjectId = await flowProjectIdOf(tx, flow.id);
 	if (flowProjectId !== null && flowProjectId !== ticket.projectId) throw fail("FLOW_NOT_IN_PROJECT");
-	const linked = await rows<{ id: string }>(
+	const linked = await rows<{ id: string; state: string }>(
 		tx,
-		sql`SELECT pull_request_id AS id FROM ticket_pull_requests WHERE ticket_id=${ticket.id}`,
+		sql`SELECT p.id,p.state FROM ticket_pull_requests link
+		JOIN pull_requests p ON p.id=link.pull_request_id WHERE link.ticket_id=${ticket.id}`,
 	);
 	const diffId = input.diffId ?? (linked.length === 1 ? linked[0]!.id : undefined);
 	let repeatOf: string | undefined;
@@ -44,9 +45,14 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 		throw invalidInput("allowRepeat", "A repeated diff flow requires its diff ID and a reason from the user.");
 	if (input.repeatReason !== undefined && !input.allowRepeat)
 		throw invalidInput("repeatReason", "A repeat reason requires allowRepeat.");
+	const diff = linked.find((link) => link.id === diffId);
+	if (diffId !== undefined && !diff) throw invalidInput("diffId", "The diff must link to the supplied ticket.");
+	if (
+		ticket.completedAt !== null &&
+		((await statusById(tx, ticket.statusId)).category !== "done" || diff?.state !== "merged")
+	)
+		throw invalidInput("ticket", "Reopen the ticket before a flow starts.");
 	if (diffId !== undefined) {
-		if (!linked.some((link) => link.id === diffId))
-			throw invalidInput("diffId", "The diff must link to the supplied ticket.");
 		const [existing] = await rows<{ id: string }>(
 			tx,
 			sql`SELECT id FROM flow_executions WHERE flow_id=${flow.id} AND diff_id=${diffId} ORDER BY created_at DESC,id DESC LIMIT 1`,

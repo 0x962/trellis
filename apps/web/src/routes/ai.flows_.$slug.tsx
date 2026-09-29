@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FlowEditor } from "../features/flows/FlowEditor";
+import { FlowEditorRoute } from "../features/flows/LangflowEditor/components/FlowEditorRoute";
 
 export const Route = createFileRoute("/ai/flows_/$slug")({ component: FlowEditorPage });
 
 function FlowEditorPage() {
 	const { slug } = Route.useParams();
-	return <FlowEditor slug={slug} />;
+	return <FlowEditorRoute slug={slug} />;
 }

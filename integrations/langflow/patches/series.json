@@ -15,15 +15,108 @@
 			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
 		},
 		{
+			"name": "backend-delivery-reader",
+			"path": "reports/langflow-feasibility-review/backend-delivery-reader.patch",
+			"sha256": "4860d0768a44e0779ae569640c9e74b33c0916b19efb14a5071560da6dae835c",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-queue-composition.json"
+		},
+		{
+			"name": "backend-queue-transactions",
+			"path": "integrations/langflow/patches/externalWaits/0002-queue-bootstrap-and-completion-transactions.patch",
+			"sha256": "4e6430b4dc0afdf1eeb9bf8abd6225ca0399cdd244299f5a429f482d9c3a6310",
+			"directory": "."
+		},
+		{
 			"name": "backend-schema",
 			"path": "integrations/langflow/patches/schema/0001-trellis-feasibility-tables.patch",
 			"sha256": "ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6",
 			"directory": "."
 		},
 		{
+			"name": "backend-publications",
+			"path": "integrations/langflow/patches/publications/0001-immutable-publications.patch",
+			"sha256": "b3e863aaa70eead267947af2cad9bf5eeb75abcb56ff66294f76e4e6bb8f2815",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/publications/manifest.json"
+		},
+		{
+			"name": "backend-private-authority",
+			"path": "integrations/langflow/patches/engineApi/shared/0001-shared-engine-api.patch",
+			"sha256": "b977c5cb008efcb5f259328be5b156afcd69c49054f7ee2c192f749df52345b5",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/shared/manifest.json"
+		},
+		{
+			"name": "backend-cancellation-api",
+			"path": "integrations/langflow/patches/engineApi/control/0001-private-engine-cancellation.patch",
+			"sha256": "30f3ae50f9ab42fcb6cfc4b5ca7b4fe4a7be3a156eedf0d286110c46831a81cd",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/control/manifest.json"
+		},
+		{
+			"name": "backend-native-api",
+			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
+			"sha256": "3ca06f1b27d1744ad6c767e8eca624a8540cb0138d27f339e3f2d1f95c2d19d6",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json"
+		},
+		{
+			"name": "backend-admission-api",
+			"path": "integrations/langflow/patches/engineApi/admission/0001-private-admission-routes.patch",
+			"sha256": "cf9dcae728c9470ac2c89d61984d34124e8ec62d92d7e2b26c569f5c36c5045c",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/admission/manifest.json"
+		},
+		{
+			"name": "backend-admission-authority",
+			"path": "integrations/langflow/patches/engineApi/admission/0002-authorize-admission-transaction.patch",
+			"sha256": "572248b1306a3ae5c04cfa88b8594d6b51cdffa40c451587a23ad9f7e2431c09",
+			"directory": "."
+		},
+		{
+			"name": "backend-decision-api",
+			"path": "integrations/langflow/patches/engineApi/decisions/0001-decision-http-routes.patch",
+			"sha256": "9930e526514b34da3e23771ee18851862840c5528082141ba11120fd58a2dbc7",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/decisions/manifest.json"
+		},
+		{
+			"name": "backend-decision-authority",
+			"path": "integrations/langflow/patches/engineApi/decisions/0002-require-decision-authority.patch",
+			"sha256": "e56e96b366a1514d59663d2a34bb00fcb78691c4556944a411ae63731851e1d6",
+			"directory": "."
+		},
+		{
+			"name": "backend-control-guards",
+			"path": "reports/langflow-feasibility-review/backend-control-guards.patch",
+			"sha256": "5aa40ed0654467d9f3d4a74538b07cfed065487c1a32a2062b7c80509b4b5b0a",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-api-composition.json"
+		},
+		{
+			"name": "backend-native-consumer",
+			"path": "integrations/langflow/patches/externalWaits/0003-native-completion-obligation-consumer.patch",
+			"sha256": "5074d3dd02aec5839033e2a384e7af30da1e6e39069069deeb818f92a64ad32d",
+			"directory": "."
+		},
+		{
+			"name": "backend-cancellation-order",
+			"path": "integrations/langflow/patches/externalWaits/0004-cancellation-ordered-dispatch.patch",
+			"sha256": "9f06043e01bd3e0e463c65cff84e8fc01741ec683d8fa32a52f47cf9eccbeb72",
+			"directory": "."
+		},
+		{
+			"name": "backend-backup",
+			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
+			"sha256": "659e9d3f6f56af961c2e0d15261d655232f8fd0c3c526678f1db933f72fda04c",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/backup/manifest.json"
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
-			"sha256": "9a33da5d85c5ba3ff8b57f32af57400b1c2fe3cd4a68bd5131d78829f77ebb0c",
+			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
 			"directory": "src/frontend",
 			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
 		}
@@ -33,10 +126,17 @@
 		"integrations/langflow/tests/semantics",
 		"integrations/langflow/tests/decisions",
 		"integrations/langflow/tests/nativeLifecycle",
+		"integrations/langflow/tests/restore",
+		"integrations/langflow/tests/publications",
+		"integrations/langflow/patches/engineApi/shared/tests",
+		"integrations/langflow/patches/engineApi/control/tests",
+		"integrations/langflow/patches/engineApi/native/tests",
+		"integrations/langflow/patches/engineApi/admission/tests",
+		"integrations/langflow/patches/engineApi/decisions/tests",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],
-	"verification": "The first batch failed. Verification of the merged repair batch remains pending with TRL-667.",
+	"verification": "Static composition only. Matched runtime checks remain with TRL-667. Package export requires private route registration and complete capture guards.",
 	"technicalAcceptance": false,
 	"productionApproval": false
 }

@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { readCheckpoint, readProjection, retainEvents } from "../../db/queries/langflowExecution";
 import { databaseFixture } from "./databaseFixture.ts";
-import { getView } from "./getView.ts";
-import { replay } from "./replay.ts";
-import { update } from "./update.ts";
+import { getView } from "./getView";
+import { replay } from "./replay";
+import { update } from "./update";
 
 let h: Awaited<ReturnType<typeof databaseFixture>>;
 beforeAll(async () => {
@@ -73,4 +73,10 @@ test("journal replay, revision conflicts, retention and rollback share the real 
 	expect(saved.result!.view).toMatchObject({ revision: 4, lastEventSeq: 2 });
 	const view = await h.call((ctx, tx) => getView(ctx, tx, { id: h.f.view.id }));
 	expect(view.result).toEqual(saved.result!.view);
+});
+
+test("a reserved execution exposes an unknown engine epoch", async () => {
+	const reserved = await databaseFixture(false);
+	expect(reserved.f.view.submission).toMatchObject({ engineEpoch: null, ownership: "unknown", admission: "closed" });
+	await reserved.db.$client.close();
 });

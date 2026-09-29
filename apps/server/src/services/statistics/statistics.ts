@@ -11,7 +11,7 @@ const BILL_ROWS = 5;
 
 // The state of an agent run comes from the execution service, not from the
 // database, so the open assignments are read before the transaction opens.
-export const prepare = async (ctx: IoCtx & PrepareCtx) => deadRuns(await agentRuns.prepareOpenRuns(ctx));
+export const prepare = async (ctx: IoCtx & PrepareCtx) => deadRuns(await agentRuns.prepareOpenAgentRuns(ctx));
 
 // The four statements run one after the other. One transaction holds one
 // connection, so two statements on it never run at the same time.
