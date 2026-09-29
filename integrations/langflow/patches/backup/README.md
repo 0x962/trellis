@@ -5,8 +5,8 @@ The fragment adds `langflow.services.trellis_v1.backup` and `backup_router` to t
 TRL-674 places this independent fragment after the backend and schema fragments in the package series.
 
 `create_backup_router` receives the configured `DatabaseService`, `SettingsService`, private export root, authentication file, installed package digest, source home, and host.
-The router serves `POST /api/v1/trellis/snapshots` and `GET /api/v1/trellis/snapshots/{snapshotId}/{database|secret}`.
-The domain router uses `/snapshots` beneath the common `/api/v1/trellis` router.
+The router serves `POST /trellis-v1/snapshots` and `GET /trellis-v1/snapshots/{snapshotId}/{database|secret}`.
+The domain router uses `/snapshots` beneath the common `/trellis-v1` router.
 TRL-875 owns that common router and registration.
 Every operation requires the private bearer token.
 The export root uses mode 0700; each export file uses mode 0600.
