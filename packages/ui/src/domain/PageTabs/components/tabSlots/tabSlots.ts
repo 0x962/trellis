@@ -13,22 +13,26 @@ export type TabSlot =
 // of the first of these tabs among all tabs, so `tabIndex` addresses the
 // whole list.
 export const tabSlots = (tabs: readonly PageTabItem[], groups: readonly PageTabGroupItem[], offset = 0): TabSlot[] => {
+	const byId = new Map(groups.map((group) => [group.id, group]));
+	const counts = new Map<string, number>();
+	for (const tab of tabs) if (tab.groupId !== undefined) counts.set(tab.groupId, (counts.get(tab.groupId) ?? 0) + 1);
 	const slots: TabSlot[] = [];
 	const seen = new Set<string>();
 	tabs.forEach((tab, index) => {
-		const group = tab.groupId === undefined ? undefined : groups.find((item) => item.id === tab.groupId)!;
+		const group = tab.groupId === undefined ? undefined : byId.get(tab.groupId)!;
 		if (group && !seen.has(group.id)) {
 			seen.add(group.id);
-			slots.push({ kind: "group", group, count: tabs.filter((item) => item.groupId === group.id).length });
+			slots.push({ kind: "group", group, count: counts.get(group.id)! });
 		}
 		if (!group?.collapsed) slots.push({ kind: "tab", tab, tabIndex: offset + index });
 	});
 	return slots;
 };
 
-// The tab that a drop before slot `index` lands before. A drop on a header
-// lands before the first tab of that group. A drop after the last slot is
-// null, the end of the strip.
+// The first visible tab at or after slot `index`, which a drop there lands
+// before. A collapsed group has no tab slot, so a drop on its header lands
+// before the next visible tab. Null after every visible tab means the end of
+// the strip.
 export const dropTargetId = (slots: readonly TabSlot[], index: number): string | null => {
 	for (const slot of slots.slice(index)) if (slot.kind === "tab") return slot.tab.id;
 	return null;

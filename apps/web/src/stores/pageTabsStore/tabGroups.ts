@@ -1,4 +1,4 @@
-import type { PageTab, PageTabGroup } from "./pageTabsStore";
+import type { PageTab, PageTabGroup } from "./types";
 
 // The region of a tab in the strip order: "pinned" for a pinned tab, the
 // group id of a grouped tab, or "" for the ungrouped tail. Two tabs trade
@@ -44,7 +44,10 @@ export const insertIndex = (
 export const expandGroupOf = (groups: readonly PageTabGroup[], tab: PageTab) =>
 	groups.map((group) => (group.id === tab.groupId && group.collapsed ? { ...group, collapsed: false } : group));
 
-// The groups that still hold a tab, plus `keep`. The group a tab leaves goes
-// away when it holds no other tab.
-export const liveGroups = (tabs: readonly PageTab[], groups: readonly PageTabGroup[], left: string | undefined) =>
-	groups.filter((group) => group.id !== left || tabs.some((item) => item.groupId === group.id));
+// Removes the group identified by `departedGroupId` only when it has no tab.
+// Every other group stays, with or without tabs.
+export const removeGroupIfEmpty = (
+	tabs: readonly PageTab[],
+	groups: readonly PageTabGroup[],
+	departedGroupId: string | undefined,
+) => groups.filter((group) => group.id !== departedGroupId || tabs.some((item) => item.groupId === group.id));

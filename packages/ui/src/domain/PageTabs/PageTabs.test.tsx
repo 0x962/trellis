@@ -78,10 +78,12 @@ test("draws a header before each group and hides the tabs of a collapsed group",
 		/>,
 	);
 
-	expect(html).toContain('aria-label="Reviews, 2 tabs"');
+	expect(html).toContain('data-page-tab-group="g"');
 	expect(html).toContain('aria-expanded="true"');
-	expect(html).toContain('aria-label="Later, 1 tab"');
+	expect(html).toContain(">Reviews</span>");
+	expect(html).toContain('data-page-tab-group="h"');
 	expect(html).toContain('aria-expanded="false"');
+	expect(html).toContain('aria-label="Move tab to a group"');
 	expect(html).toContain('data-page-tab-id="b"');
 	expect(html).not.toContain('data-page-tab-id="d"');
 	expect(html).toContain('data-page-tab-id="c" aria-posinset="2" aria-setsize="4"');

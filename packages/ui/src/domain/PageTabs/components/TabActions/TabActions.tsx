@@ -1,11 +1,10 @@
 import { DotsThree, PushPinSimple, PushPinSlash } from "@phosphor-icons/react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { Menu, type MenuGroup, type MenuItem } from "../../../../primitives/Menu";
-import type { PageTabGroupItem, PageTabItem, PageTabsProps } from "../../PageTabs";
+import type { PageTabItem, PageTabsProps } from "../../PageTabs";
 
 type Props = {
 	tabs: readonly PageTabItem[];
-	groups: readonly PageTabGroupItem[];
 	activeIndex: number;
 	// The first and the last index of the region of the active tab: the
 	// pinned tabs, its group, or the ungrouped tail. A move stays inside
@@ -17,14 +16,15 @@ type Props = {
 	onRename?: () => void;
 	onRestore?: () => void;
 	onCreateGroup?: () => void;
-	onSetGroup?: (groupId: string | null) => void;
-	currentGroupId: string | null;
+	// Opens the group picker. Absent when no other group exists.
+	onPickGroup?: () => void;
+	// Absent when the active tab is in no group.
+	onLeaveGroup?: () => void;
 	onSort: PageTabsProps["onSort"];
 	onClose: () => void;
 };
 export function TabActions({
 	tabs,
-	groups,
 	activeIndex,
 	regionStart,
 	regionEnd,
@@ -34,8 +34,8 @@ export function TabActions({
 	onRename,
 	onRestore,
 	onCreateGroup,
-	onSetGroup,
-	currentGroupId,
+	onPickGroup,
+	onLeaveGroup,
 	onClose,
 }: Props) {
 	const tab = tabs[activeIndex]!;
@@ -85,13 +85,8 @@ export function TabActions({
 	const groupItems: MenuItem[] = [];
 	if (!tab.pinned) {
 		if (onCreateGroup) groupItems.push({ label: "Add tab to new group", onSelect: onCreateGroup });
-		if (onSetGroup) {
-			for (const group of groups)
-				if (group.id !== currentGroupId)
-					groupItems.push({ id: group.id, label: `Move tab to ${group.name}`, onSelect: () => onSetGroup(group.id) });
-			if (currentGroupId !== null)
-				groupItems.push({ label: "Remove tab from group", onSelect: () => onSetGroup(null) });
-		}
+		if (onPickGroup) groupItems.push({ label: "Move tab to a group…", onSelect: onPickGroup });
+		if (onLeaveGroup) groupItems.push({ label: "Remove tab from group", onSelect: onLeaveGroup });
 	}
 	const menuGroups: MenuGroup[] = [{ type: "group", items }];
 	if (groupItems.length > 0) menuGroups.push({ type: "group", label: "Group", items: groupItems });

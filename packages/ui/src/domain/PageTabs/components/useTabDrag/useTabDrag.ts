@@ -5,7 +5,8 @@ type Options = {
 	slotWidth: number;
 	slotCount: number;
 	enabled: boolean;
-	// Runs when a drag ends on a slot index other than the origin of the tab.
+	// Runs after each completed drag with the slot index under the pointer.
+	// The caller decides whether that index changes the tab order.
 	onDrop: (id: string, index: number) => void;
 };
 

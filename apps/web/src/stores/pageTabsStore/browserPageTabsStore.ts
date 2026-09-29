@@ -1,5 +1,6 @@
-import { createPageTabsStore, type PageTabPage } from "./pageTabsStore";
+import { createPageTabsStore } from "./pageTabsStore";
 import type { PageTabSortDirection } from "./sortTabs";
+import type { PageTabPage } from "./types";
 
 const currentPage = {
 	url: `${window.location.pathname}${window.location.search}${window.location.hash}`,

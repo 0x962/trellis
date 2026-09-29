@@ -47,7 +47,7 @@ export function PageTabsHost() {
 	const tabs = useStoreWithEqualityFn(usePageTabsStore, pageTabsSelectors.tabs, pageTabItemsEqual);
 	const groups = usePageTabsStore(pageTabsSelectors.groups);
 	const activeId = usePageTabsStore(pageTabsSelectors.activeId);
-	const pageTabsView = useMemo(() => pageTabsUiProjection(tabs, groups, activeId), [tabs, groups, activeId]);
+	const pageTabsView = useMemo(() => pageTabsUiProjection(tabs, groups), [tabs, groups]);
 
 	const showActiveTab = useCallback(
 		(restoreFocus = false) => {
@@ -138,7 +138,7 @@ export function PageTabsHost() {
 		<PageTabs
 			tabs={pageTabsView.tabs}
 			groups={pageTabsView.groups}
-			activeId={pageTabsView.activeId}
+			activeId={activeId}
 			onAdd={add}
 			onSelect={select}
 			onClose={close}

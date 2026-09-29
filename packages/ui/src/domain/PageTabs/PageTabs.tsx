@@ -3,13 +3,17 @@ import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from "
 import { IconButton } from "../../primitives/IconButton";
 import { TabsList, TabsRoot } from "../../primitives/Tabs";
 import { Tooltip } from "../../primitives/Tooltip";
+import { moveKeys, moveTargetForKey } from "./components/moveTargets";
 import { PageTab } from "./components/PageTab";
 import { TabActions } from "./components/TabActions";
 import { TabGroupHeader } from "./components/TabGroupHeader";
+import { TabGroupPicker } from "./components/TabGroupPicker";
 import { TabPicker } from "./components/TabPicker";
-import { dropTargetId, slotIndexOf, tabSlots } from "./components/tabSlots";
+import { dropTargetId, slotIndexOf } from "./components/tabSlots";
+import { useFocusAfterChange } from "./components/useFocusAfterChange";
 import { useTabDrag } from "./components/useTabDrag";
 import { revealTab, useTabLayout } from "./components/useTabLayout";
+import { useTabRegions } from "./components/useTabRegions";
 
 export type PageTabItem = { id: string; title: string; pinned: boolean; groupId?: string };
 export type PageTabGroupItem = { id: string; name: string; collapsed: boolean };
@@ -41,10 +45,6 @@ export type PageTabsProps = {
 // The width of one pinned tab, the `w-24` of PageTab.
 const pinnedWidth = 96;
 
-// The region a tab moves inside: the pinned tabs, its group, or the
-// ungrouped tail.
-const regionOf = (tab: PageTabItem) => (tab.pinned ? "pinned" : (tab.groupId ?? ""));
-
 export function PageTabs({
 	tabs,
 	groups = [],
@@ -65,33 +65,26 @@ export function PageTabs({
 }: PageTabsProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-	const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
-	const pinnedCount = tabs.filter((tab) => tab.pinned).length;
-	const activePinned = activeIndex >= 0 && activeIndex < pinnedCount;
-	const activeRegion = activeIndex >= 0 ? regionOf(tabs[activeIndex]!) : "";
-	const regionStart = tabs.findIndex((tab) => regionOf(tab) === activeRegion);
-	const regionEnd = tabs.findLastIndex((tab) => regionOf(tab) === activeRegion);
-	const slots = useMemo(() => tabSlots(tabs.slice(pinnedCount), groups, pinnedCount), [tabs, pinnedCount, groups]);
-	const activeSlot = slotIndexOf(slots, activeId);
+	const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+	const {
+		activeIndex,
+		activeTab,
+		activeGroupId,
+		pinnedCount,
+		activePinned,
+		regionStart,
+		regionEnd,
+		slots,
+		activeSlot,
+		otherGroups,
+	} = useTabRegions(tabs, groups, activeId);
 	const layout = useTabLayout(slots, activeSlot);
 	const listRef = useRef<HTMLDivElement>(null);
 	const pinnedRef = useRef<HTMLDivElement>(null);
-	const focusAfterChange = useRef(false);
 	const addButton = useRef<HTMLButtonElement>(null);
+	const focusAfterChange = useFocusAfterChange(listRef, addButton, activeId);
 	const [announcement, setAnnouncement] = useState("");
 	const items = useMemo(() => tabs.map((tab) => ({ value: tab.id })), [tabs]);
-	const focusActive = () => {
-		const tab = Array.from(listRef.current!.querySelectorAll<HTMLElement>('[role="tab"]')).find(
-			(element) => element.dataset.pageTabId === activeId,
-		);
-		(tab ?? addButton.current)?.focus({ preventScroll: true });
-	};
-	useLayoutEffect(() => {
-		if (focusAfterChange.current) {
-			focusActive();
-			focusAfterChange.current = false;
-		}
-	});
 	// The pinned region scrolls on its own, so a narrow strip keeps the
 	// active pinned tab in view.
 	useLayoutEffect(() => {
@@ -169,7 +162,8 @@ export function PageTabs({
 	const dropMarker = (left: number) => (
 		<div className="pointer-events-none absolute inset-y-1 z-20 w-0.5 rounded-round bg-accent" style={{ left }} />
 	);
-	const activeGroupId = activeIndex >= 0 ? (tabs[activeIndex]!.groupId ?? null) : null;
+	const canPickGroup =
+		onSetTabGroup !== undefined && activeTab !== undefined && !activeTab.pinned && otherGroups.length > 0;
 	return (
 		<div className="relative flex min-w-0 items-end bg-surface px-1 pt-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
 			<TabsRoot
@@ -193,16 +187,10 @@ export function PageTabs({
 							return;
 						}
 						if (!onMove || !event.altKey || !event.shiftKey) return;
-						const targets: Record<string, string | null | undefined> = {
-							ArrowLeft: activeIndex > regionStart ? tabs[activeIndex - 1]!.id : undefined,
-							ArrowRight: activeIndex < regionEnd ? (tabs[activeIndex + 2]?.id ?? null) : undefined,
-							Home: activeIndex > regionStart ? tabs[regionStart]!.id : undefined,
-							End: activeIndex < regionEnd ? (tabs[regionEnd + 1]?.id ?? null) : undefined,
-						};
-						if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+						if (!(moveKeys as readonly string[]).includes(event.key)) return;
 						event.preventDefault();
 						event.stopPropagation();
-						const target = targets[event.key];
+						const target = moveTargetForKey(event.key, tabs, activeIndex, regionStart, regionEnd);
 						if (target !== undefined) move(activeId, target);
 					}}
 				>
@@ -275,10 +263,17 @@ export function PageTabs({
 					/>
 				</Tooltip>
 				<TabPicker tabs={tabs} activeId={activeId} onSelect={onSelect} />
+				{canPickGroup && (
+					<TabGroupPicker
+						groups={otherGroups}
+						open={groupPickerOpen}
+						onOpenChange={setGroupPickerOpen}
+						onSelect={(groupId) => onSetTabGroup!(activeId, groupId)}
+					/>
+				)}
 				{tabs.length > 0 && (onMove || onRename || onPin || onSort || onSetTabGroup) && (
 					<TabActions
 						tabs={tabs}
-						groups={groups}
 						activeIndex={activeIndex}
 						regionStart={regionStart}
 						regionEnd={regionEnd}
@@ -290,8 +285,8 @@ export function PageTabs({
 						onCreateGroup={
 							onCreateGroup && onSetTabGroup ? () => setEditingGroupId(onCreateGroup("New group", activeId)) : undefined
 						}
-						onSetGroup={onSetTabGroup ? (groupId) => onSetTabGroup(activeId, groupId) : undefined}
-						currentGroupId={activeGroupId}
+						onPickGroup={canPickGroup ? () => setGroupPickerOpen(true) : undefined}
+						onLeaveGroup={onSetTabGroup && activeGroupId !== null ? () => onSetTabGroup(activeId, null) : undefined}
 						onClose={() => close(activeId)}
 					/>
 				)}
