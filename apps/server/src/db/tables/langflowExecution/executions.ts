@@ -1,5 +1,5 @@
 import type { FlowDocumentSnapshotV1, FlowPublicationV1 } from "@trellis/api";
-import { bigint, index, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { bigint, index, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import type {
 	AdmissionStateV1,
 	CancelIntentV1,
@@ -26,6 +26,8 @@ export const langflowExecutions = pgTable(
 			.references(() => projects.id, { onDelete: "cascade" }),
 		diffId: text("diff_id").references(() => pullRequests.id, { onDelete: "set null" }),
 		reviewedHead: text("reviewed_head"),
+		repeatOf: text("repeat_of"),
+		repeatReason: text("repeat_reason"),
 		publicationId: text("publication_id").notNull(),
 		publicationRecordId: text("publication_record_id").references(() => langflowDocumentPublications.publicationId, {
 			onDelete: "set null",
@@ -55,4 +57,18 @@ export const langflowExecutions = pgTable(
 		index("langflow_execution_ticket").on(t.ticketId),
 		index("langflow_execution_diff_flow").on(t.diffId, t.flowId, t.createdAt),
 	],
+);
+
+export const langflowStartReceipts = pgTable(
+	"langflow_start_receipts",
+	{
+		actorKind: text("actor_kind").notNull(),
+		actorName: text("actor_name").notNull(),
+		requestId: text("request_id").notNull(),
+		requestBytes: text("request_bytes").notNull(),
+		executionId: text("execution_id")
+			.notNull()
+			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
+	},
+	(t) => [primaryKey({ columns: [t.actorKind, t.actorName, t.requestId] })],
 );

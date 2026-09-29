@@ -1,6 +1,6 @@
 import type { FlowExecutionViewV1 } from "@trellis/api";
 import { bigint, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
-import type { ExecutionEventV1 } from "../../../langflowContracts";
+import type { ExecutionEventV1, EngineCheckpointV1 } from "../../../langflowContracts";
 import { langflowExecutions } from "./executions";
 
 export const langflowExecutionProjections = pgTable("langflow_execution_projections", {
@@ -8,6 +8,7 @@ export const langflowExecutionProjections = pgTable("langflow_execution_projecti
 		.primaryKey()
 		.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 	view: jsonb().$type<FlowExecutionViewV1>().notNull(),
+	checkpoint: jsonb().$type<EngineCheckpointV1>(),
 	revision: bigint({ mode: "number" }).notNull(),
 	lastEventSeq: bigint("last_event_seq", { mode: "number" }).notNull(),
 	firstAvailableSeq: bigint("first_available_seq", { mode: "number" }).notNull(),

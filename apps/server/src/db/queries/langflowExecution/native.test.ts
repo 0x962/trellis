@@ -121,7 +121,7 @@ test("commits result and outbox atomically and retains exact output bytes beyond
 		db.transaction((tx) => recordCompletion(tx, { ...input, resultBytes: JSON.stringify(result) })),
 	).rejects.toThrow("identity_conflict");
 	const outbox = await db.transaction((tx) =>
-		listPendingDeliveries(tx, { executionId: ids.execution, afterId: "", limit: 10000 }),
+		listPendingDeliveries(tx, { executionId: ids.execution, afterId: "", afterKind: "", limit: 10000 }),
 	);
 	expect(outbox.find((row) => row.id === "completion-1")!.payloadBytes).toBe(input.resultBytes);
 	expect(saved.completion.result.output).toBe(output);

@@ -45,6 +45,7 @@ export async function receiptFixture(open = true) {
 	await db.$client.exec("CREATE TABLE tickets(id text PRIMARY KEY); CREATE TABLE pull_requests(id text PRIMARY KEY);");
 	for (const table of [
 		tables.langflowExecutions,
+		tables.langflowStartReceipts,
 		tables.langflowNativeHandles,
 		tables.langflowCompletions,
 		tables.langflowDecisions,
@@ -55,6 +56,7 @@ export async function receiptFixture(open = true) {
 		tables.langflowExecutionProjections,
 		tables.langflowSourceEvents,
 		tables.langflowClassifications,
+		tables.langflowWarnings,
 	])
 		await db.$client.exec(tableSql(table));
 	await db.execute(sql`INSERT INTO tickets VALUES (${ids.ticket})`);

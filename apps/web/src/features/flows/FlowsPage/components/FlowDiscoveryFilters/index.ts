@@ -1,2 +1,2 @@
-export { FlowDiscoveryFilters } from "./FlowDiscoveryFilters";
 export type { FlowDiscoveryFiltersProps } from "./FlowDiscoveryFilters";
+export { FlowDiscoveryFilters } from "./FlowDiscoveryFilters";

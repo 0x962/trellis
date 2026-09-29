@@ -1,7 +1,7 @@
 import { advanceFlow } from "../../../agents/nativeFlow/advanceFlow.ts";
 import { taskKey } from "../../../agents/nativeFlow/taskKey.ts";
 import { findPullRequestRow } from "../../findPullRequestRow.ts";
-import { type ClassificationDependencies, classifyReviewArea } from "../../langflowGates/classifyReviewArea";
+import { type ClassificationDependencies, classifyReviewArea } from "../../langflowGates";
 import { readExecution } from "../queries.ts";
 import { saveState } from "../saveState.ts";
 import type { FlowCtx } from "../types.ts";

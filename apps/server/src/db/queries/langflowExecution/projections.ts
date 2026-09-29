@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import type { FlowExecutionViewV1 } from "@trellis/api";
 import { and, asc, eq, gt, gte } from "drizzle-orm";
-import { protocolDigest, type ExecutionEventV1 } from "../../../langflowContracts";
+import { protocolDigest, type EngineCheckpointV1, type ExecutionEventV1 } from "../../../langflowContracts";
 import {
 	langflowExecutionProjections as projections,
 	langflowSourceEvents as events,
@@ -43,12 +43,27 @@ export async function commitProjection(
 		view: FlowExecutionViewV1;
 		event: ExecutionEventV1 | null;
 		sourceBytes: string | null;
+		checkpoint?: EngineCheckpointV1;
 	},
 ) {
 	const execution = await lockExecution(tx, input);
 	const current = await readProjection(tx, input);
 	if (!current || current.view.revision !== input.expectedRevision) throw new Error("projection_conflict");
 	const { view, event, sourceBytes } = input;
+	if (input.checkpoint) {
+		const checkpoint = input.checkpoint;
+		const previous = await readCheckpoint(tx, input);
+		if (
+			checkpoint.executionId !== input.executionId ||
+			checkpoint.publicationId !== execution.publicationId ||
+			checkpoint.engineJobId !== execution.engineJobId ||
+			checkpoint.engineEpoch !== execution.authority?.engineEpoch ||
+			(previous &&
+				(checkpoint.revision < previous.revision ||
+					(checkpoint.revision === previous.revision && !isDeepStrictEqual(checkpoint, previous))))
+		)
+			throw new Error("checkpoint_conflict");
+	}
 	if (
 		!isDeepStrictEqual(view.snapshot, execution.snapshot) ||
 		!isDeepStrictEqual(view.publication, execution.publication) ||
@@ -88,7 +103,12 @@ export async function commitProjection(
 	}
 	await tx
 		.update(projections)
-		.set({ view, revision: view.revision, lastEventSeq: view.lastEventSeq })
+		.set({
+			view,
+			revision: view.revision,
+			lastEventSeq: view.lastEventSeq,
+			...(input.checkpoint ? { checkpoint: input.checkpoint } : {}),
+		})
 		.where(eq(projections.executionId, input.executionId));
 	return { view, firstAvailableSeq: current.firstAvailableSeq };
 }
@@ -121,4 +141,12 @@ export async function retainEvents(tx: Tx, input: { executionId: string; firstAv
 		.update(projections)
 		.set({ firstAvailableSeq: input.firstAvailableSeq })
 		.where(eq(projections.executionId, input.executionId));
+}
+
+export async function readCheckpoint(tx: Tx, input: { executionId: string }) {
+	const [row] = await tx
+		.select({ checkpoint: projections.checkpoint })
+		.from(projections)
+		.where(eq(projections.executionId, input.executionId));
+	return row?.checkpoint ?? null;
 }

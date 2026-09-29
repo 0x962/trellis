@@ -63,5 +63,15 @@ export async function reviewGate(
 			store.finish(tx, { receiptId: receipt.receiptId, ownerToken: receipt.ownerToken, result: outcome }),
 		);
 	}
-	return reviewGateResult(receipt, gate.reviewArea);
+	const result = reviewGateResult(receipt, gate.reviewArea);
+	ctx.log("flow.review-gate", {
+		executionId: input.executionId,
+		receiptId: receipt.receiptId,
+		gateNodeId: input.gateNodeId,
+		area: gate.reviewArea,
+		state: result.state,
+		decision: result.state === "succeeded" ? result.decision : null,
+		failureKind: result.state === "failed" ? "classification_failed" : null,
+	});
+	return result;
 }
