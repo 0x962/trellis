@@ -15,23 +15,25 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	const [selected, setSelected] = useState<{ id: string; label: string; terminalId: string; requestId: string } | null>(
 		null,
 	);
+	const [launchError, setLaunchError] = useState<string | null>(null);
 	const change = useSessionRestart(run, {
-		mutationFn: async () => {
-			const result = await client.agentRuns.switchAccount({
+		mutationFn: () =>
+			client.agentRuns.switchAccount({
 				id: run.id,
 				accountId: selected!.id,
 				expectedTerminalId: selected!.terminalId,
 				requestId: selected!.requestId,
 				confirmInterrupt: true,
-			});
-			if (result.error) throw new Error(result.error);
-			if (result.state !== "running")
-				throw new Error(`The session is ${result.state}. Inspect it before another switch.`);
-			if (result.accountId !== selected!.id) throw new Error("The session did not switch accounts.");
-			return result;
+			}),
+		onSuccess: (result) => {
+			if (result.error) setLaunchError(result.error);
+			else if (result.state !== "running")
+				setLaunchError(`The session is ${result.state}. Inspect it before another switch.`);
+			else if (result.accountId !== selected!.id) setLaunchError("The session did not switch accounts.");
+			else onClose();
 		},
-		onSuccess: onClose,
 	});
+	const failure = change.error?.message ?? launchError;
 	const items = choices.map((account, index) => {
 		const quota = quotas[index]!;
 		return {
@@ -96,17 +98,21 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 				}
 				confirmLabel="Switch account"
 				processing={change.isPending}
-				onConfirm={() => change.mutate()}
+				onConfirm={() => {
+					setLaunchError(null);
+					change.mutate();
+				}}
 				onCancel={() => {
 					if (!change.isPending) {
 						change.reset();
+						setLaunchError(null);
 						setSelected(null);
 					}
 				}}
 			>
-				{change.error && (
+				{failure && (
 					<p role="alert" className="mb-2 text-sm text-danger">
-						{change.error.message}
+						{failure}
 					</p>
 				)}
 			</ConfirmDialog>
