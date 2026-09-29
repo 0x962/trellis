@@ -16,7 +16,9 @@ Its input contains the stored receipt bytes, digest, and current delivery author
 `prepareDelivery` checks system authority and commits the pending state before this call.
 An authoritative absent lookup permits delivery of the exact bytes.
 An accepted lookup must identify the exact decision, request, job, execution, and digest.
-A conflict or transport error returns an unknown state.
+An explicit receipt conflict throws `decision_acceptance_conflict`.
+A transport error returns an unknown state.
+The required logger records the failed operation, receipt identity, and a safe error category.
 A malformed acknowledgement throws and leaves the durable pending receipt for recovery.
 `recordAcknowledgement` saves confirmation and the outbox receipt in the caller transaction.
 `deliverDecision` commits preparation, calls the engine, then commits the acknowledgement.
@@ -44,7 +46,7 @@ The legacy decision endpoint retains its strict legacy response contract.
 Run the focused fixtures after the merged source batch:
 
 ```sh
-bun test apps/server/src/services/langflowDecisions
+bun test apps/server/src/services/langflowDecisions --timeout 30000
 bun run --cwd apps/server typecheck
 ./node_modules/.bin/biome check apps/server/src/services/langflowDecisions
 ```
