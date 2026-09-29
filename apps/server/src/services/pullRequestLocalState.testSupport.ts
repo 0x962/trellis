@@ -64,8 +64,8 @@ export const openPullRequestLocalStateTest = async () => {
 		await db.execute(sql`INSERT INTO pr_summaries (pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
 			VALUES (${id}, ${headSha}, 'It adds the rule.', 'The glyph lied.', 'nothing', ${at}, ${at})`);
 		await db.execute(sql`INSERT INTO pr_evidence_documents
-			(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${headSha}, 'Proof.', 'claude-code', 'agent', ${at}, ${at})`);
+			(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at, actor_id)
+			VALUES (${id}, ${headSha}, 'Proof.', 'claude-code', 'agent', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['agent', 'claude-code']::text[]))`);
 	};
 
 	const readyPullRequest = async (title: string, number: number) => {
