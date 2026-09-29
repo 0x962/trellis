@@ -15,7 +15,7 @@ const appOf = (queryClient: QueryClient) =>
 				list: {
 					queryOptions: () => ({
 						queryKey: assignedQueryKey,
-						queryFn: async () => [],
+						queryFn: async () => ({ items: [], nextCursor: null }),
 					}),
 				},
 			},
@@ -50,7 +50,7 @@ const crispFjord = {
 
 const render = (runs: AgentRun[]) => {
 	const queryClient = new QueryClient();
-	queryClient.setQueryData(assignedQueryKey, runs);
+	queryClient.setQueryData(assignedQueryKey, { items: runs, nextCursor: null });
 	const app = appOf(queryClient);
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>

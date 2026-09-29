@@ -1200,6 +1200,20 @@ or a restore.
 
 ## API contract and ref grammars
 
+`clientContract` adds the versioned `flowDocumentsV1` methods to the typed client.
+The methods retain the shared RPC transport, actor headers, and query utilities.
+The live server `contract` registers services after their implementation is available.
+The versioned client methods require a server that mounts the matching document and view services.
+The document methods use `/api/flows/{flow}/document-v1`.
+The execution view uses `/api/flow-executions/{id}/view-v1`.
+`flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
+
+A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
+Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.
+The source must match one retained attempt, even when the occurrence has later attempts.
+A null source means that no native result binding is available.
+Historical text can remain available with a null source.
+
 The contract lives in `packages/api/src/contract/`. Two handlers serve one
 router: `RPCHandler` at `/rpc` for typed clients, and `OpenAPIHandler` at `/api`
 for curl and agents. Scalar renders the spec at `/api/docs`, and the raw spec is

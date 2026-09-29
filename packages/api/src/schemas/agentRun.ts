@@ -92,38 +92,30 @@ export const AgentRunRetryInputSchema = z.strictObject({
 	requestId: z.string().min(1).max(200),
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
-// The list keeps an open run, which is a run that a ticket or a session
-// still holds, and a closed run that changed inside the window. The
-// machine closes about 1000 runs a day and keeps every one of them, so a
-// list without a bound grows without end. One day of history answers the
-// question the session list and the agent table ask: what runs now, and
-// what ran today.
 export const AGENT_RUN_LIST_WINDOW_HOURS = 24;
-// The newest rows the list answers with. 200 rows fill the session list
-// and the CLI table many times over, and they cost about 250 kB.
+// One request reads at most this many rows unless the caller selects a
+// smaller page. A caller follows `nextCursor` to read more rows.
 export const AGENT_RUN_LIST_LIMIT = 200;
-// The largest answer the list gives. A reader that must see every open run
-// asks for this many, because the host runs far fewer agents at once.
+// The largest page that one request reads.
 export const AGENT_RUN_LIST_MAX_LIMIT = 1000;
-// `ids` and `ticket` are bounds of their own, so the window does not apply
-// to them. A caller that names a run by its ID reads that run at any age.
-// `includePinnedHistory` keeps every pinned ticket agent and session that
-// matches the filters. The limit then applies to the unpinned rows alone.
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),
-	ids: z.array(z.string().min(1)).max(200).optional(),
+	ids: z.array(z.string().min(1)).optional(),
 	assigned: z.boolean().optional(),
 	includePinnedHistory: booleanString.default(false),
-	windowHours: z.coerce
-		.number()
-		.int()
-		.min(1)
-		.max(24 * 365)
-		.default(AGENT_RUN_LIST_WINDOW_HOURS),
+	allHistory: booleanString.default(false),
+	windowHours: z.coerce.number().int().min(1).default(AGENT_RUN_LIST_WINDOW_HOURS),
 	limit: z.coerce.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
+	cursor: z.string().optional(),
 });
+export type AgentRunListRequest = z.input<typeof AgentRunListInputSchema>;
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
+export const AgentRunListOutputSchema = z.object({
+	items: z.array(AgentRunSchema),
+	nextCursor: z.string().nullable(),
+});
+export type AgentRunListOutput = z.infer<typeof AgentRunListOutputSchema>;
 
 export const AgentRunPinInputSchema = z.strictObject({
 	id: UlidSchema,
@@ -138,8 +130,9 @@ export const AgentRunPinOutputSchema = z.object({
 export type AgentRunPinOutput = z.infer<typeof AgentRunPinOutputSchema>;
 
 export const AgentWorkspaceInputSchema = z.object({ runId: UlidSchema });
+export const AgentWorkspacePageInputSchema = AgentWorkspaceInputSchema.extend({ cursor: z.string().optional() });
 export const AgentWorkspaceLineStatsInputSchema = z.strictObject({
-	ticketIds: z.array(UlidSchema).min(1).max(200),
+	ticketIds: z.array(UlidSchema).min(1),
 });
 export const AgentWorkspaceLineStatSchema = z.object({
 	ticketId: UlidSchema,
@@ -177,10 +170,11 @@ export const AgentWorkspaceSummarySchema = z.discriminatedUnion("state", [
 export type AgentWorkspaceSummary = z.infer<typeof AgentWorkspaceSummarySchema>;
 export type ReadyWorkspaceSummary = Extract<AgentWorkspaceSummary, { state: "ready" }>;
 export const AgentWorkspaceFileInputSchema = AgentWorkspaceInputSchema.extend({
-	path: z.string().min(1).max(4096),
+	path: z.string().min(1),
 });
 export const AgentWorkspaceSchema = z.object({
 	runId: UlidSchema,
+	phase: z.enum(["files", "diff"]),
 	files: z.array(
 		z.object({
 			path: z.string(),
@@ -189,6 +183,7 @@ export const AgentWorkspaceSchema = z.object({
 	),
 	diff: z.string(),
 	truncated: z.boolean(),
+	nextCursor: z.string().nullable(),
 });
 export const AgentWorkspaceFileSchema = z.object({
 	path: z.string(),

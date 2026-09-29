@@ -4,6 +4,7 @@ import { contextOf, wantsJson } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { json, printList } from "../../output.ts";
 import { resolvePullRequest } from "../pullRequestRef.ts";
+import { writeDiff } from "../writeDiff/index.ts";
 
 const ref = { type: "positional", required: true, description: "Diff ID, URL, or owner/repo#number" } as const;
 
@@ -86,9 +87,7 @@ const read = (operation: "show" | "refresh" | "patch") =>
 			const client = clientOf(ctx);
 			const ref = await resolvePullRequest(client, context.args.diff, true);
 			if (operation === "patch") {
-				const result = await client.pullRequests.diff({ id: ref.id });
-				ctx.out.write(wantsJson(ctx) ? json(result) : result.diff);
-				if (result.truncated) ctx.err.write(`The patch has a 1 MB limit. Read the complete change at ${result.url}\n`);
+				await writeDiff(ctx.out, wantsJson(ctx), client.pullRequests.diff, ref.id);
 				return;
 			}
 			ctx.out.write(json(await client.pullRequests.refresh({ id: ref.id })));

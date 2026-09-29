@@ -78,7 +78,7 @@ export function PageListFilters({
 	);
 	const watcherItems = useMemo(
 		() =>
-			(runs.data ?? []).map((run) => ({
+			(runs.data?.items ?? []).map((run) => ({
 				id: run.id,
 				label: run.name,
 				current: search.watcher === run.id,
@@ -89,7 +89,7 @@ export function PageListFilters({
 		() => new Map((actors.data ?? []).map((actor) => [`${actor.kind}:${actor.name}`, actor.displayName ?? actor.name])),
 		[actors.data],
 	);
-	const watcherNames = useMemo(() => new Map((runs.data ?? []).map((run) => [run.id, run.name])), [runs.data]);
+	const watcherNames = useMemo(() => new Map((runs.data?.items ?? []).map((run) => [run.id, run.name])), [runs.data]);
 
 	const close = () => {
 		setOpen(false);

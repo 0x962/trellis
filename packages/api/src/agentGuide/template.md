@@ -580,7 +580,7 @@ The observer conversation stays separate from the worker conversation.
 | `trellis diff show <diff>` | Read identity, branches, external state, local state, CI, and review gaps. |
 | `trellis diff unlink <diff> --ticket <ticket>` | Remove the relationship with that ticket. |
 | `trellis diff refresh <diff>` | Fetch the latest diff state. |
-| `trellis diff patch <diff>` | Read the code patch. The output has a 1 MB limit. |
+| `trellis diff patch <diff>` | Read the complete code patch. |
 | `trellis diff summary write <diff> --headline <text> --why <text> --watch <text>` | Write or update the human explanation. |
 | `trellis diff summary show <diff>` | Read the stored explanation. |
 | `trellis diff summary export <diff>` | Print a GitHub pull request body from the explanation. |
@@ -712,9 +712,13 @@ Do not claim a finding is fixed because the discussion ends.
 
 A flow needs a diff linked to a ticket.
 The default wait limit is 60 minutes.
-`--timeout <minutes>` changes how long the command waits; it does not cancel the run.
+`--timeout <minutes>` accepts a finite positive number and changes only the local wait.
+The command polls every five seconds and stops at the local deadline.
+A local timeout does not cancel the run.
+A human wait does not count as a successful review.
 
-The run list includes only this diff's runs, across all its head commits.
+With `--diff`, the run list includes only this diff's runs, across all its head commits.
+The command reads every result page.
 Each row identifies the run, flow, state, and head commit at the start.
 The start command returns the run ID, including when it reaches its wait timeout.
 Use that ID to read the saved result.

@@ -1,11 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Dialog, Input, Select, toast } from "@trellis/ui";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
 import { LaunchFields } from "../../agents/LaunchFields";
 import { SessionPrompt } from "../SessionPrompt";
 import { sessionComposerActions, useSessionComposerStore } from "../sessionComposerStore";
+import { selectSessionAccount } from "./components/selectSessionAccount";
 
 export type NewSessionDialogProps = { onClose: () => void };
 
@@ -17,6 +18,22 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 	const { change } = sessionComposerActions;
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
+	const choices = (accounts.data ?? []).filter(
+		(account) => account.harness === draft.harness.preset && account.capabilities.launch,
+	);
+	const quotas = useQueries({
+		queries: choices.map(({ id }) => ({
+			...orpc.harnessAccounts.quota.queryOptions({ input: { id } }),
+			staleTime: 0,
+			refetchInterval: 30_000,
+		})),
+	});
+	const automaticAccountId = selectSessionAccount({
+		harness: draft.harness,
+		accountId: draft.accountId,
+		accounts: accounts.data ?? [],
+		quotas: quotas.flatMap((quota) => (quota.data && !quota.isError ? [quota.data] : [])),
+	});
 	const create = useMutation({
 		mutationFn: () =>
 			client.sessions.create({
@@ -38,7 +55,10 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 			if (session.projectId)
 				queryClient.setQueryData(
 					orpc.agentRuns.list.queryOptions({ input: { project: session.projectId } }).queryKey,
-					(current) => [run, ...(current ?? []).filter((item) => item.id !== run.id)],
+					(current) => ({
+						items: [run, ...(current?.items ?? []).filter((item) => item.id !== run.id)],
+						nextCursor: current?.nextCursor ?? null,
+					}),
 				);
 			sessionComposerActions.clear();
 			void Promise.all([
@@ -55,6 +75,9 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 			if (session.run.error) toast.error("The session could not start", { description: session.run.error });
 		},
 	});
+	useEffect(() => {
+		if (accounts.data && !create.isPending) sessionComposerActions.automaticAccount(automaticAccountId);
+	}, [accounts.data, automaticAccountId, create.isPending]);
 	const submit = () => {
 		if (!create.isPending && (draft.prompt.trim() || draft.files.length)) create.mutate();
 	};
@@ -94,7 +117,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 						<LaunchFields
 							compact
 							harness={draft.harness}
-							onChange={(harness) => change({ harness, accountId: "" })}
+							onChange={sessionComposerActions.selectHarness}
 							disabled={create.isPending}
 						/>
 					}
@@ -118,11 +141,11 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 						value={draft.accountId || "default"}
 						items={[
 							{ value: "default", label: "Default account" },
-							...(accounts.data ?? [])
-								.filter((account) => account.harness === draft.harness.preset)
-								.map((account) => ({ value: account.id, label: account.name })),
+							...choices.map((account) => ({ value: account.id, label: account.name })),
 						]}
-						onValueChange={(accountId) => change({ accountId: accountId === "default" ? "" : accountId })}
+						onValueChange={(accountId) =>
+							sessionComposerActions.selectAccount(accountId === "default" ? "" : accountId)
+						}
 					/>
 					<span className="ml-auto text-xs text-fg-faint">⌘/Ctrl+Enter to start</span>
 				</div>

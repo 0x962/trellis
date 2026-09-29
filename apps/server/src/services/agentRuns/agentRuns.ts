@@ -2,7 +2,6 @@ import {
 	AGENT_RUN_LIST_MAX_LIMIT,
 	AGENT_RUN_LIST_WINDOW_HOURS,
 	type AgentRun,
-	type AgentRunListInput,
 	type AgentRunStartInput,
 	type TicketGetInputSchema,
 } from "@trellis/api";
@@ -11,13 +10,13 @@ import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import type { Tx } from "../../db/tx.ts";
-import { latestAttemptActivityByRuns, listExecutionAttempts } from "../assignments.ts";
-import { resolveProject, resolveTicket } from "../refs.ts";
+import { listExecutionAttempts } from "../assignments.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { resolveTicketAge } from "../tickets.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
 import { launchRun } from "./launchRun";
 import { launchState } from "./launchState";
+import { prepareList } from "./list.ts";
 import { observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun, listColumns, type StoredRun, storedRows } from "./queries.ts";
@@ -33,82 +32,6 @@ const ticketRuns = (_ctx: CoreCtx, tx: Tx, ticketId: string, projectId: string |
 		sql`SELECT ${listColumns} FROM agent_runs WHERE ticket_id = ${ticketId} AND
 		${projectId === null ? sql`true` : sql`project_id = ${projectId}`} ORDER BY created_at DESC, id DESC`,
 	);
-
-const withAttemptActivity = async (tx: Tx, runs: StoredRun[]) => {
-	const attempts = new Map(
-		(
-			await latestAttemptActivityByRuns(
-				tx,
-				runs.map((run) => run.id),
-			)
-		).map((attempt) => [attempt.runId, attempt.activityAt]),
-	);
-	return runs.map((run) => {
-		const attemptAt = attempts.get(run.id);
-		return attemptAt !== undefined && (run.activityAt === null || attemptAt > run.activityAt)
-			? { ...run, activityAt: attemptAt }
-			: run;
-	});
-};
-
-// The window keeps every open run. It also keeps each closed run whose
-// `updated_at` value falls inside `windowHours`. A caller that names `ids`
-// or `ticket` already asks for a bounded set.
-const withinWindow = (input: AgentRunListInput, ticketId: string | null, now: Date) => {
-	if (input.ids !== undefined || ticketId !== null) return sql`true`;
-	const start = new Date(now.getTime() - input.windowHours * 3_600_000);
-	return sql`(closed_at IS NULL OR updated_at >= ${start})`;
-};
-
-export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
-	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
-	const project = input.project === undefined ? null : await resolveProject(ctx, tx, input.project);
-	const projectWhere =
-		project === null
-			? sql`true`
-			: sql`((ticket_id IS NULL AND project_id = ${project.id}) OR
-				ticket_id IN (SELECT id FROM tickets WHERE project_id = ${project.id}))`;
-	const ticketWhere = ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`;
-	const idsWhere =
-		input.ids === undefined
-			? sql`true`
-			: input.ids.length === 0
-				? sql`false`
-				: sql`id IN (${sql.join(
-						input.ids.map((id) => sql`${id}`),
-						sql`, `,
-					)})`;
-	const assignedWhere =
-		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
-	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}
-		AND NOT EXISTS (SELECT 1 FROM session_observers o WHERE o.observer_id=agent_runs.id)`;
-	const window = withinWindow(input, ticket === null ? null : ticket.id, ctx.now);
-	if (input.includePinnedHistory) {
-		const runs = await storedRows<StoredRun>(
-			tx,
-			sql`WITH pinned AS (
-					SELECT ${listColumns} FROM agent_runs
-					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NOT NULL
-				), recent AS (
-					SELECT ${listColumns} FROM agent_runs
-					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NULL AND ${window}
-					ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}
-				)
-				SELECT * FROM pinned
-				UNION ALL
-				SELECT * FROM recent
-				ORDER BY "pinnedAt" DESC NULLS LAST, "createdAt" DESC, id DESC`,
-		);
-		return withAttemptActivity(tx, runs);
-	}
-	const runs = await storedRows<StoredRun>(
-		tx,
-		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${window}
-		ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}`,
-	);
-	return withAttemptActivity(tx, runs);
-};
-
 const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[], home?: string) =>
 	runs
 		.map((run) => projectRun(run, sessions, home))
@@ -123,19 +46,16 @@ export const listUnresolvedAttempts = async (tx: Tx, input: { sessions: RuntimeP
 	return projectUnresolvedAttempts(runs, input.sessions, input.home);
 };
 
-export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
-	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
-
-// Every run that a ticket or a session still holds. The list route caps how
-// many rows it answers with, and a reader of the open set must see all of
-// them, so this asks for the largest answer the list gives.
-export const prepareOpenRuns = (ctx: Ctx) =>
-	prepareList(ctx, {
-		assigned: true,
-		includePinnedHistory: false,
-		windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
-		limit: AGENT_RUN_LIST_MAX_LIMIT,
-	});
+export const prepareOpenRuns = async (ctx: Ctx) =>
+	(
+		await prepareList(ctx, {
+			assigned: true,
+			includePinnedHistory: false,
+			allHistory: false,
+			windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
+			limit: AGENT_RUN_LIST_MAX_LIMIT,
+		})
+	).items;
 
 export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;

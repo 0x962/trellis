@@ -116,6 +116,7 @@ export function SessionActionsMenu({
 		<>
 			<Menu
 				label={`Actions for ${name}`}
+				triggerTooltip={`Actions for ${name}`}
 				items={items}
 				trigger={
 					<IconButton

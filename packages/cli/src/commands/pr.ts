@@ -7,6 +7,7 @@ import { cell, json, printList, printRecord, type RecordSpec, timeCell } from ".
 import { deletedRecord } from "./delete.ts";
 import { pullRequestReadiness, pullRequestReadyText, pullRequestWaitingText } from "./ready/pullRequestReady.ts";
 import { prList } from "./show.ts";
+import { writeDiff } from "./writeDiff/index.ts";
 
 const prRecord: RecordSpec<PullRequest> = {
 	fields: [
@@ -98,17 +99,11 @@ const refresh = defineCommand({
 });
 
 const diff = defineCommand({
-	meta: { name: "diff", description: "Print the diff, cut at 1 MB" },
+	meta: { name: "diff", description: "Print the complete diff" },
 	args: { id: { type: "positional", required: true, description: "Pull request id" } },
 	async run(context) {
 		const ctx = contextOf(context);
-		const result = await clientOf(ctx).pullRequests.diff({ id: context.args.id });
-		if (wantsJson(ctx)) {
-			ctx.out.write(json(result));
-			return;
-		}
-		ctx.out.write(result.diff);
-		if (result.truncated) ctx.err.write(`the diff was cut at 1 MB; the whole diff is at ${result.url}\n`);
+		await writeDiff(ctx.out, wantsJson(ctx), clientOf(ctx).pullRequests.diff, context.args.id);
 	},
 });
 
