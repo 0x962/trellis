@@ -5,7 +5,7 @@ import type { WorkspaceBinding, WorkspaceCaptureReader, WorkspaceInventory } fro
 
 export async function git(directory: string, ...args: string[]) {
 	const child = Bun.spawn(["git", "-c", "commit.gpgsign=false", "-C", directory, ...args], {
-		env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1",
+		env: { PATH: process.env.PATH, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1",
 			GIT_AUTHOR_NAME: "Fixture", GIT_AUTHOR_EMAIL: "fixture@example.test",
 			GIT_COMMITTER_NAME: "Fixture", GIT_COMMITTER_EMAIL: "fixture@example.test" },
 		stdout: "pipe", stderr: "pipe",
@@ -15,8 +15,9 @@ export async function git(directory: string, ...args: string[]) {
 	return stdout;
 }
 
-export async function workspaceFixture() {
+export async function workspaceFixture(register: (path: string) => void) {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-workspace-archive-"));
+	register(directory);
 	const repository = join(directory, "repository");
 	await mkdir(repository);
 	await git(repository, "init", "--object-format=sha1");

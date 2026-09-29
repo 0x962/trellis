@@ -7,9 +7,7 @@ import { git, workspaceFixture } from "./workspaceFixture";
 const roots: string[] = [];
 afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
 async function fixture() {
-	const result = await workspaceFixture();
-	roots.push(result.directory);
-	return result;
+	return workspaceFixture((root) => { roots.push(root); });
 }
 
 test("restores staged, dirty, untracked and executable files after source repositories are removed", async () => {
@@ -64,6 +62,13 @@ test("rejects changed identities, external links, and repository alternates", as
 	await expect(exportWorkspaceArchive({ capture: f.reader }, { binding: f.binding, destination: f.archive }))
 		.rejects.toThrow("workspace_link_outside_capture");
 	f.inventory.entries.pop();
+	f.inventory.entries.push(
+		{ root: "worktree", path: "alias", kind: "symlink", target: "." },
+		{ root: "worktree", path: "chained", kind: "symlink", target: "alias/../outside" },
+	);
+	await expect(exportWorkspaceArchive({ capture: f.reader }, { binding: f.binding, destination: f.archive }))
+		.rejects.toThrow("workspace_link_outside_capture");
+	f.inventory.entries.splice(-2);
 	f.inventory.entries.push({ root: "common", path: "objects/info/alternates", kind: "file", mode: 0o600 });
 	await expect(exportWorkspaceArchive({ capture: f.reader }, { binding: f.binding, destination: f.archive }))
 		.rejects.toThrow("workspace_repository_dependency_unavailable");
