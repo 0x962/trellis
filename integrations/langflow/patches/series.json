@@ -15,9 +15,15 @@
 			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
 		},
 		{
+			"name": "backend-schema",
+			"path": "integrations/langflow/patches/schema/0001-trellis-feasibility-tables.patch",
+			"sha256": "ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6",
+			"directory": "."
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
-			"sha256": "4006793d90fdae7e16e1fc6e6a97ed1c155c75a64ce851662a4a48a203375fc9",
+			"sha256": "ec23fcc90f8e9799c323716a453ca52f5b4438cf3d0734b3908e1291c179d5d1",
 			"directory": "src/frontend",
 			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
 		}

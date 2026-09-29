@@ -1,28 +1,10 @@
-import {
-	AGENT_RUN_LIST_LIMIT,
-	AGENT_RUN_LIST_WINDOW_HOURS,
-	AgentBroadcastGroupSchema,
-	type AgentBroadcastResult,
-	type AgentRun,
-	HarnessSchema,
-} from "@trellis/api";
+import { AgentBroadcastGroupSchema, type AgentBroadcastResult, type AgentRun, HarnessSchema } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, wantsJson } from "../context.ts";
-import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
-
-const agentList: ListSpec<AgentRun> = {
-	columns: [
-		{ name: "id", value: (row) => row.id },
-		{ name: "kind", value: (row) => row.kind },
-		{ name: "name", value: (row) => cell(row.name) },
-		{ name: "state", value: (row) => row.state },
-		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
-		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
-	],
-	identifier: (row) => row.id,
-};
+import { cell, json, printRecord, type RecordSpec } from "../output.ts";
+import { list } from "./agents/list.ts";
 
 const agentRecord: RecordSpec<AgentRun> = {
 	fields: [
@@ -51,32 +33,6 @@ const broadcastRecord: RecordSpec<AgentBroadcastResult> = {
 	],
 	identifier: (row) => row.group,
 };
-
-const list = defineCommand({
-	meta: { name: "list", description: "List agents by ticket or by project" },
-	args: {
-		ticket: { type: "string", description: "Keep the agents of this ticket" },
-		project: { type: "string", description: "Keep the agents of this project" },
-		"window-hours": {
-			type: "string",
-			description: `How many hours of closed agents to keep, on top of the open ones (default ${AGENT_RUN_LIST_WINDOW_HOURS})`,
-		},
-		limit: { type: "string", description: `How many agents to print at most (default ${AGENT_RUN_LIST_LIMIT})` },
-	},
-	async run(context) {
-		const ctx = contextOf(context);
-		const { args } = context;
-		const rows = await clientOf(ctx).agentRuns.list(
-			compact({
-				ticket: args.ticket,
-				project: args.project,
-				windowHours: args["window-hours"] === undefined ? undefined : Number(args["window-hours"]),
-				limit: args.limit === undefined ? undefined : Number(args.limit),
-			}),
-		);
-		printList(ctx.out, ctx.format, rows, agentList);
-	},
-});
 
 const start = defineCommand({
 	meta: { name: "start", description: "Assign an agent to a ticket" },
@@ -154,7 +110,7 @@ const account = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
-		const [run] = await client.agentRuns.list({ ids: [context.args.id] });
+		const [run] = (await client.agentRuns.list({ ids: [context.args.id] })).items;
 		if (!run?.terminalId) throw new Error("This run has no provider session to resume.");
 		const result = await client.agentRuns.switchAccount({
 			id: run.id,

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Command, Kbd, Popover } from "@trellis/ui";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicSplat, projectHref } from "../../../lib/projectUrl";
 import { TitleMenuButton } from "../../shell/PageTitle/TitleMenuButton";
@@ -28,6 +28,10 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 	const [open, setOpen] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const list = useQuery({ ...orpc.epics.list.queryOptions({ input: { project: project } }), enabled: open });
+	const items = useMemo(
+		() => (list.data === undefined ? [] : epicSwitcherItems(list.data, epicRef)),
+		[list.data, epicRef],
+	);
 
 	const pick = (id: string) => {
 		setOpen(false);
@@ -59,7 +63,7 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 				inputRef={input}
 				label="Search epics"
 				placeholder="Switch epic"
-				items={list.data === undefined ? [] : epicSwitcherItems(list.data, epicRef)}
+				items={items}
 				empty={list.data === undefined ? "Load epics…" : "No epics."}
 				onSelect={pick}
 			/>

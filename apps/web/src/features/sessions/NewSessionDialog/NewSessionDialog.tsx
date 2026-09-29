@@ -38,7 +38,10 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 			if (session.projectId)
 				queryClient.setQueryData(
 					orpc.agentRuns.list.queryOptions({ input: { project: session.projectId } }).queryKey,
-					(current) => [run, ...(current ?? []).filter((item) => item.id !== run.id)],
+					(current) => ({
+						items: [run, ...(current?.items ?? []).filter((item) => item.id !== run.id)],
+						nextCursor: current?.nextCursor ?? null,
+					}),
 				);
 			sessionComposerActions.clear();
 			void Promise.all([

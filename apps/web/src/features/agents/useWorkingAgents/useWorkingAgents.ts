@@ -9,7 +9,7 @@ export function useWorkingAgents() {
 	const { orpc } = useApp();
 	const query = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
-		select: workingTargets,
+		select: (page) => workingTargets(page.items),
 	});
 	const [held, setHeld] = useState(empty);
 	useEffect(() => {

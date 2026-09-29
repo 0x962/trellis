@@ -1,14 +1,9 @@
-import type { AgentRun, TicketSummary } from "@trellis/api";
+import type { AgentRun, AgentRunListOutput, TicketSummary } from "@trellis/api";
 
-// The assigned agent runs after the server accepted one more. The table reads
-// `agentRuns.list { assigned: true }`, and this is the list the Start wave
-// dialog writes back into that query. The new run goes first, and a run with
-// the same id is dropped, so a second click on Start replaces the run it
-// already holds instead of listing it twice.
-export const startedRunList = (current: readonly AgentRun[] | undefined, run: AgentRun): AgentRun[] => [
-	run,
-	...(current ?? []).filter((item) => item.id !== run.id),
-];
+export const startedRunList = (current: AgentRunListOutput | undefined, run: AgentRun): AgentRunListOutput => ({
+	items: [run, ...(current?.items ?? []).filter((item) => item.id !== run.id)],
+	nextCursor: current?.nextCursor ?? null,
+});
 
 export type WaveStartHandlers = {
 	// Asks the server to start one agent on the ticket. It answers with the

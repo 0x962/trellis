@@ -34,7 +34,7 @@ export function SessionSheet() {
 		refetchInterval: 2000,
 		enabled: shown !== null,
 	});
-	const run = runs.data?.[0] ?? null;
+	const run = runs.data?.items[0] ?? null;
 	const terminalFocusDelay = Math.max(0, sheetOpenMotionMs() - (performance.now() - openedAt.current));
 	return (
 		<PageSheet

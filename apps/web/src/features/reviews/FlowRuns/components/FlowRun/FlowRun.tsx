@@ -8,6 +8,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { relativeTime } from "../../../../../lib/format";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
+import { allAgentRunsOptions } from "../../../../agents/allAgentRuns";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
 import { useClock } from "../../useClock";
 import { buildFlowRunRows } from "./buildFlowRunRows";
@@ -43,7 +44,7 @@ export function FlowRun({
 	const { doc, state } = execution;
 	const live = flowRunIsLive(state.status);
 	const now = useClock(live);
-	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket } }));
+	const runs = useQuery(allAgentRunsOptions(orpc, client, { ticket }));
 	const rows = useMemo(() => buildFlowRunRows(execution), [execution]);
 	const [decision, setDecision] = useState<string | null>(null);
 	const [terminal, setTerminal] = useState<FlowExecutionRecord["tasks"][number] | null>(null);
