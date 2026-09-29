@@ -10,17 +10,19 @@ export type PageTabPage = {
 export type PageTab = PageTabPage & {
 	id: string;
 	customTitle?: string;
+	pinned?: boolean;
 	backHistory: PageTabPage[];
 	forwardHistory: PageTabPage[];
 };
 
-export type PageTabItem = Pick<PageTab, "id" | "title">;
+export type PageTabItem = Pick<PageTab, "id" | "title"> & { pinned: boolean };
 
 export type PageTabsState = {
 	tabs: PageTab[];
 	activeId: string;
 	closedTabs: { tab: PageTab; index: number; replacementId: string | null }[];
 	renameTab: (id: string, title: string | null) => void;
+	setPinned: (id: string, pinned: boolean) => void;
 	moveTab: (id: string, beforeId: string | null) => void;
 	sortTabs: (direction: PageTabSortDirection) => void;
 	reopenClosedTab: () => void;
@@ -57,10 +59,24 @@ const tab = (id: string, page: PageTabPage): PageTab => ({
 	forwardHistory: [],
 });
 
-// sortTabs requires pinned tabs first, each group together, and ungrouped tabs last.
-// A pinned tab must not have a groupId.
-export const pageTabRegion = (tab: PageTab & { pinned?: boolean; groupId?: string }) =>
-	tab.pinned ? "pinned" : tab.groupId ? `group:${tab.groupId}` : "";
+// The region of a tab on the strip. Every pinned tab sits before every
+// unpinned tab, so `tabs` holds the pinned region as its prefix. A move never
+// carries a tab across the boundary; pin and unpin are the only crossings.
+export const pageTabRegion = (tab: { pinned?: boolean }) => (tab.pinned ? "pinned" : "unpinned");
+
+// The index range [start, end] a tab of the region may occupy in `tabs`,
+// with `tabs` read as if the moving tab were absent.
+const regionBounds = (tabs: readonly PageTab[], region: ReturnType<typeof pageTabRegion>) => {
+	const pinnedCount = tabs.filter((item) => item.pinned).length;
+	return region === "pinned" ? { start: 0, end: pinnedCount } : { start: pinnedCount, end: tabs.length };
+};
+
+const insertInRegion = (tabs: readonly PageTab[], moving: PageTab, index: number) => {
+	const { start, end } = regionBounds(tabs, pageTabRegion(moving));
+	const next = [...tabs];
+	next.splice(Math.max(start, Math.min(end, index)), 0, moving);
+	return next;
+};
 
 const updateActiveTab = (state: PageTabsState, update: (current: PageTab) => PageTab) => ({
 	tabs: state.tabs.map((item) => (item.id === state.activeId ? update(item) : item)),
@@ -72,7 +88,7 @@ export const pageTabsSelectors = {
 };
 
 export const pageTabsUiProjection = (tabs: readonly PageTab[], activeId: string): PageTabsUiState => ({
-	tabs: tabs.map((tab) => ({ id: tab.id, title: visibleTabName(tab) })),
+	tabs: tabs.map((tab) => ({ id: tab.id, title: visibleTabName(tab), pinned: tab.pinned === true })),
 	activeId,
 });
 
@@ -103,14 +119,22 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 							item.id === id ? { ...item, customTitle: title?.trim() || undefined } : item,
 						),
 					})),
+				setPinned: (id, pinned) =>
+					set((state) => {
+						const { pinned: _pinned, ...current } = state.tabs.find((item) => item.id === id)!;
+						if ((_pinned === true) === pinned) return state;
+						const moving: PageTab = pinned ? { ...current, pinned: true } : current;
+						const tabs = state.tabs.filter((item) => item.id !== id);
+						const bounds = regionBounds(tabs, pageTabRegion(moving));
+						return { tabs: insertInRegion(tabs, moving, pinned ? bounds.end : bounds.start) };
+					}),
 				moveTab: (id, beforeId) =>
 					set((state) => {
 						if (id === beforeId) return state;
 						const moving = state.tabs.find((item) => item.id === id)!;
 						const tabs = state.tabs.filter((item) => item.id !== id);
 						const index = beforeId === null ? tabs.length : tabs.findIndex((item) => item.id === beforeId);
-						tabs.splice(index, 0, moving);
-						return { tabs };
+						return { tabs: insertInRegion(tabs, moving, index) };
 					}),
 				sortTabs: (direction) => set((state) => ({ tabs: sortTabs(state.tabs, direction, pageTabRegion) })),
 				closeTab: (id) =>
@@ -139,8 +163,11 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 									item.forwardHistory.length === 0
 								),
 						);
-						tabs.splice(closed.index, 0, closed.tab);
-						return { tabs, activeId: closed.tab.id, closedTabs: state.closedTabs.slice(0, -1) };
+						return {
+							tabs: insertInRegion(tabs, closed.tab, closed.index),
+							activeId: closed.tab.id,
+							closedTabs: state.closedTabs.slice(0, -1),
+						};
 					}),
 				navigate: (page) =>
 					set((state) =>

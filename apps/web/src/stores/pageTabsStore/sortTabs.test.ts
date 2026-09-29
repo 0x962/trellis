@@ -67,12 +67,21 @@ test("a sort reorders inside each contiguous region and keeps the regions in pla
 	expect(sortTabs([], "ascending", region)).toEqual([]);
 });
 
-test("the store region separates pinned tabs, each group, and the ungrouped tail", () => {
-	const base = { id: "a", url: "/a", title: "A", backHistory: [], forwardHistory: [] };
-	expect(pageTabRegion(base)).toBe("");
-	expect(pageTabRegion({ ...base, pinned: true })).toBe("pinned");
-	expect(pageTabRegion({ ...base, groupId: "g1" })).toBe("group:g1");
-	expect(pageTabRegion({ ...base, groupId: "g2" })).not.toBe(pageTabRegion({ ...base, groupId: "g1" }));
+test("the store sort keeps the pinned prefix in place and sorts each region", () => {
+	const { open } = fixture();
+	const store = open();
+	const a = store.getState().activeId;
+	const b = store.getState().addTab({ url: "/b", title: "Zulu" });
+	const c = store.getState().addTab({ url: "/c", title: "Alpha" });
+	const d = store.getState().addTab({ url: "/d", title: "Mike" });
+	store.getState().setPinned(b, true);
+	store.getState().setPinned(c, true);
+	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([b, c, a, d]);
+	store.getState().sortTabs("ascending");
+	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([c, b, d, a]);
+	expect(store.getState().tabs.map(pageTabRegion)).toEqual(["pinned", "pinned", "unpinned", "unpinned"]);
+	store.getState().sortTabs("descending");
+	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([b, c, a, d]);
 });
 
 test("the store sort keeps the active tab, every tab record, and the saved order across reload", () => {
