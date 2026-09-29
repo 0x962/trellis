@@ -268,6 +268,7 @@ export const services = {
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),
 	"actors.default": core("read", actors.default),
+	"settings.defaultActorName": core("read", settings.defaultActorName),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
 	"system.health": io("read", system.health),

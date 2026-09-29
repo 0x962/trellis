@@ -2,7 +2,7 @@ import type { Project, ProjectCreateInput, ProjectUpdateInput } from "@trellis/a
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../context.ts";
-import { rows, textArray } from "../db/queries/support.ts";
+import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
@@ -36,14 +36,6 @@ const nextPosition = async (tx: Tx) => {
 
 // The description a new ticket of a new project starts with.
 export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
-
-export const activeProjectIds = async (tx: Tx, ids: string[]) =>
-	(
-		await rows<{ id: string }>(
-			tx,
-			sql`SELECT id FROM projects WHERE id = ANY(${textArray(ids)}) AND archived_at IS NULL ORDER BY id`,
-		)
-	).map((project) => project.id);
 
 // The slug of a new project is the lower-case spelling of its key. A key
 // already answers to `slugPattern`, so the slug needs no other rule.

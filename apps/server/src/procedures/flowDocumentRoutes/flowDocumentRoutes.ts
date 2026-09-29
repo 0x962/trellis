@@ -1,8 +1,14 @@
+import { ORPCError } from "@orpc/server";
 import type { FlowDocumentV1 } from "@trellis/api";
 import { documentTag } from "../../services/langflowDispatch";
 import { call, os } from "../base.ts";
+import { saveWithEditor } from "./saveWithEditor";
 
 export const flowDocumentProcedures = os.flowDocumentsV1.router({
+	editorSession: os.flowDocumentsV1.editorSession.handler(({ context, input }) => {
+		if (!context.editorGateway) throw new ORPCError("EDITOR_UNAVAILABLE", { status: 503, defined: true });
+		return context.editorGateway.issue(input, context.headers, context.resHeaders);
+	}),
 	discovery: os.flowDocumentsV1.discovery.handler(({ context, input }) =>
 		call(context, "flowDocuments.discovery", input),
 	),
@@ -12,13 +18,7 @@ export const flowDocumentProcedures = os.flowDocumentsV1.router({
 		return document;
 	}),
 	save: os.flowDocumentsV1.save.handler(async ({ context, input }) => {
-		const ifMatch = context.headers.get("if-match");
-		const ifNoneMatch = context.headers.get("if-none-match");
-		const document = await call<FlowDocumentV1>(context, "flowDocuments.save", {
-			document: input,
-			ifMatch,
-			ifNoneMatch,
-		});
+		const document = await saveWithEditor(context, input);
 		context.resHeaders?.set("etag", documentTag(document));
 		return document;
 	}),

@@ -1,6 +1,6 @@
 # Restricted editor sessions
 
-`createLangflowEditorSessions(options)` exports `fetch(Request)` and `withDocumentSave(request, save)`.
+`createLangflowEditorSessions(options)` exports `issue(input)`, `fetch(Request)`, and `withDocumentSave(request, save)`.
 The composition supplies the actual listener origins, host token, configured human actor, grant expiry policy, installed manifest, and committed document transport.
 The actor provider reads the stored server actor setting and refuses an absent setting.
 An actor header is an audit label. The host bearer authenticates access to the local Trellis host.
@@ -10,9 +10,21 @@ Different listener ports supply that separation.
 The editor listener serves static files without document content or credentials.
 The host token remains at the parent boundary.
 
+`issue({flow, expectedVersion})` returns `Promise<EditorSessionIssueResult>` for an authenticated host adapter.
+`EditorSessionIssueInput` and `EditorSessionIssueResult` export from this service's public barrel.
+The result contains `{session: EditorSession, credential: {token: string, expiresAt: Date}}`.
+The public response contains only `session`.
+The private `credential.token` supplies the `trellis_editor` cookie value.
+The adapter sets HttpOnly, SameSite=Strict, no Domain, and the path `/api/trellis-editor/v1/sessions/${session.channel}`.
+It uses `credential.expiresAt` for Expires and adds Secure for an HTTPS parent origin.
+The adapter owns host authentication, exact parent-origin checks, cookie headers, and HTTP error translation.
+The plain method throws the original issuance errors with their status codes.
+Both methods use the same grant map and configured human actor.
+
 `POST /api/trellis-editor/v1/sessions` accepts `{flow, expectedVersion}`.
 It requires the host token and exact parent Origin.
-It reads the actual saved document and verifies its installed component manifest before it issues an `EditorSession`.
+It calls `issue(input)` after authentication and input validation.
+The shared issuer reads the actual saved document and verifies its installed component manifest before it issues an `EditorSession`.
 The expiry comes from the explicit `expiresAt(now)` policy.
 The response sets an HttpOnly, host-only cookie with the path `/api/trellis-editor/v1/sessions/:channel`.
 HTTPS adds Secure. SameSite is Strict.
@@ -66,6 +78,6 @@ It must validate installed templates and editable fields against the actual pack
 The gateway never forwards requests to a general engine API.
 Execution, Playground, sharing, Python, imports, variables, provider keys, component replacement, and decision routes all fail closed.
 
-The focused fixtures exercise real document services and the actual HTTP handlers against an in-memory database.
+The focused fixtures exercise plain issuance, real document services, and the actual HTTP handlers against an in-memory database.
 Their manifest provider is an explicit test fixture.
 They do not prove installed template validation, mounted editor behavior, listener composition, or a production installation.
