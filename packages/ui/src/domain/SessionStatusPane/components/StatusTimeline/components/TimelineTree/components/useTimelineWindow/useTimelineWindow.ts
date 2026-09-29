@@ -21,7 +21,7 @@ export function useTimelineWindow(
 			const next = {
 				prefix: tree.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop,
 				width: tree.clientWidth,
-				mobile: window.matchMedia("(max-width: 767px)").matches,
+				mobile: getComputedStyle(tree).getPropertyValue("--timeline-compact").trim() === "1",
 			};
 			setGeometry((current) =>
 				current.prefix === next.prefix && current.width === next.width && current.mobile === next.mobile
@@ -33,7 +33,11 @@ export function useTimelineWindow(
 		const observer = new ResizeObserver(measure);
 		observer.observe(tree.parentElement!);
 		observer.observe(container);
-		return () => observer.disconnect();
+		window.addEventListener("resize", measure);
+		return () => {
+			observer.disconnect();
+			window.removeEventListener("resize", measure);
+		};
 	}, [root]);
 	useLayoutEffect(() => {
 		const remember = () => {
@@ -51,7 +55,10 @@ export function useTimelineWindow(
 		container.addEventListener("scroll", remember, { passive: true });
 		return () => container.removeEventListener("scroll", remember);
 	});
-	const keys = useMemo(() => rows.map((row) => `${row.key}:${row.expanded}:${geometry.width}`), [rows, geometry.width]);
+	const keys = useMemo(
+		() => rows.map((row) => `${row.key}:${row.expanded}:${geometry.width}:${geometry.mobile}`),
+		[rows, geometry.width, geometry.mobile],
+	);
 	const sizes = useMemo(
 		() => [
 			geometry.prefix,

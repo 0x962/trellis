@@ -74,7 +74,7 @@ export function TimelineTree({
 				role="tree"
 				aria-label="Update history"
 				aria-describedby={helpId}
-				className="relative min-w-0"
+				className="relative min-w-0 [--timeline-compact:0] max-md:[--timeline-compact:1]"
 				style={{ height: window.offsets.at(-1) }}
 			>
 				{[...visibleDays].map(([key, indices]) => {
