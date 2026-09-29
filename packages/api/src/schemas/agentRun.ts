@@ -177,7 +177,7 @@ export const AgentWorkspaceSummarySchema = z.discriminatedUnion("state", [
 export type AgentWorkspaceSummary = z.infer<typeof AgentWorkspaceSummarySchema>;
 export type ReadyWorkspaceSummary = Extract<AgentWorkspaceSummary, { state: "ready" }>;
 export const AgentWorkspaceFileInputSchema = AgentWorkspaceInputSchema.extend({
-	path: z.string().min(1).max(4096),
+	path: z.string().min(1),
 });
 export const AgentWorkspaceSchema = z.object({
 	runId: UlidSchema,
