@@ -94,7 +94,7 @@ export function FlowRunRow({
 			data-state={row.state}
 			style={{ "--flow-run-depth": row.depth } as CSSProperties}
 			className={cx(
-				"group flex min-h-9 flex-col justify-center border-b border-border py-1 ps-[min(calc(var(--spacing)*5*var(--flow-run-depth)),25%)] transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:min-h-11 max-md:ps-0",
+				"group flex min-h-9 flex-col justify-center border-b border-border py-1 ps-[calc(var(--spacing)*5*var(--flow-run-depth))] transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:min-h-11 max-md:ps-0",
 				row.hasChildren && "cursor-pointer",
 				selected && "bg-accent-soft",
 			)}

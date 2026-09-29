@@ -14,7 +14,6 @@ const details: Record<FlowExecutionViewV1["detail"], string> = {
 export function executionViewNotice(execution: FlowExecutionViewV1, currentHead: string, readOnly: boolean): string {
 	const parts = [details[execution.detail]];
 	if (execution.failureKind === "feedback") parts.push("The result contains review feedback.");
-	if (execution.error !== null) parts.push(execution.error);
 	if (readOnly) parts.push("This history is read-only.");
 	if (execution.diffId == null) parts.push("Diff association unknown.");
 	if (execution.reviewedHead === null) parts.push("Reviewed commit unknown.");
@@ -22,7 +21,6 @@ export function executionViewNotice(execution: FlowExecutionViewV1, currentHead:
 		parts.push(`This run reviewed another commit: ${execution.reviewedHead}.`);
 	if (execution.submission?.ownership === "unknown") parts.push("Recovery awaits confirmed engine ownership.");
 	if (execution.submission?.admission === "closed") parts.push("Native admission is closed.");
-	if (execution.submission?.error) parts.push(execution.submission.error);
 	if (execution.publication !== null) parts.push(`Publication ${execution.publication.publicationId}.`);
 	const stops = execution.stopObligations.filter((stop) => stop.state !== "confirmed").length;
 	if (stops > 0) parts.push(`${stops} worker stops await confirmation.`);
