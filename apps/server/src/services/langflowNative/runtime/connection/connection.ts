@@ -1,5 +1,10 @@
 import type { JobsLog } from "../../../../jobs";
-import { type DeliveryAuthorityV1, NativeResultV1Schema, protocolDigest, readProtocolBytes } from "../../../../langflowContracts";
+import {
+	type DeliveryAuthorityV1,
+	NativeResultV1Schema,
+	protocolDigest,
+	readProtocolBytes,
+} from "../../../../langflowContracts";
 import type { DispatchEffects, DispatchPermit, DispatchReceiptArchive } from "../../../../langflowHost";
 import { deliverNativeCompletion } from "../completionEngine";
 import type { ExecutionKey, NativeEngineClient, NativeKey, NativeRuntimePort, NativeRuntimeRow } from "../contracts";
@@ -19,13 +24,19 @@ export function createNativeRuntimeConnection(options: NativeRuntimeConnectionOp
 	async function settle(permit: DispatchPermit) {
 		if (permit.binding.executionId === null) throw new Error("native_completion_permit_conflict");
 		const receipt = await database.state("receipt", {
-			executionId: permit.binding.executionId, completionId: permit.binding.requestId,
+			executionId: permit.binding.executionId,
+			completionId: permit.binding.requestId,
 		});
 		if (receipt === null) return false;
 		if (receipt.resultDigest !== permit.binding.payloadDigest || receipt.engineJobId !== permit.binding.jobId)
 			throw new Error("native_completion_permit_conflict");
 		const sourceBytes = JSON.stringify(receipt);
-		const terminal = archive.writeTerminal({ permit, outcome: "completed", sourceBytes, sourceDigest: protocolDigest(sourceBytes) });
+		const terminal = archive.writeTerminal({
+			permit,
+			outcome: "completed",
+			sourceBytes,
+			sourceDigest: protocolDigest(sourceBytes),
+		});
 		await gate.settle(permit, terminal.id);
 		return true;
 	}
@@ -35,23 +46,41 @@ export function createNativeRuntimeConnection(options: NativeRuntimeConnectionOp
 		if (delivery === null) return;
 		const result = readProtocolBytes(NativeResultV1Schema, delivery.resultBytes);
 		const binding = {
-			effectId: `native-completion:${result.completionId}`, kind: "engine-delivery" as const,
-			executionId: key.executionId, attemptId: result.attemptId, jobId: result.launchBinding.engineJobId,
-			requestId: result.completionId, payloadDigest: protocolDigest(delivery.resultBytes),
+			effectId: `native-completion:${result.completionId}`,
+			kind: "engine-delivery" as const,
+			executionId: key.executionId,
+			attemptId: result.attemptId,
+			jobId: result.launchBinding.engineJobId,
+			requestId: result.completionId,
+			payloadDigest: protocolDigest(delivery.resultBytes),
 		};
 		const prior = gate.recoverPermit(binding);
 		const permit = prior?.permit ?? gate.acquire(binding);
-		if (prior?.terminal || await settle(permit)) return;
+		if (prior?.terminal || (await settle(permit))) return;
 		const authorityBytes = await archive.readAuthorityBytes(delivery.authority);
-		const completed = await options.withEngine(delivery.authority, (client) => deliverNativeCompletion({
-			client, delivery, authorityBytes, signal, current: () => database.state("delivery", key),
-		}));
+		const completed = await options.withEngine(delivery.authority, (client) =>
+			deliverNativeCompletion({
+				client,
+				delivery,
+				authorityBytes,
+				signal,
+				current: () => database.state("delivery", key),
+			}),
+		);
 		if (completed.state === "pending") {
-			options.log("langflow.native.completion_pending", { ...key, completionId: result.completionId, reason: completed.reason });
+			options.log("langflow.native.completion_pending", {
+				...key,
+				completionId: result.completionId,
+				reason: completed.reason,
+			});
 			return;
 		}
-		await database.acknowledge({ ...key, requestBytes: delivery.requestBytes,
-			waitBytes: completed.waitBytes, receipt: completed.receipt });
+		await database.acknowledge({
+			...key,
+			requestBytes: delivery.requestBytes,
+			waitBytes: completed.waitBytes,
+			receipt: completed.receipt,
+		});
 		await settle(permit);
 		await options.refreshExecution(key);
 	}
@@ -76,11 +105,15 @@ export function createNativeRuntimeConnection(options: NativeRuntimeConnectionOp
 			if (page.length === 0) return;
 			for (const row of page) {
 				signal.throwIfAborted();
-				try { await reconcile(row); }
-				catch (error) {
+				try {
+					await reconcile(row);
+				} catch (error) {
 					if (signal.aborted) throw error;
-					options.log("langflow.native.recovery_failed", { executionId: row.executionId, stepId: row.stepId,
-						error: error instanceof Error ? error.message : "unknown" });
+					options.log("langflow.native.recovery_failed", {
+						executionId: row.executionId,
+						stepId: row.stepId,
+						error: error instanceof Error ? error.message : "unknown",
+					});
 				}
 			}
 			afterStepId = page[page.length - 1]!.stepId;
@@ -89,8 +122,12 @@ export function createNativeRuntimeConnection(options: NativeRuntimeConnectionOp
 	async function recover() {
 		for (const entry of gate.read().permits) {
 			signal.throwIfAborted();
-			if (entry.terminal || entry.permit.binding.kind !== "engine-delivery" ||
-				!entry.permit.binding.effectId.startsWith("native-completion:")) continue;
+			if (
+				entry.terminal ||
+				entry.permit.binding.kind !== "engine-delivery" ||
+				!entry.permit.binding.effectId.startsWith("native-completion:")
+			)
+				continue;
 			await settle(entry.permit);
 		}
 		let afterId = "";

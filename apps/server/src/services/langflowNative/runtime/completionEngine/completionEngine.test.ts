@@ -22,9 +22,15 @@ test("recovers accepted bytes after a lost completion response without another m
 		accepted = true;
 		throw new Error("connection_lost_after_acceptance");
 	});
-	const input = { client, delivery: f.delivery, authorityBytes: f.authorityBytes,
-		signal: new AbortController().signal, current: async () => f.delivery };
+	const input = {
+		client,
+		delivery: f.delivery,
+		authorityBytes: f.authorityBytes,
+		signal: new AbortController().signal,
+		current: async () => f.delivery,
+	};
 	const first = await deliverNativeCompletion(input);
+	expect(first.state).toBe("accepted");
 	expect(first).toEqual({ state: "accepted", receipt: f.receipt, waitBytes: f.waitBytes });
 	expect(await deliverNativeCompletion(input)).toEqual(first);
 	expect(posts).toBe(1);
@@ -40,8 +46,15 @@ test("keeps unknown lookup pending without completion submission", async () => {
 		if (String(url).endsWith("/visit")) return Response.json(f.visit);
 		throw new Error("lookup_unreachable");
 	});
-	expect(await deliverNativeCompletion({ client, delivery: f.delivery, authorityBytes: f.authorityBytes,
-		signal: new AbortController().signal, current: async () => f.delivery })).toEqual({ state: "pending", reason: "lookup_unknown" });
+	expect(
+		await deliverNativeCompletion({
+			client,
+			delivery: f.delivery,
+			authorityBytes: f.authorityBytes,
+			signal: new AbortController().signal,
+			current: async () => f.delivery,
+		}),
+	).toEqual({ state: "pending", reason: "lookup_unknown" });
 	expect(paths.some((path) => path.endsWith("/completions"))).toBe(false);
 });
 
@@ -51,12 +64,22 @@ test("retains one unresolved submission when recovery still reports waiting", as
 	let lookups = 0;
 	const client = f.client(async (url) => {
 		if (String(url).endsWith("/visit")) return Response.json(f.visit);
-		if (String(url).endsWith("/lookup")) { lookups += 1; return Response.json(f.lookup(false)); }
+		if (String(url).endsWith("/lookup")) {
+			lookups += 1;
+			return Response.json(f.lookup(false));
+		}
 		posts += 1;
 		throw new Error("completion_unknown");
 	});
-	expect(await deliverNativeCompletion({ client, delivery: f.delivery, authorityBytes: f.authorityBytes,
-		signal: new AbortController().signal, current: async () => f.delivery })).toEqual({ state: "pending", reason: "completion_unknown" });
+	expect(
+		await deliverNativeCompletion({
+			client,
+			delivery: f.delivery,
+			authorityBytes: f.authorityBytes,
+			signal: new AbortController().signal,
+			current: async () => f.delivery,
+		}),
+	).toEqual({ state: "pending", reason: "completion_unknown" });
 	expect(posts).toBe(1);
 	expect(lookups).toBe(2);
 });
@@ -70,8 +93,15 @@ test("does not submit after cancellation withdraws the local delivery", async ()
 		posts += 1;
 		return Response.json(f.receipt);
 	});
-	expect(await deliverNativeCompletion({ client, delivery: f.delivery, authorityBytes: f.authorityBytes,
-		signal: new AbortController().signal, current: async () => null })).toEqual({ state: "pending", reason: "delivery_withdrawn" });
+	expect(
+		await deliverNativeCompletion({
+			client,
+			delivery: f.delivery,
+			authorityBytes: f.authorityBytes,
+			signal: new AbortController().signal,
+			current: async () => null,
+		}),
+	).toEqual({ state: "pending", reason: "delivery_withdrawn" });
 	expect(posts).toBe(0);
 });
 
@@ -81,19 +111,43 @@ test("refuses an engine receipt for another wait or changed result bytes", async
 		const client = f.client(async (url) => {
 			if (String(url).endsWith("/visit")) return Response.json(f.visit);
 			const lookup = f.lookup(true);
-			return Response.json(change === "wait"
-				? { ...lookup, engineWaitId: "other-wait" }
-				: { ...lookup, resultBytes: `${f.delivery.resultBytes} ` });
+			return Response.json(
+				change === "wait"
+					? { ...lookup, engineWaitId: "other-wait" }
+					: { ...lookup, resultBytes: `${f.delivery.resultBytes} ` },
+			);
 		});
-		await expect(deliverNativeCompletion({ client, delivery: f.delivery, authorityBytes: f.authorityBytes,
-			signal: new AbortController().signal, current: async () => f.delivery })).rejects.toThrow("native_completion_lookup_conflict");
+		await expect(
+			deliverNativeCompletion({
+				client,
+				delivery: f.delivery,
+				authorityBytes: f.authorityBytes,
+				signal: new AbortController().signal,
+				current: async () => f.delivery,
+			}),
+		).rejects.toThrow("native_completion_lookup_conflict");
 	}
 });
 
 test("keeps a reservation wait pending until the engine retains the native handle", async () => {
 	const f = completionFixture();
-	const client = f.client(async () => Response.json({ ...f.visit,
-		waitBytes: JSON.stringify({ kind: "native_reservation", waitId: f.visit.engineWaitId, request: JSON.parse(f.delivery.requestBytes) }) }));
-	expect(await deliverNativeCompletion({ client, delivery: f.delivery, authorityBytes: f.authorityBytes,
-		signal: new AbortController().signal, current: async () => f.delivery })).toEqual({ state: "pending", reason: "reservation_wait" });
+	const client = f.client(async () =>
+		Response.json({
+			...f.visit,
+			waitBytes: JSON.stringify({
+				kind: "native_reservation",
+				waitId: f.visit.engineWaitId,
+				request: JSON.parse(f.delivery.requestBytes),
+			}),
+		}),
+	);
+	expect(
+		await deliverNativeCompletion({
+			client,
+			delivery: f.delivery,
+			authorityBytes: f.authorityBytes,
+			signal: new AbortController().signal,
+			current: async () => f.delivery,
+		}),
+	).toEqual({ state: "pending", reason: "reservation_wait" });
 });

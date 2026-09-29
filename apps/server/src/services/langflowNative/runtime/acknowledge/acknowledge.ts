@@ -16,10 +16,15 @@ export async function runtimeAcknowledge(ctx: ServiceCtx, tx: Tx, input: Runtime
 	if (reservation.requestBytes !== input.requestBytes) throw new Error("native_request_bytes_conflict");
 	const wait = readNativeWait({ ...input, handle: reservation.handle });
 	const receipt = CompletionReceiptV1Schema.parse(input.receipt);
-	const [completion] = await tx.select().from(langflowCompletions).where(and(
-		eq(langflowCompletions.completionId, receipt.completionId),
-		eq(langflowCompletions.stepId, reservation.stepId),
-	));
+	const [completion] = await tx
+		.select()
+		.from(langflowCompletions)
+		.where(
+			and(
+				eq(langflowCompletions.completionId, receipt.completionId),
+				eq(langflowCompletions.stepId, reservation.stepId),
+			),
+		);
 	if (!completion) throw new Error("native_completion_receipt_conflict");
 	if (receipt.executionId !== execution.executionId || receipt.engineWaitId !== wait.waitId)
 		throw new Error("native_completion_receipt_conflict");

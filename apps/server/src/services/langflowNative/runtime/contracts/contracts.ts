@@ -34,11 +34,12 @@ export type RuntimeStateOperations = {
 export type RuntimeStateInput = {
 	[K in keyof RuntimeStateOperations]: HostKey & { operation: K; input: RuntimeStateOperations[K]["input"] };
 }[keyof RuntimeStateOperations];
-export type RuntimeAcknowledgeInput = HostKey & NativeKey & {
-	requestBytes: string;
-	waitBytes: string;
-	receipt: CompletionReceiptV1;
-};
+export type RuntimeAcknowledgeInput = HostKey &
+	NativeKey & {
+		requestBytes: string;
+		waitBytes: string;
+		receipt: CompletionReceiptV1;
+	};
 export type RuntimeWorkerDependencies = {
 	recordWorkspace: (
 		ctx: ServiceCtx,
