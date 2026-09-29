@@ -12,6 +12,7 @@ export type FlowRunState =
 	| "running"
 	| "waiting_human"
 	| "unknown"
+	| "exited"
 	| "succeeded"
 	| "skipped"
 	| "failed"
@@ -23,7 +24,7 @@ export type FlowRunRow = {
 	parentKey: string | null;
 	// 0 for a row outside every box.
 	depth: number;
-	kind: FlowRunKind;
+	kind: FlowRunKind | null;
 	title: string;
 	state: FlowRunState;
 	// A short fact beside the title: "3 at the same time", "12 min limit",
