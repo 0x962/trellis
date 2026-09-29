@@ -65,9 +65,15 @@ test("metadata migration retains old rows and complete long metadata", async () 
 		await db.execute(sql`INSERT INTO page_versions
 			(page_id, number, request_id, label, document_sha256, document_size, source_path, actor_name, actor_kind, created_at)
 			VALUES (${pageId}, 1, ${crypto.randomUUID()}, 'Draft', ${sha}, 1, 'index.html', ${actor.name}, ${actor.kind}, ${at})`);
-		const original = (await db.execute(sql`SELECT * FROM pages WHERE id = ${pageId}`)).rows;
+		const historicalPage = sql`SELECT id, project_id, slug, title, summary, version, latest_version,
+			creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at,
+			deleted_at, deleted_actor_name, deleted_actor_kind FROM pages WHERE id = ${pageId}`;
+		const original = (await db.execute(historicalPage)).rows;
 		await migrate(db);
-		expect((await db.execute(sql`SELECT * FROM pages WHERE id = ${pageId}`)).rows).toEqual(original);
+		expect((await db.execute(historicalPage)).rows).toEqual(original);
+		const actorId = (
+			await db.execute(sql`SELECT id FROM actors WHERE name = ${actor.name} AND kind = ${actor.kind}`)
+		).rows[0]!.id;
 		await db.transaction(cache.rebuild);
 
 		const title = Array.from({ length: 300 }, () => crypto.randomUUID().replaceAll("-", "")).join("");
@@ -88,27 +94,29 @@ test("metadata migration retains old rows and complete long metadata", async () 
 		expect(found.items.map((page) => page.id)).toEqual([pageId]);
 		await expect(
 			db.execute(sql`INSERT INTO pages
-			(id, project_id, slug, title, creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${ulid()}, ${projectId}, ${title}, 'Duplicate', ${actor.name}, ${actor.kind},
-			${actor.name}, ${actor.kind}, ${at}, ${at})`),
+			(id, project_id, slug, title, creator_actor_id, creator_actor_name, creator_actor_kind,
+			actor_id, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${ulid()}, ${projectId}, ${title}, 'Duplicate', ${actorId}, ${actor.name}, ${actor.kind},
+			${actorId}, ${actor.name}, ${actor.kind}, ${at}, ${at})`),
 		).rejects.toThrow("pages_project_id_slug_unique");
 		const otherProjectId = ulid();
 		await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 			VALUES (${otherProjectId}, 'OTHER', 'other', 'Other', ${at}, ${at})`);
 		await db.execute(sql`INSERT INTO pages
-			(id, project_id, slug, title, creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${ulid()}, ${otherProjectId}, ${title}, 'Other project', ${actor.name}, ${actor.kind},
-			${actor.name}, ${actor.kind}, ${at}, ${at})`);
+			(id, project_id, slug, title, creator_actor_id, creator_actor_name, creator_actor_kind,
+			actor_id, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${ulid()}, ${otherProjectId}, ${title}, 'Other project', ${actorId}, ${actor.name}, ${actor.kind},
+			${actorId}, ${actor.name}, ${actor.kind}, ${at}, ${at})`);
 		await db.execute(sql`INSERT INTO attachments
-			(id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
-			VALUES (${attachmentId}, ${ticketId}, ${filename}, ${mime}, 1, ${sha}, ${actor.name}, ${actor.kind}, ${at})`);
+			(id, ticket_id, filename, mime, size, sha256, actor_id, actor_name, actor_kind, created_at)
+			VALUES (${attachmentId}, ${ticketId}, ${filename}, ${mime}, 1, ${sha}, ${actorId}, ${actor.name}, ${actor.kind}, ${at})`);
 		const attachment = (await db.execute(sql`SELECT filename, mime FROM attachments WHERE id = ${attachmentId}`))
 			.rows[0]!;
 		expect(AttachmentSchema.shape.filename.parse(attachment.filename)).toBe(filename);
 		expect(attachment.mime).toBe(mime);
 		await db.execute(sql`INSERT INTO page_uploads
-			(id, project_id, sha256, size, mime, original_name, actor_name, actor_kind, created_at, expires_at)
-			VALUES (${uploadId}, ${projectId}, ${sha}, 1, ${mime}, ${filename}, ${actor.name}, ${actor.kind}, ${at},
+			(id, project_id, sha256, size, mime, original_name, actor_id, actor_name, actor_kind, created_at, expires_at)
+			VALUES (${uploadId}, ${projectId}, ${sha}, 1, ${mime}, ${filename}, ${actorId}, ${actor.name}, ${actor.kind}, ${at},
 			${new Date(at.getTime() + 86_400_000)})`);
 		const upload = (await db.execute(sql`SELECT original_name, mime FROM page_uploads WHERE id = ${uploadId}`))
 			.rows[0]!;
