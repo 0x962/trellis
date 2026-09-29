@@ -2,8 +2,8 @@ import { z } from "zod";
 import { LangflowSidecarManifestV1Schema } from "../../package-probe/sidecarManifest";
 
 const sidecar = LangflowSidecarManifestV1Schema.shape;
-const file = sidecar.source.shape.archive;
-const path = file.shape.path;
+const DigestFileSchema = sidecar.source.shape.archive;
+const RelativePathSchema = DigestFileSchema.shape.path;
 
 export const PackageRecipeSchema = z.strictObject({
 	schemaVersion: z.literal(1),
@@ -12,10 +12,10 @@ export const PackageRecipeSchema = z.strictObject({
 		tree: z.literal("e6ac634257b30645b6c35bcc707ed271789877d6"),
 	}),
 	patchSet: z.strictObject({
-		sha256: file.shape.sha256,
+		sha256: DigestFileSchema.shape.sha256,
 		patches: z.array(
 			sidecar.patchSet.shape.patches.element.extend({
-				directory: z.union([z.literal("."), path]),
+				directory: z.union([z.literal("."), RelativePathSchema]),
 			}),
 		),
 	}),
@@ -27,11 +27,11 @@ export const PackageRecipeSchema = z.strictObject({
 		architecture: z.enum(["arm64", "x86_64"]),
 		image: z.string().min(1),
 		imageDigest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
-		layout: path,
+		layout: RelativePathSchema,
 	}),
-	editor: sidecar.editor.extend({ lock: file }),
+	editor: sidecar.editor.extend({ lock: DigestFileSchema }),
 	license: sidecar.license,
-	dependencies: file,
+	dependencies: DigestFileSchema,
 });
 
 export type PackageRecipe = z.infer<typeof PackageRecipeSchema>;
