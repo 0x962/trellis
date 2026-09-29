@@ -57,6 +57,7 @@ test("sends the exact model and returns the complete reply with usage", async ()
 			return Response.json({
 				id: "response-1",
 				model: MODEL,
+				status: "completed",
 				output: [
 					{ type: "reasoning", summary: [] },
 					{
@@ -202,6 +203,43 @@ test("returns a typed context-capacity failure", async () => {
 	expect(JSON.stringify(h.logs)).not.toContain("private-project.ts");
 });
 
+test("refuses partial text from an incomplete response", async () => {
+	await db.execute(sql`DELETE FROM providers`);
+	const h = remoteHarness(db);
+	const provider = await h.create({ models: [MODEL] });
+	await expect(
+		generateText(
+			h.ctx,
+			{
+				providerId: provider.id,
+				...privateInput,
+				signal: new AbortController().signal,
+			},
+			async () =>
+				Response.json({
+					id: "response-incomplete",
+					model: MODEL,
+					status: "incomplete",
+					output: [
+						{
+							type: "message",
+							role: "assistant",
+							content: [{ type: "output_text", text: "Partial private-project.ts" }],
+						},
+					],
+					usage: { input_tokens: 120, output_tokens: 10, total_tokens: 130 },
+				}),
+		),
+	).rejects.toEqual(
+		new ProviderGenerationError(
+			"PROVIDER_GENERATION_INCOMPLETE",
+			"The Vercel provider did not complete the text response.",
+			200,
+		),
+	);
+	expect(JSON.stringify(h.logs)).not.toContain("private-project.ts");
+});
+
 test("refuses a response without complete assistant text or usage", async () => {
 	await db.execute(sql`DELETE FROM providers`);
 	const h = remoteHarness(db);
@@ -212,8 +250,19 @@ test("refuses a response without complete assistant text or usage", async () => 
 		signal: new AbortController().signal,
 	};
 	for (const body of [
-		{ id: "response-1", model: MODEL, output: [], usage: { input_tokens: 1, output_tokens: 0 } },
-		{ id: "response-1", model: MODEL, output: [{ type: "message", role: "assistant", content: [] }] },
+		{
+			id: "response-1",
+			model: MODEL,
+			status: "completed",
+			output: [],
+			usage: { input_tokens: 1, output_tokens: 0 },
+		},
+		{
+			id: "response-1",
+			model: MODEL,
+			status: "completed",
+			output: [{ type: "message", role: "assistant", content: [] }],
+		},
 	]) {
 		await expect(generateText(h.ctx, input, async () => Response.json(body))).rejects.toMatchObject({
 			code: "PROVIDER_INVALID_RESPONSE",

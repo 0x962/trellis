@@ -39,6 +39,7 @@ export type ProviderGenerationFailureCode =
 	| "PROVIDER_UNREACHABLE"
 	| "PROVIDER_CONTEXT_CAPACITY"
 	| "PROVIDER_HTTP_ERROR"
+	| "PROVIDER_GENERATION_INCOMPLETE"
 	| "PROVIDER_INVALID_RESPONSE";
 
 export class ProviderGenerationError extends Error {
@@ -55,6 +56,7 @@ export class ProviderGenerationError extends Error {
 const responseSchema = z.object({
 	id: z.string(),
 	model: z.string(),
+	status: z.string(),
 	output: z.array(
 		z.object({
 			type: z.string(),
@@ -185,6 +187,21 @@ export async function generateText(
 			"The Vercel provider returned an invalid text response.",
 		);
 		ctx.log("provider.generate.failure", { ...fields, status: response.status, code: error.code });
+		throw error;
+	}
+
+	if (parsed.status !== "completed") {
+		const error = new ProviderGenerationError(
+			"PROVIDER_GENERATION_INCOMPLETE",
+			"The Vercel provider did not complete the text response.",
+			response.status,
+		);
+		ctx.log("provider.generate.failure", {
+			...fields,
+			status: response.status,
+			responseStatus: parsed.status,
+			code: error.code,
+		});
 		throw error;
 	}
 
