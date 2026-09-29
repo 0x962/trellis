@@ -6,6 +6,8 @@ A named group holds tabs. `groups` lists the groups in strip order, each with a 
 
 `setPinned(id, pinned)` pins or unpins a tab. Every pinned tab sits before every other tab, so the pinned tabs form the prefix of the saved order. `pageTabRegion(tab)` names the region of a tab: pinned, its group, or the ungrouped tail. A pin places the tab at the end of the pinned region and removes it from its group. An unpin places it at the start of the ungrouped tail. A move keeps a tab inside its region: a target across a boundary lands at the edge of the region of the moving tab. A pin changes the position and the presentation only. The tab keeps its identity, its page, its history, and its custom name.
 
+`sortTabs(direction)` orders the tabs by their visible names, ascending or descending. The visible name is the custom name when one exists, else the page title. Tabs with equal names keep their relative order. `pageTabRegion(tab)` names the region of a tab; a sort reorders tabs inside each contiguous region and keeps the regions in place. The selected tab, every tab ID, page, history, and custom name stay unchanged.
+
 `selectAdjacentTab(offset)` selects the next tab for 1 or the previous tab for -1. It wraps at either end of the current order and saves the selected tab.
 
 `closeTab(id)` saves the complete tab and its position on a stack. A close that empties a group saves that group too. `reopenClosedTab()` restores the last closed tab, and its group, and selects it. The stack has no count limit. If the last tab closes, the store creates a home tab. Reopen removes that replacement only while it retains its original page, empty history, and automatic name.

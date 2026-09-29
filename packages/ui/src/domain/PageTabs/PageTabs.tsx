@@ -13,6 +13,7 @@ import { revealTab, useTabLayout } from "./components/useTabLayout";
 
 export type PageTabItem = { id: string; title: string; pinned: boolean; groupId?: string };
 export type PageTabGroupItem = { id: string; name: string; collapsed: boolean };
+export type PageTabSortDirection = "ascending" | "descending";
 export type PageTabsProps = {
 	// The pinned tabs come first. The strip draws them in a region of their
 	// own before the other tabs, and a move never crosses that boundary.
@@ -26,6 +27,7 @@ export type PageTabsProps = {
 	onClose: (id: string) => void;
 	onMove?: (id: string, beforeId: string | null) => void;
 	onRename?: (id: string, title: string | null) => void;
+	onSort?: (direction: PageTabSortDirection) => void;
 	onPin?: (id: string, pinned: boolean) => void;
 	// Creates a group that holds the tab, and returns the id of the group.
 	onCreateGroup?: (name: string, tabId: string) => string;
@@ -52,6 +54,7 @@ export function PageTabs({
 	onClose,
 	onMove,
 	onRename,
+	onSort,
 	onPin,
 	onCreateGroup,
 	onRenameGroup,
@@ -109,6 +112,11 @@ export function PageTabs({
 	const select = (id: string) => {
 		focusAfterChange.current = true;
 		onSelect(id);
+	};
+	const sort = (direction: PageTabSortDirection) => {
+		focusAfterChange.current = true;
+		onSort!(direction);
+		setAnnouncement(`Tabs sorted ${direction === "ascending" ? "A to Z" : "Z to A"}.`);
 	};
 	const pinnedDrag = useTabDrag({
 		listRef: pinnedRef,
@@ -267,7 +275,7 @@ export function PageTabs({
 					/>
 				</Tooltip>
 				<TabPicker tabs={tabs} activeId={activeId} onSelect={onSelect} />
-				{tabs.length > 0 && (onMove || onRename || onPin || onSetTabGroup) && (
+				{tabs.length > 0 && (onMove || onRename || onPin || onSort || onSetTabGroup) && (
 					<TabActions
 						tabs={tabs}
 						groups={groups}
@@ -275,6 +283,7 @@ export function PageTabs({
 						regionStart={regionStart}
 						regionEnd={regionEnd}
 						onMove={onMove ? move : undefined}
+						onSort={onSort ? sort : undefined}
 						onPin={onPin}
 						onRename={onRename ? () => setEditingId(activeId) : undefined}
 						onRestore={onRename ? () => onRename(activeId, null) : undefined}

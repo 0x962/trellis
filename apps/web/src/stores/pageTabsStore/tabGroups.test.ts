@@ -220,6 +220,20 @@ test("a pin leaves the group and an unpin lands at the start of the tail", () =>
 	expect(order(store)).toEqual([d, b, c, a]);
 });
 
+test("a sort reorders inside each group and the tail, and keeps the groups in place", () => {
+	const { store, a, b, c, d, g, h } = grouped();
+	store.getState().renameTab(b, "Zulu");
+	store.getState().renameTab(c, "Alpha");
+	const e = store.getState().addTab({ url: "/e", title: "0 first" });
+	store.getState().sortTabs("ascending");
+	expect(order(store)).toEqual([c, b, d, e, a]);
+	expect(store.getState().tabs.map(pageTabRegion)).toEqual([g, g, h, "", ""]);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g, h]);
+	expect(store.getState().tabs.find((tab) => tab.id === b)!.customTitle).toBe("Zulu");
+	store.getState().sortTabs("descending");
+	expect(order(store)).toEqual([b, c, d, a, e]);
+});
+
 test("the store caps neither groups nor tabs", () => {
 	const { store } = grouped();
 	for (let index = 0; index < 500; index++) {

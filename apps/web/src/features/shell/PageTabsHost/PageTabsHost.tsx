@@ -144,6 +144,7 @@ export function PageTabsHost() {
 			onClose={close}
 			onMove={pageTabsActions.moveTab}
 			onRename={pageTabsActions.renameTab}
+			onSort={pageTabsActions.sortTabs}
 			onPin={pageTabsActions.setPinned}
 			onCreateGroup={createGroup}
 			onRenameGroup={pageTabsActions.renameGroup}

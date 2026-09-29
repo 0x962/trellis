@@ -102,3 +102,18 @@ test("a pinned tab keeps its full name in the accessible name and has no close b
 	expect(html).toContain('aria-label="Close Tickets"');
 	expect(html).toContain('aria-label="Tab actions"');
 });
+
+test("accepts the sort callback beside the other tab actions", () => {
+	const html = renderToStaticMarkup(
+		<PageTabs
+			tabs={tabs}
+			activeId="tickets"
+			onAdd={() => {}}
+			onSelect={() => {}}
+			onClose={() => {}}
+			onSort={() => {}}
+		/>,
+	);
+
+	expect(html).toContain('aria-label="Tab actions"');
+});
