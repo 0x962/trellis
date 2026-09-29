@@ -9,7 +9,6 @@ SOURCE_ROOT = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
 sys.path.insert(0, str(SOURCE_ROOT / "src" / "backend"))
 
 from lfx.components.flow_controls.loop import LoopComponent
-from lfx.components.input_output import ChatOutput
 from lfx.components.processing.parser import ParserComponent
 from lfx.custom.custom_component.component import Component
 from lfx.graph import Graph
@@ -67,9 +66,9 @@ async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
 	outer.set(data=DataFrame([Data(text="outer-1"), Data(text="outer-2")]))
 	inner = LoopComponent(_id="inner")
 	inner.set(data=outer.item_output)
-	inner_sink = ChatOutput(_id="ChatOutput-inner")
-	inner_sink.set(input_value=inner.item_output, should_store_message=False)
-	_attach_feedback(inner, inner_sink, "message")
+	inner_sink = ParserComponent(_id="inner-feedback")
+	inner_sink.set(input_data=inner.item_output, mode="Parser", pattern="{text}", sep="\n")
+	_attach_feedback(inner, inner_sink, "parsed_text")
 	outer_sink = ParserComponent(_id="outer-feedback")
 	outer_sink.set(input_data=inner.done_output, mode="Parser", pattern="{text}", sep="\n")
 	_attach_feedback(outer, outer_sink, "parsed_text")

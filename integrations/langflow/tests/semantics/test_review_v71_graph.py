@@ -190,6 +190,7 @@ async def test_review_v71_runs_with_exact_branches_groups_and_output_bytes() -> 
 	run = _load_run()
 	_assert_private_trace(run)
 	review = ReviewGraph(run)
+	review.graph.prepare()
 	await review.graph.process(fallback_to_env_vars=False)
 
 	for node_id, node in review.nodes.items():
