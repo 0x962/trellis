@@ -1,0 +1,115 @@
+import { describe, expect, test } from "bun:test";
+import { GroupDeadlineV1Schema, NativeHandleV1Schema } from "../../../../apps/server/src/langflowContracts/index.ts";
+import { nestedFlow } from "../../fixtures/nativeHost";
+import { closeFixture, processEvidence, row, useFixture } from "./testEvidence.ts";
+
+describe.serial("native recovery feasibility", () => {
+	test("F4 retains the reserved attempt before launch and after a lost launch response", async () => {
+		let fixture = await useFixture();
+		const reserved = (await fixture.claim())!;
+		await fixture.reconcile();
+		let tasks = await fixture.tasks();
+		expect(tasks.rows).toHaveLength(1);
+		expect(row(tasks.rows).attempt_id).toBe(reserved.attempt.id);
+		expect(fixture.processes.launches).toEqual([]);
+		expect((await fixture.read()).state.steps[0]!.state).toBe("unknown");
+		const run = await fixture.run(reserved.run.id);
+		expect(
+			NativeHandleV1Schema.parse({
+				version: 1,
+				stepId: reserved.key,
+				agentRunId: reserved.run.id,
+				attemptId: reserved.attempt.id,
+				workspaceId: run.workspaceId,
+				providerSessionId: run.sessionId,
+				state: "unknown",
+				revision: 1,
+			}),
+		).toMatchObject({ attemptId: reserved.attempt.id, state: "unknown" });
+
+		await closeFixture();
+		fixture = await useFixture();
+		fixture.processes.loseNextLaunchResponse();
+		const first = await fixture.reconcile();
+		expect(first.errors).toEqual(["The process launched, but its response was lost."]);
+		tasks = await fixture.tasks();
+		const attemptId = row(tasks.rows).attempt_id;
+		expect(fixture.processes.launches).toEqual([attemptId]);
+		const launchedPid = (await fixture.processes.inspect(attemptId)).pid;
+		expect(typeof launchedPid).toBe("number");
+
+		fixture.restartProcessHost();
+		await fixture.reconcile();
+		expect((await fixture.processes.inspect(attemptId)).pid).toBe(launchedPid);
+		expect(fixture.processes.launches).toEqual([]);
+		await fixture.processes.acknowledge(attemptId);
+		fixture.restartProcessHost();
+		await fixture.reconcile();
+		await fixture.processes.complete(attemptId, "result-native-lifecycle", "Done");
+		fixture.restartProcessHost();
+		await fixture.reconcile();
+		await fixture.reconcile();
+		tasks = await fixture.tasks();
+		expect(tasks.rows).toHaveLength(1);
+		expect(row(tasks.rows)).toMatchObject({ attempt_id: attemptId, result_id: "result-native-lifecycle" });
+		expect((await fixture.read()).state.status).toBe("succeeded");
+		processEvidence.push({ probe: "F4", attemptId, pid: launchedPid, result: "persisted" });
+	});
+
+	test("F6 starts nested clocks at launchedAt and sends the half and quarter warnings once", async () => {
+		const fixture = await useFixture(nestedFlow());
+		const first = (await fixture.claim())!;
+		let state = (await fixture.read()).state;
+		expect(
+			state.steps.filter((step) => ["outer", "inner"].includes(step.nodeId)).map((step) => step.deadlineAt),
+		).toEqual([null, null]);
+
+		fixture.setNow("2026-09-29T10:10:00.000Z");
+		const launched = await fixture.launch(first);
+		await fixture.recordLaunch(first, launched.launchedAt);
+		await fixture.processes.acknowledge(first.attempt.id);
+		state = (await fixture.read()).state;
+		const original = Object.fromEntries(
+			state.steps
+				.filter((step) => ["outer", "inner"].includes(step.nodeId))
+				.map((step) => [step.nodeId, step.deadlineAt]),
+		);
+		expect(original).toEqual({
+			outer: Date.parse("2026-10-01T10:10:00.000Z"),
+			inner: Date.parse("2026-09-29T10:30:00.000Z"),
+		});
+		expect(
+			GroupDeadlineV1Schema.parse({
+				deadlineId: "deadline-outer",
+				groupOccurrenceKey: "outer:1",
+				budgetMs: 2880 * 60 * 1000,
+				launchedAt: launched.launchedAt,
+				deadlineAt: "2026-10-01T10:10:00.000Z",
+				launchReceiptId: "launch-receipt-outer",
+			}),
+		).toMatchObject({ budgetMs: 172_800_000 });
+
+		fixture.setNow("2026-09-29T10:20:00.000Z");
+		await fixture.reconcile();
+		fixture.setNow("2026-09-29T10:25:00.000Z");
+		await fixture.reconcile();
+		await fixture.reconcile();
+		expect(fixture.warnings.map((warning) => warning.text)).toEqual([
+			expect.stringContaining("about 10 min left"),
+			expect.stringContaining("about 5 min left"),
+		]);
+
+		await fixture.processes.complete(first.attempt.id, "result-first", "First done");
+		fixture.setNow("2026-09-29T10:26:00.000Z");
+		await fixture.reconcile();
+		state = (await fixture.read()).state;
+		expect(fixture.processes.launches).toHaveLength(2);
+		expect(
+			Object.fromEntries(
+				state.steps
+					.filter((step) => ["outer", "inner"].includes(step.nodeId))
+					.map((step) => [step.nodeId, step.deadlineAt]),
+			),
+		).toEqual(original);
+	});
+});
