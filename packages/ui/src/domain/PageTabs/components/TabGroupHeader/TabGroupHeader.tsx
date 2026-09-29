@@ -87,21 +87,22 @@ export function TabGroupHeader({
 					<span className="shrink-0 tabular-nums text-fg-faint">{count}</span>
 				</button>
 			</InlineEdit>
-			{!editing && (
-				<Menu
-					label={`${group.name} actions`}
-					triggerTooltip="Group actions"
-					trigger={
-						<IconButton
-							label={`${group.name} actions`}
-							icon={<DotsThree />}
-							size="sm"
-							className="max-sm:h-11 max-sm:min-w-11"
-						/>
-					}
-					items={items}
-				/>
-			)}
+			{/* The menu stays mounted while the name field is open. Its trigger
+			    takes the focus back when the menu closes, and a trigger that
+			    left the tree would drop that focus on the page. */}
+			<Menu
+				label={`${group.name} actions`}
+				triggerTooltip="Group actions"
+				trigger={
+					<IconButton
+						label={`${group.name} actions`}
+						icon={<DotsThree />}
+						size="sm"
+						className="max-sm:h-11 max-sm:min-w-11"
+					/>
+				}
+				items={items}
+			/>
 		</div>
 	);
 }

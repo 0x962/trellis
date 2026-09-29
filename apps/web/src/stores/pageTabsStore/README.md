@@ -1,9 +1,11 @@
 The page tab store saves open tabs, their order, the selected tab, and closed tabs under the current host origin. Each tab retains its identity, current page, back history, and forward history.
 
-`moveTab(id, beforeId)` places a tab before another tab. A null `beforeId` places it at the end. `renameTab(id, title)` saves a custom name separately from the automatic page title. Null or blank text restores the automatic title.
+A named group holds tabs. `groups` lists the groups in strip order, each with a name and a collapsed flag. A tab carries the `groupId` of its group, or none. The order of `tabs` is the block of each group in `groups` order, then the ungrouped tail. `tabGroups.ts` holds the region rules. `createGroup(name)` adds an empty group. `setTabGroup(id, groupId)` appends the tab to the end of that group, or a null `groupId` moves it to the start of the tail; the group it leaves goes away when it holds no other tab. `removeGroup(id)` moves every tab of the group to the start of the tail and drops the group. `setGroupCollapsed(id, collapsed)` hides or shows the tabs of the group; a collapse that hides the selected tab selects the nearest tab outside the group. Selecting a tab of a collapsed group expands that group.
+
+`moveTab(id, beforeId)` places a tab before another tab. A null `beforeId` places it at the end. A move stays inside the region of the tab: its group, or the ungrouped tail. `renameTab(id, title)` saves a custom name separately from the automatic page title. Null or blank text restores the automatic title.
 
 `selectAdjacentTab(offset)` selects the next tab for 1 or the previous tab for -1. It wraps at either end of the current order and saves the selected tab.
 
-`closeTab(id)` saves the complete tab and its position on a stack. `reopenClosedTab()` restores the last closed tab and selects it. The stack has no count limit. If the last tab closes, the store creates a home tab. Reopen removes that replacement only while it retains its original page, empty history, and automatic name.
+`closeTab(id)` saves the complete tab and its position on a stack. A close that empties a group saves that group too. `reopenClosedTab()` restores the last closed tab, and its group, and selects it. The stack has no count limit. If the last tab closes, the store creates a home tab. Reopen removes that replacement only while it retains its original page, empty history, and automatic name.
 
 The command palette and the desktop menu use the commands that PageTabsHost handles. The desktop preload receives tab commands through a dedicated IPC channel. The desktop menu owns the tab shortcuts even when an editor or terminal has focus. The explicit Close window command uses Command/Ctrl+Shift+W. A browser keeps its own tab shortcuts.

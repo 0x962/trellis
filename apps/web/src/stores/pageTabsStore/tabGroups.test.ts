@@ -95,6 +95,19 @@ test("leaving a group places the tab at the start of the tail", () => {
 	expect(order(store)).toEqual([b, d, c, a]);
 });
 
+test("a group that loses its last tab goes away", () => {
+	const { store, d, g, h } = grouped();
+	store.getState().setTabGroup(d, g);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g]);
+	store.getState().setTabGroup(d, null);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g]);
+	const fresh = store.getState().createGroup("Fresh");
+	const later = store.getState().createGroup("Later again");
+	store.getState().setTabGroup(d, fresh);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g, fresh, later]);
+	expect(store.getState().groups.find((group) => group.id === h)).toBeUndefined();
+});
+
 test("selecting a tab of a collapsed group expands the group", () => {
 	const { store, a, c, d, g } = grouped();
 	store.getState().selectTab(a);
@@ -122,13 +135,14 @@ test("collapsing the group of the selected tab selects the nearest tab outside i
 	store.getState().selectTab(a);
 	store.getState().setGroupCollapsed(h, true);
 	expect(store.getState().activeId).toBe(d);
+	const groupH = () => store.getState().groups.find((group) => group.id === h)!;
 	store.getState().setTabGroup(b, h);
 	store.getState().setTabGroup(c, h);
-	expect(store.getState().groups[1]!.collapsed).toBe(true);
+	expect(groupH().collapsed).toBe(true);
 	store.getState().setTabGroup(d, h);
-	expect(store.getState().groups[1]!.collapsed).toBe(false);
+	expect(groupH().collapsed).toBe(false);
 	store.getState().setGroupCollapsed(h, true);
-	expect(store.getState().groups[1]!.collapsed).toBe(false);
+	expect(groupH().collapsed).toBe(false);
 	expect(store.getState().activeId).toBe(d);
 });
 

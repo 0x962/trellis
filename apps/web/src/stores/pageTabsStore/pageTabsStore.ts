@@ -154,7 +154,11 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						const moved = groupId === null ? bare : { ...bare, groupId };
 						const rest = state.tabs.filter((item) => item.id !== id);
 						rest.splice(groupId === null ? tailStart(rest) : groupEnd(rest, state.groups, groupId), 0, moved);
-						return { tabs: rest, groups: id === state.activeId ? expandGroupOf(state.groups, moved) : state.groups };
+						// The group the tab leaves goes away when it holds no other tab.
+						const groups = state.groups.filter(
+							(group) => group.id !== current.groupId || rest.some((item) => item.groupId === group.id),
+						);
+						return { tabs: rest, groups: id === state.activeId ? expandGroupOf(groups, moved) : groups };
 					}),
 				addTab: (page) => {
 					const next = tab(createId(), page);
