@@ -101,6 +101,7 @@ export async function provisionStorage(
 		image: string;
 		authenticationFile: string;
 		captureIssuerFile: string;
+		engineApiConfigFile: string | null;
 		storage: StorageNames;
 	},
 ) {
@@ -131,6 +132,9 @@ export async function provisionStorage(
 		`type=bind,src=${input.authenticationFile},dst=/input/authentication,readonly`,
 		"--mount",
 		`type=bind,src=${input.captureIssuerFile},dst=/input/capture-issuer,readonly`,
+		...(input.engineApiConfigFile
+			? ["--mount", `type=bind,src=${input.engineApiConfigFile},dst=/input/engine-api,readonly`]
+			: []),
 		"--mount",
 		`type=volume,src=${input.storage.data},dst=/engine`,
 		"--mount",
@@ -148,7 +152,12 @@ const storageProvisionScript = [
 	"set -eu",
 	"install -d -o 10001 -g 10001 -m 0700 /engine /engine/config /secrets",
 	"install -o 10001 -g 10001 -m 0600 /input/authentication /secrets/authentication",
-	"install -o 10001 -g 10001 -m 0400 /input/capture-issuer /secrets/capture-issuer",
+	"install -o 10001 -g 10001 -m 0600 /input/capture-issuer /secrets/capture-issuer",
+	"if [ -e /input/engine-api ]; then",
+	"install -o 10001 -g 10001 -m 0600 /input/engine-api /secrets/engine-api.json",
+	"else",
+	"rm -f /secrets/engine-api.json",
+	"fi",
 	"if [ ! -s /secrets/engine-secret ]; then",
 	"python -c 'from pathlib import Path; from secrets import token_urlsafe; Path(\"/secrets/engine-secret\").write_text(token_urlsafe(48))'",
 	"chown 10001:10001 /secrets/engine-secret",

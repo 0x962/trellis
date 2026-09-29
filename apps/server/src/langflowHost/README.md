@@ -42,6 +42,9 @@ The provisioner creates the persistent encryption secret.
 The engine reads the capture issuer from a separate read-only secret file.
 Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
+An explicit `engineApiConfigFile` copies one mode-0600 startup file into the read-only secrets volume.
+Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
+The container label binds the SHA256 of the supplied startup file to the saved instance.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
 It reads the exact bearer file for each operation, refuses redirects, preserves request and response bytes, and returns unknown network results.
