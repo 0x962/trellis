@@ -2,7 +2,7 @@ import { mkdir, readFile, realpath } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { protocolDigest } from "../../../langflowContracts";
-import { type DispatchEvidence, LangflowHostControl } from "../../../langflowHost";
+import { type DispatchBlock, type HostControlIdentity, LangflowHostControl } from "../../../langflowHost";
 import { manifestName, type SnapshotCompatibility } from "../manifest";
 import { PairedJournal } from "../pairedJournal";
 import { readSnapshot } from "../readSnapshot";
@@ -10,7 +10,7 @@ import { restoreSnapshot } from "../restoreSnapshot";
 import { syncDirectory } from "../syncDirectory";
 
 export async function restorePairedSnapshot(
-	ctx: { liveHome: string; evidence: DispatchEvidence },
+	ctx: { liveHome: string },
 	input: { snapshot: string; destination: string; targetHome: string; requestId: string; compatibility: SnapshotCompatibility; signal: AbortSignal },
 ) {
 	const liveHome = await realpath(ctx.liveHome);
@@ -27,33 +27,33 @@ export async function restorePairedSnapshot(
 	const manifestDigest = protocolDigest(JSON.stringify(manifest));
 	await mkdir(targetHome, { mode: 0o700 });
 	await syncDirectory(dirname(targetHome));
-	let initialized: { control: LangflowHostControl; journal: PairedJournal } | null = null;
+	const initialized: { identity: HostControlIdentity; block: DispatchBlock; journal: PairedJournal }[] = [];
 	const restored = await restoreSnapshot({
 		blockDispatch: async ({ directory, manifest: current }) => {
 			if (!isDeepStrictEqual(current, manifest)) throw new Error("paired_restore_manifest_changed");
-			const control = LangflowHostControl.create({
-				home: targetHome, evidence: ctx.evidence,
+			input.signal.throwIfAborted();
+			const control = LangflowHostControl.initialize({
+				home: targetHome,
 				initialBlock: {
 					requestId: input.requestId,
 					reason: { kind: "restore", directory, snapshotId: manifest.snapshotId, sourceDataHomeId: manifest.sourceDataHomeId, manifestDigest },
 				},
 			});
-			const block = control.gate.read().block;
+			const block = control.block;
 			if (!block || block.reason.kind !== "restore") throw new Error("paired_restore_block_missing");
-			await control.gate.waitForDrain(block, input.signal);
 			const journal = await PairedJournal.create(control, {
 				version: 1, kind: "restore", snapshotId: manifest.snapshotId, requestId: input.requestId,
 				directory, dataHomeId: control.identity.dataHomeId, hostId: control.identity.hostId,
 				compatibility: manifest.compatibility, createdAt: new Date().toISOString(),
 			});
 			await journal.write("block", block);
-			initialized = { control, journal };
+			initialized.push({ identity: control.identity, block, journal });
 		},
 	}, { snapshot, destination, compatibility: input.compatibility });
-	if (!initialized) throw new Error("paired_restore_not_initialized");
-	const retained = initialized as { control: LangflowHostControl; journal: PairedJournal };
+	const retained = initialized[0];
+	if (!retained) throw new Error("paired_restore_not_initialized");
 	if (protocolDigest(await readFile(join(restored.payload, manifestName), "utf8")) !== manifestDigest)
 		throw new Error("paired_restore_manifest_changed");
 	await retained.journal.write("restored", { payload: restored.payload, manifestDigest, targetHome });
-	return { ...restored, targetHome, identity: retained.control.identity, block: retained.control.gate.read().block, manifestDigest };
+	return { ...restored, targetHome, identity: retained.identity, block: retained.block, manifestDigest };
 }

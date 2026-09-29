@@ -104,9 +104,11 @@ It never sends another export POST and never releases the host gate.
 An incomplete or unavailable seal keeps capture recovery blocked.
 
 `restorePairedSnapshot` accepts a source snapshot, new envelope, new target home, request ID, compatibility, and abort signal.
-Its context provides the current live home and the trusted host evidence producer.
+Its context provides the current live home.
 The target home, source, live home, and envelope must remain separate.
 After the restore marker exists, it creates external host control with the exact restore block before it copies payload files.
+`LangflowHostControl.initialize` creates this block with an empty permit store.
+The host later opens that control with its actual evidence producer.
 The target home remains empty; the verified payload stays under the envelope.
 A separate owner must install those bytes and verify the live engine before release.
 The source and all later live records remain intact.
