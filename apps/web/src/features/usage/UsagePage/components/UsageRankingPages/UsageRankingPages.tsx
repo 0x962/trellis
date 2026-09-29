@@ -27,6 +27,7 @@ export function UsageRankingPages({
 					<IconButton
 						label={`Previous ${label} page`}
 						icon={<CaretLeft />}
+						focusableWhenDisabled
 						disabled={pending || start === 0}
 						onClick={() => onPage(-1)}
 					/>
@@ -35,6 +36,7 @@ export function UsageRankingPages({
 					<IconButton
 						label={`Next ${label} page`}
 						icon={<CaretRight />}
+						focusableWhenDisabled
 						disabled={pending || start + count >= total}
 						onClick={() => onPage(1)}
 					/>
