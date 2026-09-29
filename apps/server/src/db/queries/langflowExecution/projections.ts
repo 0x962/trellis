@@ -1,10 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import type { FlowExecutionViewV1 } from "@trellis/api";
 import { and, asc, eq, gt, gte } from "drizzle-orm";
-import { protocolDigest, type EngineCheckpointV1, type ExecutionEventV1 } from "../../../langflowContracts";
+import { type EngineCheckpointV1, type ExecutionEventV1, protocolDigest } from "../../../langflowContracts";
 import {
-	langflowExecutionProjections as projections,
 	langflowSourceEvents as events,
+	langflowExecutionProjections as projections,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
@@ -96,6 +96,7 @@ export async function commitProjection(
 			executionId: input.executionId,
 			engineJobId: event.engineJobId,
 			sourceEventId: event.sourceEventId,
+			sourceIdentityDigest: protocolDigest(event.sourceEventId),
 			sourceBytes,
 			event,
 			seq: event.seq,

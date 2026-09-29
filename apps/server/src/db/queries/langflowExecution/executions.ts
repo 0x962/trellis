@@ -1,10 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq } from "drizzle-orm";
 import {
-	protocolDigest,
 	type AdmissionReceiptV1,
 	type CorrelationReceiptV1,
 	type DeliveryAuthorityV1,
+	protocolDigest,
 } from "../../../langflowContracts";
 import { langflowExecutions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
