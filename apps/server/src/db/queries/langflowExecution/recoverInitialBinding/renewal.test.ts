@@ -15,10 +15,12 @@ test("binds a same-owner renewal atomically and returns original replay bytes", 
 	const fixture = await renewalFixture();
 	db = fixture.db;
 	const before = await db.transaction((tx) => readExecution(tx, execution));
-	await expect(db.transaction(async (tx) => {
-		await recoverInitialBinding(tx, fixture.input);
-		throw new Error("abort");
-	})).rejects.toThrow("abort");
+	await expect(
+		db.transaction(async (tx) => {
+			await recoverInitialBinding(tx, fixture.input);
+			throw new Error("abort");
+		}),
+	).rejects.toThrow("abort");
 	expect(await db.transaction((tx) => readExecution(tx, execution))).toEqual(before);
 	const saved = await db.transaction((tx) => recoverInitialBinding(tx, fixture.input));
 	expect(saved.initialRecordBytes).toBe(fixture.input.initialRecordBytes);
@@ -32,14 +34,26 @@ test("binds a same-owner renewal atomically and returns original replay bytes", 
 test("refuses a revoked owner and a changed supervisor identity", async () => {
 	const fixture = await renewalFixture();
 	db = fixture.db;
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, {
-		...fixture.input, takeover: { ...fixture.input.takeover, observation: {
-			...fixture.input.takeover.observation, identity: { ...fixture.initial.observation.identity, instanceId: "other" },
-		} },
-	}))).rejects.toThrow("initial_recovery_identity_conflict");
-	await db.transaction((tx) => authorityControl.revokeOwner(tx, {
-		identity: fixture.initial.observation.identity, observationId: "retire",
-	}));
+	await expect(
+		db.transaction((tx) =>
+			recoverInitialBinding(tx, {
+				...fixture.input,
+				takeover: {
+					...fixture.input.takeover,
+					observation: {
+						...fixture.input.takeover.observation,
+						identity: { ...fixture.initial.observation.identity, instanceId: "other" },
+					},
+				},
+			}),
+		),
+	).rejects.toThrow("initial_recovery_identity_conflict");
+	await db.transaction((tx) =>
+		authorityControl.revokeOwner(tx, {
+			identity: fixture.initial.observation.identity,
+			observationId: "retire",
+		}),
+	);
 	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input))).rejects.toThrow("owner_revoked");
 	expect((await db.transaction((tx) => readExecution(tx, execution)))!.authority).toBeNull();
 }, 60000);
@@ -47,15 +61,31 @@ test("refuses a revoked owner and a changed supervisor identity", async () => {
 test("narrows cancellation renewal without an admission or scheduling effect", async () => {
 	const fixture = await renewalFixture();
 	db = fixture.db;
-	await db.transaction((tx) => cancelExecution(tx, {
-		intent: { version: 1, ...execution, requestId: crypto.randomUUID(), expectedRevision: 1,
-			actor: { kind: "human", name: "fixture" }, requestedAt: now.toISOString() }, obligations: [],
-	}));
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input)))
-		.rejects.toThrow("cancellation_requires_successor_authority");
+	await db.transaction((tx) =>
+		cancelExecution(tx, {
+			intent: {
+				version: 1,
+				...execution,
+				requestId: crypto.randomUUID(),
+				expectedRevision: 1,
+				actor: { kind: "human", name: "fixture" },
+				requestedAt: now.toISOString(),
+			},
+			obligations: [],
+		}),
+	);
+	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input))).rejects.toThrow(
+		"cancellation_requires_successor_authority",
+	);
 	const authority = { ...fixture.input.takeover.receipt.authority, permissions: ["execution.cancel"] as const };
-	const takeover = { ...fixture.input.takeover, authorityBytes: JSON.stringify(authority),
-		receipt: { ...fixture.input.takeover.receipt, authority: { ...authority, permissions: [...authority.permissions] } } };
+	const takeover = {
+		...fixture.input.takeover,
+		authorityBytes: JSON.stringify(authority),
+		receipt: {
+			...fixture.input.takeover.receipt,
+			authority: { ...authority, permissions: [...authority.permissions] },
+		},
+	};
 	const before = (await db.transaction((tx) => readExecution(tx, execution)))!;
 	await db.transaction((tx) => recoverInitialBinding(tx, { ...fixture.input, takeover }));
 	const after = (await db.transaction((tx) => readExecution(tx, execution)))!;

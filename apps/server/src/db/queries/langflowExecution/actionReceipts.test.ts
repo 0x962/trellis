@@ -4,7 +4,7 @@ import { protocolDigest } from "../../../langflowContracts";
 import { type Db, openDb } from "../../client";
 import { migrate } from "../../migrate";
 import { type ActionReceiptInput, readActionReceipt, saveActionReceipt } from "./actionReceipts";
-import { beforeDocuments } from "./fixtures/migration";
+import { beforeDocuments, remainingMigrations } from "./fixtures/migration";
 
 let db: Db;
 afterEach(async () => {
@@ -42,7 +42,7 @@ function input(overrides: Partial<Extract<ActionReceiptInput, { outcome: "comple
 }
 test("retains immutable exact action receipts through rollback, replay, and archive restore", async () => {
 	db = await beforeDocuments(136);
-	expect(await migrate(db)).toBe(2);
+	expect(await migrate(db)).toBe(await remainingMigrations(136));
 	const original = input();
 	await expect(
 		db.transaction(async (tx) => {

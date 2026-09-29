@@ -37,16 +37,25 @@ test("rolls back the historical binding and refuses changed issuance replay", as
 	const fixture = await recoveryFixture();
 	db = fixture.db;
 	const before = await db.transaction((tx) => readExecution(tx, execution));
-	await expect(db.transaction(async (tx) => {
-		await recoverInitialBinding(tx, fixture.input);
-		throw new Error("abort");
-	})).rejects.toThrow("abort");
+	await expect(
+		db.transaction(async (tx) => {
+			await recoverInitialBinding(tx, fixture.input);
+			throw new Error("abort");
+		}),
+	).rejects.toThrow("abort");
 	expect(await db.transaction((tx) => readExecution(tx, execution))).toEqual(before);
-	expect(await db.transaction((tx) => authorityControl.readReceipt(tx, fixture.input.takeover.receipt.request))).toBeNull();
+	expect(
+		await db.transaction((tx) => authorityControl.readReceipt(tx, fixture.input.takeover.receipt.request)),
+	).toBeNull();
 	await db.transaction((tx) => recoverInitialBinding(tx, fixture.input));
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, {
-		...fixture.input, initialRecordBytes: `${fixture.input.initialRecordBytes} `,
-	}))).rejects.toThrow("identity_conflict");
+	await expect(
+		db.transaction((tx) =>
+			recoverInitialBinding(tx, {
+				...fixture.input,
+				initialRecordBytes: `${fixture.input.initialRecordBytes} `,
+			}),
+		),
+	).rejects.toThrow("identity_conflict");
 }, 60000);
 
 test("refuses changed correlation, revoked successors, and invented prior revocations", async () => {
@@ -54,16 +63,31 @@ test("refuses changed correlation, revoked successors, and invented prior revoca
 	db = fixture.db;
 	const changed = structuredClone(fixture.initial);
 	changed.input.correlation.engineJobId = "00000000-0000-4000-8000-000000000009";
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, {
-		...fixture.input, initialRecordBytes: JSON.stringify(changed),
-	}))).rejects.toThrow("initial_recovery_identity_conflict");
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, {
-		...fixture.input,
-		takeover: { ...fixture.input.takeover, revocation: { ...fixture.input.takeover.revocation!, observationId: "fake" } },
-	}))).rejects.toThrow("owner_revocation_conflict");
-	await db.transaction((tx) => authorityControl.revokeOwner(tx, {
-		identity: fixture.input.takeover.observation.identity, observationId: "retire-2",
-	}));
+	await expect(
+		db.transaction((tx) =>
+			recoverInitialBinding(tx, {
+				...fixture.input,
+				initialRecordBytes: JSON.stringify(changed),
+			}),
+		),
+	).rejects.toThrow("initial_recovery_identity_conflict");
+	await expect(
+		db.transaction((tx) =>
+			recoverInitialBinding(tx, {
+				...fixture.input,
+				takeover: {
+					...fixture.input.takeover,
+					revocation: { ...fixture.input.takeover.revocation!, observationId: "fake" },
+				},
+			}),
+		),
+	).rejects.toThrow("owner_revocation_conflict");
+	await db.transaction((tx) =>
+		authorityControl.revokeOwner(tx, {
+			identity: fixture.input.takeover.observation.identity,
+			observationId: "retire-2",
+		}),
+	);
 	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input))).rejects.toThrow("owner_revoked");
 	expect((await db.transaction((tx) => readExecution(tx, execution)))!.authority).toBeNull();
 }, 60000);
@@ -71,23 +95,33 @@ test("refuses changed correlation, revoked successors, and invented prior revoca
 test("preserves cancellation and permits only a cancellation grant", async () => {
 	const fixture = await recoveryFixture();
 	db = fixture.db;
-	await db.transaction((tx) => cancelExecution(tx, {
-		intent: {
-			version: 1, ...execution, requestId: crypto.randomUUID(), expectedRevision: 1,
-			actor: { kind: "human", name: "fixture" }, requestedAt: now.toISOString(),
-		},
-		obligations: [],
-	}));
+	await db.transaction((tx) =>
+		cancelExecution(tx, {
+			intent: {
+				version: 1,
+				...execution,
+				requestId: crypto.randomUUID(),
+				expectedRevision: 1,
+				actor: { kind: "human", name: "fixture" },
+				requestedAt: now.toISOString(),
+			},
+			obligations: [],
+		}),
+	);
 	const before = (await db.transaction((tx) => readExecution(tx, execution)))!;
 	const outbox = (await db.execute(sql`SELECT * FROM langflow_outbox`)).rows;
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input)))
-		.rejects.toThrow("cancellation_requires_successor_authority");
+	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input))).rejects.toThrow(
+		"cancellation_requires_successor_authority",
+	);
 	expect(await db.transaction((tx) => readExecution(tx, execution))).toEqual(before);
 	const authority = { ...fixture.input.takeover.receipt.authority, permissions: ["execution.cancel"] as const };
 	const takeover = {
 		...fixture.input.takeover,
 		authorityBytes: JSON.stringify(authority),
-		receipt: { ...fixture.input.takeover.receipt, authority: { ...authority, permissions: [...authority.permissions] } },
+		receipt: {
+			...fixture.input.takeover.receipt,
+			authority: { ...authority, permissions: [...authority.permissions] },
+		},
 	};
 	await db.transaction((tx) => recoverInitialBinding(tx, { ...fixture.input, takeover }));
 	const after = (await db.transaction((tx) => readExecution(tx, execution)))!;
@@ -105,7 +139,8 @@ test("cannot replace an execution that already has an initial binding", async ()
 	const fixture = await recoveryFixture(true);
 	db = fixture.db;
 	const before = await db.transaction((tx) => readExecution(tx, execution));
-	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input)))
-		.rejects.toThrow("initial_recovery_binding_conflict");
+	await expect(db.transaction((tx) => recoverInitialBinding(tx, fixture.input))).rejects.toThrow(
+		"initial_recovery_binding_conflict",
+	);
 	expect(await db.transaction((tx) => readExecution(tx, execution))).toEqual(before);
 }, 60000);

@@ -4,7 +4,7 @@ import { protocolDigest } from "../../../langflowContracts";
 import { type Db, openDb } from "../../client";
 import { migrate } from "../../migrate";
 import { type ActionReceiptInput, readActionReceipt, saveActionReceipt } from "./actionReceipts";
-import { beforeDocuments } from "./fixtures/migration";
+import { beforeDocuments, remainingMigrations } from "./fixtures/migration";
 
 let db: Db;
 afterEach(async () => db.$client.close());
@@ -51,7 +51,7 @@ test("the forward migration preserves historical completed bytes and retains ref
 	await db.execute(sql`INSERT INTO langflow_action_receipts
 		(permit_id,effect_id,permit,request_bytes,request_digest,execution_id,view_revision,receipt_id,recorded_at,source_bytes,source_digest)
 		VALUES ('old-permit','old-effect',${JSON.stringify(historical.permit)}::jsonb,${historical.requestBytes},${historical.requestDigest},'old-execution',3,${historical.receiptId},${historical.recordedAt}::timestamptz,${oldBytes},${protocolDigest(oldBytes)})`);
-	expect(await migrate(db)).toBe(1);
+	expect(await migrate(db)).toBe(await remainingMigrations(137));
 	const old = (await db.transaction((tx) => readActionReceipt(tx, { permitId: "old-permit" })))!;
 	expect(old.outcome).toBe("completed");
 	expect(old.errorCode).toBeNull();

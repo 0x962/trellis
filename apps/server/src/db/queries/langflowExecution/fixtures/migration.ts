@@ -7,6 +7,12 @@ import { flowExecutions, flows, projects, pullRequests, statuses, tickets } from
 import { ids, now } from "./fixture";
 
 export const migrationsDir = join(import.meta.dir, "../../../../../drizzle");
+export async function remainingMigrations(beforeIndex: number) {
+	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8")) as {
+		entries: { idx: number }[];
+	};
+	return journal.entries.filter((entry) => entry.idx >= beforeIndex).length;
+}
 export async function beforeDocuments(beforeIndex = 133) {
 	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8")) as {
 		entries: { idx: number; tag: string }[];

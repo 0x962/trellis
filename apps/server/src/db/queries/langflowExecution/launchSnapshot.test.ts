@@ -3,8 +3,9 @@ import { sql } from "drizzle-orm";
 import { protocolDigest } from "../../../langflowContracts";
 import { type Db, openDb } from "../../client";
 import { migrate } from "../../migrate";
+import { langflowExecutions } from "../../tables/langflowExecution";
 import { ids, now, receiptFixture } from "./fixtures/fixture";
-import { beforeDocuments } from "./fixtures/migration";
+import { beforeDocuments, remainingMigrations } from "./fixtures/migration";
 import { handle, nativeRequest } from "./fixtures/native";
 import { bindLaunchSnapshot } from "./launchSnapshot";
 import { reserveNative } from "./native";
@@ -58,15 +59,17 @@ test("binds a snapshot once inside the reservation transaction", async () => {
 	expect(await db.transaction((tx) => bindLaunchSnapshot(tx, binding))).toEqual(saved);
 });
 test("the forward migration preserves a historical reservation with an unknown snapshot", async () => {
+	const original = await receiptFixture(false);
+	await original.db.$client.close();
 	db = await beforeDocuments(135);
-	await receiptFixture(true, db);
+	await db.insert(langflowExecutions).values({ ...original.input, publicationRecordId: null });
 	const requestBytes = JSON.stringify(nativeRequest);
 	const key = "historical";
 	const digest = protocolDigest(key);
 	await db.execute(sql`INSERT INTO langflow_native_handles
 	(step_id, execution_id, task_key, task_digest, semantic_key, semantic_digest, occurrence_key, occurrence_digest, request_id, agent_run_id, attempt_id, request_bytes, request_digest, provenance, handle)
 	VALUES (${handle.stepId}, ${ids.execution}, ${key}, ${digest}, ${key}, ${digest}, ${key}, ${digest}, ${nativeRequest.requestId}, ${handle.agentRunId}, ${handle.attemptId}, ${requestBytes}, ${protocolDigest(requestBytes)}, ${JSON.stringify({ request: nativeRequest })}::jsonb, ${JSON.stringify(handle)}::jsonb)`);
-	expect(await migrate(db)).toBe(3);
+	expect(await migrate(db)).toBe(await remainingMigrations(135));
 	expect((await db.execute(sql`SELECT launch_snapshot_digest FROM langflow_native_handles`)).rows).toEqual([
 		{ launch_snapshot_digest: null },
 	]);

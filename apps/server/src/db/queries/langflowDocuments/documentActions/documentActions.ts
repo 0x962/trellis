@@ -1,5 +1,5 @@
-import type { FlowDocumentV1 } from "@trellis/api";
 import { isDeepStrictEqual } from "node:util";
+import type { FlowDocumentV1 } from "@trellis/api";
 import { and, eq } from "drizzle-orm";
 import { protocolDigest } from "../../../../langflowContracts";
 import { langflowDocumentActions as actions } from "../../../tables/langflowDocuments/actions";
@@ -24,11 +24,15 @@ export async function readDocumentAction(tx: Tx, input: DocumentActionKey): Prom
 	return row ?? null;
 }
 export async function claimDocumentAction(tx: Tx, input: ClaimDocumentActionInput): Promise<ClaimDocumentActionResult> {
-	const [created] = await tx.insert(actions).values({ ...input, requestDigest: protocolDigest(input.requestBytes) })
-		.onConflictDoNothing().returning();
+	const [created] = await tx
+		.insert(actions)
+		.values({ ...input, requestDigest: protocolDigest(input.requestBytes) })
+		.onConflictDoNothing()
+		.returning();
 	if (created) return { state: "claimed", record: created };
 	const record = (await readDocumentAction(tx, input))!;
-	const equal = record.action === input.action && record.requestBytes === input.requestBytes && record.revision === input.revision;
+	const equal =
+		record.action === input.action && record.requestBytes === input.requestBytes && record.revision === input.revision;
 	return { state: equal ? "replayed" : "request_conflict", record };
 }
 export async function completeDocumentAction(
