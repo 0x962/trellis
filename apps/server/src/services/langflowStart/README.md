@@ -43,6 +43,32 @@ Ownership transfer remains with the supervisor.
 `ReconcileContext.log` uses `JobsLog` to identify unknown lookup, submission, and admission results.
 These logs contain identifiers only.
 
+## Host connection
+
+`createStartConnection(options)` returns `committed({executionId})` and `recover()`, which return `Promise<void>`.
+The host supplies one abort signal, its dispatch gate, receipt archive, supervisor, initial authority issuer, and authority lifecycle.
+`database` calls the internal `langflowStart.state` service as the system actor.
+That service checks the configured host and completes each database operation in its caller transaction.
+The host invokes `committed` after a successful start mutation returns from the service transport.
+The host invokes `recover` at startup and during its serialized recovery passes.
+
+`createAdmissionEngine` uses `EngineClient` with the private token file for the observed engine instance.
+It calls `/trellis-v1/admission/lookup`, `/submit`, and `/open`.
+It retains the original authority text and the exact admission bytes from the outbox.
+The engine must acknowledge the current grant before it receives admission.
+An invalid response or a lost response keeps the dispatch permit pending.
+The connection records a terminal archive receipt only after the admission acknowledgement commits.
+A restart can finish permit settlement from that saved acknowledgement without another engine request.
+
+`recover` reads retained permits and pages through the database reservations for the configured host.
+The page size limits one database read, not the number of retained reservations.
+The connection serializes its own deliveries and checks the host abort signal before new work.
+A canceled reservation uses lookup only to recover its engine job.
+Cancellation settlement requires terminal engine proof, confirmed native stops, and no pending native dispatch permit.
+The authority lifecycle renews a bound grant or recovers a new owner before admission.
+An archived grant can restore its original closed association while its owner remains active.
+A different owner requires the atomic successor operation from the authority service.
+
 ## Store requirements
 
 Each store method receives the caller transaction.
@@ -66,6 +92,11 @@ The legacy start route remains active.
 `reserve/reserve.test.ts` uses the existing project, ticket, flow, and diff queries with an in-memory receipt store.
 `reconcile/reconcile.test.ts` checks transaction order and recovery through simulated store and engine ports.
 `databaseStore/databaseStore.test.ts` uses the actual receipt queries with migrated tables and a simulated engine.
+`startConnection/startConnection.test.ts` mounts authenticated HTTP with the real database adapter, dispatch gate, receipt archive, and initial authority issuer.
+Its HTTP server controls lost submission responses, lost admission acknowledgements, and unknown lookups.
+The supervisor and authority lifecycle use fixture ports.
+A gate fixture interrupts settlement after the database acknowledgement commits.
+`admissionEngine/admissionEngine.test.ts` covers exact bytes and invalid or incomplete external responses.
 These fixtures do not establish real-engine or installed-host proof.
 The required commands run after the combined merge:
 
