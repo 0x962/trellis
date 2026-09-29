@@ -55,7 +55,7 @@ No physical event purge occurs. A replay before `firstAvailableSeq` requires an 
 `readProjectionFacts(tx, {executionId})` returns native reservations, human deliveries, stops, and deadlines.
 Each native row includes provenance, handle, launchReceipt, and optional completion with resultDigest and receipt.
 The result digest covers the original result bytes. It does not hash a JSONB serialization.
-`listPendingDeliveries(tx, {executionId, afterId, limit})` retains access to every outbox item through keyset pages.
+`listPendingDeliveries(tx, {executionId, afterId, afterKind, limit})` retains access to every outbox item through keyset pages.
 It returns current authority and cancellation state separately from immutable payload bytes.
 
 ## ER diagram
@@ -76,3 +76,20 @@ erDiagram
     langflow_executions ||--o{ langflow_source_events : deduplicates
     langflow_executions ||--o| langflow_classifications : classifies
 ```
+
+`cancelExecution` also writes the engine cancellation outbox in the intent transaction.
+After cancellation, `listPendingDeliveries` returns only cancellation notices. Other payloads remain stored for audit.
+`reserveWarning(tx, input)` stores one original message per execution, attempt, deadline, and half or quarter threshold.
+Input fields are messageId, executionId, attemptId, deadlineId, threshold, and payloadBytes.
+`confirmWarning` requires executionId, messageId, attemptId, receiptId, and acknowledgedAt.
+`listPendingWarnings` takes executionId, afterId, and limit. Cancellation blocks new warnings and warning delivery.
+
+`readStartRequest` reads actorKind, actorName, and requestId. `saveStartRequest` adds original requestBytes and executionId.
+This permanent alias permits another request UUID to reuse an existing execution without losing its replay identity.
+`latestExecution(tx, {flowId, diffId})` returns the newest execution and optional projection.
+The start service retains the legacy selection policy and serializes flow selection in its caller transaction.
+`bindExecution(tx, {executionId, correlation, authority})` saves the exact job while admission stays closed.
+`markSubmissionUnknown` preserves a concurrent committed job binding.
+`commitProjection` accepts an optional original EngineCheckpointV1 as checkpoint and writes it with the view.
+`readCheckpoint` reads that exact stored checkpoint. A smaller revision or changed equal revision conflicts.
+`readDecision(tx, {executionId, decisionId})` returns original payloadBytes and the stored delivery state.

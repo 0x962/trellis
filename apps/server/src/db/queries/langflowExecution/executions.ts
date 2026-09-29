@@ -8,6 +8,7 @@ import {
 } from "../../../langflowContracts";
 import { langflowExecutions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
+import { readStartRequest, saveStartRequest } from "./startRequests";
 
 export async function readExecution(tx: Tx, input: { executionId: string }) {
 	const [row] = await tx.select().from(langflowExecutions).where(eq(langflowExecutions.executionId, input.executionId));
@@ -23,6 +24,11 @@ export async function lockExecution(tx: Tx, input: { executionId: string }) {
 	return row;
 }
 export async function reserveExecution(tx: Tx, input: typeof langflowExecutions.$inferInsert) {
+	const prior = await readStartRequest(tx, input);
+	if (prior) {
+		if (prior.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
+		return (await readExecution(tx, prior))!;
+	}
 	if (
 		input.admission.state !== "closed" ||
 		input.correlation ||
@@ -46,7 +52,16 @@ export async function reserveExecution(tx: Tx, input: typeof langflowExecutions.
 			target: [langflowExecutions.actorKind, langflowExecutions.actorName, langflowExecutions.requestId],
 		})
 		.returning();
-	if (inserted) return inserted;
+	if (inserted) {
+		await saveStartRequest(tx, {
+			actorKind: input.actorKind,
+			actorName: input.actorName,
+			requestId: input.requestId,
+			requestBytes: input.requestBytes,
+			executionId: input.executionId,
+		});
+		return inserted;
+	}
 	const [existing] = await tx
 		.select()
 		.from(langflowExecutions)
@@ -84,7 +99,12 @@ export async function openAdmission(
 		authority.executionId !== row.executionId ||
 		authority.publicationId !== row.publicationId ||
 		authority.engineJobId !== correlation.engineJobId ||
-		authority.engineEpoch !== receipt.engineEpoch
+		authority.engineEpoch !== receipt.engineEpoch ||
+		authority.hostId !== row.hostId ||
+		authority.projectId !== row.projectId ||
+		authority.publicationDigest !== row.publication.documentHash ||
+		(row.correlation !== null && !isDeepStrictEqual(row.correlation, correlation)) ||
+		(row.authority !== null && !isDeepStrictEqual(row.authority, authority))
 	)
 		throw new Error("admission_conflict");
 	if (row.admission.state === "open") {
