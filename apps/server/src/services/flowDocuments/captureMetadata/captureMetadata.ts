@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import type { Flow, FlowDocumentContentV1 } from "@trellis/api";
-import type { ServiceCtx } from "../../context.ts";
-import { insertDocumentRevision, readLatestDocumentRevision } from "../../db/queries/langflowDocuments";
-import type { Tx } from "../../db/tx.ts";
-import { legacySnapshot } from "./legacy.ts";
-import { documentBytes } from "./documentBytes.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { insertDocumentRevision, readLatestDocumentRevision } from "../../../db/queries/langflowDocuments";
+import type { Tx } from "../../../db/tx.ts";
+import { documentBytes } from "../documentBytes";
+import { legacySnapshot } from "../legacy";
 
 export const captureMetadata = async (ctx: ServiceCtx, tx: Tx, flow: Flow) => {
 	const latest = await readLatestDocumentRevision(tx, { flowId: flow.id });

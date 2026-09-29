@@ -1,9 +1,9 @@
 import { type Flow, type FlowIssue, type FlowSaveInput, validateFlowGraph } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import type { ServiceCtx } from "../../context.ts";
-import { rows, textArray } from "../../db/queries/support.ts";
-import type { Tx } from "../../db/tx.ts";
-import { fail } from "../../errors.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { rows, textArray } from "../../../db/queries/support.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { fail } from "../../../errors.ts";
 
 // The input path of the row an issue names, so a client can mark the node or
 // the edge. The issue keeps its flow code beside the message.
@@ -13,7 +13,7 @@ const pathOf = (input: FlowSaveInput, issue: FlowIssue) => {
 	return ["nodes"];
 };
 
-// The caller writes the shared version and immutable receipt in the same transaction.
+// The caller updates flows.version and stores the graph rows in the same transaction.
 export const replaceLegacyGraph = async (_ctx: ServiceCtx, tx: Tx, value: { current: Flow; graph: FlowSaveInput }) => {
 	const { current, graph: input } = value;
 	const issues = validateFlowGraph(input, "save");

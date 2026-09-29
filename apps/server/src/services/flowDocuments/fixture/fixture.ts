@@ -1,9 +1,9 @@
 import type { FlowDocumentSaveV1Input, FlowPublicationV1 } from "@trellis/api";
-import { createCache } from "../../db/cache.ts";
-import { documentFixture } from "../../db/queries/langflowDocuments/fixture.ts";
-import type { ServiceCtx } from "../../context.ts";
-import type { IoCtx } from "../support.ts";
-import type { DocumentPublisher } from "./publisher.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { createCache } from "../../../db/cache.ts";
+import { documentFixture } from "../../../db/queries/langflowDocuments/fixture.ts";
+import type { IoCtx } from "../../support.ts";
+import type { DocumentPublisher } from "../publisher";
 
 export const flowId = "00000000000000000000000001";
 export const manifestHash = "c".repeat(64);
@@ -39,8 +39,16 @@ export const serviceFixture = async () => {
 		dropBlobs: () => {},
 		publicUrl: "http://localhost",
 	};
-	const io = { core: ctx, newTx: db.transaction.bind(db), emit: ctx.emit } as IoCtx;
-	return { db, ctx, io, run: db.transaction.bind(db) };
+	const logs: { message: string; fields?: Record<string, unknown> }[] = [];
+	const io = {
+		core: ctx,
+		newTx: db.transaction.bind(db),
+		emit: ctx.emit,
+		log: (message: string, fields?: Record<string, unknown>) => {
+			logs.push({ message, fields });
+		},
+	} as IoCtx;
+	return { db, ctx, io, logs, run: db.transaction.bind(db) };
 };
 
 export const publisher = (overrides: Partial<DocumentPublisher> = {}): DocumentPublisher => ({

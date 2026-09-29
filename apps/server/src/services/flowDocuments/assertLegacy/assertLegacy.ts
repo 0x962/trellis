@@ -1,7 +1,7 @@
-import type { ServiceCtx } from "../../context.ts";
-import { readLatestDocumentRevision } from "../../db/queries/langflowDocuments";
-import type { Tx } from "../../db/tx.ts";
-import { unsupported } from "./unsupported.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { readLatestDocumentRevision } from "../../../db/queries/langflowDocuments";
+import type { Tx } from "../../../db/tx.ts";
+import { unsupported } from "./components/unsupported";
 
 export const assertLegacy = async (
 	_ctx: ServiceCtx,

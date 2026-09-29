@@ -1,7 +1,7 @@
-import type { ServiceCtx } from "../../context.ts";
-import type { Tx } from "../../db/tx.ts";
-import { fail, invalidInput } from "../../errors.ts";
-import { get } from "./get.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { fail, invalidInput } from "../../../errors.ts";
+import { get } from "../get";
 
 export const requireCurrentPublication = async (
 	ctx: ServiceCtx,
