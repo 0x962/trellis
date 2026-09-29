@@ -118,7 +118,7 @@ The gateway binds the submitted component manifest hash to the pinned hash. It r
 
 The prior editor patch has SHA256 `a5f94d6e207b98be2a2a44e1e26b4d8d25f6b327108ebe8817ca639224941ab2`. The prior gateway source manifest has SHA256 `57852bd56f93a89b8bae795bd827ab3bd68d81b5c1d61744cb9dd027942d3a81`. The prior HTTP fixture manifest has SHA256 `17f4b2a0959b4a2a0b4190412870a4ced724b512a40a371deaaebd824bf73ca6`. TRL-667 retains those bytes in the `editor-a5f94d6e-snapshot` evidence directory.
 
-The corrected gateway source manifest has SHA256 `3834f3e4f7d80f5441c938e766acff329a089e74737e2919435f4131c987d822`. The corrected HTTP fixture manifest has SHA256 `10e1ac781250c6bd107457af9fef1ab4f403bfea1d4bdc2ca9a60c6b8f75cc94`.
+The PR598 gateway source manifest has SHA256 `3834f3e4f7d80f5441c938e766acff329a089e74737e2919435f4131c987d822`. Its HTTP fixture manifest has SHA256 `10e1ac781250c6bd107457af9fef1ab4f403bfea1d4bdc2ca9a60c6b8f75cc94`.
 
 The current worktree, canonical checkout, and merged editor repair contain the same lock file, with SHA256 `bff164db008eb9d1143f74f510c83ab5a40787b19726052eaa998758a5c3b87d`. The gateway manifest records this hash. `shasum -a 256 -c integrations/langflow/editor-probe/manifests/gateway-source.sha256` accepts all 14 records. This metadata check does not verify installed dependencies or runtime behavior.
 
@@ -127,6 +127,14 @@ TRL-667 built the repaired editor in 27.11 seconds with 3.577 GB peak RSS. Its b
 The first HTTP fixture passed the denial checks, then failed its lost-response assertion. One client call produced an accepted write and an immediate replay. The gateway now sends response headers and an incomplete body before disconnect. The client consumes that body before it records a transport failure. The corrected transport requires a repeated HTTP check.
 
 The first Aside load displayed a blank page. Its DOM contained an empty `#root`. The browser ignored `<base href="/">` because the gateway policy used `base-uri 'none'`. Relative asset requests used the nested flow path. The corrected gateway permits only a same-origin base URL. The actual graph render and interactions remain unverified.
+
+The PR598 HTTP fixture also failed its lost-response assertion. Its evidence records an accepted save and an immediate replay from one client call. The current injector delays the disconnect by 100 milliseconds after the partial write. This delay belongs only to the fault fixture. Its transport effect remains unverified.
+
+The next Aside load reached the Langflow sign-in error. The server log records an `ENOENT` error for `built-assets/health_check`, followed by process exit. The current gateway handles `/health_check` as a protected route and returns 404 for missing assets. Its session response supplies a fixture user after the grant check, without an access token. The focused fixtures cover session denial, grant expiry, and process survival after a missing asset. The four changed TypeScript files pass Biome. The new source and HTTP fixtures await the shared execution batch.
+
+The PR642 batch passed 31 tests with 119 assertions and the focused TypeScript check. Biome passed with five unused-suppression warnings. Its HTTP check still recorded an automatic replay before the lost-response assertion.
+
+Bun 1.3.13 sets `allow_retry` when it reuses a pooled connection. Its close handler then resends the original request. The scripted HTTP client uses `keepalive: false` to select a fresh connection. It checks for one accepted write before its explicit retry. This client setting does not change the editor or prove browser behavior. Sources: [connection reuse](https://github.com/oven-sh/bun/blob/bun-v1.3.13/src/http/HTTPContext.zig#L630-L689), [close handler](https://github.com/oven-sh/bun/blob/bun-v1.3.13/src/http.zig#L270-L275), and [fetch option](https://github.com/oven-sh/bun/blob/bun-v1.3.13/src/bun.js/webcore/fetch.zig#L577-L602).
 
 The first test attempt stopped before tests because the worktree had no Zod package. The approved local links fixed the dependency gap without an install.
 
@@ -159,9 +167,21 @@ This mount preserves one Trellis workspace and one save owner. It needs a mainta
 
 ## Open gaps
 
-- The corrected fork patch has not passed an integrated build. Verification waits for the complete Langflow merge.
-- No browser state has rendered.
-- No network trace proves secret-free requests.
-- No actual HTTP route proof exists for the server denials.
-- No actual editor test proves the save and explicit Retry sequence.
-- The focused source fixtures pass. The patched editor remains unmeasured.
+- The actual desktop editor passes the sequence below. The 320-pixel and dense cases await the next batch.
+- The retained gateway evidence reports no forbidden secret on saves. A complete browser request audit remains open.
+- Stock run controls remain visible. The gateway denies their requests. Stock workflow and variable requests also remain active.
+- The seven-node fixture cards overlap. Canonical Trellis controls and selectors remain with the production adapter.
+
+## Actual editor batch, September 29
+
+The PR648 HTTP fixture passed with `lostResponseObserved: true`, replay revision 3, later revision 4, and 40 evidence events. Its manifests and focused TypeScript check passed. TRL-667 retained the result under `runs/editor-ab6f56dd` in the sole candidate.
+
+Aside loaded the retained compiled editor at a measured 1440-by-900-pixel viewport. All seven component types rendered. An instruction edit and Save produced revisions 3 and 4.
+
+After an injected lost response, the toolbar showed Retry save. A newer local draft remained unsaved until the explicit Retry. The gateway replayed the original identity and byte hash at revision 5, then accepted the newer draft at revision 6. The repeated request used ID `33abd09e-703c-4615-84e8-c23470f8ab30` and SHA256 `f27cc683d89fc2ecdf51626874ab9203eba44a00104197238920901496aa256b`.
+
+Enter on the Agent output and Native gate question created a typed edge. The gateway saved that edge at revision 7. After an injected conflict, the toolbar showed disabled Reload required. A later instruction edit sent no new PUT. Escape closed the expanded text editor and returned focus to its Expand text editor button.
+
+The Run component action received HTTP 403 from the workflow route. The browser also attempted external font and Discord requests, with zero transfer size and duration in its resource entries. The gateway CSP permits only same-origin connections. These observations do not establish production isolation.
+
+TRL-672 attachments retain the screenshots and `editor-desktop-proof.json`. TRL-667 owns `browser-evidence.json` and the server log for this batch. The browser tab is closed and its listener is released for cleanup.

@@ -4,6 +4,7 @@ import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { epics } from "./epics.ts";
+import { flowDocumentsV1 } from "./flowDocumentsV1.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -70,5 +71,10 @@ export const contract = {
 	system: oc.tag("system").router(system),
 };
 export type TrellisContract = typeof contract;
+
+export const clientContract = {
+	...contract,
+	flowDocumentsV1: oc.tag("flow documents v1").router(flowDocumentsV1),
+};
 
 export { flowDocumentsV1, flowDocumentV1Errors } from "./flowDocumentsV1.ts";

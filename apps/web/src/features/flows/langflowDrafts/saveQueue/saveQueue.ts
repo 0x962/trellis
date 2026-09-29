@@ -48,16 +48,18 @@ export function createSaveQueue(options: Options) {
 			if (draft.submission === null && draft.contentJson === draft.savedContentJson) return;
 			let request: FlowDocumentSaveV1Input;
 			try {
-				if (draft.submission === null) {
+				let submission = draft.submission;
+				if (submission === null) {
 					const requestJson = JSON.stringify({
 						...JSON.parse(draft.contentJson),
 						flow: draft.identity.flow,
 						expectedVersion: draft.baseVersion,
 						requestId: options.requestId(),
 					});
-					draft = { ...draft, submission: { requestJson, contentJson: draft.contentJson } };
+					submission = { requestJson, contentJson: draft.contentJson };
+					draft = { ...draft, submission };
 				}
-				request = JSON.parse(draft.submission.requestJson);
+				request = JSON.parse(submission.requestJson);
 				FlowDocumentSaveV1InputSchema.parse(request);
 				if (request.flow !== draft.identity.flow || request.expectedVersion !== draft.baseVersion)
 					throw new Error("The submitted request does not match this draft.");
