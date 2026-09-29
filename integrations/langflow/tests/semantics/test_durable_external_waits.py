@@ -140,10 +140,14 @@ async def test_human_wait_reads_the_accepted_decision_by_engine_request_id() -> 
 
 	component = TrellisExternalWaitComponent()
 	component.wait_bytes = json.dumps(wait, separators=(",", ":"))
-	component.graph = SimpleNamespace(
-		human_input_decisions={request_id: decision},
-		await_external_completion=unexpected_completion,
-		complete_external_wait=complete_wait,
+	component.set_vertex(
+		SimpleNamespace(
+			graph=SimpleNamespace(
+				human_input_decisions={request_id: decision},
+				await_external_completion=unexpected_completion,
+				complete_external_wait=complete_wait,
+			)
+		)
 	)
 	result = await component.wait()
 	assert json.loads(result.text) == decision
