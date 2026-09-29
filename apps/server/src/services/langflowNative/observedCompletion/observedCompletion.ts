@@ -32,8 +32,7 @@ export function observedCompletion(input: {
 		(runtime.status === "exited" && runtime.exitCode !== 0)
 	)
 		return { state: "failed" as const, reason: "process_error" };
-	if (runtime.status === "running" && runtime.activity?.state !== "idle")
-		return { state: "waiting_native" as const };
+	if (runtime.status === "running" && runtime.activity?.state !== "idle") return { state: "waiting_native" as const };
 	if (!runtime.result || !runtime.acknowledgedMessageIds.includes(handle.attemptId))
 		return { state: "unknown" as const, reason: "prompt_or_result_missing" };
 	const request = provenance.request;

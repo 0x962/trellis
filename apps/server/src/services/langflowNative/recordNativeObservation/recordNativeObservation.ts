@@ -41,6 +41,12 @@ export async function recordNativeObservation(
 		return { handle: reserved.handle, completion: prior };
 	}
 	const sessionId = runtime.agent?.sessionId ?? null;
+	if (
+		reserved.handle.providerSessionId !== null &&
+		sessionId !== null &&
+		reserved.handle.providerSessionId !== sessionId
+	)
+		throw new Error("native_session_conflict");
 	const [run] = await rows<{ id: string; terminalId: string; sessionId: string | null; workspacePath: string | null }>(
 		tx,
 		sql`UPDATE agent_runs SET session_id=COALESCE(session_id,${sessionId})
