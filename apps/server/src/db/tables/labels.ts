@@ -1,5 +1,5 @@
 import { type SQL, sql } from "drizzle-orm";
-import { type AnyPgColumn, check, index, pgTable, primaryKey, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, check, index, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 import { checkIn, LABEL_COLORS } from "../enums.ts";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
@@ -12,7 +12,8 @@ import { projects } from "./projects.ts";
 const nameRule = (name: AnyPgColumn): SQL =>
 	sql`${name} = btrim(${name}) AND length(${name}) >= 1 AND position(',' IN ${name}) = 0 AND position('/' IN ${name}) = 0 AND lower(${name}) <> 'none'`;
 
-// SHA256 keeps each name index entry small while the row retains the complete name.
+// Hash exclusion constraints compare complete names when index hashes collide.
+// Migration 0138 creates the constraints that own these hash indexes.
 
 // A project owns its label groups. A group name is unique in its project
 // without regard to case.
@@ -28,7 +29,8 @@ export const labelGroups = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		uniqueIndex("label_groups_project_id_name_unique").on(t.projectId, sql`sha256(textsend(lower(${t.name})))`),
+		index("label_groups_project_id_name_unique").using("hash", sql`(ARRAY[${t.projectId}, lower(${t.name})])`),
+		index("label_groups_project_id_idx").on(t.projectId),
 		check("label_groups_name_check", nameRule(t.name)),
 	],
 );
@@ -54,15 +56,16 @@ export const labels = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		uniqueIndex("labels_group_id_name_unique")
-			.on(t.groupId, sql`sha256(textsend(lower(${t.name})))`)
+		index("labels_group_id_name_unique")
+			.using("hash", sql`(ARRAY[${t.groupId}, lower(${t.name})])`)
 			.where(sql`${t.groupId} IS NOT NULL`),
-		uniqueIndex("labels_project_id_name_unique")
-			.on(t.projectId, sql`sha256(textsend(lower(${t.name})))`)
+		index("labels_project_id_name_unique")
+			.using("hash", sql`(ARRAY[${t.projectId}, lower(${t.name})])`)
 			.where(sql`${t.groupId} IS NULL`),
 		check("labels_name_check", nameRule(t.name)),
 		checkIn(t.color, LABEL_COLORS),
 		index("labels_project_id_idx").on(t.projectId),
+		index("labels_group_id_idx").on(t.groupId),
 	],
 );
 
