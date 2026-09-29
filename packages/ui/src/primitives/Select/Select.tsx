@@ -5,6 +5,7 @@ import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
 import { Field, type FieldOptions } from "../Field";
+import { VirtualSelect } from "./components/VirtualSelect";
 
 export type SelectItem<Value extends string> = {
 	value: Value;
@@ -27,12 +28,17 @@ export type SelectProps<Value extends string> = FieldOptions & {
 	disabled?: boolean;
 	alignItemWithTrigger?: boolean;
 	className?: string;
+	virtualized?: boolean;
 };
 
 // A single-value picker. The trigger is a 28 px combobox at least 96 px wide;
 // the hit-area layer reaches the 44 px minimum on a coarse pointer. The list
 // opens under it and follows the arrow keys.
-export function Select<Value extends string>({
+export function Select<Value extends string>(props: SelectProps<Value>) {
+	return props.virtualized ? <VirtualSelect {...props} /> : <StandardSelect {...props} />;
+}
+
+function StandardSelect<Value extends string>({
 	label,
 	hideLabel = true,
 	hint,

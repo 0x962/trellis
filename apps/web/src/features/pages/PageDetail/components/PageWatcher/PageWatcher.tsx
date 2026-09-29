@@ -15,9 +15,10 @@ export function PageWatcher({ page, disabled }: { page: PageSummary; disabled: b
 		}),
 		enabled: !disabled,
 	});
+	const nextCursor = agents.data?.pages.at(-1)?.nextCursor;
 	useEffect(() => {
-		if (agents.hasNextPage && !agents.isFetchingNextPage) void agents.fetchNextPage();
-	}, [agents.fetchNextPage, agents.hasNextPage, agents.isFetchingNextPage]);
+		if (!disabled && !agents.isError && nextCursor != null && !agents.isFetching) void agents.fetchNextPage();
+	}, [disabled, nextCursor, agents.isError, agents.fetchNextPage, agents.isFetching]);
 	const mutation = useMutation({
 		mutationFn: (agentId: string) =>
 			orpc.pages.watch.call({ page: page.id, agentId: agentId === "none" ? null : agentId }),
@@ -39,6 +40,7 @@ export function PageWatcher({ page, disabled }: { page: PageSummary; disabled: b
 	return (
 		<div className="flex items-center gap-2">
 			<Select
+				virtualized
 				label="Page watcher"
 				items={items}
 				value={page.watcher?.agent.id ?? "none"}
