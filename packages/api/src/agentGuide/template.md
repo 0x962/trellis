@@ -528,6 +528,8 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis session move <session-id> --no-project` | Remove its project association. |
 | `trellis session archive <session-id>` | Stop the agent of a session without a project and put the session away. |
 | `trellis session unarchive <session-id>` | Bring an archived session back to the session list. |
+| `trellis session status read <session-id>` | Read the latest and previous agent updates. |
+| `trellis session status write <session-id> --body -` | Save a rich agent update from standard input. |
 
 `agent start` accepts `--harness`, `--account`, `--model`, `--effort`, and `--request-id`.
 Use `trellis model list` and `trellis account list` to inspect available choices.
@@ -562,6 +564,18 @@ Do not reset another agent's conversation to obtain its attention.
 An archived session keeps its workspace, its files, and its conversation.
 It runs no agent and belongs to no project.
 Unarchive it before you start its agent or move it to a project.
+
+When Trellis asks for a status update, use the session and request IDs from that request.
+Explain the work, its purpose, your current action, your findings, your uncertainty, and your next step.
+Write useful Markdown prose instead of a fixed grid of fields.
+Do not repeat process metadata that Trellis already records.
+
+~~~sh
+trellis session status write <session-id> --request-id <request-id> --body - < update.md
+~~~
+
+Add `--embed report.html` to attach an optional HTML view.
+Separate several HTML file paths with commas.
 
 ## Diffs, explanations, and evidence
 

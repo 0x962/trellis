@@ -85,6 +85,11 @@ export const errors = {
 		message: "An agent cannot delete a ticket, an epic, a wave, a project, a label, or a label group without force.",
 		data: z.undefined(),
 	},
+	SESSION_UPDATE_FORBIDDEN: {
+		status: 403,
+		message: "Only the current agent of the session can save its update.",
+		data: z.undefined(),
+	},
 	NOT_FOUND: {
 		status: 404,
 		message: "No row matches the ref.",

@@ -570,9 +570,9 @@ opens in the in-app browser and an image opens in a sheet. Other browsers open
 links and images in a new tab. A file downloads from its blob URL.
 
 The in-app browser is one sheet in the shell sheet stack, and every link in the
-app reaches it. On desktop a control that leads to an HTTPS page opens that
-sheet over the page the person reads. The sheet header carries Open in browser,
-which hands the address to the browser of the operating system.
+app reaches it. On desktop, HTTP and HTTPS links open that sheet over the current page.
+Command-click and the Open in browser control send external URLs to the system browser.
+The browser sheet uses a separate partition, disables Node integration, and keeps its sandbox.
 
 The epic route shows the resources of an epic. The ticket route `/t/<KEY-n>`
 draws none.
@@ -744,6 +744,13 @@ After 48 hours without activity, an unpinned row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
+Terminal links include plain addresses and labeled OSC 8 hyperlinks.
+`useOpenLink()(url, press)` handles terminal links, document anchors, and resource links.
+`openAppLink` resolves record links through `internalLinks.resolve` and passes the route and press to its navigation callback.
+`LinkPress` retains `metaKey`, `ctrlKey`, `shiftKey`, `altKey`, and `button`.
+The terminal copies those five fields into a plain record for plain and OSC 8 links.
+HTTP and HTTPS links use `openLink`. Other schemes and web addresses with credentials produce an error.
+Published Page messages still require confirmation in the trusted viewer before navigation.
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 

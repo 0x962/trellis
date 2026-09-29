@@ -8,7 +8,11 @@ describe("parseMemoryPressureLevel", () => {
 		expect(parseMemoryPressureLevel("4\n")).toBe(4);
 	});
 
-	test("refuses a number that the kernel does not define", () => {
-		expect(() => parseMemoryPressureLevel("3\n")).toThrow("reported 3");
+	test("preserves an integer that the kernel does not define", () => {
+		expect(parseMemoryPressureLevel("3\n")).toBe(3);
+	});
+
+	test("refuses output that is not an integer", () => {
+		expect(() => parseMemoryPressureLevel("normal\n")).toThrow("reported normal");
 	});
 });

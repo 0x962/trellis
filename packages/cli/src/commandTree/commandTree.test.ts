@@ -36,12 +36,38 @@ test("nested help names the canonical command and makes no server call", async (
 		"resource comment reply",
 		"account quota show",
 		"host status show",
+		"session status write",
 	]) {
 		const f = fixture();
 		expect(await run([...command.split(" "), "--help"], f.deps)).toBe(0);
 		expect(f.text()).toContain(`trellis ${command}`);
 		expect(f.calls).toHaveLength(0);
 	}
+});
+
+test("a session agent writes a requested update from standard input", async () => {
+	const sessionId = "01M3NVQ8K3ZBWDFDZ406A4M1D9";
+	const runId = "01M3NVQ8K3ZBWDFDZ406A4M1DA";
+	const updateId = "01M3NVQ8K3ZBWDFDZ406A4M1DB";
+	const requestId = "325611c8-b879-4eb7-9470-43eb4efc6d91";
+	const f = fixture(() => ({
+		id: updateId,
+		sessionId,
+		runId,
+		requestId,
+		body: "body",
+		embeds: [],
+		createdAt: "2026-09-29T05:00:00.000Z",
+	}));
+	expect(await run(["session", "status", "write", sessionId, "--request-id", requestId, "--body", "-"], f.deps)).toBe(
+		0,
+	);
+	expect(f.calls).toEqual([
+		{
+			path: "/rpc/sessionUpdates/write",
+			input: { sessionId, requestId, body: "body", embeds: [] },
+		},
+	]);
 });
 
 test("a project's own status passes through without a hard-coded review gate", async () => {

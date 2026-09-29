@@ -1,27 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { expect, test } from "bun:test";
 import { interceptedLinkUrl } from "./interceptedLinkUrl";
 
-const link = { href: "https://github.com/o/r", target: "_blank" };
-
-describe("interceptedLinkUrl", () => {
-	test("takes an HTTPS link that asks for a new tab", () => {
-		expect(interceptedLinkUrl(link, false, true)).toBe("https://github.com/o/r");
-	});
-
-	test("leaves a link that stays in the app", () => {
-		expect(interceptedLinkUrl({ href: "https://github.com/o/r", target: "" }, false, true)).toBeNull();
-	});
-
-	test("leaves a click with a modifier key", () => {
-		expect(interceptedLinkUrl(link, true, true)).toBeNull();
-	});
-
-	test("leaves every link in the browser build", () => {
-		expect(interceptedLinkUrl(link, false, false)).toBeNull();
-	});
-
-	test("leaves an address the desktop browser refuses", () => {
-		expect(interceptedLinkUrl({ href: "http://example.com", target: "_blank" }, false, true)).toBeNull();
-		expect(interceptedLinkUrl(null, false, true)).toBeNull();
-	});
+const origin = "http://127.0.0.1:4521";
+test.each(["http://example.com", "https://example.com"])("captures %s", (href) => {
+	expect(interceptedLinkUrl({ href }, true, origin)).toBe(href);
+});
+test("keeps app routes and non-web protocols outside the slideout", () => {
+	for (const href of [
+		`${origin}/t/TRL-638`,
+		"mailto:a@example.com",
+		"javascript:alert(1)",
+		"https://user:pass@example.com",
+	]) {
+		expect(interceptedLinkUrl({ href }, true, origin)).toBeNull();
+	}
+	expect(interceptedLinkUrl(null, true, origin)).toBeNull();
+	expect(interceptedLinkUrl({ href: "https://example.com" }, false, origin)).toBeNull();
 });

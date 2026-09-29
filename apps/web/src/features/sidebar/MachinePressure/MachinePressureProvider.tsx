@@ -4,6 +4,7 @@ import { useMachinePressure } from "./useMachinePressure";
 
 type MachinePressureContextValue = {
 	machines: MachinePressureMachineView[];
+	machinesWithAlerts: MachinePressureMachineView[];
 	setDetailsOpen: (id: string, open: boolean) => void;
 };
 
@@ -22,8 +23,10 @@ export function MachinePressureProvider({ children }: { children: ReactNode }) {
 			return next;
 		});
 	}, []);
-	const machines = useMachinePressure(openConsumers.size > 0);
+	const { machines, machinesWithAlerts } = useMachinePressure(openConsumers.size > 0);
 	return (
-		<MachinePressureContext.Provider value={{ machines, setDetailsOpen }}>{children}</MachinePressureContext.Provider>
+		<MachinePressureContext.Provider value={{ machines, machinesWithAlerts, setDetailsOpen }}>
+			{children}
+		</MachinePressureContext.Provider>
 	);
 }

@@ -112,3 +112,14 @@ test("a run mutation still refreshes its workspace state", () => {
 	expect(client.getQueryState(queryKey)?.isInvalidated).toBe(true);
 	client.clear();
 });
+
+test("a saved session update refreshes the session update query", () => {
+	const { client, applier, flush } = setup();
+	const sessionId = "01M3NVQ8K3ZBWDFDZ406A4M1D9";
+	const queryKey = generateOperationKey(["sessionUpdates", "get"], { input: { sessionId } });
+	client.setQueryData(queryKey, {});
+	applier.applyEvent({ type: "session-updates.changed", id: sessionId });
+	flush();
+	expect(client.getQueryState(queryKey)?.isInvalidated).toBe(true);
+	client.clear();
+});

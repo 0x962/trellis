@@ -1,6 +1,7 @@
 import { ArrowUpRight, BookOpenText, DownloadSimple, File, FileText, Image, LinkSimple } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
 import { cx } from "../../../../utils/cx";
+import { type LinkPress, linkPress } from "../../../../utils/linkPress";
 
 // The four kinds of resource an epic holds. `packages/ui` imports no schema
 // package, so this list repeats the one in
@@ -21,7 +22,7 @@ export type ResourceListRow = {
 
 export type ResourceRowProps = {
 	row: ResourceListRow;
-	onOpen: (id: string) => void;
+	onOpen: (id: string, press: LinkPress) => void;
 	// True for the row whose document is open beside the list.
 	selected?: boolean;
 };
@@ -48,7 +49,7 @@ export function ResourceRow({ row, onOpen, selected = false }: ResourceRowProps)
 		<li>
 			<button
 				type="button"
-				onClick={() => onOpen(row.id)}
+				onClick={(event) => onOpen(row.id, linkPress(event))}
 				aria-current={selected ? "page" : undefined}
 				title={title}
 				className={cx(

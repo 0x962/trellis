@@ -31,6 +31,7 @@ export * from "./reviewReady.ts";
 export * from "./search.ts";
 export * from "./session.ts";
 export * from "./sessionActivity.ts";
+export * from "./sessionUpdates/index.ts";
 export * from "./settings/index.ts";
 export * from "./statistics.ts";
 export * from "./status.ts";
