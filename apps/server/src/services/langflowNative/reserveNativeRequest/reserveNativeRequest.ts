@@ -13,7 +13,7 @@ import {
 	readProtocolBytes,
 } from "../../../langflowContracts";
 import { reserve } from "../../agentRuns";
-import { assertExecutionNotCanceled } from "../../langflowStops/assertExecutionNotCanceled";
+import { assertExecutionNotCanceled } from "../../langflowStops";
 import { projectLaunchConfig } from "../../projectLaunchConfig";
 import { writeLaunchSnapshot } from "../launchSnapshot";
 import type { NativeReservationCtx } from "../types";
