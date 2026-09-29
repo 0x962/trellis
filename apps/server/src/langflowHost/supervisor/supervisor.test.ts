@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { supervisorFixture } from "../fixtures/supervisorFixture";
 import { manifest } from "../fixtures/manifest";
+import { supervisorFixture } from "../fixtures/supervisorFixture";
 import { LangflowSupervisor } from "./supervisor";
 
 test("one supervisor owns the home and revokes before a clean stop", async () => {

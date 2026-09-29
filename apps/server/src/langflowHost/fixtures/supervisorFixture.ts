@@ -2,9 +2,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { DeliveryAuthorityV1 } from "../../langflowContracts";
+import { AdmissionStateV1Schema, DeliveryAuthorityV1Schema } from "../../langflowContracts";
 import admissionFixture from "../../langflowContracts/fixtures/admission.json";
 import authorityFixture from "../../langflowContracts/fixtures/authority.json";
-import { AdmissionStateV1Schema, DeliveryAuthorityV1Schema } from "../../langflowContracts";
 import type {
 	AuthorityCommit,
 	OwnerRevocation,
