@@ -5,8 +5,8 @@ The fragment adds `langflow.services.trellis_v1.backup` and `backup_router` to t
 TRL-674 places this independent fragment after the backend and schema fragments in the package series.
 
 `create_backup_router` receives the configured `DatabaseService`, `SettingsService`, private export root, authentication file, installed package digest, source home, and host.
-The router serves `POST /api/v1/trellis/snapshots` and `GET /api/v1/trellis/snapshots/{snapshotId}/{database|secret}`.
-The domain router uses `/snapshots` beneath the common `/api/v1/trellis` router.
+The router serves `POST /trellis-v1/snapshots` and `GET /trellis-v1/snapshots/{snapshotId}/{database|secret}`.
+The domain router uses `/snapshots` beneath the common `/trellis-v1` router.
 TRL-875 owns that common router and registration.
 Every operation requires the private bearer token.
 The export root uses mode 0700; each export file uses mode 0600.
@@ -38,7 +38,8 @@ The caller holds the coordinated pause until `captureSnapshot` finishes its mani
 Native workspace and conversation exports remain separate required producers.
 
 The Python fixture creates a real suspended job, checkpoint, and correlation receipt with Langflow services.
-It exports through the router, reopens the copy, and checks the original identity and checkpoint.
+It mounts the backup domain with `create_engine_api_router` and `EngineApiSecurity`.
+It exports through that common router, reopens the copy, and checks the original identity and checkpoint.
 It also checks that a later checkpoint write remains in the source database.
 Its pause fixture verifies the callback contract; integrated effect exclusion and restored ownership remain separate proof requirements.
 TRL-667 owns candidate patch application and the matched batch command.

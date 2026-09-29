@@ -1,0 +1,29 @@
+diff --git a/src/backend/base/langflow/services/jobs/service.py b/src/backend/base/langflow/services/jobs/service.py
+--- a/src/backend/base/langflow/services/jobs/service.py
++++ b/src/backend/base/langflow/services/jobs/service.py
+@@ -13,6 +13,7 @@
+ 
+     from sqlmodel.ext.asyncio.session import AsyncSession
+ 
++    from langflow.services.trellis_v1.admission_store import AuthorityVerifier
+     from langflow.services.trellis_v1.correlation import (
+         AdmissionCommit,
+         AdmissionContinuation,
+@@ -322,7 +323,9 @@
+     async def commit_trellis_admission(
+         self,
+         candidate: StoredCorrelation,
+         admission_bytes: bytes,
+         continuation: AdmissionContinuation,
++        *,
++        require_authority: AuthorityVerifier,
+     ) -> AdmissionCommit:
+         """Commit admission and claim its exact suspended continuation."""
+@@ -353,6 +356,7 @@
+                 correlation.engine_job_id,
+                 with_for_update=True,
+             )
++            await require_authority(session)
+             if correlation.admission_receipt_bytes is None:
+                 if job.status != JobStatus.SUSPENDED:
+                     raise ProtocolConflict("admission_job_not_suspended")

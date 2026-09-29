@@ -20,7 +20,7 @@ export async function list(ctx: ServiceCtx, tx: Tx, input: FlowExecutionListV1In
 				CASE WHEN p.view->>'status' IN ('succeeded','failed','canceled') THEN false
 					ELSE p.view->>'status' IS NULL
 						OR e.submission->>'state' IN ('reserved','submission_unknown')
-						OR e.admission->>'state' = 'closed'
+						OR (e.admission->>'state' = 'closed') IS TRUE
 						OR e.authority IS NULL
 						OR (e.authority->>'expiresAt')::timestamptz <= ${ctx.now}
 				END AS pending

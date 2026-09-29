@@ -16,7 +16,11 @@ def read_catalog(
 	if engine_commit != manifest["engine"]["commit"]:
 		raise ValueError("catalog_engine_identity_conflict")
 	roots = {"trellis": trellis_root, "engine": engine_root}
-	sources = [manifest["edgeHandles"]["engineSource"], manifest["edgeHandles"]["frontendSource"]]
+	sources = [
+		*manifest["runtimeSources"],
+		manifest["edgeHandles"]["engineSource"],
+		manifest["edgeHandles"]["frontendSource"],
+	]
 	for definition in manifest["definitions"]:
 		sources.extend([definition["source"], *definition["sourceDependencies"]])
 	for source in sources:

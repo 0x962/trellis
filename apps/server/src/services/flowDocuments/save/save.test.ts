@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { FlowDocumentV1Schema } from "@trellis/api";
 import { create } from "../../flows/flows.ts";
 import { documentBytes } from "../documentBytes";
-import { flowId, saveInput, serviceFixture } from "../fixture";
+import { flowId, saveInput, seedLangflowDocument, serviceFixture } from "../fixture";
 import { get } from "../get";
 import { legacyServices } from "../legacyServices";
 import { save } from "./save.ts";
@@ -11,7 +11,7 @@ const { get: getLegacy, update, save: saveLegacy } = legacyServices;
 
 let h: Awaited<ReturnType<typeof serviceFixture>>;
 beforeEach(async () => {
-	h = await serviceFixture();
+	h = await serviceFixture("langflow");
 });
 afterEach(async () => {
 	await h.db.$client.close();
@@ -82,17 +82,19 @@ test("legacy graph reads and writes refuse Langflow without a lossy projection",
 });
 
 test("legacy V1 saves retain legacy endpoints and replay without a second version", async () => {
+	const legacy = await h.run((tx) => create(h.ctx, tx, { name: "Legacy", slug: "legacy" }));
 	const input = {
 		...saveInput(),
+		flow: legacy.id,
 		engine: "legacy" as const,
 		componentManifestHash: null,
 		graphDocument: { nodes: [], edges: [] },
 	};
 	const saved = await h.run((tx) => save(h.ctx, tx, input));
 	expect(await h.run((tx) => save(h.ctx, tx, input))).toEqual(saved);
-	expect((await h.run((tx) => getLegacy(h.ctx, tx, { flow: flowId }))).flow.version).toBe(2);
-	await h.run((tx) => saveLegacy(h.ctx, tx, { flow: flowId, expectedVersion: 2, nodes: [], edges: [] }));
-	expect((await h.run((tx) => get(h.ctx, tx, { flow: flowId }))).revision).toBe(3);
+	expect((await h.run((tx) => getLegacy(h.ctx, tx, { flow: legacy.id }))).flow.version).toBe(2);
+	await h.run((tx) => saveLegacy(h.ctx, tx, { flow: legacy.id, expectedVersion: 2, nodes: [], edges: [] }));
+	expect((await h.run((tx) => get(h.ctx, tx, { flow: legacy.id }))).revision).toBe(3);
 });
 
 test("save preserves graph counts, text, and geometry beyond the dense fixture", async () => {
@@ -129,6 +131,7 @@ test("different flow references retain independent request IDs", async () => {
 	const input = { ...saveInput(), flow: "review" };
 	const first = await h.run((tx) => save(h.ctx, tx, input));
 	const other = await h.run((tx) => create(h.ctx, tx, { name: "Other", slug: "other" }));
+	await h.run((tx) => seedLangflowDocument(tx, { flow: other, savedAt: h.ctx.now }));
 	const next = await h.run((tx) => save(h.ctx, tx, { ...input, flow: "other" }));
 	expect(next.flow.id).toBe(other.id);
 	expect(first.flow.id).toBe(flowId);

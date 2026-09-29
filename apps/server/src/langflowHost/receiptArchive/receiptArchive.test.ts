@@ -71,11 +71,19 @@ test("terminal evidence retains exact bytes and permit across restart", async ()
 	const permit = f.control.gate.acquire(binding);
 	const proof = source({ requestId: binding.requestId, payloadDigest: binding.payloadDigest, revision: 8 });
 	const receipt = f.archive.writeTerminal({ permit, outcome: "completed", ...proof });
-	const reopened = DispatchReceiptArchive.open(LangflowHostControl.open({ home: f.home, evidence: f.evidence }));
+	let reopened: DispatchReceiptArchive;
+	const effects = LangflowHostControl.openEffects({
+		home: f.home,
+		readTerminal: (saved, id) => reopened.readTerminal(saved, id),
+	});
+	reopened = DispatchReceiptArchive.open({
+		identity: effects.identity,
+		gate: { read: () => effects.gate.read() },
+	});
 	expect(await reopened.readTerminal(permit, receipt.id)).toEqual(receipt);
 	expect(JSON.parse(reopened.readRecordBytes(receipt.id)).source).toEqual(proof);
 	expect(reopened.writeTerminal({ permit, outcome: "completed", ...proof }).id).toBe(receipt.id);
-	await f.control.gate.settle(permit, receipt.id);
+	await effects.gate.settle(permit, receipt.id);
 	expect(f.control.gate.recoverPermit(binding)?.terminal).toEqual(receipt);
 	expect(() =>
 		reopened.writeTerminal({ permit, outcome: "completed", ...proof, sourceDigest: "c".repeat(64) }),

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { createTrellisClient } from "../client.ts";
+import { FlowExecutionDecisionInputSchema } from "../schemas/flowExecution.ts";
 import { FlowAttemptOutputV1InputSchema, FlowRecoveryV1Schema } from "../schemas/flowExecutionActionsV1.ts";
 import { executionViewV1Example, flowV1FixtureIds, flowV1RequestId } from "../schemas/flowV1Fixtures.ts";
 import { flowExecutionsV1 } from "./flowExecutionsV1.ts";
@@ -14,13 +15,13 @@ test("action clients retain actor headers, request identity, and versioned respo
 	const start = { flow: "review", ticket: "TRL-1", expectedVersion: 1, requestId: flowV1RequestId };
 	expect(await client.flowExecutionsV1.start(start)).toEqual(executionViewV1Example);
 	expect(requests[0]).toEqual({ path: "/rpc/flowExecutionsV1/start", body: { json: start } });
-	const decision = {
+	const decision = FlowExecutionDecisionInputSchema.parse({
 		id: flowV1FixtureIds.execution,
-		actionKey: "round:37",
+		key: "round:37",
 		expectedRevision: 1,
 		approved: true,
 		output: "accepted",
-	};
+	});
 	await client.flowExecutionsV1.decision(decision);
 	await client.flowExecutionsV1.cancel({ id: flowV1FixtureIds.execution, expectedRevision: 1 });
 	expect(requests.map((value) => value.path)).toEqual([
