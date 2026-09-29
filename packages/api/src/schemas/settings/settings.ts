@@ -5,7 +5,7 @@ export type MenuLinkIcon = z.infer<typeof MenuLinkIconSchema>;
 
 export const MenuLinkSchema = z.strictObject({
 	id: z.uuid(),
-	label: z.string().trim().min(1, "Enter a label.").max(80),
+	label: z.string().trim().min(1, "Enter a label."),
 	icon: MenuLinkIconSchema,
 	url: z.url({ protocol: /^https$/ }).refine((value) => {
 		if (!URL.canParse(value)) return false;

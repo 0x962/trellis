@@ -29,6 +29,8 @@ test("settings show saved order, edits, and deletions from the shared cache", ()
 	const initial = render([other, link]);
 	expect(initial.indexOf(">Docs<")).toBeLessThan(initial.indexOf(">Actions<"));
 	expect(render([other, { ...link, label: "Builds" }])).toContain(">Builds<");
+	const longLabel = "Release documentation ".repeat(100).trim();
+	expect(render([{ ...link, label: longLabel }])).toContain(`>${longLabel}<`);
 	expect(render([other])).not.toContain(">Actions<");
 	expect(render([])).toContain("No menu links.");
 	queryClient.clear();
@@ -39,4 +41,5 @@ test("the row editor exposes label, URL, and icon controls", () => {
 		<MenuLinkEditor link={null} busy={false} onCancel={() => {}} onSave={async () => {}} />,
 	);
 	for (const label of ["Label", "HTTPS URL", "Icon", "Save", "Cancel"]) expect(html).toContain(label);
+	expect(html).not.toMatch(/maxlength/i);
 });

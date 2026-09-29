@@ -5,18 +5,14 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 // The longest context that an anchor keeps on each side of the quote.
 export const RESOURCE_COMMENT_CONTEXT_MAX = 32;
 
-export const ResourceCommentBodySchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a comment.")
-	.max(10000, "Enter a comment of 10000 characters or less.");
+export const ResourceCommentBodySchema = z.string().trim().min(1, "Enter a comment.");
 
 // The commented text of a document, with the text just before it and just
 // after it. The editor finds the quote in the document by these three
 // strings, so the anchor needs no position. A quote that spans two blocks
 // holds a newline between them.
 export const ResourceCommentAnchorSchema = z.strictObject({
-	quote: z.string().min(1).max(2000),
+	quote: z.string().min(1),
 	prefix: z.string().max(RESOURCE_COMMENT_CONTEXT_MAX),
 	suffix: z.string().max(RESOURCE_COMMENT_CONTEXT_MAX),
 });

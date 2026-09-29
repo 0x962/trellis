@@ -107,6 +107,8 @@ export async function provisionStorage(
 		"container",
 		"run",
 		"--rm",
+		"--pull",
+		"never",
 		"--network",
 		"none",
 		"--read-only",
