@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "state": "events",
+  "executionId": "execution-1",
+  "afterSeq": 0,
+  "nextSeq": 1,
+  "events": [
+    {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "sourceEventId": "event-1",
+      "occurredAt": "2026-09-29T06:00:00.000Z",
+      "occurrence": {
+        "nodeId": "node-review",
+        "occurrenceKey": "outer-2.inner-3.review",
+        "parentOccurrenceKey": "outer-2.inner-3",
+        "phase": "step",
+        "iterationPath": [
+          {
+            "loopNodeId": "outer",
+            "round": 2
+          },
+          {
+            "loopNodeId": "inner",
+            "round": 3
+          }
+        ]
+      },
+      "payload": {
+        "kind": "step_result",
+        "stepId": "step-1",
+        "completionId": "completion-1",
+        "outputHash": "a115e91c2e84c3078fa06914eff28d07590ddfaa47a55fb4f31dd7c5b3566194"
+      },
+      "seq": 1,
+      "sourceDigest": "54efd741b41ea3ba3eb15035df16fa39cec92c647ab1835f7ff6c8c9acb2f47b"
+    }
+  ],
+  "hasMore": false
+}
