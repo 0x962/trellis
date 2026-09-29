@@ -1,8 +1,12 @@
 export { assertLegacy } from "./assertLegacy";
 export { unsupported } from "./assertLegacy/components/unsupported";
+export type { DiscoveryAvailability, DiscoveryResult, DiscoverySummary } from "./discovery";
+export { discovery } from "./discovery";
 export { documentBytes } from "./documentBytes";
 export { get } from "./get";
+export { installedPublisher, type PublicationDispatch } from "./installedPublisher";
 export { legacyServices } from "./legacyServices";
+export { publicationDispatch } from "./publicationDispatch";
 export { publishDocument } from "./publishDocument";
 export type { DocumentPublisher, Publication, SavedDocument } from "./publisher";
 export { requireCurrentPublication } from "./requireCurrentPublication";

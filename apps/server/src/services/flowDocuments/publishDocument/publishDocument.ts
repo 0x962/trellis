@@ -28,7 +28,6 @@ export const publishDocument = async (
 	requireActor(ctx.core);
 	const prepared = await ctx.newTx(async (tx) => {
 		const flow = await resolveFlow(tx, input.flow);
-		if (flow.version !== input.revision) throw fail("FLOW_VERSION_CONFLICT", { version: flow.version });
 		const key = { flowId: flow.id, revision: input.revision };
 		const stored = await readDocumentRevision(tx, key);
 		if (stored === undefined || stored.snapshot.engine !== "langflow") {
@@ -38,6 +37,7 @@ export const publishDocument = async (
 		const status = await readDocumentPublicationState(tx, key);
 		return {
 			key,
+			currentVersion: flow.version,
 			publication,
 			status,
 			document: { snapshot: stored.snapshot, sourceBytes: stored.sourceBytes } satisfies SavedDocument,
@@ -45,6 +45,8 @@ export const publishDocument = async (
 	});
 	if (prepared.publication !== undefined) return prepared.publication;
 	const { key, document, status } = prepared;
+	const stale = prepared.currentVersion !== input.revision;
+	if (stale && !engine.recover) throw fail("FLOW_VERSION_CONFLICT", { version: prepared.currentVersion });
 	const recordFailure = async (state: "failed" | "blocked", diagnostics: FlowDiagnosticV1[]) => {
 		await ctx.newTx((tx) =>
 			writeDocumentPublicationState(tx, {
@@ -65,10 +67,11 @@ export const publishDocument = async (
 	let diagnostics: FlowDiagnosticV1[];
 	let stage: "validate" | "publish" | "receipt" = "validate";
 	try {
-		diagnostics = await engine.validate(document);
+		diagnostics = stale ? [] : await engine.validate(document);
 		if (!diagnostics.some((item) => item.severity === "error")) {
 			stage = "publish";
-			const response = await engine.publish(document);
+			const response = stale ? await engine.recover!(document) : await engine.publish(document);
+			if (response === null) return null;
 			stage = "receipt";
 			publication = FlowPublicationV1Schema.parse(response);
 		}

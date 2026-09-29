@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import type { TicketSummary } from "@trellis/api";
+import type { TicketDependency, TicketSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover, StatusIcon } from "@trellis/ui";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { SelectedTickets } from "./components/SelectedTickets";
 
 // The search runs this long after the last keystroke.
 export const searchDebounceMs = 120;
@@ -27,6 +28,15 @@ export type TicketPickerProps = {
 	// False hides the None row. A picker that adds a ticket to a set has
 	// nothing to clear, so `onPick` then receives a ticket only.
 	allowNone?: boolean;
+	selection?: {
+		items: readonly TicketDependency[];
+		onRemove: (ticket: TicketDependency) => Promise<void>;
+		pending: boolean;
+		removing: string | null;
+		loading: boolean;
+		error: Error | null;
+		retry: () => void;
+	};
 	trigger: ReactElement;
 	// The tooltip of the trigger. An icon trigger needs one to name its action.
 	triggerTooltip?: string;
@@ -50,6 +60,7 @@ export function TicketPicker({
 	allowNone = true,
 	onPick,
 	onToggle,
+	selection,
 	trigger,
 	triggerTooltip,
 	open,
@@ -76,7 +87,8 @@ export function TicketPicker({
 		enabled: q !== "",
 	});
 	const tickets = (q === "" ? [] : (results.data?.tickets ?? [])).filter(
-		(ticket) => !exclude.includes(ticket.identifier),
+		(ticket) =>
+			!exclude.includes(ticket.identifier) && !selection?.items.some((item) => item.identifier === ticket.identifier),
 	);
 
 	const setOpen = (next: boolean) => {
@@ -114,8 +126,17 @@ export function TicketPicker({
 			initialFocus={input}
 			finalFocus={finalFocus}
 			side={side}
-			className="w-80 p-0"
+			className="w-80 max-w-(--available-width) max-h-(--available-height) overflow-y-auto p-0"
 		>
+			{selection && (
+				<SelectedTickets
+					{...selection}
+					onRemove={async (ticket) => {
+						await selection.onRemove(ticket);
+						input.current?.focus({ preventScroll: true });
+					}}
+				/>
+			)}
 			<Command
 				inputRef={input}
 				label="Search tickets"
@@ -125,6 +146,7 @@ export function TicketPicker({
 				items={items}
 				empty={q === "" ? "Type to search." : "No results."}
 				onSelect={(id) => {
+					if (selection?.pending || selection?.loading || selection?.error) return;
 					if (onToggle !== undefined) {
 						const ticket = tickets.find((entry) => entry.identifier === id)!;
 						const current = isChecked?.(ticket) ?? checked?.includes(id) ?? false;

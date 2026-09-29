@@ -99,3 +99,30 @@ An unconfigured home returns `{state: "unavailable", generation: null}`.
 A configured home returns `{state: "open" | "blocked", generation: number}`.
 Corrupt or incomplete control files fail the read; the query must never report them as open.
 The open state is advisory; each mutation still acquires a permit before its first effect.
+
+## Original authority bytes
+
+`ExecutionAuthority` serializes a newly issued grant once in `AuthorityCommit.authorityBytes`.
+`AuthorityPort.commit` must save this UTF-8 text atomically with its receipt and ownership transition.
+`AuthorityPort.readReceipt` must return the original text on every later read.
+`readIssuedAuthority(commit)` checks its parsed grant against the receipt and returns the original bytes and digest.
+The HTTP client must send these bytes unchanged to the engine control and domain endpoints.
+An old record without retained bytes requires reconciliation; JSONB does not establish the original encoding.
+
+`DispatchReceiptArchive.writeAuthority({authorityBytes, issuanceReceiptId})` retains the original bytes outside restored data.
+It returns an immutable archive identifier with the bytes, digest, parsed authority, and issuing receipt identifier.
+The trusted producer must retain this archive identifier with its control receipt before it sends the grant.
+`readAuthority(id)` returns the original bytes after restart.
+The archive checks the target home and host, but the engine must still check current ownership, permissions, expiry, and revocation.
+
+## Access for public effects
+
+`LangflowHostControl.openEffects({home, readTerminal})` returns the saved identity and a `DispatchEffects` instance.
+The instance exposes `read`, `acquire`, `recoverPermit`, and `settle`.
+Public actions supply the reader that validates their committed terminal evidence.
+The instance shares the durable permits with the full control.
+A blocked home still permits settlement of an existing effect, so the full control can finish its drain.
+Only the full control exposes reconciliation and block management.
+
+`DispatchReceiptArchive.open` accepts the identity and `gate.read` from either control.
+Compose its terminal reader after both objects exist; only a later settlement calls the reader.

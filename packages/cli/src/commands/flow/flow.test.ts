@@ -116,7 +116,13 @@ test("both run-list spellings read beyond 501 results without losing IDs", async
 			call.path === "/rpc/flowDocumentsV1/list"
 				? records
 						.slice(Number(call.input.offset), Number(call.input.offset) + Number(call.input.limit))
-						.map(({ id }) => ({ id, engine: "legacy" }))
+						.map(({ id, flowId, state }) => ({
+							id,
+							engine: "legacy",
+							flowId,
+							status: state.status,
+							pendingSubmission: false,
+						}))
 				: call.path === "/rpc/flowExecutions/get"
 					? records.find(({ id }) => id === call.input.id)
 					: startReply(call),

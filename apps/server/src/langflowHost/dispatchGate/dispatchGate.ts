@@ -1,15 +1,18 @@
 import { realpathSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
-import type { BlockReason, DispatchBlock, DispatchEvidence, DispatchPermit, EffectBinding } from "./contracts";
+import { DispatchEffects } from "../dispatchEffects";
+import type { BlockReason, DispatchBlock, DispatchEvidence } from "./contracts";
 import { waitForDrain } from "./drain/drain";
-import { ReconciliationReceiptSchema, TerminalReceiptSchema } from "./store/schema";
+import { ReconciliationReceiptSchema } from "./store/schema";
 import { DispatchStore } from "./store/store";
 
-export class DispatchGate {
+export class DispatchGate extends DispatchEffects {
 	private constructor(
-		private readonly store: DispatchStore,
+		store: DispatchStore,
 		private readonly evidence: DispatchEvidence,
-	) {}
+	) {
+		super(store, (permit, id) => evidence.readTerminal(permit, id));
+	}
 
 	static create(input: {
 		directory: string;
@@ -29,46 +32,10 @@ export class DispatchGate {
 		return new DispatchGate(store, input.evidence);
 	}
 
-	read() {
-		return this.store.read();
-	}
-
 	assertDispatchAllowed() {
 		const state = this.read();
 		if (state.block) throw new Error("dispatch_blocked");
 		return { dataHomeId: state.dataHomeId, generation: state.generation };
-	}
-
-	acquire(binding: EffectBinding): DispatchPermit {
-		return this.store.mutate((state) => {
-			if (state.block) throw new Error("dispatch_blocked");
-			if (state.permits.some((entry) => entry.permit.binding.effectId === binding.effectId)) {
-				throw new Error("dispatch_effect_already_reserved");
-			}
-			const permit = { id: crypto.randomUUID(), dataHomeId: state.dataHomeId, generation: state.generation, binding };
-			state.permits.push({ permit, terminal: null });
-			return structuredClone(permit);
-		});
-	}
-
-	recoverPermit(binding: EffectBinding) {
-		const entry = this.read().permits.find((item) => item.permit.binding.effectId === binding.effectId);
-		if (!entry) return null;
-		if (!isDeepStrictEqual(entry.permit.binding, binding)) throw new Error("dispatch_effect_binding_conflict");
-		return entry;
-	}
-
-	async settle(permit: DispatchPermit, receiptId: string) {
-		const receipt = TerminalReceiptSchema.parse(await this.evidence.readTerminal(structuredClone(permit), receiptId));
-		if (receipt.id !== receiptId || !isDeepStrictEqual(receipt.permit, permit)) {
-			throw new Error("dispatch_terminal_mismatch");
-		}
-		this.store.mutate((state) => {
-			const entry = state.permits.find((item) => item.permit.id === permit.id);
-			if (!entry || !isDeepStrictEqual(entry.permit, permit)) throw new Error("dispatch_permit_mismatch");
-			if (entry.terminal && !isDeepStrictEqual(entry.terminal, receipt)) throw new Error("dispatch_terminal_conflict");
-			entry.terminal = receipt;
-		});
 	}
 
 	closeDispatch(input: { requestId: string; reason: BlockReason }): DispatchBlock {
