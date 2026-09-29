@@ -38,7 +38,8 @@ test("unknown versions and formats fail without a legacy request", async () => {
 			[["flow", "run", "show", legacyRun.id], executionViewV1Example],
 		] as const) {
 			const f = fixture(() => ({ ...value, ...change }));
-			expect(await run([...args, "--json"], f.deps)).not.toBe(0);
+			expect(await run([...args, "--json"], f.deps)).toBe(4);
+			expect(f.errors()).toContain("FLOW_UNSUPPORTED_FORMAT");
 			expect(f.calls).toHaveLength(1);
 			expect(f.text()).toBe("");
 		}
@@ -52,4 +53,12 @@ test("document help exposes the format and makes no request", async () => {
 	expect(await run(["flow", "document", "show", "--help"], f.deps)).toBe(0);
 	expect(f.text()).toContain("version 1");
 	expect(f.calls).toEqual([]);
+});
+
+test("an unknown index engine stops before any execution read", async () => {
+	const f = fixture(() => [{ id: legacyRun.id, engine: "future" }]);
+	expect(await run(["flow", "run", "list", "--json"], f.deps)).toBe(4);
+	expect(f.errors()).toContain("FLOW_UNSUPPORTED_FORMAT");
+	expect(f.calls).toHaveLength(1);
+	expect(f.text()).toBe("");
 });
