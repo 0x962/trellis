@@ -28,7 +28,6 @@ import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
 import { labelStates } from "../utils/labelStates";
 import { visibleRows } from "../utils/visibleRows";
-import { CapBanner } from "./components/CapBanner";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
 import { footerCounts } from "./footerCounts";
@@ -69,7 +68,6 @@ export type TicketTableProps = {
 };
 
 export type Editing = { id: string; field: EditField } | null;
-const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar] [data-filter-button]")?.focus();
 
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
@@ -229,7 +227,6 @@ export function TicketTable({
 	const { total, hidden } = footerCounts(data, view);
 	return (
 		<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
-			{data.capped && <CapBanner onNarrow={focusFilter} />}
 			<TableBody
 				items={items}
 				tableKind={tableKind}
