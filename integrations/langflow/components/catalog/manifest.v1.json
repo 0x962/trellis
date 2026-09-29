@@ -525,6 +525,11 @@
 					"sha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d"
 				},
 				{
+					"root": "trellis",
+					"path": "integrations/langflow/patches/externalWaits/0009-loop-metadata-wrapper.patch",
+					"sha256": "0474eb22c82ee6006c7bef6bc34eb18a2822a6ed1f98632ddf9d4741e7d8e292"
+				},
+				{
 					"root": "engine",
 					"path": "src/lfx/src/lfx/base/flow_controls/loop_utils.py",
 					"sha256": "bf7d1a372adc995fd43a409b3098fd0ac1ea039a2e3be48d0d931ba1b9ca22f6"
