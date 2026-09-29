@@ -29,14 +29,9 @@ sys.path.insert(0, str(TRELLIS_669_ROOT))
 pytest_plugins = ["tests.unit.background_execution.conftest"]
 
 from integrations.langflow.components.trellis_external_wait import TrellisExternalWaitComponent
-from integrations.langflow.tests.decisions.decision_service_probe import crash, pending_receipts, service
 from langflow.services.database.models.jobs.model import JobCheckpoint, JobStatus
 from langflow.services.jobs.exceptions import HUMAN_INPUT_REQUIRED_EVENT
 from langflow.services.jobs.service import JobService
-from langflow.services.trellis_v1.decisions import (
-    TrellisDecisionAcceptance,
-    TrellisDecisionEnqueueObligation,
-)
 from lfx.components.input_output import ChatOutput
 from lfx.graph import Graph
 from lfx.graph.external_wait import ExternalWaitPending
@@ -61,6 +56,12 @@ async def test_accepted_decision_survives_every_service_fault_and_runs_one_succe
     real_services_db_url: str,
     real_services_job_service: JobService,
 ) -> None:
+    from integrations.langflow.tests.decisions.decision_service_probe import crash, pending_receipts, service
+    from langflow.services.trellis_v1.decisions import (
+        TrellisDecisionAcceptance,
+        TrellisDecisionEnqueueObligation,
+    )
+
     assert hashlib.sha256(CHECKPOINT_FIXTURE.read_bytes()).hexdigest() == (
         "37bab5d39fa9a85ba0ec1c9c381e8386dd75debb9770db7257bfdc7f126ec65d"
     )

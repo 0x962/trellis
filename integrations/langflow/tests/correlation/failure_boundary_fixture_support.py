@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from functools import cache
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Column, DateTime, LargeBinary, Text
@@ -14,21 +16,25 @@ from correlation_fixture_support import JOB_ID, contract_bytes
 ADMISSION_OUTBOX_ID = UUID("00000000-0000-4000-8000-000000000016")
 
 
-class FakeNativeAdmission(SQLModel, table=True):  # type: ignore[call-arg]
-    __tablename__ = "trl668_fake_native_admissions"
+@cache
+def _fake_native_admission_model() -> type[Any]:
+    class FakeNativeAdmission(SQLModel, table=True):  # type: ignore[call-arg]
+        __tablename__ = "trl668_fake_native_admissions"
 
-    execution_id: str = Field(sa_column=Column(Text, primary_key=True))
-    engine_job_id: UUID = Field(unique=True)
-    publication_id: str = Field(sa_column=Column(Text, nullable=False))
-    engine_epoch: int
-    admission_receipt_bytes: bytes = Field(
-        sa_column=Column(LargeBinary, nullable=False)
-    )
-    outbox_id: UUID = Field(unique=True)
-    acknowledged_at: datetime | None = Field(
-        default=None,
-        sa_column=Column(DateTime(timezone=True), nullable=True),
-    )
+        execution_id: str = Field(sa_column=Column(Text, primary_key=True))
+        engine_job_id: UUID = Field(unique=True)
+        publication_id: str = Field(sa_column=Column(Text, nullable=False))
+        engine_epoch: int
+        admission_receipt_bytes: bytes = Field(
+            sa_column=Column(LargeBinary, nullable=False)
+        )
+        outbox_id: UUID = Field(unique=True)
+        acknowledged_at: datetime | None = Field(
+            default=None,
+            sa_column=Column(DateTime(timezone=True), nullable=True),
+        )
+
+    return FakeNativeAdmission
 
 
 async def create_failure_boundary_tables() -> None:
@@ -37,24 +43,26 @@ async def create_failure_boundary_tables() -> None:
         TrellisDecisionAcceptance,
         TrellisDecisionEnqueueObligation,
     )
+    fake_native_admission = _fake_native_admission_model()
 
     async with get_db_service().engine.begin() as connection:
         for table in (
             TrellisJobCorrelation.__table__,
             TrellisDecisionAcceptance.__table__,
             TrellisDecisionEnqueueObligation.__table__,
-            FakeNativeAdmission.__table__,
+            fake_native_admission.__table__,
         ):
             await connection.run_sync(table.create, checkfirst=True)
 
 
-async def commit_fake_native_admission() -> FakeNativeAdmission:
+async def commit_fake_native_admission() -> Any:
+    fake_native_admission = _fake_native_admission_model()
     receipt_bytes = contract_bytes("admission")
     receipt = json.loads(receipt_bytes)
     async with session_scope() as session:
-        row = await session.get(FakeNativeAdmission, receipt["executionId"])
+        row = await session.get(fake_native_admission, receipt["executionId"])
         if row is None:
-            row = FakeNativeAdmission(
+            row = fake_native_admission(
                 execution_id=receipt["executionId"],
                 engine_job_id=JOB_ID,
                 publication_id=receipt["publicationId"],
@@ -75,12 +83,13 @@ async def commit_fake_native_admission() -> FakeNativeAdmission:
         return row
 
 
-async def pending_fake_native_admissions() -> list[FakeNativeAdmission]:
+async def pending_fake_native_admissions() -> list[Any]:
+    fake_native_admission = _fake_native_admission_model()
     async with session_scope() as session:
         statement = (
-            select(FakeNativeAdmission)
-            .where(FakeNativeAdmission.acknowledged_at.is_(None))
-            .order_by(FakeNativeAdmission.execution_id)
+            select(fake_native_admission)
+            .where(fake_native_admission.acknowledged_at.is_(None))
+            .order_by(fake_native_admission.execution_id)
         )
         return list((await session.exec(statement)).all())
 
@@ -91,9 +100,10 @@ async def mark_fake_native_admission_acknowledged(
     engine_job_id: UUID,
     admission_receipt_bytes: bytes,
 ) -> None:
+    fake_native_admission = _fake_native_admission_model()
     async with session_scope() as session:
         row = await session.get(
-            FakeNativeAdmission,
+            fake_native_admission,
             execution_id,
             with_for_update=True,
         )

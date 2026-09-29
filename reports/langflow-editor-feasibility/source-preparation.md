@@ -92,9 +92,9 @@ The separate editor needs an estimated 6 to 12 integration files. It retains the
 
 ## Source fixture checks
 
-The worktree reuses dependencies from the canonical checkout because both lock files have SHA256 `ceeb63317e0c76a91eebea2e94615bca1e4b18c32f4c73cb80bdb73d393229ce`.
+The source fixture checks reused dependencies from the canonical checkout. Both lock files then had SHA256 `ceeb63317e0c76a91eebea2e94615bca1e4b18c32f4c73cb80bdb73d393229ce`.
 
-`Bun.resolveSync` resolves `@trellis/api` to this worktree at `packages/api/src/index.ts`. It resolves Zod to the canonical matching dependency.
+`Bun.resolveSync` resolved `@trellis/api` to this worktree at `packages/api/src/index.ts`. It resolved Zod to the canonical matching dependency.
 
 | Command | Result |
 | --- | --- |
@@ -118,9 +118,15 @@ The gateway binds the submitted component manifest hash to the pinned hash. It r
 
 The prior editor patch has SHA256 `a5f94d6e207b98be2a2a44e1e26b4d8d25f6b327108ebe8817ca639224941ab2`. The prior gateway source manifest has SHA256 `57852bd56f93a89b8bae795bd827ab3bd68d81b5c1d61744cb9dd027942d3a81`. The prior HTTP fixture manifest has SHA256 `17f4b2a0959b4a2a0b4190412870a4ced724b512a40a371deaaebd824bf73ca6`. TRL-667 retains those bytes in the `editor-a5f94d6e-snapshot` evidence directory.
 
-The corrected gateway source manifest has SHA256 `f12c2c85903be8fb3fefb2807e5603c8507bea57dc04101bc6c19dfebd70fe99`. The corrected HTTP fixture manifest has SHA256 `c4e0c7d6e824e38d875fe8d0ed61697be5bf57c3d68b8bf73a1a9ba095765a39`.
+The corrected gateway source manifest has SHA256 `3834f3e4f7d80f5441c938e766acff329a089e74737e2919435f4131c987d822`. The corrected HTTP fixture manifest has SHA256 `10e1ac781250c6bd107457af9fef1ab4f403bfea1d4bdc2ca9a60c6b8f75cc94`.
 
-Integrated verification starts after the repaired source merges. No candidate process or listener runs during this repair.
+The current worktree, canonical checkout, and merged editor repair contain the same lock file, with SHA256 `bff164db008eb9d1143f74f510c83ab5a40787b19726052eaa998758a5c3b87d`. The gateway manifest records this hash. `shasum -a 256 -c integrations/langflow/editor-probe/manifests/gateway-source.sha256` accepts all 14 records. This metadata check does not verify installed dependencies or runtime behavior.
+
+TRL-667 built the repaired editor in 27.11 seconds with 3.577 GB peak RSS. Its build manifest has SHA256 `0fac70e2c411ad288be1161a03b7062bcf78633c93b7ad8d4381f95cac880748`. Nine-file Biome passed. The frontend type check produced bytes identical to the upstream baseline.
+
+The first HTTP fixture passed the denial checks, then failed its lost-response assertion. One client call produced an accepted write and an immediate replay. The gateway now sends response headers and an incomplete body before disconnect. The client consumes that body before it records a transport failure. The corrected transport requires a repeated HTTP check.
+
+The first Aside load displayed a blank page. Its DOM contained an empty `#root`. The browser ignored `<base href="/">` because the gateway policy used `base-uri 'none'`. Relative asset requests used the nested flow path. The corrected gateway permits only a same-origin base URL. The actual graph render and interactions remain unverified.
 
 The first test attempt stopped before tests because the worktree had no Zod package. The approved local links fixed the dependency gap without an install.
 
