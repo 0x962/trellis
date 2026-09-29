@@ -126,3 +126,25 @@ Only the full control exposes reconciliation and block management.
 
 `DispatchReceiptArchive.open` accepts the identity and `gate.read` from either control.
 Compose its terminal reader after both objects exist; only a later settlement calls the reader.
+
+## Initial authority
+
+`new InitialAuthorityIssuer(control, supervisor, archive)` owns the first grant for an execution.
+`issue(input)` obtains a fresh observation through `supervisor.withHealthyEngine`.
+The input contains the execution, host, project, publication, publication digest, submission digest, exact correlation, expiry, permissions, and held delivery permit.
+The producer requires the same target home and host, exact correlation, and an outstanding admission or recovery permit.
+It writes epoch 1 and revision 1 with the observed owner and a new capability identifier.
+It stores one immutable receipt under the external control directory before it returns.
+A repeated request retains that receipt and its original bytes.
+A changed owner requires takeover, and a changed request conflicts.
+
+The result contains `id`, `issuanceReceiptId`, `authority`, `authorityBytes`, `authorityDigest`, `observation`, and `correlation`.
+`id` identifies the authority archive record.
+`readAuthorityBytes(authority)` checks the exact stored authority and returns its original UTF-8 text.
+The archive supports this lookup for initial, renewed, and transferred grants after their producer calls `writeAuthority`.
+The lookup writes no file and grants no permission to dispatch.
+Issuance does not settle the permit; composition retains it through engine delivery and durable acknowledgement.
+
+`readInitial(executionId)` returns the saved issuance record, or null if no issuance exists.
+Reconciliation uses this record after a crash before the database binds the grant.
+This read grants no authority to issue or dispatch under a changed owner.
