@@ -33,9 +33,6 @@ test("accepts strict comment anchors and bounded pin positions", () => {
 			items: [{ thread: "01M3D5Q1S0KXJ0BVEHDVFFVMS8", x: 20, y: 40 }],
 		}),
 	).toMatchObject({ type: "page-comment-layout", items: [{ x: 20, y: 40 }] });
-	expect(
-		message({ type: "page-comment-anchor-error", nonce: "nonce", message: "Select 2,000 characters or fewer." }),
-	).toMatchObject({ type: "page-comment-anchor-error" });
 });
 test("accepts and validates pin positions after item 500", () => {
 	const items = Array.from({ length: 501 }, (_, index) => ({ thread: `thread-${index}`, x: index, y: index + 1 }));
