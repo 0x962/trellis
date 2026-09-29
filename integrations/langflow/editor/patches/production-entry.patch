@@ -1,3 +1,36 @@
+diff --git a/src/CustomNodes/hooks/use-fetch-data-on-mount.ts b/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
+--- a/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
++++ b/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { UseMutationResult } from "@tanstack/react-query";
+ import { useEffect } from "react";
+ import type { APIClassType, ResponseErrorDetailAPI } from "@/types/api";
+@@ -19,6 +20,7 @@
+ 
+   useEffect(() => {
+     async function fetchData() {
++      if (TRELLIS_EDITOR_BRIDGE) return;
+       const template = node.template[name];
+       if (!template) return;
+ 
+diff --git a/src/CustomNodes/hooks/use-handle-new-value.ts b/src/CustomNodes/hooks/use-handle-new-value.ts
+--- a/src/CustomNodes/hooks/use-handle-new-value.ts
++++ b/src/CustomNodes/hooks/use-handle-new-value.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useUpdateNodeInternals } from "@xyflow/react";
+ import { cloneDeep, debounce } from "lodash";
+ import { useCallback, useMemo, useRef } from "react";
+@@ -147,7 +148,7 @@
+         }
+       }
+ 
+-      const shouldUpdate = parameter.real_time_refresh;
++      const shouldUpdate = !TRELLIS_EDITOR_BRIDGE && parameter.real_time_refresh;
+ 
+       const setNodeClass = (newNodeClass: APIClassType) => {
+         options?.setNodeClass?.(newNodeClass);
 diff --git a/src/components/core/flowToolbarComponent/index.tsx b/src/components/core/flowToolbarComponent/index.tsx
 --- a/src/components/core/flowToolbarComponent/index.tsx
 +++ b/src/components/core/flowToolbarComponent/index.tsx
@@ -20,10 +53,94 @@ diff --git a/src/components/core/flowToolbarComponent/index.tsx b/src/components
    ? TrellisEditorToolbar
    : StockFlowToolbar;
  export default FlowToolbar;
+diff --git a/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
+--- a/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
++++ b/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
+@@ -1,6 +1,8 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { InputProps, StrRenderComponentType } from "../../types";
+ import CopyFieldAreaComponent from "../copyFieldAreaComponent";
+ import DropdownComponent from "../dropdownComponent";
++import InputComponent from "../inputComponent";
+ import InputGlobalComponent from "../inputGlobalComponent";
+ import TextAreaComponent from "../textAreaComponent";
+ import WebhookFieldComponent from "../webhookFieldComponent";
+@@ -52,6 +54,22 @@
+       );
+     }
+ 
++    if (TRELLIS_EDITOR_BRIDGE) {
++      return baseInputProps.showParameter ? (
++        <InputComponent
++          id={`input-${name}`}
++          nodeId={nodeId}
++          nodeStyle
++          editNode={baseInputProps.editNode}
++          disabled={baseInputProps.disabled || templateData.load_from_db === true}
++          password={templateData.password}
++          placeholder={placeholder}
++          value={baseInputProps.value}
++          onChange={(value, skipSnapshot) => handleOnNewValue({ value }, { skipSnapshot })}
++          ariaLabelledBy={baseInputProps.ariaLabelledBy}
++        />
++      ) : null;
++    }
+     return (
+       <InputGlobalComponent
+         {...baseInputProps}
+@@ -84,7 +102,7 @@
+         toggle={templateData.toggle}
+         toggleValue={templateData.toggle_value}
+         toggleDisable={templateData.toggle_disable}
+-        hasRefreshButton={templateData.refresh_button}
++        hasRefreshButton={!TRELLIS_EDITOR_BRIDGE && templateData.refresh_button}
+       />
+     );
+   }
+diff --git a/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx b/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
+--- a/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
++++ b/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { CustomCellRendererProps } from "ag-grid-react";
+ import { useTranslation } from "react-i18next";
+ import useHandleOnNewValue from "@/CustomNodes/hooks/use-handle-new-value";
+@@ -73,7 +74,7 @@
+           <VisibilityToggleButton
+             id={"show" + parameterId}
+             checked={isTweaks ? isApiEditable : !parameter.advanced}
+-            disabled={disabled}
++            disabled={disabled || (TRELLIS_EDITOR_BRIDGE && isTweaks)}
+             onToggle={handleToggle}
+           />
+         </div>
 diff --git a/src/components/core/parameterRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/index.tsx
 --- a/src/components/core/parameterRenderComponent/index.tsx
 +++ b/src/components/core/parameterRenderComponent/index.tsx
-@@ -398,5 +398,5 @@
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import type { handleOnNewValueType } from "@/CustomNodes/hooks/use-handle-new-value";
+ import CodeAreaComponent from "@/components/core/parameterRenderComponent/components/codeAreaComponent";
+@@ -82,7 +83,7 @@
+       value: templateValue,
+       editNode,
+       handleOnNewValue: handleOnNewValue as handleOnNewValueType,
+-      disabled,
++      disabled: disabled || (TRELLIS_EDITOR_BRIDGE && name === "code"),
+       nodeClass,
+       handleNodeClass,
+       nodeId,
+@@ -91,7 +92,7 @@
+       placeholder: placeholder || templateData?.placeholder,
+       isToolMode,
+       nodeInformationMetadata,
+-      hasRefreshButton: templateData.refresh_button,
++      hasRefreshButton: !TRELLIS_EDITOR_BRIDGE && templateData.refresh_button,
+       showParameter,
+       inspectionPanel,
+       ariaLabelledBy,
+@@ -398,5 +399,5 @@
    // combobox). Widgets that don't yet apply it themselves get nothing from
    // wrapping either way — role="group" doesn't propagate a name to a
    // focused descendant control, only to the group boundary itself.
@@ -1015,6 +1132,149 @@ diff --git a/src/pages/FlowPage/components/PageComponent/index.tsx b/src/pages/F
          <ExportModal open={openExportModal} setOpen={setOpenExportModal} />
        )}
      </div>
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import IconComponent from "@/components/common/genericIconComponent";
+ import ShadTooltip from "@/components/common/shadTooltipComponent";
+@@ -45,7 +46,7 @@
+   const shortcuts = useShortcutsStore((state) => state.shortcuts);
+   return (
+     <>
+-      {canEditCode && (
++      {!TRELLIS_EDITOR_BRIDGE && canEditCode && (
+         <ToolbarButton
+           className={isCustomComponent ? "animate-pulse-pink" : ""}
+           icon="Code"
+@@ -72,7 +73,7 @@
+           dataTestId="parameters-button"
+         />
+       )}
+-      {!hasToolMode && (
++      {!TRELLIS_EDITOR_BRIDGE && !hasToolMode && (
+         <ToolbarButton
+           icon="FreezeAll"
+           label={t("nodeToolbar.freeze")}
+@@ -87,7 +88,7 @@
+           )}
+         />
+       )}
+-      {hasToolMode && (
++      {!TRELLIS_EDITOR_BRIDGE && hasToolMode && (
+         <ShadTooltip
+           content={
+             <ShortcutDisplay
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import IconComponent from "@/components/common/genericIconComponent";
+ import ShadTooltip from "@/components/common/shadTooltipComponent";
+@@ -84,7 +85,7 @@
+       <SelectContentWithoutPortal
+         className={"relative top-1 w-56 bg-background"}
+       >
+-        <SelectItem variant="plain" value={"save"}>
++        <SelectItem variant="plain" value={"save"} disabled={TRELLIS_EDITOR_BRIDGE}>
+           <ToolbarSelectItem
+             shortcut={
+               shortcuts.find((obj) => obj.name === "Save Component")?.shortcut!
+@@ -113,7 +114,7 @@
+           />
+         </SelectItem>
+         {isOutdated && (
+-          <SelectItem variant="plain" value={"update"}>
++          <SelectItem variant="plain" value={"update"} disabled={TRELLIS_EDITOR_BRIDGE}>
+             <ToolbarSelectItem
+               shortcut={
+                 shortcuts.find((obj) => obj.name === "Update")?.shortcut!
+@@ -133,7 +134,7 @@
+           <SelectItem
+             variant="plain"
+             value={"Share"}
+-            disabled={!hasApiKey || !validApiKey}
++            disabled={TRELLIS_EDITOR_BRIDGE || !hasApiKey || !validApiKey}
+           >
+             <ToolbarSelectItem
+               shortcut={
+@@ -191,6 +192,7 @@
+           <SelectItem
+             variant="plain"
+             value="freezeAll"
++            disabled={TRELLIS_EDITOR_BRIDGE}
+             data-testid="freeze-all-button-modal"
+           >
+             <ToolbarSelectItem
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts b/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useHotkeys } from "react-hotkeys-hook";
+ import { useShortcutsStore } from "@/stores/shortcuts";
+ import isWrappedWithClass from "../../PageComponent/utils/is-wrapped-with-class";
+@@ -47,6 +48,7 @@
+   const toolMode = useShortcutsStore((state) => state.toolMode);
+ 
+   function handleFreezeAll(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (isWrappedWithClass(e, "noflow") || !FreezeAllVertices) return;
+     e.preventDefault();
+     FreezeAllVertices();
+@@ -65,6 +67,7 @@
+   }
+ 
+   function handleSaveWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (
+       (isWrappedWithClass(e, "noflow") && !showOverrideModal) ||
+       !saveComponent
+@@ -85,6 +88,7 @@
+   }
+ 
+   function handleCodeWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if ((isWrappedWithClass(e, "noflow") && !openModal) || !handleCodeModal)
+       return;
+     e.preventDefault();
+@@ -92,6 +96,7 @@
+   }
+ 
+   function handleShareWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (
+       (isWrappedWithClass(e, "noflow") && !showconfirmShare) ||
+       !shareComponent
+@@ -114,7 +119,7 @@
+   }
+ 
+   function handleToolModeWShortcut(e: KeyboardEvent, hasToolMode?: boolean) {
+-    if (!hasToolMode) return;
++    if (TRELLIS_EDITOR_BRIDGE || !hasToolMode) return;
+     if (isWrappedWithClass(e, "noflow") || !activateToolMode) return;
+     e.preventDefault();
+     activateToolMode();
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useUpdateNodeInternals } from "@xyflow/react";
+ import _, { cloneDeep } from "lodash";
+ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+@@ -365,6 +366,7 @@
+ 
+     const handleSelectChange = useCallback(
+       (event: string) => {
++        if (TRELLIS_EDITOR_BRIDGE && ["save", "saveAll", "override", "code", "update", "Share", "freezeAll", "toolMode"].includes(event)) return;
+         setSelectedValue(event);
+ 
+         // Clear right-clicked state when user selects an option
 diff --git a/src/pages/FlowPage/index.tsx b/src/pages/FlowPage/index.tsx
 --- a/src/pages/FlowPage/index.tsx
 +++ b/src/pages/FlowPage/index.tsx
