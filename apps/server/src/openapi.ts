@@ -34,7 +34,7 @@ const actorParameter = (): Parameter => ({
 	required: true,
 	description: ACTOR_HEADER_DESCRIPTION,
 	example: ACTOR_HEADER_EXAMPLE,
-	schema: { type: "string", pattern: "^(human|agent):[^:]{1,64}$" },
+	schema: { type: "string", pattern: "^(human|agent):[\\x20-\\x39\\x3B-\\x7E]+(?![\\s\\S])" },
 });
 
 // The generator writes the options of a DELETE as a JSON body. The server
