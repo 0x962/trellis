@@ -17,10 +17,13 @@ export const captureConversion = async (
 	await tx.execute(sql`SELECT id FROM flows WHERE id = ${input.flowId} FOR UPDATE`);
 	const previous = await readDocumentSaveReceipt(tx, input);
 	if (previous) {
-		if (!previous.requestBytes.equals(requestBytes)) throw new ORPCError("FLOW_REQUEST_CONFLICT", {
-			status: 409, defined: true, message: "This request ID already identifies different conversion bytes.",
-			data: { requestId: input.requestId },
-		});
+		if (!previous.requestBytes.equals(requestBytes))
+			throw new ORPCError("FLOW_REQUEST_CONFLICT", {
+				status: 409,
+				defined: true,
+				message: "This request ID already identifies different conversion bytes.",
+				data: { requestId: input.requestId },
+			});
 		return { state: "replayed" as const, document: previous.receipt };
 	}
 	const flow = await resolveFlow(tx, input.flowId);

@@ -19,16 +19,25 @@ export const commitConversion = async (
 	const current = await captureConversion(ctx, tx, input, requestBytes);
 	if (current.state === "replayed") return current.document;
 	checkInstalled();
-	if (!isDeepStrictEqual(current.base.snapshot, prepared.base.snapshot) ||
+	if (
+		!isDeepStrictEqual(current.base.snapshot, prepared.base.snapshot) ||
 		!current.base.sourceBytes.equals(prepared.base.sourceBytes) ||
 		prepared.content.componentManifestHash !== input.componentManifestHash ||
 		!prepared.sourceBytes.equals(documentBytes(prepared.content)) ||
-		!prepared.originalSourceBytes.equals(documentBytes({ flow: current.base.snapshot.flow, ...current.base.snapshot.graphDocument })))
+		!prepared.originalSourceBytes.equals(
+			documentBytes({ flow: current.base.snapshot.flow, ...current.base.snapshot.graphDocument }),
+		)
+	)
 		throw new Error("conversion_preparation_conflict");
 	const result = await saveDocument(tx, {
-		flowId: input.flowId, expectedVersion: input.expectedVersion, requestId: input.requestId,
-		requestBytes, sourceBytes: prepared.sourceBytes, content: prepared.content,
-		diagnostics: prepared.diagnostics, savedAt: ctx.now,
+		flowId: input.flowId,
+		expectedVersion: input.expectedVersion,
+		requestId: input.requestId,
+		requestBytes,
+		sourceBytes: prepared.sourceBytes,
+		content: prepared.content,
+		diagnostics: prepared.diagnostics,
+		savedAt: ctx.now,
 	});
 	if (result.state !== "saved") throw new Error("conversion_commit_conflict");
 	await upsert(ctx, tx, requireActor(ctx));
