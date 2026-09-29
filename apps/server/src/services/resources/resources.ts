@@ -17,7 +17,7 @@ import { storedMime, storeFile } from "../../storage/blobs.ts";
 import { gcBlobs } from "../blobs.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
-import { fail, type IoCtx, notFound, touchActor } from "../support.ts";
+import { type IoCtx, notFound, touchActor } from "../support.ts";
 
 const IMAGE_MIMES: ReadonlySet<string> = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"]);
 
@@ -105,7 +105,6 @@ export const add = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resour
 	let blobSize: number | null = null;
 	let blobMime: string | null = null;
 	if (input.kind === "image" || input.kind === "file") {
-		if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
 		const mime = storedMime(input.file.type);
 		if (input.kind === "image" && !IMAGE_MIMES.has(mime))
 			throw invalidInput("file", "Select a PNG, JPEG, GIF, WebP, or AVIF image.");

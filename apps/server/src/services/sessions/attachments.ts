@@ -1,11 +1,8 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { fail, type ServiceCtx } from "../support.ts";
 
-export async function prepareFiles(ctx: Pick<ServiceCtx, "maxUploadBytes">, files: File[] = []) {
-	if (files.reduce((size, file) => size + file.size, 0) > ctx.maxUploadBytes)
-		throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
+export async function prepareFiles(files: File[] = []) {
 	return Promise.all(
 		files.map(async (file) => {
 			const bytes = Buffer.from(await file.arrayBuffer());

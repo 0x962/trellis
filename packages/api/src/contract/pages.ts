@@ -55,7 +55,7 @@ export const pages = {
 		.input(PageWatchInputSchema)
 		.output(PageSummarySchema),
 	upload: base
-		.errors(pickErrors(["DUPLICATE", "PAYLOAD_TOO_LARGE", "PROJECT_ARCHIVED"]))
+		.errors(pickErrors(["DUPLICATE", "PROJECT_ARCHIVED"]))
 		.route({
 			method: "POST",
 			path: "/page-uploads",
