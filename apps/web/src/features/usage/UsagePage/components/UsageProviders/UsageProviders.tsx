@@ -1,8 +1,17 @@
-import { ArrowClockwise, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Provider } from "@trellis/api";
-import { ConfirmDialog, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
+import {
+	Button,
+	ConfirmDialog,
+	EmptyState,
+	FailureState,
+	IconButton,
+	SectionHeader,
+	Skeleton,
+	Tooltip,
+} from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "../UsageAccounts/accountError";
@@ -76,35 +85,33 @@ export function UsageProviders() {
 					</Tooltip>
 				}
 			/>
-			<p className="text-sm text-fg-muted">
-				Add the model gateways that Trellis holds a key for. Trellis calls a provider itself, and a later release routes
-				agents through one.
+			<p className="-mt-1 max-w-prose text-xs text-fg-faint text-pretty">
+				Add the model gateways that Trellis can call.
 			</p>
 			{list.isPending ? (
-				<div role="status" aria-label="Load providers">
+				<div role="status" aria-label="Load providers" className="status-group">
 					<span className="sr-only">Load providers</span>
-					<Skeleton height="h-32" />
+					{[0, 1].map((slot) => (
+						<div key={slot} className="status-row p-3">
+							<Skeleton height="h-8" />
+						</div>
+					))}
 				</div>
 			) : list.isError ? (
 				<FailureState
 					variant="section"
-					title="Trellis cannot read the providers."
+					title="Trellis cannot read the providers"
 					detail={list.error.message}
 					action={
-						<Tooltip content="Retry">
-							<IconButton
-								label="Retry"
-								icon={<ArrowClockwise />}
-								disabled={list.isFetching}
-								onClick={() => void list.refetch()}
-							/>
-						</Tooltip>
+						<Button size="md" processing={list.isFetching} onClick={() => void list.refetch()}>
+							Try again
+						</Button>
 					}
 				/>
 			) : list.data.length === 0 ? (
-				<p className="text-sm text-fg-muted">No providers. Add a provider to give Trellis a key.</p>
+				<EmptyState title="No providers" description="Add a provider so Trellis can call a model gateway." />
 			) : (
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+				<ul className="status-group">
 					{list.data.map((provider) => (
 						<UsageProviderCard
 							key={provider.id}
@@ -122,12 +129,25 @@ export function UsageProviders() {
 							onToggle={() => toggle.mutate(provider)}
 						/>
 					))}
-				</div>
+				</ul>
 			)}
 			{(toggle.error || firstCheck.error) && (
-				<p role="alert" className="text-sm text-danger">
-					{accountError(toggle.error ?? firstCheck.error)}
-				</p>
+				<FailureState
+					variant="section"
+					title={toggle.error ? "Trellis could not change the provider" : "Trellis could not check the provider"}
+					detail={accountError(toggle.error ?? firstCheck.error)}
+					action={
+						<Button
+							size="md"
+							processing={toggle.isPending || firstCheck.isPending}
+							onClick={() =>
+								toggle.error ? toggle.mutate(toggle.variables!) : firstCheck.mutate(firstCheck.variables!)
+							}
+						>
+							Try again
+						</Button>
+					}
+				/>
 			)}
 			{add && <UsageProviderForm onClose={() => setAdd(false)} onSaved={saved} finalFocus={addButton} />}
 			{edit && (

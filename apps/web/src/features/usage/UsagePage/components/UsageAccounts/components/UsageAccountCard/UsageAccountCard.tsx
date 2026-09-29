@@ -1,14 +1,25 @@
-import { ArrowClockwise, Copy, PencilSimple, SignIn, Star, Trash } from "@phosphor-icons/react";
+import {
+	ArrowClockwise,
+	Copy,
+	DotsThree,
+	Info,
+	PencilSimple,
+	SignIn,
+	Star,
+	TerminalWindow,
+	Trash,
+} from "@phosphor-icons/react";
 import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@trellis/api";
 import {
 	Button,
 	CodeText,
-	cx,
 	Dialog,
-	formatDayTime,
 	IconButton,
+	Menu,
+	PropertyRow,
 	ProviderIcon,
 	QuotaWindows,
+	SettingsListRow,
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
@@ -18,11 +29,8 @@ import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } f
 
 type QuotaStatus = UsageAccount["quota"]["status"];
 
-// An account with the status `ok` draws its meters and reads neither map
-// below, so neither one holds an entry for it.
-type StatusLine = Exclude<QuotaStatus, "ok">;
-
-const statusLabel: Record<StatusLine, string> = {
+const quotaStatusLabel: Record<QuotaStatus, string> = {
+	ok: "Quota available",
 	unlimited: "Unlimited",
 	metered: "Metered billing",
 	signed_out: "Sign in required",
@@ -31,19 +39,12 @@ const statusLabel: Record<StatusLine, string> = {
 	unavailable: "Quota unavailable",
 };
 
-// The color of a status line. Yellow marks a state that a person clears by
-// signing in again. Green marks a plan that bills no quota. Every other
-// state is a fact that nobody acts on, so it takes the muted text.
-const statusTextClass: Record<StatusLine, string> = {
-	unlimited: "text-success",
-	metered: "text-fg-muted",
-	signed_out: "text-warning",
-	stale: "text-fg-muted",
-	expired: "text-warning",
-	unavailable: "text-fg-muted",
+export const accountQuotaSummary = (account: UsageAccount) => {
+	if (account.quota.status !== "ok") return quotaStatusLabel[account.quota.status];
+	if (account.quota.windows.length === 0) return quotaStatusLabel.ok;
+	const mostUsed = Math.max(...account.quota.windows.map((window) => window.usedPercent));
+	return `${Math.round(mostUsed)}% used`;
 };
-
-const needsLogin = new Set<StatusLine>(["signed_out", "expired"]);
 
 export function UsageAccountCard({
 	account,
@@ -75,144 +76,126 @@ export function UsageAccountCard({
 	onRefresh: () => void;
 }) {
 	const [login, setLogin] = useState(false);
+	const [details, setDetails] = useState(false);
 	const value = row?.[metric] ?? 0;
 	const sharedValue = shared?.[metric] ?? 0;
-	const subtitle = `${harnessLabel[account.harness]}${
-		account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""
-	}`;
+	const provider = harnessProvider[account.harness];
 	const quotaDetail =
 		account.quota.creditsBalance !== null
 			? `${formatUsd(account.quota.creditsBalance)} credits`
 			: account.quota.extraUsage
 				? `${formatUsd(account.quota.extraUsage.usedCents / 100)} of ${formatUsd(account.quota.extraUsage.limitCents / 100)} extra usage`
 				: null;
+	const description = `${harnessLabel[account.harness]} · ${accountQuotaSummary(account)}`;
 	return (
-		<article aria-label={account.name} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-4">
-			<div className="flex items-start justify-between gap-2">
-				<div className="min-w-0">
-					<h3 className="flex min-w-0 items-center gap-2 text-base font-medium text-fg">
-						{harnessProvider[account.harness] && (
-							<ProviderIcon provider={harnessProvider[account.harness]!} className="text-fg-muted" />
+		<>
+			<SettingsListRow
+				label={`${account.name}${account.isDefault ? " · Default" : ""}`}
+				description={description}
+				icon={
+					provider ? (
+						<ProviderIcon provider={provider} decorative className="text-fg-muted" />
+					) : (
+						<TerminalWindow className="text-fg-muted" />
+					)
+				}
+				disabled={busy}
+				onEdit={() => setDetails(true)}
+				actions={
+					<div className="grid shrink-0 grid-cols-2 items-center gap-1 sm:flex">
+						{pending ? (
+							<Skeleton width="w-14" height="h-4" className="col-span-2 justify-self-end sm:mr-1" />
+						) : (
+							<span className="col-span-2 justify-self-end text-sm font-medium text-fg tabular sm:mr-1">
+								{formatMetric(metric, value)}
+								<span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">
+									{formatShare(value, total)}
+								</span>
+							</span>
 						)}
-						<span className="truncate" title={account.name}>
-							{account.name}
-						</span>
-					</h3>
-					<p className="mt-1 truncate text-xs text-fg-faint" title={subtitle}>
-						{subtitle}
-					</p>
-				</div>
-				<div className="flex shrink-0 justify-end gap-1">
-					{managed && (
-						<>
-							<Tooltip content="Make default">
-								<IconButton
-									label={`Make default for ${account.name}`}
-									disabled={busy || managed.isDefault}
-									onClick={onDefault}
-									icon={<Star weight={managed.isDefault ? "fill" : "regular"} />}
-								/>
-							</Tooltip>
-							<Tooltip content="Rename account">
-								<IconButton
-									label={`Rename account ${account.name}`}
-									disabled={busy}
-									onClick={onRename}
-									icon={<PencilSimple />}
-								/>
-							</Tooltip>
-						</>
-					)}
-					<Tooltip content="Sign in">
-						<IconButton
-							label={`Sign in to ${account.name}`}
-							disabled={!account.loginCommand}
-							onClick={() => setLogin(true)}
-							icon={<SignIn />}
-						/>
-					</Tooltip>
-					<Tooltip content="Refresh quota">
-						<IconButton
-							label={`Refresh quota for ${account.name}`}
-							processing={refreshing}
-							onClick={onRefresh}
-							icon={<ArrowClockwise />}
-						/>
-					</Tooltip>
-					{managed && (
-						<Tooltip content="Remove account">
+						<Tooltip content="Refresh">
 							<IconButton
-								label={`Remove account ${account.name}`}
-								disabled={busy}
-								onClick={onRemove}
-								icon={<Trash />}
+								label={`Refresh quota for ${account.name}`}
+								processing={refreshing}
+								onClick={onRefresh}
+								icon={<ArrowClockwise />}
 							/>
 						</Tooltip>
-					)}
-				</div>
-			</div>
-			{account.quota.email && (
-				<p className="truncate text-xs text-fg-muted">
-					{account.quota.email}
-					{account.quota.plan ? ` · ${account.quota.plan}` : ""}
-				</p>
-			)}
-			<div className="flex items-baseline justify-between gap-2">
-				<span className="text-xs text-fg-faint">{metric === "usd" ? "Cost in range" : "Tokens in range"}</span>
-				{pending ? (
-					<Skeleton width="w-16" height="h-6" />
-				) : (
-					<span className="text-lg font-semibold text-fg tabular">
-						{formatMetric(metric, value)}
-						<span className="ml-1 text-xs font-normal text-fg-faint">{formatShare(value, total)}</span>
-					</span>
-				)}
-			</div>
-			{shared && sharedValue > 0 && (
-				<p className="text-xs text-fg-faint text-pretty">
-					{formatMetric(metric, sharedValue)} more is in a transcript directory this account shares with{" "}
-					{account.sharedWith.join(", ")}, so Trellis cannot split it between them.
-				</p>
-			)}
-			{account.quota.status === "ok" ? (
-				<>
-					<QuotaWindows name={account.name} windows={account.quota.windows} />
-					{quotaDetail && <p className="text-xs text-fg-muted tabular">{quotaDetail}</p>}
-					{account.harness === "muse" && (
-						<p className="text-xs text-fg-faint tabular">Observed {formatDayTime(account.quota.fetchedAt)}</p>
-					)}
-				</>
-			) : account.quota.status === "unlimited" || account.quota.status === "metered" ? (
-				<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
-					{statusLabel[account.quota.status]}
-					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
-					{quotaDetail ? ` · ${quotaDetail}` : ""}
-				</p>
-			) : needsLogin.has(account.quota.status) && account.loginCommand ? (
-				<div className="flex flex-col gap-2">
-					<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
-						{statusLabel[account.quota.status]}. Run this command on this machine, then refresh.
-					</p>
-					<div className="flex min-w-0 items-start gap-2">
-						<CodeText className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-sm bg-elevated px-2 py-1 text-xs text-fg">
-							{account.loginCommand}
-						</CodeText>
-						<Tooltip content="Copy login command">
-							<IconButton
-								label={`Copy login command for ${account.name}`}
-								icon={<Copy />}
-								onClick={() => void copyText(account.loginCommand!, "Login command copied")}
-							/>
-						</Tooltip>
+						<Menu
+							label={`Actions for ${account.name}`}
+							triggerTooltip={`Actions for ${account.name}`}
+							trigger={<IconButton label={`Actions for ${account.name}`} icon={<DotsThree />} disabled={busy} />}
+							items={[
+								...(managed
+									? [
+											{
+												label: "Make default",
+												icon: <Star />,
+												disabled: managed.isDefault,
+												onSelect: onDefault,
+											},
+											{ label: "Rename", icon: <PencilSimple />, onSelect: onRename },
+										]
+									: []),
+								{
+									label: "Sign in",
+									icon: <SignIn />,
+									disabled: !account.loginCommand,
+									onSelect: () => setLogin(true),
+								},
+								{ label: "Edit details", icon: <Info />, onSelect: () => setDetails(true) },
+								...(managed ? [{ label: "Remove", icon: <Trash />, danger: true, onSelect: onRemove }] : []),
+							]}
+						/>
 					</div>
+				}
+			/>
+			<Dialog
+				open={details}
+				onOpenChange={setDetails}
+				title={`Edit details for ${account.name}`}
+				description="Review the account profile. Rename the account to change its display name."
+			>
+				<dl className="flex flex-col">
+					<PropertyRow label="Harness">{harnessLabel[account.harness]}</PropertyRow>
+					<PropertyRow label="Default">{account.isDefault ? "Yes" : "No"}</PropertyRow>
+					{account.quota.email && <PropertyRow label="Identity">{account.quota.email}</PropertyRow>}
+					{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
+					<PropertyRow label="Quota" align="start">
+						<span className="flex min-w-0 flex-1 flex-col gap-2">
+							<span>{accountQuotaSummary(account)}</span>
+							{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
+							{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
+						</span>
+					</PropertyRow>
+					{shared && sharedValue > 0 && (
+						<PropertyRow label="Shared usage" align="start">
+							<span className="text-sm text-fg-muted text-pretty">
+								{formatMetric(metric, sharedValue)} belongs to a transcript directory shared with{" "}
+								{account.sharedWith.join(", ")}.
+							</span>
+						</PropertyRow>
+					)}
+					<PropertyRow label="Profile" align="start">
+						<CodeText className="break-all text-sm text-fg-muted">{account.profilePath}</CodeText>
+					</PropertyRow>
+				</dl>
+				<div className="flex justify-end gap-2">
+					{managed && (
+						<Button
+							onClick={() => {
+								setDetails(false);
+								onRename();
+							}}
+						>
+							Rename account
+						</Button>
+					)}
+					<Button variant="primary" onClick={() => setDetails(false)}>
+						Done
+					</Button>
 				</div>
-			) : (
-				<p role="status" className={cx("text-sm text-pretty", statusTextClass[account.quota.status])}>
-					{statusLabel[account.quota.status]}
-					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
-				</p>
-			)}
-			<CodeText className="mt-auto break-all text-xs text-fg-faint">{account.profilePath}</CodeText>
+			</Dialog>
 			<Dialog
 				open={login}
 				onOpenChange={setLogin}
@@ -240,6 +223,6 @@ export function UsageAccountCard({
 					</Button>
 				</div>
 			</Dialog>
-		</article>
+		</>
 	);
 }

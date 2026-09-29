@@ -9,8 +9,10 @@ import type {
 	UsageMetric,
 } from "@trellis/api";
 import {
+	Button,
 	ConfirmDialog,
 	EmptyState,
+	FailureState,
 	HarnessAccountForm,
 	HarnessAccountNameForm,
 	IconButton,
@@ -53,10 +55,6 @@ export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): U
 		},
 	}));
 
-// The placeholder and the cards use the same grid, so the page does not
-// move when the accounts arrive.
-const cardGridClass = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
-
 export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
 	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
@@ -66,15 +64,9 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		refetchInterval: 30_000,
 	});
 	const values = accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? []);
-	const readError = accounts.isError
-		? "Could not read account quotas. Select Refresh quota to try again."
-		: configured.isError
-			? "Could not read the configured accounts. Refresh the page to try again."
-			: undefined;
 	const [addOpen, setAddOpen] = useState(false);
 	const [edit, setEdit] = useState<HarnessAccount | null>(null);
 	const [remove, setRemove] = useState<HarnessAccount | null>(null);
-	const [error, setError] = useState<string>();
 	const invalidate = () =>
 		Promise.all([
 			queryClient.invalidateQueries({ queryKey: orpc.harnessAccounts.list.key() }),
@@ -94,7 +86,6 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 			setEdit(null);
 			await invalidate();
 		},
-		onError: (nextError) => setError(accountError(nextError)),
 	});
 	const deleting = useMutation({
 		mutationFn: (input: { id: string }) => client.harnessAccounts.remove(input),
@@ -106,12 +97,32 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 	const refresh = useMutation({
 		mutationFn: () => client.usage.accounts({ refresh: true }),
 		onSuccess: (next) => {
-			setError(undefined);
 			queryClient.setQueryData(accountOptions.queryKey, next);
 		},
-		onError: (nextError) => setError(accountError(nextError)),
 	});
 	const busy = create.isPending || update.isPending || deleting.isPending;
+	const readFailure = configured.isError
+		? { title: "Trellis cannot read the account settings", detail: configured.error.message }
+		: accounts.isError
+			? { title: "Trellis cannot read the account quotas", detail: accounts.error.message }
+			: null;
+	const mutationFailure = refresh.error
+		? { title: "Trellis could not refresh the account quotas", detail: accountError(refresh.error) }
+		: update.error && edit === null
+			? { title: "Trellis could not update the account", detail: accountError(update.error) }
+			: null;
+	const failure = readFailure ?? mutationFailure;
+	const retry = () => {
+		if (readFailure) {
+			void Promise.all([accounts.refetch(), configured.refetch()]);
+			return;
+		}
+		if (refresh.error) {
+			refresh.mutate();
+			return;
+		}
+		update.mutate(update.variables!);
+	};
 
 	return (
 		<section aria-label="Accounts" className="flex flex-col gap-3">
@@ -124,7 +135,6 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 							label="Add account"
 							disabled={busy}
 							onClick={() => {
-								setError(undefined);
 								create.reset();
 								setAddOpen(true);
 							}}
@@ -136,16 +146,29 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 			<p className="-mt-1 max-w-prose text-xs text-fg-faint text-pretty">
 				Add the accounts that agents can use. Select one default account for each harness.
 			</p>
-			{(error || accounts.isError || configured.isError) && (
-				<p role="alert" className="text-sm text-danger">
-					{error ?? readError}
-				</p>
+			{failure && (
+				<FailureState
+					variant="section"
+					title={failure.title}
+					detail={failure.detail}
+					action={
+						<Button
+							size="md"
+							processing={accounts.isFetching || configured.isFetching || refresh.isPending || update.isPending}
+							onClick={retry}
+						>
+							Try again
+						</Button>
+					}
+				/>
 			)}
 			{accounts.isPending || configured.isPending ? (
-				<div role="status" aria-label="Load accounts" className={cardGridClass}>
+				<div role="status" aria-label="Load accounts" className="status-group">
 					<span className="sr-only">Load accounts</span>
 					{[0, 1, 2].map((slot) => (
-						<Skeleton key={slot} height="h-52" />
+						<div key={slot} className="status-row p-3">
+							<Skeleton height="h-8" />
+						</div>
 					))}
 				</div>
 			) : values.length === 0 ? (
@@ -154,7 +177,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 					description="Add an account so an agent can sign in to a harness on this machine."
 				/>
 			) : (
-				<div className={cardGridClass}>
+				<ul className="status-group">
 					{values.map((account) => {
 						const managed = configured.data?.find((candidate) => candidate.id === account.id);
 						const shared = account.sharedWith.length
@@ -173,27 +196,24 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								busy={busy}
 								refreshing={refresh.isPending}
 								onDefault={() => {
-									setError(undefined);
 									update.mutate({ id: managed!.id, isDefault: true });
 								}}
 								onRename={() => {
-									setError(undefined);
 									update.reset();
 									setEdit(managed!);
 								}}
 								onRemove={() => {
-									setError(undefined);
 									deleting.reset();
 									setRemove(managed!);
 								}}
 								onRefresh={() => {
-									setError(undefined);
+									refresh.reset();
 									refresh.mutate();
 								}}
 							/>
 						);
 					})}
-				</div>
+				</ul>
 			)}
 			{addOpen && (
 				<HarnessAccountForm
