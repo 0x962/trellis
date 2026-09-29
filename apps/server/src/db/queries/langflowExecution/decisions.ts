@@ -82,7 +82,10 @@ export async function updateDecisionDelivery(
 		)
 			throw new Error("decision_acceptance_conflict");
 		delivery = { ...saved, state: "confirmed", acceptance: receipt };
-		await tx.update(langflowOutbox).set({ receipt }).where(eq(langflowOutbox.id, input.decisionId));
+		await tx
+			.update(langflowOutbox)
+			.set({ receipt })
+			.where(and(eq(langflowOutbox.kind, "decision"), eq(langflowOutbox.id, input.decisionId)));
 	} else delivery = { ...saved, state: input.state, acceptance: null };
 	await tx.update(decisions).set({ delivery }).where(eq(decisions.decisionId, input.decisionId));
 	return delivery;

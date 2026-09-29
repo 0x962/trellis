@@ -193,6 +193,9 @@ export async function confirmCompletion(tx: Tx, input: { receipt: CompletionRece
 		throw new Error("completion_receipt_conflict");
 	if (row.acceptance && !isDeepStrictEqual(row.acceptance, input.receipt)) throw new Error("identity_conflict");
 	await tx.update(completions).set({ acceptance: input.receipt }).where(eq(completions.completionId, row.completionId));
-	await tx.update(langflowOutbox).set({ receipt: input.receipt }).where(eq(langflowOutbox.id, row.completionId));
+	await tx
+		.update(langflowOutbox)
+		.set({ receipt: input.receipt })
+		.where(and(eq(langflowOutbox.kind, "completion"), eq(langflowOutbox.id, row.completionId)));
 	return input.receipt;
 }

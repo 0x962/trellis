@@ -76,3 +76,10 @@ erDiagram
     langflow_executions ||--o{ langflow_source_events : deduplicates
     langflow_executions ||--o| langflow_classifications : classifies
 ```
+
+`cancelExecution` also writes the engine cancellation outbox in the intent transaction.
+After cancellation, `listPendingDeliveries` returns only cancellation notices. Other payloads remain stored for audit.
+`reserveWarning(tx, input)` stores one original message per execution, attempt, deadline, and half or quarter threshold.
+Input fields are messageId, executionId, attemptId, deadlineId, threshold, and payloadBytes.
+`confirmWarning` requires executionId, messageId, attemptId, receiptId, and acknowledgedAt.
+`listPendingWarnings` takes executionId, afterId, and limit. Cancellation blocks new warnings and warning delivery.

@@ -55,6 +55,7 @@ export async function receiptFixture(open = true) {
 		tables.langflowExecutionProjections,
 		tables.langflowSourceEvents,
 		tables.langflowClassifications,
+		tables.langflowWarnings,
 	])
 		await db.$client.exec(tableSql(table));
 	await db.execute(sql`INSERT INTO tickets VALUES (${ids.ticket})`);

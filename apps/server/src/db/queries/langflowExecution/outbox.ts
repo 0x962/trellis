@@ -12,6 +12,7 @@ export async function listPendingDeliveries(tx: Tx, input: { executionId: string
 				eq(langflowOutbox.executionId, input.executionId),
 				gt(langflowOutbox.id, input.afterId),
 				isNull(langflowOutbox.receipt),
+				row.cancelIntent ? eq(langflowOutbox.kind, "cancel") : undefined,
 			),
 		)
 		.orderBy(asc(langflowOutbox.id))
