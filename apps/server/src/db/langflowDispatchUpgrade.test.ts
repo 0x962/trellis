@@ -12,9 +12,7 @@ import type { ServiceCtx } from "../context.ts";
 import type { GhAccess } from "../ghState.ts";
 import { type ProcedureContext, router } from "../procedures/index.ts";
 import { createDbTiming } from "../serverTiming.ts";
-import * as flows from "../services/flows/flows.ts";
 import { services } from "../services/registry.ts";
-import { create as createTicket } from "../services/tickets/create.ts";
 import { createCache } from "./cache.ts";
 import { type Db, openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
@@ -39,11 +37,26 @@ beforeAll(async () => {
 	db = await openDb(":memory:");
 	await runMigrations(db, { migrationsFolder: directory });
 	const projectId = ulid();
+	const statusId = ulid();
+	flowId = ulid();
+	ticketId = ulid();
 	const now = new Date("2026-09-29T06:00:00Z");
 	await db.execute(sql`INSERT INTO projects(id,key,slug,name,created_at,updated_at)
 		VALUES(${projectId},'UPG','upg','Upgrade',${now},${now})`);
 	await db.execute(sql`INSERT INTO statuses(id,project_id,name,slug,category,color,position,is_default,created_at,updated_at)
-		VALUES(${ulid()},${projectId},'Todo','todo','todo','fg-muted',0,true,${now},${now})`);
+		VALUES(${statusId},${projectId},'Todo','todo','todo','fg-muted',0,true,${now},${now})`);
+	await db.execute(sql`INSERT INTO actors(name,kind,first_seen_at,last_seen_at)
+		VALUES('fixture','human',${now},${now})`);
+	await db.execute(sql`INSERT INTO flows(id,project_id,slug,name,version,created_at,updated_at)
+		VALUES(${flowId},${projectId},'upgrade','Upgrade',2,${now},${now})`);
+	await db.execute(sql`INSERT INTO flow_nodes(id,flow_id,kind,title,instruction,x,y)
+		VALUES(${originalNode.id},${flowId},${originalNode.kind},${originalNode.title},
+			${originalNode.instruction},${originalNode.x},${originalNode.y})`);
+	await db.execute(sql`INSERT INTO tickets(id,project_id,number,title,status_id,position,created_at,updated_at)
+		VALUES(${ticketId},${projectId},1,'Retain this ticket',${statusId},0,${now},${now})`);
+	const absent = await db.execute(sql`SELECT to_regclass('langflow_executions') AS name`);
+	expect(absent.rows[0]!.name).toBeNull();
+	expect(await migrate(db)).toBeGreaterThanOrEqual(3);
 	const cache = createCache();
 	await db.transaction((tx) => cache.rebuild(tx));
 	ctx = {
@@ -57,16 +70,6 @@ beforeAll(async () => {
 		dropBlobs: () => {},
 		publicUrl: "http://localhost",
 	};
-	const flow = await db.transaction((tx) => flows.create(ctx, tx, { name: "Upgrade", project: "UPG" }));
-	flowId = flow.id;
-	await db.transaction((tx) =>
-		flows.save(ctx, tx, { flow: flowId, expectedVersion: 1, nodes: [originalNode], edges: [] }),
-	);
-	const ticket = await db.transaction((tx) => createTicket(ctx, tx, { project: "UPG", title: "Retain this ticket" }));
-	ticketId = ticket.id;
-	const absent = await db.execute(sql`SELECT to_regclass('langflow_executions') AS name`);
-	expect(absent.rows[0]!.name).toBeNull();
-	expect(await migrate(db)).toBeGreaterThanOrEqual(3);
 }, 60_000);
 
 afterAll(async () => {
