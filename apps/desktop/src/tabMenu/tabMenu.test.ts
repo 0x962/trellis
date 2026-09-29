@@ -5,7 +5,10 @@ import { tabMenu } from "./tabMenu";
 test("native accelerators dispatch one tab command to the owning window renderer", () => {
 	const calls: unknown[][] = [];
 	const window = { webContents: { send: (...args: unknown[]) => calls.push(args) } } as unknown as BrowserWindow;
-	const items = tabMenu((command) => window.webContents.send("trellis:tab-command", command));
+	const items = tabMenu((command, target) => {
+		expect(target).toBe(window);
+		window.webContents.send("trellis:tab-command", command);
+	});
 	expect(items.map((item) => item.accelerator)).toEqual([
 		"CommandOrControl+T",
 		"CommandOrControl+W",

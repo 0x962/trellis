@@ -253,8 +253,8 @@ else {
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate(
 					appMenu({
-						tabCommand: (command) => {
-							if (window?.isFocused()) window.webContents.send("trellis:tab-command", command);
+						tabCommand: (command, target) => {
+							if (window && target === window) window.webContents.send("trellis:tab-command", command);
 						},
 						openSettings: () => void navigate("trellis://open/settings#desktop"),
 						openWindow: () => void openWindow(),

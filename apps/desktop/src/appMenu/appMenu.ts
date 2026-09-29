@@ -1,9 +1,9 @@
-import type { MenuItemConstructorOptions } from "electron";
+import type { BaseWindow, MenuItemConstructorOptions } from "electron";
 import { type TabCommand, tabMenu } from "../tabMenu";
 
 export type AppMenuActions = {
 	openSettings: () => void;
-	tabCommand: (command: TabCommand) => void;
+	tabCommand: (command: TabCommand, window: BaseWindow | undefined) => void;
 	openWindow: () => void;
 	openLogs: () => void;
 	reconnectHost: () => void;
