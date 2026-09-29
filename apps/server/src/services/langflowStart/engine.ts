@@ -8,7 +8,7 @@ import type {
 } from "../../langflowContracts";
 
 export type EngineSubmission = {
-	submissionBytes: string;
+	envelopeBytes: string;
 	payloadBytes: string;
 	publication: FlowPublicationV1;
 	snapshot: FlowDocumentSnapshotV1;

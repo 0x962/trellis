@@ -1,14 +1,14 @@
 import { afterEach, expect, test } from "bun:test";
 import { executionViewV1Example } from "@trellis/api";
 import { eq, sql } from "drizzle-orm";
-import { initializeProjection } from "../../db/queries/langflowExecution";
-import { langflowExecutions, langflowOutbox } from "../../db/tables/langflowExecution";
-import { start as legacyStart } from "../flowExecutions/start.ts";
-import { databaseFixture } from "./database.fixture.ts";
-import { databaseStore } from "./databaseStore";
-import { fixture } from "./fixture.ts";
-import { reconcile } from "./reconcile.ts";
-import { reserve } from "./reserve.ts";
+import { initializeProjection } from "../../../db/queries/langflowExecution";
+import { langflowExecutions, langflowOutbox } from "../../../db/tables/langflowExecution";
+import { start as legacyStart } from "../../flowExecutions/start.ts";
+import { fixture } from "../components/fixture/fixture.ts";
+import { reconcile } from "../reconcile/reconcile.ts";
+import { reserve } from "../reserve/reserve.ts";
+import { databaseStore } from ".";
+import { databaseFixture } from "./components/databaseFixture/databaseFixture.ts";
 
 const opened: Awaited<ReturnType<typeof databaseFixture>>[] = [];
 afterEach(async () => {
@@ -110,7 +110,7 @@ test("lost admission response recovers the same committed receipt and job", asyn
 		publicationDigest: execution.publication.documentHash,
 	};
 	const key = { executionId: execution.executionId };
-	const context = { newTx: f.run, now: () => f.ctx.now };
+	const context = { newTx: f.run, now: () => f.ctx.now, log: sample.context.log };
 	let calls = 0;
 	const receipts: string[] = [];
 	const engine = {

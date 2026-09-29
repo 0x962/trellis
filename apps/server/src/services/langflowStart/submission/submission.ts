@@ -1,5 +1,5 @@
 import type { FlowDocumentSnapshotV1, FlowPublicationV1 } from "@trellis/api";
-import { protocolDigest, type SubmissionV1 } from "../../langflowContracts";
+import { protocolDigest, type SubmissionV1 } from "../../../langflowContracts";
 
 export function submission(input: {
 	executionId: string;

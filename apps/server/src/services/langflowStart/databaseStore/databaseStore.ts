@@ -4,8 +4,8 @@ import type { ServiceCtx } from "../../../context.ts";
 import * as queries from "../../../db/queries/langflowExecution";
 import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
-import { get } from "../../flowExecutions/queries.ts";
-import { requestBytes } from "../requestBytes.ts";
+import { get } from "../../legacyFlowHistory";
+import { requestBytes } from "../requestBytes/requestBytes.ts";
 import type { StartExecution, StartStore } from "../store.ts";
 
 const executionOf = (row: NonNullable<Awaited<ReturnType<typeof queries.readExecution>>>): StartExecution => ({
@@ -49,7 +49,11 @@ export function databaseStore(ctx: ServiceCtx): StartStore {
 			if (!latest) return null;
 			const execution = await read(tx, { executionId: latest.id });
 			if (execution.engine === "legacy")
-				return { execution, status: execution.record.state.status, failureKind: execution.record.state.failureKind };
+				return {
+					execution,
+					status: execution.record.state.status,
+					failureKind: execution.record.state.failureKind ?? null,
+				};
 			const projection = await queries.readProjection(tx, { executionId: latest.id });
 			return {
 				execution,

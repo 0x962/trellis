@@ -1,5 +1,5 @@
-import type { SubmissionV1 } from "../../langflowContracts";
-import type { StartExecution } from "./store.ts";
+import type { SubmissionV1 } from "../../../../../langflowContracts";
+import type { StartExecution } from "../../../store.ts";
 
 export function submissionEnvelope(execution: StartExecution): string {
 	const original: SubmissionV1 = {

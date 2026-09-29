@@ -5,13 +5,13 @@ import {
 	type FlowPublicationV1,
 } from "@trellis/api";
 import { ulid } from "ulid";
-import { requireActor, type ServiceCtx } from "../../context.ts";
-import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
-import { requestBytes } from "./requestBytes.ts";
-import type { StartExecution, StartIdentity, StartRun, StartStore } from "./store.ts";
-import { submission } from "./submission.ts";
-import { validateStart } from "./validateStart.ts";
+import { requireActor, type ServiceCtx } from "../../../context.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { invalidInput } from "../../../errors.ts";
+import { requestBytes } from "../requestBytes/requestBytes.ts";
+import type { StartExecution, StartIdentity, StartRun, StartStore } from "../store.ts";
+import { submission } from "../submission/submission.ts";
+import { validateStart } from "./components/validateStart/validateStart.ts";
 
 export type StartDependencies = {
 	hostId: string;

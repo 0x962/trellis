@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { protocolDigest, SubmissionV1Schema } from "../../langflowContracts";
-import { fixture } from "./fixture.ts";
-import { requestBytes } from "./requestBytes.ts";
-import { submissionEnvelope } from "./submissionEnvelope.ts";
+import { protocolDigest, SubmissionV1Schema } from "../../../langflowContracts";
+import { fixture } from "../components/fixture/fixture.ts";
+import { submissionEnvelope } from "../reconcile/components/submissionEnvelope/submissionEnvelope.ts";
+import { requestBytes } from "../requestBytes/requestBytes.ts";
 
 test("the payload digest covers the exact stored bytes", () => {
 	const f = fixture();
