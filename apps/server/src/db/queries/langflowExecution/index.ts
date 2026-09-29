@@ -17,3 +17,5 @@ export * from "./submission";
 export * from "./warnings";
 export * from "./engineSnapshots";
 export * from "./workspaceObservations";
+
+export * from "./authorityRecovery";
