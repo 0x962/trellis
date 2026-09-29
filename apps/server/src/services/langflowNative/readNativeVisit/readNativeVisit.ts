@@ -6,7 +6,12 @@ import { NativeVisitSchema } from "../nativeVisit";
 
 const waitSchema = z.discriminatedUnion("kind", [
 	z.strictObject({ kind: z.literal("native_reservation"), waitId: z.uuid(), request: NativeRequestV1Schema }),
-	z.strictObject({ kind: z.literal("native"), waitId: z.uuid(), request: NativeRequestV1Schema, handle: NativeHandleV1Schema }),
+	z.strictObject({
+		kind: z.literal("native"),
+		waitId: z.uuid(),
+		request: NativeRequestV1Schema,
+		handle: NativeHandleV1Schema,
+	}),
 ]);
 
 export async function readNativeVisit(

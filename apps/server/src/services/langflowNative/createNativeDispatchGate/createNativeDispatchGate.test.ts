@@ -22,13 +22,26 @@ afterEach(async () => {
 const requestBytes = JSON.stringify(nativeRequest);
 const binding: EffectBinding = {
 	effectId: `native-reservation:${ids.execution}:${nativeRequest.requestId}`,
-	kind: "native-dispatch", executionId: ids.execution, attemptId: null,
-	jobId: nativeRequest.engineJobId, requestId: nativeRequest.requestId, payloadDigest: protocolDigest(requestBytes),
+	kind: "native-dispatch",
+	executionId: ids.execution,
+	attemptId: null,
+	jobId: nativeRequest.engineJobId,
+	requestId: nativeRequest.requestId,
+	payloadDigest: protocolDigest(requestBytes),
 };
-const launchBinding = { ...binding, attemptId: handle.attemptId, effectId: `native-launch:${handle.stepId}:${handle.attemptId}` };
+const launchBinding = {
+	...binding,
+	attemptId: handle.attemptId,
+	effectId: `native-launch:${handle.stepId}:${handle.attemptId}`,
+};
 const launch = {
-	version: 1 as const, launchReceiptId: "launch-1", stepId: handle.stepId, attemptId: handle.attemptId,
-	launchedAt: now.toISOString(), recordedAt: now.toISOString(), groupDeadlines: [],
+	version: 1 as const,
+	launchReceiptId: "launch-1",
+	stepId: handle.stepId,
+	attemptId: handle.attemptId,
+	launchedAt: now.toISOString(),
+	recordedAt: now.toISOString(),
+	groupDeadlines: [],
 };
 async function fixture() {
 	const { db, authority } = await receiptFixture();
@@ -41,13 +54,19 @@ async function fixture() {
 	const dataHomeId = crypto.randomUUID();
 	let archive: DispatchReceiptArchive;
 	const gate = DispatchGate.create({
-		directory: join(root, "gate"), dataHomeId,
+		directory: join(root, "gate"),
+		dataHomeId,
 		evidence: {
 			readTerminal: (permit, id) => archive.readTerminal(permit, id),
-			withReconciliation: async () => { throw new Error("unexpected_restore"); },
+			withReconciliation: async () => {
+				throw new Error("unexpected_restore");
+			},
 		},
 	});
-	archive = DispatchReceiptArchive.open({ identity: { version: 1, home, hostId: crypto.randomUUID(), dataHomeId }, gate });
+	archive = DispatchReceiptArchive.open({
+		identity: { version: 1, home, hostId: crypto.randomUUID(), dataHomeId },
+		gate,
+	});
 	const ctx = { dataHomeId, gate, archive, newTx: <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn) };
 	return { db, ctx, gate, archive, native: createNativeDispatchGate(ctx) };
 }
@@ -62,7 +81,10 @@ test("settles through archived committed bytes and preserves equal replay after 
 	const record = JSON.parse(f.archive.readRecordBytes(terminal.id));
 	expect(JSON.parse(record.source.sourceBytes).requestBytes).toBe(requestBytes);
 	expect(record.source.sourceDigest).toBe(protocolDigest(record.source.sourceBytes));
-	await f.db.update(langflowNativeHandles).set({ handle: { ...handle, state: "running", revision: 2 } }).where(eq(langflowNativeHandles.stepId, handle.stepId));
+	await f.db
+		.update(langflowNativeHandles)
+		.set({ handle: { ...handle, state: "running", revision: 2 } })
+		.where(eq(langflowNativeHandles.stepId, handle.stepId));
 	await f.native.settle(permit, handle.stepId);
 	expect(f.gate.read().permits[0]!.terminal).toEqual(terminal);
 });
@@ -88,7 +110,8 @@ test("refuses changed permit identity and a substituted receipt without settleme
 		{ ...permit, binding: { ...binding, payloadDigest: "f".repeat(64) } },
 		{ ...permit, binding: { ...binding, attemptId: crypto.randomUUID() } },
 		{ ...permit, generation: permit.generation + 1 },
-	]) await expect(f.native.settle(changed, handle.stepId)).rejects.toThrow();
+	])
+		await expect(f.native.settle(changed, handle.stepId)).rejects.toThrow();
 	await expect(f.native.settle(permit, "another-step")).rejects.toThrow("native_dispatch_receipt_conflict");
 	expect(f.gate.read().permits[0]!.terminal).toBeNull();
 });

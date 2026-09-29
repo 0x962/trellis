@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { type NativeRequestV1, protocolDigest } from "../../../langflowContracts";
-import { documentBytes, readExecutionPublication, type RetainedExecutionPublication } from "../../flowDocuments";
+import { documentBytes, type RetainedExecutionPublication, readExecutionPublication } from "../../flowDocuments";
 import { readConversionBinding } from "../../langflowMigration";
 import { readPromptInputs } from "../readPromptInputs";
 import type { ApprovedNativeOccurrence, NativeExecution } from "../types";
@@ -41,7 +41,8 @@ export function assembleNativePrompt(
 			])
 	)
 		throw new Error("native_prompt_spec_conflict");
-	const converted = verified.graphDocument.trellisConversionV1 !== undefined || verified.publication.conversion !== null;
+	const converted =
+		verified.graphDocument.trellisConversionV1 !== undefined || verified.publication.conversion !== null;
 	const briefing = converted
 		? readConversionBinding(verified, {
 				engineNodeId: approved.engineNodeId,
