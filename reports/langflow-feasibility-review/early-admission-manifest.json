@@ -1,0 +1,248 @@
+{
+  "scope": "Early TRL-668 and TRL-669 composition; technical acceptance remains open",
+  "upstreamCommit": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "upstreamTree": "e6ac634257b30645b6c35bcc707ed271789877d6",
+  "inputs": [
+    {
+      "ticket": "TRL-668",
+      "path": "/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-trl668-snapshot-4d43914d259b82c8880fd946ceb3ca44be52bd65dce607ffaa9cd073fdb442d7/0001-permanent-correlation-and-admission.4d43914d259b82c8880fd946ceb3ca44be52bd65dce607ffaa9cd073fdb442d7.patch",
+      "sha256": "4d43914d259b82c8880fd946ceb3ca44be52bd65dce607ffaa9cd073fdb442d7"
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "/var/folders/zc/q6614tmx3tx362p94vvrfn0w0000gn/T/trellis-langflow-fec71dca-py312-macos-arm64/runs/TRL-669/external-waits-ce71d7da-snapshot/0001-durable-external-waits.ce71d7da1f409e1d8042e89678df6144ffbe7a5487492db8fc22a763e9f0e44e.patch",
+      "sha256": "ce71d7da1f409e1d8042e89678df6144ffbe7a5487492db8fc22a763e9f0e44e"
+    }
+  ],
+  "composition": "Each hunk is verified against its pinned preimage. Disjoint edits combine in source order. The identical AsyncSession import appears once. No author behavior changes.",
+  "deduplications": [
+    {
+      "path": "src/backend/base/langflow/services/jobs/service.py",
+      "line": 11,
+      "reason": "one shared AsyncSession import",
+      "owners": [
+        "TRL-668",
+        "TRL-669"
+      ]
+    }
+  ],
+  "correctedHunkOffsets": [
+    {
+      "ticket": "TRL-669",
+      "path": "src/lfx/src/lfx/graph/checkpoint/schema.py",
+      "headerStart": 55,
+      "actualStart": 56
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/lfx/src/lfx/graph/checkpoint/builder.py",
+      "headerStart": 73,
+      "actualStart": 74
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/lfx/src/lfx/graph/checkpoint/resume.py",
+      "headerStart": 188,
+      "actualStart": 203
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/lfx/src/lfx/graph/graph/base.py",
+      "headerStart": 101,
+      "actualStart": 104
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/jobs/service.py",
+      "headerStart": 8,
+      "actualStart": 6
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/jobs/service.py",
+      "headerStart": 11,
+      "actualStart": 10
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/jobs/service.py",
+      "headerStart": 861,
+      "actualStart": 860
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/jobs/service.py",
+      "headerStart": 1019,
+      "actualStart": 1028
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/background_execution/runner.py",
+      "headerStart": 16,
+      "actualStart": 23
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/background_execution/runner.py",
+      "headerStart": 118,
+      "actualStart": 125
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/background_execution/runner.py",
+      "headerStart": 331,
+      "actualStart": 332
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/services/background_execution/service.py",
+      "headerStart": 710,
+      "actualStart": 712
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/api/build.py",
+      "headerStart": 9,
+      "actualStart": 10
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/api/build.py",
+      "headerStart": 507,
+      "actualStart": 509
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/api/build.py",
+      "headerStart": 526,
+      "actualStart": 521
+    },
+    {
+      "ticket": "TRL-669",
+      "path": "src/backend/base/langflow/api/build.py",
+      "headerStart": 584,
+      "actualStart": 581
+    }
+  ],
+  "files": [
+    {
+      "path": "src/backend/base/langflow/api/build.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "902cb099a81411d68122901bf500a12819d05178d7f4380adf3b6f21c6ec1a76",
+      "resultSha256": "1bafc40b7b42e6cd5a7066109f4c2c8b06950b2a983f9195dffc594863f2fbb0",
+      "edits": 7,
+      "new": false
+    },
+    {
+      "path": "src/backend/base/langflow/services/background_execution/runner.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "0db624f8bb33e6852e3d34c4f51e8aa36c3f9e11a4875e6e64cd45ee833deddc",
+      "resultSha256": "1d1e3464e45cc5394aad2092c4c39756629ffb6943fd6cd5881b616eed2c396f",
+      "edits": 7,
+      "new": false
+    },
+    {
+      "path": "src/backend/base/langflow/services/background_execution/service.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "985d04ada35cbf1f7849a7351ad0a454e12203a665df4ec35a91cbe701a511cd",
+      "resultSha256": "c5950c1c44ac73869037cca1c8f9d1335303f163bed6fe79258243f3ed5788ee",
+      "edits": 2,
+      "new": false
+    },
+    {
+      "path": "src/backend/base/langflow/services/jobs/service.py",
+      "owners": [
+        "TRL-668",
+        "TRL-669"
+      ],
+      "baseSha256": "3feb7e71bb50a1d35cdd636a3d19448a765423a46cd7e3bd41d8deebd79baf19",
+      "resultSha256": "9e53d77b8ac511e4e9cae7d26c2644a36f43e3f30f697f0849c77b2ffb6eab97",
+      "edits": 7,
+      "new": false
+    },
+    {
+      "path": "src/backend/base/langflow/services/trellis_v1/correlation.py",
+      "owners": [
+        "TRL-668"
+      ],
+      "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resultSha256": "0463eda950facb634346823adc494a25b38b9f689ef550eec80b401ea5cc2b82",
+      "edits": 1,
+      "new": true
+    },
+    {
+      "path": "src/backend/base/langflow/services/trellis_v1/external_waits.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resultSha256": "f6bec59071ed73a158eeebe800f2556e3c1cd11a836bea22916f343f39df6aeb",
+      "edits": 1,
+      "new": true
+    },
+    {
+      "path": "src/lfx/src/lfx/graph/checkpoint/builder.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "30809361c4985f4e45b07dd77be440ddd78992f7b7daa643652ea7c805651b00",
+      "resultSha256": "da4c3af5552e688ad6214ad7ea5ba973eb2c4f0aa56260992b3e30879c2f35de",
+      "edits": 1,
+      "new": false
+    },
+    {
+      "path": "src/lfx/src/lfx/graph/checkpoint/resume.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "380688af80797ff3c44d2f0ffdc6b008dfe6897f12f7dfcc7416800263cbd19d",
+      "resultSha256": "f6e9b34395e082657d9b082ca02c0f431d2592139014df3b3c3eb46a4c4e00e2",
+      "edits": 1,
+      "new": false
+    },
+    {
+      "path": "src/lfx/src/lfx/graph/checkpoint/schema.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "683580302f371e5d899b4f27873a0ae9c0ff583312bf4b18382ad053e9fb4d23",
+      "resultSha256": "0bc940a3708cf1ec81c6682b706a69d1ba59dcde35a071617c7f03de2f490d6d",
+      "edits": 1,
+      "new": false
+    },
+    {
+      "path": "src/lfx/src/lfx/graph/external_wait.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resultSha256": "3b195e160b4d585f433ec0e18ff9fac5de19bccc785ca206fc6ad49304dfdc85",
+      "edits": 1,
+      "new": true
+    },
+    {
+      "path": "src/lfx/src/lfx/graph/graph/base.py",
+      "owners": [
+        "TRL-669"
+      ],
+      "baseSha256": "cd252d076b380fc4c8ca3bc36d24ff056fd2e38d2dd11227b01ce48cdfb952fa",
+      "resultSha256": "b09df208321834faa311dbf90228bc256c4f0642164a965587f1fee2370406b9",
+      "edits": 3,
+      "new": false
+    }
+  ],
+  "patch": "early-admission.23ec0871323484f671df9ffc1c9a0bf6a4c00b1171b82314e545225f3050513b.patch",
+  "patchSha256": "23ec0871323484f671df9ffc1c9a0bf6a4c00b1171b82314e545225f3050513b",
+  "verification": [
+    "Every hunk old/new count matched.",
+    "Every old line matched the pinned Git object.",
+    "All resulting Python files passed ast.parse."
+  ],
+  "runtimeResult": "Not run. TRL-667 owns apply, probe, reversal, and overlay verification."
+}
