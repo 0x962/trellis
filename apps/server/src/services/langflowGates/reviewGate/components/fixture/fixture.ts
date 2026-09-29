@@ -1,6 +1,8 @@
 import { executionViewV1Example, publicationV1Example } from "@trellis/api";
+import { ulid } from "ulid";
 import { classificationStore } from "../../../../../db/queries/langflowExecution/classification.ts";
 import { reserveExecution } from "../../../../../db/queries/langflowExecution/executions.ts";
+import { langflowDocumentPublications, langflowDocumentRevisions } from "../../../../../db/tables/langflowDocuments";
 import { protocolDigest } from "../../../../../langflowContracts";
 import type { testFixture } from "../../../../flowExecutions/testFixture";
 import type { ServiceCtx } from "../../../../support.ts";
@@ -9,7 +11,33 @@ import type { ReviewGateInput } from "../../reviewGate.ts";
 export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 	const setup = await h.createExecution();
 	const execution = await setup.create();
-	const publication = { ...publicationV1Example, flowId: execution.flowId };
+	const sourceBytes = Buffer.from(execution.id);
+	const documentHash = protocolDigest(execution.id);
+	const publication = { ...publicationV1Example, publicationId: ulid(), flowId: execution.flowId, documentHash };
+	const snapshot = {
+		...executionViewV1Example.snapshot,
+		documentHash,
+		flow: { ...executionViewV1Example.snapshot.flow, id: execution.flowId },
+	};
+	await h.run(async (tx) => {
+		await tx.insert(langflowDocumentRevisions).values({
+			flowId: execution.flowId,
+			revision: snapshot.revision,
+			documentHash,
+			componentManifestHash: publication.componentManifestHash,
+			sourceBytes,
+			snapshot,
+			savedAt: h.ctx.now,
+		});
+		await tx.insert(langflowDocumentPublications).values({
+			publicationId: publication.publicationId,
+			flowId: execution.flowId,
+			revision: publication.revision,
+			documentHash,
+			componentManifestHash: publication.componentManifestHash,
+			publication,
+		});
+	});
 	const input: ReviewGateInput = {
 		executionId: execution.id,
 		diffId: setup.input.diffId,
@@ -32,11 +60,9 @@ export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 			diffId: input.diffId,
 			reviewedHead: input.reviewedHead,
 			publicationId: publication.publicationId,
+			publicationRecordId: publication.publicationId,
 			publication,
-			snapshot: {
-				...executionViewV1Example.snapshot,
-				flow: { ...executionViewV1Example.snapshot.flow, id: execution.flowId },
-			},
+			snapshot,
 			hostId: "host",
 			actorKind: "agent",
 			actorName: "Test",

@@ -1,3 +1,5 @@
+export { assertLegacy } from "./assertLegacy";
+export { unsupported } from "./assertLegacy/components/unsupported";
 export { documentBytes } from "./documentBytes";
 export { get } from "./get";
 export { legacyServices } from "./legacyServices";

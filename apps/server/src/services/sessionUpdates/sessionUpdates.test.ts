@@ -154,3 +154,34 @@ test("keeps a ticket reply after the run completes and the database restarts", a
 	expect(saved.latest).toMatchObject({ body: "I found the request boundary.", sessionId: null, runId: ticketRunId });
 	expect(saved.request).toMatchObject({ state: "answered", error: null });
 });
+
+test("reads every history page without changing latest/previous and excludes another run", async () => {
+	const ids = Array.from({ length: 105 }, () => ulid())
+		.sort()
+		.reverse();
+	for (const id of ids) {
+		await db.execute(sql`INSERT INTO session_updates (id, session_id, run_id, body, embeds, created_at)
+			VALUES (${id}, ${standaloneSessionId}, ${standaloneRunId}, ${id}, '[]'::jsonb, '2026-09-30T12:00:00Z')`);
+	}
+	const ctx = context(standaloneRunId, standaloneToken, { actor: { kind: "human", name: "Navid" } });
+	const first = await inTx((tx) => get(ctx, tx, { sessionId: standaloneRunId, history: {} }));
+	expect(first.history?.map((item) => item.id)).toEqual(ids.slice(0, 50));
+	expect(first.latest?.id).toBe(ids[0]);
+	expect(first.previous?.id).toBe(ids[1]);
+	await db.execute(sql`INSERT INTO session_updates (id, run_id, body, embeds, created_at)
+		VALUES (${ulid()}, ${standaloneRunId}, 'New arrival', '[]'::jsonb, '2026-10-01T12:00:00Z')`);
+	const second = await inTx((tx) =>
+		get(ctx, tx, { sessionId: standaloneRunId, history: { before: first.nextCursor! } }),
+	);
+	expect(second.history?.map((item) => item.id)).toEqual(ids.slice(50, 100));
+	expect(second.latest?.body).toBe("New arrival");
+	const third = await inTx((tx) =>
+		get(ctx, tx, { sessionId: standaloneRunId, history: { before: second.nextCursor! } }),
+	);
+	expect(third.history?.slice(0, 5).map((item) => item.id)).toEqual(ids.slice(100));
+	expect(third.history?.every((item) => item.runId === standaloneRunId)).toBe(true);
+	expect(third.nextCursor).toBeNull();
+	const standard = await inTx((tx) => get(ctx, tx, { sessionId: standaloneRunId }));
+	expect(standard.history).toBeUndefined();
+	expect(standard.latest).toEqual(second.latest);
+});

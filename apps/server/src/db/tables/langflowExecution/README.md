@@ -65,6 +65,9 @@ erDiagram
     tickets ||--o{ langflow_executions : owns
     projects ||--o{ langflow_executions : owns
     langflow_document_publications |o--o{ langflow_executions : catalog_link
+    langflow_executions |o--o{ langflow_start_receipts : aliases
+    flow_executions |o--o{ langflow_start_receipts : aliases
+    langflow_executions ||--o{ langflow_warnings : delivers
     langflow_executions ||--o{ langflow_native_handles : reserves
     langflow_native_handles ||--o{ langflow_completions : retains
     langflow_executions ||--o{ langflow_decisions : records

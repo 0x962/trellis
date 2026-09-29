@@ -37,6 +37,20 @@ test("accepts strict comment anchors and bounded pin positions", () => {
 		message({ type: "page-comment-anchor-error", nonce: "nonce", message: "Select 2,000 characters or fewer." }),
 	).toMatchObject({ type: "page-comment-anchor-error" });
 });
+test("accepts and validates pin positions after item 500", () => {
+	const items = Array.from({ length: 501 }, (_, index) => ({ thread: `thread-${index}`, x: index, y: index + 1 }));
+	expect(message({ type: "page-comment-layout", nonce: "nonce", items })).toMatchObject({
+		type: "page-comment-layout",
+		items,
+	});
+	expect(
+		message({
+			type: "page-comment-layout",
+			nonce: "nonce",
+			items: [...items, { thread: "thread-501", x: -1, y: 502 }],
+		}),
+	).toBeNull();
+});
 test("rejects a foreign frame and a foreign nonce", () => {
 	expect(message({ type: "page-ready", nonce: "nonce" }, {} as Window)).toBeNull();
 	expect(message({ type: "page-ready", nonce: "other" })).toBeNull();
