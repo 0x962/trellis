@@ -75,6 +75,14 @@ export function PageTabsHost() {
 		pageTabsActions.setTabGroup(tabId, id);
 		return id;
 	}, []);
+	const collapseGroup = useCallback(
+		(id: string, collapsed: boolean) => {
+			const priorActiveId = usePageTabsStore.getState().activeId;
+			pageTabsActions.setGroupCollapsed(id, collapsed);
+			if (usePageTabsStore.getState().activeId !== priorActiveId) showActiveTab();
+		},
+		[showActiveTab],
+	);
 	const close = useCallback(
 		(id: string) => {
 			const priorActiveId = usePageTabsStore.getState().activeId;
@@ -138,7 +146,7 @@ export function PageTabsHost() {
 			onCreateGroup={createGroup}
 			onRenameGroup={pageTabsActions.renameGroup}
 			onRemoveGroup={pageTabsActions.removeGroup}
-			onGroupCollapse={pageTabsActions.setGroupCollapsed}
+			onGroupCollapse={collapseGroup}
 			onSetTabGroup={pageTabsActions.setTabGroup}
 		/>
 	);

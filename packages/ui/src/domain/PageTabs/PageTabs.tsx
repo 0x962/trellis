@@ -154,10 +154,7 @@ export function PageTabs({
 										index={index}
 										width={layout.width}
 										editing={editingGroupId === slot.group.id}
-										onEditingChange={(focus) => {
-											setEditingGroupId(focus ? slot.group.id : null);
-											focusAfterChange.current = false;
-										}}
+										onEditingChange={(editing) => setEditingGroupId(editing ? slot.group.id : null)}
 										onRename={onRenameGroup}
 										onRemove={onRemoveGroup}
 										onCollapse={onGroupCollapse!}

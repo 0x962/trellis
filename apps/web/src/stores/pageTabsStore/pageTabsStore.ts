@@ -126,9 +126,19 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						groups: state.groups.map((group) => (group.id === id ? { ...group, name } : group)),
 					})),
 				setGroupCollapsed: (id, collapsed) =>
-					set((state) => ({
-						groups: state.groups.map((group) => (group.id === id ? { ...group, collapsed } : group)),
-					})),
+					set((state) => {
+						const groups = state.groups.map((group) => (group.id === id ? { ...group, collapsed } : group));
+						const active = state.tabs.find((item) => item.id === state.activeId)!;
+						if (!collapsed || active.groupId !== id) return { groups };
+						// A collapse hides the tabs of the group, so the selection moves to
+						// the nearest tab outside it. A strip whose every tab is in the
+						// group stays open.
+						const outside = state.tabs.filter((item) => item.groupId !== id);
+						if (outside.length === 0) return state;
+						const end = groupEnd(state.tabs, state.groups, id);
+						const next = state.tabs.slice(end).find((item) => item.groupId !== id) ?? outside.at(-1)!;
+						return { groups, activeId: next.id };
+					}),
 				removeGroup: (id) =>
 					set((state) => {
 						const members = state.tabs.filter((item) => item.groupId === id).map(({ groupId: _, ...item }) => item);
@@ -144,7 +154,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						const moved = groupId === null ? bare : { ...bare, groupId };
 						const rest = state.tabs.filter((item) => item.id !== id);
 						rest.splice(groupId === null ? tailStart(rest) : groupEnd(rest, state.groups, groupId), 0, moved);
-						return { tabs: rest };
+						return { tabs: rest, groups: id === state.activeId ? expandGroupOf(state.groups, moved) : state.groups };
 					}),
 				addTab: (page) => {
 					const next = tab(createId(), page);

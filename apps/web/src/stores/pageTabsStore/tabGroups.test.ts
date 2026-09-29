@@ -96,16 +96,40 @@ test("leaving a group places the tab at the start of the tail", () => {
 });
 
 test("selecting a tab of a collapsed group expands the group", () => {
-	const { store, a, b, c, g } = grouped();
+	const { store, a, c, d, g } = grouped();
 	store.getState().selectTab(a);
 	store.getState().setGroupCollapsed(g, true);
 	expect(store.getState().groups[0]!.collapsed).toBe(true);
 	store.getState().selectTab(c);
 	expect(store.getState().groups[0]!.collapsed).toBe(false);
 	store.getState().setGroupCollapsed(g, true);
+	expect(store.getState().activeId).toBe(d);
 	store.getState().selectAdjacentTab(-1);
-	expect(store.getState().activeId).toBe(b);
+	expect(store.getState().activeId).toBe(c);
 	expect(store.getState().groups[0]!.collapsed).toBe(false);
+});
+
+test("collapsing the group of the selected tab selects the nearest tab outside it", () => {
+	const { store, a, b, c, d, g, h } = grouped();
+	store.getState().selectTab(c);
+	store.getState().setGroupCollapsed(g, true);
+	expect(store.getState().activeId).toBe(d);
+	expect(store.getState().groups[0]!.collapsed).toBe(true);
+	store.getState().setGroupCollapsed(h, true);
+	expect(store.getState().activeId).toBe(a);
+	store.getState().setTabGroup(a, h);
+	store.getState().setTabGroup(d, null);
+	store.getState().selectTab(a);
+	store.getState().setGroupCollapsed(h, true);
+	expect(store.getState().activeId).toBe(d);
+	store.getState().setTabGroup(b, h);
+	store.getState().setTabGroup(c, h);
+	expect(store.getState().groups[1]!.collapsed).toBe(true);
+	store.getState().setTabGroup(d, h);
+	expect(store.getState().groups[1]!.collapsed).toBe(false);
+	store.getState().setGroupCollapsed(h, true);
+	expect(store.getState().groups[1]!.collapsed).toBe(false);
+	expect(store.getState().activeId).toBe(d);
 });
 
 test("closing the last tab of a group removes the group, and reopen restores both", () => {

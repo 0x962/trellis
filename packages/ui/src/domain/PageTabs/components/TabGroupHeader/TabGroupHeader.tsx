@@ -1,4 +1,5 @@
 import { CaretDown, CaretRight, DotsThree } from "@phosphor-icons/react";
+import { useLayoutEffect, useRef } from "react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { InlineEdit } from "../../../../primitives/InlineEdit";
 import { Menu, type MenuItem } from "../../../../primitives/Menu";
@@ -11,7 +12,7 @@ type Props = {
 	index: number;
 	width: number;
 	editing: boolean;
-	onEditingChange: (focus: boolean) => void;
+	onEditingChange: (editing: boolean) => void;
 	onRename: PageTabsProps["onRenameGroup"];
 	onRemove: PageTabsProps["onRemoveGroup"];
 	onCollapse: NonNullable<PageTabsProps["onGroupCollapse"]>;
@@ -32,6 +33,16 @@ export function TabGroupHeader({
 	onCollapse,
 }: Props) {
 	const Chevron = group.collapsed ? CaretRight : CaretDown;
+	const toggle = useRef<HTMLButtonElement>(null);
+	// Enter and Escape end the edit and give the focus to the collapse button,
+	// which draws the name at rest. The button mounts after the field closes,
+	// so the focus waits for that render.
+	const focusToggle = useRef(false);
+	useLayoutEffect(() => {
+		if (editing || !focusToggle.current) return;
+		focusToggle.current = false;
+		toggle.current?.focus({ preventScroll: true });
+	}, [editing]);
 	const items: MenuItem[] = [
 		{
 			label: group.collapsed ? "Expand group" : "Collapse group",
@@ -51,12 +62,16 @@ export function TabGroupHeader({
 				label="Group name"
 				value={group.name}
 				editing={editing}
-				onEditingChange={(_, focus) => onEditingChange(focus === "value")}
+				onEditingChange={(_, focus) => {
+					focusToggle.current = focus === "value";
+					onEditingChange(false);
+				}}
 				onSave={async (name) => onRename!(group.id, name)}
 				className="min-w-0 flex-1"
 				inputClassName="h-7 max-sm:h-11"
 			>
 				<button
+					ref={toggle}
 					type="button"
 					data-page-tab-group-toggle={group.id}
 					aria-expanded={!group.collapsed}
