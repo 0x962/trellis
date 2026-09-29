@@ -177,11 +177,23 @@ TRL-697 must retain those observations from its published-document journey.
 | Account/API receipts | Actual isolated account creation, selected assignment, and composed dispatch |
 | `evidence/cleanup.json` | Confirmed exit of the named fixture attempts and removal of their control socket directories |
 
-`nativeAdapterReceipt` must bind these retained bytes to the source revision, isolated account, home, runtime, and published scenario.
-Include each evidence path, SHA256, and scope in the owner receipt.
+The proof has two phases. The prerequisite does not depend on the current composed run.
+
+Before invocation, `nativeAdapterReceipt` binds prior focused proof to the source, plan, private home, account, and runtime.
+Retain the actual account creation and read receipts, plus its effective profile selection for that focused proof.
+Retain the prior HarnessHost events, positive controls, OS denial, resume identity, and observed exits.
+The current account/profile and executable bytes must match those accepted inputs.
+The focused test alone does not create an account or prove its selection through the account API.
+The owner must supply those separate observations before it accepts the prerequisite.
+
+After invocation, retain the current scenario's actual account and assignment selection, dispatch, attempts, session IDs, and PID identities.
+Bind its prompt/result identities and cleanup records to the published document and current execution.
+Account creation alone does not prove that this scenario selected the account.
+Prior focused proof does not prove the current HTTP journey.
+
+Include each evidence path, SHA256, and scope in its owner receipt.
 Do not treat `setup.json`, a matching hash, or this README as a passing receipt.
-Accept the adapter only after the positive controls, OS denial, actual runtime dispatch, and exact native result agree.
-Label the result `native runtime proof with deterministic data; no actual provider proof`.
+Label the focused result `native runtime proof with deterministic data; no actual provider proof`.
 
 `cleanup.ts` accepts a private JSON file with `root`, `runtimeSocket`, `attemptDirectory`, `attemptIds`, and `requestTimeoutMs`.
 Use the real host's `harness-attempts` directory for a composed run.
