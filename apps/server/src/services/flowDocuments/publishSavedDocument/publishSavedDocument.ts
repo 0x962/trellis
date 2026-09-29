@@ -12,7 +12,7 @@ import { capturePublication } from "./components/capturePublication/capturePubli
 export const publishSavedDocument = async (ctx: IoCtx, value: unknown, services: DocumentActionServices): Promise<FlowDocumentActionResultV1> => {
 	requireActor(ctx.core);
 	const input = PublishDocumentV1InputSchema.parse(value);
-	const requestBytes = documentBytes(input);
+	const requestBytes = documentBytes(input).toString("utf8");
 	const checkInstalled = () => {
 		const identity = services.installedIdentity();
 		if (identity.enginePackageDigest !== input.enginePackageDigest || identity.componentManifestHash !== input.componentManifestHash)

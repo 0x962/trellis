@@ -15,7 +15,7 @@ test("retains the exact publication response before current producer access", as
 	const first = await publishSavedDocument(f.io, f.input, f.services);
 	expect(first).toMatchObject({ requestId: f.input.requestId, document: { publication: { state: "published" } } });
 	const row = await f.run((tx) => readDocumentAction(tx, f.input));
-	expect(row!.requestBytes).toEqual(documentBytes(f.input));
+	expect(row!.requestBytes).toEqual(documentBytes(f.input).toString("utf8"));
 	const unavailable = () => { throw new Error("unavailable"); };
 	expect(await publishSavedDocument(f.io, f.input, { ...f.services, publisher: unavailable, installedIdentity: unavailable })).toEqual(first);
 	await expect(publishSavedDocument(f.io, { ...f.input, enginePackageDigest: "f".repeat(64) }, f.services))
@@ -55,7 +55,7 @@ test("a stale first request creates no claim", async () => {
 	f = await publicationFixture();
 	await f.run((tx) => save(f.ctx, tx, saveInput()));
 	await expect(publishSavedDocument(f.io, f.input, f.services)).rejects.toMatchObject({ code: "FLOW_VERSION_CONFLICT" });
-	expect(await f.run((tx) => readDocumentAction(tx, f.input))).toBeUndefined();
+	expect(await f.run((tx) => readDocumentAction(tx, f.input))).toBeNull();
 });
 
 test("a late publication confirms only its captured revision", async () => {

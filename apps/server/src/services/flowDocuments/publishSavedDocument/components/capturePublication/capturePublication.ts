@@ -11,12 +11,12 @@ export const capturePublication = async (
 	ctx: ServiceCtx,
 	tx: Tx,
 	input: PublishDocumentV1Input,
-	requestBytes: Buffer,
+	requestBytes: string,
 	checkInstalled: () => void,
 ) => {
 	await tx.execute(sql`SELECT id FROM flows WHERE id = ${input.flowId} FOR UPDATE`);
 	const previous = await readDocumentAction(tx, input);
-	if (previous && (previous.action !== "publish" || !previous.requestBytes.equals(requestBytes)))
+	if (previous && (previous.action !== "publish" || previous.requestBytes !== requestBytes))
 		throw new ORPCError("FLOW_REQUEST_CONFLICT", {
 			status: 409, defined: true, message: "This request ID already identifies different publication bytes.",
 			data: { requestId: input.requestId },
@@ -40,7 +40,7 @@ export const capturePublication = async (
 	}
 	return {
 		state: "captured" as const,
-		replay: previous !== undefined,
+		replay: previous !== null,
 		base: { snapshot: stored.snapshot, sourceBytes: stored.sourceBytes },
 	};
 };
