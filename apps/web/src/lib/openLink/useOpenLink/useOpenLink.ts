@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type LinkPress, toast } from "@trellis/ui";
 import { useCallback } from "react";
-import { pageTabsActions } from "../../../stores/pageTabsStore";
 import { useApp } from "../../appContext";
 import { errorMessage } from "../../conflict";
 import { openAppLink } from "../openAppLink";
@@ -15,6 +14,9 @@ export function useOpenLink() {
 		(url: string, press?: LinkPress) => {
 			const openTrellisRoute = async (href: string, linkPress?: LinkPress) => {
 				if (linkPress?.metaKey) {
+					// pageTabsStore reads browser globals when its module loads. The
+					// dynamic import lets page fixtures load useOpenLink without them.
+					const { pageTabsActions } = await import("../../../stores/pageTabsStore");
 					pageTabsActions.addTab({ url: href, title: href });
 					await navigate({ href, replace: true });
 					return;
