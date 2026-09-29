@@ -62,7 +62,7 @@ export async function invocationFixture(h: Awaited<ReturnType<typeof testFixture
 	requests.set(request.occurrenceKey, JSON.stringify(request));
 	const ctx: ReviewGateInvocationCtx = {
 		...f.ctx, now: () => h.ctx.now, control: { gate, archive },
-		withAuthenticatedEngine: async (authorization, operation) => {
+		withAuthenticatedNativeReservation: async (authorization, operation) => {
 			if (authorization !== "Bearer secret") throw new Error("sidecar_authentication_denied");
 			return operation({ id: "observation", identity: { hostId: "host", ownerId: "owner", dataHomeId, instanceId: "instance", manifestDigest: "a".repeat(64) }, observedAt: h.ctx.now.toISOString(), endpoint: "http://127.0.0.1:9999" });
 		},

@@ -17,7 +17,7 @@ export async function readClassificationContext(
 	input: { requestBytes: string; capabilityId: string; authorityBytes: string; authorization: string | null },
 ) {
 	const request = readProtocolBytes(ClassificationContextRequestSchema, input.requestBytes);
-	return ctx.withAuthenticatedEngine(input.authorization, (observation) => ctx.newTx(async (tx) => {
+	return ctx.withAuthenticatedNativeReservation(input.authorization, (observation) => ctx.newTx(async (tx) => {
 		const execution = await lockExecution(tx, request);
 		const authority = execution.authority;
 		if (!authority || authority.capabilityId !== input.capabilityId ||

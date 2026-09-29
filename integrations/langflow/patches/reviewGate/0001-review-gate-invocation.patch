@@ -260,7 +260,7 @@ diff --git a/src/backend/base/langflow/services/trellis_v1/review_gate_router.py
 new file mode 100644
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/review_gate_router.py
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,86 @@
 +from json import JSONDecodeError
 +from uuid import UUID
 +
@@ -280,6 +280,14 @@ new file mode 100644
 +class ReviewVisitLookup(BaseModel):
 +    model_config = ConfigDict(extra="forbid", strict=True)
 +    requestBytes: StrictStr
++    authorityBytes: StrictStr
++
++
++class ReviewDeliveryEnvelope(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++    engineWaitId: StrictStr
++    resultBytes: StrictStr
++    deliveryBytes: StrictStr
 +    authorityBytes: StrictStr
 +
 +
@@ -318,10 +326,16 @@ new file mode 100644
 +            raise HTTPException(422, "review_visit_invalid") from error
 +
 +    @router.post("/accept")
-+    async def accept(request: Request, payload: ReviewDeliveryInput):
++    async def accept(request: Request, payload: ReviewDeliveryEnvelope):
 +        await security.require_transport_auth(request.headers.get("authorization"))
 +        try:
-+            obligation = await ledger.accept(payload, authorize(request, payload.authorityBytes, "classification.deliver"))
++            encoded = ReviewDeliveryInput(
++                engineWaitId=payload.engineWaitId,
++                resultBytes=payload.resultBytes.encode("utf-8"),
++                deliveryBytes=payload.deliveryBytes.encode("utf-8"),
++                authorityBytes=payload.authorityBytes.encode("utf-8"),
++            )
++            obligation = await ledger.accept(encoded, authorize(request, encoded.authorityBytes, "classification.deliver"))
 +        except AuthorityUnauthorized as error:
 +            raise HTTPException(401, "review_authority_invalid") from error
 +        except (AuthorityConflict, ReviewConflict) as error:

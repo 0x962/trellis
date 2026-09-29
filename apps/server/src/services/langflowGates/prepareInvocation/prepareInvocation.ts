@@ -14,7 +14,7 @@ import { publishedGates } from "../publishedGates";
 type Execution = Awaited<ReturnType<typeof lockExecution>>;
 export type ReviewGateInvocationCtx = Pick<ServiceCtx, "newTx" | "now" | "log"> & {
 	control: { gate: DispatchEffects; archive: DispatchReceiptArchive };
-	withAuthenticatedEngine<T>(authorization: string | null, operation: (observation: LiveOwnership) => Promise<T>): Promise<T>;
+	withAuthenticatedNativeReservation<T>(authorization: string | null, operation: (observation: LiveOwnership) => Promise<T>): Promise<T>;
 	resolveOccurrence(input: {
 		execution: Execution; request: ReviewGateRequest; requestBytes: string; authorityBytes: string; authority: DeliveryAuthorityV1;
 	}): Promise<ReviewVisitProof>;
@@ -26,7 +26,7 @@ export async function prepareInvocation(
 	input: { requestBytes: string; capabilityId: string; authorityBytes: string; authorization: string | null },
 	request: ReviewGateRequest,
 ) {
-	return ctx.withAuthenticatedEngine(input.authorization, async (observation) => {
+	return ctx.withAuthenticatedNativeReservation(input.authorization, async (observation) => {
 		const read = async (tx: Parameters<typeof lockExecution>[0]) => {
 			const execution = await lockExecution(tx, request);
 			const authority = execution.authority;

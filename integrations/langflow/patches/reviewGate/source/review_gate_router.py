@@ -20,6 +20,14 @@ class ReviewVisitLookup(BaseModel):
     authorityBytes: StrictStr
 
 
+class ReviewDeliveryEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    engineWaitId: StrictStr
+    resultBytes: StrictStr
+    deliveryBytes: StrictStr
+    authorityBytes: StrictStr
+
+
 def create_review_gate_router(*, jobs, executor, security: EngineApiSecurity, open_session=session_scope):
     ledger = ReviewClassificationLedger(jobs, open_session=open_session)
     router = APIRouter(prefix="/review-classifications")
@@ -55,10 +63,16 @@ def create_review_gate_router(*, jobs, executor, security: EngineApiSecurity, op
             raise HTTPException(422, "review_visit_invalid") from error
 
     @router.post("/accept")
-    async def accept(request: Request, payload: ReviewDeliveryInput):
+    async def accept(request: Request, payload: ReviewDeliveryEnvelope):
         await security.require_transport_auth(request.headers.get("authorization"))
         try:
-            obligation = await ledger.accept(payload, authorize(request, payload.authorityBytes, "classification.deliver"))
+            encoded = ReviewDeliveryInput(
+                engineWaitId=payload.engineWaitId,
+                resultBytes=payload.resultBytes.encode("utf-8"),
+                deliveryBytes=payload.deliveryBytes.encode("utf-8"),
+                authorityBytes=payload.authorityBytes.encode("utf-8"),
+            )
+            obligation = await ledger.accept(encoded, authorize(request, encoded.authorityBytes, "classification.deliver"))
         except AuthorityUnauthorized as error:
             raise HTTPException(401, "review_authority_invalid") from error
         except (AuthorityConflict, ReviewConflict) as error:

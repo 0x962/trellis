@@ -50,7 +50,7 @@ test("unauthenticated calls fail before a provider call", async () => {
 	expect((await f.send(f.request, { Authorization: "Bearer wrong" })).status).toBe(401);
 	expect((await f.send(f.request, { "X-Trellis-Capability-Id": "wrong" })).status).toBe(403);
 	expect((await f.send(f.request, { Origin: "https://foreign.example" })).status).toBe(403);
-	f.ctx.withAuthenticatedEngine = async () => { throw new Error("authority_conflict"); };
+	f.ctx.withAuthenticatedNativeReservation = async () => { throw new Error("authority_conflict"); };
 	expect((await f.send()).status).toBe(403);
 	expect(f.calls()).toBe(0);
 });

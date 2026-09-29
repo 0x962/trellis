@@ -16,7 +16,7 @@ export async function deliverClassification(ctx: ReviewGateInvocationCtx,
 	response: ReviewGateResponse,
 ) {
 	if (response.result.state === "claimed") return;
-	const prepared = await ctx.withAuthenticatedEngine(input.authorization, async (observation) => {
+	const prepared = await ctx.withAuthenticatedNativeReservation(input.authorization, async (observation) => {
 		const saved = await ctx.newTx(async (tx) => {
 			const execution = await lockExecution(tx, response.visit);
 			const authority = execution.authority;

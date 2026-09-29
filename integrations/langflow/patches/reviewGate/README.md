@@ -6,15 +6,15 @@ The private Trellis route calls the durable classification service. The engine j
 
 `POST /api/langflow-private/v1/review-gates` accepts the exact `ReviewClassificationVisitV1` bytes in that envelope. The response uses `ReviewClassificationResponseV1`. A visit identifies one occurrence. The classification request identifies the shared result for the execution.
 
-Both routes require the current engine instance bearer and `X-Trellis-Capability-Id`. Mount them after the Host guard and before global host authentication. The supervisor callback covers the authority checks, occurrence lookup, claim, and permit acquisition. The provider call runs after that callback and outside a database transaction.
+Both routes require the current engine instance outgoing bearer and `X-Trellis-Capability-Id`. Mount them after the Host guard and before global host authentication. The supervisor callback covers the authority checks, occurrence lookup, claim, and permit acquisition. The provider call runs after that callback and outside a database transaction.
 
 The original claimant settles the classification permit only after a validated provider response and a committed terminal receipt. A thrown classifier error retains the permit. A replay cannot settle that permit. An interrupted receipt does not prove that the provider stopped.
 
-`reviewGateEngine(client, signal)` supplies `resolveOccurrence` and `accept` for `ReviewGateInvocationCtx`. The context also supplies `withAuthenticatedEngine`, `control`, `newTx`, `now`, and `log`. The route factory is `langflowReviewGate({context})`.
+`reviewGateEngine(client, signal)` supplies `resolveOccurrence` and `accept` for `ReviewGateInvocationCtx`. The context also supplies `withAuthenticatedNativeReservation`, `control`, `newTx`, `now`, and `log`. The route factory is `langflowReviewGate({context})`.
 
 The Python factory `create_review_gate_router(jobs=..., executor=..., security=...)` supplies the `/review-classifications/visits` and `/review-classifications/accept` routes. Mount that router under `/trellis-v1`. The accept route calls the TRL-995 ledger and its continuation consumer after the ledger transaction.
 
-Call `install_review_gate_transport(origin=..., authentication_file=...)` with the Trellis origin and current engine instance credential file. This transport serves the review component. It uses the shared authority records for each request.
+Call `install_review_gate_transport(origin=..., authentication_file=...)` with the Trellis origin and current engine instance outgoing native credential file. This transport serves the review component. It uses the shared authority records for each request.
 
 The component is `integrations.langflow.components.jevGate.jevGate.TrellisReviewGateV1`. It reads `trellisReviewGatesV1` from the retained publication. Its `yes` and `no` outputs use Langflow branch exclusion. The catalog owner controls its publication qualification.
 
