@@ -50,7 +50,16 @@ export function projectOccurrence(
 		};
 	}
 	if (observed.kind === "gate" && observed.reviewArea !== null) {
-		if (reviewWait) return { ...base, state: "running", waitReason: "review", decision: null };
+		if (reviewWait) {
+			const ended = observed.state === "failed" || observed.state === "canceled";
+			return {
+				...base,
+				state: ended ? observed.state : "running",
+				waitReason: ended ? null : "review",
+				endedAt: ended ? base.endedAt : null,
+				decision: null,
+			};
+		}
 		const receipt = facts.classification;
 		if (!receipt) return { ...base, state: "unknown", waitReason: "ownership_unknown" };
 		const gate = reviewGateResult(receipt, observed.reviewArea);

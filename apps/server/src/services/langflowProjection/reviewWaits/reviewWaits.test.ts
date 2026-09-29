@@ -66,7 +66,7 @@ function reviewFixture() {
 }
 
 test("an explicit review wait has no native attempt or human action", () => {
-	const { f } = reviewFixture();
+	const { f, occurrence } = reviewFixture();
 	for (const receipt of [null, f.facts.classification]) {
 		f.facts.classification = receipt;
 		const view = run(f);
@@ -78,6 +78,10 @@ test("an explicit review wait has no native attempt or human action", () => {
 			outputSource: null,
 			decision: null,
 		});
+	}
+	for (const state of ["failed", "canceled"] as const) {
+		occurrence.state = state;
+		expect(run(f).occurrences[0]).toMatchObject({ state, waitReason: null, decision: null });
 	}
 });
 
@@ -163,6 +167,7 @@ test("a retained review wait cannot grant completion or discard history", () => 
 	occurrence.acceptedResultId = "classification";
 	expect(run(f).status).toBe("waiting");
 	expect(run(f).occurrences[0]!.decision).toBeNull();
+	expect(run(f).occurrences[0]!.endedAt).toBeNull();
 	f.observed.checkpoint.waits = [];
 	f.observed.occurrences = [];
 	expect(() => run(f)).toThrow("incomplete_snapshot");
