@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { flushSync } from "react-dom";
-import { SessionStatusPane, type SessionUpdate } from "../../../../src/domain/SessionStatusPane";
+import { SessionStatusPane, type SessionUpdate } from "../../../src/domain/SessionStatusPane";
 import { runChecks } from "../runChecks";
 
 const now = new Date(2026, 8, 29, 14, 45).toISOString();
@@ -75,7 +75,9 @@ export function Fixture() {
 					Run mounted checks
 				</button>
 			</div>
-			<output aria-label="Mounted results">{result}</output>
+			<output aria-label="Mounted results" className="max-h-24 overflow-auto break-words">
+				{result}
+			</output>
 			<div data-fixture-pane className="h-130 w-93.5 max-w-full min-h-0">
 				<SessionStatusPane
 					key={generation}

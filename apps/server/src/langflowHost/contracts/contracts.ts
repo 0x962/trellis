@@ -57,6 +57,7 @@ export type OwnershipSnapshot = {
 
 export type AuthorityCommit = {
 	requestBytes: string;
+	authorityBytes: string;
 	receipt: RenewalReceiptV1 | TakeoverReceiptV1;
 	observation: LiveOwnership;
 	revocation: OwnerRevocation | null;

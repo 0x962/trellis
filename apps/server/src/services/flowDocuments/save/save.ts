@@ -1,7 +1,11 @@
 import { ORPCError } from "@orpc/server";
 import { type FlowDocumentSaveV1Input, FlowDocumentSaveV1InputSchema, type FlowDocumentV1 } from "@trellis/api";
 import { requireActor, type ServiceCtx } from "../../../context.ts";
-import { readDocumentSaveReceipt, saveDocument } from "../../../db/queries/langflowDocuments";
+import {
+	readDocumentSaveReceipt,
+	readDocumentSaveReceiptsByRef,
+	saveDocument,
+} from "../../../db/queries/langflowDocuments";
 import type { Tx } from "../../../db/tx.ts";
 import { fail } from "../../../errors.ts";
 import { upsert } from "../../actors.ts";
@@ -21,8 +25,13 @@ const requestConflict = (requestId: string) =>
 export const save = async (ctx: ServiceCtx, tx: Tx, value: FlowDocumentSaveV1Input): Promise<FlowDocumentV1> => {
 	const actor = requireActor(ctx);
 	const input = FlowDocumentSaveV1InputSchema.parse(value);
-	const current = await resolveFlow(tx, input.flow);
 	const requestBytes = documentBytes(input);
+	const byRef = await readDocumentSaveReceiptsByRef(tx, input);
+	if (byRef.length > 0) {
+		if (byRef.length !== 1 || !byRef[0]!.requestBytes.equals(requestBytes)) throw requestConflict(input.requestId);
+		return byRef[0]!.receipt;
+	}
+	const current = await resolveFlow(tx, input.flow);
 	const previous = await readDocumentSaveReceipt(tx, { flowId: current.id, requestId: input.requestId });
 	if (previous !== undefined) {
 		if (!previous.requestBytes.equals(requestBytes)) throw requestConflict(input.requestId);

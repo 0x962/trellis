@@ -3,6 +3,7 @@ import type { ServiceCtx } from "../../context";
 import type { lockExecution } from "../../db/queries/langflowExecution/executions";
 import type { Tx } from "../../db/tx";
 import type { DeliveryAuthorityV1, NativeRequestV1 } from "../../langflowContracts";
+import type { DispatchGate } from "../../langflowHost";
 
 export type NativeExecution = Awaited<ReturnType<typeof lockExecution>>;
 
@@ -19,6 +20,8 @@ export type ApprovedNativeOccurrence = {
 };
 
 export type NativeReservationCtx = ServiceCtx & {
+	home: string;
+	dispatchGate: Pick<DispatchGate, "acquire">;
 	// The private transport authenticates this grant before it calls the bridge.
 	nativeAuthority: DeliveryAuthorityV1;
 	resolveOccurrence: (

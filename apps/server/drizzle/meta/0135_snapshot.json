@@ -1,5 +1,5 @@
 {
-  "id": "f16ea2c5-56fd-4dfa-ab49-b5169dfbac5b",
+  "id": "9f26ff6c-5a23-4f7a-905a-c8506c623f6b",
   "prevId": "cac33e12-8481-4af7-b985-147b6fd69046",
   "version": "7",
   "dialect": "postgresql",
@@ -1601,7 +1601,7 @@
       "checkConstraints": {
         "actors_name_check": {
           "name": "actors_name_check",
-          "value": "\"actors\".\"name\" ~ '^[ -~]+$' AND position(':' IN \"actors\".\"name\") = 0"
+          "value": "\"actors\".\"name\" ~ '^[ -~]{1,64}$' AND position(':' IN \"actors\".\"name\") = 0"
         },
         "actors_kind_check": {
           "name": "actors_kind_check",
@@ -9147,6 +9147,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "launch_snapshot_digest": {
+          "name": "launch_snapshot_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "provenance": {
           "name": "provenance",
           "type": "jsonb",
@@ -9226,6 +9232,10 @@
       },
       "policies": {},
       "checkConstraints": {
+        "langflow_native_snapshot_digest": {
+          "name": "langflow_native_snapshot_digest",
+          "value": "\"langflow_native_handles\".\"launch_snapshot_digest\" ~ '^[0-9a-f]{64}$'"
+        },
         "langflow_native_task_digest": {
           "name": "langflow_native_task_digest",
           "value": "\"langflow_native_handles\".\"task_digest\" = encode(sha256(convert_to(\"langflow_native_handles\".\"task_key\", 'UTF8')), 'hex')"
