@@ -549,7 +549,7 @@ An image accepts PNG, JPEG, GIF, WebP, or AVIF.
 The API is `resources.add`, `resources.list`, `resources.update`, and
 `resources.remove`. The routes are `POST /api/resources`,
 `GET /api/resources?epic=<EpicRef>`, `PATCH /api/resources/{id}`, and
-`DELETE /api/resources/{id}`. `PATCH` changes a document body only. The blob
+`DELETE /api/resources/{id}`. `PATCH` changes a document name or body. The blob
 route is `GET /api/resources/{id}/blob`.
 
 Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
