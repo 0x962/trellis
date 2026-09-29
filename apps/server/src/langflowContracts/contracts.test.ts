@@ -27,6 +27,7 @@ const schemas = {
 	"review-classification-visit": contracts.ReviewClassificationVisitV1Schema,
 	"review-wait": contracts.ReviewWaitV1Schema,
 	"review-external-wait": contracts.ExternalWaitV1Schema,
+	"native-reservation-wait": contracts.ExternalWaitV1Schema,
 	"review-classification-result": contracts.ReviewClassificationResultV1Schema,
 	"review-classification-response": contracts.ReviewClassificationResponseV1Schema,
 	"review-classification-delivery": contracts.ReviewClassificationDeliveryV1Schema,
