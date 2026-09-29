@@ -6,9 +6,8 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "bas
 
 export const visibleTabName = (tab: NamedTab) => tab.customTitle ?? tab.title;
 
-// Tabs that share a region are contiguous in the list. The sort reorders the tabs inside each
-// contiguous run of one region and keeps the runs in their original order, so a tab never crosses
-// a region boundary. Array.prototype.sort is stable, so tabs with equal names keep their order.
+// The caller must keep tabs with the same regionOf value together.
+// Array.prototype.sort preserves the order of names that compare as equal.
 export const sortTabs = <T extends NamedTab>(
 	tabs: readonly T[],
 	direction: PageTabSortDirection,

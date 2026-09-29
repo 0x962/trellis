@@ -57,9 +57,8 @@ const tab = (id: string, page: PageTabPage): PageTab => ({
 	forwardHistory: [],
 });
 
-// state.tabs holds the pinned prefix, then one contiguous block per group, then the ungrouped tail.
-// A pinned tab has no group. The region of a tab names the run it belongs to, and a sort reorders
-// tabs inside one run only.
+// sortTabs requires pinned tabs first, each group together, and ungrouped tabs last.
+// A pinned tab must not have a groupId.
 export const pageTabRegion = (tab: PageTab & { pinned?: boolean; groupId?: string }) =>
 	tab.pinned ? "pinned" : tab.groupId ? `group:${tab.groupId}` : "";
 
