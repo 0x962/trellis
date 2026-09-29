@@ -6,7 +6,8 @@ Press **Run mounted checks** to exercise the mounted production component.
 The output lists each passed assertion. A failed assertion throws its name.
 
 The checks cover selection, keyboard focus, day folds, ARIA ownership, new arrivals, scroll retention, dot targets, width, and the isolated embed.
-Use **Add update** during a manual check of long content. Select **empty**, **paused**, or **failed** to inspect those states.
+The additional history checks load 1,000 updates, jump to the last row, preserve distant selection on arrival, and retry an empty failed read.
+Use **Add update** during a manual check of long content. Select **empty**, **paused**, **failed**, or **history-error** to inspect those states.
 Repeat at 320 pixels and in both themes. Use the actual viewport width for the narrow check.
 The fixture uses synthetic updates and a small Markdown renderer. The app supplies its existing Markdown renderer.
 The fixture does not call a provider or prove installed behavior.

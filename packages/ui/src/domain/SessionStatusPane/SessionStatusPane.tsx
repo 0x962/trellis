@@ -1,6 +1,7 @@
 import { EmptyState } from "../../primitives/EmptyState";
 import { ScrollArea } from "../../primitives/ScrollArea";
 import { FailureState } from "../FailureState";
+import { HistoryControls } from "./components/HistoryControls";
 import { StatusTimeline } from "./components/StatusTimeline";
 import { SessionStatusPaneShell } from "./SessionStatusPaneShell";
 import { sessionStatusNotice } from "./sessionStatusText";
@@ -51,14 +52,9 @@ export function SessionStatusPane({
 							/>
 						</>
 					) : (
-						<StatusTimeline
-							updates={history}
-							now={now}
-							renderMarkdown={renderMarkdown}
-							onOpenLink={onOpenLink}
-							historyControl={historyControl}
-						/>
+						<StatusTimeline updates={history} now={now} renderMarkdown={renderMarkdown} onOpenLink={onOpenLink} />
 					)}
+					<HistoryControls historyControl={historyControl} />
 					<details className="mt-auto text-xs leading-relaxed text-fg-faint">
 						<summary className="flex min-h-7 w-fit cursor-pointer items-center rounded-sm text-fg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 max-md:min-h-11">
 							How updates work

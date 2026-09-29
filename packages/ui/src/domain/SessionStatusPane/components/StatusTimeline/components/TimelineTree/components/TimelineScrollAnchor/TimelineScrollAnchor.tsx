@@ -1,6 +1,6 @@
 import { Component, createRef, type ReactNode } from "react";
 
-type Props = { revision: string; children: ReactNode };
+type Props = { revision: unknown; children: ReactNode };
 type Snapshot = { element: HTMLElement; top: number; viewport: HTMLElement; scrollTop: number } | null;
 
 export class TimelineScrollAnchor extends Component<Props> {
@@ -10,10 +10,13 @@ export class TimelineScrollAnchor extends Component<Props> {
 		if (previous.revision === this.props.revision) return null;
 		const viewport = this.content.current?.closest<HTMLElement>(".overflow-auto");
 		if (!viewport) return null;
-		const top = viewport.getBoundingClientRect().top;
-		const element = [
-			...this.content.current!.querySelectorAll<HTMLElement>("[data-update-id], [aria-expanded] > [data-row-head]"),
-		].find((row) => row.getBoundingClientRect().bottom > top);
+		const bounds = viewport.getBoundingClientRect();
+		const element = [...this.content.current!.querySelectorAll<HTMLElement>("[data-update-id], [data-day-head]")].find(
+			(row) => {
+				const rect = row.getBoundingClientRect();
+				return rect.bottom > bounds.top && rect.top < bounds.bottom;
+			},
+		);
 		return element
 			? { element, top: element.getBoundingClientRect().top, viewport, scrollTop: viewport.scrollTop }
 			: null;

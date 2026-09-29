@@ -1,7 +1,12 @@
+import { Play, Plus, Sun } from "@phosphor-icons/react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { SessionStatusPane, type SessionUpdate } from "../../../src/domain/SessionStatusPane";
-import { runChecks } from "../runChecks";
+import { IconButton } from "../../../src/primitives/IconButton";
+import { Select } from "../../../src/primitives/Select";
+import { Tooltip } from "../../../src/primitives/Tooltip";
+import { runChecks } from "./components/runChecks";
+import { runHistoryChecks } from "./components/runHistoryChecks";
 
 const now = new Date(2026, 8, 29, 14, 45).toISOString();
 const initial: SessionUpdate[] = Array.from({ length: 12 }, (_, index) => ({
@@ -44,36 +49,60 @@ export function Fixture() {
 		<main className="flex min-h-screen flex-col gap-3 bg-bg p-3 text-fg">
 			<h1>Session timeline fixture</h1>
 			<div className="flex flex-wrap gap-3">
-				<button type="button" onClick={add}>
-					Add update
-				</button>
-				<button
-					type="button"
-					onClick={() => {
-						document.documentElement.dataset.theme =
-							document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-					}}
-				>
-					Theme
-				</button>
-				<select aria-label="Fixture state" value={mode} onChange={(event) => setMode(event.target.value)}>
-					{["ready", "empty", "paused", "failed"].map((value) => (
-						<option key={value}>{value}</option>
-					))}
-				</select>
-				<button
-					type="button"
-					onClick={() => {
-						flushSync(() => {
-							setMode("ready");
-							setGeneration((value) => value + 1);
-							setUpdates(initial);
-						});
-						setResult(JSON.stringify(runChecks(add)));
-					}}
-				>
-					Run mounted checks
-				</button>
+				<Tooltip content="Add update">
+					<IconButton label="Add update" className="max-md:size-11" icon={<Plus />} onClick={add} />
+				</Tooltip>
+				<Tooltip content="Theme">
+					<IconButton
+						label="Theme"
+						className="max-md:size-11"
+						icon={<Sun />}
+						onClick={() => {
+							document.documentElement.dataset.theme =
+								document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+						}}
+					/>
+				</Tooltip>
+				<Select
+					label="Fixture state"
+					value={mode}
+					onValueChange={setMode}
+					items={["ready", "empty", "paused", "failed", "history-error"].map((value) => ({ value, label: value }))}
+				/>
+				<Tooltip content="Run mounted checks">
+					<IconButton
+						label="Run mounted checks"
+						className="max-md:size-11"
+						icon={<Play />}
+						onClick={() => {
+							flushSync(() => {
+								setMode("ready");
+								setGeneration((value) => value + 1);
+								setUpdates(initial);
+							});
+							const checks = runChecks(add);
+							checks.push(
+								...runHistoryChecks(
+									() => {
+										setGeneration((value) => value + 1);
+										setUpdates(
+											Array.from({ length: 1000 }, (_, index) => ({
+												...initial[0]!,
+												id: `history-${index}`,
+												createdAt: new Date(Date.parse(now) - index * 60_000).toISOString(),
+												body: `## Retained update ${index}`,
+												embeds: [],
+											})),
+										);
+									},
+									() => setMode("history-error"),
+									add,
+								),
+							);
+							setResult(JSON.stringify(checks));
+						}}
+					/>
+				</Tooltip>
 			</div>
 			<output aria-label="Mounted results" className="max-h-24 overflow-auto break-words">
 				{result}
@@ -82,10 +111,17 @@ export function Fixture() {
 				<SessionStatusPane
 					key={generation}
 					updates={{
-						latest: mode === "empty" ? null : updates[0]!,
+						latest: mode === "empty" || mode === "history-error" ? null : updates[0]!,
 						previous: updates[1]!,
-						history: mode === "empty" ? [] : updates,
+						history: mode === "empty" || mode === "history-error" ? [] : updates,
 						request: null,
+					}}
+					historyControl={{
+						hasMore: false,
+						loading: false,
+						error: mode === "history-error",
+						load() {},
+						retry: () => setMode("empty"),
 					}}
 					processState={mode === "paused" ? "paused" : "active"}
 					now={now}

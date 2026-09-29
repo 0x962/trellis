@@ -1,8 +1,8 @@
 import { type MouseEvent, type ReactNode, useMemo } from "react";
-import { cx } from "../../../../utils/cx";
-import { type LinkPress, linkPress } from "../../../../utils/linkPress";
-import type { SessionUpdate } from "../../types";
-import { SessionStatusEmbed } from "../SessionStatusEmbed";
+import { cx } from "../../../../../../../../../../utils/cx";
+import { type LinkPress, linkPress } from "../../../../../../../../../../utils/linkPress";
+import type { SessionUpdate } from "../../../../../../../../types";
+import { SessionStatusEmbed } from "../../../../../../../SessionStatusEmbed";
 
 const messageClass = cx(
 	"text-md text-fg [overflow-wrap:anywhere]",

@@ -33,7 +33,7 @@ export function runChecks(add: () => void) {
 	key("End");
 	assert(document.activeElement === row("update-11"), "End reaches last update");
 	key("Home");
-	assert(document.activeElement === tree.firstElementChild, "Home reaches first day");
+	assert(document.activeElement === tree.querySelector('[role="treeitem"][aria-level="1"]'), "Home reaches first day");
 	flushSync(() => row("update-0").click());
 	const viewport = tree.closest<HTMLElement>(".overflow-auto")!;
 	assert(

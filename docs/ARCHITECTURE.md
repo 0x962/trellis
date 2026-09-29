@@ -764,7 +764,10 @@ The session update pane groups retained updates by local calendar day, newest fi
 The tree keeps one selected update open with its Markdown and isolated embeds.
 Arrow keys move tree focus and fold days. Enter or Space selects an update.
 New updates announce availability without changing selection, focus, or the visible scroll anchor.
-`sessionUpdates.get` accepts an optional `history.before` cursor with `createdAt` and `id`.
+`sessionUpdates.get` accepts `history: { include: true }` for the first history page.
+REST clients send `history[include]=true`. Later pages also supply `history.before` with `createdAt` and `id`.
+The tree mounts the visible rows and retains the selected update and focused row.
+History read failures expose Retry, including when the saved history is empty.
 History pages contain up to 50 updates and a nullable `nextCursor`; the original `latest`, `previous`, and `request` fields remain available.
 
 ### Harness accounts

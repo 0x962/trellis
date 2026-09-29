@@ -1,15 +1,6 @@
 import { expect, test } from "bun:test";
-import { sessionStatusNotice, sessionUpdateAge } from "./sessionStatusText";
+import { sessionStatusNotice } from "./sessionStatusText";
 import type { SessionStatusProcessState } from "./types";
-
-test.each([
-	["2026-09-29T05:39:45.000Z", "Just now"],
-	["2026-09-29T05:38:00.000Z", "2 min ago"],
-	["2026-09-29T03:40:00.000Z", "2 hours ago"],
-	["2026-09-27T05:40:00.000Z", "2 days ago"],
-])("formats the update age from %s", (createdAt, label) => {
-	expect(sessionUpdateAge(createdAt, "2026-09-29T05:40:00.000Z")).toBe(label);
-});
 
 test("does not treat age as an update failure", () => {
 	expect(

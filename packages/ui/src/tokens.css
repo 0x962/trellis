@@ -493,6 +493,7 @@
 	--radius-xl: 16px;
 	--radius-round: 999px;
 	--border-width-hairline: 1px;
+	--layer-sticky-content: 10;
 
 	/* Brushed silver, for the one filled control. The gradient runs top to
 	   bottom across a narrow range, so the face reads as metal without
