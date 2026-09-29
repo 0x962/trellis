@@ -10,6 +10,8 @@ import {
 export const NativeVisitSchema = z.strictObject({
 	engineNodeId: z.string().min(1),
 	requestBytes: z.string(),
+	engineWaitId: z.uuid(),
+	waitBytes: z.string(),
 	occurrence: OccurrenceV1Schema,
 	scope: z.strictObject({
 		inputReceiptIds: z.array(ReferenceSchema),

@@ -42,6 +42,8 @@ export async function occurrenceFixture(omitModel = false) {
 	const visit: NativeVisit = {
 		engineNodeId: "vertex",
 		requestBytes: JSON.stringify(request),
+		engineWaitId: "00000000-0000-4000-8000-000000000099",
+		waitBytes: JSON.stringify({ kind: "native_reservation", waitId: "00000000-0000-4000-8000-000000000099", request }),
 		occurrence: {
 			nodeId: request.nodeId, occurrenceKey: request.occurrenceKey,
 			parentOccurrenceKey: request.parentOccurrenceKey, phase: request.phase, iterationPath: request.iterationPath,
