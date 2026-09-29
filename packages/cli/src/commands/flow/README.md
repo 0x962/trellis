@@ -58,7 +58,7 @@ It excludes credentials, request headers, environment values, provider conversat
 | Agent instructions | `packages/api/src/agentGuide/template.md`, `apps/server/src/services/brief/flowLines.ts` | Flow selection, reuse, repeat rules, local timeout |
 | Web discovery/editor | `apps/web/src/features/flows/` | Legacy list/get/create/update/save/delete calls |
 | Web review actions | `apps/web/src/features/reviews/FlowRuns/` | List/start/decision/cancel and legacy run trees |
-| Shared RPC client | `packages/api/src/client.ts` | `TrellisClient` derives from the registered contract |
+| Shared RPC client | `packages/api/src/client.ts` | `TrellisClient` types legacy calls and declared V1 calls |
 | External HTTP callers | `apps/server/src/app.ts` | OpenAPI surface exists; caller identities remain unknown |
 | Mobile source | `apps/mobile/src/` | No direct `flows.*` or `flowExecutions.*` caller found |
 | Repository MCP config | `.mcp.json` | Absent |
