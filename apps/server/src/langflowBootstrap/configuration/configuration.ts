@@ -1,6 +1,8 @@
 import { isAbsolute } from "node:path";
 import { z } from "zod";
 import { QualificationRuntimeSchema } from "../../../../../integrations/langflow/release";
+import { AuthorityLeasePolicySchema } from "../../langflowHost";
+import { DeliveryAuthorityV1Schema } from "../../langflowContracts";
 import { readPrivateConfiguration } from "../privateConfiguration";
 
 const path = z.string().refine(isAbsolute, "An absolute path is required.");
@@ -22,6 +24,8 @@ export const LangflowBootstrapConfigurationSchema = z.strictObject({
 	editorOrigin: origin,
 	engineApiConfigFile: path,
 	captureIssuerFile: path,
+	authorityPolicy: AuthorityLeasePolicySchema,
+	authorityPermissions: DeliveryAuthorityV1Schema.shape.permissions,
 	grantDurationMs: z.number().int().positive().optional(),
 }).refine((value) => value.parentOrigin !== value.editorOrigin, "The editor requires a separate origin.");
 

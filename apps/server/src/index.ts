@@ -163,9 +163,9 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			clearTimer: pageClock.clearTimer,
 			log: (message, fields) => log.info(message, fields),
 		});
-		const langflow = await startLangflowBootstrap(config, transport);
+		const langflow = await startLangflowBootstrap(config, transport, (message, fields) => log.info(message, fields));
 		const { app, bye } = createApp({
-			config, log, transport, bus, runtime, gh: ghState,
+			config, log, transport: langflow?.transport ?? transport, bus, runtime, gh: ghState,
 			editor: langflow?.editor,
 			nativeReservations: langflow?.nativeReservations,
 		});

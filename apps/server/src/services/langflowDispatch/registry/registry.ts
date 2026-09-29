@@ -11,8 +11,26 @@ import { nativeReservationState } from "../nativeReservationState";
 import { prepareNativeReservation } from "../prepareNativeReservation";
 import * as editorSessions from "../../langflowEditorSessions";
 import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
+import { decisionState } from "../../langflowDecisions";
+import { runtimeState, runtimeAcknowledge } from "../../langflowNative/runtime";
+import { projectionState, applyEngineObservation, projectionRecovery } from "../../langflowProjection";
+import { startState } from "../../langflowStart";
+import { stopState } from "../../langflowStops";
+import { nativeRuntimeWorker } from "../nativeRuntimeWorker";
+import { authorityExecutions } from "../authorityExecutions";
 
 export const flowServices = {
+	"langflowHost.executions": io("read", authorityExecutions),
+	"langflowStart.state": core("mutation", startState),
+	"langflowDecisions.state": core("mutation", decisionState),
+	"langflowStops.state": core("mutation", stopState),
+	"langflowNative.runtimeState": core("read", runtimeState),
+	"langflowNative.runtimeAcknowledge": core("mutation", runtimeAcknowledge),
+	"langflowNative.runtimeObserve": prepared("mutation", nativeRuntimeWorker.observe, agentTerminal.result),
+	"langflowNative.runtimeRecover": prepared("mutation", nativeRuntimeWorker.recover, agentTerminal.result),
+	"langflowProjection.state": core("read", projectionState),
+	"langflowProjection.apply": core("mutation", applyEngineObservation),
+	"langflowProjection.recovery": core("read", projectionRecovery),
 	"langflowNative.reservationState": io("read", nativeReservationState),
 	"langflowNative.reserve": prepared("mutation", prepareNativeReservation, agentTerminal.result),
 	"langflowHost.authority": prepared("mutation", langflowDispatch.hostAuthority, agentTerminal.result),
