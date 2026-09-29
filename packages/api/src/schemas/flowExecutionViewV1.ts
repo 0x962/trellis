@@ -20,7 +20,8 @@ const commit = z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/);
 export const FlowExecutionIdentityV1Schema = z.strictObject({ id: UlidSchema, engine: FlowEngineV1Schema });
 export type FlowExecutionIdentityV1 = z.infer<typeof FlowExecutionIdentityV1Schema>;
 export const FlowExecutionListV1InputSchema = FlowExecutionListInputSchema.extend({
-	limit: z.number().int().positive().optional(),
+	limit: z.coerce.number().int().positive().optional(),
+	offset: z.coerce.number().int().nonnegative().optional(),
 });
 export type FlowExecutionListV1Input = z.infer<typeof FlowExecutionListV1InputSchema>;
 export const FlowOccurrenceIdentityV1Schema = z.strictObject({
