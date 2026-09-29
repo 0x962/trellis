@@ -32,6 +32,7 @@ export async function prepareAttempt(
 		input.token ?? null,
 		input.timeoutMs ?? null,
 		sessionId ?? null,
+		...(input.textOnly === undefined ? [] : [input.textOnly]),
 		env,
 		options.bun,
 		options.runtime.socketPath,
@@ -53,6 +54,8 @@ export async function prepareAttempt(
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
+	const systemPath = join(configDirectory, "system.txt");
+	if (input.textOnly) await writeFile(systemPath, input.textOnly.system, { mode: 0o600 });
 	const cwd = input.cwd;
 	if (input.harness === "claude") await claudeTrust(cwd, env, options.agentsDirectory, options.log);
 	const common = {
@@ -63,14 +66,18 @@ export async function prepareAttempt(
 		effort: input.effort,
 		configDirectory,
 		hookCommand,
+		...(input.textOnly ? { textOnly: { systemPath } } : {}),
 	};
 	const launch = await providers[input.harness].prepare(
-		sessionId === undefined ? { ...common, resume: false } : { ...common, resume: true, sessionId },
+		sessionId === undefined
+			? { ...common, resume: false, ...(input.textOnly ? { sessionId: input.textOnly.sessionId } : {}) }
+			: { ...common, resume: true, sessionId },
 	);
 	const descriptor: HarnessDescriptor = {
 		harness: input.harness,
 		prompt: input.prompt,
-		sessionId,
+		sessionId: sessionId ?? input.textOnly?.sessionId,
+		...(input.textOnly ? { textOnly: true as const } : {}),
 		fingerprint,
 		...(input.effort === undefined ? {} : { effort: input.effort }),
 		spec: {

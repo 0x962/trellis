@@ -9,10 +9,14 @@ import {
 	FlowExecutionStartInputSchema,
 } from "../schemas/flowExecution.ts";
 import { base } from "./base.ts";
+import { flowDocumentV1Errors } from "./flowDocumentsV1.ts";
 export const flowExecutions = {
 	start: base
 		.route({ method: "POST", path: "/flow-executions", summary: "Start a native flow for a ticket" })
-		.errors(pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT", "FLOW_NOT_IN_PROJECT"]))
+		.errors({
+			...pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT", "FLOW_NOT_IN_PROJECT"]),
+			FLOW_UNSUPPORTED_FORMAT: flowDocumentV1Errors.FLOW_UNSUPPORTED_FORMAT,
+		})
 		.input(FlowExecutionStartInputSchema)
 		.output(FlowExecutionSchema),
 	get: base

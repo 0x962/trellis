@@ -8,7 +8,25 @@ This gate does not block a Trellis-only release of unrelated fixes.
 The merged source contains useful contracts and fixtures, but it does not establish all required engine behavior.
 TRL-674 remains In Progress. A source merge does not complete a feasibility parent.
 
-## Latest integrated results
+## Current decisions and evidence
+
+Navid delegates D1, D13, and D15 through the coordinator in message `47a14203-5f37-4f7e-b230-8888b3500f02`.
+Project note `01M3QANZR50GFPPAA20W1ADENE` records these decisions.
+They remove the remaining engineering approval queue. They waive no technical proof or release requirement.
+
+The PR 663 matched batch reports fifteen passes, one loop failure, and three PostgreSQL skips.
+The frozen Review v71 fixture passes exact branch, group, and private output comparisons.
+The loop fails with `KeyError: feedbackPath` before its combined assertion completes.
+The candidate retains `runs/semantics-4a46a87d/result.json` and its command, log, and restoration records.
+The verified log digest is `1325b5a8526af508232044e6fc7b4f679725761d6c5ef767b76471d24c4e43bc`.
+The later diagnostic passes, but it changes both tracing and test selection. It does not replace the failed suite result.
+
+PR 612 adds three passing native cancellation cases and 64 assertions.
+Engine cancellation remains open: TRL-669 owns completion transaction ordering against cancellation.
+The authorized OrbStack start succeeds, but Docker socket checks time out. TRL-685 owns host diagnosis.
+No OCI isolation result or rendered editor acceptance follows from these receipts.
+
+## Earlier integrated results
 
 This section records the repaired batches. The sections marked “First batch” below preserve earlier results.
 No required engineering probe passes its complete acceptance condition yet.
@@ -56,7 +74,7 @@ The fixture records forty events. Its manifests and focused type check pass.
 The candidate retains this evidence under `runs/editor-ab6f56dd`.
 
 HTTP acceptance does not establish browser acceptance. TRL-672 owns the separate rendered proof.
-Linux OCI isolation remains unproved. The stopped shared engine awaits host-owner release.
+Linux OCI isolation remains unproved. The current engine availability result appears above.
 
 ## First batch: source and authority
 
@@ -191,11 +209,11 @@ The source tree, empty tracked/untracked status, lockfile, and Python inventory 
 
 ## Decisions D1-D20
 
-The delivery delegation permits routine engineering decisions. It does not supply missing human acceptance or platform proof.
+The delivery delegation supplies the engineering decisions below. It does not establish runtime or platform proof.
 
 | Decision | Disposition |
 | --- | --- |
-| D1: maintained backend patch | Human acceptance remains open after the technical assessment. Current source does not pass feasibility. |
+| D1: maintained backend patch | Proceed with the bounded maintained backend patch under Navid's delegation. Every required engine proof remains mandatory. No further engineering approval queue applies. |
 | D2: editor mount | Navid selects the full Langflow editor inside the Trellis workspace. Note `01M3Q242R632TB5G9CSYVX909R` records the choice. |
 | D3: save concurrency | Keep the public V1 `expectedVersion` and request-identity contract. |
 | D4: format compatibility | Keep versioned endpoints and explicit unsupported legacy writes. |
@@ -207,9 +225,9 @@ The delivery delegation permits routine engineering decisions. It does not suppl
 | D10: historical deletion | Preserve current cascade behavior. No stronger retention promise. |
 | D11: missing history | Preserve available bytes and explicit missing-data diagnostics. |
 | D12: runtime and isolation | The delegated choice selects Linux OCI arm64 on existing local Docker first, then Linux OCI x86_64 in existing hosted CI. Keep CPython 3.12.12 and the immutable source/lock. Both targets remain unproved. The direct macOS Python candidate fails full filesystem isolation and is not an accepted boundary. |
-| D13: event retention | Event cursor lifetime and storage budget remain open. Token streams stay outside milestone retention. |
+| D13: event retention | Preserve all durable execution milestones and receipts through the existing execution and history lifecycle. Cursor availability follows retained records. Add no arbitrary event ceiling or silent prune. Keep token streams separate. |
 | D14: Review prompts | Preserve Review v71 instructions and independent roots. |
-| D15: client scope | Preserve desktop and narrow web. Native-mobile addition remains unapproved. The named external-client inventory remains open. |
+| D15: client scope | Complete the actual inventory for desktop, narrow web, CLI, and agent CLI consumers. Native-mobile flow UI stays outside this replacement. Inventory completion remains engineering work, not an approval request. |
 | D16: cutover and rollback | Principal selects the release window after restore proof. Drain existing legacy runs and unresolved stops. |
 | D17: decision ledger | Preserve atomic acceptance, resume signal, obligation, and exact lookup. Require ENG-F20 proof. |
 | D18: engine authority | Preserve compare-and-set transfer and immutable launch provenance. Require ENG-F21 proof. |

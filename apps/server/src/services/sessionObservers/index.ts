@@ -14,6 +14,9 @@ export { failSessionObserverGeneration } from "./failSessionObserverGeneration";
 export { get } from "./get";
 export { history } from "./history";
 export { linkSessionObserverRun } from "./linkRun";
+export { lockEnabledObserver } from "./lockEnabledObserver/index.ts";
+export { observerClaimIsActive } from "./observerClaimIsActive/index.ts";
+export { observerMembership } from "./observerMembership/index.ts";
 export {
 	emptySessionObserver,
 	listSessionObserverCandidates,
@@ -24,6 +27,7 @@ export {
 	sessionObserverByRun,
 	sessionObserverMessages,
 } from "./queries";
+export { readObserverSummaryBody } from "./readObserverSummaryBody/index.ts";
 export { readSessionObserverSummaryForClaim } from "./readSummary";
 export {
 	type RecoveredSessionObserverGeneration,

@@ -60,12 +60,12 @@ A repeated call returns that receipt and preserves every dependent record.
 ## Retained verification gaps
 
 The database adapter uses permanent aliases, closed-admission association, and durable delivery obligations.
-Its declaration-based database fixtures require separate production migration proof.
+Its database fixtures use the production migrations through `openTestDb`.
 The legacy start route remains active.
 
 `reserve/reserve.test.ts` uses the existing project, ticket, flow, and diff queries with an in-memory receipt store.
 `reconcile/reconcile.test.ts` checks transaction order and recovery through simulated store and engine ports.
-`databaseStore/databaseStore.test.ts` uses the actual receipt queries with declared tables and a simulated engine.
+`databaseStore/databaseStore.test.ts` uses the actual receipt queries with migrated tables and a simulated engine.
 These fixtures do not establish real-engine or installed-host proof.
 The required commands run after the combined merge:
 

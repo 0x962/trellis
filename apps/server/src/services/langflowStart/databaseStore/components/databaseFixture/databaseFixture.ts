@@ -4,14 +4,7 @@ import { ulid } from "ulid";
 import { node } from "../../../../../agents/nativeFlow/testDoc.ts";
 import type { ServiceCtx } from "../../../../../context.ts";
 import { createCache } from "../../../../../db/cache.ts";
-import { tableSql } from "../../../../../db/queries/langflowExecution/fixtures/schema.ts";
 import { langflowDocumentPublications, langflowDocumentRevisions } from "../../../../../db/tables/langflowDocuments";
-import {
-	langflowExecutionProjections,
-	langflowExecutions,
-	langflowOutbox,
-	langflowStartReceipts,
-} from "../../../../../db/tables/langflowExecution";
 import { openTestDb } from "../../../../../db/testDb.ts";
 import type { Tx } from "../../../../../db/tx.ts";
 import { create as createFlow } from "../../../../flows/flows.ts";
@@ -25,15 +18,6 @@ import { databaseStore } from "../..";
 export async function databaseFixture() {
 	const db = await openTestDb();
 	const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
-	for (const table of [
-		langflowDocumentRevisions,
-		langflowDocumentPublications,
-		langflowExecutions,
-		langflowStartReceipts,
-		langflowOutbox,
-		langflowExecutionProjections,
-	])
-		await db.$client.exec(tableSql(table));
 	const at = new Date("2026-09-29T06:00:00Z");
 	const projectId = ulid();
 	await db.execute(

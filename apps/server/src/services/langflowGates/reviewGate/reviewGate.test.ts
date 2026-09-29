@@ -4,14 +4,12 @@ import { classificationStore } from "../../../db/queries/langflowExecution/class
 import { cancelExecution } from "../../../db/queries/langflowExecution/stops.ts";
 import { openTestDbFromArchive } from "../../../db/testDb.ts";
 import { testFixture } from "../../flowExecutions/testFixture";
-import { createTables } from "./components/createTables";
 import { gateFixture } from "./components/fixture";
 import { reviewGate } from "./reviewGate.ts";
 
 let h: Awaited<ReturnType<typeof testFixture>>;
 beforeAll(async () => {
 	h = await testFixture();
-	await createTables(h.db);
 }, 30_000);
 afterAll(async () => {
 	await h.db.$client.close();
