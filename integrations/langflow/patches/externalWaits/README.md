@@ -220,6 +220,22 @@ Cancellation terminalizes active visits without changing an earlier completed, f
 Group and loop owners call the same projection functions after their authoritative graph state changes.
 The helper does not select successors or create a second scheduler.
 
+## Container history
+
+Apply `0008-container-lifecycle-history.patch` after the group, loop, projection, and lifecycle fragments.
+Each group occurrence keeps its exact occurrence, source metadata, lifecycle projection, and ordered receipt identities.
+Each loop round keeps a separate row with the same facts.
+Later rounds do not replace earlier rows.
+
+The compiler copies the source node ID, title, instructions, and action identity into each engine node.
+The group and loop components archive that metadata when the engine opens the occurrence.
+The group output receipt closes a group occurrence.
+The condition receipt closes one loop round.
+
+`JobScopedCheckpointStore.save` calls `JobService.save_graph_projection_checkpoint`.
+That method locks the Job row and writes the graph plus projection snapshot in one transaction.
+Failed and canceled jobs close active container rows before the terminal projection snapshot.
+
 Apply `0003-native-completion-obligation-consumer.patch` after the native engine API patch.
 It adds this service interface:
 

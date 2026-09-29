@@ -119,7 +119,7 @@
 			"source": {
 				"root": "trellis",
 				"path": "integrations/langflow/components/groupScope/groupScope.py",
-				"sha256": "31a5abd4ba938163e25975551a09496d65bda074da0478fa79399f667f1831f3"
+				"sha256": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6"
 			},
 			"sourceDependencies": [
 				{
@@ -171,6 +171,11 @@
 					"root": "trellis",
 					"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
 					"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415"
+				},
+				{
+					"root": "trellis",
+					"path": "integrations/langflow/patches/externalWaits/0008-container-lifecycle-history.patch",
+					"sha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d"
 				}
 			],
 			"qualification": "source-only",
@@ -233,7 +238,7 @@
 			"source": {
 				"root": "trellis",
 				"path": "integrations/langflow/components/groupScope/groupScope.py",
-				"sha256": "31a5abd4ba938163e25975551a09496d65bda074da0478fa79399f667f1831f3"
+				"sha256": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6"
 			},
 			"sourceDependencies": [
 				{
@@ -285,6 +290,11 @@
 					"root": "trellis",
 					"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
 					"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415"
+				},
+				{
+					"root": "trellis",
+					"path": "integrations/langflow/patches/externalWaits/0008-container-lifecycle-history.patch",
+					"sha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d"
 				}
 			],
 			"qualification": "source-only",
@@ -347,7 +357,7 @@
 			"source": {
 				"root": "trellis",
 				"path": "integrations/langflow/components/groupScope/groupScope.py",
-				"sha256": "31a5abd4ba938163e25975551a09496d65bda074da0478fa79399f667f1831f3"
+				"sha256": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6"
 			},
 			"sourceDependencies": [
 				{
@@ -399,6 +409,11 @@
 					"root": "trellis",
 					"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
 					"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415"
+				},
+				{
+					"root": "trellis",
+					"path": "integrations/langflow/patches/externalWaits/0008-container-lifecycle-history.patch",
+					"sha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d"
 				}
 			],
 			"qualification": "source-only",
@@ -461,7 +476,7 @@
 			"source": {
 				"root": "trellis",
 				"path": "integrations/langflow/components/trellisLoop/trellisLoop.py",
-				"sha256": "f92c9e589bf84f31bcde27922e1c00b2befab10122293cc1ccf228e7ffda64ee"
+				"sha256": "767413979d85404b890c97d622745d656a37de6ea33d51345df7d088f69de560"
 			},
 			"sourceDependencies": [
 				{
@@ -503,6 +518,11 @@
 					"root": "trellis",
 					"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
 					"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415"
+				},
+				{
+					"root": "trellis",
+					"path": "integrations/langflow/patches/externalWaits/0008-container-lifecycle-history.patch",
+					"sha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d"
 				},
 				{
 					"root": "engine",

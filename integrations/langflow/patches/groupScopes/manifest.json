@@ -32,10 +32,10 @@
 	"components": {
 		"integrations/langflow/components/groupScope/__init__.py": "120d5257438ed801bb36010338a233e23920552997ffd9cbcad86b48c2a30ea5",
 		"integrations/langflow/components/groupScope/expansion.py": "66c441d2773f0fd5f7c6e967ef405ffe3eeac36f4b952ba95e0c192afa89593b",
-		"integrations/langflow/components/groupScope/groupScope.py": "31a5abd4ba938163e25975551a09496d65bda074da0478fa79399f667f1831f3"
+		"integrations/langflow/components/groupScope/groupScope.py": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6"
 	},
 	"tests": {
-		"tests/test_group_scope.py": "f872c8aaeec3f342174041d0349687c08c0e673b561aadd992fbd9a488f36af7",
+		"tests/test_group_scope.py": "73bc288a3b339afaa358260c93b67668607bee37c7effca9c44657d1e1968941",
 		"tests/test_group_scope_deadline.py": "0fd7526dc621d8c5390716586b46921381bd295924620ac1f82e25844a80affd",
 		"tests/test_group_scope_reader.py": "00291c655d93b6d4bb00f05e259118a86bbb0b06df5ba1907af49c961919545c",
 		"../../tests/groupScopes/test_expansion.py": "e8ac4d5943a327b81dc7199e32064cb00eb696aa79333bd154e4f03958fc1be3"

@@ -6,6 +6,7 @@ from sqlmodel import select
 
 from langflow.services.database.models.jobs.model import JobStatus
 from langflow.services.trellis_v1.authority import read_authority
+from langflow.services.trellis_v1.container_projection import terminalize_container_history
 from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
 from langflow.services.trellis_v1.native_records import checkpoint
 from langflow.services.trellis_v1.occurrence_models import canonical
@@ -49,6 +50,8 @@ async def save_terminal_projection(session, job, *, failure):
         await save_blob(session, job.job_id, OUTCOME_KIND, outcome_bytes)
     if job.status in {JobStatus.FAILED, JobStatus.TIMED_OUT}:
         await terminalize_active_visits(session, job.job_id, state="failed", error=failure["reason"])
+        await terminalize_container_history(session, job.job_id, state="failed", error=failure["reason"])
     elif job.status == JobStatus.CANCELLED:
         await terminalize_active_visits(session, job.job_id, state="canceled")
+        await terminalize_container_history(session, job.job_id, state="canceled")
     await record_projection_checkpoint(session, job.job_id)
