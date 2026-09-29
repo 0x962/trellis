@@ -42,7 +42,7 @@ export function normalizeNode(data: Data, installed: Data): Data {
 				(typeof supplied.value !== "number" || !Number.isSafeInteger(supplied.value) || supplied.value <= 0)
 			)
 				throw invalid();
-			supplied.value = spec.value;
+			restore(supplied, spec, "value");
 		}
 		for (const key of ["advanced", "password"]) {
 			if (!Object.hasOwn(supplied, key) || (key === "password" && !Object.hasOwn(spec, key))) continue;
