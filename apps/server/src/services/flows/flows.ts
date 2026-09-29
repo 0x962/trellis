@@ -31,7 +31,7 @@ export const get = async (_ctx: ServiceCtx, tx: Tx, input: { flow: string }) =>
 // A slug from the name takes the first free form of `slug`, `slug-2`,
 // `slug-3`, and so on. A slug the caller sends must be free.
 const freeSlug = async (tx: Tx, name: string) => {
-	const base = deriveSlug(name).slice(0, 60).replace(/-+$/, "");
+	const base = deriveSlug(name);
 	const taken = new Set(
 		(await rows<{ slug: string }>(tx, sql`SELECT slug FROM flows WHERE slug LIKE ${`${base}%`}`)).map(
 			(row) => row.slug,
