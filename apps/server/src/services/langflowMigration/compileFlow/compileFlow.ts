@@ -11,14 +11,7 @@ import type {
 	ConversionCompilerInput,
 } from "../conversionCompilerTypes";
 import type { ConversionAssociationV1, ConversionExpansionV1 } from "../conversionIntakeTypes";
-
-const harnessSchema = z.strictObject({
-	preset: z.string().min(1),
-	startCommand: z.string().min(1),
-	resumeCommand: z.string().min(1),
-	model: z.string().min(1),
-	effort: z.string().min(1),
-});
+import { ResolvedConversionHarnessSchema } from "../resolvedConversionHarness";
 
 export const compileFlow = (
 	doc: FlowDoc,
@@ -62,7 +55,7 @@ export const compileFlow = (
 		if (!human) {
 			const inherited = source.harness ?? doc.flow.harness;
 			const policy = input.nativePolicies[source.id];
-			const parsed = harnessSchema.safeParse(policy?.harness);
+			const parsed = ResolvedConversionHarnessSchema.safeParse(policy?.harness);
 			if (
 				!policy ||
 				!parsed.success ||

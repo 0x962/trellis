@@ -155,8 +155,10 @@ Its input requires these fields:
 The package owner supplies verified artifact bytes and identities.
 Each native policy retains `sourceHarness` and its resolved `harness`.
 The compiler compares every explicit source harness value without normalization.
-The resolved harness must contain original commands, model, and effort.
+The resolved harness retains explicit commands and supported model and effort settings.
+`ResolvedConversionHarnessSchema` requires absent effort when the selected harness has no effort setting.
 An absent policy remains unresolved.
+The [trusted policy reader](readTrustedNativePolicies/README.md) binds explicit configuration to source and package digests.
 The source export has no account binding, so the compiler emits no account selection.
 
 `compile({sourceBytes})` returns `ConversionCompileResult`:
