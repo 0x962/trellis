@@ -63,6 +63,7 @@ export function fixture() {
 	};
 	const resultDigest = protocolDigest(JSON.stringify(completion.result));
 	const facts: ProjectionFacts = {
+		workspaceObservations: [],
 		classification: null,
 		native: [
 			{

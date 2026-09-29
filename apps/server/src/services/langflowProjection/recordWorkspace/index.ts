@@ -1,0 +1,1 @@
+export { recordWorkspace } from "./recordWorkspace";
