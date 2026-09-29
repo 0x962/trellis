@@ -1,10 +1,10 @@
 import { executionViewV1Example, publicationV1Example } from "@trellis/api";
-import { classificationStore } from "../../../../db/queries/langflowExecution/classification.ts";
-import { reserveExecution } from "../../../../db/queries/langflowExecution/executions.ts";
-import { protocolDigest } from "../../../../langflowContracts";
-import type { testFixture } from "../../../flowExecutions/testFixture";
-import type { ServiceCtx } from "../../../support.ts";
-import type { ReviewGateInput } from "../reviewGate.ts";
+import { classificationStore } from "../../../../../db/queries/langflowExecution/classification.ts";
+import { reserveExecution } from "../../../../../db/queries/langflowExecution/executions.ts";
+import { protocolDigest } from "../../../../../langflowContracts";
+import type { testFixture } from "../../../../flowExecutions/testFixture";
+import type { ServiceCtx } from "../../../../support.ts";
+import type { ReviewGateInput } from "../../reviewGate.ts";
 
 export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 	const setup = await h.createExecution();
@@ -62,8 +62,15 @@ export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 			createdAt: h.ctx.now,
 		}),
 	);
-	const ctx: Pick<ServiceCtx, "newTx" | "log"> = { newTx: h.run, log: () => {} };
+	const logs: unknown[] = [];
+	const ctx: Pick<ServiceCtx, "newTx" | "log"> = {
+		newTx: h.run,
+		log: (...args) => {
+			logs.push(args);
+		},
+	};
 	return {
+		logs,
 		input,
 		ctx,
 		store: classificationStore,

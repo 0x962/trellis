@@ -4,7 +4,8 @@ import { classificationStore } from "../../../db/queries/langflowExecution/class
 import { cancelExecution } from "../../../db/queries/langflowExecution/stops.ts";
 import { openTestDbFromArchive } from "../../../db/testDb.ts";
 import { testFixture } from "../../flowExecutions/testFixture";
-import { createTables, gateFixture } from "./fixture";
+import { createTables } from "./components/createTables";
+import { gateFixture } from "./components/fixture";
 import { reviewGate } from "./reviewGate.ts";
 
 let h: Awaited<ReturnType<typeof testFixture>>;
@@ -154,6 +155,18 @@ test("cancellation prevents a late provider answer from becoming a gate decision
 	);
 	answer.resolve({ answers: { area: { type: "choice", choice: "both" } } });
 	expect(await work).toMatchObject({ state: "failed", error: "Execution ended before classification completed." });
+	expect(f.logs.at(-1)).toEqual([
+		"flow.review-gate",
+		{
+			executionId: f.input.executionId,
+			receiptId: expect.any(String),
+			gateNodeId: "front",
+			area: "frontend",
+			state: "failed",
+			decision: null,
+			failureKind: "classification_failed",
+		},
+	]);
 });
 
 test("recovery fails an unfinished claim after a database reopen without another provider call", async () => {

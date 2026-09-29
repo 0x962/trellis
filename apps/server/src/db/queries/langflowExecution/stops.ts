@@ -4,6 +4,7 @@ import type { CancelIntentV1, GroupDeadlineV1, StopObligationV1 } from "../../..
 import {
 	langflowDeadlines,
 	langflowExecutions,
+	langflowOutbox,
 	langflowNativeHandles,
 	langflowStops,
 } from "../../tables/langflowExecution";
@@ -62,6 +63,12 @@ export async function cancelExecution(tx: Tx, input: { intent: CancelIntentV1; o
 		.update(langflowExecutions)
 		.set({ cancelIntent: input.intent, revision: row.revision + 1 })
 		.where(eq(langflowExecutions.executionId, row.executionId));
+	await tx.insert(langflowOutbox).values({
+		id: input.intent.requestId,
+		executionId: row.executionId,
+		kind: "cancel",
+		payloadBytes: JSON.stringify(input.intent),
+	});
 	return input.intent;
 }
 export async function updateStop(tx: Tx, input: { expectedRevision: number; obligation: StopObligationV1 }) {
