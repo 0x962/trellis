@@ -40,6 +40,8 @@ The fake store tests exact-byte identity and the barrier interface.
 The composed fixture tests one database correlation, response-loss recovery, terminal lookup, a saved graph wait, and worker suspension.
 It commits admission with the same transaction as the resume signal and queue claim.
 It retains the admission dispatch obligation until the common queue path proves dispatch or prior execution.
+The queue path compares the immutable continuation receipt before it returns a dispatch result.
+Cancellation and a fresh lease do not consume the source obligation.
 The crash fixture kills the engine and fake-native services before and after each admission transaction and before acknowledgements.
 The resumed service clears the wait and records one native effect.
 It sets no engine deadline.

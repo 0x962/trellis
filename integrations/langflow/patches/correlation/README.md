@@ -42,9 +42,13 @@ TRL-668 does not edit TRL-669 methods or anchors.
 TRL-674 must regenerate the combined shared-file hunks from the clean pinned source.
 The combined source uses the exact shared dispatch contract from TRL-669.
 
-`BackgroundExecutionService._enqueue_queued_continuation` returns `dispatched`, `execution_proven`, or `pending_lease`.
+`BackgroundExecutionService._enqueue_queued_continuation` takes the exact job, obligation, and continuation receipt bytes.
+It returns `dispatched`, `execution_proven`, `pending_lease`, or `cancelled`.
+The service first compares the stored continuation receipt with the supplied bytes.
 The service marks an admission obligation only for `dispatched` or `execution_proven`.
 A fresh foreign lease keeps the obligation pending and schedules one retry for its expiry.
+Cancellation does not prove execution and does not consume the admission obligation.
+Startup queue recovery schedules the same retry after a crash that follows executor acceptance and obligation consumption.
 The service cancels and awaits those retry tasks when it stops.
 
 The combined patch needs these upstream calls:

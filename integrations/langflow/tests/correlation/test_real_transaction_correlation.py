@@ -232,6 +232,7 @@ async def test_lost_response_keeps_one_job_and_suspends_before_native_work(
     disposition = await background._enqueue_queued_continuation(
         engine_job_id=JOB_ID,
         enqueue_obligation_id=CONTINUATION.enqueue_obligation_id,
+        continuation_receipt_bytes=admission_commit.continuation_receipt_bytes,
     )
     assert disposition == "dispatched"
     assert background.enqueued == [JOB_ID]
