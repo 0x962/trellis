@@ -48,12 +48,12 @@ class RecordedGate(Component):
 
 	def yes(self) -> Data:
 		if self.decision != "yes":
-			self.stop("yes")
+			self.graph.exclude_branch_conditionally(self.node_id, "yes")
 		return _data(self.node_id, self.recorded_output)
 
 	def no(self) -> Data:
 		if self.decision != "no":
-			self.stop("no")
+			self.graph.exclude_branch_conditionally(self.node_id, "no")
 		return _data(self.node_id, self.recorded_output)
 
 
