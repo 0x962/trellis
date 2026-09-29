@@ -14,4 +14,5 @@ export type DocumentPublisher = {
 	componentManifestHash: string;
 	validate: (document: SavedDocument) => Promise<FlowDiagnosticV1[]>;
 	publish: (document: SavedDocument) => Promise<Publication>;
+	recover?: (document: SavedDocument) => Promise<Publication | null>;
 };

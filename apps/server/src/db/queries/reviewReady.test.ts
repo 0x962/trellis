@@ -93,7 +93,7 @@ for (const engine of ["legacy", "langflow"] as const) {
 			const f = await reviewFixture(db);
 			await f.insertRun(engine, "succeeded");
 			await db.execute(sql`UPDATE pull_requests SET ci_state = 'fail', mergeable = 'conflicting',local_state='not-ready',
-				checks = ${[{ name: "CI", workflow: null, bucket: "fail", link: null }]} WHERE id = ${f.pull}`);
+				checks = ${JSON.stringify([{ name: "CI", workflow: null, bucket: "fail", link: null }])}::jsonb WHERE id = ${f.pull}`);
 			await db.execute(sql`INSERT INTO review_threads (id,pr_id,document,updated_at)
 				VALUES (${ulid()},${f.pull},${{ status: "open" }},${f.at})`);
 			const ticket = await db.transaction((tx) => ticketSummary(tx, f.ticket));

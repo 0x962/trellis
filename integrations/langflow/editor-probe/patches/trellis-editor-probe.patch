@@ -108,6 +108,26 @@ diff --git a/src/controllers/API/queries/_builds/use-get-builds.ts b/src/control
        placeholderData: keepPreviousData,
        refetchOnWindowFocus: false,
        retry: 0,
+diff --git a/src/controllers/API/queries/flows/use-get-flow.ts b/src/controllers/API/queries/flows/use-get-flow.ts
+--- a/src/controllers/API/queries/flows/use-get-flow.ts
++++ b/src/controllers/API/queries/flows/use-get-flow.ts
+@@ -1,3 +1,5 @@
+ import { useQueryClient } from "@tanstack/react-query";
++import { TRELLIS_EDITOR_PROBE } from "@/customization/trellis-editor-probe";
++import { loadTrellisEditorDocument } from "@/customization/trellis-editor-save";
+ import type { useMutationFunctionType } from "@/types/api";
+ import type { FlowType } from "@/types/flow";
+@@ -19,6 +21,10 @@
+   const queryClient = useQueryClient();
+
+   const getFlowFn = async (payload: IGetFlow): Promise<FlowType> => {
++    if (TRELLIS_EDITOR_PROBE) {
++      const flow = await loadTrellisEditorDocument(payload.id);
++      return processFlows([flow]).flows[0];
++    }
+     const response = await api.get<FlowType>(
+       `${getURL(payload.public ? "PUBLIC_FLOW" : "FLOWS")}/${payload.id}`,
+     );
 diff --git a/src/controllers/API/queries/flows/use-patch-update-flow.ts b/src/controllers/API/queries/flows/use-patch-update-flow.ts
 --- a/src/controllers/API/queries/flows/use-patch-update-flow.ts
 +++ b/src/controllers/API/queries/flows/use-patch-update-flow.ts
@@ -190,11 +210,12 @@ diff --git a/src/customization/trellis-editor-save.ts b/src/customization/trelli
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis-editor-save.ts
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,170 @@
 +import type { ReactFlowJsonObject } from "@xyflow/react";
 +import { isAxiosError } from "axios";
 +import { api } from "@/controllers/API/api";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
++import type { FlowType } from "@/types/flow";
 +
 +type PendingTrellisSave = {
 +  autoSavingWasEnabled: boolean;
@@ -208,15 +229,38 @@ new file mode 100644
 +
 +type TrellisSavedDocument = {
 +  revision: number;
-+  flow: Record<string, unknown>;
-+  graphDocument: ReactFlowJsonObject;
++  componentManifestHash: string;
++  flow: Pick<FlowType, "id" | "name" | "description">;
++  graphDocument: NonNullable<FlowType["data"]>;
 +};
 +
 +const acceptedRevisions = new Map<string, number>();
++const componentManifests = new Map<string, string>();
 +const pendingSaves = new Map<string, PendingTrellisSave>();
 +const failedFlows = new Set<string>();
 +const conflictedFlows = new Set<string>();
 +const saveStateListeners = new Set<() => void>();
++
++export const loadTrellisEditorDocument = async (
++  flowId: string,
++): Promise<FlowType> => {
++  const response = await api.get<TrellisSavedDocument>(
++    "/api/trellis-editor/v1/document",
++  );
++  const document = response.data;
++  if (document.flow.id !== flowId) {
++    throw new Error("The editor document belongs to another flow.");
++  }
++  acceptedRevisions.set(flowId, document.revision);
++  componentManifests.set(flowId, document.componentManifestHash);
++  return {
++    ...document.flow,
++    data: document.graphDocument,
++    flow_type: "workflow",
++    locked: false,
++    access_type: "PRIVATE",
++  };
++};
 +
 +const emitSaveState = () => {
 +  for (const listener of saveStateListeners) listener();
@@ -256,9 +300,7 @@ new file mode 100644
 +  const save = {
 +    autoSavingWasEnabled: useFlowsManagerStore.getState().autoSaving,
 +    body,
-+    expectedVersion:
-+      acceptedRevisions.get(flowId) ??
-+      Number(import.meta.env.VITE_TRELLIS_EDITOR_REVISION),
++    expectedVersion: acceptedRevisions.get(flowId)!,
 +    graphDocument,
 +    requestId: crypto.randomUUID(),
 +  };
@@ -277,7 +319,7 @@ new file mode 100644
 +    schemaVersion: 1,
 +    engine: "langflow",
 +    graphDocument: save.graphDocument,
-+    componentManifestHash: import.meta.env.VITE_TRELLIS_COMPONENT_MANIFEST_HASH,
++    componentManifestHash: componentManifests.get(flowId)!,
 +  });
 +  return response.data as TrellisSavedDocument;
 +};
