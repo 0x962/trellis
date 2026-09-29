@@ -17,8 +17,8 @@ const bootstrap = {
 	expiresAt: new Date(1000).toISOString(),
 };
 const document = {
-	schemaVersion: 1,
-	engine: "langflow",
+	schemaVersion: 1 as const,
+	engine: "langflow" as const,
 	graphDocument: { nodes: [], edges: [] },
 	componentManifestHash: identity.componentManifestHash,
 	revision: 2,
