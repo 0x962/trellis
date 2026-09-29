@@ -18,12 +18,10 @@ export function UsagePage() {
 
 	return (
 		<>
-			{/* The System Usage tab uses no range, so the controls do not show on
-			    that tab. */}
 			<Topbar actions={tab === "agent" ? <AgentUsageControls /> : undefined}>
 				<PageTitle title="Usage" />
 			</Topbar>
-			<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
+			<div className="page-card flex-1 overflow-y-auto px-8 py-5 max-md:px-4">
 				<Tabs
 					value={tab}
 					onValueChange={setTab}

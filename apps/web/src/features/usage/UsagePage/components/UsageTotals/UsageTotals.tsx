@@ -7,8 +7,8 @@ import { formatShare, formatTokens, formatUsd } from "../../../formatUsage";
 // bills none of it per token.
 export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; pricingTableUpdated: string }) {
 	return (
-		<section aria-label="Totals" className="flex flex-col gap-5">
-			<div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
+		<section aria-label="Totals" className="flex flex-col gap-4">
+			<div className="grid grid-cols-2 gap-x-4 gap-y-3 xl:grid-cols-4">
 				<StatTile
 					label="API-rate cost"
 					value={`${totals.approximate ? "~" : ""}${formatUsd(totals.usd)}`}

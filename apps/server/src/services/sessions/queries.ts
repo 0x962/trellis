@@ -1,6 +1,5 @@
 import type { Session } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import type { ServiceCtx } from "../../context.ts";
 import { iso, rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
@@ -38,7 +37,7 @@ export const getSession = async (tx: Tx, id: string) => {
 	return session;
 };
 
-export const sessionIdsForRuns = async (_ctx: ServiceCtx, tx: Tx, input: { runIds: string[] }) => {
+export const sessionIdsForRuns = async (tx: Tx, input: { runIds: string[] }) => {
 	const found = await rows<{ id: string; runId: string }>(
 		tx,
 		sql`SELECT id, run_id AS "runId" FROM sessions WHERE run_id = ANY(${textArray(input.runIds)})`,

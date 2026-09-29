@@ -9,6 +9,7 @@ import { formatMetric, harnessLabel } from "../../../formatUsage";
 export type UsageSessionsProps = {
 	sessions: readonly UsageSession[];
 	metric: UsageMetric;
+	groupLabel: string;
 	// The label of the selected breakdown row, when one filters the list.
 	filtered: string | null;
 };
@@ -33,13 +34,13 @@ const runLabel = (session: UsageSession) =>
 // The top sessions for the selected metric. A session that Trellis started
 // names its ticket, agent, and kind. The session id copies for
 // `claude --resume`, `codex resume`, or `muse resume`.
-export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps) {
+export function UsageSessions({ sessions, metric, groupLabel, filtered }: UsageSessionsProps) {
 	const [shown, setShown] = useState(PAGE);
 	const visible = sessions.slice(0, shown);
 	return (
 		<section aria-label="Sessions" className="flex flex-col gap-3">
 			<SectionHeader
-				title={filtered === null ? "Top sessions" : `Top sessions in ${filtered}`}
+				title={filtered === null ? `Sessions by ${groupLabel}` : `Sessions in ${filtered}`}
 				count={sessions.length}
 				actions={<span>{metric === "usd" ? "Highest cost first" : "Most tokens first"}</span>}
 			/>

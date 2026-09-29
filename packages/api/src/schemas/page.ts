@@ -5,8 +5,6 @@ import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, slugPattern, 
 
 export const PAGE_TITLE_MAX = 200;
 export const PAGE_SUMMARY_MAX = 2000;
-export const PAGE_DOCUMENT_MAX_BYTES = 16 * 1024 * 1024;
-export const PAGE_ASSET_MAX_BYTES = 100 * 1024 * 1024;
 export const PAGE_ASSET_PATH_MAX = 1024;
 // The document of a version answers to this one name. No asset row can hold
 // it, because the CHECK of `page_assets` refuses it.
@@ -109,7 +107,7 @@ export const PageVersionSchema = z.object({
 	requestId: z.uuid(),
 	label: z.string().min(1).max(PAGE_TITLE_MAX).nullable(),
 	documentSha256: PageSha256Schema,
-	documentSize: z.number().int().min(1).max(PAGE_DOCUMENT_MAX_BYTES),
+	documentSize: z.number().int().min(1),
 	sourceAgentId: UlidSchema.nullable(),
 	sourcePath: PageSourcePathSchema,
 	actor: ActorRefSchema,
@@ -122,7 +120,7 @@ export const PageAssetSchema = z.object({
 	version: PageVersionNumberSchema,
 	path: PageAssetPathSchema,
 	sha256: PageSha256Schema,
-	size: z.number().int().min(0).max(PAGE_ASSET_MAX_BYTES),
+	size: z.number().int().min(0),
 	mime: PageMimeSchema,
 });
 export type PageAsset = z.infer<typeof PageAssetSchema>;
@@ -131,7 +129,7 @@ export const PageUploadSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
 	sha256: PageSha256Schema,
-	size: z.number().int().min(0).max(PAGE_ASSET_MAX_BYTES),
+	size: z.number().int().min(0),
 	mime: PageMimeSchema,
 	originalName: PageUploadNameSchema,
 	actor: ActorRefSchema,

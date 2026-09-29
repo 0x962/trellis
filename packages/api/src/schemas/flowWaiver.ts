@@ -21,5 +21,5 @@ export type PullRequestFlowWaiver = z.infer<typeof PullRequestFlowWaiverSchema>;
 export const PullRequestFlowWaiverWriteInputSchema = z.strictObject({
 	id: UlidSchema,
 	headSha: HeadShaSchema,
-	reason: z.string().trim().min(1, "Write why no flow fits this change.").max(2000),
+	reason: z.string().trim().min(1, "Write why no flow fits this change."),
 });

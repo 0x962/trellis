@@ -63,7 +63,6 @@ export function FlowDecisionDialog({
 					label="Decision notes"
 					value={output}
 					onChange={(event) => setOutput(event.target.value)}
-					maxLength={512 * 1024}
 					disabled={decide.isPending}
 				/>
 				{decide.error && (

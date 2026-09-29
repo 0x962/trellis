@@ -85,7 +85,7 @@ export const FlowExecutionStartInputSchema = z.strictObject({
 	ticket: z.string().min(1),
 	diffId: UlidSchema.optional(),
 	allowRepeat: z.boolean().optional(),
-	repeatReason: z.string().trim().min(1).max(10000).optional(),
+	repeatReason: z.string().trim().min(1).optional(),
 	// The current head commit of the pull request. The run stores it.
 	headSha: z.string().min(1).max(64).optional(),
 	requestId: z.uuid(),
@@ -101,9 +101,9 @@ export const FlowExecutionListInputSchema = z.strictObject({
 });
 export const FlowExecutionDecisionInputSchema = z.strictObject({
 	id: UlidSchema,
-	key: z.string().min(1).max(100000),
+	key: z.string().min(1),
 	approved: z.boolean(),
-	output: z.string().max(512 * 1024),
+	output: z.string(),
 	expectedRevision: z.number().int().positive(),
 });
 export const FlowExecutionCancelInputSchema = z.strictObject({
