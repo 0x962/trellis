@@ -7,15 +7,18 @@ import {
 } from "../../../db/queries/langflowExecution";
 import type { IoCtx } from "../../support.ts";
 
+import { observeWarning } from "../observeWarning";
+
 type Warning = Awaited<ReturnType<typeof reserveWarning>>;
 
 export async function deliverWarning(
-	ctx: Pick<IoCtx, "newTx" | "now">,
+	ctx: Pick<IoCtx, "newTx" | "now" | "log">,
 	warning: Warning,
 	host: Pick<HarnessHost, "status" | "sendAtTurnBoundary">,
 ) {
 	const { executionId, attemptId, messageId } = warning;
-	let status = await host.status(attemptId);
+	let status = await observeWarning(ctx.log, { executionId, attemptId, messageId }, () => host.status(attemptId));
+	if (status === null) return;
 	if (status.id !== attemptId) throw new Error("warning_attempt_conflict");
 	if (!status.acknowledgedMessageIds.includes(messageId)) {
 		if (status.status !== "running" || !status.controllable || !status.acknowledgedMessageIds.includes(attemptId))
@@ -30,9 +33,13 @@ export async function deliverWarning(
 		if (!allowed) return;
 		// The runtime preserves messageId before it writes the warning to the native attempt.
 		// An uncertain write cannot send the same warning twice after a host restart.
-		status = await host.sendAtTurnBoundary(attemptId, payload.text, messageId);
+		status = await observeWarning(ctx.log, { executionId, attemptId, messageId }, () =>
+			host.sendAtTurnBoundary(attemptId, payload.text, messageId),
+		);
+		if (status === null) return;
 	}
 	if (status.id !== attemptId || !status.acknowledgedMessageIds.includes(messageId)) return;
+	const acknowledgedAt = status.checkedAt;
 	await ctx.newTx(async (tx) => {
 		const saved = await reserveWarning(tx, warning);
 		if (saved.acknowledged !== null) return;
@@ -41,7 +48,7 @@ export async function deliverWarning(
 			attemptId,
 			messageId,
 			receiptId: messageId,
-			acknowledgedAt: status.checkedAt,
+			acknowledgedAt,
 		});
 	});
 }

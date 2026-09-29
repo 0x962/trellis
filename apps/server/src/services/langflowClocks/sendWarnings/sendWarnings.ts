@@ -8,17 +8,20 @@ import {
 } from "../../../db/queries/langflowExecution";
 import type { IoCtx } from "../../support.ts";
 import { deliverWarning } from "../deliverWarning";
+import { observeWarning } from "../observeWarning";
 import { timeWarning } from "../timeWarning";
 
 export async function sendWarnings(
-	ctx: Pick<IoCtx, "newTx" | "home" | "now">,
+	ctx: Pick<IoCtx, "newTx" | "home" | "now" | "log">,
 	input: { executionId: string },
 	host: Pick<HarnessHost, "status" | "sendAtTurnBoundary"> = nativeHost(ctx.home),
 ) {
 	const facts = await ctx.newTx((tx) => readProjectionFacts(tx, input));
 	for (const native of facts.native) {
+		if (native.launchReceipt === null) continue;
 		const attemptId = native.handle.attemptId;
-		const status = await host.status(attemptId);
+		const status = await observeWarning(ctx.log, { ...input, attemptId }, () => host.status(attemptId));
+		if (status === null) continue;
 		if (status.id !== attemptId || status.status !== "running" || !status.controllable) continue;
 		await ctx.newTx(async (tx) => {
 			const execution = await lockExecution(tx, input);

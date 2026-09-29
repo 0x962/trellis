@@ -1,6 +1,8 @@
 # Native cancellation and deadline effects
 
-`cancelExecution(ctx, tx, input)` requires a human actor and the current execution revision.
+`cancelExecution(ctx, tx, input)` requires a human actor and the current public view revision.
+The service checks that revision under the execution lock.
+The saved intent uses the separate storage revision.
 The caller commits its transaction before it calls `drainStops`.
 Cancellation records its intent, the reservation block, exact-attempt stops, and the engine notification in one transaction.
 The result exposes `needsStop` independently from the cancellation intent.
@@ -42,6 +44,8 @@ Each warning has a deterministic message ID and stable text with an absolute dea
 The service saves the warning before it calls `HarnessHost.sendAtTurnBoundary`.
 The runtime preserves that ID before it writes input and refuses to repeat an uncertain write.
 A confirmed runtime prompt receipt confirms the saved warning.
+Each failed runtime read or send retains its warning and records the error.
+Other attempts still receive their warnings.
 Pending warnings use pagination, so the batch size does not restrict access.
 
 TRL-696 owns route selection and host lifecycle registration.

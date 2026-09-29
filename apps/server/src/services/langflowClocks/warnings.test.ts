@@ -1,6 +1,11 @@
 import { afterEach, expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { listPendingWarnings, readProjectionFacts } from "../../db/queries/langflowExecution";
+import {
+	listPendingWarnings,
+	readProjectionFacts,
+	recordLaunch,
+	reserveNative,
+} from "../../db/queries/langflowExecution";
 import { ids, now } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import { cancelExecution } from "../langflowStops/cancelExecution";
@@ -71,7 +76,7 @@ test("a lost warning acknowledgement preserves the message identity and bytes", 
 
 test("cancellation blocks warnings even when a prompt receipt exists", async () => {
 	fixture = await stopFixture(true);
-	await fixture.run((tx) => cancelExecution(fixture.core, tx, { id: input.executionId, expectedRevision: 2 }));
+	await fixture.run((tx) => cancelExecution(fixture.core, tx, { id: input.executionId, expectedRevision: 1 }));
 	await sendWarnings({ ...fixture.io, now: () => new Date(now.getTime() + 60_000) }, input, {
 		status: async () => status([handle.attemptId]),
 		sendAtTurnBoundary: async () => {
@@ -92,4 +97,81 @@ test("a repeated launch observation preserves the stored deadline", async () => 
 	const after = await fixture.run((tx) => readProjectionFacts(tx, input));
 	expect(after.deadlines).toEqual(before.deadlines);
 	expect(after.deadlines[0]!.deadlineAt).toBe(new Date(now.getTime() + 120_000).toISOString());
+});
+
+const secondHandle = { ...handle, stepId: "step-2", attemptId: "00000000-0000-4000-8000-000000000009" };
+async function addLaunchedAttempt() {
+	await fixture.run(async (tx) => {
+		await reserveNative(tx, {
+			requestBytes: JSON.stringify({
+				...fixture.request,
+				requestId: crypto.randomUUID(),
+				nodeId: "next",
+				occurrenceKey: "next",
+			}),
+			taskKey: "next",
+			handle: secondHandle,
+			authority: fixture.authority,
+			now,
+		});
+		await recordLaunch(tx, {
+			...input,
+			receipt: {
+				version: 1,
+				launchReceiptId: "launch-2",
+				stepId: secondHandle.stepId,
+				attemptId: secondHandle.attemptId,
+				launchedAt: now.toISOString(),
+				recordedAt: now.toISOString(),
+				groupDeadlines: [],
+			},
+		});
+	});
+}
+
+test("a reserved attempt needs no runtime status before launch", async () => {
+	fixture = await stopFixture();
+	let reads = 0;
+	await sendWarnings(fixture.io, input, {
+		status: async () => {
+			reads++;
+			throw new Error("SESSION_NOT_FOUND");
+		},
+		sendAtTurnBoundary: async () => {
+			throw new Error("unlaunched warning");
+		},
+	});
+	expect(reads).toBe(0);
+});
+
+test.each(["status", "delivery"])("an unknown %s for one attempt does not block another warning", async (failure) => {
+	fixture = await stopFixture(true);
+	await addLaunchedAttempt();
+	const delivered: string[] = [];
+	const errors: unknown[] = [];
+	await sendWarnings(
+		{
+			...fixture.io,
+			now: () => new Date(now.getTime() + 60_000),
+			log: (_message, fields) => {
+				errors.push(fields);
+			},
+		},
+		input,
+		{
+			status: async (attemptId) => {
+				if (failure === "status" && attemptId === handle.attemptId) throw new Error("SESSION_NOT_FOUND");
+				return { ...status([attemptId]), id: attemptId };
+			},
+			sendAtTurnBoundary: async (attemptId, _text, messageId) => {
+				if (attemptId === handle.attemptId) throw new Error("HARNESS_DELIVERY_UNKNOWN");
+				delivered.push(attemptId);
+				return { ...status([attemptId, messageId!]), id: attemptId };
+			},
+		},
+	);
+	expect(delivered).toEqual([secondHandle.attemptId]);
+	expect(errors).toHaveLength(1);
+	const pending = await fixture.run((tx) => listPendingWarnings(tx, { ...input, afterId: "", limit: 10 }));
+	expect(pending.map((warning) => warning.attemptId)).toEqual(failure === "delivery" ? [handle.attemptId] : []);
 });
