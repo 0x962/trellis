@@ -104,6 +104,11 @@ export function FlowDecisionDialog({
 							: "Decision delivery unknown. Wait for the saved receipt before another request."}
 				</p>
 			)}
+			{"schemaVersion" in execution && decide.request?.phase === "unknown" && !view.delivery && (
+				<Button type="button" disabled={recovery} onClick={() => !recovery && decide.replay()}>
+					Retry original request
+				</Button>
+			)}
 			{decide.request?.error && (
 				<div role="alert">
 					<FailureState title="The decision request did not complete" detail={decide.request.error} />
