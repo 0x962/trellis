@@ -11,4 +11,8 @@ describe("memoryPressureLevel", () => {
 	test("says a level is unavailable rather than calling it normal", () => {
 		expect(memoryPressureLevel(null)).toMatchObject({ label: "Unavailable", tone: "faint" });
 	});
+
+	test("says an unrecognized level is unknown", () => {
+		expect(memoryPressureLevel(3)).toMatchObject({ label: "Unknown", tone: "faint" });
+	});
 });
