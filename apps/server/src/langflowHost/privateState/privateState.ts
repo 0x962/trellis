@@ -1,5 +1,8 @@
+import { createHash } from "node:crypto";
+import { constants } from "node:fs";
 import { chmod, lstat, mkdir, open, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import type { SidecarIdentity } from "../contracts";
 
@@ -9,6 +12,11 @@ const IdentitySchema = z.strictObject({
 	ownerId: z.string().min(1),
 	instanceId: z.uuid(),
 	manifestDigest: z.string().regex(/^[0-9a-f]{64}$/),
+});
+
+const NativeAuthenticationSchema = z.strictObject({
+	identity: IdentitySchema,
+	sha256: z.string().regex(/^[0-9a-f]{64}$/),
 });
 
 export class PrivateState {
@@ -37,6 +45,29 @@ export class PrivateState {
 		return join(this.root, "secrets", `${identity.instanceId}.token`);
 	}
 
+	async nativeReservationAuthentication(identity: SidecarIdentity) {
+		const path = join(this.root, "secrets", `${identity.instanceId}.native-reservations.json`);
+		const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+		try {
+			const metadata = await file.stat();
+			if (!metadata.isFile() || (metadata.mode & 0o777) !== 0o600 || metadata.uid !== process.getuid?.()) {
+				throw new Error("unsafe_sidecar_native_authentication");
+			}
+			const binding = NativeAuthenticationSchema.parse(JSON.parse(await file.readFile("utf8")));
+			if (!isDeepStrictEqual(binding.identity, identity)) throw new Error("sidecar_native_identity_conflict");
+			return {
+				nativeReservationAuthenticationFile: join(
+					this.root,
+					"secrets",
+					`${identity.instanceId}.native-reservations.token`,
+				),
+				nativeReservationAuthenticationSha256: binding.sha256,
+			};
+		} finally {
+			await file.close();
+		}
+	}
+
 	async read(): Promise<SidecarIdentity | null> {
 		const path = join(this.lockDirectory, "process.json");
 		const file = Bun.file(path);
@@ -55,6 +86,20 @@ export class PrivateState {
 			await token.sync();
 		} finally {
 			await token.close();
+		}
+		const nativeToken = crypto.randomUUID() + crypto.randomUUID();
+		const nativeStem = join(this.root, "secrets", `${identity.instanceId}.native-reservations`);
+		for (const [path, bytes] of [
+			[`${nativeStem}.token`, nativeToken],
+			[`${nativeStem}.json`, JSON.stringify({ identity, sha256: createHash("sha256").update(nativeToken).digest("hex") })],
+		] as const) {
+			const file = await open(path, "wx", 0o600);
+			try {
+				await file.writeFile(bytes);
+				await file.sync();
+			} finally {
+				await file.close();
+			}
 		}
 		const temporary = join(this.lockDirectory, `${identity.instanceId}.next`);
 		const file = await open(temporary, "wx", 0o600);

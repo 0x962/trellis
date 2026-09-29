@@ -241,6 +241,16 @@ The callback returns no credential.
 After the callback, the durable permit remains held through the provider call and the terminal database commit.
 An unknown provider outcome retains the permit for reconciliation.
 
+`withAuthenticatedNativeReservation(authorization, operation)` authenticates the separate credential for requests from the engine to Trellis.
+`PrivateState.reserve` creates fresh bytes for each instance and saves their SHA256 with the complete instance identity.
+The token and its identity record use mode 0600 under the private secrets directory.
+The driver receives `nativeReservationAuthenticationFile` and `nativeReservationAuthenticationSha256` on start, observe, and stop.
+The driver copies those bytes to the runtime secret and checks the digest against its retained container label.
+The callback verifies the saved identity, credential digest, and exact bearer before it obtains a fresh healthy observation.
+It holds supervisor exclusion until the callback returns.
+The route must acquire its durable effect permit within that callback before it dispatches work outside the supervisor scope.
+Unknown results retain that permit for reconciliation.
+
 ## Durable supervisor authority
 
 `createAuthorityPort({control, archive, newTx})` connects the supervisor to the migrated ownership queries.
