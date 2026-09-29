@@ -24,20 +24,13 @@ import { diagnostics } from "./diagnostics.ts";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
 import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
-import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
-import { list as listFlowExecutions } from "./flowExecutions/list.ts";
-import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
-import { prepareFlowReconcile } from "./flowExecutions/prepareFlowReconcile.ts";
-import { get as getFlowExecution } from "./flowExecutions/queries.ts";
-import { start as startFlowExecution } from "./flowExecutions/start.ts";
-import * as flows from "./flows/flows.ts";
-import * as flowSave from "./flows/save.ts";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
+import { flowServices } from "./langflowDispatch/registry";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
@@ -65,7 +58,14 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
-import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
+import {
+	finishSessionObserverGenerations,
+	finishSessionObserverRecovery,
+	prepareSessionObserverGenerations,
+	recoverSessionObserverGeneration,
+	setSessionObserverEnabled,
+} from "./sessionObserverGeneration";
+import { sessionObserverServices } from "./sessionObservers/registry";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
@@ -86,10 +86,9 @@ import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 import * as waves from "./waves/waves.ts";
 
-export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
-
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
+	...flowServices,
 	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
 	"agentRuns.broadcastRecipients": prepared("read", prepareBroadcastRecipients, broadcastRecipients),
 	"agentRuns.broadcast": prepared("mutation", broadcast.prepareBroadcast, broadcast.broadcast),
@@ -109,8 +108,15 @@ export const services = {
 	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
+	...sessionObserverServices,
+	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
-	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
+	"sessionObservers.dispatch": prepared(
+		"mutation",
+		prepareSessionObserverGenerations,
+		finishSessionObserverGenerations,
+	),
+	"sessionObservers.recover": prepared("mutation", recoverSessionObserverGeneration, finishSessionObserverRecovery),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
@@ -126,12 +132,6 @@ export const services = {
 	"providers.delete": io("mutation", providers.remove),
 	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
 	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
-	"flowExecutions.start": core("mutation", startFlowExecution),
-	"flowExecutions.get": core("read", getFlowExecution),
-	"flowExecutions.list": core("read", listFlowExecutions),
-	"flowExecutions.decide": core("mutation", decideFlowExecution),
-	"flowExecutions.cancel": prepared("mutation", prepareFlowCancel, agentTerminal.result),
-	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"system.sweep": prepared("mutation", prepareSweep, agentTerminal.result),
@@ -189,12 +189,6 @@ export const services = {
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.pause": agentMutation(agentLifecycle.preparePause),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
-	"flows.list": core("read", flows.list),
-	"flows.get": core("read", flows.get),
-	"flows.create": core("mutation", flows.create),
-	"flows.update": core("mutation", flows.update),
-	"flows.save": core("mutation", flowSave.save),
-	"flows.delete": core("mutation", flows.remove),
 	"labels.list": core("read", labels.list),
 	"labels.create": core("mutation", labels.create),
 	"labels.update": core("mutation", labels.update),
@@ -274,6 +268,7 @@ export const services = {
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),
 	"actors.default": core("read", actors.default),
+	"settings.defaultActorName": core("read", settings.defaultActorName),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
 	"system.health": io("read", system.health),
@@ -285,3 +280,4 @@ export const services = {
 } satisfies Record<string, ServiceEntry>;
 
 export type ServiceName = keyof typeof services;
+export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";

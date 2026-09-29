@@ -26,6 +26,12 @@ export type PaletteItemDef = {
 };
 
 export const paletteItems: readonly PaletteItemDef[] = [
+	{ id: "view.newTab", label: "New tab", section: "view" },
+	{ id: "view.closeTab", label: "Close tab", section: "view" },
+	{ id: "view.reopenTab", label: "Reopen closed tab", section: "view" },
+	{ id: "view.nextTab", label: "Next tab", section: "view" },
+	{ id: "view.previousTab", label: "Previous tab", section: "view" },
+
 	{ id: "ticket.status", label: "Change status", section: "ticket", shortcutId: "listStatus", submenu: true },
 	{ id: "ticket.priority", label: "Set priority", section: "ticket", shortcutId: "listPriority", submenu: true },
 	{ id: "ticket.parent", label: "Set parent", section: "ticket", shortcutId: "listParent", submenu: true },

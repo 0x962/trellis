@@ -13,6 +13,20 @@ index 0000000..8dd7801
 +    def __init__(self, waits: dict[str, str]) -> None:
 +        self.waits = waits
 +        super().__init__("external_wait_pending")
+diff --git a/src/lfx/src/lfx/graph/vertex/base.py b/src/lfx/src/lfx/graph/vertex/base.py
+--- a/src/lfx/src/lfx/graph/vertex/base.py
++++ b/src/lfx/src/lfx/graph/vertex/base.py
+@@ -13,2 +13,3 @@
+ from lfx.exceptions.component import ComponentBuildError
++from lfx.graph.external_wait import ExternalWaitPending
+ from lfx.graph.schema import INPUT_COMPONENTS, OUTPUT_COMPONENTS, InterfaceComponentTypes, ResultData
+@@ -788,2 +789,4 @@ class Vertex:
+             self._update_built_object_and_artifacts(result)
++        except ExternalWaitPending:
++            raise
+         except Exception as exc:
+             tb = traceback.format_exc()
+             await logger.aexception("Vertex build failed")
 diff --git a/src/lfx/src/lfx/graph/checkpoint/schema.py b/src/lfx/src/lfx/graph/checkpoint/schema.py
 index 887aa3f..935be46 100644
 --- a/src/lfx/src/lfx/graph/checkpoint/schema.py
@@ -110,7 +124,7 @@ new file mode 100644
 index 0000000..00a17ca
 --- /dev/null
 +++ b/src/backend/base/langflow/services/trellis_v1/external_waits.py
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,109 @@
 +from __future__ import annotations
 +
 +import json
@@ -134,6 +148,12 @@ index 0000000..00a17ca
 +    queueClaimed: bool
 +
 +
++class _CompletionEnvelope(TypedDict):
++    waitBytes: str
++    deliveryBytes: str
++    receiptBytes: str
++
++
 +class TrellisExternalWaitBroker:
 +    """Keep exact completion bytes while Langflow retains graph ownership."""
 +
@@ -144,20 +164,29 @@ index 0000000..00a17ca
 +    def completion_kind(wait_id: str) -> str:
 +        return f"trellis-completion-v1:{wait_id}"
 +
-+    async def receipt_for(self, graph: Graph, wait_bytes: str) -> str | None:
++    async def _completion_envelope(self, graph: Graph, wait_bytes: str) -> _CompletionEnvelope | None:
 +        wait_id = json.loads(wait_bytes)["waitId"]
 +        envelope_bytes = await self._jobs.load_checkpoint(UUID(graph.job_id), self.completion_kind(wait_id))
 +        if envelope_bytes is None:
 +            return None
-+        envelope = json.loads(envelope_bytes)
++        envelope: _CompletionEnvelope = json.loads(envelope_bytes)
 +        if envelope["waitBytes"] != wait_bytes:
 +            raise RuntimeError("external_wait_identity_conflict")
-+        return envelope["receiptBytes"]
++        return envelope
++
++    async def receipt_for(self, graph: Graph, wait_bytes: str) -> str | None:
++        envelope = await self._completion_envelope(graph, wait_bytes)
++        return None if envelope is None else envelope["receiptBytes"]
++
++    async def delivery_for(self, graph: Graph, wait_bytes: str) -> str | None:
++        envelope = await self._completion_envelope(graph, wait_bytes)
++        return None if envelope is None else envelope["deliveryBytes"]
 +
 +    async def save_completion(
 +        self,
 +        *,
 +        job_id: UUID,
++        authority_epoch: int,
 +        wait_bytes: str,
 +        delivery_bytes: str,
 +        receipt_bytes: str,
@@ -171,10 +200,22 @@ index 0000000..00a17ca
 +        if wait["kind"] == "native":
 +            request = wait["request"]
 +            result = delivery["result"]
++            authority = delivery["authority"]
 +            if (
 +                result["launchBinding"]["executionId"] != request["executionId"]
++                or result["launchBinding"]["publicationId"] != request["publicationId"]
 +                or result["launchBinding"]["engineJobId"] != request["engineJobId"]
++                or result["launchBinding"]["engineEpoch"] != request["engineEpoch"]
++                or result["stepId"] != wait["handle"]["stepId"]
++                or result["agentRunId"] != wait["handle"]["agentRunId"]
 +                or result["attemptId"] != wait["handle"]["attemptId"]
++                or authority["executionId"] != request["executionId"]
++                or authority["publicationId"] != request["publicationId"]
++                or authority["engineJobId"] != request["engineJobId"]
++                or authority["engineEpoch"] != authority_epoch
++                or "completion.deliver" not in authority["permissions"]
++                or receipt["executionId"] != request["executionId"]
++                or receipt["engineJobId"] != request["engineJobId"]
 +                or receipt["completionId"] != result["completionId"]
 +                or receipt["resultDigest"] != delivery["resultDigest"]
 +            ):

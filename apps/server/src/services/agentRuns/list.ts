@@ -8,6 +8,7 @@ import { fail } from "../../errors.ts";
 import { latestAttemptActivityByRuns } from "../assignments.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
+import { observerMembership } from "../sessionObservers/index.ts";
 import type { ServiceCtx } from "../support.ts";
 import { observeRuns } from "./liveState.ts";
 import { listColumns, type StoredRun, storedRows } from "./queries.ts";
@@ -122,7 +123,8 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 					)})`;
 	const assignedWhere =
 		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
-	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}`;
+	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}
+		AND NOT ${observerMembership(sql`agent_runs.id`)}`;
 	const hash = filterHash(input, ticket?.id ?? null, project?.id ?? null);
 	const cursor = readCursor(input.cursor, hash, input.allHistory);
 	const start = windowStart(input, cursor, ctx.now);

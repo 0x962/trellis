@@ -9,10 +9,23 @@
 	"patches": [
 		{
 			"name": "backend",
-			"path": "reports/langflow-feasibility-review/backend-source-assembly.cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee.patch",
-			"sha256": "cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee",
+			"path": "reports/langflow-feasibility-review/backend-source-assembly.a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85.patch",
+			"sha256": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
 			"directory": ".",
 			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
+		},
+		{
+			"name": "backend-delivery-reader",
+			"path": "reports/langflow-feasibility-review/backend-delivery-reader.patch",
+			"sha256": "4860d0768a44e0779ae569640c9e74b33c0916b19efb14a5071560da6dae835c",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-queue-composition.json"
+		},
+		{
+			"name": "backend-queue-transactions",
+			"path": "integrations/langflow/patches/externalWaits/0002-queue-bootstrap-and-completion-transactions.patch",
+			"sha256": "4e6430b4dc0afdf1eeb9bf8abd6225ca0399cdd244299f5a429f482d9c3a6310",
+			"directory": "."
 		},
 		{
 			"name": "backend-schema",
@@ -21,9 +34,23 @@
 			"directory": "."
 		},
 		{
+			"name": "backend-publications",
+			"path": "integrations/langflow/patches/publications/0001-immutable-publications.patch",
+			"sha256": "b3e863aaa70eead267947af2cad9bf5eeb75abcb56ff66294f76e4e6bb8f2815",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/publications/manifest.json"
+		},
+		{
+			"name": "backend-backup",
+			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
+			"sha256": "6ea114d4dd0e551ed9d1302d383c13346328704aa84acc6738a36596499a4734",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/backup/manifest.json"
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
-			"sha256": "ec23fcc90f8e9799c323716a453ca52f5b4438cf3d0734b3908e1291c179d5d1",
+			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
 			"directory": "src/frontend",
 			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
 		}
@@ -33,6 +60,8 @@
 		"integrations/langflow/tests/semantics",
 		"integrations/langflow/tests/decisions",
 		"integrations/langflow/tests/nativeLifecycle",
+		"integrations/langflow/tests/restore",
+		"integrations/langflow/tests/publications",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],

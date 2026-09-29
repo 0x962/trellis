@@ -16,16 +16,24 @@ type Options = {
 	requestId: () => string;
 	now: () => string;
 	readOnly: boolean;
+	canDispatch?: () => boolean;
+	retained?: boolean;
 };
 
 export function createSaveQueue(options: Options) {
 	let draft = structuredClone(options.draft);
 	let failure: Failure | null = draft.blocked;
 	let error: unknown = null;
-	let retained = false;
+	let retained = options.retained ?? false;
 	let receipt: FlowDocumentV1 | null = null;
 	let active: Promise<void> | null = null;
 	let closed = false;
+	let suspended = false;
+	let readOnly = options.readOnly;
+	const listeners = new Set<() => void>();
+	const notify = () => {
+		for (const listener of listeners) listener();
+	};
 	const persist = () => {
 		try {
 			options.storage.write(draft);
@@ -36,28 +44,32 @@ export function createSaveQueue(options: Options) {
 			failure = "storage";
 			error = cause;
 			return false;
+		} finally {
+			notify();
 		}
 	};
 	const edit = (content: DraftContent) => {
-		if (closed || options.readOnly) throw new Error("This draft is read-only.");
+		if (closed || suspended || readOnly) throw new Error("This draft is read-only.");
 		draft = { ...draft, contentJson: JSON.stringify(content), updatedAt: options.now() };
 		persist();
 	};
 	const drain = async () => {
-		while (!closed && !options.readOnly && failure === null) {
+		while (!closed && !suspended && !readOnly && failure === null && (options.canDispatch?.() ?? true)) {
 			if (draft.submission === null && draft.contentJson === draft.savedContentJson) return;
 			let request: FlowDocumentSaveV1Input;
 			try {
-				if (draft.submission === null) {
+				let submission = draft.submission;
+				if (submission === null) {
 					const requestJson = JSON.stringify({
 						...JSON.parse(draft.contentJson),
 						flow: draft.identity.flow,
 						expectedVersion: draft.baseVersion,
 						requestId: options.requestId(),
 					});
-					draft = { ...draft, submission: { requestJson, contentJson: draft.contentJson } };
+					submission = { requestJson, contentJson: draft.contentJson };
+					draft = { ...draft, submission };
 				}
-				request = JSON.parse(draft.submission.requestJson);
+				request = JSON.parse(submission.requestJson);
 				FlowDocumentSaveV1InputSchema.parse(request);
 				if (request.flow !== draft.identity.flow || request.expectedVersion !== draft.baseVersion)
 					throw new Error("The submitted request does not match this draft.");
@@ -69,6 +81,7 @@ export function createSaveQueue(options: Options) {
 				return;
 			}
 			if (!persist()) return;
+			if (closed || suspended || readOnly || !(options.canDispatch?.() ?? true)) return;
 			const submitted = draft.submission!;
 			let result: FlowDocumentV1;
 			try {
@@ -103,12 +116,14 @@ export function createSaveQueue(options: Options) {
 		if (active !== null) return active;
 		active = drain().finally(() => {
 			active = null;
+			notify();
 		});
+		notify();
 		return active;
 	};
 	const retry = () => {
 		if (active !== null) return active;
-		if (draft.blocked !== null || closed || options.readOnly) return Promise.resolve();
+		if (draft.blocked !== null || closed || suspended || readOnly) return Promise.resolve();
 		failure = null;
 		error = null;
 		if (!persist()) return Promise.resolve();
@@ -120,6 +135,7 @@ export function createSaveQueue(options: Options) {
 		if (bytes !== null) options.storage.discard(draft.identity, JSON.stringify(draft));
 		closed = true;
 		retained = false;
+		notify();
 	};
 	const snapshot = () => ({
 		draft: structuredClone(draft),
@@ -129,7 +145,27 @@ export function createSaveQueue(options: Options) {
 		receipt: structuredClone(receipt),
 		saving: active !== null,
 		saved: draft.submission === null && draft.contentJson === draft.savedContentJson,
-		readOnly: options.readOnly || closed,
+		readOnly: readOnly || closed,
+		closed,
+		suspended,
 	});
-	return { edit, flush, retry, discard, snapshot };
+	const suspend = () => {
+		suspended = true;
+		notify();
+	};
+	const resume = () => {
+		suspended = false;
+		notify();
+	};
+	const setReadOnly = (value: boolean) => {
+		readOnly = value;
+		notify();
+	};
+	const subscribe = (listener: () => void) => {
+		listeners.add(listener);
+		return () => {
+			listeners.delete(listener);
+		};
+	};
+	return { edit, flush, retry, discard, snapshot, suspend, resume, setReadOnly, subscribe };
 }

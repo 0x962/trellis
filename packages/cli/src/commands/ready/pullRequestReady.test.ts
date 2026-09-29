@@ -122,14 +122,19 @@ const clientWith = ({
 			readSummary: async () => summary,
 		},
 		reviews: { status: async () => ({ headRefOid: "abc123", ticket: { identifier: "OP-74" } }) },
-		flows: { list: async () => flows },
-		flowExecutions: {
-			list: async () =>
-				runs.map((run) => ({
-					doc: { flow: { slug: run.slug, name: run.slug } },
-					headSha: run.headSha ?? "abc123",
-					state: { status: run.status },
-				})),
+		flows: { list: async () => flows.map((flow) => ({ ...flow, id: `flow:${flow.slug}` })) },
+		flowDocumentsV1: {
+			list: async () => runs.map((_, index) => ({ id: String(index), engine: "legacy" })),
+			view: async ({ id }: { id: string }) => {
+				const run = runs[Number(id)]!;
+				return {
+					flowId: `flow:${run.slug}`,
+					diffId: "01M30HDWKZ17G62PJAFHZNED2J",
+					reviewedHead: run.headSha ?? "abc123",
+					status: run.status,
+					failureKind: null,
+				};
+			},
 		},
 	}) as unknown as TrellisClient;
 

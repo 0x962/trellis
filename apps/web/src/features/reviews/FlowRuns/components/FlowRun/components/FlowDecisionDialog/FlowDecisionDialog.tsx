@@ -1,84 +1,114 @@
-import { useMutation } from "@tanstack/react-query";
-import type { FlowExecutionRecord } from "@trellis/api";
-import { Button, Dialog, FlowDecisionContext, Textarea } from "@trellis/ui";
-import { useState } from "react";
+import { skipToken, useQuery } from "@tanstack/react-query";
+import type { FlowExecutionDecisionInput, FlowExecutionRecord, FlowExecutionViewV1 } from "@trellis/api";
+import { Button, FailureState, FlowDecisionContext, Textarea } from "@trellis/ui";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
+import { useFlowActionRequest } from "../../../../useFlowActionRequest";
+import { useFlowRecovery } from "../../../../useFlowRecovery";
+import { FlowActionDialog } from "../../../FlowActionDialog";
+import { decisionView } from "./decisionView";
 
-// The approve or reject form of a human step. It shows the step instruction
-// and the output of every finished step, because the person decides on that.
 export function FlowDecisionDialog({
 	execution,
 	actionKey,
 	onClose,
+	recoveryBlocked,
 }: {
-	execution: FlowExecutionRecord;
-	// The key of the waiting step.
+	execution: FlowExecutionRecord | FlowExecutionViewV1;
 	actionKey: string;
 	onClose: () => void;
+	recoveryBlocked?: boolean;
 }) {
-	const { client, orpc, queryClient } = useApp();
-	const [output, setOutput] = useState("");
-	const step = execution.state.steps.find((step) => step.actionKey === actionKey)!;
-	const node = execution.doc.nodes.find((node) => node.id === step.nodeId)!;
-	const outputs = execution.state.steps
-		.filter((step) => step.state === "succeeded" && step.output)
-		.map((step) => ({
-			key: step.key,
-			title: execution.doc.nodes.find((node) => node.id === step.nodeId)!.title,
-			text: step.output!,
-		}));
-	const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
-	const decide = useMutation({
-		mutationFn: (approved: boolean) =>
-			client.flowExecutions.decide({
-				id: execution.id,
-				key: actionKey,
-				approved,
-				output,
-				expectedRevision: execution.revision,
-			}),
-		onSuccess: async () => {
-			await refresh();
-			onClose();
-		},
-		// A revision conflict means the run moved on. The fresh record shows where.
-		onError: refresh,
+	const { client, queryClient } = useApp();
+	const { blocked: recovery } = useFlowRecovery(recoveryBlocked);
+	const decide = useFlowActionRequest<FlowExecutionDecisionInput, FlowExecutionRecord | FlowExecutionViewV1>(
+		["decision", execution.id, actionKey],
+		(input) =>
+			"schemaVersion" in execution ? client.flowExecutionsV1.decision(input) : client.flowExecutions.decide(input),
+	);
+	const [preview, setPreview] = useState(execution);
+	const [previewKey] = useState(actionKey);
+	const draftKey = ["flow-decision-notes", execution.id, actionKey];
+	const notes = useQuery({
+		queryKey: draftKey,
+		queryFn: skipToken,
+		initialData: () => decide.request?.input.output ?? decisionView(execution, actionKey).delivery?.output ?? "",
+		gcTime: Infinity,
 	});
+	const [output, setOutput] = useState(notes.data!);
+	const receipt = decide.request?.result;
+	const submitted = !!decide.request && decide.request.phase !== "conflict";
+	const current = receipt && receipt.revision > execution.revision ? receipt : execution;
+	const view = useMemo(() => decisionView(current, actionKey), [current, actionKey]);
+	const shown = useMemo(() => decisionView(preview, previewKey), [preview, previewKey]);
+	const changed = actionKey !== previewKey || execution.id !== preview.id || execution.revision !== preview.revision;
+	const blocked = recovery || changed || !view.waiting || !!view.delivery || !!decide.request;
+	const send = (approved: boolean) => {
+		if (blocked) return;
+		decide.submit({ id: preview.id, key: previewKey, expectedRevision: preview.revision, output, approved });
+	};
 	return (
-		<Dialog
-			open
+		<FlowActionDialog
 			title="Decide the flow step"
-			size="lg"
-			onOpenChange={(open) => !open && !decide.isPending && onClose()}
-		>
-			<form
-				className="flex flex-col gap-4"
-				onSubmit={(event) => {
-					event.preventDefault();
-					decide.mutate(true);
-				}}
-			>
-				<FlowDecisionContext title={node.title} instruction={node.instruction} outputs={outputs} />
-				<Textarea
-					label="Decision notes"
-					value={output}
-					onChange={(event) => setOutput(event.target.value)}
-					disabled={decide.isPending}
-				/>
-				{decide.error && (
-					<p role="alert" className="text-sm text-danger">
-						{decide.error.message}
-					</p>
-				)}
-				<div className="flex justify-end gap-2">
-					<Button type="button" disabled={decide.isPending} onClick={() => decide.mutate(false)}>
+			onClose={onClose}
+			actions={
+				<>
+					<Button type="button" disabled={blocked} onClick={() => send(false)}>
 						Reject step
 					</Button>
-					<Button type="submit" variant="primary" disabled={decide.isPending}>
+					<Button type="button" variant="primary" disabled={blocked} onClick={() => send(true)}>
 						Approve step
 					</Button>
+				</>
+			}
+		>
+			<p className="text-sm text-fg-muted tabular-nums">
+				Run {preview.id}, revision {preview.revision}
+			</p>
+			<FlowDecisionContext title={shown.title} instruction={shown.instruction} outputs={shown.outputs} />
+			<Textarea
+				label="Decision notes"
+				value={output}
+				onChange={(event) => {
+					setOutput(event.target.value);
+					queryClient.setQueryData(draftKey, event.target.value);
+				}}
+				disabled={submitted || !!view.delivery}
+			/>
+			{(changed || decide.request?.phase === "conflict") && !submitted && !view.delivery && (
+				<>
+					<p role="status">The run changed. Review the current step before you decide. Your notes remain.</p>
+					<Button
+						type="button"
+						onClick={() => {
+							setPreview(execution);
+							decide.clearConflict();
+						}}
+					>
+						Review current step
+					</Button>
+				</>
+			)}
+			{recovery && <p role="status">Recovery blocks changes to this run.</p>}
+			{view.delivery && (
+				<p role="status">
+					Decision {view.delivery.approved ? "approval" : "rejection"}: {view.delivery.state}.
+				</p>
+			)}
+			{!view.delivery && submitted && (
+				<p role="status">
+					{decide.request?.phase === "pending"
+						? "Decision request pending."
+						: receipt && !("schemaVersion" in receipt)
+							? "Decision recorded."
+							: "Decision delivery unknown. Wait for the saved receipt before another request."}
+				</p>
+			)}
+			{decide.request?.error && (
+				<div role="alert">
+					<FailureState title="The decision request did not complete" detail={decide.request.error} />
 				</div>
-			</form>
-		</Dialog>
+			)}
+		</FlowActionDialog>
 	);
 }

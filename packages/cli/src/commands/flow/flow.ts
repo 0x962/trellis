@@ -5,6 +5,9 @@ import { contextOf } from "../../context.ts";
 import { cell, json, printList, timeCell } from "../../output.ts";
 import { resolvePullRequest } from "../pullRequestRef.ts";
 import { listRuns } from "./listRuns.ts";
+import { readRun } from "./readRun/readRun.ts";
+import { readV1 } from "./readV1/readV1.ts";
+import { runRow } from "./runRow/runRow.ts";
 
 const start = async () => {
 	const command = await alias("flows", ["run"])();
@@ -45,13 +48,23 @@ const list = defineCommand({
 			identifier: (row) => row.id,
 			columns: [
 				{ name: "RUN", value: (row) => row.id },
-				{ name: "FLOW", value: (row) => row.doc.flow.name },
-				{ name: "DIFF", value: (row) => cell(row.diffId) },
-				{ name: "STATE", value: (row) => row.state.status },
-				{ name: "HEAD", value: (row) => cell(row.headSha) },
-				{ name: "STARTED", value: (row) => timeCell(row.createdAt) },
+				{ name: "FLOW", value: (row) => runRow(row).name },
+				{ name: "DIFF", value: (row) => cell(runRow(row).diffId) },
+				{ name: "STATE", value: (row) => runRow(row).status },
+				{ name: "HEAD", value: (row) => cell(runRow(row).head) },
+				{ name: "STARTED", value: (row) => timeCell(runRow(row).createdAt) },
 			],
 		});
+	},
+});
+
+const document = defineCommand({
+	meta: { name: "show", description: "Read a flow document in version 1 format" },
+	args: { flow: { type: "positional", required: true, description: "Flow ID, slug, or name" } },
+	async run(context) {
+		const ctx = contextOf(context);
+		const value = await clientOf(ctx).flowDocumentsV1.get({ flow: context.args.flow });
+		ctx.out.write(json(readV1.document(value)));
 	},
 });
 
@@ -60,7 +73,7 @@ const show = defineCommand({
 	args: { id: { type: "positional", required: true, description: "Flow run ID" } },
 	async run(context) {
 		const ctx = contextOf(context);
-		ctx.out.write(json(await clientOf(ctx).flowExecutions.get({ id: context.args.id })));
+		ctx.out.write(json(await readRun(clientOf(ctx), context.args.id)));
 	},
 });
 
@@ -68,6 +81,10 @@ export default defineCommand({
 	meta: { name: "flow", description: "Start flows and inspect their saved runs" },
 	subCommands: {
 		list: alias("flows", ["list"]),
+		document: defineCommand({
+			meta: { name: "document", description: "Read versioned flow documents" },
+			subCommands: { show: document },
+		}),
 		start,
 		run: defineCommand({ meta: { name: "run", description: "Read saved flow runs" }, subCommands: { list, show } }),
 	},

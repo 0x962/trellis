@@ -1,0 +1,299 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/cancellation.py b/src/backend/base/langflow/services/trellis_v1/cancellation.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/cancellation.py
+@@ -0,0 +1,110 @@
++from __future__ import annotations
++
++import hashlib
++from datetime import datetime, timezone
++from uuid import UUID, uuid4
++
++from sqlalchemy import select
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from langflow.services.database.models.jobs.model import (
++    ExecutionSignal,
++    Job,
++    JobCheckpoint,
++    JobStatus,
++    JobType,
++    SignalType,
++)
++from langflow.services.trellis_v1.cancellation_models import (
++    CancellationConflict,
++    CancellationInput,
++    CancellationMissing,
++    CancellationReceipt,
++    CancellationRecord,
++)
++from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
++from langflow.services.trellis_v1.engine_api import EngineApiSecurity
++
++CANCELLATION_KIND = "trellis-cancellation-v1"
++
++
++async def read_cancellation(session: AsyncSession, job_id: UUID) -> CancellationRecord | None:
++    result = await session.execute(
++        select(JobCheckpoint).where(JobCheckpoint.job_id == job_id, JobCheckpoint.kind == CANCELLATION_KIND)
++    )
++    checkpoint = result.scalar_one_or_none()
++    return None if checkpoint is None else CancellationRecord.model_validate_json(checkpoint.blob)
++
++
++async def assert_not_cancelled(session: AsyncSession, job_id: UUID) -> None:
++    """The caller holds the Job lock until its continuation or completion write commits."""
++    if await read_cancellation(session, job_id) is not None:
++        raise CancellationConflict("execution_cancelled")
++
++
++async def accept_cancellation(
++    session: AsyncSession,
++    security: EngineApiSecurity,
++    input: CancellationInput,
++) -> CancellationReceipt:
++    result = await session.execute(select(Job).where(Job.job_id == input.engine_job_id).with_for_update())
++    job = result.scalar_one_or_none()
++    if job is None or job.type != JobType.WORKFLOW:
++        raise CancellationMissing("cancellation_job_not_found")
++    binding = await security.require_authority(
++        session,
++        input.authority_bytes.encode(),
++        "execution.cancel",
++        execution_id=input.execution_id,
++        publication_id=input.publication_id,
++        engine_job_id=input.engine_job_id,
++    )
++    result = await session.execute(
++        select(TrellisJobCorrelation).where(TrellisJobCorrelation.engine_job_id == input.engine_job_id)
++    )
++    correlation = result.scalar_one_or_none()
++    if (
++        correlation is None
++        or correlation.execution_id != input.execution_id
++        or correlation.host_id != binding.authority.host_id
++        or binding.authority.host_id != security.identity.host_id
++    ):
++        raise CancellationConflict("cancellation_correlation_conflict")
++    saved = await read_cancellation(session, input.engine_job_id)
++    request_bytes = input.request_bytes()
++    if saved is not None:
++        if saved.request_bytes != request_bytes:
++            raise CancellationConflict("cancellation_identity_conflict")
++        return saved.receipt
++    now = datetime.now(timezone.utc)
++    receipt = CancellationReceipt(
++        version=1,
++        receipt_id=uuid4(),
++        request_id=input.request_id,
++        execution_id=input.execution_id,
++        engine_job_id=input.engine_job_id,
++        cancel_intent_digest=hashlib.sha256(input.cancel_intent_bytes.encode()).hexdigest(),
++        accepted_at=now,
++    )
++    record = CancellationRecord(request_bytes=request_bytes, receipt=receipt)
++    session.add(JobCheckpoint(
++        job_id=input.engine_job_id,
++        kind=CANCELLATION_KIND,
++        blob=record.model_dump_json(by_alias=True),
++        created_at=now,
++        updated_at=now,
++    ))
++    session.add(ExecutionSignal(
++        id=receipt.receipt_id,
++        job_id=input.engine_job_id,
++        signal_type=SignalType.STOP,
++        data={"trellisCancellationReceiptId": str(receipt.receipt_id)},
++        created_at=now,
++        consumed_at=(
++            now
++            if job.status in {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED, JobStatus.TIMED_OUT}
++            else None
++        ),
++    ))
++    await session.flush()
++    return receipt
+diff --git a/src/backend/base/langflow/services/trellis_v1/cancellation_effects.py b/src/backend/base/langflow/services/trellis_v1/cancellation_effects.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/cancellation_effects.py
+@@ -0,0 +1,54 @@
++from __future__ import annotations
++
++from uuid import UUID
++
++from sqlalchemy import select
++
++from langflow.services.background_execution.service import BackgroundExecutionService
++from langflow.services.database.models.jobs.model import Job, JobCheckpoint, JobStatus
++from langflow.services.database.models.user.model import User, UserRead
++from langflow.services.trellis_v1.cancellation import CANCELLATION_KIND, read_cancellation
++from langflow.services.trellis_v1.cancellation_models import CancellationMissing
++from langflow.services.trellis_v1.engine_api import AuthoritySession
++
++TERMINAL = {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED, JobStatus.TIMED_OUT}
++
++
++async def drain_cancellation(
++    sessions: AuthoritySession,
++    background: BackgroundExecutionService,
++    job_id: UUID,
++) -> JobStatus:
++    async with sessions() as session:
++        record = await read_cancellation(session, job_id)
++        if record is None:
++            raise CancellationMissing("cancellation_receipt_not_found")
++        job = await session.get(Job, job_id)
++        if job is None:
++            raise CancellationMissing("cancellation_job_not_found")
++        if job.status in TERMINAL:
++            return job.status
++        user = await session.get(User, job.user_id)
++        if user is None:
++            raise CancellationMissing("cancellation_owner_not_found")
++        owner = UserRead.model_validate(user, from_attributes=True)
++    await background.stop_job(job_id, owner)
++    async with sessions() as session:
++        job = await session.get(Job, job_id)
++        if job is None:
++            raise CancellationMissing("cancellation_job_not_found")
++        return job.status
++
++
++async def replay_cancellations(
++    sessions: AuthoritySession,
++    background: BackgroundExecutionService,
++) -> None:
++    """Replay committed stop effects before the host admits new graph work."""
++    async with sessions() as session:
++        result = await session.execute(
++            select(JobCheckpoint.job_id).where(JobCheckpoint.kind == CANCELLATION_KIND).order_by(JobCheckpoint.job_id)
++        )
++        job_ids = list(result.scalars())
++    for job_id in job_ids:
++        await drain_cancellation(sessions, background, job_id)
+diff --git a/src/backend/base/langflow/services/trellis_v1/cancellation_models.py b/src/backend/base/langflow/services/trellis_v1/cancellation_models.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/cancellation_models.py
+@@ -0,0 +1,73 @@
++from __future__ import annotations
++
++from datetime import datetime
++from typing import Literal
++from uuid import UUID
++
++from pydantic import BaseModel, ConfigDict, Field, model_validator
++
++
++class CancellationConflict(RuntimeError):
++    pass
++
++
++class CancellationMissing(RuntimeError):
++    pass
++
++
++class StrictModel(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++
++class CancelActor(StrictModel):
++    kind: Literal["human"]
++    name: str = Field(min_length=1)
++
++
++class CancelIntent(StrictModel):
++    version: Literal[1]
++    execution_id: str = Field(alias="executionId", min_length=1)
++    request_id: UUID = Field(alias="requestId")
++    actor: CancelActor
++    expected_revision: int = Field(alias="expectedRevision", ge=1)
++    requested_at: datetime = Field(alias="requestedAt")
++
++    @model_validator(mode="after")
++    def validate_timestamp(self) -> CancelIntent:
++        if self.requested_at.tzinfo is None:
++            raise ValueError("cancellation_timestamp_timezone_required")
++        return self
++
++
++class CancellationInput(StrictModel):
++    execution_id: str = Field(alias="executionId", min_length=1)
++    publication_id: str = Field(alias="publicationId", min_length=1)
++    engine_job_id: UUID = Field(alias="engineJobId")
++    request_id: UUID = Field(alias="requestId")
++    cancel_intent_bytes: str = Field(alias="cancelIntentBytes", min_length=1)
++    authority_bytes: str = Field(alias="authorityBytes", min_length=1)
++
++    @model_validator(mode="after")
++    def validate_intent(self) -> CancellationInput:
++        intent = CancelIntent.model_validate_json(self.cancel_intent_bytes)
++        if intent.execution_id != self.execution_id or intent.request_id != self.request_id:
++            raise ValueError("cancellation_identity_conflict")
++        return self
++
++    def request_bytes(self) -> str:
++        return self.model_dump_json(by_alias=True, exclude={"authority_bytes"})
++
++
++class CancellationReceipt(StrictModel):
++    version: Literal[1]
++    receipt_id: UUID = Field(alias="receiptId")
++    request_id: UUID = Field(alias="requestId")
++    execution_id: str = Field(alias="executionId")
++    engine_job_id: UUID = Field(alias="engineJobId")
++    cancel_intent_digest: str = Field(alias="cancelIntentDigest")
++    accepted_at: datetime = Field(alias="acceptedAt")
++
++
++class CancellationRecord(StrictModel):
++    request_bytes: str = Field(alias="requestBytes")
++    receipt: CancellationReceipt
+diff --git a/src/backend/base/langflow/services/trellis_v1/cancellation_router.py b/src/backend/base/langflow/services/trellis_v1/cancellation_router.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/cancellation_router.py
+@@ -0,0 +1,42 @@
++from __future__ import annotations
++
++from typing import Annotated
++
++from fastapi import APIRouter, Header, HTTPException
++
++from langflow.services.background_execution.service import BackgroundExecutionService
++from langflow.services.trellis_v1.authority import AuthorityConflict, AuthorityUnauthorized
++from langflow.services.trellis_v1.cancellation import accept_cancellation
++from langflow.services.trellis_v1.cancellation_effects import drain_cancellation
++from langflow.services.trellis_v1.cancellation_models import CancellationConflict, CancellationInput, CancellationMissing
++from langflow.services.trellis_v1.engine_api import AuthoritySession, EngineApiSecurity
++
++
++def create_cancellation_router(
++    *,
++    security: EngineApiSecurity,
++    sessions: AuthoritySession,
++    background: BackgroundExecutionService,
++) -> APIRouter:
++    router = APIRouter(prefix="/cancellation")
++
++    @router.post("")
++    async def cancel(
++        input: CancellationInput,
++        authorization: Annotated[str | None, Header()] = None,
++    ) -> dict[str, object]:
++        await security.require_transport_auth(authorization)
++        try:
++            async with sessions() as session:
++                receipt = await accept_cancellation(session, security, input)
++                await session.commit()
++            status = await drain_cancellation(sessions, background, input.engine_job_id)
++        except AuthorityUnauthorized as error:
++            raise HTTPException(status_code=403, detail=str(error)) from error
++        except (CancellationConflict, AuthorityConflict) as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++        except CancellationMissing as error:
++            raise HTTPException(status_code=404, detail=str(error)) from error
++        return {"receipt": receipt.model_dump(by_alias=True, mode="json"), "engineStatus": status.value}
++
++    return router

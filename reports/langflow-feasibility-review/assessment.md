@@ -8,7 +8,75 @@ This gate does not block a Trellis-only release of unrelated fixes.
 The merged source contains useful contracts and fixtures, but it does not establish all required engine behavior.
 TRL-674 remains In Progress. A source merge does not complete a feasibility parent.
 
-## Reviewed source and authority
+## Current decisions and evidence
+
+Navid delegates D1, D13, and D15 through the coordinator in message `47a14203-5f37-4f7e-b230-8888b3500f02`.
+Project note `01M3QANZR50GFPPAA20W1ADENE` records these decisions.
+They remove the remaining engineering approval queue. They waive no technical proof or release requirement.
+
+The PR 663 matched batch reports fifteen passes, one loop failure, and three PostgreSQL skips.
+The frozen Review v71 fixture passes exact branch, group, and private output comparisons.
+The loop fails with `KeyError: feedbackPath` before its combined assertion completes.
+The candidate retains `runs/semantics-4a46a87d/result.json` and its command, log, and restoration records.
+The verified log digest is `1325b5a8526af508232044e6fc7b4f679725761d6c5ef767b76471d24c4e43bc`.
+The later diagnostic passes, but it changes both tracing and test selection. It does not replace the failed suite result.
+
+PR 612 adds three passing native cancellation cases and 64 assertions.
+Engine cancellation remains open: TRL-669 owns completion transaction ordering against cancellation.
+The authorized OrbStack start succeeds, but Docker socket checks time out. TRL-685 owns host diagnosis.
+No OCI isolation result or rendered editor acceptance follows from these receipts.
+
+## Earlier integrated results
+
+This section records the repaired batches. The sections marked “First batch” below preserve earlier results.
+No required engineering probe passes its complete acceptance condition yet.
+
+PR 641 supplies the combined backend patch `a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85`.
+The schema patch remains `ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6`.
+The semantics command uses source `7bb522a10c76ab231fadc815dd57bcfc53169095`.
+It reports twelve passes, four failures, and three PostgreSQL skips in 8.43 seconds.
+The human-wait graph resumes one successor. This case does not prove all human-decision crash windows.
+
+| Failed case | Observed result | Owner |
+| --- | --- | --- |
+| Published human identities on SQLite | Duplicate `job.job_id` violates a unique constraint. | TRL-669 |
+| Nested stock loops | A Message receives a ChatOutput component as `flow_id`, not a string or UUID. | TRL-669 |
+| Real graph deadline | The graph requires both input and output components. | TRL-669 |
+| Review v71 | The vertex result lacks the requested `result` output. | TRL-669 |
+
+These failures keep ENG-F2, F3, F5, F6, and F8 open.
+They do not establish whether each defect belongs to the fixture or the engine.
+The owner must retain the exact failure and verify each repair against the same contract.
+
+The candidate retains `runs/semantics-7bb522a1/result.json`, `command.sh`, `pytest.log`, and `restoration.log`.
+The command is `bash command.sh`.
+The verified log digest is `1e96ff70b46b0607e1a7630ee6590585401be023f268c628d887de6174516237`.
+The receipt reports zero consumers and successful overlay reversal.
+Restoration confirms the pinned source, empty Git status, lockfile, fixtures, and original Python inventory.
+The private Review v71 record remains outside this report.
+
+The preceding correlation repair batch reports fifteen passes, one failure, and five PostgreSQL skips in 120.83 seconds.
+The service-death case fails, so ENG-F1 and F22 remain incomplete.
+The preceding decision batch reports eleven passes, one failure, and one PostgreSQL skip.
+PR 630 repairs its vertex suspension boundary; the newer human-wait result does not replace the full decision fault matrix.
+ENG-F20 remains incomplete.
+
+The native follow-up in PR 591 reports eight passes and 158 assertions in 21.23 seconds.
+Separate processes now prove owner death, a takeover race, durable reopen, and unchanged native provenance in the isolated fixture.
+This closes the earlier same-process-only gap, not production supervisor proof.
+ENG-F4 and F21 remain incomplete. ENG-F6 still needs Langflow deadline traces.
+ENG-F7 still lacks the complete cancellation-writer and output/decision race matrix.
+
+PR 642 reports thirty-one passing gateway source tests and a passing type check.
+Its HTTP loss fixture failed because the transport replayed the accepted request.
+The PR 648 HTTP fixture now passes: it observes the lost response, replays revision 3, and saves a distinct request as revision 4.
+The fixture records forty events. Its manifests and focused type check pass.
+The candidate retains this evidence under `runs/editor-ab6f56dd`.
+
+HTTP acceptance does not establish browser acceptance. TRL-672 owns the separate rendered proof.
+Linux OCI isolation remains unproved. The current engine availability result appears above.
+
+## First batch: source and authority
 
 The source batch ends at `1753c14fcf5ae2a71d99c300574a79ee7e219895`.
 The first source inspection uses `79004c939030861009f709986cd8ec2f18dc83f3`.
@@ -53,7 +121,7 @@ The following findings describe the initial batch. The repair section below reco
 Paths in this table resolve under `integrations/langflow/`, except the backend patch under this report directory.
 The decision log resides under the existing candidate at `runs/integrated-1753c14f/decisions.log`.
 
-## Required engineering probes
+## First batch: engineering probes
 
 Pass means the complete acceptance condition has retained, reviewed evidence.
 Incomplete means the current result cannot satisfy that condition, even when focused assertions pass.
@@ -77,7 +145,7 @@ The decision command reports `11 passed, 1 skipped, 2 warnings, 1 error in 29.40
 The error names `test_accepted_decision_survives_every_service_fault_and_runs_one_successor[sqlite]`.
 The test body never runs. Its presence in the suite does not establish continuation recovery.
 
-## Integrated batch and repair results
+## First batch: results and early repairs
 
 The package group passes thirteen Bun tests and three Python verifier tests.
 Focused type checks and Biome pass. Complete filesystem isolation still fails; no Linux target passes.
@@ -124,7 +192,7 @@ TRL-667 reports complete restoration after the first backend batch.
 The source tree, empty tracked/untracked status, lockfile, and Python inventory match the initial baseline.
 `runs/integrated-1753c14f/restoration.log` retains that check.
 
-## Critique preservation
+## First batch: critique disposition
 
 | Finding | Required closure | Current disposition |
 | --- | --- | --- |
@@ -141,11 +209,11 @@ The source tree, empty tracked/untracked status, lockfile, and Python inventory 
 
 ## Decisions D1-D20
 
-The delivery delegation permits routine engineering decisions. It does not supply missing human acceptance or platform proof.
+The delivery delegation supplies the engineering decisions below. It does not establish runtime or platform proof.
 
 | Decision | Disposition |
 | --- | --- |
-| D1: maintained backend patch | Human acceptance remains open after the technical assessment. Current source does not pass feasibility. |
+| D1: maintained backend patch | Proceed with the bounded maintained backend patch under Navid's delegation. Every required engine proof remains mandatory. No further engineering approval queue applies. |
 | D2: editor mount | Navid selects the full Langflow editor inside the Trellis workspace. Note `01M3Q242R632TB5G9CSYVX909R` records the choice. |
 | D3: save concurrency | Keep the public V1 `expectedVersion` and request-identity contract. |
 | D4: format compatibility | Keep versioned endpoints and explicit unsupported legacy writes. |
@@ -156,10 +224,10 @@ The delivery delegation permits routine engineering decisions. It does not suppl
 | D9: worktree and prompt context | Preserve configured source and current launch context. |
 | D10: historical deletion | Preserve current cascade behavior. No stronger retention promise. |
 | D11: missing history | Preserve available bytes and explicit missing-data diagnostics. |
-| D12: runtime and isolation | No approved target. The macOS candidate uses CPython 3.12.12 and SQLite, but fails full filesystem isolation. Linux OCI remains unproved. |
-| D13: event retention | Event cursor lifetime and storage budget remain open. Token streams stay outside milestone retention. |
+| D12: runtime and isolation | The delegated choice selects Linux OCI arm64 on existing local Docker first, then Linux OCI x86_64 in existing hosted CI. Keep CPython 3.12.12 and the immutable source/lock. Both targets remain unproved. The direct macOS Python candidate fails full filesystem isolation and is not an accepted boundary. |
+| D13: event retention | Preserve all durable execution milestones and receipts through the existing execution and history lifecycle. Cursor availability follows retained records. Add no arbitrary event ceiling or silent prune. Keep token streams separate. |
 | D14: Review prompts | Preserve Review v71 instructions and independent roots. |
-| D15: client scope | Preserve desktop and narrow web. Native-mobile addition remains unapproved. The named external-client inventory remains open. |
+| D15: client scope | Complete the actual inventory for desktop, narrow web, CLI, and agent CLI consumers. Native-mobile flow UI stays outside this replacement. Inventory completion remains engineering work, not an approval request. |
 | D16: cutover and rollback | Principal selects the release window after restore proof. Drain existing legacy runs and unresolved stops. |
 | D17: decision ledger | Preserve atomic acceptance, resume signal, obligation, and exact lookup. Require ENG-F20 proof. |
 | D18: engine authority | Preserve compare-and-set transfer and immutable launch provenance. Require ENG-F21 proof. |
@@ -173,19 +241,34 @@ Use five warmups followed by thirty interactions for each measurement and densit
 Retain durations, host, build, viewport, theme, zoom, and cache state.
 No performance result passes yet. A rendered-row budget still needs measured visible rows and overscan from TRL-673.
 
+## D12 proof target
+
+The delegated implementation choice on 29 September selects Linux OCI for the next isolation proof.
+TRL-667 owns that proof. The selection does not authorize production activation or establish platform acceptance.
+The coordinator reports local Docker as Linux/aarch64 with sixteen CPUs and 16,818,663,424 bytes of memory.
+That report describes available capacity, not an isolation result.
+
+Use an unprivileged container with read-only runtime and source files.
+Provide explicit private writable data for the sidecar.
+Do not mount a host home, repository, credentials, or the Docker socket.
+Use an authenticated private endpoint and deny external egress outside the container.
+Prove actual restrictions and retained data after restart. Environment-variable removal does not prove isolation.
+
+Reuse available images and cache. Measure disk before a necessary target build.
+Preserve the existing candidate and other owners' resources.
+Do not install another host runtime or create cloud resources.
+After the arm64 proof, use the existing hosted CI for Linux OCI x86_64.
+Neither target has retained proof at this decision checkpoint.
+
 ## Next work and gate
 
-Source owners complete the engine migrations and fixture boundaries through linked follow-ups.
-The editor syntax, admission import, and human-bridge source repairs already merge.
-TRL-674 updates the backend composition after those source handoffs.
-TRL-667 runs the combined probes after the repair batch and retains exact input hashes and restoration evidence.
-TRL-669 supplies real-engine coverage for the remaining semantic gaps.
-The editor owners then use the existing candidate for HTTP, browser, and dense-graph proof.
+TRL-669 repairs the four retained semantic failures without changing the required behavior.
+TRL-672 proves the full editor with the existing candidate after the passing HTTP batch.
+TRL-667 runs matching batches after source merges and retains restoration evidence.
+TRL-674 updates the combined assembly when an author fragment changes.
 
-Production tickets retain their dependency on TRL-674.
-Source checkpoints TRL-782, TRL-783, TRL-784, and TRL-785 prepare documents, CLI compatibility, discovery, and drafts respectively.
-All four assigned workers report running. Their parents retain runtime and rendered acceptance requirements.
-These checkpoints do not activate the replacement or register unimplemented handlers.
-Principal retains migration 0132 and the production release. TRL-782 does not generate a migration.
-The gate passes only after required probes, independent trace review, and required architecture decisions pass.
+Independent source checkpoints continue from published contracts.
+Their parent tickets retain runtime and rendered acceptance requirements.
+Principal retains the canonical checkout and production release.
 No failed or skipped probe counts as acceptance.
+The gate requires complete probe evidence, independent trace review, and the required architecture decisions.

@@ -1,4 +1,4 @@
-import { type AgentRun, hasAssignedProcess } from "@trellis/api";
+import { type AgentRun, hasAssignedProcess, type SessionUpdatesGetInput } from "@trellis/api";
 import type { LinkPress, SessionStatusProcessState } from "@trellis/ui";
 import type { Orpc } from "../../../../../lib/orpc";
 
@@ -15,6 +15,13 @@ export const sessionStatusProcessState = (run: AgentRun): SessionStatusProcessSt
 export const sessionUpdateInput = (run: Pick<AgentRun, "id">) => ({ sessionId: run.id });
 
 export const agentStatusUpdatesQueryOptions = (orpc: Orpc, run: Pick<AgentRun, "id">) =>
-	orpc.sessionUpdates.get.queryOptions({ input: sessionUpdateInput(run) });
+	orpc.sessionUpdates.get.infiniteOptions({
+		input: (before: NonNullable<SessionUpdatesGetInput["history"]>["before"]) => ({
+			...sessionUpdateInput(run),
+			history: { before },
+		}),
+		initialPageParam: undefined as NonNullable<SessionUpdatesGetInput["history"]>["before"],
+		getNextPageParam: (result) => result.nextCursor ?? undefined,
+	});
 
 export const agentStatusLinkPress = (_target: string, press: LinkPress): LinkPress => press;

@@ -96,6 +96,13 @@ Each attempt has one immutable identifier, a token hash, retained terminal outpu
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
+An optional status observer uses a separate saved conversation for each ticket or standalone run.
+The existing Claude harness runs that conversation with Sonnet 5.5 through the configured Claude account.
+The observer reads completed messages and tool calls after its durable cursor.
+It never writes to the worker conversation.
+An initial enablement, the configured activity threshold, completion, or a request for human input can start an update.
+Elapsed time cannot start an update.
+The observer saves its conversation, the human update, and the consumed cursor in one transaction.
 The runtime keeps up to 20 idle attempt records for resume. Other unsubscribed exited records remain for up to two days, with limits of 200 records and 256 MiB. It caches eight records on demand.
 Small exit receipts outlive terminal logs and prevent a delayed start from launching a closed attempt again.
 Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.
@@ -762,6 +769,13 @@ Published Page messages still require confirmation in the trusted viewer before 
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
+The session update pane groups retained updates by local calendar day, newest first.
+The tree keeps one selected update open with its Markdown and isolated embeds.
+Arrow keys move tree focus and fold days. Enter or Space selects an update.
+New updates announce availability without changing selection, focus, or the visible scroll anchor.
+`sessionUpdates.get` accepts an optional `history.before` cursor with `createdAt` and `id`.
+History pages contain up to 50 updates and a nullable `nextCursor`; the original `latest`, `previous`, and `request` fields remain available.
+
 ### Harness accounts
 
 The Usage page stores several accounts per harness at `/usage`.
@@ -849,6 +863,19 @@ For example, `{"id":"<runId>","include":["lastTool","error"]}` retrieves the lat
 The runtime restores tool records, messages, and native turn activity from its event journal after a restart.
 Codex, Pi, and OpenCode report completed assistant messages during a turn.
 Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.
+
+`sessionObserverActivity` reads completed work from the runtime event journal for one assigned run.
+Its opaque cursor retains a byte position for each attempt. A read returns counted items, uncertain message context, and urgent signals.
+Each complete tool contributes one item with its input, final output, and preceding output updates.
+Each proven complete logical message contributes one item. Previews and replayed items do not increase the count.
+Completion and human-input signals can trigger an observer before its normal threshold.
+
+Codex and Muse supply logical message identifiers and completion events.
+Claude transcript snapshots and OpenCode text parts retain context with unproven completeness.
+Pi messages without identifiers also retain context with unproven completeness.
+A completion signal states unavailable message coverage without suppressing completed tool counts.
+The reader reports missing journal data separately. Legacy journals reconstruct tool state before the saved position and emit only new completed items.
+The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 16.
 
 `isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
 Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.
@@ -1181,6 +1208,44 @@ tickets and activity after more than 1000 writes, and after a backup
 or a restore.
 
 ## API contract and ref grammars
+
+`clientContract` and the server contract expose the versioned `flowDocumentsV1` methods.
+The methods retain the shared RPC transport, actor headers, and query utilities.
+The shared router sends these methods through the actor-aware service transport.
+The document and execution tables must exist before this router serves requests.
+The document methods use `/api/flows/{flow}/document-v1`.
+Document responses include an ETag for the complete representation.
+Conditional saves evaluate `If-Match` and `If-None-Match` in the save transaction.
+The required `expectedVersion` also checks the saved revision.
+The execution view uses `/api/flow-executions/{id}/view-v1`.
+The execution index uses `/api/flow-executions/index-v1` and returns IDs with their stored engine.
+Its pagination combines both engines in creation order, with the ID as the tie breaker.
+`langflowDispatch.getView` selects the reader from the stored execution association.
+The current document cannot change that selection.
+`langflowDispatch.startLegacy` locks the flow before it checks the saved document format.
+An exact legacy request replay retains its original result after a document conversion.
+New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
+`flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
+
+`flowDocumentsV1.editorSession` issues an editor grant through
+`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
+editor configuration with the host identity, separate origins, and installed
+component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
+The issuer requires the host bearer, the exact parent Origin, and a stored
+`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
+The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+
+A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
+The grant service holds the channel until the actual document transaction returns.
+If the response is lost after commit, the next exact request reads the durable
+save receipt before it checks the old HTTP preconditions. The accepted receipt
+advances the grant revision; the original bootstrap identity stays unchanged.
+
+A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
+Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.
+The source must match one retained attempt, even when the occurrence has later attempts.
+A null source means that no native result binding is available.
+Historical text can remain available with a null source.
 
 The contract lives in `packages/api/src/contract/`. Two handlers serve one
 router: `RPCHandler` at `/rpc` for typed clients, and `OpenAPIHandler` at `/api`

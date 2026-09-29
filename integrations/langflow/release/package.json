@@ -1,0 +1,12 @@
+{
+	"name": "@trellis/langflow-release",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "bun test",
+		"typecheck": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"zod": "4.5.4"
+	}
+}
