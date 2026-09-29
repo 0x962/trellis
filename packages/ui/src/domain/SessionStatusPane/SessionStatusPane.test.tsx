@@ -36,10 +36,10 @@ const render = (patch: Partial<SessionStatusPaneProps> = {}) =>
 describe("SessionStatusPane", () => {
 	test("renders the latest update and defers the previous update", () => {
 		const html = render();
-		expect(html).toContain("From the observer");
-		expect(html).toContain("2 min ago");
+		expect(html).toContain("Updates");
+		expect(html).toContain('role="tree"');
 		expect(html).toContain('data-markdown="Latest **status**"');
-		expect(html).toContain("Previous update");
+		expect(html).toContain("Previous status");
 		expect(html).not.toContain('data-markdown="Previous status"');
 		expect(html).not.toContain("<details open");
 	});

@@ -760,6 +760,13 @@ Published Page messages still require confirmation in the trusted viewer before 
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
+The session update pane groups retained updates by local calendar day, newest first.
+The tree keeps one selected update open with its Markdown and isolated embeds.
+Arrow keys move tree focus and fold days. Enter or Space selects an update.
+New updates announce availability without changing selection, focus, or the visible scroll anchor.
+`sessionUpdates.get` accepts an optional `history.before` cursor with `createdAt` and `id`.
+History pages contain up to 50 updates and a nullable `nextCursor`; the original `latest`, `previous`, and `request` fields remain available.
+
 ### Harness accounts
 
 The Usage page stores several accounts per harness at `/usage`.
