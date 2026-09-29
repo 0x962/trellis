@@ -34,3 +34,7 @@ The native bridge retains responsibility for durable completion, exact attempt i
 
 The focused fixtures use deterministic GitHub and provider responses.
 They do not authorize or perform a real provider call.
+
+The receipt fixtures call the real classification queries in PGlite.
+The fixture creates tables from their Drizzle declarations and reopens a saved database archive.
+The production migration and installed recovery require separate proof.
