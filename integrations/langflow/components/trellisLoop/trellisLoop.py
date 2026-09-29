@@ -5,6 +5,9 @@ from lfx.base.flow_controls.loop_utils import (
 	get_loop_body_start_vertex,
 	get_loop_body_vertices,
 )
+from langflow.services.trellis_v1.occurrence_models import VisitScope
+from langflow.services.trellis_v1.occurrence_outputs import component_output, record_control_output
+from langflow.services.trellis_v1.occurrence_scope import capture_visit_scope
 from lfx.custom import Component
 from lfx.io import HandleInput, IntInput, Output
 from lfx.schema.data import Data
@@ -31,12 +34,40 @@ class TrellisLoopV1(Component):
 	]
 
 	async def _visit(self) -> dict:
+		scope_value = getattr(self, "_trellis_inherited_scope", None)
+		if scope_value is None:
+			scope = await capture_visit_scope(self.graph, self._vertex.id)
+			scope_value = {
+				"parentOccurrenceKey": scope.parent_occurrence_key,
+				"phase": scope.phase,
+				"iterationPath": [
+					{"loopNodeId": item.loop_node_id, "round": item.round}
+					for item in scope.iteration_path
+				],
+				**scope.facts(),
+			}
+			self._trellis_inherited_scope = scope_value
 		visit = await self.graph.begin_trellis_loop_visit(
 			loop_node_id=self._id,
 			max_rounds=self.max_rounds,
 			selected_inputs=self.seed.data,
+			selected_input_bytes=self.seed.get_text(),
+			inherited_scope=scope_value,
 		)
 		return visit
+
+	async def _output(self, port: str, visit: dict) -> Data:
+		context = self.graph.trellis_loop_output_context(visit["visitKey"], port)
+		receipt = await record_control_output(
+			self.graph,
+			self._vertex.id,
+			VisitScope.from_engine(context["scope"]),
+			context["occurrence"],
+			port,
+			visit,
+			output=context["output"],
+		)
+		return Data(data={**visit, **component_output(receipt, "succeeded")})
 
 	def _body_vertices(self) -> set[str]:
 		return get_loop_body_vertices(
@@ -56,6 +87,7 @@ class TrellisLoopV1(Component):
 		start_edge = get_loop_body_start_edge(self._vertex)
 		end_vertex_id = self.get_incoming_edge_by_target_param("children")
 		while visit["phase"] != "completed":
+			self.graph.trellis_loop_active_visit_key = visit["visitKey"]
 			payload = Data(
 				data={
 					"visitKey": visit["visitKey"],
@@ -85,8 +117,8 @@ class TrellisLoopV1(Component):
 		if self._vertex is not None and "done" not in self._vertex.edges_source_names:
 			await self._execute()
 		visit = await self._visit()
-		return Data(data=visit)
+		return await self._output("children", visit)
 
 	async def finish(self) -> Data:
 		visit = await self._execute()
-		return Data(data=visit)
+		return await self._output("done", visit)

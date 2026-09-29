@@ -25,12 +25,12 @@
 	],
 	"patch": {
 		"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
-		"sha256": "2680d54c1be1b3040e807ba250cc379da3ed02f500d037f2f9205019b8fcc21b"
+		"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419"
 	},
 	"source": {
 		"path": "integrations/langflow/patches/loopControl/source/loop_control.py",
 		"target": "src/lfx/src/lfx/graph/loop_control.py",
-		"sha256": "157e45b454fce1ebbb557aa5acd1f364b70305ba436f8418b8cef25b8d6dcf84"
+		"sha256": "899eedab942192548d56880ea3b163b0efb9c4bd1cb4a447b716a206110e1628"
 	},
 	"sharedHunks": {
 		"src/lfx/src/lfx/graph/checkpoint/schema.py": {
@@ -47,7 +47,7 @@
 		},
 		"src/lfx/src/lfx/graph/graph/base.py": {
 			"baseSha256": "b09df208321834faa311dbf90228bc256c4f0642164a965587f1fee2370406b9",
-			"resultSha256": "bcf12ed2f575b6262309a8664227cd2f11a86611604c57aa9247fb0f6b91129c"
+			"resultSha256": "55753e4e3e2cf470ac2be2213ba5b68ae5ee410a15d8caca352f4b13dce01576"
 		}
 	},
 	"component": {
@@ -55,7 +55,7 @@
 		"className": "TrellisLoopV1",
 		"sourceNodeType": "loop",
 		"sourcePath": "integrations/langflow/components/trellisLoop/trellisLoop.py",
-		"sourceSha256": "0db8d752bda2ad87744795c9e4384129bb8932c4b6e7c1eaff64f5e205fc87f0",
+		"sourceSha256": "12106d64aeef18085d3c0515ebf08bb5c3e2d5986b72277b0b55a67ac833cda0",
 		"inputs": [
 			"seed",
 			"max_rounds"
@@ -64,6 +64,6 @@
 	},
 	"fixture": {
 		"path": "integrations/langflow/tests/loopControl/test_loop_control.py",
-		"sha256": "f7d6adc90a05e6df53f12db9f81daed99846e8a4e3ada83805364d4bfdabc78f"
+		"sha256": "f2640c65718c85d5da42d1530f57c487ef46f1bfecea7b7659797ae2fa7200ee"
 	}
 }

@@ -20,6 +20,7 @@ assert subprocess.run(
 sys.path.insert(0, str(SOURCE_ROOT / "src" / "backend"))
 
 from lfx.graph import Graph
+from lfx.graph.loop_control import bind_subgraph
 
 
 class CheckpointStore:
@@ -30,34 +31,45 @@ class CheckpointStore:
 		self.saved.append(copy.deepcopy(checkpoint))
 
 
-def make_graph(*, parent: str = "execution-root", path: list[dict] | None = None) -> Graph:
-	graph = Graph()
-	graph.context = {
-		"trellisVisitScope": {
-			"parentOccurrenceKey": parent,
-			"iterationPath": path or [],
-			"groupDeadlineRefs": [
-				{
-					"deadlineId": "deadline-1",
-					"groupOccurrenceKey": parent,
-					"budgetMs": 60000,
-					"launchedAt": "2026-09-29T20:00:00Z",
-					"deadlineAt": "2026-09-29T20:01:00Z",
-					"launchReceiptId": "launch-1",
-				}
-			],
-			"deadlineAt": "2026-09-29T20:01:00Z",
-		}
+def inherited_scope(*, parent: str = "execution-root", path: list[dict] | None = None) -> dict:
+	return {
+		"parentOccurrenceKey": parent,
+		"phase": "step",
+		"iterationPath": path or [],
+		"inputReceiptIds": [],
+		"groupDeadlineRefs": [
+			{
+				"deadlineId": "deadline-1",
+				"groupOccurrenceKey": parent,
+				"budgetMs": 60000,
+				"launchedAt": "2026-09-29T20:00:00Z",
+				"deadlineAt": "2026-09-29T20:01:00Z",
+				"launchReceiptId": "launch-1",
+			}
+		],
+		"deadlineAt": "2026-09-29T20:01:00Z",
 	}
+
+
+def make_graph() -> Graph:
+	graph = Graph()
 	graph.checkpoint_store = CheckpointStore()
 	return graph
 
 
-async def begin(graph: Graph, *, node: str = "loop", rounds: int = 3) -> dict:
+async def begin(
+	graph: Graph,
+	*,
+	node: str = "loop",
+	rounds: int = 3,
+	scope: dict | None = None,
+) -> dict:
 	return await graph.begin_trellis_loop_visit(
 		loop_node_id=node,
 		max_rounds=rounds,
 		selected_inputs={"text": "seed"},
+		selected_input_bytes="seed",
+		inherited_scope=scope or inherited_scope(),
 	)
 
 
@@ -84,9 +96,20 @@ async def commit_child(graph: Graph, visit: dict, *, round_number: int, human_wa
 async def test_one_round_runs_child_before_yes_condition() -> None:
 	graph = make_graph()
 	visit = await begin(graph)
+	graph.trellis_loop_active_visit_key = visit["visitKey"]
 	assert visit["phase"] == "children"
+	assert graph.trellis_current_visit_scope()["phase"] == "children"
+	children_context = graph.trellis_loop_output_context(visit["visitKey"], "children")
+	assert children_context["output"] == "seed"
+	assert children_context["occurrence"]["occurrenceKey"] == visit["visitOccurrenceKey"]
 	visit = await commit_child(graph, visit, round_number=1)
 	assert graph.trellis_loop_condition_scope(visit["visitKey"])["inputReceiptIds"] == ["receipt-1"]
+	assert graph.trellis_current_visit_scope()["inputReceiptIds"] == ["receipt-1"]
+	assert graph.trellis_current_loop_policy() == {
+		"visitKey": visit["visitKey"],
+		"maxRounds": 3,
+		"phase": "condition",
+	}
 	visit = await graph.commit_trellis_loop_condition(
 		visit["visitKey"], {"exitKind": "completed", "output": " YES\n"}
 	)
@@ -117,6 +140,7 @@ async def test_no_feedback_starts_next_round_with_exact_prior_output() -> None:
 	assert visit["phase"] == "children"
 	assert visit["round"] == 2
 	assert visit["feedbackBytes"] == "\tNO \n"
+	assert visit["childInputBytes"] == "child-1"
 	assert visit["priorOutputs"][0]["children"][0]["receiptId"] == "receipt-1"
 
 
@@ -131,8 +155,12 @@ async def test_no_on_explicit_last_round_fails_the_visit() -> None:
 
 
 async def test_nested_loop_keeps_the_full_outer_to_inner_path() -> None:
-	graph = make_graph(path=[{"loopNodeId": "outer", "round": 2}])
-	visit = await begin(graph, node="inner")
+	graph = make_graph()
+	visit = await begin(
+		graph,
+		node="inner",
+		scope=inherited_scope(path=[{"loopNodeId": "outer", "round": 2}]),
+	)
 	assert visit["iterationPath"] == [
 		{"loopNodeId": "outer", "round": 2},
 		{"loopNodeId": "inner", "round": 1},
@@ -167,6 +195,16 @@ async def test_restart_reads_the_same_visit_and_condition_scope() -> None:
 	assert restored.trellis_loop_condition_scope(visit["visitKey"]) == scope
 
 
+def test_subgraph_uses_the_root_checkpoint() -> None:
+	root = make_graph()
+	root.trellis_loop_visits = {}
+	root.trellis_loop_active_visit_key = None
+	subgraph = Graph()
+	bind_subgraph(root, subgraph)
+	assert subgraph.trellis_checkpoint_root is root
+	assert subgraph.trellis_loop_visits is root.trellis_loop_visits
+
+
 async def test_round_values_above_fifty_remain_valid() -> None:
 	graph = make_graph()
 	visit = await begin(graph, rounds=51)
@@ -182,3 +220,6 @@ async def test_round_values_above_fifty_remain_valid() -> None:
 	assert visit["phase"] == "completed"
 	assert visit["round"] == 51
 	assert visit["iterationPath"][-1] == {"loopNodeId": "loop", "round": 51}
+	done_context = graph.trellis_loop_output_context(visit["visitKey"], "done")
+	assert done_context["output"] == "child-51"
+	assert done_context["scope"] == inherited_scope()
