@@ -19,9 +19,10 @@ const opaqueId = z.string().min(1);
 const commit = z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/);
 export const FlowExecutionIdentityV1Schema = z.strictObject({ id: UlidSchema, engine: FlowEngineV1Schema });
 export type FlowExecutionIdentityV1 = z.infer<typeof FlowExecutionIdentityV1Schema>;
+const paginationInteger = z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).pipe(z.number().int());
 export const FlowExecutionListV1InputSchema = FlowExecutionListInputSchema.extend({
-	limit: z.coerce.number().int().positive().optional(),
-	offset: z.coerce.number().int().nonnegative().optional(),
+	limit: paginationInteger.pipe(z.number().positive()).optional(),
+	offset: paginationInteger.pipe(z.number().nonnegative()).optional(),
 });
 export type FlowExecutionListV1Input = z.infer<typeof FlowExecutionListV1InputSchema>;
 export const FlowOccurrenceIdentityV1Schema = z.strictObject({
