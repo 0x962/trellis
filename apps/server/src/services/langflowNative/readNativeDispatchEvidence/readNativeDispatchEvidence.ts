@@ -6,7 +6,8 @@ import { protocolDigest } from "../../../langflowContracts";
 import type { DispatchPermit } from "../../../langflowHost";
 
 export async function readNativeDispatchEvidence(
-	ctx: { dataHomeId: string }, tx: Tx,
+	ctx: { dataHomeId: string },
+	tx: Tx,
 	input: { permit: DispatchPermit; receiptId?: string },
 ) {
 	const { permit } = input;
@@ -14,13 +15,21 @@ export async function readNativeDispatchEvidence(
 	if (permit.dataHomeId !== ctx.dataHomeId || binding.kind !== "native-dispatch" || !binding.executionId)
 		throw new Error("native_permit_conflict");
 	await lockExecution(tx, { executionId: binding.executionId });
-	const [row] = await tx.select().from(langflowNativeHandles).where(and(
-		eq(langflowNativeHandles.executionId, binding.executionId),
-		eq(langflowNativeHandles.requestId, binding.requestId),
-	));
+	const [row] = await tx
+		.select()
+		.from(langflowNativeHandles)
+		.where(
+			and(
+				eq(langflowNativeHandles.executionId, binding.executionId),
+				eq(langflowNativeHandles.requestId, binding.requestId),
+			),
+		);
 	if (!row) return null;
-	if (row.requestDigest !== binding.payloadDigest || protocolDigest(row.requestBytes) !== binding.payloadDigest ||
-		row.provenance.request.engineJobId !== binding.jobId)
+	if (
+		row.requestDigest !== binding.payloadDigest ||
+		protocolDigest(row.requestBytes) !== binding.payloadDigest ||
+		row.provenance.request.engineJobId !== binding.jobId
+	)
 		throw new Error("native_permit_conflict");
 	const reservation = binding.attemptId === null;
 	const effectId = reservation

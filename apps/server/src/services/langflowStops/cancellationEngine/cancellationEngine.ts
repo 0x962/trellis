@@ -2,7 +2,15 @@ import { z } from "zod";
 import { protocolDigest } from "../../../langflowContracts";
 import { createEngineClient, type EngineClientOptions } from "../../../langflowHost";
 
-export const EngineCancellationStatusSchema = z.enum(["queued", "in_progress", "suspended", "completed", "failed", "cancelled", "timed_out"]);
+export const EngineCancellationStatusSchema = z.enum([
+	"queued",
+	"in_progress",
+	"suspended",
+	"completed",
+	"failed",
+	"cancelled",
+	"timed_out",
+]);
 export const terminalCancellationStatuses = ["completed", "failed", "cancelled", "timed_out"] as const;
 export type EngineCancellationStatus = z.infer<typeof EngineCancellationStatusSchema>;
 
@@ -41,16 +49,19 @@ export function cancellationEngine(options: EngineClientOptions) {
 			});
 			if (response.state === "unknown") return response;
 			if (response.status !== 200) return { state: "failed", status: response.status };
-			const result = z.strictObject({
-				receipt: EngineCancellationReceiptSchema,
-				engineStatus: EngineCancellationStatusSchema,
-			}).parse(JSON.parse(new TextDecoder().decode(response.bytes)));
+			const result = z
+				.strictObject({
+					receipt: EngineCancellationReceiptSchema,
+					engineStatus: EngineCancellationStatusSchema,
+				})
+				.parse(JSON.parse(new TextDecoder().decode(response.bytes)));
 			if (
 				result.receipt.requestId !== input.requestId ||
 				result.receipt.executionId !== input.executionId ||
 				result.receipt.engineJobId !== input.engineJobId ||
 				result.receipt.cancelIntentDigest !== protocolDigest(input.cancelIntentBytes)
-			) throw new Error("cancellation_receipt_conflict");
+			)
+				throw new Error("cancellation_receipt_conflict");
 			return { state: "confirmed", ...result };
 		},
 	};

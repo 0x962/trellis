@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"requires": [
+		{
+			"patch": "0006-occurrence-projection-writes.patch",
+			"sha256": "9de2291dc680331270a33b8e22c65b4a50b628b7c43b1f32f371518b468702a3"
+		}
+	],
+	"patch": "integrations/langflow/patches/occurrenceRequests/0007-loop-scope-inputs.patch",
+	"sha256": "841a23db7ce8cda9b4979856a3a22d713f3e9991f7e2b309cc4bae361de4cec1",
+	"sources": [
+		{
+			"source": "source/occurrence_scope.py",
+			"target": "src/backend/base/langflow/services/trellis_v1/occurrence_scope.py",
+			"sha256": "1fdb42ee08c0fabedb54e5c0fce17f5b384a686638f483a6f44391e88f9a924c"
+		}
+	],
+	"qualification": "source-only",
+	"runtimeAccepted": false
+}

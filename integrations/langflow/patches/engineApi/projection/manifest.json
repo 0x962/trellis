@@ -1,13 +1,13 @@
 {
-  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
-  "patch": "0001-projection-checkpoints.patch",
-  "sha256": "9484d9d7587a1acfaa48cf52b16bbeb1bddd6b3d51d49fa381b79d4556a0bd5f",
-  "files": {
-    "src/backend/base/langflow/services/trellis_v1/projection_reader.py": "49d43cf3e065c329e27308df93ce9458142ea5d903038507e55b2cd886da97b3",
-    "src/backend/base/langflow/services/trellis_v1/projection_router.py": "052f7ee953840ce7b0746caf57a2c4fb71fdfec60a8a0f557c9494ae63a9975b",
-    "src/backend/base/langflow/services/trellis_v1/projection_store.py": "0b5fb014e3f222f2d76cdb1ccbc9520e15fead08063eae3ae2ef065e57a5b5cf"
-  },
-  "tests": {
-    "tests/test_projection_store.py": "5a0cac0cb3a746474c5a55cdc5e05bcb6fe9c84723d043ab692295bf038861c4"
-  }
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"patch": "0001-projection-checkpoints.patch",
+	"sha256": "5a27a8e056520a6bd403a105fd4f0347ea579c8b3f8a59d47a1a768b454de3af",
+	"files": {
+		"src/backend/base/langflow/services/trellis_v1/projection_reader.py": "49d43cf3e065c329e27308df93ce9458142ea5d903038507e55b2cd886da97b3",
+		"src/backend/base/langflow/services/trellis_v1/projection_router.py": "052f7ee953840ce7b0746caf57a2c4fb71fdfec60a8a0f557c9494ae63a9975b",
+		"src/backend/base/langflow/services/trellis_v1/projection_store.py": "03ec13a8585c1a37d19c05314aa7d0bd1a7dce5cb51226de9f0688056f262705"
+	},
+	"tests": {
+		"tests/test_projection_store.py": "979758930734052fdadf04856125e7aa4cf600ccb4227b2ba4c2bb46a87a2371"
+	}
 }

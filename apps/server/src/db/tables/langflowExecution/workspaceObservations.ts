@@ -17,7 +17,5 @@ export const langflowWorkspaceObservations = pgTable(
 		workspaceCommit: text("workspace_commit"),
 		observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
 	},
-	(t) => [
-		check("langflow_workspace_commit", sql`${t.workspaceCommit} ~ '^(?:[a-f0-9]{40}|[a-f0-9]{64})$'`),
-	],
+	(t) => [check("langflow_workspace_commit", sql`${t.workspaceCommit} ~ '^(?:[a-f0-9]{40}|[a-f0-9]{64})$'`)],
 );

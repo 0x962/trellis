@@ -14,18 +14,31 @@ afterEach(async () => {
 });
 const requestBytes = JSON.stringify(nativeRequest);
 const intent = {
-	version: 1 as const, executionId: ids.execution, requestId: crypto.randomUUID(),
-	expectedRevision: 2, requestedAt: now.toISOString(), actor: { kind: "human" as const, name: "fixture" },
+	version: 1 as const,
+	executionId: ids.execution,
+	requestId: crypto.randomUUID(),
+	expectedRevision: 2,
+	requestedAt: now.toISOString(),
+	actor: { kind: "human" as const, name: "fixture" },
 };
 const stop: StopObligationV1 = {
-	version: 1, obligationId: "stop-1", executionId: ids.execution, stepId: handle.stepId,
-	agentRunId: handle.agentRunId, attemptId: handle.attemptId, reason: "canceled",
-	requestedAt: now.toISOString(), revision: 1, state: "pending", exitReceipt: null,
+	version: 1,
+	obligationId: "stop-1",
+	executionId: ids.execution,
+	stepId: handle.stepId,
+	agentRunId: handle.agentRunId,
+	attemptId: handle.attemptId,
+	reason: "canceled",
+	requestedAt: now.toISOString(),
+	revision: 1,
+	state: "pending",
+	exitReceipt: null,
 };
 async function fixture(reserved = false) {
 	const { db, authority } = await receiptFixture();
 	databases.push(db);
-	if (reserved) await db.transaction((tx) => reserveNative(tx, { requestBytes, taskKey: "task", handle, authority, now }));
+	if (reserved)
+		await db.transaction((tx) => reserveNative(tx, { requestBytes, taskKey: "task", handle, authority, now }));
 	const ctx = { now, nativeAuthority: authority };
 	return { db, ctx, read: () => db.transaction((tx) => readNativeRequest(ctx, tx, { requestBytes })) };
 }
@@ -44,8 +57,15 @@ test("retains exact attempts until a matching saved exit confirms the stop", asy
 	await f.db.transaction((tx) => cancelExecution(tx, { intent, obligations: [stop] }));
 	expect(await f.read()).toMatchObject({ handle, stop, reconciliation: "pending" });
 	const confirmed: StopObligationV1 = {
-		...stop, state: "confirmed", revision: 2,
-		exitReceipt: { attemptId: handle.attemptId, receiptId: "exit-1", exitedAt: now.toISOString(), confirmedAt: now.toISOString() },
+		...stop,
+		state: "confirmed",
+		revision: 2,
+		exitReceipt: {
+			attemptId: handle.attemptId,
+			receiptId: "exit-1",
+			exitedAt: now.toISOString(),
+			confirmedAt: now.toISOString(),
+		},
 	};
 	await f.db.transaction((tx) => updateStop(tx, { expectedRevision: 1, obligation: confirmed }));
 	expect(await f.read()).toMatchObject({ handle, stop: confirmed, reconciliation: "exited" });
@@ -53,15 +73,38 @@ test("retains exact attempts until a matching saved exit confirms the stop", asy
 
 test("rejects byte changes, semantic aliases, forged authority, and a different admission", async () => {
 	const f = await fixture(true);
-	for (const changed of [requestBytes + "\n", JSON.stringify({ ...nativeRequest, requestId: crypto.randomUUID(), occurrenceKey: "alias" })])
-		await expect(f.db.transaction((tx) => readNativeRequest(f.ctx, tx, { requestBytes: changed }))).rejects.toThrow("identity_conflict");
-	await expect(f.db.transaction((tx) => readNativeRequest({ ...f.ctx, nativeAuthority: { ...f.ctx.nativeAuthority, capabilityId: "forged" } }, tx, { requestBytes }))).rejects.toThrow("authority_conflict");
-	await expect(f.db.transaction((tx) => readNativeRequest(f.ctx, tx, { requestBytes: JSON.stringify({ ...nativeRequest, admissionReceipt: { ...nativeRequest.admissionReceipt, admissionId: "other" } }) }))).rejects.toThrow("native_request_binding_conflict");
+	for (const changed of [
+		`${requestBytes}\n`,
+		JSON.stringify({ ...nativeRequest, requestId: crypto.randomUUID(), occurrenceKey: "alias" }),
+	])
+		await expect(f.db.transaction((tx) => readNativeRequest(f.ctx, tx, { requestBytes: changed }))).rejects.toThrow(
+			"identity_conflict",
+		);
+	await expect(
+		f.db.transaction((tx) =>
+			readNativeRequest({ ...f.ctx, nativeAuthority: { ...f.ctx.nativeAuthority, capabilityId: "forged" } }, tx, {
+				requestBytes,
+			}),
+		),
+	).rejects.toThrow("authority_conflict");
+	await expect(
+		f.db.transaction((tx) =>
+			readNativeRequest(f.ctx, tx, {
+				requestBytes: JSON.stringify({
+					...nativeRequest,
+					admissionReceipt: { ...nativeRequest.admissionReceipt, admissionId: "other" },
+				}),
+			}),
+		),
+	).rejects.toThrow("native_request_binding_conflict");
 });
 
 test("refuses stop proof that belongs to another run", async () => {
 	const f = await fixture(true);
 	await f.db.transaction((tx) => recordStop(tx, { obligation: stop }));
-	await f.db.update(langflowNativeHandles).set({ agentRunId: "another-run" }).where(eq(langflowNativeHandles.stepId, handle.stepId));
+	await f.db
+		.update(langflowNativeHandles)
+		.set({ agentRunId: "another-run" })
+		.where(eq(langflowNativeHandles.stepId, handle.stepId));
 	await expect(f.read()).rejects.toThrow("stop_attempt_conflict");
 });

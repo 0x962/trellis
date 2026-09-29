@@ -1,0 +1,34 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/startup.py b/src/backend/base/langflow/services/trellis_v1/startup.py
+--- a/src/backend/base/langflow/services/trellis_v1/startup.py
++++ b/src/backend/base/langflow/services/trellis_v1/startup.py
+@@ -67,0 +68,12 @@
++
++
++def _install_outgoing_transports(
++    config: EngineApiStartupConfig,
++    *,
++    install_request_transport,
++    install_review_gate_transport,
++) -> None:
++    origin = str(config.native_reservation_origin).removesuffix("/")
++    authentication_file = _private_file(config.native_reservation_authentication_file)
++    install_request_transport(origin=origin, authentication_file=authentication_file)
++    install_review_gate_transport(origin=origin, authentication_file=authentication_file)
+@@ -143,0 +156,2 @@
++    from langflow.services.trellis_v1.review_gate_router import create_review_gate_router
++    from langflow.services.trellis_v1.review_gate_transport import install_review_gate_transport
+@@ -158,3 +172,4 @@
+-    install_request_transport(
+-        origin=str(config.native_reservation_origin).removesuffix("/"),
+-        authentication_file=_private_file(config.native_reservation_authentication_file),
++    _install_outgoing_transports(
++        config,
++        install_request_transport=install_request_transport,
++        install_review_gate_transport=install_review_gate_transport,
+@@ -181,0 +197,6 @@
++        create_review_gate_router(
++            jobs=jobs,
++            executor=background,
++            security=security,
++            open_session=session_scope,
++        ),

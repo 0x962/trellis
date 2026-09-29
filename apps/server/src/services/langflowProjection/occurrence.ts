@@ -21,7 +21,7 @@ export function projectOccurrence(
 		attempts: previous?.attempts ?? [],
 	};
 	const nativeFacts = facts.native.filter((item) => item.provenance.request.occurrenceKey === observed.occurrenceKey);
-	if (nativeFacts.length > 0) return nativeOccurrence(observed, base, nativeFacts);
+	if (nativeFacts.length > 0) return nativeOccurrence(observed, base, nativeFacts, facts.workspaceObservations);
 	if (observed.kind === "human") {
 		const delivery = facts.human.find((item) => item.decision.wait.occurrence.occurrenceKey === observed.occurrenceKey);
 		if (!delivery) {
@@ -54,7 +54,7 @@ export function projectOccurrence(
 			const ended = observed.state === "failed" || observed.state === "canceled";
 			return {
 				...base,
-				state: ended ? observed.state : "running",
+				state: ended || observed.state === "pending" ? observed.state : "running",
 				waitReason: ended ? null : "review",
 				endedAt: ended ? base.endedAt : null,
 				decision: null,
@@ -70,7 +70,13 @@ export function projectOccurrence(
 				waitReason: "ownership_unknown",
 				output: gate.state === "succeeded" ? gate.output : base.output,
 			};
-		if (gate.state === "failed") return { ...base, state: "failed", error: gate.error };
+		if (gate.state === "failed")
+			return {
+				...base,
+				state: observed.state === "succeeded" ? "unknown" : observed.state,
+				waitReason: observed.state === "succeeded" ? "ownership_unknown" : null,
+				error: gate.error,
+			};
 		return { ...base, output: gate.output, decision: gate.decision };
 	}
 	if (
@@ -78,7 +84,7 @@ export function projectOccurrence(
 		(observed.kind === "gate" && observed.reviewArea === null) ||
 		observed.phase === "condition"
 	) {
-		return nativeOccurrence(observed, base, nativeFacts);
+		return nativeOccurrence(observed, base, nativeFacts, facts.workspaceObservations);
 	}
 	return base;
 }

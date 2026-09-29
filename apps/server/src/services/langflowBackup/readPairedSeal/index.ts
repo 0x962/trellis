@@ -1,0 +1,1 @@
+export { readPairedSeal } from "./readPairedSeal";

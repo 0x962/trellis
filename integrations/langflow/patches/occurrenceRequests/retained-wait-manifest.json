@@ -1,36 +1,36 @@
 {
-  "schemaVersion": 1,
-  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
-  "requires": [
-    {
-      "patch": "0004-durable-cancellation-guard.patch",
-      "sha256": "ed8dd34207db1e5f326ca461f1f5e9c3047facc8ee1bf0e2d692740e5ce6fdec"
-    }
-  ],
-  "patch": "integrations/langflow/patches/occurrenceRequests/0005-retained-wait-lookup.patch",
-  "sha256": "0e3247b8536448628f00cdd03e38b816db89e2b8b371c7e97cda682f2fe75b60",
-  "sources": [
-    {
-      "source": "source/occurrence_journal.py",
-      "target": "src/backend/base/langflow/services/trellis_v1/occurrence_journal.py",
-      "sha256": "c00c3da86746203421bfd1ad800b55963a0d3ea551c0bfe56f401ebdbffcb1b8"
-    },
-    {
-      "source": "source/occurrence_requests.py",
-      "target": "src/backend/base/langflow/services/trellis_v1/occurrence_requests.py",
-      "sha256": "bf58f49d30c1fa21b0a385c743d074618f445fe6db35bc7a00be176dfe547a26"
-    },
-    {
-      "source": "source/occurrence_reservations.py",
-      "target": "src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py",
-      "sha256": "0c2859201ddcaddd191411e21de585b8f2a49b3b87eda57bf447017f44718d6e"
-    },
-    {
-      "source": "source/occurrence_receipts.py",
-      "target": "src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py",
-      "sha256": "7ac6c2477210d7cf1038102608b04177862c3f68eb34369b165188f6a376de49"
-    }
-  ],
-  "qualification": "source-only",
-  "runtimeAccepted": false
+	"schemaVersion": 1,
+	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"requires": [
+		{
+			"patch": "0004-durable-cancellation-guard.patch",
+			"sha256": "ed8dd34207db1e5f326ca461f1f5e9c3047facc8ee1bf0e2d692740e5ce6fdec"
+		}
+	],
+	"patch": "integrations/langflow/patches/occurrenceRequests/0005-retained-wait-lookup.patch",
+	"sha256": "0e3247b8536448628f00cdd03e38b816db89e2b8b371c7e97cda682f2fe75b60",
+	"sources": [
+		{
+			"source": "source/occurrence_journal.py",
+			"target": "src/backend/base/langflow/services/trellis_v1/occurrence_journal.py",
+			"sha256": "c00c3da86746203421bfd1ad800b55963a0d3ea551c0bfe56f401ebdbffcb1b8"
+		},
+		{
+			"source": "source/occurrence_requests.py",
+			"target": "src/backend/base/langflow/services/trellis_v1/occurrence_requests.py",
+			"sha256": "bf58f49d30c1fa21b0a385c743d074618f445fe6db35bc7a00be176dfe547a26"
+		},
+		{
+			"source": "source/occurrence_reservations.py",
+			"target": "src/backend/base/langflow/services/trellis_v1/occurrence_reservations.py",
+			"sha256": "0c2859201ddcaddd191411e21de585b8f2a49b3b87eda57bf447017f44718d6e"
+		},
+		{
+			"source": "source/occurrence_receipts.py",
+			"target": "src/backend/base/langflow/services/trellis_v1/occurrence_receipts.py",
+			"sha256": "7ac6c2477210d7cf1038102608b04177862c3f68eb34369b165188f6a376de49"
+		}
+	],
+	"qualification": "source-only",
+	"runtimeAccepted": false
 }

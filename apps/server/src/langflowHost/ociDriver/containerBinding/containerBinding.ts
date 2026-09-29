@@ -9,12 +9,5 @@ export function assertContainerBinding(
 	configuration: { digest: string | null },
 	nativeReservationAuthenticationDigest: string,
 ) {
-	assertContainer(
-		container,
-		identity,
-		image,
-		storage,
-		configuration.digest,
-		nativeReservationAuthenticationDigest,
-	);
+	assertContainer(container, identity, image, storage, configuration.digest, nativeReservationAuthenticationDigest);
 }

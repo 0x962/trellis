@@ -15,10 +15,13 @@ import type { InstalledEditorManifest } from "../../services/langflowEditorSessi
 import type { LangflowBootstrapConfiguration } from "../configuration";
 
 export type BootstrapSupervisor = Pick<LangflowSupervisor, "start" | "shutdown">;
-export type LangflowBootstrapDependencies = {
+export type LangflowBootstrapDependencies<Supervisor extends BootstrapSupervisor = BootstrapSupervisor> = {
 	readConfiguration(path: string): Promise<LangflowBootstrapConfiguration>;
 	readIdentity(home: string): HostControlIdentity;
-	qualify(configuration: LangflowBootstrapConfiguration, identity: HostControlIdentity): Promise<{
+	qualify(
+		configuration: LangflowBootstrapConfiguration,
+		identity: HostControlIdentity,
+	): Promise<{
 		candidate: CandidatePackage;
 		manifest: LangflowSidecarManifestV1;
 		qualificationSha256: string;
@@ -40,10 +43,13 @@ export type LangflowBootstrapDependencies = {
 		hostId: string;
 		manifest: LangflowSidecarManifestV1;
 		dependencies: SupervisorDependencies;
-	}): Promise<BootstrapSupervisor>;
+	}): Promise<Supervisor>;
 };
 
-export async function composeLangflowBootstrap(config: Config, deps: LangflowBootstrapDependencies) {
+export async function composeLangflowBootstrap<Supervisor extends BootstrapSupervisor>(
+	config: Config,
+	deps: LangflowBootstrapDependencies<Supervisor>,
+) {
 	if (config.langflowConfigFile === undefined) return undefined;
 	if (config.authToken === null || config.authToken === "") throw new Error("langflow_host_token_required");
 	const configured = await deps.readConfiguration(config.langflowConfigFile);
@@ -86,7 +92,7 @@ export async function composeLangflowBootstrap(config: Config, deps: LangflowBoo
 		manifest: qualified.manifest,
 		dependencies: { driver, authority: deps.authority(identity), now: () => new Date() },
 	});
-	await supervisor.start();
+	const live = await supervisor.start();
 	const editor: EditorGatewayConfiguration = {
 		identity,
 		parentOrigin: configured.parentOrigin,
@@ -94,5 +100,5 @@ export async function composeLangflowBootstrap(config: Config, deps: LangflowBoo
 		grantDurationMs: configured.grantDurationMs,
 		installedManifest: async () => installed,
 	};
-	return { editor, supervisor, stop: () => supervisor.shutdown() };
+	return { editor, supervisor, live, configured, stop: () => supervisor.shutdown() };
 }

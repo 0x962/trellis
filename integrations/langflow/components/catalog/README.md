@@ -63,6 +63,18 @@ Its `inputs` port accepts a list of `Data` values.
 Its `yes` and `no` ports return `Data` through separate engine branches.
 The definition binds the review and occurrence patches by their exact hashes.
 
+`trellis-loop-v1` identifies `TrellisLoopV1` from `components/trellisLoop/trellisLoop.py`.
+The optional `scope_entry` input orders nested group activation.
+The optional `seed` input carries a selected predecessor output.
+Root loops omit both inputs. The required `max_rounds` input retains the user value.
+The `children` output permits loop feedback. The `done` output carries the final result.
+
+`group-scope-v1`, `group-settlement-v1`, and `group-output-v1` identify the three classes in `components/groupScope/groupScope.py`.
+The scope component accepts boundary inputs and the immutable group definition.
+The settlement component accepts a child result and its source node ID.
+The output component accepts scope activation and settlements. It returns the ordered group output.
+The package retains the shared module, its import file, and the expansion module.
+
 `template` records the source input declarations and their payload contracts.
 `frontendTemplate` is null in these source declarations.
 `pythonModule` names the module that defines each engine class.

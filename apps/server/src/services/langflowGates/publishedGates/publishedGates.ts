@@ -1,15 +1,17 @@
 import { z } from "zod";
 import type { lockExecution } from "../../../db/queries/langflowExecution/executions";
-import { readExecutionPublication } from "../../flowDocuments/readExecutionPublication";
 import { protocolDigest, ReferenceSchema } from "../../../langflowContracts";
+import { readExecutionPublication } from "../../flowDocuments/readExecutionPublication";
 
 const gate = z.strictObject({ nodeId: ReferenceSchema, reviewArea: z.enum(["frontend", "backend"]) });
 const graph = z.looseObject({
 	trellisReviewGatesV1: z.record(z.string().min(1), gate),
-	nodes: z.array(z.looseObject({
-		id: z.string(),
-		data: z.looseObject({ type: z.string() }),
-	})),
+	nodes: z.array(
+		z.looseObject({
+			id: z.string(),
+			data: z.looseObject({ type: z.string() }),
+		}),
+	),
 });
 
 export function publishedGates(execution: Awaited<ReturnType<typeof lockExecution>>) {

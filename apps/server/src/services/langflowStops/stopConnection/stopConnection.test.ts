@@ -9,7 +9,8 @@ import { connectionFixture } from "./components/fixture";
 let fixture: Awaited<ReturnType<typeof connectionFixture>>;
 afterEach(async () => fixture.close());
 const input = { executionId: ids.execution };
-const read = () => fixture.database.run((tx) => readCancellationReceipt({ ...fixture.database.core, actor: SYSTEM_ACTOR }, tx, input));
+const read = () =>
+	fixture.database.run((tx) => readCancellationReceipt({ ...fixture.database.core, actor: SYSTEM_ACTOR }, tx, input));
 
 test("native exit commits during engine outage and startup recovery delivers the retained cancellation", async () => {
 	fixture = await connectionFixture();
@@ -70,7 +71,8 @@ test("the launch lock delays exact stop and a response for another attempt canno
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
 	const launch = withAttemptOperation(fixture.home, fixture.handle.attemptId, async () => {
-		entered.resolve(); await release.promise;
+		entered.resolve();
+		await release.promise;
 	});
 	await entered.promise;
 	const connection = await fixture.connect();
@@ -88,7 +90,10 @@ test("the launch lock delays exact stop and a response for another attempt canno
 test("an expired grant and closed dispatch gate do not block native exit", async () => {
 	fixture = await connectionFixture();
 	fixture.behavior.at = new Date(Date.parse(fixture.authority.expiresAt) + 1000);
-	fixture.control.gate.closeDispatch({ requestId: crypto.randomUUID(), reason: { kind: "capture", snapshotId: "capture" } });
+	fixture.control.gate.closeDispatch({
+		requestId: crypto.randomUUID(),
+		reason: { kind: "capture", snapshotId: "capture" },
+	});
 	await expect((await fixture.connect()).committed(input)).rejects.toThrow();
 	expect((await read()).needsStop).toBe(false);
 	expect((await read()).acknowledgement).toBeNull();

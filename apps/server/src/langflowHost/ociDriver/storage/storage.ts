@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { lstatSync, realpathSync } from "node:fs";
 import { lstat, realpath } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
@@ -35,6 +36,14 @@ export async function privateDirectory(path: string) {
 		throw new Error("unsafe_sidecar_directory");
 	}
 	return realpath(path);
+}
+
+export function privateDirectorySync(path: string) {
+	const metadata = lstatSync(path);
+	if (!metadata.isDirectory() || metadata.isSymbolicLink() || (metadata.mode & 0o777) !== 0o700) {
+		throw new Error("unsafe_sidecar_directory");
+	}
+	return realpathSync(path);
 }
 
 export function storageNames(identity: SidecarIdentity): StorageNames {

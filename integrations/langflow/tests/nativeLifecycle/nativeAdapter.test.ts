@@ -27,13 +27,15 @@ describe.serial("native adapter with a real fixture process", () => {
 			expect(current().processes.launches).toEqual([original.attemptId]);
 			expect(await current().counts()).toEqual({ handles: 1, attempts: 1, completions: 0 });
 			expect((await current().read(original.stepId)).provenance).toEqual(original.provenance);
-			console.log(JSON.stringify({
-				kind: "native-adapter-reserved-recovery",
-				stepId: original.stepId,
-				attemptId: original.attemptId,
-				pid: runtime.pid,
-				startedAt: runtime.startedAt,
-			}));
+			console.log(
+				JSON.stringify({
+					kind: "native-adapter-reserved-recovery",
+					stepId: original.stepId,
+					attemptId: original.attemptId,
+					pid: runtime.pid,
+					startedAt: runtime.startedAt,
+				}),
+			);
 		});
 	}, 120_000);
 
@@ -80,13 +82,15 @@ describe.serial("native adapter with a real fixture process", () => {
 			await current().processes.complete(handle.attemptId, "fixture-result", "Changed output");
 			await expect(current().observe(handle.stepId)).rejects.toThrow("identity_conflict");
 			expect(await current().counts()).toEqual({ handles: 1, attempts: 1, completions: 1 });
-			console.log(JSON.stringify({
-				kind: "native-adapter-lost-response",
-				stepId: handle.stepId,
-				attemptId: handle.attemptId,
-				pid: runtime.pid,
-				resultId: accepted.completion?.resultId,
-			}));
+			console.log(
+				JSON.stringify({
+					kind: "native-adapter-lost-response",
+					stepId: handle.stepId,
+					attemptId: handle.attemptId,
+					pid: runtime.pid,
+					resultId: accepted.completion?.resultId,
+				}),
+			);
 		});
 	}, 120_000);
 

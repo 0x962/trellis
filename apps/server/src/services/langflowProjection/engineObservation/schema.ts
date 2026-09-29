@@ -1,22 +1,10 @@
 import { z } from "zod";
-import {
-	DigestSchema,
-	EngineJobBindingV1Schema,
-	RevisionSchema,
-	TimestampSchema,
-} from "../../../langflowContracts";
+import { DigestSchema, RevisionSchema } from "../../../langflowContracts";
 
-export const EngineProjectionSnapshotV1Schema = z.strictObject({
-	version: z.literal(1),
-	...EngineJobBindingV1Schema.shape,
-	sourceCursor: RevisionSchema,
-	capturedAt: TimestampSchema,
-	checkpointBytes: z.string().min(1),
-	graphCheckpointBytes: z.string().min(1),
-	occurrenceJournalBytes: z.string().nullable(),
-	jobStatus: z.string().min(1),
-	jobOutcomeBytes: z.string().nullable(),
-});
+export {
+	type EngineProjectionSnapshotV1,
+	EngineProjectionSnapshotV1Schema,
+} from "../../../langflowContracts/projection";
 
 const record = {
 	authorityDigest: DigestSchema,
@@ -38,5 +26,4 @@ export const EngineProjectionResponseV1Schema = z.discriminatedUnion("state", [
 	}),
 ]);
 
-export type EngineProjectionSnapshotV1 = z.infer<typeof EngineProjectionSnapshotV1Schema>;
 export type EngineProjectionResponseV1 = z.infer<typeof EngineProjectionResponseV1Schema>;

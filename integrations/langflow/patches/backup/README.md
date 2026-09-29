@@ -111,3 +111,19 @@ The host sequence is close and drain, issue, commit, export both stores, seal, r
 A lost control response retains the closed host block; an authenticated lookup recovers the exact receipt.
 Export failure retains the active grant.
 Only the host can reopen its outer block after validated revocation and the exact seal receipt.
+
+## Compatibility read
+
+`GET /trellis-v1/snapshots/compatibility` requires the snapshot bearer.
+It reads sorted Alembic heads through the configured SQLite engine and returns them as `revisions`.
+`engineDatabaseVersion` joins those heads with commas.
+It returns the trusted startup package digest, source host, source home, and the SHA256 of the configured encryption secret.
+The response contains no secret bytes.
+`readEngineCompatibility` validates this response before the host closes the capture block.
+The export validates those values again under the active capture grant.
+
+The compatibility read supplies preflight data.
+A live restore comparison requires the separate durable reconciliation lease through host receipt commit and gate release.
+An exact restored-file comparison requires a successful WAL checkpoint before the actual configured file hash and size are read.
+A byte mismatch keeps dispatch blocked.
+An online-backup hash does not establish logical database equality.

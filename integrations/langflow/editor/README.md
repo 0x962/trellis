@@ -44,6 +44,24 @@ The adapter creates no timer for autosave, HTTP save request, local draft store,
 A draft event cannot establish a saved revision, executable publication, or accepted decision.
 The authenticated save service must validate the document and the pinned component authority.
 
+`suspendEditing()` makes the frame inert and requests its final complete draft.
+The child refuses while an open control or invalid field needs attention.
+The parent validates the correlated acknowledgement and delivers its content to `draftChanged` before the promise resolves.
+Only then can the caller acquire the explicit-edit lease from the queue.
+The caller keeps autosave authority active while it freezes frame interaction.
+`resumeEditing()` requires a live channel and the original suspension request.
+The caller must release the queue lease and check current authority before it resumes the frame.
+A committed edit requires a fresh grant. Access loss rejects an outstanding acknowledgement.
+`useDocumentAutosave.beginExplicitEdit(frame)` requests that acknowledgement before it acquires the queue lease.
+It rechecks the scope and current authority after each wait and before dispatch or replay.
+A retained intent uses `beginExplicitEdit(null)` to recover its existing lease.
+The returned lease keeps the queue-owned request bytes, receipt checks, and persistence rules.
+`resumeEditing(frame)` requires an explicitly released lease and current authority.
+An accepted committed receipt blocks ordinary resume until a fresh workspace mount.
+While an intent remains unresolved, the workspace blocks frame input, ordinary saves, settings, and draft replacement.
+The browser-draft dialog keeps export available.
+The typed action route and package qualification determine whether bound controls can become editable.
+
 `selectIssue({ nodeId, field })` asks the frame to reveal the node's ancestors and focus its field.
 `restoreFocus()` sends the last selection back to the frame.
 `frameDriver/` validates parent commands against the bootstrap identity, origin, channel, and sequence.

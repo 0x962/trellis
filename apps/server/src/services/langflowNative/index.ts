@@ -21,3 +21,4 @@ export { resolveNativeLimits } from "./resolveNativeLimits";
 export { resolveNativeOccurrence } from "./resolveNativeOccurrence";
 export type { ApprovedNativeOccurrence, NativeReservationCtx } from "./types";
 export { withNativeReconciliation } from "./withNativeReconciliation";
+export { withNativeSnapshotRetention } from "./withNativeSnapshotRetention";

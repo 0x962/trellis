@@ -1,7 +1,7 @@
-import { ArrowClockwise, CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
+import { ArrowClockwise, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Note, Project } from "@trellis/api";
-import { Badge, EmptyState, EntityCard, GroupHeader, IconButton, Skeleton, Tooltip } from "@trellis/ui";
+import { Badge, EmptyState, EntityCard, GroupHeader, IconButton, Pagination, Skeleton, Tooltip } from "@trellis/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { SettingsSection } from "../../project-settings/SettingsSection";
@@ -110,31 +110,15 @@ export function NotesSettings({ project }: { project: Project }) {
 								</section>
 							);
 						})}
-						{notePage.pageCount > 1 && (
-							<nav aria-label="Notes pages" className="flex items-center justify-between gap-3">
-								<p className="text-sm text-fg-muted tabular-nums">
-									Notes {notePage.start + 1}–{notePage.end} of {notePage.total}
-								</p>
-								<div className="flex items-center gap-2">
-									<Tooltip content="Previous notes page">
-										<IconButton
-											label="Previous notes page"
-											icon={<CaretLeft />}
-											disabled={notePage.index === 0}
-											onClick={() => setRequestedPage(notePage.index - 1)}
-										/>
-									</Tooltip>
-									<Tooltip content="Next notes page">
-										<IconButton
-											label="Next notes page"
-											icon={<CaretRight />}
-											disabled={notePage.index === notePage.pageCount - 1}
-											onClick={() => setRequestedPage(notePage.index + 1)}
-										/>
-									</Tooltip>
-								</div>
-							</nav>
-						)}
+						<Pagination
+							label="notes"
+							rangeLabel="Notes"
+							start={notePage.start}
+							count={notePage.end - notePage.start}
+							total={notePage.total}
+							pending={notes.isFetching}
+							onPage={(direction) => setRequestedPage(notePage.index + direction)}
+						/>
 					</div>
 				)}
 			</SettingsSection>

@@ -82,8 +82,7 @@ import * as system from "./system.ts";
 import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } from "./systemUsage";
 import { ticketServices } from "./tickets/registry";
 import * as timeline from "./timeline.ts";
-import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
-import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
+import { usageServices } from "./usage/registry";
 import * as waves from "./waves/waves.ts";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
@@ -130,8 +129,7 @@ export const services = {
 	"providers.create": io("mutation", providers.create),
 	"providers.update": io("mutation", providers.update),
 	"providers.delete": io("mutation", providers.remove),
-	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
-	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
+	...usageServices,
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"system.sweep": prepared("mutation", prepareSweep, agentTerminal.result),

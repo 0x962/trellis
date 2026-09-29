@@ -1,3 +1,4 @@
+export * from "./documentActions";
 export { insertDocumentConversion } from "./insertConversion.ts";
 export { insertDocumentPublication } from "./insertPublication.ts";
 export { insertDocumentRevision } from "./insertRevision.ts";

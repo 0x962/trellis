@@ -1,3 +1,4 @@
+export * from "./actions";
 export { type DocumentConversionProvenance, langflowDocumentConversions } from "./conversions.ts";
 export { langflowDocumentPublicationStates, type UnpublishedDocumentState } from "./publicationStates.ts";
 export { langflowDocumentPublications } from "./publications.ts";

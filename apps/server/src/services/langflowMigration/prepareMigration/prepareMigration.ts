@@ -3,10 +3,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type FlowDiagnosticV1, type FlowDoc, UlidSchema } from "@trellis/api";
 import { z } from "zod";
+import { catalogDiagnostics } from "../catalogDiagnostics";
 import { inspectSource } from "../inspectSource";
 import { sourceDigest } from "../sourceDigest";
 import type { BlockedMigrationV1 } from "../types";
-import { catalogDiagnostics } from "./components/catalogDiagnostics";
 
 const IdentitySchema = z.object({ flow: z.object({ id: UlidSchema, version: z.number().int().positive() }) });
 

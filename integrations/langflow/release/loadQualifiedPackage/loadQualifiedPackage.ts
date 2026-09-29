@@ -41,7 +41,11 @@ export async function loadQualifiedPackage(input: LoadQualifiedPackageInput) {
 		license: recipe.license,
 		...runtime,
 	});
-	return Object.freeze({ candidate, manifest: freezeValue(manifest), qualificationSha256: options.qualificationSha256 });
+	return Object.freeze({
+		candidate,
+		manifest: freezeValue(manifest),
+		qualificationSha256: options.qualificationSha256,
+	});
 }
 
 function freezeValue<T>(value: T): T {

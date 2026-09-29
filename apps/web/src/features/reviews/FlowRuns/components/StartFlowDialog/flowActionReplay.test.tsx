@@ -6,7 +6,7 @@ import {
 	publishedDocumentV1Example,
 } from "@trellis/api";
 import { act } from "react";
-import { execution, fixture, FlowDecisionDialog, flush, StartFlowDialog } from "./actionDialogFixture";
+import { execution, FlowDecisionDialog, fixture, flush, StartFlowDialog } from "./actionDialogFixture";
 
 const dialog = (blocked = false) => (
 	<StartFlowDialog
@@ -93,7 +93,9 @@ test("unknown start replays its exact input after reopen and respects recovery",
 	expect(f.text()).not.toContain("Run available");
 	await act(async () => f.button("Retry original request").props.onClick());
 	await flush();
-	expect(sent).toEqual([sent[0], sent[0], sent[0]]);
+	expect(sent).toHaveLength(3);
+	expect(sent[1]).toEqual(sent[0]);
+	expect(sent[2]).toEqual(sent[0]);
 	expect(previews).toBe(1);
 	expect(f.text()).toContain("The server can return an existing run");
 	await f.close();

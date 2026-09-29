@@ -1,1 +1,1 @@
-export { hostAuthority, type HostAuthorityInput } from "./hostAuthority";
+export { type HostAuthorityInput, hostAuthority } from "./hostAuthority";

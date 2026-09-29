@@ -281,6 +281,7 @@ export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/harnessAccounts.ts";
 export {
+	langflowDocumentActions,
 	langflowDocumentConversions,
 	langflowDocumentPublicationStates,
 	langflowDocumentPublications,

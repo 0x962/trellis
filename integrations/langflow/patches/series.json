@@ -102,14 +102,14 @@
 		{
 			"name": "backend-backup",
 			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
-			"sha256": "659e9d3f6f56af961c2e0d15261d655232f8fd0c3c526678f1db933f72fda04c",
+			"sha256": "e1dd700f9fff43d39f6f6750d483eac3e2a47c4463d3e9cd4d938691f8951ab9",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
 		{
 			"name": "backend-loop-control",
 			"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
-			"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419",
+			"sha256": "606a3d9dce4c3dc52476fdc65b7799beafb2483e05854abe09b6b3f754d52415",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/loopControl/manifest.json"
 		},
@@ -177,9 +177,30 @@
 			"manifest": "reports/langflow-feasibility-review/backend-recovery-composition.json"
 		},
 		{
+			"name": "backend-projection-store",
+			"path": "integrations/langflow/patches/engineApi/projection/0001-projection-checkpoints.patch",
+			"sha256": "5a27a8e056520a6bd403a105fd4f0347ea579c8b3f8a59d47a1a768b454de3af",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/projection/manifest.json"
+		},
+		{
+			"name": "backend-occurrence-projection",
+			"path": "integrations/langflow/patches/occurrenceRequests/0006-occurrence-projection-writes.patch",
+			"sha256": "9de2291dc680331270a33b8e22c65b4a50b628b7c43b1f32f371518b468702a3",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/projection-writes-manifest.json"
+		},
+		{
+			"name": "backend-review-projection",
+			"path": "integrations/langflow/patches/reviewGate/0002-review-projection-checkpoints.patch",
+			"sha256": "eafe242778b51a2bf6c468f82fa5e176c39238449d927298c79d5e8ba6b3e82c",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-projection-composition.json"
+		},
+		{
 			"name": "backend-private-startup",
 			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
-			"sha256": "83dddae445eb1cc22ed2053c8ea903a01c2228a21f4e174c910e334ff9605ee4",
+			"sha256": "db28d1e0b4f86596d2506e0648a17d83da509a189ea70d234f7ade328db9a5fe",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/engineApi/startup/manifest.json"
 		},
@@ -204,6 +225,7 @@
 		"integrations/langflow/patches/engineApi/shared/tests",
 		"integrations/langflow/patches/engineApi/control/tests",
 		"integrations/langflow/patches/engineApi/native/tests",
+		"integrations/langflow/patches/engineApi/projection/tests",
 		"integrations/langflow/patches/engineApi/admission/tests",
 		"integrations/langflow/patches/engineApi/decisions/tests",
 		"integrations/langflow/patches/engineApi/startup/tests",

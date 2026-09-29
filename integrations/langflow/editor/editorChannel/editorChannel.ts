@@ -40,6 +40,12 @@ export function createEditorChannel(options: Options) {
 	let connected = false;
 	let receivedSequence = 0;
 	let sentSequence = 0;
+	let suspended: string | null = null;
+	let pending: {
+		requestId: string;
+		resolve: (content: EditorContent) => void;
+		reject: (error: Error) => void;
+	} | null = null;
 	const active = () => !revoked && options.now() < expiresAt;
 	const envelope = () => ({
 		protocol: "trellis-editor-v1" as const,
@@ -81,6 +87,26 @@ export function createEditorChannel(options: Options) {
 			return true;
 		}
 		if (!ready) return false;
+		if (message.type === "editing-suspended" || message.type === "editing-suspend-refused") {
+			if (!pending || pending.requestId !== message.requestId) return false;
+			if (message.type === "editing-suspended") {
+				if (message.content.componentManifestHash !== identity.componentManifestHash) return false;
+				options.draftChanged(message.content);
+				suspended = message.requestId;
+				pending.resolve(message.content);
+			} else {
+				pending.reject(
+					new Error(
+						message.reason === "open-control"
+							? "Save or cancel the open editor control before you continue."
+							: "Correct the invalid editor field before you continue.",
+					),
+				);
+			}
+			pending = null;
+			receivedSequence = message.sequence;
+			return true;
+		}
 		if (message.type === "draft-changed") {
 			if (message.content.componentManifestHash !== identity.componentManifestHash) return false;
 			receivedSequence = message.sequence;
@@ -92,14 +118,35 @@ export function createEditorChannel(options: Options) {
 		return true;
 	};
 	const selectIssue = (focus: EditorFocus) => {
-		if (active() && ready) options.send({ ...envelope(), type: "select-issue", focus }, options.editorOrigin);
+		if (active() && ready && !pending && !suspended)
+			options.send({ ...envelope(), type: "select-issue", focus }, options.editorOrigin);
 	};
 	const restoreFocus = (focus: EditorFocus | null) => {
-		if (active() && ready) options.send({ ...envelope(), type: "restore-focus", focus }, options.editorOrigin);
+		if (active() && ready && !pending && !suspended)
+			options.send({ ...envelope(), type: "restore-focus", focus }, options.editorOrigin);
+	};
+	const suspendEditing = () => {
+		if (!active() || !ready || pending || suspended) {
+			return Promise.reject(new Error("The editor cannot suspend its current draft."));
+		}
+		const requestId = crypto.randomUUID();
+		const result = new Promise<EditorContent>((resolve, reject) => {
+			pending = { requestId, resolve, reject };
+		});
+		options.send({ ...envelope(), type: "suspend-editing", requestId }, options.editorOrigin);
+		return result;
+	};
+	const resumeEditing = () => {
+		if (!active() || !ready || pending || !suspended) return false;
+		options.send({ ...envelope(), type: "resume-editing", requestId: suspended }, options.editorOrigin);
+		suspended = null;
+		return true;
 	};
 	const revoke = () => {
 		revoked = true;
 		ready = false;
+		pending?.reject(new Error("Editor access ended before the draft acknowledgement."));
+		pending = null;
 	};
-	return { initialize, receive, selectIssue, restoreFocus, revoke, active };
+	return { initialize, receive, selectIssue, restoreFocus, revoke, active, suspendEditing, resumeEditing };
 }

@@ -6,11 +6,33 @@ import { prepareFlowCancel } from "../../flowExecutions/prepareFlowCancel.ts";
 import { prepareFlowReconcile } from "../../flowExecutions/prepareFlowReconcile.ts";
 import { get as getFlowExecution } from "../../flowExecutions/queries.ts";
 import * as flows from "../../flows/flows.ts";
+import { decisionState } from "../../langflowDecisions";
 import * as langflowDispatch from "../../langflowDispatch";
 import * as editorSessions from "../../langflowEditorSessions";
+import { runtimeAcknowledge, runtimeState } from "../../langflowNative/runtime";
+import { applyEngineObservation, projectionRecovery, projectionState } from "../../langflowProjection";
+import { startState } from "../../langflowStart";
+import { stopState } from "../../langflowStops";
 import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
+import { authorityExecutions } from "../authorityExecutions";
+import { nativeReservationState } from "../nativeReservationState";
+import { nativeRuntimeWorker } from "../nativeRuntimeWorker";
+import { prepareNativeReservation } from "../prepareNativeReservation";
 
 export const flowServices = {
+	"langflowHost.executions": io("read", authorityExecutions),
+	"langflowStart.state": core("mutation", startState),
+	"langflowDecisions.state": core("mutation", decisionState),
+	"langflowStops.state": core("mutation", stopState),
+	"langflowNative.runtimeState": core("read", runtimeState),
+	"langflowNative.runtimeAcknowledge": core("mutation", runtimeAcknowledge),
+	"langflowNative.runtimeObserve": prepared("mutation", nativeRuntimeWorker.observe, agentTerminal.result),
+	"langflowNative.runtimeRecover": prepared("mutation", nativeRuntimeWorker.recover, agentTerminal.result),
+	"langflowProjection.state": core("read", projectionState),
+	"langflowProjection.apply": core("mutation", applyEngineObservation),
+	"langflowProjection.recovery": core("read", projectionRecovery),
+	"langflowNative.reservationState": io("read", nativeReservationState),
+	"langflowNative.reserve": prepared("mutation", prepareNativeReservation, agentTerminal.result),
 	"langflowHost.authority": prepared("mutation", langflowDispatch.hostAuthority, agentTerminal.result),
 	"langflowEditor.readDocument": core("read", editorSessions.readDocument),
 	"langflowEditor.saveDocument": core("mutation", editorSessions.saveDocument),

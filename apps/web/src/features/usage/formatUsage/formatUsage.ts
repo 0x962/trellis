@@ -39,15 +39,6 @@ export function formatDayLabel(day: string): string {
 	return new Date(year, month - 1, date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// The local calendar day of an ISO time, in the `YYYY-MM-DD` form of the
-// report day keys.
-export function localDayKey(iso: string): string {
-	const date = new Date(iso);
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
-	return `${date.getFullYear()}-${month}-${day}`;
-}
-
 // "42%" of `total`, or "" when there is no total.
 export const formatShare = (value: number, total: number) => (total > 0 ? `${Math.round((100 * value) / total)}%` : "");
 

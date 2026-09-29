@@ -4,15 +4,7 @@ import { DigestSchema, EngineJobBindingV1Schema, TimestampSchema } from "../prim
 import { protocolDigest } from "../protocolBytes";
 import { EngineCheckpointV1Schema } from "../waits";
 
-const JobStatusSchema = z.enum([
-	"queued",
-	"in_progress",
-	"suspended",
-	"completed",
-	"failed",
-	"cancelled",
-	"timed_out",
-]);
+const JobStatusSchema = z.enum(["queued", "in_progress", "suspended", "completed", "failed", "cancelled", "timed_out"]);
 
 export const EngineProjectionOutcomeV1Schema = z
 	.strictObject({
@@ -35,10 +27,7 @@ const parseBytes = <T>(schema: z.ZodType<T>, bytes: string): T | null => {
 	}
 };
 
-const sameBinding = (
-	left: z.infer<typeof EngineJobBindingV1Schema>,
-	right: z.infer<typeof EngineJobBindingV1Schema>,
-) =>
+const sameBinding = (left: z.infer<typeof EngineJobBindingV1Schema>, right: z.infer<typeof EngineJobBindingV1Schema>) =>
 	left.executionId === right.executionId &&
 	left.publicationId === right.publicationId &&
 	left.engineJobId === right.engineJobId &&
@@ -92,17 +81,14 @@ export const EngineProjectionSnapshotRecordV1Schema = z
 		snapshotBytes: z.string().min(1),
 		snapshotDigest: DigestSchema,
 	})
-	.refine(
-		(record) => {
-			const snapshot = parseBytes(EngineProjectionSnapshotV1Schema, record.snapshotBytes);
-			return (
-				snapshot !== null &&
-				snapshot.sourceCursor === record.sourceCursor &&
-				protocolDigest(record.snapshotBytes) === record.snapshotDigest
-			);
-		},
-		"The record must retain the exact snapshot bytes, cursor, and digest.",
-	);
+	.refine((record) => {
+		const snapshot = parseBytes(EngineProjectionSnapshotV1Schema, record.snapshotBytes);
+		return (
+			snapshot !== null &&
+			snapshot.sourceCursor === record.sourceCursor &&
+			protocolDigest(record.snapshotBytes) === record.snapshotDigest
+		);
+	}, "The record must retain the exact snapshot bytes, cursor, and digest.");
 
 export type EngineProjectionOutcomeV1 = z.infer<typeof EngineProjectionOutcomeV1Schema>;
 export type EngineProjectionSnapshotV1 = z.infer<typeof EngineProjectionSnapshotV1Schema>;

@@ -15,9 +15,7 @@ export type PreparedConversionEditV1 = {
 	metadata: { briefing: string; harness: FlowHarness | null };
 	provenance: EditedSourceV1;
 };
-export type ConversionEditResultV1 =
-	| { state: "blocked"; diagnostics: FlowDiagnosticV1[] }
-	| PreparedConversionEditV1;
+export type ConversionEditResultV1 = { state: "blocked"; diagnostics: FlowDiagnosticV1[] } | PreparedConversionEditV1;
 
 export type ConversionEditProducer = {
 	enginePackageDigest: string;
@@ -26,6 +24,8 @@ export type ConversionEditProducer = {
 	regenerate(input: {
 		editedSourceBytes: Uint8Array;
 		previousGraphDocument: ConversionEditBase["graphDocument"];
-	}): Promise<{ state: "blocked"; diagnostics: FlowDiagnosticV1[] } | { state: "generated"; expansion: ConversionExpansionV1 }>;
+	}): Promise<
+		{ state: "blocked"; diagnostics: FlowDiagnosticV1[] } | { state: "generated"; expansion: ConversionExpansionV1 }
+	>;
 	validate(input: { content: ConversionEditContent; sourceBytes: Buffer }): Promise<FlowDiagnosticV1[]>;
 };

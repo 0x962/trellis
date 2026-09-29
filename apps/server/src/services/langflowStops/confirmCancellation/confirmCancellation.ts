@@ -5,7 +5,13 @@ import { lockExecution } from "../../../db/queries/langflowExecution";
 import { langflowOutbox } from "../../../db/tables/langflowExecution";
 import type { Tx } from "../../../db/tx";
 import { protocolDigest } from "../../../langflowContracts";
-import { EngineCancellationReceiptSchema, EngineCancellationStatusSchema, terminalCancellationStatuses, type EngineCancellationReceipt, type EngineCancellationStatus } from "../cancellationEngine";
+import {
+	type EngineCancellationReceipt,
+	EngineCancellationReceiptSchema,
+	type EngineCancellationStatus,
+	EngineCancellationStatusSchema,
+	terminalCancellationStatuses,
+} from "../cancellationEngine";
 
 export async function confirmCancellation(
 	ctx: ServiceCtx,
@@ -16,14 +22,19 @@ export async function confirmCancellation(
 	EngineCancellationReceiptSchema.parse(input.receipt);
 	EngineCancellationStatusSchema.parse(input.engineStatus);
 	const execution = await lockExecution(tx, input.receipt);
-	const where = and(eq(langflowOutbox.kind, "cancel"), eq(langflowOutbox.id, input.receipt.requestId),
-		eq(langflowOutbox.executionId, execution.executionId));
+	const where = and(
+		eq(langflowOutbox.kind, "cancel"),
+		eq(langflowOutbox.id, input.receipt.requestId),
+		eq(langflowOutbox.executionId, execution.executionId),
+	);
 	const [pending] = await tx.select().from(langflowOutbox).where(where);
 	if (
-		!pending || execution.cancelIntent?.requestId !== input.receipt.requestId ||
+		!pending ||
+		execution.cancelIntent?.requestId !== input.receipt.requestId ||
 		execution.engineJobId !== input.receipt.engineJobId ||
 		protocolDigest(pending.payloadBytes) !== input.receipt.cancelIntentDigest
-	) throw new Error("cancellation_receipt_conflict");
+	)
+		throw new Error("cancellation_receipt_conflict");
 	if (pending.receipt !== null) {
 		if (!isDeepStrictEqual(pending.receipt.receipt, input.receipt)) throw new Error("cancellation_receipt_conflict");
 		if (terminalCancellationStatuses.some((status) => status === pending.receipt!.engineStatus)) return pending.receipt;

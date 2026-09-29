@@ -36,6 +36,8 @@ export function bootstrapFixture() {
 	};
 	const configuration: LangflowBootstrapConfiguration = {
 		version: 1,
+		authorityPolicy: { durationMs: 60000, renewBeforeMs: 10000 },
+		authorityPermissions: ["native.reserve", "native.read"],
 		packageRoot: "/sealed",
 		packageId: digest,
 		qualificationFile: "/accepted/qualification.json",
@@ -53,9 +55,15 @@ export function bootstrapFixture() {
 		engineApiConfigFile: "/private/engine.json",
 		captureIssuerFile: "/private/capture.key",
 	};
-	const forbidden = async (): Promise<never> => { throw new Error("unexpected_authority_operation"); };
+	const forbidden = async (): Promise<never> => {
+		throw new Error("unexpected_authority_operation");
+	};
 	const authority: AuthorityPort = {
-		revokeOwner: forbidden, readRevocation: forbidden, readReceipt: forbidden, read: forbidden, commit: forbidden,
+		revokeOwner: forbidden,
+		readRevocation: forbidden,
+		readReceipt: forbidden,
+		read: forbidden,
+		commit: forbidden,
 	};
 	const driver: SidecarDriver = { start: forbidden, observe: forbidden, stop: forbidden };
 	const observation: LiveOwnership = {
@@ -65,25 +73,48 @@ export function bootstrapFixture() {
 		endpoint: configuration.editorOrigin,
 	};
 	const dependencies: LangflowBootstrapDependencies = {
-		readConfiguration: async () => { calls.push("configuration"); return configuration; },
-		readIdentity: () => { calls.push("identity"); return identity; },
+		readConfiguration: async () => {
+			calls.push("configuration");
+			return configuration;
+		},
+		readIdentity: () => {
+			calls.push("identity");
+			return identity;
+		},
 		qualify: async () => {
 			calls.push("qualification");
 			return { candidate, manifest, qualificationSha256: digest };
 		},
-		engineConfiguration: async () => { calls.push("engine-configuration"); return { sha256: digest }; },
+		engineConfiguration: async () => {
+			calls.push("engine-configuration");
+			return { sha256: digest };
+		},
 		installedManifest: async () => {
 			calls.push("manifest");
 			return { hash: digest, publicManifest: { blockers: ["fixture"] }, assertContent: async () => {} };
 		},
-		importImage: async () => { calls.push("import"); return { imageConfigDigest: candidate.engine.imageConfigDigest }; },
-		driver: () => { calls.push("driver"); return driver; },
-		authority: () => { calls.push("authority"); return authority; },
+		importImage: async () => {
+			calls.push("import");
+			return { imageConfigDigest: candidate.engine.imageConfigDigest };
+		},
+		driver: () => {
+			calls.push("driver");
+			return driver;
+		},
+		authority: () => {
+			calls.push("authority");
+			return authority;
+		},
 		openSupervisor: async () => {
 			calls.push("supervisor");
 			return {
-				start: async () => { calls.push("start"); return observation; },
-				shutdown: async () => { calls.push("shutdown"); },
+				start: async () => {
+					calls.push("start");
+					return observation;
+				},
+				shutdown: async () => {
+					calls.push("shutdown");
+				},
 			};
 		},
 	};

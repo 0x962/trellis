@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { EngineJobBindingV1Schema, GroupDeadlineV1Schema, OccurrenceV1Schema, ReferenceSchema, TimestampSchema } from "../../../langflowContracts";
+import {
+	EngineJobBindingV1Schema,
+	GroupDeadlineV1Schema,
+	OccurrenceV1Schema,
+	ReferenceSchema,
+	TimestampSchema,
+} from "../../../langflowContracts";
 
 export const GroupDeadlineRequestSchema = z.strictObject({
 	...EngineJobBindingV1Schema.shape,

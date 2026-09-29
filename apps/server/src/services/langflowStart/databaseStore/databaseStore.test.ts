@@ -136,9 +136,8 @@ test("lost admission response recovers the same committed receipt and job", asyn
 		},
 	};
 	expect(
-		(
-			await reconcile(context, key, { store: f.store, engine, authorize: async () => authority, readAuthorityBytes })
-		).disposition,
+		(await reconcile(context, key, { store: f.store, engine, authorize: async () => authority, readAuthorityBytes }))
+			.disposition,
 	).toBe("unknown");
 	expect(
 		(

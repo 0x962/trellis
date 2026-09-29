@@ -1,8 +1,14 @@
-import { canonicalReviewClassificationRequest, ReviewClassificationRequestV1Schema } from "../../../langflowContracts/review";
+import {
+	canonicalReviewClassificationRequest,
+	ReviewClassificationRequestV1Schema,
+} from "../../../langflowContracts/review";
 import type { ReviewGateRequest } from "../invocationProtocol";
 
 export function classificationRequest(
-	visit: Pick<ReviewGateRequest, "executionId" | "publicationId" | "engineJobId" | "classificationRequestId" | "diffId" | "reviewedHead">,
+	visit: Pick<
+		ReviewGateRequest,
+		"executionId" | "publicationId" | "engineJobId" | "classificationRequestId" | "diffId" | "reviewedHead"
+	>,
 	gates: ReadonlyArray<{ nodeId: string; reviewArea: "frontend" | "backend" }>,
 ) {
 	const request = ReviewClassificationRequestV1Schema.parse({
@@ -13,8 +19,9 @@ export function classificationRequest(
 		classificationRequestId: visit.classificationRequestId,
 		diffId: visit.diffId,
 		reviewedHead: visit.reviewedHead,
-		gates: gates.map(({ nodeId, reviewArea }) => ({ nodeId, reviewArea }))
-			.toSorted((a, b) => a.nodeId < b.nodeId ? -1 : a.nodeId > b.nodeId ? 1 : 0),
+		gates: gates
+			.map(({ nodeId, reviewArea }) => ({ nodeId, reviewArea }))
+			.toSorted((a, b) => (a.nodeId < b.nodeId ? -1 : a.nodeId > b.nodeId ? 1 : 0)),
 	});
 	return canonicalReviewClassificationRequest(request);
 }

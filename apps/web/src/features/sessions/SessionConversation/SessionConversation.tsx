@@ -15,10 +15,10 @@ import { isSessionArchived, sessionPane } from "../sessionPane";
 import { SessionPaneState } from "../sessionPane/SessionPaneState";
 import { useSessionArchive } from "../useSessionArchive";
 import { useSessionRestart } from "../useSessionRestart";
-import { useSessionRestartState } from "../useSessionRestartState";
 import { AgentStatusUpdates } from "./components/AgentStatusUpdates";
 import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
+import { useSessionRestartState } from "./components/useSessionRestartState";
 import { sessionObserverEnabled } from "./sessionObserverState";
 import { useSessionStatusObserver } from "./useSessionStatusObserver";
 

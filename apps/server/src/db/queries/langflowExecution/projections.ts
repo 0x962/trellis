@@ -7,8 +7,8 @@ import {
 	langflowExecutionProjections as projections,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
-import { lockExecution } from "./executions";
 import { type EngineSnapshotInput, prepareEngineSnapshot } from "./engineSnapshots/engineSnapshots";
+import { lockExecution } from "./executions";
 
 export async function readProjection(tx: Tx, input: { executionId: string }) {
 	const [row] = await tx.select().from(projections).where(eq(projections.executionId, input.executionId));
@@ -121,11 +121,13 @@ export async function commitProjection(
 			revision: view.revision,
 			lastEventSeq: view.lastEventSeq,
 			...(checkpoint ? { checkpoint } : {}),
-			...(snapshot ? {
-				sourceCursor: snapshot.sourceCursor,
-				snapshotBytes: snapshot.snapshotBytes,
-				snapshotDigest: snapshot.snapshotDigest,
-			} : {}),
+			...(snapshot
+				? {
+						sourceCursor: snapshot.sourceCursor,
+						snapshotBytes: snapshot.snapshotBytes,
+						snapshotDigest: snapshot.snapshotDigest,
+					}
+				: {}),
 		})
 		.where(eq(projections.executionId, input.executionId));
 	return { view, firstAvailableSeq: current.firstAvailableSeq };

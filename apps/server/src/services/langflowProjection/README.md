@@ -59,3 +59,15 @@ The in-memory database fixture uses the declared tables and constraints.
 Production migrations, private transport authentication, engine snapshot adaptation, and mounted client behavior require integration proof.
 ENG-F3, ENG-F5, and ENG-F12 require that combined proof.
 ENG-F18 requires the frontend owner's Aside render checks.
+
+## Engine observations
+
+`projectionState` captures the public revision, current authority, and engine cursor before an engine read. `applyEngineObservation` checks these facts again in the transaction that calls `update`. It verifies the original authority, snapshot, and event bytes. The transaction retains the snapshot and cursor with the public view and event.
+
+`createProjectionDomain` exposes `committed` and `recover`. The host supplies the engine client, original authority bytes, worker service calls, and abort signal. Each cursor read gets a new public revision. Recovery pages through retained executions. The host owns its timer and awaits domain work before shutdown.
+
+`readObservation` reads the immutable publication and original occurrence journal. It preserves human feedback predecessors and checks request identity and static specification hashes. Review output requires the stored classification receipt. Native output requires the exact accepted completion receipt. Historical lifecycle fields remain unknown when the journal has no recorded facts.
+
+The graph, group, loop, and occurrence owners supply lifecycle facts. A container checkpoint without its occurrence history returns `projection_container_history_missing`. A request, accepted output, or current loop phase cannot substitute for that history.
+
+`recordWorkspace` records the exact attempt and workspace in the caller transaction. The public attempt reads that observation through `readProjectionFacts`. A null observation preserves an earlier known commit. The workspace query orders these facts by the observed time.

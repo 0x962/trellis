@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { SourceEventV1Schema } from "../../../langflowContracts";
-import { EngineProjectionSnapshotV1Schema } from "./schema.ts";
+import { type SourceEventV1, SourceEventV1Schema } from "../../../langflowContracts";
+import { type EngineProjectionSnapshotV1, EngineProjectionSnapshotV1Schema } from "./schema.ts";
 
 const binding = {
 	executionId: "execution-1",
@@ -10,7 +10,7 @@ const binding = {
 };
 
 test("checkpoint events describe the snapshot without an invented occurrence", () => {
-	const event = {
+	const event: SourceEventV1 = {
 		version: 1,
 		...binding,
 		sourceEventId: "checkpoint-1",
@@ -23,13 +23,20 @@ test("checkpoint events describe the snapshot without an invented occurrence", (
 });
 
 test("snapshots preserve raw checkpoint strings and unknown outcome", () => {
-	const snapshot = {
+	const snapshot: EngineProjectionSnapshotV1 = {
 		version: 1,
 		...binding,
 		sourceCursor: 9000,
 		capturedAt: "2026-09-29T00:00:00.000Z",
-		checkpointBytes: " {\"waits\":[]} ",
-		graphCheckpointBytes: " {\"external_waits\":{}} ",
+		checkpointBytes: ` ${JSON.stringify({
+			version: 1,
+			...binding,
+			checkpointId: "checkpoint-1",
+			revision: 9000,
+			continuationRef: "graph-row",
+			waits: [],
+		})} `,
+		graphCheckpointBytes: ' {"external_waits":{}} ',
 		occurrenceJournalBytes: null,
 		jobStatus: "in_progress",
 		jobOutcomeBytes: null,

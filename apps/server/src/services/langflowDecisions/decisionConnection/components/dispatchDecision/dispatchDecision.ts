@@ -4,10 +4,10 @@ import {
 	protocolDigest,
 } from "../../../../../langflowContracts";
 import type { createEngineClient, DispatchPermit, LiveOwnership } from "../../../../../langflowHost";
+import { acceptance } from "../../../acceptance";
 import { decisionEngine } from "../../../decisionEngine";
 import type { DecisionStateOperations } from "../../../decisionState";
 import { deliver } from "../../../deliver";
-import { acceptance } from "../../../acceptance";
 import type { DecisionConnectionDependencies } from "../../decisionConnection";
 
 export async function dispatchDecision(

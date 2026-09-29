@@ -18,19 +18,19 @@ export async function preflight(input: BatchInput) {
 	}
 	const configurationBytes = await readPrivateFile(input.prerequisites.bootstrapConfiguration.path);
 	for (const [name, reference] of Object.entries(input.prerequisites)) {
-		const bytes = name === "bootstrapConfiguration"
-			? configurationBytes
-			: await readFile(reference.path);
+		const bytes = name === "bootstrapConfiguration" ? configurationBytes : await readFile(reference.path);
 		assert.equal(createHash("sha256").update(bytes).digest("hex"), reference.sha256, `${name}_changed`);
 	}
-	const configuration = z.object({
-		packageRoot: z.string(),
-		packageId: z.string(),
-		qualificationFile: z.string(),
-		qualificationSha256: z.string(),
-		expectedDataHomeId: z.string(),
-		runtime: z.unknown(),
-	}).parse(JSON.parse(configurationBytes.toString("utf8")));
+	const configuration = z
+		.object({
+			packageRoot: z.string(),
+			packageId: z.string(),
+			qualificationFile: z.string(),
+			qualificationSha256: z.string(),
+			expectedDataHomeId: z.string(),
+			runtime: z.unknown(),
+		})
+		.parse(JSON.parse(configurationBytes.toString("utf8")));
 	const { expectedDataHomeId, ...identity } = configuration;
 	const { dataHomeId, ...qualifiedIdentity } = input.qualification;
 	assert.equal(expectedDataHomeId, dataHomeId, "bootstrap_data_home_mismatch");
