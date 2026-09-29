@@ -43,6 +43,7 @@ mock.module("@trellis/ui", () => ({
 }));
 mock.module("./components/FlowRun", () => ({ FlowRun: () => null }));
 mock.module("./components/StartFlowDialog", () => ({ StartFlowDialog: () => null }));
+mock.module("./useFlowRecovery", () => ({ useFlowRecovery: () => ({ blocked: false }) }));
 const { FlowRuns } = await import("./FlowRuns");
 afterAll(() => mock.restore());
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,8 +61,8 @@ test("scroll redraws reuse measurements for ten thousand saved runs", async () =
 	const app = {
 		queryClient,
 		orpc: {
-			flowExecutions: { list: { queryOptions: () => ({ queryKey: ["legacy"] }) } },
 			flowDocumentsV1: {
+				list: { queryOptions: () => ({ queryKey: ["history"] }) },
 				view: { queryOptions: ({ input }: { input: { id: string } }) => ({ queryKey: ["view", input.id] }) },
 			},
 		},
@@ -88,11 +89,23 @@ test("scroll redraws reuse measurements for ten thousand saved runs", async () =
 	const first = list!.measurementsCache;
 	const key = list!.options.getItemKey;
 	expect(first.length).toBe(10_000);
+	expect(
+		queryClient
+			.getQueryCache()
+			.getAll()
+			.filter((query) => query.getObserversCount() > 0).length,
+	).toBeLessThan(25);
 	list!.scrollOffset = 120_000;
 	await redraw();
 	expect(list!.options.getItemKey).toBe(key);
 	expect(list!.measurementsCache).toBe(first);
 	expect(list!.getVirtualItems().some((item) => item.index >= 1_000)).toBe(true);
+	expect(
+		queryClient
+			.getQueryCache()
+			.getAll()
+			.filter((query) => query.getObserversCount() > 0).length,
+	).toBeLessThan(25);
 	await act(async () => root.unmount());
 	queryClient.clear();
 	list = undefined;
