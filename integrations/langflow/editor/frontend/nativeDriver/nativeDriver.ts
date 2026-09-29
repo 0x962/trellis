@@ -1,6 +1,7 @@
 import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import type { FlowType } from "@/types/flow";
+import { observeFieldFocus } from "../../fieldFocus";
 import type { EditorContent, EditorFocus } from "../../protocol";
 import { revealEditorFocus } from "../revealEditorFocus";
 
@@ -47,7 +48,8 @@ export function nativeDriver(flowId: string) {
 			};
 		};
 		let previous = JSON.stringify(content());
-		let selection: string | null = null;
+		let selection = useFlowStore.getState().nodes.find((node) => node.selected)?.id ?? null;
+		const stopFocus = observeFieldFocus(document, callbacks.selectionChanged);
 		const changed = () => {
 			const next = content();
 			const bytes = JSON.stringify(next);
@@ -65,6 +67,7 @@ export function nativeDriver(flowId: string) {
 		const unsubscribe = useFlowStore.subscribe(changed);
 		return () => {
 			unsubscribe();
+			stopFocus();
 			viewportChanged = () => {};
 		};
 	};

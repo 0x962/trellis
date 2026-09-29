@@ -131,6 +131,29 @@ new file mode 100644
 +++ b/src/customization/trellis/editorOrigin/index.ts
 @@ -0,0 +1 @@
 +export { editorOrigin } from "./editorOrigin";
+diff --git a/src/customization/trellis/fieldFocus/fieldFocus.ts b/src/customization/trellis/fieldFocus/fieldFocus.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/fieldFocus/fieldFocus.ts
+@@ -0,0 +1,12 @@
++import type { EditorFocus } from "../protocol";
++
++export function observeFieldFocus(document: Document, selected: (focus: EditorFocus) => void) {
++	const focused = (event: FocusEvent) => {
++		const target = event.target;
++		if (!(target instanceof document.defaultView!.Element)) return;
++		const field = target.closest<HTMLElement>("[data-trellis-node][data-trellis-field]");
++		if (field) selected({ nodeId: field.dataset.trellisNode!, field: field.dataset.trellisField! });
++	};
++	document.addEventListener("focusin", focused);
++	return () => document.removeEventListener("focusin", focused);
++}
+diff --git a/src/customization/trellis/fieldFocus/index.ts b/src/customization/trellis/fieldFocus/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/fieldFocus/index.ts
+@@ -0,0 +1 @@
++export { observeFieldFocus } from "./fieldFocus";
 diff --git a/src/customization/trellis/frameDriver/frameDriver.ts b/src/customization/trellis/frameDriver/frameDriver.ts
 new file mode 100644
 --- /dev/null
@@ -353,10 +376,11 @@ diff --git a/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts b/s
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,75 @@
 +import useFlowStore from "@/stores/flowStore";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
 +import type { FlowType } from "@/types/flow";
++import { observeFieldFocus } from "../../fieldFocus";
 +import type { EditorContent, EditorFocus } from "../../protocol";
 +import { revealEditorFocus } from "../revealEditorFocus";
 +
@@ -403,7 +427,8 @@ new file mode 100644
 +			};
 +		};
 +		let previous = JSON.stringify(content());
-+		let selection: string | null = null;
++		let selection = useFlowStore.getState().nodes.find((node) => node.selected)?.id ?? null;
++		const stopFocus = observeFieldFocus(document, callbacks.selectionChanged);
 +		const changed = () => {
 +			const next = content();
 +			const bytes = JSON.stringify(next);
@@ -421,6 +446,7 @@ new file mode 100644
 +		const unsubscribe = useFlowStore.subscribe(changed);
 +		return () => {
 +			unsubscribe();
++			stopFocus();
 +			viewportChanged = () => {};
 +		};
 +	};
