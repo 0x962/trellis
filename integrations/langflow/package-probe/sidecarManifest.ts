@@ -102,7 +102,7 @@ export const LangflowSidecarManifestV1Schema = z
 		health: z.strictObject({
 			scheme: z.literal("http"),
 			host: z.literal("127.0.0.1"),
-			path: z.literal("/health_check"),
+			path: z.enum(["/health_check", "/trellis-v1/health"]),
 			expectedStatus: z.literal(200),
 			startupTimeoutMs: PositiveSafeIntegerSchema,
 			requestTimeoutMs: PositiveSafeIntegerSchema,
@@ -116,6 +116,19 @@ export const LangflowSidecarManifestV1Schema = z
 	})
 	.refine((value) => value.data.dataHomeId === value.epochOwnership.dataHomeId, {
 		path: ["epochOwnership", "dataHomeId"],
-	});
+	})
+	.refine((value) => value.target.kind !== "linux-oci" || value.data.privateRoot === "data", {
+		path: ["data", "privateRoot"],
+	})
+	.refine(
+		(value) =>
+			value.target.kind !== "linux-oci" ||
+			value.encryptionSecret.relativePath === "run/trellis-secrets/engine-secret",
+		{ path: ["encryptionSecret", "relativePath"] },
+	)
+	.refine(
+		(value) => value.health.path === (value.target.kind === "linux-oci" ? "/trellis-v1/health" : "/health_check"),
+		{ path: ["health", "path"] },
+	);
 
 export type LangflowSidecarManifestV1 = z.infer<typeof LangflowSidecarManifestV1Schema>;

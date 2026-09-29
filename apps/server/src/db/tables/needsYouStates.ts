@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
+import { boolean, check, index, pgTable, text } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 
@@ -16,7 +16,7 @@ export const needsYouStates = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		primaryKey({ columns: [t.actorName, t.itemId] }),
+		index("needs_you_states_identity").using("hash", sql`ARRAY[${t.actorName}, ${t.itemId}]`),
 		check("needs_you_states_action_check", sql`NOT (${t.ignored} AND ${t.snoozedUntil} IS NOT NULL)`),
 	],
 );

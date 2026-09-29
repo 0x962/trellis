@@ -6,6 +6,8 @@ import type { Db } from "./client.ts";
 import { ticketSummary } from "./queries/ticketGet.ts";
 import { openTestDb } from "./testDb.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test'])`;
+
 let db: Db;
 const root = ulid();
 const status = ulid();
@@ -50,8 +52,8 @@ const insertPull = async ({
 		'fail', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', ${new Date(at.getTime() + number)})`);
+		ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${id}, 'manual', ${actorId}, 'Test', 'human', ${new Date(at.getTime() + number)})`);
 	return id;
 };
 

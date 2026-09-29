@@ -23,27 +23,27 @@ const newProject = (key: string, color: string | null) =>
 	);
 
 const countHuman = { name: "Page count human", kind: "human" as const };
+const countHumanActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${countHuman.kind}, ${countHuman.name}]::text[])`;
 const countAgent = { name: ulid(), kind: "agent" as const };
+const countAgentActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${countAgent.kind}, ${countAgent.name}]::text[])`;
 
 const countPage = async (projectId: string, slug: string, deleted = false) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, creator_actor_name, creator_actor_kind,
 		actor_name, actor_kind, deleted_at, deleted_actor_name, deleted_actor_kind,
-		created_at, updated_at
+		created_at, updated_at, actor_id, creator_actor_id, deleted_actor_id
 	) VALUES (
 		${id}, ${projectId}, ${slug}, ${slug}, ${countAgent.name}, ${countAgent.kind},
 		${deleted ? countHuman.name : countAgent.name}, ${deleted ? countHuman.kind : countAgent.kind},
 		${deleted ? at : null}, ${deleted ? countHuman.name : null}, ${deleted ? countHuman.kind : null},
-		${at}, ${at}
-	)`);
+		${at}, ${at}, ${deleted ? countHumanActorId : countAgentActorId}, ${countAgentActorId}, ${deleted ? countHumanActorId : null})`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size, source_path,
-		actor_name, actor_kind, created_at
+		actor_name, actor_kind, created_at, actor_id
 	) VALUES (
 		${id}, 1, ${crypto.randomUUID()}, ${"a".repeat(64)}, 1, 'page.html',
-		${countAgent.name}, ${countAgent.kind}, ${at}
-	)`);
+		${countAgent.name}, ${countAgent.kind}, ${at}, ${countAgentActorId})`);
 	return id;
 };
 
@@ -51,22 +51,20 @@ const countThread = async (pageId: string, resolved = false) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO page_comment_threads (
 		id, page_id, version, anchor_kind, anchor, actor_name, actor_kind,
-		resolved_at, resolved_by_name, resolved_by_kind, created_at, updated_at
+		resolved_at, resolved_by_name, resolved_by_kind, created_at, updated_at, actor_id, resolved_by_id
 	) VALUES (
 		${id}, ${pageId}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
 		${countAgent.name}, ${countAgent.kind}, ${resolved ? at : null},
-		${resolved ? countHuman.name : null}, ${resolved ? countHuman.kind : null}, ${at}, ${at}
-	)`);
+		${resolved ? countHuman.name : null}, ${resolved ? countHuman.kind : null}, ${at}, ${at}, ${countAgentActorId}, ${resolved ? countHumanActorId : null})`);
 	return id;
 };
 
 const countComment = (threadId: string, kind: "human" | "agent", deleted = false) =>
 	db.execute(sql`INSERT INTO page_comments (
-		id, thread_id, body, actor_name, actor_kind, created_at, updated_at, deleted_at
+		id, thread_id, body, actor_name, actor_kind, created_at, updated_at, deleted_at, actor_id
 	) VALUES (
 		${ulid()}, ${threadId}, 'Comment', ${kind === "human" ? countHuman.name : countAgent.name}, ${kind},
-		${at}, ${at}, ${deleted ? at : null}
-	)`);
+		${at}, ${at}, ${deleted ? at : null}, ${kind === "human" ? countHumanActorId : countAgentActorId})`);
 
 beforeAll(async () => {
 	db = await openTestDb();

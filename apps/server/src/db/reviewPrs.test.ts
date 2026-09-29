@@ -8,6 +8,8 @@ import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { openTestDb } from "./testDb.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test'])`;
+
 // Two projects. TST has the repository acme/app, and its ticket TST-1 links
 // the pull request `linked`. The pull request `retained` is kept for review
 // in acme/app and links no ticket. OTH has no repository; its ticket OTH-1
@@ -55,8 +57,8 @@ const insertPull = (
 		VALUES (${id}, ${owner}, ${repo}, ${number}, ${`https://github.com/${owner}/${repo}/pull/${number}`}, 'open', ${retained}, ${JSON.stringify(checks)}::jsonb, ${ciStateOf(checks)}, ${at}, ${at})`);
 
 const link = (ticket: string, pull: string) =>
-	db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket}, ${pull}, 'manual', 'Test', 'human', ${at})`);
+	db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${ticket}, ${pull}, 'manual', ${actorId}, 'Test', 'human', ${at})`);
 
 beforeAll(async () => {
 	db = await openTestDb();

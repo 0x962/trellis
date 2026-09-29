@@ -105,7 +105,6 @@ export function QuestionForm({
 						<Textarea
 							label={question.options.length ? "Or enter an answer" : "Your answer"}
 							value={answers[question.id]?.freeText ?? ""}
-							maxLength={500}
 							onChange={(event) =>
 								setAnswers((current) => ({
 									...current,

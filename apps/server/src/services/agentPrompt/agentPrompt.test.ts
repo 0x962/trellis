@@ -61,7 +61,7 @@ beforeAll(async () => {
 	for (let i = 0; i < 41; i++) {
 		lastResource = ulid();
 		await db.execute(
-			sql`INSERT INTO epic_resources (id,epic_id,kind,name,body,actor_name,actor_kind,created_at,updated_at) VALUES (${lastResource},${other.id},'doc',${`Resource ${i}`},'Reference text','Sam','human',${at},${at})`,
+			sql`INSERT INTO epic_resources (id,epic_id,kind,name,body,actor_name,actor_kind,created_at,updated_at, actor_id) VALUES (${lastResource},${other.id},'doc',${`Resource ${i}`},'Reference text','Sam','human',${at},${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Sam']::text[]))`,
 		);
 	}
 	await tx((tx) =>
@@ -207,7 +207,7 @@ test("three pull requests with 225 CI checks use explicit summaries below the ru
 		const pr = await tx((tx) => ensurePr(tx, `example/app#${number}`));
 		await db.execute(sql`UPDATE pull_requests SET checks=${JSON.stringify(checks)}::jsonb WHERE id=${pr.id}`);
 		await db.execute(
-			sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at) VALUES (${run.ticketId},${pr.id},'manual','Sam','human',${at})`,
+			sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id) VALUES (${run.ticketId},${pr.id},'manual','Sam','human',${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Sam']::text[]))`,
 		);
 	}
 	const request = `Review responsibility. ${"Full task context. ".repeat(6000)}`;

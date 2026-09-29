@@ -86,7 +86,7 @@ async function open(tx: Tx, input: { executionId: string; now: Date }) {
 	const row = await queries.lockExecution(tx, input);
 	if (row.cancelIntent || row.submission.state === "failed" || row.admission.state === "open") return executionOf(row);
 	const authority = row.authority!;
-	queries.assertAuthority(row, authority, "native.reserve", input.now);
+	await queries.assertAuthority(tx, row, authority, "native.reserve", input.now);
 	return executionOf(
 		await queries.openAdmission(tx, {
 			executionId: row.executionId,

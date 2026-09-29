@@ -92,7 +92,23 @@ The gateway must permit the exact Trellis parent origin and enforce the real gra
 It must deny execution, provider keys, raw Python, imports, and component replacement.
 TRL-696 owns the authenticated issuer and gateway composition. TRL-685 owns the packaged editor build.
 TRL-696 owns the route composition. The actual route still requires its registered session procedure.
-Typed inspectors, keyboard edges, deletion, nested groups, and the outline require accepted component definitions and rendered proof.
+`frontend/EditorInteractions` adds the outline and connection dialog to the native toolbar.
+`EditorOutline` lists native nodes with their ancestor paths and retains access to every match.
+`KeyboardConnections` filters exact native handles through `isValidConnection` in `src/utils/reactflowUtils.ts`.
+It creates, replaces, and deletes edges through the native store.
+`graphActions` snapshots the full graph before a change and deletes native descendants with their connected edges.
+The patch routes native deletion controls through this helper and snapshots pointer reconnections.
+Native `takeSnapshot`, `undo`, and `redo` in `src/stores/flowsManagerStore.ts` retain every bridge history entry.
+The history contains nodes and edges, including field values and layout.
+Semantic source groups still require their published expansion contract; native parent IDs describe the canvas hierarchy.
+
+The native sidebar already adds components with Enter or Space.
+Its `handleKeyDown` lives in `src/pages/FlowPage/components/flowSidebarComponent/components/sidebarDraggableComponent.tsx`.
+It calls `useAddComponent` with the installed palette definition.
+The native fixture beside that component covers those keys; the combined browser proof must use that actual path.
+`frontend/EditorInteractions/__tests__` supplies mounted selector and outline fixtures plus exact graph undo assertions.
+The production patch copies these fixtures into the matched frontend for its Jest suite.
+Typed source inspectors and the rendered interaction proof remain open.
 The existing probe paths, patch, and shared candidate remain under their owners.
 
 ## Verification

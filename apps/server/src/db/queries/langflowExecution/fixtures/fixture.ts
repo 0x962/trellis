@@ -56,6 +56,8 @@ export async function receiptFixture(open = true, database?: Db) {
 			tables.langflowDecisions,
 			tables.langflowOutbox,
 			tables.langflowOwnershipReceipts,
+			tables.langflowOwnerFences,
+			tables.langflowAuthorityCommits,
 			tables.langflowStops,
 			tables.langflowDeadlines,
 			tables.langflowExecutionProjections,
@@ -64,6 +66,7 @@ export async function receiptFixture(open = true, database?: Db) {
 			tables.langflowWarnings,
 		])
 			await db.$client.exec(tableSql(table));
+		await db.$client.exec(tables.authorityControlRowsSql);
 		await db.execute(sql`INSERT INTO tickets VALUES (${ids.ticket})`);
 		await db.execute(sql`INSERT INTO pull_requests VALUES (${ids.diff})`);
 	}

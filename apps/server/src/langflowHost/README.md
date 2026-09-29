@@ -26,8 +26,14 @@ The next host uses that reservation instead of an unrecorded replacement.
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
 `createOciDriver` binds the verified manifest and its image config digest to the saved instance.
 It starts the loaded config digest with pull disabled, so a missing local import fails closed.
+`importVerifiedOciImage` reloads the sealed package, archives its verified OCI layout, and loads it with no registry pull.
+It inspects the expected config digest and returns that digest as the only local image reference for `createOciDriver`.
+The import result retains the OCI manifest digest and trusted qualification digest for the caller receipt.
 `start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
 It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
+The OCI manifest maps `data` to `/data` and maps `run/trellis-secrets/engine-secret` to the read-only encryption file.
+The driver builds authenticated health requests from the declared `http`, `127.0.0.1`, and `/trellis-v1/health` values.
+The explicit host private root stays separate from the container paths and named volumes.
 `observe` checks those current objects before it requests authenticated health for the supplied challenge.
 It reports `unknown` when the container manager cannot establish the complete retained state.
 An absent PID, a cached health response, or a copied challenge does not prove current ownership.
@@ -43,10 +49,12 @@ The engine reads the capture issuer from a separate read-only secret file.
 Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
 An explicit `engineApiConfigFile` copies one mode-0600 startup file into the read-only secrets volume.
+The caller also supplies `engineApiConfigSha256` from its strict package and config validation.
 An enabled configuration also requires `nativeReservationAuthenticationFile` for the outgoing Trellis bearer.
 The driver copies that separate mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
 Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
-The container label binds the SHA256 of the supplied startup file to the saved instance.
+The driver compares the original file bytes with that digest before each start, observation, and stop.
+The container label binds the same SHA256 to the saved instance.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
 It reads the exact bearer file for each operation, refuses redirects, preserves request and response bytes, and returns unknown network results.

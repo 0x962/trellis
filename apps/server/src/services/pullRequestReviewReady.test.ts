@@ -75,8 +75,8 @@ test("a flow of the project asks for a run of the current commit", async () => {
 	const noRun = await h.gapsOf(ticket.id);
 
 	await h.db.execute(sql`INSERT INTO pr_flow_waivers
-		(pull_request_id, head_sha, reason, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${id}, 'head110', 'No flow reads a migration.', 'claude-code', 'agent', ${h.at}, ${h.at})`);
+		(pull_request_id, head_sha, reason, actor_name, actor_kind, created_at, updated_at, actor_id)
+		VALUES (${id}, 'head110', 'No flow reads a migration.', 'claude-code', 'agent', ${h.at}, ${h.at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['agent', 'claude-code']::text[]))`);
 
 	expect(noRun).toEqual(["flow-run"]);
 	expect(await h.gapsOf(ticket.id)).toEqual([]);
