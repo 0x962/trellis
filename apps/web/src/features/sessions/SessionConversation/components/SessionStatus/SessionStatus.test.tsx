@@ -34,7 +34,7 @@ const run = {
 const updates: SessionUpdates = {
 	latest: {
 		id: "update-a",
-		sessionId: "session-a",
+		sessionId: null,
 		runId: "run-a",
 		requestId: null,
 		body: "Session A **finished**.",
@@ -43,7 +43,7 @@ const updates: SessionUpdates = {
 	},
 	previous: {
 		id: "previous-a",
-		sessionId: "session-a",
+		sessionId: null,
 		runId: "run-a",
 		requestId: null,
 		body: "Session A started.",
