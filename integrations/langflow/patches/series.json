@@ -23,7 +23,7 @@
 		{
 			"name": "backend-backup",
 			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
-			"sha256": "12850efffc6a5a6f665beb689927e01679e38d98a4250872bdfae729dc1e0c9f",
+			"sha256": "f634140024a55c8c2c33a00770318980cab508e13fc37856276e609d1dd6392d",
 			"directory": ".",
 			"manifest": "integrations/langflow/patches/backup/manifest.json"
 		},
