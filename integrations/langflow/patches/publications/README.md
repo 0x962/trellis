@@ -7,20 +7,22 @@ Engine migration `8c0f2d5b3e7a` follows `7b9e1c4a2d6f`.
 The migration adds the receipt ledger and protects ledger rows and published flows from updates and deletes.
 Trellis migrations remain unchanged.
 
-The router registers under `/api/v1/trellis/publications`.
-The bootstrap owner must set `app.state.trellis_publication_package` to `InstalledPublicationPackage` from `langflow.services.trellis_publications.contracts`.
-Its fields are `engine_package_digest`, `component_manifest_hash`, `engine_commit`, `catalog_path`, `trellis_root`, `engine_root`, `authentication_file`, and `user_id`.
+`create_publication_router(package, require_transport_auth=...)` returns the domain router under `/publications`.
+The shared API owner mounts it under `/trellis-v1` and supplies its required transport-auth dependency.
+The factory belongs to `langflow.api.v1.trellis_publications`.
+The bootstrap supplies `InstalledPublicationPackage` from `langflow.services.trellis_publications.contracts`.
+Its fields are `engine_package_digest`, `component_manifest_hash`, `engine_commit`, `catalog_path`, `trellis_root`, `engine_root`, and `user_id`.
 The verified package supplies the digests, source roots, and catalog path.
 The supervisor supplies the private authentication file and the existing engine service user.
 The file must be a regular file with mode 0600.
 Each call supplies its exact content through `Authorization: Bearer <content>`.
-The router returns 503 until the package is configured.
+The shared API owner leaves this domain unavailable until the package and authentication are configured.
 
 Both POST routes accept deterministic JSON with `enginePackageDigest`, `snapshot`, and `sourceBytes`.
 `snapshot` is the immutable Langflow `FlowDocumentSnapshotV1`.
 `sourceBytes` is the base64 encoding of the retained source.
 `POST /validate` returns `{diagnostics: FlowDiagnosticV1[]}`.
-`POST /` uses the prefix without a trailing slash and returns `FlowPublicationV1`.
+`POST` to the prefix without a trailing slash returns `FlowPublicationV1`.
 `GET /{flowId}/{revision}` returns `{publication, snapshot, sourceBytes, requestDigest}`.
 The digest covers the exact POST body bytes.
 The receipt key is the immutable flow ID and revision.

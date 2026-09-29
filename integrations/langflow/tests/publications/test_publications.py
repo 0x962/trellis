@@ -11,12 +11,12 @@ import pytest
 import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
-from langflow.api.v1.trellis_publications import router
+from langflow.api.v1.trellis_publications import create_publication_router
 from langflow.services.database.models import Flow, User
 from langflow.services.trellis_publications import ledger
 from langflow.services.trellis_publications.contracts import InstalledPublicationPackage
@@ -63,14 +63,17 @@ def test_authenticated_atomic_receipt_and_immutability(tmp_path, monkeypatch):
         token.write_text("private-fixture-token")
         token.chmod(0o600)
         app = FastAPI()
-        app.include_router(router, prefix="/api/v1")
-        app.state.trellis_publication_package = InstalledPublicationPackage(
+        package = InstalledPublicationPackage(
             engine_package_digest="d" * 64, component_manifest_hash="c" * 64,
             engine_commit="f" * 40, catalog_path=tmp_path / "absent-catalog",
-            trellis_root=ROOT, engine_root=tmp_path, authentication_file=token, user_id=USER)
+            trellis_root=ROOT, engine_root=tmp_path, user_id=USER)
+        def require_transport_auth(authorization: str = Header(default="")):
+            if authorization != f"Bearer {token.read_text()}":
+                raise HTTPException(401, "publication_authentication_required")
+        app.include_router(create_publication_router(package, require_transport_auth=require_transport_auth), prefix="/trellis-v1")
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://engine") as client:
             raw = request_bytes()
-            endpoint = "/api/v1/trellis/publications"
+            endpoint = "/trellis-v1/publications"
             assert (await client.post(endpoint, content=raw)).status_code == 401
             headers = {"Authorization": "Bearer private-fixture-token"}
             first = await client.post(endpoint, content=raw, headers=headers)
@@ -117,7 +120,7 @@ def test_real_catalog_refuses_unapproved_component(tmp_path):
     value["snapshot"]["documentHash"] = hashlib.sha256(raw).hexdigest()
     package = InstalledPublicationPackage(engine_package_digest="d" * 64, component_manifest_hash=digest,
         engine_commit=catalog["engine"]["commit"], catalog_path=catalog_path,
-        trellis_root=ROOT, engine_root=Path(engine_root), authentication_file=tmp_path / "unused", user_id=USER)
+        trellis_root=ROOT, engine_root=Path(engine_root), user_id=USER)
     assert validate(PublicationRequest.model_validate(value), package)[0]["code"] == "publication_component_not_approved"
     value["enginePackageDigest"] = "e" * 64
     assert validate(PublicationRequest.model_validate(value), package)[0]["code"] == "publication_package_mismatch"

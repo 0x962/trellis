@@ -65,7 +65,7 @@ export const installedPublisher = (input: {
 		return response.json();
 	};
 	const readReceipt = async (flowId: string, revision: number, digest: string) => {
-		const result = await request(`/api/v1/trellis/publications/${encodeURIComponent(flowId)}/${revision}`);
+		const result = await request(`/trellis-v1/publications/${encodeURIComponent(flowId)}/${revision}`);
 		if (result === null) return null;
 		const saved = z.object({ requestDigest: z.string(), publication: FlowPublicationV1Schema }).parse(result);
 		if (
@@ -90,7 +90,7 @@ export const installedPublisher = (input: {
 				createHash("sha256").update(body(document)).digest("hex"),
 			),
 		validate: async (document) =>
-			diagnosticsSchema.parse(await request("/api/v1/trellis/publications/validate", body(document))).diagnostics,
+			diagnosticsSchema.parse(await request("/trellis-v1/publications/validate", body(document))).diagnostics,
 		publish: async (document) => {
 			const effect = {
 				flowId: document.snapshot.flow.id,
@@ -114,7 +114,7 @@ export const installedPublisher = (input: {
 				{
 					read: () => readReceipt(effect.flowId, effect.revision, digest),
 					write: async () => {
-						const receipt = FlowPublicationV1Schema.parse(await request("/api/v1/trellis/publications", bytes));
+						const receipt = FlowPublicationV1Schema.parse(await request("/trellis-v1/publications", bytes));
 						const received = {
 							flowId: receipt.flowId,
 							revision: receipt.revision,

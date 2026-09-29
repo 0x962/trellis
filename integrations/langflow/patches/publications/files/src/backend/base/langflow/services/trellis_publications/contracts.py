@@ -38,5 +38,4 @@ class InstalledPublicationPackage(BaseModel):
     catalog_path: Path
     trellis_root: Path
     engine_root: Path
-    authentication_file: Path
     user_id: str
