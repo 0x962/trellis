@@ -55,6 +55,28 @@ def test_review_gate_declaration_binds_real_source_and_branch_ports():
 	assert definition["frontendTemplate"] is None
 
 
+def test_loop_declaration_separates_scope_activation_from_selected_input():
+	manifest = json.loads(MANIFEST.read_bytes())
+	definition = next(item for item in manifest["definitions"] if item["id"] == "trellis-loop-v1")
+	assert definition["className"] == "TrellisLoopV1"
+	assert definition["pythonModule"] == "integrations.langflow.components.trellisLoop.trellisLoop"
+	assert [(port["name"], port["class"], port["required"], port["isList"]) for port in definition["inputPorts"]] == [
+		("scope_entry", "HandleInput", False, False),
+		("seed", "HandleInput", False, False),
+		("max_rounds", "IntInput", True, False),
+	]
+	assert [(port["name"], port["method"], port["allowsLoop"]) for port in definition["outputPorts"]] == [
+		("children", "run_children", True), ("done", "finish", False),
+	]
+	assert all(port["types"] == ["Data"] and port["groupOutputs"] for port in definition["outputPorts"])
+	assert definition["source"]["sha256"] == hashlib.sha256((ROOT / definition["source"]["path"]).read_bytes()).hexdigest()
+	mapping = next(item for item in manifest["legacyMappings"] if item["id"] == "loop")
+	assert mapping["definitionIds"] == [definition["id"]]
+	assert mapping["status"] == "blocked"
+	assert definition["allowedForPublication"] is False
+	assert definition["frontendTemplate"] is None
+
+
 @pytest.mark.parametrize("changed_source", ["definition", "reader", "import"])
 def test_archive_without_git_metadata_detects_changed_component_bytes(tmp_path, changed_source):
 	manifest = json.loads(MANIFEST.read_bytes())
