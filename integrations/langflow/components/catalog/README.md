@@ -11,10 +11,18 @@ A digest check proves source identity. It grants no execution authority.
 
 The catalog contains these source definitions:
 
+- `native-completion-v1`: the exact saved native result after an external wait.
 - `external-wait-v1`: the existing receipt transport from TRL-669.
 - `native-decision-v1`: YES/NO branches for a completed `NativeResultV1` value.
 - `ordered-output-v1`: child outputs in source order, with two newline separators.
 - `stock-loop`: the pinned Langflow loop, with its own item and done ports.
+
+`native-completion-v1` accepts exact prebuilt native `ExternalWaitV1` bytes.
+It requires the request job to match `graph.job_id`.
+`Graph.await_external_completion` owns suspension.
+`TrellisExternalWaitBroker.delivery_for` reads the stored delivery for that exact job and wait.
+The component returns the unchanged `delivery.result` as `Data.data`.
+The catalog hashes the required external-waits patch with the component source.
 
 `native-decision-v1` accepts a host-validated `NativeResultV1` in `Data.data`.
 It preserves the complete result on either output.
@@ -31,7 +39,7 @@ The component collects data after engine dependencies settle.
 It cannot establish scope entry, skipped children, group deadlines, or loop order.
 
 Every legacy mapping has `status: blocked` and explicit blocker codes.
-The two data components cover parts of gate and group behavior.
+The data components cover parts of native, gate, and group behavior.
 They do not authorize a full legacy node conversion.
 A host must produce and validate receipts before it supplies component inputs.
 Executable native reservation, human request creation, and Jev invocation remain dependencies.

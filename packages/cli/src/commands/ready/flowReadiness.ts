@@ -4,7 +4,13 @@ import { flowChoiceLines, flowRunCommand } from "../flows/flowText.ts";
 import type { PullRequestRef } from "../pullRequestRef.ts";
 
 // A completed flow review applies to its diff across later commits.
-type Run = { slug: string; name: string; status: string; failureKind?: "error" | "feedback" | null };
+type Run = {
+	slug: string;
+	name: string;
+	status: string;
+	detail?: FlowExecutionViewV1["detail"];
+	failureKind?: "error" | "feedback" | null;
+};
 
 const reviewRuns = async (client: TrellisClient, diffId: string) => {
 	const runs: FlowExecutionViewV1[] = [];
@@ -44,7 +50,13 @@ export const flowReadiness = async (
 		.filter((record) => asked.has(record.flowId))
 		.map((record) => {
 			const flow = flows.find((flow) => flow.id === record.flowId)!;
-			return { slug: flow.slug, name: flow.name, status: record.status, failureKind: record.failureKind };
+			return {
+				slug: flow.slug,
+				name: flow.name,
+				status: record.status,
+				detail: record.detail,
+				failureKind: record.failureKind,
+			};
 		});
 	const waived = waiver === null ? null : waiver.reason;
 	return {
@@ -90,8 +102,13 @@ export const flowRunMissingLines = (readiness: FlowReadiness, number: number): s
 	for (const run of runs) if (!latest.has(run.slug)) latest.set(run.slug, run);
 	return [...latest.values()].flatMap((run) => {
 		if (run.status === "running") return [`    The ${run.name} flow is still at work.`];
-		if (run.status === "waiting")
-			return [`    The ${run.name} flow waits for a person. Ask the user to answer its pending step.`];
+		if (run.status === "waiting") {
+			if (run.detail === "waiting_human")
+				return [`    The ${run.name} flow waits for a person. Ask the user to answer its pending step.`];
+			if (run.detail === "waiting_native")
+				return [`    The ${run.name} flow waits for a native attempt. Inspect its run for progress.`];
+			return [`    The ${run.name} flow is waiting. Inspect its run to identify the pending work.`];
+		}
 		if (run.status === "failed" && run.failureKind === "error")
 			return [
 				`    The ${run.name} flow ended with an execution error. Fix the cause and start it again:`,

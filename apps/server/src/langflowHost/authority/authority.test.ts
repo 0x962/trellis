@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { supervisorFixture } from "../fixtures/supervisorFixture";
+import { readIssuedAuthority } from "./issuedBytes";
 
 test("expiry refuses old commands and live renewal replaces only delivery authority", async () => {
 	const fixture = await supervisorFixture();
@@ -26,6 +27,12 @@ test("expiry refuses old commands and live renewal replaces only delivery author
 			"identity_conflict",
 		);
 		expect(fixture.receipts.size).toBe(1);
+		const saved = fixture.receipts.get(`${input.executionId}/${input.requestId}`)!;
+		expect(readIssuedAuthority(saved).authorityBytes).toBe(saved.authorityBytes);
+		expect(JSON.parse(saved.authorityBytes)).toEqual(receipt.authority);
+		expect(() => readIssuedAuthority({ ...saved, authorityBytes: JSON.stringify(expired) })).toThrow(
+			"issued_authority_mismatch",
+		);
 		fixture.setTime("2026-09-29T11:00:00.000Z");
 		expect(() => fixture.authorize(receipt.authority)).toThrow("denied");
 	} finally {
