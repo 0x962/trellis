@@ -1,0 +1,1 @@
+export { deliverNativeCompletion } from "./completionEngine";

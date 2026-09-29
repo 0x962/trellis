@@ -14,6 +14,7 @@ export function containerCreateArgs(input: {
 	image: string;
 	storage: { data: string; secrets: string };
 	engineApiConfigDigest: string | null;
+	nativeReservationAuthenticationDigest: string;
 }) {
 	const instanceNames = names(input.identity);
 	return [
@@ -41,10 +42,13 @@ export function containerCreateArgs(input: {
 		"--mount",
 		`type=volume,src=${input.storage.secrets},dst=/run/trellis-secrets,readonly`,
 		...environment(input.identity, input.engineApiConfigDigest !== null),
-		...Object.entries(containerLabels(input.identity, input.engineApiConfigDigest)).flatMap(([key, value]) => [
-			"--label",
-			`${key}=${value}`,
-		]),
+		...Object.entries(
+			containerLabels(
+				input.identity,
+				input.engineApiConfigDigest,
+				input.nativeReservationAuthenticationDigest,
+			),
+		).flatMap(([key, value]) => ["--label", `${key}=${value}`]),
 		input.image,
 		"run",
 		"--host",

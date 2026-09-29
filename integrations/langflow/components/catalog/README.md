@@ -55,8 +55,13 @@ Every legacy mapping has `status: blocked` and explicit blocker codes.
 The data components cover parts of native, gate, and group behavior.
 They do not authorize a full legacy node conversion.
 A host must produce and validate receipts before it supplies component inputs.
-Executable native reservation, human request creation, and Jev invocation remain dependencies.
+Native reservation, human request creation, and Jev invocation require integrated engine proof.
 Group scope expansion and the child-then-condition loop remain dependencies.
+
+`review-gate-v1` identifies `TrellisReviewGateV1` from `components/jevGate/jevGate.py`.
+Its `inputs` port accepts a list of `Data` values.
+Its `yes` and `no` ports return `Data` through separate engine branches.
+The definition binds the review and occurrence patches by their exact hashes.
 
 `template` records the source input declarations and their payload contracts.
 `frontendTemplate` is null in these source declarations.

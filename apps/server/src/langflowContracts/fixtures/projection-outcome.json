@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "executionId": "execution-1",
+  "publicationId": "publication-1",
+  "engineJobId": "00000000-0000-4000-8000-000000000001",
+  "engineEpoch": 1,
+  "status": "succeeded",
+  "failure": null
+}

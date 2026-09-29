@@ -21,7 +21,7 @@ export async function recoverInitialBinding(
 	const { takeover } = input;
 	const { receipt, observation, revocation } = takeover;
 	const row = await lockExecution(tx, receipt.request);
-	if (!("transferId" in receipt) || !revocation) throw new Error("initial_recovery_requires_takeover");
+	const isTakeover = "transferId" in receipt;
 	const correlation = initial.input.correlation;
 	const identity = initial.observation.identity;
 	if (
@@ -48,20 +48,29 @@ export async function recoverInitialBinding(
 		original.issuedAt !== initial.observation.observedAt ||
 		original.expiresAt !== initial.input.expiresAt ||
 		!isDeepStrictEqual(original.permissions, initial.input.permissions) ||
-		!isDeepStrictEqual(revocation.identity, identity) ||
 		observation.identity.dataHomeId !== identity.dataHomeId ||
 		observation.identity.hostId !== identity.hostId ||
-		observation.identity.ownerId === identity.ownerId ||
-		receipt.request.expectedOwnerId !== original.ownerId ||
-		receipt.request.expectedEpoch !== original.engineEpoch ||
 		receipt.request.expectedRevision !== original.ownershipRevision ||
 		initial.input.permit.dataHomeId !== identity.dataHomeId ||
 		initial.input.permit.binding.executionId !== row.executionId
 	)
 		throw new Error("initial_recovery_identity_conflict");
+	if ("transferId" in receipt) {
+		if (
+			!revocation || !isDeepStrictEqual(revocation.identity, identity) ||
+			observation.identity.ownerId === identity.ownerId ||
+			receipt.request.expectedOwnerId !== original.ownerId ||
+			receipt.request.expectedEpoch !== original.engineEpoch
+		)
+			throw new Error("initial_recovery_identity_conflict");
+	} else if (
+		revocation !== null || !isDeepStrictEqual(observation.identity, identity) ||
+		receipt.request.ownerId !== original.ownerId || receipt.request.engineEpoch !== original.engineEpoch
+	)
+		throw new Error("initial_recovery_identity_conflict");
 	await lockOwners(tx, [original, receipt.authority]);
 	await assertOwnerActive(tx, receipt.authority);
-	if (!isDeepStrictEqual(await authorityControl.readRevocation(tx, identity), revocation))
+	if (isTakeover && !isDeepStrictEqual(await authorityControl.readRevocation(tx, identity), revocation))
 		throw new Error("owner_revocation_conflict");
 	const commit: InitialBindingCommit = { ...takeover, initialRecordBytes: input.initialRecordBytes };
 	const saved = await authorityControl.readReceipt(tx, receipt.request);
@@ -78,7 +87,7 @@ export async function recoverInitialBinding(
 		row.submission.state === "failed" ||
 		row.admission.state !== "closed" ||
 		!isDeepStrictEqual(row.submission.admission, row.admission) ||
-		!isDeepStrictEqual(receipt.admission, row.admission)
+		("transferId" in receipt && !isDeepStrictEqual(receipt.admission, row.admission))
 	)
 		throw new Error("initial_recovery_binding_conflict");
 	await tx

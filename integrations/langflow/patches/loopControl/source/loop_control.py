@@ -78,7 +78,7 @@ async def begin_visit(
     *,
     loop_node_id: str,
     max_rounds: int,
-    selected_inputs: dict[str, Any],
+    selected_inputs: list[Any] | dict[str, Any],
     selected_input_bytes: str,
     inherited_scope: dict[str, Any],
 ) -> dict[str, Any]:

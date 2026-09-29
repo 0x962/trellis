@@ -1,3 +1,5 @@
+from typing import Any
+
 from lfx.base.flow_controls.loop_utils import (
 	execute_loop_body,
 	extract_loop_output,
@@ -18,7 +20,8 @@ class TrellisLoopV1(Component):
 	description = "Runs child nodes before one native condition for each loop round."
 	name = "TrellisLoopV1"
 	inputs = [
-		HandleInput(name="seed", display_name="Selected Inputs", input_types=["Data"], required=True),
+		HandleInput(name="scope_entry", display_name="Scope Entry", input_types=["Data"], required=False),
+		HandleInput(name="seed", display_name="Selected Inputs", input_types=["Data"], required=False),
 		IntInput(name="max_rounds", display_name="Maximum Rounds", required=True),
 	]
 	outputs = [
@@ -33,17 +36,24 @@ class TrellisLoopV1(Component):
 		Output(name="done", display_name="Done", method="finish", types=["Data"], group_outputs=True),
 	]
 
+	@staticmethod
+	def _seed_values(seed: Data | None) -> tuple[list[Any] | dict[str, Any], str]:
+		if seed is None:
+			return [], ""
+		return seed.data, seed.get_text()
+
 	async def _visit(self) -> dict:
 		scope_value = getattr(self, "_trellis_inherited_scope", None)
 		if scope_value is None:
 			scope = await capture_visit_scope(self.graph, self._vertex.id)
 			scope_value = scope.to_engine()
 			self._trellis_inherited_scope = scope_value
+		selected_inputs, selected_input_bytes = self._seed_values(self.seed)
 		visit = await self.graph.begin_trellis_loop_visit(
 			loop_node_id=self._id,
 			max_rounds=self.max_rounds,
-			selected_inputs=self.seed.data,
-			selected_input_bytes=self.seed.get_text(),
+			selected_inputs=selected_inputs,
+			selected_input_bytes=selected_input_bytes,
 			inherited_scope=scope_value,
 		)
 		return visit

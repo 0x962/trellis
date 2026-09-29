@@ -5,11 +5,13 @@ import json
 from langflow.services.deps import get_job_service, session_scope
 from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroker
 from langflow.services.trellis_v1.native_records import request_kind
+from langflow.services.trellis_v1.projection_store import record_projection_checkpoint
 
 from lfx.graph.external_wait import ExternalWaitPending
 from .occurrence_journal import HumanRoundLimit, OccurrenceConflict, allocate, external_wait, replace_rejected
 from .occurrence_models import VisitScope, canonical
 from .occurrence_outputs import record_visit_output
+from .occurrence_projection import retain_accepted_result
 from .occurrence_receipts import original_decision, retain_output
 from .occurrence_store import apply_waits, authorize_native, locked_context, save_journal, save_wait
 from .occurrence_reservations import recover_native_reservation, reservation_wait, save_reservation_obligation
@@ -27,9 +29,11 @@ async def request_native(graph, vertex_id: str, scope: VisitScope) -> str:
                 session, job_id, request_kind(visit["waitId"]), visit["requestBytes"],
             )
             await save_reservation_obligation(session, job_id, visit, scope.identity(vertex_id))
-            await save_journal(session, job_id, journal)
             wait_bytes = external_wait(visit) if visit["handleBytes"] is not None else reservation_wait(visit)
+            visit["waitBytes"] = wait_bytes
+            await save_journal(session, job_id, journal)
             waits = await save_wait(session, job_id, graph, wait_bytes)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
         apply_waits(graph, waits)
     result = await recover_native_reservation(graph, visit["waitId"])
@@ -61,6 +65,7 @@ async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_round
             if "terminalError" in visit:
                 raise HumanRoundLimit(visit["terminalError"])
             wait_bytes = external_wait(visit)
+            visit["waitBytes"] = wait_bytes
             request = json.loads(visit["requestBytes"])
             decision = getattr(graph, "human_input_decisions", {}).get(request["engineRequestId"])
             if decision is not None and decision["wait"] != request:
@@ -69,6 +74,7 @@ async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_round
             feedback_receipt = None
             if decision is not None:
                 raw = await original_decision(session, job_id, decision)
+                retain_accepted_result(visit, decision, human=True)
                 feedback_receipt = await retain_output(
                     session, job_id, admission, journal, vertex_id=vertex_id, scope=scope,
                     occurrence=visit["occurrence"], port=f"decision:{decision['decisionId']}",
@@ -79,8 +85,10 @@ async def run_human_visit(graph, vertex_id: str, scope: VisitScope, *, max_round
                 visit["maxRounds"] = max_rounds
                 visit.setdefault("feedbackReceiptIds", []).append(feedback_receipt["receiptId"])
                 wait_bytes = external_wait(visit)
+            visit["waitBytes"] = wait_bytes
             await save_journal(session, job_id, journal)
             waits = await save_wait(session, job_id, graph, wait_bytes, replacing=replacing)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
         apply_waits(graph, waits)
     if "terminalError" in visit:

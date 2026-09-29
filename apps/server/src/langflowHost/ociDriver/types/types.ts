@@ -13,7 +13,6 @@ export type OciDriverOptions = {
 	captureIssuerFile: string;
 	engineApiConfigFile?: string;
 	engineApiConfigSha256?: string;
-	nativeReservationAuthenticationFile?: string;
 	dockerExecutable?: string;
 	dependencies?: Partial<OciDriverDependencies>;
 };

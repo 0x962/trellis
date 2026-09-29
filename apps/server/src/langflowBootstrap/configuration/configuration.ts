@@ -22,7 +22,6 @@ export const LangflowBootstrapConfigurationSchema = z.strictObject({
 	editorOrigin: origin,
 	engineApiConfigFile: path,
 	captureIssuerFile: path,
-	nativeReservationAuthenticationFile: path,
 	grantDurationMs: z.number().int().positive().optional(),
 }).refine((value) => value.parentOrigin !== value.editorOrigin, "The editor requires a separate origin.");
 

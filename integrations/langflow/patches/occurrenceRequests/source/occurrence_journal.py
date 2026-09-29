@@ -4,6 +4,7 @@ import json
 from uuid import uuid4
 
 from .occurrence_models import VisitScope, canonical, validate_spec
+from .occurrence_projection import initial_projection, retain_accepted_result, supersede_human_visit
 
 
 JOURNAL_KIND = "trellis-occurrences-v1"
@@ -37,8 +38,8 @@ def allocate(journal: dict, vertex_id: str, scope: VisitScope, spec: dict, admis
                    "deadlineRefs": list(scope.group_deadline_refs)}
     visit = {"vertexId": vertex_id, "occurrence": occurrence, "revision": journal["revision"],
              "specHash": spec_hash, "facts": scope.facts(), "kind": kind,
-             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None,
-             "feedback": [], "prior": []}
+             "requestBytes": canonical(request), "waitId": str(uuid4()), "handleBytes": None, "waitBytes": None,
+             "feedback": [], "prior": [], "projection": initial_projection(kind)}
     journal["visits"][key] = visit
     return visit
 
@@ -66,10 +67,13 @@ def replace_rejected(journal: dict, vertex_id: str, scope: VisitScope, spec: dic
         prior["terminalError"] = "human_round_limit"
         return external_wait(prior), prior
     old_wait = external_wait(prior)
+    retain_accepted_result(prior, decision, human=True)
+    supersede_human_visit(prior)
     del journal["visits"][key]
     replacement = allocate(journal, vertex_id, scope, spec, admission, "human")
     replacement["feedback"] = [*prior["feedback"], decision]
     replacement["feedbackReceiptIds"] = list(prior.get("feedbackReceiptIds", []))
     replacement["prior"] = [*prior["prior"], {field: prior[field] for field in
-                            ("occurrence", "revision", "requestBytes", "waitId")}]
+                            ("vertexId", "kind", "specHash", "facts", "occurrence", "revision",
+                             "requestBytes", "waitId", "waitBytes", "projection")}]
     return old_wait, replacement

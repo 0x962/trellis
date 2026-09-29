@@ -45,7 +45,7 @@ index a99530e..9073933 100644
 +        *,
 +        loop_node_id: str,
 +        max_rounds: int,
-+        selected_inputs: dict[str, Any],
++        selected_inputs: list[Any] | dict[str, Any],
 +        selected_input_bytes: str,
 +        inherited_scope: dict[str, Any],
 +    ) -> dict[str, Any]:
@@ -114,7 +114,7 @@ index a99530e..9073933 100644
          subgraph.add_nodes_and_edges(subgraph_nodes, subgraph_edges)
 diff --git a/src/lfx/src/lfx/graph/loop_control.py b/src/lfx/src/lfx/graph/loop_control.py
 new file mode 100644
-index 0000000..4212667
+index 0000000..747f9cf
 --- /dev/null
 +++ b/src/lfx/src/lfx/graph/loop_control.py
 @@ -0,0 +1,234 @@
@@ -198,7 +198,7 @@ index 0000000..4212667
 +    *,
 +    loop_node_id: str,
 +    max_rounds: int,
-+    selected_inputs: dict[str, Any],
++    selected_inputs: list[Any] | dict[str, Any],
 +    selected_input_bytes: str,
 +    inherited_scope: dict[str, Any],
 +) -> dict[str, Any]:

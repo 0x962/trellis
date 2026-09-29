@@ -7,6 +7,8 @@ from sqlmodel import select
 from langflow.services.database.models.jobs.model import Job, JobCheckpoint, JobStatus
 from langflow.services.deps import session_scope
 from langflow.services.trellis_v1.native_records import checkpoint
+from langflow.services.trellis_v1.cancellation import read_cancellation
+from langflow.services.trellis_v1.projection_store import record_projection_checkpoint
 
 from .occurrence_handle import validate_handle
 from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict, external_wait
@@ -58,7 +60,7 @@ async def recover_native_reservation(graph, wait_id):
             job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
             row = await checkpoint(session, job_id, PREFIX + wait_id)
             obligation = json.loads(row.blob)
-            if job.status == JobStatus.CANCELLED:
+            if (job.status == JobStatus.CANCELLED or await read_cancellation(session, job_id) is not None):
                 return "cancelled"
             job_id, admission, document, journal = await locked_graph(session, graph)
             visit = journal["visits"][obligation["visitKey"]]
@@ -67,6 +69,10 @@ async def recover_native_reservation(graph, wait_id):
             if obligation["handleConfirmed"]:
                 return True
             capability_id = await authorize_native(session, job_id, admission)
+            if visit["projection"]["state"] == "pending":
+                visit["projection"]["state"] = "unknown"
+                await save_journal(session, job_id, journal)
+                await record_projection_checkpoint(session, job_id)
             await session.commit()
     try:
         handle_bytes = await request_transport().reserve(obligation["requestBytes"], capability_id)
@@ -92,11 +98,12 @@ async def retain_reserved_handle(graph, obligation, handle_bytes):
                 raise OccurrenceConflict("native_handle_replay_conflict")
             visit["handleBytes"] = handle_bytes
             wait_bytes = external_wait(visit)
+            visit["waitBytes"] = wait_bytes
             graph_row = await checkpoint(session, job_id, "graph")
             snapshot = json.loads(graph_row.blob)
             waits = snapshot["external_waits"]
             current = waits.get(visit["waitId"])
-            cancelled = job.status == JobStatus.CANCELLED
+            cancelled = (job.status == JobStatus.CANCELLED or await read_cancellation(session, job_id) is not None)
             if current not in (reservation_wait(visit), wait_bytes) and not cancelled:
                 raise OccurrenceConflict("reservation_wait_replacement_conflict")
             if current is not None:
@@ -107,6 +114,7 @@ async def retain_reserved_handle(graph, obligation, handle_bytes):
                 saved["stopReconciliationRequired"] = True
             await save_blob(session, job_id, PREFIX + visit["waitId"], canonical(saved))
             await save_journal(session, job_id, journal)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
         apply_waits(graph, waits)
     return "cancelled" if cancelled else True
@@ -114,7 +122,7 @@ async def retain_reserved_handle(graph, obligation, handle_bytes):
 
 async def finish_native_reservation_obligation(session, job_id, wait_id, queue_result):
     job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).one()
-    if job.status == JobStatus.CANCELLED:
+    if (job.status == JobStatus.CANCELLED or await read_cancellation(session, job_id) is not None):
         raise OccurrenceConflict("reservation_stop_reconciliation_required")
     row = await checkpoint(session, job_id, PREFIX + wait_id)
     saved = json.loads(row.blob)

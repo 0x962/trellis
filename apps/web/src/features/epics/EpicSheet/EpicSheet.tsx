@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import {
-	EPIC_DESCRIPTION_MAX,
 	type Epic,
 	type EpicCreateInput,
 	EpicCreateInputSchema,
@@ -79,7 +78,6 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 					<Textarea
 						label="Description"
 						rows={16}
-						maxLength={EPIC_DESCRIPTION_MAX}
 						disabled={pending}
 						value={description}
 						onChange={(event) => setDescription(event.target.value)}

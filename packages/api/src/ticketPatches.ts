@@ -15,6 +15,7 @@ export type TicketChange = {
 
 // An infinite query stores one list output per page.
 type InfiniteListOutput = { pages: ListOutput[]; pageParams: unknown[] };
+type InfiniteSearchOutput = { pages: SearchOutput[]; pageParams: unknown[] };
 
 // Returns the patched array, or undefined when the array does not hold the
 // ticket or already holds a version at least as new. A delete is final, so
@@ -59,6 +60,17 @@ const patchBoard = (data: BoardOutput, change: TicketChange) => {
 const patchSearch = (data: SearchOutput, change: TicketChange) => {
 	const tickets = patchItems(data.tickets, change);
 	return tickets === undefined ? undefined : { ...data, tickets };
+};
+
+const patchInfiniteSearch = (data: InfiniteSearchOutput, change: TicketChange) => {
+	let changed = false;
+	const pages = data.pages.map((page) => {
+		const patched = patchSearch(page, change);
+		if (patched === undefined) return page;
+		changed = true;
+		return patched;
+	});
+	return changed ? { ...data, pages } : undefined;
 };
 
 // A child row inside a parent's `children`. A child that now names another
@@ -122,6 +134,8 @@ export const ticketRows = (queryKey: QueryKey, data: unknown): TicketSummary[] =
 	if (name === undefined) return [];
 	if (name === "tickets.list" && isInfinite(queryKey))
 		return (data as InfiniteListOutput).pages.flatMap((page) => page.items);
+	if (name === "search.query" && isInfinite(queryKey))
+		return (data as InfiniteSearchOutput).pages.flatMap((page) => page.tickets);
 	const reader = rowReaders[name];
 	return reader === undefined ? [] : reader(data);
 };
@@ -137,6 +151,7 @@ export const patchTicketQuery = (queryKey: QueryKey, data: unknown, change: Tick
 	const name = pathName(queryKey);
 	if (name === undefined) return undefined;
 	if (name === "tickets.list" && isInfinite(queryKey)) return patchInfiniteList(data as InfiniteListOutput, change);
+	if (name === "search.query" && isInfinite(queryKey)) return patchInfiniteSearch(data as InfiniteSearchOutput, change);
 	const patcher = patchers[name];
 	return patcher === undefined ? undefined : patcher(data, change);
 };
