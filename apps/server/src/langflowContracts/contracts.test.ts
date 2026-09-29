@@ -23,6 +23,14 @@ const schemas = {
 	"decision-acceptance": contracts.DecisionAcceptanceV1Schema,
 	"human-delivery": contracts.HumanDeliveryV1Schema,
 	"decision-delivery": contracts.DecisionDeliveryV1Schema,
+	"review-classification-request": contracts.ReviewClassificationRequestV1Schema,
+	"review-classification-visit": contracts.ReviewClassificationVisitV1Schema,
+	"review-wait": contracts.ReviewWaitV1Schema,
+	"review-external-wait": contracts.ExternalWaitV1Schema,
+	"review-classification-result": contracts.ReviewClassificationResultV1Schema,
+	"review-classification-response": contracts.ReviewClassificationResponseV1Schema,
+	"review-classification-delivery": contracts.ReviewClassificationDeliveryV1Schema,
+	"review-classification-acceptance": contracts.ReviewClassificationAcceptanceV1Schema,
 	checkpoint: contracts.EngineCheckpointV1Schema,
 	stop: contracts.StopObligationV1Schema,
 	"source-event": contracts.SourceEventV1Schema,
@@ -268,4 +276,71 @@ test("review classification authority preserves the engine binding without nativ
 	expect(parsed).toEqual({ ...authority, permissions: ["review.classify"] });
 	expect(parsed.permissions).not.toContain("native.reserve");
 	expect(parsed.permissions).not.toContain("native.read");
+	const delivery = contracts.DeliveryAuthorityV1Schema.parse({ ...authority, permissions: ["classification.deliver"] });
+	expect(delivery.permissions).toEqual(["classification.deliver"]);
+});
+
+test("review classification keeps one shared request and a separate occurrence visit", () => {
+	const request = fixture("review-classification-request");
+	expect(request.gates.map(({ nodeId }) => nodeId)).toEqual(["node-backend", "node-frontend"]);
+	const requestBytes = contracts.canonicalReviewClassificationRequest(request);
+	expect(requestBytes).toBe(
+		'{"classificationRequestId":"00000000-0000-4000-8000-000000000010","diffId":"diff-1","engineJobId":"00000000-0000-4000-8000-000000000001","executionId":"execution-1","gates":[{"nodeId":"node-backend","reviewArea":"backend"},{"nodeId":"node-frontend","reviewArea":"frontend"}],"publicationId":"publication-1","reviewedHead":"head-1","version":1}',
+	);
+	expect(fixture("review-classification-visit").classificationRequestDigest).toBe(
+		contracts.protocolDigest(requestBytes),
+	);
+	expect(fixture("review-wait").visitDigest).toBe(
+		contracts.protocolDigest(JSON.stringify(fixture("review-classification-visit"))),
+	);
+	expect(
+		contracts.ReviewClassificationRequestV1Schema.safeParse({ ...request, gates: request.gates.toReversed() }).success,
+	).toBe(false);
+	expect(
+		contracts.ReviewClassificationRequestV1Schema.safeParse({ ...request, gates: [request.gates[0], request.gates[0]] })
+			.success,
+	).toBe(false);
+
+	const wait = fixture("review-wait");
+	expect(
+		contracts.ReviewWaitV1Schema.safeParse({
+			...wait,
+			engineRequestId: "00000000-0000-4000-8000-000000000099",
+		}).success,
+	).toBe(false);
+	expect(
+		contracts.ReviewWaitV1Schema.safeParse({
+			...wait,
+			occurrence: { ...wait.occurrence, occurrenceKey: "another-occurrence" },
+		}).success,
+	).toBe(false);
+});
+
+test("only a terminal result with current delivery authority can resume the review wait", () => {
+	const delivery = fixture("review-classification-delivery");
+	expect(delivery.result.result.state).toBe("succeeded");
+	expect(delivery.resultDigest).toBe(
+		contracts.protocolDigest(JSON.stringify(fixture("review-classification-response"))),
+	);
+	expect(
+		contracts.ReviewClassificationDeliveryV1Schema.safeParse({
+			...delivery,
+			result: {
+				...delivery.result,
+				result: { ...delivery.result.result, state: "claimed", relevance: null, error: null },
+			},
+		}).success,
+	).toBe(false);
+	expect(
+		contracts.ReviewClassificationDeliveryV1Schema.safeParse({
+			...delivery,
+			authority: { ...delivery.authority, permissions: ["review.classify"] },
+		}).success,
+	).toBe(false);
+	expect(
+		contracts.ReviewClassificationDeliveryV1Schema.safeParse({
+			...delivery,
+			result: { ...delivery.result, visitDigest: "5".repeat(64) },
+		}).success,
+	).toBe(false);
 });
