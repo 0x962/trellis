@@ -17,19 +17,33 @@ export async function priorSnapshot() {
 	};
 }
 
-export async function openPriorDatabase() {
+async function writeHistory(directory: string, lastIndex: number) {
 	const journal = JSON.parse(await readFile(join(migrations, "meta/_journal.json"), "utf8")) as {
 		entries: { idx: number; tag: string }[];
 	};
-	const entries = journal.entries.filter((entry) => entry.idx <= 138);
-	const directory = await mkdtemp(join(tmpdir(), "trellis-actor-upgrade-"));
-	await mkdir(join(directory, "meta"));
+	const entries = journal.entries.filter((entry) => entry.idx <= lastIndex);
 	await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
 	for (const entry of entries)
 		await copyFile(join(migrations, `${entry.tag}.sql`), join(directory, `${entry.tag}.sql`));
+}
+
+export async function openPriorDatabase() {
+	const directory = await mkdtemp(join(tmpdir(), "trellis-actor-upgrade-"));
+	await mkdir(join(directory, "meta"));
+	await writeHistory(directory, 138);
 	const db = await openDb(":memory:");
 	await runMigrations(db, { migrationsFolder: directory });
 	return { db, directory };
+}
+
+export async function migrateActorUpgrade(db: Db, directory: string) {
+	await writeHistory(directory, 139);
+	const count = async () =>
+		(await db.$client.query<{ count: number }>("SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations"))
+			.rows[0]!.count;
+	const before = await count();
+	await runMigrations(db, { migrationsFolder: directory });
+	return (await count()) - before;
 }
 
 export async function originalRows(db: Db, tables: string[]) {
