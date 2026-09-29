@@ -14,7 +14,6 @@ import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.
 import { assertProjectActive } from "../refs.ts";
 import { archivedSessionRefusal, runArchivedAt } from "../sessions/archived.ts";
 import { sessionOperation } from "../sessions/operation.ts";
-import { failOutstandingSessionUpdateRequestForRun } from "../sessionUpdates";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
@@ -39,9 +38,16 @@ export const prepareResume = (
 	input: Input,
 	start: typeof startNative = startNative,
 	switchRunning = false,
-) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning));
+	recover: typeof recoverPreviousAttempt = recoverPreviousAttempt,
+) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning, recover));
 
-async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, switchRunning: boolean) {
+async function resume(
+	ctx: ResumeCtx,
+	input: Input,
+	start: typeof startNative,
+	switchRunning: boolean,
+	recover: typeof recoverPreviousAttempt,
+) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (input.requireAssigned && run.closedAt !== null)
 		throw invalidInput("id", "This assignment closed before the message could resume it.");
@@ -71,7 +77,7 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 			"This assignment has another attempt. Read its current session before you resume it.",
 		);
 	const host = nativeHost(ctx.home);
-	let previous = await recoverPreviousAttempt(ctx, input.expectedTerminalId);
+	let previous = await recover(ctx, input.expectedTerminalId);
 	if (previous.status === "running" && previous.controllable && !switchRunning) return { id: run.id };
 	if (previous.status !== "exited" && !switchRunning)
 		throw invalidInput("id", "Trellis could not recover this agent. Try Resume again.");
@@ -172,10 +178,6 @@ async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, s
 			true,
 		);
 		if (!reserved) throw invalidInput("id", "This assignment or flow no longer permits a resume.");
-		await failOutstandingSessionUpdateRequestForRun(ctx.core, tx, {
-			runId: run.id,
-			error: "The agent restarted before it saved the status update.",
-		});
 		await recordRequest(ctx.core, tx, {
 			...request,
 			target: { ...target, ...(input.prompt === undefined ? {} : { resumeMessageAttemptId: reserved.attempt!.id }) },
