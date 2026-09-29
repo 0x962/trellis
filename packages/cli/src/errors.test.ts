@@ -2,6 +2,10 @@ import { expect, test } from "bun:test";
 import { ORPCError } from "@orpc/client";
 import { exitCodeFor, formatError } from "./errors.ts";
 
+test("maps the observer permission error to an input exit code", () => {
+	expect(exitCodeFor("SESSION_OBSERVER_FORBIDDEN")).toBe(4);
+});
+
 test("keeps a malformed not-found payload out of the CLI line", () => {
 	const error = new ORPCError("NOT_FOUND", {
 		message: "No row matches the ref.",
