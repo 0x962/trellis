@@ -29,6 +29,9 @@ test("uses separate delivery receipts for context summaries and the final narrat
 	expect(result.incrementalSummary?.body).toContain("Saved context.");
 	expect(savedSummaries).toHaveLength(1);
 	expect(calls.at(-1)?.deliveryId).toBe("narrative-after-summary");
+	expect(calls.at(-1)?.userContext).toBe(
+		"Use the saved incremental observer context summary to write the project update.",
+	);
 	expect(result.summaryGenerations.map((generation) => generation.usageId)).toEqual(["usage-2"]);
 	expect(result.generation).toMatchObject({ text: "Project account.", usageId: "usage-3" });
 });

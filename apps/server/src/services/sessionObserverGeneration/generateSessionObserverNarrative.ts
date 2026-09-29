@@ -11,6 +11,7 @@ export type SessionObserverTurnInput = {
 type SessionObserverTurn = { text: string };
 
 const summaryMarker = "# Incremental observer context summary";
+const savedSummaryContext = "Use the saved incremental observer context summary to write the project update.";
 
 const summaryInstruction = `Summarize the supplied observer context for a later project update.
 
@@ -55,6 +56,7 @@ const summarizePart = async <T extends SessionObserverTurn>(
 export const generateSessionObserverNarrative = async <T extends SessionObserverTurn>(
 	input: {
 		messages: readonly SessionObserverMessage[];
+		summaryStored?: boolean;
 		beforeNarrativeAfterSummary?: (summary: SessionObserverMessage, generations: T[]) => Promise<void>;
 	},
 	generate: (input: SessionObserverTurnInput) => Promise<T>,
@@ -64,7 +66,7 @@ export const generateSessionObserverNarrative = async <T extends SessionObserver
 		return {
 			generation: await generate({
 				instruction: sessionObserverInstruction,
-				userContext: serializedMessages(messages),
+				userContext: input.summaryStored ? savedSummaryContext : serializedMessages(messages),
 				deliveryId: "narrative",
 			}),
 			incrementalSummary: null,
@@ -83,7 +85,7 @@ export const generateSessionObserverNarrative = async <T extends SessionObserver
 		return {
 			generation: await generate({
 				instruction: sessionObserverInstruction,
-				userContext: serializedMessages([incrementalSummary]),
+				userContext: savedSummaryContext,
 				deliveryId: "narrative-after-summary",
 			}),
 			incrementalSummary,

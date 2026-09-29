@@ -176,6 +176,7 @@ export const createInlineTransport = ({
 		const prFiles = await db.transaction(allPrFileBlobShas);
 		const resources = await db.transaction(allResourceBlobShas);
 		if (options !== undefined) {
+			await backgroundCall("sessionObservers.recover", {});
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({
 				read: () => backgroundCall("agentRuns.activity", {}) as Promise<AgentActivity[]>,

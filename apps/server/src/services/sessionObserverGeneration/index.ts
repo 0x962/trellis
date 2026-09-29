@@ -2,15 +2,16 @@ export { cancelSessionObserverGeneration } from "./cancelSessionObserverGenerati
 export {
 	generateSessionObserverNarrative,
 	type SessionObserverMessage,
-	sessionObserverGenerationError,
 } from "./generateSessionObserverNarrative.ts";
 export { readSessionObserverContext } from "./sessionObserverContext.ts";
 export {
 	finishSessionObserverGenerations,
+	finishSessionObserverRecovery,
 	prepareSessionObserverGenerations,
+	recoverSessionObserverGeneration,
 	requestSessionObserverGeneration,
-	setSessionObserverEnabled,
 	type SessionObserverGenerationDeps,
+	setSessionObserverEnabled,
 } from "./sessionObserverGeneration.ts";
 export {
 	type SessionObserverActivityItem,

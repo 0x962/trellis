@@ -66,7 +66,9 @@ import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import {
 	finishSessionObserverGenerations,
+	finishSessionObserverRecovery,
 	prepareSessionObserverGenerations,
+	recoverSessionObserverGeneration,
 	setSessionObserverEnabled,
 } from "./sessionObserverGeneration";
 import { get as getSessionObserver, history as getSessionObserverHistory } from "./sessionObservers";
@@ -122,6 +124,7 @@ export const services = {
 		prepareSessionObserverGenerations,
 		finishSessionObserverGenerations,
 	),
+	"sessionObservers.recover": prepared("mutation", recoverSessionObserverGeneration, finishSessionObserverRecovery),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),

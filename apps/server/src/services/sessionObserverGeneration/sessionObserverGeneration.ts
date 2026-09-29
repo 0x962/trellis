@@ -1,4 +1,9 @@
-import type { SessionObserverSetEnabledInput } from "@trellis/api";
+import {
+	SESSION_OBSERVER_MODEL_ID,
+	type SessionObserverError,
+	type SessionObserverMessage,
+	type SessionObserverSetEnabledInput,
+} from "@trellis/api";
 import type { Tx } from "../../db/tx.ts";
 import type { SessionObserverActivityItem as StoredActivityItem } from "../sessionObserverActivity";
 import {
@@ -6,10 +11,22 @@ import {
 	type SessionObserverActivityContext as StoredActivityContext,
 } from "../sessionObserverActivity";
 import {
+	ensureSessionObserverRun,
+	generateSessionObserverReply,
+	ObserverHarnessError,
+	recoverSessionObserverAttempt,
+	rolloverSessionObserverConversation,
+	type SessionObserverReply,
+} from "../sessionObserverHarness";
+import {
 	claimSessionObserverGeneration,
 	failSessionObserverGeneration,
+	linkSessionObserverRun,
 	listSessionObserverCandidates,
+	recoverSessionObserverGenerations,
+	type SessionObserverGenerationClaim,
 	saveSessionObserverGeneration,
+	saveSessionObserverSummary,
 	setEnabled,
 } from "../sessionObservers";
 import type { IoCtx } from "../support.ts";
@@ -20,20 +37,20 @@ import {
 } from "./cancelSessionObserverGeneration.ts";
 import {
 	generateSessionObserverNarrative,
-	sessionObserverGenerationError,
+	type SessionObserverMessage as NarrativeMessage,
 } from "./generateSessionObserverNarrative.ts";
 import { readSessionObserverContext } from "./sessionObserverContext.ts";
 import {
 	type SessionObserverActivityContext,
 	type SessionObserverActivityItem,
 	type SessionObserverProjectContext,
+	type SessionObserverTrigger,
 	sessionObserverInput,
-	sessionObserverInstruction,
 } from "./sessionObserverPrompt.ts";
 import type { SessionObserverGenerationCandidate } from "./sessionObserverTrigger.ts";
 import { sessionObserverTrigger } from "./sessionObserverTrigger.ts";
 
-type ObserverMessage = { role: "user" | "assistant"; body: string };
+const summaryMarker = "# Incremental observer context summary";
 
 type ObserverActivityRead = {
 	cursor: string;
@@ -44,48 +61,64 @@ type ObserverActivityRead = {
 	unavailable: boolean;
 };
 
-type ObserverGenerationClaim = {
-	runId: string;
-	providerId: string;
-	modelId: string;
+type ObserverGenerationInput = {
+	observerId: string;
+	observerRunId: string;
+	sourceRunId: string;
 	claimId: string;
 	throughCursor: string;
-	messages: ObserverMessage[];
+	deliveryId: string;
+	instruction: string;
+	userContext: string;
+	signal: AbortSignal;
 };
 
-type ObserverGenerationResult = {
-	text: string;
-	incrementalSummary: ObserverMessage | null;
-};
-
-type SessionObserverGenerationInput = { runId?: string };
+type SessionObserverGenerationInput = { runId?: string; force?: boolean };
 
 export type SessionObserverGenerationDeps = {
 	candidates: (ctx: IoCtx) => Promise<SessionObserverGenerationCandidate[]>;
 	activity: (ctx: IoCtx, input: { runId: string; cursor: string | null }) => Promise<ObserverActivityRead>;
-	claim: (ctx: IoCtx, input: { runId: string; throughCursor: string }) => Promise<ObserverGenerationClaim | null>;
+	claim: (
+		ctx: IoCtx,
+		input: { runId: string; throughCursor: string },
+	) => Promise<SessionObserverGenerationClaim | null>;
+	ensureRun: (
+		ctx: IoCtx,
+		input: { observerId: string; sourceRunId: string; modelId: string },
+	) => Promise<{ observerRunId: string }>;
+	linkRun: (
+		ctx: IoCtx,
+		input: { runId: string; claimId: string; observerRunId: string },
+	) => Promise<SessionObserverGenerationClaim | null>;
 	context: (ctx: IoCtx, input: { runId: string }) => Promise<SessionObserverProjectContext>;
-	generate: (
+	generate: (ctx: IoCtx, input: ObserverGenerationInput) => Promise<SessionObserverReply>;
+	saveSummary: (
+		ctx: IoCtx,
+		input: { runId: string; claimId: string; message: NarrativeMessage & { role: "user" } },
+	) => Promise<SessionObserverMessage | null>;
+	rollover: (
 		ctx: IoCtx,
 		input: {
-			providerId: string;
-			modelId: string;
-			instruction: string;
-			messages: ObserverMessage[];
-			signal: AbortSignal;
+			sourceRunId: string;
+			observerRunId: string;
+			claimId: string;
+			expectedProviderSessionId: string;
+			summaryMessageId: string;
 		},
-	) => Promise<ObserverGenerationResult>;
+	) => Promise<{ providerSessionId: string }>;
 	save: (
 		ctx: IoCtx,
 		input: {
 			runId: string;
 			claimId: string;
 			throughCursor: string;
-			messages: ObserverMessage[];
+			messages: NarrativeMessage[];
 			update: { body: string };
 		},
 	) => Promise<unknown | null>;
-	fail: (ctx: IoCtx, input: { runId: string; claimId: string; error: string }) => Promise<unknown | null>;
+	fail: (ctx: IoCtx, input: { runId: string; claimId: string; error: SessionObserverError }) => Promise<unknown | null>;
+	recoverClaims: (ctx: IoCtx) => Promise<Array<{ runId: string; observerRunId: string | null }>>;
+	recoverAttempt: (ctx: IoCtx, input: { observerRunId: string }) => Promise<void>;
 };
 
 const activityItem = (item: StoredActivityItem): SessionObserverActivityItem =>
@@ -127,41 +160,83 @@ const dependencies: SessionObserverGenerationDeps = {
 		};
 	},
 	claim: (ctx, input) => ctx.newTx((tx) => claimSessionObserverGeneration(tx, input)),
+	ensureRun: ensureSessionObserverRun,
+	linkRun: (ctx, input) => ctx.newTx((tx) => linkSessionObserverRun(tx, input)),
 	context: (ctx, input) => ctx.newTx((tx) => readSessionObserverContext(ctx.core, tx, input)),
-	generate: async (ctx, input) => {
-		const result = await generateSessionObserverNarrative(ctx, {
-			providerId: input.providerId,
-			model: input.modelId,
-			messages: input.messages,
-			signal: input.signal,
-		});
-		return { text: result.generation.text, incrementalSummary: result.incrementalSummary };
-	},
+	generate: generateSessionObserverReply,
+	saveSummary: (ctx, input) => ctx.newTx((tx) => saveSessionObserverSummary(ctx.core, tx, input)),
+	rollover: rolloverSessionObserverConversation,
 	save: (ctx, input) => ctx.newTx((tx) => saveSessionObserverGeneration(ctx.core, tx, input)),
 	fail: (ctx, input) => ctx.newTx((tx) => failSessionObserverGeneration(ctx.core, tx, input)),
+	recoverClaims: (ctx) => ctx.newTx((tx) => recoverSessionObserverGenerations(ctx.core, tx)),
+	recoverAttempt: recoverSessionObserverAttempt,
+};
+
+class InactiveSessionObserverClaim extends Error {}
+
+const observerError = (error: unknown): SessionObserverError => {
+	if (!(error instanceof ObserverHarnessError))
+		return { code: "CLAUDE_GENERATION_FAILED", message: "The Claude observer could not write an update." };
+	if (error.code === "OBSERVER_ACCOUNT_UNAVAILABLE")
+		return { code: "CLAUDE_ACCOUNT_UNAVAILABLE", message: error.message };
+	if (error.code === "OBSERVER_MODEL_UNAVAILABLE") return { code: "CLAUDE_MODEL_UNAVAILABLE", message: error.message };
+	if (error.code === "OBSERVER_CONVERSATION_LOST") return { code: "CLAUDE_CONVERSATION_LOST", message: error.message };
+	if (
+		error.code === "OBSERVER_DELIVERY_UNKNOWN" ||
+		error.code === "OBSERVER_REPLY_INCOMPLETE" ||
+		error.code === "OBSERVER_CANCEL_UNCONFIRMED"
+	)
+		return { code: "CLAUDE_LAUNCH_UNCONFIRMED", message: error.message };
+	return { code: "CLAUDE_GENERATION_FAILED", message: error.message };
+};
+
+const hasUnfinishedSummary = (messages: readonly SessionObserverMessage[]) => {
+	const summaryIndex = messages.findLastIndex(
+		(message) => message.role === "user" && message.body.startsWith(summaryMarker),
+	);
+	return summaryIndex !== -1 && !messages.slice(summaryIndex + 1).some((message) => message.role === "assistant");
+};
+
+const ensureClaimRun = async (
+	ctx: IoCtx,
+	deps: SessionObserverGenerationDeps,
+	claim: SessionObserverGenerationClaim,
+) => {
+	if (claim.observerRunId !== null) return claim;
+	const run = await deps.ensureRun(ctx, {
+		observerId: claim.observerId,
+		sourceRunId: claim.runId,
+		modelId: SESSION_OBSERVER_MODEL_ID,
+	});
+	return deps.linkRun(ctx, { runId: claim.runId, claimId: claim.claimId, observerRunId: run.observerRunId });
 };
 
 const dispatchCandidate = async (
 	ctx: IoCtx,
 	deps: SessionObserverGenerationDeps,
 	candidate: SessionObserverGenerationCandidate,
+	force: boolean,
 ) => {
 	const activity = await deps.activity(ctx, {
 		runId: candidate.runId,
 		cursor: candidate.lastConsumedCursor,
 	});
-	const trigger = sessionObserverTrigger(candidate, {
-		itemCount: activity.items.length,
-		completed: activity.completed,
-		needsInput: activity.needsInput,
-		unavailable: activity.unavailable,
-	});
+	const trigger: SessionObserverTrigger | null = force
+		? "initial"
+		: sessionObserverTrigger(candidate, {
+				itemCount: activity.items.length,
+				completed: activity.completed,
+				needsInput: activity.needsInput,
+				unavailable: activity.unavailable,
+			});
 	if (trigger === null) return "not-due" as const;
-	const claim = await deps.claim(ctx, { runId: candidate.runId, throughCursor: activity.cursor });
-	if (claim === null) return "not-claimed" as const;
+	const claimed = await deps.claim(ctx, { runId: candidate.runId, throughCursor: activity.cursor });
+	if (claimed === null) return "not-claimed" as const;
 
 	const controller = beginSessionObserverGeneration(candidate.runId);
 	try {
+		const claim = await ensureClaimRun(ctx, deps, claimed);
+		if (claim === null || claim.observerRunId === null) return "discarded" as const;
 		const context = await deps.context(ctx, { runId: candidate.runId });
 		const userMessage = sessionObserverInput({
 			context,
@@ -170,33 +245,64 @@ const dispatchCandidate = async (
 			activityUnavailable: activity.unavailable,
 			trigger,
 		});
-		const result = await deps.generate(ctx, {
-			providerId: claim.providerId,
-			modelId: claim.modelId,
-			instruction: sessionObserverInstruction,
-			messages: [...claim.messages, { role: "user", body: userMessage }],
-			signal: controller.signal,
-		});
-		const savedMessages =
-			result.incrementalSummary === null
-				? [
-						{ role: "user" as const, body: userMessage },
-						{ role: "assistant" as const, body: result.text },
-					]
-				: [result.incrementalSummary, { role: "assistant" as const, body: result.text }];
+		const reuseSummary = hasUnfinishedSummary(claim.messages);
+		const messages: NarrativeMessage[] = [
+			...claim.messages.map(({ role, body }) => ({ role, body })),
+			...(reuseSummary ? [] : [{ role: "user" as const, body: userMessage }]),
+		];
+		const generate = (turn: { instruction: string; userContext: string; deliveryId: string }) =>
+			deps.generate(ctx, {
+				observerId: claim.observerId,
+				observerRunId: claim.observerRunId,
+				sourceRunId: claim.runId,
+				claimId: claim.claimId,
+				throughCursor: claim.throughCursor,
+				deliveryId: turn.deliveryId,
+				instruction: turn.instruction,
+				userContext: turn.userContext,
+				signal: controller.signal,
+			});
+		const result = await generateSessionObserverNarrative(
+			{
+				messages,
+				summaryStored: reuseSummary,
+				beforeNarrativeAfterSummary: async (summary, generations) => {
+					const saved = await deps.saveSummary(ctx, {
+						runId: claim.runId,
+						claimId: claim.claimId,
+						message: summary,
+					});
+					if (saved === null) throw new InactiveSessionObserverClaim();
+					const providerSessionId = generations.at(-1)?.providerSessionId;
+					if (providerSessionId === undefined) throw new Error("The observer summary has no conversation identity.");
+					await deps.rollover(ctx, {
+						sourceRunId: claim.runId,
+						observerRunId: claim.observerRunId,
+						claimId: claim.claimId,
+						expectedProviderSessionId: providerSessionId,
+						summaryMessageId: saved.id,
+					});
+				},
+			},
+			generate,
+		);
 		const saved = await deps.save(ctx, {
 			runId: candidate.runId,
 			claimId: claim.claimId,
 			throughCursor: claim.throughCursor,
-			messages: savedMessages,
-			update: { body: result.text },
+			messages: [
+				...(reuseSummary || result.incrementalSummary !== null ? [] : [{ role: "user" as const, body: userMessage }]),
+				{ role: "assistant", body: result.generation.text },
+			],
+			update: { body: result.generation.text },
 		});
 		return saved === null ? ("discarded" as const) : ("saved" as const);
 	} catch (error) {
+		if (error instanceof InactiveSessionObserverClaim) return "discarded" as const;
 		await deps.fail(ctx, {
 			runId: candidate.runId,
-			claimId: claim.claimId,
-			error: sessionObserverGenerationError(error),
+			claimId: claimed.claimId,
+			error: observerError(error),
 		});
 		return "failed" as const;
 	} finally {
@@ -212,7 +318,9 @@ export const prepareSessionObserverGenerations = async (
 	const candidates = (await deps.candidates(ctx)).filter(
 		(candidate) => input.runId === undefined || candidate.runId === input.runId,
 	);
-	const results = await Promise.all(candidates.map((candidate) => dispatchCandidate(ctx, deps, candidate)));
+	const results = await Promise.all(
+		candidates.map((candidate) => dispatchCandidate(ctx, deps, candidate, input.force ?? false)),
+	);
 	return {
 		checked: candidates.length,
 		saved: results.filter((result) => result === "saved").length,
@@ -221,7 +329,19 @@ export const prepareSessionObserverGenerations = async (
 };
 
 export const requestSessionObserverGeneration = (ctx: IoCtx, runId: string) =>
-	prepareSessionObserverGenerations(ctx, { runId });
+	prepareSessionObserverGenerations(ctx, { runId, force: true });
+
+export const recoverSessionObserverGeneration = async (
+	ctx: IoCtx,
+	_input: Record<string, never>,
+	deps: SessionObserverGenerationDeps = dependencies,
+) => {
+	const claims = await deps.recoverClaims(ctx);
+	for (const claim of claims) {
+		if (claim.observerRunId !== null) await deps.recoverAttempt(ctx, { observerRunId: claim.observerRunId });
+	}
+	return { recovered: claims.length };
+};
 
 export const setSessionObserverEnabled = async (ctx: IoCtx, tx: Tx, input: SessionObserverSetEnabledInput) => {
 	const result = await setEnabled(ctx.core, tx, input);
@@ -237,3 +357,6 @@ export const finishSessionObserverGenerations = (
 	_tx: Tx,
 	input: { checked: number; saved: number; failed: number },
 ) => Promise.resolve(input);
+
+export const finishSessionObserverRecovery = (_ctx: IoCtx, _tx: Tx, input: { recovered: number }) =>
+	Promise.resolve(input);
