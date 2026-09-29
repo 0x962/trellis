@@ -3,7 +3,7 @@ import { ORPCError } from "@orpc/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act } from "react";
 import { createRoot } from "test-renderer";
-import { type AppContext, AppProvider } from "../../../../../../lib/appContext";
+import { type AppContext, AppProvider } from "../../../../lib/appContext";
 import { useFlowActionRequest } from "./useFlowActionRequest";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
