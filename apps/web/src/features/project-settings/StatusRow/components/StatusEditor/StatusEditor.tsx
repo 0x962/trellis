@@ -71,7 +71,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 				label="Description"
 				aria-label={`Description for ${status.name}`}
 				rows={3}
-				maxLength={2000}
 				value={description}
 				onChange={(event) => setDescription(event.target.value)}
 			/>

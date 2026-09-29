@@ -70,3 +70,18 @@ The action also requires an actor, as do edit and delete.
 Legacy execution authority remains unknown in this Langflow observation.
 Conversion stays unknown until a producer establishes an accepted mapping.
 A retained blocked conversion report applies only to its source version.
+
+## Installed editor manifest
+
+`installedEditorManifest(candidatePackage)` reads the catalog and optional template export from `loadCandidatePackage` references.
+It checks the original file hashes and compares the export with the exact catalog and package overlay hash.
+Composition supplies its result through `installedManifest` in the editor session options.
+Load the provider once for each verified package identity.
+The provider retains catalog blockers and exposes `frontendTemplates: envelope | null` alongside the source manifest.
+An absent export permits an empty draft; a component requires its verified native template.
+
+The draft validator permits declared input values, names, descriptions, layout, and supported native presentation controls.
+Output selection must name a sealed output and one of its sealed types.
+Component code, input metadata, output contracts, and other component metadata must match the sealed template.
+A valid draft does not authorize publication, conversion, or execution.
+The publisher still applies its independent validation and catalog approval rules.

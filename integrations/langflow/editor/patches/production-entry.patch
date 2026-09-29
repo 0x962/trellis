@@ -1,3 +1,36 @@
+diff --git a/src/CustomNodes/hooks/use-fetch-data-on-mount.ts b/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
+--- a/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
++++ b/src/CustomNodes/hooks/use-fetch-data-on-mount.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { UseMutationResult } from "@tanstack/react-query";
+ import { useEffect } from "react";
+ import type { APIClassType, ResponseErrorDetailAPI } from "@/types/api";
+@@ -19,6 +20,7 @@
+ 
+   useEffect(() => {
+     async function fetchData() {
++      if (TRELLIS_EDITOR_BRIDGE) return;
+       const template = node.template[name];
+       if (!template) return;
+ 
+diff --git a/src/CustomNodes/hooks/use-handle-new-value.ts b/src/CustomNodes/hooks/use-handle-new-value.ts
+--- a/src/CustomNodes/hooks/use-handle-new-value.ts
++++ b/src/CustomNodes/hooks/use-handle-new-value.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useUpdateNodeInternals } from "@xyflow/react";
+ import { cloneDeep, debounce } from "lodash";
+ import { useCallback, useMemo, useRef } from "react";
+@@ -147,7 +148,7 @@
+         }
+       }
+ 
+-      const shouldUpdate = parameter.real_time_refresh;
++      const shouldUpdate = !TRELLIS_EDITOR_BRIDGE && parameter.real_time_refresh;
+ 
+       const setNodeClass = (newNodeClass: APIClassType) => {
+         options?.setNodeClass?.(newNodeClass);
 diff --git a/src/components/core/flowToolbarComponent/index.tsx b/src/components/core/flowToolbarComponent/index.tsx
 --- a/src/components/core/flowToolbarComponent/index.tsx
 +++ b/src/components/core/flowToolbarComponent/index.tsx
@@ -20,10 +53,94 @@ diff --git a/src/components/core/flowToolbarComponent/index.tsx b/src/components
    ? TrellisEditorToolbar
    : StockFlowToolbar;
  export default FlowToolbar;
+diff --git a/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
+--- a/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
++++ b/src/components/core/parameterRenderComponent/components/strRenderComponent/index.tsx
+@@ -1,6 +1,8 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { InputProps, StrRenderComponentType } from "../../types";
+ import CopyFieldAreaComponent from "../copyFieldAreaComponent";
+ import DropdownComponent from "../dropdownComponent";
++import InputComponent from "../inputComponent";
+ import InputGlobalComponent from "../inputGlobalComponent";
+ import TextAreaComponent from "../textAreaComponent";
+ import WebhookFieldComponent from "../webhookFieldComponent";
+@@ -52,6 +54,22 @@
+       );
+     }
+ 
++    if (TRELLIS_EDITOR_BRIDGE) {
++      return baseInputProps.showParameter ? (
++        <InputComponent
++          id={`input-${name}`}
++          nodeId={nodeId}
++          nodeStyle
++          editNode={baseInputProps.editNode}
++          disabled={baseInputProps.disabled || templateData.load_from_db === true}
++          password={templateData.password}
++          placeholder={placeholder}
++          value={baseInputProps.value}
++          onChange={(value, skipSnapshot) => handleOnNewValue({ value }, { skipSnapshot })}
++          ariaLabelledBy={baseInputProps.ariaLabelledBy}
++        />
++      ) : null;
++    }
+     return (
+       <InputGlobalComponent
+         {...baseInputProps}
+@@ -84,7 +102,7 @@
+         toggle={templateData.toggle}
+         toggleValue={templateData.toggle_value}
+         toggleDisable={templateData.toggle_disable}
+-        hasRefreshButton={templateData.refresh_button}
++        hasRefreshButton={!TRELLIS_EDITOR_BRIDGE && templateData.refresh_button}
+       />
+     );
+   }
+diff --git a/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx b/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
+--- a/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
++++ b/src/components/core/parameterRenderComponent/components/tableComponent/components/tableAdvancedToggleCellRender/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import type { CustomCellRendererProps } from "ag-grid-react";
+ import { useTranslation } from "react-i18next";
+ import useHandleOnNewValue from "@/CustomNodes/hooks/use-handle-new-value";
+@@ -73,7 +74,7 @@
+           <VisibilityToggleButton
+             id={"show" + parameterId}
+             checked={isTweaks ? isApiEditable : !parameter.advanced}
+-            disabled={disabled}
++            disabled={disabled || (TRELLIS_EDITOR_BRIDGE && isTweaks)}
+             onToggle={handleToggle}
+           />
+         </div>
 diff --git a/src/components/core/parameterRenderComponent/index.tsx b/src/components/core/parameterRenderComponent/index.tsx
 --- a/src/components/core/parameterRenderComponent/index.tsx
 +++ b/src/components/core/parameterRenderComponent/index.tsx
-@@ -398,5 +398,5 @@
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import type { handleOnNewValueType } from "@/CustomNodes/hooks/use-handle-new-value";
+ import CodeAreaComponent from "@/components/core/parameterRenderComponent/components/codeAreaComponent";
+@@ -82,7 +83,7 @@
+       value: templateValue,
+       editNode,
+       handleOnNewValue: handleOnNewValue as handleOnNewValueType,
+-      disabled,
++      disabled: disabled || (TRELLIS_EDITOR_BRIDGE && name === "code"),
+       nodeClass,
+       handleNodeClass,
+       nodeId,
+@@ -91,7 +92,7 @@
+       placeholder: placeholder || templateData?.placeholder,
+       isToolMode,
+       nodeInformationMetadata,
+-      hasRefreshButton: templateData.refresh_button,
++      hasRefreshButton: !TRELLIS_EDITOR_BRIDGE && templateData.refresh_button,
+       showParameter,
+       inspectionPanel,
+       ariaLabelledBy,
+@@ -398,5 +399,5 @@
    // combobox). Widgets that don't yet apply it themselves get nothing from
    // wrapping either way — role="group" doesn't propagate a name to a
    // focused descendant control, only to the group boundary itself.
@@ -206,6 +323,118 @@ new file mode 100644
 +	expiresAt: z.iso.datetime(),
 +});
 +export type EditorBootstrap = z.infer<typeof EditorBootstrapSchema>;
+diff --git a/src/customization/trellis/editorCatalog/editorCatalog.ts b/src/customization/trellis/editorCatalog/editorCatalog.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/editorCatalog.ts
+@@ -0,0 +1,44 @@
++import type { z } from "zod/v4";
++import { EditorCatalogSchema } from "./schema";
++
++export type EditorCatalog = z.infer<typeof EditorCatalogSchema>;
++
++export function readEditorCatalog(value: unknown, componentManifestHash: string): EditorCatalog {
++	const catalog = EditorCatalogSchema.parse(value);
++	const exported = catalog.frontendTemplates;
++	if (exported === null) return catalog;
++	if (
++		exported.componentManifestHash !== componentManifestHash ||
++		exported.catalogId !== catalog.catalogId ||
++		exported.engine.name !== catalog.engine.name ||
++		exported.engine.version !== catalog.engine.version ||
++		exported.engine.commit !== catalog.engine.commit ||
++		exported.allowedForPublication !== catalog.allowedForPublication
++	)
++		throw new Error("The frontend templates do not match the granted catalog.");
++	const declarations = new Map(catalog.definitions.map((item) => [item.id, item]));
++	const ids = new Set<string>();
++	const types = new Set<string>();
++	if (declarations.size !== catalog.definitions.length || exported.definitions.length !== declarations.size)
++		throw new Error("The frontend templates do not match the source definitions.");
++	for (const item of exported.definitions) {
++		const declaration = declarations.get(item.id);
++		if (
++			declaration === undefined ||
++			ids.has(item.id) ||
++			types.has(item.className) ||
++			item.version !== declaration.version ||
++			item.className !== declaration.className ||
++			item.source.root !== declaration.source.root ||
++			item.source.path !== declaration.source.path ||
++			item.source.sha256 !== declaration.source.sha256 ||
++			item.qualification !== declaration.qualification ||
++			item.allowedForPublication !== declaration.allowedForPublication ||
++			item.frontendTemplate.data.type !== item.className
++		)
++			throw new Error("A frontend template does not match its source definition.");
++		ids.add(item.id);
++		types.add(item.className);
++	}
++	return catalog;
++}
+diff --git a/src/customization/trellis/editorCatalog/index.ts b/src/customization/trellis/editorCatalog/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/index.ts
+@@ -0,0 +1 @@
++export { type EditorCatalog, readEditorCatalog } from "./editorCatalog";
+diff --git a/src/customization/trellis/editorCatalog/schema.ts b/src/customization/trellis/editorCatalog/schema.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorCatalog/schema.ts
+@@ -0,0 +1,52 @@
++import { z } from "zod/v4";
++
++const digest = z.string().regex(/^[a-f0-9]{64}$/);
++const engine = z
++	.object({ name: z.literal("langflow"), version: z.string().min(1), commit: z.string().regex(/^[a-f0-9]{40}$/) })
++	.passthrough();
++const source = z.object({ root: z.enum(["trellis", "engine"]), path: z.string().min(1), sha256: digest }).passthrough();
++const definition = z
++	.object({
++		id: z.string(),
++		version: z.number().int().positive(),
++		className: z.string(),
++		source,
++		qualification: z.string(),
++		allowedForPublication: z.boolean(),
++	})
++	.passthrough();
++const policy = {
++	allowedForPublication: z.boolean(),
++	supportedMappings: z.array(z.json()),
++	legacyMappings: z.array(z.record(z.string(), z.json())),
++	blockers: z.record(z.string(), z.string()),
++};
++const template = z
++	.object({
++		id: z.string(),
++		data: z.object({ id: z.string(), type: z.string(), node: z.record(z.string(), z.json()) }).passthrough(),
++	})
++	.passthrough();
++const exported = z
++	.object({
++		schemaVersion: z.literal(1),
++		kind: z.literal("trellis-frontend-templates"),
++		catalogId: z.string().min(1),
++		componentManifestHash: digest,
++		engine,
++		engineOverlayHash: digest,
++		...policy,
++		definitions: z.array(definition.extend({ frontendTemplate: template })),
++	})
++	.passthrough();
++
++export const EditorCatalogSchema = z
++	.object({
++		schemaVersion: z.literal(1),
++		catalogId: z.string().min(1),
++		engine,
++		...policy,
++		definitions: z.array(definition.extend({ frontendTemplate: z.null() })),
++		frontendTemplates: exported.nullable(),
++	})
++	.passthrough();
 diff --git a/src/customization/trellis/editorOrigin/editorOrigin.ts b/src/customization/trellis/editorOrigin/editorOrigin.ts
 new file mode 100644
 --- /dev/null
@@ -224,6 +453,33 @@ new file mode 100644
 +++ b/src/customization/trellis/editorOrigin/index.ts
 @@ -0,0 +1 @@
 +export { editorOrigin } from "./editorOrigin";
+diff --git a/src/customization/trellis/editorPalette/editorPalette.ts b/src/customization/trellis/editorPalette/editorPalette.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorPalette/editorPalette.ts
+@@ -0,0 +1,16 @@
++import type { EditorCatalog } from "../editorCatalog";
++
++export function editorPalette(catalog: EditorCatalog) {
++	const exported = catalog.frontendTemplates;
++	if (exported === null) throw new Error("The installed package has no verified frontend templates.");
++	const definitions = exported.definitions.filter(
++		(item) => catalog.allowedForPublication && item.allowedForPublication,
++	);
++	if (definitions.length === 0) throw new Error("The installed catalog has no approved editor components.");
++	return {
++		trellis: Object.fromEntries(
++			definitions.map(({ frontendTemplate }) => [frontendTemplate.data.type, frontendTemplate.data.node]),
++		),
++		component_display_names: {},
++	};
++}
+diff --git a/src/customization/trellis/editorPalette/index.ts b/src/customization/trellis/editorPalette/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/editorPalette/index.ts
+@@ -0,0 +1 @@
++export { editorPalette } from "./editorPalette";
 diff --git a/src/customization/trellis/fieldFocus/fieldFocus.ts b/src/customization/trellis/fieldFocus/fieldFocus.ts
 new file mode 100644
 --- /dev/null
@@ -360,9 +616,10 @@ diff --git a/src/customization/trellis/frontend/entry/entry.ts b/src/customizati
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/entry/entry.ts
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,74 @@
 +import type { APIObjectType } from "@/types/api";
 +import type { FlowType } from "@/types/flow";
++import { editorPalette } from "../../editorPalette";
 +import { createFrameDriver } from "../../frameDriver";
 +import type { EditorContent } from "../../protocol";
 +import { openEditorReads } from "../../scopedReads";
@@ -432,14 +689,7 @@ new file mode 100644
 +}
 +
 +export async function loadEditorPalette(): Promise<APIObjectType> {
-+	const catalog = await reads.catalog();
-+	const definitions = catalog.definitions.filter(
-+		(item) => item.allowedForPublication && item.frontendTemplate !== null,
-+	);
-+	if (definitions.length === 0) throw new Error("The installed catalog has no approved editor components.");
-+	return {
-+		trellis: Object.fromEntries(definitions.map((item) => [item.className, item.frontendTemplate])),
-+	} as APIObjectType;
++	return editorPalette(await reads.catalog()) as APIObjectType;
 +}
 diff --git a/src/customization/trellis/frontend/entry/index.ts b/src/customization/trellis/frontend/entry/index.ts
 new file mode 100644
@@ -642,8 +892,9 @@ diff --git a/src/customization/trellis/scopedReads/scopedReads.ts b/src/customiz
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/scopedReads/scopedReads.ts
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,67 @@
 +import { z } from "zod/v4";
++import { readEditorCatalog } from "../editorCatalog";
 +import { editorOrigin } from "../editorOrigin";
 +import { EditorContentSchema } from "../protocol";
 +import { EditorBootstrapSchema } from "../session";
@@ -653,19 +904,6 @@ new file mode 100644
 +	revision: z.number().int().positive(),
 +	documentHash: z.string(),
 +}).passthrough();
-+const catalogSchema = z.object({
-+	schemaVersion: z.literal(1),
-+	catalogId: z.literal("trellis-components-v1"),
-+	engine: z.object({ name: z.literal("langflow"), version: z.string(), commit: z.string() }),
-+	definitions: z.array(
-+		z.object({
-+			id: z.string(),
-+			className: z.string(),
-+			allowedForPublication: z.boolean(),
-+			frontendTemplate: z.record(z.string(), z.json()).nullable(),
-+		}),
-+	),
-+});
 +
 +type Options = {
 +	channel: string;
@@ -718,7 +956,8 @@ new file mode 100644
 +			throw new Error("The editor document does not match its grant.");
 +		return result;
 +	};
-+	const catalog = async () => catalogSchema.parse(await read("component-manifest"));
++	const catalog = async () =>
++		readEditorCatalog(await read("component-manifest"), bootstrap.identity.componentManifestHash);
 +	return { bootstrap, document, catalog };
 +}
 diff --git a/src/customization/trellis/session/index.ts b/src/customization/trellis/session/index.ts
@@ -893,6 +1132,149 @@ diff --git a/src/pages/FlowPage/components/PageComponent/index.tsx b/src/pages/F
          <ExportModal open={openExportModal} setOpen={setOpenExportModal} />
        )}
      </div>
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarButtonRow.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import IconComponent from "@/components/common/genericIconComponent";
+ import ShadTooltip from "@/components/common/shadTooltipComponent";
+@@ -45,7 +46,7 @@
+   const shortcuts = useShortcutsStore((state) => state.shortcuts);
+   return (
+     <>
+-      {canEditCode && (
++      {!TRELLIS_EDITOR_BRIDGE && canEditCode && (
+         <ToolbarButton
+           className={isCustomComponent ? "animate-pulse-pink" : ""}
+           icon="Code"
+@@ -72,7 +73,7 @@
+           dataTestId="parameters-button"
+         />
+       )}
+-      {!hasToolMode && (
++      {!TRELLIS_EDITOR_BRIDGE && !hasToolMode && (
+         <ToolbarButton
+           icon="FreezeAll"
+           label={t("nodeToolbar.freeze")}
+@@ -87,7 +88,7 @@
+           )}
+         />
+       )}
+-      {hasToolMode && (
++      {!TRELLIS_EDITOR_BRIDGE && hasToolMode && (
+         <ShadTooltip
+           content={
+             <ShortcutDisplay
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/components/ToolbarMoreMenu.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useTranslation } from "react-i18next";
+ import IconComponent from "@/components/common/genericIconComponent";
+ import ShadTooltip from "@/components/common/shadTooltipComponent";
+@@ -84,7 +85,7 @@
+       <SelectContentWithoutPortal
+         className={"relative top-1 w-56 bg-background"}
+       >
+-        <SelectItem variant="plain" value={"save"}>
++        <SelectItem variant="plain" value={"save"} disabled={TRELLIS_EDITOR_BRIDGE}>
+           <ToolbarSelectItem
+             shortcut={
+               shortcuts.find((obj) => obj.name === "Save Component")?.shortcut!
+@@ -113,7 +114,7 @@
+           />
+         </SelectItem>
+         {isOutdated && (
+-          <SelectItem variant="plain" value={"update"}>
++          <SelectItem variant="plain" value={"update"} disabled={TRELLIS_EDITOR_BRIDGE}>
+             <ToolbarSelectItem
+               shortcut={
+                 shortcuts.find((obj) => obj.name === "Update")?.shortcut!
+@@ -133,7 +134,7 @@
+           <SelectItem
+             variant="plain"
+             value={"Share"}
+-            disabled={!hasApiKey || !validApiKey}
++            disabled={TRELLIS_EDITOR_BRIDGE || !hasApiKey || !validApiKey}
+           >
+             <ToolbarSelectItem
+               shortcut={
+@@ -191,6 +192,7 @@
+           <SelectItem
+             variant="plain"
+             value="freezeAll"
++            disabled={TRELLIS_EDITOR_BRIDGE}
+             data-testid="freeze-all-button-modal"
+           >
+             <ToolbarSelectItem
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts b/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/hooks/use-shortcuts.ts
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useHotkeys } from "react-hotkeys-hook";
+ import { useShortcutsStore } from "@/stores/shortcuts";
+ import isWrappedWithClass from "../../PageComponent/utils/is-wrapped-with-class";
+@@ -47,6 +48,7 @@
+   const toolMode = useShortcutsStore((state) => state.toolMode);
+ 
+   function handleFreezeAll(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (isWrappedWithClass(e, "noflow") || !FreezeAllVertices) return;
+     e.preventDefault();
+     FreezeAllVertices();
+@@ -65,6 +67,7 @@
+   }
+ 
+   function handleSaveWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (
+       (isWrappedWithClass(e, "noflow") && !showOverrideModal) ||
+       !saveComponent
+@@ -85,6 +88,7 @@
+   }
+ 
+   function handleCodeWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if ((isWrappedWithClass(e, "noflow") && !openModal) || !handleCodeModal)
+       return;
+     e.preventDefault();
+@@ -92,6 +96,7 @@
+   }
+ 
+   function handleShareWShortcut(e: KeyboardEvent) {
++    if (TRELLIS_EDITOR_BRIDGE) return;
+     if (
+       (isWrappedWithClass(e, "noflow") && !showconfirmShare) ||
+       !shareComponent
+@@ -114,7 +119,7 @@
+   }
+ 
+   function handleToolModeWShortcut(e: KeyboardEvent, hasToolMode?: boolean) {
+-    if (!hasToolMode) return;
++    if (TRELLIS_EDITOR_BRIDGE || !hasToolMode) return;
+     if (isWrappedWithClass(e, "noflow") || !activateToolMode) return;
+     e.preventDefault();
+     activateToolMode();
+diff --git a/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx b/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
+--- a/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
++++ b/src/pages/FlowPage/components/nodeToolbarComponent/index.tsx
+@@ -1,3 +1,4 @@
++import { TRELLIS_EDITOR_BRIDGE } from "@/customization/trellis/frontend/mode";
+ import { useUpdateNodeInternals } from "@xyflow/react";
+ import _, { cloneDeep } from "lodash";
+ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+@@ -365,6 +366,7 @@
+ 
+     const handleSelectChange = useCallback(
+       (event: string) => {
++        if (TRELLIS_EDITOR_BRIDGE && ["save", "saveAll", "override", "code", "update", "Share", "freezeAll", "toolMode"].includes(event)) return;
+         setSelectedValue(event);
+ 
+         // Clear right-clicked state when user selects an option
 diff --git a/src/pages/FlowPage/index.tsx b/src/pages/FlowPage/index.tsx
 --- a/src/pages/FlowPage/index.tsx
 +++ b/src/pages/FlowPage/index.tsx
