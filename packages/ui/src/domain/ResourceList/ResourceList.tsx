@@ -1,4 +1,5 @@
 import { Plus } from "@phosphor-icons/react";
+import type { MouseEvent } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Skeleton } from "../../primitives/Skeleton";
@@ -11,7 +12,7 @@ export type ResourceListProps = {
 	loading?: boolean;
 	// Why the resources did not arrive, in the words of the server.
 	error?: string | null;
-	onOpen: (id: string) => void;
+	onOpen: (id: string, event: MouseEvent) => void;
 	// The id of the row whose document is open beside the list.
 	selectedId?: string | null;
 	// A caller that gives `onNewDocument` gets a New document button beside

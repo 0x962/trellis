@@ -103,7 +103,7 @@ export function Menu({ label, items, trigger, triggerTooltip, align = "end", cla
 		if (!item) return;
 		event.preventDefault();
 		changeOpen(false);
-		item.onSelect();
+		item.onSelect(event);
 	};
 	const button = (
 		<BaseMenu.Trigger

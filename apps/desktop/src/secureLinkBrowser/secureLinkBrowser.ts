@@ -24,7 +24,6 @@ type WebviewParams = {
 // It disables Node integration and enables the sandbox, so the remote page runs as a plain web page.
 // It forces a fixed partition that no other surface uses, so a browsed site's cookie cannot reach the Trellis app session.
 // It removes `allowpopups`, so the remote page cannot open another window.
-// It accepts only HTTPS sources, so Trellis does not load an unencrypted remote page.
 export const secureLinkBrowser = (event: AttachEvent, webPreferences: WebviewPreferences, params: WebviewParams) => {
 	delete webPreferences.preload;
 	delete params.preload;
@@ -34,7 +33,7 @@ export const secureLinkBrowser = (event: AttachEvent, webPreferences: WebviewPre
 	params.partition = LINK_BROWSER_PARTITION;
 	delete params.allowpopups;
 	if (!isLinkBrowserUrl(params.src)) {
-		console.warn("Link browser refused a source that is not HTTPS", { src: params.src });
+		console.warn("Link browser refused an unsupported or invalid address", { src: params.src });
 		event.preventDefault();
 	}
 };

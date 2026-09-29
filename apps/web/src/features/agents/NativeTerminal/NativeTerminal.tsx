@@ -1,15 +1,11 @@
-import { useNavigate } from "@tanstack/react-router";
 import type { AgentRun } from "@trellis/api";
-import { Badge, cx, EmptyState, toast } from "@trellis/ui";
+import { Badge, cx, EmptyState } from "@trellis/ui";
 import type { TerminalConnectionState, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
-import { useApp } from "../../../lib/appContext";
-import { errorMessage } from "../../../lib/conflict";
 import type { DesktopBridge } from "../../../lib/desktopBridge";
-import { openLink } from "../../../lib/openLink";
+import { useOpenLink } from "../../../lib/openLink";
 import { useSessionAttention } from "../../sessions/useSessionAttention";
 import { nativeTerminalTransport } from "./nativeTerminalTransport";
-import { openTerminalLink } from "./openTerminalLink";
 import { useTerminalAccessibility } from "./useTerminalAccessibility";
 
 const TerminalSurface = lazy(async () => ({ default: (await import("@trellis/ui/terminal")).TerminalSurface }));
@@ -30,18 +26,7 @@ export function NativeTerminal({
 	onLeave?: () => void;
 }) {
 	useSessionAttention(run, !readOnly);
-	const { client } = useApp();
-	const navigate = useNavigate();
-	const onOpenLink = useCallback(
-		(url: string) => {
-			void openTerminalLink(url, {
-				resolve: (input) => client.internalLinks.resolve(input),
-				navigate: (href) => navigate({ href }),
-				openWebLink: openLink,
-			}).catch((error: unknown) => toast.error("The terminal link did not open", { description: errorMessage(error) }));
-		},
-		[client, navigate],
-	);
+	const onOpenLink = useOpenLink();
 	const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 	const screenReaderMode = useTerminalAccessibility();
 	const heading = useRef<HTMLHeadingElement>(null);

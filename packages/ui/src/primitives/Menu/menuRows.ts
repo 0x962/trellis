@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactElement } from "react";
+import type { KeyboardEvent, MouseEvent, ReactElement } from "react";
 
 export type MenuItem = {
 	type?: "item";
@@ -7,7 +7,7 @@ export type MenuItem = {
 	// absent.
 	id?: string;
 	label: string;
-	onSelect: () => void;
+	onSelect: (event?: MouseEvent | KeyboardEvent) => void;
 	// An icon element, shown at 14 px before the label.
 	icon?: ReactElement;
 	// A second line under the label, for a detail of the thing the item names.

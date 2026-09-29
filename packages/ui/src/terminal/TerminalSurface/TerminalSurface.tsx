@@ -27,7 +27,7 @@ export type TerminalSurfaceProps = {
 	autoFocusDelay?: number;
 	onConnectionChange?: (state: TerminalConnectionState) => void;
 	onLeave: () => void;
-	onOpenLink: (url: string) => void;
+	onOpenLink: (url: string, event: MouseEvent) => void;
 };
 
 export function TerminalSurface({

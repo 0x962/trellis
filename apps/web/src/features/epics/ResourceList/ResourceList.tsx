@@ -2,7 +2,7 @@ import type { Resource } from "@trellis/api";
 import { type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { isDesktopApp } from "../../../lib/desktopBridge";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { type LinkModifiers, useOpenLink } from "../../../lib/openLink";
 import { docTitle, PLAN_DOC_ID } from "../epicDocs";
 import { ImageSheet } from "./components/ImageSheet";
 import { createLinkedResourceOpener } from "./createLinkedResourceOpener";
@@ -43,6 +43,7 @@ export function ResourceList({
 	onNewDocument,
 	newDocumentPending,
 }: ResourceListProps) {
+	const openLink = useOpenLink();
 	const [image, setImage] = useState<Resource | null>(null);
 	const byId = useMemo(() => new Map(resources.map((resource) => [resource.id, resource])), [resources]);
 	const rows = useMemo<ResourceListRow[]>(
@@ -58,19 +59,23 @@ export function ResourceList({
 		],
 		[resources, planTitle],
 	);
-	const open = (opened: Resource) => {
+	const open = (opened: Resource, modifiers?: LinkModifiers) => {
 		const desktop = isDesktopApp();
 		switch (resourceOpenAction(opened, desktop)) {
 			case "doc":
 				onOpenDoc(opened.id);
 				return;
 			case "link-sheet":
-				pageSheetActions.openBrowser(resourceUrl(opened));
+				openLink(resourceUrl(opened), modifiers);
 				return;
 			case "image-sheet":
 				setImage(opened);
 				return;
 			case "new-tab":
+				if (opened.kind === "link") {
+					openLink(resourceUrl(opened), modifiers);
+					return;
+				}
 				window.open(resourceUrl(opened), "_blank", "noopener,noreferrer");
 				return;
 			case "download": {
@@ -81,9 +86,9 @@ export function ResourceList({
 			}
 		}
 	};
-	const onOpen = (id: string) => {
+	const onOpen = (id: string, event: LinkModifiers) => {
 		if (id === PLAN_DOC_ID) onOpenDoc(id);
-		else open(byId.get(id)!);
+		else open(byId.get(id)!, event);
 	};
 	const openResource = useEffectEvent(open);
 	const [openLinkedResource] = useState(createLinkedResourceOpener);

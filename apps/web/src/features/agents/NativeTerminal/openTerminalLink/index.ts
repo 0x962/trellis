@@ -1,1 +1,0 @@
-export { openTerminalLink } from "./openTerminalLink";

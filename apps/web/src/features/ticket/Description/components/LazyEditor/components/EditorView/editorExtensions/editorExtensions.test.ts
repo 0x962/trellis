@@ -83,3 +83,9 @@ describe("editorExtensions", () => {
 		expect(marks).not.toContain("underline");
 	});
 });
+
+test("renders a Trellis record link without stripping its address", () => {
+	const href = "trellis://page/01M3GHKCN2JY8QMTZ17TP3RHYG";
+	const link = getSchema(editorExtensions()).marks.link!;
+	expect(link.spec.toDOM!(link.create({ href }), false)).toEqual(["a", expect.objectContaining({ href }), 0]);
+});

@@ -2,7 +2,7 @@ import { ArrowSquareOut, ArrowsClockwise, Eye, GitMerge, Lightning, Queue, XCirc
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
 import { Checkbox, ConfirmDialog, GithubMark, IconButton, Menu, type MenuGroup, toast } from "@trellis/ui";
-import { type ReactElement, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, type ReactElement, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { openLink } from "../../../lib/openLink";
 import {
@@ -75,9 +75,9 @@ export function ReviewHeaderActions({
 		danger: item.danger,
 		disabled: action.isPending,
 		icon: iconByAction[item.action],
-		onSelect: () => {
+		onSelect: (event?: MouseEvent | KeyboardEvent) => {
 			if (item.action === "open") {
-				openLink(pr);
+				openLink(pr, event);
 				return;
 			}
 			if (item.confirm) {
@@ -109,7 +109,13 @@ export function ReviewHeaderActions({
 			? [
 					{
 						type: "group" as const,
-						items: [{ label: "Loading GitHub actions...", disabled: true, onSelect: () => {} }],
+						items: [
+							{
+								label: "Loading GitHub actions...",
+								disabled: true,
+								onSelect: () => {},
+							},
+						],
 					},
 				]
 			: []),

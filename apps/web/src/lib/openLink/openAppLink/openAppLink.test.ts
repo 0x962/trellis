@@ -1,6 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
 import { internalLinkTypes } from "@trellis/api";
-import { openTerminalLink } from "./openTerminalLink";
+import { openAppLink } from "./openAppLink";
 
 const id = "01M3GHKCN2JY8QMTZ17TP3RHYG";
 const setup = () => ({
@@ -9,13 +9,13 @@ const setup = () => ({
 	openWebLink: mock((_url: string) => {}),
 });
 
-describe("terminal links", () => {
+describe("app links", () => {
 	test.each([...internalLinkTypes])("resolves a %s link inside Trellis", async (type) => {
 		const deps = setup();
 		const link = `trellis://${type}/${id}`;
-		await openTerminalLink(link, deps);
+		await openAppLink(link, deps);
 		expect(deps.resolve).toHaveBeenCalledWith({ link });
-		expect(deps.navigate).toHaveBeenCalledWith("/p/TRL/pages/query-inventory");
+		expect(deps.navigate).toHaveBeenCalledWith("/p/TRL/pages/query-inventory", undefined);
 		expect(deps.openWebLink).not.toHaveBeenCalled();
 	});
 
@@ -23,8 +23,8 @@ describe("terminal links", () => {
 		"uses the app web-link opener for %s",
 		async (url) => {
 			const deps = setup();
-			await openTerminalLink(url, deps);
-			expect(deps.openWebLink).toHaveBeenCalledWith(url);
+			await openAppLink(url, deps);
+			expect(deps.openWebLink).toHaveBeenCalledWith(url, undefined);
 			expect(deps.resolve).not.toHaveBeenCalled();
 			expect(deps.navigate).not.toHaveBeenCalled();
 		},
@@ -43,7 +43,7 @@ describe("terminal links", () => {
 		`trellis://person:secret@page/${id}`,
 	])("refuses %s", async (url) => {
 		const deps = setup();
-		await openTerminalLink(url, deps);
+		await expect(openAppLink(url, deps)).rejects.toThrow("unsupported or invalid");
 		expect(deps.resolve).not.toHaveBeenCalled();
 		expect(deps.navigate).not.toHaveBeenCalled();
 		expect(deps.openWebLink).not.toHaveBeenCalled();
@@ -52,8 +52,18 @@ describe("terminal links", () => {
 	test("returns a missing-record error to the caller without external navigation", async () => {
 		const deps = setup();
 		deps.resolve.mockRejectedValue(new Error("This page does not exist or is unavailable."));
-		await expect(openTerminalLink(`trellis://page/${id}`, deps)).rejects.toThrow("This page does not exist");
+		await expect(openAppLink(`trellis://page/${id}`, deps)).rejects.toThrow("This page does not exist");
 		expect(deps.navigate).not.toHaveBeenCalled();
 		expect(deps.openWebLink).not.toHaveBeenCalled();
 	});
+});
+
+test("preserves every modifier across asynchronous internal resolution and external opening", async () => {
+	const modifiers = { metaKey: true, ctrlKey: true, altKey: true, shiftKey: true, button: 0 };
+	const deps = setup();
+	await openAppLink(`trellis://page/${id}`, deps, modifiers);
+	expect(deps.navigate).toHaveBeenCalledWith("/p/TRL/pages/query-inventory", modifiers);
+	expect(deps.openWebLink).not.toHaveBeenCalled();
+	await openAppLink("https://example.com", deps, modifiers);
+	expect(deps.openWebLink).toHaveBeenCalledWith("https://example.com", modifiers);
 });

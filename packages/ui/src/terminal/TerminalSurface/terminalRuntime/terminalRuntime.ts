@@ -29,8 +29,8 @@ export async function createTerminalRuntime(
 	wrapper.className = "terminal-host";
 	parking.append(wrapper);
 	let view: TerminalView | null = null;
-	const activate = (_event: MouseEvent, url: string) => {
-		view?.onOpenLink(url);
+	const activate = (event: MouseEvent, url: string) => {
+		view?.onOpenLink(url, event);
 	};
 	const hover = (_event: MouseEvent, url: string) => {
 		wrapper.title = url;

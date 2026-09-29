@@ -44,11 +44,20 @@ describe("secureLinkBrowser", () => {
 		});
 	});
 
-	test("refuses an HTTP page", () => {
-		expect(attachWebview("http://example.com").refused).toBe(true);
+	test("allows an HTTP page", () => {
+		expect(attachWebview("http://example.com").refused).toBe(false);
 	});
 
 	test("refuses a URL that does not parse", () => {
 		expect(attachWebview("not a URL").refused).toBe(true);
 	});
+});
+
+test.each([
+	"file:///etc/passwd",
+	"javascript:alert(1)",
+	"https://user:pass@example.com",
+	"trellis://page/01M3GHKCN2JY8QMTZ17TP3RHYG",
+])("rejects %s", (url) => {
+	expect(attachWebview(url).refused).toBe(true);
 });
