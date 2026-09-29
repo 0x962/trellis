@@ -1,3 +1,4 @@
+export type { EditorCommand, EditorContent, EditorEvent, EditorFocus, EditorIdentity } from "./protocol";
 export {
 	EditorCommandSchema,
 	EditorContentSchema,
@@ -6,4 +7,3 @@ export {
 	EditorIdentitySchema,
 	sameEditorIdentity,
 } from "./protocol";
-export type { EditorCommand, EditorContent, EditorEvent, EditorFocus, EditorIdentity } from "./protocol";
