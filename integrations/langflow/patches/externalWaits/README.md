@@ -149,6 +149,61 @@ The startup queue sweep uses the same retry mechanism for every fresh QUEUED lea
 This includes a crash after executor submission and obligation consumption but before the runner claim.
 The recovery does not depend on a pending Trellis obligation.
 
+## Engine API transaction handoff
+
+Apply `0002-queue-bootstrap-and-completion-transactions.patch` after the durable wait patch.
+It adds this initial dispatch interface:
+
+```python
+async def enqueue_trellis_submission(
+	self,
+	*,
+	engine_job_id: UUID,
+	flow_id: UUID,
+	user_id: UUID,
+	request_bytes: bytes,
+) -> DispatchDisposition
+```
+
+The job and correlation must exist before this call.
+The method binds the exact build request to the existing job.
+It uses the existing Langflow executor and lease path.
+An equal replay returns `dispatched` or `execution_proven`.
+A changed job binding, request, or dispatch digest fails.
+A fresh foreign lease returns `pending_lease` and schedules one existing lease retry.
+
+The patch also adds this caller transaction interface:
+
+```python
+async def save_checkpoint_once_in_session(
+	self,
+	session: AsyncSession,
+	job_id: UUID,
+	kind: str,
+	blob: str,
+) -> str
+
+async def save_completion_in_session(
+	self,
+	session: AsyncSession,
+	*,
+	job_id: UUID,
+	authority_epoch: int,
+	wait_bytes: bytes,
+	delivery_bytes: bytes,
+	receipt_bytes: bytes,
+) -> bytes
+```
+
+The native completion ledger calls `save_completion_in_session` inside its locked job transaction.
+The same transaction writes the exact RESUME signal and the pending dispatch obligation.
+The helper writes no signal, obligation, queue claim, or commit.
+The service consumes the obligation after the caller commits.
+
+The occurrence producer stores exact native request bytes under `trellis-native-request-v1:<sha256(waitId)>`.
+The completion ledger compares the delivery request digest with those saved bytes.
+The completion envelope does not reconstruct request bytes from its parsed request object.
+
 TRL-674 owns the combined patch series.
 
 The probe uses these cases without a product ceiling:
