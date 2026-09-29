@@ -15,12 +15,15 @@ import { startState } from "../../langflowStart";
 import { stopState } from "../../langflowStops";
 import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
 import { authorityExecutions } from "../authorityExecutions";
+import { documentAction } from "../documentAction";
 import { nativeReservationState } from "../nativeReservationState";
 import { nativeRuntimeWorker } from "../nativeRuntimeWorker";
 import { prepareNativeReservation } from "../prepareNativeReservation";
 import { reserveObservedGroupDeadline } from "../reserveGroupDeadline";
 
 export const flowServices = {
+	"flowDocuments.actionReceipt": core("read", flowDocuments.readDocumentActionReceipt),
+	"flowDocuments.action": prepared("mutation", documentAction, agentTerminal.result),
 	"langflowClocks.reserveGroupDeadline": io("mutation", reserveObservedGroupDeadline),
 	"langflowHost.executions": io("read", authorityExecutions),
 	"langflowStart.state": core("mutation", startState),

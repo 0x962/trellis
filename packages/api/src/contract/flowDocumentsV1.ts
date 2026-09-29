@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import {
+	ActivateConversionV1InputSchema,
+	ConversionEditIntentV1Schema,
+	FlowDocumentActionResultV1Schema,
+	PublishDocumentV1InputSchema,
+} from "../schemas/flowDocumentActionsV1.ts";
+import {
 	FlowDocumentGetV1InputSchema,
 	FlowDocumentSaveV1InputSchema,
 	FlowDocumentV1Schema,
@@ -16,6 +22,7 @@ import { base } from "./base.ts";
 import { flowEditorErrors } from "./flowEditorSessionV1";
 
 export const flowDocumentV1Errors = {
+	FLOW_RUNTIME_UNAVAILABLE: { status: 503, message: "The configured flow runtime is unavailable." },
 	FLOW_UNSUPPORTED_FORMAT: {
 		status: 422,
 		message: "This client cannot read or write this flow format without data loss.",
@@ -35,6 +42,21 @@ export const flowExecutionIndexV1 = base
 	.output(z.array(FlowExecutionIdentityV1Schema));
 
 export const flowDocumentsV1 = {
+	publish: base
+		.route({ method: "POST", path: "/flows/{flowId}/publication-v1", summary: "Publish the saved flow document" })
+		.errors(flowDocumentV1Errors)
+		.input(PublishDocumentV1InputSchema)
+		.output(FlowDocumentActionResultV1Schema),
+	activateConversion: base
+		.route({ method: "POST", path: "/flows/{flowId}/conversion-v1", summary: "Adopt a converted flow draft" })
+		.errors(flowDocumentV1Errors)
+		.input(ActivateConversionV1InputSchema)
+		.output(FlowDocumentActionResultV1Schema),
+	editConversion: base
+		.route({ method: "POST", path: "/flows/{flowId}/conversion-edits-v1", summary: "Apply an explicit conversion edit" })
+		.errors(flowDocumentV1Errors)
+		.input(ConversionEditIntentV1Schema)
+		.output(FlowDocumentActionResultV1Schema),
 	get: base
 		.route({
 			method: "GET",
