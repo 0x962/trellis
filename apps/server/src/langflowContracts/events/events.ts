@@ -10,6 +10,7 @@ import {
 } from "../primitives";
 
 const ExecutionPayloadV1Schema = z.discriminatedUnion("kind", [
+	z.strictObject({ kind: z.literal("checkpoint_saved"), receiptId: ReferenceSchema }),
 	z.strictObject({
 		kind: z.enum(["execution_started", "execution_succeeded", "execution_canceled"]),
 		receiptId: ReferenceSchema,
