@@ -197,6 +197,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							label="Load more results"
 							icon={<ArrowDown />}
 							disabled={query.isFetching}
+							processing={query.isFetchingNextPage}
 							onClick={() => void query.fetchNextPage()}
 						/>
 					</Tooltip>
