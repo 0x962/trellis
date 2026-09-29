@@ -234,17 +234,22 @@ test("retains messages, the cursor, the prior update, and a readable error after
 	const second = await value.db.transaction((tx) =>
 		claimSessionObserverGeneration(tx, { runId: value.standaloneRunId, throughCursor: "cursor-2" }),
 	);
-	await value.db.transaction((tx) =>
-		failSessionObserverGeneration(context([], new Date(at.getTime() + 1)), tx, {
-			runId: value.standaloneRunId,
-			claimId: second!.claimId,
-			error: "The provider did not return a reply.",
-		}),
-	);
 	const archive = await value.db.$client.dumpDataDir("none");
 	await value.db.$client.close();
 	const restarted = await openTestDbFromArchive(archive);
 	try {
+		expect(
+			await restarted.transaction((tx) =>
+				claimSessionObserverGeneration(tx, { runId: value.standaloneRunId, throughCursor: "cursor-2" }),
+			),
+		).toBeNull();
+		await restarted.transaction((tx) =>
+			failSessionObserverGeneration(context([], new Date(at.getTime() + 1)), tx, {
+				runId: value.standaloneRunId,
+				claimId: second!.claimId,
+				error: "The provider did not return a reply.",
+			}),
+		);
 		const observer = await restarted.transaction((tx) =>
 			getObserver(ctx, tx, { sessionId: value.standaloneSessionId }),
 		);
