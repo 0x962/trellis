@@ -1,10 +1,10 @@
 import { defineCommand } from "citty";
+import { positiveInteger } from "../../arguments.ts";
 import { clientOf } from "../../client.ts";
 import { compact, contextOf, readText } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { printRecord } from "../../output.ts";
 import { pageRecord, pinRecord } from "./pageText.ts";
-import { positiveInteger } from "./revision.ts";
 
 const pageArg = { type: "positional" as const, required: true as const, description: "Page ref" };
 const expectedVersionArg = {

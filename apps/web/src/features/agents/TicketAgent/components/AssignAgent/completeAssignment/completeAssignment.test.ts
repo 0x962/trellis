@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory } from "@tanstack/react-router";
-import type { AgentRun } from "@trellis/api";
+import type { AgentRun, AgentRunListOutput } from "@trellis/api";
 import { pageSheetActions, usePageSheetStore } from "../../../../../../stores/pageSheetStore";
 import { completeAssignment } from "./completeAssignment";
 
@@ -23,7 +23,7 @@ test("a first assignment keeps the epic route and the ticket sheet", () => {
 	const page = { scrollTop: 720, expanded: ["assignment-behavior"], selected: ["TRL-481"] };
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(ticketRuns, []);
-	queryClient.setQueryData(assignedRuns, []);
+	queryClient.setQueryData(assignedRuns, { items: [], nextCursor: null });
 	pageSheetActions.openTicket("TRL-481");
 	let remembered = false;
 	let cleared = false;
@@ -48,7 +48,10 @@ test("a first assignment keeps the epic route and the ticket sheet", () => {
 	expect(page).toEqual({ scrollTop: 720, expanded: ["assignment-behavior"], selected: ["TRL-481"] });
 	expect(usePageSheetStore.getState().ticket).toBe("TRL-481");
 	expect(queryClient.getQueryData<AgentRun[]>(ticketRuns)).toEqual([run("starting")]);
-	expect(queryClient.getQueryData<AgentRun[]>(assignedRuns)).toEqual([run("starting")]);
+	expect(queryClient.getQueryData<AgentRunListOutput>(assignedRuns)).toEqual({
+		items: [run("starting")],
+		nextCursor: null,
+	});
 	expect({ remembered, cleared, invalidated }).toEqual({ remembered: true, cleared: true, invalidated: true });
 
 	pageSheetActions.closeTicket();
@@ -59,7 +62,7 @@ test("a retry keeps the ticket route and replaces the cached run", () => {
 	const route = history.location;
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(ticketRuns, [run("failed")]);
-	queryClient.setQueryData(assignedRuns, [run("failed")]);
+	queryClient.setQueryData(assignedRuns, { items: [run("failed")], nextCursor: "next" });
 
 	completeAssignment({
 		queryClient,
@@ -72,5 +75,8 @@ test("a retry keeps the ticket route and replaces the cached run", () => {
 
 	expect(history.location).toEqual(route);
 	expect(queryClient.getQueryData<AgentRun[]>(ticketRuns)).toEqual([run("starting")]);
-	expect(queryClient.getQueryData<AgentRun[]>(assignedRuns)).toEqual([run("starting")]);
+	expect(queryClient.getQueryData<AgentRunListOutput>(assignedRuns)).toEqual({
+		items: [run("starting")],
+		nextCursor: "next",
+	});
 });
