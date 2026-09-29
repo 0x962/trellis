@@ -34,21 +34,24 @@ export function DiffLine({
 			data-line-number={lineNumber}
 			data-line-type={line.type === "context" ? "context" : `change-${line.type}`}
 			data-side={side}
-			onClick={(event) => {
-				if (window.getSelection()?.type !== "Range") select(anchor, event.shiftKey);
-			}}
-			onKeyDown={(event) => {
-				if (event.key !== "Enter" && event.key !== " ") return;
-				event.preventDefault();
-				select(anchor, event.shiftKey);
-			}}
 			onPointerDown={() => startPointer(anchor)}
 			onPointerUp={() => endPointer(anchor)}
-			role="button"
-			tabIndex={0}
 		>
-			<span className="review-diff-number">{lineNumber}</span>
-			<code>{line.text || " "}</code>
+			<button
+				type="button"
+				className="col-span-2 grid min-w-0 grid-cols-subgrid text-left select-text opacity-100! focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+				onClick={(event) => {
+					if (window.getSelection()?.type !== "Range") select(anchor, event.shiftKey);
+				}}
+				onKeyDown={(event) => {
+					if (event.key !== "Enter" && event.key !== " ") return;
+					event.preventDefault();
+					select(anchor, event.shiftKey);
+				}}
+			>
+				<span className="review-diff-number">{lineNumber}</span>
+				<code>{line.text || " "}</code>
+			</button>
 			<Tooltip content="Add line comment">
 				<IconButton
 					label="Add line comment"
