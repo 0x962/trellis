@@ -62,6 +62,8 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "view.sort", label: "Sort by", section: "view", submenu: true },
 	{ id: "view.group", label: "Group by", section: "view", submenu: true },
 	{ id: "view.density", label: "Toggle density", section: "view" },
+	{ id: "view.back", label: "Back in this tab", section: "view", shortcutId: "historyBack" },
+	{ id: "view.forward", label: "Forward in this tab", section: "view", shortcutId: "historyForward" },
 	{ id: "view.theme", label: "Toggle theme", section: "view", shortcutId: "toggleTheme" },
 	{ id: "view.sidebar", label: "Toggle sidebar", section: "view", shortcutId: "toggleSidebar" },
 ];

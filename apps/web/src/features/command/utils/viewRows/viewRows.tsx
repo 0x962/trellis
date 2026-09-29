@@ -1,4 +1,6 @@
 import {
+	ArrowLeft,
+	ArrowRight,
 	ArrowsDownUp,
 	ChartLine,
 	FolderOpen,
@@ -44,6 +46,8 @@ const icons: Record<string, ReactNode> = {
 	"view.sort": <ArrowsDownUp />,
 	"view.group": <Rows />,
 	"view.density": <Rows />,
+	"view.back": <ArrowLeft />,
+	"view.forward": <ArrowRight />,
 	"view.theme": <Moon />,
 	"view.sidebar": <SidebarSimple />,
 };
@@ -111,6 +115,8 @@ export const viewRows = (deps: RowDeps): PaletteRow[] => {
 		"view.density": run(deps, () =>
 			uiActions.setDensity(useUiStore.getState().density === "compact" ? "comfortable" : "compact"),
 		),
+		"view.back": run(deps, deps.action.back),
+		"view.forward": run(deps, deps.action.forward),
 		"view.theme": run(deps, toggleTheme),
 		"view.sidebar": run(deps, uiActions.toggleSidebar),
 	};

@@ -66,7 +66,6 @@ export function SessionPrompt({
 				hideLabel
 				value={text}
 				rows={3}
-				maxLength={20000}
 				disabled={disabled}
 				placeholder="What do you want to do?"
 				onChange={(event) => onText(event.target.value)}

@@ -3,6 +3,7 @@ import { eventApplierFor, type Ticket } from "@trellis/api";
 import { toast, writeClipboard } from "@trellis/ui";
 import { useMemo } from "react";
 import { useApp } from "../../../../lib/appContext";
+import { backNavigation } from "../../../../lib/backNavigation";
 import { openLink } from "../../../../lib/openLink";
 import type { ActionContext, NotifyOptions } from "../../actions";
 import { askConfirm } from "../../confirmStore";
@@ -38,6 +39,8 @@ export const useActionContext = (): ActionContext => {
 			},
 			openUrl: openLink,
 			navigate: (to: string) => void router.navigate({ href: to }),
+			back: () => void backNavigation(router),
+			forward: () => router.history.forward(),
 		}),
 		[client, queryClient, router],
 	);
