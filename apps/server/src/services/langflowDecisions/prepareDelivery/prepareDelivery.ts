@@ -8,8 +8,8 @@ import {
 import type { Tx } from "../../../db/tx.ts";
 import { fail } from "../../../errors.ts";
 import type { DeliveryAuthorityV1 } from "../../../langflowContracts";
+import { saveDecisionDelivery } from "../../langflowProjection";
 import type { PreparedDecision } from "../deliver";
-import { saveDelivery } from "../saveDelivery/saveDelivery.ts";
 
 export async function prepareDelivery(
 	ctx: ServiceCtx,
@@ -24,6 +24,6 @@ export async function prepareDelivery(
 	if (!stored) throw fail("NOT_FOUND", { kind: "human decision", ref: input.decisionId });
 	if (stored.delivery.state === "confirmed") return null;
 	const delivery = await updateDecisionDelivery(tx, { ...input, state: "pending" });
-	await saveDelivery(ctx, tx, delivery);
+	await saveDecisionDelivery(ctx, tx, delivery);
 	return { payloadBytes: stored.payloadBytes, delivery, authority: input.authority };
 }

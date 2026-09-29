@@ -11,6 +11,8 @@ import type { Db } from "../client.ts";
 
 export const reviewFixture = async (db: Db) => {
 	const project = ulid();
+	const projectKey = `P${project.slice(-9)}`;
+	const owner = project.toLowerCase();
 	const ticket = ulid();
 	const flow = ulid();
 	const pull = ulid();
@@ -18,16 +20,16 @@ export const reviewFixture = async (db: Db) => {
 	const statusId = ulid();
 	const at = new Date("2026-09-29T10:00:00Z");
 	await db.execute(sql`INSERT INTO projects (id,key,slug,name,created_at,updated_at)
-		VALUES (${project},${project},${project},'Policy',${at},${at})`);
+		VALUES (${project},${projectKey},${projectKey.toLowerCase()},'Policy',${at},${at})`);
 	await db.execute(sql`INSERT INTO statuses (id,project_id,name,slug,category,color,position,is_default,created_at,updated_at)
 		VALUES (${statusId},${project},'Todo','todo','todo','fg-muted',0,true,${at},${at})`);
 	await db.execute(sql`INSERT INTO tickets (id,project_id,number,title,status_id,position,created_at,updated_at)
 		VALUES (${ticket},${project},1,'Policy',${statusId},0,${at},${at})`);
 	await db.execute(sql`INSERT INTO flows (id,project_id,slug,name,created_at,updated_at)
-		VALUES (${flow},${project},${flow},'Review',${at},${at})`);
+		VALUES (${flow},${project},${flow.toLowerCase()},'Review',${at},${at})`);
 	await db.execute(sql`INSERT INTO pull_requests
 		(id,owner,repo,number,url,state,head_sha,local_state,mergeable,ci_state,created_at,updated_at)
-		VALUES (${pull},${project},'app',1,${`https://github.com/${project}/app/pull/1`},'open','old-head',
+		VALUES (${pull},${owner},'app',1,${`https://github.com/${owner}/app/pull/1`},'open','old-head',
 		'ready','mergeable','pass',${at},${at})`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests
 		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)

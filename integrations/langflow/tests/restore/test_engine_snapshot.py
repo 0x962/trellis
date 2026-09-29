@@ -72,14 +72,19 @@ async def test_actual_checkpoint_export_and_reopen(real_services_job_service, re
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://engine") as client:
         denied = await client.post("/trellis-v1/snapshots", json=binding.model_dump(mode="json"))
         assert denied.status_code == 401
+        assert denied.headers["www-authenticate"] == "Bearer"
         assert not list(exports.iterdir())
         client.headers["Authorization"] = "Bearer isolated-test-token"
         response = await client.post("/trellis-v1/snapshots", json=binding.model_dump(mode="json"))
         assert response.status_code == 200, response.text
+        duplicate = await client.post("/trellis-v1/snapshots", json=binding.model_dump(mode="json"))
+        assert duplicate.status_code == 409
+        missing = await client.get(f"/trellis-v1/snapshots/{uuid4()}/database")
+        assert missing.status_code == 404
         receipt = response.json()
         assert receipt["binding"] == binding.model_dump(mode="json")
         assert {"job", "job_checkpoints", "trellis_job_correlations"}.issubset(receipt["tables"])
-        assert boundaries == ["held", "released"]
+        assert boundaries == ["held", "released", "held"]
         blob = await client.get(f"/trellis-v1/snapshots/{binding.snapshotId}/database")
         exported_secret = await client.get(f"/trellis-v1/snapshots/{binding.snapshotId}/secret")
         assert hashlib.sha256(blob.content).hexdigest() == receipt["database"]["sha256"]
