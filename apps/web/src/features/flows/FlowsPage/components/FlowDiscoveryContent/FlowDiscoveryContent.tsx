@@ -15,6 +15,11 @@ export function FlowDiscoveryContent({ input, retryAction, clearFiltersAction }:
 	const view = flowDiscovery(input);
 	return (
 		<div className="flex flex-col gap-4">
+			{view.engine.state === "unknown" && (
+				<p role="status" className="text-sm text-fg-muted">
+					{view.engine.reason}
+				</p>
+			)}
 			{view.engine.state === "unavailable" && (
 				<FailureState title="Flow engine unavailable" description={view.engine.reason} />
 			)}

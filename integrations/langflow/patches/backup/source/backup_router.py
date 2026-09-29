@@ -11,7 +11,10 @@ from starlette.responses import FileResponse
 from langflow.services.trellis_v1.backup import (
     EngineSnapshotReceipt,
     SnapshotBinding,
-    export_engine_snapshot,
+    SnapshotConflict,
+    SnapshotMissing,
+    capture_engine_snapshot,
+    snapshot_file,
 )
 
 
@@ -26,26 +29,30 @@ def create_backup_router(*, database, settings, export_root: Path, authenticatio
 
     async def authenticate(authorization: Annotated[str | None, Header()] = None) -> None:
         if authorization is None or not hmac.compare_digest(authorization, f"Bearer {token}"):
-            raise HTTPException(status_code=401, detail="engine_snapshot_unauthorized")
+            raise HTTPException(status_code=401, detail="engine_snapshot_unauthorized",
+                                headers={"WWW-Authenticate": "Bearer"})
 
     router = APIRouter(prefix="/trellis-v1/snapshots", dependencies=[Depends(authenticate)])
 
     @router.post("", response_model=EngineSnapshotReceipt)
     async def capture(binding: SnapshotBinding) -> EngineSnapshotReceipt:
-        async with snapshot_boundary(binding):
-            return await export_engine_snapshot(
+        try:
+            return await capture_engine_snapshot(
                 database, settings, export_root, binding,
                 package_digest=package_digest, data_home_id=data_home_id, host_id=host_id,
+                snapshot_boundary=snapshot_boundary,
             )
+        except SnapshotConflict as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
 
     @router.get("/{snapshot_id}/{part}")
     async def download(snapshot_id: UUID, part: str) -> FileResponse:
-        names = {"database": "database.sqlite", "secret": "secret"}
-        if part not in names:
-            raise HTTPException(status_code=404, detail="engine_snapshot_part_not_found")
-        directory = export_root / str(snapshot_id)
-        EngineSnapshotReceipt.model_validate_json((directory / "receipt.json").read_bytes())
-        return FileResponse(directory / names[part], media_type="application/octet-stream",
-                            headers={"Cache-Control": "no-store"})
+        try:
+            path = snapshot_file(export_root, snapshot_id, part)
+        except SnapshotMissing as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except SnapshotConflict as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return FileResponse(path, media_type="application/octet-stream", headers={"Cache-Control": "no-store"})
 
     return router

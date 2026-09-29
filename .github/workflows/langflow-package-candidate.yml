@@ -23,16 +23,20 @@ jobs:
   x86_64:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: 1.3.13
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-        with:
-          version: v0.33.0
-          driver-opts: image=moby/buildkit@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8
+      - name: Install the verified Buildx release
+        id: buildx
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 https://github.com/docker/buildx/releases/download/v0.33.0/buildx-v0.33.0.linux-amd64 --output "$RUNNER_TEMP/docker-buildx"
+          printf '%s  %s\n' 9426a15411f35f635afef3f5d3bae53155c3e30d26dee430cc968e13d34be49f "$RUNNER_TEMP/docker-buildx" | sha256sum --check
+          mkdir -p "$HOME/.docker/cli-plugins"
+          install -m 0755 "$RUNNER_TEMP/docker-buildx" "$HOME/.docker/cli-plugins/docker-buildx"
+          docker buildx create --name trellis-langflow-ci --driver docker-container --driver-opt image=moby/buildkit@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8 --use
       - name: Fetch exact candidate inputs
         env:
           GH_TOKEN: ${{ github.token }}
@@ -83,9 +87,12 @@ jobs:
         run: bun install --cwd integrations/langflow/release --ignore-scripts
       - name: Build the x86_64 candidate
         run: bun integrations/langflow/release/oci/buildCandidate/buildCandidate.ts "$CANDIDATE_ROOT" x86_64
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: langflow-x86_64-candidate
           path: ${{ env.CANDIDATE_ROOT }}/x86_64
           if-no-files-found: error
           compression-level: 0
+      - name: Remove the job builder
+        if: ${{ always() && steps.buildx.outcome == 'success' }}
+        run: docker buildx rm trellis-langflow-ci
