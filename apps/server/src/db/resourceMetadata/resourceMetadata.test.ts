@@ -50,19 +50,36 @@ beforeAll(async () => {
 		VALUES (${project}, 'META', 'meta', 'Metadata', ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at)
 		VALUES (${epic}, ${project}, 'resources', 'Resources', ${actor.name}, ${actor.kind}, ${now}, ${now})`);
-	const cache = createCache();
-	await db.transaction(cache.rebuild);
-	ctx = {
+	original = {
+		id: ulid(),
+		epicId: epic,
+		kind: "doc",
+		name: "Plan",
+		body: "Retained body",
+		url: null,
+		blob: null,
+		ticketId: null,
+		pullRequestNumber: null,
 		actor,
-		home,
-		now: () => now,
-		emit: () => {},
-		core: { actor, now, cache, actorCache: new Map(), emit: () => {} },
-	} as unknown as IoCtx;
-	original = await db.transaction((tx) => add(ctx, tx, { epic, kind: "doc", name: "Plan", body: "Retained body" }));
-	originalLink = await db.transaction((tx) =>
-		add(ctx, tx, { epic, kind: "link", name: "Link", url: "https://example.com/retained" }),
-	);
+		createdAt: now.toISOString(),
+		updatedAt: now.toISOString(),
+	};
+	originalLink = {
+		...original,
+		id: ulid(),
+		kind: "link",
+		name: "Link",
+		body: null,
+		url: "https://example.com/retained",
+	};
+	for (const resource of [original, originalLink]) {
+		await db.execute(sql`INSERT INTO epic_resources (
+			id, epic_id, kind, name, body, url, actor_name, actor_kind, created_at, updated_at
+		) VALUES (
+			${resource.id}, ${epic}, ${resource.kind}, ${resource.name}, ${resource.body}, ${resource.url},
+			${actor.name}, ${actor.kind}, ${now}, ${now}
+		)`);
+	}
 	await expect(db.execute(sql`UPDATE epic_resources SET name = ${name} WHERE id = ${original.id}`)).rejects.toThrow(
 		"epic_resources_name_check",
 	);
@@ -70,6 +87,38 @@ beforeAll(async () => {
 		"epic_resources_url_check",
 	);
 	expect(await migrate(db)).toBeGreaterThan(0);
+	const cache = createCache();
+	await db.transaction(cache.rebuild);
+	ctx = {
+		actor,
+		session: null,
+		home,
+		version: "test",
+		apiVersion: "1",
+		bootId: ulid(),
+		now: () => now,
+		ghStatus: () => ({ ok: true }),
+		addresses: async () => [],
+		log: () => {},
+		emit: () => {},
+		afterCommit: () => {},
+		newTx: (fn) => db.transaction(fn),
+		vacuum: async () => {},
+		core: {
+			actor,
+			session: null,
+			reqId: ulid(),
+			now,
+			cache,
+			actorCache: new Map(),
+			emit: () => {},
+			dropBlobs: () => {},
+			publicUrl: "http://127.0.0.1:4521",
+		},
+		localUrl: "http://127.0.0.1:4521",
+		publicUrl: "http://127.0.0.1:4521",
+		background: () => {},
+	};
 }, 60_000);
 
 afterAll(async () => {
