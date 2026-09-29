@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq } from "drizzle-orm";
-import { protocolDigest, type TakeoverReceiptV1, type RenewalReceiptV1 } from "../../../langflowContracts";
-import { langflowExecutions, langflowOwnershipReceipts, langflowOutbox } from "../../tables/langflowExecution";
+import { protocolDigest, type RenewalReceiptV1, type TakeoverReceiptV1 } from "../../../langflowContracts";
+import { langflowExecutions, langflowOutbox, langflowOwnershipReceipts } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
 

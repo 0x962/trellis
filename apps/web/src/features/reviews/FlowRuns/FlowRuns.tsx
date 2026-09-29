@@ -1,14 +1,15 @@
 import { Play } from "@phosphor-icons/react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
 import { EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
-import { type ComponentProps, useEffect, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
-import { loadRunHistory } from "./components/FlowRun/buildFlowRunRows/loadRunHistory";
-import { runExpansionByDiff } from "./components/FlowRun/buildFlowRunRows/runViewState";
+import { loadRunHistory } from "./components/loadRunHistory";
 import { StartFlowDialog } from "./components/StartFlowDialog";
+import { lastFocusedRun, runExpansionByDiff, runListOffsets } from "./runViewState";
 
 type Execution = FlowExecutionRecord | FlowExecutionViewV1;
 const live = (execution: Execution) =>
@@ -71,13 +72,36 @@ export function FlowRuns({
 		executionIds === undefined ? (legacy.data ?? []) : snapshots.flatMap((query) => (query.data ? [query.data] : []));
 	const pending = executionIds === undefined ? legacy.isPending : snapshots.some((query) => query.isPending);
 	const error = executionIds === undefined ? legacy.error : snapshots.find((query) => query.error !== null)?.error;
+	const viewport = useRef<HTMLDivElement>(null);
+	const list = useVirtualizer({
+		count: records.length,
+		getScrollElement: () => viewport.current,
+		estimateSize: () => 120,
+		getItemKey: (index) => records[index]!.id,
+		overscan: 3,
+		initialOffset: () => runListOffsets.get(diffId) ?? 0,
+		rangeExtractor: (range) => {
+			const indexes = new Set(defaultRangeExtractor(range));
+			for (const id of [targetId, lastFocusedRun.id]) {
+				const index = records.findIndex((run) => run.id === id);
+				if (index >= 0) indexes.add(index);
+			}
+			return [...indexes].sort((a, b) => a - b);
+		},
+	});
+	const targetScroll = useRef(() => {});
+	targetScroll.current = () =>
+		list.scrollToIndex(
+			records.findIndex((run) => run.id === targetId),
+			{ align: "auto" },
+		);
 	const hasTarget = records.some((execution) => execution.id === targetId);
 	useEffect(() => {
 		if (targetId === null || !hasTarget) return;
 		const runs = new Map(runExpansionByDiff.get(diffId)).set(targetId, true);
 		runExpansionByDiff.set(diffId, runs);
 		setExpansion({ diffId, runs });
-		document.getElementById(`flow-run-${targetId}`)?.scrollIntoView({ block: "nearest" });
+		targetScroll.current();
 	}, [targetId, hasTarget, diffId]);
 	if (expansion.diffId !== diffId) setExpansion({ diffId, runs: runExpansionByDiff.get(diffId) ?? new Map() });
 	else if (records.some((execution) => !expansion.runs.has(execution.id))) {
@@ -119,24 +143,41 @@ export function FlowRuns({
 			{!pending && !error && records.length === 0 && (
 				<EmptyState title="No flow runs" description="This diff has no recorded flow run." />
 			)}
-			<div className="flex flex-col gap-6">
-				{records.map((execution) => (
-					<FlowRun
-						key={execution.id}
-						execution={execution}
-						ticket={ticket}
-						diffId={diffId}
-						expanded={expansion.runs.get(execution.id) ?? false}
-						onToggle={() => toggle(execution.id)}
-						canStart={!anyLive}
-						headSha={headSha}
-						readOnly={readOnly}
-						recoveryBlocked={blocked}
-						onDecideV1={onDecideV1}
-						onCancelV1={onCancelV1}
-						readRetainedOutput={readRetainedOutput}
-					/>
-				))}
+			<div
+				ref={viewport}
+				className="max-h-240 overflow-auto"
+				onScroll={(event) => runListOffsets.set(diffId, event.currentTarget.scrollTop)}
+			>
+				<div className="relative" style={{ height: list.getTotalSize() }}>
+					{list.getVirtualItems().map((item) => {
+						const execution = records[item.index]!;
+						return (
+							<div
+								key={execution.id}
+								ref={list.measureElement}
+								data-index={item.index}
+								className="absolute inset-x-0 top-0 pb-6"
+								style={{ transform: `translateY(${item.start}px)` }}
+							>
+								<FlowRun
+									key={execution.id}
+									execution={execution}
+									ticket={ticket}
+									diffId={diffId}
+									expanded={expansion.runs.get(execution.id) ?? false}
+									onToggle={() => toggle(execution.id)}
+									canStart={!anyLive}
+									headSha={headSha}
+									readOnly={readOnly}
+									recoveryBlocked={blocked}
+									onDecideV1={onDecideV1}
+									onCancelV1={onCancelV1}
+									readRetainedOutput={readRetainedOutput}
+								/>
+							</div>
+						);
+					})}
+				</div>
 			</div>
 			{start && (
 				<StartFlowDialog

@@ -1,5 +1,6 @@
-export { get } from "./get.ts";
-export { save } from "./save.ts";
-export { publishDocument } from "./publishDocument.ts";
-export { requireCurrentPublication } from "./requireCurrentPublication.ts";
-export type { DocumentPublisher, Publication, SavedDocument } from "./publisher.ts";
+export { get } from "./get";
+export { legacyServices } from "./legacyServices";
+export { publishDocument } from "./publishDocument";
+export type { DocumentPublisher, Publication, SavedDocument } from "./publisher";
+export { requireCurrentPublication } from "./requireCurrentPublication";
+export { save } from "./save";

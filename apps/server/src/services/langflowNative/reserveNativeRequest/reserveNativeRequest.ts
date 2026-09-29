@@ -12,8 +12,10 @@ import {
 	readProtocolBytes,
 } from "../../../langflowContracts";
 import { reserve } from "../../agentRuns/reserve";
-import { projectLaunchConfig } from "../../projectLaunchConfig/projectLaunchConfig";
+import { projectLaunchConfig } from "../../projectLaunchConfig";
 import type { NativeReservationCtx } from "../types";
+
+type NewReservation = Extract<Awaited<ReturnType<typeof reserve>>, { replay: false }>;
 
 export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, input: { requestBytes: string }) {
 	const request = readProtocolBytes(NativeRequestV1Schema, input.requestBytes);
@@ -54,11 +56,11 @@ export async function reserveNativeRequest(ctx: NativeReservationCtx, tx: Tx, in
 	if (approved.requestDigest !== protocolDigest(input.requestBytes) || approved.specHash !== request.specHash)
 		throw new Error("native_spec_conflict");
 	const config = await projectLaunchConfig(tx, { projectId: execution.projectId, harness: approved.harness });
-	const launch = await reserve(ctx, tx, { ticket: execution.ticketId, accountId: approved.accountId }, [], {
+	// reserve returns a new attempt when its input omits requestId.
+	const launch = (await reserve(ctx, tx, { ticket: execution.ticketId, accountId: approved.accountId }, [], {
 		config,
 		flow: { name: approved.name, instruction: approved.instruction },
-	});
-	if (launch.replay) throw new Error("native_reservation_conflict");
+	})) as NewReservation;
 	const handle = NativeHandleV1Schema.parse({
 		version: 1,
 		stepId: ulid(),

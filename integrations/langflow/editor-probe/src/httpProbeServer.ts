@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { type Stats, writeFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { extname, relative, resolve } from "node:path";
@@ -61,7 +61,7 @@ const sendJson = (response: ServerResponse, status: number, body: unknown) => {
 	response.end(`${JSON.stringify(body)}\n`);
 };
 
-const apiPath = (path: string) => path.startsWith("/api/") || path.startsWith("/__probe/");
+const apiPath = (path: string) => path.startsWith("/api/") || path.startsWith("/__probe/") || path === "/health_check";
 
 const serveApi = async (request: IncomingMessage, response: ServerResponse, path: string) => {
 	const result = protocol.dispatch({
@@ -81,7 +81,9 @@ const serveApi = async (request: IncomingMessage, response: ServerResponse, path
 			"content-length": Buffer.byteLength(`${JSON.stringify(result.body)}\n`),
 		});
 		response.flushHeaders();
-		response.write("{", () => response.destroy());
+		response.write("{");
+		// The fault injector yields so Bun can send the response prefix before it closes the socket.
+		setTimeout(() => response.destroy(), 100);
 		return;
 	}
 	sendJson(response, result.status, result.body);
@@ -100,7 +102,19 @@ const serveAsset = async (response: ServerResponse, path: string) => {
 		sendJson(response, 403, { error: "asset_path_denied" });
 		return;
 	}
-	const file = await stat(candidate).then((value) => (value.isFile() ? candidate : resolve(assetRoot, "index.html")));
+	let asset: Stats;
+	try {
+		asset = await stat(candidate);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		sendJson(response, 404, { error: "asset_not_found" });
+		return;
+	}
+	if (!asset.isFile()) {
+		sendJson(response, 404, { error: "asset_not_found" });
+		return;
+	}
+	const file = candidate;
 	const body = await readFile(file);
 	const headers: Record<string, string> = {
 		...securityHeaders,

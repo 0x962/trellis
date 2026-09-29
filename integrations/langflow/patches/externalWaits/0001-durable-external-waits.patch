@@ -13,6 +13,20 @@ index 0000000..8dd7801
 +    def __init__(self, waits: dict[str, str]) -> None:
 +        self.waits = waits
 +        super().__init__("external_wait_pending")
+diff --git a/src/lfx/src/lfx/graph/vertex/base.py b/src/lfx/src/lfx/graph/vertex/base.py
+--- a/src/lfx/src/lfx/graph/vertex/base.py
++++ b/src/lfx/src/lfx/graph/vertex/base.py
+@@ -13,2 +13,3 @@
+ from lfx.exceptions.component import ComponentBuildError
++from lfx.graph.external_wait import ExternalWaitPending
+ from lfx.graph.schema import INPUT_COMPONENTS, OUTPUT_COMPONENTS, InterfaceComponentTypes, ResultData
+@@ -788,2 +789,4 @@ class Vertex:
+             self._update_built_object_and_artifacts(result)
++        except ExternalWaitPending:
++            raise
+         except Exception as exc:
+             tb = traceback.format_exc()
+             await logger.aexception("Vertex build failed")
 diff --git a/src/lfx/src/lfx/graph/checkpoint/schema.py b/src/lfx/src/lfx/graph/checkpoint/schema.py
 index 887aa3f..935be46 100644
 --- a/src/lfx/src/lfx/graph/checkpoint/schema.py

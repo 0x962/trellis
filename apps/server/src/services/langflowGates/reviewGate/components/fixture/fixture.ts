@@ -9,7 +9,7 @@ import type { ReviewGateInput } from "../../reviewGate.ts";
 export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 	const setup = await h.createExecution();
 	const execution = await setup.create();
-	const publication = { ...publicationV1Example, flowId: execution.flow_id };
+	const publication = { ...publicationV1Example, flowId: execution.flowId };
 	const input: ReviewGateInput = {
 		executionId: execution.id,
 		diffId: setup.input.diffId,
@@ -26,16 +26,16 @@ export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 	await h.run((tx) =>
 		reserveExecution(tx, {
 			executionId: execution.id,
-			flowId: execution.flow_id,
-			ticketId: execution.ticket_id,
-			projectId: execution.project_id,
+			flowId: execution.flowId,
+			ticketId: execution.ticketId,
+			projectId: execution.projectId,
 			diffId: input.diffId,
 			reviewedHead: input.reviewedHead,
 			publicationId: publication.publicationId,
 			publication,
 			snapshot: {
 				...executionViewV1Example.snapshot,
-				flow: { ...executionViewV1Example.snapshot.flow, id: execution.flow_id },
+				flow: { ...executionViewV1Example.snapshot.flow, id: execution.flowId },
 			},
 			hostId: "host",
 			actorKind: "agent",

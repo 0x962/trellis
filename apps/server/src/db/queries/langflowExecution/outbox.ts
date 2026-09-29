@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, or } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
 import { lockExecution } from "./executions";
@@ -15,7 +15,7 @@ export async function listPendingDeliveries(
 				eq(langflowOutbox.executionId, input.executionId),
 				or(
 					gt(langflowOutbox.id, input.afterId),
-					and(eq(langflowOutbox.id, input.afterId), gt(langflowOutbox.kind, input.afterKind)),
+					and(eq(langflowOutbox.id, input.afterId), sql`${langflowOutbox.kind} > ${input.afterKind}`),
 				),
 				isNull(langflowOutbox.receipt),
 				row.cancelIntent ? eq(langflowOutbox.kind, "cancel") : undefined,

@@ -26,7 +26,7 @@ An interrupted dispatch retains the same reservation for runtime inspection.
 The caller uses `observeNativeAttempt` after a restart or an uncertain launch response.
 
 `observeNativeAttempt` inspects the exact runtime attempt and reads the current Git commit from its saved workspace path.
-An unavailable Git revision produces a null workspace commit.
+An absent Git revision produces a null workspace commit. Other Git failures retain their original error.
 `recordNativeObservation` attaches a late provider session only to the same current attempt.
 It represents the workspace as `workspace:<agentRunId>`; `agent_runs.workspace_id` retains the local path.
 Its required `recordWorkspace` hook stores the observed workspace commit in the same transaction.
