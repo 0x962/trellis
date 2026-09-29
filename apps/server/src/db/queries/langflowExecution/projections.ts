@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type { FlowExecutionViewV1 } from "@trellis/api";
 import { and, asc, eq, gt, gte } from "drizzle-orm";
 import { protocolDigest, type ExecutionEventV1 } from "../../../langflowContracts";
@@ -13,16 +14,19 @@ export async function readProjection(tx: Tx, input: { executionId: string }) {
 	return row ? { view: row.view, firstAvailableSeq: row.firstAvailableSeq } : null;
 }
 export async function initializeProjection(tx: Tx, input: { view: FlowExecutionViewV1 }) {
-	await lockExecution(tx, { executionId: input.view.id });
-	await tx
-		.insert(projections)
-		.values({
-			executionId: input.view.id,
-			view: input.view,
-			revision: input.view.revision,
-			lastEventSeq: input.view.lastEventSeq,
-			firstAvailableSeq: 1,
-		});
+	const execution = await lockExecution(tx, { executionId: input.view.id });
+	if (
+		!isDeepStrictEqual(input.view.snapshot, execution.snapshot) ||
+		!isDeepStrictEqual(input.view.publication, execution.publication)
+	)
+		throw new Error("projection_identity_conflict");
+	await tx.insert(projections).values({
+		executionId: input.view.id,
+		view: input.view,
+		revision: input.view.revision,
+		lastEventSeq: input.view.lastEventSeq,
+		firstAvailableSeq: 1,
+	});
 }
 export async function findEvent(tx: Tx, input: { engineJobId: string; sourceEventId: string }) {
 	const [row] = await tx
@@ -46,6 +50,13 @@ export async function commitProjection(
 	if (!current || current.view.revision !== input.expectedRevision) throw new Error("projection_conflict");
 	const { view, event, sourceBytes } = input;
 	if (
+		!isDeepStrictEqual(view.snapshot, execution.snapshot) ||
+		!isDeepStrictEqual(view.publication, execution.publication) ||
+		view.flowId !== execution.flowId ||
+		view.ticketId !== execution.ticketId
+	)
+		throw new Error("projection_identity_conflict");
+	if (
 		view.id !== input.executionId ||
 		view.revision !== input.expectedRevision + 1 ||
 		view.lastEventSeq !== current.view.lastEventSeq + (event ? 1 : 0)
@@ -62,18 +73,18 @@ export async function commitProjection(
 			event.engineEpoch !== execution.authority?.engineEpoch
 		)
 			throw new Error("event_conflict");
+		const { seq: _seq, sourceDigest: _digest, ...source } = event;
+		if (!isDeepStrictEqual(JSON.parse(sourceBytes), source)) throw new Error("event_bytes_conflict");
 		const existing = await findEvent(tx, event);
 		if (existing) throw new Error("event_already_recorded");
-		await tx
-			.insert(events)
-			.values({
-				executionId: input.executionId,
-				engineJobId: event.engineJobId,
-				sourceEventId: event.sourceEventId,
-				sourceBytes,
-				event,
-				seq: event.seq,
-			});
+		await tx.insert(events).values({
+			executionId: input.executionId,
+			engineJobId: event.engineJobId,
+			sourceEventId: event.sourceEventId,
+			sourceBytes,
+			event,
+			seq: event.seq,
+		});
 	}
 	await tx
 		.update(projections)

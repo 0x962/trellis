@@ -41,24 +41,20 @@ export async function recordDecision(tx: Tx, input: { payloadBytes: string }) {
 		state: "recorded",
 		acceptance: null,
 	};
-	await tx
-		.insert(decisions)
-		.values({
-			decisionId: decision.decisionId,
-			executionId: execution.executionId,
-			engineJobId: decision.wait.engineJobId,
-			engineRequestId: decision.wait.engineRequestId,
-			payloadBytes: input.payloadBytes,
-			delivery,
-		});
-	await tx
-		.insert(langflowOutbox)
-		.values({
-			id: decision.decisionId,
-			executionId: execution.executionId,
-			kind: "decision",
-			payloadBytes: input.payloadBytes,
-		});
+	await tx.insert(decisions).values({
+		decisionId: decision.decisionId,
+		executionId: execution.executionId,
+		engineJobId: decision.wait.engineJobId,
+		engineRequestId: decision.wait.engineRequestId,
+		payloadBytes: input.payloadBytes,
+		delivery,
+	});
+	await tx.insert(langflowOutbox).values({
+		id: decision.decisionId,
+		executionId: execution.executionId,
+		kind: "decision",
+		payloadBytes: input.payloadBytes,
+	});
 	return delivery;
 }
 export async function updateDecisionDelivery(

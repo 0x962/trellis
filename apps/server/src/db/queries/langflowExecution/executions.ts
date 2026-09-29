@@ -23,7 +23,22 @@ export async function lockExecution(tx: Tx, input: { executionId: string }) {
 	return row;
 }
 export async function reserveExecution(tx: Tx, input: typeof langflowExecutions.$inferInsert) {
- if (input.admission.state !== "closed" || input.correlation || input.engineJobId || input.engineSessionId || input.authority || input.cancelIntent || input.submission.requestDigest !== protocolDigest(input.requestBytes) || input.submission.submissionDigest !== protocolDigest(input.submissionBytes) || input.submission.executionId !== input.executionId || input.submission.publicationId !== input.publicationId || input.publication.publicationId !== input.publicationId || input.snapshot.flow.id !== input.flowId || input.snapshot.revision !== input.publication.revision) throw new Error("execution_reservation_conflict");
+	if (
+		input.admission.state !== "closed" ||
+		input.correlation ||
+		input.engineJobId ||
+		input.engineSessionId ||
+		input.authority ||
+		input.cancelIntent ||
+		input.submission.requestDigest !== protocolDigest(input.requestBytes) ||
+		input.submission.submissionDigest !== protocolDigest(input.submissionBytes) ||
+		input.submission.executionId !== input.executionId ||
+		input.submission.publicationId !== input.publicationId ||
+		input.publication.publicationId !== input.publicationId ||
+		input.snapshot.flow.id !== input.flowId ||
+		input.snapshot.revision !== input.publication.revision
+	)
+		throw new Error("execution_reservation_conflict");
 	const [inserted] = await tx
 		.insert(langflowExecutions)
 		.values(input)
@@ -96,14 +111,12 @@ export async function openAdmission(
 		})
 		.where(eq(langflowExecutions.executionId, row.executionId))
 		.returning();
-	await tx
-		.insert(langflowOutbox)
-		.values({
-			id: receipt.admissionId,
-			executionId: row.executionId,
-			kind: "admission",
-			payloadBytes: JSON.stringify(receipt),
-		});
+	await tx.insert(langflowOutbox).values({
+		id: receipt.admissionId,
+		executionId: row.executionId,
+		kind: "admission",
+		payloadBytes: JSON.stringify(receipt),
+	});
 	return saved!;
 }
 export function assertAuthority(
