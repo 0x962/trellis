@@ -39,6 +39,7 @@ test("migration 0129 preserves published versions and removes their size ceiling
 	const createdAt = new Date("2026-09-29T06:00:00.000Z");
 	const requestId = crypto.randomUUID();
 	const sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+	const truncatedSearchText = "x".repeat(1024 * 1024 - 3);
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${projectId}, 'PAG', 'pages-test', 'Pages test', ${createdAt}, ${createdAt})`);
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
@@ -55,13 +56,17 @@ test("migration 0129 preserves published versions and removes their size ceiling
 		search_text, search_indexed, source_path, actor_name, actor_kind, created_at
 	) VALUES (
 		${pageId}, 1, ${requestId}, ${sha256}, 1,
-		'existing search text', true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
+		${truncatedSearchText}, true, 'index.html', ${actor.name}, ${actor.kind}, ${createdAt}
 	)`);
 
 	expect(await migrate(db)).toBe(journal.entries.length - earlierEntries.length);
-	const existing = await db.execute(sql`SELECT request_id, document_size, search_text FROM page_versions
+	const existing = await db.execute(sql`SELECT request_id, document_size,
+		octet_length(search_text)::int AS search_size, search_indexed
+		FROM page_versions
 		WHERE page_id = ${pageId} AND number = 1`);
-	expect(existing.rows).toEqual([{ request_id: requestId, document_size: 1, search_text: "existing search text" }]);
+	expect(existing.rows).toEqual([
+		{ request_id: requestId, document_size: 1, search_size: 1024 * 1024 - 3, search_indexed: false },
+	]);
 
 	const documentSize = 16 * 1024 * 1024 + 1;
 	const assetSize = 100 * 1024 * 1024 + 1;

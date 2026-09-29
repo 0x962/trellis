@@ -137,9 +137,11 @@ test("applies project scope, project rank, and the result limit", async () => {
 	expect(scoped.map((page) => page.id)).toEqual([first]);
 });
 
-test("fills an old latest version once from its stored document", async () => {
+test("reindexes a truncated latest version and finds text beyond the former boundary", async () => {
 	const pageId = ulid();
 	const sha256 = "c".repeat(64);
+	const truncatedText = "x".repeat(1024 * 1024);
+	const fullText = `${truncatedText} beyondboundaryterm`;
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
 		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at
@@ -149,30 +151,39 @@ test("fills an old latest version once from its stored document", async () => {
 	)`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size,
-		source_path, actor_name, actor_kind, created_at
+		search_text, search_indexed, source_path, actor_name, actor_kind, created_at
 	) VALUES (
-		${pageId}, 1, ${crypto.randomUUID()}, ${sha256}, 30,
-		'index.html', ${actor.name}, ${actor.kind}, ${at}
+		${pageId}, 1, ${crypto.randomUUID()}, ${sha256}, ${fullText.length},
+		${truncatedText}, false, 'index.html', ${actor.name}, ${actor.kind}, ${at}
 	)`);
 	const path = pageObjectPath(home, sha256);
 	await mkdir(dirname(path), { recursive: true });
-	await Bun.write(path, "<main>Backfilled forecast</main>");
+	await Bun.write(path, `<main>${fullText}</main>`);
 	const prepareContext = {
 		home,
 		newTx: <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn),
 	} as Parameters<typeof prepareSearchBackfill>[0];
 
+	expect(await db.transaction((tx) => searchPages(context(), tx, { q: "beyondboundaryterm", limit: 20 }))).toEqual([]);
 	const prepared = await prepareSearchBackfill(prepareContext);
-	expect(prepared.entries).toEqual([{ pageId, number: 1, searchText: "Backfilled forecast" }]);
+	expect(prepared.entries).toHaveLength(1);
+	expect(prepared.entries[0]).toMatchObject({ pageId, number: 1 });
+	expect(prepared.entries[0]?.searchText.endsWith("beyondboundaryterm")).toBe(true);
 	expect(await db.transaction((tx) => backfillSearchText({} as never, tx, prepared))).toEqual({
 		updated: 1,
 		pending: false,
 	});
 	expect(await prepareSearchBackfill(prepareContext)).toEqual({ entries: [], pending: false });
 	const stored = (
-		await db.execute(sql`SELECT search_text, search_indexed FROM page_versions WHERE page_id = ${pageId}`)
+		await db.execute(sql`SELECT right(search_text, 18) AS search_tail, search_indexed
+			FROM page_versions WHERE page_id = ${pageId}`)
 	).rows[0];
-	expect(stored).toEqual({ search_text: "Backfilled forecast", search_indexed: true });
+	expect(stored).toEqual({ search_tail: "beyondboundaryterm", search_indexed: true });
+	expect(
+		(await db.transaction((tx) => searchPages(context(), tx, { q: "beyondboundaryterm", limit: 20 }))).map(
+			(page) => page.id,
+		),
+	).toEqual([pageId]);
 });
 
 test("uses the three Page search indexes at 10,000 Pages", async () => {
