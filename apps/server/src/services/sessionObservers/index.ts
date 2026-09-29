@@ -25,7 +25,10 @@ export {
 	sessionObserverByRun,
 	sessionObserverMessages,
 } from "./queries.ts";
+export { readSessionObserverSummaryForClaim } from "./readSummary.ts";
 export {
+	type DisableSessionObserverForDeletionResult,
+	disableSessionObserverForDeletion,
 	type SetSessionObserverEnabledResult,
 	setEnabled,
 	setEnabledForProcedure,

@@ -90,7 +90,7 @@ export const appendSessionObserverMessages = async (
 export const saveSessionObserverSummary = async (
 	ctx: ServiceCtx,
 	tx: Tx,
-	input: { runId: string; claimId: string; message: SessionObserverMessageInput },
+	input: { runId: string; claimId: string; message: SessionObserverMessageInput & { role: "user" } },
 ): Promise<SessionObserverMessage | null> => {
 	const observer = await sessionObserverByRun(tx, { runId: input.runId, lock: true });
 	if (
