@@ -68,3 +68,10 @@ test("a second head keeps its own sentence, and the read gives the newest", asyn
 test("refuses an empty reason", async () => {
 	expect(inTx((tx) => write(ctx(), tx, { id: pullRequestId, headSha: "head-one", reason: "   " }))).rejects.toThrow();
 });
+
+test("stores a sentence above the former limit", async () => {
+	const reason = "r".repeat(2001);
+	const waiver = await inTx((tx) => write(ctx(later), tx, { id: pullRequestId, headSha: "head-three", reason }));
+
+	expect(waiver.reason).toBe(reason);
+});
