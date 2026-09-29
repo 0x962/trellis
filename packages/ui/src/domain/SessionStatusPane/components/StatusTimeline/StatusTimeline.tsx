@@ -115,7 +115,12 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 			<div className="sticky top-0 z-10 flex min-h-11 items-center justify-between gap-3 bg-bg">
 				<h2 className="text-sm font-medium">Updates</h2>
 				<Tooltip content="Go to latest update">
-					<IconButton label="Go to latest update" icon={<ArrowLineUp />} onClick={() => select(latest)} />
+					<IconButton
+						className="max-md:size-11"
+						label="Go to latest update"
+						icon={<ArrowLineUp />}
+						onClick={() => select(latest)}
+					/>
 				</Tooltip>
 			</div>
 			<p role="status" aria-live="polite" className="sr-only">
@@ -145,7 +150,7 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 						>
 							<div
 								data-row-head
-								className="flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1 text-xs text-fg-muted hover:bg-hover max-md:min-h-11"
+								className="flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1 text-xs text-fg-muted hover:bg-fg/6 active:bg-fg/10 max-md:min-h-11"
 							>
 								{closed.has(group.key) ? (
 									<CaretRight aria-hidden className="size-3" />
@@ -177,7 +182,7 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 										>
 											<div
 												data-row-head
-												className="relative flex min-h-11 cursor-pointer items-start rounded-sm py-2 ps-5 pe-1 hover:bg-hover max-md:min-h-13 max-md:ps-7"
+												className="relative flex min-h-11 cursor-pointer items-start rounded-sm py-2 ps-5 pe-1 hover:bg-fg/6 active:bg-fg/10 max-md:min-h-13 max-md:ps-7"
 											>
 												<span
 													aria-hidden
@@ -231,7 +236,12 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 					title="The update history did not load"
 					action={
 						<Tooltip content="Retry history">
-							<IconButton label="Retry history" icon={<ArrowClockwise />} onClick={historyControl.retry} />
+							<IconButton
+								className="max-md:size-11"
+								label="Retry history"
+								icon={<ArrowClockwise />}
+								onClick={historyControl.retry}
+							/>
 						</Tooltip>
 					}
 				/>
@@ -239,6 +249,7 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink, histo
 			{historyControl?.hasMore && (
 				<Tooltip content="Load older updates">
 					<IconButton
+						className="max-md:size-11"
 						label="Load older updates"
 						icon={<ArrowDown />}
 						processing={historyControl.loading}

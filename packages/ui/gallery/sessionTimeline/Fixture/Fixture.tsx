@@ -24,6 +24,7 @@ const initial: SessionUpdate[] = Array.from({ length: 12 }, (_, index) => ({
 
 export function Fixture() {
 	const [updates, setUpdates] = useState(initial);
+	const [generation, setGeneration] = useState(0);
 	const [mode, setMode] = useState("ready");
 	const [result, setResult] = useState("Not run");
 	const add = () =>
@@ -49,7 +50,8 @@ export function Fixture() {
 				<button
 					type="button"
 					onClick={() => {
-						document.documentElement.classList.toggle("dark");
+						document.documentElement.dataset.theme =
+							document.documentElement.dataset.theme === "dark" ? "light" : "dark";
 					}}
 				>
 					Theme
@@ -64,6 +66,7 @@ export function Fixture() {
 					onClick={() => {
 						flushSync(() => {
 							setMode("ready");
+							setGeneration((value) => value + 1);
 							setUpdates(initial);
 						});
 						setResult(JSON.stringify(runChecks(add)));
@@ -75,6 +78,7 @@ export function Fixture() {
 			<output aria-label="Mounted results">{result}</output>
 			<div data-fixture-pane className="h-130 w-93.5 max-w-full min-h-0">
 				<SessionStatusPane
+					key={generation}
 					updates={{
 						latest: mode === "empty" ? null : updates[0]!,
 						previous: updates[1]!,
