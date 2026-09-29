@@ -18,6 +18,14 @@ const childId = ulid();
 const at = "2026-09-22T10:00:00Z";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
+const longSlug = (seed: number) => {
+	let state = seed;
+	return Array.from({ length: 12_000 }, () => {
+		state = (state * 48_271) % 2_147_483_647;
+		return "abcdefghijklmnopqrstuvwxyz0123456789"[state % 36]!;
+	}).join("");
+};
+
 const addProject = async (id: string, key: string, slug: string) => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${id}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
@@ -91,17 +99,30 @@ test("an update that names no project keeps the project of the flow", async () =
 	expect(renamed.project).toBe("ONE");
 });
 
-test("stores text and a derived slug above the former limits", async () => {
-	const name = "n".repeat(121);
+test("stores text and a long derived slug above the former limits", async () => {
+	const name = longSlug(1);
 	const description = "d".repeat(2001);
 	const briefing = "b".repeat(200_001);
 	const flow = await run((tx) => create(ctx, tx, { name, description }));
 	const saved = await run((tx) => update(ctx, tx, { flow: flow.id, briefing }));
+	const next = await run((tx) => create(ctx, tx, { name }));
 
 	expect(saved.name).toBe(name);
 	expect(saved.slug).toBe(name);
 	expect(saved.description).toBe(description);
 	expect(saved.briefing).toBe(briefing);
+	expect(next.slug).toBe(`${name}-2`);
+});
+
+test("stores a long explicit slug and rejects a duplicate", async () => {
+	const slug = longSlug(2);
+	const saved = await run((tx) => create(ctx, tx, { name: "Long explicit slug", slug }));
+
+	expect(saved.slug).toBe(slug);
+	await expect(run((tx) => create(ctx, tx, { name: "Duplicate explicit slug", slug }))).rejects.toMatchObject({
+		code: "DUPLICATE",
+		data: { field: "slug" },
+	});
 });
 
 test("stores graph counts and node values above the former limits", async () => {

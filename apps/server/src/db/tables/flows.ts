@@ -20,10 +20,12 @@ import { projects } from "./projects.ts";
 // old version gets FLOW_VERSION_CONFLICT.
 //
 // `project_id` is the root project of a tree, or NULL for a flow that
-// applies to every project. `apps/server/src/services/flows/flows.ts` writes
-// the root id; no database rule checks it. `flows_slug_unique` stays on the slug alone, so
-// one slug names one flow for the whole server: the route `/ai/flows/$slug`
-// and `resolveFlow` both read a slug with no project beside it.
+// applies to every project. `apps/server/src/services/flows/flows.ts` resolves
+// the root id before it writes the row. `flows_slug_equality` keeps each slug
+// unique across the server. The route `/ai/flows/$slug` and `resolveFlow` both
+// read a slug without a project. Migration 0131 creates the declared hash index
+// as an equality exclusion constraint. The hash method accepts values that
+// exceed the B-tree entry size.
 export const flows = pgTable(
 	"flows",
 	{
@@ -40,7 +42,7 @@ export const flows = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		unique("flows_slug_unique").on(t.slug),
+		index("flows_slug_equality").using("hash", t.slug),
 		check("flows_slug_check", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
 		check("flows_name_check", sql`length(${t.name}) >= 1 AND ${t.name} ~ '[^[:space:]]'`),
 		check("flows_version_check", sql`${t.version} > 0`),

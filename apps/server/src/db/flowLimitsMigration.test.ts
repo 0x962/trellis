@@ -14,13 +14,35 @@ const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.jso
 	dialect: string;
 	entries: { idx: number; tag: string; when: number; version: string; breakpoints: boolean }[];
 };
+const snapshot = JSON.parse(await readFile(join(migrationsDir, "meta/0131_snapshot.json"), "utf8")) as {
+	tables: {
+		"public.flows": {
+			indexes: Record<string, { method: string; isUnique: boolean }>;
+			uniqueConstraints: Record<string, unknown>;
+		};
+	};
+};
 const fixturesDir = await mkdtemp(join(tmpdir(), "trellis-flow-limits-migration-"));
+
+const longSlug = (seed: number) => {
+	let state = seed;
+	return Array.from({ length: 12_000 }, () => {
+		state = (state * 48_271) % 2_147_483_647;
+		return "abcdefghijklmnopqrstuvwxyz0123456789"[state % 36]!;
+	}).join("");
+};
 
 afterAll(async () => {
 	await rm(fixturesDir, { recursive: true });
 });
 
 test("migration 0131 preserves flow rows and removes their application ceilings", async () => {
+	expect(snapshot.tables["public.flows"].indexes.flows_slug_equality).toMatchObject({
+		method: "hash",
+		isUnique: false,
+	});
+	expect(snapshot.tables["public.flows"].uniqueConstraints).not.toHaveProperty("flows_slug_unique");
+
 	const earlierEntries = journal.entries.filter((entry) => entry.idx < 131);
 	await mkdir(join(fixturesDir, "meta"));
 	await writeFile(join(fixturesDir, "meta/_journal.json"), JSON.stringify({ ...journal, entries: earlierEntries }));
@@ -52,6 +74,16 @@ test("migration 0131 preserves flow rows and removes their application ceilings"
 
 		expect(await migrate(db)).toBe(journal.entries.length - earlierEntries.length);
 		expect(
+			(
+				await db.execute(sql`SELECT constraint_row.contype::text AS "constraintType", access_method.amname AS "indexMethod"
+					FROM pg_constraint constraint_row
+					JOIN pg_class backing_index ON backing_index.oid = constraint_row.conindid
+					JOIN pg_am access_method ON access_method.oid = backing_index.relam
+					WHERE constraint_row.conrelid = 'flows'::regclass
+						AND constraint_row.conname = 'flows_slug_equality'`)
+			).rows,
+		).toEqual([{ constraintType: "x", indexMethod: "hash" }]);
+		expect(
 			(await db.execute(sql`SELECT flow_id, minutes, x, y, width, height FROM flow_nodes WHERE id=${nodeId}`)).rows,
 		).toEqual([{ flow_id: flowId, minutes: 1440, x: 10, y: 20, width: 200, height: 100 }]);
 		expect((await db.execute(sql`SELECT parent_id FROM flow_nodes WHERE id=${childId}`)).rows).toEqual([
@@ -64,7 +96,7 @@ test("migration 0131 preserves flow rows and removes their application ceilings"
 		const largeFlowId = ulid();
 		const largeGroupId = ulid();
 		const loopId = ulid();
-		const slug = `flow-${"s".repeat(64)}`;
+		const slug = longSlug(3);
 		const name = "n".repeat(121);
 		const description = "d".repeat(2001);
 		const briefing = "b".repeat(200_001);
@@ -83,6 +115,11 @@ test("migration 0131 preserves flow rows and removes their application ceilings"
 		expect(
 			(await db.execute(sql`SELECT slug, name, description, briefing FROM flows WHERE id=${largeFlowId}`)).rows,
 		).toEqual([{ slug, name, description, briefing }]);
+		await expect(
+			db.execute(sql`INSERT INTO flows
+				(id, slug, name, description, briefing, version, created_at, updated_at)
+				VALUES (${ulid()}, ${slug}, 'Duplicate slug', '', '', 1, ${at}, ${at})`),
+		).rejects.toThrow("flows_slug_equality");
 		expect(
 			(await db.execute(sql`SELECT minutes, x, y, width, height FROM flow_nodes WHERE id=${largeGroupId}`)).rows,
 		).toEqual([{ minutes: 1441, x: 1_000_001, y: -1_000_001, width: 100_001, height: 100_001 }]);

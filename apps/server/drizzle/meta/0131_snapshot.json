@@ -2377,6 +2377,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "flows_slug_equality": {
+          "name": "flows_slug_equality",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "hash",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -2395,15 +2410,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "flows_slug_unique": {
-          "name": "flows_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
         "flows_slug_check": {
