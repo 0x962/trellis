@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "decisionId": "decision-1",
+  "wait": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 1,
+    "occurrence": {
+      "nodeId": "node-human",
+      "occurrenceKey": "outer-2.inner-3.human",
+      "parentOccurrenceKey": "outer-2.inner-3",
+      "phase": "step",
+      "iterationPath": [
+        {
+          "loopNodeId": "outer",
+          "round": 2
+        },
+        {
+          "loopNodeId": "inner",
+          "round": 3
+        }
+      ]
+    },
+    "engineRequestId": "human-request-1",
+    "actionKey": "human-action-1",
+    "expectedRevision": 5,
+    "deadlineRefs": [
+      "deadline-1"
+    ]
+  },
+  "actor": {
+    "kind": "human",
+    "name": "fixture-human"
+  },
+  "approved": true,
+  "output": "Approved fixture",
+  "recordedAt": "2026-09-29T06:00:00.000Z"
+}

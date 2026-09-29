@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "result": {
+    "version": 1,
+    "launchBinding": {
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1
+    },
+    "requestDigest": "df0e65439e55792482c1a9335d644754c1004b80aeda4bba0a58caa75c55d672",
+    "completionId": "completion-1",
+    "stepId": "step-1",
+    "agentRunId": "agent-1",
+    "attemptId": "00000000-0000-4000-8000-000000000002",
+    "providerSessionId": "session-1",
+    "promptReceiptId": "00000000-0000-4000-8000-000000000002",
+    "resultId": "result-1",
+    "resultVersion": 1,
+    "output": "YES\n",
+    "outputHash": "a115e91c2e84c3078fa06914eff28d07590ddfaa47a55fb4f31dd7c5b3566194",
+    "artifactRefs": [
+      {
+        "artifactId": "artifact-1",
+        "contentHash": "c7c5c1d70c5dec4416ab6158afd0b223ef40c29b1dc1f97ed9428b94d4cadb1c"
+      }
+    ],
+    "exitKind": "completed"
+  },
+  "resultDigest": "ba5326014a514fcf9f8a75ebea3c84a323439af42ed5a284ab3329becf76e80c",
+  "authority": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 2,
+    "hostId": "host-1",
+    "projectId": "project-1",
+    "publicationDigest": "3f662004cb4676be8aa8eae1a6a2328aeb693df48ceebb81f492e6b34872f4e7",
+    "ownerId": "owner-2",
+    "ownershipRevision": 2,
+    "capabilityId": "capability-2",
+    "permissions": [
+      "native.reserve",
+      "completion.deliver",
+      "decision.deliver"
+    ],
+    "issuedAt": "2026-09-29T06:00:00.000Z",
+    "expiresAt": "2026-09-29T07:00:00.000Z"
+  }
+}
