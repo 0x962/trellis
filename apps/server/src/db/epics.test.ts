@@ -194,3 +194,14 @@ test("delete needs force for an agent, then detaches every ticket with activity 
 		data: { kind: "epic", ref: "TST/routine-runtime" },
 	});
 });
+
+test("preserves complete multibyte epic plans through create, edit, and read", async () => {
+	const ctx = ctxAt("2026-09-18T10:08:00.000Z");
+	const description = `  # Plan\n${"文é𝄞\n".repeat(60_000)}tail  `;
+	const epic = await run((tx) => create(ctx, tx, { project: "TST", name: "Complete plan", description }));
+	expect(epic.description).toBe(description);
+	expect((await run((tx) => get(ctx, tx, { epic: epic.id }))).description).toBe(description);
+	const edited = `${description}\n${"変更\n".repeat(80_000)}end  `;
+	expect((await run((tx) => update(ctx, tx, { epic: epic.id, description: edited }))).description).toBe(edited);
+	expect((await run((tx) => get(ctx, tx, { epic: epic.id }))).description).toBe(edited);
+});
