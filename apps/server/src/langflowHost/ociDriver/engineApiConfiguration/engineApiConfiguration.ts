@@ -2,10 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { privateFile } from "../storage/storage";
 
-export function engineApiConfiguration(input: {
-	engineApiConfigFile?: string;
-	engineApiConfigSha256?: string;
-}) {
+export function engineApiConfiguration(input: { engineApiConfigFile?: string; engineApiConfigSha256?: string }) {
 	const configured = [input.engineApiConfigFile, input.engineApiConfigSha256].filter(
 		(value) => value !== undefined,
 	).length;

@@ -7,10 +7,7 @@ import {
 	type LangflowSidecarManifestV1,
 	LangflowSidecarManifestV1Schema,
 } from "../../../../../../integrations/langflow/package-probe/sidecarManifest";
-import {
-	type CandidatePackage,
-	loadCandidatePackage,
-} from "../../../../../../integrations/langflow/release";
+import { type CandidatePackage, loadCandidatePackage } from "../../../../../../integrations/langflow/release";
 import { type OciCommandResult, runOciCommand } from "../process/process";
 
 const Sha256DigestSchema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
@@ -75,8 +72,7 @@ export async function importVerifiedOciImage(
 	const dockerExecutable = options.dockerExecutable ?? "docker";
 	const tarExecutable = options.tarExecutable ?? "tar";
 	const run = options.dependencies?.run ?? ((args: string[]) => runOciCommand(dockerExecutable, args));
-	const archive =
-		options.dependencies?.archive ?? ((args: string[]) => runArchiveCommand(tarExecutable, args));
+	const archive = options.dependencies?.archive ?? ((args: string[]) => runArchiveCommand(tarExecutable, args));
 	const reload = options.dependencies?.reload ?? loadCandidatePackage;
 	const current = await reload(dirname(candidate.manifestPath), candidate.enginePackageDigest);
 	if (!isDeepStrictEqual(current, candidate)) throw new Error("sidecar_candidate_package_changed");
