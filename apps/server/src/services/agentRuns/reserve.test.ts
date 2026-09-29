@@ -48,3 +48,14 @@ test("refuses to reserve an agent for a completed ticket", async () => {
 		"Reopen the ticket before an agent starts.",
 	);
 });
+
+test("reserves a flow worker for a completed ticket", async () => {
+	const result = await run((tx) =>
+		reserve(ctx, tx, { ticket: "RTY-1", harness: { preset: "claude" } }, [], {
+			flow: { name: "Review", instruction: "Review the linked diff." },
+		}),
+	);
+	expect(result.replay).toBe(false);
+	expect(result.run.kind).toBe("flow");
+	expect(result.run.ticketId).toBe(ticketId);
+});
