@@ -3,7 +3,7 @@ import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../context.ts";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import { upsert } from "./actors.ts";
+import { resolveActorId } from "./actorIdentity/index.ts";
 
 // One changed field. `meta` is merged into the row's meta after the session.
 export type Change = {
@@ -33,7 +33,7 @@ const DESCRIPTION_WINDOW_MS = 5 * 60_000;
 // key holds for an actor the database has never seen.
 export const record = async (ctx: ServiceCtx, tx: Tx, input: RecordInput) => {
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	const batchId = input.batchId ?? ulid();
 	const ids: number[] = [];
 	for (const change of input.changes) {
@@ -46,8 +46,8 @@ export const record = async (ctx: ServiceCtx, tx: Tx, input: RecordInput) => {
 		};
 		const inserted = await rows<{ id: number }>(
 			tx,
-			sql`INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, field, from_value, to_value, meta, created_at)
-				VALUES (${batchId}, ${input.projectId}, ${input.ticketId}, ${actor.name}, ${actor.kind}, ${input.action},
+			sql`INSERT INTO activity (batch_id, project_id, ticket_id, actor_id, actor_name, actor_kind, action, field, from_value, to_value, meta, created_at)
+				VALUES (${batchId}, ${input.projectId}, ${input.ticketId}, ${actorId}, ${actor.name}, ${actor.kind}, ${input.action},
 					${change.field}, ${isDescription ? null : change.from}, ${isDescription ? null : change.to},
 					${JSON.stringify(meta)}::jsonb, ${ctx.now})
 				RETURNING id`,

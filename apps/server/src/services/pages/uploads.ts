@@ -88,13 +88,13 @@ export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise
 
 			const createdAt = ctx.now();
 			const expiresAt = new Date(createdAt.getTime() + PAGE_UPLOAD_TTL_MS);
-			await touchActor(tx, ctx.actor, createdAt);
+			const actorId = await touchActor(ctx, tx, ctx.actor, createdAt);
 			await tx.execute(sql`INSERT INTO page_uploads (
 				id, project_id, sha256, size, mime, original_name,
-				actor_name, actor_kind, created_at, expires_at
+				actor_id, actor_name, actor_kind, created_at, expires_at
 			) VALUES (
 				${input.id}, ${input.projectId}, ${input.staged.sha256}, ${input.staged.size}, ${input.mime},
-				${input.originalName}, ${ctx.actor.name}, ${ctx.actor.kind}, ${createdAt}, ${expiresAt}
+				${input.originalName}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${createdAt}, ${expiresAt}
 			)`);
 			const stored = (await findUpload(tx, input.id))!;
 			return toPageUpload(stored);

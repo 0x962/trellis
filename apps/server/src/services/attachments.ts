@@ -12,6 +12,7 @@ import {
 	assertProjectActive,
 	notFound,
 	resolveTicket,
+	type IoCtx,
 	type ServiceCtx,
 	touchActor,
 	touchTicket,
@@ -171,7 +172,7 @@ export const prepareUpload = async (ctx: ServiceCtx, input: UploadInput): Promis
 	return { ...(input.id === undefined ? {} : { id: input.id }), ticket: ticket.id, filename, mime, ...stored };
 };
 
-export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Promise<AttachmentUploadOutput> => {
+export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise<AttachmentUploadOutput> => {
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
 	if (input.id !== undefined) {
@@ -184,12 +185,12 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Pr
 	}
 	const at = ctx.now();
 	const id = input.id ?? ulid();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await touchActor(ctx, tx, ctx.actor, at);
 	await tx.execute(sql`
-		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
+		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_id, actor_name, actor_kind, created_at)
 		VALUES (
 			${id}, ${ticket.id}, ${input.filename}, ${input.mime}, ${input.size}, ${input.sha256},
-			${ctx.actor.name}, ${ctx.actor.kind}, ${at}
+			${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}
 		)
 	`);
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 1 });

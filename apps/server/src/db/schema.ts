@@ -175,7 +175,7 @@ export const comments = pgTable(
 	(t) => [
 		actorFk("comments_actor_fk", t),
 		unique("comments_id_ticket_id_unique").on(t.id, t.ticketId),
-		unique("comments_dedupe_unique").on(t.ticketId, t.actorKind, t.actorName, t.dedupeKey),
+		unique("comments_dedupe_unique").on(t.ticketId, t.actorId, t.dedupeKey),
 		foreignKey({
 			name: "comments_parent_fk",
 			columns: [t.parentId, t.ticketId],

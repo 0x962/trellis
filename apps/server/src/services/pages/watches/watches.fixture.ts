@@ -76,10 +76,14 @@ async function pageWithWatcher() {
 	await db.execute(sql`DELETE FROM page_watches`);
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pages (id, project_id, slug, title, summary, version, latest_version,
-		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${id}, ${projectId}, ${id.toLowerCase()}, 'Report', '', 1, 1, ${agentId}, 'agent', ${agentId}, 'agent', ${watchAt}, ${watchAt})`);
-	await db.execute(sql`INSERT INTO page_versions (page_id, number, request_id, document_sha256, document_size, source_agent_id, source_path, actor_name, actor_kind, created_at)
-		VALUES (${id}, 1, ${randomUUID()}, ${"a".repeat(64)}, 1, ${agentId}, 'report/index.html', ${agentId}, 'agent', ${watchAt})`);
+		creator_actor_id, creator_actor_name, creator_actor_kind, actor_id, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${id}, ${projectId}, ${id.toLowerCase()}, 'Report', '', 1, 1,
+			(SELECT id FROM actors WHERE name = ${agentId} AND kind = 'agent'), ${agentId}, 'agent',
+			(SELECT id FROM actors WHERE name = ${agentId} AND kind = 'agent'), ${agentId}, 'agent', ${watchAt}, ${watchAt})`);
+	await db.execute(sql`INSERT INTO page_versions (page_id, number, request_id, document_sha256, document_size,
+		source_agent_id, source_path, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${id}, 1, ${randomUUID()}, ${"a".repeat(64)}, 1, ${agentId}, 'report/index.html',
+			(SELECT id FROM actors WHERE name = ${agentId} AND kind = 'agent'), ${agentId}, 'agent', ${watchAt})`);
 	await watchTx((t) => watch(core, t, { page: id, agentId }));
 	const comment = async (body: string, offset = 1, human = true) =>
 		watchTx((t) =>
