@@ -10,7 +10,7 @@ import { saveDocument } from "../saveDocument";
 import type { EditorSessionOptions } from "../types";
 
 export async function editorFixture() {
-	const fixture = await serviceFixture();
+	const fixture = await serviceFixture("langflow");
 	await fixture.run((tx) => saveFlowDocument(fixture.ctx, tx, saveInput()));
 	const setup = async () => {
 		let now = new Date("2026-09-29T08:01:00Z");

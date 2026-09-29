@@ -17,10 +17,11 @@ from correlation_fixture_support import FLOW_ID, JOB_ID, USER_ID, contract_bytes
 from real_transaction_fixture_support import private_database_service, real_services_job_service
 from lfx.graph.checkpoint.schema import GraphCheckpoint
 from langflow.services.database.models.jobs.model import JobStatus
-from langflow.services.deps import get_db_service, get_settings_service
+from langflow.services.deps import get_db_service, get_settings_service, session_scope
 from langflow.services.trellis_v1.backup import SnapshotBinding
 from langflow.services.trellis_v1.backup_router import create_backup_router
 from langflow.services.trellis_v1.correlation import CorrelationCoordinator, JobServiceCorrelationStore
+from langflow.services.trellis_v1.engine_api import EngineApiIdentity, EngineApiSecurity, create_engine_api_router
 
 pytest_plugins = ["tests.unit.background_execution.conftest"]
 
@@ -65,15 +66,28 @@ async def test_actual_checkpoint_export_and_reopen(real_services_job_service, re
         boundaries.append("released")
 
     app = FastAPI()
-    app.include_router(create_backup_router(
+    domain = create_backup_router(
         database=database, settings=settings, export_root=exports, authentication_file=authentication,
         package_digest="a" * 64, data_home_id="isolated-home", host_id="isolated-host", snapshot_boundary=boundary,
-    ), prefix="/trellis-v1")
+    )
+    security = EngineApiSecurity(
+        authentication_file=authentication,
+        identity=EngineApiIdentity(
+            instanceId=uuid4(), dataHomeId="isolated-home", hostId="isolated-host",
+            manifestDigest="a" * 64, ownerId="fixture-owner",
+        ),
+    )
+    app.include_router(create_engine_api_router(
+        security=security, authority_session=session_scope, domain_routers=[domain],
+    ))
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://engine") as client:
         denied = await client.post("/trellis-v1/snapshots", json=binding.model_dump(mode="json"))
         assert denied.status_code == 401
         assert denied.headers["www-authenticate"] == "Bearer"
         assert not list(exports.iterdir())
+        absent_alias = await client.post("/api/v1/trellis/snapshots", json=binding.model_dump(mode="json"))
+        assert absent_alias.status_code == 404
+        assert boundaries == []
         client.headers["Authorization"] = "Bearer isolated-test-token"
         response = await client.post("/trellis-v1/snapshots", json=binding.model_dump(mode="json"))
         assert response.status_code == 200, response.text

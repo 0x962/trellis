@@ -29,6 +29,10 @@ test.each(["arm64", "x86_64"] as const)("seals an offline %s candidate with a tr
 	expect(loaded.componentManifestHash).toBe(input.recipe.components.catalog.sha256);
 	expect(loaded.qualification).toBe("candidate");
 	expect(loaded.engine.layoutDirectory).toBe(join(output, "payload/image"));
+	expect(loaded.engine.imageDigest).toBe(input.recipe.target.imageDigest);
+	expect(loaded.engine.imageConfigDigest).toBe(input.config.digest);
+	expect(loaded.engine.imageConfigDigest).not.toBe(loaded.engine.imageDigest);
+	expect(Object.isFrozen(loaded.engine)).toBe(true);
 	await rm(input.staging, { recursive: true });
 	expect((await verifyPackage(output, result.packageId)).packageId).toBe(result.packageId);
 	await expect(verifyPackage(output, "0".repeat(64))).rejects.toThrow("package_seal_mismatch");
@@ -142,4 +146,12 @@ test("keeps an omitted support inventory out of the stored recipe", async () => 
 		.update(canonicalBytes({ recipe: input.recipe, files: result.files }))
 		.digest("hex");
 	expect(result.packageId).toBe(expected);
+});
+
+test("refuses a changed config blob before it returns a runtime image identity", async () => {
+	const input = await fixture();
+	const output = join(input.root, "sealed");
+	const result = await sealPackage({ ...input, output });
+	await writeFile(join(output, "payload/image/blobs/sha256", input.config.digest.slice(7)), "changed");
+	await expect(loadCandidatePackage(output, result.packageId)).rejects.toThrow("oci_blob_mismatch");
 });

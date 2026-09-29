@@ -20,6 +20,16 @@ export async function transferOwnership(
 				eq(langflowOwnershipReceipts.requestId, receipt.request.requestId),
 			),
 		);
+	if (row.cancelIntent) {
+		if (row.admission.state !== "closed" || !isDeepStrictEqual(row.submission.admission, row.admission))
+			throw new Error("canceled_admission_open");
+		const retained = existing?.receipt ?? receipt;
+		const permissions = retained.authority.permissions;
+		if (permissions.length !== 1 || permissions[0] !== "execution.cancel")
+			throw new Error("cancellation_requires_successor_authority");
+		if ("transferId" in retained && !isDeepStrictEqual(retained.admission, row.admission))
+			throw new Error("admission_conflict");
+	}
 	if (existing) {
 		if (existing.requestBytes !== input.requestBytes) throw new Error("identity_conflict");
 		return existing.receipt;

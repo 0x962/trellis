@@ -7,9 +7,13 @@ import { prepareFlowReconcile } from "../../flowExecutions/prepareFlowReconcile.
 import { get as getFlowExecution } from "../../flowExecutions/queries.ts";
 import * as flows from "../../flows/flows.ts";
 import * as langflowDispatch from "../../langflowDispatch";
+import * as editorSessions from "../../langflowEditorSessions";
 import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
 
 export const flowServices = {
+	"langflowEditor.readDocument": core("read", editorSessions.readDocument),
+	"langflowEditor.saveDocument": core("mutation", editorSessions.saveDocument),
+	"langflowEditor.readSaveReceipt": core("read", editorSessions.readSaveReceipt),
 	"flowExecutions.start": core("mutation", langflowDispatch.startLegacy),
 	"flowDocuments.discovery": io("read", langflowDispatch.discovery),
 	"flowDocuments.get": core("read", flowDocuments.get),

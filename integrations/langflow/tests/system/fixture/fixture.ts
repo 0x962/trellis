@@ -6,7 +6,11 @@ import { createCache } from "../../../../../apps/server/src/db/cache.ts";
 import { openTestDb } from "../../../../../apps/server/src/db/testDb.ts";
 import { type Tx, withTx } from "../../../../../apps/server/src/db/tx.ts";
 import { get, publishDocument, save } from "../../../../../apps/server/src/services/flowDocuments";
-import { manifestHash, publisher } from "../../../../../apps/server/src/services/flowDocuments/fixture";
+import {
+	manifestHash,
+	publisher,
+	seedLangflowDocument,
+} from "../../../../../apps/server/src/services/flowDocuments/fixture";
 import { create as createFlow } from "../../../../../apps/server/src/services/flows/flows.ts";
 import { getView, initialize } from "../../../../../apps/server/src/services/langflowProjection";
 import { reserveStart } from "../../../../../apps/server/src/services/langflowStart";
@@ -47,6 +51,7 @@ export async function fixture() {
 			)
 		).result;
 	const flow = await run((context, tx) => createFlow(context, tx, { name: "System fixture", project: "SYSTEM" }));
+	await run((_context, tx) => seedLangflowDocument(tx, { flow, savedAt: now }));
 	const ticket = await run((context, tx) => createTicket(context, tx, { project: "SYSTEM", title: "System fixture" }));
 	const diff = await run((_context, tx) => ensurePr(tx, "example/system#1"));
 	await db.execute(sql`UPDATE pull_requests SET head_sha=${"a".repeat(40)} WHERE id=${diff.id}`);
