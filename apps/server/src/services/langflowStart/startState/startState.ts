@@ -12,7 +12,9 @@ import type { StartStateInput } from "./contracts";
 export async function startState(ctx: ServiceCtx, tx: Tx, request: StartStateInput) {
 	if (ctx.actor?.kind !== "system") throw new Error("langflow_internal_start_required");
 	if (request.operation === "pending") {
-		const pending = await rows<{ execution_id: string }>(tx, sql`
+		const pending = await rows<{ execution_id: string }>(
+			tx,
+			sql`
 			SELECT e.execution_id FROM langflow_executions e
 			WHERE e.host_id=${request.hostId} AND e.execution_id>${request.input.afterId}
 			AND e.submission->>'state'<>'failed'
@@ -20,7 +22,8 @@ export async function startState(ctx: ServiceCtx, tx: Tx, request: StartStateInp
 			AND (e.admission->>'state'='closed' OR EXISTS (
 				SELECT 1 FROM langflow_outbox o WHERE o.execution_id=e.execution_id
 				AND o.kind='admission' AND o.id=e.admission->'receipt'->>'admissionId' AND o.receipt IS NULL
-			)) ORDER BY e.execution_id LIMIT 100`);
+			)) ORDER BY e.execution_id LIMIT 100`,
+		);
 		return pending.map((row) => row.execution_id);
 	}
 	const store = databaseStore(ctx);
@@ -34,8 +37,12 @@ export async function startState(ctx: ServiceCtx, tx: Tx, request: StartStateInp
 		case "bind":
 			return store.bind(tx, request.input);
 		case "bindCancellation": {
-			if (!execution.canceled || execution.admission.state !== "closed" ||
-				request.input.authority.permissions.length !== 1 || request.input.authority.permissions[0] !== "execution.cancel")
+			if (
+				!execution.canceled ||
+				execution.admission.state !== "closed" ||
+				request.input.authority.permissions.length !== 1 ||
+				request.input.authority.permissions[0] !== "execution.cancel"
+			)
 				throw new Error("cancellation_binding_conflict");
 			await bindExecution(tx, request.input);
 			return store.readSubmission(tx, request.input);
@@ -51,15 +58,22 @@ export async function startState(ctx: ServiceCtx, tx: Tx, request: StartStateInp
 		case "cancellationProof": {
 			const proof = await readCancellationReceipt(ctx, tx, request.input);
 			const acknowledgement = proof.acknowledgement;
-			if (!acknowledgement || proof.needsStop ||
-				!terminalCancellationStatuses.some((status) => status === acknowledgement.engineStatus)) return null;
+			if (
+				!acknowledgement ||
+				proof.needsStop ||
+				!terminalCancellationStatuses.some((status) => status === acknowledgement.engineStatus)
+			)
+				return null;
 			return JSON.stringify(proof);
 		}
 		case "admissionBytes": {
 			if (execution.admission.state !== "open") return null;
-			const [record] = await rows<{ payload_bytes: string; receipt: unknown }>(tx, sql`
+			const [record] = await rows<{ payload_bytes: string; receipt: unknown }>(
+				tx,
+				sql`
 				SELECT payload_bytes,receipt FROM langflow_outbox WHERE execution_id=${execution.executionId}
-				AND kind='admission' AND id=${execution.admission.receipt.admissionId}`);
+				AND kind='admission' AND id=${execution.admission.receipt.admissionId}`,
+			);
 			if (!record || !isDeepStrictEqual(JSON.parse(record.payload_bytes), execution.admission.receipt))
 				throw new Error("admission_bytes_conflict");
 			if (record.receipt !== null && !isDeepStrictEqual(record.receipt, execution.admission.receipt))

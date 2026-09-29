@@ -13,7 +13,7 @@ import {
 } from "../../../../../langflowHost";
 import { PrivateState } from "../../../../../langflowHost/privateState";
 import { databaseFixture } from "../../../databaseStore/components/databaseFixture/databaseFixture";
-import { startState, type StartStateCall } from "../../../startState";
+import { type StartStateCall, startState } from "../../../startState";
 import { createStartConnection } from "../../startConnection";
 
 export async function connectionFixture() {
@@ -26,9 +26,18 @@ export async function connectionFixture() {
 		evidence: {
 			readTerminal: (permit, id) => archive.readTerminal(permit, id),
 			async withReconciliation(block, id, commit) {
-				commit({ id, block, packageDigest: "a".repeat(64), trellisDatabaseReceiptId: "db",
-					engineDatabaseReceiptId: "engine", secretReceiptId: "secret", ownershipReceiptId: "owner",
-					nativeAttemptsReceiptId: "native", stopObligationsReceiptId: "stops", snapshotSealReceiptId: null });
+				commit({
+					id,
+					block,
+					packageDigest: "a".repeat(64),
+					trellisDatabaseReceiptId: "db",
+					engineDatabaseReceiptId: "engine",
+					secretReceiptId: "secret",
+					ownershipReceiptId: "owner",
+					nativeAttemptsReceiptId: "native",
+					stopObligationsReceiptId: "stops",
+					snapshotSealReceiptId: null,
+				});
 			},
 		},
 	});
@@ -46,10 +55,17 @@ export async function connectionFixture() {
 	const requests: { path: string; body: string }[] = [];
 	let correlation: CorrelationReceiptV1 | null = null;
 	let grant: { authorityBytes: string; authorityDigest: string; authority: DeliveryAuthorityV1 } | null = null;
-	const behavior = { loseSubmission: false, loseAdmission: false, unknownLookup: false, failBeforeBind: false, beforeOpen: async () => {} };
+	const behavior = {
+		loseSubmission: false,
+		loseAdmission: false,
+		unknownLookup: false,
+		failBeforeBind: false,
+		beforeOpen: async () => {},
+	};
 	let authentication = "";
 	const server = Bun.serve({
-		hostname: "127.0.0.1", port: 0,
+		hostname: "127.0.0.1",
+		port: 0,
 		async fetch(request) {
 			expect(request.headers.get("authorization")).toBe(`Bearer ${authentication}`);
 			const path = new URL(request.url).pathname;
@@ -57,8 +73,11 @@ export async function connectionFixture() {
 			requests.push({ path, body });
 			if (path === "/trellis-v1/admission/lookup") {
 				if (behavior.unknownLookup) return new Response("unavailable", { status: 503 });
-				return Response.json(correlation ? { state: "found", receiptBytes: JSON.stringify(correlation) }
-					: { state: "absent", key: JSON.parse(body), authoritative: true });
+				return Response.json(
+					correlation
+						? { state: "found", receiptBytes: JSON.stringify(correlation) }
+						: { state: "absent", key: JSON.parse(body), authoritative: true },
+				);
 			}
 			if (path === "/trellis-v1/admission/submit") {
 				const input = JSON.parse(body);
@@ -66,19 +85,31 @@ export async function connectionFixture() {
 				const stored = await database.run((tx) => database.store.readSubmission(tx, { executionId }));
 				expect(input.payloadBytes).toBe(stored.submissionBytes);
 				expect(stored.admission.state).toBe("closed");
-				correlation = { version: 1, hostId: envelope.hostId, executionId, publicationId: envelope.publicationId,
-					submissionDigest: protocolDigest(input.payloadBytes), engineJobId: crypto.randomUUID(),
-					engineSessionId: "engine-session", recordedAt: database.ctx.now.toISOString() };
-				return behavior.loseSubmission ? new Response("lost", { status: 503 })
+				correlation = {
+					version: 1,
+					hostId: envelope.hostId,
+					executionId,
+					publicationId: envelope.publicationId,
+					submissionDigest: protocolDigest(input.payloadBytes),
+					engineJobId: crypto.randomUUID(),
+					engineSessionId: "engine-session",
+					recordedAt: database.ctx.now.toISOString(),
+				};
+				return behavior.loseSubmission
+					? new Response("lost", { status: 503 })
 					: Response.json({ state: "found", receiptBytes: JSON.stringify(correlation) });
 			}
 			if (path === `/trellis-v1/authority/${executionId}`)
-				return grant ? Response.json({ ...grant, revokedAt: null })
+				return grant
+					? Response.json({ ...grant, revokedAt: null })
 					: Response.json({ detail: "engine_authority_not_found" }, { status: 404 });
 			if (path === "/trellis-v1/authority/commit") {
 				const input = JSON.parse(body);
-				grant = { authorityBytes: input.authorityBytes, authorityDigest: protocolDigest(input.authorityBytes),
-					authority: JSON.parse(input.authorityBytes) };
+				grant = {
+					authorityBytes: input.authorityBytes,
+					authorityDigest: protocolDigest(input.authorityBytes),
+					authority: JSON.parse(input.authorityBytes),
+				};
 				return Response.json(grant);
 			}
 			if (path === "/trellis-v1/admission/open") {
@@ -87,33 +118,78 @@ export async function connectionFixture() {
 				expect(stored.correlation).toEqual(correlation);
 				expect(stored.admission.state).toBe("open");
 				expect(input.authorityBytes).toBe(archive.readAuthorityBytes(stored.authority!));
-				expect(control.gate.read().permits.find((entry) => entry.permit.binding.executionId === executionId)?.terminal).toBeNull();
+				expect(
+					control.gate.read().permits.find((entry) => entry.permit.binding.executionId === executionId)?.terminal,
+				).toBeNull();
 				await behavior.beforeOpen();
-				return behavior.loseAdmission ? new Response("lost", { status: 503 })
+				return behavior.loseAdmission
+					? new Response("lost", { status: 503 })
 					: Response.json({ state: "admitted", receiptBytes: input.receiptBytes });
 			}
 			return new Response("unexpected", { status: 500 });
 		},
 	});
-	const observation: LiveOwnership = { id: crypto.randomUUID(), observedAt: database.ctx.now.toISOString(),
-		endpoint: server.url.origin, identity: { dataHomeId: control.identity.dataHomeId, hostId: control.identity.hostId,
-			ownerId: crypto.randomUUID(), instanceId: crypto.randomUUID(), manifestDigest: "c".repeat(64) } };
+	const observation: LiveOwnership = {
+		id: crypto.randomUUID(),
+		observedAt: database.ctx.now.toISOString(),
+		endpoint: server.url.origin,
+		identity: {
+			dataHomeId: control.identity.dataHomeId,
+			hostId: control.identity.hostId,
+			ownerId: crypto.randomUUID(),
+			instanceId: crypto.randomUUID(),
+			manifestDigest: "c".repeat(64),
+		},
+	};
 	const privateState = await PrivateState.open(home);
 	await privateState.reserve(observation.identity);
 	authentication = await Bun.file(privateState.authenticationFile(observation.identity)).text();
-	const supervisor = { async withHealthyEngine<T>(fn: (owner: LiveOwnership) => Promise<T>) { return fn(observation); } };
+	const supervisor = {
+		async withHealthyEngine<T>(fn: (owner: LiveOwnership) => Promise<T>) {
+			return fn(observation);
+		},
+	};
 	const signal = new AbortController();
 	const logs: string[] = [];
-	const connect = () => createStartConnection({ control, supervisor, archive,
-		issuer: new InitialAuthorityIssuer(control, supervisor, archive), database: state,
-		authorityLifecycle: {
-			async committed({ executionId }) {
-				return { executionId, state: "current" as const, expiresAt: "2026-09-29T07:00:00Z" };
+	const connect = () =>
+		createStartConnection({
+			control,
+			supervisor,
+			archive,
+			issuer: new InitialAuthorityIssuer(control, supervisor, archive),
+			database: state,
+			authorityLifecycle: {
+				async committed({ executionId }) {
+					return { executionId, state: "current" as const, expiresAt: "2026-09-29T07:00:00Z" };
+				},
+				async recoverInitial() {
+					throw new Error("fixture_owner_recovery_not_configured");
+				},
 			},
-			async recoverInitial() { throw new Error("fixture_owner_recovery_not_configured"); },
+			authorityDurationMs: 60_000,
+			permissions: ["native.reserve"],
+			signal: signal.signal,
+			now: () => database.ctx.now,
+			log: (message) => {
+				logs.push(message);
+			},
+		});
+	return {
+		database,
+		control,
+		archive,
+		behavior,
+		requests,
+		executionId,
+		state,
+		connect,
+		signal,
+		logs,
+		async close() {
+			signal.abort();
+			await server.stop(true);
+			await database.db.$client.close();
+			rmSync(root, { recursive: true, force: true });
 		},
-		authorityDurationMs: 60_000, permissions: ["native.reserve"], signal: signal.signal,
-		now: () => database.ctx.now, log: (message) => { logs.push(message); } });
-	return { database, control, archive, behavior, requests, executionId, state, connect, signal, logs,
-		async close() { signal.abort(); await server.stop(true); await database.db.$client.close(); rmSync(root, { recursive: true, force: true }); } };
+	};
 }

@@ -1,8 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import type { JobsLog } from "../../../jobs";
 import {
-	CorrelationReceiptV1Schema,
 	type CorrelationReceiptV1,
+	CorrelationReceiptV1Schema,
 	type DeliveryAuthorityV1,
 	protocolDigest,
 } from "../../../langflowContracts";
@@ -51,17 +51,20 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 	const engine = createAdmissionEngine({
 		signal,
 		admissionBytes: state.admissionBytes,
-		request: (request, authority) => supervisor.withHealthyEngine(async (observation) => {
-			if (observation.identity.hostId !== control.identity.hostId ||
-				observation.identity.dataHomeId !== control.identity.dataHomeId)
-				throw new Error("start_engine_home_conflict");
-			if (authority && authority.ownerId !== observation.identity.ownerId)
-				throw new Error("start_engine_owner_changed");
-			return createEngineClient({
-				endpoint: observation.endpoint,
-				authenticationFile: privateState.authenticationFile(observation.identity),
-			}).request(request);
-		}),
+		request: (request, authority) =>
+			supervisor.withHealthyEngine(async (observation) => {
+				if (
+					observation.identity.hostId !== control.identity.hostId ||
+					observation.identity.dataHomeId !== control.identity.dataHomeId
+				)
+					throw new Error("start_engine_home_conflict");
+				if (authority && authority.ownerId !== observation.identity.ownerId)
+					throw new Error("start_engine_owner_changed");
+				return createEngineClient({
+					endpoint: observation.endpoint,
+					authenticationFile: privateState.authenticationFile(observation.identity),
+				}).request(request);
+			}),
 	});
 
 	async function permitFor(execution: StartExecution) {
@@ -74,12 +77,20 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 			requestId: execution.submission.requestId,
 			payloadDigest: execution.submission.submissionDigest,
 		};
-		const outstanding = control.gate.read().permits.find((entry) =>
-			!entry.terminal && entry.permit.binding.executionId === execution.executionId &&
-			(entry.permit.binding.effectId === binding.effectId || entry.permit.binding.effectId.startsWith(`${binding.effectId}:`)));
+		const outstanding = control.gate
+			.read()
+			.permits.find(
+				(entry) =>
+					!entry.terminal &&
+					entry.permit.binding.executionId === execution.executionId &&
+					(entry.permit.binding.effectId === binding.effectId ||
+						entry.permit.binding.effectId.startsWith(`${binding.effectId}:`)),
+			);
 		if (outstanding) {
-			if (outstanding.permit.binding.requestId !== binding.requestId ||
-				outstanding.permit.binding.payloadDigest !== binding.payloadDigest)
+			if (
+				outstanding.permit.binding.requestId !== binding.requestId ||
+				outstanding.permit.binding.payloadDigest !== binding.payloadDigest
+			)
 				throw new Error("start_permit_binding_conflict");
 			return outstanding;
 		}
@@ -98,29 +109,39 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 		const saved = await state.admissionBytes(executionId);
 		if (!saved?.confirmed) return false;
 		const terminal = archive.writeTerminal({
-			permit, outcome: "completed", sourceBytes: saved.payloadBytes, sourceDigest: protocolDigest(saved.payloadBytes),
+			permit,
+			outcome: "completed",
+			sourceBytes: saved.payloadBytes,
+			sourceDigest: protocolDigest(saved.payloadBytes),
 		});
 		await control.gate.settle(permit, terminal.id);
 		return true;
 	}
 
 	async function authorize(execution: StartExecution, correlation: CorrelationReceiptV1, permit: DispatchPermit) {
-		if (correlation.hostId !== execution.hostId || correlation.executionId !== execution.executionId ||
+		if (
+			correlation.hostId !== execution.hostId ||
+			correlation.executionId !== execution.executionId ||
 			correlation.publicationId !== execution.publicationId ||
-			correlation.submissionDigest !== execution.submission.submissionDigest)
+			correlation.submissionDigest !== execution.submission.submissionDigest
+		)
 			throw new Error("correlation_conflict");
 		const prior = issuer.readInitial(execution.executionId);
 		if (prior) {
 			if (!isDeepStrictEqual(prior.input.correlation, correlation) || !isDeepStrictEqual(prior.input.permit, permit))
 				throw new Error("initial_authority_request_conflict");
 			const sameOwner = await supervisor.withHealthyEngine(async (observation) =>
-				isDeepStrictEqual(observation.identity, prior.observation.identity));
+				isDeepStrictEqual(observation.identity, prior.observation.identity),
+			);
 			if (sameOwner && !execution.canceled && Date.parse(prior.authority.expiresAt) > options.now().getTime()) {
 				archive.writeAuthority({ authorityBytes: prior.authorityBytes, issuanceReceiptId: prior.issuanceReceiptId });
 				await state.restoreInitial({ executionId: execution.executionId, initialRecordBytes: prior.sourceBytes });
 			} else {
 				await authorityLifecycle.recoverInitial({
-					executionId: execution.executionId, canceled: execution.canceled, admission: execution.admission, signal,
+					executionId: execution.executionId,
+					canceled: execution.canceled,
+					admission: execution.admission,
+					signal,
 				});
 			}
 			await authorityLifecycle.committed({ executionId: execution.executionId, signal });
@@ -128,14 +149,20 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 			if (!restored.authority) throw new Error("initial_binding_missing");
 			return restored.authority;
 		}
-		return (await issuer.issue({
-			executionId: execution.executionId, hostId: execution.hostId, projectId: execution.projectId,
-			publicationId: execution.publicationId, publicationDigest: execution.publication.documentHash,
-			submissionDigest: execution.submission.submissionDigest, correlation,
-			expiresAt: new Date(options.now().getTime() + options.authorityDurationMs).toISOString(),
-			permissions: execution.canceled ? ["execution.cancel"] : options.permissions,
-			permit,
-		})).authority;
+		return (
+			await issuer.issue({
+				executionId: execution.executionId,
+				hostId: execution.hostId,
+				projectId: execution.projectId,
+				publicationId: execution.publicationId,
+				publicationDigest: execution.publication.documentHash,
+				submissionDigest: execution.submission.submissionDigest,
+				correlation,
+				expiresAt: new Date(options.now().getTime() + options.authorityDurationMs).toISOString(),
+				permissions: execution.canceled ? ["execution.cancel"] : options.permissions,
+				permit,
+			})
+		).authority;
 	}
 
 	async function canceled(execution: StartExecution, permit: DispatchPermit) {
@@ -147,12 +174,27 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 			const authority = await authorize(execution, correlation, permit);
 			execution = await state.bindCancellation({ executionId: execution.executionId, correlation, authority });
 		}
-		if ((await authorityLifecycle.committed({ executionId: execution.executionId, signal })).state === "pending") return;
+		if ((await authorityLifecycle.committed({ executionId: execution.executionId, signal })).state === "pending")
+			return;
 		const sourceBytes = await state.cancellationProof(execution.executionId);
-		if (sourceBytes === null || control.gate.read().permits.some((entry) =>
-			!entry.terminal && entry.permit.binding.executionId === execution.executionId &&
-			entry.permit.binding.kind === "native-dispatch")) return;
-		const terminal = archive.writeTerminal({ permit, outcome: "cancelled", sourceBytes, sourceDigest: protocolDigest(sourceBytes) });
+		if (
+			sourceBytes === null ||
+			control.gate
+				.read()
+				.permits.some(
+					(entry) =>
+						!entry.terminal &&
+						entry.permit.binding.executionId === execution.executionId &&
+						entry.permit.binding.kind === "native-dispatch",
+				)
+		)
+			return;
+		const terminal = archive.writeTerminal({
+			permit,
+			outcome: "cancelled",
+			sourceBytes,
+			sourceDigest: protocolDigest(sourceBytes),
+		});
 		await control.gate.settle(permit, terminal.id);
 	}
 
@@ -161,7 +203,7 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 		const execution = await state.repository.read(input);
 		if (execution.submission.state === "failed") return;
 		const entry = await permitFor(execution);
-		if (entry.terminal || await settle(execution.executionId, entry.permit)) return;
+		if (entry.terminal || (await settle(execution.executionId, entry.permit))) return;
 		if (execution.canceled) return canceled(execution, entry.permit);
 		const result = await reconcileReservation(input, {
 			repository: state.repository,
@@ -181,7 +223,8 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 		const next = running.then(() => deliver(input));
 		running = next.catch((error: unknown) => {
 			options.log("langflow.start.delivery_failed", {
-				executionId: input.executionId, error: error instanceof Error ? error.name : "unknown",
+				executionId: input.executionId,
+				error: error instanceof Error ? error.name : "unknown",
 			});
 		});
 		return next;
@@ -189,7 +232,11 @@ export async function createStartConnection(options: StartConnectionOptions): Pr
 	async function recover() {
 		const retained = new Set<string>();
 		for (const entry of control.gate.read().permits)
-			if (!entry.terminal && entry.permit.binding.effectId.startsWith("start-admission:") && entry.permit.binding.executionId)
+			if (
+				!entry.terminal &&
+				entry.permit.binding.effectId.startsWith("start-admission:") &&
+				entry.permit.binding.executionId
+			)
 				retained.add(entry.permit.binding.executionId);
 		let afterId = "";
 		for (;;) {

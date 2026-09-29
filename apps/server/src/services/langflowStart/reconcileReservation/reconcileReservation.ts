@@ -5,10 +5,10 @@ import {
 	CorrelationReceiptV1Schema,
 	DeliveryAuthorityV1Schema,
 } from "../../../langflowContracts";
-import type { ReconcileDependencies, ReconcileContext } from "../reconcile/reconcile";
-import type { StartExecution } from "../store";
-import type { StartRepository } from "../startState/contracts";
 import { submissionEnvelope } from "../reconcile/components/submissionEnvelope/submissionEnvelope";
+import type { ReconcileContext, ReconcileDependencies } from "../reconcile/reconcile";
+import type { StartRepository } from "../startState/contracts";
+import type { StartExecution } from "../store";
 
 export type ReservationDependencies = Omit<ReconcileDependencies, "store"> & {
 	repository: StartRepository;
@@ -73,8 +73,7 @@ export async function reconcileReservation(input: { executionId: string }, deps:
 		if (execution.canceled || execution.submission.state === "failed")
 			return { execution, disposition: "reused" as const };
 	}
-	if (execution.admission.state === "closed")
-		execution = await deps.repository.open({ ...input, now: deps.now() });
+	if (execution.admission.state === "closed") execution = await deps.repository.open({ ...input, now: deps.now() });
 	if (execution.canceled || execution.submission.state === "failed")
 		return { execution, disposition: "reused" as const };
 	if (execution.admission.state !== "open" || execution.authority === null) throw new Error("admission_not_committed");
