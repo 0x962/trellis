@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { type AnyPgColumn, check, foreignKey, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, check, foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { checkIn, STORED_ACTOR_KINDS } from "../enums.ts";
 
 // Every timestamp keeps milliseconds only. A JavaScript Date carries
@@ -10,13 +10,14 @@ export const at = (name: string) => timestamp(name, { withTimezone: true, precis
 export const actors = pgTable(
 	"actors",
 	{
+		id: uuid().defaultRandom().primaryKey(),
 		name: text().notNull(),
 		kind: text().notNull(),
 		firstSeenAt: at("first_seen_at").notNull(),
 		lastSeenAt: at("last_seen_at").notNull(),
 	},
 	(t) => [
-		primaryKey({ name: "actors_pkey", columns: [t.name, t.kind] }),
+		index("actors_identity_equality").using("hash", sql`ARRAY[${t.kind}, ${t.name}]`),
 		check("actors_name_check", sql`${t.name} ~ '^[ -~]+$' AND position(':' IN ${t.name}) = 0`),
 		checkIn(t.kind, STORED_ACTOR_KINDS),
 	],
