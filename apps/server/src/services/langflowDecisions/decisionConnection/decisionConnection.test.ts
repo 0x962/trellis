@@ -3,11 +3,11 @@ import { authorityControl, readDecision } from "../../../db/queries/langflowExec
 import type { DecisionAcceptanceV1, DecisionLookupRequestV1 } from "../../../langflowContracts";
 import type { DispatchPermit, DispatchState, TerminalReceipt } from "../../../langflowHost";
 import { cancelExecution } from "../../langflowStops/cancelExecution";
+import { type DecisionStateInput, decisionState } from "../decisionState";
 import { record } from "../record";
 import { transactionFixture } from "../record/components/transactionFixture";
 import { accepted } from "../testFixture";
-import { decisionState, type DecisionStateInput } from "../decisionState";
-import { decisionConnection, type DecisionConnectionDependencies } from "./decisionConnection";
+import { type DecisionConnectionDependencies, decisionConnection } from "./decisionConnection";
 
 const databases: Awaited<ReturnType<typeof transactionFixture>>["db"][] = [];
 afterEach(async () => {
@@ -43,7 +43,7 @@ async function fixture() {
 	let now = f.system.now;
 	let beforeLookup: (() => Promise<void>) | undefined;
 	const sent: { decisionBytes: string; authorityBytes: string; payloadDigest: string }[] = [];
-	const authorityBytes = JSON.stringify(f.authority, null, 2) + "\n";
+	const authorityBytes = `${JSON.stringify(f.authority, null, 2)}\n`;
 
 	const deps: DecisionConnectionDependencies = {
 		log: () => {},
