@@ -1,9 +1,9 @@
 import type { TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import type { ServiceCtx } from "../../context.ts";
-import { createCache } from "../../db/cache.ts";
-import { openTestDb } from "../../db/testDb.ts";
+import type { ServiceCtx } from "../../../context.ts";
+import { createCache } from "../../../db/cache.ts";
+import { openTestDb } from "../../../db/testDb.ts";
 
 export const at = new Date("2026-09-29T16:00:00.000Z");
 

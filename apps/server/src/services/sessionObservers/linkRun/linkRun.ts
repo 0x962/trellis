@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
-import type { Tx } from "../../db/tx.ts";
-import type { SessionObserverGenerationClaim } from "./generation.ts";
-import { sessionObserverByRun, sessionObserverMessages } from "./queries.ts";
+import type { Tx } from "../../../db/tx.ts";
+import type { SessionObserverGenerationClaim } from "../claimSessionObserverGeneration";
+import { sessionObserverByRun, sessionObserverMessages } from "../queries";
 
 export const linkSessionObserverRun = async (
 	tx: Tx,

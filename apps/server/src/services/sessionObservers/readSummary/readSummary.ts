@@ -1,8 +1,8 @@
 import type { SessionObserverMessage } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { iso, rows } from "../../db/queries/support.ts";
-import type { Tx } from "../../db/tx.ts";
-import { sessionObserverByRun } from "./queries.ts";
+import { iso, rows } from "../../../db/queries/support.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { sessionObserverByRun } from "../queries";
 
 export const readSessionObserverSummaryForClaim = async (
 	tx: Tx,

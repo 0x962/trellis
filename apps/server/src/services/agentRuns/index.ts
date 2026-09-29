@@ -1,1 +1,1 @@
-export { findRun } from "./queries.ts";
+export { findRun, getRun } from "./queries.ts";
