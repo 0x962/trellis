@@ -20,12 +20,14 @@ class Session:
 
     async def exec(self, statement):
         self.reads += 1
-        if self.reads % 2:
+        if self.reads % 3 == 1:
             row = SimpleNamespace(status=SimpleNamespace(value="in_progress"))
-        else:
+        elif self.reads % 3 == 2:
             row = SimpleNamespace(execution_id="execution-1", admission_receipt_bytes=json.dumps({
                 "publicationId": "publication-1", "engineJobId": str(JOB_ID),
             }))
+        else:
+            row = SimpleNamespace()
         return SimpleNamespace(one=lambda: row)
 
 

@@ -2,7 +2,7 @@
 
 `projection_store.record_projection_checkpoint(session, job_id)` retains each changed graph and occurrence journal in the existing `JobCheckpoint` table. The caller holds the graph lock, then the Job row lock. The caller saves its authoritative facts, calls the helper, and commits the same transaction. The caller supplies the authorization for that mutation.
 
-The helper reads flushed rows and preserves their original strings. It allocates one per-job sequence and one source event identity for changed bytes. An equal snapshot returns the original record. The helper also validates retained review results against the acceptance ledger.
+The helper locks the authority row after the Job row. Both locks remain held until the caller commits. It reads flushed rows and preserves their original strings. It allocates one per-job sequence and one source event identity for changed bytes. An equal snapshot returns the original record. The helper also validates retained review results against the acceptance ledger.
 
 `trellis-projection-latest-v1` holds the latest record. `trellis-projection-snapshot-v1:<sequence>` retains each original snapshot and source event. The snapshot envelope uses that sequence as its checkpoint revision. Its continuation reference names the stored graph row. The captured time describes the snapshot, not a native launch or vertex completion.
 
