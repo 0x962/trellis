@@ -3,26 +3,26 @@ import type { FlowAttemptV1, FlowExecutionRecord } from "@trellis/api";
 import { FailureState, OutputBlock, PropertyRow } from "@trellis/ui";
 import { useApp } from "../../../../../../../lib/appContext";
 import { NativeTerminal } from "../../../../../../agents/NativeTerminal";
+import { useFlowRecovery } from "../../../../useFlowRecovery";
 import { FlowActionDialog } from "../../../FlowActionDialog";
 
-type Target = { runId: string; attemptId: string; resultId: string | null };
-
 export function FlowTaskTerminal({
+	executionId,
 	task,
 	attempt,
 	reviewedHead,
 	recoveryBlocked,
-	readRetainedOutput,
 	onClose,
 }: {
+	executionId: string;
 	task: FlowExecutionRecord["tasks"][number];
 	attempt?: FlowAttemptV1;
 	reviewedHead?: string | null;
 	recoveryBlocked?: boolean;
-	readRetainedOutput?: (target: Target) => Promise<string>;
 	onClose: () => void;
 }) {
-	const { orpc } = useApp();
+	const { client, orpc } = useApp();
+	const { blocked: recovery } = useFlowRecovery(recoveryBlocked);
 	const target = attempt
 		? { runId: attempt.agentRunId, attemptId: attempt.attemptId, resultId: attempt.resultId }
 		: task;
@@ -31,10 +31,20 @@ export function FlowTaskTerminal({
 		refetchInterval: 2000,
 	});
 	const run = runs.data?.items.find((item) => item.id === target.runId && item.terminalId === target.attemptId);
+	const binding =
+		attempt && attempt.resultId !== null
+			? {
+					executionId,
+					stepId: attempt.stepId,
+					agentRunId: attempt.agentRunId,
+					attemptId: attempt.attemptId,
+					resultId: attempt.resultId,
+				}
+			: null;
 	const retained = useQuery({
-		queryKey: ["flow-attempt-output", target.runId, target.attemptId, target.resultId],
-		queryFn: () => readRetainedOutput!(target),
-		enabled: !!readRetainedOutput && !runs.isPending && !run,
+		queryKey: ["flow-attempt-output", binding],
+		queryFn: () => client.flowExecutionsV1.output(binding!),
+		enabled: binding !== null && !runs.isPending && !run,
 	});
 	return (
 		<FlowActionDialog title="Flow task terminal" onClose={onClose}>
@@ -59,11 +69,11 @@ export function FlowTaskTerminal({
 					<FailureState title="The terminal is unavailable" detail={runs.error.message} />
 				</div>
 			) : run ? (
-				<NativeTerminal key={`${target.runId}:${target.attemptId}`} run={run} readOnly={recoveryBlocked ?? !!attempt} />
+				<NativeTerminal key={`${target.runId}:${target.attemptId}`} run={run} readOnly={recovery} />
 			) : (
 				<>
 					<p role="status">This attempt is no longer attached to this assignment.</p>
-					{!readRetainedOutput ? (
+					{binding === null ? (
 						<p role="status">Retained output for this exact attempt is unavailable.</p>
 					) : retained.isPending ? (
 						<p role="status">Load retained output…</p>
@@ -71,9 +81,11 @@ export function FlowTaskTerminal({
 						<div role="alert">
 							<FailureState title="The retained output is unavailable" detail={retained.error.message} />
 						</div>
+					) : retained.data.output === null ? (
+						<p role="status">The host has no retained output for this exact result.</p>
 					) : (
 						<section aria-label="Retained attempt output">
-							<OutputBlock text={retained.data} />
+							<OutputBlock text={retained.data.output} />
 						</section>
 					)}
 				</>

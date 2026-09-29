@@ -1,11 +1,25 @@
-import { type FlowSummary, flowReviewCredit, flowRunWorks } from "@trellis/api";
+import { type FlowExecutionViewV1, type FlowSummary, flowReviewCredit, flowRunWorks } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
-import { listRuns } from "../flow/listRuns.ts";
 import { flowChoiceLines, flowRunCommand } from "../flows/flowText.ts";
 import type { PullRequestRef } from "../pullRequestRef.ts";
 
 // A completed flow review applies to its diff across later commits.
-type Run = { slug: string; name: string; status: string; failureKind?: "error" | "feedback" };
+type Run = {
+	slug: string;
+	name: string;
+	status: string;
+	detail?: FlowExecutionViewV1["detail"];
+	failureKind?: "error" | "feedback" | null;
+};
+
+const reviewRuns = async (client: TrellisClient, diffId: string) => {
+	const runs: FlowExecutionViewV1[] = [];
+	for (let offset = 0; ; offset += 500) {
+		const page = await client.flowDocumentsV1.list({ diffId, limit: 500, offset });
+		for (const { id } of page) runs.push(await client.flowDocumentsV1.view({ id }));
+		if (page.length < 500) return runs;
+	}
+};
 
 export type FlowReadiness = {
 	flows: FlowSummary[];
@@ -28,7 +42,7 @@ export const flowReadiness = async (
 	const flows = await client.flows.list({ ticket });
 	if (flows.length === 0) return { flows, runs: [], waived: null, skipped: "no-flow", satisfied: true };
 	const [records, waiver] = await Promise.all([
-		listRuns(client, { diffId: ref.id }),
+		reviewRuns(client, ref.id),
 		client.pullRequests.readFlowWaiver({ id: ref.id }),
 	]);
 	const asked = new Set(flows.map((flow) => flow.id));
@@ -36,7 +50,13 @@ export const flowReadiness = async (
 		.filter((record) => asked.has(record.flowId))
 		.map((record) => {
 			const flow = flows.find((flow) => flow.id === record.flowId)!;
-			return { slug: flow.slug, name: flow.name, status: record.state.status, failureKind: record.state.failureKind };
+			return {
+				slug: flow.slug,
+				name: flow.name,
+				status: record.status,
+				detail: record.detail,
+				failureKind: record.failureKind,
+			};
 		});
 	const waived = waiver === null ? null : waiver.reason;
 	return {
@@ -49,11 +69,7 @@ export const flowReadiness = async (
 			hasTicket: true,
 			applicableFlowIds: flows.map((flow) => flow.id),
 			waived: waived !== null,
-			runs: records.map((record) => ({
-				flowId: record.flowId,
-				diffId: record.diffId,
-				status: record.state.status,
-			})),
+			runs: records,
 		}),
 	};
 };
@@ -86,8 +102,13 @@ export const flowRunMissingLines = (readiness: FlowReadiness, number: number): s
 	for (const run of runs) if (!latest.has(run.slug)) latest.set(run.slug, run);
 	return [...latest.values()].flatMap((run) => {
 		if (run.status === "running") return [`    The ${run.name} flow is still at work.`];
-		if (run.status === "waiting")
-			return [`    The ${run.name} flow waits for a person. Ask the user to answer its pending step.`];
+		if (run.status === "waiting") {
+			if (run.detail === "waiting_human")
+				return [`    The ${run.name} flow waits for a person. Ask the user to answer its pending step.`];
+			if (run.detail === "waiting_native")
+				return [`    The ${run.name} flow waits for a native attempt. Inspect its run for progress.`];
+			return [`    The ${run.name} flow is waiting. Inspect its run to identify the pending work.`];
+		}
 		if (run.status === "failed" && run.failureKind === "error")
 			return [
 				`    The ${run.name} flow ended with an execution error. Fix the cause and start it again:`,

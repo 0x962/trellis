@@ -152,22 +152,33 @@ export function fixture() {
 			return { state: "admitted", receipt };
 		},
 	};
-	const authorize = async ({ correlation }: { correlation: CorrelationReceiptV1 }): Promise<DeliveryAuthorityV1> => ({
-		version: 1,
-		executionId: initial.executionId,
-		publicationId: initial.publicationId,
-		engineJobId: correlation.engineJobId,
-		engineEpoch: 1,
-		hostId: initial.hostId,
-		projectId: initial.projectId,
-		publicationDigest: initial.publication.documentHash,
-		ownerId: "owner-1",
-		ownershipRevision: 1,
-		capabilityId: "capability-1",
-		permissions: ["native.reserve"],
-		issuedAt: at.toISOString(),
-		expiresAt: "2026-09-29T07:00:00Z",
-	});
+	const issuedBytes = new Map<string, string>();
+	const authorize = async ({ correlation }: { correlation: CorrelationReceiptV1 }): Promise<DeliveryAuthorityV1> => {
+		const authority: DeliveryAuthorityV1 = {
+			version: 1,
+			executionId: initial.executionId,
+			publicationId: initial.publicationId,
+			engineJobId: correlation.engineJobId,
+			engineEpoch: 1,
+			hostId: initial.hostId,
+			projectId: initial.projectId,
+			publicationDigest: initial.publication.documentHash,
+			ownerId: "owner-1",
+			ownershipRevision: 1,
+			capabilityId: "capability-1",
+			permissions: ["native.reserve"],
+			issuedAt: at.toISOString(),
+			expiresAt: "2026-09-29T07:00:00Z",
+		};
+		issuedBytes.set(authority.capabilityId, `${JSON.stringify(authority, null, 2)}\n`);
+		return authority;
+	};
+	const readAuthorityBytes = async (authority: DeliveryAuthorityV1) => {
+		outsideTransaction();
+		const bytes = issuedBytes.get(authority.capabilityId);
+		if (bytes === undefined) throw new Error("authority_bytes_missing");
+		return bytes;
+	};
 	const logs: { message: string; fields?: Record<string, unknown> }[] = [];
 	const context = {
 		log: (message: string, fields?: Record<string, unknown>) => {
@@ -197,6 +208,7 @@ export function fixture() {
 		store,
 		engine,
 		authorize,
+		readAuthorityBytes,
 		context,
 	};
 }

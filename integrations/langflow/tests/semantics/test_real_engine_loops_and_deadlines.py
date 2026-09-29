@@ -47,7 +47,7 @@ class FeedbackValue(Component):
 	inputs = [HandleInput(name="feedback", display_name="Feedback", input_types=["Data", "DataFrame"])]
 	outputs = [Output(display_name="Value", name="value", method="run", types=["Data"])]
 
-	def run(self) -> Data:
+	async def run(self) -> Data:
 		value = self.feedback.to_data_list()[0] if isinstance(self.feedback, DataFrame) else self.feedback
 		if isinstance(value, Data) and value.data.get("text"):
 			return Data(
