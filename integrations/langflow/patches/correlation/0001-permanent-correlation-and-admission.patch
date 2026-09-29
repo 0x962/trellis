@@ -1,0 +1,380 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/correlation.py b/src/backend/base/langflow/services/trellis_v1/correlation.py
+new file mode 100644
+index 000000000..f4adcf13d
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/correlation.py
+@@ -0,0 +1,374 @@
++"""Permanent Trellis job correlation and the native admission barrier.
++
++The correlation store keeps the first serialized ``SubmissionV1`` bytes and
++``CorrelationReceiptV1`` bytes under one ``(hostId, executionId)`` key. The
++admission store keeps the first serialized ``AdmissionReceiptV1`` bytes for
++that job. Store implementations commit each method as one transaction.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import re
++from dataclasses import dataclass, replace
++from typing import Literal, Protocol
++from uuid import UUID
++
++_DIGEST = re.compile(r"^[a-f0-9]{64}$")
++_REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
++_UUID = re.compile(
++    r"^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|"
++    r"00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
++)
++_DATE = (
++    r"(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|"
++    r"\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|"
++    r"(?:02)-(?:0[1-9]|1\d|2[0-8])))"
++)
++_TIMESTAMP = re.compile(rf"^{_DATE}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?Z$")
++_SAFE_INTEGER_MAX = 9_007_199_254_740_991
++
++
++class ProtocolConflict(ValueError):
++    """An identity already holds different serialized protocol bytes."""
++
++
++class CorrelationUnknown(RuntimeError):
++    """The store cannot prove whether the permanent correlation exists."""
++
++
++class AdmissionPending(RuntimeError):
++    """The graph must save a durable external wait and release its worker."""
++
++    def __init__(self, external_wait_bytes: bytes) -> None:
++        self.external_wait_bytes = external_wait_bytes
++        super().__init__(external_wait_bytes)
++
++
++@dataclass(frozen=True)
++class CorrelationKey:
++    host_id: str
++    execution_id: str
++
++
++@dataclass(frozen=True)
++class StoredCorrelation:
++    key: CorrelationKey
++    job_id: UUID
++    barrier_id: str
++    submission_bytes: bytes
++    submission_bytes_digest: str
++    correlation_receipt_bytes: bytes
++    admission_receipt_bytes: bytes | None = None
++    terminal_state: str | None = None
++    effect_refs: tuple[str, ...] = ()
++    stop_obligation_refs: tuple[str, ...] = ()
++
++
++@dataclass(frozen=True)
++class LookupResult:
++    state: Literal["found", "absent", "unknown"]
++    record: StoredCorrelation | None = None
++
++
++class CorrelationStore(Protocol):
++    async def lookup(self, key: CorrelationKey) -> LookupResult:
++        """Read the authoritative permanent correlation for ``key``."""
++
++    async def reserve(self, candidate: StoredCorrelation) -> StoredCorrelation:
++        """Commit the job, correlation, and durable enqueue marker together.
++
++        The transaction keeps one engine session for each Trellis execution.
++        """
++
++    async def commit_admission(
++        self, candidate: StoredCorrelation, admission_bytes: bytes
++    ) -> StoredCorrelation:
++        """Commit admission consumption and its continuation obligation together.
++
++        The transaction rejects a canceled execution or a revoked engine owner.
++        """
++
++
++def _digest(value: bytes) -> str:
++    return hashlib.sha256(value).hexdigest()
++
++
++def _object(value: object, fields: set[str], name: str) -> dict[str, object]:
++    if not isinstance(value, dict) or set(value) != fields:
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _reference(value: object, name: str) -> str:
++    if not isinstance(value, str) or _REFERENCE.fullmatch(value) is None:
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _digest_field(value: object, name: str) -> str:
++    if not isinstance(value, str) or _DIGEST.fullmatch(value) is None:
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _uuid(value: object, name: str) -> str:
++    if not isinstance(value, str) or _UUID.fullmatch(value) is None:
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _revision(value: object, name: str) -> int:
++    if type(value) is not int or value < 1 or value > _SAFE_INTEGER_MAX:
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _timestamp(value: object, name: str) -> str:
++    if not isinstance(value, str) or _TIMESTAMP.fullmatch(value) is None:
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _read(bytes_value: bytes, name: str) -> dict[str, object]:
++    try:
++        value = json.loads(bytes_value.decode("utf-8"))
++    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
++        raise ProtocolConflict(f"invalid_{name}_bytes") from exc
++    if not isinstance(value, dict):
++        raise ProtocolConflict(f"invalid_{name}")
++    return value
++
++
++def _correlation(value: object) -> dict[str, object]:
++    record = _object(
++        value,
++        {
++            "version",
++            "hostId",
++            "executionId",
++            "publicationId",
++            "submissionDigest",
++            "engineJobId",
++            "engineSessionId",
++            "recordedAt",
++        },
++        "correlation",
++    )
++    if record["version"] != 1:
++        raise ProtocolConflict("invalid_correlation_version")
++    for name in ("hostId", "executionId", "publicationId", "engineSessionId"):
++        _reference(record[name], name)
++    _digest_field(record["submissionDigest"], "submissionDigest")
++    _uuid(record["engineJobId"], "engineJobId")
++    _timestamp(record["recordedAt"], "recordedAt")
++    return record
++
++
++def _admission(value: object) -> dict[str, object]:
++    record = _object(
++        value,
++        {
++            "version",
++            "executionId",
++            "publicationId",
++            "engineJobId",
++            "engineEpoch",
++            "admissionId",
++            "submissionDigest",
++            "committedAt",
++        },
++        "admission",
++    )
++    if record["version"] != 1:
++        raise ProtocolConflict("invalid_admission_version")
++    for name in ("executionId", "publicationId", "admissionId"):
++        _reference(record[name], name)
++    _uuid(record["engineJobId"], "engineJobId")
++    _revision(record["engineEpoch"], "engineEpoch")
++    _digest_field(record["submissionDigest"], "submissionDigest")
++    _timestamp(record["committedAt"], "committedAt")
++    return record
++
++
++def _admission_wait(bytes_value: bytes) -> dict[str, object]:
++    record = _object(
++        _read(bytes_value, "admission_wait"),
++        {"kind", "waitId", "barrierId"},
++        "admission_wait",
++    )
++    if record["kind"] != "admission":
++        raise ProtocolConflict("invalid_admission_wait_kind")
++    _reference(record["waitId"], "waitId")
++    _reference(record["barrierId"], "barrierId")
++    return record
++
++
++def _submission(bytes_value: bytes) -> dict[str, object]:
++    record = _object(
++        _read(bytes_value, "submission"),
++        {
++            "version",
++            "hostId",
++            "executionId",
++            "publicationId",
++            "requestId",
++            "actor",
++            "requestDigest",
++            "submissionDigest",
++            "state",
++            "correlation",
++            "admission",
++            "revision",
++        },
++        "submission",
++    )
++    if record["version"] != 1:
++        raise ProtocolConflict("invalid_submission_version")
++    for name in ("hostId", "executionId", "publicationId"):
++        _reference(record[name], name)
++    _uuid(record["requestId"], "requestId")
++    actor = _object(record["actor"], {"kind", "name"}, "actor")
++    if (
++        actor["kind"] not in ("human", "agent")
++        or not isinstance(actor["name"], str)
++        or not actor["name"]
++    ):
++        raise ProtocolConflict("invalid_actor")
++    _digest_field(record["requestDigest"], "requestDigest")
++    _digest_field(record["submissionDigest"], "submissionDigest")
++    if record["state"] not in ("reserved", "submitted", "submission_unknown", "failed"):
++        raise ProtocolConflict("invalid_submission_state")
++    _revision(record["revision"], "revision")
++    correlation = (
++        None if record["correlation"] is None else _correlation(record["correlation"])
++    )
++    admission = record["admission"]
++    if not isinstance(admission, dict) or admission.get("state") not in (
++        "closed",
++        "open",
++    ):
++        raise ProtocolConflict("invalid_admission_state")
++    if admission["state"] == "closed":
++        admission = _object(admission, {"state", "barrierId"}, "closed_admission")
++        _reference(admission["barrierId"], "barrierId")
++    else:
++        admission = _object(admission, {"state", "receipt"}, "open_admission")
++        receipt = _admission(admission["receipt"])
++        if correlation is None or not _same_binding(record, correlation, receipt):
++            raise ProtocolConflict("admission_binding_conflict")
++    if correlation is not None and any(
++        record[name] != correlation[name]
++        for name in ("hostId", "executionId", "publicationId", "submissionDigest")
++    ):
++        raise ProtocolConflict("correlation_binding_conflict")
++    return record
++
++
++def _same_binding(
++    submission: dict[str, object],
++    correlation: dict[str, object],
++    admission: dict[str, object],
++) -> bool:
++    return (
++        submission["executionId"] == admission["executionId"]
++        and submission["publicationId"] == admission["publicationId"]
++        and submission["submissionDigest"] == admission["submissionDigest"]
++        and correlation["engineJobId"] == admission["engineJobId"]
++    )
++
++
++class CorrelationCoordinator:
++    """Apply exact-byte identity rules before Langflow can request native work."""
++
++    def __init__(self, store: CorrelationStore) -> None:
++        self._store = store
++
++    async def accept_submission(
++        self,
++        submission_bytes: bytes,
++        *,
++        job_id: UUID,
++        correlation_receipt_bytes: bytes,
++    ) -> bytes:
++        submission = _submission(submission_bytes)
++        admission = submission["admission"]
++        if (
++            submission["state"] != "reserved"
++            or submission["correlation"] is not None
++            or admission["state"] != "closed"
++        ):
++            raise ProtocolConflict("submission_must_start_reserved")
++        key = CorrelationKey(
++            host_id=str(submission["hostId"]),
++            execution_id=str(submission["executionId"]),
++        )
++        lookup = await self._store.lookup(key)
++        if lookup.state == "unknown":
++            raise CorrelationUnknown(key)
++        if lookup.state == "found":
++            return self._same_submission(lookup.record, submission_bytes)
++        correlation = _correlation(_read(correlation_receipt_bytes, "correlation"))
++        if any(
++            submission[name] != correlation[name]
++            for name in ("hostId", "executionId", "publicationId", "submissionDigest")
++        ):
++            raise ProtocolConflict("correlation_binding_conflict")
++        if str(job_id) != correlation["engineJobId"]:
++            raise ProtocolConflict("engine_job_identity_conflict")
++        candidate = StoredCorrelation(
++            key=key,
++            job_id=job_id,
++            barrier_id=str(admission["barrierId"]),
++            submission_bytes=submission_bytes,
++            submission_bytes_digest=_digest(submission_bytes),
++            correlation_receipt_bytes=correlation_receipt_bytes,
++        )
++        winner = await self._store.reserve(candidate)
++        return self._same_submission(winner, submission_bytes)
++
++    async def open_admission(
++        self, key: CorrelationKey, admission_bytes: bytes
++    ) -> bytes:
++        admission = _admission(_read(admission_bytes, "admission"))
++        lookup = await self._store.lookup(key)
++        if lookup.state != "found" or lookup.record is None:
++            raise CorrelationUnknown(key)
++        correlation = _correlation(
++            _read(lookup.record.correlation_receipt_bytes, "correlation")
++        )
++        submission = _submission(lookup.record.submission_bytes)
++        if not _same_binding(submission, correlation, admission):
++            raise ProtocolConflict("admission_binding_conflict")
++        candidate = replace(lookup.record, admission_receipt_bytes=admission_bytes)
++        winner = await self._store.commit_admission(candidate, admission_bytes)
++        if winner.admission_receipt_bytes != admission_bytes:
++            raise ProtocolConflict("admission_identity_conflict")
++        return admission_bytes
++
++    async def admission_or_wait(
++        self, key: CorrelationKey, external_wait_bytes: bytes
++    ) -> bytes:
++        wait = _admission_wait(external_wait_bytes)
++        lookup = await self._store.lookup(key)
++        if lookup.state != "found" or lookup.record is None:
++            raise CorrelationUnknown(key)
++        if wait["barrierId"] != lookup.record.barrier_id:
++            raise ProtocolConflict("admission_barrier_conflict")
++        if lookup.record.admission_receipt_bytes is None:
++            raise AdmissionPending(external_wait_bytes)
++        return lookup.record.admission_receipt_bytes
++
++    @staticmethod
++    def _same_submission(
++        record: StoredCorrelation | None, submission_bytes: bytes
++    ) -> bytes:
++        if record is None:
++            raise CorrelationUnknown("missing_record")
++        if (
++            record.submission_bytes_digest != _digest(submission_bytes)
++            or record.submission_bytes != submission_bytes
++        ):
++            raise ProtocolConflict("submission_identity_conflict")
++        return record.correlation_receipt_bytes
