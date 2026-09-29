@@ -26,7 +26,7 @@ const ref = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/tr
 
 const clientWith = (
 	flows: FlowSummary[],
-	records: Array<{ slug: string; name: string; status: string; flowId?: string }>,
+	records: Array<{ slug: string; name: string; status: string; flowId?: string; diffId?: string }>,
 	waiver: { headSha: string; reason: string } | null = null,
 ) => {
 	const sent: unknown[] = [];
@@ -44,6 +44,7 @@ const clientWith = (
 				const offset = (input as { offset?: number }).offset ?? 0;
 				return records.slice(offset, offset + 500).map((record) => ({
 					flowId: record.flowId ?? `flow:${record.slug}`,
+					diffId: record.diffId ?? ref.id,
 					doc: { flow: { slug: record.slug, name: record.name } },
 					state: { status: record.status },
 				}));
@@ -219,4 +220,23 @@ test("an older error does not recommend a repeat of the active run", () => {
 		{ slug: "review", name: "Review", status: "failed", failureKind: "error" },
 	]);
 	expect(flowRunMissingLines(state, 131)).toEqual(["    The Review flow is still at work."]);
+});
+
+test("a success for another diff does not supply review credit", async () => {
+	const { client } = clientWith(
+		[flow("review", "Review", "")],
+		[{ slug: "review", name: "Review", status: "succeeded", diffId: "another-diff" }],
+	);
+	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(false);
+});
+
+test("a newer failure keeps an older success for the same diff and applicable flow", async () => {
+	const { client } = clientWith(
+		[flow("review", "Review", "")],
+		[
+			{ slug: "review", name: "Review", status: "failed" },
+			{ slug: "review", name: "Review", status: "succeeded" },
+		],
+	);
+	expect((await flowReadiness(client, ref, "TRL-1")).satisfied).toBe(true);
 });
