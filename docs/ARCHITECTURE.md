@@ -767,6 +767,13 @@ Published Page messages still require confirmation in the trusted viewer before 
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
+The session update pane groups retained updates by local calendar day, newest first.
+The tree keeps one selected update open with its Markdown and isolated embeds.
+Arrow keys move tree focus and fold days. Enter or Space selects an update.
+New updates announce availability without changing selection, focus, or the visible scroll anchor.
+`sessionUpdates.get` accepts an optional `history.before` cursor with `createdAt` and `id`.
+History pages contain up to 50 updates and a nullable `nextCursor`; the original `latest`, `previous`, and `request` fields remain available.
+
 ### Harness accounts
 
 The Usage page stores several accounts per harness at `/usage`.
@@ -1200,12 +1207,22 @@ or a restore.
 
 ## API contract and ref grammars
 
-`clientContract` adds the versioned `flowDocumentsV1` methods to the typed client.
+`clientContract` and the server contract expose the versioned `flowDocumentsV1` methods.
 The methods retain the shared RPC transport, actor headers, and query utilities.
-The live server `contract` registers services after their implementation is available.
-The versioned client methods require a server that mounts the matching document and view services.
+The shared router sends these methods through the actor-aware service transport.
+The document and execution tables must exist before this router serves requests.
 The document methods use `/api/flows/{flow}/document-v1`.
+Document responses include an ETag for the complete representation.
+Conditional saves evaluate `If-Match` and `If-None-Match` in the save transaction.
+The required `expectedVersion` also checks the saved revision.
 The execution view uses `/api/flow-executions/{id}/view-v1`.
+The execution index uses `/api/flow-executions/index-v1` and returns IDs with their stored engine.
+Its pagination combines both engines in creation order, with the ID as the tie breaker.
+`langflowDispatch.getView` selects the reader from the stored execution association.
+The current document cannot change that selection.
+`langflowDispatch.startLegacy` locks the flow before it checks the saved document format.
+An exact legacy request replay retains its original result after a document conversion.
+New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
 
 A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.

@@ -11,7 +11,7 @@ test.each([
 	expect(sessionUpdateAge(createdAt, "2026-09-29T05:40:00.000Z")).toBe(label);
 });
 
-test("uses the request time to decide whether an update is late", () => {
+test("does not treat age as an update failure", () => {
 	expect(
 		sessionStatusNotice({
 			processState: "active",
@@ -22,31 +22,23 @@ test("uses the request time to decide whether an update is late", () => {
 				error: null,
 			},
 			latestAt: "2026-09-29T05:20:00.000Z",
-			now: "2026-09-29T05:40:00.000Z",
-			lateAfterMs: 10 * 60_000,
 		}),
-	).toBe("This update is 20 minutes old. Trellis is waiting for a new reply.");
+	).toBe("The observer prepares a new update. The last update stays below.");
 });
 
 test.each([
-	["paused", null, null, "The session is paused. No agent update is available yet."],
+	["paused", null, null, "The session is paused. No observer update is available yet."],
 	[
 		"active",
 		{ requestId: "request-1", requestedAt: "2026-09-29T05:35:00.000Z", state: "pending" as const, error: null },
 		null,
-		"An update was requested. The first agent reply will appear below.",
-	],
-	[
-		"active",
-		{ requestId: "request-1", requestedAt: "2026-09-29T05:29:00.000Z", state: "sent" as const, error: null },
-		null,
-		"The update request is 11 minutes old. Trellis is waiting for the first reply.",
+		"The observer prepares the first update.",
 	],
 	[
 		"active",
 		{ requestId: "request-1", requestedAt: "2026-09-29T05:35:00.000Z", state: "failed" as const, error: "No reply" },
 		null,
-		"The status request failed. No agent reply is available yet; this does not mean the agent stopped.",
+		"The observer update failed. No observer update is available yet.",
 	],
 ])("describes the %s process before the first update", (processState, request, latestAt, notice) => {
 	expect(
@@ -54,8 +46,6 @@ test.each([
 			processState: processState as SessionStatusProcessState,
 			request,
 			latestAt,
-			now: "2026-09-29T05:40:00.000Z",
-			lateAfterMs: 10 * 60_000,
 		}),
 	).toBe(notice);
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { SessionUpdateSchema, SessionUpdatesWriteInputSchema } from "./sessionUpdates.ts";
+import { SessionUpdateSchema, SessionUpdatesGetInputSchema, SessionUpdatesWriteInputSchema } from "./sessionUpdates.ts";
 
 test("accepts Markdown and HTML embeds at the write boundary", () => {
 	const input = SessionUpdatesWriteInputSchema.parse({
@@ -35,4 +35,21 @@ test("accepts a ticket update without standalone session provenance", () => {
 			createdAt: "2026-09-29T05:00:00.000Z",
 		}),
 	).toMatchObject({ sessionId: null, runId: "01M3NVQ8K3ZBWDFDZ406A4M1DA" });
+});
+
+test("accepts a history cursor only on reads", () => {
+	const input = {
+		sessionId: "Status session",
+		history: {
+			before: {
+				createdAt: "2026-09-29T05:00:00.000Z",
+				id: "01M3NVQ8K3ZBWDFDZ406A4M1D9",
+			},
+		},
+	};
+	expect(SessionUpdatesGetInputSchema.parse(input)).toEqual(input);
+	expect(SessionUpdatesWriteInputSchema.safeParse({ ...input, body: "Status" }).success).toBe(false);
+	expect(SessionUpdatesGetInputSchema.safeParse({ ...input, history: { before: { id: "invalid" } } }).success).toBe(
+		false,
+	);
 });

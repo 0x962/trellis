@@ -38,9 +38,9 @@ export async function reserveNative(
 			and(
 				eq(handles.executionId, request.executionId),
 				or(
-					eq(handles.semanticKey, semanticKey),
+					eq(handles.semanticDigest, protocolDigest(semanticKey)),
 					eq(handles.requestId, request.requestId),
-					eq(handles.occurrenceKey, request.occurrenceKey),
+					eq(handles.occurrenceDigest, protocolDigest(request.occurrenceKey)),
 				),
 			),
 		);

@@ -167,7 +167,8 @@ This mount preserves one Trellis workspace and one save owner. It needs a mainta
 
 ## Open gaps
 
-- The actual desktop editor passes the sequence below. The 320-pixel and dense cases await the next batch.
+- The desktop sequence and narrow dialog checks pass. Dense navigation remains open.
+- The 320-pixel canvas fits at 0.25 scale, with tiny controls and overlapping cards. This does not pass narrow usability.
 - The retained gateway evidence reports no forbidden secret on saves. A complete browser request audit remains open.
 - Stock run controls remain visible. The gateway denies their requests. Stock workflow and variable requests also remain active.
 - The seven-node fixture cards overlap. Canonical Trellis controls and selectors remain with the production adapter.
@@ -185,3 +186,45 @@ Enter on the Agent output and Native gate question created a typed edge. The gat
 The Run component action received HTTP 403 from the workflow route. The browser also attempted external font and Discord requests, with zero transfer size and duration in its resource entries. The gateway CSP permits only same-origin connections. These observations do not establish production isolation.
 
 TRL-672 attachments retain the screenshots and `editor-desktop-proof.json`. TRL-667 owns `browser-evidence.json` and the server log for this batch. The browser tab is closed and its listener is released for cleanup.
+
+## Actual narrow editor batch, September 29
+
+PR653 passes 36 tests with 132 assertions, focused TypeScript, and both source manifests. Biome passes with six unused-suppression warnings. The default HTTP batch passes the lost-response sequence with replay revision 3 and later revision 4.
+
+Aside measured the real editor iframe at 320 by 800 pixels. The document and body both report a scroll width of 320 pixels. The Save flow button fits within the viewport and has a height of 44 pixels.
+
+The instruction dialog measures 320 by 760 pixels. Finish Editing preserves the entered instruction and returns focus to Expand text editor. The gateway accepts the instruction at revisions 3 and 4. Both save events report `forbiddenSecret: null`.
+
+The initial canvas uses 0.25 zoom. Its cards overlap and its fields become too small for normal use. The narrow result proves the viewport, dialog, save, and focus behavior, but not usable canvas navigation. Aside reports a navigation readiness timeout; the subsequent snapshot and screenshot show the loaded editor.
+
+TRL-672 retains `editor-narrow-initial.png`, `editor-narrow-dialog.png`, and `editor-narrow-proof.json`. The browser tab is closed. TRL-667 receives the release of PID 15567 before the dense case starts.
+
+## Required-density attempt, September 29
+
+TRL-667 served the 500-node, 2000-edge, 50-round case with the same compiled assets. The gateway recorded HTTP 200 for the flow read and retained revision 2. Aside opened the tab, but two scoped snapshots timed out in `Runtime.evaluate`. A screenshot also timed out. These results do not prove a usable graph or navigation.
+
+The first close request timed out in `Aside.controlTab`. A later close reported success, but the browser tab list still contained the same target. Browser cleanup remains unconfirmed. TRL-667 received the release of gateway PID 24124 and a request to hold the larger case. The dense acceptance gate remains open.
+
+## Narrow and dense repair, TRL-831
+
+The repaired patch uses the saved viewport and exposes the existing Langflow zoom control. It disables automatic fit only in probe mode. The fixture rows use 800-pixel spacing. The dense graph keeps its identities, fields, edges, and viewport.
+
+The canvas projection supplies initial dimensions and empty handle metadata for unmeasured nodes. ReactFlow measures visible cards and draws edges when both endpoint measurements exist. The save hook reads the complete graph from the flow store. The save and Retry implementation stays unchanged.
+
+The read-only apply check passes against the pinned frontend source. Biome processes all ten patched frontend files through standard input. The candidate source stays unchanged.
+
+The focused batch passes 40 tests and 11,195 assertions. The probe TypeScript check passes. Biome passes on the probe source and visibility script. An initial attempt lacked the local runtime-protocol link and exposed strict test typing errors. The final batch includes those corrections.
+
+`frontend/canvasVisibility.ts` calls the pinned ReactFlow functions without a browser or server. At a 1440-by-900 viewport and 0.75 zoom, both dense cases select 12 visible nodes instead of every node. The lookup retains all 500 or 501 nodes. A 320-pixel viewport can reach the final node after a viewport change. These function checks do not establish mounted performance, keyboard behavior, or focus.
+
+Commands:
+
+```sh
+git -C "$LANGFLOW_SOURCE" apply --check --directory=src/frontend "$TRL_EDITOR_PATCH"
+nice -n 10 bun test integrations/langflow/editor-probe/src/{canvasProjection,editorBoundary,gatewayProtocol,probeGraph}.test.ts
+nice -n 10 node_modules/.bin/tsc --noEmit -p integrations/langflow/editor-probe/tsconfig.json
+nice -n 10 node_modules/.bin/biome check integrations/langflow/editor-probe/src integrations/langflow/editor-probe/frontend/canvasVisibility.ts
+nice -n 10 bun integrations/langflow/editor-probe/frontend/canvasVisibility.ts "$LANGFLOW_SOURCE/src/frontend"
+```
+
+The next candidate batch must compile the repaired patch and repeat the actual desktop, narrow, and dense interactions. Later-round receipts and progress preservation still require the run-view and engine evidence.

@@ -1,7 +1,7 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
 import type { PageCommentThread } from "@trellis/api";
-import { ConfirmDialog, FailureState, IconButton, PageCommentPin, PageViewer, Tooltip } from "@trellis/ui";
+import { ConfirmDialog, FailureState, IconButton, PageViewer, Tooltip } from "@trellis/ui";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { openLink } from "../../../../../lib/openLink";
 import { useTheme } from "../../../../../lib/theme";
@@ -9,16 +9,9 @@ import { failureKind } from "../../../../shell/RouteError";
 import { readFrameMessage } from "../../../PageDetail/frameMessage";
 import { classifyPageLink } from "../../../PageDetail/pageLink";
 import { usePageLease } from "../../../PageDetail/usePageLease";
+import { PageCommentPins } from "./components/PageCommentPins";
 
 type NumberedThread = { number: number; thread: PageCommentThread };
-
-const pinLabel = ({ number, thread }: NumberedThread) => {
-	const author = thread.creator.displayName ?? thread.creator.name;
-	const state = thread.resolved === null ? "open" : "resolved";
-	const anchor =
-		thread.selectedText === null ? `element ${thread.anchor.path}` : `selected text "${thread.selectedText}"`;
-	return `Comment ${number}, ${author}, ${state}, ${anchor}`;
-};
 
 export function LeasedPageViewer({
 	page,
@@ -165,21 +158,12 @@ export function LeasedPageViewer({
 				/>
 				{!failed && readyLease === lease?.id && (
 					<div className="pointer-events-none absolute inset-0">
-						{comments.map((comment) => {
-							const position = pinPositions.get(comment.thread.id);
-							return position === undefined ? null : (
-								<PageCommentPin
-									key={comment.thread.id}
-									number={comment.number}
-									label={pinLabel(comment)}
-									x={position.x}
-									y={position.y}
-									resolved={comment.thread.resolved !== null}
-									selected={selectedThread === comment.thread.id}
-									onClick={() => onOpenThread(comment.thread.id)}
-								/>
-							);
-						})}
+						<PageCommentPins
+							threads={comments}
+							positions={pinPositions}
+							selectedThread={selectedThread}
+							onOpenThread={onOpenThread}
+						/>
 					</div>
 				)}
 			</div>
