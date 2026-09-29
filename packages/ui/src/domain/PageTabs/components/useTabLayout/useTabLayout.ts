@@ -7,11 +7,11 @@ export const revealTab = (element: HTMLElement, left: number, width: number) => 
 	if (left < element.scrollLeft) element.scrollLeft = left;
 };
 
-// The tabs of one scrolling region that are worth a mount: the tabs near the
-// viewport plus the active tab. Every tab of the region has the same width.
-// A `fixedWidth` keeps that width; without one the width follows the
+// The boxes of one scrolling region that are worth a mount: the boxes near
+// the viewport plus the active one. Every box of the region has the same
+// width. A `fixedWidth` keeps that width; without one the width follows the
 // viewport, between 132 and 240 px.
-export function useTabLayout(tabs: readonly { id: string }[], activeIndex: number, fixedWidth?: number) {
+export function useTabLayout(tabs: readonly unknown[], activeIndex: number, fixedWidth?: number) {
 	const count = tabs.length;
 	const ref = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState({

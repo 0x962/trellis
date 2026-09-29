@@ -59,6 +59,45 @@ test("bounds the mounted controls and keeps the active tab", () => {
 	expect(pinnedHtml).not.toContain('data-page-tab-id="tab-0"');
 });
 
+test("draws a header before each group and hides the tabs of a collapsed group", () => {
+	const groups = [
+		{ id: "g", name: "Reviews", collapsed: false },
+		{ id: "h", name: "Later", collapsed: true },
+	];
+	const groupedTabs = [
+		{ id: "b", title: "B", pinned: false, groupId: "g" },
+		{ id: "c", title: "C", pinned: false, groupId: "g" },
+		{ id: "d", title: "D", pinned: false, groupId: "h" },
+		{ id: "a", title: "A", pinned: false },
+	];
+	const html = renderToStaticMarkup(
+		<PageTabs
+			tabs={groupedTabs}
+			groups={groups}
+			activeId="b"
+			onAdd={() => {}}
+			onSelect={() => {}}
+			onClose={() => {}}
+			onMove={() => {}}
+			onGroupCollapse={() => {}}
+			onRenameGroup={() => {}}
+			onRemoveGroup={() => {}}
+			onSetTabGroup={() => {}}
+			onCreateGroup={() => "new"}
+		/>,
+	);
+
+	expect(html).toContain('data-page-tab-group="g"');
+	expect(html).toContain('aria-expanded="true"');
+	expect(html).toContain(">Reviews</span>");
+	expect(html).toContain('data-page-tab-group="h"');
+	expect(html).toContain('aria-expanded="false"');
+	expect(html).toContain('aria-label="Move tab to a group"');
+	expect(html).toContain('data-page-tab-id="b"');
+	expect(html).not.toContain('data-page-tab-id="d"');
+	expect(html).toContain('data-page-tab-id="c" aria-posinset="2" aria-setsize="4"');
+});
+
 test("a pinned tab keeps its full name in the accessible name and has no close button", () => {
 	const pinned = [
 		{ id: "home", title: "Needs you for the whole team", pinned: true },
