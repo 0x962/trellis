@@ -40,15 +40,15 @@ export const flowAgentKinds: ReadonlySet<FlowNodeKind> = new Set(["agent", "gate
 export const FlowBranchSchema = z.enum(["out", "yes", "no"]);
 export type FlowBranch = z.infer<typeof FlowBranchSchema>;
 
-export const FLOW_MAX_MINUTES = 1440;
-export const FLOW_MAX_ROUNDS = 50;
-export const FLOW_MAX_NODES = 500;
-export const FLOW_MAX_EDGES = 2000;
-// A canvas coordinate. The bound keeps a lost drag from storing a position
-// that no viewport can reach.
-const CoordinateSchema = z.number().min(-1_000_000).max(1_000_000);
+// PostgreSQL documents `integer` as a four-byte signed value:
+// https://www.postgresql.org/docs/current/datatype-numeric.html
+// Flow time limits and round counts use those columns, and these inputs
+// require positive values.
+const PositivePostgresIntegerSchema = z.number().int().min(1).max(2_147_483_647);
+
+const CoordinateSchema = z.number().finite();
 // The drawn size of a group box. A card sizes itself, so a card keeps null.
-const SizeSchema = z.number().min(40).max(100_000);
+const SizeSchema = z.number().finite().min(40);
 
 // The harness of a step that runs an agent, or of a whole flow. A step with
 // null takes the harness of its flow, and a flow with null takes claude. The
@@ -93,11 +93,11 @@ export const FlowNodeInputSchema = z
 		id: UlidSchema,
 		parentId: UlidSchema.nullable(),
 		kind: FlowNodeKindSchema,
-		title: z.string().max(120, "Enter a step title of 120 characters or less."),
-		instruction: z.string().max(200_000, "Enter a step instruction of 200,000 characters or less."),
+		title: z.string(),
+		instruction: z.string(),
 		parallel: z.boolean().default(false),
-		minutes: z.number().int().min(1).max(FLOW_MAX_MINUTES).nullable(),
-		maxRounds: z.number().int().min(1).max(FLOW_MAX_ROUNDS).nullable(),
+		minutes: PositivePostgresIntegerSchema.nullable(),
+		maxRounds: PositivePostgresIntegerSchema.nullable(),
 		x: CoordinateSchema,
 		y: CoordinateSchema,
 		width: SizeSchema.nullable(),
@@ -193,19 +193,14 @@ export type FlowDoc = z.infer<typeof FlowDocSchema>;
 // A flow slug names the flow in a URL, such as `/ai/flows/review`.
 export const FlowSlugSchema = z
 	.string()
-	.max(64)
 	.regex(slugPattern, "Expected a slug: lower-case letters, digits, and single dashes.");
 
 // A flow ref is its ULID or its slug.
-export const FlowRefSchema = z.string().min(1).max(64);
+export const FlowRefSchema = z.string().min(1);
 
-const FlowNameSchema = z
-	.string()
-	.trim()
-	.min(1, "Enter a flow name of 1 to 120 characters.")
-	.max(120, "Enter a flow name of 1 to 120 characters.");
+const FlowNameSchema = z.string().trim().min(1, "Enter a flow name.");
 
-const FlowDescriptionSchema = z.string().trim().max(2000, "Enter a flow description of 2000 characters or less.");
+const FlowDescriptionSchema = z.string().trim();
 
 export const FlowCreateInputSchema = z.strictObject({
 	name: FlowNameSchema,
@@ -222,7 +217,7 @@ export const FlowUpdateInputSchema = z.strictObject({
 	name: FlowNameSchema.optional(),
 	slug: FlowSlugSchema.optional(),
 	description: FlowDescriptionSchema.optional(),
-	briefing: z.string().max(200_000).optional(),
+	briefing: z.string().optional(),
 	// The root project of a tree. null makes the flow apply to every project,
 	// and an absent field keeps the project it has.
 	project: ProjectRefStringSchema.nullable().optional(),
@@ -237,8 +232,8 @@ export type FlowUpdateInput = z.input<typeof FlowUpdateInputSchema>;
 // the node in the same save.
 export const FlowSaveInputSchema = z.strictObject({
 	flow: FlowRefSchema,
-	nodes: z.array(FlowNodeInputSchema).max(FLOW_MAX_NODES),
-	edges: z.array(FlowEdgeInputSchema).max(FLOW_MAX_EDGES),
+	nodes: z.array(FlowNodeInputSchema),
+	edges: z.array(FlowEdgeInputSchema),
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type FlowSaveInput = z.input<typeof FlowSaveInputSchema>;

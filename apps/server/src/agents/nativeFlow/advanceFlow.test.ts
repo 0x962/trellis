@@ -42,6 +42,36 @@ test("a later launch in the same box keeps the clock that runs", () => {
 	expect(step(state, `${inner}/1/second`).startedAt).toBe(55_000);
 });
 
+test("a group deadline above the former limit keeps its complete duration", () => {
+	const longDoc = flowDoc([node("long", "group", null, { minutes: 1441 }), node("worker", "agent", "long")], []);
+	let state = createFlowExecution(longDoc, 1000);
+	state = advanceFlow(longDoc, state, { type: "started", key: "root/1/long/1/worker:step:1" }, 2000);
+	state = advanceFlow(longDoc, state, { type: "launched", key: "root/1/long/1/worker:step:1", at: 17_000 }, 17_100);
+
+	expect(step(state, "root/1/long").deadlineAt).toBe(17_000 + 1441 * 60_000);
+});
+
+test("a loop can start round 51", () => {
+	const loopDoc = flowDoc([node("loop", "loop", null, { maxRounds: 51 }), node("worker", "agent", "loop")], []);
+	let state = createFlowExecution(loopDoc, 0);
+	for (let round = 1; round <= 50; round++) {
+		const workerKey = `root/1/loop/${round}/worker:step:1`;
+		state = advanceFlow(loopDoc, state, { type: "started", key: workerKey }, round * 10);
+		state = advanceFlow(loopDoc, state, { type: "complete", key: workerKey, output: "Done" }, round * 10 + 1);
+		const loopKey = taskKey(step(state, "root/1/loop"));
+		state = advanceFlow(loopDoc, state, { type: "started", key: loopKey }, round * 10 + 2);
+		state = advanceFlow(
+			loopDoc,
+			state,
+			{ type: "complete", key: loopKey, output: "Continue", decision: "no" },
+			round * 10 + 3,
+		);
+	}
+
+	expect(step(state, "root/1/loop")).toMatchObject({ round: 51, phase: "children", state: "running" });
+	expect(step(state, "root/1/loop/51/worker")).toMatchObject({ iteration: 51, state: "ready" });
+});
+
 test("a launch of a step that is not running changes nothing", () => {
 	const created = createFlowExecution(doc, 1000);
 	const state = advanceFlow(doc, created, { type: "launched", key: `${inner}/1/second:step:1`, at: 5000 }, 5100);
