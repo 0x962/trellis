@@ -9,6 +9,7 @@ import { query } from "./search.ts";
 const at = new Date("2026-09-29T12:00:00.000Z");
 const id = (n: number) => `01M${String(n).padStart(23, "0")}`;
 const actor = { name: "Search tester", kind: "human" as const };
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${actor.kind}, ${actor.name}]::text[])`;
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const ctx: ServiceCtx = {
 	actor,
@@ -44,20 +45,21 @@ beforeAll(async () => {
 		FROM generate_series(1, 57) n`);
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
-		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at
+		creator_actor_name, creator_actor_kind, actor_name, actor_kind, created_at, updated_at,
+		creator_actor_id, actor_id
 	)
 		SELECT '01M' || lpad((300 + n)::text, 23, '0'),
 			CASE WHEN n <= 30 THEN ${id(1)} ELSE ${id(2)} END,
 			'page-' || n, CASE WHEN n <= 20 THEN 'Pagination title' ELSE 'Other title' END,
 			CASE WHEN n BETWEEN 21 AND 40 THEN 'Pagination summary' ELSE '' END,
-			1, 1, ${actor.name}, 'human', ${actor.name}, 'human', ${at}, ${at}
+			1, 1, ${actor.name}, 'human', ${actor.name}, 'human', ${at}, ${at}, ${actorId}, ${actorId}
 		FROM generate_series(1, 51) n`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size, search_text,
-		search_indexed, source_path, actor_name, actor_kind, created_at
+		search_indexed, source_path, actor_name, actor_kind, created_at, actor_id
 	)
 		SELECT '01M' || lpad((300 + n)::text, 23, '0'), 1, 'request-' || n, ${"a".repeat(64)},
-			10, 'Pagination content', true, 'index.html', ${actor.name}, 'human', ${at}
+			10, 'Pagination content', true, 'index.html', ${actor.name}, 'human', ${at}, ${actorId}
 		FROM generate_series(1, 51) n`);
 	await db.transaction((tx) => ctx.cache.rebuild(tx));
 }, 60_000);
