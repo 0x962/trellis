@@ -99,17 +99,28 @@ const contentRuntime = (nonce: string) => {
 	}[];
 	type ResolvedComment = {
 		thread: string;
+		anchor: PageCommentAnchor;
 		element: Element;
 		target: Element | Range;
 	};
 	let activeThread: string | null = null;
 	let commentsByElement = new Map<Element, ResolvedComment[]>();
 	let resolvedByThread = new Map<string, ResolvedComment>();
-	let visibleElements = new Set<Element>();
-	let visibilityObserver: IntersectionObserver | null = null;
+	const visibleElements = new Set<Element>();
+	const visibilityObserver = new IntersectionObserver((entries) => {
+		for (const entry of entries) {
+			if (!commentsByElement.has(entry.target)) continue;
+			if (entry.isIntersecting) visibleElements.add(entry.target);
+			else visibleElements.delete(entry.target);
+		}
+		scheduleLayout();
+	});
 	let layoutFrame = 0;
+	let anchorsDirty = false;
+	let contentChanges: MutationRecord[] = [];
 	const reportLayout = () => {
 		layoutFrame = 0;
+		refreshComments();
 		const items: { thread: string; x: number; y: number }[] = [];
 		const included = new Set<string>();
 		const add = (comment: ResolvedComment | undefined) => {
@@ -136,31 +147,52 @@ const contentRuntime = (nonce: string) => {
 	const scheduleLayout = () => {
 		if (layoutFrame === 0) layoutFrame = requestAnimationFrame(reportLayout);
 	};
-	const resolveComments = () => {
-		visibilityObserver?.disconnect();
+	const resolveComments = (changes: MutationRecord[]) => {
+		const previousElements = commentsByElement;
+		const previousThreads = resolvedByThread;
 		commentsByElement = new Map();
 		resolvedByThread = new Map();
-		visibleElements = new Set();
 		for (const comment of comments) {
 			const element = document.querySelector(comment.anchor.path);
 			if (element === null) continue;
-			const target = comment.anchor.kind === "text" ? textRange(element, comment.anchor) : element;
+			const previous = previousThreads.get(comment.thread);
+			const reuse =
+				previous?.element === element &&
+				previous.anchor === comment.anchor &&
+				!changes.some((change) => change.type !== "attributes" && element.contains(change.target));
+			const target = reuse
+				? previous.target
+				: comment.anchor.kind === "text"
+					? textRange(element, comment.anchor)
+					: element;
 			if (target === null) continue;
-			const resolved = { thread: comment.thread, element, target };
+			const resolved = { ...comment, element, target };
 			resolvedByThread.set(comment.thread, resolved);
 			const elementComments = commentsByElement.get(element);
 			if (elementComments === undefined) commentsByElement.set(element, [resolved]);
 			else elementComments.push(resolved);
 		}
-		visibilityObserver = new IntersectionObserver((entries) => {
-			for (const entry of entries) {
-				if (entry.isIntersecting) visibleElements.add(entry.target);
-				else visibleElements.delete(entry.target);
+		for (const element of previousElements.keys()) {
+			if (!commentsByElement.has(element)) {
+				visibilityObserver.unobserve(element);
+				visibleElements.delete(element);
 			}
-			scheduleLayout();
-		});
-		for (const element of commentsByElement.keys()) visibilityObserver.observe(element);
+		}
+		for (const element of commentsByElement.keys()) {
+			if (!previousElements.has(element)) visibilityObserver.observe(element);
+		}
+	};
+	const contentObserver = new MutationObserver((changes) => {
+		contentChanges = contentChanges.concat(changes);
 		scheduleLayout();
+	});
+	contentObserver.observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
+	const refreshComments = () => {
+		contentChanges = contentChanges.concat(contentObserver.takeRecords());
+		if (!anchorsDirty && contentChanges.length === 0) return;
+		anchorsDirty = false;
+		resolveComments(contentChanges);
+		contentChanges = [];
 	};
 	addEventListener("scroll", () => send({ type: "page-scroll", x: scrollX, y: scrollY }), { passive: true });
 	addEventListener("scroll", scheduleLayout, { passive: true });
@@ -212,6 +244,7 @@ const contentRuntime = (nonce: string) => {
 		const data = event.data;
 		if (data.type === "page-comment-reveal" && typeof data.thread === "string") {
 			activeThread = data.thread;
+			refreshComments();
 			const comment = resolvedByThread.get(data.thread);
 			comment?.element.scrollIntoView({
 				block: "center",
@@ -222,7 +255,9 @@ const contentRuntime = (nonce: string) => {
 		}
 		if (data.type === "page-comments-state" && Array.isArray(data.comments)) {
 			comments = data.comments;
-			resolveComments();
+			anchorsDirty = true;
+			refreshComments();
+			scheduleLayout();
 			return;
 		}
 		if (data.type !== "page-state") return;

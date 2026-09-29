@@ -1,7 +1,22 @@
-import { expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { frameRelayScript, pageDocumentScript } from "./renderScript";
 
 const sourceOf = (script: string) => script.slice("<script>".length, -"</script>".length);
+
+const observers = {
+	MutationObserver: globalThis.MutationObserver,
+	IntersectionObserver: globalThis.IntersectionObserver,
+};
+beforeEach(() => {
+	globalThis.MutationObserver = class {
+		observe() {}
+		takeRecords() {
+			return [];
+		}
+	} as unknown as typeof MutationObserver;
+	globalThis.IntersectionObserver = class {} as unknown as typeof IntersectionObserver;
+});
+afterEach(() => Object.assign(globalThis, observers));
 
 test("the Page runtime emits anchors and pin positions without a mutation message", () => {
 	const script = pageDocumentScript("nonce");
@@ -70,6 +85,8 @@ test("the Page runtime reports every pin in the visible region", () => {
 	const sent: { type: string; items?: { thread: string }[] }[] = [];
 	let queryCount = 0;
 	let observer: FakeIntersectionObserver | null = null;
+	let pendingChanges: MutationRecord[] = [];
+	const reveal = { target: null as FakeElement | null };
 	class FakeElement {
 		localName = "p";
 		parentElement = null;
@@ -79,7 +96,12 @@ test("the Page runtime reports every pin in the visible region", () => {
 			const top = this.index % 100;
 			return { bottom: top + 10, height: 10, left: 20, right: 40, top } as DOMRect;
 		}
-		scrollIntoView() {}
+		contains(node: Node) {
+			return (node as unknown) === this;
+		}
+		scrollIntoView() {
+			reveal.target = this;
+		}
 	}
 	class FakeIntersectionObserver {
 		readonly elements: FakeElement[] = [];
@@ -91,6 +113,9 @@ test("the Page runtime reports every pin in the visible region", () => {
 		}
 		observe(element: Element) {
 			this.elements.push(element as unknown as FakeElement);
+		}
+		unobserve(element: Element) {
+			this.elements.splice(this.elements.indexOf(element as unknown as FakeElement), 1);
 		}
 	}
 	const elements = Array.from({ length: 501 }, (_, index) => new FakeElement(index));
@@ -110,6 +135,14 @@ test("the Page runtime reports every pin in the visible region", () => {
 		scrollY: globalThis.scrollY,
 	};
 	globalThis.Element = FakeElement as unknown as typeof Element;
+	globalThis.MutationObserver = class {
+		observe() {}
+		takeRecords() {
+			const records = pendingChanges;
+			pendingChanges = [];
+			return records;
+		}
+	} as unknown as typeof MutationObserver;
 	globalThis.IntersectionObserver = FakeIntersectionObserver as unknown as typeof IntersectionObserver;
 	globalThis.addEventListener = ((type: string, listener: EventListener) => {
 		listeners.set(type, [...(listeners.get(type) ?? []), listener]);
@@ -173,6 +206,21 @@ test("the Page runtime reports every pin in the visible region", () => {
 					?.items?.some(({ thread }) => thread === comment.thread),
 			).toBe(true);
 		}
+		const replacement = new FakeElement(501);
+		byPath.set("p-0", replacement);
+		pendingChanges = [{ type: "childList", target: document } as unknown as MutationRecord];
+		dispatch("message", {
+			source: parent,
+			data: { type: "page-comment-reveal", nonce: "nonce", thread: "thread-0" },
+		});
+		flush();
+		expect(reveal.target).toBe(replacement);
+		expect(observer!.elements).toContain(replacement);
+		expect(observer!.elements).not.toContain(elements[0]!);
+		expect(queryCount).toBe(1002);
+		dispatch("scroll", {});
+		flush();
+		expect(queryCount).toBe(1002);
 	} finally {
 		globalThis.Element = saved.Element;
 		globalThis.IntersectionObserver = saved.IntersectionObserver;
