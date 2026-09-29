@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { AgentWorkspaceFileInputSchema } from "../schemas/agentRun.ts";
+import {
+	AgentWorkspaceFileInputSchema,
+	AgentWorkspacePageInputSchema,
+	AgentWorkspaceSchema,
+} from "../schemas/agentRun.ts";
 import { AgentMessageSchema, TerminalDimensionSchema } from "./agentRuns.ts";
 
 describe("AgentMessageSchema", () => {
@@ -18,6 +22,22 @@ describe("AgentWorkspaceFileInputSchema", () => {
 		const path = `${"nested/".repeat(600)}file.txt`;
 		expect(AgentWorkspaceFileInputSchema.parse({ runId: "01M2PT14NJDS107B4TGK6PNFDA", path }).path).toBe(path);
 	});
+});
+
+test("a workspace page carries an opaque cursor", () => {
+	expect(AgentWorkspacePageInputSchema.parse({ runId: "01M2PT14NJDS107B4TGK6PNFDA", cursor: "next" }).cursor).toBe(
+		"next",
+	);
+	expect(
+		AgentWorkspaceSchema.parse({
+			runId: "01M2PT14NJDS107B4TGK6PNFDA",
+			phase: "diff",
+			files: [],
+			diff: "patch",
+			truncated: false,
+			nextCursor: null,
+		}),
+	).toMatchObject({ phase: "diff", diff: "patch", truncated: false, nextCursor: null });
 });
 
 test("terminal dimensions use the unsigned 16-bit range", () => {

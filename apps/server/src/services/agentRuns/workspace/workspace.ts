@@ -1,17 +1,18 @@
-import { git } from "./git.ts";
+import { ORPCError } from "@orpc/server";
+import { invalidInput } from "../../../errors.ts";
+import { readWorkspaceChanges } from "./readWorkspaceChanges.ts";
 import { target } from "./target.ts";
 import type { WorkspaceCtx } from "./types.ts";
-import { workspaceRevision } from "./workspaceRevision.ts";
 
-export const readWorkspaceChanges = async (workspace: string) => {
-	const state = await workspaceRevision(workspace);
-	const diff = await git(workspace, ["diff", "--no-ext-diff", "--no-textconv", "HEAD", "--"]);
-	return { ...state, diff, truncated: false };
-};
-
-export const workspace = async (ctx: WorkspaceCtx, input: { runId: string }) => {
+export const workspace = async (ctx: WorkspaceCtx, input: { runId: string; cursor?: string }) => {
 	const selected = await ctx.newTx((tx) => target(tx, input));
-	const changes = await readWorkspaceChanges(selected.workspace);
+	let changes: Awaited<ReturnType<typeof readWorkspaceChanges>>;
+	try {
+		changes = await readWorkspaceChanges(selected.workspace, input.cursor);
+	} catch (error) {
+		if (error instanceof ORPCError) throw error;
+		throw invalidInput("workspace", (error as Error).message);
+	}
 	return {
 		...changes,
 		runId: input.runId,

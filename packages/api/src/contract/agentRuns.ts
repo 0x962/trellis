@@ -20,6 +20,7 @@ import {
 	AgentWorkspaceInputSchema,
 	AgentWorkspaceLineStatSchema,
 	AgentWorkspaceLineStatsInputSchema,
+	AgentWorkspacePageInputSchema,
 	AgentWorkspaceSchema,
 	AgentWorkspaceSummarySchema,
 	TicketMetricsSchema,
@@ -133,7 +134,7 @@ export const agentRuns = {
 		.output(AgentWorkspaceSummarySchema),
 	workspace: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
-		.input(AgentWorkspaceInputSchema)
+		.input(AgentWorkspacePageInputSchema)
 		.output(AgentWorkspaceSchema),
 	file: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace/file", summary: "Read a workspace file" })
