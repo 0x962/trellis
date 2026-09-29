@@ -5,6 +5,7 @@ import { createEngineClient, type EngineFetch } from "../../../../langflowHost/e
 import type { NativeDelivery, NativeRuntimeRow } from "../contracts";
 
 export function completionFixture() {
+	const engineWaitId = "00000000-0000-4000-8000-000000000099";
 	const requestBytes = ` ${JSON.stringify(nativeRequest)}\r\n`;
 	const nativeHandle = { ...handle, state: "succeeded" as const, providerSessionId: "provider-original" };
 	const result: NativeResultV1 = {
@@ -24,10 +25,10 @@ export function completionFixture() {
 		requestBytes, resultBytes, authority: currentAuthority, handle: nativeHandle,
 		deliveryBytes: JSON.stringify({ version: 1, result, resultDigest: protocolDigest(resultBytes), authority: currentAuthority }),
 	};
-	const waitBytes = JSON.stringify({ kind: "native", waitId: "wait-original", request: nativeRequest, handle });
+	const waitBytes = JSON.stringify({ kind: "native", waitId: engineWaitId, request: nativeRequest, handle });
 	const receipt: CompletionReceiptV1 = {
 		version: 1, executionId: ids.execution, engineJobId: nativeRequest.engineJobId,
-		completionId: result.completionId, resultDigest: protocolDigest(resultBytes), engineWaitId: "wait-original",
+		completionId: result.completionId, resultDigest: protocolDigest(resultBytes), engineWaitId,
 		continuationReceiptId: "continuation-original", acceptedAt: "2026-09-29T06:10:00Z",
 	};
 	const row: NativeRuntimeRow = {
@@ -39,10 +40,17 @@ export function completionFixture() {
 			dependencies: { fetch: fetcher, readAuthenticationFile: async () => "fixture-engine-token" } });
 	}
 	function lookup(completed: boolean) {
-		return { version: 1, engineJobId: nativeRequest.engineJobId, engineWaitId: "wait-original", waitBytes,
+		return { version: 1, engineJobId: nativeRequest.engineJobId, engineWaitId, waitBytes,
 			state: completed ? "completed" : "waiting", resultBytes: completed ? resultBytes : null,
 			receiptBytes: completed ? JSON.stringify(receipt) : null };
 	}
 	return { row, delivery, result, authorityBytes, waitBytes, receipt, client, lookup,
-		visit: { requestBytes, engineWaitId: "wait-original", waitBytes } };
+		visit: {
+			engineNodeId: "engine-vertex", requestBytes, engineWaitId, waitBytes,
+			occurrence: { nodeId: nativeRequest.nodeId, occurrenceKey: nativeRequest.occurrenceKey,
+				parentOccurrenceKey: nativeRequest.parentOccurrenceKey, phase: nativeRequest.phase, iterationPath: nativeRequest.iterationPath },
+			scope: { inputReceiptIds: nativeRequest.inputReceiptIds, groupDeadlineRefs: nativeRequest.groupDeadlineRefs,
+				deadlineAt: nativeRequest.deadlineAt },
+			admissionReceipt: nativeRequest.admissionReceipt, inputReceipts: [],
+		} };
 }

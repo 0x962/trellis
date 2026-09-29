@@ -5,10 +5,10 @@ import {
 	protocolDigest, readProtocolBytes,
 } from "../../../../langflowContracts";
 import type { EngineRequest, EngineResponse } from "../../../../langflowHost/engineClient";
+import { readNativeVisit } from "../../readNativeVisit";
 import type { NativeDelivery, NativeEngineClient } from "../contracts";
 import { readNativeWait } from "../waitBinding";
 
-const visitSchema = z.object({ requestBytes: z.string(), engineWaitId: z.string().min(1), waitBytes: z.string() });
 const lookupSchema = z.strictObject({
 	version: z.literal(1), engineJobId: z.uuid(), engineWaitId: z.string().min(1),
 	state: z.enum(["waiting", "completed"]), waitBytes: z.string(),
@@ -43,13 +43,9 @@ export async function deliverNativeCompletion(input: {
 			return { state: "unknown" as const };
 		}
 	};
-	const visited = await request("/trellis-v1/native/visit", {
-		requestBytes: delivery.requestBytes, authorityBytes: input.authorityBytes,
+	const visit = await readNativeVisit(input.client, {
+		requestBytes: delivery.requestBytes, authorityBytes: input.authorityBytes, capabilityId: issued.capabilityId, signal,
 	});
-	if (visited.state === "unknown") return pending("visit_unknown");
-	if (visited.status !== 200) return pending(`visit_refused:${visited.status}`);
-	const visit = visitSchema.parse(json(visited));
-	if (visit.requestBytes !== delivery.requestBytes) throw new Error("native_visit_request_conflict");
 	const rawWait = JSON.parse(visit.waitBytes) as { kind?: string; waitId?: string };
 	if (rawWait.kind === "native_reservation" && rawWait.waitId === visit.engineWaitId)
 		return pending("reservation_wait");

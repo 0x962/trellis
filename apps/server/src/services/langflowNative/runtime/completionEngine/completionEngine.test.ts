@@ -17,7 +17,7 @@ test("recovers accepted bytes after a lost completion response without another m
 		if (String(url).endsWith("/lookup")) return Response.json(f.lookup(accepted));
 		expect(body.resultBytes).toBe(f.delivery.resultBytes);
 		expect(body.deliveryBytes).toBe(f.delivery.deliveryBytes);
-		expect(body.engineWaitId).toBe("wait-original");
+		expect(body.engineWaitId).toBe(f.visit.engineWaitId);
 		posts += 1;
 		accepted = true;
 		throw new Error("connection_lost_after_acceptance");
@@ -93,7 +93,7 @@ test("refuses an engine receipt for another wait or changed result bytes", async
 test("keeps a reservation wait pending until the engine retains the native handle", async () => {
 	const f = completionFixture();
 	const client = f.client(async () => Response.json({ ...f.visit,
-		waitBytes: JSON.stringify({ kind: "native_reservation", waitId: f.visit.engineWaitId }) }));
+		waitBytes: JSON.stringify({ kind: "native_reservation", waitId: f.visit.engineWaitId, request: JSON.parse(f.delivery.requestBytes) }) }));
 	expect(await deliverNativeCompletion({ client, delivery: f.delivery, authorityBytes: f.authorityBytes,
 		signal: new AbortController().signal, current: async () => f.delivery })).toEqual({ state: "pending", reason: "reservation_wait" });
 });
