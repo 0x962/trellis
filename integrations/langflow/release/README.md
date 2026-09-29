@@ -101,3 +101,50 @@ node_modules/.bin/biome check integrations/langflow/release
 ```
 
 Hosted candidate builds, offline runtime start, isolation, platform dependencies, and installed session retention remain required under TRL-685.
+
+## Retained qualification proof
+
+`loadQualifiedPackage(input)` verifies a separate qualification record before it derives a supervisor manifest.
+Its exports include `LoadQualifiedPackageInputSchema`, `QualificationRuntimeSchema`, and `PackageQualificationSchema` with their types.
+The input requires absolute `packageRoot` and `qualificationFile`, `packageId`, `qualificationSha256`, `dataHomeId`, and `runtime`.
+The result contains `{ candidate, manifest, qualificationSha256 }`. The candidate keeps its `candidate` qualification.
+The derived manifest and its nested values are frozen.
+
+TRL-667 supplies the retained proof after the actual probes pass.
+The host configuration must obtain `qualificationSha256` from a separately trusted acceptance record.
+The selected proof file and an adjacent checksum cannot establish this trust.
+Hash validation establishes byte identity. The acceptance record establishes whether the recorded probes qualify the tested target and scope.
+The adapter does not create a real qualification record.
+
+The proof has this shape:
+
+```ts
+{
+  schemaVersion: 1,
+  kind: "trellis-package-qualification",
+  subject: { packageId, recipe, imageConfigDigest },
+  probes: { isolation, offlineImport, restartRetention, lifecycle, nativeSessionRetention }
+}
+```
+
+`subject.recipe` contains the complete unchanged `PackageRecipe` from the sealed package.
+The adapter compares all recipe fields, the package ID, and the OCI config digest.
+This comparison binds the source, patches, locks, image, catalog, template export, editor assets, dependencies, license, and target.
+Qualification requires a sealed frontend template export. Its presence preserves all publication blockers.
+Patch identity is `recipe.patchSet.sha256`.
+
+Each probe contains `{ command, result: "passed", scope, evidence: { path, sha256, sizeBytes } }`.
+An evidence path is relative to the proof file's parent directory. The adapter rejects symbolic links and checks the original evidence bytes.
+All five probes are required:
+
+- `isolation`: non-root user, read-only runtime, private writable paths, denied host access, authenticated private endpoint, and denied external egress.
+- `offlineImport`: exact package import and startup without downloads.
+- `restartRetention`: retained database, encryption secret, identities, and receipts.
+- `lifecycle`: health, stop, observed exit, and cleanup of owned processes.
+- `nativeSessionRetention`: original session and attempt survive the tested restart without a duplicate launch.
+
+`runtime` contains the sidecar schema's `data`, `encryptionSecret`, `health`, and `epochOwnership` fields.
+Both runtime home IDs must equal the explicit `dataHomeId` from `LangflowHostControl.readIdentity(config.home)`.
+Runtime paths, secrets, and ownership stay outside the proof subject and package identity.
+The supervisor creates its live owner and instance IDs. The manifest's epoch fields do not establish execution authority.
+The supervisor's full manifest digest identifies the instance configuration. It differs from the immutable package ID.
