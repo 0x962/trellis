@@ -1,14 +1,11 @@
-import {
-	type ChangedFile,
-	type Check,
-	type CiState,
-	MAX_CHANGED_FILES,
-	type Mergeable,
-	type PrState,
-	type ReviewState,
-} from "@trellis/api";
+import type { ChangedFile, Check, CiState, Mergeable, PrState, ReviewState } from "@trellis/api";
 import { parseGhJsonResult } from "./json.ts";
 import { deriveCiState, normalizeChecks, normalizeFiles, type RawContext, type RawFile } from "./parse.ts";
+import {
+	completePullRequestPages,
+	pullRequestCheckFields,
+	pullRequestFileFields,
+} from "./pullRequestPagination/index.ts";
 import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
 // One `gh api graphql` request fetches a batch of pull requests. Each ref gets
@@ -22,25 +19,33 @@ import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
 export type PullRequestRef = { owner: string; repo: string; number: number };
 
+export type PullRequestConnection<T> = {
+	nodes: T[];
+	pageInfo: { hasNextPage: boolean; endCursor: string | null };
+	totalCount: number;
+};
+type RawCheckRollup = { contexts: PullRequestConnection<RawContext> };
+
 export type RawPullRequest = {
 	number: number;
 	additions: number;
 	deletions: number;
 	changedFiles: number;
-	files: { nodes: RawFile[] };
+	files: PullRequestConnection<RawFile>;
 	title: string;
 	state: "OPEN" | "CLOSED" | "MERGED";
 	isDraft: boolean;
 	mergeQueueEntry: { position: number } | null;
 	url: string;
 	headRefOid: string;
+	baseRefOid: string;
 	headRefName: string;
 	baseRefName: string;
 	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
 	mergedAt: string | null;
 	closedAt: string | null;
 	reviewDecision: "REVIEW_REQUIRED" | "APPROVED" | "CHANGES_REQUESTED" | null;
-	commits: { nodes: Array<{ commit: { statusCheckRollup: { contexts: { nodes: RawContext[] } } | null } }> };
+	commits: { nodes: Array<{ commit: { statusCheckRollup: RawCheckRollup | null } }> };
 };
 
 // GitHub sets a null alias when the repository is unknown, and a null
@@ -88,13 +93,9 @@ export type PullRequestResult = { ref: PullRequestRef; row: PullRequestRow } | {
 export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] } | GhFailure;
 
 const selection = `{
-	number additions deletions changedFiles title state isDraft mergeQueueEntry { position } url headRefOid headRefName baseRefName mergeable mergedAt closedAt reviewDecision
-	files(first: ${MAX_CHANGED_FILES}) { nodes { path changeType additions deletions } }
-	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
-		__typename
-		... on CheckRun { name status conclusion startedAt completedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }
-		... on StatusContext { context state targetUrl createdAt }
-	} } } } } }
+	number additions deletions changedFiles title state isDraft mergeQueueEntry { position } url headRefOid baseRefOid headRefName baseRefName mergeable mergedAt closedAt reviewDecision
+	files(first: 100) { ${pullRequestFileFields} }
+	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { ${pullRequestCheckFields} } } } } }
 }`;
 
 const alias = (index: number) => `pr${index}`;
@@ -164,13 +165,43 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 	return { ...content, contentHash: contentHash(content) };
 };
 
-export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullRequestResponse): PullRequestResult[] =>
+type RawPullRequestResult = { ref: PullRequestRef; raw: RawPullRequest } | { ref: PullRequestRef; error: string };
+
+const mapRawPullRequestResponse = (refs: PullRequestRef[], response: PullRequestResponse): RawPullRequestResult[] =>
 	refs.map((ref, index) => {
 		const name = alias(index);
 		const error = response.errors?.find((entry) => entry.path?.[0] === name);
 		if (error !== undefined) return { ref, error: error.message };
-		return { ref, row: toRow(ref, response.data[name]!.pullRequest!) };
+		return { ref, raw: response.data[name]!.pullRequest! };
 	});
+
+export const mapPullRequestResponse = (refs: PullRequestRef[], response: PullRequestResponse): PullRequestResult[] =>
+	mapRawPullRequestResponse(refs, response).map((entry) =>
+		"raw" in entry ? { ref: entry.ref, row: toRow(entry.ref, entry.raw) } : entry,
+	);
+
+const completeResponse = async (
+	runGh: GhRunner,
+	refs: PullRequestRef[],
+	response: PullRequestResponse,
+	slot: GhSlot,
+): Promise<FetchPullRequestsResult> => {
+	const results: PullRequestResult[] = [];
+	for (const entry of mapRawPullRequestResponse(refs, response)) {
+		if (!("raw" in entry)) {
+			results.push(entry);
+			continue;
+		}
+		const complete = await completePullRequestPages(runGh, slot, entry.ref, entry.raw);
+		if (!complete.ok) {
+			if ("reason" in complete) return complete;
+			results.push({ ref: entry.ref, error: complete.error });
+			continue;
+		}
+		results.push({ ref: entry.ref, row: toRow(entry.ref, entry.raw) });
+	}
+	return { ok: true, results };
+};
 
 // gh exits 1 when the response carries `errors`, and still prints the body
 // to stdout. A body whose `data` is an object maps per alias, so one unknown
@@ -193,12 +224,12 @@ export const fetchPullRequests = async (
 	if (result.ok) {
 		const parsed = parseGhJsonResult<PullRequestResponse>(args, result.stdout, result.code);
 		if (!parsed.ok) return parsed.failure;
-		return { ok: true, results: mapPullRequestResponse(refs, parsed.value) };
+		return completeResponse(runGh, refs, parsed.value, slot);
 	}
 	if (result.reason !== "error") return result;
 	const response = parseFailureBody(["api", "graphql"], result.stdout, result.code);
 	if (response === undefined) return result;
-	return { ok: true, results: mapPullRequestResponse(refs, response) };
+	return completeResponse(runGh, refs, response, slot);
 };
 
 // The body a failed gh run printed, when it is a JSON object with a data

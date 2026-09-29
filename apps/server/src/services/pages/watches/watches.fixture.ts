@@ -47,7 +47,6 @@ const watchCtx = (now = watchAt): IoCtx => ({
 	afterCommit: () => {},
 	background: () => {},
 	vacuum: async () => {},
-	maxUploadBytes: 1000,
 	version: "test",
 	apiVersion: "1",
 	bootId: "test",

@@ -1,6 +1,8 @@
 import type { RuntimeTerminalEvent } from "@trellis/runtime-protocol";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 
+const INPUT_CHUNK_BYTES = 64 * 1024;
+
 export function legacyTerminalChannel(
 	client: Pick<RuntimeClient, "subscribe" | "input" | "resize">,
 	id: string,
@@ -8,20 +10,13 @@ export function legacyTerminalChannel(
 	signal: AbortSignal,
 	onError: (error: unknown) => void,
 ) {
-	let queuedBytes = 0;
-	let queuedCommands = 0;
 	let commands = Promise.resolve();
-	const enqueue = (size: number, command: () => Promise<unknown>) => {
-		if (queuedBytes + size > 1024 * 1024 || queuedCommands >= 1024)
-			throw new Error("The terminal input buffer is full");
-		queuedBytes += size;
-		queuedCommands++;
+	const enqueue = (command: () => Promise<unknown>) => {
 		commands = commands.then(async () => {
 			if (!signal.aborted) await command();
-			queuedBytes -= size;
-			queuedCommands--;
 		});
 		void commands.catch(onError);
+		return commands;
 	};
 	async function* events(): AsyncGenerator<RuntimeTerminalEvent> {
 		for await (const event of client.subscribe(id, offset, signal))
@@ -29,8 +24,13 @@ export function legacyTerminalChannel(
 	}
 	return {
 		events: events(),
-		input: (data: Uint8Array, userInput: boolean) =>
-			enqueue(data.byteLength, () => client.input(id, Buffer.from(data).toString("base64"), userInput)),
-		resize: (cols: number, rows: number) => enqueue(0, () => client.resize(id, cols, rows)),
+		input: async (data: Uint8Array, userInput: boolean) => {
+			const length = Math.max(data.byteLength, 1);
+			for (let start = 0; start < length; start += INPUT_CHUNK_BYTES) {
+				const chunk = data.subarray(start, start + INPUT_CHUNK_BYTES);
+				await enqueue(() => client.input(id, Buffer.from(chunk).toString("base64"), userInput));
+			}
+		},
+		resize: (cols: number, rows: number) => enqueue(() => client.resize(id, cols, rows)),
 	};
 }

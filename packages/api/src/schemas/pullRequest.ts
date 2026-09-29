@@ -13,8 +13,6 @@ import {
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ReviewGapSchema } from "./reviewReady.ts";
 
-export const MAX_CHANGED_FILES = 100;
-
 export const ChangedFileSchema = z.object({
 	path: z.string().min(1),
 	change: z.enum(["change", "new", "deleted", "rename-pure", "rename-changed"]),
@@ -49,7 +47,7 @@ export const PullRequestSchema = z.object({
 	additions: CountSchema.nullable(),
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
-	files: z.array(ChangedFileSchema).max(MAX_CHANGED_FILES).nullable(),
+	files: z.array(ChangedFileSchema).nullable(),
 	url: z.string().min(1),
 	title: z.string(),
 	state: PrStateSchema,

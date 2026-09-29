@@ -16,7 +16,7 @@ export const resources = {
 		.input(ResourceIdInputSchema)
 		.output(ResourceSchema),
 	add: base
-		.errors(pickErrors(["PAYLOAD_TOO_LARGE", "PROJECT_ARCHIVED"]))
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({ method: "POST", path: "/resources", successStatus: 201, summary: "Add a resource to an epic" })
 		.input(ResourceAddInputSchema)
 		.output(ResourceSchema),

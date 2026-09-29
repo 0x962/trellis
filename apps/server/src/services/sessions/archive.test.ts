@@ -105,7 +105,6 @@ beforeAll(async () => {
 		actor: core.actor!,
 		session: null,
 		home: "/nowhere",
-		maxUploadBytes: 1024,
 		version: "test",
 		apiVersion: "1",
 		bootId: ulid(),

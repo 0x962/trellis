@@ -4,7 +4,7 @@ import type { DraftBundle, DraftEntry } from "./types";
 
 const graph = z.object({
 	version: z.number().int().positive(),
-	graph: z.object({ nodes: z.array(FlowNodeSchema).max(500), edges: z.array(FlowEdgeSchema).max(2000) }),
+	graph: z.object({ nodes: z.array(FlowNodeSchema), edges: z.array(FlowEdgeSchema) }),
 });
 const finding = z.object({
 	id: z.string(),
@@ -19,15 +19,13 @@ const schema = z.strictObject({
 	format: z.literal("trellis-drafts"),
 	version: z.literal(1),
 	exportedAt: z.iso.datetime(),
-	entries: z
-		.array(
-			z.strictObject({
-				area: z.enum(["local", "session"]),
-				key: z.string().min(1).max(8192),
-				value: z.string().max(8 * 1024 * 1024),
-			}),
-		)
-		.max(1000),
+	entries: z.array(
+		z.strictObject({
+			area: z.enum(["local", "session"]),
+			key: z.string().min(1),
+			value: z.string(),
+		}),
+	),
 });
 export function draftKind(entry: Pick<DraftEntry, "area" | "key">): "flow" | "review" | "text" | "ticket" | null {
 	if (entry.area === "session") return entry.key === "trellis-composer-draft" ? "ticket" : null;
@@ -38,7 +36,6 @@ export function draftKind(entry: Pick<DraftEntry, "area" | "key">): "flow" | "re
 	return null;
 }
 export function parseDraftBundle(text: string): DraftBundle {
-	if (new TextEncoder().encode(text).length > 10 * 1024 * 1024) throw new Error("The draft file exceeds 10 MiB.");
 	const bundle = schema.parse(JSON.parse(text));
 	for (const entry of bundle.entries) {
 		const kind = draftKind(entry);

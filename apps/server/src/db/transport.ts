@@ -37,8 +37,6 @@ export type {
 } from "./transportTypes";
 export { createWorkerTransport } from "./workerTransport.ts";
 
-const MB = 1024 * 1024;
-
 // The time between two sweeps of finished agent files.
 export const FILE_SWEEP_MS = 60 * 60 * 1000;
 
@@ -81,7 +79,6 @@ export const createInlineTransport = ({
 		actor: ctx.actor ?? SYSTEM_ACTOR,
 		session: ctx.session,
 		home: config.home,
-		maxUploadBytes: config.maxUploadMb * MB,
 		version: runtime.version,
 		apiVersion: API_VERSION,
 		bootId: runtime.bootId,

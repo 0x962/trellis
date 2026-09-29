@@ -23,11 +23,9 @@ export async function codexControl(input: {
 			return reply(404, { error: "Not found" });
 		let ownsPending = false;
 		try {
+			request.setEncoding("utf8");
 			let body = "";
-			for await (const chunk of request) {
-				body += chunk;
-				if (body.length > 1048576) return reply(413, { error: "Request too large" });
-			}
+			for await (const chunk of request) body += chunk;
 			const value = z
 				.object({ sessionId: z.string(), prompt: z.string().optional(), turnId: z.string().optional() })
 				.parse(JSON.parse(body));
