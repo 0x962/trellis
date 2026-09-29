@@ -85,6 +85,14 @@ test("migration 0077 ends with the same label tables on the three database shape
 		expect(await rowCounts(kept)).toEqual(empty);
 		expect(await rowCounts(fresh)).toEqual(empty);
 
+		await apply(
+			skipped,
+			files.filter((name) => index(name) > 77),
+		);
+		await apply(
+			kept,
+			files.filter((name) => index(name) > 77),
+		);
 		const shape = await catalog(fresh);
 		expect(await catalog(skipped)).toBe(shape);
 		expect(await catalog(kept)).toBe(shape);

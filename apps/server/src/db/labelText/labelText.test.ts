@@ -54,17 +54,28 @@ beforeAll(async () => {
 		(${projectId},'TST','tst','Test',${at},${at}),
 		(${otherProjectId},'OTH','oth','Other',${at},${at})`);
 	await db.execute(sql`INSERT INTO label_groups (id,project_id,name,created_at,updated_at)
-		VALUES ('old-group',${projectId},'Existing group',${at},${at})`);
+		VALUES ('01J00000000000000000000012',${projectId},'Existing group',${at},${at})`);
 	await db.execute(sql`INSERT INTO labels (id,project_id,group_id,name,color,description,created_at,updated_at)
-		VALUES ('old-label',${projectId},'old-group','Existing label','blue','Existing description',${at},${at})`);
+		VALUES ('01J00000000000000000000013',${projectId},'01J00000000000000000000012','Existing label','blue','Existing description',${at},${at})`);
+	await db.execute(sql`INSERT INTO statuses
+		(id,project_id,name,slug,category,color,position,is_default,created_at,updated_at)
+		VALUES ('01J00000000000000000000014',${projectId},'Todo','todo','todo','fg-muted',0,true,${at},${at})`);
+	await db.execute(sql`INSERT INTO tickets (id,project_id,number,title,status_id,position,created_at,updated_at)
+		VALUES ('01J00000000000000000000015',${projectId},1,'Retained ticket','01J00000000000000000000014',0,${at},${at})`);
+	await db.execute(sql`INSERT INTO ticket_labels (ticket_id,label_id,created_at)
+		VALUES ('01J00000000000000000000015','01J00000000000000000000013',${at})`);
+	const linksBefore = await db.execute(sql`SELECT * FROM ticket_labels`);
 	const before = await db.execute(sql`SELECT row_to_json(l) AS row FROM labels l`);
 	const groupsBefore = await db.execute(sql`SELECT row_to_json(g) AS row FROM label_groups g`);
-	await expect(db.execute(sql`UPDATE labels SET name = ${name} WHERE id = 'old-label'`)).rejects.toThrow();
+	await expect(
+		db.execute(sql`UPDATE labels SET name = ${name} WHERE id = '01J00000000000000000000013'`),
+	).rejects.toThrow();
 	for (const entry of journal.entries.filter((entry) => entry.idx >= 138)) {
 		await db.$client.exec(readFileSync(join(directory, `${entry.tag}.sql`), "utf8"));
 	}
 	expect((await db.execute(sql`SELECT row_to_json(l) AS row FROM labels l`)).rows).toEqual(before.rows);
 	expect((await db.execute(sql`SELECT row_to_json(g) AS row FROM label_groups g`)).rows).toEqual(groupsBefore.rows);
+	expect((await db.execute(sql`SELECT * FROM ticket_labels`)).rows).toEqual(linksBefore.rows);
 	cache = createCache();
 	await withTx(db, (tx) => cache.rebuild(tx));
 }, 60_000);
@@ -127,8 +138,14 @@ test("long names retain case-insensitive uniqueness within each scope", async ()
 
 test("database checks retain invalid-name and color rejection", async () => {
 	for (const invalid of ["", " padded ", "a,b", "a/b", "NoNe"]) {
-		await expect(db.execute(sql`UPDATE labels SET name = ${invalid} WHERE id = 'old-label'`)).rejects.toThrow();
-		await expect(db.execute(sql`UPDATE label_groups SET name = ${invalid} WHERE id = 'old-group'`)).rejects.toThrow();
+		await expect(
+			db.execute(sql`UPDATE labels SET name = ${invalid} WHERE id = '01J00000000000000000000013'`),
+		).rejects.toThrow();
+		await expect(
+			db.execute(sql`UPDATE label_groups SET name = ${invalid} WHERE id = '01J00000000000000000000012'`),
+		).rejects.toThrow();
 	}
-	await expect(db.execute(sql`UPDATE labels SET color = 'invalid' WHERE id = 'old-label'`)).rejects.toThrow();
+	await expect(
+		db.execute(sql`UPDATE labels SET color = 'invalid' WHERE id = '01J00000000000000000000013'`),
+	).rejects.toThrow();
 });
