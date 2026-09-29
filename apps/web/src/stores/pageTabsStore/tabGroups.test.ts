@@ -258,6 +258,11 @@ test("the selected tab never lands in a collapsed group", () => {
 	expect(store.getState().groups.map((group) => group.id)).toEqual([g]);
 	// Reopen of a tab whose stored group was collapsed at the close.
 	store.getState().reopenClosedTab();
+	store.getState().selectTab(a);
+	store.getState().setGroupCollapsed(h, true);
+	store.getState().closeTab(d);
+	expect(store.getState().groups.map((group) => group.id)).toEqual([g]);
+	store.getState().reopenClosedTab();
 	expect(store.getState().activeId).toBe(d);
 	expect(store.getState().groups.map((group) => group.id)).toEqual([g, h]);
 	expect(collapsed(h)).toBe(false);
