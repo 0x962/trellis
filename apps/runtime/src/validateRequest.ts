@@ -21,6 +21,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			"turn",
 			"input",
 			"deliver",
+			"queue",
 			"resize",
 			"stop",
 			"output",
@@ -137,12 +138,13 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				)
 					throw new Error(`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`);
 			break;
+		case "queue":
 		case "deliver":
 		case "input":
 			if (params.userInput !== undefined && typeof params.userInput !== "boolean")
 				throw new Error("The user input flag must be a boolean");
 			if (
-				request.method === "deliver" &&
+				(request.method === "deliver" || request.method === "queue") &&
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
 			)
 				throw new Error("Message identifier is required");

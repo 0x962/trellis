@@ -139,16 +139,31 @@ export class SessionStore {
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
 		return registerNativeDelivery(this.get(input.id), input);
 	}
+	private async flushQueued(record: Record) {
+		if (record.process === undefined || record.activity?.state === "working") return;
+		for (const message of record.ledger.queued())
+			await record.ledger.flushQueued(message.messageId, (data) => this.input(record.session.id, data));
+	}
+	async queue(id: string, messageId: string, data: string) {
+		const record = this.get(id);
+		const delivery = record.ledger.queue(messageId, data);
+		await this.flushQueued(record);
+		return delivery.status === "written" || record.ledger.delivered(messageId)
+			? { messageId, status: "written" as const }
+			: delivery;
+	}
 	observe({ id, token, event, expected }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
 		const record = this.get(id);
 		authenticateSession(record, token);
 		assertExpectedTurn(record, expected);
 		observeHarness(record, event);
+		if (record.activity?.state !== "working") void this.flushQueued(record).catch(() => undefined);
 		return this.inspect(id);
 	}
 	turn(input: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
 		const record = this.get(input.id);
 		observeLegacyTurn(record, input);
+		if (record.activity?.state !== "working") void this.flushQueued(record).catch(() => undefined);
 		return this.inspect(input.id);
 	}
 	subscribe(

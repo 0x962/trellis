@@ -81,3 +81,13 @@ test("accepts terminal dimensions through the PTY encoding range", () => {
 			`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`,
 		);
 });
+
+test("accepts a queued delivery", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "queue",
+		params: { id: "attempt", messageId: "status-request", data: "c3RhdHVz" },
+	};
+	expect(validateRequest(value) === value).toBe(true);
+});
