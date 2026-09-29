@@ -6,6 +6,7 @@ import {
 	CountsQuerySchema,
 	ListOutputSchema,
 	ListQuerySchema,
+	TicketDependenciesSchema,
 	TicketGetInputSchema,
 	TicketSchema,
 } from "../schemas/ticket.ts";
@@ -109,6 +110,10 @@ export const tickets = {
 		.route({ method: "POST", path: "/tickets/import-dependencies", summary: "Import dependency edges from one epic" })
 		.input(TicketImportDependenciesInputSchema)
 		.output(TicketImportDependenciesOutputSchema),
+	dependencies: base
+		.route({ method: "GET", path: "/tickets/{ticket}/dependencies", summary: "Read all stored ticket dependencies" })
+		.input(TicketGetInputSchema)
+		.output(TicketDependenciesSchema),
 	updateDependencies: base
 		.errors(pickErrors(["DEPENDENCY_CYCLE", "PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
 		.route({

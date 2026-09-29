@@ -15,15 +15,42 @@
 			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
 		},
 		{
+			"name": "backend-delivery-reader",
+			"path": "reports/langflow-feasibility-review/backend-delivery-reader.patch",
+			"sha256": "4860d0768a44e0779ae569640c9e74b33c0916b19efb14a5071560da6dae835c",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-queue-composition.json"
+		},
+		{
+			"name": "backend-queue-transactions",
+			"path": "integrations/langflow/patches/externalWaits/0002-queue-bootstrap-and-completion-transactions.patch",
+			"sha256": "4e6430b4dc0afdf1eeb9bf8abd6225ca0399cdd244299f5a429f482d9c3a6310",
+			"directory": "."
+		},
+		{
 			"name": "backend-schema",
 			"path": "integrations/langflow/patches/schema/0001-trellis-feasibility-tables.patch",
 			"sha256": "ce6045c74cba13e39ad774ca580dd47c74ccfecbfb6ceedd5964bd00e453d5a6",
 			"directory": "."
 		},
 		{
+			"name": "backend-publications",
+			"path": "integrations/langflow/patches/publications/0001-immutable-publications.patch",
+			"sha256": "b3e863aaa70eead267947af2cad9bf5eeb75abcb56ff66294f76e4e6bb8f2815",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/publications/manifest.json"
+		},
+		{
+			"name": "backend-backup",
+			"path": "integrations/langflow/patches/backup/0001-consistent-engine-snapshot.patch",
+			"sha256": "6ea114d4dd0e551ed9d1302d383c13346328704aa84acc6738a36596499a4734",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/backup/manifest.json"
+		},
+		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
-			"sha256": "9a33da5d85c5ba3ff8b57f32af57400b1c2fe3cd4a68bd5131d78829f77ebb0c",
+			"sha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
 			"directory": "src/frontend",
 			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
 		}
@@ -33,6 +60,8 @@
 		"integrations/langflow/tests/semantics",
 		"integrations/langflow/tests/decisions",
 		"integrations/langflow/tests/nativeLifecycle",
+		"integrations/langflow/tests/restore",
+		"integrations/langflow/tests/publications",
 		"integrations/langflow/editor-probe",
 		"reports/langflow-large-graph-design"
 	],

@@ -1,11 +1,15 @@
 import { Command as Cmdk } from "cmdk";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 export type CommandListProps = {
 	children: ReactNode;
-};
+} & Pick<ComponentProps<typeof Cmdk.List>, "ref" | "className" | "style" | "onScroll">;
 
 // The scrolling option list of a composed Command.
-export function CommandList({ children }: CommandListProps) {
-	return <Cmdk.List className="max-h-100 overflow-y-auto p-1">{children}</Cmdk.List>;
+export function CommandList({ children, className = "max-h-100", ...props }: CommandListProps) {
+	return (
+		<Cmdk.List {...props} className={`overflow-y-auto p-1 ${className}`}>
+			{children}
+		</Cmdk.List>
+	);
 }
