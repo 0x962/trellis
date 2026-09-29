@@ -158,16 +158,27 @@ const backEdges = (nodes: FlowGraphNode[], edges: FlowGraphEdge[]) => {
 	for (const edge of edges) outgoing.set(edge.fromNodeId, [...(outgoing.get(edge.fromNodeId) ?? []), edge]);
 	const state = new Map<string, "open" | "done">();
 	const found: FlowGraphEdge[] = [];
-	const visit = (id: string) => {
-		state.set(id, "open");
-		for (const edge of outgoing.get(id) ?? []) {
+	for (const node of nodes) {
+		if (state.has(node.id)) continue;
+		state.set(node.id, "open");
+		const stack = [{ id: node.id, edgeIndex: 0 }];
+		while (stack.length > 0) {
+			const frame = stack.at(-1)!;
+			const edge = outgoing.get(frame.id)?.[frame.edgeIndex];
+			if (edge === undefined) {
+				state.set(frame.id, "done");
+				stack.pop();
+				continue;
+			}
+			frame.edgeIndex++;
 			const next = state.get(edge.toNodeId);
 			if (next === "open") found.push(edge);
-			else if (next === undefined) visit(edge.toNodeId);
+			else if (next === undefined) {
+				state.set(edge.toNodeId, "open");
+				stack.push({ id: edge.toNodeId, edgeIndex: 0 });
+			}
 		}
-		state.set(id, "done");
-	};
-	for (const node of nodes) if (!state.has(node.id)) visit(node.id);
+	}
 	return found;
 };
 

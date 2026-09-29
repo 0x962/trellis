@@ -1,5 +1,6 @@
 import type {
 	SessionObserver,
+	SessionObserverError,
 	SessionObserverMessage,
 	SessionObserverMessageInput,
 	SessionObserverUpdateInput,
@@ -17,8 +18,7 @@ import { readSessionObserver, sessionObserverByRun, sessionObserverMessages } fr
 export type SessionObserverGenerationClaim = {
 	observerId: string;
 	runId: string;
-	providerId: string;
-	modelId: string;
+	observerRunId: string | null;
 	generation: number;
 	claimId: string;
 	fromCursor: string | null;
@@ -35,7 +35,8 @@ export const claimSessionObserverGeneration = async (
 		observer === null ||
 		!observer.enabled ||
 		observer.generationState === "generating" ||
-		observer.lastConsumedCursor === input.throughCursor
+		observer.lastConsumedCursor === input.throughCursor ||
+		observer.lastAttemptedCursor === input.throughCursor
 	)
 		return null;
 	const claimId = crypto.randomUUID();
@@ -45,8 +46,7 @@ export const claimSessionObserverGeneration = async (
 	return {
 		observerId: observer.observerId,
 		runId: observer.runId,
-		providerId: observer.providerId,
-		modelId: observer.modelId,
+		observerRunId: observer.observerRunId,
 		generation,
 		claimId,
 		fromCursor: observer.lastConsumedCursor,
@@ -66,18 +66,54 @@ export const appendSessionObserverMessages = async (
 	tx: Tx,
 	input: AppendSessionObserverMessagesInput,
 ): Promise<SessionObserverMessage[]> => {
+	await tx.execute(sql`SELECT run_id FROM session_observers WHERE observer_id=${input.observerId} FOR UPDATE`);
+	const [last] = await rows<{ position: number }>(
+		tx,
+		sql`SELECT coalesce(max(position), -1)::int AS position FROM session_observer_messages
+		WHERE observer_id=${input.observerId} AND generation=${input.generation}`,
+	);
 	const saved: SessionObserverMessage[] = [];
-	for (const message of input.messages) {
+	for (const [offset, message] of input.messages.entries()) {
+		const position = last!.position + offset + 1;
 		const [row] = await rows<SessionObserverMessage>(
 			tx,
-			sql`INSERT INTO session_observer_messages (id, observer_id, generation, role, body, created_at)
-			VALUES (${ulid()}, ${input.observerId}, ${input.generation}, ${message.role}, ${message.body}, ${input.createdAt})
-			RETURNING id, observer_id AS "observerId", generation, role, body,
+			sql`INSERT INTO session_observer_messages (id, observer_id, generation, position, role, body, created_at)
+			VALUES (${ulid()}, ${input.observerId}, ${input.generation}, ${position}, ${message.role}, ${message.body}, ${input.createdAt})
+			RETURNING id, observer_id AS "observerId", generation, position, role, body,
 			${iso(sql`created_at`)} AS "createdAt"`,
 		);
 		saved.push(row!);
 	}
 	return saved;
+};
+
+export const saveSessionObserverSummary = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	input: { runId: string; claimId: string; message: SessionObserverMessageInput },
+): Promise<SessionObserverMessage | null> => {
+	const observer = await sessionObserverByRun(tx, { runId: input.runId, lock: true });
+	if (
+		observer === null ||
+		!observer.enabled ||
+		observer.generationState !== "generating" ||
+		observer.generationClaimId !== input.claimId
+	)
+		return null;
+	const [existing] = await rows<SessionObserverMessage>(
+		tx,
+		sql`SELECT id, observer_id AS "observerId", generation, position, role, body,
+		${iso(sql`created_at`)} AS "createdAt" FROM session_observer_messages
+		WHERE observer_id=${observer.observerId} AND generation=${observer.generation} AND position=0`,
+	);
+	if (existing) return existing;
+	const [saved] = await appendSessionObserverMessages(tx, {
+		observerId: observer.observerId,
+		generation: observer.generation,
+		messages: [input.message],
+		createdAt: ctx.now,
+	});
+	return saved!;
 };
 
 export type SaveSessionObserverGenerationInput = {
@@ -116,7 +152,8 @@ export const saveSessionObserverGeneration = async (
 	const owner = await resolveSessionUpdateOwner(tx, input.runId);
 	const update = await saveSessionUpdate(ctx, tx, { owner, ...input.update });
 	await tx.execute(sql`UPDATE session_observers SET generation_state='idle', generation_claim_id=NULL,
-		generation_cursor=NULL, last_consumed_cursor=${input.throughCursor}, error=NULL, updated_at=${ctx.now}
+		generation_cursor=NULL, last_consumed_cursor=${input.throughCursor}, last_attempted_cursor=NULL,
+		error_code=NULL, error=NULL, updated_at=${ctx.now}
 		WHERE run_id=${input.runId}`);
 	return { observer: await readSessionObserver(tx, input.runId), update };
 };
@@ -124,7 +161,7 @@ export const saveSessionObserverGeneration = async (
 export const failSessionObserverGeneration = async (
 	ctx: ServiceCtx,
 	tx: Tx,
-	input: { runId: string; claimId: string; error: string },
+	input: { runId: string; claimId: string; error: SessionObserverError },
 ): Promise<SessionObserver | null> => {
 	const observer = await sessionObserverByRun(tx, { runId: input.runId, lock: true });
 	if (
@@ -135,6 +172,36 @@ export const failSessionObserverGeneration = async (
 	)
 		return null;
 	await tx.execute(sql`UPDATE session_observers SET generation_state='idle', generation_claim_id=NULL,
-		generation_cursor=NULL, error=${input.error}, updated_at=${ctx.now} WHERE run_id=${input.runId}`);
+		last_attempted_cursor=generation_cursor, generation_cursor=NULL, error_code=${input.error.code},
+		error=${input.error.message}, updated_at=${ctx.now}
+		WHERE run_id=${input.runId}`);
+	return readSessionObserver(tx, input.runId);
+};
+
+export const recoverSessionObserverGenerations = async (ctx: ServiceCtx, tx: Tx): Promise<string[]> => {
+	const recovered = await rows<{ runId: string }>(
+		tx,
+		sql`UPDATE session_observers SET generation_state='idle', generation_claim_id=NULL,
+		generation_cursor=NULL, updated_at=${ctx.now} WHERE generation_state='generating' RETURNING run_id AS "runId"`,
+	);
+	return recovered.map(({ runId }) => runId);
+};
+
+export const retrySessionObserverGeneration = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	input: { runId: string },
+): Promise<SessionObserver | null> => {
+	const observer = await sessionObserverByRun(tx, { runId: input.runId, lock: true });
+	if (
+		observer === null ||
+		!observer.enabled ||
+		observer.generationState === "generating" ||
+		observer.lastAttemptedCursor === null
+	)
+		return null;
+	await tx.execute(sql`UPDATE session_observers SET last_attempted_cursor=NULL, error_code=NULL, error=NULL,
+		updated_at=${ctx.now}
+		WHERE run_id=${input.runId}`);
 	return readSessionObserver(tx, input.runId);
 };
