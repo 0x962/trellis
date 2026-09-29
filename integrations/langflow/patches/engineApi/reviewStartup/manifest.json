@@ -1,0 +1,17 @@
+{
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "0001-register-review-gate-startup.patch",
+  "sha256": "25883e05f5bfc680deba630a11e92ddb4c19ccfe2eef78d3d7bed11df404c13f",
+  "files": {
+    "src/backend/base/langflow/services/trellis_v1/startup.py": "b9feda30eeac7e8d97f6d16f70f3af2848ecac6ef73f863167f8e1d3bf1bc15a"
+  },
+  "tests": {
+    "tests/test_review_startup.py": "5ddd9745d28b6b25004be8905849e025dd1ae29e4e6dc19782e206c1e2f43cd8"
+  },
+  "requires": [
+    "langflow.services.trellis_v1.review_gate_router.create_review_gate_router",
+    "langflow.services.trellis_v1.review_gate_transport.install_review_gate_transport",
+    "the per-instance native reservation authentication file",
+    "the explicit private engine API startup fragment"
+  ]
+}
