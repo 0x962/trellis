@@ -1,5 +1,6 @@
 export { cancelView } from "./cancelView";
 export { decisionView } from "./decisionView";
+export { discovery } from "./discovery";
 export { documentTag } from "./documentTag";
 export { getView } from "./getView";
 export { list } from "./list";
