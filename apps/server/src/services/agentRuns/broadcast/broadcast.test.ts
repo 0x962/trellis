@@ -97,15 +97,20 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		},
 	});
 	expect(repeated.map((call) => call.messageId).sort()).toEqual(calls.map((call) => call.messageId).sort());
-	await prepareBroadcast(
+	const distinct: Array<{ id: string; messageId: string }> = [];
+	const distinctResult = await prepareBroadcast(
 		fixture.ctx,
 		{ ...input, requestId: `${requestId}other` },
 		{
 			read: fixture.read,
 			send: async (_ctx, delivery) => {
-				expect(calls.some((call) => call.messageId === delivery.messageId)).toBe(false);
+				distinct.push(delivery);
 			},
 		},
+	);
+	expect(distinctResult.failures).toEqual([]);
+	expect(distinct.map((call) => call.messageId).sort()).toEqual(
+		calls.map((call) => `${requestId}other-${call.id}`).sort(),
 	);
 });
 
