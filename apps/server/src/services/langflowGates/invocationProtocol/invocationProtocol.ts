@@ -1,6 +1,6 @@
 export {
-	ReviewClassificationVisitV1Schema as ReviewGateRequestSchema,
+	type ReviewClassificationResponseV1 as ReviewGateResponse,
 	ReviewClassificationResponseV1Schema as ReviewGateResponseSchema,
 	type ReviewClassificationVisitV1 as ReviewGateRequest,
-	type ReviewClassificationResponseV1 as ReviewGateResponse,
+	ReviewClassificationVisitV1Schema as ReviewGateRequestSchema,
 } from "../../../langflowContracts/review";
