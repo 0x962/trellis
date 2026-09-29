@@ -122,7 +122,7 @@ export const FlowOccurrenceV1Schema = FlowOccurrenceIdentityV1Schema.extend({
 	instruction: z.string(),
 	actionKey: opaqueId,
 	state: FlowStepStateSchema,
-	waitReason: z.enum(["human", "native", "ownership_unknown", "admission"]).nullable(),
+	waitReason: z.enum(["human", "native", "review", "ownership_unknown", "admission"]).nullable(),
 	output: z.string().nullable(),
 	outputSource: FlowOutputSourceV1Schema.nullable().describe(
 		"The retained native result that supplies the output. Null means that no native result binding is available.",
@@ -197,6 +197,7 @@ export const FlowExecutionViewV1Schema = FlowExecutionSchema.omit({
 			"active",
 			"waiting_human",
 			"waiting_native",
+			"waiting_review",
 			"unknown",
 			"completed",
 			"failed",
