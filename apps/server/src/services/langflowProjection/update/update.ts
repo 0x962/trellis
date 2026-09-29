@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import type { ServiceCtx } from "../../context.ts";
+import type { ServiceCtx } from "../../../context.ts";
 import {
 	assertAuthority,
 	commitProjection,
@@ -7,19 +7,19 @@ import {
 	lockExecution,
 	readProjection,
 	readProjectionFacts,
-} from "../../db/queries/langflowExecution";
-import { classificationStore } from "../../db/queries/langflowExecution/classification.ts";
-import type { Tx } from "../../db/tx.ts";
-import { fail } from "../../errors.ts";
+} from "../../../db/queries/langflowExecution";
+import { classificationStore } from "../../../db/queries/langflowExecution/classification.ts";
+import type { Tx } from "../../../db/tx.ts";
+import { fail } from "../../../errors.ts";
 import {
 	type DeliveryAuthorityV1,
 	ExecutionEventV1Schema,
 	protocolDigest,
 	readProtocolBytes,
 	SourceEventV1Schema,
-} from "../../langflowContracts";
-import type { ProjectionObservation } from "./observation.ts";
-import { project } from "./project.ts";
+} from "../../../langflowContracts";
+import type { ProjectionObservation } from "../observation.ts";
+import { project } from "../project.ts";
 
 export type ProjectionUpdate = {
 	executionId: string;

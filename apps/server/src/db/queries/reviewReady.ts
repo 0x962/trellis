@@ -2,6 +2,27 @@ import type { Check, LocalPrState, Mergeable, PrState, ReviewReadyFacts } from "
 import { type SQL, sql } from "drizzle-orm";
 import { flowAppliesToProject } from "./flowScope.ts";
 
+// The V1 projector validates native results and human receipts before it stores a successful status.
+// Both engines retain their original agent runs so review comments keep their session attribution.
+export const flowReviewExecutionsSql = sql`
+	SELECT execution.id, execution.flow_id, execution.ticket_id, execution.diff_id,
+		execution.head_sha AS reviewed_head, execution.created_at,
+		execution.doc->'flow'->>'name' AS name, execution.state->>'status' AS status,
+		ARRAY(SELECT task.run_id FROM flow_execution_tasks task WHERE task.execution_id = execution.id) AS agent_run_ids
+	FROM flow_executions execution
+	UNION ALL
+	SELECT execution.execution_id AS id, execution.flow_id, execution.ticket_id, execution.diff_id,
+		execution.reviewed_head, execution.created_at,
+		projection.view->'snapshot'->'flow'->>'name' AS name, projection.view->>'status' AS status,
+		ARRAY(
+			SELECT DISTINCT attempt->>'agentRunId'
+			FROM jsonb_array_elements(projection.view->'occurrences') occurrence
+			CROSS JOIN LATERAL jsonb_array_elements(occurrence->'attempts') attempt
+		) AS agent_run_ids
+	FROM langflow_executions execution
+	JOIN langflow_execution_projections projection ON projection.execution_id = execution.execution_id
+`;
+
 // The facts that `reviewGaps` in `packages/api` reads, in SQL. `p` is the
 // alias of the `pull_requests` row in the caller's query.
 
@@ -28,12 +49,12 @@ export const flowAnsweredSql = (p: SQL) => sql`(
 		WHERE waiver.pull_request_id = ${p}.id
 	)
 	OR EXISTS (
-		SELECT 1 FROM flow_executions execution
+		SELECT 1 FROM (${flowReviewExecutionsSql}) execution
 		JOIN flows flow ON flow.id = execution.flow_id
 		JOIN tickets ticket ON ticket.id IN (${linkedTickets(p)})
 		WHERE execution.diff_id = ${p}.id
 			AND ${flowAppliesToProject(sql`flow`, sql`ticket.project_id`)}
-			AND execution.state->>'status' = 'succeeded'
+			AND execution.status = 'succeeded'
 	)
 )`;
 
