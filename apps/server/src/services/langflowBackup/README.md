@@ -114,7 +114,7 @@ A separate owner must install those bytes and verify the live engine before rele
 The source and all later live records remain intact.
 
 `readPairedSeal` verifies the stored inventory and exact engine binding, database file, encryption secret, and version receipts.
-It returns retained source bytes and their digests for the manifest, engine receipt, native inventory, stop records, and Trellis file inventory.
+It returns retained source bytes and their digests for the manifest, engine receipt, native inventory, stop records, and canonical Trellis facts.
 Captured stop records name the source block; current restore reconciliation must query facts for the target block.
 These retained bytes do not identify the database currently open in a live engine.
 TRL-676 owns the actual current-store verifier, authority and attempt reconciliation, and final gate release.
@@ -129,3 +129,20 @@ A failure keeps these paths for inspection and explicit recovery.
 Cleanup must first settle capture revocation and preserve the operation evidence.
 This module does not delete source snapshots, live homes, unknown workspaces, or provider conversations.
 The integrated runner must supply these exact paths to its cleanup owner.
+
+## Canonical database facts
+
+The capture worker calls `readReconciliationFacts(tx)` before `system.snapshot` in the same transaction.
+It saves the result in `workspaces/trellis-database-facts.json` with mode 0600 and syncs the file before the seal.
+The result holds `migrations` and `facts`, each with an exact `sourceBytes` string and its UTF-8 SHA256 in `sourceDigest`.
+The storage query owns the canonical representation of the rows and retained native associations.
+The backup code stores these strings without parsing or reserializing their contents.
+The migration digest must match `SnapshotCompatibility.trellisDatabaseVersion`.
+
+`readPairedSeal` validates the facts file through the complete snapshot inventory and `ReconciliationFactsSchema`.
+It checks each string digest and the migration binding.
+It exposes the original result as `trellisFacts` and the exact outer file bytes as `sources.trellisDatabase`.
+A snapshot without this file fails with `paired_trellis_facts_unavailable` for reconciliation.
+Its physical files remain readable through `readSnapshot`.
+The live worker must compare these facts under the required exclusion before release.
+The presence of this file does not prove current destination state or complete workspace and conversation exports.

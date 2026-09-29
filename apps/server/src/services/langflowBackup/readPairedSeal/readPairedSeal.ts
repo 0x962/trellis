@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
+import { ReconciliationFactsSchema } from "../../../db/queries/langflowExecution";
 import { protocolDigest } from "../../../langflowContracts";
 import type { LangflowHostControl } from "../../../langflowHost";
 import { CaptureGrantSchema, CaptureRecordSchema } from "../../../langflowHost/captureAuthority/schema/schema";
@@ -84,13 +85,12 @@ export async function readPairedSeal(ctx: { control: LangflowHostControl }, inpu
 		throw new Error("paired_engine_files_mismatch");
 	const nativeBytes = await readFile(join(directory, "workspaces", "native-launches", "inventory.json"), "utf8");
 	const stopBytes = await readFile(join(directory, "workspaces", "stop-reconciliation.json"), "utf8");
-	const trellisBytes = JSON.stringify({
-		version: {
-			trellisRelease: manifest.compatibility.trellisRelease,
-			trellisDatabaseVersion: manifest.compatibility.trellisDatabaseVersion,
-		},
-		files: manifest.files.filter((entry) => entry.path.startsWith("trellis/")),
-	});
+	const factsPath = "workspaces/trellis-database-facts.json";
+	if (!manifest.files.some((entry) => entry.path === factsPath)) throw new Error("paired_trellis_facts_unavailable");
+	const trellisBytes = await readFile(join(directory, factsPath), "utf8");
+	const trellisFacts = ReconciliationFactsSchema.parse(JSON.parse(trellisBytes));
+	if (trellisFacts.migrations.sourceDigest !== manifest.compatibility.trellisDatabaseVersion)
+		throw new Error("paired_trellis_facts_digest_mismatch");
 	const source = (sourceBytes: string) => ({ sourceBytes, sourceDigest: protocolDigest(sourceBytes) });
 	return {
 		request,
@@ -99,6 +99,7 @@ export async function readPairedSeal(ctx: { control: LangflowHostControl }, inpu
 		manifest,
 		manifestDigest,
 		engine,
+		trellisFacts,
 		sources: {
 			trellisDatabase: source(trellisBytes),
 			engineDatabase: source(engineBytes),
