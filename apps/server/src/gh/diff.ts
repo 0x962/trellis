@@ -2,23 +2,27 @@ import type { PullRequestDiffOutput } from "@trellis/api";
 import type { GhFailure, GhRunner } from "./run.ts";
 
 // `gh pr diff <url>` runs on the interactive slot, so a person who opens a
-// diff never waits behind a poller tick. A diff over 1 MB is cut at 1 MB of
-// UTF-8 and marked truncated; `url` opens the whole diff on GitHub.
+// diff never waits behind a poller tick.
 
-export const DIFF_BYTE_CAP = 1_048_576;
+export const DIFF_PAGE_BYTES = 1_048_576;
 
-export type FetchDiffResult = ({ ok: true } & PullRequestDiffOutput) | GhFailure;
+export type FetchDiffResult = { ok: true; diff: string } | GhFailure;
 
-// The decoder runs in stream mode, so a multi-byte character cut by the
-// cap is dropped and the text never exceeds the cap.
-const cutAtCap = (text: string): { diff: string; truncated: boolean } => {
-	const bytes = new TextEncoder().encode(text);
-	if (bytes.byteLength <= DIFF_BYTE_CAP) return { diff: text, truncated: false };
-	return { diff: new TextDecoder().decode(bytes.subarray(0, DIFF_BYTE_CAP), { stream: true }), truncated: true };
+// `nextCursor` names the first UTF-8 byte of the next page. If a character
+// crosses the page size, the page ends before that character.
+export const diffPage = (bytes: Uint8Array, cursor: number): PullRequestDiffOutput => {
+	let end = Math.min(cursor + DIFF_PAGE_BYTES, bytes.byteLength);
+	if (end < bytes.byteLength) {
+		while ((bytes[end]! & 0xc0) === 0x80) end--;
+	}
+	return {
+		diff: new TextDecoder().decode(bytes.subarray(cursor, end)),
+		nextCursor: end < bytes.byteLength ? end : null,
+	};
 };
 
 export const fetchDiff = async (runGh: GhRunner, url: string): Promise<FetchDiffResult> => {
 	const result = await runGh("interactive", ["pr", "diff", url]);
 	if (!result.ok) return result;
-	return { ok: true, ...cutAtCap(result.stdout), url };
+	return { ok: true, diff: result.stdout };
 };
