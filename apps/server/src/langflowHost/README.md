@@ -37,7 +37,10 @@ The runtime uses a read-only root, UID 10001, no added capabilities, no new priv
 An internal bridge denies external routes, and the published engine port binds only to `127.0.0.1`.
 The runtime mounts one writable data volume and one read-only secrets volume.
 The storage labels bind both volumes to the data home, host, and a digest of the private host root.
-The restricted provisioner copies the exact mode-0600 bearer for UID 10001 and creates the persistent encryption secret.
+The restricted provisioner copies the exact mode-0600 bearer and capture issuer for UID 10001.
+The provisioner creates the persistent encryption secret.
+The engine reads the capture issuer from a separate read-only secret file.
+Only capture-authority control requests use this file.
 The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
