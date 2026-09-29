@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { executionViewV1Example } from "@trellis/api";
 import { run } from "../../index.ts";
 import { fixture, legacyRun, startReply } from "./testFixture/testFixture.ts";
 
@@ -112,13 +113,17 @@ test("both run-list spellings read beyond 501 results without losing IDs", async
 		["flows", "runs", "example/app#1"],
 	]) {
 		const f = fixture((call) =>
-			call.path === "/rpc/flowExecutions/list"
-				? records.slice(Number(call.input.offset), Number(call.input.offset) + Number(call.input.limit))
-				: startReply(call),
+			call.path === "/rpc/flowDocumentsV1/list"
+				? records
+						.slice(Number(call.input.offset), Number(call.input.offset) + Number(call.input.limit))
+						.map(({ id }) => ({ id, engine: "legacy" }))
+				: call.path === "/rpc/flowExecutions/get"
+					? records.find(({ id }) => id === call.input.id)
+					: startReply(call),
 		);
 		expect(await run([...args, "--json"], f.deps)).toBe(0);
 		expect(JSON.parse(f.text())).toEqual(records);
-		expect(f.calls.filter((call) => call.path === "/rpc/flowExecutions/list").map((call) => call.input)).toEqual(
+		expect(f.calls.filter((call) => call.path === "/rpc/flowDocumentsV1/list").map((call) => call.input)).toEqual(
 			[0, 500, 1000].map((offset) => ({ diffId: legacyRun.diffId, offset, limit: 500 })),
 		);
 	}
@@ -136,10 +141,12 @@ test("run filters survive pagination and run show preserves JSON", async () => {
 	const f = fixture(() => []);
 	expect(await run(["flow", "run", "list", "--ticket", "TRL-1", "--flow", "review", "--json"], f.deps)).toBe(0);
 	expect(f.calls).toEqual([
-		{ path: "/rpc/flowExecutions/list", input: { ticket: "TRL-1", flow: "review", offset: 0, limit: 500 } },
+		{ path: "/rpc/flowDocumentsV1/list", input: { ticket: "TRL-1", flow: "review", offset: 0, limit: 500 } },
 	]);
-	const show = fixture(() => legacyRun);
+	const show = fixture((call) =>
+		call.path === "/rpc/flowDocumentsV1/view" ? { ...executionViewV1Example, engine: "legacy" } : legacyRun,
+	);
 	expect(await run(["flow", "run", "show", legacyRun.id, "--json"], show.deps)).toBe(0);
 	expect(JSON.parse(show.text())).toEqual(legacyRun);
-	expect(show.calls).toEqual([{ path: "/rpc/flowExecutions/get", input: { id: legacyRun.id } }]);
+	expect(show.calls.map((call) => call.path)).toEqual(["/rpc/flowDocumentsV1/view", "/rpc/flowExecutions/get"]);
 });
