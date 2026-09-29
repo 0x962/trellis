@@ -22,6 +22,7 @@ describe("editor session issuance", () => {
 		});
 		expect(session.channel).not.toBe(f.session.channel);
 		expect(session.identity).toEqual(f.session.identity);
+		if (f.current.document.engine !== "langflow") throw new Error("The issuance fixture requires a Langflow document.");
 		expect(session.content).toEqual({
 			schemaVersion: 1,
 			engine: "langflow",

@@ -157,13 +157,6 @@ test("two refs that name one ticket are an input error", async () => {
 	expect(row?.version).toBe(3);
 });
 
-test("a batch of more than 200 refs is an input error", async () => {
-	const refs = Array.from({ length: 201 }, (_, index) => `TUM-${index + 1}`);
-	await expect(run((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: refs, priority: "high" }))).rejects.toThrow(
-		/200/,
-	);
-});
-
 test("deleteMany removes every named ticket under one batch id", async () => {
 	emitted = [];
 	const { deleted } = await run((ctx, tx) => tickets.deleteMany(ctx, tx, { tickets: ["TUM-4", "TUM-5"] }));

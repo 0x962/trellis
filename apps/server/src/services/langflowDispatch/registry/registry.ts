@@ -22,6 +22,21 @@ export const flowServices = {
 	"flowDocuments.list": core("read", langflowDispatch.list),
 	"flowExecutionsV1.output": core("read", langflowDispatch.output),
 	"flowExecutionsV1.recovery": io("read", langflowDispatch.recovery),
+	"flowExecutionsV1.start": prepared(
+		"mutation",
+		(ctx, input) => langflowDispatch.prepareAction(ctx, { operation: "start", input }),
+		agentTerminal.result,
+	),
+	"flowExecutionsV1.decision": prepared(
+		"mutation",
+		(ctx, input) => langflowDispatch.prepareAction(ctx, { operation: "decision", input }),
+		agentTerminal.result,
+	),
+	"flowExecutionsV1.cancel": prepared(
+		"mutation",
+		(ctx, input) => langflowDispatch.prepareAction(ctx, { operation: "cancel", input }),
+		agentTerminal.result,
+	),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
 	"flowExecutions.decide": core("mutation", decideFlowExecution),

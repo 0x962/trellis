@@ -142,7 +142,7 @@ export const TicketMoveInputSchema = z.strictObject({
 });
 export type TicketMoveInput = z.input<typeof TicketMoveInputSchema>;
 
-// A batch is one transaction of at most 200 tickets. Each ref arrives in its
+// A batch is one transaction. Each ref arrives in its
 // canonical spelling, `CDE-1` for `cde-1`, and the batch refuses two refs
 // that hold the same canonical spelling. A ULID and a `KEY-n` are two
 // spellings of one ticket, so a batch that holds both passes this check and
@@ -150,7 +150,6 @@ export type TicketMoveInput = z.input<typeof TicketMoveInputSchema>;
 const TicketBatchSchema = z
 	.array(TicketRefStringSchema)
 	.min(1)
-	.max(200)
 	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
 
 export const TicketUpdateManyInputSchema = z.strictObject({
