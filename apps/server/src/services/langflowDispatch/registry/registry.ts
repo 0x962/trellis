@@ -11,6 +11,7 @@ import * as editorSessions from "../../langflowEditorSessions";
 import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
 
 export const flowServices = {
+	"langflowHost.authority": prepared("mutation", langflowDispatch.hostAuthority, agentTerminal.result),
 	"langflowEditor.readDocument": core("read", editorSessions.readDocument),
 	"langflowEditor.saveDocument": core("mutation", editorSessions.saveDocument),
 	"langflowEditor.readSaveReceipt": core("read", editorSessions.readSaveReceipt),

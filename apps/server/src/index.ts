@@ -13,6 +13,7 @@ import { createGhRunner } from "./gh/run.ts";
 import { createGhState } from "./ghState.ts";
 import { lockHome } from "./homeLock.ts";
 import { scaledClock } from "./jobs.ts";
+import { startLangflowBootstrap } from "./langflowBootstrap";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
 import { startPageRetention } from "./services/pages/retention/startPageRetention";
@@ -162,7 +163,8 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			clearTimer: pageClock.clearTimer,
 			log: (message, fields) => log.info(message, fields),
 		});
-		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState });
+		const langflow = await startLangflowBootstrap(config, transport);
+		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState, editor: langflow?.editor });
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();
@@ -179,6 +181,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			for (const hook of hooks) await hook.stop();
 			await pageSearchBackfill.stop();
 			await pageSweep.stop();
+			await langflow?.stop();
 			await transport.close();
 			if (database) await database.close();
 			lock.release();
