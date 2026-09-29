@@ -1,5 +1,4 @@
 export {
-	CHART_TOP_ROWS,
 	formatDayLabel,
 	formatMetric,
 	formatShare,

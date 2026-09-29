@@ -70,4 +70,12 @@ describe("ProviderCard", () => {
 		expect(html).toContain("The check failed.");
 		expect(html).not.toContain("Key accepted");
 	});
+	test("shows the compact status and named row actions", () => {
+		const html = markup({ variant: "compact", check: { ok: true, balance: "12.50", detail: null } });
+		expect(html).toContain("Vercel · On");
+		expect(html).toContain("Key accepted · $12.50 left · 1 model");
+		expect(html).toContain('aria-label="Check Vercel"');
+		expect(html).toContain('aria-label="Actions for Vercel"');
+		expect(html).not.toContain("Key ••••1234");
+	});
 });

@@ -10,10 +10,6 @@ const rangeOptions = [
 	{ value: "90", label: "90d" },
 ] as const;
 
-// The range and the Refresh button of the Agent Usage tab. They sit in the
-// Topbar, beside the page title, because they govern the whole tab: the
-// cost on every account card, the totals, the chart, the breakdown and the
-// session list.
 export function AgentUsageControls() {
 	const { days, setDays, report, refresh } = useUsageReport();
 	return (

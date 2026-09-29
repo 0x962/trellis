@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "decision": {
+    "version": 1,
+    "decisionId": "decision-1",
+    "wait": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "occurrence": {
+        "nodeId": "node-human",
+        "occurrenceKey": "outer-2.inner-3.human",
+        "parentOccurrenceKey": "outer-2.inner-3",
+        "phase": "step",
+        "iterationPath": [
+          {
+            "loopNodeId": "outer",
+            "round": 2
+          },
+          {
+            "loopNodeId": "inner",
+            "round": 3
+          }
+        ]
+      },
+      "engineRequestId": "human-request-1",
+      "actionKey": "human-action-1",
+      "expectedRevision": 5,
+      "deadlineRefs": [
+        "deadline-1"
+      ]
+    },
+    "actor": {
+      "kind": "human",
+      "name": "fixture-human"
+    },
+    "approved": true,
+    "output": "Approved fixture",
+    "recordedAt": "2026-09-29T06:00:00.000Z"
+  },
+  "payloadDigest": "dcf169b7f9dd00e968f9e54c0c6799f724e97a36cac9046ba5b5834cccf60e3c",
+  "authority": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 2,
+    "hostId": "host-1",
+    "projectId": "project-1",
+    "publicationDigest": "3f662004cb4676be8aa8eae1a6a2328aeb693df48ceebb81f492e6b34872f4e7",
+    "ownerId": "owner-2",
+    "ownershipRevision": 2,
+    "capabilityId": "capability-2",
+    "permissions": [
+      "native.reserve",
+      "completion.deliver",
+      "decision.deliver"
+    ],
+    "issuedAt": "2026-09-29T06:00:00.000Z",
+    "expiresAt": "2026-09-29T07:00:00.000Z"
+  }
+}

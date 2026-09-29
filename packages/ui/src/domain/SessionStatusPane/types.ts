@@ -8,7 +8,7 @@ export type SessionUpdateEmbed = {
 
 export type SessionUpdate = {
 	id: string;
-	sessionId: string;
+	sessionId: string | null;
 	runId: string;
 	requestId: string | null;
 	body: string;

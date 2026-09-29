@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "executionId": "execution-1",
+  "publicationId": "publication-1",
+  "engineJobId": "00000000-0000-4000-8000-000000000001",
+  "engineEpoch": 1,
+  "nodeId": "node-review",
+  "occurrenceKey": "outer-2.inner-3.review",
+  "parentOccurrenceKey": "outer-2.inner-3",
+  "phase": "step",
+  "iterationPath": [
+    {
+      "loopNodeId": "outer",
+      "round": 2
+    },
+    {
+      "loopNodeId": "inner",
+      "round": 3
+    }
+  ],
+  "admissionReceipt": {
+    "version": 1,
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineEpoch": 1,
+    "admissionId": "admission-1",
+    "submissionDigest": "293f1d2ee206a7cbebe633764a26ea455bd39f494a774a7289f8663da31916a2",
+    "committedAt": "2026-09-29T06:00:00.000Z"
+  },
+  "requestId": "00000000-0000-4000-8000-000000000003",
+  "specHash": "d4f02eaafd1a9e9de7d10972ca8e47fa7a985825c3c9c1e249c72683cb3e4f19",
+  "inputReceiptIds": [
+    "completion-input-1"
+  ],
+  "groupDeadlineRefs": [
+    "deadline-1"
+  ],
+  "deadlineAt": null
+}

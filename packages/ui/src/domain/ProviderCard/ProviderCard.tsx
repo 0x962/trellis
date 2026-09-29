@@ -1,9 +1,11 @@
-import { ArrowClockwise, PencilSimple, Power, Trash } from "@phosphor-icons/react";
+import { ArrowClockwise, DotsThree, PencilSimple, Power, Trash } from "@phosphor-icons/react";
 import { CodeText } from "../../primitives/CodeText";
 import { IconButton } from "../../primitives/IconButton";
+import { Menu } from "../../primitives/Menu";
 import { Skeleton } from "../../primitives/Skeleton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { ProviderIcon } from "../ProviderIcon";
+import { SettingsListRow } from "../SettingsListRow";
 
 export type ProviderCardData = {
 	name: string;
@@ -24,6 +26,22 @@ export type ProviderCardProps = {
 	onCheck: () => void;
 	onToggle: () => void;
 	onRemove: () => void;
+	variant?: "card" | "compact";
+	onActiveChange?: (active: boolean) => void;
+};
+
+const providerCheckSummary = ({
+	provider,
+	check,
+	checking,
+	error,
+}: Pick<ProviderCardProps, "provider" | "check" | "checking" | "error">) => {
+	const modelSummary = `${provider.models.length} ${provider.models.length === 1 ? "model" : "models"}`;
+	if (checking) return `Checking the key… · ${modelSummary}`;
+	if (error) return `Key check failed · ${modelSummary}`;
+	if (check?.ok) return `Key accepted${check.balance === null ? "" : ` · $${check.balance} left`} · ${modelSummary}`;
+	if (check) return `Key refused · ${modelSummary}`;
+	return `Key not checked · ${modelSummary}`;
 };
 
 export function ProviderCard({
@@ -36,10 +54,57 @@ export function ProviderCard({
 	onCheck,
 	onToggle,
 	onRemove,
+	variant = "card",
+	onActiveChange,
 }: ProviderCardProps) {
 	const refused = !error && check?.detail === "The provider refused the key.";
 	const forbidden = !error && check?.detail === "The provider refused the request.";
-	const models = provider.models.join(", ");
+	const modelSummary = provider.models.join(", ");
+	if (variant === "compact") {
+		return (
+			<SettingsListRow
+				label={`${provider.name} · ${provider.enabled ? "On" : "Off"}`}
+				description={providerCheckSummary({ provider, check, checking, error })}
+				icon={
+					<ProviderIcon
+						provider={provider.kind === "vercel-ai-gateway" ? "vercel" : "openai-compatible"}
+						decorative
+						className="text-fg-muted"
+					/>
+				}
+				disabled={busy}
+				onEdit={onEdit}
+				actions={
+					<div className="flex shrink-0 items-center gap-1">
+						<Tooltip content="Check">
+							<IconButton
+								label={`Check ${provider.name}`}
+								icon={<ArrowClockwise />}
+								processing={checking}
+								disabled={busy}
+								onClick={onCheck}
+							/>
+						</Tooltip>
+						<Menu
+							label={`Actions for ${provider.name}`}
+							triggerTooltip={`Actions for ${provider.name}`}
+							trigger={<IconButton label={`Actions for ${provider.name}`} icon={<DotsThree />} disabled={busy} />}
+							onOpenChange={onActiveChange}
+							items={[
+								{ label: "Edit", icon: <PencilSimple />, onSelect: onEdit },
+								{
+									label: provider.enabled ? "Turn off" : "Turn on",
+									icon: <Power />,
+									onSelect: onToggle,
+								},
+								{ label: "Remove", icon: <Trash />, danger: true, onSelect: onRemove },
+							]}
+						/>
+					</div>
+				}
+			/>
+		);
+	}
 	return (
 		<article aria-label={provider.name} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-4">
 			<div className="flex items-start justify-between gap-2">
@@ -115,9 +180,9 @@ export function ProviderCard({
 				)}
 			</div>
 			{provider.models.length ? (
-				<Tooltip content={models}>
+				<Tooltip content={modelSummary}>
 					<p className="truncate text-sm text-fg-muted">
-						{provider.models.length} {provider.models.length === 1 ? "model" : "models"} · {models}
+						{provider.models.length} {provider.models.length === 1 ? "model" : "models"} · {modelSummary}
 					</p>
 				</Tooltip>
 			) : (

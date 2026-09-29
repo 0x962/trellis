@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "hostId": "host-1",
+  "executionId": "execution-1",
+  "publicationId": "publication-1",
+  "requestId": "00000000-0000-4000-8000-000000000003",
+  "actor": {
+    "kind": "human",
+    "name": "fixture-human"
+  },
+  "requestDigest": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+  "submissionDigest": "293f1d2ee206a7cbebe633764a26ea455bd39f494a774a7289f8663da31916a2",
+  "state": "submitted",
+  "correlation": {
+    "version": 1,
+    "hostId": "host-1",
+    "executionId": "execution-1",
+    "publicationId": "publication-1",
+    "submissionDigest": "293f1d2ee206a7cbebe633764a26ea455bd39f494a774a7289f8663da31916a2",
+    "engineJobId": "00000000-0000-4000-8000-000000000001",
+    "engineSessionId": "execution-session-1",
+    "recordedAt": "2026-09-29T06:00:00.000Z"
+  },
+  "admission": {
+    "state": "open",
+    "receipt": {
+      "version": 1,
+      "executionId": "execution-1",
+      "publicationId": "publication-1",
+      "engineJobId": "00000000-0000-4000-8000-000000000001",
+      "engineEpoch": 1,
+      "admissionId": "admission-1",
+      "submissionDigest": "293f1d2ee206a7cbebe633764a26ea455bd39f494a774a7289f8663da31916a2",
+      "committedAt": "2026-09-29T06:00:00.000Z"
+    }
+  },
+  "revision": 1
+}

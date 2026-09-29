@@ -70,3 +70,5 @@ export const contract = {
 	system: oc.tag("system").router(system),
 };
 export type TrellisContract = typeof contract;
+
+export { flowDocumentsV1, flowDocumentV1Errors } from "./flowDocumentsV1.ts";

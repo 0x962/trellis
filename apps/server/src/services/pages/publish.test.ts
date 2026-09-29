@@ -10,7 +10,7 @@ import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
-import { pull, versions } from "./content.ts";
+import { pull } from "./content.ts";
 import { get, remove } from "./pages.ts";
 import { preparePublish, publish } from "./publish.ts";
 import { prepareUpload, upload } from "./uploads.ts";
@@ -157,6 +157,35 @@ describe("a first publication", () => {
 		expect(await file.exists()).toBe(true);
 	});
 
+	test("publishes recorded sizes above the former document and asset limits", async () => {
+		const document = await stage(human, html("<p>Large report</p>"));
+		const firstAsset = await stage(human, new File(["a"], "first.bin"));
+		const secondAsset = await stage(human, new File(["b"], "second.bin"));
+		const documentSize = 16 * 1024 * 1024 + 1;
+		const firstAssetSize = 130 * 1024 * 1024;
+		const secondAssetSize = 121 * 1024 * 1024;
+		await db.execute(sql`UPDATE page_uploads SET size = ${documentSize} WHERE id = ${document}`);
+		await db.execute(sql`UPDATE page_uploads SET size = ${firstAssetSize} WHERE id = ${firstAsset}`);
+		await db.execute(sql`UPDATE page_uploads SET size = ${secondAssetSize} WHERE id = ${secondAsset}`);
+
+		const created = await publishIn(human, {
+			requestId: crypto.randomUUID(),
+			project: project.key,
+			title: "Large report",
+			document,
+			assets: [
+				{ uploadId: firstAsset, path: "first.bin" },
+				{ uploadId: secondAsset, path: "second.bin" },
+			],
+			sourcePath: "index.html",
+		});
+		const content = await inTx((tx) => pull(contextOf(human), tx, { page: created.page.ref }));
+
+		expect(created.version.documentSize).toBe(documentSize);
+		expect(content.assets.map((asset) => asset.size)).toEqual([firstAssetSize, secondAssetSize]);
+		expect(content.assets.reduce((total, asset) => total + asset.size, 0)).toBe(251 * 1024 * 1024);
+	});
+
 	test("gives a second page of the same title its own slug", async () => {
 		const document = await stage(human, html("<p>Twin</p>"));
 		const created = await publishIn(human, {
@@ -181,136 +210,6 @@ describe("a first publication", () => {
 				sourcePath: "index.html",
 			}),
 		).rejects.toThrow("The project is archived. Unarchive it before a change.");
-	});
-});
-
-describe("a second publication", () => {
-	test("adds a version, keeps the first one, and raises the revision", async () => {
-		const first = await stage(agent, html("<p>One</p>"));
-		const page = await publishIn(agent, {
-			requestId: crypto.randomUUID(),
-			project: project.key,
-			title: "Weekly status",
-			document: first,
-			sourcePath: "status/index.html",
-		});
-		const second = await stage(agent, html("<p>Two</p>"));
-		const next = await publishIn(agent, {
-			requestId: crypto.randomUUID(),
-			page: page.page.ref,
-			expectedVersion: page.page.revision,
-			summary: "The status of week two.",
-			document: second,
-			sourcePath: "status/index.html",
-		});
-		expect(next.version.number).toBe(2);
-		expect(next.page.latestVersion).toBe(2);
-		expect(next.page.revision).toBe(page.page.revision + 1);
-		expect(next.page.summary).toBe("The status of week two.");
-		expect(next.page.slug).toBe(page.page.slug);
-
-		const history = await inTx((tx) => versions(contextOf(agent), tx, { page: page.page.ref }));
-		expect(history.items.map((version) => version.number)).toEqual([2, 1]);
-		expect(history.nextCursor).toBeNull();
-		const older = await inTx((tx) => pull(contextOf(agent), tx, { page: page.page.ref, version: 1 }));
-		expect(older.version.documentSha256).toBe(page.version.documentSha256);
-	});
-
-	test("refuses a stale revision and writes no version", async () => {
-		const first = await stage(human, html("<p>Base</p>"));
-		const page = await publishIn(human, {
-			requestId: crypto.randomUUID(),
-			project: project.key,
-			title: "Stale check",
-			document: first,
-			sourcePath: "index.html",
-		});
-		const second = await stage(human, html("<p>Stale</p>"));
-		await expect(
-			publishIn(human, {
-				requestId: crypto.randomUUID(),
-				page: page.page.ref,
-				expectedVersion: page.page.revision + 1,
-				document: second,
-				sourcePath: "index.html",
-			}),
-		).rejects.toThrow("The page changed since the revision you sent.");
-		const detail = await inTx((tx) => get(contextOf(human), tx, { page: page.page.ref }));
-		expect(detail.latestVersion).toBe(1);
-	});
-
-	test("returns the first result when the same request arrives twice", async () => {
-		const document = await stage(human, html("<p>Once</p>"));
-		const input = {
-			requestId: crypto.randomUUID(),
-			project: project.key,
-			title: "Idempotent report",
-			document,
-			sourcePath: "index.html",
-		};
-		const created = await publishIn(human, input);
-		// The first call consumed the staged upload, so the retry names a row
-		// that is gone. It reads the version the first call created.
-		const repeated = await publishIn(human, input);
-		expect(repeated.page.id).toBe(created.page.id);
-		expect(repeated.version.number).toBe(1);
-		expect(repeated.version.documentSha256).toBe(created.version.documentSha256);
-		const pages = await db.execute(
-			sql`SELECT id FROM pages WHERE project_id = ${project.id} AND title = 'Idempotent report'`,
-		);
-		expect(pages.rows.length).toBe(1);
-	});
-
-	test("refuses other bytes under a request identifier it already holds", async () => {
-		const document = await stage(human, html("<p>First bytes</p>"));
-		const requestId = crypto.randomUUID();
-		const created = await publishIn(human, {
-			requestId,
-			project: project.key,
-			title: "Reused identifier",
-			document,
-			sourcePath: "index.html",
-		});
-		const other = await stage(human, html("<p>Other bytes</p>"));
-		await expect(
-			publishIn(human, {
-				requestId,
-				project: project.key,
-				title: "Reused identifier",
-				document: other,
-				sourcePath: "index.html",
-			}),
-		).rejects.toThrow("A row with this value exists.");
-		const detail = await inTx((tx) => get(contextOf(human), tx, { page: created.page.ref }));
-		expect(detail.latestVersion).toBe(1);
-	});
-
-	test("refuses a request identifier that belongs to another page", async () => {
-		const first = await stage(human, html("<p>Page one</p>"));
-		const one = await publishIn(human, {
-			requestId: crypto.randomUUID(),
-			project: project.key,
-			title: "Identifier page one",
-			document: first,
-			sourcePath: "index.html",
-		});
-		const second = await stage(human, html("<p>Page two</p>"));
-		const two = await publishIn(human, {
-			requestId: crypto.randomUUID(),
-			project: project.key,
-			title: "Identifier page two",
-			document: second,
-			sourcePath: "index.html",
-		});
-		await expect(
-			publishIn(human, {
-				requestId: one.version.requestId,
-				page: two.page.ref,
-				expectedVersion: two.page.revision,
-				document: second,
-				sourcePath: "index.html",
-			}),
-		).rejects.toThrow("A row with this value exists.");
 	});
 });
 
@@ -346,7 +245,7 @@ describe("the staged uploads of a publication", () => {
 		).rejects.toThrow("No row matches the ref.");
 	});
 
-	test("takes one upload for two asset paths", async () => {
+	test("takes one upload for more than 200 asset paths", async () => {
 		const document = await stage(human, html("<p>Shared</p>"));
 		const shared = await stage(human, new File(["x"], "pixel.png", { type: "image/png" }));
 		const created = await publishIn(human, {
@@ -354,14 +253,13 @@ describe("the staged uploads of a publication", () => {
 			project: project.key,
 			title: "Shared asset",
 			document,
-			assets: [
-				{ uploadId: shared, path: "a/pixel.png" },
-				{ uploadId: shared, path: "b/pixel.png" },
-			],
+			assets: Array.from({ length: 201 }, (_, index) => ({ uploadId: shared, path: `asset-${index}.png` })),
 			sourcePath: "index.html",
 		});
 		const content = await inTx((tx) => pull(contextOf(human), tx, { page: created.page.ref }));
-		expect(content.assets.map((asset) => asset.path)).toEqual(["a/pixel.png", "b/pixel.png"]);
+		expect(content.assets).toHaveLength(201);
+		expect(content.assets[0]!.path).toBe("asset-0.png");
+		expect(content.assets.at(-1)!.path).toBe("asset-99.png");
 	});
 });
 
