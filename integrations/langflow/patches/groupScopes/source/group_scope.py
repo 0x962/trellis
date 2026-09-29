@@ -84,6 +84,19 @@ def current_group_occurrence(graph, vertex_id: str) -> str:
     return graph.group_active_occurrences[vertex_id]
 
 
+def loop_body_visit_key(graph, definition: GroupScopeDefinition, scope_vertex_id: str) -> str | None:
+    if definition.scope_vertex_id != scope_vertex_id:
+        raise ValueError("group_scope_vertex_conflict")
+    policy = graph.trellis_current_loop_policy()
+    if policy is None:
+        return None
+    visit = graph.read_trellis_loop_visit(policy["visitKey"])
+    if (visit["loopNodeId"] != definition.group_node_id
+            or visit["metadata"]["nodeId"] != definition.group_node_id):
+        return None
+    return policy["visitKey"]
+
+
 def open_group_scope(graph, definition) -> dict:
     key = current_group_occurrence(graph, definition.scope_vertex_id)
     saved_definition = graph.group_scope_definitions.get(key)
