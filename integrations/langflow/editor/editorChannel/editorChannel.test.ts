@@ -153,7 +153,7 @@ test("a late frame connection recovers initialization after the load event", () 
 	expect(f.sent).toHaveLength(1);
 	expect(f.receive({ ...envelope, type: "connected" })).toBe(true);
 	expect(f.sent.map((command) => command.sequence)).toEqual([1, 2]);
-	expect(f.sent[1]).toEqual({ ...f.sent[0], sequence: 2 });
+	expect(f.sent[1]).toEqual({ ...f.sent[0]!, sequence: 2 });
 	expect(f.receive({ ...envelope, type: "connected", sequence: 2 })).toBe(false);
 	expect(f.receive({ ...envelope, type: "ready", sequence: 2 })).toBe(true);
 	expect(f.receive({ ...envelope, type: "connected", sequence: 3 })).toBe(false);
