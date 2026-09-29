@@ -204,6 +204,22 @@ The occurrence producer stores exact native request bytes under `trellis-native-
 The completion ledger compares the delivery request digest with those saved bytes.
 The completion envelope does not reconstruct request bytes from its parsed request object.
 
+Apply `0003-native-completion-obligation-consumer.patch` after the native engine API patch.
+It adds this service interface:
+
+```python
+async def consume_external_completion_obligation(
+	self,
+	obligation: dict[str, Any],
+) -> None
+```
+
+The method claims the exact saved continuation and uses the existing Langflow queue path.
+It marks the native obligation only after `dispatched` or `execution_proven`.
+It leaves `pending_lease` and `cancelled` obligations pending.
+The existing startup drain reads `NativeCompletionLedger.pending()` and calls the same method.
+No ledger method calls the queue or the executor.
+
 TRL-674 owns the combined patch series.
 
 The probe uses these cases without a product ceiling:
