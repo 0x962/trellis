@@ -1,8 +1,8 @@
 import type { Resource } from "@trellis/api";
-import { type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
+import { type LinkPress, type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { isDesktopApp } from "../../../lib/desktopBridge";
-import { type LinkModifiers, useOpenLink } from "../../../lib/openLink";
+import { useOpenLink } from "../../../lib/openLink";
 import { docTitle, PLAN_DOC_ID } from "../epicDocs";
 import { ImageSheet } from "./components/ImageSheet";
 import { createLinkedResourceOpener } from "./createLinkedResourceOpener";
@@ -59,23 +59,19 @@ export function ResourceList({
 		],
 		[resources, planTitle],
 	);
-	const open = (opened: Resource, modifiers?: LinkModifiers) => {
+	const open = (opened: Resource, press?: LinkPress) => {
 		const desktop = isDesktopApp();
 		switch (resourceOpenAction(opened, desktop)) {
 			case "doc":
 				onOpenDoc(opened.id);
 				return;
-			case "link-sheet":
-				openLink(resourceUrl(opened), modifiers);
+			case "link":
+				openLink(resourceUrl(opened), press);
 				return;
 			case "image-sheet":
 				setImage(opened);
 				return;
-			case "new-tab":
-				if (opened.kind === "link") {
-					openLink(resourceUrl(opened), modifiers);
-					return;
-				}
+			case "image-tab":
 				window.open(resourceUrl(opened), "_blank", "noopener,noreferrer");
 				return;
 			case "download": {
@@ -86,9 +82,9 @@ export function ResourceList({
 			}
 		}
 	};
-	const onOpen = (id: string, event: LinkModifiers) => {
+	const onOpen = (id: string, press: LinkPress) => {
 		if (id === PLAN_DOC_ID) onOpenDoc(id);
-		else open(byId.get(id)!, event);
+		else open(byId.get(id)!, press);
 	};
 	const openResource = useEffectEvent(open);
 	const [openLinkedResource] = useState(createLinkedResourceOpener);

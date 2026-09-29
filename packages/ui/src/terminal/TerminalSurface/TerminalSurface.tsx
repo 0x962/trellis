@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
+import type { LinkPress } from "../../utils/linkPress";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
 import { acquireTerminal, disposeTerminalIdentity } from "./terminalRegistry";
@@ -27,7 +28,7 @@ export type TerminalSurfaceProps = {
 	autoFocusDelay?: number;
 	onConnectionChange?: (state: TerminalConnectionState) => void;
 	onLeave: () => void;
-	onOpenLink: (url: string, event: MouseEvent) => void;
+	onOpenLink: (url: string, press: LinkPress) => void;
 };
 
 export function TerminalSurface({

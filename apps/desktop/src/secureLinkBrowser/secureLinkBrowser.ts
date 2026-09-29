@@ -33,7 +33,7 @@ export const secureLinkBrowser = (event: AttachEvent, webPreferences: WebviewPre
 	params.partition = LINK_BROWSER_PARTITION;
 	delete params.allowpopups;
 	if (!isLinkBrowserUrl(params.src)) {
-		console.warn("Link browser refused an unsupported or invalid address", { src: params.src });
+		console.warn("Link browser refused an unsupported or invalid address");
 		event.preventDefault();
 	}
 };

@@ -1,1 +1,1 @@
-export { type LinkModifiers, openAppLink } from "./openAppLink";
+export { openAppLink } from "./openAppLink";

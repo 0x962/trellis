@@ -1,8 +1,17 @@
 import { ArrowSquareOut, ArrowsClockwise, Eye, GitMerge, Lightning, Queue, XCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
-import { Checkbox, ConfirmDialog, GithubMark, IconButton, Menu, type MenuGroup, toast } from "@trellis/ui";
-import { type KeyboardEvent, type MouseEvent, type ReactElement, useState } from "react";
+import {
+	Checkbox,
+	ConfirmDialog,
+	GithubMark,
+	IconButton,
+	type LinkPress,
+	Menu,
+	type MenuGroup,
+	toast,
+} from "@trellis/ui";
+import { type ReactElement, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { openLink } from "../../../lib/openLink";
 import {
@@ -75,9 +84,9 @@ export function ReviewHeaderActions({
 		danger: item.danger,
 		disabled: action.isPending,
 		icon: iconByAction[item.action],
-		onSelect: (event?: MouseEvent | KeyboardEvent) => {
+		onSelect: (press?: LinkPress) => {
 			if (item.action === "open") {
-				openLink(pr, event);
+				openLink(pr, press);
 				return;
 			}
 			if (item.confirm) {

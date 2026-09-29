@@ -3,6 +3,7 @@ import { Check, DotsThree } from "@phosphor-icons/react";
 import { type KeyboardEvent, type ReactElement, useState } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
+import { linkPress } from "../../utils/linkPress";
 import { popupMotion } from "../../utils/popupMotion";
 import { Kbd } from "../Kbd";
 import { Tooltip } from "../Tooltip";
@@ -72,7 +73,7 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 				disabled={item.disabled}
 				checked={item.checked}
 				closeOnClick
-				onClick={item.onSelect}
+				onClick={(event) => item.onSelect(linkPress(event))}
 				className={rowClass(item)}
 			>
 				<MenuRowContent item={item} />
@@ -83,7 +84,11 @@ function MenuItemRow({ item }: { item: MenuItem }) {
 		);
 	}
 	return (
-		<BaseMenu.Item disabled={item.disabled} onClick={item.onSelect} className={rowClass(item)}>
+		<BaseMenu.Item
+			disabled={item.disabled}
+			onClick={(event) => item.onSelect(linkPress(event))}
+			className={rowClass(item)}
+		>
 			<MenuRowContent item={item} />
 		</BaseMenu.Item>
 	);
@@ -103,7 +108,13 @@ export function Menu({ label, items, trigger, triggerTooltip, align = "end", cla
 		if (!item) return;
 		event.preventDefault();
 		changeOpen(false);
-		item.onSelect(event);
+		item.onSelect({
+			metaKey: event.metaKey,
+			ctrlKey: event.ctrlKey,
+			shiftKey: event.shiftKey,
+			altKey: event.altKey,
+			button: 0,
+		});
 	};
 	const button = (
 		<BaseMenu.Trigger

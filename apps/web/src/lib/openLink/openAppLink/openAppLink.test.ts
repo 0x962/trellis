@@ -58,12 +58,12 @@ describe("app links", () => {
 	});
 });
 
-test("preserves every modifier across asynchronous internal resolution and external opening", async () => {
-	const modifiers = { metaKey: true, ctrlKey: true, altKey: true, shiftKey: true, button: 0 };
+test("preserves the link press across asynchronous internal resolution and external opening", async () => {
+	const press = { metaKey: true, ctrlKey: true, altKey: true, shiftKey: true, button: 0 };
 	const deps = setup();
-	await openAppLink(`trellis://page/${id}`, deps, modifiers);
-	expect(deps.navigate).toHaveBeenCalledWith("/p/TRL/pages/query-inventory", modifiers);
+	await openAppLink(`trellis://page/${id}`, deps, press);
+	expect(deps.navigate).toHaveBeenCalledWith("/p/TRL/pages/query-inventory", press);
 	expect(deps.openWebLink).not.toHaveBeenCalled();
-	await openAppLink("https://example.com", deps, modifiers);
-	expect(deps.openWebLink).toHaveBeenCalledWith("https://example.com", modifiers);
+	await openAppLink("https://example.com", deps, press);
+	expect(deps.openWebLink).toHaveBeenCalledWith("https://example.com", press);
 });

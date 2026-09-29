@@ -1,3 +1,4 @@
+import { linkPress } from "@trellis/ui";
 import { useEffect } from "react";
 import { isDesktopApp } from "../../../lib/desktopBridge";
 import { useOpenLink } from "../../../lib/openLink";
@@ -15,7 +16,7 @@ export function LinkCapture() {
 			if (url === null) return;
 			event.preventDefault();
 			event.stopPropagation();
-			open(url, event);
+			open(url, linkPress(event));
 		};
 		document.addEventListener("click", clicked, true);
 		return () => document.removeEventListener("click", clicked, true);

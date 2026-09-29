@@ -1,3 +1,4 @@
+import type { LinkPress } from "../../../utils/linkPress";
 import type { TerminalFrame } from "../terminalChunk";
 
 export type TerminalConnectionState = {
@@ -42,5 +43,5 @@ export type TerminalView = {
 	getPathForFile?: (file: File) => string;
 	screenReaderMode: boolean;
 	onLeave: () => void;
-	onOpenLink: (url: string, event: MouseEvent) => void;
+	onOpenLink: (url: string, press: LinkPress) => void;
 };

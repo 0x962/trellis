@@ -743,10 +743,10 @@ This automatic move changes list visibility only. It leaves the process, assignm
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
 Terminal links include plain addresses and labeled OSC 8 hyperlinks.
-`useOpenLink()(url, modifiers)` handles terminal links, document anchors, and resource links.
-`openAppLink` resolves record links through `internalLinks.resolve` and passes the route and modifiers to its navigation callback.
-`LinkModifiers` retains `metaKey`, `ctrlKey`, `shiftKey`, `altKey`, and `button`.
-The terminal passes its click event to that callback for plain and OSC 8 links.
+`useOpenLink()(url, press)` handles terminal links, document anchors, and resource links.
+`openAppLink` resolves record links through `internalLinks.resolve` and passes the route and press to its navigation callback.
+`LinkPress` retains `metaKey`, `ctrlKey`, `shiftKey`, `altKey`, and `button`.
+The terminal copies those five fields into a plain record for plain and OSC 8 links.
 HTTP and HTTPS links use `openLink`. Other schemes and web addresses with credentials produce an error.
 Published Page messages still require confirmation in the trusted viewer before navigation.
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.

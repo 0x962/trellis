@@ -1,3 +1,4 @@
+import { linkPress } from "../../../utils/linkPress";
 import { fileDrop } from "../../fileDrop";
 import { terminalInputSource } from "../terminalInputSource";
 import { terminalOutput } from "../terminalOutput";
@@ -30,7 +31,7 @@ export async function createTerminalRuntime(
 	parking.append(wrapper);
 	let view: TerminalView | null = null;
 	const activate = (event: MouseEvent, url: string) => {
-		view?.onOpenLink(url, event);
+		view?.onOpenLink(url, linkPress(event));
 	};
 	const hover = (_event: MouseEvent, url: string) => {
 		wrapper.title = url;
