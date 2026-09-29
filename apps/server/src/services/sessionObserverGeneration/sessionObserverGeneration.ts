@@ -338,9 +338,13 @@ export const recoverSessionObserverGeneration = async (
 	deps: SessionObserverGenerationDeps = dependencies,
 ) => {
 	const claims = await deps.recoverClaims(ctx);
-	for (const claim of claims) {
-		if (claim.observerRunId !== null) await deps.recoverAttempt(ctx, { observerRunId: claim.observerRunId });
-	}
+	const attempts = await Promise.allSettled(
+		claims.flatMap((claim) =>
+			claim.observerRunId === null ? [] : [deps.recoverAttempt(ctx, { observerRunId: claim.observerRunId })],
+		),
+	);
+	const failed = attempts.find((attempt) => attempt.status === "rejected");
+	if (failed?.status === "rejected") throw failed.reason;
 	return { recovered: claims.length };
 };
 

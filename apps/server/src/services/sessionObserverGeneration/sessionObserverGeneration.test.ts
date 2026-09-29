@@ -260,3 +260,20 @@ test("boot recovery stops each abandoned observer attempt before dispatch", asyn
 	expect(result).toEqual({ recovered: 2 });
 	expect(calls.recoverAttempt).toEqual([{ observerRunId: observerId }]);
 });
+
+test("boot recovery checks every abandoned attempt before it reports a failure", async () => {
+	const { calls, deps } = fixture({});
+	const secondObserverRunId = "01M3Q1029QFFHAX2H0YZXYD8KV";
+	deps.recoverClaims = async () => [
+		{ runId, observerRunId: observerId },
+		{ runId: "01M3Q1029QFFHAX2H0YZXYD8KW", observerRunId: secondObserverRunId },
+	];
+	deps.recoverAttempt = async (_ctx, input) => {
+		calls.recoverAttempt.push(input);
+		if (input.observerRunId === observerId) throw new Error("The first attempt did not stop.");
+	};
+	await expect(recoverSessionObserverGeneration({} as IoCtx, {}, deps)).rejects.toThrow(
+		"The first attempt did not stop.",
+	);
+	expect(calls.recoverAttempt).toEqual([{ observerRunId: observerId }, { observerRunId: secondObserverRunId }]);
+});
