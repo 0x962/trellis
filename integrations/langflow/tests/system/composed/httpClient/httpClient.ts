@@ -29,13 +29,17 @@ export function httpClient(input: BatchInput, token: string, directory: string) 
 			await writeFile(file, JSON.stringify({ request, outcome: "transport_unknown" }), { mode: 0o600 });
 			throw new Error(`http_transport_unknown:${sequence}`);
 		}
-		await writeFile(file, JSON.stringify({
-			request,
-			outcome: "response",
-			status: response.status,
-			body: text,
-			receivedAt: new Date().toISOString(),
-		}), { mode: 0o600 });
+		await writeFile(
+			file,
+			JSON.stringify({
+				request,
+				outcome: "response",
+				status: response.status,
+				body: text,
+				receivedAt: new Date().toISOString(),
+			}),
+			{ mode: 0o600 },
+		);
 		if (!response.ok) throw new Error(`http_response_failed:${sequence}:${response.status}`);
 		return JSON.parse(text) as unknown;
 	};

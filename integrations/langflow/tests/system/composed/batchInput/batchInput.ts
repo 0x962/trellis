@@ -1,9 +1,5 @@
 import { isAbsolute } from "node:path";
-import {
-	FlowExecutionStartInputSchema,
-	FlowOccurrenceIdentityV1Schema,
-	UlidSchema,
-} from "@trellis/api";
+import { FlowExecutionStartInputSchema, FlowOccurrenceIdentityV1Schema, UlidSchema } from "@trellis/api";
 import { z } from "zod";
 import { LoadQualifiedPackageInputSchema } from "../../../../release";
 
@@ -48,20 +44,26 @@ export const BatchInputSchema = z.strictObject({
 		cleanupCommandFile: z.strictObject({ path, sha256: hash }),
 		matchedSeries: z.strictObject({ path, sha256: hash }),
 	}),
-	scenarios: z.array(z.strictObject({
-		name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
-		start: FlowExecutionStartInputSchema,
-		ticketId: UlidSchema,
-		projectId: UlidSchema,
-		documentHash: hash,
-		decisions: z.array(decision),
-		cancel: cancellation.nullable(),
-		expectedStatus: z.enum(["succeeded", "failed", "canceled"]),
-		expectedOccurrences: z.array(expectedOccurrence).min(1),
-	}).refine(
-		(value) => value.cancel?.when !== "decisions_recorded" || value.decisions.length > 0,
-		"Cancellation after decisions requires at least one decision.",
-	)).min(1),
+	scenarios: z
+		.array(
+			z
+				.strictObject({
+					name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
+					start: FlowExecutionStartInputSchema,
+					ticketId: UlidSchema,
+					projectId: UlidSchema,
+					documentHash: hash,
+					decisions: z.array(decision),
+					cancel: cancellation.nullable(),
+					expectedStatus: z.enum(["succeeded", "failed", "canceled"]),
+					expectedOccurrences: z.array(expectedOccurrence).min(1),
+				})
+				.refine(
+					(value) => value.cancel?.when !== "decisions_recorded" || value.decisions.length > 0,
+					"Cancellation after decisions requires at least one decision.",
+				),
+		)
+		.min(1),
 });
 
 export type BatchInput = z.infer<typeof BatchInputSchema>;

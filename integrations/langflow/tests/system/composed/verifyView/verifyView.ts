@@ -5,7 +5,11 @@ import type { Scenario } from "../batchInput";
 import type { httpClient } from "../httpClient";
 import { sameVisit } from "../sameVisit";
 
-export async function verifyView(view: FlowExecutionViewV1, scenario: Scenario, request: ReturnType<typeof httpClient>) {
+export async function verifyView(
+	view: FlowExecutionViewV1,
+	scenario: Scenario,
+	request: ReturnType<typeof httpClient>,
+) {
 	assert.equal(view.status, scenario.expectedStatus);
 	assert.equal(view.submission?.state, "submitted");
 	assert.equal(view.submission?.ownership, "confirmed");
@@ -19,9 +23,8 @@ export async function verifyView(view: FlowExecutionViewV1, scenario: Scenario, 
 		assert.equal(rows.length, 1, "expected_visit_not_unique");
 		const row = rows[0]!;
 		assert.equal(row.state, expected.state);
-		const parent = expected.parentVisit === null
-			? null
-			: view.occurrences.filter((item) => sameVisit(item, expected.parentVisit!));
+		const parent =
+			expected.parentVisit === null ? null : view.occurrences.filter((item) => sameVisit(item, expected.parentVisit!));
 		if (parent !== null) assert.equal(parent.length, 1, "expected_parent_not_unique");
 		assert.equal(row.parentOccurrenceKey, parent === null ? null : parent[0]!.occurrenceKey);
 		assert.equal(
