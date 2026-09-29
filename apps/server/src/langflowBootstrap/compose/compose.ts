@@ -15,7 +15,7 @@ import type { InstalledEditorManifest } from "../../services/langflowEditorSessi
 import type { LangflowBootstrapConfiguration } from "../configuration";
 
 export type BootstrapSupervisor = Pick<LangflowSupervisor, "start" | "shutdown">;
-export type LangflowBootstrapDependencies = {
+export type LangflowBootstrapDependencies<Supervisor extends BootstrapSupervisor = BootstrapSupervisor> = {
 	readConfiguration(path: string): Promise<LangflowBootstrapConfiguration>;
 	readIdentity(home: string): HostControlIdentity;
 	qualify(configuration: LangflowBootstrapConfiguration, identity: HostControlIdentity): Promise<{
@@ -40,10 +40,10 @@ export type LangflowBootstrapDependencies = {
 		hostId: string;
 		manifest: LangflowSidecarManifestV1;
 		dependencies: SupervisorDependencies;
-	}): Promise<BootstrapSupervisor>;
+	}): Promise<Supervisor>;
 };
 
-export async function composeLangflowBootstrap(config: Config, deps: LangflowBootstrapDependencies) {
+export async function composeLangflowBootstrap<Supervisor extends BootstrapSupervisor>(config: Config, deps: LangflowBootstrapDependencies<Supervisor>) {
 	if (config.langflowConfigFile === undefined) return undefined;
 	if (config.authToken === null || config.authToken === "") throw new Error("langflow_host_token_required");
 	const configured = await deps.readConfiguration(config.langflowConfigFile);
