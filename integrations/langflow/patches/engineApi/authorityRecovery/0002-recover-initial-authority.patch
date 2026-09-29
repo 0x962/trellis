@@ -1,0 +1,786 @@
+diff --git a/src/backend/base/langflow/alembic/versions/ae2b4f7d509c_add_trellis_authority_recoveries.py b/src/backend/base/langflow/alembic/versions/ae2b4f7d509c_add_trellis_authority_recoveries.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/alembic/versions/ae2b4f7d509c_add_trellis_authority_recoveries.py
+@@ -0,0 +1,52 @@
++"""Add exact-byte records for initial authority recovery.
++
++Revision ID: ae2b4f7d509c
++Revises: 9d1a3e6c4f8b
++Create Date: 2026-09-29
++
++Phase: EXPAND
++"""
++
++from collections.abc import Sequence
++
++import sqlalchemy as sa
++from alembic import op
++
++revision: str = "ae2b4f7d509c"  # pragma: allowlist secret
++down_revision: str | None = "9d1a3e6c4f8b"  # pragma: allowlist secret
++branch_labels: str | Sequence[str] | None = None
++depends_on: str | Sequence[str] | None = None
++
++
++def upgrade() -> None:
++    from langflow.utils import migration
++
++    conn = op.get_bind()
++    if migration.table_exists("trellis_authority_recoveries", conn):
++        return
++    op.create_table(
++        "trellis_authority_recoveries",
++        sa.Column("request_id", sa.Uuid(), nullable=False),
++        sa.Column("execution_id", sa.Text(), nullable=False),
++        sa.Column("engine_job_id", sa.Uuid(), nullable=False),
++        sa.Column("request_bytes", sa.LargeBinary(), nullable=False),
++        sa.Column("request_digest", sa.Text(), nullable=False),
++        sa.Column("original_authority_bytes", sa.LargeBinary(), nullable=False),
++        sa.Column("original_authority_digest", sa.Text(), nullable=False),
++        sa.Column("initial_record_bytes", sa.LargeBinary(), nullable=False),
++        sa.Column("successor_commit_bytes", sa.LargeBinary(), nullable=False),
++        sa.Column("successor_authority_bytes", sa.LargeBinary(), nullable=False),
++        sa.Column("successor_authority_digest", sa.Text(), nullable=False),
++        sa.Column("response_bytes", sa.LargeBinary(), nullable=False),
++        sa.PrimaryKeyConstraint("request_id", name="pk_trellis_authority_recoveries"),
++        sa.UniqueConstraint("execution_id", name="uq_trellis_authority_recoveries_execution_id"),
++        sa.UniqueConstraint("engine_job_id", name="uq_trellis_authority_recoveries_engine_job_id"),
++    )
++
++
++def downgrade() -> None:
++    from langflow.utils import migration
++
++    conn = op.get_bind()
++    if migration.table_exists("trellis_authority_recoveries", conn):
++        op.drop_table("trellis_authority_recoveries")
+diff --git a/src/backend/base/langflow/services/trellis_v1/authority_recovery_models.py b/src/backend/base/langflow/services/trellis_v1/authority_recovery_models.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/authority_recovery_models.py
+@@ -0,0 +1,156 @@
++from __future__ import annotations
++
++import hashlib
++from dataclasses import dataclass
++from typing import Any, Literal
++from uuid import UUID
++
++from pydantic import AnyHttpUrl, AwareDatetime, BaseModel, ConfigDict, Field
++
++from langflow.services.trellis_v1.authority import EngineAuthorityBinding
++
++REFERENCE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]*$"
++DIGEST_PATTERN = r"^[0-9a-f]{64}$"
++
++
++class RecoveryInvalid(RuntimeError):
++    pass
++
++
++class RecoveryConflict(RuntimeError):
++    pass
++
++
++class RecoveryMissing(RuntimeError):
++    pass
++
++
++class RecoveryRequest(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    version: Literal[1]
++    request_id: UUID = Field(alias="requestId")
++    original_authority_bytes: str = Field(alias="originalAuthorityBytes", min_length=1)
++    initial_record_bytes: str = Field(alias="initialRecordBytes", min_length=1)
++    successor_commit_bytes: str = Field(alias="successorCommitBytes", min_length=1)
++
++
++class SidecarIdentity(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    data_home_id: str = Field(alias="dataHomeId", pattern=REFERENCE_PATTERN)
++    host_id: str = Field(alias="hostId", pattern=REFERENCE_PATTERN)
++    owner_id: str = Field(alias="ownerId", pattern=REFERENCE_PATTERN)
++    instance_id: str = Field(alias="instanceId", pattern=REFERENCE_PATTERN)
++    manifest_digest: str = Field(alias="manifestDigest", pattern=DIGEST_PATTERN)
++
++
++class LiveObservation(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    id: str = Field(pattern=REFERENCE_PATTERN)
++    observed_at: AwareDatetime = Field(alias="observedAt")
++    endpoint: AnyHttpUrl
++    identity: SidecarIdentity
++
++
++class CorrelationReceipt(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    version: Literal[1]
++    host_id: str = Field(alias="hostId", pattern=REFERENCE_PATTERN)
++    execution_id: str = Field(alias="executionId", pattern=REFERENCE_PATTERN)
++    publication_id: str = Field(alias="publicationId", pattern=REFERENCE_PATTERN)
++    submission_digest: str = Field(alias="submissionDigest", pattern=DIGEST_PATTERN)
++    engine_job_id: UUID = Field(alias="engineJobId")
++    engine_session_id: str = Field(alias="engineSessionId", pattern=REFERENCE_PATTERN)
++    recorded_at: AwareDatetime = Field(alias="recordedAt")
++
++
++class EffectBinding(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    effect_id: str = Field(alias="effectId", pattern=REFERENCE_PATTERN)
++    kind: Literal["admission", "recovery"]
++    execution_id: str = Field(alias="executionId", pattern=REFERENCE_PATTERN)
++    attempt_id: str | None = Field(alias="attemptId")
++    job_id: str | None = Field(alias="jobId")
++    request_id: str = Field(alias="requestId", pattern=REFERENCE_PATTERN)
++    payload_digest: str = Field(alias="payloadDigest", pattern=DIGEST_PATTERN)
++
++
++class DispatchPermit(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    id: UUID
++    data_home_id: str = Field(alias="dataHomeId", pattern=REFERENCE_PATTERN)
++    generation: int = Field(ge=0)
++    binding: EffectBinding
++
++
++class InitialAuthorityInput(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    execution_id: str = Field(alias="executionId", pattern=REFERENCE_PATTERN)
++    host_id: str = Field(alias="hostId", pattern=REFERENCE_PATTERN)
++    project_id: str = Field(alias="projectId", pattern=REFERENCE_PATTERN)
++    publication_id: str = Field(alias="publicationId", pattern=REFERENCE_PATTERN)
++    publication_digest: str = Field(alias="publicationDigest", pattern=DIGEST_PATTERN)
++    submission_digest: str = Field(alias="submissionDigest", pattern=DIGEST_PATTERN)
++    correlation: CorrelationReceipt
++    expires_at: AwareDatetime = Field(alias="expiresAt")
++    permissions: tuple[str, ...] = Field(min_length=1)
++    permit: DispatchPermit
++
++
++class InitialAuthorityRecord(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    version: Literal[1]
++    issuance_receipt_id: UUID = Field(alias="issuanceReceiptId")
++    input: InitialAuthorityInput
++    observation: LiveObservation
++    authority_bytes: str = Field(alias="authorityBytes", min_length=1)
++
++
++class OwnerRevocation(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    id: str = Field(pattern=REFERENCE_PATTERN)
++    identity: SidecarIdentity
++    observation_id: str = Field(alias="observationId", pattern=REFERENCE_PATTERN)
++
++
++class TakeoverStops(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    source_bytes: str = Field(alias="sourceBytes", min_length=1)
++    source_digest: str = Field(alias="sourceDigest", pattern=DIGEST_PATTERN)
++
++
++class SuccessorCommit(BaseModel):
++    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
++
++    initial_record_bytes: str | None = Field(default=None, alias="initialRecordBytes")
++    takeover_stops: TakeoverStops | None = Field(default=None, alias="takeoverStops")
++    permit: DispatchPermit
++    request_bytes: str = Field(alias="requestBytes", min_length=1)
++    authority_bytes: str = Field(alias="authorityBytes", min_length=1)
++    receipt: dict[str, Any]
++    observation: LiveObservation
++    revocation: OwnerRevocation | None
++
++
++@dataclass(frozen=True)
++class RecoveryEnvelope:
++    request: RecoveryRequest
++    initial: InitialAuthorityRecord
++    original: EngineAuthorityBinding
++    successor: SuccessorCommit
++    successor_authority: EngineAuthorityBinding
++    takeover: bool
++
++
++def digest(source: bytes | str) -> str:
++    value = source.encode() if isinstance(source, str) else source
++    return hashlib.sha256(value).hexdigest()
+diff --git a/src/backend/base/langflow/services/trellis_v1/authority_recovery_validation.py b/src/backend/base/langflow/services/trellis_v1/authority_recovery_validation.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/authority_recovery_validation.py
+@@ -0,0 +1,251 @@
++from __future__ import annotations
++
++import json
++from datetime import datetime, timezone
++from typing import Any
++
++from langflow.services.trellis_v1.authority import AuthorityUnauthorized, EngineAuthorityBinding, parse_authority
++from langflow.services.trellis_v1.authority_recovery_models import (
++    InitialAuthorityRecord,
++    RecoveryConflict,
++    RecoveryEnvelope,
++    RecoveryInvalid,
++    RecoveryRequest,
++    SuccessorCommit,
++    digest,
++)
++
++
++def _json(source: str, name: str) -> dict[str, Any]:
++    try:
++        value = json.loads(source)
++    except (UnicodeDecodeError, json.JSONDecodeError) as error:
++        raise RecoveryInvalid(f"{name}_invalid") from error
++    if not isinstance(value, dict):
++        raise RecoveryInvalid(f"{name}_invalid")
++    return value
++
++
++def _keys(value: dict[str, Any], expected: set[str], name: str) -> None:
++    if set(value) != expected:
++        raise RecoveryInvalid(f"{name}_invalid")
++
++
++def _utc(value: datetime) -> datetime:
++    if value.tzinfo is None:
++        raise RecoveryInvalid("authority_timestamp_timezone_required")
++    return value.astimezone(timezone.utc)
++
++
++def _timestamp(value: object, name: str) -> datetime:
++    if not isinstance(value, str):
++        raise RecoveryInvalid(f"{name}_invalid")
++    try:
++        return _utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
++    except ValueError as error:
++        raise RecoveryInvalid(f"{name}_invalid") from error
++
++
++def _validate_original(initial: InitialAuthorityRecord, binding: EngineAuthorityBinding) -> None:
++    authority = binding.authority
++    input = initial.input
++    observation = initial.observation
++    correlation = input.correlation
++    if (
++        authority.execution_id != input.execution_id
++        or authority.host_id != input.host_id
++        or authority.project_id != input.project_id
++        or authority.publication_id != input.publication_id
++        or authority.publication_digest != input.publication_digest
++        or authority.engine_job_id != correlation.engine_job_id
++        or authority.engine_epoch != 1
++        or authority.ownership_revision != 1
++        or authority.owner_id != observation.identity.owner_id
++        or authority.host_id != observation.identity.host_id
++        or _utc(authority.issued_at) != _utc(observation.observed_at)
++        or _utc(authority.expires_at) != _utc(input.expires_at)
++        or authority.permissions != input.permissions
++        or correlation.execution_id != input.execution_id
++        or correlation.host_id != input.host_id
++        or correlation.publication_id != input.publication_id
++        or correlation.submission_digest != input.submission_digest
++        or input.permit.data_home_id != observation.identity.data_home_id
++        or input.permit.binding.execution_id != input.execution_id
++        or (input.permit.binding.job_id is not None and input.permit.binding.job_id != str(correlation.engine_job_id))
++    ):
++        raise RecoveryConflict("initial_recovery_identity_conflict")
++
++
++def _validate_successor(envelope: RecoveryEnvelope, now: datetime) -> None:
++    request = envelope.request
++    initial = envelope.initial
++    original = envelope.original.authority
++    commit = envelope.successor
++    successor = envelope.successor_authority.authority
++    receipt = commit.receipt
++    authority_value = _json(commit.authority_bytes, "successor_authority")
++    commit_request = _json(commit.request_bytes, "successor_request")
++    if receipt.get("authority") != authority_value or receipt.get("request") != commit_request:
++        raise RecoveryConflict("successor_commit_bytes_conflict")
++    if receipt.get("requestDigest") != digest(commit.request_bytes):
++        raise RecoveryConflict("successor_request_digest_conflict")
++    if commit.initial_record_bytes is not None and commit.initial_record_bytes != request.initial_record_bytes:
++        raise RecoveryConflict("initial_record_bytes_conflict")
++    if (
++        receipt.get("version") != 1
++        or commit_request.get("version") != 1
++        or successor.execution_id != original.execution_id
++        or successor.publication_id != original.publication_id
++        or successor.engine_job_id != original.engine_job_id
++        or successor.host_id != original.host_id
++        or successor.project_id != original.project_id
++        or successor.publication_digest != original.publication_digest
++        or successor.ownership_revision != original.ownership_revision + 1
++        or _utc(successor.issued_at) != _utc(commit.observation.observed_at)
++        or _utc(successor.expires_at) <= now
++        or commit.permit.data_home_id != initial.observation.identity.data_home_id
++        or commit.permit.binding.execution_id != original.execution_id
++        or (commit.permit.binding.job_id is not None and commit.permit.binding.job_id != str(original.engine_job_id))
++    ):
++        raise RecoveryConflict("successor_authority_transition_conflict")
++    if (
++        commit_request.get("requestId") != str(request.request_id)
++        or commit_request.get("executionId") != original.execution_id
++    ):
++        raise RecoveryConflict("successor_request_identity_conflict")
++    _validate_permit(envelope, commit_request)
++    if envelope.takeover:
++        _validate_takeover(envelope, commit_request)
++    else:
++        _validate_renewal(envelope, commit_request, now)
++
++
++def _validate_permit(envelope: RecoveryEnvelope, request: dict[str, Any]) -> None:
++    authority = envelope.successor_authority.authority
++    permit = envelope.successor.permit
++    operation = "takeover" if envelope.takeover else "renewal"
++    intent = {
++        "operation": operation,
++        "executionId": authority.execution_id,
++        "requestId": str(envelope.request.request_id),
++        "expectedRevision": envelope.original.authority.ownership_revision,
++        "expiresAt": envelope.successor.receipt["authority"].get("expiresAt"),
++    }
++    if envelope.takeover:
++        intent["expectedOwnerId"] = envelope.original.authority.owner_id
++        intent["expectedEpoch"] = envelope.original.authority.engine_epoch
++    binding = permit.binding
++    if (
++        binding.effect_id != f"authority:{authority.execution_id}:{envelope.request.request_id}"
++        or binding.kind != "recovery"
++        or binding.execution_id != authority.execution_id
++        or binding.attempt_id is not None
++        or binding.job_id != str(authority.engine_job_id)
++        or binding.request_id != str(envelope.request.request_id)
++        or binding.payload_digest != digest(json.dumps(intent, separators=(",", ":")))
++        or request.get("expectedRevision") != envelope.original.authority.ownership_revision
++    ):
++        raise RecoveryConflict("successor_permit_conflict")
++
++
++def _validate_takeover(envelope: RecoveryEnvelope, request: dict[str, Any]) -> None:
++    receipt = envelope.successor.receipt
++    _keys(
++        receipt,
++        {"version", "request", "requestDigest", "transferId", "committedAt", "authority", "admission"},
++        "takeover_receipt",
++    )
++    _keys(
++        request,
++        {
++            "version", "executionId", "requestId", "expectedOwnerId", "expectedEpoch",
++            "expectedRevision", "newOwnerId", "supervisorObservationId", "priorOwnerRevocationId",
++        },
++        "takeover_request",
++    )
++    initial = envelope.initial
++    original = envelope.original.authority
++    commit = envelope.successor
++    successor = envelope.successor_authority.authority
++    revocation = commit.revocation
++    admission = receipt["admission"]
++    if not isinstance(admission, dict):
++        raise RecoveryInvalid("takeover_admission_invalid")
++    _keys(admission, {"state", "barrierId"}, "takeover_admission")
++    if (
++        revocation is None
++        or commit.takeover_stops is None
++        or digest(commit.takeover_stops.source_bytes) != commit.takeover_stops.source_digest
++        or successor.owner_id == original.owner_id
++        or successor.owner_id != commit.observation.identity.owner_id
++        or successor.engine_epoch != original.engine_epoch + 1
++        or request.get("expectedOwnerId") != original.owner_id
++        or request.get("expectedEpoch") != original.engine_epoch
++        or request.get("expectedRevision") != original.ownership_revision
++        or request.get("newOwnerId") != successor.owner_id
++        or request.get("supervisorObservationId") != commit.observation.id
++        or request.get("priorOwnerRevocationId") != revocation.id
++        or revocation.identity != initial.observation.identity
++        or revocation.observation_id != initial.observation.id
++        or _timestamp(receipt.get("committedAt"), "takeover_committed_at") != _utc(commit.observation.observed_at)
++        or admission.get("state") != "closed"
++    ):
++        raise RecoveryConflict("successor_takeover_conflict")
++
++
++def _validate_renewal(envelope: RecoveryEnvelope, request: dict[str, Any], now: datetime) -> None:
++    receipt = envelope.successor.receipt
++    _keys(receipt, {"version", "request", "requestDigest", "renewalId", "authority"}, "renewal_receipt")
++    _keys(
++        request,
++        {
++            "version",
++            "requestId",
++            "executionId",
++            "ownerId",
++            "engineEpoch",
++            "expectedRevision",
++            "supervisorObservationId",
++        },
++        "renewal_request",
++    )
++    initial = envelope.initial
++    original = envelope.original.authority
++    commit = envelope.successor
++    successor = envelope.successor_authority.authority
++    if (
++        _utc(original.expires_at) > now
++        or commit.revocation is not None
++        or commit.takeover_stops is not None
++        or commit.observation.identity != initial.observation.identity
++        or successor.owner_id != original.owner_id
++        or successor.engine_epoch != original.engine_epoch
++        or request.get("ownerId") != original.owner_id
++        or request.get("engineEpoch") != original.engine_epoch
++        or request.get("expectedRevision") != original.ownership_revision
++        or request.get("supervisorObservationId") != commit.observation.id
++    ):
++        raise RecoveryConflict("successor_renewal_conflict")
++
++
++def parse_recovery_envelope(request: RecoveryRequest, now: datetime) -> RecoveryEnvelope:
++    try:
++        initial = InitialAuthorityRecord.model_validate_json(request.initial_record_bytes, strict=True)
++        successor = SuccessorCommit.model_validate_json(request.successor_commit_bytes, strict=True)
++        original = parse_authority(request.original_authority_bytes.encode())
++        successor_authority = parse_authority(successor.authority_bytes.encode())
++    except (AuthorityUnauthorized, ValueError, TypeError) as error:
++        raise RecoveryInvalid("initial_recovery_request_invalid") from error
++    if initial.authority_bytes != request.original_authority_bytes:
++        raise RecoveryConflict("original_authority_bytes_conflict")
++    _validate_original(initial, original)
++    envelope = RecoveryEnvelope(
++        request=request,
++        initial=initial,
++        original=original,
++        successor=successor,
++        successor_authority=successor_authority,
++        takeover="transferId" in successor.receipt,
++    )
++    _validate_successor(envelope, now)
++    return envelope
+diff --git a/src/backend/base/langflow/services/trellis_v1/authority_recovery_store.py b/src/backend/base/langflow/services/trellis_v1/authority_recovery_store.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/authority_recovery_store.py
+@@ -0,0 +1,209 @@
++from __future__ import annotations
++
++import json
++from datetime import datetime, timezone
++from uuid import UUID
++
++from sqlalchemy import Column, LargeBinary, Text, select
++from sqlalchemy.ext.asyncio import AsyncSession
++from sqlmodel import Field, SQLModel
++
++from langflow.services.database.models.jobs.model import Job, JobType
++from langflow.services.trellis_v1.authority import TrellisDeliveryAuthority
++from langflow.services.trellis_v1.authority_recovery_models import (
++    CorrelationReceipt,
++    RecoveryConflict,
++    RecoveryEnvelope,
++    RecoveryMissing,
++    RecoveryRequest,
++    SidecarIdentity,
++    digest,
++)
++from langflow.services.trellis_v1.authority_recovery_validation import parse_recovery_envelope
++from langflow.services.trellis_v1.correlation import TrellisJobCorrelation
++from langflow.services.trellis_v1.engine_api import EngineApiIdentity
++
++
++class TrellisAuthorityRecovery(SQLModel, table=True):  # type: ignore[call-arg]
++    __tablename__ = "trellis_authority_recoveries"
++
++    request_id: UUID = Field(primary_key=True)
++    execution_id: str = Field(sa_column=Column(Text, nullable=False, unique=True))
++    engine_job_id: UUID = Field(unique=True)
++    request_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    request_digest: str = Field(sa_column=Column(Text, nullable=False))
++    original_authority_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    original_authority_digest: str = Field(sa_column=Column(Text, nullable=False))
++    initial_record_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    successor_commit_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    successor_authority_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++    successor_authority_digest: str = Field(sa_column=Column(Text, nullable=False))
++    response_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
++
++
++def _sidecar(identity: EngineApiIdentity) -> SidecarIdentity:
++    return SidecarIdentity(
++        dataHomeId=identity.data_home_id,
++        hostId=identity.host_id,
++        ownerId=identity.owner_id,
++        instanceId=str(identity.instance_id),
++        manifestDigest=identity.manifest_digest,
++    )
++
++
++async def _lock_job(session: AsyncSession, job_id: UUID) -> Job:
++    result = await session.execute(select(Job).where(Job.job_id == job_id).with_for_update())
++    job = result.scalar_one_or_none()
++    if job is None or job.type != JobType.WORKFLOW:
++        raise RecoveryMissing("initial_recovery_job_not_found")
++    return job
++
++
++async def _lock_authority(session: AsyncSession, execution_id: str) -> TrellisDeliveryAuthority | None:
++    result = await session.execute(
++        select(TrellisDeliveryAuthority)
++        .where(TrellisDeliveryAuthority.execution_id == execution_id)
++        .with_for_update()
++    )
++    return result.scalar_one_or_none()
++
++
++async def _lock_recovery(session: AsyncSession, request_id: UUID) -> TrellisAuthorityRecovery | None:
++    result = await session.execute(
++        select(TrellisAuthorityRecovery)
++        .where(TrellisAuthorityRecovery.request_id == request_id)
++        .with_for_update()
++    )
++    return result.scalar_one_or_none()
++
++
++def _validate_runtime(envelope: RecoveryEnvelope, identity: EngineApiIdentity) -> None:
++    initial_identity = envelope.initial.observation.identity
++    successor_identity = envelope.successor.observation.identity
++    current_identity = _sidecar(identity)
++    original = envelope.original.authority
++    if (
++        successor_identity != current_identity
++        or initial_identity.data_home_id != current_identity.data_home_id
++        or initial_identity.host_id != current_identity.host_id
++        or original.host_id != current_identity.host_id
++    ):
++        raise RecoveryConflict("initial_recovery_runtime_identity_conflict")
++
++
++async def _validate_correlation(session: AsyncSession, envelope: RecoveryEnvelope) -> None:
++    original = envelope.original.authority
++    result = await session.execute(
++        select(TrellisJobCorrelation)
++        .where(TrellisJobCorrelation.engine_job_id == original.engine_job_id)
++        .with_for_update()
++    )
++    correlation = result.scalar_one_or_none()
++    if correlation is None:
++        raise RecoveryMissing("initial_recovery_correlation_not_found")
++    try:
++        stored_receipt = CorrelationReceipt.model_validate_json(
++            correlation.correlation_receipt_bytes,
++            strict=True,
++        )
++    except ValueError as error:
++        raise RecoveryConflict("stored_correlation_invalid") from error
++    expected = envelope.initial.input.correlation
++    if (
++        correlation.execution_id != original.execution_id
++        or correlation.host_id != original.host_id
++        or correlation.engine_job_id != original.engine_job_id
++        or correlation.engine_session_id != expected.engine_session_id
++        or correlation.submission_bytes_digest != expected.submission_digest
++        or stored_receipt != expected
++        or correlation.admission_receipt_bytes is not None
++    ):
++        raise RecoveryConflict("initial_recovery_correlation_conflict")
++    if envelope.takeover and envelope.successor.receipt["admission"].get("barrierId") != correlation.barrier_id:
++        raise RecoveryConflict("initial_recovery_admission_conflict")
++
++
++def _response(envelope: RecoveryEnvelope, request_bytes: bytes) -> bytes:
++    value = {
++        "version": 1,
++        "requestId": str(envelope.request.request_id),
++        "requestDigest": digest(request_bytes),
++        "originalAuthorityDigest": envelope.original.authority_digest,
++        "successorAuthorityDigest": envelope.successor_authority.authority_digest,
++        "successorCommitDigest": digest(envelope.request.successor_commit_bytes),
++        "state": "committed",
++    }
++    return json.dumps(value, separators=(",", ":")).encode()
++
++
++async def recover_initial_authority(
++    session: AsyncSession,
++    *,
++    request: RecoveryRequest,
++    request_bytes: bytes,
++    identity: EngineApiIdentity,
++) -> bytes:
++    saved_hint = (
++        await session.execute(
++            select(TrellisAuthorityRecovery).where(TrellisAuthorityRecovery.request_id == request.request_id)
++        )
++    ).scalar_one_or_none()
++    if saved_hint is not None:
++        if saved_hint.request_bytes != request_bytes:
++            raise RecoveryConflict("initial_recovery_request_replay_conflict")
++        return saved_hint.response_bytes
++    envelope = parse_recovery_envelope(request, datetime.now(timezone.utc))
++    job_id = envelope.original.authority.engine_job_id
++    execution_id = envelope.original.authority.execution_id
++    await _lock_job(session, job_id)
++    current = await _lock_authority(session, execution_id)
++    saved = await _lock_recovery(session, request.request_id)
++    if saved is not None:
++        if saved.request_bytes != request_bytes:
++            raise RecoveryConflict("initial_recovery_request_replay_conflict")
++        return saved.response_bytes
++    if current is not None:
++        raise RecoveryConflict("initial_recovery_authority_already_present")
++    prior = (
++        await session.execute(
++            select(TrellisAuthorityRecovery)
++            .where(TrellisAuthorityRecovery.execution_id == execution_id)
++            .with_for_update()
++        )
++    ).scalar_one_or_none()
++    if prior is not None:
++        raise RecoveryConflict("initial_recovery_execution_conflict")
++    _validate_runtime(envelope, identity)
++    await _validate_correlation(session, envelope)
++    authority = envelope.successor_authority.authority
++    session.add(TrellisDeliveryAuthority(
++        execution_id=authority.execution_id,
++        authority_bytes=envelope.successor_authority.authority_bytes,
++        authority_digest=envelope.successor_authority.authority_digest,
++        publication_id=authority.publication_id,
++        engine_job_id=authority.engine_job_id,
++        engine_epoch=authority.engine_epoch,
++        host_id=authority.host_id,
++        owner_id=authority.owner_id,
++        ownership_revision=authority.ownership_revision,
++        capability_id=authority.capability_id,
++        expires_at=authority.expires_at,
++        revoked_at=None,
++    ))
++    response_bytes = _response(envelope, request_bytes)
++    session.add(TrellisAuthorityRecovery(
++        request_id=request.request_id,
++        execution_id=execution_id,
++        engine_job_id=job_id,
++        request_bytes=request_bytes,
++        request_digest=digest(request_bytes),
++        original_authority_bytes=envelope.original.authority_bytes,
++        original_authority_digest=envelope.original.authority_digest,
++        initial_record_bytes=request.initial_record_bytes.encode(),
++        successor_commit_bytes=request.successor_commit_bytes.encode(),
++        successor_authority_bytes=envelope.successor_authority.authority_bytes,
++        successor_authority_digest=envelope.successor_authority.authority_digest,
++        response_bytes=response_bytes,
++    ))
++    await session.flush()
++    return response_bytes
+diff --git a/src/backend/base/langflow/services/trellis_v1/authority_recovery_router.py b/src/backend/base/langflow/services/trellis_v1/authority_recovery_router.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/authority_recovery_router.py
+@@ -0,0 +1,80 @@
++from __future__ import annotations
++
++import hmac
++import os
++import stat
++from pathlib import Path
++from typing import Annotated
++
++from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
++from pydantic import ValidationError
++
++from langflow.services.trellis_v1.authority_recovery_models import (
++    RecoveryConflict,
++    RecoveryInvalid,
++    RecoveryMissing,
++    RecoveryRequest,
++)
++from langflow.services.trellis_v1.authority_recovery_store import recover_initial_authority
++from langflow.services.trellis_v1.engine_api import AuthoritySession, EngineApiSecurity
++
++
++def _issuer(path: Path) -> bytes:
++    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
++    try:
++        metadata = os.fstat(descriptor)
++        if (
++            not stat.S_ISREG(metadata.st_mode)
++            or metadata.st_nlink != 1
++            or stat.S_IMODE(metadata.st_mode) != 0o600
++            or metadata.st_uid != os.getuid()
++        ):
++            raise ValueError("authority_recovery_issuer_unsafe")
++        with os.fdopen(descriptor, "rb", closefd=False) as source:
++            value = source.read()
++    finally:
++        os.close(descriptor)
++    if not value:
++        raise ValueError("authority_recovery_issuer_missing")
++    value.decode("utf-8")
++    return value
++
++
++def create_authority_recovery_router(
++    *,
++    security: EngineApiSecurity,
++    open_session: AuthoritySession,
++    issuer_file: Path,
++) -> APIRouter:
++    issuer = _issuer(issuer_file)
++
++    async def authenticate(
++        supplied: Annotated[str | None, Header(alias="X-Trellis-Authority-Recovery-Issuer")] = None,
++    ) -> None:
++        if supplied is None or not hmac.compare_digest(supplied.encode(), issuer):
++            raise HTTPException(status_code=401, detail="authority_recovery_issuer_unauthorized")
++
++    router = APIRouter(prefix="/authority", dependencies=[Depends(authenticate)])
++
++    @router.post("/recover-initial")
++    async def recover_initial(request: Request) -> Response:
++        request_bytes = await request.body()
++        try:
++            input = RecoveryRequest.model_validate_json(request_bytes, strict=True)
++            async with open_session() as session:
++                response_bytes = await recover_initial_authority(
++                    session,
++                    request=input,
++                    request_bytes=request_bytes,
++                    identity=security.identity,
++                )
++                await session.commit()
++        except RecoveryMissing as error:
++            raise HTTPException(status_code=404, detail=str(error)) from error
++        except RecoveryConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++        except (RecoveryInvalid, ValidationError) as error:
++            raise HTTPException(status_code=422, detail="initial_recovery_request_invalid") from error
++        return Response(content=response_bytes, media_type="application/json")
++
++    return router
+diff --git a/src/backend/base/langflow/services/trellis_v1/startup.py b/src/backend/base/langflow/services/trellis_v1/startup.py
+--- a/src/backend/base/langflow/services/trellis_v1/startup.py
++++ b/src/backend/base/langflow/services/trellis_v1/startup.py
+@@ -138,0 +139 @@
++    from langflow.services.trellis_v1.authority_recovery_router import create_authority_recovery_router
+@@ -179,0 +181 @@
++    authority_recovery_issuer_file = Path(os.environ["TRELLIS_AUTHORITY_RECOVERY_ISSUER_FILE"])
+@@ -194,0 +197,5 @@
++        create_authority_recovery_router(
++            security=security,
++            open_session=session_scope,
++            issuer_file=authority_recovery_issuer_file,
++        ),
