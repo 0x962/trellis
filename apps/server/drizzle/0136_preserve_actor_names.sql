@@ -1,2 +1,0 @@
-ALTER TABLE "actors" DROP CONSTRAINT "actors_name_check";--> statement-breakpoint
-ALTER TABLE "actors" ADD CONSTRAINT "actors_name_check" CHECK ("actors"."name" ~ '^[ -~]+$' AND position(':' IN "actors"."name") = 0);
