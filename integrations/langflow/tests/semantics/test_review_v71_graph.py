@@ -128,7 +128,7 @@ class ReviewGraph:
 		self.graph = Graph()
 		self._add_components()
 		self._wire_groups()
-		self._wire_order()
+		self._wire_edges()
 
 	def _children(self, parent_id: str | None) -> list[dict[str, Any]]:
 		return [node for node in self.nodes.values() if node.get("parentId") == parent_id]
@@ -159,8 +159,13 @@ class ReviewGraph:
 		if node["kind"] != "group":
 			return [node_id]
 		children = self._children(node_id)
-		selected = children if node["parallel"] else children[:1]
-		return [entry for child in selected for entry in self._entries(child["id"])]
+		child_ids = {child["id"] for child in children}
+		targets = {
+			edge["toNodeId"]
+			for edge in self.edges
+			if edge["fromNodeId"] in child_ids
+		}
+		return [entry for child in children if child["id"] not in targets for entry in self._entries(child["id"])]
 
 	def _connect(self, source_id: str, output_name: str, target_id: str) -> None:
 		for entry in self._entries(target_id):
@@ -173,18 +178,9 @@ class ReviewGraph:
 			for child in self._children(node_id):
 				self.graph.add_component_edge(child["id"], (self._source_output(child["id"]), "items"), node_id)
 
-	def _wire_order(self) -> None:
-		explicit = {(edge["fromNodeId"], edge["toNodeId"]): edge for edge in self.edges}
+	def _wire_edges(self) -> None:
 		for edge in self.edges:
 			self._connect(edge["fromNodeId"], edge["branch"], edge["toNodeId"])
-		containers = [node for node in self.nodes.values() if node["kind"] == "group" and not node["parallel"]]
-		orders = [self._children(node["id"]) for node in containers]
-		orders.append(self._children(None))
-		for children in orders:
-			for source, target in zip(children, children[1:], strict=False):
-				if (source["id"], target["id"]) in explicit:
-					continue
-				self._connect(source["id"], self._source_output(source["id"]), target["id"])
 
 
 async def test_review_v71_runs_with_exact_branches_groups_and_output_bytes() -> None:

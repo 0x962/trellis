@@ -16,6 +16,8 @@ from lfx.schema.data import Data
 from lfx.schema.dataframe import DataFrame
 from lfx.template.field.base import Output
 
+FEEDBACK_EVENTS: list[tuple[str, str]] = []
+
 
 def _attach_feedback(loop: LoopComponent, source: Component, source_output: str) -> None:
 	loop._edges.append(
@@ -48,9 +50,10 @@ class FeedbackValue(Component):
 	outputs = [Output(display_name="Value", name="value", method="run", types=["Data"])]
 
 	def run(self) -> Data:
-		if isinstance(self.feedback, DataFrame):
-			return self.feedback.to_data_list()[0]
-		return self.feedback
+		value = self.feedback.to_data_list()[0] if isinstance(self.feedback, DataFrame) else self.feedback
+		if isinstance(value, Data) and value.data.get("text"):
+			FEEDBACK_EVENTS.append((self.get_id(), value.data["text"]))
+		return value
 
 
 class DeadlineProbe(Component):
@@ -73,6 +76,7 @@ class DeadlineProbe(Component):
 
 
 async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
+	FEEDBACK_EVENTS.clear()
 	outer = LoopComponent(_id="outer")
 	outer.set(data=DataFrame([Data(text="outer-1"), Data(text="outer-2")]))
 	inner = LoopComponent(_id="inner")
@@ -87,8 +91,13 @@ async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
 	graph = Graph(outer, outer_sink)
 	[r async for r in graph.async_start()]
 
-	assert [item.text for item in outer.ctx["outer_aggregated"]] == ["outer-1", "outer-2"]
-	assert outer.ctx["outer_index"] == 2
+	assert [item.data["text"] for item in outer.ctx["outer_aggregated"]] == ["outer-1", "outer-2"]
+	assert FEEDBACK_EVENTS == [
+		("inner-feedback", "outer-1"),
+		("outer-feedback", "outer-1"),
+		("inner-feedback", "outer-2"),
+		("outer-feedback", "outer-2"),
+	]
 
 
 async def test_real_graph_deadline_uses_first_launch_and_unbounded_budget() -> None:
