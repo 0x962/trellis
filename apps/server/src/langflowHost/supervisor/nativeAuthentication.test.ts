@@ -86,7 +86,7 @@ test("native authentication rejects changed bytes and another retained identity"
 	}
 });
 
-test("native authentication holds supervisor exclusion through the callback", async () => {
+test("a native callback completes an outgoing operation and releases its lease after a failure", async () => {
 	const fixture = await supervisorFixture();
 	const supervisor = await fixture.open();
 	try {
@@ -94,9 +94,12 @@ test("native authentication holds supervisor exclusion through the callback", as
 		const path = join(fixture.home, "langflow", "secrets", `${live.identity.instanceId}.native-reservations.token`);
 		const authorization = `Bearer ${await readFile(path, "utf8")}`;
 		await expect(
-			supervisor.withAuthenticatedNativeReservation(authorization, async () => {
-				await expect(supervisor.shutdown()).rejects.toThrow("supervisor_busy");
-				await expect(supervisor.withHealthyEngine(async () => null)).rejects.toThrow("supervisor_busy");
+			supervisor.withHealthyEngine(async (outgoing) => {
+				const callback = await supervisor.withAuthenticatedNativeReservation(authorization, async (incoming) => {
+					expect(incoming.identity).toEqual(outgoing.identity);
+					return "completed";
+				});
+				expect(callback).toBe("completed");
 				throw new Error("claim_failed");
 			}),
 		).rejects.toThrow("claim_failed");

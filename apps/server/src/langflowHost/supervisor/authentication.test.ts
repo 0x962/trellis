@@ -74,7 +74,7 @@ test("authentication refuses public and linked credential files", async () => {
 	}
 });
 
-test("supervisor exclusion spans the authenticated callback and releases after a failure", async () => {
+test("authenticated operations overlap on one instance and release their lease after a failure", async () => {
 	const fixture = await supervisorFixture();
 	const supervisor = await fixture.open();
 	try {
@@ -83,10 +83,22 @@ test("supervisor exclusion spans the authenticated callback and releases after a
 			join(fixture.home, "langflow", "secrets", `${live.identity.instanceId}.token`),
 			"utf8",
 		)}`;
+		const entered = Promise.withResolvers<void>();
+		const release = Promise.withResolvers<void>();
+		const first = supervisor.withAuthenticatedEngine(authorization, async (current) => {
+			entered.resolve();
+			await release.promise;
+			return current.identity;
+		});
+		await entered.promise;
+		expect(await supervisor.withAuthenticatedEngine(authorization, async (current) => current.identity)).toEqual(
+			live.identity,
+		);
+		release.resolve();
+		expect(await first).toEqual(live.identity);
 		await expect(
-			supervisor.withAuthenticatedEngine(authorization, async () => {
-				await expect(supervisor.shutdown()).rejects.toThrow("supervisor_busy");
-				await expect(supervisor.withHealthyEngine(async () => null)).rejects.toThrow("supervisor_busy");
+			supervisor.withAuthenticatedEngine(authorization, async (current) => {
+				expect(current.identity).toEqual(live.identity);
 				throw new Error("claim_failed");
 			}),
 		).rejects.toThrow("claim_failed");

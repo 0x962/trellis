@@ -11,9 +11,11 @@ import { PrivateState } from "../privateState";
 import { authenticateEngine } from "./components/authenticateEngine";
 
 export class LangflowSupervisor {
-	private busy = false;
+	private activeOperations = 0;
 	private closed = false;
 	private identity: SidecarIdentity | null = null;
+	private lifecycleBusy = false;
+	private resolveOperationsDrained: (() => void) | null = null;
 	private readonly authority: ExecutionAuthority;
 
 	private constructor(
@@ -67,17 +69,16 @@ export class LangflowSupervisor {
 	}
 
 	async withHealthyEngine<T>(operation: (observation: LiveOwnership) => Promise<T>) {
-		return this.exclusive(async () => operation(await this.live()));
+		return this.withOperation(async (identity) => operation(await this.live(identity)));
 	}
 
 	async withAuthenticatedEngine<T>(
 		authorization: string | null,
 		operation: (observation: LiveOwnership) => Promise<T>,
 	) {
-		return this.exclusive(async () => {
-			if (!this.identity) throw new Error("sidecar_unavailable");
-			await authenticateEngine(this.state.authenticationFile(this.identity), authorization);
-			return operation(await this.live());
+		return this.withOperation(async (identity) => {
+			await authenticateEngine(this.state.authenticationFile(identity), authorization);
+			return operation(await this.live(identity));
 		});
 	}
 
@@ -85,15 +86,14 @@ export class LangflowSupervisor {
 		authorization: string | null,
 		operation: (observation: LiveOwnership) => Promise<T>,
 	) {
-		return this.exclusive(async () => {
-			if (!this.identity) throw new Error("sidecar_unavailable");
-			const credential = await this.state.nativeReservationAuthentication(this.identity);
+		return this.withOperation(async (identity) => {
+			const credential = await this.state.nativeReservationAuthentication(identity);
 			await authenticateEngine(
 				credential.nativeReservationAuthenticationFile,
 				authorization,
 				credential.nativeReservationAuthenticationSha256,
 			);
-			return operation(await this.live());
+			return operation(await this.live(identity));
 		});
 	}
 
@@ -152,9 +152,8 @@ export class LangflowSupervisor {
 		return observation;
 	}
 
-	private async live(): Promise<LiveOwnership> {
-		if (!this.identity) throw new Error("sidecar_unavailable");
-		const observation = await this.observe(this.identity);
+	private async live(identity: SidecarIdentity): Promise<LiveOwnership> {
+		const observation = await this.observe(identity);
 		if (observation.state !== "running" || observation.health !== "healthy" || !observation.endpoint) {
 			throw new Error("sidecar_unhealthy");
 		}
@@ -171,7 +170,7 @@ export class LangflowSupervisor {
 			throw new Error("sidecar_endpoint_not_private");
 		return {
 			id: observation.challenge,
-			identity: { ...this.identity },
+			identity: { ...identity },
 			observedAt: this.deps.now().toISOString(),
 			endpoint: endpoint.origin,
 		};
@@ -179,12 +178,35 @@ export class LangflowSupervisor {
 
 	private async exclusive<T>(operation: () => Promise<T>) {
 		if (this.closed) throw new Error("sidecar_supervisor_closed");
-		if (this.busy) throw new Error("sidecar_supervisor_busy");
-		this.busy = true;
+		if (this.lifecycleBusy) throw new Error("sidecar_supervisor_busy");
+		this.lifecycleBusy = true;
 		try {
+			if (this.activeOperations > 0) {
+				await new Promise<void>((resolve) => {
+					this.resolveOperationsDrained = resolve;
+				});
+			}
 			return await operation();
 		} finally {
-			this.busy = false;
+			this.lifecycleBusy = false;
+		}
+	}
+
+	private async withOperation<T>(operation: (identity: SidecarIdentity) => Promise<T>) {
+		if (this.closed) throw new Error("sidecar_supervisor_closed");
+		if (this.lifecycleBusy) throw new Error("sidecar_supervisor_busy");
+		if (!this.identity) throw new Error("sidecar_unavailable");
+		const identity = { ...this.identity };
+		this.activeOperations += 1;
+		try {
+			return await operation(identity);
+		} finally {
+			this.activeOperations -= 1;
+			if (this.activeOperations === 0) {
+				const resolve = this.resolveOperationsDrained;
+				this.resolveOperationsDrained = null;
+				resolve?.();
+			}
 		}
 	}
 }
