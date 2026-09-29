@@ -99,7 +99,7 @@ export class LangflowHostControl {
 		return { state: state.block ? "blocked" : "open", generation: state.generation };
 	}
 
-	private static readIdentity(home: string) {
+	static readIdentity(home: string): HostControlIdentity {
 		const fd = openSync(
 			join(LangflowHostControl.directory(home), "identity.json"),
 			constants.O_RDONLY | constants.O_NOFOLLOW,
