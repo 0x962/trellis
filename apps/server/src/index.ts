@@ -164,7 +164,11 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			log: (message, fields) => log.info(message, fields),
 		});
 		const langflow = await startLangflowBootstrap(config, transport);
-		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState, editor: langflow?.editor });
+		const { app, bye } = createApp({
+			config, log, transport, bus, runtime, gh: ghState,
+			editor: langflow?.editor,
+			nativeReservations: langflow?.nativeReservations,
+		});
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();
