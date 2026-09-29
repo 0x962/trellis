@@ -1,3 +1,4 @@
+import type { JobsLog } from "../../../jobs.ts";
 import {
 	DecisionDeliveryV1Schema,
 	type DecisionLookupRequestV1,
@@ -7,7 +8,7 @@ import {
 	type HumanDeliveryV1,
 	readProtocolBytes,
 } from "../../../langflowContracts";
-import { acceptance } from "../acceptance";
+import { acceptance } from "./components/acceptance";
 
 export type DecisionEngine = {
 	lookup(input: DecisionLookupRequestV1): Promise<unknown>;
@@ -19,7 +20,11 @@ export type PreparedDecision = {
 	authority: DeliveryAuthorityV1;
 };
 
-export async function deliver(prepared: PreparedDecision, engine: DecisionEngine): Promise<HumanDeliveryV1> {
+export async function deliver(
+	prepared: PreparedDecision,
+	engine: DecisionEngine,
+	log: JobsLog,
+): Promise<HumanDeliveryV1> {
 	const { delivery, payloadBytes, authority } = prepared;
 	if (delivery.state === "confirmed") return delivery;
 	const decision = readProtocolBytes(HumanDecisionReceiptV1Schema, payloadBytes, delivery.payloadDigest);
@@ -37,19 +42,33 @@ export async function deliver(prepared: PreparedDecision, engine: DecisionEngine
 		decisionId: decision.decisionId,
 		payloadDigest: delivery.payloadDigest,
 	};
+	const failed = (operation: "lookup" | "accept", error: unknown): HumanDeliveryV1 => {
+		const category =
+			error instanceof Error && ["AbortError", "TimeoutError", "TypeError"].includes(error.name)
+				? error.name
+				: "request_failed";
+		log("Human decision delivery failed", {
+			operation,
+			executionId: lookup.executionId,
+			decisionId: lookup.decisionId,
+			engineRequestId: lookup.engineRequestId,
+			category,
+		});
+		return { ...delivery, state: "unknown", acceptance: null };
+	};
 	let response: unknown;
 	try {
 		response = await engine.lookup(lookup);
-	} catch {
-		return { ...delivery, state: "unknown", acceptance: null };
+	} catch (error) {
+		return failed("lookup", error);
 	}
 	const checked = acceptance(delivery, lookup, response);
 	const result = DecisionLookupResultV1Schema.parse(response);
 	if (result.state !== "absent") return checked;
 	try {
 		response = await engine.accept({ decisionBytes: payloadBytes, payloadDigest: request.payloadDigest, authority });
-	} catch {
-		return { ...delivery, state: "unknown", acceptance: null };
+	} catch (error) {
+		return failed("accept", error);
 	}
 	return acceptance(delivery, lookup, { state: "accepted", receipt: response });
 }
