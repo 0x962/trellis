@@ -32,5 +32,5 @@ manifest = {"schemaVersion": 1, "upstream": "fec71dca901949c09ed4d63315804337cd2
             "patch": "integrations/langflow/patches/occurrenceRequests/" + patch.name,
             "sha256": hashlib.sha256(patch.read_bytes()).hexdigest(), "sources": sources,
             "qualification": "source-only", "runtimeAccepted": False}
-manifest["requires"].append({"patch": "integrations/langflow/patches/engineApi/projection/0001-projection-checkpoints.patch", "sha256": "9484d9d7587a1acfaa48cf52b16bbeb1bddd6b3d51d49fa381b79d4556a0bd5f"})
+manifest["requires"].append({"patch": "integrations/langflow/patches/engineApi/projection/0001-projection-checkpoints.patch", "sha256": "5a27a8e056520a6bd403a105fd4f0347ea579c8b3f8a59d47a1a768b454de3af"})
 (root / "projection-writes-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
