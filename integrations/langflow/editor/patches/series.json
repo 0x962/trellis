@@ -1,0 +1,6 @@
+{
+	"engineCommit": "fec71dca901949c09ed4d63315804337cd2eb13d",
+	"afterProbeSha256": "3632763e66ba2471535f01b16380ca5d5ab0f1c74ca0cf1b3578c6c548d6166c",
+	"patch": "production-entry.patch",
+	"sha256": "0c75bfa99dd1a254d645cb67521b11d950574767cdd65812f6a9619826d58db2"
+}

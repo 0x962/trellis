@@ -141,3 +141,17 @@ test("expiry and disposal stop events and commands", async () => {
 	f.driver.dispose();
 	expect(f.unsubscribed()).toBe(1);
 });
+
+test("connect announces the installed listener once before hydration", async () => {
+	const f = fixture();
+	f.driver.connect();
+	f.driver.connect();
+	expect(f.sent.map((event) => event.type)).toEqual(["connected"]);
+	expect(await f.receive(initial)).toBe(true);
+	expect(f.sent.map((event) => event.type)).toEqual(["connected", "ready"]);
+	expect(f.sent.map((event) => event.sequence)).toEqual([1, 2]);
+	const expired = fixture();
+	expired.expire();
+	expired.driver.connect();
+	expect(expired.sent).toHaveLength(0);
+});
