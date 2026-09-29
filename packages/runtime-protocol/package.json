@@ -8,6 +8,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./client": "./src/client.ts",
+		"./capture-wire": "./src/captureWire/index.ts",
 		"./terminal-wire": "./src/terminalWire/index.ts"
 	},
 	"scripts": {
