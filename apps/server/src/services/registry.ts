@@ -82,9 +82,7 @@ import * as system from "./system.ts";
 import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } from "./systemUsage";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
-import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
-import { prepareRanking } from "./usage/ranking/ranking.ts";
-import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
+import { usageServices } from "./usage/registry";
 import * as waves from "./waves/waves.ts";
 
 export type { Run, ServiceEntry, ServiceKind } from "./registryEntry";
@@ -125,9 +123,7 @@ export const services = {
 	"providers.create": io("mutation", providers.create),
 	"providers.update": io("mutation", providers.update),
 	"providers.delete": io("mutation", providers.remove),
-	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
-	"usage.ranking": prepared("read", prepareRanking, agentTerminal.result),
-	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
+	...usageServices,
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),

@@ -7,7 +7,6 @@ export {
 	harnessLabel,
 	harnessProvider,
 	harnessTone,
-	localDayKey,
 	modelProvider,
 	rowTone,
 } from "./formatUsage";

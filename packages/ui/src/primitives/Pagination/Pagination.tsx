@@ -1,8 +1,10 @@
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { IconButton, Tooltip } from "@trellis/ui";
+import { IconButton } from "../IconButton";
+import { Tooltip } from "../Tooltip";
 
-export function UsageRankingPages({
+export function Pagination({
 	label,
+	rangeLabel,
 	start,
 	count,
 	total,
@@ -10,6 +12,7 @@ export function UsageRankingPages({
 	onPage,
 }: {
 	label: string;
+	rangeLabel?: string;
 	start: number;
 	count: number;
 	total: number;
@@ -20,6 +23,7 @@ export function UsageRankingPages({
 	return (
 		<nav aria-label={`${label} pages`} className="flex items-center justify-between gap-3">
 			<span className="text-sm text-fg-muted tabular-nums" aria-live="polite">
+				{rangeLabel && `${rangeLabel} `}
 				{start + 1}–{start + count} of {total}
 			</span>
 			<div className="flex items-center gap-2">

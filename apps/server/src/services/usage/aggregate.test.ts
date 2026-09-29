@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { UsageRankingInputSchema } from "@trellis/api";
 import { computeUsageReport, type UsageReportInputs, type UsageRun } from "./aggregate.ts";
 import type { CollectedEntry } from "./entries.ts";
-import { rankingPage } from "./ranking/rankingPage.ts";
+import { rankingPage } from "./ranking/components/rankingPage";
 
 const now = new Date("2026-09-17T12:00:00.000Z");
 const timestampMs = now.getTime();

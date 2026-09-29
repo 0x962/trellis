@@ -4,11 +4,11 @@ import type { UsageRankingInput, UsageReport } from "@trellis/api";
 import { act, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "test-renderer";
-import { computeUsageReport } from "../../../../../../../server/src/services/usage/aggregate.ts";
-import { rankingPage } from "../../../../../../../server/src/services/usage/ranking/rankingPage.ts";
-import { type AppContext, AppProvider } from "../../../../../lib/appContext";
-import { UsageGroups } from "../../components/UsageGroups";
-import { UsageSessions } from "../../components/UsageSessions";
+import { computeUsageReport } from "../../../../../../../../../server/src/services/usage/aggregate.ts";
+import { rankingPage } from "../../../../../../../../../server/src/services/usage/ranking/components/rankingPage";
+import { type AppContext, AppProvider } from "../../../../../../../lib/appContext";
+import { UsageGroups } from "../../../UsageGroups";
+import { UsageSessions } from "../../../UsageSessions";
 import { useUsageRanking } from "./useUsageRanking";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

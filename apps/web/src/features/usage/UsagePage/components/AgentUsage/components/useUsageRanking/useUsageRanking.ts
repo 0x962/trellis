@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { UsageGroupBy, UsageMetric, UsageReport } from "@trellis/api";
 import { useEffect, useState } from "react";
-import { useApp } from "../../../../../lib/appContext";
+import { useApp } from "../../../../../../../lib/appContext";
 
 export function useUsageRanking(
 	report: UsageReport | undefined,

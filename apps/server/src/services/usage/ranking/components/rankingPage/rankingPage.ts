@@ -1,5 +1,5 @@
 import type { UsageRanking, UsageRankingInput, UsageReport } from "@trellis/api";
-import { dayKey } from "../aggregate.ts";
+import { dayKey } from "../../../aggregate.ts";
 
 export function rankingPage(report: UsageReport, input: UsageRankingInput): UsageRanking {
 	const ranking = report.rankings[input.metric];

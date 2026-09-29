@@ -6,6 +6,7 @@ import {
 	EmptyState,
 	FailureState,
 	FilterBar,
+	Pagination,
 	SectionHeader,
 	Select,
 	Skeleton,
@@ -14,13 +15,12 @@ import {
 import { useMemo } from "react";
 import { formatDayLabel, formatMetric } from "../../../formatUsage";
 import { useUsageReport } from "../../hooks/useUsageReport";
-import { useUsageRanking } from "../../hooks/useUsageReport/useUsageRanking";
 import { UsageAccounts } from "../UsageAccounts";
 import { UsageGroups } from "../UsageGroups";
 import { UsageProviders } from "../UsageProviders";
-import { UsageRankingPages } from "../UsageRankingPages";
 import { UsageSessions } from "../UsageSessions";
 import { UsageTotals } from "../UsageTotals";
+import { useUsageRanking } from "./components/useUsageRanking";
 import { usageChartSeries } from "./usageChartSeries";
 
 const metricOptions = [
@@ -184,7 +184,7 @@ export function AgentUsage() {
 							count={page?.groupTotal ?? 0}
 							start={page?.groupStart ?? 0}
 							pages={
-								<UsageRankingPages
+								<Pagination
 									label="groups"
 									start={page?.groupStart ?? 0}
 									count={rows.length}
@@ -205,7 +205,7 @@ export function AgentUsage() {
 						sessions={page?.sessions ?? []}
 						total={page?.sessionTotal ?? 0}
 						pages={
-							<UsageRankingPages
+							<Pagination
 								label="sessions"
 								start={page?.sessionStart ?? 0}
 								count={page?.sessions.length ?? 0}

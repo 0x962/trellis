@@ -165,6 +165,7 @@ export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuGroup, type MenuItem, type MenuProps } from "./primitives/Menu";
 export { OutputBlock, type OutputBlockProps } from "./primitives/OutputBlock";
+export { Pagination } from "./primitives/Pagination";
 export { PickerButton } from "./primitives/PickerButton";
 export { Popover, type PopoverProps } from "./primitives/Popover";
 export { PropertyRow, type PropertyRowProps } from "./primitives/PropertyRow";
