@@ -56,11 +56,7 @@
 		"sourceNodeType": "loop",
 		"sourcePath": "integrations/langflow/components/trellisLoop/trellisLoop.py",
 		"sourceSha256": "f92c9e589bf84f31bcde27922e1c00b2befab10122293cc1ccf228e7ffda64ee",
-		"inputs": [
-			"scope_entry",
-			"seed",
-			"max_rounds"
-		],
+		"inputs": ["scope_entry", "seed", "max_rounds"],
 		"inputPorts": [
 			{
 				"name": "scope_entry",
