@@ -43,7 +43,6 @@ export function LabelGroupForm({ project, onChanged, onCancel }: LabelGroupFormP
 			<Input
 				label="Group name"
 				value={name}
-				maxLength={80}
 				autoFocus
 				error={message ?? undefined}
 				onChange={(event) => {

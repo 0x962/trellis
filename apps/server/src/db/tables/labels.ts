@@ -5,13 +5,14 @@ import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
-// The rule for a label name and for a label group name: stored trimmed, 1 to
-// 80 characters, no comma, no slash, and never `none` in any case. A comma
+// Label and group names contain trimmed, nonempty text. A comma
 // separates the refs of a list filter, a slash separates the group from the
 // label in a `group/name` ref, and `none` is the filter value for a ticket
 // with no label.
 const nameRule = (name: AnyPgColumn): SQL =>
-	sql`${name} = btrim(${name}) AND length(${name}) BETWEEN 1 AND 80 AND position(',' IN ${name}) = 0 AND position('/' IN ${name}) = 0 AND lower(${name}) <> 'none'`;
+	sql`${name} = btrim(${name}) AND length(${name}) >= 1 AND position(',' IN ${name}) = 0 AND position('/' IN ${name}) = 0 AND lower(${name}) <> 'none'`;
+
+// SHA256 keeps each name index entry small while the row retains the complete name.
 
 // A project owns its label groups. A group name is unique in its project
 // without regard to case.
@@ -27,7 +28,7 @@ export const labelGroups = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		uniqueIndex("label_groups_project_id_name_unique").on(t.projectId, sql`lower(${t.name})`),
+		uniqueIndex("label_groups_project_id_name_unique").on(t.projectId, sql`sha256(textsend(lower(${t.name})))`),
 		check("label_groups_name_check", nameRule(t.name)),
 	],
 );
@@ -54,14 +55,13 @@ export const labels = pgTable(
 	},
 	(t) => [
 		uniqueIndex("labels_group_id_name_unique")
-			.on(t.groupId, sql`lower(${t.name})`)
+			.on(t.groupId, sql`sha256(textsend(lower(${t.name})))`)
 			.where(sql`${t.groupId} IS NOT NULL`),
 		uniqueIndex("labels_project_id_name_unique")
-			.on(t.projectId, sql`lower(${t.name})`)
+			.on(t.projectId, sql`sha256(textsend(lower(${t.name})))`)
 			.where(sql`${t.groupId} IS NULL`),
 		check("labels_name_check", nameRule(t.name)),
 		checkIn(t.color, LABEL_COLORS),
-		check("labels_description_check", sql`char_length(${t.description}) <= 255`),
 		index("labels_project_id_idx").on(t.projectId),
 	],
 );

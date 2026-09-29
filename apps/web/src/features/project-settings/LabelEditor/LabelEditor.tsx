@@ -93,7 +93,6 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 				<Input
 					label="Name"
 					value={name}
-					maxLength={80}
 					autoFocus
 					error={message ?? undefined}
 					onChange={(event) => {
@@ -103,12 +102,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 				/>
 				<Select label="Color" hideLabel={false} items={items} value={color} onValueChange={setColor} className="h-8" />
 			</div>
-			<Input
-				label="Description"
-				value={description}
-				maxLength={255}
-				onChange={(event) => setDescription(event.target.value)}
-			/>
+			<Input label="Description" value={description} onChange={(event) => setDescription(event.target.value)} />
 			<div className="status-row-editor-buttons justify-end">
 				<Button type="button" disabled={saving} onClick={onCancel}>
 					Cancel
