@@ -213,20 +213,29 @@ test("saves a capacity summary before it rolls the Claude conversation", async (
 	expect(calls.save[0]).toMatchObject({ messages: [{ role: "assistant", body: "The project account." }] });
 });
 
-test("a retry continues from its saved summary without copying the failed activity", async () => {
+test("a retry retains its saved summary and all unconsumed activity", async () => {
 	const summary = message({
 		generation: 1,
 		position: 0,
 		role: "user",
 		body: "# Incremental observer context summary\n\nSaved project context.",
 	});
-	const { calls, deps } = fixture({ messages: [summary] });
+	const correction = {
+		kind: "message" as const,
+		role: "user" as const,
+		name: null,
+		body: "Keep the worker uninterrupted.",
+	};
+	const { calls, deps } = fixture({ messages: [summary], items: [...activity, correction] });
 	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
-	expect((calls.generate[0] as { userContext: string }).userContext).toBe(
-		"Use the saved incremental observer context summary to write the project update.",
-	);
-	expect((calls.generate[0] as { userContext: string }).userContext).not.toContain("tool-20");
-	expect(calls.save[0]).toMatchObject({ messages: [{ role: "assistant", body: "The project account." }] });
+	const prompt = (calls.generate[0] as { userContext: string }).userContext;
+	expect(prompt).toContain("Saved project context.");
+	expect(prompt).toContain("tool-20");
+	expect(prompt).toContain(correction.body);
+	expect(calls.save[0]).toMatchObject({
+		throughCursor: "cursor-2",
+		messages: [{ role: "user" }, { role: "assistant", body: "The project account." }],
+	});
 });
 
 test("a disable can discard a late Claude result", async () => {

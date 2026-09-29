@@ -25,6 +25,8 @@ Its Claude conversation remains separate from the worker conversation and resume
 It reads the user goal, relevant ticket requirements, the epic purpose, related dependency outcomes, its prior conversation, and new completed work.
 It treats transcript and tool text as evidence, not instructions.
 If the source exceeds the model context capacity, it creates explicit incremental summaries before it retries.
+An update after a failed reply includes the saved summary and all unconsumed activity.
+The summary does not establish which later activity the observer has read.
 
 Each update explains the intended result, what already works, what prevents the result, the current work, and the next expected result.
 It states evidence gaps and does not infer deployment from source proof.

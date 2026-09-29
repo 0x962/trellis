@@ -56,7 +56,6 @@ const summarizePart = async <T extends SessionObserverTurn>(
 export const generateSessionObserverNarrative = async <T extends SessionObserverTurn>(
 	input: {
 		messages: readonly SessionObserverMessage[];
-		summaryStored?: boolean;
 		beforeNarrativeAfterSummary?: (
 			summary: SessionObserverMessage & { role: "user" },
 			generations: T[],
@@ -69,7 +68,7 @@ export const generateSessionObserverNarrative = async <T extends SessionObserver
 		return {
 			generation: await generate({
 				instruction: sessionObserverInstruction,
-				userContext: input.summaryStored ? savedSummaryContext : serializedMessages(messages),
+				userContext: serializedMessages(messages),
 				deliveryId: "narrative",
 			}),
 			incrementalSummary: null,
