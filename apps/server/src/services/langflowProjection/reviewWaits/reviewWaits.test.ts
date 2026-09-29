@@ -119,7 +119,7 @@ test("a completed classification remains pending until its exact engine acceptan
 	});
 });
 
-test("classification errors require acceptance before they end the occurrence", () => {
+test("classification acceptance preserves actual lifecycle facts", () => {
 	const { f, occurrence } = reviewFixture();
 	f.facts.classification!.state = "failed";
 	f.facts.classification!.error = "provider_failure";
@@ -127,6 +127,10 @@ test("classification errors require acceptance before they end the occurrence", 
 	f.observed.checkpoint.waits = [];
 	expect(run(f).occurrences[0]!.state).toBe("unknown");
 	occurrence.acceptedResultId = "classification";
+	expect(run(f).occurrences[0]).toMatchObject({ state: "running", error: "provider_failure", decision: null });
+	occurrence.state = "succeeded";
+	expect(run(f).occurrences[0]!.state).toBe("unknown");
+	occurrence.state = "failed";
 	expect(run(f).occurrences[0]).toMatchObject({ state: "failed", error: "provider_failure", decision: null });
 });
 
