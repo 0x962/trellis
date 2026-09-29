@@ -7,6 +7,10 @@ The release or caller supplies the expected digest to `readCatalog.read_catalog`
 The caller supplies `engine_commit` from its verified package identity.
 The reader checks that identity, the manifest digest, and each listed source digest.
 It requires no Git metadata.
+`runtimeSources` hashes the reader and Python import files.
+A package retains each declared relative path below its explicit `trellis_root` or `engine_root`.
+The package also retains definition sources, source dependencies, and both edge-handle sources.
+The trusted package digest binds the original manifest bytes before the reader runs.
 A digest check proves source identity. It grants no execution authority.
 
 The catalog contains these source definitions:
