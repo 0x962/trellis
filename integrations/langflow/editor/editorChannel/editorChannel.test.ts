@@ -174,3 +174,45 @@ test("an early connection initializes once and retains the origin and expiry che
 	expect(expired.receive(connected)).toBe(false);
 	expect(expired.sent).toHaveLength(0);
 });
+
+
+test("delivers the final draft before resolving suspension and correlates the acknowledgement", async () => {
+	const f = fixture();
+	f.start();
+	const pending = f.channel.suspendEditing();
+	const command = f.sent.at(-1)!;
+	if (command.type !== "suspend-editing") throw new Error("Expected a suspension command.");
+	const final = { ...content, graphDocument: { nodes: [{ id: "last-edit" }], edges: [] } };
+	const acknowledgement = { ...envelope, sequence: 3, type: "editing-suspended", requestId: command.requestId, content: final };
+	expect(f.receive({ ...acknowledgement, requestId: crypto.randomUUID() })).toBe(false);
+	expect(f.receive(acknowledgement, "https://other.test")).toBe(false);
+	expect(f.receive(acknowledgement, undefined, false)).toBe(false);
+	expect(f.receive({ ...acknowledgement, identity: { ...identity, revision: 5 } })).toBe(false);
+	expect(f.receive({ ...acknowledgement, sequence: 1 })).toBe(false);
+	expect(f.receive(acknowledgement)).toBe(true);
+	expect(f.drafts).toEqual([final]);
+	expect(await pending).toEqual(final);
+	expect(f.receive(acknowledgement)).toBe(false);
+	f.channel.restoreFocus(null);
+	expect(f.sent.at(-1)?.type).toBe("suspend-editing");
+	expect(f.channel.resumeEditing()).toBe(true);
+	expect(f.sent.at(-1)).toMatchObject({ type: "resume-editing", requestId: command.requestId });
+	expect(f.channel.resumeEditing()).toBe(false);
+});
+
+test("refusal preserves access while revocation rejects an outstanding suspension", async () => {
+	const f = fixture();
+	f.start();
+	const pending = f.channel.suspendEditing();
+	const rejection = expect(pending).rejects.toThrow("Save or cancel");
+	const command = f.sent.at(-1)!;
+	if (command.type !== "suspend-editing") throw new Error("Expected a suspension command.");
+	f.receive({ ...envelope, sequence: 2, type: "editing-suspend-refused", requestId: command.requestId, reason: "open-control" });
+	await rejection;
+	expect(f.channel.active()).toBe(true);
+	const next = f.channel.suspendEditing();
+	const revoked = expect(next).rejects.toThrow("Editor access ended");
+	f.channel.revoke();
+	await revoked;
+	expect(f.channel.resumeEditing()).toBe(false);
+});

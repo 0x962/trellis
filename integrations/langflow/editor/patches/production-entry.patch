@@ -251,7 +251,7 @@ diff --git a/src/customization/trellis/api/flowEditorProtocolV1.ts b/src/customi
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/api/flowEditorProtocolV1.ts
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,58 @@
 +import { z } from "zod/v4";
 +
 +const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -292,11 +292,20 @@ new file mode 100644
 +	z.strictObject({ ...envelope, type: z.literal("ready") }),
 +	z.strictObject({ ...envelope, type: z.literal("draft-changed"), content: EditorContentSchema }),
 +	z.strictObject({ ...envelope, type: z.literal("selection-changed"), focus: EditorFocusSchema.nullable() }),
++	z.strictObject({ ...envelope, type: z.literal("editing-suspended"), requestId: z.uuid(), content: EditorContentSchema }),
++	z.strictObject({
++		...envelope,
++		type: z.literal("editing-suspend-refused"),
++		requestId: z.uuid(),
++		reason: z.enum(["open-control", "invalid-field"]),
++	}),
 +]);
 +export type EditorEvent = z.infer<typeof EditorEventSchema>;
 +
 +export const EditorCommandSchema = z.discriminatedUnion("type", [
 +	z.strictObject({ ...envelope, type: z.literal("initialize"), content: EditorContentSchema }),
++	z.strictObject({ ...envelope, type: z.literal("suspend-editing"), requestId: z.uuid() }),
++	z.strictObject({ ...envelope, type: z.literal("resume-editing"), requestId: z.uuid() }),
 +	z.strictObject({ ...envelope, type: z.literal("select-issue"), focus: EditorFocusSchema }),
 +	z.strictObject({ ...envelope, type: z.literal("restore-focus"), focus: EditorFocusSchema.nullable() }),
 +]);
@@ -524,7 +533,7 @@ diff --git a/src/customization/trellis/frameDriver/frameDriver.ts b/src/customiz
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frameDriver/frameDriver.ts
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,129 @@
 +import { editorOrigin } from "../editorOrigin";
 +import {
 +	EditorCommandSchema,
@@ -543,6 +552,10 @@ new file mode 100644
 +	}) => () => void;
 +	selectIssue: (focus: EditorFocus) => void;
 +	restoreFocus: (focus: EditorFocus | null) => void;
++	suspendEditing: () =>
++		| { state: "suspended"; content: EditorContent }
++		| { state: "refused"; reason: "open-control" | "invalid-field" };
++	resumeEditing: () => void;
 +};
 +type Options = {
 +	parentOrigin: string;
@@ -565,6 +578,7 @@ new file mode 100644
 +	let connected = false;
 +	let received = 0;
 +	let sent = 0;
++	let suspended: string | null = null;
 +	let unsubscribe: (() => void) | null = null;
 +	const active = () => !disposed && options.now() < expiresAt;
 +	const envelope = () => ({
@@ -610,6 +624,32 @@ new file mode 100644
 +			return true;
 +		}
 +		if (!ready) return false;
++		if (command.type === "suspend-editing") {
++			if (suspended) return false;
++			received = command.sequence;
++			const result = options.driver.suspendEditing();
++			if (result.state === "refused") {
++				options.send(
++					{ ...envelope(), type: "editing-suspend-refused", requestId: command.requestId, reason: result.reason },
++					options.parentOrigin,
++				);
++			} else {
++				suspended = command.requestId;
++				options.send(
++					{ ...envelope(), type: "editing-suspended", requestId: command.requestId, content: result.content },
++					options.parentOrigin,
++				);
++			}
++			return true;
++		}
++		if (command.type === "resume-editing") {
++			if (suspended !== command.requestId) return false;
++			received = command.sequence;
++			options.driver.resumeEditing();
++			suspended = null;
++			return true;
++		}
++		if (suspended) return false;
 +		received = command.sequence;
 +		if (command.type === "select-issue") options.driver.selectIssue(command.focus);
 +		else options.driver.restoreFocus(command.focus);
@@ -1357,6 +1397,72 @@ new file mode 100644
 +++ b/src/customization/trellis/frontend/mode/mode.ts
 @@ -0,0 +1 @@
 +export const TRELLIS_EDITOR_BRIDGE = import.meta.env.VITE_TRELLIS_EDITOR_BRIDGE === "true";
+diff --git a/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/__tests__/suspendNativeEditor.test.ts b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/__tests__/suspendNativeEditor.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/__tests__/suspendNativeEditor.test.ts
+@@ -0,0 +1,35 @@
++import { suspendNativeEditor } from "../suspendNativeEditor";
++import type { EditorContent } from "../../../../../protocol";
++
++const content: EditorContent = {
++	schemaVersion: 1,
++	engine: "langflow",
++	componentManifestHash: "a".repeat(64),
++	graphDocument: { nodes: [{ id: "last-edit" }], edges: [] },
++};
++
++beforeEach(() => { document.body.innerHTML = '<div id="root"></div>'; });
++
++test("captures the current draft after the native root becomes inert", () => {
++	const result = suspendNativeEditor(document, () => {
++		expect(document.getElementById("root")!.inert).toBe(true);
++		return content;
++	});
++	expect(result).toEqual({ state: "suspended", content });
++});
++
++test("preserves a local dialog draft and an invalid numeric field", () => {
++	const capture = jest.fn(() => content);
++	const dialog = document.createElement("div");
++	dialog.setAttribute("role", "dialog");
++	document.body.append(dialog);
++	expect(suspendNativeEditor(document, capture)).toEqual({ state: "refused", reason: "open-control" });
++	dialog.remove();
++	const input = document.createElement("input");
++	input.type = "number";
++	input.value = "0";
++	input.min = "1";
++	document.getElementById("root")!.append(input);
++	expect(suspendNativeEditor(document, capture)).toEqual({ state: "refused", reason: "invalid-field" });
++	expect(capture).not.toHaveBeenCalled();
++});
+diff --git a/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/index.ts b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/index.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/index.ts
+@@ -0,0 +1 @@
++export { suspendNativeEditor } from "./suspendNativeEditor";
+diff --git a/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/suspendNativeEditor.ts b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/suspendNativeEditor.ts
+new file mode 100644
+--- /dev/null
++++ b/src/customization/trellis/frontend/nativeDriver/components/suspendNativeEditor/suspendNativeEditor.ts
+@@ -0,0 +1,15 @@
++import type { EditorContent } from "../../../../protocol";
++
++export function suspendNativeEditor(document: Document, content: () => EditorContent) {
++	const controls = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
++	if (Array.from(document.querySelectorAll<HTMLElement>(controls)).some(
++		(control) => !control.hidden && control.dataset.state !== "closed" && control.getAttribute("aria-hidden") !== "true",
++	)) {
++		return { state: "refused", reason: "open-control" } as const;
++	}
++	if (document.querySelector("input:invalid, textarea:invalid, select:invalid")) {
++		return { state: "refused", reason: "invalid-field" } as const;
++	}
++	document.getElementById("root")!.inert = true;
++	return { state: "suspended", content: content() } as const;
++}
 diff --git a/src/customization/trellis/frontend/nativeDriver/index.ts b/src/customization/trellis/frontend/nativeDriver/index.ts
 new file mode 100644
 --- /dev/null
@@ -1367,13 +1473,14 @@ diff --git a/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts b/s
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/frontend/nativeDriver/nativeDriver.ts
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,87 @@
 +import useFlowStore from "@/stores/flowStore";
 +import useFlowsManagerStore from "@/stores/flowsManagerStore";
 +import type { FlowType } from "@/types/flow";
 +import { observeFieldFocus } from "../../fieldFocus";
 +import type { EditorContent, EditorFocus } from "../../protocol";
 +import { revealEditorFocus } from "../revealEditorFocus";
++import { suspendNativeEditor } from "./components/suspendNativeEditor";
 +
 +let viewportChanged = () => {};
 +export function editorViewportChanged() {
@@ -1401,22 +1508,22 @@ new file mode 100644
 +		const graph = content.graphDocument as NonNullable<FlowType["data"]>;
 +		await useFlowStore.getState().reactFlowInstance!.setViewport(graph.viewport);
 +	};
++	const content = (): EditorContent => {
++		const state = useFlowStore.getState();
++		return {
++			...original,
++			graphDocument: {
++				...original.graphDocument,
++				nodes: structuredClone(state.nodes),
++				edges: structuredClone(state.edges),
++				viewport: state.reactFlowInstance!.getViewport(),
++			} as EditorContent["graphDocument"],
++		};
++	};
 +	const subscribe = (callbacks: {
 +		draftChanged: (content: EditorContent) => void;
 +		selectionChanged: (focus: EditorFocus | null) => void;
 +	}) => {
-+		const content = (): EditorContent => {
-+			const state = useFlowStore.getState();
-+			return {
-+				...original,
-+				graphDocument: {
-+					...original.graphDocument,
-+					nodes: structuredClone(state.nodes),
-+					edges: structuredClone(state.edges),
-+					viewport: state.reactFlowInstance!.getViewport(),
-+				} as EditorContent["graphDocument"],
-+			};
-+		};
 +		let previous = JSON.stringify(content());
 +		let selection = useFlowStore.getState().nodes.find((node) => node.selected)?.id ?? null;
 +		const stopFocus = observeFieldFocus(document, callbacks.selectionChanged);
@@ -1441,7 +1548,18 @@ new file mode 100644
 +			viewportChanged = () => {};
 +		};
 +	};
-+	return { initialize, subscribe, selectIssue: revealEditorFocus, restoreFocus: revealEditorFocus };
++	const suspendEditing = () => suspendNativeEditor(document, content);
++	const resumeEditing = () => {
++		document.getElementById("root")!.inert = false;
++	};
++	return {
++		initialize,
++		subscribe,
++		selectIssue: revealEditorFocus,
++		restoreFocus: revealEditorFocus,
++		suspendEditing,
++		resumeEditing,
++	};
 +}
 diff --git a/src/customization/trellis/frontend/revealEditorFocus/index.ts b/src/customization/trellis/frontend/revealEditorFocus/index.ts
 new file mode 100644

@@ -16,6 +16,10 @@ type Driver = {
 	}) => () => void;
 	selectIssue: (focus: EditorFocus) => void;
 	restoreFocus: (focus: EditorFocus | null) => void;
+	suspendEditing: () =>
+		| { state: "suspended"; content: EditorContent }
+		| { state: "refused"; reason: "open-control" | "invalid-field" };
+	resumeEditing: () => void;
 };
 type Options = {
 	parentOrigin: string;
@@ -38,6 +42,7 @@ export function createFrameDriver(options: Options) {
 	let connected = false;
 	let received = 0;
 	let sent = 0;
+	let suspended: string | null = null;
 	let unsubscribe: (() => void) | null = null;
 	const active = () => !disposed && options.now() < expiresAt;
 	const envelope = () => ({
@@ -83,6 +88,32 @@ export function createFrameDriver(options: Options) {
 			return true;
 		}
 		if (!ready) return false;
+		if (command.type === "suspend-editing") {
+			if (suspended) return false;
+			received = command.sequence;
+			const result = options.driver.suspendEditing();
+			if (result.state === "refused") {
+				options.send(
+					{ ...envelope(), type: "editing-suspend-refused", requestId: command.requestId, reason: result.reason },
+					options.parentOrigin,
+				);
+			} else {
+				suspended = command.requestId;
+				options.send(
+					{ ...envelope(), type: "editing-suspended", requestId: command.requestId, content: result.content },
+					options.parentOrigin,
+				);
+			}
+			return true;
+		}
+		if (command.type === "resume-editing") {
+			if (suspended !== command.requestId) return false;
+			received = command.sequence;
+			options.driver.resumeEditing();
+			suspended = null;
+			return true;
+		}
+		if (suspended) return false;
 		received = command.sequence;
 		if (command.type === "select-issue") options.driver.selectIssue(command.focus);
 		else options.driver.restoreFocus(command.focus);
