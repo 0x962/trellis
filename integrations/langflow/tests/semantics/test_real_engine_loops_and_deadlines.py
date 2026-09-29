@@ -9,9 +9,9 @@ SOURCE_ROOT = Path(os.environ["LANGFLOW_SOURCE_ROOT"]).resolve()
 sys.path.insert(0, str(SOURCE_ROOT / "src" / "backend"))
 
 from lfx.components.flow_controls.loop import LoopComponent
-from lfx.components.processing.parser import ParserComponent
 from lfx.custom.custom_component.component import Component
 from lfx.graph import Graph
+from lfx.inputs.inputs import HandleInput
 from lfx.schema.data import Data
 from lfx.schema.dataframe import DataFrame
 from lfx.template.field.base import Output
@@ -27,7 +27,7 @@ def _attach_feedback(loop: LoopComponent, source: Component, source_output: str)
 					"dataType": type(source).__name__,
 					"id": source.get_id(),
 					"name": source_output,
-					"output_types": ["Message"],
+					"output_types": source.get_output(source_output).types,
 				},
 				"targetHandle": {
 					"dataType": "LoopComponent",
@@ -40,6 +40,17 @@ def _attach_feedback(loop: LoopComponent, source: Component, source_output: str)
 	)
 	if source not in loop._components:
 		loop._components.append(source)
+
+
+class FeedbackValue(Component):
+	display_name = "Feedback Value"
+	inputs = [HandleInput(name="value", display_name="Value", input_types=["Data", "DataFrame"])]
+	outputs = [Output(display_name="Value", name="value", method="run", types=["Data"])]
+
+	def run(self) -> Data:
+		if isinstance(self.value, DataFrame):
+			return self.value.to_data_list()[0]
+		return self.value
 
 
 class DeadlineProbe(Component):
@@ -66,12 +77,12 @@ async def test_nested_stock_loops_run_child_before_each_feedback() -> None:
 	outer.set(data=DataFrame([Data(text="outer-1"), Data(text="outer-2")]))
 	inner = LoopComponent(_id="inner")
 	inner.set(data=outer.item_output)
-	inner_sink = ParserComponent(_id="inner-feedback")
-	inner_sink.set(input_data=inner.item_output, mode="Parser", pattern="{text}", sep="\n")
-	_attach_feedback(inner, inner_sink, "parsed_text")
-	outer_sink = ParserComponent(_id="outer-feedback")
-	outer_sink.set(input_data=inner.done_output, mode="Parser", pattern="{text}", sep="\n")
-	_attach_feedback(outer, outer_sink, "parsed_text")
+	inner_sink = FeedbackValue(_id="inner-feedback")
+	inner_sink.set(value=inner.item_output)
+	_attach_feedback(inner, inner_sink, "value")
+	outer_sink = FeedbackValue(_id="outer-feedback")
+	outer_sink.set(value=inner.done_output)
+	_attach_feedback(outer, outer_sink, "value")
 
 	graph = Graph(outer, outer_sink)
 	[r async for r in graph.async_start()]
