@@ -9,8 +9,14 @@ test("run lists retain mixed engine order and immutable names", async () => {
 		const f = fixture(({ path }) => {
 			if (path === "/rpc/flowDocumentsV1/list")
 				return [
-					{ id: view.id, engine: "langflow" },
-					{ id: legacyRun.id, engine: "legacy" },
+					{ id: view.id, engine: "langflow", flowId: view.flowId, status: view.status, pendingSubmission: false },
+					{
+						id: legacyRun.id,
+						engine: "legacy",
+						flowId: legacyRun.flowId,
+						status: legacyRun.state.status,
+						pendingSubmission: false,
+					},
 				];
 			if (path === "/rpc/flowDocumentsV1/view") return view;
 			if (path === "/rpc/flowExecutions/get") return legacyRun;
@@ -61,4 +67,25 @@ test("an unknown index engine stops before any execution read", async () => {
 	expect(f.errors()).toContain("FLOW_UNSUPPORTED_FORMAT");
 	expect(f.calls).toHaveLength(1);
 	expect(f.text()).toBe("");
+});
+
+test("an identity without a projection stays visible without a view request", async () => {
+	const pending = {
+		id: executionViewV1Example.id,
+		engine: "langflow",
+		flowId: executionViewV1Example.flowId,
+		status: null,
+		pendingSubmission: true,
+	};
+	for (const flags of [["--json"], []]) {
+		const f = fixture(() => [pending], true);
+		expect(await run(["flow", "run", "list", ...flags], f.deps)).toBe(0);
+		expect(f.calls).toHaveLength(1);
+		if (flags.length) expect(JSON.parse(f.text())).toEqual([pending]);
+		else {
+			expect(f.text()).toContain(pending.id);
+			expect(f.text()).toContain("unknown");
+			expect(f.text()).not.toContain("succeeded");
+		}
+	}
 });

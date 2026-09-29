@@ -92,3 +92,19 @@ def test_join_refuses_missing_or_duplicate_children(ids, items):
 	join.set(items=[Data(data=item) for item in items], child_ids=json.dumps(ids))
 	with pytest.raises(ValueError, match="group_output_identity_conflict"):
 		join.collect()
+
+
+@pytest.mark.parametrize("answer,branch", [("YES", "yes"), ("NO", "no")])
+async def test_selected_output_clears_earlier_engine_exclusion(answer, branch):
+	gate = TrellisNativeDecisionV1(_id="changing-gate")
+	result = {"output": answer, "exitKind": "completed"}
+	gate.set(result=Data(data=result))
+	successor = CatalogTraceSink(_id="selected-successor")
+	successor.set(value=getattr(gate, branch))
+	graph = Graph(gate, successor)
+	graph.exclude_branch_conditionally("changing-gate", output_name=branch)
+	assert "selected-successor" in graph.conditionally_excluded_vertices
+	await graph.process(fallback_to_env_vars=False)
+	assert "selected-successor" not in graph.conditionally_excluded_vertices
+	assert graph.get_vertex("selected-successor").built is True
+	assert graph.get_vertex("selected-successor").results["out"].data == result

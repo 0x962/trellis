@@ -4,8 +4,10 @@ import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { epics } from "./epics.ts";
+import { flowDiscoveryV1 } from "./flowDiscoveryV1.ts";
 import { flowDocumentsV1, flowExecutionIndexV1 } from "./flowDocumentsV1.ts";
 import { flowExecutions } from "./flowExecutions.ts";
+import { flowExecutionsV1 } from "./flowExecutionsV1.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { internalLinks } from "./internalLinks.ts";
@@ -46,8 +48,13 @@ export const contract = {
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	flows: oc.tag("flows").router(flows),
-	flowDocumentsV1: oc.tag("flow documents v1").router({ ...flowDocumentsV1, list: flowExecutionIndexV1 }),
+	flowDocumentsV1: oc
+		.tag("flow documents v1")
+		.router({ ...flowDocumentsV1, list: flowExecutionIndexV1, discovery: flowDiscoveryV1 }),
 	flowExecutions: oc.tag("flow executions").router(flowExecutions),
+	flowExecutionsV1: oc
+		.tag("flow executions v1")
+		.router({ recovery: flowExecutionsV1.recovery, output: flowExecutionsV1.output }),
 	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),
@@ -75,6 +82,10 @@ export const contract = {
 };
 export type TrellisContract = typeof contract;
 
-export const clientContract = contract;
+export const clientContract = {
+	...contract,
+	flowExecutionsV1: oc.tag("flow executions v1").router(flowExecutionsV1),
+};
 
 export { flowDocumentsV1, flowDocumentV1Errors } from "./flowDocumentsV1.ts";
+export { flowActionV1Errors, flowExecutionsV1 } from "./flowExecutionsV1.ts";

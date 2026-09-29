@@ -14,9 +14,10 @@ export async function recoverNativeAttempt(
 	const reservation = await ctx.newTx((tx) => readReservation(tx, input));
 	if (reservation.handle.state !== "reserved")
 		return { status: "observation_required" as const, handle: reservation.handle };
-	if (reservation.launchSnapshotDigest === null) throw new Error("native_launch_snapshot_missing");
+	const launchSnapshotDigest = reservation.launchSnapshotDigest;
+	if (launchSnapshotDigest === null) throw new Error("native_launch_snapshot_missing");
 	const saved: { executionId: string; stepId: string; requestDigest: string; launch: Reserved["launch"] } = JSON.parse(
-		await readLaunchSnapshot(ctx.home, reservation.attemptId, reservation.launchSnapshotDigest),
+		await readLaunchSnapshot(ctx.home, reservation.attemptId, launchSnapshotDigest),
 	);
 	if (
 		saved.executionId !== input.executionId ||
@@ -40,7 +41,11 @@ export async function recoverNativeAttempt(
 		!isDeepStrictEqual(current.run.harness, saved.launch.run.harness)
 	)
 		throw new Error("native_attempt_conflict");
-	await dispatchNative(ctx, { reservation, launch: { ...saved.launch, ...current } }, deps);
+	await dispatchNative(
+		ctx,
+		{ reservation: { ...reservation, launchSnapshotDigest }, launch: { ...saved.launch, ...current } },
+		deps,
+	);
 	const observed = await ctx.newTx((tx) => readReservation(tx, input));
 	return { status: "dispatched" as const, handle: observed.handle };
 }

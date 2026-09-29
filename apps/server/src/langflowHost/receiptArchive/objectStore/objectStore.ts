@@ -25,11 +25,32 @@ export class ReceiptObjectStore {
 
 	write(bytes: string) {
 		const id = protocolDigest(bytes);
-		const destination = this.path(id);
+		this.persist(this.path(id), bytes);
+		return id;
+	}
+
+	bind(key: string, id: string) {
+		this.read(id);
+		this.persist(join(this.directory, `binding-${protocolDigest(key)}.json`), JSON.stringify({ key, id }));
+	}
+
+	findBinding(key: string): string | null {
+		if (!existsSync(join(this.directory, `binding-${protocolDigest(key)}.json`))) return null;
+		return this.readBinding(key);
+	}
+
+	readBinding(key: string): string {
+		const record = JSON.parse(this.readPath(join(this.directory, `binding-${protocolDigest(key)}.json`)));
+		if (record.key !== key || typeof record.id !== "string") throw new Error("receipt_binding_corrupt");
+		this.read(record.id);
+		return record.id;
+	}
+
+	private persist(destination: string, bytes: string) {
 		if (existsSync(destination)) {
-			this.read(id);
+			if (this.readPath(destination) !== bytes) throw new Error("receipt_immutable_conflict");
 			this.syncDirectory(this.directory);
-			return id;
+			return;
 		}
 		const temporary = join(this.directory, `${crypto.randomUUID()}.next`);
 		const fd = openSync(temporary, "wx", 0o600);
@@ -43,20 +64,23 @@ export class ReceiptObjectStore {
 			linkSync(temporary, destination);
 		} catch (error) {
 			if (!(error instanceof Error) || !("code" in error) || error.code !== "EEXIST") throw error;
-			this.read(id);
+			if (this.readPath(destination) !== bytes) throw new Error("receipt_immutable_conflict");
 		} finally {
 			unlinkSync(temporary);
 		}
 		this.syncDirectory(this.directory);
-		return id;
 	}
 
 	read(id: string) {
-		const fd = openSync(this.path(id), constants.O_RDONLY | constants.O_NOFOLLOW);
+		const bytes = this.readPath(this.path(id));
+		if (protocolDigest(bytes) !== id) throw new Error("receipt_digest_mismatch");
+		return bytes;
+	}
+
+	private readPath(path: string) {
+		const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
 		try {
-			const bytes = readFileSync(fd, "utf8");
-			if (protocolDigest(bytes) !== id) throw new Error("receipt_digest_mismatch");
-			return bytes;
+			return readFileSync(fd, "utf8");
 		} finally {
 			closeSync(fd);
 		}
