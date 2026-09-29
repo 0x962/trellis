@@ -40,3 +40,12 @@ export type * from "./ociDriver";
 export { createOciDriver, importVerifiedOciImage } from "./ociDriver";
 export { DispatchReceiptArchive, type ReconciliationSources, type ValidationSource } from "./receiptArchive";
 export { LangflowSupervisor } from "./supervisor";
+export {
+	installRestoredDatabase,
+	readRestoredDatabaseOpen,
+	withRestoredDatabaseOpen,
+	type InstalledDatabase,
+	type OpenedDatabaseEvidence,
+	type OpenedDatabaseRecord,
+	type VerifiedRestoredDatabase,
+} from "./restoredDatabase";
