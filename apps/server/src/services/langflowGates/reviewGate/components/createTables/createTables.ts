@@ -5,6 +5,8 @@ import {
 	langflowExecutionProjections,
 	langflowExecutions,
 	langflowNativeHandles,
+	langflowOutbox,
+	langflowStartReceipts,
 	langflowStops,
 } from "../../../../../db/tables/langflowExecution";
 import type { testFixture } from "../../../../flowExecutions/testFixture";
@@ -14,6 +16,8 @@ export async function createTables(db: Awaited<ReturnType<typeof testFixture>>["
 		langflowDocumentRevisions,
 		langflowDocumentPublications,
 		langflowExecutions,
+		langflowStartReceipts,
+		langflowOutbox,
 		langflowExecutionProjections,
 		langflowClassifications,
 		langflowNativeHandles,
