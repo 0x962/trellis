@@ -62,14 +62,9 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 			setMessage(parsedName.error.issues[0]!.message);
 			return;
 		}
-		const parsedDescription = LabelDescriptionSchema.safeParse(description);
-		if (!parsedDescription.success) {
-			setMessage(parsedDescription.error.issues[0]!.message);
-			return;
-		}
 		const fields = {
 			name: parsedName.data,
-			description: parsedDescription.data,
+			description: LabelDescriptionSchema.parse(description),
 			...(color === "auto" ? {} : { color }),
 		};
 		setSaving(true);
