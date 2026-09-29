@@ -6,6 +6,7 @@ import * as agentAttention from "./agentRuns/attention.ts";
 import * as broadcast from "./agentRuns/broadcast";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
+import * as agentRunList from "./agentRuns/list.ts";
 import { setPinned as setAgentRunPinned } from "./agentRuns/pin.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareRetry } from "./agentRuns/retry.ts";
@@ -168,7 +169,8 @@ export const services = {
 	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
-	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
+	"agentRuns.list": prepared("read", agentRunList.prepareList, agentTerminal.result),
+	"agentRuns.latestByEpicTicket": prepared("read", agentRunList.prepareLatestByEpicTicket, agentTerminal.result),
 	"agentRuns.setPinned": core("mutation", setAgentRunPinned),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": prepared(

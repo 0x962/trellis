@@ -1,5 +1,5 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
-import type { AgentRun } from "@trellis/api";
+import type { AgentRun, AgentRunListOutput } from "@trellis/api";
 
 export const completeAssignment = ({
 	queryClient,
@@ -19,9 +19,12 @@ export const completeAssignment = ({
 	rememberChoice();
 	clearStart();
 	for (const queryKey of queryKeys) {
-		queryClient.setQueryData<readonly AgentRun[]>(queryKey, (current) =>
-			current === undefined ? undefined : [run, ...current.filter((item) => item.id !== run.id)],
-		);
+		queryClient.setQueryData<readonly AgentRun[] | AgentRunListOutput>(queryKey, (current) => {
+			if (current === undefined) return undefined;
+			if ("items" in current)
+				return { ...current, items: [run, ...current.items.filter((item) => item.id !== run.id)] };
+			return [run, ...current.filter((item) => item.id !== run.id)];
+		});
 	}
 	invalidateRuns();
 };

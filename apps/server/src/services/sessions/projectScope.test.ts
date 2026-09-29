@@ -6,7 +6,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { list } from "../agentRuns/agentRuns.ts";
+import { list } from "../agentRuns/list.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import { move } from "./move.ts";
 import { getSession } from "./queries.ts";
@@ -106,7 +106,7 @@ afterAll(async () => db.$client.close());
 test("a project lists its sessions and the runs of its current tickets", async () => {
 	const rootRuns = await run((tx) => list(ctx, tx, listInput({ project: rootId })));
 	const childRuns = await run((tx) => list(ctx, tx, listInput({ project: childId })));
-	expect(rootRuns.map(({ id }) => id).sort()).toEqual(
+	expect(rootRuns.items.map(({ id }) => id).sort()).toEqual(
 		[
 			rootSessionId,
 			moveSessionId,
@@ -119,7 +119,9 @@ test("a project lists its sessions and the runs of its current tickets", async (
 			rootTicketRunId,
 		].sort(),
 	);
-	expect(childRuns.map(({ id }) => id).sort()).toEqual([childSessionId, detachSessionId, childTicketRunId].sort());
+	expect(childRuns.items.map(({ id }) => id).sort()).toEqual(
+		[childSessionId, detachSessionId, childTicketRunId].sort(),
+	);
 });
 
 test("a bare session moves to another project", async () => {
