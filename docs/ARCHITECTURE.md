@@ -760,6 +760,13 @@ Published Page messages still require confirmation in the trusted viewer before 
 The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
+The session update pane groups retained updates by local calendar day, newest first.
+The tree keeps one selected update open with its Markdown and isolated embeds.
+Arrow keys move tree focus and fold days. Enter or Space selects an update.
+New updates announce availability without changing selection, focus, or the visible scroll anchor.
+`sessionUpdates.get` accepts an optional `history.before` cursor with `createdAt` and `id`.
+History pages contain up to 50 updates and a nullable `nextCursor`; the original `latest`, `previous`, and `request` fields remain available.
+
 ### Harness accounts
 
 The Usage page stores several accounts per harness at `/usage`.
@@ -847,6 +854,19 @@ For example, `{"id":"<runId>","include":["lastTool","error"]}` retrieves the lat
 The runtime restores tool records, messages, and native turn activity from its event journal after a restart.
 Codex, Pi, and OpenCode report completed assistant messages during a turn.
 Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.
+
+`sessionObserverActivity` reads completed work from the runtime event journal for one assigned run.
+Its opaque cursor retains a byte position for each attempt. A read returns counted items, uncertain message context, and urgent signals.
+Each complete tool contributes one item with its input, final output, and preceding output updates.
+Each proven complete logical message contributes one item. Previews and replayed items do not increase the count.
+Completion and human-input signals can trigger an observer before its normal threshold.
+
+Codex and Muse supply logical message identifiers and completion events.
+Claude transcript snapshots and OpenCode text parts retain context with unproven completeness.
+Pi messages without identifiers also retain context with unproven completeness.
+A completion signal states unavailable message coverage without suppressing completed tool counts.
+The reader reports missing journal data separately. Legacy journals reconstruct tool state before the saved position and emit only new completed items.
+The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 16.
 
 `isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
 Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.

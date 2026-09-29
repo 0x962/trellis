@@ -32,7 +32,9 @@ The caller owns barrier cleanup and incomplete export retention.
 
 `system.snapshot` supplies only the Trellis store.
 `SidecarDriver` supplies `start`, `observe`, and `stop`; it supplies no engine snapshot transport.
-TRL-696 owns the real producers and this barrier composition.
+The `engineSnapshot` module supplies the authenticated SQLite export client.
+Its independent Langflow backup fragment supplies the configured engine export and router.
+TRL-696 owns producer registration and the barrier composition.
 The injected boundary is a required interface, not a supplied production adapter.
 Unknown ownership blocks effect admission but does not prevent a quiesced export of retained bytes.
 
