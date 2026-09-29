@@ -1,22 +1,19 @@
-import { expect, spyOn, test } from "bun:test";
+import { expect, test } from "bun:test";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { SessionCreateInputSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { HarnessHost } from "../agents/harnessHost/harnessHost.ts";
 import { activityRows } from "../services/agentRuns/activity.ts";
 import { seen } from "../services/agentRuns/attention.ts";
-import { startNative } from "../services/agentRuns/nativeStart.ts";
 import { getRun } from "../services/agentRuns/queries.ts";
 import { reserve } from "../services/agentRuns/reserve.ts";
 import { sessionIdsForRuns } from "../services/sessions";
 import { prepareCreate } from "../services/sessions/create.ts";
 import { getSession, listSessions } from "../services/sessions/queries.ts";
 import { prepareDelete } from "../services/sessions/remove.ts";
-import { accepted } from "../services/sessions/sessions.ts";
 import { prepareStart } from "../services/sessions/start.ts";
+import { projectSessionLaunchTests } from "./projectSessionLaunchTests";
 import {
 	ctx,
 	db,
@@ -142,28 +139,6 @@ test("resume races keep one attempt, the workspace, effort, and conversation", a
 	expect(await readFile(join(after.workspaceId!, "source.txt"), "utf8")).toBe("changed\n");
 });
 
-test("unconfirmed processes block resume and failed stops retain the workspace", async () => {
-	const session = (await db.transaction(listSessions))[0]!;
-	const process = async () => ({ status: "unknown" }) as RuntimeProcessStatus;
-	await expect(prepareStart(ctx, { id: session.id }, { process, start, preset: async () => "codex" })).rejects.toThrow(
-		"confirm it exited",
-	);
-	await expect(
-		prepareDelete(
-			ctx,
-			{ id: session.id },
-			{
-				process,
-				stop: async () => {
-					throw new Error("Stop unconfirmed");
-				},
-			},
-		),
-	).rejects.toThrow("Stop unconfirmed");
-	expect((await db.transaction((tx) => getSession(tx, session.id))).id).toBe(session.id);
-	expect((await stat(session.directory)).isDirectory()).toBe(true);
-});
-
 test("delete removes the Git worktree registration and retains the repository and run", async () => {
 	const session = (await db.transaction(listSessions)).find((row) => row.name === "with-files")!;
 	await prepareDelete(
@@ -194,26 +169,6 @@ test("delete removes the Git worktree registration and retains the repository an
 			start,
 		),
 	).rejects.toThrow("deleted session");
-});
-
-test("file-only prompts work and invalid launch choices fail before allocation", async () => {
-	expect(SessionCreateInputSchema.safeParse({ prompt: "", files: [new File(["hello"], "note.txt")] }).success).toBe(
-		true,
-	);
-	expect(SessionCreateInputSchema.safeParse({ prompt: "" }).success).toBe(false);
-	expect(
-		SessionCreateInputSchema.safeParse({ prompt: "hello", harness: { preset: "claude", model: "openai/gpt-5.6-sol" } })
-			.success,
-	).toBe(false);
-	const count = (await db.transaction(listSessions)).length;
-	await expect(
-		prepareCreate(
-			ctx,
-			{ project: "TST", prompt: "Read", files: [new File([new Uint8Array(1025)], "large.bin")] },
-			start,
-		),
-	).rejects.toThrow();
-	expect((await db.transaction(listSessions)).length).toBe(count);
 });
 
 test("scratch session retries retain one repository and one launch", async () => {
@@ -315,63 +270,4 @@ test("alert activity includes ticket agents and sessions but excludes flow agent
 	expect((await db.transaction(activityRows)).some((run) => run.id === ticketRun.id)).toBe(false);
 });
 
-const exited = async () => ({ status: "exited", launch: null }) as RuntimeProcessStatus;
-
-test("start answers before the harness confirms, and the session reads starting", async () => {
-	const session = (await db.transaction(listSessions)).find((row) => row.name === "scratch")!;
-	const entered = Promise.withResolvers<void>();
-	const confirm = Promise.withResolvers<{ id: string }>();
-	const held: typeof start = async (_background, input) => {
-		launches.push(input);
-		entered.resolve();
-		return confirm.promise;
-	};
-	const answer = await prepareStart(
-		ctx,
-		{ id: session.id },
-		{ process: exited, start: held, preset: async () => "codex" },
-	);
-	expect(answer.id).toBe(session.id);
-	// The launch has not answered, and the call already has.
-	await entered.promise;
-	expect((await accepted(ctx, { id: session.id })).run.state).toBe("starting");
-	confirm.resolve({ id: session.runId });
-	await drainBackground();
-	expect((await accepted(ctx, { id: session.id })).run.state).not.toBe("starting");
-});
-
-test("a start that never confirms leaves the reason on the session", async () => {
-	const session = (await db.transaction(listSessions)).find((row) => row.name === "scratch")!;
-	const reason =
-		"Harness attempt attempt did not reach the awaited state within 300000 ms. Inspect its terminal and provider events. Stop the attempt before you send again.";
-	const prepare = spyOn(HarnessHost.prototype, "prepare").mockImplementation(async (input) => ({
-		fingerprint: "test",
-		prompt: input.prompt,
-		spec: { id: input.id, command: "codex", args: [], cwd: input.cwd, env: {}, mode: "pty" as const },
-		harness: "codex" as const,
-	}));
-	const launch = spyOn(HarnessHost.prototype, "start").mockImplementation(async () => {
-		throw Object.assign(new Error(reason), { code: "HARNESS_OBSERVATION_TIMEOUT" });
-	});
-	await prepareStart(
-		ctx,
-		{ id: session.id },
-		{
-			process: exited,
-			start: (background, input) =>
-				startNative(background, input, {
-					workspace: async () => session.directory,
-					runtime: async () => ({}) as never,
-					env: {},
-				}),
-			preset: async () => "codex",
-		},
-	);
-	await expect(drainBackground()).rejects.toThrow(reason);
-	prepare.mockRestore();
-	launch.mockRestore();
-	expect((await db.transaction((tx) => getRun(tx, session.runId))).error).toBe(reason);
-	const detail = await accepted(ctx, { id: session.id });
-	expect(detail.run.state).not.toBe("starting");
-	expect(detail.run.error).toBe(reason);
-});
+projectSessionLaunchTests();
