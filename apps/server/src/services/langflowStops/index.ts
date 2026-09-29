@@ -1,7 +1,7 @@
 export * from "./assertExecutionNotCanceled";
 export * from "./cancelExecution";
-export { cancelView } from "./cancelView";
 export * from "./cancellationEngine";
+export { cancelView } from "./cancelView";
 export * from "./confirmCancellation";
 export * from "./drainPendingStops";
 export * from "./drainStops";
