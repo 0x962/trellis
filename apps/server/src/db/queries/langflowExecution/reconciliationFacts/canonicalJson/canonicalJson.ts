@@ -3,7 +3,9 @@ export function compareUtf8(left: string, right: string): number {
 }
 
 export function canonicalJson(source: string): string {
-	const tokens = source.match(/"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}[\]:,]/g)!;
+	const tokens = source.match(
+		/"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}[\]:,]/g,
+	)!;
 	let position = 0;
 	function value(): string {
 		const token = tokens[position++]!;
