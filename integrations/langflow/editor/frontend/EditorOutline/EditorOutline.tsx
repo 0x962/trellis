@@ -6,7 +6,7 @@ import useFlowStore from "@/stores/flowStore";
 import { deleteEditorSelection } from "../graphActions";
 import { revealEditorFocus } from "../revealEditorFocus";
 
-export function EditorOutline({ onReveal }: { onReveal: () => void }) {
+export function EditorOutline({ onReveal, onInspect }: { onReveal: () => void; onInspect?: (nodeId: string) => void }) {
 	const nodes = useFlowStore((state) => state.nodes);
 	const edges = useFlowStore((state) => state.edges);
 	const [query, setQuery] = useState("");
@@ -38,6 +38,7 @@ export function EditorOutline({ onReveal }: { onReveal: () => void }) {
 			<p>{pathOf(selected)}. {edges.filter((edge) => edge.source === selected || edge.target === selected).length} direct connections.</p>
 			<div className="flex flex-wrap gap-2">
 				<Button type="button" onClick={() => { onReveal(); requestAnimationFrame(() => revealEditorFocus({ nodeId: selected, field: null })); }}>Reveal component</Button>
+				{onInspect && <Button type="button" variant="secondary" onClick={() => onInspect(selected)}>Inspect component</Button>}
 				<Button type="button" variant="destructive" onClick={() => { deleteEditorSelection([selected], []); setSelected(""); }}>Delete component and descendants</Button>
 			</div>
 			<p>Undo restores the complete graph, including descendants and connections.</p>
