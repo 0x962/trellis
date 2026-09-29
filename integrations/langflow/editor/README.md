@@ -8,8 +8,8 @@ The browser session object contains identity and expiry metadata, not credential
 `session/` exports `EditorSessionSchema` for the parent and `EditorBootstrapSchema` for the child.
 The authenticated issuer accepts the flow and expected revision. It derives the actor and host from the server.
 The frame URL carries `trellisChannel` as a public lookup key.
-The child reads its bootstrap through authenticated `GET /api/trellis-editor/v1/session?channel=<uuid>`.
-The issuer supplies the exact parent origin. The channel does not authorize that request.
+The child reads its bootstrap through authenticated `GET /api/trellis-editor/v1/sessions/<uuid>/session`.
+The issuer supplies the exact parent origin and saved project key. The channel does not authorize that request.
 The separate editor origin requires its own host-provisioned cookie and revocation checks.
 
 `protocol/` defines version 1 of the display bridge.
@@ -18,6 +18,7 @@ These values identify the original mount. A save receipt does not replace them.
 A new mount needs a fresh channel UUID and the latest retained draft from the save owner.
 
 The parent sends `initialize` after the frame loads.
+The child sends `connected` after it attaches its listener. The parent repeats initialization once for a late connection.
 The frame applies that content, disables its own persistence path, then sends `ready`.
 Only after this acknowledgement does the parent accept draft and selection events.
 Each sender increases its sequence. The receiver refuses a duplicate or older event.
@@ -50,34 +51,56 @@ Its `initialize` callback disables editor persistence and applies the supplied d
 The driver then subscribes to draft and selection changes and acknowledges the parent.
 Disposal during initialization prevents this acknowledgement and subscription.
 The pinned editor entry supplies actual node selection, ancestor reveal, and focus actions.
-It must attach its message listener before the parent sends initialization after frame load.
+It attaches its message listener before it sends `connected`.
 Selection messages carry no execution authority.
 
-## Integration prerequisites
+## Pinned entry patch
 
-The pinned TRL-672 probe build has no parent bridge.
-It retains a separate save hook and fixture authentication.
-Its gateway currently permits only its own origin in `frame-ancestors`.
-Do not mount that build as a production editor with this adapter.
+`frontend/` supplies the native entry, store subscription, viewport updates, ancestor reveal, and field focus.
+The matched Langflow frontend owns its type check because these modules import its native stores and types.
+`patches/compose.py` generates `production-entry.patch` from these modules and the schemas in `packages/api/src/schemas/`.
+It copies `flowEditorProtocolV1.ts` and `flowEditorSessionV1.ts` into the native frontend.
+The copied compatibility modules import those local files. The manifest records the original schema hashes.
+It reads the pinned source without mutation, applies the exact probe patch in temporary files, and verifies the generated patch.
+The script removes those files when it exits. `series.json` records the source pin and patch hashes.
+The native lock contains Zod 3.25.76. The copied schemas use its `zod/v4` export.
+The Trellis source uses its own pinned Zod dependency.
 
-The production build must implement this handshake before it sends `ready`.
-It must disable the pinned save hook and every direct execution path.
+```sh
+python3 integrations/langflow/editor/patches/compose.py <pinned-engine-repository>
+```
+
+The production build sets `VITE_TRELLIS_EDITOR_BRIDGE=true` and leaves `VITE_TRELLIS_EDITOR_PROBE` false.
+Production mode mounts the restricted full editor shell and its native canvas controls.
+It removes the probe Save control. Native save hooks cannot send a write.
+The initial flow read waits for parent content and overlays it on metadata from the scoped document route.
+The native store subscription sends complete graph content to the parent queue.
+The graph retains top-level fields outside nodes, edges, and viewport.
+Viewport movement also emits a draft change.
+Inspector focus emits the exact node and field through the native field wrapper.
+The listener detaches when the bridge releases its store subscription.
+
+`scopedReads/` sends cookie-authenticated GET requests with `referrerPolicy: origin` and rejects redirects.
+Bootstrap precedes the immutable identity and exact project headers on later requests.
+The gateway permits the exact editor-origin Referer when a GET has no Origin header.
+Issuance requires the configured parent Origin and host bearer.
+The catalog response is the verified installed manifest object from TRL-845.
+The palette uses only approved exported frontend templates. An entirely blocked catalog reports an error.
+The current catalog has no approved frontend templates.
+
 The gateway must permit the exact Trellis parent origin and enforce the real grant on every request.
-The gateway must deny execution, provider keys, raw Python, imports, and component replacement.
+It must deny execution, provider keys, raw Python, imports, and component replacement.
 TRL-696 owns the authenticated issuer and gateway composition. TRL-685 owns the packaged editor build.
-TRL-696 owns the route composition. This source does not register a production route.
-
-The published fixture catalog uses text fields and one Result output per component.
-It does not define native Yes/No ports, group boundaries, or the production inspector schema.
-Typed inspectors, keyboard edges, deletion, nested groups, and the outline require those accepted definitions.
-The existing probe paths and patch remain under TRL-672 ownership.
+TRL-696 owns the route composition. The actual route still requires its registered session procedure.
+Typed inspectors, keyboard edges, deletion, nested groups, and the outline require accepted component definitions and rendered proof.
+The existing probe paths, patch, and shared candidate remain under their owners.
 
 ## Verification
 
 Run these commands after the source batch merges:
 
 ```sh
-bun test integrations/langflow/editor/editorChannel/editorChannel.test.ts integrations/langflow/editor/frameDriver/frameDriver.test.ts
+bun test integrations/langflow/editor/editorChannel integrations/langflow/editor/frameDriver integrations/langflow/editor/scopedReads integrations/langflow/editor/fieldFocus
 bun x --no-install tsc --noEmit -p integrations/langflow/editor/tsconfig.json
 bun x --no-install @biomejs/biome check integrations/langflow/editor apps/web/src/features/flows/LangflowEditor
 cd apps/web

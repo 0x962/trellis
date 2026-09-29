@@ -1,7 +1,7 @@
 import { ArrowsClockwise, FlowArrow, Stop } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { type FlowAttemptV1, type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
+import { type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
 import { Avatar, FailureState, FlowRunSummary, FlowRunTree, IconButton, Tooltip } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -15,6 +15,7 @@ import { useClock } from "../../useClock";
 import { StartFlowDialog } from "../StartFlowDialog";
 import { buildFlowRunRows } from "./buildFlowRunRows";
 import { buildExecutionViewRows } from "./components/buildExecutionViewRows";
+import { currentTerminalTarget, type TerminalTarget } from "./components/currentTerminalTarget";
 import { executionViewNotice } from "./components/executionViewNotice";
 import { FlowCancelDialog } from "./components/FlowCancelDialog";
 import { FlowDecisionDialog } from "./components/FlowDecisionDialog";
@@ -22,7 +23,6 @@ import { FlowTaskTerminal } from "./components/FlowTaskTerminal";
 import { flowRunNotice } from "./flowRunNotice";
 
 type Execution = FlowExecutionRecord | FlowExecutionViewV1;
-type TerminalTarget = { task: FlowExecutionRecord["tasks"][number]; attempt?: FlowAttemptV1 };
 
 const endOf = (execution: Execution) =>
 	"snapshot" in execution
@@ -83,6 +83,7 @@ export function FlowRun({
 	);
 	const [decision, setDecision] = useState<string | null>(null);
 	const [terminal, setTerminal] = useState<TerminalTarget | null>(null);
+	const terminalTarget = currentTerminalTarget(execution, terminal);
 	const [confirmCancel, setConfirmCancel] = useState(false);
 	const [confirmRepeat, setConfirmRepeat] = useState(false);
 	const [opened, setOpened] = useState(expanded);
@@ -217,11 +218,11 @@ export function FlowRun({
 					/>
 				</div>
 			)}
-			{terminal && (
+			{terminalTarget && (
 				<FlowTaskTerminal
 					executionId={execution.id}
-					task={terminal.task}
-					attempt={terminal.attempt}
+					task={terminalTarget.task}
+					attempt={terminalTarget.attempt}
 					reviewedHead={reviewedHead}
 					recoveryBlocked={fenced || immutableOnly}
 					onClose={() => setTerminal(null)}

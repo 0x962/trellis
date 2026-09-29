@@ -3,8 +3,10 @@ import type { ServiceCtx } from "../../../context.ts";
 import { createCache } from "../../../db/cache.ts";
 import { flows } from "../../../db/tables/flows.ts";
 import { openTestDb } from "../../../db/testDb.ts";
+import { resolveFlow } from "../../flows/flows.ts";
 import type { IoCtx } from "../../support.ts";
 import type { DocumentPublisher } from "../publisher";
+import { seedLangflowDocument } from "./seedLangflowDocument.ts";
 
 export const flowId = "00000000000000000000000001";
 export const manifestHash = "c".repeat(64);
@@ -20,7 +22,7 @@ export const saveInput = (expectedVersion = 1): FlowDocumentSaveV1Input => ({
 	componentManifestHash: manifestHash,
 });
 
-export const serviceFixture = async () => {
+export const serviceFixture = async (engine: "legacy" | "langflow" = "legacy") => {
 	const db = await openTestDb();
 	await db.insert(flows).values({
 		id: flowId,
@@ -42,6 +44,10 @@ export const serviceFixture = async () => {
 		dropBlobs: () => {},
 		publicUrl: "http://localhost",
 	};
+	if (engine === "langflow")
+		await db.transaction(async (tx) =>
+			seedLangflowDocument(tx, { flow: await resolveFlow(tx, flowId), savedAt: ctx.now }),
+		);
 	const logs: { message: string; fields?: Record<string, unknown> }[] = [];
 	const io = {
 		core: ctx,

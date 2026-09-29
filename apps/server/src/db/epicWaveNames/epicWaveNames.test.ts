@@ -28,8 +28,7 @@ test("existing epic and wave rows retain relationships through migration and com
 	const journal = JSON.parse(await readFile(join(migrations, "meta/_journal.json"), "utf8")) as {
 		entries: { idx: number; tag: string }[];
 	};
-	const target = journal.entries.find((entry) => entry.tag.endsWith("_complete_epic_wave_names"))!;
-	const entries = journal.entries.filter((entry) => entry.idx < target.idx);
+	const entries = journal.entries.filter((entry) => entry.idx < 138);
 	directory = await mkdtemp(join(tmpdir(), "trellis-epic-wave-names-"));
 	await mkdir(join(directory, "meta"));
 	await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));

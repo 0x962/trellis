@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
+import { DispatchEffects } from "../dispatchEffects";
 import { type DispatchEvidence, DispatchGate } from "../dispatchGate";
 import { DispatchStore } from "../dispatchGate/store/store";
 
@@ -80,6 +81,16 @@ export class LangflowHostControl {
 		return new LangflowHostControl(identity, gate);
 	}
 
+	static openEffects(input: { home: string; readTerminal: DispatchEvidence["readTerminal"] }) {
+		const identity = LangflowHostControl.readIdentity(input.home);
+		const gate = DispatchEffects.openEffects({
+			directory: join(LangflowHostControl.directory(input.home), "dispatch"),
+			dataHomeId: identity.dataHomeId,
+			readTerminal: input.readTerminal,
+		});
+		return { identity, gate };
+	}
+
 	static recovery(home: string): HostRecoveryState {
 		const directory = LangflowHostControl.directory(home);
 		if (!existsSync(directory)) return { state: "unavailable", generation: null };
@@ -88,7 +99,7 @@ export class LangflowHostControl {
 		return { state: state.block ? "blocked" : "open", generation: state.generation };
 	}
 
-	private static readIdentity(home: string) {
+	static readIdentity(home: string): HostControlIdentity {
 		const fd = openSync(
 			join(LangflowHostControl.directory(home), "identity.json"),
 			constants.O_RDONLY | constants.O_NOFOLLOW,

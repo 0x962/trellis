@@ -10,11 +10,11 @@ import {
 import { act } from "react";
 import {
 	execution,
+	FlowCancelDialog,
+	FlowDecisionDialog,
+	FlowTaskTerminal,
 	fixture,
 	flush,
-	FlowDecisionDialog,
-	FlowCancelDialog,
-	FlowTaskTerminal,
 	StartFlowDialog,
 } from "./actionDialogFixture";
 
@@ -193,10 +193,14 @@ test("a saved acknowledgement resolves an unknown decision without another call"
 			render({
 				...execution,
 				revision: 9,
-				decisionDeliveries: [{ ...unknownDecisionV1Example, approved: true, state }],
+				decisionDeliveries: [
+					{ ...unknownDecisionV1Example, approved: true, state, acceptedReceiptId: null, confirmedAt: null },
+				],
 			}),
 		);
-		expect(f.text()).toContain(`Decision approval: ${state}`);
+		expect(
+			f.root.container.queryAll((node) => node.props.role === "status").map((node) => node.children.join("")),
+		).toContain(`Decision approval: ${state}.`);
 		expect(f.button("Approve step").props.disabled).toBeTrue();
 	}
 	await f.render(
@@ -214,7 +218,9 @@ test("a saved acknowledgement resolves an unknown decision without another call"
 			],
 		}),
 	);
-	expect(f.text()).toContain("Decision approval: confirmed");
+	expect(
+		f.root.container.queryAll((node) => node.props.role === "status").map((node) => node.children.join("")),
+	).toContain("Decision approval: confirmed.");
 	expect(f.button("Approve step").props.disabled).toBeTrue();
 	expect(calls).toBe(1);
 	await f.close();

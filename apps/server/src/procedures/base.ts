@@ -5,6 +5,7 @@ import type { ServiceTransport } from "../db/transport.ts";
 import { fail, type InputIssue, invalidInput, invalidIssues } from "../errors.ts";
 import type { GhAccess } from "../ghState.ts";
 import type { DbTiming } from "../serverTiming.ts";
+import type { editorGateway } from "../services/langflowDispatch/editorGateway";
 import type { ServiceName } from "../services/registry.ts";
 
 // What the HTTP layer hands every procedure. `actor` is null until the
@@ -18,6 +19,7 @@ import type { ServiceName } from "../services/registry.ts";
 // seconds.
 export type ProcedureContext = {
 	headers: Headers;
+	editorGateway?: ReturnType<typeof editorGateway>;
 	reqId: string;
 	transport: ServiceTransport;
 	actor: ActorRef | null;

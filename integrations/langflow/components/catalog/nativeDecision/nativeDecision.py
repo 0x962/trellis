@@ -22,18 +22,18 @@ class TrellisNativeDecisionV1(Component):
 		Output(name="no", display_name="No", method="no", types=["Data"], group_outputs=True),
 	]
 
-	def _route(self, branch: str) -> Data:
+	def _route(self) -> Data:
 		result = self.result.data
 		answer = result["output"].strip(ECMASCRIPT_WHITESPACE).lower()
 		if result["exitKind"] != "completed" or answer not in ("yes", "no"):
 			raise ValueError("native_gate_decision_unknown")
-		if answer != branch:
-			self.stop(branch)
-			self.graph.exclude_branch_conditionally(self._id, output_name=branch)
+		rejected = "no" if answer == "yes" else "yes"
+		self.stop(rejected)
+		self.graph.exclude_branch_conditionally(self._id, output_name=rejected)
 		return self.result
 
 	def yes(self) -> Data:
-		return self._route("yes")
+		return self._route()
 
 	def no(self) -> Data:
-		return self._route("no")
+		return self._route()

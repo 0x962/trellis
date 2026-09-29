@@ -51,6 +51,7 @@ export type SidecarDriver = {
 };
 
 export type OwnershipSnapshot = {
+	canceled: boolean;
 	authority: DeliveryAuthorityV1;
 	admission: AdmissionStateV1;
 };
