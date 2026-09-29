@@ -123,3 +123,6 @@ Public actions supply the reader that validates their committed terminal evidenc
 The instance shares the durable permits with the full control.
 A blocked home still permits settlement of an existing effect, so the full control can finish its drain.
 Only the full control exposes reconciliation and block management.
+
+`DispatchReceiptArchive.open` accepts the identity and `gate.read` from either control.
+Compose its terminal reader after both objects exist; only a later settlement calls the reader.
