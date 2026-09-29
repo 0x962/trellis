@@ -37,6 +37,9 @@ export function createDraftStorage(storage: DraftStore) {
 	};
 	const discard = (identity: DraftIdentity, expectedBytes: string) => {
 		if (readBytes(identity) !== expectedBytes) throw new Error("The draft changed. Read it before discard.");
+		const current = read(identity);
+		if (current.state === "available" && current.record.explicitEdit !== undefined)
+			throw new Error("Resolve the pending explicit edit before discard.");
 		storage.removeItem(keyOf(identity));
 	};
 	return { read, readBytes, write, create, list, discard };

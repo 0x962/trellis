@@ -45,3 +45,19 @@ An unsupported record stays exportable and cannot create a queue.
 `recover` copies exact confirmed bytes into a new tab identity. It retains the original draft and request identity.
 `discard` requires the named draft identity and its exact bytes.
 `preserveLegacy` retains the original bytes as an unsupported draft before any conversion.
+
+`beginExplicitEdit(document)` suspends the queue before it awaits the current graph save.
+The adapter first stops frame edits. A lease requires a clean draft and a known save outcome.
+The lease returns the acknowledged `base`; the adapter uses its identities for the intent.
+`dispatch(intent, send)` stores the exact request JSON and base document before the typed client call.
+The public `ConversionEditIntentV1Schema` validates the intent. `FlowDocumentActionResultV1` defines the result.
+`replay(send)` uses the retained bytes and checks current access before each call.
+A pending result or transport error retains the lease across unmounts and browser reloads.
+Ordinary edits, autosave, resume, and discard cannot remove this pending identity.
+
+`release()` permits Cancel before dispatch or a definitive blocked result.
+It preserves graph bytes and leaves the queue suspended. The adapter checks current authority before it explicitly resumes.
+`acceptCommittedDocument(document)` accepts only the document from this lease's committed receipt.
+It replaces the clean base after local storage succeeds and leaves the queue suspended.
+The adapter mounts a fresh grant and frame from that receipt. It does not merge a regenerated graph with local edits.
+Storage refusal preserves the pending intent and permits another attempt to retain the receipt.
