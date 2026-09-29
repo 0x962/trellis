@@ -6,7 +6,23 @@ import { closeFixture, processEvidence, row, useFixture } from "./testEvidence.t
 describe.serial("native recovery feasibility", () => {
 	test("F4 retains the reserved attempt before launch and after a lost launch response", async () => {
 		let fixture = await useFixture();
+		fixture.abortNextReservation();
+		await expect(fixture.claim()).rejects.toThrow("fixture_reservation_kill");
+		expect((await fixture.tasks()).rows).toHaveLength(0);
+		expect((await fixture.bindings()).rows).toHaveLength(0);
 		const reserved = (await fixture.claim())!;
+		const bridge = reserved.bridge;
+		expect(bridge).toMatchObject({
+			executionId: fixture.execution.id,
+			taskKey: reserved.key,
+			agentRunId: reserved.run.id,
+			attemptId: reserved.attempt.id,
+		});
+		expect(bridge.taskKey).toContain("/");
+		expect(bridge.taskKey).toContain(":step:1");
+		expect((await fixture.replayBinding(reserved.key)).stepId).toBe(bridge.stepId);
+		const changedRequest = JSON.stringify({ ...bridge.request, specHash: "4".repeat(64) });
+		await expect(fixture.replayBinding(reserved.key, changedRequest)).rejects.toThrow("bridge_reservation_conflict");
 		await fixture.reconcile();
 		let tasks = await fixture.tasks();
 		expect(tasks.rows).toHaveLength(1);
@@ -17,7 +33,7 @@ describe.serial("native recovery feasibility", () => {
 		expect(
 			NativeHandleV1Schema.parse({
 				version: 1,
-				stepId: reserved.key,
+				stepId: bridge.stepId,
 				agentRunId: reserved.run.id,
 				attemptId: reserved.attempt.id,
 				workspaceId: run.workspaceId,
@@ -30,8 +46,8 @@ describe.serial("native recovery feasibility", () => {
 		await closeFixture();
 		fixture = await useFixture();
 		fixture.processes.loseNextLaunchResponse();
-		const first = await fixture.reconcile();
-		expect(first.errors).toEqual(["The process launched, but its response was lost."]);
+		const lostClaim = (await fixture.claim())!;
+		await expect(fixture.launch(lostClaim)).rejects.toThrow("The process launched, but its response was lost.");
 		tasks = await fixture.tasks();
 		const attemptId = row(tasks.rows).attempt_id;
 		expect(fixture.processes.launches).toEqual([attemptId]);
@@ -40,6 +56,13 @@ describe.serial("native recovery feasibility", () => {
 
 		fixture.restartProcessHost();
 		await fixture.reconcile();
+		expect(await fixture.binding(lostClaim.key)).toMatchObject({
+			stepId: lostClaim.bridge.stepId,
+			taskKey: lostClaim.key,
+			agentRunId: lostClaim.run.id,
+			attemptId: lostClaim.attempt.id,
+			requestBytes: lostClaim.bridge.requestBytes,
+		});
 		expect((await fixture.processes.inspect(attemptId)).pid).toBe(launchedPid);
 		expect(fixture.processes.launches).toEqual([]);
 		await fixture.processes.acknowledge(attemptId);
@@ -53,7 +76,15 @@ describe.serial("native recovery feasibility", () => {
 		expect(tasks.rows).toHaveLength(1);
 		expect(row(tasks.rows)).toMatchObject({ attempt_id: attemptId, result_id: "result-native-lifecycle" });
 		expect((await fixture.read()).state.status).toBe("succeeded");
-		processEvidence.push({ probe: "F4", attemptId, pid: launchedPid, result: "persisted" });
+		processEvidence.push({
+			probe: "F4",
+			attemptId,
+			pid: launchedPid,
+			result: "persisted",
+			reservationRollback: "transaction_fault",
+			reopenBoundary: "same_process_adapter_reopen",
+			authorityProcessCrash: false,
+		});
 	});
 
 	test("F6 starts nested clocks at launchedAt and sends the half and quarter warnings once", async () => {
@@ -101,7 +132,9 @@ describe.serial("native recovery feasibility", () => {
 
 		await fixture.processes.complete(first.attempt.id, "result-first", "First done");
 		fixture.setNow("2026-09-29T10:26:00.000Z");
-		await fixture.reconcile();
+		await fixture.observeClaim(first);
+		const second = (await fixture.claim())!;
+		await fixture.launch(second);
 		state = (await fixture.read()).state;
 		expect(fixture.processes.launches).toHaveLength(2);
 		expect(

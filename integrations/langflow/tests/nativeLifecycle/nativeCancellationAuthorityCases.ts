@@ -15,8 +15,11 @@ describe.serial("native cancellation and authority feasibility", () => {
 	test("F7 keeps a failed exact-attempt stop and isolates a late completion", async () => {
 		const fixture = await useFixture();
 		fixture.processes.loseNextLaunchResponse();
+		const claim = (await fixture.claim())!;
+		await expect(fixture.launch(claim)).rejects.toThrow("The process launched, but its response was lost.");
 		await fixture.reconcile();
 		const task = row((await fixture.tasks()).rows);
+		const bridge = (await fixture.binding(task.key))!;
 		await fixture.processes.complete(task.attempt_id, "late-result", "Late completion");
 		await fixture.cancel();
 
@@ -31,7 +34,7 @@ describe.serial("native cancellation and authority feasibility", () => {
 				version: 1,
 				obligationId: "stop-native-lifecycle",
 				executionId: fixture.execution.id,
-				stepId: task.key,
+				stepId: bridge.stepId,
 				agentRunId: task.run_id,
 				attemptId: task.attempt_id,
 				reason: "canceled",
@@ -51,13 +54,19 @@ describe.serial("native cancellation and authority feasibility", () => {
 		const exitedCode = (await fixture.processes.inspect(task.attempt_id)).exitCode;
 		fixture.restartProcessHost();
 		expect(await fixture.processes.inspect(task.attempt_id)).toMatchObject({ pid: exitedPid, status: "exited" });
-		processEvidence.push({ probe: "F7", attemptId: task.attempt_id, pid: exitedPid, exitCode: exitedCode });
+		processEvidence.push({
+			probe: "F7",
+			attemptId: task.attempt_id,
+			pid: exitedPid,
+			exitCode: exitedCode,
+			childExitObserved: true,
+		});
 		expect(
 			StopObligationV1Schema.parse({
 				version: 1,
 				obligationId: "stop-native-lifecycle",
 				executionId: fixture.execution.id,
-				stepId: task.key,
+				stepId: bridge.stepId,
 				agentRunId: task.run_id,
 				attemptId: task.attempt_id,
 				reason: "canceled",
@@ -80,9 +89,18 @@ describe.serial("native cancellation and authority feasibility", () => {
 
 	test("F21 prototype persists CAS takeover, revocation, and the original completion", async () => {
 		const fixture = await useFixture();
+		const claim = (await fixture.claim())!;
+		await fixture.launch(claim);
 		await fixture.reconcile();
 		const task = row((await fixture.tasks()).rows);
-		const provenance = launchProvenance(task.attempt_id, task.run_id, fixture.execution.id, task.key);
+		const bridge = (await fixture.binding(task.key))!;
+		const provenance = launchProvenance(
+			task.attempt_id,
+			task.run_id,
+			fixture.execution.id,
+			bridge.stepId,
+			bridge.request,
+		);
 		const provenanceBytes = JSON.stringify(provenance);
 		const directory = join(fixture.ctx.home, "authority");
 		let authority = await DurableAuthorityFixture.create(
@@ -200,12 +218,21 @@ describe.serial("native cancellation and authority feasibility", () => {
 		});
 		expect((await fixture.processes.inspect(task.attempt_id)).pid).toBe(processPid);
 		expect(fixture.processes.launches).toEqual([]);
+		expect(await fixture.binding(task.key)).toMatchObject({
+			stepId: bridge.stepId,
+			taskKey: task.key,
+			agentRunId: task.run_id,
+			attemptId: task.attempt_id,
+			requestBytes: bridge.requestBytes,
+		});
 		processEvidence.push({
 			probe: "F21",
 			attemptId: task.attempt_id,
 			pid: processPid,
 			owner,
 			sequence: (await authority.trace()).sequence,
+			reopenBoundary: "same_process_file_store_reopen",
+			authorityProcessCrash: false,
 		});
 	});
 

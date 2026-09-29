@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { FlowEdge, FlowNode } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { HarnessHost } from "../../../../apps/server/src/agents/harnessHost/harnessHost.ts";
+import { taskKey } from "../../../../apps/server/src/agents/nativeFlow/taskKey.ts";
 import { edge, node } from "../../../../apps/server/src/agents/nativeFlow/testDoc.ts";
 import type { HarnessSnapshot } from "../../../../apps/server/src/agents/nativeHarness/types.ts";
 import { refreshNative } from "../../../../apps/server/src/services/agentRuns/nativeLifecycle.ts";
@@ -24,7 +25,9 @@ import { recordTaskObservation } from "../../../../apps/server/src/services/flow
 import { testFixture } from "../../../../apps/server/src/services/flowExecutions/testFixture";
 import type { FlowCtx } from "../../../../apps/server/src/services/flowExecutions/types.ts";
 import { save as saveFlow } from "../../../../apps/server/src/services/flows/save.ts";
+import { createBridgeReservationStore, readBridgeStep, reserveBridgeStep } from "./bridgeReservationFixture.ts";
 import { DeterministicProcessHost } from "./deterministicProcess.ts";
+import { nativeRequestForStep } from "./nativeRequestFixture.ts";
 
 type Claim = NonNullable<Awaited<ReturnType<typeof claimNext>>>;
 
@@ -44,6 +47,7 @@ export const humanFlow = () => ({ nodes: [node("human", "human", null)], edges: 
 
 export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: FlowEdge[] } = defaultFlow()) {
 	const fixture = await testFixture();
+	await fixture.run(createBridgeReservationStore);
 	const setup = await fixture.createExecution();
 	const saved = await fixture.run((tx) =>
 		saveFlow(fixture.ctx, tx, {
@@ -57,6 +61,7 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 	const home = await mkdtemp(join(tmpdir(), "trellis-langflow-native-lifecycle-"));
 	const processDirectory = join(home, "native-processes");
 	const clock = { at: new Date("2026-09-29T10:00:00.000Z") };
+	let abortReservation = false;
 	fixture.ctx.now = clock.at;
 	let processes = await DeterministicProcessHost.create(processDirectory, () => clock.at.toISOString());
 	const processHosts = [processes];
@@ -88,13 +93,17 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 		newTx: fixture.run,
 		emit: () => {},
 	} as FlowCtx;
-	const launch = (claim: Claim) =>
-		startNative(ctx, claim, {
+	const launch = async (claim: Claim) => {
+		const bridge = await fixture.run((tx) => readBridgeStep(tx, execution.id, claim.key));
+		if (bridge === null || bridge.agentRunId !== claim.run.id || bridge.attemptId !== claim.attempt.id)
+			throw new Error("unbound_native_claim");
+		return startNative(ctx, claim, {
 			workspace: async () => home,
 			runtime: async () => processes.client() as never,
 			guide: async () => "Run the deterministic native lifecycle fixture.",
 			env: {},
 		});
+	};
 	const observe = (_ctx: FlowCtx, run: LaunchRun): Promise<HarnessSnapshot | null> =>
 		readNativeHarness(ctx, run, processes.client() as never);
 	const stop = async (_ctx: FlowCtx, run: LaunchRun) => {
@@ -127,7 +136,52 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 		fixture.db.execute(
 			sql`SELECT key,run_id,attempt_id,result_id FROM flow_execution_tasks WHERE execution_id=${execution.id} ORDER BY key`,
 		);
-	const claim = () => fixture.run((tx) => claimNext(fixture.ctx, tx, { id: execution.id }));
+	const bindings = () =>
+		fixture.db.execute(
+			sql`SELECT step_id,task_key,agent_run_id,attempt_id,request_bytes FROM langflow_native_reservations_fixture WHERE execution_id=${execution.id} ORDER BY task_key`,
+		);
+	const claim = () =>
+		fixture.run(async (tx) => {
+			const claimed = await claimNext(fixture.ctx, tx, { id: execution.id });
+			if (claimed === null) return null;
+			const current = await readExecution(tx, execution.id);
+			const step = current.state.steps.find((candidate) => taskKey(candidate) === claimed.key)!;
+			const request = nativeRequestForStep(execution.id, current.state.steps, step);
+			const bridge = await reserveBridgeStep(tx, {
+				executionId: execution.id,
+				taskKey: claimed.key,
+				nodeId: step.nodeId,
+				parentKey: step.parentKey,
+				iteration: step.iteration,
+				phase: step.phase,
+				round: step.round,
+				agentRunId: claimed.run.id,
+				attemptId: claimed.attempt.id,
+				requestBytes: JSON.stringify(request),
+			});
+			if (abortReservation) {
+				abortReservation = false;
+				throw new Error("fixture_reservation_kill");
+			}
+			return { ...claimed, bridge };
+		});
+	const readBinding = (key: string) => fixture.run((tx) => readBridgeStep(tx, execution.id, key));
+	const replayBinding = (key: string, requestBytes?: string) =>
+		fixture.run(async (tx) => {
+			const saved = (await readBridgeStep(tx, execution.id, key))!;
+			return reserveBridgeStep(tx, {
+				executionId: saved.executionId,
+				taskKey: saved.taskKey,
+				nodeId: saved.nodeId,
+				parentKey: saved.parentKey,
+				iteration: saved.iteration,
+				phase: saved.phase,
+				round: saved.round,
+				agentRunId: saved.agentRunId,
+				attemptId: saved.attemptId,
+				requestBytes: requestBytes ?? saved.requestBytes,
+			});
+		});
 	const record = async (claim: Claim, snapshot: HarnessSnapshot) => {
 		const attempt = await observeAttempt(
 			{ newTx: fixture.run },
@@ -143,6 +197,12 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 			}),
 		);
 	};
+	const observeClaim = async (claim: Claim) => {
+		const run = await fixture.run((tx) => getRun(tx, claim.run.id));
+		const snapshot = await observe(ctx, run);
+		if (snapshot === null) throw new Error("missing_native_observation");
+		return record(claim, snapshot);
+	};
 	return {
 		...fixture,
 		ctx,
@@ -153,6 +213,11 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 		warnings,
 		clock,
 		claim,
+		binding: readBinding,
+		replayBinding,
+		abortNextReservation: () => {
+			abortReservation = true;
+		},
 		launch,
 		recordLaunch: (claim: Claim, launchedAt = clock.at.toISOString()) =>
 			fixture.run((tx) =>
@@ -166,7 +231,9 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 		reconcile,
 		read,
 		tasks,
+		bindings,
 		record,
+		observeClaim,
 		cancel: async () => {
 			const current = await read();
 			return fixture.run((tx) =>

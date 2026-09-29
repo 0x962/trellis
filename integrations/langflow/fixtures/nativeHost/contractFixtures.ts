@@ -53,8 +53,8 @@ export const launchProvenance = (
 	agentRunId = "run-native-lifecycle",
 	executionId = ids.executionId,
 	stepId = "step-native-lifecycle",
+	request = nativeRequest(executionId),
 ): NativeLaunchProvenanceV1 => {
-	const request = nativeRequest(executionId);
 	return {
 		version: 1,
 		request,
