@@ -13,6 +13,7 @@ export class LegacyActivity {
 	private readonly tools = new Map<string, PendingTool>();
 	private readonly activities = new Set<string>();
 	private readonly signals = new Set<string>();
+	private readonly inputCycles = new Map<string, { cycle: number; open: boolean }>();
 	private readonly incompleteMessages = new Map<string, Map<string, string>>();
 	private turnSequence = 0;
 	private turn: { id: string; open: boolean } | null = null;
@@ -140,14 +141,24 @@ export class LegacyActivity {
 	}
 
 	private signal(event: HarnessEvent, observedAt: string): RuntimeHarnessActivitySignal | undefined {
-		if (event.kind === "input-request")
+		if (event.kind === "input-resolved") {
+			const prior = this.inputCycles.get(`input:${event.turnId}:${event.requestId}`);
+			if (prior !== undefined) prior.open = false;
+			return;
+		}
+		if (event.kind === "input-request") {
+			const id = `input:${event.turnId}:${event.inputRequest!.id}`;
+			const prior = this.inputCycles.get(id);
+			const cycle = prior === undefined ? 1 : prior.cycle + (prior.open ? 0 : 1);
+			this.inputCycles.set(id, { cycle, open: true });
 			return {
-				id: `input:${event.turnId ?? "turn-unknown"}:${event.inputRequest!.id}`,
+				id: cycle === 1 ? id : `${id}:cycle:${cycle}`,
 				kind: "input-request",
 				request: event.inputRequest!,
 				at: observedAt,
 				...(event.turnId !== undefined ? { turnId: event.turnId } : {}),
 			};
+		}
 		const outcome =
 			event.kind === "idle" && event.outcome !== undefined
 				? event.outcome

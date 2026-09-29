@@ -20,6 +20,7 @@ export type CompletedActivityState = {
 	activityTools?: PendingActivityTool[];
 	completedActivities?: string[];
 	completedSignals?: string[];
+	inputCycles?: Array<[string, { cycle: number; open: boolean }]>;
 	activityTurnSequence?: number;
 	activityTurn?: { id: string; open: boolean } | null;
 	incompleteMessages?: Array<[string, IncompleteMessage[]]>;
@@ -29,6 +30,7 @@ export class CompletedActivity {
 	private readonly activityTools = new Map<string, PendingActivityTool>();
 	private readonly completedActivities = new Set<string>();
 	private readonly completedSignals = new Set<string>();
+	private readonly inputCycles = new Map<string, { cycle: number; open: boolean }>();
 	private activityTurnSequence = 0;
 	private activityTurn: { id: string; open: boolean } | null = null;
 	private readonly incompleteMessages = new Map<string, Map<string, string>>();
@@ -36,6 +38,7 @@ export class CompletedActivity {
 		for (const tool of saved.activityTools ?? []) this.activityTools.set(tool.id, tool);
 		for (const id of saved.completedActivities ?? []) this.completedActivities.add(id);
 		for (const id of saved.completedSignals ?? []) this.completedSignals.add(id);
+		for (const [id, state] of saved.inputCycles ?? []) this.inputCycles.set(id, { ...state });
 		this.activityTurnSequence = saved.activityTurnSequence ?? 0;
 		this.activityTurn = saved.activityTurn ?? null;
 		for (const [turnId, messages] of saved.incompleteMessages ?? [])
@@ -46,6 +49,7 @@ export class CompletedActivity {
 			activityTools: [...this.activityTools.values()],
 			completedActivities: [...this.completedActivities],
 			completedSignals: [...this.completedSignals],
+			inputCycles: [...this.inputCycles].map(([id, state]) => [id, { ...state }]),
 			activityTurnSequence: this.activityTurnSequence,
 			activityTurn: this.activityTurn,
 			incompleteMessages: [...this.incompleteMessages].map(([turnId, messages]) => [
@@ -200,14 +204,26 @@ export class CompletedActivity {
 		}
 	}
 	private activitySignal(event: HarnessEvent, observedAt: string): RuntimeHarnessActivitySignal | undefined {
-		if (event.kind === "input-request")
+		if (event.kind === "input-resolved") {
+			const id = `input:${event.turnId}:${event.requestId}`;
+			const prior = this.inputCycles.get(id);
+			if (prior !== undefined) prior.open = false;
+			else if (this.completedSignals.has(id)) this.inputCycles.set(id, { cycle: 1, open: false });
+			return;
+		}
+		if (event.kind === "input-request") {
+			const id = `input:${event.turnId}:${event.inputRequest!.id}`;
+			const prior = this.inputCycles.get(id);
+			const cycle = prior === undefined ? 1 : prior.cycle + (prior.open ? 0 : 1);
+			this.inputCycles.set(id, { cycle, open: true });
 			return {
-				id: `input:${event.turnId ?? "turn-unknown"}:${event.inputRequest!.id}`,
+				id: cycle === 1 ? id : `${id}:cycle:${cycle}`,
 				kind: "input-request",
 				request: event.inputRequest!,
 				at: observedAt,
 				...(event.turnId !== undefined ? { turnId: event.turnId } : {}),
 			};
+		}
 		const outcome =
 			event.kind === "idle" && event.outcome !== undefined
 				? event.outcome

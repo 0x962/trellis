@@ -133,11 +133,11 @@ export class MuseSessionEvents {
 				this.prompts.add(value.itemId);
 				const batch = value.commandId === undefined ? undefined : this.batches.get(value.commandId);
 				if (value.commandId !== undefined) this.batches.delete(value.commandId);
-				return (batch ?? [value.text ?? ""]).map((prompt) => ({
+				return (batch ?? [value.text ?? ""]).map((prompt, index) => ({
 					kind: "prompt" as const,
 					sessionId: this.sessionId,
 					...turn,
-					activityId: value.itemId,
+					activityId: `${value.itemId}:prompt:${index}`,
 					prompt,
 				}));
 			}
