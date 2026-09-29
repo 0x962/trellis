@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PAGE_COMMENT_ANCHOR_MAX_BYTES, PageCommentAnchorSchema } from "@trellis/api";
+import { PageCommentAnchorSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { migrate as runMigrations } from "drizzle-orm/pglite/migrator";
 import { ulid } from "ulid";
@@ -168,21 +168,18 @@ test("Page uploads, comments, watches, and pins enforce their row state", async 
 	);
 
 	const threadId = ulid();
-	const maxAnchor = {
+	const largeAnchor = {
 		kind: "text" as const,
-		path: "界".repeat(4000),
-		quote: "界".repeat(1438),
+		path: "main",
+		quote: "界".repeat(20000),
 		prefix: "a",
 		suffix: "",
 	};
-	expect(PageCommentAnchorSchema.safeParse(maxAnchor).success).toBe(true);
-	expect((await db.execute(sql`SELECT octet_length(${maxAnchor}::jsonb::text) AS size`)).rows).toEqual([
-		{ size: PAGE_COMMENT_ANCHOR_MAX_BYTES },
-	]);
+	expect(PageCommentAnchorSchema.parse(largeAnchor)).toEqual(largeAnchor);
 	await db.execute(sql`INSERT INTO page_comment_threads
 		(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
-		VALUES (${threadId}, ${pageId}, 1, 'text', ${{ kind: "text", path: "body/p[1]", quote: "Result", prefix: "", suffix: "" }}::jsonb,
-			'Result', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
+		VALUES (${threadId}, ${pageId}, 1, 'text', ${largeAnchor}::jsonb,
+			${largeAnchor.quote}, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comment_threads
 			(id, page_id, version, anchor_kind, anchor, selected_text, actor_name, actor_kind, created_at, updated_at, actor_id)
@@ -212,11 +209,11 @@ test("Page uploads, comments, watches, and pins enforce their row state", async 
 	);
 	await db.execute(sql`INSERT INTO page_comments
 		(id, thread_id, body, actor_name, actor_kind, created_at, updated_at, actor_id)
-		VALUES (${ulid()}, ${threadId}, 'Change this result.', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
+		VALUES (${ulid()}, ${threadId}, ${"界".repeat(20000)}, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`);
 	await constraint(
 		db.execute(sql`INSERT INTO page_comments
 			(id, thread_id, body, actor_name, actor_kind, created_at, updated_at, actor_id)
-			VALUES (${ulid()}, ${threadId}, ${"x".repeat(10001)}, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
+			VALUES (${ulid()}, ${threadId}, '', ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId})`),
 		"page_comments_body_check",
 	);
 

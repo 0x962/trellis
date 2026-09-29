@@ -36,19 +36,28 @@ export type OwnerRevocation = {
 	observationId: string;
 };
 
+export type NativeReservationAuthentication = {
+	nativeReservationAuthenticationFile: string;
+	nativeReservationAuthenticationSha256: string;
+};
+
 export type SidecarDriver = {
 	start(input: {
 		identity: SidecarIdentity;
 		manifest: LangflowSidecarManifestV1;
 		dataDirectory: string;
 		authenticationFile: string;
+		nativeReservationAuthenticationFile: string;
+		nativeReservationAuthenticationSha256: string;
 	}): Promise<void>;
 	observe(input: {
 		identity: SidecarIdentity;
 		challenge: string;
 		authenticationFile: string;
+		nativeReservationAuthenticationFile: string;
+		nativeReservationAuthenticationSha256: string;
 	}): Promise<SidecarObservation>;
-	stop(identity: SidecarIdentity): Promise<void>;
+	stop(identity: SidecarIdentity, authentication: NativeReservationAuthentication): Promise<void>;
 };
 
 export type OwnershipSnapshot = {

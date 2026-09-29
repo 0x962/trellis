@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "executionId": "execution-1",
+  "publicationId": "publication-1",
+  "engineJobId": "00000000-0000-4000-8000-000000000001",
+  "classificationRequestId": "00000000-0000-4000-8000-000000000010",
+  "diffId": "diff-1",
+  "reviewedHead": "head-1",
+  "gates": [
+    {
+      "nodeId": "node-backend",
+      "reviewArea": "backend"
+    },
+    {
+      "nodeId": "node-frontend",
+      "reviewArea": "frontend"
+    }
+  ]
+}
