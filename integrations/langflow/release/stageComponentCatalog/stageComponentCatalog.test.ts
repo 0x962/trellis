@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { catalogFixture } from "./components/catalogFixture";
 import { stageComponentCatalog } from "./stageComponentCatalog";
@@ -86,4 +86,14 @@ test("rejects output beneath a source root", async () => {
 	await expect(stageComponentCatalog({ ...input, output: join(input.trellisRoot, "staged") })).rejects.toThrow(
 		"catalog_output_inside_source",
 	);
+});
+
+test.each(["trellisRoot", "engineRoot"] as const)("rejects output through an alias of %s", async (key) => {
+	const { root, input } = await fixture();
+	const alias = join(root, "source-alias");
+	await symlink(input[key], alias);
+	await expect(stageComponentCatalog({ ...input, output: join(alias, "staged") })).rejects.toThrow(
+		"catalog_output_inside_source",
+	);
+	await expect(lstat(join(input[key], "staged"))).rejects.toMatchObject({ code: "ENOENT" });
 });
