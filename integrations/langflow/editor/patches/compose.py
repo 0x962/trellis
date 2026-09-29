@@ -81,7 +81,7 @@ const FlowToolbar = TRELLIS_EDITOR_BRIDGE ? TrellisBridgeToolbar : TRELLIS_EDITO
     replace(canvas, '              onInit={setReactFlowInstance}', '              onMoveEnd={TRELLIS_EDITOR_BRIDGE ? editorViewportChanged : undefined}\n              onInit={setReactFlowInstance}')
     replace('src/components/core/parameterRenderComponent/index.tsx',
             '  return renderComponent();', '  return <div data-trellis-node={nodeId} data-trellis-field={name}>{renderComponent()}</div>;')
-    for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'frontend']:
+    for module in ['protocol', 'editorOrigin', 'frameDriver', 'session', 'scopedReads', 'fieldFocus', 'frontend']:
         for source in sorted((root / module).rglob('*.ts')):
             if source.name.endswith('.test.ts'):
                 continue

@@ -75,6 +75,8 @@ The initial flow read waits for parent content and overlays it on metadata from 
 The native store subscription sends complete graph content to the parent queue.
 The graph retains top-level fields outside nodes, edges, and viewport.
 Viewport movement also emits a draft change.
+Inspector focus emits the exact node and field through the native field wrapper.
+The listener detaches when the bridge releases its store subscription.
 
 `scopedReads/` sends cookie-authenticated GET requests with `referrerPolicy: origin` and rejects redirects.
 Bootstrap precedes the immutable identity and exact project headers on later requests.
@@ -96,7 +98,7 @@ The existing probe paths, patch, and shared candidate remain under their owners.
 Run these commands after the source batch merges:
 
 ```sh
-bun test integrations/langflow/editor/editorChannel integrations/langflow/editor/frameDriver integrations/langflow/editor/scopedReads
+bun test integrations/langflow/editor/editorChannel integrations/langflow/editor/frameDriver integrations/langflow/editor/scopedReads integrations/langflow/editor/fieldFocus
 bun x --no-install tsc --noEmit -p integrations/langflow/editor/tsconfig.json
 bun x --no-install @biomejs/biome check integrations/langflow/editor apps/web/src/features/flows/LangflowEditor
 cd apps/web
