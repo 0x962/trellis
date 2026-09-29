@@ -1,0 +1,66 @@
+import { ORPCError } from "@orpc/server";
+import { type FlowDocumentSaveV1Input, FlowDocumentSaveV1InputSchema, type FlowDocumentV1 } from "@trellis/api";
+import { requireActor, type ServiceCtx } from "../../context.ts";
+import { readDocumentSaveReceipt, saveDocument } from "../../db/queries/langflowDocuments";
+import type { Tx } from "../../db/tx.ts";
+import { fail } from "../../errors.ts";
+import { upsert } from "../actors.ts";
+import { resolveFlow } from "../flows/queries.ts";
+import { replaceLegacyGraph } from "./replaceLegacyGraph.ts";
+import { assertLegacy } from "./assertLegacy.ts";
+import { documentBytes } from "./documentBytes.ts";
+import { retainCurrent } from "./retainCurrent.ts";
+
+const requestConflict = (requestId: string) =>
+	new ORPCError("FLOW_REQUEST_CONFLICT", {
+		status: 409,
+		message: "This request ID already identifies different save bytes.",
+		defined: true,
+		data: { requestId },
+	});
+
+export const save = async (ctx: ServiceCtx, tx: Tx, value: FlowDocumentSaveV1Input): Promise<FlowDocumentV1> => {
+	const actor = requireActor(ctx);
+	const input = FlowDocumentSaveV1InputSchema.parse(value);
+	const current = await resolveFlow(tx, input.flow);
+	const requestBytes = documentBytes(input);
+	const previous = await readDocumentSaveReceipt(tx, { flowId: current.id, requestId: input.requestId });
+	if (previous !== undefined) {
+		if (!previous.requestBytes.equals(requestBytes)) throw requestConflict(input.requestId);
+		return previous.receipt;
+	}
+	if (input.engine === "legacy") await assertLegacy(ctx, tx, { flowId: current.id, operation: "write" });
+	await retainCurrent(ctx, tx, current);
+	const { schemaVersion } = input;
+	const content =
+		input.engine === "legacy"
+			? { schemaVersion, engine: "legacy" as const, graphDocument: input.graphDocument, componentManifestHash: null }
+			: {
+					schemaVersion,
+					engine: "langflow" as const,
+					graphDocument: input.graphDocument,
+					componentManifestHash: input.componentManifestHash,
+				};
+	const result = await saveDocument(tx, {
+		flowId: current.id,
+		expectedVersion: input.expectedVersion,
+		requestId: input.requestId,
+		requestBytes,
+		sourceBytes: documentBytes(content),
+		content,
+		diagnostics: [],
+		savedAt: ctx.now,
+	});
+	if (result.state === "request_conflict") throw requestConflict(result.requestId);
+	if (result.state === "version_conflict") throw fail("FLOW_VERSION_CONFLICT", { version: result.version });
+	if (result.state === "saved") {
+		if (input.engine === "legacy")
+			await replaceLegacyGraph(ctx, tx, {
+				current,
+				graph: { flow: current.id, ...input.graphDocument },
+			});
+		await upsert(ctx, tx, actor);
+		ctx.emit({ type: "flows.changed", id: current.id });
+	}
+	return result.receipt;
+};

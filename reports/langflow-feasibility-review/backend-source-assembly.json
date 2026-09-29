@@ -5,9 +5,9 @@
   "inputs": [
     {
       "ticket": "TRL-668",
-      "commit": "1083c2f336f9cef76d5cb6051ce9c7197d490a37",
+      "commit": "03f93241f8a9f83a87d3f06de38f7094666e6767",
       "path": "integrations/langflow/patches/correlation/0001-permanent-correlation-and-admission.patch",
-      "sha256": "67ebeba0a7752b1673ca910f33ab617cbd2a30c00aa5e87371f1caef995dcb13"
+      "sha256": "58d3412cd52414fabcc8ea91a6ea0cfb8fc3e7fe6b38b72b2cef56e04e57424e"
     },
     {
       "ticket": "TRL-669",
@@ -188,7 +188,7 @@
         "TRL-669"
       ],
       "baseSha256": "3feb7e71bb50a1d35cdd636a3d19448a765423a46cd7e3bd41d8deebd79baf19",
-      "resultSha256": "f38b97415bdfcd44da2c6543587d702c65298f5db791c0bcdc596aad72ab9706",
+      "resultSha256": "722e824f63a8eb249a261a4244efaac687fc0535ce6d0b1fc80c16bb397e3b1f",
       "edits": 7,
       "new": false
     },
@@ -273,8 +273,15 @@
       "new": false
     }
   ],
-  "patch": "backend-source-assembly.4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0.patch",
-  "patchSha256": "4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0",
+  "patch": "backend-source-assembly.cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee.patch",
+  "patchSha256": "cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee",
+  "repair": {
+    "ticket": "TRL-791",
+    "sourceTicket": "TRL-779",
+    "change": "Include the source-owned cast import in the combined jobs service.",
+    "priorPatchSha256": "4bd0ce89e7e843114426b06c16a9d231797aeee6e56fec04323d4b2da902c4c0",
+    "verification": "Pinned jobs-service hunk lines and counts match. The resulting file hash derives from those pinned bytes. Runtime checks remain pending."
+  },
   "sourceIntegrity": [
     "All patch hunk counts match their source bodies.",
     "All old source lines match pinned Git objects.",

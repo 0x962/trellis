@@ -11,7 +11,18 @@ It stores each completion delivery and receipt under the wait identity.
 An equal duplicate returns the stored receipt.
 A changed delivery for the same wait identity fails.
 
+`TrellisExternalWaitBroker.save_completion` receives the current durable authority epoch.
+It accepts a native completion only when these values match the saved wait:
+
+- the execution, publication, job, and launch epoch;
+- the step, agent run, and attempt;
+- the current authority epoch and `completion.deliver` permission;
+- the receipt execution, job, completion, and result digest.
+
+The caller reads the current authority epoch from the durable correlation row in the same completion transaction.
+
 The graph checkpoint preserves all pending wait bytes.
+A vertex rethrows `ExternalWaitPending` without converting it to `ComponentBuildError`.
 A worker restart restores the same wait set and reruns only the unfinished vertices.
 The existing graph queue then releases successors after those vertices finish.
 

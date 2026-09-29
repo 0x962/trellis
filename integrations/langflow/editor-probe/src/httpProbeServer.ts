@@ -32,7 +32,7 @@ const mimeTypes: Record<string, string> = {
 
 const securityHeaders = {
 	"content-security-policy":
-		"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'self'",
+		"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
 	"cross-origin-opener-policy": "same-origin",
 	"referrer-policy": "no-referrer",
 	"x-content-type-options": "nosniff",
@@ -73,7 +73,15 @@ const serveApi = async (request: IncomingMessage, response: ServerResponse, path
 	});
 	writeEvidence();
 	if (result.disconnect) {
-		response.destroy();
+		// A partial response makes the client observe a lost receipt after the gateway accepts the save.
+		// An empty disconnect can trigger a transparent transport retry of the PUT request.
+		response.writeHead(result.status, {
+			...securityHeaders,
+			"content-type": "application/json; charset=utf-8",
+			"content-length": Buffer.byteLength(`${JSON.stringify(result.body)}\n`),
+		});
+		response.flushHeaders();
+		response.write("{", () => response.destroy());
 		return;
 	}
 	sendJson(response, result.status, result.body);
