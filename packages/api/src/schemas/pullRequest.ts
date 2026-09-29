@@ -135,8 +135,8 @@ export const PullRequestResolveOutputSchema = z.object({
 export type PullRequestResolveOutput = z.infer<typeof PullRequestResolveOutputSchema>;
 
 const PullRequestHeadShaSchema = z.string().min(1).max(64);
-const PullRequestSummaryHeadlineSchema = z.string().min(1).max(200);
-const PullRequestSummaryTextSchema = z.string().min(1).max(2000);
+const PullRequestSummaryHeadlineSchema = z.string().min(1);
+const PullRequestSummaryTextSchema = z.string().min(1);
 
 // An agent writes these three fields for one head SHA. `headline` states what
 // the change does. `why` gives the problem, the approach, and the limit.
