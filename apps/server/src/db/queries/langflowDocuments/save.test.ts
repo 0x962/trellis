@@ -111,6 +111,6 @@ describe("immutable document saves", () => {
 			"Immutable document records",
 		);
 		const [receipt] = await db.select().from(langflowDocumentSaveReceipts);
-		await expect(db.insert(langflowDocumentSaveReceipts).values(receipt!)).rejects.toThrow();
+		await expect(Promise.resolve(db.insert(langflowDocumentSaveReceipts).values(receipt!))).rejects.toThrow();
 	});
 });

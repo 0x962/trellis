@@ -283,6 +283,14 @@ export * from "./tables/commentDeliveries.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/harnessAccounts.ts";
+export {
+	langflowDocumentConversions,
+	langflowDocumentPublicationStates,
+	langflowDocumentPublications,
+	langflowDocumentRevisions,
+	langflowDocumentSaveReceipts,
+} from "./tables/langflowDocuments/index.ts";
+export * from "./tables/langflowExecution/index.ts";
 export * from "./tables/nativeMigrations.ts";
 export * from "./tables/needsYouStates.ts";
 export * from "./tables/notes.ts";
