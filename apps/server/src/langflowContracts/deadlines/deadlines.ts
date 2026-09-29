@@ -4,7 +4,7 @@ import { ReferenceSchema, TimestampSchema } from "../primitives";
 const deadline = {
 	deadlineId: ReferenceSchema,
 	groupOccurrenceKey: ReferenceSchema,
-	budgetMs: z.int().min(1).max(86_400_000),
+	budgetMs: z.int().positive(),
 };
 export const GroupDeadlineV1Schema = z.union([
 	z.strictObject({ ...deadline, launchedAt: z.null(), deadlineAt: z.null(), launchReceiptId: z.null() }),

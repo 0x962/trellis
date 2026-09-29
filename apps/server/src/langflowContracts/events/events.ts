@@ -85,7 +85,7 @@ export const EventReplayRequestV1Schema = z.strictObject({
 	version: z.literal(1),
 	executionId: ReferenceSchema,
 	afterSeq: z.int().nonnegative(),
-	limit: z.int().min(1).max(1000),
+	limit: z.int().positive(),
 });
 export const EventReplayV1Schema = z
 	.discriminatedUnion("state", [

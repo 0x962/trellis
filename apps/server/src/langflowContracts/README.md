@@ -43,7 +43,10 @@ An equal duplicate returns the saved receipt without another effect.
 The stores enforce both keys where the table lists two keys.
 `occurrenceKey` identifies the complete semantic tuple; changing that label cannot create another occurrence for the same tuple.
 The iteration path lists every enclosing loop from outermost to innermost.
-Each round starts at one and stops at 50.
+Round numbers are positive integers.
+The contracts impose no round count, reference length, deadline budget, or replay page ceiling.
+Safe integers preserve exact numeric identity in JSON and TypeScript.
+SHA-256 digests and UUIDs retain their required formats.
 An empty path identifies work outside a loop.
 `phase` distinguishes `step`, `children`, and `condition`.
 The bridge checks these values against the engine checkpoint and publication before reservation.

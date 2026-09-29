@@ -89,7 +89,7 @@ test("nested iteration paths and condition phases retain distinct request bytes"
 		contracts.protocolDigest(JSON.stringify(request)),
 	);
 	expect(
-		contracts.NativeRequestV1Schema.safeParse({ ...request, iterationPath: [{ loopNodeId: "outer", round: 51 }] })
+		contracts.NativeRequestV1Schema.safeParse({ ...request, iterationPath: [{ loopNodeId: "outer", round: 0 }] })
 			.success,
 	).toBe(false);
 });
