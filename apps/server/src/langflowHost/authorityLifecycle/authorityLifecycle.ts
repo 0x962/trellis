@@ -11,6 +11,8 @@ import { InitialAuthorityRecovery } from "../initialAuthorityRecovery";
 import type { DispatchReceiptArchive } from "../receiptArchive";
 import type { LangflowSupervisor } from "../supervisor";
 import { deliverAuthority } from "./deliverAuthority";
+import { deliverInitialAuthority } from "./deliverInitialAuthority";
+import { readAuthorityRecoveryIssuer } from "./recoveryIssuer";
 import { AuthorityIntentStore, type AuthorityLeasePolicy, AuthorityLeasePolicySchema } from "./intentStore";
 
 export type AuthorityLifecycleInput = {
@@ -75,7 +77,6 @@ export class AuthorityLifecycle {
 		for (const entry of this.input.control.gate.read().permits) {
 			if (entry.terminal || !entry.permit.binding.effectId.startsWith("authority:")) continue;
 			const plan = this.intents.recover(entry.permit.binding);
-			if (plan.initial) continue;
 			results.push(await this.committed({ executionId: plan.intent.executionId, signal: input.signal }));
 			seen.add(plan.intent.executionId);
 		}
@@ -101,9 +102,15 @@ export class AuthorityLifecycle {
 		}
 		const pending = control.gate.read().permits.filter((entry) =>
 			!entry.terminal && entry.permit.binding.executionId === request.executionId &&
-			entry.permit.binding.effectId.startsWith("authority:") && !this.intents.recover(entry.permit.binding).initial,
+			entry.permit.binding.effectId.startsWith("authority:"),
 		);
 		if (pending.length > 1) throw new Error("authority_lifecycle_multiple_pending");
+		if (pending[0]) {
+			const retained = this.intents.recover(pending[0].permit.binding);
+			if (retained.initial && !(await authority.readReceipt(retained.intent))) {
+				return { executionId: request.executionId, state: "pending", expiresAt: retained.intent.expiresAt };
+			}
+		}
 		const snapshot = await authority.read(request.executionId);
 		const plan = pending[0]
 			? this.intents.recover(pending[0].permit.binding)
@@ -126,6 +133,7 @@ export class AuthorityLifecycle {
 		});
 		const saved = await authority.readReceipt(plan.intent);
 		if (!saved) {
+			if (plan.initial) throw new Error("initial_recovery_binding_pending");
 			request.signal.throwIfAborted();
 			if ("expectedOwnerId" in plan.intent) await supervisor.takeover({ ...plan.intent, permit });
 			else await supervisor.renew({ ...plan.intent, permit });
@@ -146,8 +154,32 @@ export class AuthorityLifecycle {
 				authenticationFile: join(control.identity.home, "langflow", "secrets", `${observation.identity.instanceId}.token`),
 				dependencies: this.input.engineDependencies,
 			});
-			const delivered = await deliverAuthority({ client, plan, authorityBytes, signal: request.signal });
-			if (delivered.state === "unknown") {
+			let delivered = plan.initial
+				? { state: "absent" as const }
+				: await deliverAuthority({ client, plan, authorityBytes, signal: request.signal });
+			if (delivered.state === "absent" || plan.initial) {
+				const original = this.input.initial?.issuer.readInitial(request.executionId);
+				if (!original || original.authorityBytes !== plan.priorAuthorityBytes) {
+					throw new Error("initial_recovery_predecessor_unavailable");
+				}
+				const requestBytes = this.intents.recoveryRequest(commit, original.sourceBytes);
+				const issuer = readAuthorityRecoveryIssuer(control.identity);
+				const fetcher = this.input.engineDependencies?.fetch ?? fetch;
+				const recoveryClient = createEngineClient({
+					endpoint: observation.endpoint,
+					authenticationFile: join(control.identity.home, "langflow", "secrets", `${observation.identity.instanceId}.token`),
+					dependencies: {
+						...this.input.engineDependencies,
+						fetch: (url, init) => {
+							const headers = new Headers(init?.headers);
+							headers.set("X-Trellis-Authority-Recovery-Issuer", issuer);
+							return fetcher(url, { ...init, headers });
+						},
+					},
+				});
+				delivered = await deliverInitialAuthority({ client: recoveryClient, requestBytes, signal: request.signal });
+			}
+			if (delivered.state !== "confirmed") {
 				return { executionId: request.executionId, state: "pending", expiresAt: commit.receipt.authority.expiresAt };
 			}
 			const terminal = archive.writeTerminal({

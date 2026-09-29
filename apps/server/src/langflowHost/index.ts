@@ -29,3 +29,5 @@ export {
 	type AuthorityLeasePolicy,
 } from "./authorityLifecycle";
 export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
+
+export { provisionAuthorityRecoveryIssuer } from "./authorityLifecycle/recoveryIssuer";

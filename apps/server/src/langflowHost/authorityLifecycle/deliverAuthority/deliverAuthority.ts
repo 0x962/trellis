@@ -11,7 +11,7 @@ const StateSchema = z.strictObject({
 });
 
 type Client = ReturnType<typeof createEngineClient>;
-type Result = { state: "confirmed"; sourceBytes: string } | { state: "unknown" };
+type Result = { state: "confirmed"; sourceBytes: string } | { state: "unknown" | "absent" };
 
 function stateOf(response: EngineResponse) {
 	if (response.state !== "received" || response.status !== 200) return null;
@@ -31,7 +31,9 @@ export async function deliverAuthority(input: {
 	const { client, plan, authorityBytes, signal } = input;
 	const prior = DeliveryAuthorityV1Schema.parse(JSON.parse(plan.priorAuthorityBytes));
 	const path = `/trellis-v1/authority/${encodeURIComponent(prior.executionId)}` as const;
-	let current = stateOf(await client.request({ method: "GET", path, signal }));
+	const observed = await client.request({ method: "GET", path, signal });
+	if (observed.state === "received" && observed.status === 404) return { state: "absent" };
+	let current = stateOf(observed);
 	if (!current) return { state: "unknown" };
 	if (current.authorityBytes === authorityBytes && current.revokedAt === null) {
 		return { state: "confirmed", sourceBytes: current.sourceBytes };

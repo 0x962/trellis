@@ -300,7 +300,7 @@ A canceled attempt requires its exact confirmed stop and exit.
 The private engine client reads the current grant before it sends a control mutation.
 Takeover confirms revocation of the exact predecessor before it sends the successor.
 A later lookup must confirm the exact successor bytes before the archive can settle its permit.
-An unknown reply, foreign grant, changed owner, or missing engine record retains the permit.
+An unknown reply, foreign grant, or changed owner retains the permit.
 An intent for a retired target owner requires reconciliation; it cannot move silently to another owner.
 
 `InitialAuthorityIssuer.readInitial(executionId)` returns `sourceBytes` from the immutable issuance record.
@@ -311,4 +311,11 @@ A changed owner requires the exact original revocation and a healthy successor o
 The same owner uses renewal while admission stays closed.
 The store commits the original association and successor authority in one transaction.
 Canceled executions receive only `execution.cancel`; the producer leaves the original permit outstanding.
-The engine must support recovery when the original grant never reached its ledger before this path can complete.
+`committed` resumes the saved initial recovery permit after that association commits.
+An absent engine grant uses the controlled `/trellis-v1/authority/recover-initial` endpoint with the original issuance bytes.
+The object store saves the complete request before delivery and preserves its bytes across replay.
+The response must bind the request, original grant, successor grant, and complete successor receipt by SHA256.
+Only that acknowledgement permits settlement.
+`provisionAuthorityRecoveryIssuer(identity)` supplies the separate private credential for this endpoint.
+Composition must provision it explicitly and mount it through the OCI driver before recovery can complete.
+The engine endpoint requires both its normal bearer and `X-Trellis-Authority-Recovery-Issuer`.

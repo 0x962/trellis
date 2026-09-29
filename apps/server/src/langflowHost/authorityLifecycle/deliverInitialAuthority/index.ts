@@ -1,0 +1,1 @@
+export { deliverInitialAuthority } from "./deliverInitialAuthority";

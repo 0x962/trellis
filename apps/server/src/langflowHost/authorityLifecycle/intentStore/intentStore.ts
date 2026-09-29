@@ -4,7 +4,7 @@ import { z } from "zod";
 import { lockHome } from "../../../homeLock";
 import { DeliveryAuthorityV1Schema } from "../../../langflowContracts";
 import { authorityPermitBinding } from "../../authorityPermit";
-import type { LiveOwnership } from "../../contracts";
+import type { AuthorityCommit, LiveOwnership } from "../../contracts";
 import type { EffectBinding } from "../../dispatchGate";
 import { type HostControlIdentity, LangflowHostControl } from "../../hostControl";
 import { ReceiptObjectStore } from "../../objectStore";
@@ -89,6 +89,36 @@ export class AuthorityIntentStore {
 		const expected = authorityPermitBinding(plan.intent, authority.engineJobId);
 		if (!isDeepStrictEqual(expected, binding)) throw new Error("authority_intent_binding_conflict");
 		return plan;
+	}
+
+	recoveryRequest(commit: AuthorityCommit, initialRecordBytes: string) {
+		if (!initialRecordBytes) throw new Error("initial_recovery_source_missing");
+		const original = JSON.parse(initialRecordBytes);
+		const request = {
+			version: 1,
+			requestId: commit.receipt.request.requestId,
+			originalAuthorityBytes: original.authorityBytes,
+			initialRecordBytes,
+			successorCommitBytes: JSON.stringify(commit),
+		};
+		const key = JSON.stringify(["engine-initial-recovery", request.requestId]);
+		const lock = lockHome(this.directory, "server", null);
+		try {
+			const saved = this.objects.findBinding(key);
+			if (saved) {
+				const sourceBytes = this.objects.read(saved);
+				const value = JSON.parse(sourceBytes);
+				if (value.initialRecordBytes !== request.initialRecordBytes || !isDeepStrictEqual(JSON.parse(value.successorCommitBytes), commit)) {
+					throw new Error("initial_recovery_delivery_conflict");
+				}
+				return sourceBytes;
+			}
+			const sourceBytes = JSON.stringify(request);
+			this.objects.bind(key, this.objects.write(sourceBytes));
+			return sourceBytes;
+		} finally {
+			lock.release();
+		}
 	}
 
 	private read(id: string) {
