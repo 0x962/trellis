@@ -88,7 +88,7 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 					project={ticket.project.key}
 					exclude={[ticket.identifier]}
 					selection={selection("waitsOn")}
-					onToggle={(dependency, next) => void changeEdge(dependency, "waitsOn", next)}
+					onAdd={(dependency) => void changeEdge(dependency, "waitsOn", true)}
 					allowNone={false}
 					label="Waits on"
 					placeholder="Set the tickets this one waits on: an identifier or a title"
@@ -106,7 +106,7 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 					project={ticket.project.key}
 					exclude={[ticket.identifier]}
 					selection={selection("blocks")}
-					onToggle={(released, next) => void changeEdge(released, "blocks", next)}
+					onAdd={(released) => void changeEdge(released, "blocks", true)}
 					allowNone={false}
 					label="Blocks"
 					placeholder="Set the tickets this one blocks: an identifier or a title"
