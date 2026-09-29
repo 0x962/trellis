@@ -31,7 +31,7 @@ import {
 
 export type OciDriverDependencies = {
 	run(args: string[]): Promise<OciCommandResult>;
-	fetch: typeof fetch;
+	fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
 };
 
 export type OciDriverOptions = {
@@ -52,7 +52,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 	const privateRoot = resolve(options.privateRoot);
 	const privateRootDigest = createHash("sha256").update(privateRoot).digest("hex");
 	const image = {
-		reference: `${manifest.target.image}@${manifest.target.imageDigest}`,
+		reference: options.imageConfigDigest,
 		configDigest: options.imageConfigDigest,
 	};
 
@@ -126,9 +126,9 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 			const storage = storageNames(input.identity);
 			for (const kind of ["data", "secrets"] as const) {
 				const volume = await inspectVolume(run, storage[kind]);
-				if (volume.state === "unknown") throw new Error("sidecar_volume_unknown");
-				if (volume.state === "absent") await createVolume(run, input.identity, privateRootDigest, kind);
-				else assertVolume(volume.value, input.identity, privateRootDigest, kind);
+				if (volume.state === "found") assertVolume(volume.value, input.identity, privateRootDigest, kind);
+				else if (volume.state === "absent") await createVolume(run, input.identity, privateRootDigest, kind);
+				else throw new Error("sidecar_volume_unknown");
 			}
 			await provisionStorage(run, { image: image.reference, authenticationFile: authentication, storage });
 			const result = await run(containerCreateArgs({ identity: input.identity, image: image.reference, storage }));
