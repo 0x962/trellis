@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessAccount, UsageAccount, UsageGroupRow } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
-import { accountQuotaSummary, UsageAccountCard } from "./UsageAccountCard";
+import { accountQuotaSummary, UsageAccountRow } from "./UsageAccountRow";
 
 const account: UsageAccount = {
 	key: "account:Work",
@@ -54,9 +54,9 @@ const row: UsageGroupRow = {
 	days: [],
 };
 
-const render = (patch: Partial<React.ComponentProps<typeof UsageAccountCard>> = {}) =>
+const render = (patch: Partial<React.ComponentProps<typeof UsageAccountRow>> = {}) =>
 	renderToStaticMarkup(
-		<UsageAccountCard
+		<UsageAccountRow
 			account={account}
 			managed={managed}
 			row={row}
@@ -73,7 +73,7 @@ const render = (patch: Partial<React.ComponentProps<typeof UsageAccountCard>> = 
 		/>,
 	);
 
-describe("UsageAccountCard", () => {
+describe("UsageAccountRow", () => {
 	test("shows the compact identity, quota, report value, and two row actions", () => {
 		const html = render();
 		expect(html).toContain("Work · Default");

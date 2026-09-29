@@ -20,10 +20,11 @@ import {
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "./accountError";
-import { UsageAccountCard } from "./components/UsageAccountCard";
+import { UsageAccountRow } from "./components/UsageAccountRow";
+import { VirtualUsageAccountRows } from "./components/VirtualUsageAccountRows";
 
 export type UsageAccountsProps = {
 	rows: readonly UsageGroupRow[];
@@ -63,7 +64,12 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		...orpc.harnessAccounts.list.queryOptions({ input: {} }),
 		refetchInterval: 30_000,
 	});
-	const values = accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? []);
+	const usageAccounts = accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? []);
+	const configuredById = useMemo(
+		() => new Map((configured.data ?? []).map((account) => [account.id, account])),
+		[configured.data],
+	);
+	const rowsByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edit, setEdit] = useState<HarnessAccount | null>(null);
 	const [remove, setRemove] = useState<HarnessAccount | null>(null);
@@ -128,7 +134,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		<section aria-label="Accounts" className="flex flex-col gap-3">
 			<SectionHeader
 				title="Accounts"
-				count={accounts.isPending || configured.isPending ? undefined : values.length}
+				count={accounts.isPending || configured.isPending ? undefined : usageAccounts.length}
 				actions={
 					<Tooltip content="Add account">
 						<IconButton
@@ -171,30 +177,30 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 						</div>
 					))}
 				</div>
-			) : values.length === 0 ? (
+			) : usageAccounts.length === 0 ? (
 				<EmptyState
 					title="No accounts"
 					description="Add an account so an agent can sign in to a harness on this machine."
 				/>
 			) : (
-				<ul className="status-group">
-					{values.map((account) => {
-						const managed = configured.data?.find((candidate) => candidate.id === account.id);
-						const shared = account.sharedWith.length
-							? rows.find((candidate) => candidate.key === `shared:${account.harness}`)
-							: undefined;
+				<VirtualUsageAccountRows
+					accounts={usageAccounts}
+					renderRow={(account, onActiveChange) => {
+						const managed = account.id ? configuredById.get(account.id) : undefined;
+						const shared = account.sharedWith.length ? rowsByKey.get(`shared:${account.harness}`) : undefined;
 						return (
-							<UsageAccountCard
+							<UsageAccountRow
 								key={account.key}
 								account={account}
 								managed={managed}
-								row={rows.find((candidate) => candidate.key === account.key)}
+								row={rowsByKey.get(account.key)}
 								shared={shared}
 								metric={metric}
 								total={total}
 								pending={pending}
 								busy={busy}
 								refreshing={refresh.isPending}
+								onActiveChange={onActiveChange}
 								onDefault={() => {
 									update.mutate({ id: managed!.id, isDefault: true });
 								}}
@@ -212,8 +218,8 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								}}
 							/>
 						);
-					})}
-				</ul>
+					}}
+				/>
 			)}
 			{addOpen && (
 				<HarnessAccountForm

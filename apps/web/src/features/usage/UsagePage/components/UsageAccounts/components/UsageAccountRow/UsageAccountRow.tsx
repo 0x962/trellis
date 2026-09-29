@@ -46,7 +46,7 @@ export const accountQuotaSummary = (account: UsageAccount) => {
 	return `${Math.round(mostUsed)}% used`;
 };
 
-export function UsageAccountCard({
+export function UsageAccountRow({
 	account,
 	managed,
 	row,
@@ -60,6 +60,7 @@ export function UsageAccountCard({
 	onRename,
 	onRemove,
 	onRefresh,
+	onActiveChange,
 }: {
 	account: UsageAccount;
 	managed?: HarnessAccount;
@@ -74,6 +75,7 @@ export function UsageAccountCard({
 	onRename: () => void;
 	onRemove: () => void;
 	onRefresh: () => void;
+	onActiveChange?: (active: boolean) => void;
 }) {
 	const [login, setLogin] = useState(false);
 	const [details, setDetails] = useState(false);
@@ -100,7 +102,10 @@ export function UsageAccountCard({
 					)
 				}
 				disabled={busy}
-				onEdit={() => setDetails(true)}
+				onEdit={() => {
+					setDetails(true);
+					onActiveChange?.(true);
+				}}
 				actions={
 					<div className="grid shrink-0 grid-cols-2 items-center gap-1 sm:flex">
 						{pending ? (
@@ -125,6 +130,7 @@ export function UsageAccountCard({
 							label={`Actions for ${account.name}`}
 							triggerTooltip={`Actions for ${account.name}`}
 							trigger={<IconButton label={`Actions for ${account.name}`} icon={<DotsThree />} disabled={busy} />}
+							onOpenChange={onActiveChange}
 							items={[
 								...(managed
 									? [
@@ -141,9 +147,19 @@ export function UsageAccountCard({
 									label: "Sign in",
 									icon: <SignIn />,
 									disabled: !account.loginCommand,
-									onSelect: () => setLogin(true),
+									onSelect: () => {
+										setLogin(true);
+										onActiveChange?.(true);
+									},
 								},
-								{ label: "Edit details", icon: <Info />, onSelect: () => setDetails(true) },
+								{
+									label: "Edit details",
+									icon: <Info />,
+									onSelect: () => {
+										setDetails(true);
+										onActiveChange?.(true);
+									},
+								},
 								...(managed ? [{ label: "Remove", icon: <Trash />, danger: true, onSelect: onRemove }] : []),
 							]}
 						/>
@@ -152,7 +168,10 @@ export function UsageAccountCard({
 			/>
 			<Dialog
 				open={details}
-				onOpenChange={setDetails}
+				onOpenChange={(open) => {
+					setDetails(open);
+					onActiveChange?.(open);
+				}}
 				title={`Edit details for ${account.name}`}
 				description="Review the account profile. Rename the account to change its display name."
 			>
@@ -198,7 +217,10 @@ export function UsageAccountCard({
 			</Dialog>
 			<Dialog
 				open={login}
-				onOpenChange={setLogin}
+				onOpenChange={(open) => {
+					setLogin(open);
+					onActiveChange?.(open);
+				}}
 				title={`Sign in to ${account.name}`}
 				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account."
 			>

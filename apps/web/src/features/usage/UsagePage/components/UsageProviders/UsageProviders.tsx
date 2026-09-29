@@ -15,8 +15,9 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "../UsageAccounts/accountError";
-import { UsageProviderCard } from "./components/UsageProviderCard";
 import { UsageProviderForm } from "./components/UsageProviderForm";
+import { UsageProviderRow } from "./components/UsageProviderRow";
+import { VirtualUsageProviderRows } from "./components/VirtualUsageProviderRows";
 
 export function UsageProviders() {
 	const { client, orpc, queryClient } = useApp();
@@ -111,9 +112,10 @@ export function UsageProviders() {
 			) : list.data.length === 0 ? (
 				<EmptyState title="No providers" description="Add a provider so Trellis can call a model gateway." />
 			) : (
-				<ul className="status-group">
-					{list.data.map((provider) => (
-						<UsageProviderCard
+				<VirtualUsageProviderRows
+					providers={list.data}
+					renderRow={(provider, onActiveChange) => (
+						<UsageProviderRow
 							key={provider.id}
 							provider={provider}
 							busy={busy}
@@ -127,9 +129,10 @@ export function UsageProviders() {
 								setRemove(provider);
 							}}
 							onToggle={() => toggle.mutate(provider)}
+							onActiveChange={onActiveChange}
 						/>
-					))}
-				</ul>
+					)}
+				/>
 			)}
 			{(toggle.error || firstCheck.error) && (
 				<FailureState
