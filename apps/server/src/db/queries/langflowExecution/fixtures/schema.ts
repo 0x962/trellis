@@ -1,5 +1,6 @@
 import { getTableName } from "drizzle-orm";
 import { getTableConfig, PgDialect, type PgTable } from "drizzle-orm/pg-core";
+
 const dialect = new PgDialect();
 const names = (columns: { name: string }[]) => columns.map((column) => `"${column.name}"`).join(", ");
 export function tableSql(table: PgTable) {

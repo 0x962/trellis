@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { NativeHandleV1Schema, NativeLaunchProvenanceV1Schema } from "../../../langflowContracts";
-import provenanceJson from "../../../langflowContracts/fixtures/launch-provenance.json";
-import handleJson from "../../../langflowContracts/fixtures/native-handle.json";
+import { NativeHandleV1Schema, NativeLaunchProvenanceV1Schema } from "../../../../../langflowContracts";
+import provenanceJson from "../../../../../langflowContracts/fixtures/launch-provenance.json";
+import handleJson from "../../../../../langflowContracts/fixtures/native-handle.json";
 import { observedCompletion } from "./observedCompletion";
 
 function fixture() {

@@ -1,6 +1,6 @@
 import { executionViewV1Example, flowV1FixtureIds as ids, publicationV1Example } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { protocolDigest, type DeliveryAuthorityV1, type SubmissionV1 } from "../../../../langflowContracts";
+import { type DeliveryAuthorityV1, protocolDigest, type SubmissionV1 } from "../../../../langflowContracts";
 import * as tables from "../../../tables/langflowExecution";
 import { documentFixture } from "../../langflowDocuments/fixture";
 import { saveInput } from "../../langflowDocuments/inputs.fixture";
@@ -9,6 +9,7 @@ import { saveDocument } from "../../langflowDocuments/save";
 import { openAdmission, reserveExecution } from "../executions";
 import { initializeProjection } from "../projections";
 import { tableSql } from "./schema";
+
 export { ids };
 export const now = new Date("2026-09-29T06:05:00Z");
 export const requestBytes = '{ "request": "start" }\n';
@@ -42,7 +43,9 @@ export const admission = {
 };
 export async function receiptFixture(open = true) {
 	const db = await documentFixture();
-	await db.$client.exec("CREATE TABLE tickets(id text PRIMARY KEY); CREATE TABLE pull_requests(id text PRIMARY KEY);");
+	await db.$client.exec(
+		"CREATE TABLE flow_executions(id text PRIMARY KEY); CREATE TABLE tickets(id text PRIMARY KEY); CREATE TABLE pull_requests(id text PRIMARY KEY);",
+	);
 	for (const table of [
 		tables.langflowExecutions,
 		tables.langflowStartReceipts,

@@ -1,8 +1,9 @@
 import { afterEach, expect, test } from "bun:test";
-import type { Db } from "../../client";
 import { protocolDigest, type SourceEventV1 } from "../../../langflowContracts";
+import type { Db } from "../../client";
 import { ids, jobId, now, receiptFixture } from "./fixtures/fixture";
 import { commitProjection, findEvent, listEvents, readProjection, retainEvents } from "./projections";
+
 let db: Db;
 afterEach(async () => {
 	await db.$client.close();

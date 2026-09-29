@@ -1,5 +1,11 @@
 import { tableSql } from "../../../../../db/queries/langflowExecution/fixtures/schema.ts";
-import { langflowDocumentPublications, langflowDocumentRevisions } from "../../../../../db/tables/langflowDocuments";
+import {
+	langflowDocumentConversions,
+	langflowDocumentPublicationStates,
+	langflowDocumentPublications,
+	langflowDocumentRevisions,
+	langflowDocumentSaveReceipts,
+} from "../../../../../db/tables/langflowDocuments";
 import {
 	langflowClassifications,
 	langflowExecutionProjections,
@@ -15,6 +21,9 @@ export async function createTables(db: Awaited<ReturnType<typeof testFixture>>["
 	for (const table of [
 		langflowDocumentRevisions,
 		langflowDocumentPublications,
+		langflowDocumentPublicationStates,
+		langflowDocumentSaveReceipts,
+		langflowDocumentConversions,
 		langflowExecutions,
 		langflowStartReceipts,
 		langflowOutbox,

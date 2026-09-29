@@ -36,11 +36,11 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 		siblings.push(item);
 		children.set(parent, siblings);
 	}
-	const queue = (children.get(null) ?? []).toReversed().map((item) => ({ item, depth: 0 }));
-	while (queue.length > 0) {
-		const { item, depth } = queue.pop()!;
+	const pendingOccurrences = (children.get(null) ?? []).toReversed().map((item) => ({ item, depth: 0 }));
+	while (pendingOccurrences.length > 0) {
+		const { item, depth } = pendingOccurrences.pop()!;
 		const key = occurrenceKey(item.occurrenceKey);
-		const descendants = children.get(item.occurrenceKey) ?? [];
+		const childOccurrences = children.get(item.occurrenceKey) ?? [];
 		const delivery = deliveries.get(item.occurrenceKey);
 		const detail = [
 			item.kind === null ? "Component kind unknown" : null,
@@ -79,7 +79,7 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 			error: item.error,
 			terminal: false,
 			decidable: canDecide && item.state === "waiting_human" && item.waitReason === "human" && delivery === undefined,
-			hasChildren: descendants.length > 0 || item.attempts.length > 0,
+			hasChildren: childOccurrences.length > 0 || item.attempts.length > 0,
 			actionKey: item.actionKey,
 			occurrence: item,
 			attempt: null,
@@ -107,8 +107,8 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 				attempt,
 			});
 		}
-		for (let index = descendants.length - 1; index >= 0; index--)
-			queue.push({ item: descendants[index]!, depth: depth + 1 });
+		for (let index = childOccurrences.length - 1; index >= 0; index--)
+			pendingOccurrences.push({ item: childOccurrences[index]!, depth: depth + 1 });
 	}
 	for (const stop of execution.stopObligations) {
 		if (stop.state === "confirmed") continue;

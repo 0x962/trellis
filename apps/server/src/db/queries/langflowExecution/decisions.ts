@@ -1,10 +1,11 @@
+import { isDeepStrictEqual } from "node:util";
 import { and, eq, or } from "drizzle-orm";
 import {
+	type DecisionAcceptanceV1,
 	HumanDecisionReceiptV1Schema,
+	type HumanDeliveryV1,
 	protocolDigest,
 	readProtocolBytes,
-	type HumanDeliveryV1,
-	type DecisionAcceptanceV1,
 } from "../../../langflowContracts";
 import { langflowDecisions as decisions, langflowOutbox } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
@@ -69,7 +70,11 @@ export async function updateDecisionDelivery(
 		.from(decisions)
 		.where(and(eq(decisions.executionId, input.executionId), eq(decisions.decisionId, input.decisionId)));
 	const saved = row!.delivery;
-	if (saved.state === "confirmed") return saved;
+	if (saved.state === "confirmed") {
+		if (input.state === "confirmed" && !isDeepStrictEqual(saved.acceptance, input.acceptance))
+			throw new Error("decision_acceptance_conflict");
+		return saved;
+	}
 	let delivery: HumanDeliveryV1;
 	if (input.state === "confirmed") {
 		const receipt = input.acceptance;

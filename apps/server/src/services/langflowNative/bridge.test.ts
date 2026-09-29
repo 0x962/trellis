@@ -106,6 +106,25 @@ test("rejects changed output under the same result identity", async () => {
 	);
 });
 
+test("rejects another session before it fills an empty native session field", async () => {
+	const { db, observationCtx } = await fixture();
+	const input = {
+		executionId: ids.execution,
+		stepId: handle.stepId,
+		runtime: runtimeFixture(handle),
+		workspaceCommit: null,
+	};
+	input.runtime.activity!.state = "working";
+	await db.transaction((tx) => recordNativeObservation(observationCtx, tx, input));
+	await db.execute(sql`UPDATE agent_runs SET session_id=NULL WHERE id=${handle.agentRunId}`);
+	input.runtime.agent!.sessionId = "another-session";
+	await expect(db.transaction((tx) => recordNativeObservation(observationCtx, tx, input))).rejects.toThrow(
+		"native_session_conflict",
+	);
+	const saved = await db.execute(sql`SELECT session_id FROM agent_runs WHERE id=${handle.agentRunId}`);
+	expect(saved.rows[0]!.session_id).toBeNull();
+});
+
 test("rolls back the observation and result when the transaction fails", async () => {
 	const { db, observationCtx } = await fixture();
 	await expect(

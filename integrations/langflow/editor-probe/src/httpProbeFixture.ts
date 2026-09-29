@@ -20,6 +20,15 @@ const expectStatus = async (response: Response, status: number) => {
 const readJson = async (response: Response, status: number) => (await expectStatus(response, status)).json();
 
 const initialDocument = await readJson(await request("/api/trellis-editor/v1/document"), 200);
+for (const path of ["/api/v1/session", "/api/v1/auto_login", "/health_check"]) {
+	await expectStatus(await fetch(`${origin}${path}`), 401);
+}
+const session = await readJson(await request("/api/v1/session"), 200);
+if (session.authenticated !== true || session.user?.id !== "editor-fixture-user" || "access_token" in session) {
+	throw new Error("The fixture session does not match the token-free editor bootstrap.");
+}
+await expectStatus(await request("/missing-fixture-asset.js"), 404);
+await expectStatus(await request("/health_check"), 200);
 await expectStatus(await fetch(`${origin}/api/trellis-editor/v1/document`), 401);
 await expectStatus(await request("/api/v1/flows/another-flow"), 403);
 await expectStatus(await request("/api/v1/flows/another-flow/history"), 404);
@@ -163,6 +172,9 @@ await expectStatus(await request("/api/trellis-editor/v1/document", { method: "P
 
 await expectStatus(await request("/__probe/expire-grant", { method: "POST" }), 200);
 for (const path of [
+	"/api/v1/session",
+	"/api/v1/auto_login",
+	"/health_check",
 	"/api/trellis-editor/v1/document",
 	"/api/trellis-editor/v1/component-manifest",
 	"/api/v1/all",

@@ -1,11 +1,16 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq } from "drizzle-orm";
-import type { CancelIntentV1, GroupDeadlineV1, StopObligationV1 } from "../../../langflowContracts";
+import {
+	type CancelIntentV1,
+	type GroupDeadlineV1,
+	protocolDigest,
+	type StopObligationV1,
+} from "../../../langflowContracts";
 import {
 	langflowDeadlines,
 	langflowExecutions,
-	langflowOutbox,
 	langflowNativeHandles,
+	langflowOutbox,
 	langflowStops,
 } from "../../tables/langflowExecution";
 import type { Tx } from "../../tx";
@@ -116,6 +121,7 @@ export async function recordDeadline(tx: Tx, input: { executionId: string; deadl
 			id: deadline.deadlineId,
 			executionId: input.executionId,
 			groupOccurrenceKey: deadline.groupOccurrenceKey,
+			groupDigest: protocolDigest(deadline.groupOccurrenceKey),
 			deadline,
 		});
 	return deadline;
