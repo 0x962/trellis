@@ -86,6 +86,28 @@ test("nested groups preserve an earlier inherited bound and distinct loop occurr
 	expect(second.deadline.launchedAt).toBeNull();
 });
 
+test("a root group retains its step phase before its children receive a deadline", async () => {
+	const request = await setup();
+	request.occurrence.parentOccurrenceKey = null;
+	request.occurrence.phase = "step";
+	request.occurrence.iterationPath = [];
+	request.scope = {
+		parentOccurrenceKey: null, phase: "step", iterationPath: [],
+		inputReceiptIds: [], groupDeadlineRefs: [], deadlineAt: null,
+	};
+	const first = await reserve(request);
+	expect(first.groupDeadlineRefs).toEqual([first.deadline.deadlineId]);
+	expect(first.deadline.groupOccurrenceKey).toBe(request.occurrenceKey);
+	expect(first.deadline.launchedAt).toBeNull();
+	expect(first.deadline.deadlineAt).toBeNull();
+	expect(first.deadlineAt).toBeNull();
+	expect(await reserve(request)).toEqual(first);
+	const changed = structuredClone(request);
+	changed.occurrence.phase = "children";
+	changed.scope.phase = "children";
+	await expect(reserve(changed)).rejects.toThrow("deadline_conflict");
+});
+
 test("changed frozen budgets and changed occurrence semantics conflict with the saved reservation", async () => {
 	const request = await setup();
 	await reserve(request);
