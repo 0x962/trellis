@@ -1,11 +1,8 @@
 import type { ListQueryInput, Status, StatusCategory } from "@trellis/api";
 import { toListQuery, type View } from "../../../filters/grammar";
 
-// The active pass loads every open ticket in pages of this size, up to the
-// cap. The cap keeps the client-side grouping under a bound; a banner
-// above the rows says the list is cut.
+// The automatic list query loads every matching ticket in pages of this size.
 export const pageSize = 200;
-export const rowCap = 2000;
 // A closed group loads on expand, one page at a time.
 export const closedPageSize = 50;
 

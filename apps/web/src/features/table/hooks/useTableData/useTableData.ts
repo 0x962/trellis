@@ -11,8 +11,8 @@ import {
 	hasInlineClosed,
 	hasStatusFilter,
 	inlineClosedInput,
-	rowCap,
 } from "../../utils/listQuery";
+import { pageRows, shouldLoadNextPage } from "./paging";
 
 export type ClosedCategory = "done" | "canceled";
 
@@ -34,10 +34,8 @@ export type TableDataOptions = {
 };
 
 export type TableData = {
-	// The active rows, every page so far, in server order.
+	// The active rows, from every server page, in server order.
 	rows: TicketSummary[];
-	// True when the active pass stopped at the cap with more on the server.
-	capped: boolean;
 	// True when the active pass reached its final page.
 	allActiveLoaded: boolean;
 	// True until the first page arrives.
@@ -64,13 +62,11 @@ const noRows: TicketSummary[] = [];
 const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQueryInput =>
 	cursor === undefined ? input : { ...input, cursor };
 
-// The two-tier load. The active pass reads the open categories in 200-row
-// pages until the cursor runs out or the cap is reached. A closed group
-// reads its own pages of 50 once its header expands. Every page lives
-// under `tickets.list` keys, so a live patch and a mutation response reach
-// every row. Under the wave grouping of one epic a third pass reads
-// every Done and Canceled row in 200-row pages, up to the cap, and the two
-// closed groups stay off.
+// The active query reads the open categories in 200-row pages until the
+// cursor runs out. A closed group reads its own pages of 50 after its
+// header expands. Every page uses a `tickets.list` key, so a live patch
+// and a mutation response reach every row. A wave group for one epic also
+// reads every Done and Canceled row in 200-row pages.
 export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {
 	const { orpc, queryClient } = useApp();
 	const statuses = useScopeStatuses(project);
@@ -93,13 +89,12 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		enabled: ready,
 		refetchOnWindowFocus: "always",
 	});
-	const rows = useMemo(() => active.data?.pages.flatMap((page) => page.items) ?? noRows, [active.data]);
-	const capped = rows.length >= rowCap && active.hasNextPage;
+	const rows = useMemo(() => pageRows(active.data?.pages) ?? noRows, [active.data]);
 
 	useEffect(() => {
-		if (!active.hasNextPage || active.isFetchingNextPage || rows.length >= rowCap) return;
+		if (!shouldLoadNextPage(true, active.hasNextPage, active.isFetchingNextPage)) return;
 		void active.fetchNextPage();
-	}, [active.hasNextPage, active.isFetchingNextPage, active.fetchNextPage, rows.length]);
+	}, [active.hasNextPage, active.isFetchingNextPage, active.fetchNextPage]);
 
 	// An empty status list in the query means every status, so the pass waits
 	// for the closed statuses of the scope.
@@ -114,12 +109,12 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		enabled: inline,
 		refetchOnWindowFocus: "always",
 	});
-	const inlineRows = useMemo(() => inlinePass.data?.pages.flatMap((page) => page.items) ?? noRows, [inlinePass.data]);
+	const inlineRows = useMemo(() => pageRows(inlinePass.data?.pages) ?? noRows, [inlinePass.data]);
 
 	useEffect(() => {
-		if (!inline || !inlinePass.hasNextPage || inlinePass.isFetchingNextPage || inlineRows.length >= rowCap) return;
+		if (!shouldLoadNextPage(inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage)) return;
 		void inlinePass.fetchNextPage();
-	}, [inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage, inlinePass.fetchNextPage, inlineRows.length]);
+	}, [inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage, inlinePass.fetchNextPage]);
 
 	const counts = useQuery({
 		...orpc.tickets.counts.queryOptions({
@@ -161,7 +156,6 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 
 	return {
 		rows,
-		capped,
 		allActiveLoaded: active.data !== undefined && !active.hasNextPage,
 		// The inline closed rows land with the first active page, so a group
 		// never gains its done rows on screen.
