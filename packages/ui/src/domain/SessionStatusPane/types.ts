@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { LinkPress } from "../../utils/linkPress";
 
 export type SessionUpdateEmbed = {
 	title: string;
@@ -32,21 +33,12 @@ export type SessionUpdates = {
 
 export type SessionStatusProcessState = "active" | "paused" | "completed";
 
-export type SessionStatusLink = {
-	href: string;
-	newWindow: boolean;
-	metaKey: boolean;
-	ctrlKey: boolean;
-	shiftKey: boolean;
-	altKey: boolean;
-};
-
 export type SessionStatusPaneProps = {
 	updates: SessionUpdates;
 	processState: SessionStatusProcessState;
 	now: string;
 	renderMarkdown: (markdown: string) => ReactNode;
-	onLink: (link: SessionStatusLink) => void;
+	onOpenLink: (href: string, target: string, press: LinkPress) => void;
 	lateAfterMs?: number;
 	className?: string;
 };

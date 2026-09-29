@@ -31,5 +31,5 @@ export function sessionStatusEmbedDocument(title: string, contentDocument: strin
 		"script-src 'unsafe-inline'",
 		"style-src 'unsafe-inline'",
 	].join("; ");
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${escapeAttribute(frameSecurityPolicy)}"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="dark light"><style>html,body{margin:0;height:100%;background:transparent}iframe{display:block;border:0;width:100%;height:100%}</style><title>${escapeAttribute(title)}</title></head><body><iframe title="${escapeAttribute(title)}" srcdoc="${escapeAttribute(contentDocument)}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></body></html>`;
+	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${escapeAttribute(frameSecurityPolicy)}"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="dark light"><style>html,body{margin:0;height:100%}iframe{display:block;border:0;width:100%;height:100%}</style><title>${escapeAttribute(title)}</title></head><body><iframe title="${escapeAttribute(title)}" srcdoc="${escapeAttribute(contentDocument)}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></body></html>`;
 }

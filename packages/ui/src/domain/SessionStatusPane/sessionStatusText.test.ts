@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { sessionStatusNotice, sessionUpdateAge } from "./statusState";
+import { sessionStatusNotice, sessionUpdateAge } from "./sessionStatusText";
 import type { SessionStatusProcessState } from "./types";
 
 test.each([

@@ -27,20 +27,20 @@ const baseProps: SessionStatusPaneProps = {
 	processState: "active",
 	now: "2026-09-29T05:40:00.000Z",
 	renderMarkdown: (markdown) => <div data-markdown={markdown}>{markdown}</div>,
-	onLink() {},
+	onOpenLink() {},
 };
 
 const render = (patch: Partial<SessionStatusPaneProps> = {}) =>
 	renderToStaticMarkup(<SessionStatusPane {...baseProps} {...patch} />);
 
 describe("SessionStatusPane", () => {
-	test("renders the latest and previous rich updates", () => {
+	test("renders the latest update and defers the previous update", () => {
 		const html = render();
 		expect(html).toContain("From the agent");
 		expect(html).toContain("2 min ago");
 		expect(html).toContain('data-markdown="Latest **status**"');
 		expect(html).toContain("Previous update");
-		expect(html).toContain('data-markdown="Previous status"');
+		expect(html).not.toContain('data-markdown="Previous status"');
 		expect(html).not.toContain("<details open");
 	});
 

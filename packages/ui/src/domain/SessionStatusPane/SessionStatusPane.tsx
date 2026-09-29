@@ -1,14 +1,16 @@
-import type { MouseEvent, ReactNode } from "react";
+import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
+import { EmptyState } from "../../primitives/EmptyState";
 import { ScrollArea } from "../../primitives/ScrollArea";
 import { cx } from "../../utils/cx";
-import { SessionStatusEmbed } from "./SessionStatusEmbed";
-import { sessionStatusNotice, sessionUpdateAge } from "./statusState";
-import type { SessionStatusLink, SessionStatusPaneProps, SessionUpdate } from "./types";
+import { type LinkPress, linkPress } from "../../utils/linkPress";
+import { SessionStatusEmbed } from "./components/SessionStatusEmbed";
+import { sessionStatusNotice, sessionUpdateAge } from "./sessionStatusText";
+import type { SessionStatusPaneProps, SessionUpdate } from "./types";
 
 const defaultLateAfterMs = 10 * 60_000;
 
 const messageClass = cx(
-	"text-md leading-[1.75] text-fg [overflow-wrap:anywhere]",
+	"text-md text-fg [overflow-wrap:anywhere]",
 	"[&_p]:mb-4 [&_p:last-child]:mb-0",
 	"[&_h1]:mt-6 [&_h1]:mb-2.5 [&_h1]:text-md [&_h1]:font-semibold",
 	"[&_h2]:mt-6 [&_h2]:mb-2.5 [&_h2]:text-md [&_h2]:font-semibold",
@@ -17,58 +19,52 @@ const messageClass = cx(
 	"[&_ul]:mb-5 [&_ul]:list-disc [&_ul]:ps-4.5",
 	"[&_ol]:mb-5 [&_ol]:list-decimal [&_ol]:ps-4.5",
 	"[&_li]:my-1.5",
-	"[&_a]:rounded-xs [&_a]:font-medium [&_a]:text-agent [&_a]:underline [&_a]:underline-offset-3",
+	"[&_a]:rounded-hairline [&_a]:font-medium [&_a]:text-agent [&_a]:underline [&_a]:underline-offset-3",
 	"[&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-agent [&_a]:focus-visible:outline-offset-2",
-	"[&_code]:rounded-xs [&_code]:border [&_code]:border-border [&_code]:bg-elevated [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs",
+	"[&_code]:rounded-hairline [&_code]:border [&_code]:border-border [&_code]:bg-elevated [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs",
 	"[&_pre]:mb-5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-border [&_pre]:bg-surface [&_pre]:p-3",
 	"[&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
-	"[&_blockquote]:my-5 [&_blockquote]:border-s-2 [&_blockquote]:border-agent [&_blockquote]:ps-3 [&_blockquote]:text-fg-muted",
+	"[&_blockquote]:my-5 [&_blockquote]:border-s-hairline [&_blockquote]:border-agent [&_blockquote]:ps-3 [&_blockquote]:text-fg-muted",
 	"[&_table]:mb-5 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-xs",
 	"[&_th]:border-b [&_th]:border-border-strong [&_th]:py-2 [&_th]:text-start [&_th]:font-medium [&_th]:text-fg-faint",
 	"[&_td]:border-b [&_td]:border-border [&_td]:py-2 [&_td]:pe-3 [&_td]:align-top",
 );
 
-const linkFromEvent = (event: MouseEvent): SessionStatusLink | null => {
+const linkFromEvent = (event: MouseEvent): { href: string; target: string; press: LinkPress } | null => {
 	if (!(event.target instanceof Element)) return null;
 	const anchor = event.target.closest("a[href]");
 	if (!(anchor instanceof HTMLAnchorElement)) return null;
 	return {
 		href: anchor.href,
-		newWindow: anchor.target === "_blank" || event.button === 1,
-		metaKey: event.metaKey,
-		ctrlKey: event.ctrlKey,
-		shiftKey: event.shiftKey,
-		altKey: event.altKey,
+		target: anchor.target,
+		press: linkPress(event),
 	};
 };
 
 function UpdateContent({
 	update,
 	renderMarkdown,
-	onLink,
-	live,
+	onOpenLink,
+	announce,
 }: {
 	update: SessionUpdate;
 	renderMarkdown: (markdown: string) => ReactNode;
-	onLink: (link: SessionStatusLink) => void;
-	live: boolean;
+	onOpenLink: (href: string, target: string, press: LinkPress) => void;
+	announce: boolean;
 }) {
-	const embedCounts = new Map<string, number>();
-	const embeds = update.embeds.map((embed) => {
-		const base = `${update.id}:${embed.title}:${embed.html}`;
-		const occurrence = (embedCounts.get(base) ?? 0) + 1;
-		embedCounts.set(base, occurrence);
-		return { embed, key: `${base}:${occurrence}` };
-	});
+	const embeds = useMemo(
+		() => update.embeds.map((embed, index) => ({ embed, key: `${update.id}:${index}` })),
+		[update.id, update.embeds],
+	);
 	const handleLink = (event: MouseEvent) => {
-		const link = linkFromEvent(event);
-		if (link === null) return;
+		const opened = linkFromEvent(event);
+		if (opened === null) return;
 		event.preventDefault();
-		onLink(link);
+		onOpenLink(opened.href, opened.target, opened.press);
 	};
 	return (
 		<article
-			aria-live={live ? "polite" : undefined}
+			aria-live={announce ? "polite" : undefined}
 			onClickCapture={handleLink}
 			onAuxClickCapture={handleLink}
 			className={messageClass}
@@ -86,10 +82,11 @@ export function SessionStatusPane({
 	processState,
 	now,
 	renderMarkdown,
-	onLink,
+	onOpenLink,
 	lateAfterMs = defaultLateAfterMs,
 	className,
 }: SessionStatusPaneProps) {
+	const [previousOpen, setPreviousOpen] = useState(false);
 	const notice = sessionStatusNotice({
 		processState,
 		request: updates.request,
@@ -124,23 +121,33 @@ export function SessionStatusPane({
 						</p>
 					)}
 					{updates.latest === null ? (
-						<div aria-live="polite" className="text-md leading-relaxed text-fg">
-							<p>The agent has not supplied a status update yet.</p>
-							<p className="mt-4">
-								Its first reply will appear here. You can read the session transcript while you wait.
-							</p>
-						</div>
+						<EmptyState
+							image={null}
+							title="The agent has not supplied a status update yet."
+							description="Its first reply will appear here. You can read the session transcript while you wait."
+							variant="section"
+						/>
 					) : (
-						<UpdateContent update={updates.latest} renderMarkdown={renderMarkdown} onLink={onLink} live />
+						<UpdateContent update={updates.latest} renderMarkdown={renderMarkdown} onOpenLink={onOpenLink} announce />
 					)}
 					{updates.previous !== null && (
-						<details className="border-t border-border pt-4 text-xs leading-relaxed text-fg-faint">
+						<details
+							onToggle={(event) => setPreviousOpen(event.currentTarget.open)}
+							className="border-t border-border pt-4 text-xs leading-relaxed text-fg-faint"
+						>
 							<summary className="flex min-h-7 w-fit cursor-pointer items-center rounded-sm text-fg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 max-md:min-h-11">
 								Previous update
 							</summary>
-							<div className="mt-2.5">
-								<UpdateContent update={updates.previous} renderMarkdown={renderMarkdown} onLink={onLink} live={false} />
-							</div>
+							{previousOpen && (
+								<div className="mt-2.5">
+									<UpdateContent
+										update={updates.previous}
+										renderMarkdown={renderMarkdown}
+										onOpenLink={onOpenLink}
+										announce={false}
+									/>
+								</div>
+							)}
 						</details>
 					)}
 					<details className="mt-auto text-xs leading-relaxed text-fg-faint">

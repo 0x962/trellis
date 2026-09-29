@@ -1,9 +1,12 @@
+import { useMemo } from "react";
+import type { SessionUpdateEmbed } from "../../types";
 import { sessionStatusEmbedContentDocument, sessionStatusEmbedDocument } from "./embedDocument";
-import type { SessionUpdateEmbed } from "./types";
 
 export function SessionStatusEmbed({ title, html }: SessionUpdateEmbed) {
-	const content = sessionStatusEmbedContentDocument(title, html);
-	const document = sessionStatusEmbedDocument(title, content);
+	const document = useMemo(() => {
+		const content = sessionStatusEmbedContentDocument(title, html);
+		return sessionStatusEmbedDocument(title, content);
+	}, [title, html]);
 
 	return (
 		<figure className="my-5">
