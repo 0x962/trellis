@@ -7,6 +7,7 @@ import { reserveNative } from "../../db/queries/langflowExecution/native";
 import { langflowExecutions, langflowNativeHandles, langflowOutbox } from "../../db/tables/langflowExecution";
 import { protocolDigest } from "../../langflowContracts";
 import { readCompletionDelivery } from "./readCompletionDelivery";
+import { readNativeOutput } from "./readNativeOutput";
 import { recordNativeObservation } from "./recordNativeObservation";
 import { reserveNativeRequest } from "./reserveNativeRequest";
 import { runtimeFixture } from "./runtimeFixture/runtimeFixture";
@@ -25,6 +26,12 @@ async function fixture() {
 		reserveNative(tx, { requestBytes, taskKey: "outer/501/review:step", handle, authority, now }),
 	);
 	const ctx: NativeReservationCtx = {
+		home: "/unused-replay-fixture",
+		dispatchGate: {
+			acquire: () => {
+				throw new Error("Unexpected dispatch on replay");
+			},
+		},
 		actor: { kind: "system", name: "trellis" },
 		session: null,
 		reqId: crypto.randomUUID(),
@@ -39,9 +46,11 @@ async function fixture() {
 			throw new Error("Unexpected publication resolution on replay");
 		},
 	};
-	await db.$client.exec(`CREATE TABLE agent_runs(id text PRIMARY KEY, terminal_id text, session_id text, workspace_id text);
+	await db.$client.exec(`CREATE TABLE agent_runs(id text PRIMARY KEY, terminal_id text, session_id text, workspace_id text, error text);
 		CREATE TABLE native_workspace_observations(step_id text PRIMARY KEY, workspace_commit text);`);
-	await db.execute(sql`INSERT INTO agent_runs VALUES (${handle.agentRunId},${handle.attemptId},NULL,'/fixture/work')`);
+	await db.execute(
+		sql`INSERT INTO agent_runs VALUES (${handle.agentRunId},${handle.attemptId},NULL,'/fixture/work',NULL)`,
+	);
 	const recordWorkspace: Parameters<typeof recordNativeObservation>[0]["recordWorkspace"] = async (tx, observation) => {
 		await tx.execute(sql`INSERT INTO native_workspace_observations VALUES (${observation.stepId},${observation.workspaceCommit})
 			ON CONFLICT (step_id) DO UPDATE SET workspace_commit=excluded.workspace_commit`);
@@ -176,4 +185,31 @@ test("retains a late result after cancel and blocks completion delivery", async 
 			}),
 		),
 	).rejects.toThrow("execution_canceled");
+});
+
+test("reads retained output after the native run changes attempts", async () => {
+	const { db, observationCtx, ctx } = await fixture();
+	const completed = await db.transaction((tx) =>
+		recordNativeObservation(observationCtx, tx, {
+			executionId: ids.execution,
+			stepId: handle.stepId,
+			runtime: runtimeFixture(handle),
+			workspaceCommit: null,
+		}),
+	);
+	const input = {
+		executionId: ids.execution,
+		stepId: handle.stepId,
+		agentRunId: handle.agentRunId,
+		attemptId: handle.attemptId,
+		resultId: completed.completion!.resultId,
+	};
+	await db.execute(sql`UPDATE agent_runs SET terminal_id=${crypto.randomUUID()} WHERE id=${handle.agentRunId}`);
+	const retained = await db.transaction((tx) => readNativeOutput(ctx, tx, input));
+	expect(retained.status).toBe("available");
+	if (retained.status === "available") expect(retained.result.output).toBe("YES\n");
+	for (const field of ["executionId", "stepId", "agentRunId", "attemptId", "resultId"] as const) {
+		const missing = await db.transaction((tx) => readNativeOutput(ctx, tx, { ...input, [field]: "another" }));
+		expect(missing.status).toBe("unavailable");
+	}
 });

@@ -22,14 +22,21 @@ describe("human receipt", () => {
 			);
 		}
 	});
-	test("rejects stale revision without rebinding to the next occurrence", () => {
+	test("rejects stale revision without rebinding to the next occurrence", async () => {
 		const f = testFixture();
 		f.view.revision++;
-		expect(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).toThrow();
+		await expect(
+			Promise.resolve().then(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)),
+		).rejects.toMatchObject({
+			code: "FLOW_VERSION_CONFLICT",
+			data: { version: f.view.revision },
+		});
 	});
-	test("requires the exact action and occurrence", () => {
+	test("requires the exact action and occurrence", async () => {
 		const f = testFixture();
-		expect(() => createReceipt(f.ctx, f.view, f.checkpoint, { ...f.input, key: "next-human" })).toThrow();
+		await expect(
+			Promise.resolve().then(() => createReceipt(f.ctx, f.view, f.checkpoint, { ...f.input, key: "next-human" })),
+		).rejects.toMatchObject({ code: "FLOW_VERSION_CONFLICT", data: { version: f.view.revision } });
 		f.view.occurrences[0]!.iterationPath = [{ loopNodeId: "outer", round: 99 }];
 		expect(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).toThrow("identity_conflict");
 	});
@@ -41,7 +48,7 @@ describe("human receipt", () => {
 		f.view.status = "canceled";
 		expect(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).toThrow();
 	});
-	test("refuses duplicate approval while its receipt remains unresolved", () => {
+	test("refuses duplicate approval while its receipt remains unresolved", async () => {
 		const f = testFixture();
 		f.view.decisionDeliveries.push({
 			decisionId: "decision-1",
@@ -58,6 +65,11 @@ describe("human receipt", () => {
 			acceptedReceiptId: null,
 			confirmedAt: null,
 		});
-		expect(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)).toThrow("already has a receipt");
+		await expect(
+			Promise.resolve().then(() => createReceipt(f.ctx, f.view, f.checkpoint, f.input)),
+		).rejects.toMatchObject({
+			code: "FLOW_VERSION_CONFLICT",
+			data: { version: f.view.revision },
+		});
 	});
 });

@@ -1,0 +1,33 @@
+diff --git a/src/backend/base/langflow/services/background_execution/service.py b/src/backend/base/langflow/services/background_execution/service.py
+index fc0f709..46868b9 100644
+--- a/src/backend/base/langflow/services/background_execution/service.py
++++ b/src/backend/base/langflow/services/background_execution/service.py
+@@ -797,0 +798,26 @@ class BackgroundExecutionService(Service):
++    async def consume_external_completion_obligation(self, obligation: dict[str, Any]) -> None:
++        """Consume one accepted native completion through the Langflow queue."""
++        from uuid import UUID
++
++        from langflow.services.trellis_v1.native_ledger import NativeCompletionLedger
++
++        continuation_receipt, disposition = await self._consume_trellis_continuation(
++            engine_job_id=UUID(obligation["engineJobId"]),
++            engine_request_id=obligation["engineWaitId"],
++            decision_id=None,
++            signal_id=UUID(obligation["signalId"]),
++            enqueue_obligation_id=UUID(obligation["enqueueObligationId"]),
++        )
++        if disposition in {"dispatched", "execution_proven"}:
++            await NativeCompletionLedger(get_job_service()).mark_consumed(
++                obligation,
++                continuation_receipt,
++            )
++
++    async def _drain_trellis_native_completion_obligations(self) -> None:
++        from langflow.services.trellis_v1.native_ledger import NativeCompletionLedger
++
++        ledger = NativeCompletionLedger(get_job_service())
++        for obligation in await ledger.pending():
++            await self.consume_external_completion_obligation(obligation)
++
+@@ -800,0 +827 @@ class BackgroundExecutionService(Service):
++        await self._drain_trellis_native_completion_obligations()

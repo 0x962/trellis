@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { supervisorFixture } from "../fixtures/supervisorFixture";
+import { readIssuedAuthority } from "./issuedBytes";
 
 test("expiry refuses old commands and live renewal replaces only delivery authority", async () => {
 	const fixture = await supervisorFixture();
@@ -26,6 +27,12 @@ test("expiry refuses old commands and live renewal replaces only delivery author
 			"identity_conflict",
 		);
 		expect(fixture.receipts.size).toBe(1);
+		const saved = fixture.receipts.get(`${input.executionId}/${input.requestId}`)!;
+		expect(readIssuedAuthority(saved).authorityBytes).toBe(saved.authorityBytes);
+		expect(JSON.parse(saved.authorityBytes)).toEqual(receipt.authority);
+		expect(() => readIssuedAuthority({ ...saved, authorityBytes: JSON.stringify(expired) })).toThrow(
+			"issued_authority_mismatch",
+		);
 		fixture.setTime("2026-09-29T11:00:00.000Z");
 		expect(() => fixture.authorize(receipt.authority)).toThrow("denied");
 	} finally {
@@ -75,6 +82,59 @@ test("takeover requires revocation and retains the job and admission digest", as
 		);
 	} finally {
 		await replacement.shutdown();
+		await fixture.remove();
+	}
+});
+
+test("cancellation recovery narrows renewed and transferred authority after expiry", async () => {
+	const fixture = await supervisorFixture();
+	const first = await fixture.open();
+	let replacement: Awaited<ReturnType<typeof fixture.open>> | undefined;
+	try {
+		const live = await first.start();
+		fixture.bind(live.identity);
+		const original = fixture.authority();
+		const broadInput = {
+			executionId: original.executionId,
+			requestId: crypto.randomUUID(),
+			expectedRevision: original.ownershipRevision,
+			expiresAt: "2026-09-29T11:00:00.000Z",
+		};
+		const broad = await first.renew(broadInput);
+		fixture.cancel(false);
+		await expect(first.renew(broadInput)).rejects.toThrow("canceled_admission_open");
+		fixture.cancel();
+		await expect(first.renew(broadInput)).rejects.toThrow("cancellation_requires_successor_authority");
+		fixture.setTime("2026-09-29T12:00:00.000Z");
+		const closed = (await fixture.dependencies.authority.read(original.executionId)).admission;
+		const renewed = await first.renew({
+			executionId: original.executionId,
+			requestId: crypto.randomUUID(),
+			expectedRevision: broad.authority.ownershipRevision,
+			expiresAt: "2026-09-29T13:00:00.000Z",
+		});
+		expect(renewed.authority.permissions).toEqual(["execution.cancel"]);
+		expect((await fixture.dependencies.authority.read(original.executionId)).admission).toEqual(closed);
+		await first.shutdown();
+		fixture.setTime("2026-09-29T14:00:00.000Z");
+		replacement = await fixture.open();
+		await replacement.start();
+		const transferred = await replacement.takeover({
+			executionId: original.executionId,
+			requestId: crypto.randomUUID(),
+			expectedOwnerId: renewed.authority.ownerId,
+			expectedEpoch: renewed.authority.engineEpoch,
+			expectedRevision: renewed.authority.ownershipRevision,
+			expiresAt: "2026-09-29T15:00:00.000Z",
+		});
+		expect(transferred.authority.permissions).toEqual(["execution.cancel"]);
+		if (!("transferId" in transferred)) throw new Error("wrong_receipt");
+		expect(transferred.admission).toEqual(closed);
+		expect(transferred.authority.engineJobId).toBe(original.engineJobId);
+		expect((await fixture.dependencies.authority.read(original.executionId)).canceled).toBe(true);
+	} finally {
+		await replacement?.shutdown();
+		await first.shutdown();
 		await fixture.remove();
 	}
 });
