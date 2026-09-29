@@ -1,5 +1,5 @@
 import { Plus } from "@phosphor-icons/react";
-import { type DragEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { TabsList, TabsRoot } from "../../primitives/Tabs";
 import { Tooltip } from "../../primitives/Tooltip";
@@ -39,6 +39,8 @@ export function PageTabs({
 	const dragged = useRef<string | null>(null);
 	const [draggedId, setDraggedId] = useState<string | null>(null);
 	const dragX = useRef(0);
+	const pointerStart = useRef<{ id: string; x: number } | null>(null);
+	const suppressClick = useRef(false);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [announcement, setAnnouncement] = useState("");
 	const draggedIndex = tabs.findIndex((tab) => tab.id === draggedId);
@@ -88,13 +90,32 @@ export function PageTabs({
 		},
 		[tabListRef, tabWidth, tabs.length],
 	);
-	const dragOver = (event: DragEvent) => {
-		if (dragged.current === null) return;
-		event.preventDefault();
-		event.dataTransfer.dropEffect = "move";
+	const pointerDown = (id: string, event: PointerEvent<HTMLButtonElement>) => {
+		if (!onMove || event.button !== 0 || event.pointerType === "touch") return;
+		pointerStart.current = { id, x: event.clientX };
+		event.currentTarget.setPointerCapture(event.pointerId);
+	};
+	const pointerMove = (event: PointerEvent) => {
+		const start = pointerStart.current;
+		if (!start || (Math.abs(event.clientX - start.x) < 6 && dragged.current === null)) return;
+		dragged.current = start.id;
+		setDraggedId(start.id);
 		dragX.current = event.clientX;
 		setDropIndex(positionFor(event.clientX));
 	};
+	const pointerEnd = (event: PointerEvent) => {
+		pointerStart.current = null;
+		if (dragged.current === null) return;
+		const id = dragged.current,
+			index = positionFor(event.clientX),
+			before = tabs[index]?.id ?? null;
+		dragged.current = null;
+		setDraggedId(null);
+		setDropIndex(null);
+		suppressClick.current = true;
+		if (before !== id && tabs[index - 1]?.id !== id) move(id, before);
+	};
+
 	useEffect(() => {
 		if (dropIndex === null) return;
 		let frame: number;
@@ -147,17 +168,20 @@ export function PageTabs({
 						const target = targets[event.key];
 						if (target !== undefined) move(activeId, target);
 					}}
-					onDragOver={dragOver}
-					onDrop={(event) => {
-						if (dragged.current === null) return;
-						event.preventDefault();
-						const id = dragged.current;
-						const index = positionFor(event.clientX);
-						const before = tabs[index]?.id ?? null;
+					onPointerMove={pointerMove}
+					onPointerUp={pointerEnd}
+					onPointerCancel={() => {
+						pointerStart.current = null;
 						dragged.current = null;
 						setDraggedId(null);
 						setDropIndex(null);
-						if (before !== id && tabs[index - 1]?.id !== id) move(id, before);
+					}}
+					onClickCapture={(event) => {
+						if (suppressClick.current) {
+							event.preventDefault();
+							event.stopPropagation();
+							suppressClick.current = false;
+						}
 					}}
 				>
 					<div className="relative h-full" style={{ width: tabs.length * layout.width }}>
@@ -172,7 +196,6 @@ export function PageTabs({
 									width={layout.width}
 									active={tab.id === activeId}
 									separator={index !== activeIndex && index + 1 !== activeIndex && index < tabs.length - 1}
-									draggable={onMove !== undefined}
 									onClose={() => close(tab.id)}
 									editing={editingId === tab.id}
 									onEditingChange={(focus) => {
@@ -180,15 +203,7 @@ export function PageTabs({
 										focusAfterChange.current = focus;
 									}}
 									onRename={(title) => onRename!(tab.id, title)}
-									onDragStart={() => {
-										dragged.current = tab.id;
-										setDraggedId(tab.id);
-									}}
-									onDragEnd={() => {
-										dragged.current = null;
-										setDraggedId(null);
-										setDropIndex(null);
-									}}
+									onPointerDown={(event) => pointerDown(tab.id, event)}
 								/>
 							);
 						})}

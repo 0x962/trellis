@@ -1,5 +1,5 @@
 import { X } from "@phosphor-icons/react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { InlineEdit } from "../../../../primitives/InlineEdit";
 import { TabsTab } from "../../../../primitives/Tabs";
@@ -14,13 +14,11 @@ type Props = {
 	width: number;
 	active: boolean;
 	separator: boolean;
-	draggable: boolean;
 	onClose: () => void;
 	editing: boolean;
 	onEditingChange: (focus: boolean) => void;
 	onRename: (title: string) => void;
-	onDragStart: () => void;
-	onDragEnd: () => void;
+	onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
 };
 
 export function PageTab({
@@ -30,13 +28,11 @@ export function PageTab({
 	width,
 	active,
 	separator,
-	draggable,
 	onClose,
 	editing,
 	onEditingChange,
 	onRename,
-	onDragStart,
-	onDragEnd,
+	onPointerDown,
 }: Props) {
 	const label = useRef<HTMLSpanElement>(null);
 	const [truncated, setTruncated] = useState(false);
@@ -86,13 +82,7 @@ export function PageTab({
 						aria-posinset={index + 1}
 						aria-setsize={count}
 						className="flex h-9 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center rounded-tl-lg px-3 text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-						draggable={draggable}
-						onDragStart={(event) => {
-							event.dataTransfer.effectAllowed = "move";
-							event.dataTransfer.setData("text/plain", tab.id);
-							onDragStart();
-						}}
-						onDragEnd={onDragEnd}
+						onPointerDown={onPointerDown}
 					>
 						<span ref={label} className={cx("block truncate", active && "font-medium")}>
 							{tab.title}
