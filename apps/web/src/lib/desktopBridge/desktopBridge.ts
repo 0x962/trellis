@@ -49,6 +49,7 @@ export type DesktopBridge = {
 	updateStatus: () => Promise<DesktopUpdateStatus>;
 	setOpenAtLogin: (enabled: boolean) => Promise<void>;
 	run: (action: DesktopAction) => Promise<void>;
+	onTabCommand?: (listener: (command: "new" | "close" | "reopen" | "next" | "previous") => void) => () => void;
 	onBrowserCopyLink?: (listener: () => void) => () => void;
 	onNavigate?: (listener: (path: string) => void) => () => void;
 };
