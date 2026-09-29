@@ -37,9 +37,15 @@ export function PageTabs({
 	const focusAfterChange = useRef(false);
 	const addButton = useRef<HTMLButtonElement>(null);
 	const dragged = useRef<string | null>(null);
+	const [draggedId, setDraggedId] = useState<string | null>(null);
 	const dragX = useRef(0);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [announcement, setAnnouncement] = useState("");
+	const draggedIndex = tabs.findIndex((tab) => tab.id === draggedId);
+	const renderedIndexes =
+		draggedIndex >= 0 && !layout.indexes.includes(draggedIndex)
+			? [...layout.indexes, draggedIndex].sort((a, b) => a - b)
+			: layout.indexes;
 	const items = useMemo(() => tabs.map((tab) => ({ value: tab.id })), [tabs]);
 	const focusActive = () => {
 		const tab = Array.from(layout.ref.current!.querySelectorAll<HTMLElement>('[role="tab"]')).find(
@@ -149,12 +155,13 @@ export function PageTabs({
 						const index = positionFor(event.clientX);
 						const before = tabs[index]?.id ?? null;
 						dragged.current = null;
+						setDraggedId(null);
 						setDropIndex(null);
 						if (before !== id && tabs[index - 1]?.id !== id) move(id, before);
 					}}
 				>
 					<div className="relative h-full" style={{ width: tabs.length * layout.width }}>
-						{layout.indexes.map((index) => {
+						{renderedIndexes.map((index) => {
 							const tab = tabs[index]!;
 							return (
 								<PageTab
@@ -175,9 +182,11 @@ export function PageTabs({
 									onRename={(title) => onRename!(tab.id, title)}
 									onDragStart={() => {
 										dragged.current = tab.id;
+										setDraggedId(tab.id);
 									}}
 									onDragEnd={() => {
 										dragged.current = null;
+										setDraggedId(null);
 										setDropIndex(null);
 									}}
 								/>
