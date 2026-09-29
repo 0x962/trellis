@@ -14,10 +14,11 @@ import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { gcBlobs } from "../blobs.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
-import { type IoCtx, notFound, touchActor } from "../support.ts";
+import { type IoCtx, notFound } from "../support.ts";
 
 const IMAGE_MIMES: ReadonlySet<string> = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"]);
 
@@ -117,14 +118,14 @@ export const add = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resour
 	}
 	const id = ulid();
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`INSERT INTO epic_resources (
 		id, epic_id, kind, name, body, url, blob_sha256, blob_size, mime, ticket_id,
-		actor_name, actor_kind, created_at, updated_at
+		actor_id, actor_name, actor_kind, created_at, updated_at
 	) VALUES (
 		${id}, ${epic.id}, ${input.kind}, ${input.name},
 		${input.kind === "doc" ? input.body : null}, ${input.kind === "link" ? input.url : null},
-		${blobSha256}, ${blobSize}, ${blobMime}, ${ticketId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at}
+		${blobSha256}, ${blobSize}, ${blobMime}, ${ticketId}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at}
 	)`);
 	ctx.emit({ type: "epics.changed", projectId: epic.project_id, id: epic.id });
 	return (await toResources(tx, epic.id, [await find(tx, id)]))[0]!;
@@ -156,9 +157,10 @@ export const update = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Res
 	if (row.kind !== "doc") throw invalidInput("id", "Select a document resource.");
 	assertProjectActive(ctx.core, row.project_id);
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`UPDATE epic_resources SET name = ${input.name ?? row.name}, body = ${input.body ?? row.body},
-		actor_name = ${ctx.actor.name}, actor_kind = ${ctx.actor.kind}, updated_at = ${at} WHERE id = ${row.id}`);
+		actor_id = ${actorId}, actor_name = ${ctx.actor.name}, actor_kind = ${ctx.actor.kind}, updated_at = ${at}
+		WHERE id = ${row.id}`);
 	ctx.emit({ type: "epics.changed", projectId: row.project_id, id: row.epic_id });
 	return (await toResources(tx, row.epic_id, [await find(tx, row.id)]))[0]!;
 };

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
+  "patch": "integrations/langflow/patches/externalWaits/0006-review-classification-continuation.patch",
+  "sha256": "270fb9b4122449f2b668abc242b81633cfe3341b12df8bcd14dea992d73be624",
+  "sources": [
+    {
+      "source": "source/review_protocol.py",
+      "target": "src/backend/base/langflow/services/trellis_v1/review_protocol.py",
+      "sha256": "74386e4d77224704d7326031523830f2f39fb506e53621a8e247d826e96bf7ac"
+    },
+    {
+      "source": "source/review_classifications.py",
+      "target": "src/backend/base/langflow/services/trellis_v1/review_classifications.py",
+      "sha256": "17183ab16b42e55e6eaebf0ccc1f662cbe0f436f8409cabe0dda193df8fcb464"
+    }
+  ],
+  "contracts": {
+    "apps/server/src/langflowContracts/review/review.ts": "ac6b2b9db123df0f05735f1d035c20590e9597b009dd4abea7c8cd73c97562f1",
+    "apps/server/src/langflowContracts/review/index.ts": "6c7c25ee8afc53635e077d8d640ec05f3fd3206d8c3f3808bbbe24a9544f431f",
+    "apps/server/src/langflowContracts/waits/waits.ts": "cf65d34806c1b6f68ba1172c676585db6aa23e24e8249e6ec8c41d391c88cb0c",
+    "apps/server/src/langflowContracts/authority/authority.ts": "01e89b02d13a4c5a8e92208fc9de7c0d04ef8d1ad7158b1eb7f95d540d8156ca"
+  },
+  "fixtures": {
+    "apps/server/src/langflowContracts/fixtures/review-classification-acceptance.json": "0d9163c0732bdb5dda4c4e93d3d8d43f4b701428af5647442b036629fe812aaa",
+    "apps/server/src/langflowContracts/fixtures/review-classification-delivery.json": "375d4c9261fe91712e78ce8a133e3915cab59a48177d0ea004a70afb8fb3f4c9",
+    "apps/server/src/langflowContracts/fixtures/review-classification-request.json": "45de590d21f2ce7f79e4a64358b6b87bdc9dce486db1894416db27e7850ddb89",
+    "apps/server/src/langflowContracts/fixtures/review-classification-response.json": "668513101e2bf11be93baf2249c54faabb28541798650660dfc1d1ca9d4a4e8a",
+    "apps/server/src/langflowContracts/fixtures/review-classification-result.json": "675f01bf8b1b09ca72b3cec858debaf209aeafc23ced76aa4362f8628b1141af",
+    "apps/server/src/langflowContracts/fixtures/review-classification-visit.json": "d71ca955e8b91f4b410aa081378062b3217978674839cdab179aa7fd61330ada",
+    "apps/server/src/langflowContracts/fixtures/review-external-wait.json": "89b070a5e441840a176f9fc5f2d21e04d14447f1eba6dc5aae26d876c8a263a1",
+    "apps/server/src/langflowContracts/fixtures/review-wait.json": "4a4c6cdbe05aebeebf9473ac8b624aad2292190d2c84b937c94f76342a471865"
+  },
+  "tests": {
+    "apps/server/src/langflowContracts/contracts.test.ts": "d0ad25b8a7675766ce64e6b253eba7074308192592978dac8bccf04bb01b0d27",
+    "integrations/langflow/tests/semantics/test_review_classification_waits.py": "a62256b211e9dab18d598139853bdf222de09db1c3e365b390fa895cef15d2d8"
+  },
+  "qualification": "source-only",
+  "runtimeAccepted": false,
+  "baseSeriesSha256": "8a0a9b94a132ef2f9cebd77ca668ea59944c6a4cd62a049fae1e8b5e82e64ef1",
+  "baseServiceSha256": "0e58fbf3a50175417a2e1307440e82b85b52fe67505aa4358afd5611b8344cf3"
+}

@@ -1,30 +1,20 @@
-import type { FlowDoc } from "@trellis/api";
 import { z } from "zod";
 import { documentBytes, type readExecutionPublication } from "../../flowDocuments";
-import { type ConversionAssociationV1, ConversionEnvelopeSchema } from "../conversionIntakeTypes";
-import { inspectSource } from "../inspectSource";
+import type { ConversionAssociationV1 } from "../conversionIntakeTypes";
+import { readConversionSource } from "../readConversionSource";
 import { sourceDigest } from "../sourceDigest";
 
 export const readConversionBinding = (
 	verified: Pick<ReturnType<typeof readExecutionPublication>, "publication" | "graphDocument">,
 	visit: Pick<ConversionAssociationV1, "engineNodeId" | "phase" | "specNamespace">,
 ) => {
-	const envelope = ConversionEnvelopeSchema.parse(verified.graphDocument.trellisConversionV1);
+	const { envelope, source: document, originalSource } = readConversionSource(verified.graphDocument);
 	const publication = verified.publication;
-	const sourceBytes = Buffer.from(envelope.source.bytesBase64, "base64");
-	if (sourceBytes.toString("base64") !== envelope.source.bytesBase64 ||
-		sourceDigest(sourceBytes) !== envelope.source.sha256 ||
-		publication.conversion?.sourceDocumentHash !== envelope.source.sha256 ||
+	if (publication.conversion?.sourceDocumentHash !== envelope.source.sha256 ||
 		publication.flowId !== envelope.source.flowId ||
-		publication.componentManifestHash !== envelope.componentManifestHash) {
+		publication.componentManifestHash !== envelope.componentManifestHash ||
+		(envelope.editedSource && envelope.editedSource.revision > publication.revision)) {
 		throw new Error("conversion_publication_conflict");
-	}
-	const source: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(sourceBytes));
-	const inspection = inspectSource(source);
-	if (inspection.manifest === null || inspection.diagnostics.length > 0) throw new Error("conversion_source_invalid");
-	const document = source as FlowDoc;
-	if (document.flow.id !== envelope.source.flowId || document.flow.version !== envelope.source.version) {
-		throw new Error("conversion_source_identity_conflict");
 	}
 	const bindings = envelope.nodeSpecs.filter((binding) => binding.engineNodeId === visit.engineNodeId);
 	if (bindings.length !== 1) throw new Error("conversion_binding_ambiguous");
@@ -49,5 +39,9 @@ export const readConversionBinding = (
 	if (spec.nodeId !== binding.sourceNodeId || sourceDigest(documentBytes(spec)) !== binding.specHash) {
 		throw new Error("conversion_spec_hash_conflict");
 	}
-	return { binding, sourceNode: nodes[0]!, sourceFlow: document.flow };
+	return {
+		binding, sourceNode: nodes[0]!, sourceFlow: document.flow,
+		originalSourceNode: originalSource.nodes.find((node) => node.id === binding.sourceNodeId)!,
+		originalSourceFlow: originalSource.flow,
+	};
 };

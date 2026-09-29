@@ -7,6 +7,7 @@ import { rows } from "../db/queries/support.ts";
 import type { Emit, Tx } from "../db/tx.ts";
 import type { GhRunner } from "../gh/run.ts";
 import type { JobsLog } from "../jobs.ts";
+import { resolveActorId } from "./actorIdentity/index.ts";
 
 // What every service reads besides its transaction: who acts, where the data
 // home is, and what the clock says. `emit` queues an event that the sink
@@ -95,15 +96,6 @@ export const assertProjectActive = (ticket: TicketRow) => {
 	if (ticket.archived_at !== null) throw fail("PROJECT_ARCHIVED");
 };
 
-// Records that this actor acted. The activity, comment, and attachment rows
-// point at the actors table, so the row exists before any of them.
-export const touchActor = (tx: Tx, actor: ActorRef, at: Date) =>
-	tx.execute(sql`
-		INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
-		VALUES (${actor.name}, ${actor.kind}, ${at}, ${at})
-		ON CONFLICT (name, kind) DO UPDATE SET last_seen_at = ${at}
-	`);
-
 // `versionStep` is 1 when the change is one a client caches per ticket, so a
 // stale cache entry loses to the event that carries the new version.
 export const touchTicket = (tx: Tx, input: { id: string; at: Date; versionStep: number }) =>
@@ -120,13 +112,13 @@ export type ActivityInput = {
 
 // One row of the ticket timeline. `batch_id` groups the rows one transaction
 // wrote; a single change writes one row and one batch.
-export const writeActivity = async (ctx: ServiceCtx, tx: Tx, input: ActivityInput) => {
-	await touchActor(tx, ctx.actor, input.at);
+export const writeActivity = async (ctx: IoCtx, tx: Tx, input: ActivityInput) => {
+	const actorId = await resolveActorId({ ...ctx.core, now: input.at }, tx, ctx.actor);
 	await tx.execute(sql`
-		INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
+		INSERT INTO activity (batch_id, project_id, ticket_id, actor_id, actor_name, actor_kind, action, meta, created_at)
 		VALUES (
 			${ulid()}, ${input.ticket.project_id}, ${input.ticket.id},
-			${ctx.actor.name}, ${ctx.actor.kind}, ${input.action}, ${input.meta}, ${input.at}
+			${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${input.action}, ${input.meta}, ${input.at}
 		)
 	`);
 };
