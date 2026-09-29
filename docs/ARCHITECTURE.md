@@ -1227,6 +1227,13 @@ An exact legacy request replay retains its original result after a document conv
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
 
+The versioned start, decision, and cancel routes acquire a durable permit before their database action.
+The action and its immutable receipt commit together. A known refusal rolls back its savepoint before the outer transaction stores the error bytes.
+The external receipt archive retains the committed receipt before the host gate settles its permit.
+An exact replay reads that receipt and the current view. Changed request bytes return `FLOW_REQUEST_CONFLICT`.
+A permit without a receipt returns `FLOW_ACTION_PENDING` and stays pending until reconciliation.
+These local action permits do not settle the separate permits for engine delivery or native processes.
+
 `flowDocumentsV1.editorSession` issues an editor grant through
 `POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
 editor configuration with the host identity, separate origins, and installed
