@@ -1,6 +1,7 @@
 import { executionViewV1Example, publicationV1Example } from "@trellis/api";
 import { classificationStore } from "../../../../db/queries/langflowExecution/classification.ts";
 import { reserveExecution } from "../../../../db/queries/langflowExecution/executions.ts";
+import { protocolDigest } from "../../../../langflowContracts";
 import type { testFixture } from "../../../flowExecutions/testFixture";
 import type { ServiceCtx } from "../../../support.ts";
 import type { ReviewGateInput } from "../reviewGate.ts";
@@ -49,8 +50,8 @@ export async function gateFixture(h: Awaited<ReturnType<typeof testFixture>>) {
 				publicationId: publication.publicationId,
 				requestId: crypto.randomUUID(),
 				actor: { kind: "agent", name: "Test" },
-				requestDigest: "a".repeat(64),
-				submissionDigest: "b".repeat(64),
+				requestDigest: protocolDigest(execution.id),
+				submissionDigest: protocolDigest(execution.id),
 				state: "reserved",
 				correlation: null,
 				admission: { state: "closed", barrierId: "barrier" },
