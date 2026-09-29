@@ -15,3 +15,5 @@ export * from "./startRequests";
 export * from "./stops";
 export * from "./submission";
 export * from "./warnings";
+export * from "./engineSnapshots";
+export * from "./workspaceObservations";
