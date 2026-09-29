@@ -131,6 +131,18 @@ test("keeps one sent request outstanding while its reply is delayed", async () =
 	expect(sent.stats()).toMatchObject({ begins: 0, sent: [], states: [] });
 });
 
+test("fails a sent request when a runtime restart removes its input channel", async () => {
+	const sent = fixture({
+		current: request("sent"),
+		process: process({ controllable: false }),
+	});
+	await sent.run();
+	expect(sent.stats().states.at(-1)).toMatchObject({
+		state: "failed",
+		error: "The agent input channel became unavailable before it saved the status update.",
+	});
+});
+
 test("fails a sent request when its turn ends without a saved reply", async () => {
 	const sent = fixture({
 		current: request("sent"),

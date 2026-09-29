@@ -81,6 +81,14 @@ const dispatchCandidate = async (
 	if (request?.state === "sent") {
 		if (process === undefined || process.status === "exited")
 			await failRequest(ctx, deps, candidate, request, "The agent process ended before it saved the status update.");
+		else if (!process.controllable)
+			await failRequest(
+				ctx,
+				deps,
+				candidate,
+				request,
+				"The agent input channel became unavailable before it saved the status update.",
+			);
 		else if (process?.activity?.state === "idle" && process.acknowledgedMessageIds.includes(request.requestId))
 			await failRequest(
 				ctx,
