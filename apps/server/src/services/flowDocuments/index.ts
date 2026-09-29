@@ -4,6 +4,7 @@ export type { DiscoveryAvailability, DiscoveryResult, DiscoverySummary } from ".
 export { discovery } from "./discovery";
 export { documentBytes } from "./documentBytes";
 export { get } from "./get";
+export { installedEditorManifest } from "./installedEditorManifest";
 export { installedPublisher, type PublicationDispatch } from "./installedPublisher";
 export { legacyServices } from "./legacyServices";
 export { publicationDispatch } from "./publicationDispatch";

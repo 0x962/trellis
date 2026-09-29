@@ -13,13 +13,6 @@ const projectId = ulid();
 const statusId = ulid();
 const ticketId = ulid();
 
-const applyActorRelationships = async () => {
-	const source = await Bun.file(`${import.meta.dir}/../db/actorRelationships/actorRelationships.sql`).text();
-	for (const statement of source.split("--> statement-breakpoint").map((part) => part.trim())) {
-		if (statement.length > 0) await db.execute(sql.raw(statement));
-	}
-};
-
 const pullRequestRow = (state: PrState, ciState: CiState) => ({
 	owner: "0x962",
 	repo: "trellis",
@@ -48,7 +41,6 @@ const pullRequestRow = (state: PrState, ciState: CiState) => ({
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await applyActorRelationships();
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${projectId}, 'POL', 'poller', 'Poller', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses

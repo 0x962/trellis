@@ -1,19 +1,25 @@
 import { DotsThree, PushPinSimple, PushPinSlash } from "@phosphor-icons/react";
 import { IconButton } from "../../../../primitives/IconButton";
-import { Menu, type MenuItem } from "../../../../primitives/Menu";
+import { Menu, type MenuGroup, type MenuItem } from "../../../../primitives/Menu";
 import type { PageTabItem, PageTabsProps } from "../../PageTabs";
 
 type Props = {
 	tabs: readonly PageTabItem[];
 	activeIndex: number;
 	// The first and the last index of the region of the active tab: the
-	// pinned tabs, or the tabs after them. A move stays inside that range.
+	// pinned tabs, its group, or the ungrouped tail. A move stays inside
+	// that range.
 	regionStart: number;
 	regionEnd: number;
 	onMove: PageTabsProps["onMove"];
 	onPin: PageTabsProps["onPin"];
 	onRename?: () => void;
 	onRestore?: () => void;
+	onCreateGroup?: () => void;
+	// Opens the group picker. Absent when no other group exists.
+	onPickGroup?: () => void;
+	// Absent when the active tab is in no group.
+	onLeaveGroup?: () => void;
 	onSort: PageTabsProps["onSort"];
 	onClose: () => void;
 };
@@ -27,6 +33,9 @@ export function TabActions({
 	onSort,
 	onRename,
 	onRestore,
+	onCreateGroup,
+	onPickGroup,
+	onLeaveGroup,
 	onClose,
 }: Props) {
 	const tab = tabs[activeIndex]!;
@@ -72,12 +81,21 @@ export function TabActions({
 			{ label: "Sort tabs Z to A", disabled: tabs.length < 2, onSelect: () => onSort("descending") },
 		);
 	items.push({ label: "Close tab", kbd: "Delete", onSelect: onClose });
+	// A pinned tab belongs to no group, so it takes no group action.
+	const groupItems: MenuItem[] = [];
+	if (!tab.pinned) {
+		if (onCreateGroup) groupItems.push({ label: "Add tab to new group", onSelect: onCreateGroup });
+		if (onPickGroup) groupItems.push({ label: "Move tab to a group…", onSelect: onPickGroup });
+		if (onLeaveGroup) groupItems.push({ label: "Remove tab from group", onSelect: onLeaveGroup });
+	}
+	const menuGroups: MenuGroup[] = [{ type: "group", items }];
+	if (groupItems.length > 0) menuGroups.push({ type: "group", label: "Group", items: groupItems });
 	return (
 		<Menu
 			label="Tab actions"
 			triggerTooltip="Tab actions"
 			trigger={<IconButton label="Tab actions" icon={<DotsThree />} className="max-sm:h-11 max-sm:min-w-11" />}
-			items={items}
+			items={menuGroups}
 		/>
 	);
 }

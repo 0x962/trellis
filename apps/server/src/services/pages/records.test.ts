@@ -13,8 +13,10 @@ const cache = createCache();
 const events: TrellisEvent[] = [];
 const at = new Date("2026-09-24T16:00:00.000Z");
 const human = { name: "Navid", kind: "human" as const };
+const humanActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${human.kind}, ${human.name}]::text[])`;
 const agentId = ulid();
 const agent = { name: agentId, kind: "agent" as const };
+const agentActorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${agent.kind}, ${agent.name}]::text[])`;
 const listProject = { id: ulid(), key: "LST", slug: "page-list" };
 const writeProject = { id: ulid(), key: "WRT", slug: "page-write" };
 const deleteProject = { id: ulid(), key: "DEL", slug: "page-delete" };
@@ -60,20 +62,18 @@ const insertPage = async (input: {
 	await db.execute(sql`INSERT INTO pages (
 		id, project_id, slug, title, summary, version, latest_version,
 		creator_actor_name, creator_actor_kind, actor_name, actor_kind,
-		created_at, updated_at, deleted_at, deleted_actor_name, deleted_actor_kind
+		created_at, updated_at, deleted_at, deleted_actor_name, deleted_actor_kind, actor_id, creator_actor_id, deleted_actor_id
 	) VALUES (
 		${input.id}, ${input.projectId}, ${input.slug}, ${input.title}, '', ${deleted ? 2 : 1}, 1,
 		${agent.name}, ${agent.kind}, ${deleted ? human.name : agent.name}, ${deleted ? human.kind : agent.kind},
 		${publishedAt}, ${publishedAt}, ${input.deletedAt ?? null},
-		${deleted ? human.name : null}, ${deleted ? human.kind : null}
-	)`);
+		${deleted ? human.name : null}, ${deleted ? human.kind : null}, ${deleted ? humanActorId : agentActorId}, ${agentActorId}, ${deleted ? humanActorId : null})`);
 	await db.execute(sql`INSERT INTO page_versions (
 		page_id, number, request_id, document_sha256, document_size, search_text, source_agent_id,
-		source_path, actor_name, actor_kind, created_at
+		source_path, actor_name, actor_kind, created_at, actor_id
 	) VALUES (
 		${input.id}, 1, ${crypto.randomUUID()}, ${"a".repeat(64)}, 100, ${input.searchText ?? ""}, ${agentId},
-		'report/index.html', ${agent.name}, ${agent.kind}, ${publishedAt}
-	)`);
+		'report/index.html', ${agent.name}, ${agent.kind}, ${publishedAt}, ${agentActorId})`);
 };
 
 beforeAll(async () => {
@@ -126,14 +126,14 @@ beforeAll(async () => {
 		VALUES (${oldPage}, 1, 'chart.png', ${"b".repeat(64)}, 25, 'image/png')`);
 	await db.execute(sql`INSERT INTO page_comment_threads (
 		id, page_id, version, anchor_kind, anchor, actor_name, actor_kind,
-		resolved_at, resolved_by_name, resolved_by_kind, created_at, updated_at
+		resolved_at, resolved_by_name, resolved_by_kind, created_at, updated_at, actor_id, resolved_by_id
 	) VALUES
 		(${ulid()}, ${oldPage}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
-			${human.name}, ${human.kind}, ${at}, ${human.name}, ${human.kind}, ${at}, ${at}),
+			${human.name}, ${human.kind}, ${at}, ${human.name}, ${human.kind}, ${at}, ${at}, ${humanActorId}, ${humanActorId}),
 		(${ulid()}, ${newPage}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
-			${human.name}, ${human.kind}, NULL, NULL, NULL, ${at}, ${at}),
+			${human.name}, ${human.kind}, NULL, NULL, NULL, ${at}, ${at}, ${humanActorId}, NULL),
 		(${ulid()}, ${removePage}, 1, 'element', ${JSON.stringify({ kind: "element", path: "main" })}::jsonb,
-			${human.name}, ${human.kind}, NULL, NULL, NULL, ${at}, ${at})`);
+			${human.name}, ${human.kind}, NULL, NULL, NULL, ${at}, ${at}, ${humanActorId}, NULL)`);
 	await inTx(cache.rebuild);
 }, 30_000);
 
