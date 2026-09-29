@@ -7,6 +7,8 @@ import { createCache, type ProjectCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { openTestDb } from "./testDb.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test'])`;
+
 // One root TST with one status, one epic `TST/plan` with the wave
 // `TST/plan/phase-1`, and three tickets: TST-1 in the wave, TST-2
 // outside every epic, and TST-3 in the epic with no wave.
@@ -32,8 +34,8 @@ beforeAll(async () => {
 	const status = ulid();
 	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${status}, ${tst}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${epic}, ${tst}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, description, actor_id, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${epic}, ${tst}, 'plan', 'Plan', '', ${actorId}, 'Test', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO waves (id, epic_id, slug, name, position, created_at, updated_at)
 		VALUES (${wave}, ${epic}, 'phase-1', 'Phase 1', 0, ${at}, ${at})`);
 	await insertTicket(1, status, epic, wave);

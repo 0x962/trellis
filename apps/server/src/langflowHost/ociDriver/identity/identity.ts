@@ -6,10 +6,13 @@ import { missingOciObject, type OciRun } from "../process/process";
 const labelPrefix = "io.trellis.langflow";
 const engineApiConfigLabel = `${labelPrefix}.engine-api-config-digest`;
 export const containerPort = "7860/tcp";
+export const containerDataDirectory = "/data";
 export const containerAuthenticationFile = "/run/trellis-secrets/authentication";
 export const containerCaptureIssuerFile = "/run/trellis-secrets/capture-issuer";
 export const containerEngineApiConfigFile = "/run/trellis-secrets/engine-api.json";
 export const containerEncryptionFile = "/run/trellis-secrets/engine-secret";
+export const containerNativeReservationAuthenticationFile =
+	"/run/trellis-secrets/native-reservations.token";
 
 export const HealthSchema = z.strictObject({
 	status: z.literal("healthy"),
@@ -164,7 +167,7 @@ export function assertContainer(
 		throw new Error("sidecar_container_identity_conflict");
 	if (!storage) return;
 	const expectedMounts = [
-		{ Name: storage.data, Destination: "/data", RW: true },
+		{ Name: storage.data, Destination: containerDataDirectory, RW: true },
 		{ Name: storage.secrets, Destination: "/run/trellis-secrets", RW: false },
 	];
 	if (container.Mounts.length !== expectedMounts.length) throw new Error("sidecar_mount_conflict");

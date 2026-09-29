@@ -1,8 +1,12 @@
 # Combined service fixtures
 
-These fixtures compose public services against the database from `openTestDb`.
+The `.test.ts` fixtures compose public services against the database from `openTestDb`.
 That helper applies the production migration journal to an isolated PGlite database.
 The fixtures create no substitute tables and launch no agent, engine, provider, or server.
+
+`composed/run.ts` is a separate HTTP entrypoint for an owner-supplied isolated host.
+Its [input contract](composed/README.md) requires actual package qualification and runtime receipts.
+Its source remains unexecuted. The [batch procedure](../../../../reports/langflow-integration-evidence/batch.md) retains all proof categories.
 
 `fixture` calls the document save, publication, reservation, and projection services.
 The fixture-only `seedLangflowDocument` helper persists its initial Langflow revision before the first generic save.

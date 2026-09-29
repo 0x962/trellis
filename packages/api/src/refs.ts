@@ -223,8 +223,8 @@ const labelGroupRef = defineRef(
 	formatLabelGroupRef,
 );
 
-// The name is printable ASCII (0x20 to 0x7E) without the colon, 1 to 64 chars.
-const actorHeaderPattern = /^(human|agent):([\x20-\x39\x3B-\x7E]{1,64})$/;
+// The actor name uses printable ASCII so it can travel in an HTTP header.
+const actorHeaderPattern = /^(human|agent):([\x20-\x39\x3B-\x7E]+)(?![\s\S])/;
 
 const parseActorHeader = (value: string): ActorHeader | undefined => {
 	const match = actorHeaderPattern.exec(value);
@@ -235,7 +235,7 @@ const parseActorHeader = (value: string): ActorHeader | undefined => {
 const formatActorHeader = (actor: ActorHeader) => `${actor.kind}:${actor.name}`;
 
 export const actorHeaderGrammar =
-	"Expected x-trellis-actor: <human|agent>:<name>, the name 1 to 64 printable ASCII characters without a colon.";
+	"Expected x-trellis-actor: <human|agent>:<name>, with a nonempty name of printable ASCII characters without a colon.";
 
 const actorHeader = defineRef(actorHeaderGrammar, parseActorHeader, formatActorHeader);
 

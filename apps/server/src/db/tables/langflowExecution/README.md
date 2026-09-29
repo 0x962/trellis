@@ -73,6 +73,12 @@ erDiagram
     langflow_executions ||--o{ langflow_decisions : records
     langflow_executions ||--o{ langflow_outbox : delivers
     langflow_executions ||--o{ langflow_ownership_receipts : transfers
+    langflow_ownership_receipts ||--o| langflow_authority_commits : retains
+    langflow_owner_fences {
+        uuid id PK
+        text_array owner_key UK
+        jsonb revocation
+    }
     langflow_executions ||--o{ langflow_stops : requires
     langflow_executions ||--o{ langflow_deadlines : retains
     langflow_executions ||--o| langflow_execution_projections : projects
@@ -101,3 +107,19 @@ Graph keys and source event IDs retain their full text. SHA256 columns provide f
 Database checks bind each digest to its original text. Receipt queries compare the original bytes before they accept a replay.
 `saveStartRequest` permits both Langflow and legacy execution aliases. Separate nullable foreign keys preserve their respective deletion cascades.
 `confirmAdmission(tx, {executionId, receipt})` closes the outbox item only for the exact retained admission receipt.
+
+
+`authorityControl` exports `revokeOwner`, `readRevocation`, `readReceipt`, `read`, and `commit`.
+Each method receives the caller transaction first.
+`commit` retains the complete `AuthorityCommit`, including original request and authority strings, observation, and revocation.
+The ownership receipt and complete commit share one transaction. Equal replay returns the original complete commit.
+A historical receipt without original bytes raises `authority_bytes_unavailable`.
+
+`langflow_owner_fences` stores one row for each exact host and owner pair.
+A revocation retains its first identity and observation ID. Database constraints prevent its removal or replacement.
+Execution operations lock the execution first, then owner rows in sorted order. Revocation locks only its owner row.
+`assertOwnerActive(tx, {hostId, ownerId})` holds that lock until the caller transaction ends and rejects a revoked owner.
+`assertAuthority(tx, row, authority, permission, now)` also checks the current grant, permission, and expiration.
+Initial job binding, admission, and ownership receipts use the same owner lock.
+A takeover requires the exact saved revocation of its prior owner. A revoked owner remains readable for takeover.
+Native stop records retain their original attempt identities through revocation.

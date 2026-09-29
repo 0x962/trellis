@@ -10,7 +10,8 @@ import type { OciCommandResult } from "./process/process";
 import { storageLabels, storageNames, type VolumeInspection } from "./storage/storage";
 
 const configDigest = `sha256:${"b".repeat(64)}`;
-const engineApiConfigContent = '{"version":1}';
+const engineApiConfigContent =
+	'{"version":1,"nativeReservationOrigin":"http://host.docker.internal:4521","nativeReservationAuthenticationFile":"/run/trellis-secrets/native-reservations.token"}';
 const engineApiConfigDigest = createHash("sha256").update(engineApiConfigContent).digest("hex");
 const identity: SidecarIdentity = {
 	dataHomeId: "data-home-a",
@@ -26,12 +27,14 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 	const authentication = join(root, "secrets", `${identity.instanceId}.token`);
 	const captureIssuer = join(root, "capture-issuer.key");
 	const engineApiConfig = join(root, "engine-api.json");
+	const nativeReservationAuthentication = join(root, "native-reservations.token");
 	await mkdir(join(root, "secrets"), { recursive: true, mode: 0o700 });
 	await mkdir(data, { recursive: true, mode: 0o700 });
 	await chmod(data, 0o700);
 	await writeFile(authentication, "exact-private-bearer", { mode: 0o600 });
 	await writeFile(captureIssuer, "exact-capture-issuer", { mode: 0o600 });
 	await writeFile(engineApiConfig, engineApiConfigContent, { mode: 0o600 });
+	await writeFile(nativeReservationAuthentication, "exact-outgoing-bearer", { mode: 0o600 });
 	let network = false;
 	const volumes = new Map<string, VolumeInspection>();
 	let container: ReturnType<typeof containerInspection> | null = null;
@@ -87,6 +90,8 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		privateRoot: root,
 		captureIssuerFile: captureIssuer,
 		engineApiConfigFile: engineApiConfig,
+		engineApiConfigSha256: engineApiConfigDigest,
+		nativeReservationAuthenticationFile: nativeReservationAuthentication,
 		dependencies: {
 			run,
 			fetch: async (input, init) => {
@@ -119,6 +124,12 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 		expect(provision.at(-1)).toContain("-m 0600 /input/capture-issuer /secrets/capture-issuer");
 		expect(provision).toContain(`type=bind,src=${engineApiConfig},dst=/input/engine-api,readonly`);
 		expect(provision.at(-1)).toContain("-m 0600 /input/engine-api /secrets/engine-api.json");
+		expect(provision).toContain(
+			`type=bind,src=${nativeReservationAuthentication},dst=/input/native-reservations,readonly`,
+		);
+		expect(provision.at(-1)).toContain(
+			"-m 0600 /input/native-reservations /secrets/native-reservations.token",
+		);
 		const observation = await driver.observe({
 			identity,
 			challenge: "00000000-0000-4000-8000-000000000002",
@@ -131,6 +142,15 @@ test("the driver launches and verifies one restricted OCI instance", async () =>
 			health: "healthy",
 			endpoint: "http://127.0.0.1:49152",
 		});
+		await writeFile(engineApiConfig, `${engineApiConfigContent}\n`, { mode: 0o600 });
+		expect(
+			await driver.observe({
+				identity,
+				challenge: "00000000-0000-4000-8000-000000000004",
+				authenticationFile: authentication,
+			}),
+		).toMatchObject({ state: "unknown", health: "unknown", endpoint: null });
+		await writeFile(engineApiConfig, engineApiConfigContent, { mode: 0o600 });
 		await driver.stop(identity);
 		expect(container).toBeNull();
 		expect(network).toBeFalse();

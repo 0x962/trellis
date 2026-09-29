@@ -72,8 +72,8 @@ test("a Done ticket requires a selected merged diff when it has several links", 
 	const input = await completed();
 	const other = await completed("done", "open");
 	await f.db.execute(sql`INSERT INTO ticket_pull_requests
-		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
-		VALUES (${input.ticket},${other.diffId},'manual','Test','agent',${f.ctx.now})`);
+		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at, actor_id)
+		VALUES (${input.ticket},${other.diffId},'manual','Test','agent',${f.ctx.now}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['agent', 'Test']::text[]))`);
 	const { diffId: _diffId, ...ambiguous } = input;
 	await expect(f.run((tx) => start(f.ctx, tx, ambiguous))).rejects.toThrow("Reopen the ticket");
 	await expect(f.run((tx) => start(f.ctx, tx, { ...input, diffId: other.diffId }))).rejects.toThrow(

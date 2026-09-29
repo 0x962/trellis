@@ -163,7 +163,7 @@ export type PrFilter = z.infer<typeof PrFilterSchema>;
 export const PrFilterInputSchema = z.preprocess((value) => (value === "draft" ? "not-ready" : value), PrFilterSchema);
 
 // The last actor filter: `kind:name` or a bare `name`.
-const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B-\x7E]{1,64}$/);
+const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B-\x7E]+(?![\s\S])/);
 
 // The list grammar shared by the API query string, the web URL, and the CLI
 // flags. Every list field takes an array or one comma-separated string.

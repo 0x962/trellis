@@ -215,7 +215,7 @@ before another agent can take the ticket.
 - A label ref is a ULID, a name, or `group/name`. A bare name takes the label with no group first, then the one label of that name in a group. Two grouped labels of that name are `LABEL_AMBIGUOUS`.
 - A label color is one of nine hues: gray, red, orange, yellow, green, teal, blue, purple, and pink. A create with no color takes a hue that no label of the project uses.
 - A label delete is a hard delete. It takes the label off every ticket, and it leaves `tickets.version` and `tickets.updated_at` as they are.
-- Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
+- Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is nonempty and uses printable ASCII without a colon.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
 - The service enforces the agent policy, so curl obeys it too. Agents can move tickets to Done. An agent cannot delete a ticket, a project, a label, or a label group (`AGENT_CANNOT_DELETE`, 403) without `force`.
@@ -549,7 +549,7 @@ An image accepts PNG, JPEG, GIF, WebP, or AVIF.
 The API is `resources.add`, `resources.list`, `resources.update`, and
 `resources.remove`. The routes are `POST /api/resources`,
 `GET /api/resources?epic=<EpicRef>`, `PATCH /api/resources/{id}`, and
-`DELETE /api/resources/{id}`. `PATCH` changes a document body only. The blob
+`DELETE /api/resources/{id}`. `PATCH` changes a document name or body. The blob
 route is `GET /api/resources/{id}/blob`.
 
 Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
@@ -1173,7 +1173,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, local_state (CHECK not-ready, ready), ready_for_review_at, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
 | activity | id bigint IDENTITY PK, batch_id, project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (project_id, id), (created_at). |
-| actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
+| actors | name (CHECK nonempty printable ASCII, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex), name (CHECK nonblank), description, briefing, harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
