@@ -27,17 +27,30 @@ export async function capturePairedSnapshot(ctx: PairedCaptureContext, input: Pa
 			signal: input.signal,
 		}),
 	}));
-	const { sourceHostId, sourceDataHomeId, enginePackageDigest, engineDatabaseVersion, secretVersion } = observed.compatibility;
-	if (sourceHostId !== ctx.control.identity.hostId || sourceDataHomeId !== ctx.control.identity.dataHomeId ||
-		sourceHostId !== observed.engine.identity.hostId || sourceDataHomeId !== observed.engine.identity.dataHomeId)
+	const { sourceHostId, sourceDataHomeId, enginePackageDigest, engineDatabaseVersion, secretVersion } =
+		observed.compatibility;
+	if (
+		sourceHostId !== ctx.control.identity.hostId ||
+		sourceDataHomeId !== ctx.control.identity.dataHomeId ||
+		sourceHostId !== observed.engine.identity.hostId ||
+		sourceDataHomeId !== observed.engine.identity.dataHomeId
+	)
 		throw new Error("paired_source_identity_mismatch");
 	const compatibility = { ...trellisVersion, enginePackageDigest, engineDatabaseVersion, secretVersion };
 	const journal = await PairedJournal.create(ctx.control, {
-		version: 1, kind: "capture", snapshotId: input.snapshotId, requestId: input.requestId, directory,
-		dataHomeId: sourceDataHomeId, hostId: sourceHostId, compatibility, createdAt: new Date().toISOString(),
+		version: 1,
+		kind: "capture",
+		snapshotId: input.snapshotId,
+		requestId: input.requestId,
+		directory,
+		dataHomeId: sourceDataHomeId,
+		hostId: sourceHostId,
+		compatibility,
+		createdAt: new Date().toISOString(),
 	});
 	const block = ctx.control.gate.closeDispatch({
-		requestId: input.requestId, reason: { kind: "capture", snapshotId: input.snapshotId },
+		requestId: input.requestId,
+		reason: { kind: "capture", snapshotId: input.snapshotId },
 	});
 	await journal.write("block", block);
 	await ctx.control.gate.waitForDrain(block, input.signal);
@@ -53,31 +66,41 @@ export async function capturePairedSnapshot(ctx: PairedCaptureContext, input: Pa
 	if (active.state !== "active") throw new Error("paired_capture_not_active");
 	await journal.write("active", active);
 	const metadata: SnapshotMetadata = {
-		snapshotId: input.snapshotId, sourceDataHomeId, sourceHostId, createdAt: new Date().toISOString(),
-		compatibility, boundary: { kind: "quiesced-export", receiptId: boundaryReceiptId }, unavailable: [],
+		snapshotId: input.snapshotId,
+		sourceDataHomeId,
+		sourceHostId,
+		createdAt: new Date().toISOString(),
+		compatibility,
+		boundary: { kind: "quiesced-export", receiptId: boundaryReceiptId },
+		unavailable: [],
 	};
 	const captured = await captureSnapshot({
-		withQuiescedSnapshot: (consume) => ctx.supervisor.withHealthyEngine(async (engine) => {
-			if (!isDeepStrictEqual(engine.identity, grant.identity)) throw new Error("paired_engine_changed");
-			await mkdir(directory, { mode: 0o700 });
-			for (const root of ["engine", "secrets", "workspaces", "conversations"])
-				await mkdir(join(directory, root), { mode: 0o700 });
-			await syncDirectory(dirname(directory));
-			await journal.write("exporting", { metadata, identity: engine.identity });
-			const receipt = await exportEngineSnapshot({
-				endpoint: engine.endpoint, authenticationFile: ctx.authenticationFile, directory, metadata, signal: input.signal,
-			});
-			await journal.write("engine", receipt);
-			const trellis = await ctx.captureTrellis({ directory, expectedVersion: trellisVersion, block });
-			await journal.write("trellis", trellis);
-			await chmod(trellis.staging, 0o700);
-			await syncSnapshotTree(trellis.staging);
-			await rename(trellis.staging, join(directory, "trellis"));
-			await syncDirectory(dirname(trellis.staging));
-			await syncDirectory(directory);
-			metadata.unavailable.push(...trellis.unavailable);
-			return consume({ directory, metadata });
-		}),
+		withQuiescedSnapshot: (consume) =>
+			ctx.supervisor.withHealthyEngine(async (engine) => {
+				if (!isDeepStrictEqual(engine.identity, grant.identity)) throw new Error("paired_engine_changed");
+				await mkdir(directory, { mode: 0o700 });
+				for (const root of ["engine", "secrets", "workspaces", "conversations"])
+					await mkdir(join(directory, root), { mode: 0o700 });
+				await syncDirectory(dirname(directory));
+				await journal.write("exporting", { metadata, identity: engine.identity });
+				const receipt = await exportEngineSnapshot({
+					endpoint: engine.endpoint,
+					authenticationFile: ctx.authenticationFile,
+					directory,
+					metadata,
+					signal: input.signal,
+				});
+				await journal.write("engine", receipt);
+				const trellis = await ctx.captureTrellis({ directory, expectedVersion: trellisVersion, block });
+				await journal.write("trellis", trellis);
+				await chmod(trellis.staging, 0o700);
+				await syncSnapshotTree(trellis.staging);
+				await rename(trellis.staging, join(directory, "trellis"));
+				await syncDirectory(dirname(trellis.staging));
+				await syncDirectory(directory);
+				metadata.unavailable.push(...trellis.unavailable);
+				return consume({ directory, metadata });
+			}),
 	});
 	const manifestDigest = protocolDigest(await readFile(join(directory, manifestName), "utf8"));
 	await journal.write("sealed", { manifest: captured.manifest, manifestDigest });
