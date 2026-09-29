@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useId, useState } from "react";
 import { cx } from "../../utils/cx";
 import { type ChartTone, chartFillClass, chartToneClass } from "../chartTones";
+import { usageChartFocusIndex, usageChartSelectKey } from "./usageChartFocusIndex";
 
 export type UsageChartTone = ChartTone;
 
@@ -32,6 +33,16 @@ export type UsageChartProps = {
 // The gridlines, top first, as the share of the top value each one marks.
 const GRID_LINES = [1, 0.75, 0.5, 0.25, 0] as const;
 
+const chartBorderColor: Record<ChartTone, string> = {
+	agent: "var(--agent)",
+	fg: "var(--fg)",
+	faint: "var(--fg-faint)",
+	success: "var(--success)",
+	warning: "var(--warning)",
+	danger: "var(--danger)",
+	accent: "var(--accent)",
+};
+
 // A round number at or above `max`, so the top gridline prints a short
 // figure such as 50 instead of 47.3.
 const niceMax = (max: number) => {
@@ -42,8 +53,6 @@ const niceMax = (max: number) => {
 	return step * power;
 };
 
-// Each sample has a button, so a keyboard and a screen reader can inspect
-// the value and select it for the caption below the chart.
 export function UsageChart({
 	label,
 	days,
@@ -57,11 +66,25 @@ export function UsageChart({
 	className,
 }: UsageChartProps) {
 	const [hoverDay, setHoverDay] = useState<string | null>(null);
+	const [hasFocus, setHasFocus] = useState(false);
+	const [cursor, setCursor] = useState(() => ({ day: selectedDay ?? days[0] ?? null, index: 0 }));
+	const instructionsId = useId();
 	const count = days.length;
 	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
 	const top = max ?? niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
-	const captionDay = hoverDay ?? selectedDay;
-	const captionIndex = captionDay === null ? -1 : days.indexOf(captionDay);
+	const selectedIndex = selectedDay === null ? -1 : days.indexOf(selectedDay);
+	const cursorIndex = cursor.day === null ? -1 : days.indexOf(cursor.day);
+	const focusIndex =
+		count === 0
+			? -1
+			: cursorIndex >= 0
+				? cursorIndex
+				: selectedIndex >= 0
+					? selectedIndex
+					: Math.min(cursor.index, count - 1);
+	const focusDay = focusIndex < 0 ? null : days[focusIndex]!;
+	const hoverIndex = hoverDay === null ? -1 : days.indexOf(hoverDay);
+	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
 	// A bar takes 70% of its day slot, so a short range keeps a gap between bars.
 	const slot = 100 / Math.max(1, count);
@@ -70,9 +93,33 @@ export function UsageChart({
 		x: count <= 1 ? 50 : (index / (count - 1)) * 100,
 		y: 100 - (value / top) * 100,
 	});
+	const indexAtPointer = (event: MouseEvent<HTMLButtonElement>) => {
+		const bounds = event.currentTarget.getBoundingClientRect();
+		return Math.min(count - 1, Math.max(0, Math.floor(((event.clientX - bounds.left) / bounds.width) * count)));
+	};
+	const moveFocus = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (usageChartSelectKey(event.key)) {
+			event.preventDefault();
+			select(focusIndex);
+			return;
+		}
+		const nextIndex = usageChartFocusIndex(event.key, focusIndex, count);
+		if (nextIndex === null) return;
+		event.preventDefault();
+		setCursor({ day: days[nextIndex]!, index: nextIndex });
+	};
+	function select(index: number) {
+		const day = days[index]!;
+		setCursor({ day, index });
+		onSelectDay(selectedDay === day ? null : day);
+	}
 
 	return (
 		<figure className={cx("flex min-w-0 flex-col gap-2", className)}>
+			<span id={instructionsId} className="sr-only">
+				Use Left and Right to inspect days. Use Home and End to move to the first or last day. Press Enter or Space to
+				select or clear a day.
+			</span>
 			<div className="flex min-w-0 gap-2">
 				<div className="flex w-12 shrink-0 flex-col justify-between text-right text-xs text-fg-faint tabular">
 					{GRID_LINES.map((share) => (
@@ -159,26 +206,69 @@ export function UsageChart({
 										</g>
 									),
 								)}
-					</svg>
-					<div className="absolute inset-0 flex">
-						{days.map((day, index) => (
-							<button
-								key={day}
-								type="button"
-								aria-label={`${formatDay(day)}: ${format(dayTotal(index))}`}
-								aria-pressed={selectedDay === day}
-								onMouseEnter={() => setHoverDay(day)}
-								onMouseLeave={() => setHoverDay(null)}
-								onFocus={() => setHoverDay(day)}
-								onBlur={() => setHoverDay(null)}
-								onClick={() => onSelectDay(selectedDay === day ? null : day)}
-								className={cx(
-									"min-w-0 flex-1 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-									selectedDay === day && "border-b-2 border-fg",
-								)}
+						{variant === "line" && selectedIndex >= 0 && (
+							<g data-selected-day={selectedDay ?? undefined}>
+								<line
+									x1={point(selectedIndex, 0).x}
+									y1="0"
+									x2={point(selectedIndex, 0).x}
+									y2="100"
+									stroke="currentColor"
+									strokeWidth="1"
+									strokeDasharray="3 3"
+									vectorEffect="non-scaling-stroke"
+									className="text-accent"
+								/>
+							</g>
+						)}
+						{variant === "bar" && selectedIndex >= 0 && (
+							<line
+								data-selected-day={selectedDay ?? undefined}
+								x1={selectedIndex * slot + (slot - barWidth) / 2}
+								y1="99"
+								x2={selectedIndex * slot + (slot + barWidth) / 2}
+								y2="99"
+								stroke="currentColor"
+								strokeWidth="2"
+								vectorEffect="non-scaling-stroke"
+								className="text-fg"
 							/>
-						))}
-					</div>
+						)}
+					</svg>
+					{variant === "line" &&
+						selectedIndex >= 0 &&
+						series.map((row) => {
+							const selectedPoint = point(selectedIndex, row.values[selectedIndex] ?? 0);
+							return (
+								<span
+									key={row.key}
+									aria-hidden="true"
+									data-selected-series={row.key}
+									className="pointer-events-none absolute block size-2 -translate-x-1/2 -translate-y-1/2 rounded-round border-2 bg-bg"
+									style={{
+										left: `${selectedPoint.x}%`,
+										top: `${selectedPoint.y}%`,
+										borderColor: chartBorderColor[row.tones?.[selectedIndex] ?? row.tone],
+									}}
+								/>
+							);
+						})}
+					{focusDay !== null && (
+						<button
+							type="button"
+							data-day={focusDay}
+							aria-label={`${label}. ${formatDay(focusDay)}: ${format(dayTotal(focusIndex))}`}
+							aria-describedby={instructionsId}
+							aria-pressed={selectedDay === focusDay}
+							onPointerMove={(event) => setHoverDay(days[indexAtPointer(event)]!)}
+							onPointerLeave={() => setHoverDay(null)}
+							onFocus={() => setHasFocus(true)}
+							onBlur={() => setHasFocus(false)}
+							onKeyDown={moveFocus}
+							onClick={(event) => select(event.detail === 0 ? focusIndex : indexAtPointer(event))}
+							className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						/>
+					)}
 				</div>
 			</div>
 			<div className="flex pl-14 text-xs text-fg-faint tabular">
