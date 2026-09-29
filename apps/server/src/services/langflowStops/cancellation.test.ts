@@ -10,7 +10,7 @@ import {
 import { ids, now } from "../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../db/queries/langflowExecution/fixtures/native";
 import type { HumanDecisionReceiptV1 } from "../../langflowContracts";
-import { recordExpiredStops } from "../langflowClocks/recordExpiredStops";
+import { recordExpiredStops } from "../langflowClocks";
 import { stopFixture } from "../langflowTestFixture";
 import { assertExecutionNotCanceled } from "./assertExecutionNotCanceled";
 import { cancelExecution } from "./cancelExecution";
