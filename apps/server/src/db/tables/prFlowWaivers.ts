@@ -22,6 +22,6 @@ export const prFlowWaivers = pgTable(
 		primaryKey({ name: "pr_flow_waivers_pkey", columns: [t.pullRequestId, t.headSha] }),
 		actorFk("pr_flow_waivers_actor_fk", t),
 		check("pr_flow_waivers_head_sha_check", sql`length(${t.headSha}) BETWEEN 1 AND 64`),
-		check("pr_flow_waivers_reason_check", sql`length(${t.reason}) BETWEEN 1 AND 2000`),
+		check("pr_flow_waivers_reason_check", sql`length(${t.reason}) >= 1`),
 	],
 );

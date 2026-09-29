@@ -6,4 +6,5 @@ export {
 	sessionUpdateRequestIsOutstanding,
 	setSessionUpdateRequestState,
 } from "./requests.ts";
+export { type SaveSessionUpdateInput, saveSessionUpdate } from "./save.ts";
 export { write } from "./write.ts";

@@ -47,7 +47,6 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 					label="Name"
 					required
 					autoComplete="off"
-					maxLength={120}
 					disabled={create.isPending}
 					value={name}
 					onChange={(event) => setName(event.target.value)}
@@ -55,7 +54,6 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 				<Input
 					label="Description"
 					autoComplete="off"
-					maxLength={2000}
 					disabled={create.isPending}
 					value={description}
 					onChange={(event) => setDescription(event.target.value)}
