@@ -1,7 +1,7 @@
 import type { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
 import { nativeHost } from "../../../agents/native/harnessHost.ts";
 import { lockExecution, readProjectionFacts, updateStop } from "../../../db/queries/langflowExecution";
-import { saveStopState } from "../../langflowProjection/saveStopState";
+import { saveStopState } from "../../langflowProjection";
 import type { IoCtx } from "../../support.ts";
 import { stopAttempt } from "../stopAttempt";
 import { withAttemptOperation } from "../withAttemptOperation";
