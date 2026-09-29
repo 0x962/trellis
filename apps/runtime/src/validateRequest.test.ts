@@ -81,3 +81,24 @@ test("accepts terminal dimensions through the PTY encoding range", () => {
 			`Terminal dimensions must be between 1 and ${MAX_TERMINAL_DIMENSION}`,
 		);
 });
+
+test("accepts every positive safe process timeout", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "start",
+		params: {
+			id: "attempt",
+			command: "true",
+			args: [],
+			cwd: "/tmp",
+			mode: "stdio",
+			timeoutMs: Number.MAX_SAFE_INTEGER,
+		},
+	};
+	expect(validateRequest(value) === value).toBe(true);
+	for (const timeoutMs of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])
+		expect(() => validateRequest({ ...value, params: { ...value.params, timeoutMs } })).toThrow(
+			"Process timeout must be a positive safe integer",
+		);
+});
