@@ -1,5 +1,5 @@
 import { protocolDigest, RenewalReceiptV1Schema, TakeoverReceiptV1Schema } from "../../langflowContracts";
-import type { AuthorityPort, LiveOwnership } from "../contracts";
+import type { AuthorityPort, LiveOwnership, OwnershipSnapshot } from "../contracts";
 
 export type RenewalInput = {
 	executionId: string;
@@ -17,7 +17,9 @@ export class ExecutionAuthority {
 	constructor(private readonly store: AuthorityPort) {}
 
 	async renew(observation: LiveOwnership, input: RenewalInput) {
+		const snapshot = await this.store.read(input.executionId);
 		const saved = await this.store.readReceipt(input);
+		this.assertCancellation(snapshot, saved?.receipt.authority.permissions);
 		if (saved) {
 			const receipt = saved.receipt;
 			if (
@@ -29,7 +31,7 @@ export class ExecutionAuthority {
 				throw new Error("identity_conflict");
 			return receipt;
 		}
-		const { authority: current } = await this.store.read(input.executionId);
+		const { authority: current, canceled } = snapshot;
 		if (
 			current.hostId !== observation.identity.hostId ||
 			current.ownerId !== observation.identity.ownerId ||
@@ -53,6 +55,7 @@ export class ExecutionAuthority {
 			renewalId: crypto.randomUUID(),
 			authority: {
 				...current,
+				permissions: canceled ? ["execution.cancel"] : current.permissions,
 				ownershipRevision: current.ownershipRevision + 1,
 				capabilityId: crypto.randomUUID(),
 				issuedAt: observation.observedAt,
@@ -69,7 +72,9 @@ export class ExecutionAuthority {
 	}
 
 	async takeover(observation: LiveOwnership, input: TakeoverInput) {
+		const snapshot = await this.store.read(input.executionId);
 		const saved = await this.store.readReceipt(input);
+		this.assertCancellation(snapshot, saved?.receipt.authority.permissions);
 		if (saved) {
 			const receipt = saved.receipt;
 			if (
@@ -83,7 +88,7 @@ export class ExecutionAuthority {
 				throw new Error("identity_conflict");
 			return receipt;
 		}
-		const { authority: current, admission } = await this.store.read(input.executionId);
+		const { authority: current, admission, canceled } = snapshot;
 		if (
 			current.hostId !== observation.identity.hostId ||
 			current.ownerId !== input.expectedOwnerId ||
@@ -124,6 +129,7 @@ export class ExecutionAuthority {
 			committedAt: observation.observedAt,
 			authority: {
 				...current,
+				permissions: canceled ? ["execution.cancel"] : current.permissions,
 				ownerId: observation.identity.ownerId,
 				engineEpoch: current.engineEpoch + 1,
 				ownershipRevision: current.ownershipRevision + 1,
@@ -151,5 +157,12 @@ export class ExecutionAuthority {
 			observation,
 			revocation,
 		});
+	}
+	private assertCancellation(snapshot: OwnershipSnapshot, savedPermissions?: string[]) {
+		if (!snapshot.canceled) return;
+		if (snapshot.admission.state !== "closed") throw new Error("canceled_admission_open");
+		if (savedPermissions && (savedPermissions.length !== 1 || savedPermissions[0] !== "execution.cancel")) {
+			throw new Error("cancellation_requires_successor_authority");
+		}
 	}
 }
