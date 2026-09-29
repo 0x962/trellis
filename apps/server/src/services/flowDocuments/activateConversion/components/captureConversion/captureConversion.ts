@@ -1,11 +1,11 @@
-import { ORPCError } from "@orpc/server";
 import type { ActivateConversionV1Input } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../../../../../context";
-import { readDocumentRevision, readDocumentSaveReceipt } from "../../../../../db/queries/langflowDocuments";
+import { readDocumentRevision } from "../../../../../db/queries/langflowDocuments";
 import type { Tx } from "../../../../../db/tx";
 import { fail, invalidInput } from "../../../../../errors";
 import { resolveFlow } from "../../../../flows/flows";
+import { documentIntentReceipt } from "../../../documentIntentReceipt";
 import { retainCurrent } from "../../../retainCurrent";
 
 export const captureConversion = async (
@@ -15,17 +15,8 @@ export const captureConversion = async (
 	requestBytes: Buffer,
 ) => {
 	await tx.execute(sql`SELECT id FROM flows WHERE id = ${input.flowId} FOR UPDATE`);
-	const previous = await readDocumentSaveReceipt(tx, input);
-	if (previous) {
-		if (!previous.requestBytes.equals(requestBytes))
-			throw new ORPCError("FLOW_REQUEST_CONFLICT", {
-				status: 409,
-				defined: true,
-				message: "This request ID already identifies different conversion bytes.",
-				data: { requestId: input.requestId },
-			});
-		return { state: "replayed" as const, document: previous.receipt };
-	}
+	const previous = await documentIntentReceipt(tx, { operation: "convert", ...input, requestBytes });
+	if (previous.state === "completed") return { state: "replayed" as const, document: previous.document };
 	const flow = await resolveFlow(tx, input.flowId);
 	if (flow.version !== input.expectedVersion) throw fail("FLOW_VERSION_CONFLICT", { version: flow.version });
 	await retainCurrent(ctx, tx, flow);

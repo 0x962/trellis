@@ -1,11 +1,11 @@
-import { ORPCError } from "@orpc/server";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../../../../../context";
-import { readDocumentRevision, readDocumentSaveReceipt } from "../../../../../db/queries/langflowDocuments";
+import { readDocumentRevision } from "../../../../../db/queries/langflowDocuments";
 import type { Tx } from "../../../../../db/tx";
 import { fail, invalidInput } from "../../../../../errors";
 import { resolveFlow } from "../../../../flows/flows";
 import type { ConversionEditIntentV1 } from "../../../../langflowMigration";
+import { documentIntentReceipt } from "../../../documentIntentReceipt";
 
 export async function readEditBase(
 	_ctx: ServiceCtx,
@@ -14,17 +14,8 @@ export async function readEditBase(
 ) {
 	const { intent, intentBytes } = input;
 	await tx.execute(sql`SELECT id FROM flows WHERE id = ${intent.flowId} FOR UPDATE`);
-	const previous = await readDocumentSaveReceipt(tx, intent);
-	if (previous) {
-		if (!previous.requestBytes.equals(intentBytes))
-			throw new ORPCError("FLOW_REQUEST_CONFLICT", {
-				status: 409,
-				message: "This request ID already identifies different edit bytes.",
-				defined: true,
-				data: { requestId: intent.requestId },
-			});
-		return { state: "replayed" as const, document: previous.receipt };
-	}
+	const previous = await documentIntentReceipt(tx, { operation: "edit", ...intent, requestBytes: intentBytes });
+	if (previous.state === "completed") return { state: "replayed" as const, document: previous.document };
 	const flow = await resolveFlow(tx, intent.flowId);
 	if (flow.version !== intent.expectedVersion) throw fail("FLOW_VERSION_CONFLICT", { version: flow.version });
 	const base = await readDocumentRevision(tx, { flowId: flow.id, revision: flow.version });
