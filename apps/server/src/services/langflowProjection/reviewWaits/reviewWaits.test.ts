@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { protocolDigest, type ReviewWaitV1 } from "../../../langflowContracts";
+import { canonicalReviewClassificationRequest, protocolDigest, type ReviewWaitV1 } from "../../../langflowContracts";
 import { project } from "../project.ts";
 import { fixture } from "../testFixture.ts";
 
@@ -23,14 +23,24 @@ function reviewFixture() {
 		phase: occurrence.phase,
 		iterationPath: occurrence.iterationPath,
 	};
-	const classificationBytes = '{"classification":"saved shared request"}';
+	const classificationRequestId = "00000000-0000-4000-8000-000000000003";
+	const classificationBytes = canonicalReviewClassificationRequest({
+		version: 1,
+		executionId: f.binding.executionId,
+		publicationId: f.binding.publicationId,
+		engineJobId: f.binding.engineJobId,
+		classificationRequestId,
+		diffId: f.view.diffId,
+		reviewedHead: f.view.reviewedHead!,
+		gates: [{ nodeId: occurrence.nodeId, reviewArea: "frontend" }],
+	});
 	const requestId = "00000000-0000-4000-8000-000000000002";
 	const visit = {
 		version: 1 as const,
 		...f.binding,
 		...identity,
 		requestId,
-		classificationRequestId: "00000000-0000-4000-8000-000000000003",
+		classificationRequestId,
 		classificationRequestDigest: protocolDigest(classificationBytes),
 		diffId: f.view.diffId,
 		reviewedHead: f.view.reviewedHead!,
