@@ -1,8 +1,13 @@
 import { createHash } from "node:crypto";
 import { runGit } from "./gitProcess.ts";
 
-export const gitRecordPage = (workspace: string, args: string[], page: { offset: number; limit: number }) =>
-	runGit(workspace, args, async (stream) => {
+export const gitRecordPage = (
+	workspace: string,
+	args: string[],
+	page: { offset: number; limit: number },
+	signal?: AbortSignal,
+) =>
+	runGit(workspace, args, signal, async (stream) => {
 		const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
 		const hash = createHash("sha256");
 		const items: string[] = [];

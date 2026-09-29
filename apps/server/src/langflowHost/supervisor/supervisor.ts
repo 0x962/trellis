@@ -105,7 +105,12 @@ export class LangflowSupervisor {
 		}
 		const observation = await this.observe(identity);
 		const revoked = await this.deps.authority.revokeOwner({ identity, observationId: observation.challenge });
-		if (!isDeepStrictEqual(revoked.identity, identity) || revoked.observationId !== observation.challenge) {
+		const retained = await this.deps.authority.readRevocation({
+			dataHomeId: identity.dataHomeId,
+			hostId: identity.hostId,
+			ownerId: identity.ownerId,
+		});
+		if (!isDeepStrictEqual(revoked.identity, identity) || !isDeepStrictEqual(retained, revoked)) {
 			throw new Error("sidecar_revocation_mismatch");
 		}
 		if (observation.state === "running") {

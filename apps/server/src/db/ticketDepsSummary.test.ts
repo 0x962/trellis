@@ -5,6 +5,8 @@ import { ulid } from "ulid";
 import { ticketSummary } from "./queries/ticketGet.ts";
 import { openTestDb } from "./testDb.ts";
 
+const actorId = sql`(SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'Test'])`;
+
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const root = ulid();
 const epic = ulid();
@@ -26,8 +28,8 @@ const insertPullRequest = async (ticketId: string, number: number, headRef: stri
 		'open', false, ${headRef}, ${baseRef}, 'none', '[]'::jsonb, 'none', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
-		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', ${at})`);
+		ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${id}, 'manual', ${actorId}, 'Test', 'human', ${at})`);
 };
 
 beforeAll(async () => {
@@ -45,8 +47,8 @@ beforeAll(async () => {
 		(${doneStatus}, ${root}, 'Done', 'done', 'done', 'success', 3, false, ${at}, ${at}),
 		(${canceledStatus}, ${root}, 'Canceled', 'canceled', 'canceled', 'fg-muted', 4, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epic}, ${root}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
+		id, project_id, slug, name, description, actor_id, actor_name, actor_kind, created_at, updated_at
+	) VALUES (${epic}, ${root}, 'plan', 'Plan', '', ${actorId}, 'Test', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, number, title, description, status_id, epic_id, position, created_at, updated_at
 	) VALUES

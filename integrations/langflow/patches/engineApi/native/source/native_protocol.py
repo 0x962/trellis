@@ -76,6 +76,11 @@ class LookupInput(ProtocolModel):
     authorityBytes: str
 
 
+class InputReceiptsInput(ProtocolModel):
+    requestBytes: str
+    authorityBytes: str
+
+
 def digest(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 

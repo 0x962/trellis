@@ -4,12 +4,15 @@ import type { lockExecution } from "../../db/queries/langflowExecution/execution
 import type { Tx } from "../../db/tx";
 import type { DeliveryAuthorityV1, NativeRequestV1 } from "../../langflowContracts";
 import type { DispatchGate } from "../../langflowHost";
+import type { NativePromptReceipt } from "./readPromptInputs";
 
 export type NativeExecution = Awaited<ReturnType<typeof lockExecution>>;
 
 // The publication resolver checks the engine checkpoint against the saved document.
 // requestDigest covers the exact request bytes that resolver approved.
 export type ApprovedNativeOccurrence = {
+	engineNodeId: string;
+	inputReceipts: NativePromptReceipt[];
 	requestDigest: string;
 	specHash: string;
 	taskKey: string;

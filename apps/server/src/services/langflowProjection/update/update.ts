@@ -49,7 +49,7 @@ export async function update(ctx: ServiceCtx, tx: Tx, input: ProjectionUpdate) {
 			return { state: "duplicate" as const, event: duplicate, view: stored.view };
 		}
 	}
-	assertAuthority(execution, input.authority, "events.append", ctx.now);
+	await assertAuthority(tx, execution, input.authority, "events.append", ctx.now);
 	if (source && source.engineEpoch !== input.authority.engineEpoch) throw new Error("stale_owner");
 	if (
 		source?.occurrence &&

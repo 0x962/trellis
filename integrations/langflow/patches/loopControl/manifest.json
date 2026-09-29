@@ -1,0 +1,69 @@
+{
+	"schemaVersion": 1,
+	"engine": {
+		"version": "1.12.3",
+		"commit": "fec71dca901949c09ed4d63315804337cd2eb13d"
+	},
+	"composedBaseline": "f7ac57e67b2565a06e0e393bc43234774c76547b",
+	"prerequisites": [
+		"backend",
+		"backend-delivery-reader",
+		"backend-queue-transactions",
+		"backend-schema",
+		"backend-publications",
+		"backend-private-authority",
+		"backend-cancellation-api",
+		"backend-native-api",
+		"backend-admission-api",
+		"backend-admission-authority",
+		"backend-decision-api",
+		"backend-decision-authority",
+		"backend-control-guards",
+		"backend-native-consumer",
+		"backend-cancellation-order",
+		"backend-backup"
+	],
+	"patch": {
+		"path": "integrations/langflow/patches/loopControl/0001-durable-loop-control.patch",
+		"sha256": "7ba553937391c36f2b04c043aa0416662fb9eb7ad08fd3759c9d7136274ed419"
+	},
+	"source": {
+		"path": "integrations/langflow/patches/loopControl/source/loop_control.py",
+		"target": "src/lfx/src/lfx/graph/loop_control.py",
+		"sha256": "899eedab942192548d56880ea3b163b0efb9c4bd1cb4a447b716a206110e1628"
+	},
+	"sharedHunks": {
+		"src/lfx/src/lfx/graph/checkpoint/schema.py": {
+			"baseSha256": "0bc940a3708cf1ec81c6682b706a69d1ba59dcde35a071617c7f03de2f490d6d",
+			"resultSha256": "2493f6cf06285d10f8a39ce73a9e3a1a95b4fbf0ea10851d7dad1eee904b84e8"
+		},
+		"src/lfx/src/lfx/graph/checkpoint/builder.py": {
+			"baseSha256": "da4c3af5552e688ad6214ad7ea5ba973eb2c4f0aa56260992b3e30879c2f35de",
+			"resultSha256": "0c1ae4e33f38e74e60fb37758c7282c98ebc70c6f05c8edea9a7c7adf4ea7eab"
+		},
+		"src/lfx/src/lfx/graph/checkpoint/resume.py": {
+			"baseSha256": "f6e9b34395e082657d9b082ca02c0f431d2592139014df3b3c3eb46a4c4e00e2",
+			"resultSha256": "55f149b1dec906e3156de697f70721ed7c4c4b535ad712abc4f45682498e0883"
+		},
+		"src/lfx/src/lfx/graph/graph/base.py": {
+			"baseSha256": "b09df208321834faa311dbf90228bc256c4f0642164a965587f1fee2370406b9",
+			"resultSha256": "55753e4e3e2cf470ac2be2213ba5b68ae5ee410a15d8caca352f4b13dce01576"
+		}
+	},
+	"component": {
+		"definitionId": "trellis.loop.v1",
+		"className": "TrellisLoopV1",
+		"sourceNodeType": "loop",
+		"sourcePath": "integrations/langflow/components/trellisLoop/trellisLoop.py",
+		"sourceSha256": "4e625fad001dfad9941c30f81b775cbe2349bb8bfa236b47bc59118ef7bca21a",
+		"inputs": [
+			"seed",
+			"max_rounds"
+		],
+		"outputs": ["children", "done"]
+	},
+	"fixture": {
+		"path": "integrations/langflow/tests/loopControl/test_loop_control.py",
+		"sha256": "f2640c65718c85d5da42d1530f57c487ef46f1bfecea7b7659797ae2fa7200ee"
+	}
+}

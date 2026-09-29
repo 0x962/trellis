@@ -1,0 +1,1 @@
+export { bootstrapFixture } from "./fixtures";

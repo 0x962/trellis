@@ -5,6 +5,7 @@ import type {
 	RenewalReceiptV1,
 	TakeoverReceiptV1,
 } from "../../langflowContracts";
+import type { DispatchPermit } from "../dispatchGate/contracts";
 
 export type SidecarIdentity = {
 	dataHomeId: string;
@@ -57,6 +58,7 @@ export type OwnershipSnapshot = {
 };
 
 export type AuthorityCommit = {
+	permit: DispatchPermit;
 	requestBytes: string;
 	authorityBytes: string;
 	receipt: RenewalReceiptV1 | TakeoverReceiptV1;

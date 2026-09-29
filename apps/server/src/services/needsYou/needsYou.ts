@@ -128,7 +128,10 @@ export const update = async (
 	if (!item) throw fail("NOT_FOUND", { kind: "inbox item", ref: input.id });
 	await tx.execute(sql`INSERT INTO needs_you_states (actor_name,item_id,ticket_id,snoozed_until,ignored,updated_at)
 		VALUES (${actor},${item.id},${item.ticketId},${input.action === "snooze" ? input.until : null},${input.action === "ignore"},${ctx.core.now})
-		ON CONFLICT (actor_name,item_id) DO UPDATE SET snoozed_until=EXCLUDED.snoozed_until,ignored=EXCLUDED.ignored,updated_at=EXCLUDED.updated_at`);
+		ON CONFLICT DO NOTHING`);
+	await tx.execute(sql`UPDATE needs_you_states
+		SET ticket_id=${item.ticketId},snoozed_until=${input.action === "snooze" ? input.until : null},ignored=${input.action === "ignore"},updated_at=${ctx.core.now}
+		WHERE ARRAY[actor_name,item_id]=ARRAY[${actor},${item.id}]`);
 	ctx.core.emit({ type: "needs-you.changed", actorName: actor });
 	return { id: item.id };
 };

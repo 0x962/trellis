@@ -17,6 +17,7 @@ The shared router mounts the relative `/native` routes under `/trellis-v1`.
 | --- | --- | --- |
 | `POST /trellis-v1/native/completions` | `completion.deliver` | `{engineWaitId,resultBytes,deliveryBytes,authorityBytes}`; exact `CompletionReceiptV1` response bytes |
 | `POST /trellis-v1/native/lookup` | `native.read` | `{jobId,waitId,authorityBytes}`; saved wait, result, and acceptance bytes |
+| `POST /trellis-v1/native/input-receipts` | `native.read` | `{requestBytes,authorityBytes}`; ordered `{receiptId,receiptBytes,receiptDigest}[]` |
 
 `authorityBytes` contains the exact persisted grant serialization.
 `X-Trellis-Capability-Id` must match that grant.
@@ -26,6 +27,12 @@ A replay can carry a renewed grant but must preserve the original result bytes.
 The engine returns the original acceptance and obligation identities.
 The POST consumes the saved obligation after the acceptance transaction commits.
 If dispatch fails, the durable obligation stays pending for the engine startup drain.
+
+The input-receipt route derives the job and publication from the original request bytes.
+It locks the job before the shared authority check, then calls `occurrence_receipts.read_input_receipts` in that session.
+The helper verifies the original journal request and reads its ordered receipt records.
+The response preserves each receipt string and digest and uses `Cache-Control: no-store`.
+Missing jobs or receipts and changed requests return a conflict.
 
 ## Required engine interfaces
 
@@ -56,6 +63,7 @@ The resume signal uses `trellis_external_completion_v1`, the exact wait ID as `e
 ## Assembly and verification
 
 TRL-674 owns the shared patch series and the dependency order.
+The native router requires the TRL-1006 `occurrence_receipts` source and the shared TRL-875 authentication source.
 The manifest records source and patch hashes for that assembly.
 The tests use the actual engine models, the caller-session helper, and an isolated SQLite database.
 They cover rollback, replay after reopen, exact result bytes, authority, attempt identity, prompt receipts, and complete output.

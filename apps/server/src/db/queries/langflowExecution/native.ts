@@ -49,7 +49,7 @@ export async function reserveNative(
 			throw new Error("identity_conflict");
 		return existing;
 	}
-	assertAuthority(execution, input.authority, "native.reserve", input.now);
+	await assertAuthority(tx, execution, input.authority, "native.reserve", input.now);
 	if (
 		execution.cancelIntent ||
 		execution.admission.state !== "open" ||

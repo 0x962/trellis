@@ -1,17 +1,22 @@
+import { isDeepStrictEqual } from "node:util";
 import { protocolDigest, RenewalReceiptV1Schema, TakeoverReceiptV1Schema } from "../../langflowContracts";
 import type { AuthorityPort, LiveOwnership, OwnershipSnapshot } from "../contracts";
+import type { DispatchPermit } from "../dispatchGate/contracts";
 
-export type RenewalInput = {
+export type RenewalIntent = {
 	executionId: string;
 	requestId: string;
 	expectedRevision: number;
 	expiresAt: string;
 };
 
-export type TakeoverInput = RenewalInput & {
+export type TakeoverIntent = RenewalIntent & {
 	expectedOwnerId: string;
 	expectedEpoch: number;
 };
+
+export type RenewalInput = RenewalIntent & { permit: DispatchPermit };
+export type TakeoverInput = TakeoverIntent & { permit: DispatchPermit };
 
 export class ExecutionAuthority {
 	constructor(private readonly store: AuthorityPort) {}
@@ -22,6 +27,7 @@ export class ExecutionAuthority {
 		this.assertCancellation(snapshot, saved?.receipt.authority.permissions);
 		if (saved) {
 			const receipt = saved.receipt;
+			if (!isDeepStrictEqual(saved.permit, input.permit)) throw new Error("authority_permit_conflict");
 			if (
 				!("renewalId" in receipt) ||
 				receipt.request.ownerId !== observation.identity.ownerId ||
@@ -63,6 +69,7 @@ export class ExecutionAuthority {
 			},
 		});
 		return this.store.commit({
+			permit: input.permit,
 			requestBytes,
 			authorityBytes: JSON.stringify(receipt.authority),
 			receipt,
@@ -77,6 +84,7 @@ export class ExecutionAuthority {
 		this.assertCancellation(snapshot, saved?.receipt.authority.permissions);
 		if (saved) {
 			const receipt = saved.receipt;
+			if (!isDeepStrictEqual(saved.permit, input.permit)) throw new Error("authority_permit_conflict");
 			if (
 				!("transferId" in receipt) ||
 				receipt.request.newOwnerId !== observation.identity.ownerId ||
@@ -151,6 +159,7 @@ export class ExecutionAuthority {
 						},
 		});
 		return this.store.commit({
+			permit: input.permit,
 			requestBytes,
 			authorityBytes: JSON.stringify(receipt.authority),
 			receipt,

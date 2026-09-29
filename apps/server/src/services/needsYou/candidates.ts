@@ -54,7 +54,7 @@ export const candidates = async (
 			t.title,t.priority,${iso(sql`t.created_at`)} AS "createdAt",${iso(sql`t.updated_at`)} AS "updatedAt",
 			p.key || '-' || t.number AS identifier
 		FROM eligible e JOIN tickets t ON t.id=e.ticket_id JOIN projects p ON p.id=t.project_id
-		LEFT JOIN needs_you_states state ON state.item_id=e.id AND state.actor_name=${actor}
+		LEFT JOIN needs_you_states state ON ARRAY[state.actor_name,state.item_id]=ARRAY[${actor},e.id]
 	`,
 	);
 	const reviewTickets = new Map(
