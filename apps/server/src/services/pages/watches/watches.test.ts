@@ -244,7 +244,7 @@ test("a reservation payload and its message ID must be present together", async 
 	).rejects.toThrow("page_watches_reservation_check");
 });
 
-test("watcher options contain at most 100 eligible agents in this project", async () => {
+test("an eligible agent after the first options page can become the watcher", async () => {
 	const f = await pageWithWatcher();
 	const ids = Array.from({ length: 101 }, () => ulid());
 	const values = ids.map((id) => sql`(${id}, ${id}, 'agent', '', ${projectId}, 'WAT', ${watchAt}, ${watchAt})`);
@@ -252,9 +252,17 @@ test("watcher options contain at most 100 eligible agents in this project", asyn
 		VALUES ${sql.join(values, sql`,`)}`);
 	await db.execute(sql`UPDATE agent_runs SET kind = 'flow' WHERE id = ${otherId}`);
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${watchAt} WHERE id = ${agentId}`);
-	const options = await watchTx((tx) => watcherOptions(core, tx, { page: f.id }));
-	expect(options).toHaveLength(100);
-	expect(options.every((option) => ids.includes(option.id))).toBe(true);
+	const first = await watchTx((tx) => watcherOptions(core, tx, { page: f.id }));
+	expect(first.items).toHaveLength(100);
+	expect(first.items.every((option) => ids.includes(option.id))).toBe(true);
+	expect(first.nextCursor).not.toBeNull();
+	const second = await watchTx((tx) => watcherOptions(core, tx, { page: f.id, cursor: first.nextCursor! }));
+	expect(second.items).toHaveLength(1);
+	expect(second.nextCursor).toBeNull();
+	const selected = second.items[0]!;
+	const changed = await watchTx((tx) => watch(core, tx, { page: f.id, agentId: selected.id }));
+	expect(changed.watcher?.agent.id).toBe(selected.id);
+	await watchTx((tx) => watch(core, tx, { page: f.id, agentId: null }));
 	await db.execute(
 		sql`DELETE FROM agent_runs WHERE id IN (${sql.join(
 			ids.map((id) => sql`${id}`),

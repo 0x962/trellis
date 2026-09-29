@@ -9,8 +9,8 @@
 	"patches": [
 		{
 			"name": "backend",
-			"path": "reports/langflow-feasibility-review/backend-source-assembly.cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee.patch",
-			"sha256": "cf1a2711be6a123780cd856840f1b104a46842867d3ea458d78fc8150699caee",
+			"path": "reports/langflow-feasibility-review/backend-source-assembly.a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85.patch",
+			"sha256": "a55738f014cdf0f91b8806d6591ac012cbfa3199530f2a8632fe7e7cc2b66a85",
 			"directory": ".",
 			"manifest": "reports/langflow-feasibility-review/backend-source-assembly.json"
 		},
@@ -23,7 +23,7 @@
 		{
 			"name": "editor",
 			"path": "integrations/langflow/editor-probe/patches/trellis-editor-probe.patch",
-			"sha256": "ec23fcc90f8e9799c323716a453ca52f5b4438cf3d0734b3908e1291c179d5d1",
+			"sha256": "9a33da5d85c5ba3ff8b57f32af57400b1c2fe3cd4a68bd5131d78829f77ebb0c",
 			"directory": "src/frontend",
 			"manifest": "integrations/langflow/editor-probe/patches/source-manifest.sha256"
 		}

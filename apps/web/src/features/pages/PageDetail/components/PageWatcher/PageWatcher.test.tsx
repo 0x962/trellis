@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { PageSummary } from "@trellis/api";
+import { type InfiniteData, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { PageSummary, PageWatcherOptionsOutput } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../../../lib/appContext";
 import { PageWatcher } from "./PageWatcher";
@@ -10,12 +10,27 @@ const page = {
 	projectId: "project",
 	watcher: { agent: { id: "watcher", name: "Stopped watcher" } },
 } as PageSummary;
-const render = (disabled: boolean, loaded: boolean) => {
+const render = (disabled: boolean, pages?: PageWatcherOptionsOutput[]) => {
 	const queryClient = new QueryClient();
 	const queryKey = ["watcher-agents"];
-	if (loaded) queryClient.setQueryData(queryKey, []);
+	if (pages !== undefined)
+		queryClient.setQueryData<InfiniteData<PageWatcherOptionsOutput>>(queryKey, {
+			pages,
+			pageParams: pages.map(() => undefined),
+		});
 	const app = {
-		orpc: { pages: { watcherOptions: { queryOptions: () => ({ queryKey, queryFn: async () => [] }) } } },
+		orpc: {
+			pages: {
+				watcherOptions: {
+					infiniteOptions: () => ({
+						queryKey,
+						queryFn: async () => ({ items: [], nextCursor: null }),
+						initialPageParam: undefined,
+						getNextPageParam: (result: PageWatcherOptionsOutput) => result.nextCursor ?? undefined,
+					}),
+				},
+			},
+		},
 	} as unknown as AppContext;
 	const html = renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
@@ -29,18 +44,18 @@ const render = (disabled: boolean, loaded: boolean) => {
 };
 
 test("keeps the watcher name when the agent list omits its stopped process", () => {
-	const html = render(false, true);
+	const html = render(false, [{ items: [], nextCursor: null }]);
 	expect(html).toContain("Stopped watcher");
 	expect(html).toContain('aria-label="Page watcher"');
 	expect(html).not.toContain('aria-disabled="true"');
 });
 
 test("blocks the selector on historical, deleted, archived, or offline pages", () => {
-	expect(render(true, true)).toContain('aria-disabled="true"');
+	expect(render(true, [{ items: [], nextCursor: null }])).toContain('aria-disabled="true"');
 });
 
 test("keeps the assigned name while agents load and blocks a premature mutation", () => {
-	const html = render(false, false);
+	const html = render(false);
 	expect(html).toContain("Stopped watcher");
 	expect(html).toContain('aria-disabled="true"');
 });
