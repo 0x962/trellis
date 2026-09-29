@@ -156,7 +156,7 @@ The delivery delegation permits routine engineering decisions. It does not suppl
 | D9: worktree and prompt context | Preserve configured source and current launch context. |
 | D10: historical deletion | Preserve current cascade behavior. No stronger retention promise. |
 | D11: missing history | Preserve available bytes and explicit missing-data diagnostics. |
-| D12: runtime and isolation | No approved target. The macOS candidate uses CPython 3.12.12 and SQLite, but fails full filesystem isolation. Linux OCI remains unproved. |
+| D12: runtime and isolation | The delegated choice selects Linux OCI arm64 on existing local Docker first, then Linux OCI x86_64 in existing hosted CI. Keep CPython 3.12.12 and the immutable source/lock. Both targets remain unproved. The direct macOS Python candidate fails full filesystem isolation and is not an accepted boundary. |
 | D13: event retention | Event cursor lifetime and storage budget remain open. Token streams stay outside milestone retention. |
 | D14: Review prompts | Preserve Review v71 instructions and independent roots. |
 | D15: client scope | Preserve desktop and narrow web. Native-mobile addition remains unapproved. The named external-client inventory remains open. |
@@ -172,6 +172,25 @@ Cached graph or run access must become usable within two seconds.
 Use five warmups followed by thirty interactions for each measurement and density case.
 Retain durations, host, build, viewport, theme, zoom, and cache state.
 No performance result passes yet. A rendered-row budget still needs measured visible rows and overscan from TRL-673.
+
+## D12 proof target
+
+The delegated implementation choice on 29 September selects Linux OCI for the next isolation proof.
+TRL-667 owns that proof. The selection does not authorize production activation or establish platform acceptance.
+The coordinator reports local Docker as Linux/aarch64 with sixteen CPUs and 16,818,663,424 bytes of memory.
+That report describes available capacity, not an isolation result.
+
+Use an unprivileged container with read-only runtime and source files.
+Provide explicit private writable data for the sidecar.
+Do not mount a host home, repository, credentials, or the Docker socket.
+Use an authenticated private endpoint and deny external egress outside the container.
+Prove actual restrictions and retained data after restart. Environment-variable removal does not prove isolation.
+
+Reuse available images and cache. Measure disk before a necessary target build.
+Preserve the existing candidate and other owners' resources.
+Do not install another host runtime or create cloud resources.
+After the arm64 proof, use the existing hosted CI for Linux OCI x86_64.
+Neither target has retained proof at this decision checkpoint.
 
 ## Next work and gate
 
