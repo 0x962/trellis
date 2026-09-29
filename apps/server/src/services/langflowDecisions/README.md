@@ -7,18 +7,19 @@ A later public revision must not rewrite the original wait.
 The receipt retains the full notes in `output` and the Boolean `approved` value.
 A negative value represents human feedback.
 
-The caller must lock the execution before it reads the projection and checkpoint.
-It must store the receipt, outbox, and next public revision in one transaction.
-A concurrent decision must observe that revision or the existing receipt.
+`record(ctx, tx, input)` locks the execution and reads the saved projection and checkpoint.
+It stores the receipt, outbox, and next public revision in the caller transaction.
+A concurrent decision observes that revision or the existing receipt.
 
 `deliver` calls the engine outside the database transaction.
 Its input contains the stored receipt bytes, digest, and current delivery authority.
-The caller must commit the pending state before this call.
+`prepareDelivery` checks system authority and commits the pending state before this call.
 An authoritative absent lookup permits delivery of the exact bytes.
 An accepted lookup must identify the exact decision, request, job, execution, and digest.
 A conflict or transport error returns an unknown state.
 A malformed acknowledgement throws and leaves the durable pending receipt for recovery.
-The caller must save confirmation and the outbox receipt together.
+`recordAcknowledgement` saves confirmation and the outbox receipt in the caller transaction.
+`deliverDecision` commits preparation, calls the engine, then commits the acknowledgement.
 A subsequent recovery uses the same stored decision and bytes.
 
 `DecisionEngine.lookup` requires the result from `DecisionAcceptanceLedger.lookup` in TRL-670.
@@ -29,10 +30,14 @@ The transport must preserve UTF-8 bytes and enforce current authority at the eng
 
 TRL-683 owns the receipt and outbox tables.
 TRL-689 owns the saved projection and engine checkpoint.
-The checkpoint must retain the exact pending `HumanWaitV1` across a restart.
-The public view omits fields that the engine requires for exact acceptance.
-A public view alone cannot reconstruct that wait.
+`commitProjection` stores the original checkpoint with the public view.
+`record` reads that checkpoint through `readCheckpoint` under the execution lock.
+The engine compares the original wait across a restart.
 TRL-696 owns the engine transport, route composition, and recovery worker.
+Its human handler calls `record` with the existing public decision fields.
+Its worker enumerates decision items through `listPendingDeliveries` and calls `deliverDecision`.
+The handler returns a versioned view.
+The legacy decision endpoint retains its strict legacy response contract.
 
 ## Verification
 
@@ -44,5 +49,6 @@ bun run --cwd apps/server typecheck
 ./node_modules/.bin/biome check apps/server/src/services/langflowDecisions
 ```
 
-The fixtures cover receipt validation and acknowledgement responses.
-Database concurrency, transaction rollback, process crashes, and engine continuation require integrated proof for ENG-F20.
+The fixtures cover concurrent humans, transaction rollback, receipt validation, and acknowledgement responses.
+They also cover a failure before the acknowledgement commit and recovery through the saved acceptance.
+Actual process termination, engine continuation, and installed-host behavior require integrated proof for ENG-F20.
