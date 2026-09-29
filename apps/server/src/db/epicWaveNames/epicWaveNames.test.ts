@@ -8,12 +8,11 @@ import { migrate as runMigrations } from "drizzle-orm/pglite/migrator";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context";
 import * as epics from "../../services/epics/epics";
-import { create as createTicket } from "../../services/tickets/create";
 import * as waves from "../../services/waves/waves";
 import { createCache } from "../cache";
 import { type Db, openDb } from "../client";
 import { migrate } from "../migrate";
-import { projects, statuses } from "../schema";
+import { projects } from "../schema";
 
 let db: Db;
 let directory: string;
@@ -38,21 +37,47 @@ test("existing epic and wave rows retain relationships through migration and com
 	await runMigrations(db, { migrationsFolder: directory });
 	const projectId = ulid();
 	const now = new Date("2026-09-29T10:00:00Z");
-	await db
-		.insert(projects)
-		.values({ id: projectId, key: "TST", slug: "tst", name: "Test", createdAt: now, updatedAt: now });
-	await db.insert(statuses).values({
-		id: ulid(),
-		projectId,
-		name: "Todo",
-		slug: "todo",
-		category: "todo",
-		color: "fg-muted",
-		position: 0,
-		isDefault: true,
-		createdAt: now,
-		updatedAt: now,
-	});
+	const at = now.toISOString();
+	const statusId = ulid();
+	const epic = { id: ulid(), ref: "TST/plan", description: "Retain the plan." };
+	const wave = { id: ulid(), ref: "TST/plan/first" };
+	const ticket = { id: ulid() };
+	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+		VALUES ('Test', 'human', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, ticket_counter, created_at, updated_at)
+		VALUES (${projectId}, 'TST', 'tst', 'Test', 1, ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO statuses
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO epics
+		(id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${epic.id}, ${projectId}, 'plan', 'Plan', ${epic.description}, 'Test', 'human', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO waves (id, epic_id, slug, name, position, created_at, updated_at)
+		VALUES (${wave.id}, ${epic.id}, 'first', 'First', 0, ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO tickets
+		(id, project_id, number, title, status_id, epic_id, wave_id, position, created_at, updated_at)
+		VALUES (${ticket.id}, ${projectId}, 1, 'Retain the links', ${statusId}, ${epic.id}, ${wave.id}, 0, ${at}, ${at})`);
+	const epicRow = sql`SELECT id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
+		FROM epics WHERE id = ${epic.id}`;
+	const waveRow = sql`SELECT id, epic_id, slug, name, position, created_at, updated_at
+		FROM waves WHERE id = ${wave.id}`;
+	const ticketRow = sql`SELECT id, project_id, number, title, description, result, files, leave_alone, verify,
+		review_focus, outcome, priority, status_id, parent_id, epic_id, wave_id, position, version,
+		started_at, completed_at, created_at, updated_at FROM tickets WHERE id = ${ticket.id}`;
+	const epicBefore = (await db.execute(epicRow)).rows;
+	const waveBefore = (await db.execute(waveRow)).rows;
+	const ticketBefore = (await db.execute(ticketRow)).rows;
+	const longName = `Complete café 名称 ${Array.from({ length: 80 }, (_, n) => createHash("sha256").update(String(n)).digest("hex")).join(" ")}`;
+	await expect(db.execute(sql`UPDATE epics SET name = ${longName} WHERE id = ${epic.id}`)).rejects.toThrow(
+		"epics_name_check",
+	);
+	await expect(db.execute(sql`UPDATE waves SET name = ${longName} WHERE id = ${wave.id}`)).rejects.toThrow(
+		"waves_name_check",
+	);
+	await migrate(db);
+	expect((await db.execute(epicRow)).rows).toEqual(epicBefore);
+	expect((await db.execute(waveRow)).rows).toEqual(waveBefore);
+	expect((await db.execute(ticketRow)).rows).toEqual(ticketBefore);
 	const cache = createCache();
 	await db.transaction((tx) => cache.rebuild(tx));
 	const ctx: ServiceCtx = {
@@ -66,27 +91,6 @@ test("existing epic and wave rows retain relationships through migration and com
 		dropBlobs: () => {},
 		publicUrl: "http://localhost:4597",
 	};
-	const epic = await db.transaction((tx) =>
-		epics.create(ctx, tx, { project: "TST", name: "Plan", description: "Retain the plan." }),
-	);
-	const wave = await db.transaction((tx) => waves.create(ctx, tx, { epic: epic.id, name: "First" }));
-	const ticket = await db.transaction((tx) =>
-		createTicket(ctx, tx, { project: "TST", title: "Retain the links", wave: wave.id }),
-	);
-	const epicBefore = (await db.execute(sql`SELECT * FROM epics WHERE id = ${epic.id}`)).rows;
-	const waveBefore = (await db.execute(sql`SELECT * FROM waves WHERE id = ${wave.id}`)).rows;
-	const ticketBefore = (await db.execute(sql`SELECT * FROM tickets WHERE id = ${ticket.id}`)).rows;
-	const longName = `Complete café 名称 ${Array.from({ length: 80 }, (_, n) => createHash("sha256").update(String(n)).digest("hex")).join(" ")}`;
-	await expect(db.execute(sql`UPDATE epics SET name = ${longName} WHERE id = ${epic.id}`)).rejects.toThrow(
-		"epics_name_check",
-	);
-	await expect(db.execute(sql`UPDATE waves SET name = ${longName} WHERE id = ${wave.id}`)).rejects.toThrow(
-		"waves_name_check",
-	);
-	await migrate(db);
-	expect((await db.execute(sql`SELECT * FROM epics WHERE id = ${epic.id}`)).rows).toEqual(epicBefore);
-	expect((await db.execute(sql`SELECT * FROM waves WHERE id = ${wave.id}`)).rows).toEqual(waveBefore);
-	expect((await db.execute(sql`SELECT * FROM tickets WHERE id = ${ticket.id}`)).rows).toEqual(ticketBefore);
 	const renamedEpic = await db.transaction((tx) => epics.update(ctx, tx, { epic: epic.ref, name: longName }));
 	const renamedWave = await db.transaction((tx) => waves.update(ctx, tx, { wave: wave.ref, name: longName }));
 	expect(renamedEpic).toMatchObject({ id: epic.id, ref: epic.ref, name: longName, description: epic.description });
