@@ -1,0 +1,315 @@
+diff --git a/src/backend/base/langflow/services/trellis_v1/native_ledger.py b/src/backend/base/langflow/services/trellis_v1/native_ledger.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/native_ledger.py
+@@ -0,0 +1,93 @@
++from __future__ import annotations
++
++from datetime import datetime, timezone
++from uuid import UUID, uuid4
++
++from sqlmodel import select
++
++from langflow.services.database.models.jobs.model import ExecutionSignal, Job, JobStatus, SignalType
++from langflow.services.deps import session_scope
++from langflow.services.trellis_v1.external_waits import TrellisExternalWaitBroker
++from langflow.services.trellis_v1.native_protocol import (
++    CompletionInput, NativeConflict, NativeResult, read_json, serialized, validate_completion,
++)
++from langflow.services.trellis_v1.native_records import (
++    acceptance_kind, add_checkpoint, checkpoint, request_kind, saved_wait,
++)
++
++
++class NativeCompletionLedger:
++    """Keep accepted bytes and a request to resume the exact saved engine wait."""
++
++    def __init__(self, jobs, *, open_session=session_scope) -> None:
++        self._jobs = jobs
++        self._open_session = open_session
++
++    async def accept(self, payload: CompletionInput, authorize) -> dict:
++        result = read_json(payload.resultBytes)
++        NativeResult.model_validate(result)
++        job_id = UUID(result["launchBinding"]["engineJobId"])
++        async with self._open_session() as session:
++            job = (await session.exec(select(Job).where(Job.job_id == job_id).with_for_update())).first()
++            authority = await authorize(result["launchBinding"])
++            retained = await checkpoint(session, job_id, acceptance_kind(payload.engineWaitId))
++            if retained is not None:
++                saved = read_json(retained.blob)
++                validate_completion(payload, read_json(saved["waitBytes"]), saved["requestBytes"], authority)
++                if saved["resultBytes"] != payload.resultBytes:
++                    raise NativeConflict("native_completion_replay_conflict")
++                return saved["obligation"]
++            if job is None or job.status not in {JobStatus.SUSPENDED, JobStatus.QUEUED, JobStatus.IN_PROGRESS}:
++                raise NativeConflict("native_job_not_pending")
++            wait_bytes = await saved_wait(session, job_id, payload.engineWaitId)
++            original = await checkpoint(session, job_id, request_kind(payload.engineWaitId))
++            if wait_bytes is None or original is None:
++                raise NativeConflict("native_wait_not_retained")
++            result = validate_completion(payload, read_json(wait_bytes), original.blob, authority)
++            signal_id, obligation_id = uuid4(), uuid4()
++            receipt_bytes = serialized({
++                "version": 1, "executionId": result["launchBinding"]["executionId"], "engineJobId": str(job_id),
++                "completionId": result["completionId"], "resultDigest": read_json(payload.deliveryBytes)["resultDigest"],
++                "engineWaitId": payload.engineWaitId, "continuationReceiptId": str(obligation_id),
++                "acceptedAt": datetime.now(timezone.utc).isoformat(),
++            })
++            await TrellisExternalWaitBroker(self._jobs).save_completion_in_session(
++                session, job_id=job_id, authority_epoch=authority["engineEpoch"], wait_bytes=wait_bytes,
++                delivery_bytes=payload.deliveryBytes, receipt_bytes=receipt_bytes,
++            )
++            obligation = {
++                "version": 1, "engineJobId": str(job_id), "engineWaitId": payload.engineWaitId,
++                "completionId": result["completionId"], "signalId": str(signal_id),
++                "enqueueObligationId": str(obligation_id), "receiptBytes": receipt_bytes,
++            }
++            session.add(ExecutionSignal(id=signal_id, job_id=job_id, signal_type=SignalType.RESUME, data={
++                "kind": "trellis_external_completion_v1", "engineRequestId": payload.engineWaitId,
++                "decisionId": None, "enqueueObligationId": str(obligation_id),
++            }))
++            add_checkpoint(session, job_id, acceptance_kind(payload.engineWaitId), serialized({
++                "waitBytes": wait_bytes, "requestBytes": original.blob, "resultBytes": payload.resultBytes,
++                "deliveryBytes": payload.deliveryBytes, "obligation": obligation,
++            }))
++            add_checkpoint(session, job_id, f"trellis-native-obligation-v1:{obligation_id}", serialized({
++                **obligation, "state": "pending", "continuationReceiptBytes": None,
++            }))
++            await session.flush()
++            return obligation
++
++    async def observe(self, job_id: UUID, wait_id: str, authorize) -> dict:
++        async with self._open_session() as session:
++            retained = await checkpoint(session, job_id, acceptance_kind(wait_id))
++            accepted = None if retained is None else read_json(retained.blob)
++            wait_bytes = accepted["waitBytes"] if accepted else await saved_wait(session, job_id, wait_id)
++            if wait_bytes is None:
++                raise NativeConflict("native_wait_not_retained")
++            wait = read_json(wait_bytes)
++            if wait["kind"] != "native":
++                raise NativeConflict("native_wait_kind_conflict")
++            await authorize(wait["request"])
++            return {
++                "version": 1, "engineJobId": str(job_id), "engineWaitId": wait_id,
++                "state": "waiting" if accepted is None else "completed", "waitBytes": wait_bytes,
++                "resultBytes": None if accepted is None else accepted["resultBytes"],
++                "receiptBytes": None if accepted is None else accepted["obligation"]["receiptBytes"],
++            }
+diff --git a/src/backend/base/langflow/services/trellis_v1/native_protocol.py b/src/backend/base/langflow/services/trellis_v1/native_protocol.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/native_protocol.py
+@@ -0,0 +1,124 @@
++from __future__ import annotations
++
++import hashlib
++import json
++from typing import Annotated, Any, Literal
++
++from pydantic import BaseModel, ConfigDict, Field, StringConstraints
++
++Reference = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")]
++Digest = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
++Uuid = Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")]
++Revision = Annotated[int, Field(gt=0)]
++
++
++class NativeConflict(ValueError):
++    """The supplied native identity or bytes conflict with a retained record."""
++
++
++class ProtocolModel(BaseModel):
++    model_config = ConfigDict(extra="forbid", strict=True)
++
++
++class LaunchBinding(ProtocolModel):
++    executionId: Reference
++    publicationId: Reference
++    engineJobId: Uuid
++    engineEpoch: Revision
++
++
++class DeliveryAuthority(LaunchBinding):
++    version: Literal[1]
++    hostId: Reference
++    projectId: Reference
++    publicationDigest: Digest
++    ownerId: Reference
++    ownershipRevision: Revision
++    capabilityId: Reference
++    permissions: list[Literal["native.reserve", "native.read", "completion.deliver", "decision.deliver", "events.append"]] = Field(min_length=1)
++    issuedAt: str
++    expiresAt: str
++
++
++class ArtifactReference(ProtocolModel):
++    artifactId: Reference
++    contentHash: Digest
++
++
++class NativeResult(ProtocolModel):
++    version: Literal[1]
++    launchBinding: LaunchBinding
++    requestDigest: Digest
++    completionId: Reference
++    stepId: Reference
++    agentRunId: Reference
++    attemptId: Uuid
++    providerSessionId: Reference
++    promptReceiptId: Reference
++    resultId: Reference
++    resultVersion: Revision
++    output: str
++    outputHash: Digest
++    artifactRefs: list[ArtifactReference]
++    exitKind: Literal["completed", "process_error", "timeout", "canceled"]
++
++
++class CompletionInput(ProtocolModel):
++    engineWaitId: Reference
++    resultBytes: str
++    deliveryBytes: str
++
++
++def digest(value: str) -> str:
++    return hashlib.sha256(value.encode("utf-8")).hexdigest()
++
++
++def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
++    result = {}
++    for key, value in pairs:
++        if key in result:
++            raise NativeConflict("duplicate_json_field")
++        result[key] = value
++    return result
++
++
++def read_json(value: str) -> dict[str, Any]:
++    parsed = json.loads(value, object_pairs_hook=_object)
++    if not isinstance(parsed, dict):
++        raise NativeConflict("native_object_required")
++    return parsed
++
++
++def serialized(value: object) -> str:
++    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
++
++
++def validate_completion(payload: CompletionInput, wait: dict, request_bytes: str, authority: dict) -> dict:
++    result = read_json(payload.resultBytes)
++    NativeResult.model_validate(result)
++    delivery = read_json(payload.deliveryBytes)
++    if set(delivery) != {"version", "result", "resultDigest", "authority"} or type(delivery["version"]) is not int or delivery["version"] != 1:
++        raise NativeConflict("native_delivery_fields")
++    if delivery["result"] != result or delivery["resultDigest"] != digest(payload.resultBytes):
++        raise NativeConflict("native_result_digest_conflict")
++    if result["outputHash"] != digest(result["output"]):
++        raise NativeConflict("native_output_digest_conflict")
++    DeliveryAuthority.model_validate(delivery["authority"])
++    if delivery["authority"] != authority or "completion.deliver" not in authority["permissions"]:
++        raise NativeConflict("native_delivery_authority_conflict")
++    if wait["kind"] != "native" or wait["waitId"] != payload.engineWaitId:
++        raise NativeConflict("native_wait_conflict")
++    request, handle = wait["request"], wait["handle"]
++    if read_json(request_bytes) != request or result["requestDigest"] != digest(request_bytes):
++        raise NativeConflict("native_request_digest_conflict")
++    if any(result["launchBinding"][field] != request[field] for field in ("executionId", "publicationId", "engineJobId", "engineEpoch")):
++        raise NativeConflict("native_launch_binding_conflict")
++    if any(authority[field] != request[field] for field in ("executionId", "publicationId", "engineJobId")) or authority["engineEpoch"] < request["engineEpoch"]:
++        raise NativeConflict("native_authority_binding_conflict")
++    if any(result[field] != handle[field] for field in ("stepId", "agentRunId", "attemptId")):
++        raise NativeConflict("native_attempt_conflict")
++    if result["promptReceiptId"] != handle["attemptId"]:
++        raise NativeConflict("native_prompt_receipt_conflict")
++    if handle["providerSessionId"] is not None and result["providerSessionId"] != handle["providerSessionId"]:
++        raise NativeConflict("native_provider_session_conflict")
++    return result
+diff --git a/src/backend/base/langflow/services/trellis_v1/native_records.py b/src/backend/base/langflow/services/trellis_v1/native_records.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/native_records.py
+@@ -0,0 +1,35 @@
++from __future__ import annotations
++
++from datetime import datetime, timezone
++from uuid import UUID, uuid4
++
++from sqlmodel import select
++
++from langflow.services.database.models.jobs.model import JobCheckpoint
++from langflow.services.trellis_v1.native_protocol import digest, read_json
++
++
++def acceptance_kind(wait_id: str) -> str:
++    return f"trellis-native-acceptance-v1:{digest(wait_id)}"
++
++
++def request_kind(wait_id: str) -> str:
++    return f"trellis-native-request-v1:{digest(wait_id)}"
++
++
++async def checkpoint(session, job_id: UUID, kind: str) -> JobCheckpoint | None:
++    return (await session.exec(select(JobCheckpoint).where(
++        JobCheckpoint.job_id == job_id, JobCheckpoint.kind == kind,
++    ))).first()
++
++
++def add_checkpoint(session, job_id: UUID, kind: str, blob: str) -> None:
++    now = datetime.now(timezone.utc)
++    session.add(JobCheckpoint(id=uuid4(), job_id=job_id, kind=kind, blob=blob, created_at=now, updated_at=now))
++
++
++async def saved_wait(session, job_id: UUID, wait_id: str) -> str | None:
++    graph = await checkpoint(session, job_id, "graph")
++    if graph is None:
++        return None
++    return read_json(graph.blob).get("external_waits", {}).get(wait_id)
+diff --git a/src/backend/base/langflow/services/trellis_v1/native_router.py b/src/backend/base/langflow/services/trellis_v1/native_router.py
+new file mode 100644
+--- /dev/null
++++ b/src/backend/base/langflow/services/trellis_v1/native_router.py
+@@ -0,0 +1,43 @@
++from __future__ import annotations
++
++from json import JSONDecodeError
++from uuid import UUID
++
++from fastapi import APIRouter, HTTPException, Request
++from pydantic import ValidationError
++from starlette.responses import Response
++
++from langflow.services.deps import session_scope
++from langflow.services.trellis_v1.native_ledger import NativeCompletionLedger
++from langflow.services.trellis_v1.native_protocol import CompletionInput, NativeConflict
++
++
++def create_native_router(*, jobs, executor, authorize, open_session=session_scope) -> APIRouter:
++    ledger = NativeCompletionLedger(jobs, open_session=open_session)
++    router = APIRouter(prefix="/trellis-v1/native")
++
++    @router.post("/completions")
++    async def complete(request: Request, payload: CompletionInput) -> Response:
++        async def current_authority(binding):
++            return await authorize(request, "completion.deliver", binding)
++
++        try:
++            obligation = await ledger.accept(payload, current_authority)
++        except NativeConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++        except (ValidationError, JSONDecodeError, UnicodeError) as error:
++            raise HTTPException(status_code=422, detail="native_completion_invalid") from error
++        await executor.consume_external_completion_obligation(obligation)
++        return Response(content=obligation["receiptBytes"], media_type="application/json", headers={"Cache-Control": "no-store"})
++
++    @router.get("/jobs/{job_id}/waits/{wait_id}")
++    async def observe(request: Request, job_id: UUID, wait_id: str) -> dict:
++        async def current_authority(binding):
++            return await authorize(request, "native.read", binding)
++
++        try:
++            return await ledger.observe(job_id, wait_id, current_authority)
++        except NativeConflict as error:
++            raise HTTPException(status_code=409, detail=str(error)) from error
++
++    return router
