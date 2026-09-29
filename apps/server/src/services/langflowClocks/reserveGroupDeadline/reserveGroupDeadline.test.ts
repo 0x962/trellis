@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { recordLaunch, reserveNative } from "../../../db/queries/langflowExecution";
 import { ids, now } from "../../../db/queries/langflowExecution/fixtures/fixture";
 import { handle } from "../../../db/queries/langflowExecution/fixtures/native";
-import { langflowExecutions, langflowExecutionProjections } from "../../../db/tables/langflowExecution";
+import { langflowExecutionProjections, langflowExecutions } from "../../../db/tables/langflowExecution";
 import { cancelView } from "../../langflowStops";
 import { stopFixture } from "../../langflowTestFixture";
 import type { GroupDeadlineScope } from "../groupDeadlineContract";
@@ -16,34 +16,76 @@ afterEach(async () => fixture.db.$client.close());
 async function setup(minutes = 2, launched = false) {
 	fixture = await stopFixture(launched);
 	const groupDefinition = {
-		version: 1, groupNodeId: "group", parentGroupNodeId: null, scopeVertexId: "scope",
-		outputVertexId: "output", parallel: false, minutes, childNodeIds: ["child"],
-		childVertexIds: { child: "child" }, entryNodeIds: ["child"], terminalNodeIds: ["child"],
-		settlementVertexIds: { child: "settle" }, edges: [],
+		version: 1,
+		groupNodeId: "group",
+		parentGroupNodeId: null,
+		scopeVertexId: "scope",
+		outputVertexId: "output",
+		parallel: false,
+		minutes,
+		childNodeIds: ["child"],
+		childVertexIds: { child: "child" },
+		entryNodeIds: ["child"],
+		terminalNodeIds: ["child"],
+		settlementVertexIds: { child: "settle" },
+		edges: [],
 	};
 	const snapshot = {
-		...fixture.input.snapshot, engine: "langflow" as const, componentManifestHash: fixture.input.publication.componentManifestHash, graphDocument: { nodes: [{ id: "scope", data: {
-			type: "TrellisGroupScopeV1", node: { template: { scope_definition: { value: JSON.stringify(groupDefinition) } } },
-		} }] },
+		...fixture.input.snapshot,
+		engine: "langflow" as const,
+		componentManifestHash: fixture.input.publication.componentManifestHash,
+		graphDocument: {
+			nodes: [
+				{
+					id: "scope",
+					data: {
+						type: "TrellisGroupScopeV1",
+						node: { template: { scope_definition: { value: JSON.stringify(groupDefinition) } } },
+					},
+				},
+			],
+		},
 	};
 	await fixture.run(async (tx) => {
 		await tx.update(langflowExecutions).set({ snapshot }).where(eq(langflowExecutions.executionId, ids.execution));
-		await tx.update(langflowExecutionProjections).set({ view: { ...fixture.view, snapshot } })
+		await tx
+			.update(langflowExecutionProjections)
+			.set({ view: { ...fixture.view, snapshot } })
 			.where(eq(langflowExecutionProjections.executionId, ids.execution));
 	});
 	const request: GroupDeadlineScope = {
-		executionId: ids.execution, publicationId: ids.publication, engineJobId: fixture.request.engineJobId,
-		engineEpoch: 1, scopeVertexId: "scope", occurrenceKey: "group.501", groupDefinition,
-		occurrence: { nodeId: "group", occurrenceKey: "group.501", parentOccurrenceKey: "outer.501", phase: "children",
-			iterationPath: [{ loopNodeId: "loop", round: 501 }] },
-		scope: { parentOccurrenceKey: "outer.501", phase: "children", iterationPath: [{ loopNodeId: "loop", round: 501 }],
-			inputReceiptIds: [], groupDeadlineRefs: [fixture.deadline.deadlineId], deadlineAt: null },
+		executionId: ids.execution,
+		publicationId: ids.publication,
+		engineJobId: fixture.request.engineJobId,
+		engineEpoch: 1,
+		scopeVertexId: "scope",
+		occurrenceKey: "group.501",
+		groupDefinition,
+		occurrence: {
+			nodeId: "group",
+			occurrenceKey: "group.501",
+			parentOccurrenceKey: "outer.501",
+			phase: "children",
+			iterationPath: [{ loopNodeId: "loop", round: 501 }],
+		},
+		scope: {
+			parentOccurrenceKey: "outer.501",
+			phase: "children",
+			iterationPath: [{ loopNodeId: "loop", round: 501 }],
+			inputReceiptIds: [],
+			groupDeadlineRefs: [fixture.deadline.deadlineId],
+			deadlineAt: null,
+		},
 	};
 	return request;
 }
 function reserve(request: GroupDeadlineScope, at = now) {
-	return fixture.run((tx) => reserveGroupDeadline({ ...fixture.core, actor: { kind: "system", name: "trellis" }, now: at }, tx,
-		{ request, capabilityId: fixture.authority.capabilityId }));
+	return fixture.run((tx) =>
+		reserveGroupDeadline({ ...fixture.core, actor: { kind: "system", name: "trellis" }, now: at }, tx, {
+			request,
+			capabilityId: fixture.authority.capabilityId,
+		}),
+	);
 }
 
 test("reservation and replay retain null clocks before a delayed native launch", async () => {
@@ -56,12 +98,31 @@ test("reservation and replay retain null clocks before a delayed native launch",
 	expect(await reserve(request, new Date(now.getTime() + 120_000))).toEqual(first);
 	const childHandle = { ...handle, stepId: "child-step", attemptId: crypto.randomUUID() };
 	await fixture.run(async (tx) => {
-		await reserveNative(tx, { requestBytes: JSON.stringify({ ...fixture.request, requestId: crypto.randomUUID(),
-			nodeId: "child", occurrenceKey: "child.501", groupDeadlineRefs: first.groupDeadlineRefs }),
-			taskKey: "child/501/step", handle: childHandle, authority: fixture.authority, now });
-		await recordLaunch(tx, { executionId: ids.execution, receipt: { version: 1, launchReceiptId: "delayed-launch",
-			stepId: childHandle.stepId, attemptId: childHandle.attemptId, launchedAt: new Date(now.getTime() + 180_000).toISOString(),
-			recordedAt: new Date(now.getTime() + 240_000).toISOString(), groupDeadlines: [] } });
+		await reserveNative(tx, {
+			requestBytes: JSON.stringify({
+				...fixture.request,
+				requestId: crypto.randomUUID(),
+				nodeId: "child",
+				occurrenceKey: "child.501",
+				groupDeadlineRefs: first.groupDeadlineRefs,
+			}),
+			taskKey: "child/501/step",
+			handle: childHandle,
+			authority: fixture.authority,
+			now,
+		});
+		await recordLaunch(tx, {
+			executionId: ids.execution,
+			receipt: {
+				version: 1,
+				launchReceiptId: "delayed-launch",
+				stepId: childHandle.stepId,
+				attemptId: childHandle.attemptId,
+				launchedAt: new Date(now.getTime() + 180_000).toISOString(),
+				recordedAt: new Date(now.getTime() + 240_000).toISOString(),
+				groupDeadlines: [],
+			},
+		});
 		await recordLaunchClocks(fixture.core, tx, { executionId: ids.execution, stepId: childHandle.stepId });
 	});
 	const started = await reserve(request);
@@ -92,8 +153,12 @@ test("a root group retains its step phase before its children receive a deadline
 	request.occurrence.phase = "step";
 	request.occurrence.iterationPath = [];
 	request.scope = {
-		parentOccurrenceKey: null, phase: "step", iterationPath: [],
-		inputReceiptIds: [], groupDeadlineRefs: [], deadlineAt: null,
+		parentOccurrenceKey: null,
+		phase: "step",
+		iterationPath: [],
+		inputReceiptIds: [],
+		groupDeadlineRefs: [],
+		deadlineAt: null,
 	};
 	const first = await reserve(request);
 	expect(first.groupDeadlineRefs).toEqual([first.deadline.deadlineId]);
@@ -116,23 +181,45 @@ test("changed frozen budgets and changed occurrence semantics conflict with the 
 	await expect(reserve(changed)).rejects.toThrow("deadline_conflict");
 	changed.groupDefinition.minutes = 3;
 	await expect(reserve(changed)).rejects.toThrow("group_definition_conflict");
-	const [row] = await fixture.run((tx) => tx.select().from(langflowExecutions).where(eq(langflowExecutions.executionId, ids.execution)));
+	const [row] = await fixture.run((tx) =>
+		tx.select().from(langflowExecutions).where(eq(langflowExecutions.executionId, ids.execution)),
+	);
 	const snapshot = structuredClone(row!.snapshot);
 	if (snapshot.engine !== "langflow") throw new Error("fixture_engine");
-	snapshot.graphDocument = { nodes: [{ id: "scope", data: { type: "TrellisGroupScopeV1", node: { template: {
-		scope_definition: { value: JSON.stringify({ ...request.groupDefinition, minutes: 3 }) },
-	} } } }] };
-	await fixture.run((tx) => tx.update(langflowExecutions).set({ snapshot }).where(eq(langflowExecutions.executionId, ids.execution)));
-	await expect(reserve({ ...request, groupDefinition: { ...request.groupDefinition, minutes: 3 } })).rejects.toThrow("deadline_conflict");
+	snapshot.graphDocument = {
+		nodes: [
+			{
+				id: "scope",
+				data: {
+					type: "TrellisGroupScopeV1",
+					node: {
+						template: {
+							scope_definition: { value: JSON.stringify({ ...request.groupDefinition, minutes: 3 }) },
+						},
+					},
+				},
+			},
+		],
+	};
+	await fixture.run((tx) =>
+		tx.update(langflowExecutions).set({ snapshot }).where(eq(langflowExecutions.executionId, ids.execution)),
+	);
+	await expect(reserve({ ...request, groupDefinition: { ...request.groupDefinition, minutes: 3 } })).rejects.toThrow(
+		"deadline_conflict",
+	);
 });
 
 test("cancellation blocks replay and reservation rolls back with its caller", async () => {
 	const request = await setup();
-	await expect(fixture.run(async (tx) => {
-		await reserveGroupDeadline({ ...fixture.core, actor: { kind: "system", name: "trellis" } }, tx,
-			{ request, capabilityId: fixture.authority.capabilityId });
-		throw new Error("abort");
-	})).rejects.toThrow("abort");
+	await expect(
+		fixture.run(async (tx) => {
+			await reserveGroupDeadline({ ...fixture.core, actor: { kind: "system", name: "trellis" } }, tx, {
+				request,
+				capabilityId: fixture.authority.capabilityId,
+			});
+			throw new Error("abort");
+		}),
+	).rejects.toThrow("abort");
 	const first = await reserve(request);
 	expect(first.deadline.launchedAt).toBeNull();
 	await fixture.run((tx) => cancelView(fixture.core, tx, { id: ids.execution, expectedRevision: 1 }));
