@@ -1,2 +1,2 @@
-export { FlowSettingsFeedback } from "./FlowSettingsFeedback";
 export type { FlowSettingsFeedbackProps } from "./FlowSettingsFeedback";
+export { FlowSettingsFeedback } from "./FlowSettingsFeedback";
