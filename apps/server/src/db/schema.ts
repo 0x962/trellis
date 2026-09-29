@@ -43,6 +43,7 @@ export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";
 export * from "./tables/resourceComments.ts";
 export * from "./tables/reviews.ts";
+export * from "./tables/sessionObservers/index.ts";
 export * from "./tables/sessions.ts";
 export * from "./tables/sessionUpdates.ts";
 export * from "./tables/ticketDeps.ts";
@@ -282,6 +283,14 @@ export * from "./tables/commentDeliveries.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/harnessAccounts.ts";
+export {
+	langflowDocumentConversions,
+	langflowDocumentPublicationStates,
+	langflowDocumentPublications,
+	langflowDocumentRevisions,
+	langflowDocumentSaveReceipts,
+} from "./tables/langflowDocuments/index.ts";
+export * from "./tables/langflowExecution/index.ts";
 export * from "./tables/nativeMigrations.ts";
 export * from "./tables/needsYouStates.ts";
 export * from "./tables/notes.ts";

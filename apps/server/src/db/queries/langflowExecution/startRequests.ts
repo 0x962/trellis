@@ -32,17 +32,17 @@ export async function saveStartRequest(
 	tx: Tx,
 	input: StartRequestIdentity & { requestBytes: string; executionId: string },
 ) {
-	const [native] = await tx
+	const [langflowExecution] = await tx
 		.select({ id: langflowExecutions.executionId })
 		.from(langflowExecutions)
 		.where(eq(langflowExecutions.executionId, input.executionId));
-	const [legacy] = native
+	const [legacy] = langflowExecution
 		? []
 		: await tx.select({ id: flowExecutions.id }).from(flowExecutions).where(eq(flowExecutions.id, input.executionId));
-	if (!native && !legacy) throw new Error("execution_not_found");
+	if (!langflowExecution && !legacy) throw new Error("execution_not_found");
 	const [row] = await tx
 		.insert(requests)
-		.values({ ...input, langflowExecutionId: native?.id ?? null, legacyExecutionId: legacy?.id ?? null })
+		.values({ ...input, langflowExecutionId: langflowExecution?.id ?? null, legacyExecutionId: legacy?.id ?? null })
 		.onConflictDoNothing()
 		.returning();
 	if (row) return input;
