@@ -1,10 +1,9 @@
 # Native protocol version 1
 
-This internal module defines the proposed Trellis and Langflow boundary for TRL-666.
+This module defines the internal Trellis and Langflow boundary.
 `index.ts` exports strict Zod schemas and inferred types.
 `fixtures/` contains serialized examples with fixed identities and timestamps.
 These fixtures prove boundary validation, not engine recovery or installed behavior.
-TRL-674 owns the production architecture gate.
 
 Langflow owns successors, joins, branch selection, loop rounds, and graph continuations.
 Trellis owns native reservations, process observations, result receipts, human authority, and stops.
@@ -51,7 +50,7 @@ An empty path identifies work outside a loop.
 `phase` distinguishes `step`, `children`, and `condition`.
 The bridge checks these values against the engine checkpoint and publication before reservation.
 
-## Submission and admission: B3, F1, F22
+## Submission and admission
 
 The engine permanently retains one job association for each correlation key, including failed, canceled, and timed-out jobs.
 Only an authoritative `absent` lookup permits initial submission.
@@ -74,9 +73,7 @@ Submission uncertainty after that commit preserves all effects and stop obligati
 | Trellis | Exact job association, open admission receipt, admission outbox | Before/after commit: closed admission or retained receipt and effects |
 | Engine | Admission consumption and continuation obligation | Before/after commit and lost response: consume the same receipt once |
 
-TRL-668 must prove these boundaries with the real engine patch.
-
-## Native attempts and results: F3, F4
+## Native attempts and results
 
 Trellis reserves the step, agent run, attempt, request bytes, and immutable provenance in one transaction before launch.
 Workspace and provider session IDs can remain null in the first handle.
@@ -94,9 +91,8 @@ Trellis commits the accepted result and completion outbox together.
 The engine commits completion consumption, the updated wait set, and its continuation obligation together.
 Duplicate completion delivery returns the saved `CompletionReceiptV1`.
 Cancel intent blocks continuation even if a late native result remains available for audit.
-TRL-669 and TRL-671 must kill both services around reservation, launch, prompt receipt, result persistence, and completion consumption.
 
-## Human acceptance: B1, F20
+## Human acceptance
 
 Human and native waits have different discriminants and schemas.
 Only the human decision route accepts a `HumanDecisionReceiptV1`.
@@ -109,17 +105,13 @@ It commits acceptance, the resume signal, and the enqueue obligation in one engi
 An equal decision returns that original acceptance.
 A changed digest or a decision for another wait conflicts without another resume.
 
-Trellis queries `DecisionLookupV1` after a lost acknowledgement.
+Trellis queries `DecisionLookupRequestV1` after a lost acknowledgement.
 Only `accepted` with the exact decision, digest, job, and request confirms delivery.
 An upstream HTTP 409 does not confirm acceptance.
 `recorded`, `pending`, and `unknown` retain null acceptance.
 Expiry and engine restart never approve a human request.
 
-TRL-670 must kill the engine before the transaction, between each write, after commit, and before its response.
-It must also kill the engine before and after it consumes the enqueue obligation.
-The result must preserve one accepted payload and one continuation for the original human wait.
-
-## Execution ownership: B2, F21
+## Execution ownership
 
 `NativeLaunchProvenanceV1` remains immutable across every restart and takeover.
 `DeliveryAuthorityV1` carries current authority separately from that provenance.
@@ -148,8 +140,6 @@ Pending outboxes attach that current authority without changing their payload by
 The new owner can deliver an old-epoch completion for the same job, execution, and publication.
 It cannot use the old capability to dispatch another effect.
 
-TRL-671 must race two supervisors and expire capabilities during both human and native waits.
-It must kill before revocation, after revocation, around the ownership commit, and before outbox delivery.
 Old callbacks must fail authority checks without loss of the original result or attempt.
 Renewal and takeover must preserve every deadline.
 
@@ -185,7 +175,6 @@ Unauthorized old-epoch events cannot update the projection.
 Replay returns contiguous milestones after `afterSeq`, or an explicit `gap` with a snapshot revision and cursor.
 Readers fetch the authoritative snapshot after a gap and continue from its `snapshotLastSeq`.
 Token output uses the existing native output channel and cannot enter these event payloads.
-Production retention limits require the separate D13 decision.
 
 ## Verification
 
@@ -193,4 +182,3 @@ Run `bun test --config apps/server/src/langflowContracts/fixtures/bunfig.toml ap
 The fixture configuration omits the database preload because these tests use no database.
 Run Biome on the TypeScript files under `apps/server/src/langflowContracts` from the repository root.
 Run `bun run typecheck` from `apps/server`.
-Engine fault injection, authentication, storage atomicity, runtime behavior, and release proof remain with their assigned implementation owners.

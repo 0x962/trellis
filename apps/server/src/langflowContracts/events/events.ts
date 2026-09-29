@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { FailureV1Schema } from "../failures";
 import {
-	BindingV1Schema,
 	DigestSchema,
+	EngineJobBindingV1Schema,
 	OccurrenceV1Schema,
 	ReferenceSchema,
 	RevisionSchema,
@@ -50,7 +50,7 @@ const OccurrencePayloadV1Schema = z.discriminatedUnion("kind", [
 ]);
 const source = {
 	version: z.literal(1),
-	...BindingV1Schema.shape,
+	...EngineJobBindingV1Schema.shape,
 	sourceEventId: ReferenceSchema,
 	occurredAt: TimestampSchema,
 };

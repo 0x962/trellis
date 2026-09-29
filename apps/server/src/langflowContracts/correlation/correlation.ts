@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { BindingV1Schema, DigestSchema, ReferenceSchema, RevisionSchema, TimestampSchema } from "../primitives";
+import {
+	DigestSchema,
+	EngineJobBindingV1Schema,
+	ReferenceSchema,
+	RevisionSchema,
+	TimestampSchema,
+} from "../primitives";
 
 export const CorrelationKeyV1Schema = z.strictObject({
 	version: z.literal(1),
@@ -14,14 +20,14 @@ export const CorrelationReceiptV1Schema = z.strictObject({
 	engineSessionId: ReferenceSchema,
 	recordedAt: TimestampSchema,
 });
-export const CorrelationLookupV1Schema = z.discriminatedUnion("state", [
+export const CorrelationLookupResultV1Schema = z.discriminatedUnion("state", [
 	z.strictObject({ state: z.literal("found"), receipt: CorrelationReceiptV1Schema }),
 	z.strictObject({ state: z.literal("absent"), key: CorrelationKeyV1Schema, authoritative: z.literal(true) }),
 	z.strictObject({ state: z.literal("unknown"), key: CorrelationKeyV1Schema }),
 ]);
 export const AdmissionReceiptV1Schema = z.strictObject({
 	version: z.literal(1),
-	...BindingV1Schema.shape,
+	...EngineJobBindingV1Schema.shape,
 	admissionId: ReferenceSchema,
 	submissionDigest: DigestSchema,
 	committedAt: TimestampSchema,
@@ -71,5 +77,5 @@ export type CorrelationReceiptV1 = z.infer<typeof CorrelationReceiptV1Schema>;
 export type AdmissionReceiptV1 = z.infer<typeof AdmissionReceiptV1Schema>;
 export type SubmissionV1 = z.infer<typeof SubmissionV1Schema>;
 export type CorrelationKeyV1 = z.infer<typeof CorrelationKeyV1Schema>;
-export type CorrelationLookupV1 = z.infer<typeof CorrelationLookupV1Schema>;
+export type CorrelationLookupResultV1 = z.infer<typeof CorrelationLookupResultV1Schema>;
 export type AdmissionStateV1 = z.infer<typeof AdmissionStateV1Schema>;
