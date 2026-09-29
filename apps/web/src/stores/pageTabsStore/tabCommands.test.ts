@@ -131,3 +131,33 @@ test("custom names survive navigation, automatic titles, moves, reopen, and rest
 	restored.getState().renameTab(id, null);
 	expect(open().getState().tabs[1]!.customTitle).toBeUndefined();
 });
+
+test("adjacent selection wraps in current order and persists without changing pages", () => {
+	const { open } = fixture();
+	const store = open();
+	const a = store.getState().activeId;
+	store.getState().selectAdjacentTab(-1);
+	store.getState().selectAdjacentTab(1);
+	expect(store.getState().activeId).toBe(a);
+	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/usage", title: "Usage" });
+	store.getState().goBack();
+	const b = store.getState().addTab({ url: "/b", title: "B" });
+	const c = store.getState().addTab({ url: "/c", title: "C" });
+	store.getState().moveTab(c, a);
+	const pages = store.getState().tabs;
+	for (const [offset, expected] of [
+		[1, a],
+		[1, b],
+		[1, c],
+		[-1, b],
+		[-1, a],
+		[-1, c],
+	] as const) {
+		store.getState().selectAdjacentTab(offset);
+		expect(store.getState().activeId).toBe(expected);
+		expect(open().getState().activeId).toBe(expected);
+		expect(store.getState().tabs).toBe(pages);
+	}
+	expect(open().getState().tabs).toEqual(pages);
+});

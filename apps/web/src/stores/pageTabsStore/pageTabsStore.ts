@@ -24,6 +24,7 @@ export type PageTabsState = {
 	reopenClosedTab: () => void;
 	addTab: (page: PageTabPage) => string;
 	selectTab: (id: string) => void;
+	selectAdjacentTab: (offset: 1 | -1) => void;
 	closeTab: (id: string) => void;
 	navigate: (page: PageTabPage) => void;
 	replace: (page: PageTabPage) => void;
@@ -84,6 +85,11 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 					return next.id;
 				},
 				selectTab: (activeId) => set({ activeId }),
+				selectAdjacentTab: (offset) =>
+					set((state) => {
+						const index = state.tabs.findIndex((item) => item.id === state.activeId);
+						return { activeId: state.tabs[(index + offset + state.tabs.length) % state.tabs.length]!.id };
+					}),
 				renameTab: (id, title) =>
 					set((state) => ({
 						tabs: state.tabs.map((item) =>

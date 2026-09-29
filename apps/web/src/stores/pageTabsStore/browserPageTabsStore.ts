@@ -18,6 +18,7 @@ export const pageTabsActions = {
 	reopenClosedTab: () => usePageTabsStore.getState().reopenClosedTab(),
 	addTab: (page: PageTabPage) => usePageTabsStore.getState().addTab(page),
 	selectTab: (id: string) => usePageTabsStore.getState().selectTab(id),
+	selectAdjacentTab: (offset: 1 | -1) => usePageTabsStore.getState().selectAdjacentTab(offset),
 	closeTab: (id: string) => usePageTabsStore.getState().closeTab(id),
 	navigate: (page: PageTabPage) => usePageTabsStore.getState().navigate(page),
 	replace: (page: PageTabPage) => usePageTabsStore.getState().replace(page),

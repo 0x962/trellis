@@ -96,12 +96,9 @@ export function PageTabsHost() {
 					state.reopenClosedTab();
 					break;
 				case "next":
-				case "previous": {
-					const index = state.tabs.findIndex((tab) => tab.id === state.activeId);
-					const offset = command === "next" ? 1 : -1;
-					state.selectTab(state.tabs[(index + offset + state.tabs.length) % state.tabs.length]!.id);
+				case "previous":
+					state.selectAdjacentTab(command === "next" ? 1 : -1);
 					break;
-				}
 			}
 			showActiveTab(true);
 		};
