@@ -72,8 +72,8 @@ test("completes the captured revision after newer edits and preserves the origin
 			}),
 		),
 	).rejects.toThrow("document_action_receipt_conflict");
-	await expect(db.update(langflowDocumentActions).set({ document: null })).rejects.toThrow();
-	await expect(db.update(langflowDocumentActions).set({ requestBytes: "changed" })).rejects.toThrow();
+	await expect(db.update(langflowDocumentActions).set({ document: null }).execute()).rejects.toThrow();
+	await expect(db.update(langflowDocumentActions).set({ requestBytes: "changed" }).execute()).rejects.toThrow();
 }, 60000);
 
 test("rolls back claims and completion and keeps the flow deletion cascade", async () => {
