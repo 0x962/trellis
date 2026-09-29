@@ -17,8 +17,8 @@ import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { allAgentRunsOptions } from "../../../../agents/allAgentRuns";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
-import { StartFlowDialog } from "../StartFlowDialog";
 import { useClock } from "../../useClock";
+import { StartFlowDialog } from "../StartFlowDialog";
 import { buildFlowRunRows } from "./buildFlowRunRows";
 import { buildExecutionViewRows } from "./buildFlowRunRows/buildExecutionViewRows";
 import { lastFocusedRun, runTreeStates } from "./buildFlowRunRows/runViewState";
@@ -85,7 +85,11 @@ export function FlowRun({
 		() =>
 			versioned
 				? buildExecutionViewRows(execution, !immutableOnly && !fenced && onDecideV1 !== undefined)
-				: buildFlowRunRows(execution).map((row) => ({ ...row, decidable: row.decidable && !immutableOnly && !fenced })),
+				: buildFlowRunRows(execution).map((row) => ({
+						...row,
+						attempt: null,
+						decidable: row.decidable && !immutableOnly && !fenced,
+					})),
 		[execution, versioned, immutableOnly, fenced, onDecideV1],
 	);
 	const [decision, setDecision] = useState<string | null>(null);
@@ -99,7 +103,7 @@ export function FlowRun({
 		const result = new Map<string, TerminalTarget>();
 		if (versioned) {
 			for (const row of rows) {
-				if (!("attempt" in row) || row.attempt === null) continue;
+				if (row.attempt === null) continue;
 				const attempt = row.attempt;
 				result.set(row.key, {
 					attempt,
