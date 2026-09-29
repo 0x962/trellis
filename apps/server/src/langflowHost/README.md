@@ -240,3 +240,31 @@ A route behind host authentication can carry it in `X-Trellis-Engine-Authorizati
 The callback returns no credential.
 After the callback, the durable permit remains held through the provider call and the terminal database commit.
 An unknown provider outcome retains the permit for reconciliation.
+
+## Durable supervisor authority
+
+`createAuthorityPort({control, archive, newTx})` connects the supervisor to the migrated ownership queries.
+The control supplies its current identity and `gate.read`; it can be an effect-only control.
+`newTx` is the service transaction runner.
+Each method runs its query in a separate transaction.
+Database workers construct the adapter inside a prepared service; the host can call its serializable methods through the service transport.
+
+The database retains the exact `AuthorityCommit`, including original request and authority bytes, observation, and revocation.
+After the commit returns, the adapter writes those original authority bytes to `DispatchReceiptArchive`.
+A lost response can leave the database committed before this archive write.
+`readReceipt` reads the committed record and restores its archive before it returns.
+A historical receipt without original bytes cannot supply a reconstructed grant.
+
+Owner revocation retains the first receipt and its original observation identifier.
+The supervisor checks that exact receipt through `readRevocation` before it stops the process.
+Ownership queries lock the execution before the owner rows and reject revoked grants under the same transaction.
+Native stop controls remain available after revocation.
+
+`renew` and `takeover` require a held `permit` in their input.
+Call `authorityPermitBinding(intent, engineJobId)` to obtain the exact binding before acquisition.
+The intent contains the execution, request, expected revision, and expiry; takeover also contains the expected owner and epoch.
+The producer retains that permit in `AuthorityCommit`.
+The adapter checks the outstanding permit and its exact intent before it writes ownership.
+A permit acquired before a block can complete while the block waits for its terminal evidence.
+The caller retains the permit through engine control delivery and durable acknowledgement.
+Neither grant issue nor archive recovery settles it.
