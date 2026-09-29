@@ -83,6 +83,7 @@ import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } fr
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
+import { prepareRanking } from "./usage/ranking/ranking.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
 import * as waves from "./waves/waves.ts";
 
@@ -125,6 +126,7 @@ export const services = {
 	"providers.update": io("mutation", providers.update),
 	"providers.delete": io("mutation", providers.remove),
 	"usage.report": prepared("read", prepareUsageReport, agentTerminal.result),
+	"usage.ranking": prepared("read", prepareRanking, agentTerminal.result),
 	"usage.accounts": prepared("read", prepareUsageAccounts, agentTerminal.result),
 	"flowExecutions.start": core("mutation", startFlowExecution),
 	"flowExecutions.get": core("read", getFlowExecution),

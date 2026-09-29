@@ -12,11 +12,13 @@ import {
 	UsageChart,
 } from "@trellis/ui";
 import { useMemo } from "react";
-import { formatDayLabel, formatMetric, localDayKey } from "../../../formatUsage";
+import { formatDayLabel, formatMetric } from "../../../formatUsage";
 import { useUsageReport } from "../../hooks/useUsageReport";
+import { useUsageRanking } from "../../hooks/useUsageReport/useUsageRanking";
 import { UsageAccounts } from "../UsageAccounts";
 import { UsageGroups } from "../UsageGroups";
 import { UsageProviders } from "../UsageProviders";
+import { UsageRankingPages } from "../UsageRankingPages";
 import { UsageSessions } from "../UsageSessions";
 import { UsageTotals } from "../UsageTotals";
 import { usageChartSeries } from "./usageChartSeries";
@@ -59,29 +61,16 @@ export function AgentUsage() {
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 
-	const ranking = report.data?.rankings[metric];
-	const rows = useMemo(() => ranking?.groups[group] ?? [], [group, ranking]);
-	const selectedGroupRow = useMemo(
-		() => (selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null)),
-		[rows, selectedRow],
-	);
+	const rankingQuery = useUsageRanking(report.data, group, metric, selectedRow, selectedDay);
+	const page = rankingQuery.data;
+	const rows = useMemo(() => page?.groups ?? [], [page]);
+	const selectedGroupRow = page?.selected ?? null;
 	const buckets = report.data?.buckets;
 	const chartDays = useMemo(() => buckets?.map((bucket) => bucket.day) ?? [], [buckets]);
 	const dayTotals = useMemo(() => buckets?.map((bucket) => bucket[metric]) ?? [], [buckets, metric]);
 	const series = useMemo(
-		() => usageChartSeries(chartDays, dayTotals, rows, selectedGroupRow, metric, group),
-		[chartDays, dayTotals, group, metric, rows, selectedGroupRow],
-	);
-	const sessions = ranking?.sessions;
-	const filteredSessions = useMemo(
-		() =>
-			(sessions ?? []).filter(
-				(session) =>
-					(selectedGroupRow === null || session.groupKeys[group] === selectedGroupRow.key) &&
-					(selectedDay === null ||
-						(localDayKey(session.firstAt) <= selectedDay && selectedDay <= localDayKey(session.lastAt))),
-			),
-		[group, selectedDay, selectedGroupRow, sessions],
+		() => usageChartSeries(chartDays, dayTotals, rows, selectedGroupRow, metric, group, page?.selectedRank ?? -1),
+		[chartDays, dayTotals, group, metric, rows, selectedGroupRow, page?.selectedRank],
 	);
 	const metricLabel = metricOptions.find((option) => option.value === metric)!.label;
 	const selectedGroupLabel = groupOptions.find((option) => option.value === group)!.label;
@@ -131,7 +120,7 @@ export function AgentUsage() {
 					/>
 				</FilterBar>
 			</div>
-			{report.isPending ? (
+			{report.isPending || (report.isSuccess && rankingQuery.isPending) ? (
 				<div role="status" aria-label="Load usage" className="flex flex-col gap-4">
 					<span className="sr-only">Load usage</span>
 					<Skeleton height="h-24" />
@@ -141,12 +130,19 @@ export function AgentUsage() {
 					</div>
 					<Skeleton height="h-64" />
 				</div>
-			) : report.isError ? (
+			) : report.isError || rankingQuery.isError ? (
 				<FailureState
 					title="Could not read the usage history"
-					detail={report.error.message}
+					detail={report.error?.message ?? rankingQuery.error?.message}
 					action={
-						<Button size="md" processing={report.isFetching} onClick={() => void report.refetch()}>
+						<Button
+							size="md"
+							processing={report.isFetching}
+							onClick={() => {
+								void report.refetch();
+								void rankingQuery.refetch();
+							}}
+						>
 							Try again
 						</Button>
 					}
@@ -182,6 +178,19 @@ export function AgentUsage() {
 						</section>
 						<UsageGroups
 							group={group}
+							maxValue={page?.maxValue ?? 0}
+							count={page?.groupTotal ?? 0}
+							start={page?.groupStart ?? 0}
+							pages={
+								<UsageRankingPages
+									label="groups"
+									start={page?.groupStart ?? 0}
+									count={rows.length}
+									total={page?.groupTotal ?? 0}
+									pending={rankingQuery.isFetching}
+									onPage={rankingQuery.changeGroupPage}
+								/>
+							}
 							rows={rows}
 							metric={metric}
 							total={report.data.totals[metric]}
@@ -191,7 +200,18 @@ export function AgentUsage() {
 						/>
 					</div>
 					<UsageSessions
-						sessions={filteredSessions}
+						sessions={page?.sessions ?? []}
+						total={page?.sessionTotal ?? 0}
+						pages={
+							<UsageRankingPages
+								label="sessions"
+								start={page?.sessionStart ?? 0}
+								count={page?.sessions.length ?? 0}
+								total={page?.sessionTotal ?? 0}
+								pending={rankingQuery.isFetching}
+								onPage={rankingQuery.changeSessionPage}
+							/>
+						}
 						metric={metric}
 						groupLabel={groupLabel[group]}
 						filtered={selectedGroupRow?.label ?? null}
@@ -201,7 +221,7 @@ export function AgentUsage() {
 			<section aria-label="Configuration" className="flex flex-col gap-4 border-t border-border pt-4">
 				<SectionHeader title="Configuration" />
 				<UsageAccounts
-					rows={ranking?.groups.account ?? []}
+					rows={report.data?.rankings[metric].groups.account ?? []}
 					metric={metric}
 					total={report.data?.totals[metric] ?? 0}
 					pending={report.isPending}

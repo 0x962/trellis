@@ -71,3 +71,8 @@ test("limits the initial rows and keeps the expansion control", () => {
 	expect(html).toContain("Show all 2");
 	expect(html).not.toContain("No usage");
 });
+
+test("a later page keeps the scale of the complete ranking", () => {
+	const html = render({ rows: [{ ...rows[1]!, value: 25 }], maxValue: 100 });
+	expect(html).toContain("width:25%");
+});

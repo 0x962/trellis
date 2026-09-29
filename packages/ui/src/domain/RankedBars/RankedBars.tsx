@@ -33,6 +33,7 @@ export type RankedBarsProps = {
 	onSelect: (key: string | null) => void;
 	// How many rows show before the Show all button. Default 8.
 	limit?: number;
+	maxValue?: number;
 	className?: string;
 };
 
@@ -64,10 +65,10 @@ function Spark({ values }: { values: readonly number[] }) {
 // The ranked slices of a whole, largest first, each with a bar as long as
 // its share of the largest. A pressed row is the selected slice. The list
 // shows `limit` rows, then a Show all button reveals the rest.
-export function RankedBars({ label, rows, selected, onSelect, limit = 8, className }: RankedBarsProps) {
+export function RankedBars({ label, rows, selected, onSelect, limit = 8, maxValue, className }: RankedBarsProps) {
 	const [expanded, setExpanded] = useState(false);
 	const narrow = useMediaQuery("(max-width: 767px)");
-	const max = rows[0]?.value ?? 0;
+	const max = maxValue ?? rows[0]?.value ?? 0;
 	const visible = expanded ? rows : rows.slice(0, limit);
 	return (
 		<div className={cx("flex flex-col gap-1", className)}>

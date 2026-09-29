@@ -1,8 +1,8 @@
 import { Copy } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageMetric, UsageSession } from "@trellis/api";
-import { Button, EmptyState, formatDayTime, IconButton, SectionHeader, TicketId, Tooltip } from "@trellis/ui";
-import { useState } from "react";
+import { EmptyState, formatDayTime, IconButton, SectionHeader, TicketId, Tooltip } from "@trellis/ui";
+import type { ReactNode } from "react";
 import { copyText } from "../../../../../lib/clipboard";
 import { formatMetric, harnessLabel } from "../../../formatUsage";
 
@@ -12,10 +12,9 @@ export type UsageSessionsProps = {
 	groupLabel: string;
 	// The label of the selected breakdown row, when one filters the list.
 	filtered: string | null;
+	total: number;
+	pages: ReactNode;
 };
-
-// How many sessions show at first, and how many each Show more adds.
-const PAGE = 10;
 
 const kindLabel: Record<string, string> = {
 	agent: "Agent",
@@ -34,14 +33,12 @@ const runLabel = (session: UsageSession) =>
 // The top sessions for the selected metric. A session that Trellis started
 // names its ticket, agent, and kind. The session id copies for
 // `claude --resume`, `codex resume`, or `muse resume`.
-export function UsageSessions({ sessions, metric, groupLabel, filtered }: UsageSessionsProps) {
-	const [shown, setShown] = useState(PAGE);
-	const visible = sessions.slice(0, shown);
+export function UsageSessions({ sessions, metric, groupLabel, filtered, total, pages }: UsageSessionsProps) {
 	return (
 		<section aria-label="Sessions" className="flex flex-col gap-3">
 			<SectionHeader
 				title={filtered === null ? `Sessions by ${groupLabel}` : `Sessions in ${filtered}`}
-				count={sessions.length}
+				count={total}
 				actions={<span>{metric === "usd" ? "Highest cost first" : "Most tokens first"}</span>}
 			/>
 			{sessions.length === 0 ? (
@@ -75,7 +72,7 @@ export function UsageSessions({ sessions, metric, groupLabel, filtered }: UsageS
 							</tr>
 						</thead>
 						<tbody>
-							{visible.map((session) => {
+							{sessions.map((session) => {
 								const name = session.label ?? session.run?.ticketTitle ?? null;
 								return (
 									<tr
@@ -134,13 +131,7 @@ export function UsageSessions({ sessions, metric, groupLabel, filtered }: UsageS
 							})}
 						</tbody>
 					</table>
-					{sessions.length > shown && (
-						<div className="flex justify-start">
-							<Button size="sm" variant="quiet" onClick={() => setShown((count) => count + PAGE)}>
-								Show {Math.min(PAGE, sessions.length - shown)} more of {sessions.length}
-							</Button>
-						</div>
-					)}
+					{pages}
 				</>
 			)}
 		</section>

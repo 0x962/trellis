@@ -172,3 +172,31 @@ export const UsageAccountsInputSchema = z.strictObject({
 	refresh: z.boolean().optional().describe("Ask the providers again instead of the cached quota."),
 });
 export type UsageAccountsInput = z.infer<typeof UsageAccountsInputSchema>;
+
+export const UsageRankingInputSchema = z.strictObject({
+	days: UsageDaysInputSchema,
+	computedAt: IsoDateTimeSchema,
+	metric: UsageMetricSchema,
+	group: UsageGroupBySchema,
+	groupPage: z.coerce.number().int().nonnegative().default(0),
+	sessionPage: z.coerce.number().int().nonnegative().default(0),
+	row: z.string().optional(),
+	day: z
+		.string()
+		.regex(/^\d{4}-\d{2}-\d{2}$/)
+		.optional(),
+});
+export type UsageRankingInput = z.infer<typeof UsageRankingInputSchema>;
+
+export const UsageRankingSchema = z.object({
+	groups: z.array(UsageGroupRowSchema),
+	sessions: z.array(UsageSessionSchema),
+	selected: UsageGroupRowSchema.nullable(),
+	groupTotal: z.number().int(),
+	sessionTotal: z.number().int(),
+	groupStart: z.number().int(),
+	sessionStart: z.number().int(),
+	maxValue: z.number(),
+	selectedRank: z.number().int().nullable(),
+});
+export type UsageRanking = z.infer<typeof UsageRankingSchema>;

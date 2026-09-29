@@ -815,7 +815,10 @@ The scan covers the default profile of each harness and the profile of every acc
 The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server caches each range for five minutes. A refresh uses a cached result for ten seconds.
 Every turn uses the rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark and Muse Glimmer cost $1.25 per million input tokens and $4.25 per million output tokens. Cached Muse input uses the input rate. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
-The report holds the day series by harness, the totals, and separate cost and token rankings. Each ranking holds one row list per grouping (ticket, agent, project, kind, account, model, harness) and the top 200 sessions with one key per grouping.
+The report holds the day series by harness, the totals, and separate cost and token rankings. Each ranking holds one row list per grouping (ticket, agent, project, kind, account, model, harness) and every session with one key per grouping.
+The cached report retains every group and session. The report response carries ranked previews and complete account totals for the configuration rows.
+`usage.ranking` returns eight groups and ten sessions per page. It applies the selected group and day before it selects the session page.
+Each page request names the report timestamp. A missing or replaced report requires a refresh. Previous and Next controls expose every page.
 `usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A Codex account with no standard quota windows is `unlimited`. An API key is `metered`. A login with no quota endpoint or no usable quota data is `unavailable`. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`. Its windows come from the normal usage and quota files that Muse agent runs save. The page joins each login to its value through the account grouping of the selected ranking.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
 
@@ -1251,6 +1254,7 @@ returns one canonical spelling.
 | providers.publicModels | GET /api/providers/kinds/{kind}/models | public Vercel catalog or an empty compatible catalog; optional refresh |
 | providers.check | GET /api/providers/{id}/check | key acceptance and optional credit balance; optional refresh |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; cached for five minutes |
+| usage.ranking | GET /api/usage/ranking | ranked pages and the selected group from the exact cached report |
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
