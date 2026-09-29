@@ -1,6 +1,5 @@
 import type { ActorRef, PageSummary, PageUpload, PageVersion, PageWatch } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
-import type { ServiceCtx } from "../../context.ts";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { iso } from "../../db/queries/support.ts";
 
@@ -70,6 +69,7 @@ export type RawUpload = {
 	size: number;
 	mime: string;
 	original_name: string;
+	actor_id: string;
 	actor_name: string;
 	actor_kind: ActorRef["kind"];
 	actor_display_name: string | null;
@@ -86,7 +86,7 @@ export const versionColumns = sql`
 
 export const uploadColumns = sql`
 	u.id, u.project_id, u.sha256, u.size, u.mime, u.original_name,
-	u.actor_name, u.actor_kind,
+	u.actor_id, u.actor_name, u.actor_kind,
 	${actorDisplayName(sql`u.actor_name`, sql`u.actor_kind`)} AS actor_display_name,
 	${iso(sql`u.created_at`)} AS created_at, ${iso(sql`u.expires_at`)} AS expires_at
 `;
@@ -97,14 +97,14 @@ const actorOf = (name: string, kind: ActorRef["kind"], displayName: string | nul
 	...(displayName === null ? {} : { displayName }),
 });
 
-export const pinOf = (ctx: ServiceCtx) =>
-	ctx.actor === null
+export const pinOf = (actorId: string | null) =>
+	actorId === null
 		? sql`false`
-		: sql`EXISTS (SELECT 1 FROM page_pins pin WHERE pin.page_id = p.id AND pin.actor_name = ${ctx.actor.name} AND pin.actor_kind = ${ctx.actor.kind})`;
+		: sql`EXISTS (SELECT 1 FROM page_pins pin WHERE pin.page_id = p.id AND pin.actor_id = ${actorId})`;
 
 // Page creation inserts `pages` and version 1 in one transaction. Retention
 // keeps every `page_versions` row until the Page purge.
-export const pageSelect = (ctx: ServiceCtx, searchRank: SQL = sql`0`) => sql`SELECT
+export const pageSelect = (actorId: string | null, searchRank: SQL = sql`0`) => sql`SELECT
 	p.id, p.project_id, project.key AS project_key, p.slug, p.title, p.summary,
 	p.version AS revision, p.latest_version,
 	p.creator_actor_name, p.creator_actor_kind,
@@ -116,7 +116,7 @@ export const pageSelect = (ctx: ServiceCtx, searchRank: SQL = sql`0`) => sql`SEL
 	${iso(sql`latest.created_at`)} AS published_at,
 	watch.agent_id AS watch_agent_id, watch_agent.name AS watch_agent_name,
 	${iso(sql`watch.created_at`)} AS watch_created_at, ${iso(sql`watch.updated_at`)} AS watch_updated_at,
-	${pinOf(ctx)} AS pinned,
+	${pinOf(actorId)} AS pinned,
 	${searchRank} AS search_rank,
 	(SELECT count(*)::int FROM page_comment_threads thread WHERE thread.page_id = p.id AND thread.resolved_at IS NULL) AS open_thread_count,
 	${iso(sql`p.deleted_at`)} AS deleted_at, p.deleted_actor_name, p.deleted_actor_kind,

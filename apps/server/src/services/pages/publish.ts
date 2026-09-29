@@ -6,6 +6,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { pageObjectPath } from "../../storage/pageObjects.ts";
+import { findActorId } from "../actorIdentity/index.ts";
 import { upsert } from "../actors.ts";
 import { watchableAgent } from "../agentRuns.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
@@ -21,13 +22,15 @@ type PreparedPublish = { input: PublishInput; searchText: string };
 
 export const preparePublish = async (ctx: IoCtx & PrepareCtx, rawInput: unknown): Promise<PreparedPublish> => {
 	const input = PagePublishInputSchema.parse(rawInput);
-	const [document] = await ctx.newTx((tx) =>
-		rows<{ sha256: string }>(
+	const document = await ctx.newTx(async (tx) => {
+		const actorId = await findActorId(ctx.core, tx, ctx.actor);
+		if (actorId === null) return undefined;
+		const [owned] = await rows<{ sha256: string }>(
 			tx,
-			sql`SELECT sha256 FROM page_uploads
-				WHERE id = ${input.document} AND actor_name = ${ctx.actor.name} AND actor_kind = ${ctx.actor.kind}`,
-		),
-	);
+			sql`SELECT sha256 FROM page_uploads WHERE id = ${input.document} AND actor_id = ${actorId}`,
+		);
+		return owned;
+	});
 	return {
 		input,
 		searchText:
@@ -70,14 +73,18 @@ const idList = (ids: string[]) =>
 // past its expiry serves no caller, so each of those reads as absent.
 const lockUploads = async (ctx: ServiceCtx, tx: Tx, projectId: string, ids: string[]) => {
 	const actor = requireActor(ctx);
-	const found = await rows<StagedRow>(
-		tx,
-		sql`SELECT id, sha256, size, mime FROM page_uploads
-			WHERE id IN (${idList(ids)})
-			AND project_id = ${projectId} AND actor_name = ${actor.name} AND actor_kind = ${actor.kind}
-			AND expires_at > ${ctx.now}
-			FOR UPDATE`,
-	);
+	const actorId = await findActorId(ctx, tx, actor);
+	const found =
+		actorId === null
+			? []
+			: await rows<StagedRow>(
+					tx,
+					sql`SELECT id, sha256, size, mime FROM page_uploads
+						WHERE id IN (${idList(ids)})
+						AND project_id = ${projectId} AND actor_id = ${actorId}
+						AND expires_at > ${ctx.now}
+						FOR UPDATE`,
+				);
 	const byId = new Map(found.map((row) => [row.id, row]));
 	for (const id of ids) if (!byId.has(id)) throw fail("NOT_FOUND", { kind: "page upload", ref: id });
 	return byId;

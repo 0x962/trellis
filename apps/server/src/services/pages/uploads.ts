@@ -11,6 +11,7 @@ import {
 	type StagedPageObject,
 	stagePageObject,
 } from "../../storage/pageObjects.ts";
+import { findActorId } from "../actorIdentity/index.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { fail, type IoCtx, type PrepareCtx, touchActor } from "../support.ts";
 import { type RawUpload, toPageUpload, uploadColumns } from "./rows.ts";
@@ -61,21 +62,21 @@ export const prepareUpload = async (ctx: IoCtx & PrepareCtx, rawInput: unknown):
 	};
 };
 
-const sameUpload = (ctx: IoCtx, row: RawUpload, input: PreparedUpload) =>
+const sameUpload = (actorId: string | null, row: RawUpload, input: PreparedUpload) =>
 	row.project_id === input.projectId &&
 	row.sha256 === input.staged.sha256 &&
 	row.size === input.staged.size &&
 	row.mime === input.mime &&
 	row.original_name === input.originalName &&
-	row.actor_name === ctx.actor.name &&
-	row.actor_kind === ctx.actor.kind;
+	row.actor_id === actorId;
 
 export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise<PageUpload> => {
 	let staged = true;
 	try {
 		assertProjectActive(ctx.core, input.projectId);
 		const existing = await findUpload(tx, input.id);
-		if (existing !== undefined && !sameUpload(ctx, existing, input)) {
+		const actorId = existing === undefined ? null : await findActorId(ctx.core, tx, ctx.actor);
+		if (existing !== undefined && !sameUpload(actorId, existing, input)) {
 			await discardPageObject(ctx.home, input.staged);
 			staged = false;
 			throw fail("DUPLICATE", { field: "id" });
