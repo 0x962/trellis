@@ -258,6 +258,44 @@ async def resume_after_capture(self) -> None
 ```
 
 The capture revoke caller awaits `resume_after_capture()` before it returns its response.
+
+## Review classification continuation
+
+Apply `0006-review-classification-continuation.patch` after the complete backend series.
+The patch adds `review` as an explicit external-wait kind.
+It does not use a native attempt or a human decision record.
+
+The Python protocol module exports these strict readers:
+
+```python
+read_review_visit(value: str) -> ReviewClassificationVisit
+read_review_response(value: str) -> ReviewClassificationResponse
+read_review_wait(value: str) -> ReviewExternalWait
+read_review_delivery(value: str) -> ReviewClassificationDelivery
+serialize_review_response(value: ReviewClassificationResponse) -> str
+```
+
+The review ledger exports this interface:
+
+```python
+async def accept(self, payload: ReviewDeliveryInput, authorize) -> dict
+async def read_result(self, *, engine_job_id: UUID, engine_request_id: str) -> bytes | None
+async def pending(self) -> list[dict]
+async def mark_consumed(self, obligation: dict, continuation_receipt_bytes: bytes) -> None
+```
+
+`ReviewDeliveryInput` contains `engineWaitId`, `resultBytes`, `deliveryBytes`, and `authorityBytes` as bytes.
+The ledger rejects `claimed` results.
+It accepts one terminal response for each exact saved review wait.
+It stores the exact result and delivery bytes with the RESUME signal and queue obligation in one transaction.
+
+`BackgroundExecutionService.consume_review_classification_obligation` uses the existing external-completion signal.
+It marks the obligation only after `dispatched` or `execution_proven`.
+The startup drain retries each retained obligation through the same queue writer.
+
+Concurrent review visits can share one host classification receipt.
+The host delivers one terminal response for each exact saved visit.
+Each accepted response resumes only its saved occurrence.
 The method runs the existing orphan sweep and obligation drains once.
 If a durable capture grant remains active, the writer guard keeps recovery deferred.
 No capture hook adds a queue, poller, graph scheduler, or retry loop.

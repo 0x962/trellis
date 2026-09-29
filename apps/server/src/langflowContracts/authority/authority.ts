@@ -28,6 +28,7 @@ export const DeliveryAuthorityV1Schema = z
 					"events.append",
 					"execution.cancel",
 					"review.classify",
+					"classification.deliver",
 				]),
 			)
 			.min(1),
