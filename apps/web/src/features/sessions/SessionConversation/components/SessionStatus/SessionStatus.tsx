@@ -25,7 +25,7 @@ export function SessionStatus({ run, visible }: { run: AgentRun; visible: boolea
 			setNow(scheduler.now());
 			timer = scheduler.setTimeout(tick, 60_000 - (scheduler.now() % 60_000));
 		};
-		timer = scheduler.setTimeout(tick, 60_000 - (scheduler.now() % 60_000));
+		tick();
 		return () => scheduler.clearTimeout(timer);
 	}, [scheduler, visible]);
 
