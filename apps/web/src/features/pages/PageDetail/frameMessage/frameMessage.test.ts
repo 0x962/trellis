@@ -71,13 +71,13 @@ test("refuses mutations and invalid coordinates even from the right frame", () =
 
 test("large anchors retain frame isolation and structural validation", () => {
 	const anchor = {
-		kind: "text",
+		kind: "text" as const,
 		path: `html>${"div:nth-of-type(1)>".repeat(300)}p`,
 		quote: "界".repeat(20000),
 		prefix: "",
 		suffix: "",
 	};
-	const data = { type: "page-comment-anchor", nonce: "nonce", anchor };
+	const data = { type: "page-comment-anchor" as const, nonce: "nonce", anchor };
 	expect(message(data)).toEqual(data);
 	expect(message(data, {} as Window)).toBeNull();
 	expect(message({ ...data, nonce: "foreign" })).toBeNull();
