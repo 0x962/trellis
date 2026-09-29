@@ -1,3 +1,4 @@
+export { documentBytes } from "./documentBytes";
 export { get } from "./get";
 export { legacyServices } from "./legacyServices";
 export { publishDocument } from "./publishDocument";
