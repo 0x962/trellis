@@ -27,5 +27,6 @@ BEGIN
 	RETURN NEW;
 END;
 $$;
+--> statement-breakpoint
 CREATE TRIGGER langflow_document_action_immutable BEFORE UPDATE ON langflow_document_actions
 FOR EACH ROW EXECUTE FUNCTION guard_langflow_document_action();
