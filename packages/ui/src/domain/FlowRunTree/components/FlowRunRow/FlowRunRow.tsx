@@ -172,6 +172,7 @@ export function FlowRunRow({
 					open={outputExpanded}
 					onToggle={(event) => onOutputToggle?.(event.currentTarget.open)}
 					onClick={(event) => event.stopPropagation()}
+					onKeyDown={(event) => event.stopPropagation()}
 				>
 					<summary className="cursor-pointer text-fg-muted">Output</summary>
 					<pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono">{row.output}</pre>
