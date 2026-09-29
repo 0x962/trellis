@@ -24,18 +24,28 @@ The next host uses that reservation instead of an unrecorded replacement.
 ## Driver boundary
 
 `SidecarDriver` is a trusted host adapter, not an endpoint for engine callers.
-Its `start` uses the exact saved instance identifier as the OCI container identity.
-It must reuse that identity after an uncertain response and never create another container for it.
-Its `observe` obtains fresh container identity and an authenticated health response for the supplied challenge.
-It must report `unknown` when the container manager cannot establish absence or identity.
+`createOciDriver` binds the verified manifest and its image config digest to the saved instance.
+It starts the loaded config digest with pull disabled, so a missing local import fails closed.
+`start` reuses the exact saved container, internal network, and labeled storage after an uncertain response.
+It refuses an unknown or conflicting container, network, volume, mount, image, label, or security setting.
+`observe` checks those current objects before it requests authenticated health for the supplied challenge.
+It reports `unknown` when the container manager cannot establish the complete retained state.
 An absent PID, a cached health response, or a copied challenge does not prove current ownership.
-Its `stop` targets that exact instance and leaves native attempts under the native runtime's control.
+`stop` checks the same state, removes the exact container and network, and retains the labeled storage volumes.
 
-The driver must bind the authenticated listener to loopback and enforce the approved isolation profile.
-It mounts only the supplied private data and required secret files.
-It enforces the manifest's health timeouts and preserves the engine encryption secret across restarts.
+The runtime uses a read-only root, UID 10001, no added capabilities, no new privileges, and a bounded private tmpfs.
+An internal bridge denies external routes, and the published engine port binds only to `127.0.0.1`.
+The runtime mounts one writable data volume and one read-only secrets volume.
+The storage labels bind both volumes to the data home, host, and a digest of the private host root.
+The restricted provisioner copies the exact mode-0600 bearer for UID 10001 and creates the persistent encryption secret.
+The engine receives the immutable home, host, owner, instance, and manifest identity values at startup.
+
+`createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
+It reads the exact bearer file for each operation, refuses redirects, preserves request and response bytes, and returns unknown network results.
+Mutation recovery uses one read-only lookup before the mutation and one read-only lookup after an unknown response.
+
 TRL-667 proves isolation; TRL-685 supplies the sealed package adapter.
-This module contains no OCI adapter or production registration.
+The focused source fixtures do not prove Docker isolation, authenticated runtime behavior, external egress denial, restart recovery, or volume restore.
 
 ## Authority boundary
 
@@ -79,3 +89,85 @@ biome check apps/server/src/langflowHost
 The fixtures use real private files and kernel locks with an in-memory driver and authority store.
 They cover competing supervisors, restart data, stale observations, health loss, expiry, revocation, and receipt replay.
 They do not establish OCI isolation, durable database CAS, host-crash recovery, installed behavior, or full ENG-F17 and ENG-F21 acceptance.
+
+## Persistent host control
+
+`LangflowHostControl.create({home, evidence})` explicitly initializes authority for a home.
+It stores independent UUIDs for `hostId` and `dataHomeId` beside the canonical home.
+The directory is `${realpath(home)}.langflow-authority`, with `identity.json` and a `dispatch` subdirectory.
+These files stay outside the home and all exported or restored roots.
+The first durable state is blocked for initialization.
+Trusted reconciliation must establish package, stores, ownership, native attempts, and stops before dispatch opens.
+
+`LangflowHostControl.open({home, evidence})` returns `{identity, gate}` with the saved identities and durable `DispatchGate`.
+It refuses missing or invalid state and never initializes a replacement during restart.
+Composition stores this control in its trusted context and supplies the same target identity to the supervisor.
+A move to another home requires explicit identity adoption and reconciliation before any effects.
+
+`LangflowHostControl.recovery(home)` reads the durable gate for the global recovery query.
+An unconfigured home returns `{state: "unavailable", generation: null}`.
+A configured home returns `{state: "open" | "blocked", generation: number}`.
+Corrupt or incomplete control files fail the read; the query must never report them as open.
+The open state is advisory; each mutation still acquires a permit before its first effect.
+
+## Original authority bytes
+
+`ExecutionAuthority` serializes a newly issued grant once in `AuthorityCommit.authorityBytes`.
+`AuthorityPort.commit` must save this UTF-8 text atomically with its receipt and ownership transition.
+`AuthorityPort.readReceipt` must return the original text on every later read.
+`readIssuedAuthority(commit)` checks its parsed grant against the receipt and returns the original bytes and digest.
+The HTTP client must send these bytes unchanged to the engine control and domain endpoints.
+An old record without retained bytes requires reconciliation; JSONB does not establish the original encoding.
+
+`DispatchReceiptArchive.writeAuthority({authorityBytes, issuanceReceiptId})` retains the original bytes outside restored data.
+It returns an immutable archive identifier with the bytes, digest, parsed authority, and issuing receipt identifier.
+The trusted producer must retain this archive identifier with its control receipt before it sends the grant.
+`readAuthority(id)` returns the original bytes after restart.
+The archive checks the target home and host, but the engine must still check current ownership, permissions, expiry, and revocation.
+
+## Access for public effects
+
+`LangflowHostControl.openEffects({home, readTerminal})` returns the saved identity and a `DispatchEffects` instance.
+The instance exposes `read`, `acquire`, `recoverPermit`, and `settle`.
+Public actions supply the reader that validates their committed terminal evidence.
+The instance shares the durable permits with the full control.
+A blocked home still permits settlement of an existing effect, so the full control can finish its drain.
+Only the full control exposes reconciliation and block management.
+
+`DispatchReceiptArchive.open` accepts the identity and `gate.read` from either control.
+Compose its terminal reader after both objects exist; only a later settlement calls the reader.
+
+## Initial authority
+
+`new InitialAuthorityIssuer(control, supervisor, archive)` owns the first grant for an execution.
+`issue(input)` obtains a fresh observation through `supervisor.withHealthyEngine`.
+The input contains the execution, host, project, publication, publication digest, submission digest, exact correlation, expiry, permissions, and held delivery permit.
+The producer requires the same target home and host, exact correlation, and an outstanding admission or recovery permit.
+It writes epoch 1 and revision 1 with the observed owner and a new capability identifier.
+It stores one immutable receipt under the external control directory before it returns.
+A repeated request retains that receipt and its original bytes.
+A changed owner requires takeover, and a changed request conflicts.
+
+The result contains `id`, `issuanceReceiptId`, `authority`, `authorityBytes`, `authorityDigest`, `observation`, and `correlation`.
+`id` identifies the authority archive record.
+`readAuthorityBytes(authority)` checks the exact stored authority and returns its original UTF-8 text.
+The archive supports this lookup for initial, renewed, and transferred grants after their producer calls `writeAuthority`.
+The lookup writes no file and grants no permission to dispatch.
+Issuance does not settle the permit; composition retains it through engine delivery and durable acknowledgement.
+
+`readInitial(executionId)` returns the saved issuance record, or null if no issuance exists.
+Reconciliation uses this record after a crash before the database binds the grant.
+This read grants no authority to issue or dispatch under a changed owner.
+
+## Authority after cancellation
+
+`AuthorityPort.read` returns `canceled` from the durable cancellation intent.
+For a canceled execution, renewal and takeover require closed admission and issue only `execution.cancel`.
+A saved receipt with broader permissions cannot replay after cancellation.
+Takeover retains the closed barrier and original job.
+These operations do not change cancellation receipts, native stops, launch receipts, or deadlines.
+
+`AuthorityPort.commit` must recheck the cancellation intent under the execution lock.
+A canceled row accepts only cancellation authority and closed admission.
+The store must not enqueue admission when it commits that authority.
+An outage beyond the old grant expiry still requires current supervisor ownership and the normal renewal or takeover checks.

@@ -1,9 +1,9 @@
 {
   "upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
   "patch": "0001-consistent-engine-snapshot.patch",
-  "sha256": "12850efffc6a5a6f665beb689927e01679e38d98a4250872bdfae729dc1e0c9f",
+  "sha256": "6ea114d4dd0e551ed9d1302d383c13346328704aa84acc6738a36596499a4734",
   "files": {
-    "src/backend/base/langflow/services/trellis_v1/backup.py": "aee617407140bb6cc3fa33a973ec5f19040eba7c820d5541b1daa6446738663b",
-    "src/backend/base/langflow/services/trellis_v1/backup_router.py": "17c5b5804bb7be0353c0cbbdf0d1f6103b0ad9570be064371cfaaed53b60657c"
+    "src/backend/base/langflow/services/trellis_v1/backup.py": "769a85530f7547d89d16437659e0eed21e8e68437e2c419037d685be0d9cc143",
+    "src/backend/base/langflow/services/trellis_v1/backup_router.py": "4138890ad7c42b547590dfe4e1c91d93ced35525f633e37208d063cdb472157f"
   }
 }

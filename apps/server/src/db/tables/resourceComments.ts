@@ -43,7 +43,7 @@ export const resourceComments = pgTable(
 			columns: [t.resolvedByName, t.resolvedByKind],
 			foreignColumns: [actors.name, actors.kind],
 		}),
-		check("resource_comments_body_check", sql`length(${t.body}) BETWEEN 1 AND 10000`),
+		check("resource_comments_body_check", sql`length(${t.body}) >= 1`),
 		check(
 			"resource_comments_thread_check",
 			sql`(${t.id} = ${t.threadId} AND ${t.quote} IS NOT NULL AND ${t.prefix} IS NOT NULL AND ${t.suffix} IS NOT NULL)
@@ -52,7 +52,7 @@ export const resourceComments = pgTable(
 		),
 		check(
 			"resource_comments_anchor_check",
-			sql`${t.quote} IS NULL OR (length(${t.quote}) BETWEEN 1 AND 2000 AND length(${t.prefix}) <= 32 AND length(${t.suffix}) <= 32)`,
+			sql`${t.quote} IS NULL OR (length(${t.quote}) >= 1 AND length(${t.prefix}) <= 32 AND length(${t.suffix}) <= 32)`,
 		),
 		check(
 			"resource_comments_resolved_check",

@@ -24,11 +24,13 @@ export function useFlowActionRequest<Input, Result>(key: string[], send: (input:
 		onSuccess: (result, { input, key }) => {
 			queryClient.setQueryData(key, { input, phase: "received", result });
 			void queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
+			void queryClient.invalidateQueries({ queryKey: orpc.flowDocumentsV1.key() });
 		},
 		onError: (error, { input, key }) => {
 			const conflict = "code" in error && error.code === "FLOW_VERSION_CONFLICT";
 			queryClient.setQueryData(key, { input, phase: conflict ? "conflict" : "unknown", error: error.message });
 			void queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
+			void queryClient.invalidateQueries({ queryKey: orpc.flowDocumentsV1.key() });
 		},
 	});
 	return {

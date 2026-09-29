@@ -7,6 +7,7 @@ export {
 	type PageTabPage,
 	type PageTabsState,
 	type PageTabsUiState,
+	pageTabRegion,
 	pageTabsSelectors,
 	pageTabsStorageKey,
 	pageTabsUiProjection,

@@ -96,6 +96,13 @@ Each attempt has one immutable identifier, a token hash, retained terminal outpu
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
+An optional status observer uses a separate saved conversation for each ticket or standalone run.
+The existing Claude harness runs that conversation with Sonnet 5.5 through the configured Claude account.
+The observer reads completed messages and tool calls after its durable cursor.
+It never writes to the worker conversation.
+An initial enablement, the configured activity threshold, completion, or a request for human input can start an update.
+Elapsed time cannot start an update.
+The observer saves its conversation, the human update, and the consumed cursor in one transaction.
 The runtime keeps up to 20 idle attempt records for resume. Other unsubscribed exited records remain for up to two days, with limits of 200 records and 256 MiB. It caches eight records on demand.
 Small exit receipts outlive terminal logs and prevent a delayed start from launching a closed attempt again.
 Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.
@@ -363,9 +370,9 @@ edge for a pair. Both foreign keys cascade on ticket deletion. `source` is
 `manual`, `parsed`, or `derived`. A check refuses an edge from a ticket to
 itself.
 
-Every dependency belongs to one project. A manual write resolves every
-ticket before it changes an edge. It refuses a cross-project edge and a cycle. A
-cycle error names the path from the target ticket back to itself. A repeated
+A new manual dependency joins tickets from one project. A manual write resolves
+every ticket before it changes an edge. It refuses a new cross-project edge and a cycle.
+A removal can delete an existing cross-project edge. A cycle error names the path from the target ticket back to itself. A repeated
 manual write changes a parsed or derived edge to manual.
 
 `TicketSummary.waitsOn` lists each dependency that is not done or canceled.
@@ -377,7 +384,8 @@ The API writes dependencies through `tickets.create` and
 `tickets.updateDependencies`. The routes are `POST /api/tickets` and
 `PATCH /api/tickets/{ticket}/dependencies`. `tickets.importDependencies` at
 `POST /api/tickets/import-dependencies` imports the dependency lines of one
-epic. `tickets.get` at `GET /api/tickets/{ticket}` reads both directions.
+epic. `tickets.dependencies` at `GET /api/tickets/{ticket}/dependencies` reads every stored edge in both directions, including completed tickets.
+Each related ticket carries its identifier, title, and status category.
 
 A dependency uses TicketRef for the target and for every related ticket. A
 TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
@@ -385,7 +393,8 @@ TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
 <TicketRef>` prints both directions and each derived pull request stack.
 The web route `/t/<KEY-n>` shows both directions in its properties rail, as
 the rows Waits on and Blocks. A pick in either row writes one edge: the Blocks
-row writes it on the ticket that the pick names. An epic route also shows the
+row writes it on the ticket that the pick names. Each picker shows current relationships with a named remove button before a search.
+A successful removal refreshes ticket details, lists, search results, and epic indicators. An epic route also shows the
 `waits` and `releases` cells.
 
 ### Ticket contract
@@ -1170,8 +1179,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| providers | id PK, name (CHECK trimmed, 1 to 120), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK 1 to 2000), api_key (CHECK 1 to 4000), enabled, created_at, updated_at. UNIQUE (lower(name)). |
-| provider_models | provider_id (FK providers CASCADE), model_id (CHECK 1 to 200, no space or control character). PK (provider_id, model_id). |
+| providers | id PK, name (CHECK trimmed, nonempty), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK nonempty), api_key (CHECK nonempty), enabled, created_at, updated_at. Hash equality exclusion on lower(name). |
+| provider_models | provider_id (FK providers CASCADE), model_id (CHECK nonempty, no space or control character). Hash equality exclusion on the length-prefixed provider ID and model ID. Index (provider_id). |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
 | sessions | id PK, name (CHECK trimmed, 1 to 60), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
@@ -1217,6 +1226,20 @@ The current document cannot change that selection.
 An exact legacy request replay retains its original result after a document conversion.
 New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
 `flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
+
+`flowDocumentsV1.editorSession` issues an editor grant through
+`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
+editor configuration with the host identity, separate origins, and installed
+component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
+The issuer requires the host bearer, the exact parent Origin, and a stored
+`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
+The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
+
+A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
+The grant service holds the channel until the actual document transaction returns.
+If the response is lost after commit, the next exact request reads the durable
+save receipt before it checks the old HTTP preconditions. The accepted receipt
+advances the grant revision; the original bootstrap identity stays unchanged.
 
 A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
 Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.

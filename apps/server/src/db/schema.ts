@@ -123,7 +123,7 @@ export const tickets = pgTable(
 		check("tickets_wave_needs_epic", sql`${t.waveId} IS NULL OR ${t.epicId} IS NOT NULL`),
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
-		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
+		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) >= 1`),
 		check("tickets_files_check", sql`jsonb_typeof(${t.files}) = 'array'`),
 		check("tickets_leave_alone_check", sql`jsonb_typeof(${t.leaveAlone}) = 'array'`),
 		check("tickets_verify_check", sql`jsonb_typeof(${t.verify}) = 'array'`),

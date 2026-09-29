@@ -101,6 +101,7 @@ export {
 	type ReviewStatusSummaryProps,
 } from "./domain/ReviewStatusSummary";
 export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from "./domain/RunLine";
+export { type SelectedTicket, SelectedTickets, type SelectedTicketsProps } from "./domain/SelectedTickets";
 export * from "./domain/SessionStatusPane";
 export * from "./domain/SettingsListRow";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
@@ -151,6 +152,7 @@ export {
 	type CommandProps,
 	type CommandRootProps,
 	type CommandRowProps,
+	type CommandVirtualProps,
 } from "./primitives/Command";
 export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDialog";
 export { Dialog, type DialogProps } from "./primitives/Dialog";
