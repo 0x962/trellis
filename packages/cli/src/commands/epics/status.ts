@@ -4,7 +4,7 @@ import { contextOf } from "../../context.ts";
 import { json } from "../../output.ts";
 import { readyResultOf } from "../ready/ready.ts";
 import { readyText } from "../ready/readyText.ts";
-import { workingTicketIds } from "../ready/workingTicketIds.ts";
+import { workingTicketIds } from "../workingTicketIds/index.ts";
 
 export default defineCommand({
 	meta: { name: "show", description: "Read epic progress and work that can start" },

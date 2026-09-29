@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import type { Tx } from "../../db/tx.ts";
-import { listColumns, type StoredRun, storedRows } from "./queries.ts";
+import type { Tx } from "../../../../db/tx.ts";
+import { listColumns, type StoredRun, storedRows } from "../../queries.ts";
 
 export const openAgentRuns = (tx: Tx) =>
 	storedRows<StoredRun>(

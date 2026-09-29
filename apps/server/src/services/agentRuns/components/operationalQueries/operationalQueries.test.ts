@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import { openTestDb } from "../../db/testDb.ts";
-import type { Tx } from "../../db/tx.ts";
-import { listUnresolvedAttempts } from "./agentRuns.ts";
+import { openTestDb } from "../../../../db/testDb.ts";
+import type { Tx } from "../../../../db/tx.ts";
+import { listUnresolvedAttempts } from "../../agentRuns.ts";
 import { openAgentRuns, unresolvedAttemptRuns } from "./operationalQueries.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;

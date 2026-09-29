@@ -6,9 +6,9 @@ import { type CliContext, contextOf, wantsJson } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { json } from "../../output.ts";
 import { currentHead, type PullRequestRef, resolvePullRequest } from "../pullRequestRef.ts";
+import { workingTicketIds } from "../workingTicketIds/index.ts";
 import { pullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
-import { workingTicketIds } from "./workingTicketIds.ts";
 
 const nameFor = (ticket: TicketSummary, waiting: Waiting, hasWorkingRun: boolean): string => {
 	if (hasWorkingRun || ticket.status.category === "review") return ticket.identifier;
