@@ -55,13 +55,6 @@
 			"manifest": "integrations/langflow/patches/engineApi/control/manifest.json"
 		},
 		{
-			"name": "backend-native-api",
-			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
-			"sha256": "07445397a869fe88f8bc32731f85ad76d110ba3085cc5f4c199566433382bbd8",
-			"directory": ".",
-			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json"
-		},
-		{
 			"name": "backend-admission-api",
 			"path": "integrations/langflow/patches/engineApi/admission/0001-private-admission-routes.patch",
 			"sha256": "cf9dcae728c9470ac2c89d61984d34124e8ec62d92d7e2b26c569f5c36c5045c",
@@ -142,6 +135,48 @@
 			"manifest": "integrations/langflow/patches/occurrenceRequests/entries-manifest.json"
 		},
 		{
+			"name": "backend-native-api",
+			"path": "integrations/langflow/patches/engineApi/native/0001-native-engine-api.patch",
+			"sha256": "923fab17ff5cf60b80cc87c445194762b8ecb7ba5a22a7e518d20f7784522461",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/engineApi/native/manifest.json"
+		},
+		{
+			"name": "backend-reservation-obligations",
+			"path": "integrations/langflow/patches/occurrenceRequests/0003-native-reservation-obligations.patch",
+			"sha256": "a265d58575658d0f30a9d16d0e24650e6bb68553572b579938117f704d558c1d",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/reservations-manifest.json"
+		},
+		{
+			"name": "backend-reservation-cancellation",
+			"path": "integrations/langflow/patches/occurrenceRequests/0004-durable-cancellation-guard.patch",
+			"sha256": "ed8dd34207db1e5f326ca461f1f5e9c3047facc8ee1bf0e2d692740e5ce6fdec",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/cancellation-manifest.json"
+		},
+		{
+			"name": "backend-retained-wait-lookup",
+			"path": "integrations/langflow/patches/occurrenceRequests/0005-retained-wait-lookup.patch",
+			"sha256": "0e3247b8536448628f00cdd03e38b816db89e2b8b371c7e97cda682f2fe75b60",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/occurrenceRequests/retained-wait-manifest.json"
+		},
+		{
+			"name": "backend-review-continuation",
+			"path": "integrations/langflow/patches/externalWaits/0006-review-classification-continuation.patch",
+			"sha256": "a6dbce79978dd55a67177299e42f3e3cb209265e50687d14c427ad1f2972528f",
+			"directory": ".",
+			"manifest": "integrations/langflow/patches/externalWaits/review-classification-manifest.json"
+		},
+		{
+			"name": "backend-review-gate",
+			"path": "integrations/langflow/patches/reviewGate/0001-review-gate-invocation.patch",
+			"sha256": "f09c69661e81d68b881769d046e78aa7b9a00678fbe5349d0731dff6c64414f1",
+			"directory": ".",
+			"manifest": "reports/langflow-feasibility-review/backend-recovery-composition.json"
+		},
+		{
 			"name": "backend-private-startup",
 			"path": "integrations/langflow/patches/engineApi/startup/0001-register-private-engine-api.patch",
 			"sha256": "83dddae445eb1cc22ed2053c8ea903a01c2228a21f4e174c910e334ff9605ee4",
@@ -165,6 +200,7 @@
 		"integrations/langflow/tests/publications",
 		"integrations/langflow/tests/occurrenceRequests",
 		"integrations/langflow/tests/loopControl",
+		"integrations/langflow/tests/reviewGate",
 		"integrations/langflow/patches/engineApi/shared/tests",
 		"integrations/langflow/patches/engineApi/control/tests",
 		"integrations/langflow/patches/engineApi/native/tests",
