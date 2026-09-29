@@ -8,6 +8,7 @@ export type PageTabPage = {
 
 export type PageTab = PageTabPage & {
 	id: string;
+	customTitle?: string;
 	backHistory: PageTabPage[];
 	forwardHistory: PageTabPage[];
 };
@@ -17,8 +18,13 @@ export type PageTabItem = Pick<PageTab, "id" | "title">;
 export type PageTabsState = {
 	tabs: PageTab[];
 	activeId: string;
+	closedTabs: { tab: PageTab; index: number; replacementId: string | null }[];
+	renameTab: (id: string, title: string | null) => void;
+	moveTab: (id: string, beforeId: string | null) => void;
+	reopenClosedTab: () => void;
 	addTab: (page: PageTabPage) => string;
 	selectTab: (id: string) => void;
+	selectAdjacentTab: (offset: 1 | -1) => void;
 	closeTab: (id: string) => void;
 	navigate: (page: PageTabPage) => void;
 	replace: (page: PageTabPage) => void;
@@ -59,7 +65,7 @@ export const pageTabsSelectors = {
 };
 
 export const pageTabsUiProjection = (tabs: readonly PageTab[], activeId: string): PageTabsUiState => ({
-	tabs: tabs.map(({ id, title }) => ({ id, title })),
+	tabs: tabs.map(({ id, title, customTitle }) => ({ id, title: customTitle ?? title })),
 	activeId,
 });
 
@@ -72,23 +78,61 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 			(set) => ({
 				tabs: [initial],
 				activeId: initial.id,
+				closedTabs: [],
 				addTab: (page) => {
 					const next = tab(createId(), page);
 					set((state) => ({ tabs: [...state.tabs, next], activeId: next.id }));
 					return next.id;
 				},
 				selectTab: (activeId) => set({ activeId }),
+				selectAdjacentTab: (offset) =>
+					set((state) => {
+						const index = state.tabs.findIndex((item) => item.id === state.activeId);
+						return { activeId: state.tabs[(index + offset + state.tabs.length) % state.tabs.length]!.id };
+					}),
+				renameTab: (id, title) =>
+					set((state) => ({
+						tabs: state.tabs.map((item) =>
+							item.id === id ? { ...item, customTitle: title?.trim() || undefined } : item,
+						),
+					})),
+				moveTab: (id, beforeId) =>
+					set((state) => {
+						if (id === beforeId) return state;
+						const moving = state.tabs.find((item) => item.id === id)!;
+						const tabs = state.tabs.filter((item) => item.id !== id);
+						const index = beforeId === null ? tabs.length : tabs.findIndex((item) => item.id === beforeId);
+						tabs.splice(index, 0, moving);
+						return { tabs };
+					}),
 				closeTab: (id) =>
 					set((state) => {
-						if (state.tabs.length === 1) {
-							const next = tab(createId(), options.homePage);
-							return { tabs: [next], activeId: next.id };
-						}
-
 						const index = state.tabs.findIndex((item) => item.id === id);
-						const tabs = state.tabs.filter((item) => item.id !== id);
-						if (state.activeId !== id) return { tabs };
-						return { tabs, activeId: tabs[Math.min(index, tabs.length - 1)]!.id };
+						const closed = state.tabs[index]!;
+						const replacement = state.tabs.length === 1 ? tab(createId(), options.homePage) : null;
+						const tabs = replacement ? [replacement] : state.tabs.filter((item) => item.id !== id);
+						return {
+							tabs,
+							activeId: state.activeId === id ? tabs[Math.min(index, tabs.length - 1)]!.id : state.activeId,
+							closedTabs: [...state.closedTabs, { tab: closed, index, replacementId: replacement?.id ?? null }],
+						};
+					}),
+				reopenClosedTab: () =>
+					set((state) => {
+						const closed = state.closedTabs.at(-1);
+						if (!closed) return state;
+						const tabs = state.tabs.filter(
+							(item) =>
+								!(
+									item.id === closed.replacementId &&
+									item.url === options.homePage.url &&
+									item.customTitle === undefined &&
+									item.backHistory.length === 0 &&
+									item.forwardHistory.length === 0
+								),
+						);
+						tabs.splice(closed.index, 0, closed.tab);
+						return { tabs, activeId: closed.tab.id, closedTabs: state.closedTabs.slice(0, -1) };
 					}),
 				navigate: (page) =>
 					set((state) =>
@@ -134,7 +178,7 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 			{
 				name: pageTabsStorageKey(options.origin),
 				storage: createJSONStorage(() => options.storage),
-				partialize: (state) => ({ tabs: state.tabs, activeId: state.activeId }),
+				partialize: (state) => ({ tabs: state.tabs, activeId: state.activeId, closedTabs: state.closedTabs }),
 			},
 		),
 	);

@@ -39,3 +39,31 @@ Metadata updates and legacy graph saves preserve immutable revisions through the
 The focused fixtures use in-memory storage and an injected engine client.
 They cover receipt replay, version races, format refusal, engine failure, validation refusal, and late publication results.
 They do not prove real engine validation, browser draft recovery, isolation, or installed-host behavior.
+
+`installedPublisher` creates the authenticated HTTP producer from a verified package, live ownership, and the supervisor's private token file.
+`publicationDispatch` acquires a durable permit before a new publication request.
+It recovers an existing permit through GET only and keeps unknown outcomes unresolved.
+The producer exposes `readTerminal` for the dispatch gate's durable evidence reader.
+Its optional `recover` method permits receipt recovery for an older saved revision without another engine write.
+An older receipt cannot authorize a new run.
+The engine fragment and bootstrap contract live in `integrations/langflow/patches/publications/`.
+The current catalog has no approved publication definitions.
+The replay lookup reads the original request reference before the current slug, so a rename or slug reassignment preserves the first receipt.
+## Discovery
+
+`discovery(ctx, tx, input, availability)` returns `DiscoveryResult` from `discovery/types.ts`.
+The input uses the existing `FlowListInput` project and ticket filters.
+The result contains an explicit engine observation and compact flow summaries.
+One batch query reads document, publication, and conversion facts for the listed flows.
+The list includes every matching flow.
+
+Composition supplies `DiscoveryAvailability` from the current driver and host control.
+An available observation identifies its time, engine package, and component catalog.
+A missing observation stays unknown, and a blocked control must report unavailable.
+A publication receipt alone cannot establish engine availability.
+
+A new Langflow start requires the current publication and matching observed package and catalog.
+The action also requires an actor, as do edit and delete.
+Legacy execution authority remains unknown in this Langflow observation.
+Conversion stays unknown until a producer establishes an accepted mapping.
+A retained blocked conversion report applies only to its source version.

@@ -1,7 +1,14 @@
 export { dispatchNative } from "./dispatchNative";
+export { readLaunchSnapshot } from "./launchSnapshot";
 export { observeNativeAttempt } from "./observeNativeAttempt";
 export { readCompletionDelivery } from "./readCompletionDelivery";
+export { readNativeOutput } from "./readNativeOutput";
+export { readNativeSnapshotManifest } from "./readNativeSnapshotManifest";
 export { readReservation } from "./readReservation";
+export { recordNativeLaunch } from "./recordNativeLaunch";
 export { recordNativeObservation } from "./recordNativeObservation";
+export { recoverNativeAttempt } from "./recoverNativeAttempt";
+export { requestNativeAttempt } from "./requestNativeAttempt";
 export { reserveNativeRequest } from "./reserveNativeRequest";
+export { resolveNativeLimits } from "./resolveNativeLimits";
 export type { ApprovedNativeOccurrence, NativeReservationCtx } from "./types";

@@ -38,14 +38,13 @@ export const pageCommentThreads = pgTable(
 			"page_comment_threads_anchor_check",
 			sql`jsonb_typeof(${t.anchor}) = 'object'
 				AND ${t.anchor}->>'kind' IS NOT NULL
-				AND ${t.anchor}->>'kind' = ${t.anchorKind}
-				AND octet_length(${t.anchor}::text) <= 16384`,
+				AND ${t.anchor}->>'kind' = ${t.anchorKind}`,
 		),
 		check(
 			"page_comment_threads_selected_text_check",
 			sql`(${t.anchorKind} = 'element' AND ${t.selectedText} IS NULL)
 				OR (${t.anchorKind} = 'text' AND ${t.selectedText} IS NOT NULL
-					AND length(${t.selectedText}) BETWEEN 1 AND 2000)`,
+					AND length(${t.selectedText}) >= 1)`,
 		),
 		check(
 			"page_comment_threads_resolved_check",
@@ -72,7 +71,7 @@ export const pageComments = pgTable(
 	},
 	(t) => [
 		actorFk("page_comments_actor_fk", t),
-		check("page_comments_body_check", sql`length(${t.body}) BETWEEN 1 AND 10000`),
+		check("page_comments_body_check", sql`length(${t.body}) >= 1`),
 		index("page_comments_thread_created_idx").on(t.threadId, t.createdAt, t.id),
 	],
 );

@@ -7,14 +7,17 @@ import { prepareFlowReconcile } from "../../flowExecutions/prepareFlowReconcile.
 import { get as getFlowExecution } from "../../flowExecutions/queries.ts";
 import * as flows from "../../flows/flows.ts";
 import * as langflowDispatch from "../../langflowDispatch";
-import { core, prepared, type ServiceEntry } from "../../registryEntry";
+import { core, io, prepared, type ServiceEntry } from "../../registryEntry";
 
 export const flowServices = {
 	"flowExecutions.start": core("mutation", langflowDispatch.startLegacy),
+	"flowDocuments.discovery": io("read", langflowDispatch.discovery),
 	"flowDocuments.get": core("read", flowDocuments.get),
 	"flowDocuments.save": core("mutation", langflowDispatch.saveDocument),
 	"flowDocuments.view": core("read", langflowDispatch.getView),
 	"flowDocuments.list": core("read", langflowDispatch.list),
+	"flowExecutionsV1.output": core("read", langflowDispatch.output),
+	"flowExecutionsV1.recovery": io("read", langflowDispatch.recovery),
 	"flowExecutions.get": core("read", getFlowExecution),
 	"flowExecutions.list": core("read", listFlowExecutions),
 	"flowExecutions.decide": core("mutation", decideFlowExecution),

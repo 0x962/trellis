@@ -3,6 +3,9 @@ import { documentTag } from "../../services/langflowDispatch";
 import { call, os } from "../base.ts";
 
 export const flowDocumentProcedures = os.flowDocumentsV1.router({
+	discovery: os.flowDocumentsV1.discovery.handler(({ context, input }) =>
+		call(context, "flowDocuments.discovery", input),
+	),
 	get: os.flowDocumentsV1.get.handler(async ({ context, input }) => {
 		const document = await call<FlowDocumentV1>(context, "flowDocuments.get", input);
 		context.resHeaders?.set("etag", documentTag(document));
