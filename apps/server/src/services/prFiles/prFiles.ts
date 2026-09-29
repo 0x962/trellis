@@ -71,12 +71,12 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Pr
 	}
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`INSERT INTO pr_files (
-		id, pull_request_id, blob_sha256, filename, mime, size, actor_name, actor_kind, created_at
+		id, pull_request_id, blob_sha256, filename, mime, size, actor_id, actor_name, actor_kind, created_at
 	) VALUES (
 		${input.fileId}, ${pullRequest.id}, ${input.sha256}, ${input.filename}, ${input.mime}, ${input.size},
-		${ctx.actor.name}, ${ctx.actor.kind}, ${at}
+		${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}
 	)`);
 	return toFile((await find(tx, input.fileId))!);
 };

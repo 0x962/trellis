@@ -17,7 +17,7 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { decodeCursor, encodeCursor, isIsoTimestamp, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
-import { upsert } from "../actors.ts";
+import { findActorId, resolveActorId } from "../actorIdentity/index.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import {
 	PAGE_RETENTION_MS,
@@ -31,9 +31,10 @@ import {
 } from "./rows.ts";
 
 const pageByWhere = async (ctx: ServiceCtx, tx: Tx, where: SQL, includeDeleted: boolean, lock: boolean) => {
+	const actorId = ctx.actor === null ? null : await findActorId(ctx, tx, ctx.actor);
 	const [row] = await rows<RawPage>(
 		tx,
-		sql`${pageSelect(ctx)} WHERE ${where} AND ${includeDeleted ? sql`true` : sql`p.deleted_at IS NULL`}
+		sql`${pageSelect(actorId)} WHERE ${where} AND ${includeDeleted ? sql`true` : sql`p.deleted_at IS NULL`}
 			${lock ? sql`FOR UPDATE OF p` : sql``}`,
 	);
 	return row;
@@ -120,7 +121,8 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	const input = PageListInputSchema.parse(rawInput);
 	if (input.pinned !== undefined) requireActor(ctx);
 	const project = await resolveProject(ctx, tx, input.project);
-	const pinned = pinOf(ctx);
+	const actorId = ctx.actor === null ? null : await findActorId(ctx, tx, ctx.actor);
+	const pinned = pinOf(actorId);
 	const pinRank = sql`CASE WHEN ${pinned} THEN 1 ELSE 0 END`;
 	const q = input.q === undefined ? undefined : likePattern(input.q);
 	const searchRank =
@@ -136,7 +138,8 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	if (q !== undefined) conditions.push(sql`${searchRank} > 0`);
 	if (input.author !== undefined) {
 		const author = ActorHeaderSchema.parse(input.author);
-		conditions.push(sql`latest.actor_name = ${author.name} AND latest.actor_kind = ${author.kind}`);
+		const authorId = await findActorId(ctx, tx, author);
+		conditions.push(authorId === null ? sql`false` : sql`latest.actor_id = ${authorId}`);
 	}
 	if (input.watcher !== undefined) conditions.push(sql`watch.agent_id = ${input.watcher}`);
 	if (input.comment === "open")
@@ -158,7 +161,7 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	}
 	const found = await rows<RawPage>(
 		tx,
-		sql`${pageSelect(ctx, searchRank)} WHERE ${sql.join(conditions, sql` AND `)}
+		sql`${pageSelect(actorId, searchRank)} WHERE ${sql.join(conditions, sql` AND `)}
 			ORDER BY ${pinRank} DESC, ${searchRank} DESC, latest.created_at DESC, p.id DESC LIMIT ${input.limit + 1}`,
 	);
 	const items = found.slice(0, input.limit);
@@ -220,9 +223,10 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	if (input.title !== undefined && input.title !== page.title) sets.push(sql`title = ${input.title}`);
 	if (input.summary !== undefined && input.summary !== page.summary) sets.push(sql`summary = ${input.summary}`);
 	if (sets.length === 0) return toSummary(page);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	await tx.execute(sql`UPDATE pages SET ${sql.join(sets, sql`, `)}, version = version + 1,
-		actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${page.id}`);
+		actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now}
+		WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await pageById(ctx, tx, page.id));
 };
@@ -234,19 +238,22 @@ export const pin = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 	const actor = requireActor(ctx);
 	let changed: { page_id: string }[];
 	if (input.pinned) {
-		await upsert(ctx, tx, actor);
+		const actorId = await resolveActorId(ctx, tx, actor);
 		changed = await rows<{ page_id: string }>(
 			tx,
-			sql`INSERT INTO page_pins (page_id, actor_name, actor_kind, created_at)
-				VALUES (${page.id}, ${actor.name}, ${actor.kind}, ${ctx.now})
+			sql`INSERT INTO page_pins (page_id, actor_id, actor_name, actor_kind, created_at)
+				VALUES (${page.id}, ${actorId}, ${actor.name}, ${actor.kind}, ${ctx.now})
 				ON CONFLICT DO NOTHING RETURNING page_id`,
 		);
 	} else {
-		changed = await rows<{ page_id: string }>(
-			tx,
-			sql`DELETE FROM page_pins WHERE page_id = ${page.id}
-				AND actor_name = ${actor.name} AND actor_kind = ${actor.kind} RETURNING page_id`,
-		);
+		const actorId = await findActorId(ctx, tx, actor);
+		changed =
+			actorId === null
+				? []
+				: await rows<{ page_id: string }>(
+						tx,
+						sql`DELETE FROM page_pins WHERE page_id = ${page.id} AND actor_id = ${actorId} RETURNING page_id`,
+					);
 	}
 	if (changed.length > 0) ctx.emit({ type: "page-pins.changed", projectId: page.project_id, pageId: page.id, actor });
 	return { pageId: page.id, pinned: input.pinned };
@@ -260,13 +267,14 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	assertRevision(page, input.expectedVersion);
 	if (page.deleted_at !== null) return toSummary(page);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	const removedWatch = await rows<{ agent_id: string }>(
 		tx,
 		sql`DELETE FROM page_watches WHERE page_id = ${page.id} RETURNING agent_id`,
 	);
-	await tx.execute(sql`UPDATE pages SET deleted_at = ${ctx.now}, deleted_actor_name = ${actor.name},
-		deleted_actor_kind = ${actor.kind}, actor_name = ${actor.name}, actor_kind = ${actor.kind},
+	await tx.execute(sql`UPDATE pages SET deleted_at = ${ctx.now}, deleted_actor_id = ${actorId},
+		deleted_actor_name = ${actor.name}, deleted_actor_kind = ${actor.kind}, actor_id = ${actorId},
+		actor_name = ${actor.name}, actor_kind = ${actor.kind},
 		version = version + 1, updated_at = ${ctx.now} WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	if (removedWatch.length > 0) ctx.emit({ type: "page-watches.changed", projectId: page.project_id, pageId: page.id });
@@ -283,9 +291,10 @@ export const restore = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 	assertRevision(page, input.expectedVersion);
 	if (page.deleted_at === null) return toSummary(page);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
-	await tx.execute(sql`UPDATE pages SET deleted_at = NULL, deleted_actor_name = NULL, deleted_actor_kind = NULL,
-		actor_name = ${actor.name}, actor_kind = ${actor.kind}, version = version + 1, updated_at = ${ctx.now}
+	const actorId = await resolveActorId(ctx, tx, actor);
+	await tx.execute(sql`UPDATE pages SET deleted_at = NULL, deleted_actor_id = NULL, deleted_actor_name = NULL,
+		deleted_actor_kind = NULL, actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind},
+		version = version + 1, updated_at = ${ctx.now}
 		WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await pageById(ctx, tx, page.id));

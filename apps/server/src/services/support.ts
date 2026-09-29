@@ -97,12 +97,30 @@ export const assertProjectActive = (ticket: TicketRow) => {
 
 // Records that this actor acted. The activity, comment, and attachment rows
 // point at the actors table, so the row exists before any of them.
-export const touchActor = (tx: Tx, actor: ActorRef, at: Date) =>
-	tx.execute(sql`
-		INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
-		VALUES (${actor.name}, ${actor.kind}, ${at}, ${at})
-		ON CONFLICT (name, kind) DO UPDATE SET last_seen_at = ${at}
-	`);
+export const touchActor = async (tx: Tx, actor: ActorRef, at: Date) => {
+	const [found] = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM actors
+			WHERE ARRAY[kind, name]::text[] = ARRAY[${actor.kind}, ${actor.name}]::text[]`,
+	);
+	if (found !== undefined) {
+		await tx.execute(sql`UPDATE actors SET last_seen_at = ${at} WHERE id = ${found.id}`);
+		return found.id;
+	}
+	const [inserted] = await rows<{ id: string }>(
+		tx,
+		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+			VALUES (${actor.name}, ${actor.kind}, ${at}, ${at}) ON CONFLICT DO NOTHING RETURNING id`,
+	);
+	if (inserted !== undefined) return inserted.id;
+	const [concurrent] = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM actors
+			WHERE ARRAY[kind, name]::text[] = ARRAY[${actor.kind}, ${actor.name}]::text[]`,
+	);
+	await tx.execute(sql`UPDATE actors SET last_seen_at = ${at} WHERE id = ${concurrent!.id}`);
+	return concurrent!.id;
+};
 
 // `versionStep` is 1 when the change is one a client caches per ticket, so a
 // stale cache entry loses to the event that carries the new version.
@@ -121,12 +139,12 @@ export type ActivityInput = {
 // One row of the ticket timeline. `batch_id` groups the rows one transaction
 // wrote; a single change writes one row and one batch.
 export const writeActivity = async (ctx: ServiceCtx, tx: Tx, input: ActivityInput) => {
-	await touchActor(tx, ctx.actor, input.at);
+	const actorId = await touchActor(tx, ctx.actor, input.at);
 	await tx.execute(sql`
-		INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
+		INSERT INTO activity (batch_id, project_id, ticket_id, actor_id, actor_name, actor_kind, action, meta, created_at)
 		VALUES (
 			${ulid()}, ${input.ticket.project_id}, ${input.ticket.id},
-			${ctx.actor.name}, ${ctx.actor.kind}, ${input.action}, ${input.meta}, ${input.at}
+			${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${input.action}, ${input.meta}, ${input.at}
 		)
 	`);
 };

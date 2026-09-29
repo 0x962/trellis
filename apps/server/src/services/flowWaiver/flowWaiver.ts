@@ -61,12 +61,12 @@ export const write = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise
 	const input = PullRequestFlowWaiverWriteInputSchema.parse(rawInput);
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	await tx.execute(
-		sql`INSERT INTO pr_flow_waivers (pull_request_id, head_sha, reason, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${pullRequest.id}, ${input.headSha}, ${input.reason}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at})
+		sql`INSERT INTO pr_flow_waivers (pull_request_id, head_sha, reason, actor_id, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${pullRequest.id}, ${input.headSha}, ${input.reason}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at})
 			ON CONFLICT (pull_request_id, head_sha) DO UPDATE SET
-				reason = EXCLUDED.reason, actor_name = EXCLUDED.actor_name,
+				reason = EXCLUDED.reason, actor_id = EXCLUDED.actor_id, actor_name = EXCLUDED.actor_name,
 				actor_kind = EXCLUDED.actor_kind, updated_at = EXCLUDED.updated_at`,
 	);
 	const [row] = await rows<WaiverRow>(

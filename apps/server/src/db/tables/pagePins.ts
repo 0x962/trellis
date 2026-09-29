@@ -12,8 +12,8 @@ export const pagePins = pgTable(
 		createdAt: at("created_at").notNull(),
 	},
 	(t) => [
-		primaryKey({ name: "page_pins_pkey", columns: [t.pageId, t.actorName, t.actorKind] }),
+		primaryKey({ name: "page_pins_pkey", columns: [t.pageId, t.actorId] }),
 		actorFk("page_pins_actor_fk", t),
-		index("page_pins_actor_idx").on(t.actorKind, t.actorName, t.createdAt, t.pageId),
+		index("page_pins_actor_idx").on(t.actorId, t.createdAt, t.pageId),
 	],
 );

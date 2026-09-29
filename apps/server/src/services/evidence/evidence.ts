@@ -73,14 +73,14 @@ export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<
 export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise<PullRequestEvidence> => {
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	await setHeadSha(tx, { id: pullRequest.id, headSha: input.headSha });
 	await tx.execute(sql`INSERT INTO pr_evidence_documents
-		(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${pullRequest.id}, ${input.headSha}, ${input.body}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at})
+		(pull_request_id, head_sha, body, actor_id, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${pullRequest.id}, ${input.headSha}, ${input.body}, ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at})
 		ON CONFLICT (pull_request_id) DO UPDATE SET
 			head_sha = EXCLUDED.head_sha, body = EXCLUDED.body,
-			actor_name = EXCLUDED.actor_name, actor_kind = EXCLUDED.actor_kind,
+			actor_id = EXCLUDED.actor_id, actor_name = EXCLUDED.actor_name, actor_kind = EXCLUDED.actor_kind,
 			updated_at = EXCLUDED.updated_at`);
 	await announcePullRequestUpdate(ctx, tx, pullRequest);
 	return toEvidence((await find(tx, pullRequest.id))!);

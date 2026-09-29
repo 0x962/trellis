@@ -207,7 +207,7 @@ test("uses the three Page search indexes at 10,000 Pages", async () => {
 	await db.execute(sql`ANALYZE pages`);
 	await db.execute(sql`ANALYZE page_versions`);
 	const explained = await db.execute(
-		sql`EXPLAIN (FORMAT JSON) ${pageSearchStatement(context(), { q: "planprobe", limit: 20 })}`,
+		sql`EXPLAIN (FORMAT JSON) ${pageSearchStatement(null, { q: "planprobe", limit: 20 })}`,
 	);
 	const plan = JSON.stringify(explained.rows[0]);
 

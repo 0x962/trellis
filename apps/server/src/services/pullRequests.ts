@@ -160,10 +160,10 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 		tx,
 		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
 	);
-	await touchActor(tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	const created = await tx.execute(sql`
-		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${stored!.id}, 'manual', ${ctx.actor.name}, ${ctx.actor.kind}, ${at})
+		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${stored!.id}, 'manual', ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at})
 		ON CONFLICT DO NOTHING
 		RETURNING ${iso(sql`created_at`)} AS linked_at
 	`);
