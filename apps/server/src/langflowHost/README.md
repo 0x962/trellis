@@ -53,8 +53,8 @@ The caller also supplies `engineApiConfigSha256` from its strict package and con
 Each saved instance supplies `nativeReservationAuthenticationFile` for its outgoing Trellis bearer.
 The start, observation, and stop inputs supply `nativeReservationAuthenticationSha256` for the exact file bytes.
 The driver copies the mode-0600 file to `/run/trellis-secrets/native-reservations.token`.
-Only that option sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
-The driver compares each original file with its digest before each applicable operation.
+Only `engineApiConfigFile` sets `TRELLIS_ENGINE_API_CONFIG_FILE`; an omitted option keeps the private API inactive.
+The driver compares both source files with their digests before each start, observation, and stop.
 The container labels bind both digests to the saved instance.
 
 `createEngineClient` accepts only a private loopback origin and paths under `/trellis-v1`.
