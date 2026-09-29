@@ -429,27 +429,27 @@ index 52c2ade..9f20440 100644
  import useApplyFlowToCanvas from "@/hooks/flows/use-apply-flow-to-canvas";
  import useSaveFlow from "@/hooks/flows/use-save-flow";
  import { useDocumentTitle } from "@/hooks/use-document-title";
-@@ -27,6 +28,7 @@ import { usePlaygroundStore } from "@/stores/playgroundStore";
+@@ -28,5 +29,6 @@ import { usePlaygroundStore } from "@/stores/playgroundStore";
  import { useShortcutsStore } from "@/stores/shortcuts";
  import { useTypesStore } from "@/stores/typesStore";
 +import type { FlowType } from "@/types/flow";
  import { uiLocale } from "@/utils/format-date";
  import { customStringify } from "@/utils/reactflowUtils";
  import { cn } from "@/utils/utils";
-@@ -113,21 +115,32 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+@@ -110,24 +112,34 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
    const saveFlow = useSaveFlow();
-
+ 
    const flows = useFlowsManagerStore((state) => state.flows);
 +  const setFlows = useFlowsManagerStore((state) => state.setFlows);
    const currentFlowId = useFlowsManagerStore((state) => state.currentFlowId);
-
+ 
    // Restore the Human Input awaiting-input badge after a reload (LE-1603 reconnect).
    useRestoreCanvasHitl(currentFlowId);
-
+ 
    const updatedAt = currentSavedFlow?.updated_at;
    const autoSaving = useFlowsManagerStore((state) => state.autoSaving);
    const stopBuilding = useFlowStore((state) => state.stopBuilding);
-
+ 
    const { mutateAsync: getFlow } = useGetFlow();
 -  const applyFlowToCanvas = useApplyFlowToCanvas();
 +  const applyLoadedFlowToCanvas = useApplyFlowToCanvas();
@@ -462,7 +462,7 @@ index 52c2ade..9f20440 100644
 +    },
 +    [applyLoadedFlowToCanvas, setFlows],
 +  );
-
+ 
    useLoadFlowForRoute({
      id,
 -    flows,
@@ -470,11 +470,13 @@ index 52c2ade..9f20440 100644
      currentFlowId,
      types,
      getFlow,
-
-@@ -272,6 +285,33 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
+     applyFlowToCanvas,
+     navigate,
+   });
+@@ -272,6 +284,33 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
      setIsFullscreen,
    ]);
-
+ 
 +  if (TRELLIS_EDITOR_PROBE) {
 +    return (
 +      <div className="flow-page-positioning">
