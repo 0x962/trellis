@@ -3,16 +3,22 @@ export {
 	appendSessionObserverMessages,
 	claimSessionObserverGeneration,
 	failSessionObserverGeneration,
+	recoverSessionObserverGenerations,
+	retrySessionObserverGeneration,
 	type SaveSessionObserverGenerationInput,
 	type SessionObserverGenerationClaim,
 	type SessionObserverGenerationSave,
 	saveSessionObserverGeneration,
+	saveSessionObserverSummary,
 } from "./generation.ts";
 export { get } from "./get.ts";
+export { history } from "./history.ts";
+export { linkSessionObserverRun } from "./linkRun.ts";
 export {
 	emptySessionObserver,
 	listSessionObserverCandidates,
 	readSessionObserver,
+	readSessionObserverHistory,
 	type SessionObserverCandidate,
 	type StoredSessionObserver,
 	sessionObserverByRun,

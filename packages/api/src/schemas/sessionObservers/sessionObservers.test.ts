@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { SessionObserverSchema, SessionObserverSetEnabledInputSchema } from "./sessionObservers.ts";
+import {
+	SessionObserverHistorySchema,
+	SessionObserverSchema,
+	SessionObserverSetEnabledInputSchema,
+} from "./sessionObservers.ts";
 
 test("accepts a disabled observer before its first enablement", () => {
 	expect(
@@ -7,16 +11,19 @@ test("accepts a disabled observer before its first enablement", () => {
 			runId: "01M3NVQ8K3ZBWDFDZ406A4M1D9",
 			enabled: false,
 			observerId: null,
-			providerId: null,
+			observerRunId: null,
+			harnessPreset: null,
+			accountId: null,
 			modelId: null,
+			providerSessionId: null,
 			activityThreshold: 20,
 			generationState: "idle",
 			generation: 0,
 			lastConsumedCursor: null,
+			lastAttemptedCursor: null,
 			error: null,
-			messages: [],
 		}),
-	).toMatchObject({ enabled: false, generation: 0, messages: [] });
+	).toMatchObject({ enabled: false, generation: 0 });
 });
 
 test("accepts ordered observer messages and a readable error", () => {
@@ -25,13 +32,25 @@ test("accepts ordered observer messages and a readable error", () => {
 		runId: "01M3NVQ8K3ZBWDFDZ406A4M1D9",
 		enabled: true,
 		observerId,
-		providerId: "01M3NVQ8K3ZBWDFDZ406A4M1DB",
+		observerRunId: "01M3NVQ8K3ZBWDFDZ406A4M1DB",
+		harnessPreset: "claude",
+		accountId: "01M3NVQ8K3ZBWDFDZ406A4M1DD",
 		modelId: "anthropic/claude-sonnet-5.5",
+		providerSessionId: "claude-conversation",
 		activityThreshold: 20,
 		generationState: "idle",
 		generation: 1,
 		lastConsumedCursor: "opaque-cursor",
-		error: "The provider did not return a reply.",
+		lastAttemptedCursor: "failed-cursor",
+		error: {
+			code: "CLAUDE_GENERATION_FAILED",
+			message: "The Claude observer did not return a reply.",
+		},
+	});
+	expect(parsed.error?.message).toBe("The Claude observer did not return a reply.");
+	const history = SessionObserverHistorySchema.parse({
+		runId: parsed.runId,
+		observerId,
 		messages: [
 			{
 				id: "01M3NVQ8K3ZBWDFDZ406A4M1DC",
@@ -44,7 +63,7 @@ test("accepts ordered observer messages and a readable error", () => {
 			},
 		],
 	});
-	expect(parsed.messages[0]?.body).toBe("The source checks pass.");
+	expect(history.messages[0]?.body).toBe("The source checks pass.");
 });
 
 test("accepts a configurable threshold and rejects invalid values", () => {

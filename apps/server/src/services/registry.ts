@@ -69,7 +69,7 @@ import {
 	prepareSessionObserverGenerations,
 	setSessionObserverEnabled,
 } from "./sessionObserverGeneration";
-import { get as getSessionObserver } from "./sessionObservers";
+import { get as getSessionObserver, history as getSessionObserverHistory } from "./sessionObservers";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
@@ -114,6 +114,7 @@ export const services = {
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	"sessionObservers.get": core("read", getSessionObserver),
+	"sessionObservers.history": core("read", getSessionObserverHistory),
 	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
 	"sessionObservers.dispatch": prepared(
