@@ -17,8 +17,8 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { decodeCursor, encodeCursor, isIsoTimestamp, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
-import { upsert } from "../actors.ts";
 import { resolveActorId } from "../actorIdentity/index.ts";
+import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import {
 	PAGE_RETENTION_MS,

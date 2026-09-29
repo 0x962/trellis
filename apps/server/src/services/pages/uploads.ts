@@ -11,8 +11,9 @@ import {
 	type StagedPageObject,
 	stagePageObject,
 } from "../../storage/pageObjects.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
-import { fail, type IoCtx, type PrepareCtx, touchActor } from "../support.ts";
+import { fail, type IoCtx, type PrepareCtx } from "../support.ts";
 import { type RawUpload, toPageUpload, uploadColumns } from "./rows.ts";
 
 export const PAGE_UPLOAD_TTL_MS = 24 * 60 * 60 * 1000;
@@ -88,7 +89,7 @@ export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise
 
 			const createdAt = ctx.now();
 			const expiresAt = new Date(createdAt.getTime() + PAGE_UPLOAD_TTL_MS);
-			const actorId = await touchActor(ctx, tx, ctx.actor, createdAt);
+			const actorId = await resolveActorId({ ...ctx.core, now: createdAt }, tx, ctx.actor);
 			await tx.execute(sql`INSERT INTO page_uploads (
 				id, project_id, sha256, size, mime, original_name,
 				actor_id, actor_name, actor_kind, created_at, expires_at

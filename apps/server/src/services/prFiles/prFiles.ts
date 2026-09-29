@@ -4,7 +4,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
-import { fail, type IoCtx, notFound, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
+import { fail, notFound, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
 
 type FileRow = {
 	id: string;
@@ -62,7 +62,7 @@ export const prepareUpload = async (ctx: PrepareCtx, rawInput: unknown): Promise
 
 // A repeated upload with the same file id and the same bytes answers the
 // stored file, so a client can retry a lost reply.
-export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise<PullRequestFile> => {
+export const upload = async (ctx: ServiceCtx, tx: Tx, input: PreparedUpload): Promise<PullRequestFile> => {
 	const existing = await find(tx, input.fileId);
 	if (existing !== undefined) {
 		if (existing.pull_request_id !== input.id || existing.blob_sha256 !== input.sha256)
@@ -71,7 +71,7 @@ export const upload = async (ctx: IoCtx, tx: Tx, input: PreparedUpload): Promise
 	}
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`INSERT INTO pr_files (
 		id, pull_request_id, blob_sha256, filename, mime, size, actor_id, actor_name, actor_kind, created_at
 	) VALUES (

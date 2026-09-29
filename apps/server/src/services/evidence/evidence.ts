@@ -7,7 +7,7 @@ import { invalidInput } from "../../errors.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
 import { parseGhJsonForService } from "../ghJson.ts";
 import { announcePullRequestUpdate, setHeadSha } from "../pullRequests.ts";
-import { fail, type IoCtx, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
+import { fail, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
 
 type EvidenceRow = {
 	pull_request_id: string;
@@ -70,10 +70,10 @@ export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<
 	return input;
 };
 
-export const write = async (ctx: IoCtx, tx: Tx, input: WriteInput): Promise<PullRequestEvidence> => {
+export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise<PullRequestEvidence> => {
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	await setHeadSha(tx, { id: pullRequest.id, headSha: input.headSha });
 	await tx.execute(sql`INSERT INTO pr_evidence_documents
 		(pull_request_id, head_sha, body, actor_id, actor_name, actor_kind, created_at, updated_at)

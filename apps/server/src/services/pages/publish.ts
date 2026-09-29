@@ -6,7 +6,6 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { pageObjectPath } from "../../storage/pageObjects.ts";
-import { upsert } from "../actors.ts";
 import { resolveActorId } from "../actorIdentity/index.ts";
 import { watchableAgent } from "../agentRuns.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";

@@ -149,7 +149,7 @@ export const prepareLink = async (ctx: PrepareCtx, input: LinkInput): Promise<Pr
 };
 
 // The ticket is checked again, because it can change while gh runs.
-export const link = async (ctx: IoCtx, tx: Tx, input: PreparedLink): Promise<LinkedPullRequest> => {
+export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promise<LinkedPullRequest> => {
 	const { ref, fetched } = input;
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
@@ -160,7 +160,7 @@ export const link = async (ctx: IoCtx, tx: Tx, input: PreparedLink): Promise<Lin
 		tx,
 		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
 	);
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await touchActor(tx, ctx.actor, at);
 	const created = await tx.execute(sql`
 		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_id, actor_name, actor_kind, created_at)
 		VALUES (${ticket.id}, ${stored!.id}, 'manual', ${actorId}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at})
@@ -181,7 +181,7 @@ export const link = async (ctx: IoCtx, tx: Tx, input: PreparedLink): Promise<Lin
 	return toLinkedPullRequest(linked!, linked!.linked_at);
 };
 
-const announceLink = async (ctx: IoCtx, tx: Tx, input: { ticket: TicketRow; row: PullRequestRow; at: Date }) => {
+const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow; row: PullRequestRow; at: Date }) => {
 	await touchTicket(tx, { id: input.ticket.id, at: input.at, versionStep: 0 });
 	await writeActivity(ctx, tx, {
 		ticket: input.ticket,
@@ -200,7 +200,7 @@ const announceLink = async (ctx: IoCtx, tx: Tx, input: { ticket: TicketRow; row:
 
 export type UnlinkInput = { ticket: string; id: string };
 
-export const unlink = async (ctx: IoCtx, tx: Tx, input: UnlinkInput) => {
+export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
 	const row = await findPullRequestRow(tx, input.id);
