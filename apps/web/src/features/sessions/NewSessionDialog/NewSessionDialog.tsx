@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { type UseQueryResult, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { HarnessAccountQuota } from "@trellis/api";
 import { Dialog, Input, Select, toast } from "@trellis/ui";
