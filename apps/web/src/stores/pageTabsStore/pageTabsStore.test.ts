@@ -172,10 +172,11 @@ test("the UI projection contains the structural tab fields", () => {
 	const store = createStore();
 	const tabs = pageTabsSelectors.tabs(store.getState());
 	const activeId = pageTabsSelectors.activeId(store.getState());
-	const projection = pageTabsUiProjection(tabs, activeId);
+	const projection = pageTabsUiProjection(tabs, [], activeId);
 
 	expect(projection.activeId).toBe("tab-1");
-	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Needs you" }]);
+	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Needs you", groupId: undefined }]);
+	expect(projection.groups).toEqual([]);
 });
 
 test("the UI selectors return stable store fields", () => {

@@ -13,6 +13,11 @@ export const usePageTabsStore = createPageTabsStore({
 });
 
 export const pageTabsActions = {
+	createGroup: (name: string) => usePageTabsStore.getState().createGroup(name),
+	renameGroup: (id: string, name: string) => usePageTabsStore.getState().renameGroup(id, name),
+	removeGroup: (id: string) => usePageTabsStore.getState().removeGroup(id),
+	setGroupCollapsed: (id: string, collapsed: boolean) => usePageTabsStore.getState().setGroupCollapsed(id, collapsed),
+	setTabGroup: (id: string, groupId: string | null) => usePageTabsStore.getState().setTabGroup(id, groupId),
 	renameTab: (id: string, title: string | null) => usePageTabsStore.getState().renameTab(id, title),
 	moveTab: (id: string, beforeId: string | null) => usePageTabsStore.getState().moveTab(id, beforeId),
 	reopenClosedTab: () => usePageTabsStore.getState().reopenClosedTab(),

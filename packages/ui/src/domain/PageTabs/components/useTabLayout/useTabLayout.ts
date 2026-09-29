@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-export function useTabLayout(tabs: readonly { id: string }[], activeIndex: number) {
+export function useTabLayout(tabs: readonly unknown[], activeIndex: number) {
 	const count = tabs.length;
 	const ref = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState({

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { expandGroupOf, groupEnd, insertIndex, tailStart } from "./tabGroups";
 
 export type PageTabPage = {
 	url: string;
@@ -9,16 +10,44 @@ export type PageTabPage = {
 export type PageTab = PageTabPage & {
 	id: string;
 	customTitle?: string;
+	// The group the tab belongs to. Absent means the tab is ungrouped.
+	groupId?: string;
 	backHistory: PageTabPage[];
 	forwardHistory: PageTabPage[];
 };
 
-export type PageTabItem = Pick<PageTab, "id" | "title">;
+export type PageTabGroup = {
+	id: string;
+	name: string;
+	collapsed: boolean;
+};
 
+export type PageTabItem = Pick<PageTab, "id" | "title" | "groupId">;
+
+// A tab that closed, with what reopen needs to put it back: its position, the
+// home tab that replaced it when it was the last tab, and its group when the
+// close removed that group.
+export type ClosedPageTab = {
+	tab: PageTab;
+	index: number;
+	replacementId: string | null;
+	group?: { group: PageTabGroup; index: number };
+};
+
+// The tab strip has one order, `tabs`: the blocks of the groups in `groups`
+// order, then the ungrouped tail. Every tab of a group sits inside its
+// block. A move never crosses a region boundary; a group action moves a tab
+// from one region to another.
 export type PageTabsState = {
 	tabs: PageTab[];
+	groups: PageTabGroup[];
 	activeId: string;
-	closedTabs: { tab: PageTab; index: number; replacementId: string | null }[];
+	closedTabs: ClosedPageTab[];
+	createGroup: (name: string) => string;
+	renameGroup: (id: string, name: string) => void;
+	removeGroup: (id: string) => void;
+	setGroupCollapsed: (id: string, collapsed: boolean) => void;
+	setTabGroup: (id: string, groupId: string | null) => void;
 	renameTab: (id: string, title: string | null) => void;
 	moveTab: (id: string, beforeId: string | null) => void;
 	reopenClosedTab: () => void;
@@ -35,6 +64,7 @@ export type PageTabsState = {
 
 export type PageTabsUiState = {
 	tabs: readonly PageTabItem[];
+	groups: readonly PageTabGroup[];
 	activeId: string;
 };
 
@@ -61,11 +91,17 @@ const updateActiveTab = (state: PageTabsState, update: (current: PageTab) => Pag
 
 export const pageTabsSelectors = {
 	tabs: (state: PageTabsState) => state.tabs,
+	groups: (state: PageTabsState) => state.groups,
 	activeId: (state: PageTabsState) => state.activeId,
 };
 
-export const pageTabsUiProjection = (tabs: readonly PageTab[], activeId: string): PageTabsUiState => ({
-	tabs: tabs.map(({ id, title, customTitle }) => ({ id, title: customTitle ?? title })),
+export const pageTabsUiProjection = (
+	tabs: readonly PageTab[],
+	groups: readonly PageTabGroup[],
+	activeId: string,
+): PageTabsUiState => ({
+	tabs: tabs.map(({ id, title, customTitle, groupId }) => ({ id, title: customTitle ?? title, groupId })),
+	groups,
 	activeId,
 });
 
@@ -77,18 +113,54 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 		persist(
 			(set) => ({
 				tabs: [initial],
+				groups: [],
 				activeId: initial.id,
 				closedTabs: [],
+				createGroup: (name) => {
+					const id = createId();
+					set((state) => ({ groups: [...state.groups, { id, name, collapsed: false }] }));
+					return id;
+				},
+				renameGroup: (id, name) =>
+					set((state) => ({
+						groups: state.groups.map((group) => (group.id === id ? { ...group, name } : group)),
+					})),
+				setGroupCollapsed: (id, collapsed) =>
+					set((state) => ({
+						groups: state.groups.map((group) => (group.id === id ? { ...group, collapsed } : group)),
+					})),
+				removeGroup: (id) =>
+					set((state) => {
+						const members = state.tabs.filter((item) => item.groupId === id).map(({ groupId: _, ...item }) => item);
+						const rest = state.tabs.filter((item) => item.groupId !== id);
+						rest.splice(tailStart(rest), 0, ...members);
+						return { tabs: rest, groups: state.groups.filter((group) => group.id !== id) };
+					}),
+				setTabGroup: (id, groupId) =>
+					set((state) => {
+						const current = state.tabs.find((item) => item.id === id)!;
+						if ((current.groupId ?? null) === groupId) return state;
+						const { groupId: _, ...bare } = current;
+						const moved = groupId === null ? bare : { ...bare, groupId };
+						const rest = state.tabs.filter((item) => item.id !== id);
+						rest.splice(groupId === null ? tailStart(rest) : groupEnd(rest, state.groups, groupId), 0, moved);
+						return { tabs: rest };
+					}),
 				addTab: (page) => {
 					const next = tab(createId(), page);
 					set((state) => ({ tabs: [...state.tabs, next], activeId: next.id }));
 					return next.id;
 				},
-				selectTab: (activeId) => set({ activeId }),
+				selectTab: (activeId) =>
+					set((state) => ({
+						activeId,
+						groups: expandGroupOf(state.groups, state.tabs.find((item) => item.id === activeId)!),
+					})),
 				selectAdjacentTab: (offset) =>
 					set((state) => {
 						const index = state.tabs.findIndex((item) => item.id === state.activeId);
-						return { activeId: state.tabs[(index + offset + state.tabs.length) % state.tabs.length]!.id };
+						const next = state.tabs[(index + offset + state.tabs.length) % state.tabs.length]!;
+						return { activeId: next.id, groups: expandGroupOf(state.groups, next) };
 					}),
 				renameTab: (id, title) =>
 					set((state) => ({
@@ -101,8 +173,8 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						if (id === beforeId) return state;
 						const moving = state.tabs.find((item) => item.id === id)!;
 						const tabs = state.tabs.filter((item) => item.id !== id);
-						const index = beforeId === null ? tabs.length : tabs.findIndex((item) => item.id === beforeId);
-						tabs.splice(index, 0, moving);
+						const wanted = beforeId === null ? tabs.length : tabs.findIndex((item) => item.id === beforeId);
+						tabs.splice(insertIndex(tabs, state.groups, moving, wanted), 0, moving);
 						return { tabs };
 					}),
 				closeTab: (id) =>
@@ -111,10 +183,20 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 						const closed = state.tabs[index]!;
 						const replacement = state.tabs.length === 1 ? tab(createId(), options.homePage) : null;
 						const tabs = replacement ? [replacement] : state.tabs.filter((item) => item.id !== id);
+						const groupIndex = state.groups.findIndex((group) => group.id === closed.groupId);
+						const emptied = groupIndex !== -1 && !tabs.some((item) => item.groupId === closed.groupId);
+						const record: ClosedPageTab = { tab: closed, index, replacementId: replacement?.id ?? null };
+						if (emptied) record.group = { group: state.groups[groupIndex]!, index: groupIndex };
+						const next = tabs[Math.min(index, tabs.length - 1)]!;
 						return {
 							tabs,
-							activeId: state.activeId === id ? tabs[Math.min(index, tabs.length - 1)]!.id : state.activeId,
-							closedTabs: [...state.closedTabs, { tab: closed, index, replacementId: replacement?.id ?? null }],
+							groups: emptied
+								? state.groups.filter((group) => group.id !== closed.groupId)
+								: state.activeId === id
+									? expandGroupOf(state.groups, next)
+									: state.groups,
+							activeId: state.activeId === id ? next.id : state.activeId,
+							closedTabs: [...state.closedTabs, record],
 						};
 					}),
 				reopenClosedTab: () =>
@@ -131,8 +213,10 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 									item.forwardHistory.length === 0
 								),
 						);
-						tabs.splice(closed.index, 0, closed.tab);
-						return { tabs, activeId: closed.tab.id, closedTabs: state.closedTabs.slice(0, -1) };
+						const groups = closed.group ? [...state.groups] : expandGroupOf(state.groups, closed.tab);
+						if (closed.group) groups.splice(closed.group.index, 0, closed.group.group);
+						tabs.splice(insertIndex(tabs, groups, closed.tab, closed.index), 0, closed.tab);
+						return { tabs, groups, activeId: closed.tab.id, closedTabs: state.closedTabs.slice(0, -1) };
 					}),
 				navigate: (page) =>
 					set((state) =>
@@ -178,7 +262,12 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 			{
 				name: pageTabsStorageKey(options.origin),
 				storage: createJSONStorage(() => options.storage),
-				partialize: (state) => ({ tabs: state.tabs, activeId: state.activeId, closedTabs: state.closedTabs }),
+				partialize: (state) => ({
+					tabs: state.tabs,
+					groups: state.groups,
+					activeId: state.activeId,
+					closedTabs: state.closedTabs,
+				}),
 			},
 		),
 	);

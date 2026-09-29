@@ -1,56 +1,63 @@
 import { Plus } from "@phosphor-icons/react";
-import { type PointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { TabsList, TabsRoot } from "../../primitives/Tabs";
 import { Tooltip } from "../../primitives/Tooltip";
 import { PageTab } from "./components/PageTab";
 import { TabActions } from "./components/TabActions";
+import { TabGroupHeader } from "./components/TabGroupHeader";
 import { TabPicker } from "./components/TabPicker";
+import { dropTargetId, slotIndexOf, tabSlots } from "./components/tabSlots";
+import { useTabDrag } from "./components/useTabDrag";
 import { useTabLayout } from "./components/useTabLayout";
 
-export type PageTabItem = { id: string; title: string };
+export type PageTabItem = { id: string; title: string; groupId?: string };
+export type PageTabGroupItem = { id: string; name: string; collapsed: boolean };
 export type PageTabsProps = {
 	tabs: readonly PageTabItem[];
+	// The groups in strip order. The tabs of one group are contiguous in
+	// `tabs`, and a header box precedes them.
+	groups?: readonly PageTabGroupItem[];
 	activeId: string;
 	onAdd: () => void;
 	onSelect: (id: string) => void;
 	onClose: (id: string) => void;
 	onMove?: (id: string, beforeId: string | null) => void;
 	onRename?: (id: string, title: string | null) => void;
+	// Creates a group that holds the tab, and returns the id of the group.
+	onCreateGroup?: (name: string, tabId: string) => string;
+	onRenameGroup?: (id: string, name: string) => void;
+	onRemoveGroup?: (id: string) => void;
+	onGroupCollapse?: (id: string, collapsed: boolean) => void;
+	onSetTabGroup?: (tabId: string, groupId: string | null) => void;
 	"aria-label"?: string;
 };
 
 export function PageTabs({
 	tabs,
+	groups = [],
 	activeId,
 	onAdd,
 	onSelect,
 	onClose,
 	onMove,
 	onRename,
+	onCreateGroup,
+	onRenameGroup,
+	onRemoveGroup,
+	onGroupCollapse,
+	onSetTabGroup,
 	"aria-label": ariaLabel = "Open pages",
 }: PageTabsProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
+	const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 	const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
-	const layout = useTabLayout(tabs, activeIndex);
-	const { ref: tabListRef, width: tabWidth } = layout;
+	const slots = useMemo(() => tabSlots(tabs, groups), [tabs, groups]);
+	const activeSlot = slotIndexOf(slots, activeId);
+	const layout = useTabLayout(slots, activeSlot);
 	const focusAfterChange = useRef(false);
 	const addButton = useRef<HTMLButtonElement>(null);
-	const dragged = useRef<string | null>(null);
-	const [draggedId, setDraggedId] = useState<string | null>(null);
-	const dragX = useRef(0);
-	const pointerStart = useRef<{ id: string; x: number } | null>(null);
-	const suppressClick = useRef(false);
-	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [announcement, setAnnouncement] = useState("");
-	const draggedIndex = useMemo(
-		() => (draggedId === null ? -1 : tabs.findIndex((tab) => tab.id === draggedId)),
-		[tabs, draggedId],
-	);
-	const renderedIndexes =
-		draggedIndex >= 0 && !layout.indexes.includes(draggedIndex)
-			? [...layout.indexes, draggedIndex].sort((a, b) => a - b)
-			: layout.indexes;
 	const items = useMemo(() => tabs.map((tab) => ({ value: tab.id })), [tabs]);
 	const focusActive = () => {
 		const tab = Array.from(layout.ref.current!.querySelectorAll<HTMLElement>('[role="tab"]')).find(
@@ -80,61 +87,23 @@ export function PageTabs({
 		focusAfterChange.current = true;
 		onSelect(id);
 	};
-	const positionFor = useCallback(
-		(clientX: number) => {
-			const element = tabListRef.current!;
-			return Math.max(
-				0,
-				Math.min(
-					tabs.length,
-					Math.floor((clientX - element.getBoundingClientRect().left + element.scrollLeft + tabWidth / 2) / tabWidth),
-				),
-			);
+	const drag = useTabDrag({
+		listRef: layout.ref,
+		slotWidth: layout.width,
+		slotCount: slots.length,
+		enabled: onMove !== undefined,
+		onDrop: (id, index) => {
+			const before = dropTargetId(slots, index);
+			const origin = slotIndexOf(slots, id);
+			if (before !== id && index !== origin && index !== origin + 1) move(id, before);
 		},
-		[tabListRef, tabWidth, tabs.length],
-	);
-	const pointerDown = (id: string, event: PointerEvent<HTMLButtonElement>) => {
-		if (!onMove || event.button !== 0 || event.pointerType === "touch") return;
-		pointerStart.current = { id, x: event.clientX };
-		event.currentTarget.setPointerCapture(event.pointerId);
-	};
-	const pointerMove = (event: PointerEvent) => {
-		const start = pointerStart.current;
-		if (!start || (Math.abs(event.clientX - start.x) < 6 && dragged.current === null)) return;
-		dragged.current = start.id;
-		setDraggedId(start.id);
-		dragX.current = event.clientX;
-		setDropIndex(positionFor(event.clientX));
-	};
-	const pointerEnd = (event: PointerEvent) => {
-		pointerStart.current = null;
-		if (dragged.current === null) return;
-		const id = dragged.current,
-			index = positionFor(event.clientX),
-			before = tabs[index]?.id ?? null;
-		dragged.current = null;
-		setDraggedId(null);
-		setDropIndex(null);
-		suppressClick.current = true;
-		if (before !== id && tabs[index - 1]?.id !== id) move(id, before);
-	};
-
-	useEffect(() => {
-		if (dropIndex === null) return;
-		let frame: number;
-		const scroll = () => {
-			const element = tabListRef.current!;
-			const bounds = element.getBoundingClientRect();
-			const delta = dragX.current < bounds.left + 28 ? -12 : dragX.current > bounds.right - 28 ? 12 : 0;
-			if (delta) {
-				element.scrollLeft += delta;
-				setDropIndex(positionFor(dragX.current));
-			}
-			frame = requestAnimationFrame(scroll);
-		};
-		frame = requestAnimationFrame(scroll);
-		return () => cancelAnimationFrame(frame);
-	}, [dropIndex, tabListRef, positionFor]);
+	});
+	const draggedSlot = drag.draggedId === null ? -1 : slotIndexOf(slots, drag.draggedId);
+	const renderedIndexes =
+		draggedSlot >= 0 && !layout.indexes.includes(draggedSlot)
+			? [...layout.indexes, draggedSlot].sort((a, b) => a - b)
+			: layout.indexes;
+	const groupOf = (tabId: string) => tabs.find((tab) => tab.id === tabId)!.groupId ?? null;
 	return (
 		<div className="relative flex min-w-0 items-end bg-surface px-1 pt-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
 			<TabsRoot
@@ -171,37 +140,45 @@ export function PageTabs({
 						const target = targets[event.key];
 						if (target !== undefined) move(activeId, target);
 					}}
-					onPointerDownCapture={() => {
-						suppressClick.current = false;
-					}}
-					onPointerMove={pointerMove}
-					onPointerUp={pointerEnd}
-					onPointerCancel={() => {
-						pointerStart.current = null;
-						dragged.current = null;
-						setDraggedId(null);
-						setDropIndex(null);
-					}}
-					onClickCapture={(event) => {
-						if (suppressClick.current) {
-							event.preventDefault();
-							event.stopPropagation();
-							suppressClick.current = false;
-						}
-					}}
+					{...drag.listHandlers}
 				>
-					<div className="relative h-full" style={{ width: tabs.length * layout.width }}>
+					<div className="relative h-full" style={{ width: slots.length * layout.width }}>
 						{renderedIndexes.map((index) => {
-							const tab = tabs[index]!;
+							const slot = slots[index]!;
+							if (slot.kind === "group")
+								return (
+									<TabGroupHeader
+										key={`group:${slot.group.id}`}
+										group={slot.group}
+										count={slot.count}
+										index={index}
+										width={layout.width}
+										editing={editingGroupId === slot.group.id}
+										onEditingChange={(focus) => {
+											setEditingGroupId(focus ? slot.group.id : null);
+											focusAfterChange.current = false;
+										}}
+										onRename={onRenameGroup}
+										onRemove={onRemoveGroup}
+										onCollapse={onGroupCollapse!}
+									/>
+								);
+							const tab = slot.tab;
 							return (
 								<PageTab
 									key={tab.id}
 									tab={tab}
 									index={index}
+									position={slot.tabIndex}
 									count={tabs.length}
 									width={layout.width}
 									active={tab.id === activeId}
-									separator={index !== activeIndex && index + 1 !== activeIndex && index < tabs.length - 1}
+									separator={
+										index !== activeSlot &&
+										index + 1 !== activeSlot &&
+										index < slots.length - 1 &&
+										slots[index + 1]!.kind === "tab"
+									}
 									onClose={() => close(tab.id)}
 									editing={editingId === tab.id}
 									onEditingChange={(focus) => {
@@ -209,14 +186,14 @@ export function PageTabs({
 										focusAfterChange.current = focus;
 									}}
 									onRename={(title) => onRename!(tab.id, title)}
-									onPointerDown={(event) => pointerDown(tab.id, event)}
+									onPointerDown={(event) => drag.pointerDown(tab.id, event)}
 								/>
 							);
 						})}
-						{dropIndex !== null && (
+						{drag.dropIndex !== null && (
 							<div
 								className="pointer-events-none absolute inset-y-1 z-20 w-0.5 rounded-round bg-accent"
-								style={{ left: Math.min(dropIndex * layout.width, tabs.length * layout.width - 2) }}
+								style={{ left: Math.min(drag.dropIndex * layout.width, slots.length * layout.width - 2) }}
 							/>
 						)}
 					</div>
@@ -233,13 +210,24 @@ export function PageTabs({
 					/>
 				</Tooltip>
 				<TabPicker tabs={tabs} activeId={activeId} onSelect={onSelect} />
-				{tabs.length > 0 && (onMove || onRename) && (
+				{tabs.length > 0 && (onMove || onRename || onSetTabGroup) && (
 					<TabActions
 						tabs={tabs}
+						groups={groups}
 						activeIndex={activeIndex}
 						onMove={onMove ? move : undefined}
 						onRename={onRename ? () => setEditingId(activeId) : undefined}
 						onRestore={onRename ? () => onRename(activeId, null) : undefined}
+						onCreateGroup={
+							onCreateGroup && onSetTabGroup
+								? () => {
+										const id = onCreateGroup("New group", activeId);
+										setEditingGroupId(id);
+									}
+								: undefined
+						}
+						onSetGroup={onSetTabGroup ? (groupId) => onSetTabGroup(activeId, groupId) : undefined}
+						currentGroupId={groupOf(activeId)}
 						onClose={() => close(activeId)}
 					/>
 				)}

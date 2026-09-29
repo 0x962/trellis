@@ -9,7 +9,10 @@ import type { PageTabItem } from "../../PageTabs";
 
 type Props = {
 	tab: PageTabItem;
+	// The box of the strip the tab draws in.
 	index: number;
+	// The place of the tab among all open tabs, for a screen reader.
+	position: number;
 	count: number;
 	width: number;
 	active: boolean;
@@ -24,6 +27,7 @@ type Props = {
 export function PageTab({
 	tab,
 	index,
+	position,
 	count,
 	width,
 	active,
@@ -83,7 +87,7 @@ export function PageTab({
 						value={tab.id}
 						tabIndex={active ? 0 : -1}
 						data-page-tab-id={tab.id}
-						aria-posinset={index + 1}
+						aria-posinset={position + 1}
 						aria-setsize={count}
 						className="flex h-9 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center rounded-tl-lg px-3 text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
 						onPointerDown={onPointerDown}
