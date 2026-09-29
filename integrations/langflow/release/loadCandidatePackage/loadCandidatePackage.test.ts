@@ -22,7 +22,7 @@ async function fixture() {
 		catalogId: "fixture",
 		componentManifestHash: input.recipe.components.catalog.sha256,
 		engineOverlayHash: input.recipe.patchSet.sha256,
-		engine: { name: "langflow", version: "1.12.3", commit: input.recipe.source.commit },
+		engine: { name: "langflow", version: "1.12.3", commit: String(input.recipe.source.commit) },
 		allowedForPublication: false,
 		supportedMappings: [],
 		legacyMappings: [{ id: "agent", status: "blocked" }],
@@ -46,6 +46,8 @@ test("retains original export bytes with the catalog and overlay identities", as
 		engineOverlayHash: input.recipe.patchSet.sha256,
 	});
 	expect(Object.isFrozen(loaded.frontendTemplates)).toBe(true);
+	expect(loaded.componentManifestPath).toBe(join(output, "payload", input.recipe.components.catalog.path));
+	expect(loaded.engineOverlayHash).toBe(input.recipe.patchSet.sha256);
 	expect(await readFile(loaded.frontendTemplates!.path, "utf8")).toBe(bytes);
 	expect(loaded.qualification).toBe("candidate");
 });
@@ -65,7 +67,9 @@ test("leaves an absent export out of package identity and returns null", async (
 	const result = await sealPackage({ ...input, output });
 	expect(Object.hasOwn(result.recipe, "frontendTemplates")).toBe(false);
 	expect(result.packageId).toBe(
-		createHash("sha256").update(canonicalBytes({ recipe: input.recipe, files: result.files })).digest("hex"),
+		createHash("sha256")
+			.update(canonicalBytes({ recipe: input.recipe, files: result.files }))
+			.digest("hex"),
 	);
 	expect((await loadCandidatePackage(output, result.packageId)).frontendTemplates).toBeNull();
 });

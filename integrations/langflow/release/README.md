@@ -46,6 +46,7 @@ The assembler preserves its original bytes and checks its catalog hash, engine c
 Supply `recipe.patchSet.sha256` as the exporter's `engine_overlay_sha256` input.
 This hash covers the canonical ordered recipe patch records; a source-file aggregate is a different identity.
 The loader returns `frontendTemplates: { path, sha256, engineOverlayHash }` with an absolute path, or `null` when absent.
+`componentManifestPath` names the verified catalog file; `engineOverlayHash` exposes `recipe.patchSet.sha256` directly.
 The installed provider reads the verified artifact and retains its publication blockers and complete template metadata.
 The template producer owns the export schema and actual engine trace.
 
