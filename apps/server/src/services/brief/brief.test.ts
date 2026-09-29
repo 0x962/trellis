@@ -144,6 +144,8 @@ test("the epic tickets of an epic with waves group by wave in position order, th
 });
 
 test("the results section lists the done tickets of each earlier wave with their outcome", () => {
+	const longOutcome = `${"x".repeat(1300)}\nThe final requirement stays in the brief.`;
+	const multibyteOutcome = "The runtime keeps café, résumé, and 東京.";
 	const grouped: Epic = {
 		...epic,
 		waves: [phase1, phase2, phase3],
@@ -157,8 +159,8 @@ test("the results section lists the done tickets of each earlier wave with their
 		],
 	};
 	const outcomes = new Map([
-		["01J00000000000000000000029", "The runtime is in runtime.ts.\n\nRun: bun test runtime"],
-		["01J00000000000000000000030", "x".repeat(1300)],
+		["01J00000000000000000000029", multibyteOutcome],
+		["01J00000000000000000000030", longOutcome],
 		["01J00000000000000000000034", "A ticket of the same wave."],
 	]);
 	expect(resultsLines(grouped, "01J00000000000000000000033", outcomes)).toEqual([
@@ -167,14 +169,13 @@ test("the results section lists the done tickets of each earlier wave with their
 		"### Phase 1: run state",
 		"",
 		"- OP-29 Create the runtime",
-		"  The runtime is in runtime.ts.",
-		"  ",
-		"  Run: bun test runtime",
+		`  ${multibyteOutcome}`,
 		"",
 		"### Phase 2: unattended runs",
 		"",
 		"- OP-30 Wire the poller",
-		`  ${"x".repeat(1200)}`,
+		`  ${"x".repeat(1300)}`,
+		"  The final requirement stays in the brief.",
 	]);
 	expect(resultsLines(grouped, "01J00000000000000000000030", new Map())).toEqual([
 		"## Results of earlier waves",

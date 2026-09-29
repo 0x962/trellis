@@ -45,8 +45,6 @@ export const epicLines = (epic: Epic, ticketId: string): string[][] => {
 	];
 };
 
-export const RESULT_OUTCOME_MAX = 1200;
-
 // The done tickets of each wave that comes before the wave of the
 // ticket `ticketId`, in position order. A ticket with no wave has no
 // earlier wave. A wave with no done ticket is not in the list.
@@ -64,10 +62,9 @@ export const earlierResults = (epic: Epic, ticketId: string) => {
 
 // The "Results of earlier waves" section of a brief: one `### <name>`
 // group per wave of `earlierResults`, and one list item per done
-// ticket. `outcomes` maps a ticket id to the outcome sentence that the
-// ticket records. The sentence prints below the item, indented, and cut at
-// RESULT_OUTCOME_MAX characters. A ticket with no outcome prints its item
-// alone. No group gives no section.
+// ticket. `outcomes` maps a ticket id to the complete outcome that the
+// ticket records. The outcome prints below the item with indentation. A
+// ticket with no outcome prints its item alone. No group gives no section.
 export const resultsLines = (epic: Epic, ticketId: string, outcomes: Map<string, string>): string[] => {
 	const groups = earlierResults(epic, ticketId);
 	if (groups.length === 0) return [];
@@ -78,7 +75,7 @@ export const resultsLines = (epic: Epic, ticketId: string, outcomes: Map<string,
 			lines.push(`- ${ticket.identifier} ${ticket.title}`);
 			const outcome = outcomes.get(ticket.id);
 			if (outcome === undefined) continue;
-			for (const line of outcome.slice(0, RESULT_OUTCOME_MAX).trimEnd().split("\n")) lines.push(`  ${line}`);
+			for (const line of outcome.trimEnd().split("\n")) lines.push(`  ${line}`);
 		}
 	}
 	return lines;
