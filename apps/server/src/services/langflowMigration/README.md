@@ -91,6 +91,42 @@ It also checks retained expansion and candidate digests and the current producer
 The activation owner must perform the source read and recheck under the document lock before any future conversion write.
 An unchanged intake remains blocked until executable mappings and integrated proof exist.
 
+`ConversionEditIntentV1Schema` defines the sole converted-draft edit request.
+It requires `schemaVersion: 1`, `flowId`, `expectedVersion`, `expectedDocumentHash`, `componentManifestHash`, `enginePackageDigest`, `requestId`, and `edits`.
+The six edit kinds are `set-flow-briefing`, `set-flow-harness`, `set-node-instruction`, `set-node-harness`, `set-group-policy`, and `set-loop-rounds`.
+Node edits identify `sourceNodeId`; group policy carries `parallel` and `minutes`; loop policy carries `maxRounds`.
+Harness validation preserves original strings and absent optional fields.
+The transport validates the complete intent and serializes it once with `documentBytes` for request identity.
+This identity describes the validated request, not raw HTTP whitespace.
+
+`prepareConversionEdit({base, requestBytes}, producer)` retains the supplied request bytes exactly.
+The caller first looks up the durable intent receipt and returns an equal replay before producer access.
+The preparation checks the captured immutable base and expected package/catalog identities.
+`ConversionEditProducer.regenerate` supplies graph, static entries, associations, and scope policy from the edited source.
+Its `validate` method uses the installed engine and the same pinned identities.
+A null producer or any unsupported mapping returns `{state: "blocked", diagnostics}` with no saved revision or receipt.
+The current conversion execution blocker prevents a prepared success, including with injected producer callbacks.
+
+`PreparedConversionEditV1` defines the candidate for the publication owner's transaction adapter.
+It binds `intentBytes`, `base`, package/catalog identities, generated `content`, exact `sourceBytes`, metadata, and derived provenance.
+`sourceBytes` describes `documentBytes(content)`.
+`base.sourceBytesHash` means SHA256 of `documentBytes(captured complete snapshot)`, including its metadata.
+It differs from `base.documentHash`, which identifies the retained content bytes.
+The adapter independently retains and compares the database source bytes across its two locks.
+The final lock checks replay first, then the version, document hash, snapshot hash, and installed identities.
+It commits metadata, revision, content bytes, and the original intent receipt together.
+The receipt is `{requestId, document}`; an exact replay returns that original document.
+TRL-684 owns this transaction, and TRL-696 owns its future public/editor wiring.
+
+`trellisConversionV1.source` permanently retains the original migration export.
+`editedSource` identifies a derived source with the new Langflow revision, exact bytes, digest, parent identity, and original intent bytes.
+`editHistory` retains prior derived records in order.
+`readConversionSource` applies each recorded intent to the original source and checks every resulting digest and byte sequence.
+Prior document hashes refer to retained database revisions; preparation binds the latest parent to the captured snapshot.
+The derived source keeps the original source metadata version; `editedSource.revision` names the actual new Langflow revision.
+The provenance reader returns effective `sourceNode`/`sourceFlow` and separately exposes `originalSourceNode`/`originalSourceFlow`.
+An edit cannot become executable through recomputed hashes alone.
+
 The focused commands are:
 
 ```sh
