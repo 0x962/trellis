@@ -12,6 +12,7 @@ from langflow.services.trellis_v1 import occurrence_reservations as reservations
 from langflow.services.database.models.jobs.model import JobStatus
 from langflow.services.trellis_v1.occurrence_journal import OccurrenceConflict
 from langflow.services.trellis_v1.occurrence_models import canonical
+from langflow.services.trellis_v1.occurrence_projection import initial_projection
 
 
 JOB = UUID("6ce9e3ed-cbf5-43cd-af82-c07c6e5ab3f0")
@@ -30,7 +31,10 @@ def setup_recovery(monkeypatch, status=JobStatus.SUSPENDED):
     monkeypatch.setattr(reservations, "session_scope", sessions)
     monkeypatch.setattr(reservations, "read_cancellation", AsyncMock(return_value=None))
     monkeypatch.setattr(reservations, "checkpoint", AsyncMock(return_value=SimpleNamespace(blob=canonical(obligation))))
-    monkeypatch.setattr(reservations, "locked_graph", AsyncMock(return_value=(JOB, {}, None, {"visits": {"visit": VISIT}})))
+    visit = {**VISIT, "projection": initial_projection("native")}
+    monkeypatch.setattr(reservations, "locked_graph", AsyncMock(return_value=(JOB, {}, None, {"visits": {"visit": visit}})))
+    monkeypatch.setattr(reservations, "save_journal", AsyncMock())
+    monkeypatch.setattr(reservations, "record_projection_checkpoint", AsyncMock())
     monkeypatch.setattr(reservations, "authorize_native", AsyncMock(return_value="capability"))
     transport = SimpleNamespace(reserve=AsyncMock())
     monkeypatch.setattr(reservations, "request_transport", lambda: transport)
@@ -41,7 +45,13 @@ def setup_recovery(monkeypatch, status=JobStatus.SUSPENDED):
 @pytest.mark.asyncio
 async def test_unknown_response_replays_exact_request_bytes(monkeypatch):
     graph, transport, session, obligation = setup_recovery(monkeypatch)
-    transport.reserve.side_effect = httpx.ReadError("unknown response")
+    async def unknown(*args):
+        saved = reservations.save_journal.await_args.args[2]
+        assert saved["visits"]["visit"]["projection"]["state"] == "unknown"
+        reservations.record_projection_checkpoint.assert_awaited_once_with(session, JOB)
+        session.commit.assert_awaited()
+        raise httpx.ReadError("unknown response")
+    transport.reserve.side_effect = unknown
     assert await reservations.recover_native_reservation(graph, "wait") is False
     assert await reservations.recover_native_reservation(graph, "wait") is False
     assert transport.reserve.await_args_list[0].args == (REQUEST, "capability")

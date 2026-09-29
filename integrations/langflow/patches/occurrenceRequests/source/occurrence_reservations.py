@@ -8,6 +8,7 @@ from langflow.services.database.models.jobs.model import Job, JobCheckpoint, Job
 from langflow.services.deps import session_scope
 from langflow.services.trellis_v1.native_records import checkpoint
 from langflow.services.trellis_v1.cancellation import read_cancellation
+from langflow.services.trellis_v1.projection_store import record_projection_checkpoint
 
 from .occurrence_handle import validate_handle
 from .occurrence_journal import JOURNAL_KIND, OccurrenceConflict, external_wait
@@ -68,6 +69,10 @@ async def recover_native_reservation(graph, wait_id):
             if obligation["handleConfirmed"]:
                 return True
             capability_id = await authorize_native(session, job_id, admission)
+            if visit["projection"]["state"] == "pending":
+                visit["projection"]["state"] = "unknown"
+                await save_journal(session, job_id, journal)
+                await record_projection_checkpoint(session, job_id)
             await session.commit()
     try:
         handle_bytes = await request_transport().reserve(obligation["requestBytes"], capability_id)
@@ -109,6 +114,7 @@ async def retain_reserved_handle(graph, obligation, handle_bytes):
                 saved["stopReconciliationRequired"] = True
             await save_blob(session, job_id, PREFIX + visit["waitId"], canonical(saved))
             await save_journal(session, job_id, journal)
+            await record_projection_checkpoint(session, job_id)
             await session.commit()
         apply_waits(graph, waits)
     return "cancelled" if cancelled else True
