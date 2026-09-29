@@ -12,7 +12,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { protocolDigest } from "../../../langflowContracts";
+import { protocolDigest } from "../../langflowContracts";
 
 export class ReceiptObjectStore {
 	constructor(private readonly directory: string) {
@@ -35,12 +35,22 @@ export class ReceiptObjectStore {
 	}
 
 	findBinding(key: string): string | null {
-		if (!existsSync(join(this.directory, `binding-${protocolDigest(key)}.json`))) return null;
-		return this.readBinding(key);
+		let bytes: string;
+		try {
+			bytes = this.readPath(join(this.directory, `binding-${protocolDigest(key)}.json`));
+		} catch (error) {
+			if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
+			throw error;
+		}
+		return this.bindingId(key, bytes);
 	}
 
 	readBinding(key: string): string {
-		const record = JSON.parse(this.readPath(join(this.directory, `binding-${protocolDigest(key)}.json`)));
+		return this.bindingId(key, this.readPath(join(this.directory, `binding-${protocolDigest(key)}.json`)));
+	}
+
+	private bindingId(key: string, bytes: string): string {
+		const record = JSON.parse(bytes);
 		if (record.key !== key || typeof record.id !== "string") throw new Error("receipt_binding_corrupt");
 		this.read(record.id);
 		return record.id;
