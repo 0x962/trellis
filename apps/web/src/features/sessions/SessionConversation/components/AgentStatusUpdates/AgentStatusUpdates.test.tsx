@@ -60,6 +60,7 @@ const renderPane = (value = updates) =>
 			run={run}
 			updates={value}
 			now="2026-09-29T06:00:00.000Z"
+			observerError={null}
 			onOpenLink={() => {}}
 			renderMarkdown={(markdown) => <p data-markdown={markdown}>{markdown}</p>}
 		/>,
@@ -76,6 +77,7 @@ const renderConversation = () =>
 					run={run}
 					updates={updates}
 					now="2026-09-29T06:00:00.000Z"
+					observerError={null}
 					onOpenLink={() => {}}
 					renderMarkdown={(markdown) => <p data-markdown={markdown}>{markdown}</p>}
 				/>
@@ -107,7 +109,7 @@ describe("AgentStatusUpdatesPane", () => {
 		expect(html).toContain("w-93.5");
 		expect(html).toContain("max-md:order-first");
 		expect(html).toContain("max-md:max-h-130");
-		expect(html).toContain('aria-label="Agent status updates"');
+		expect(html).toContain('aria-label="Observer status updates"');
 		expect(html.indexOf("data-transcript")).toBeLessThan(html.indexOf('aria-label="Session status"'));
 	});
 });

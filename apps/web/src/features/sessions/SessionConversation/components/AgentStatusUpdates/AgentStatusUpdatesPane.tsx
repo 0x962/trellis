@@ -10,12 +10,14 @@ export function AgentStatusUpdatesPane({
 	run,
 	updates,
 	now,
+	observerError,
 	onOpenLink,
 	renderMarkdown = renderStatusMarkdown,
 }: {
 	run: AgentRun;
 	updates: SessionUpdates;
 	now: string;
+	observerError: string | null;
 	onOpenLink: (href: string, press: LinkPress) => void;
 	renderMarkdown?: (markdown: string) => ReactNode;
 }) {
@@ -24,6 +26,7 @@ export function AgentStatusUpdatesPane({
 			updates={updates}
 			processState={sessionStatusProcessState(run)}
 			now={now}
+			observerError={observerError}
 			renderMarkdown={renderMarkdown}
 			onOpenLink={(href, target, press) => onOpenLink(href, agentStatusLinkPress(target, press))}
 		/>

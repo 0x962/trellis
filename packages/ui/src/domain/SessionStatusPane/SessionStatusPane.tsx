@@ -3,12 +3,11 @@ import { EmptyState } from "../../primitives/EmptyState";
 import { ScrollArea } from "../../primitives/ScrollArea";
 import { cx } from "../../utils/cx";
 import { type LinkPress, linkPress } from "../../utils/linkPress";
+import { FailureState } from "../FailureState";
 import { SessionStatusEmbed } from "./components/SessionStatusEmbed";
 import { SessionStatusPaneShell } from "./SessionStatusPaneShell";
 import { sessionStatusNotice, sessionUpdateAge } from "./sessionStatusText";
 import type { SessionStatusPaneProps, SessionUpdate } from "./types";
-
-const defaultLateAfterMs = 10 * 60_000;
 
 const messageClass = cx(
 	"text-md text-fg [overflow-wrap:anywhere]",
@@ -82,25 +81,26 @@ export function SessionStatusPane({
 	updates,
 	processState,
 	now,
+	observerError = null,
 	renderMarkdown,
 	onOpenLink,
-	lateAfterMs = defaultLateAfterMs,
 	className,
 }: SessionStatusPaneProps) {
 	const [previousOpen, setPreviousOpen] = useState(false);
-	const notice = sessionStatusNotice({
-		processState,
-		request: updates.request,
-		latestAt: updates.latest?.createdAt ?? null,
-		now,
-		lateAfterMs,
-	});
+	const notice =
+		observerError === null
+			? sessionStatusNotice({
+					processState,
+					request: updates.request,
+					latestAt: updates.latest?.createdAt ?? null,
+				})
+			: null;
 	return (
 		<SessionStatusPaneShell className={className}>
-			<ScrollArea label="Agent status updates" className="min-h-0 flex-1">
+			<ScrollArea label="Observer status updates" className="min-h-0 flex-1">
 				<div className="flex min-h-full flex-col gap-5 px-5.5 py-5 max-md:gap-4 max-md:p-4.5">
 					<header className="flex items-center justify-between gap-3">
-						<h2 className="text-sm font-medium text-fg">From the agent</h2>
+						<h2 className="text-sm font-medium text-fg">From the observer</h2>
 						{updates.latest === null ? (
 							<span className="text-xs text-fg-faint">No update yet</span>
 						) : (
@@ -114,11 +114,19 @@ export function SessionStatusPane({
 							{notice}
 						</p>
 					)}
+					{observerError !== null && (
+						<FailureState
+							variant="section"
+							title="The observer could not update the status."
+							description="The last update stays available. Follow the error details before new session activity."
+							detail={observerError}
+						/>
+					)}
 					{updates.latest === null ? (
 						<EmptyState
 							image={null}
-							title="The agent has not supplied a status update yet."
-							description="Its first reply will appear here. You can read the session transcript while you wait."
+							title="The observer has not supplied a status update yet."
+							description="Its first update will appear here. You can read the session transcript while you wait."
 							variant="section"
 						/>
 					) : (
@@ -146,12 +154,11 @@ export function SessionStatusPane({
 					)}
 					<details className="mt-auto text-xs leading-relaxed text-fg-faint">
 						<summary className="flex min-h-7 w-fit cursor-pointer items-center rounded-sm text-fg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 max-md:min-h-11">
-							Updates every 5 min
+							How updates work
 						</summary>
 						<p className="mt-2.5">
-							Trellis asks the active agent for a rich update. A supported side conversation, such as /btw, keeps the
-							work in progress. Otherwise, the request waits for a safe break. The latest reply stays visible until a
-							new reply arrives. A paused session receives no automatic request.
+							The observer reads completed session activity and writes a rich update. The latest update stays visible
+							until a new update arrives. A paused session receives no update.
 						</p>
 					</details>
 				</div>
