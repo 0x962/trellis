@@ -15,8 +15,9 @@ import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { assertProjectActive } from "../refs.ts";
-import { type IoCtx, notFound, touchActor } from "../support.ts";
+import { type IoCtx, notFound } from "../support.ts";
 
 type CommentRow = {
 	id: string;
@@ -149,7 +150,7 @@ export const create = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	assertProjectActive(ctx.core, resource.project_id);
 	const id = ulid();
 	const at = ctx.now();
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`INSERT INTO resource_comments (
 		id, resource_id, thread_id, body, quote, prefix, suffix, actor_id, actor_name, actor_kind, created_at, updated_at
 	) VALUES (
@@ -184,7 +185,7 @@ export const reply = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	const thread = await findThread(tx, input.thread);
 	assertProjectActive(ctx.core, thread.resource.project_id);
 	const at = ctx.now();
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`INSERT INTO resource_comments (
 		id, resource_id, thread_id, body, actor_id, actor_name, actor_kind, created_at, updated_at
 	) VALUES (
@@ -199,7 +200,7 @@ export const resolve = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
 	const thread = await findThread(tx, input.thread);
 	assertProjectActive(ctx.core, thread.resource.project_id);
 	const at = ctx.now();
-	const actorId = input.resolved ? await touchActor(ctx, tx, ctx.actor, at) : null;
+	const actorId = input.resolved ? await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor) : null;
 	await tx.execute(
 		input.resolved
 			? sql`UPDATE resource_comments SET resolved_at = ${at}, resolved_by_id = ${actorId}, resolved_by_name = ${ctx.actor.name},

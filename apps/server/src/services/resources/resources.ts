@@ -14,10 +14,11 @@ import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { gcBlobs } from "../blobs.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
-import { type IoCtx, notFound, touchActor } from "../support.ts";
+import { type IoCtx, notFound } from "../support.ts";
 
 const IMAGE_MIMES: ReadonlySet<string> = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"]);
 
@@ -117,7 +118,7 @@ export const add = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resour
 	}
 	const id = ulid();
 	const at = ctx.now();
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`INSERT INTO epic_resources (
 		id, epic_id, kind, name, body, url, blob_sha256, blob_size, mime, ticket_id,
 		actor_id, actor_name, actor_kind, created_at, updated_at
@@ -156,7 +157,7 @@ export const update = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Res
 	if (row.kind !== "doc") throw invalidInput("id", "Select a document resource.");
 	assertProjectActive(ctx.core, row.project_id);
 	const at = ctx.now();
-	const actorId = await touchActor(ctx, tx, ctx.actor, at);
+	const actorId = await resolveActorId({ ...ctx.core, now: at }, tx, ctx.actor);
 	await tx.execute(sql`UPDATE epic_resources SET name = ${input.name ?? row.name}, body = ${input.body ?? row.body},
 		actor_id = ${actorId}, actor_name = ${ctx.actor.name}, actor_kind = ${ctx.actor.kind}, updated_at = ${at}
 		WHERE id = ${row.id}`);
