@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "obligationId": "stop-1",
+  "executionId": "execution-1",
+  "stepId": "step-1",
+  "agentRunId": "agent-1",
+  "attemptId": "00000000-0000-4000-8000-000000000002",
+  "reason": "canceled",
+  "requestedAt": "2026-09-29T06:00:00.000Z",
+  "revision": 2,
+  "state": "confirmed",
+  "exitReceipt": {
+    "attemptId": "00000000-0000-4000-8000-000000000002",
+    "receiptId": "exit-1",
+    "exitedAt": "2026-09-29T06:00:00.000Z",
+    "confirmedAt": "2026-09-29T06:00:00.000Z"
+  }
+}

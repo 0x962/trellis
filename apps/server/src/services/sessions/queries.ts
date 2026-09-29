@@ -1,6 +1,5 @@
 import type { Session } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import type { ServiceCtx } from "../../context.ts";
 import { iso, rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
@@ -38,13 +37,19 @@ export const getSession = async (tx: Tx, id: string) => {
 	return session;
 };
 
-export const sessionIdsForRuns = async (_ctx: ServiceCtx, tx: Tx, input: { runIds: string[] }) => {
+export const sessionIdsForRuns = async (tx: Tx, input: { runIds: string[] }) => {
 	const found = await rows<{ id: string; runId: string }>(
 		tx,
 		sql`SELECT id, run_id AS "runId" FROM sessions WHERE run_id = ANY(${textArray(input.runIds)})`,
 	);
 	return Object.fromEntries(found.map((session) => [session.runId, session.id]));
 };
+
+export const statusRequestSessions = (tx: Tx) =>
+	rows<{ sessionId: string; runId: string }>(
+		tx,
+		sql`SELECT id AS "sessionId", run_id AS "runId" FROM sessions WHERE archived_at IS NULL ORDER BY id`,
+	);
 
 // Every session, newest first. `archived` keeps only the archived sessions or
 // only the active ones; without it the answer holds both groups, which is

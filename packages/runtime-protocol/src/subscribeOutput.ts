@@ -21,28 +21,30 @@ export async function* subscribeOutput(
 	socket.once("connect", () =>
 		socket.write(`${JSON.stringify({ id, version: RUNTIME_PROTOCOL_VERSION, method: "subscribe", params })}\n`),
 	);
-	let buffer = "";
+	let parts: string[] = [];
 	let ended = false;
 	try {
 		const chunks = socket[Symbol.asyncIterator]();
 		const firstChunk = chunks.next();
 		socket.connect(socketPath);
 		for (let chunk = await firstChunk; !chunk.done; chunk = await chunks.next()) {
-			buffer += chunk.value;
-			let end = buffer.indexOf("\n");
+			let start = 0;
+			let end = chunk.value.indexOf("\n");
 			while (end >= 0) {
-				const reply = JSON.parse(buffer.slice(0, end)) as RuntimeResponse;
-				buffer = buffer.slice(end + 1);
+				parts.push(chunk.value.slice(start, end));
+				const reply = JSON.parse(parts.join("")) as RuntimeResponse;
+				parts = [];
 				if (reply.id !== id) throw new Error("Runtime subscription identifier mismatch");
 				if ("error" in reply) throw Object.assign(new Error(reply.error.message), { code: reply.error.code });
 				const event = reply.result as RuntimeOutputEvent;
 				ended = event.type === "session" && event.session.status !== "running";
 				yield event;
-				end = buffer.indexOf("\n");
+				start = end + 1;
+				end = chunk.value.indexOf("\n", start);
 			}
-			if (buffer.length > 3_000_000) throw new Error("Runtime subscription frame exceeds the byte limit");
+			if (start < chunk.value.length) parts.push(chunk.value.slice(start));
 		}
-		if (buffer.length > 0 || !ended) throw new Error("Terminal subscription closed before process exit");
+		if (parts.length > 0 || !ended) throw new Error("Terminal subscription closed before process exit");
 	} finally {
 		signal?.removeEventListener("abort", abort);
 		socket.destroy();

@@ -67,30 +67,17 @@ type FinalizedPageObject = {
 	releaseHash: Release;
 };
 
-export const stagePageObject = async (
-	home: string,
-	file: File,
-	maxBytes = Number.POSITIVE_INFINITY,
-): Promise<StagedPageObject | null> => {
+export const stagePageObject = async (home: string, file: File): Promise<StagedPageObject> => {
 	const stageId = ulid();
 	const path = pageTempPath(home, stageId);
 	activeStages.set(path, Number.POSITIVE_INFINITY);
 	await mkdir(pageTempDir(home), { recursive: true });
 	const sink = Bun.file(path).writer();
 	try {
-		const stored = await hashFile(
-			file,
-			(chunk) => {
-				sink.write(chunk);
-			},
-			maxBytes,
-		);
+		const stored = await hashFile(file, (chunk) => {
+			sink.write(chunk);
+		});
 		await sink.end();
-		if ("limitExceeded" in stored) {
-			await unlink(path);
-			activeStages.delete(path);
-			return null;
-		}
 		activeStages.set(path, Date.now() + PAGE_STAGE_TTL_MS);
 		return { stageId, ...stored };
 	} catch (error) {

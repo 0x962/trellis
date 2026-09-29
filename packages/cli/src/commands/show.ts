@@ -1,5 +1,6 @@
-import type { LinkedPullRequest, Ticket, TimelineListOutput } from "@trellis/api";
+import type { LinkedPullRequest, Ticket } from "@trellis/api";
 import { defineCommand } from "citty";
+import { readTicketWithActivity } from "../activity.ts";
 import { clientOf } from "../client.ts";
 import { contextOf } from "../context.ts";
 import { heading, json, type ListSpec, renderRecord, renderTable, ticketRecord } from "../output.ts";
@@ -34,11 +35,11 @@ export default defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		const client = clientOf(ctx);
-		const ticket = await client.tickets.get({ ticket: args.ticket });
-		const wantsTimeline = args.activity === true;
-		const timeline: TimelineListOutput | undefined = wantsTimeline
-			? await client.timeline.list({ ticket: args.ticket })
-			: undefined;
+		const result =
+			args.activity === true
+				? await readTicketWithActivity(client, args.ticket)
+				: { ticket: await client.tickets.get({ ticket: args.ticket }), timeline: undefined };
+		const { ticket, timeline } = result;
 		const { mode, color } = ctx.format;
 		if (mode === "quiet") {
 			ctx.out.write(`${ticket.identifier}\n`);

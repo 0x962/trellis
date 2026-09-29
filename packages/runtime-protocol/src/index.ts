@@ -1,4 +1,5 @@
-export const RUNTIME_PROTOCOL_VERSION = 15;
+export const RUNTIME_PROTOCOL_VERSION = 16;
+export const MAX_TERMINAL_DIMENSION = 0xffff;
 export type HarnessInputRequest = {
 	id: string;
 	kind: "question" | "permission" | "elicitation";
@@ -251,6 +252,10 @@ export interface RuntimeMethods {
 	shutdown: { params: Record<string, never>; result: null };
 	deliver: {
 		params: { id: string; messageId: string; data: string; expected?: RuntimeExpectedTurn };
+		result: RuntimeDelivery;
+	};
+	queueInput: {
+		params: { id: string; messageId: string; data: string };
 		result: RuntimeDelivery;
 	};
 	hello: { params: Record<string, never>; result: RuntimeHello };

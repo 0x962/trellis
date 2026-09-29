@@ -229,6 +229,15 @@ export class HarnessHost {
 			);
 		return this.status(id);
 	}
+	async sendAtTurnBoundary(id: string, text: string, messageId: string = randomUUID()) {
+		identifier.parse(messageId);
+		const descriptor = await this.descriptor(id);
+		if (descriptor.harness === "opencode" || descriptor.harness === "codex" || descriptor.harness === "muse")
+			return this.send(id, text, messageId);
+		const data = Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64");
+		await this.options.runtime.queueInput(id, messageId, data);
+		return this.status(id);
+	}
 	async interrupt(id: string, { waitForIdle = true } = {}) {
 		const descriptor = await this.descriptor(id);
 		const before = await this.status(id);

@@ -1,14 +1,14 @@
 import { expect, test } from "bun:test";
 import { type Deps, run } from "../index.ts";
 
-const fixture = (reply: (path: string, input: unknown) => unknown = () => ({})) => {
+const fixture = (reply: (path: string, input: unknown) => unknown = () => ({}), isTTY = false) => {
 	const output: string[] = [];
 	const errors: string[] = [];
 	const calls: { path: string; input: unknown }[] = [];
 	const deps = {
 		env: { TRELLIS_URL: "http://test.local", TRELLIS_ACTOR: "agent:Builder" },
-		stdout: { write: (text: string) => output.push(text), isTTY: false },
-		stderr: { write: (text: string) => errors.push(text), isTTY: false },
+		stdout: { write: (text: string) => output.push(text), isTTY },
+		stderr: { write: (text: string) => errors.push(text), isTTY },
 		stdin: async () => "body",
 		gitUserName: () => "Sam",
 		osUser: () => "sam",
@@ -68,6 +68,25 @@ test("a session agent writes a requested update from standard input", async () =
 			input: { sessionId, requestId, body: "body", embeds: [] },
 		},
 	]);
+});
+
+test("a ticket run prints absent session provenance as an empty cell", async () => {
+	const runId = "01M3NVQ8K3ZBWDFDZ406A4M1DA";
+	const requestId = "325611c8-b879-4eb7-9470-43eb4efc6d91";
+	const f = fixture(
+		() => ({
+			id: "01M3NVQ8K3ZBWDFDZ406A4M1DB",
+			sessionId: null,
+			runId,
+			requestId,
+			body: "body",
+			embeds: [],
+			createdAt: "2026-09-29T05:00:00.000Z",
+		}),
+		true,
+	);
+	expect(await run(["session", "status", "write", runId, "--request-id", requestId, "--body", "-"], f.deps)).toBe(0);
+	expect(f.text()).toMatch(/session:\s+-/);
 });
 
 test("a project's own status passes through without a hard-coded review gate", async () => {

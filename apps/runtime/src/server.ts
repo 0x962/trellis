@@ -28,7 +28,7 @@ export async function startRuntime(home: string) {
 		pid: process.pid,
 		startedAt: new Date().toISOString(),
 		socketPath,
-		capabilities: ["terminal-stream", "terminal-channel", "list-pages"],
+		capabilities: ["terminal-stream", "terminal-channel", "list-pages", "queued-input"],
 	};
 	let store: SessionStore;
 	const sockets = new Set<Socket>();
@@ -72,6 +72,10 @@ export async function startRuntime(home: string) {
 			case "deliver": {
 				const p = request.params as RuntimeMethods["deliver"]["params"];
 				return store.deliver(p.id, p.messageId, p.data, p.expected);
+			}
+			case "queueInput": {
+				const p = request.params as RuntimeMethods["queueInput"]["params"];
+				return store.queueInput(p.id, p.messageId, p.data);
 			}
 			case "resize": {
 				const p = request.params as RuntimeMethods["resize"]["params"];

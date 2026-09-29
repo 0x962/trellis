@@ -120,11 +120,6 @@ test("removes a partial stage when the file stream fails", async () => {
 	expect(await readdir(join(home, "pages", "tmp"))).toEqual([]);
 });
 
-test("removes a stage that exceeds its byte limit", async () => {
-	expect(await stagePageObject(home, new File(["12345"], "large.txt"), 4)).toBeNull();
-	expect(await readdir(join(home, "pages", "tmp"))).toEqual([]);
-});
-
 test("expires a completed stage that never reaches the upload service", async () => {
 	const stage = (await stagePageObject(home, new File(["abandoned"], "abandoned.txt")))!;
 	expect(await sweepPageTemp(home)).toBe(0);

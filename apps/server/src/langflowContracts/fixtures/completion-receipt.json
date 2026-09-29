@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "executionId": "execution-1",
+  "engineJobId": "00000000-0000-4000-8000-000000000001",
+  "completionId": "completion-1",
+  "resultDigest": "ba5326014a514fcf9f8a75ebea3c84a323439af42ed5a284ab3329becf76e80c",
+  "engineWaitId": "native-wait-1",
+  "continuationReceiptId": "continuation-receipt-1",
+  "acceptedAt": "2026-09-29T06:00:00.000Z"
+}

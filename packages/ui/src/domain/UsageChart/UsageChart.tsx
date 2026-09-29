@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useId, useMemo, useState } from "react";
 import { cx } from "../../utils/cx";
 import { type ChartTone, chartFillClass, chartToneClass } from "../chartTones";
+import { UsageChartSelectionMarker } from "./components/UsageChartSelectionMarker";
+import { isUsageChartSelectKey, nextUsageChartFocusIndex } from "./nextUsageChartFocusIndex";
 
 export type UsageChartTone = ChartTone;
 
@@ -42,8 +44,6 @@ const niceMax = (max: number) => {
 	return step * power;
 };
 
-// Each sample has a button, so a keyboard and a screen reader can inspect
-// the value and select it for the caption below the chart.
 export function UsageChart({
 	label,
 	days,
@@ -57,11 +57,26 @@ export function UsageChart({
 	className,
 }: UsageChartProps) {
 	const [hoverDay, setHoverDay] = useState<string | null>(null);
+	const [hasFocus, setHasFocus] = useState(false);
+	const [cursor, setCursor] = useState(() => ({ day: selectedDay ?? days[0] ?? null, index: 0 }));
+	const instructionsId = useId();
 	const count = days.length;
+	const dayIndexByDay = useMemo(() => new Map(days.map((day, index) => [day, index])), [days]);
 	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
 	const top = max ?? niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
-	const captionDay = hoverDay ?? selectedDay;
-	const captionIndex = captionDay === null ? -1 : days.indexOf(captionDay);
+	const selectedIndex = selectedDay === null ? -1 : (dayIndexByDay.get(selectedDay) ?? -1);
+	const cursorIndex = cursor.day === null ? -1 : (dayIndexByDay.get(cursor.day) ?? -1);
+	const focusIndex =
+		count === 0
+			? -1
+			: cursorIndex >= 0
+				? cursorIndex
+				: selectedIndex >= 0
+					? selectedIndex
+					: Math.min(cursor.index, count - 1);
+	const focusDay = focusIndex < 0 ? null : days[focusIndex]!;
+	const hoverIndex = hoverDay === null ? -1 : (dayIndexByDay.get(hoverDay) ?? -1);
+	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
 	// A bar takes 70% of its day slot, so a short range keeps a gap between bars.
 	const slot = 100 / Math.max(1, count);
@@ -70,9 +85,33 @@ export function UsageChart({
 		x: count <= 1 ? 50 : (index / (count - 1)) * 100,
 		y: 100 - (value / top) * 100,
 	});
+	const indexAtPointer = (event: MouseEvent<HTMLButtonElement>) => {
+		const bounds = event.currentTarget.getBoundingClientRect();
+		return Math.min(count - 1, Math.max(0, Math.floor(((event.clientX - bounds.left) / bounds.width) * count)));
+	};
+	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (isUsageChartSelectKey(event.key)) {
+			event.preventDefault();
+			toggleDaySelection(focusIndex);
+			return;
+		}
+		const nextIndex = nextUsageChartFocusIndex(event.key, focusIndex, count);
+		if (nextIndex === null) return;
+		event.preventDefault();
+		setCursor({ day: days[nextIndex]!, index: nextIndex });
+	};
+	function toggleDaySelection(index: number) {
+		const day = days[index]!;
+		setCursor({ day, index });
+		onSelectDay(selectedDay === day ? null : day);
+	}
 
 	return (
 		<figure className={cx("flex min-w-0 flex-col gap-2", className)}>
+			<span id={instructionsId} className="sr-only">
+				Use Left and Right to inspect days. Use Home and End to move to the first or last day. Press Enter or Space to
+				select or clear a day.
+			</span>
 			<div className="flex min-w-0 gap-2">
 				<div className="flex w-12 shrink-0 flex-col justify-between text-right text-xs text-fg-faint tabular">
 					{GRID_LINES.map((share) => (
@@ -130,7 +169,7 @@ export function UsageChart({
 											x2="50.5"
 											y2={point(0, row.values[0] ?? 0).y}
 											stroke="currentColor"
-											strokeWidth="2"
+											strokeWidth="calc(var(--border-width-hairline) * 2)"
 											strokeLinecap="round"
 											vectorEffect="non-scaling-stroke"
 											className={chartToneClass[row.tones?.[0] ?? row.tone]}
@@ -148,7 +187,7 @@ export function UsageChart({
 														x2={to.x}
 														y2={to.y}
 														stroke="currentColor"
-														strokeWidth="2"
+														strokeWidth="calc(var(--border-width-hairline) * 2)"
 														strokeLinecap="round"
 														strokeLinejoin="round"
 														vectorEffect="non-scaling-stroke"
@@ -159,26 +198,42 @@ export function UsageChart({
 										</g>
 									),
 								)}
+						<UsageChartSelectionMarker
+							variant={variant}
+							selectedDay={selectedDay}
+							selectedIndex={selectedIndex}
+							series={series}
+							point={point}
+							slot={slot}
+							barWidth={barWidth}
+						/>
 					</svg>
-					<div className="absolute inset-0 flex">
-						{days.map((day, index) => (
-							<button
-								key={day}
-								type="button"
-								aria-label={`${formatDay(day)}: ${format(dayTotal(index))}`}
-								aria-pressed={selectedDay === day}
-								onMouseEnter={() => setHoverDay(day)}
-								onMouseLeave={() => setHoverDay(null)}
-								onFocus={() => setHoverDay(day)}
-								onBlur={() => setHoverDay(null)}
-								onClick={() => onSelectDay(selectedDay === day ? null : day)}
-								className={cx(
-									"min-w-0 flex-1 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-									selectedDay === day && "border-b-2 border-fg",
-								)}
-							/>
-						))}
-					</div>
+					<UsageChartSelectionMarker
+						variant={variant}
+						selectedDay={selectedDay}
+						selectedIndex={selectedIndex}
+						series={series}
+						point={point}
+						slot={slot}
+						barWidth={barWidth}
+						overlay
+					/>
+					{focusDay !== null && (
+						<button
+							type="button"
+							data-day={focusDay}
+							aria-label={`${label}. ${formatDay(focusDay)}: ${format(dayTotal(focusIndex))}`}
+							aria-describedby={instructionsId}
+							aria-pressed={selectedDay === focusDay}
+							onPointerMove={(event) => setHoverDay(days[indexAtPointer(event)]!)}
+							onPointerLeave={() => setHoverDay(null)}
+							onFocus={() => setHasFocus(true)}
+							onBlur={() => setHasFocus(false)}
+							onKeyDown={handleKeyDown}
+							onClick={(event) => toggleDaySelection(event.detail === 0 ? focusIndex : indexAtPointer(event))}
+							className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						/>
+					)}
 				</div>
 			</div>
 			<div className="flex pl-14 text-xs text-fg-faint tabular">

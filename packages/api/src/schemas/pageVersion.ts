@@ -16,9 +16,6 @@ import {
 } from "./page.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-export const PAGE_VERSION_ASSET_COUNT_MAX = 200;
-export const PAGE_VERSION_ASSET_MAX_BYTES = 250 * 1024 * 1024;
-
 // The render lease of one page version in one viewer. `PAGE_RENDER_IDLE_MS`
 // is the time the lease survives without a content request. Every content
 // request restarts it. `PAGE_RENDER_MAX_MS` is the age at which the lease
@@ -56,7 +53,7 @@ export const PagePublishInputSchema = z
 		summary: PageSummaryTextSchema.optional(),
 		label: PageVersionLabelSchema.optional(),
 		document: UlidSchema,
-		assets: z.array(PagePublishAssetSchema).max(PAGE_VERSION_ASSET_COUNT_MAX).default([]),
+		assets: z.array(PagePublishAssetSchema).default([]),
 		sourcePath: PageSourcePathSchema,
 	})
 	.refine(
