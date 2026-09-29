@@ -175,7 +175,16 @@ const startHost = () => {
 	self.onmessage = ({ data }: MessageEvent<WorkerInput>) => {
 		if (data.type === "start") {
 			void (async () => {
-				database = await openDatabase(data.config.dbDir);
+				database = await openDatabase(
+					data.config.dbDir,
+					data.config.restoredDatabaseInstallReceipt === undefined
+						? undefined
+						: {
+								home: data.config.home,
+								installReceiptId: data.config.restoredDatabaseInstallReceipt,
+								bootId: data.runtime.bootId,
+							},
+				);
 				const gh = Object.assign(
 					(slot: GhSlot, args: string[]) =>
 						new Promise<GhResult>((resolve) => {
@@ -210,7 +219,12 @@ const startHost = () => {
 					log: jobs === null ? undefined : log,
 				});
 				const started = await transport.start(jobs === null ? undefined : { clockRate: jobs.clockRate, log });
-				send({ type: "ready", applied: database.applied, liveShas: started.liveShas });
+				send({
+					type: "ready",
+					applied: database.applied,
+					liveShas: started.liveShas,
+					...(database.restoredOpen === null ? {} : { restoredOpen: database.restoredOpen }),
+				});
 				booted.resolve();
 			})().catch((error: unknown) => {
 				booted.reject(error);
