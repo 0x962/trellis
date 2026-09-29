@@ -17,6 +17,7 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { decodeCursor, encodeCursor, isIsoTimestamp, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
+import { resolveActorId } from "../actorIdentity/index.ts";
 import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import {
@@ -220,9 +221,10 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	if (input.title !== undefined && input.title !== page.title) sets.push(sql`title = ${input.title}`);
 	if (input.summary !== undefined && input.summary !== page.summary) sets.push(sql`summary = ${input.summary}`);
 	if (sets.length === 0) return toSummary(page);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	await tx.execute(sql`UPDATE pages SET ${sql.join(sets, sql`, `)}, version = version + 1,
-		actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${page.id}`);
+		actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now}
+		WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await pageById(ctx, tx, page.id));
 };
@@ -260,13 +262,14 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	assertRevision(page, input.expectedVersion);
 	if (page.deleted_at !== null) return toSummary(page);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
+	const actorId = await resolveActorId(ctx, tx, actor);
 	const removedWatch = await rows<{ agent_id: string }>(
 		tx,
 		sql`DELETE FROM page_watches WHERE page_id = ${page.id} RETURNING agent_id`,
 	);
-	await tx.execute(sql`UPDATE pages SET deleted_at = ${ctx.now}, deleted_actor_name = ${actor.name},
-		deleted_actor_kind = ${actor.kind}, actor_name = ${actor.name}, actor_kind = ${actor.kind},
+	await tx.execute(sql`UPDATE pages SET deleted_at = ${ctx.now}, deleted_actor_id = ${actorId},
+		deleted_actor_name = ${actor.name}, deleted_actor_kind = ${actor.kind}, actor_id = ${actorId},
+		actor_name = ${actor.name}, actor_kind = ${actor.kind},
 		version = version + 1, updated_at = ${ctx.now} WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	if (removedWatch.length > 0) ctx.emit({ type: "page-watches.changed", projectId: page.project_id, pageId: page.id });
@@ -283,9 +286,10 @@ export const restore = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promi
 	assertRevision(page, input.expectedVersion);
 	if (page.deleted_at === null) return toSummary(page);
 	const actor = requireActor(ctx);
-	await upsert(ctx, tx, actor);
-	await tx.execute(sql`UPDATE pages SET deleted_at = NULL, deleted_actor_name = NULL, deleted_actor_kind = NULL,
-		actor_name = ${actor.name}, actor_kind = ${actor.kind}, version = version + 1, updated_at = ${ctx.now}
+	const actorId = await resolveActorId(ctx, tx, actor);
+	await tx.execute(sql`UPDATE pages SET deleted_at = NULL, deleted_actor_id = NULL, deleted_actor_name = NULL,
+		deleted_actor_kind = NULL, actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind},
+		version = version + 1, updated_at = ${ctx.now}
 		WHERE id = ${page.id}`);
 	ctx.emit({ type: "pages.changed", projectId: page.project_id, pageId: page.id });
 	return toSummary(await pageById(ctx, tx, page.id));

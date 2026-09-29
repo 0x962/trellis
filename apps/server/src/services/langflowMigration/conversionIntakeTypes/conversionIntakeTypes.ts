@@ -1,5 +1,6 @@
 import { FlowDigestV1Schema, UlidSchema } from "@trellis/api";
 import { z } from "zod";
+import { EditedSourceV1Schema } from "../editedSource";
 import type { BlockedMigrationV1 } from "../types";
 
 export const ConversionAssociationSchema = z.strictObject({
@@ -25,6 +26,8 @@ export const ConversionEnvelopeSchema = z.strictObject({
 	}),
 	componentManifestHash: FlowDigestV1Schema,
 	nodeSpecs: z.array(ConversionBindingSchema),
+	editHistory: z.array(EditedSourceV1Schema).optional(),
+	editedSource: EditedSourceV1Schema.optional(),
 });
 
 export const ConversionExpansionSchema = z.strictObject({

@@ -55,7 +55,8 @@ Human `expectedRevision` copies the allocated journal revision once. Public view
 `request_native` commits the journal, graph checkpoint, and receiver request record before the HTTP call.
 The receiver record uses `native_records.request_kind(wait_id)` and the original request string.
 An uncertain response leaves those bytes intact. A later authorized call uses the same request.
-Suspension and recovery before the handle arrives still require the runner integration.
+The reservation obligation and `native_reservation` wait commit before HTTP.
+The matched external-wait fragment supplies the runner and queue consumers.
 The unchanged handle response commits with the native wait in the existing graph checkpoint.
 `run_human_visit` commits the journal and replacement graph wait in one transaction after NO feedback.
 The graph lock precedes the Job lock. Network calls occur outside both locks.
@@ -110,3 +111,27 @@ Ordinary components without a receipt producer remain unsupported.
 Deferred matched-batch command: `python -m pytest integrations/langflow/tests/occurrenceRequests`.
 The fixtures cover receipt replay, exact output text, original decision bytes, and root checkpoint persistence.
 Real graph traces, crash recovery, group ordering, and package export remain required.
+
+## Reservation response recovery
+
+Apply `0003-native-reservation-obligations.patch` after the component receipt fragment.
+`occurrence_reservations.pending_native_reservation_obligations(session)` returns all pending reservation obligations.
+Each record includes the job, request, and wait IDs, plus original request bytes and their digest.
+The checkpoint kind is `trellis-native-reservation-obligation-v1:<waitId>`.
+
+`recover_native_reservation(graph, wait_id)` returns `True`, `False`, or `"cancelled"`.
+A true result means that the exact handle and replacement native wait committed.
+A false result means that the HTTP response remains unknown. The request bytes and wait remain unchanged.
+Cancellation prevents another reservation call. A late response retains its handle and a stop reconciliation requirement.
+The existing runner raises `ExternalWaitPending` and releases the worker when a handle remains unknown.
+The recovery consumer must use the existing engine queue.
+
+`finish_native_reservation_obligation(session, job_id, wait_id, queue_result)` accepts `dispatched` or `execution_proven`.
+It requires a confirmed handle and refuses acknowledgement for a canceled job.
+The consumer calls it only after the corresponding queue result.
+
+Cancellation acceptance remains blocked on a host lookup by original request bytes and an exact stop receipt.
+The current public native reader requires a step ID, which an uncertain reservation response might not supply.
+The canceled obligation remains pending until those producers supply durable proof.
+The fixtures cover lost responses, exact replay bytes, cancellation before dispatch, and acknowledgement before confirmation.
+These fixtures and the integrated crash cases remain deferred to the complete batch.

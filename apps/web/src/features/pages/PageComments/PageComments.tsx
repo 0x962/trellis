@@ -39,7 +39,6 @@ export function PageComments({
 	const [showResolved, setShowResolved] = useState(false);
 	const [selected, setSelected] = useState<string | null>(null);
 	const [pendingAnchor, setPendingAnchor] = useState<PageCommentAnchor | null>(null);
-	const [anchorError, setAnchorError] = useState<string | null>(null);
 	const [body, setBody] = useState("");
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
@@ -66,7 +65,6 @@ export function PageComments({
 	const openPendingAnchor = (anchor: PageCommentAnchor) => {
 		if (blocked || historical) return;
 		setPendingAnchor(anchor);
-		setAnchorError(null);
 		setSelected(null);
 		setSaveError(null);
 		if (!wide) setSheetOpen(true);
@@ -108,11 +106,6 @@ export function PageComments({
 					submitOnEnter
 				/>
 			)}
-			{anchorError !== null && (
-				<p role="alert" className="text-sm text-danger">
-					{anchorError}
-				</p>
-			)}
 			<PageCommentThreads
 				threads={numbered}
 				selected={selected}
@@ -139,10 +132,6 @@ export function PageComments({
 					comments={currentPins}
 					selectedThread={selected}
 					onCommentAnchor={openPendingAnchor}
-					onCommentAnchorError={(message) => {
-						setAnchorError(message);
-						if (!wide) setSheetOpen(true);
-					}}
 					onOpenThread={select}
 				/>
 				{wide ? (

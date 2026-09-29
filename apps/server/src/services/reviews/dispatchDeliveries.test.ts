@@ -163,7 +163,7 @@ beforeAll(async () => {
 // `recordSubmission` reads the actor and the clock of a service call, which
 // the transaction context of this suite does not carry.
 const submissionCtx = (actor: { kind: "human" | "agent"; name: string }) =>
-	({ actor, now: () => new Date(at), emit: () => {} }) as never;
+	({ actor, core: { ...core, actor, now: new Date(at) }, now: () => new Date(at), emit: () => {} }) as never;
 const serviceCtx = submissionCtx({ kind: "human", name: "dana" });
 
 afterAll(async () => db.$client.close());

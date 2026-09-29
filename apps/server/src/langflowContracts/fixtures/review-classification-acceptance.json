@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "executionId": "execution-1",
+  "engineJobId": "00000000-0000-4000-8000-000000000001",
+  "engineRequestId": "00000000-0000-4000-8000-000000000011",
+  "classificationReceiptId": "classification-1",
+  "resultDigest": "e25e33b17a89397763289828890321a8d4a95b39f3be7ced52a81ab0795d2abb",
+  "engineWaitId": "review-wait-1",
+  "acceptanceId": "review-acceptance-1",
+  "signalId": "00000000-0000-4000-8000-000000000012",
+  "enqueueObligationId": "00000000-0000-4000-8000-000000000013",
+  "acceptedAt": "2026-09-29T06:30:00.000Z"
+}
