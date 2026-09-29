@@ -100,8 +100,12 @@ export default defineCommand({
 		const client = clientOf(ctx);
 		if (context.args.epic === undefined)
 			return pullRequestReady(ctx, client, context.args.ref, context.args["flow-does-not-apply"]);
-		const epic = await client.epics.get({ epic: `${context.args.ref}/${context.args.epic}` });
-		const result = readyResultOf(epic.tickets, await workingTicketIds(client, epic.tickets));
+		const epicRef = `${context.args.ref}/${context.args.epic}`;
+		const [epic, working] = await Promise.all([
+			client.epics.get({ epic: epicRef }),
+			workingTicketIds(client, epicRef),
+		]);
+		const result = readyResultOf(epic.tickets, working);
 		if (ctx.format.mode === "quiet") {
 			ctx.out.write(`${result.readyToStart.identifiers.join("\n")}${result.readyToStart.count === 0 ? "" : "\n"}`);
 			return;

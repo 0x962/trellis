@@ -12,8 +12,11 @@ export default defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
-		const epic = await client.epics.get({ epic: context.args.epic });
-		const result = readyResultOf(epic.tickets, await workingTicketIds(client, epic.tickets));
+		const [epic, working] = await Promise.all([
+			client.epics.get({ epic: context.args.epic }),
+			workingTicketIds(client, context.args.epic),
+		]);
+		const result = readyResultOf(epic.tickets, working);
 		if (ctx.format.mode === "quiet") {
 			ctx.out.write(result.readyToStart.identifiers.join("\n") + (result.readyToStart.count ? "\n" : ""));
 			return;

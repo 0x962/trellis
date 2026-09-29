@@ -1,17 +1,14 @@
 import { expect, test } from "bun:test";
-import type { AgentRun, TicketSummary } from "@trellis/api";
+import type { AgentRun } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { workingTicketIds } from "./workingTicketIds.ts";
 
-test("reads the ticket agent after more tickets than the former global limit", async () => {
-	const tickets = Array.from({ length: 1005 }, (_, index) => ({ id: `ticket-${index}` })) as Pick<
-		TicketSummary,
-		"id"
-	>[];
-	const last = tickets.at(-1)!;
+test("reads the bounded latest runs for epic tickets", async () => {
+	const lastTicketId = "01M3Q1B2C3D4E5F6G7H8J9K0LM";
 	const calls: unknown[] = [];
 	const working = {
 		kind: "agent",
+		ticketId: lastTicketId,
 		processStatus: "running",
 		observation: {
 			controllable: true,
@@ -19,16 +16,20 @@ test("reads the ticket agent after more tickets than the former global limit", a
 			outcome: null,
 		},
 	} as AgentRun;
+	const closed = {
+		...working,
+		ticketId: "01M3Q1B2C3D4E5F6G7H8J9K0LN",
+		processStatus: "exited",
+	} as AgentRun;
 	const client = {
 		agentRuns: {
-			list: async (input: unknown) => {
+			latestByEpicTicket: async (input: unknown) => {
 				calls.push(input);
-				return (input as { ticket: string }).ticket === last.id ? [working] : [];
+				return [working, closed];
 			},
 		},
 	} as unknown as TrellisClient;
 
-	expect(await workingTicketIds(client, tickets)).toEqual(new Set([last.id]));
-	expect(calls).toHaveLength(1005);
-	expect(calls).toContainEqual({ ticket: last.id, assigned: true });
+	expect(await workingTicketIds(client, "TRL/large-epic")).toEqual(new Set([lastTicketId]));
+	expect(calls).toEqual([{ epic: "TRL/large-epic" }]);
 });
