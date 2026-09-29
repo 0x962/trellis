@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import type { PackageRecipe } from "../packageRecipe";
 import { CatalogManifestSchema } from "./components/catalogManifest";
 
@@ -57,7 +57,8 @@ export async function stageComponentCatalog(input: {
 	if (files.has(catalogPath)) throw new Error("catalog_manifest_source_conflict");
 	const catalog = { path: catalogPath, sha256: input.expectedManifestSha256, sizeBytes: manifestBytes.byteLength };
 	files.set(catalogPath, { bytes: manifestBytes, reference: catalog });
-	const output = resolve(input.output);
+	const requestedOutput = resolve(input.output);
+	const output = join(await realpath(dirname(requestedOutput)), basename(requestedOutput));
 	for (const root of Object.values(roots)) {
 		const distance = relative(root, output);
 		if (distance === "" || (!distance.startsWith("../") && distance !== "..")) {
