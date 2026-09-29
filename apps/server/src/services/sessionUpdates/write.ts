@@ -6,7 +6,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { assertCurrentAttempt } from "../assignments.ts";
 import { resolveSessionUpdateOwner } from "./owner.ts";
-import { saveSessionUpdate } from "./save.ts";
+import { saveSessionUpdate } from "./save/index.ts";
 
 export const write = async (ctx: ServiceCtx, tx: Tx, value: SessionUpdatesWriteInput): Promise<SessionUpdate> => {
 	const input = SessionUpdatesWriteInputSchema.parse(value);

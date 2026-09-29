@@ -24,6 +24,7 @@ Native launch code retains ownership of current worktree selection and launch-ti
 
 `submissionBytes` contains the exact immutable publication and snapshot payload bytes.
 Their SHA256 is `SubmissionV1.submissionDigest`.
+`EngineSubmission.envelopeBytes` carries the envelope; `payloadBytes` carries the publication and snapshot.
 `submissionEnvelope` serializes the original version-1 envelope separately with closed admission.
 A lost response cannot change the bytes of that envelope.
 Only an authoritative absent lookup permits submission.
@@ -39,6 +40,8 @@ An early engine job must suspend at its durable barrier until it receives that r
 A pending or unknown delivery retains the receipt for recovery.
 Recovery of open admission preserves its correlation, authority, receipt, native effects, completion receipts, and stop obligations.
 Ownership transfer remains with the supervisor.
+`ReconcileContext.log` uses `JobsLog` to identify unknown lookup, submission, and admission results.
+These logs contain identifiers only.
 
 ## Store requirements
 
@@ -60,13 +63,13 @@ The database adapter uses permanent aliases, closed-admission association, and d
 Its declaration-based database fixtures require separate production migration proof.
 The legacy start route remains active.
 
-`reserve.test.ts` uses the existing project, ticket, flow, and diff queries with an in-memory receipt store.
-`reconcile.test.ts` checks transaction order and recovery through simulated store and engine ports.
-`database.test.ts` uses the actual receipt queries with declared tables and a simulated engine.
+`reserve/reserve.test.ts` uses the existing project, ticket, flow, and diff queries with an in-memory receipt store.
+`reconcile/reconcile.test.ts` checks transaction order and recovery through simulated store and engine ports.
+`databaseStore/databaseStore.test.ts` uses the actual receipt queries with declared tables and a simulated engine.
 These fixtures do not establish real-engine or installed-host proof.
 The required commands run after the combined merge:
 
-- `bun test apps/server/src/services/langflowStart/`
+- `bun test apps/server/src/services/langflowStart/ --timeout 60000`
 - `bun run --cwd apps/server typecheck`
 - `./node_modules/.bin/biome check apps/server/src/services/langflowStart`
 

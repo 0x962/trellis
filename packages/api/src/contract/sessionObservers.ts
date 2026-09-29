@@ -1,3 +1,4 @@
+import { pickErrors } from "../errors.ts";
 import {
 	SessionObserverGetInputSchema,
 	SessionObserverHistoryInputSchema,
@@ -21,6 +22,7 @@ export const sessionObservers = {
 		.input(SessionObserverHistoryInputSchema)
 		.output(SessionObserverHistorySchema),
 	setEnabled: base
+		.errors(pickErrors(["SESSION_OBSERVER_FORBIDDEN"]))
 		.route({
 			method: "PUT",
 			path: "/session-observers/{sessionId}/enabled",
