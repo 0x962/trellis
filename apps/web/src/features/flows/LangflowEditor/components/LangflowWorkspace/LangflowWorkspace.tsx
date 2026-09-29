@@ -60,7 +60,7 @@ function Workspace({ document, session, storage, tab, grantActive, readOnly, cur
 		active: grantActive && !accessEnded,
 		readOnly,
 		canDispatch,
-		save: (request) => client.flowDocumentsV1.save(request),
+		save: (request) => client.flowDocumentsV1.save(request, { context: { editorChannel: session.channel } }),
 	});
 	const endAccess = useCallback(() => {
 		ended.current = true;
