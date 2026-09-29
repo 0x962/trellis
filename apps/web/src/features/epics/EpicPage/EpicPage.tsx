@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref } from "../../../lib/projectUrl";
 import { useUiStore } from "../../../stores/uiStore";
+import { agentRunPagesOptions } from "../../agents/agentRunPages";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
@@ -66,7 +67,7 @@ const breadcrumbLinkClass =
 // New wave adds a wave at the end of the epic, and every wave header of the
 // table carries the actions of its wave (`useWaveEditing`).
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
-	const { orpc, queryClient } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
 	const resourceId = useLocation({ select: (location) => location.hash });
 	const mutations = useTicketMutations();
@@ -85,7 +86,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
 		refetchOnWindowFocus: "always",
 	});
-	const assignedRuns = assignedRunsQuery.data;
+	const assignedRuns = assignedRunsQuery.data?.items;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
 	// A Set, because each row tests membership. Null until the query
 	// succeeds: an empty set would read a ticket whose agent works as a
@@ -95,12 +96,14 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
 		[assignedRunsQuery.status, assignedRuns],
 	);
-	// Prior runs keep their line after a person removes the assignment. The
-	// full history stays on the ticket page. This query matches the one-year
-	// archive window of the project session list.
+	// Prior runs keep their line after a person removes the assignment. This
+	// query follows every cursor because an old run can own that line.
 	const priorRunsQuery = useQuery({
-		...orpc.agentRuns.list.queryOptions({
-			input: { project: project.id, assigned: false, windowHours: 24 * 365, limit: 1000 },
+		...agentRunPagesOptions(orpc, client, {
+			project: project.id,
+			assigned: false,
+			windowHours: null,
+			limit: 1000,
 		}),
 		refetchOnWindowFocus: "always",
 	});

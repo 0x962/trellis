@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { AgentRunListInputSchema } from "@trellis/api";
+import { AgentRunListInputSchema, AgentWorkspaceLineStatsInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
@@ -24,19 +24,25 @@ const recentActivityRun = ulid();
 const oldRun = ulid();
 const olderRun = ulid();
 const flowRun = ulid();
+const bulkProjectId = ulid();
+const stableProjectId = ulid();
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const listRuns = (input: {
 	project?: string;
 	ids?: string[];
+	assigned?: boolean;
 	includePinnedHistory?: boolean;
 	limit?: number;
-	windowHours?: number;
+	windowHours?: number | null;
+	cursor?: string;
 }) => run((tx) => list(ctx, tx, AgentRunListInputSchema.parse(input)));
 
 beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES
-		(${projectId}, 'LST', 'list', 'List', ${hoursAgo(300)}, ${hoursAgo(300)})`);
+		(${projectId}, 'LST', 'list', 'List', ${hoursAgo(300)}, ${hoursAgo(300)}),
+		(${bulkProjectId}, 'BLK', 'bulk', 'Bulk', ${hoursAgo(300)}, ${hoursAgo(300)}),
+		(${stableProjectId}, 'STB', 'stable', 'Stable', ${hoursAgo(300)}, ${hoursAgo(300)})`);
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_id, project_key, pinned_at, closed_at, created_at, updated_at) VALUES
 		(${openRun}, 'open', 'session', 'Open prompt.', ${projectId}, 'LST', NULL, NULL, ${hoursAgo(200)}, ${hoursAgo(200)}),
@@ -45,6 +51,20 @@ beforeAll(async () => {
 		(${oldRun}, 'old', 'session', 'Old prompt.', ${projectId}, 'LST', ${hoursAgo(1)}, ${hoursAgo(40)}, ${hoursAgo(48)}, ${hoursAgo(40)}),
 		(${olderRun}, 'older', 'session', 'Older prompt.', ${projectId}, 'LST', ${hoursAgo(2)}, ${hoursAgo(100)}, ${hoursAgo(120)}, ${hoursAgo(100)}),
 		(${flowRun}, 'flow', 'flow', 'Review.', ${projectId}, 'LST', NULL, ${hoursAgo(1)}, ${hoursAgo(1)}, ${hoursAgo(1)})`);
+	await db.execute(sql`INSERT INTO agent_runs
+		(id, name, kind, instruction, project_id, project_key, closed_at, created_at, updated_at)
+		SELECT '01ARZ3NDEKTSV4RRFFQ69G' || lpad(n::text, 4, '0'), 'bulk-' || n, 'session', 'Prompt.',
+			${bulkProjectId}, 'BLK', ${hoursAgo(1)}::timestamptz - n * interval '1 second',
+			${hoursAgo(1)}::timestamptz - n * interval '1 second',
+			${hoursAgo(1)}::timestamptz - n * interval '1 second'
+		FROM generate_series(1, 1005) AS n`);
+	await db.execute(sql`INSERT INTO agent_runs
+		(id, name, kind, instruction, project_id, project_key, closed_at, created_at, updated_at)
+		SELECT '01BRZ3NDEKTSV4RRFFQ69G' || lpad(n::text, 4, '0'), 'stable-' || n, 'session', 'Prompt.',
+			${stableProjectId}, 'STB', ${hoursAgo(1)}::timestamptz - n * interval '1 second',
+			${hoursAgo(1)}::timestamptz - n * interval '1 second',
+			${hoursAgo(1)}::timestamptz - n * interval '1 second'
+		FROM generate_series(1, 5) AS n`);
 	await db.execute(sql`INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
 		VALUES (${ulid()}, ${recentActivityRun}, 1, 'hash', ${hoursAgo(1.5)})`);
 	const cache = createCache();
@@ -65,38 +85,46 @@ beforeAll(async () => {
 afterAll(async () => db.$client.close());
 
 test("the list keeps open runs and uses stored activity instead of the creation time", async () => {
-	const rows = await listRuns({ project: projectId });
+	const rows = (await listRuns({ project: projectId })).items;
 	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun, freshRun, openRun]);
 	expect(rows.find((row) => row.id === recentActivityRun)?.activityAt).toBe(hoursAgo(1.5));
 });
 
-test("the session history keeps every pin plus the requested count of normal rows", async () => {
-	const rows = await listRuns({ project: projectId, includePinnedHistory: true, limit: 1 });
-	expect(rows.map((row) => row.id)).toEqual([oldRun, olderRun, recentActivityRun]);
+test("the session history pages through pinned and normal rows", async () => {
+	const first = await listRuns({ project: projectId, includePinnedHistory: true, limit: 1 });
+	const second = await listRuns({
+		project: projectId,
+		includePinnedHistory: true,
+		limit: 1,
+		cursor: first.nextCursor!,
+	});
+	expect(first.items.map((row) => row.id)).toEqual([oldRun]);
+	expect(second.items.map((row) => row.id)).toEqual([olderRun]);
+	expect(second.nextCursor).not.toBeNull();
 });
 
 test("the generic list keeps its limit when the pin count meets that limit", async () => {
-	const rows = await listRuns({ project: projectId, limit: 1 });
+	const rows = (await listRuns({ project: projectId, limit: 1 })).items;
 	expect(rows.map((row) => row.id)).toEqual([flowRun]);
 });
 
 test("a wider window reaches the runs that closed before it", async () => {
-	const rows = await listRuns({ project: projectId, windowHours: 168 });
+	const rows = (await listRuns({ project: projectId, windowHours: 168 })).items;
 	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun, freshRun, oldRun, olderRun, openRun]);
 });
 
 test("the limit cuts the answer to the newest rows", async () => {
-	const rows = await listRuns({ project: projectId, windowHours: 168, limit: 2 });
+	const rows = (await listRuns({ project: projectId, windowHours: 168, limit: 2 })).items;
 	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun]);
 });
 
 test("a run named by its id comes back whatever its age", async () => {
-	const rows = await listRuns({ ids: [olderRun] });
+	const rows = (await listRuns({ ids: [olderRun] })).items;
 	expect(rows.map((row) => row.id)).toEqual([olderRun]);
 });
 
 test("no list row carries the instruction", async () => {
-	const rows = await listRuns({ project: projectId, windowHours: 168 });
+	const rows = (await listRuns({ project: projectId, windowHours: 168 })).items;
 	for (const row of rows) expect(row).not.toHaveProperty("instruction");
 });
 
@@ -123,7 +151,7 @@ test("the indexed lookup keeps the latest switch and ignores later requests with
 		('switch-new', 'dana', 'human', ${openRun}, '{"switchedTo":"second"}', ${hoursAgo(2)}),
 		('resume', 'dana', 'human', ${openRun}, '{}', ${hoursAgo(1)})`);
 	await db.execute(sql`ANALYZE agent_start_requests`);
-	const rows = await listRuns({ ids: [openRun, freshRun] });
+	const rows = (await listRuns({ ids: [openRun, freshRun] })).items;
 	expect(rows.find((row) => row.id === openRun)?.switchedTo).toBe("second");
 	expect(rows.find((row) => row.id === freshRun)?.switchedTo).toBeNull();
 	const plan = await db.execute(sql`EXPLAIN (FORMAT JSON)
@@ -131,4 +159,47 @@ test("the indexed lookup keeps the latest switch and ignores later requests with
 		WHERE run_id = ${openRun} AND target->>'switchedTo' IS NOT NULL
 		ORDER BY created_at DESC LIMIT 1`);
 	expect(JSON.stringify(plan.rows)).toContain("agent_start_requests_latest_switch_idx");
+});
+
+test("the cursor reads more than 1000 run ids without a duplicate or a missing row", async () => {
+	const ids = Array.from({ length: 1005 }, (_, index) => `01ARZ3NDEKTSV4RRFFQ69G${String(index + 1).padStart(4, "0")}`);
+	const found: string[] = [];
+	let cursor: string | undefined;
+	do {
+		const page = await listRuns({ ids, limit: 200, cursor });
+		found.push(...page.items.map((row) => row.id));
+		cursor = page.nextCursor ?? undefined;
+	} while (cursor !== undefined);
+
+	expect(found).toHaveLength(1005);
+	expect(new Set(found).size).toBe(1005);
+	expect(new Set(found)).toEqual(new Set(ids));
+});
+
+test("a new run does not change the remaining cursor pages", async () => {
+	const first = await listRuns({ project: stableProjectId, windowHours: null, limit: 2 });
+	const newRun = ulid();
+	await db.execute(sql`INSERT INTO agent_runs
+		(id, name, kind, instruction, project_id, project_key, closed_at, created_at, updated_at) VALUES
+		(${newRun}, 'new', 'session', 'Prompt.', ${stableProjectId}, 'STB', ${now}, ${now}, ${now})`);
+	const remaining: string[] = [];
+	let cursor = first.nextCursor ?? undefined;
+	while (cursor !== undefined) {
+		const page = await listRuns({ project: stableProjectId, windowHours: null, limit: 2, cursor });
+		remaining.push(...page.items.map((row) => row.id));
+		cursor = page.nextCursor ?? undefined;
+	}
+
+	const expected = Array.from(
+		{ length: 5 },
+		(_, index) => `01BRZ3NDEKTSV4RRFFQ69G${String(index + 1).padStart(4, "0")}`,
+	);
+	expect([...first.items.map((row) => row.id), ...remaining]).toEqual(expected);
+	expect(remaining).not.toContain(newRun);
+});
+
+test("the input accepts complete filters and an unbounded history window", () => {
+	const ids = Array.from({ length: 1001 }, () => ulid());
+	expect(AgentRunListInputSchema.parse({ ids, windowHours: null }).ids).toHaveLength(1001);
+	expect(AgentWorkspaceLineStatsInputSchema.parse({ ticketIds: ids }).ticketIds).toHaveLength(1001);
 });

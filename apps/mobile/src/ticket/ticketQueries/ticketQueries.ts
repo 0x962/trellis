@@ -85,7 +85,7 @@ export const sendBack = async (
 	reason: string,
 ): Promise<Ticket> => {
 	const moved = await client.tickets.update({ ticket: ticket.identifier, status: sendBackTarget(statuses).id });
-	const target = messageTarget(await client.agentRuns.list({ ticket: ticket.identifier }));
+	const target = messageTarget((await client.agentRuns.list({ ticket: ticket.identifier, assigned: true })).items);
 	if (target !== null) await client.agentRuns.send({ id: target.id, text: sendBackMessage(ticket.identifier, reason) });
 	return moved;
 };

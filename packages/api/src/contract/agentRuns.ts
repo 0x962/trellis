@@ -9,6 +9,7 @@ import {
 } from "../schemas/agentBroadcast.ts";
 import {
 	AgentRunListInputSchema,
+	AgentRunListOutputSchema,
 	AgentRunPinInputSchema,
 	AgentRunPinOutputSchema,
 	AgentRunRetryInputSchema,
@@ -237,7 +238,7 @@ export const agentRuns = {
 	list: base
 		.route({ method: "GET", path: "/agent-runs", summary: "List agents" })
 		.input(AgentRunListInputSchema)
-		.output(z.array(AgentRunSchema)),
+		.output(AgentRunListOutputSchema),
 	setPinned: base
 		.route({ method: "PUT", path: "/agent-runs/{id}/pinned", summary: "Pin or unpin a saved session" })
 		.input(AgentRunPinInputSchema)

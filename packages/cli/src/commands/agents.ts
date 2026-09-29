@@ -1,16 +1,20 @@
 import {
 	AGENT_RUN_LIST_LIMIT,
+	AGENT_RUN_LIST_MAX_LIMIT,
 	AGENT_RUN_LIST_WINDOW_HOURS,
 	AgentBroadcastGroupSchema,
 	type AgentBroadcastResult,
 	type AgentRun,
+	type AgentRunListInput,
 	HarnessSchema,
+	type TrellisClient,
 } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, wantsJson } from "../context.ts";
-import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { cell, json, type ListSpec, printListPages, printRecord, type RecordSpec } from "../output.ts";
+import { positiveInteger } from "./page/revision.ts";
 
 const agentList: ListSpec<AgentRun> = {
 	columns: [
@@ -52,6 +56,26 @@ const broadcastRecord: RecordSpec<AgentBroadcastResult> = {
 	identifier: (row) => row.group,
 };
 
+const agentPages = async function* (
+	client: TrellisClient,
+	query: Partial<Omit<AgentRunListInput, "cursor" | "limit" | "includePinnedHistory">>,
+	want: number,
+) {
+	let cursor: string | undefined;
+	let taken = 0;
+	while (taken < want) {
+		const page = await client.agentRuns.list({
+			...query,
+			cursor,
+			limit: Math.min(want - taken, AGENT_RUN_LIST_MAX_LIMIT),
+		});
+		taken += page.items.length;
+		yield page.items;
+		if (page.nextCursor === null) return;
+		cursor = page.nextCursor;
+	}
+};
+
 const list = defineCommand({
 	meta: { name: "list", description: "List agents by ticket or by project" },
 	args: {
@@ -62,19 +86,27 @@ const list = defineCommand({
 			description: `How many hours of closed agents to keep, on top of the open ones (default ${AGENT_RUN_LIST_WINDOW_HOURS})`,
 		},
 		limit: { type: "string", description: `How many agents to print at most (default ${AGENT_RUN_LIST_LIMIT})` },
+		all: { type: "boolean", description: "Print every matching agent" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const rows = await clientOf(ctx).agentRuns.list(
-			compact({
-				ticket: args.ticket,
-				project: args.project,
-				windowHours: args["window-hours"] === undefined ? undefined : Number(args["window-hours"]),
-				limit: args.limit === undefined ? undefined : Number(args.limit),
-			}),
+		const want = args.all ? Number.POSITIVE_INFINITY : (positiveInteger(args.limit, "--limit") ?? AGENT_RUN_LIST_LIMIT);
+		await printListPages(
+			ctx.out,
+			ctx.format,
+			agentPages(
+				clientOf(ctx),
+				compact({
+					ticket: args.ticket,
+					project: args.project,
+					windowHours:
+						args["window-hours"] === undefined ? (args.all ? null : undefined) : Number(args["window-hours"]),
+				}),
+				want,
+			),
+			agentList,
 		);
-		printList(ctx.out, ctx.format, rows, agentList);
 	},
 });
 
@@ -154,7 +186,7 @@ const account = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
-		const [run] = await client.agentRuns.list({ ids: [context.args.id] });
+		const [run] = (await client.agentRuns.list({ ids: [context.args.id] })).items;
 		if (!run?.terminalId) throw new Error("This run has no provider session to resume.");
 		const result = await client.agentRuns.switchAccount({
 			id: run.id,

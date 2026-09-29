@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
 	AGENT_RUN_LIST_MAX_LIMIT,
 	AGENT_RUN_LIST_WINDOW_HOURS,
@@ -7,10 +8,12 @@ import {
 	type TicketGetInputSchema,
 } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
+import { decodeCursor, encodeCursor, isIsoTimestamp } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { fail } from "../../errors.ts";
 import { latestAttemptActivityByRuns, listExecutionAttempts } from "../assignments.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
@@ -51,13 +54,67 @@ const withAttemptActivity = async (tx: Tx, runs: StoredRun[]) => {
 	});
 };
 
-// The window keeps every open run. It also keeps each closed run whose
-// `updated_at` value falls inside `windowHours`. A caller that names `ids`
-// or `ticket` already asks for a bounded set.
-const withinWindow = (input: AgentRunListInput, ticketId: string | null, now: Date) => {
+const windowStart = (input: AgentRunListInput, cursor: AgentRunCursor | null, now: Date) => {
+	if (input.windowHours === null) return null;
+	if (cursor !== null) return cursor.windowStart;
+	return new Date(now.getTime() - input.windowHours * 3_600_000).toISOString();
+};
+
+const withinWindow = (input: AgentRunListInput, ticketId: string | null, start: string | null) => {
 	if (input.ids !== undefined || ticketId !== null) return sql`true`;
-	const start = new Date(now.getTime() - input.windowHours * 3_600_000);
+	if (start === null) return sql`true`;
 	return sql`(closed_at IS NULL OR updated_at >= ${start})`;
+};
+
+type AgentRunCursor = {
+	format: 1;
+	filterHash: string;
+	windowStart: string | null;
+	pinned: 0 | 1;
+	orderedAt: string;
+	createdAt: string;
+	id: string;
+};
+
+const cursorHash = (input: AgentRunListInput, ticketId: string | null, projectId: string | null) =>
+	createHash("sha1")
+		.update(
+			JSON.stringify([ticketId, projectId, input.ids, input.assigned, input.includePinnedHistory, input.windowHours]),
+		)
+		.digest("hex");
+
+const readCursor = (value: string | undefined, hash: string, allHistory: boolean): AgentRunCursor | null => {
+	if (value === undefined) return null;
+	let parsed: unknown;
+	try {
+		parsed = decodeCursor(value);
+	} catch {
+		throw fail("INVALID_CURSOR");
+	}
+	const cursor = parsed as Partial<AgentRunCursor> | null;
+	if (
+		cursor === null ||
+		cursor.format !== 1 ||
+		cursor.filterHash !== hash ||
+		(allHistory ? cursor.windowStart !== null : !isIsoTimestamp(cursor.windowStart)) ||
+		(cursor.pinned !== 0 && cursor.pinned !== 1) ||
+		!isIsoTimestamp(cursor.orderedAt) ||
+		!isIsoTimestamp(cursor.createdAt) ||
+		typeof cursor.id !== "string"
+	)
+		throw fail("INVALID_CURSOR");
+	return cursor as AgentRunCursor;
+};
+
+const afterCursor = (input: AgentRunListInput, cursor: AgentRunCursor | null): SQL => {
+	if (cursor === null) return sql`true`;
+	if (!input.includePinnedHistory) return sql`(updated_at, id) < (${cursor.orderedAt}::timestamptz, ${cursor.id})`;
+	return sql`(
+		CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END,
+		COALESCE(pinned_at, created_at),
+		created_at,
+		id
+	) < (${cursor.pinned}::int, ${cursor.orderedAt}::timestamptz, ${cursor.createdAt}::timestamptz, ${cursor.id})`;
 };
 
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
@@ -81,31 +138,40 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const assignedWhere =
 		input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`;
 	const scope = sql`${projectWhere} AND ${ticketWhere} AND ${idsWhere} AND ${assignedWhere}`;
-	const window = withinWindow(input, ticket === null ? null : ticket.id, ctx.now);
-	if (input.includePinnedHistory) {
-		const runs = await storedRows<StoredRun>(
-			tx,
-			sql`WITH pinned AS (
-					SELECT ${listColumns} FROM agent_runs
-					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NOT NULL
-				), recent AS (
-					SELECT ${listColumns} FROM agent_runs
-					WHERE ${scope} AND kind IN ('agent', 'session') AND pinned_at IS NULL AND ${window}
-					ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}
-				)
-				SELECT * FROM pinned
-				UNION ALL
-				SELECT * FROM recent
-				ORDER BY "pinnedAt" DESC NULLS LAST, "createdAt" DESC, id DESC`,
-		);
-		return withAttemptActivity(tx, runs);
-	}
-	const runs = await storedRows<StoredRun>(
+	const hash = cursorHash(input, ticket?.id ?? null, project?.id ?? null);
+	const cursor = readCursor(input.cursor, hash, input.windowHours === null);
+	const start = windowStart(input, cursor, ctx.now);
+	const window = withinWindow(input, ticket?.id ?? null, start);
+	const history = input.includePinnedHistory
+		? sql`kind IN ('agent', 'session') AND (pinned_at IS NOT NULL OR ${window})`
+		: window;
+	const cursorWhere = afterCursor(input, cursor);
+	const order = input.includePinnedHistory
+		? sql`CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC,
+			COALESCE(pinned_at, created_at) DESC, created_at DESC, id DESC`
+		: sql`updated_at DESC, id DESC`;
+	const found = await storedRows<StoredRun>(
 		tx,
-		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${window}
-		ORDER BY updated_at DESC, id DESC LIMIT ${input.limit}`,
+		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${history} AND ${cursorWhere}
+		ORDER BY ${order} LIMIT ${input.limit + 1}`,
 	);
-	return withAttemptActivity(tx, runs);
+	const items = found.slice(0, input.limit);
+	const last = items.at(-1);
+	return {
+		items: await withAttemptActivity(tx, items),
+		nextCursor:
+			found.length > input.limit && last !== undefined
+				? encodeCursor({
+						format: 1,
+						filterHash: hash,
+						windowStart: start,
+						pinned: last.pinnedAt === null ? 0 : 1,
+						orderedAt: input.includePinnedHistory ? (last.pinnedAt ?? last.createdAt) : last.updatedAt,
+						createdAt: last.createdAt,
+						id: last.id,
+					})
+				: null,
+	};
 };
 
 const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[], home?: string) =>
@@ -122,19 +188,20 @@ export const listUnresolvedAttempts = async (tx: Tx, input: { sessions: RuntimeP
 	return projectUnresolvedAttempts(runs, input.sessions, input.home);
 };
 
-export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
-	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
+export const prepareList = async (ctx: Ctx, input: AgentRunListInput) => {
+	const page = await ctx.newTx((tx) => list(ctx.core, tx, input));
+	return { ...page, items: await observeRuns(ctx, page.items) };
+};
 
-// Every run that a ticket or a session still holds. The list route caps how
-// many rows it answers with, and a reader of the open set must see all of
-// them, so this asks for the largest answer the list gives.
-export const prepareOpenRuns = (ctx: Ctx) =>
-	prepareList(ctx, {
-		assigned: true,
-		includePinnedHistory: false,
-		windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
-		limit: AGENT_RUN_LIST_MAX_LIMIT,
-	});
+export const prepareOpenRuns = async (ctx: Ctx) =>
+	(
+		await prepareList(ctx, {
+			assigned: true,
+			includePinnedHistory: false,
+			windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
+			limit: AGENT_RUN_LIST_MAX_LIMIT,
+		})
+	).items;
 
 export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;

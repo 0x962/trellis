@@ -7,8 +7,8 @@ export function useActorRun(actor: ActorRef) {
 	const run = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ids: [actor.name] } }),
 		enabled: actor.kind === "agent",
-		refetchInterval: (query) => (query.state.data?.some((item) => item.assigned) ? 2000 : false),
-		select: (items) => items.find((item) => item.id === actor.name),
+		refetchInterval: (query) => (query.state.data?.items.some((item) => item.assigned) ? 2000 : false),
+		select: (page) => page.items.find((item) => item.id === actor.name),
 	});
 	return run.data;
 }
