@@ -165,7 +165,7 @@ export const createInlineTransport = ({
 	let jobs: Jobs | null = null;
 	let pageDelivery: ReturnType<typeof startRepeatingCall> | null = null;
 	let reviewDelivery: ReturnType<typeof startReviewDeliveryLoop> | null = null;
-	let sessionStatusRequests: ReturnType<typeof startRepeatingCall> | null = null;
+	let sessionObserverGeneration: ReturnType<typeof startRepeatingCall> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let fileSweep: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
@@ -222,11 +222,11 @@ export const createInlineTransport = ({
 				log: options.log,
 				call: () => backgroundCall("reviews.dispatchDeliveries", {}),
 			});
-			sessionStatusRequests = startRepeatingCall({
+			sessionObserverGeneration = startRepeatingCall({
 				clock,
 				log: options.log,
-				failureLogMessage: "Session status request dispatch failed",
-				call: () => backgroundCall("sessionStatusRequests.dispatch", {}),
+				failureLogMessage: "Session observer generation failed",
+				call: () => backgroundCall("sessionObservers.dispatch", {}),
 			});
 			jobs = startBackgroundJobs({
 				db,
@@ -247,7 +247,7 @@ export const createInlineTransport = ({
 
 	const close = async () => {
 		await sessionMonitor?.stop();
-		await sessionStatusRequests?.stop();
+		await sessionObserverGeneration?.stop();
 		await reviewDelivery?.stop();
 		await pageDelivery?.stop();
 		await flowReconcile?.stop();

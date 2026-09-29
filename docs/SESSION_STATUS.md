@@ -20,7 +20,8 @@ Elapsed time does not cause an update.
 New work stays pending while one update runs.
 Disablement invalidates the active claim before it cancels the provider request.
 
-The observer uses `anthropic/claude-sonnet-5.5` through the saved Vercel AI Gateway provider.
+The observer uses `anthropic/claude-sonnet-5.5` through the existing Claude harness and its configured account.
+Its Claude conversation remains separate from the worker conversation and resumes through the existing runtime.
 It reads the user goal, relevant ticket requirements, the epic purpose, related dependency outcomes, its prior conversation, and new completed work.
 It treats transcript and tool text as evidence, not instructions.
 If the source exceeds the model context capacity, it creates explicit incremental summaries before it retries.

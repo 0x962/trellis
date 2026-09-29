@@ -8,6 +8,8 @@ export { readSessionObserverContext } from "./sessionObserverContext.ts";
 export {
 	finishSessionObserverGenerations,
 	prepareSessionObserverGenerations,
+	requestSessionObserverGeneration,
+	setSessionObserverEnabled,
 	type SessionObserverGenerationDeps,
 } from "./sessionObserverGeneration.ts";
 export {

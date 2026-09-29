@@ -97,6 +97,7 @@ The runtime keeps complete records for active processes and subscribers. It chec
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
 Idle expiry preserves assignments, workspaces, and provider conversations. A follow-up through `agentRuns.send` resumes the saved conversation with that message. Periodic idle nudges leave the process stopped. The terminal uses its existing Resume control.
 An optional status observer uses a separate saved conversation for each ticket or standalone run.
+The existing Claude harness runs that conversation with Sonnet 5.5 through the configured Claude account.
 The observer reads completed messages and tool calls after its durable cursor.
 It never writes to the worker conversation.
 An initial enablement, the configured activity threshold, completion, or a request for human input can start an update.

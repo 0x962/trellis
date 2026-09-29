@@ -21,6 +21,6 @@ export const sessionObserverTrigger = (
 	if (activity.needsInput) return "needs-input";
 	if (activity.completed) return "completed";
 	if (!candidate.hasInitialUpdate) return "initial";
-	if (!activity.unavailable && activity.itemCount >= candidate.activityThreshold) return "threshold";
+	if (activity.itemCount >= candidate.activityThreshold) return "threshold";
 	return null;
 };

@@ -22,6 +22,7 @@ const fixture = (options: {
 	needsInput?: boolean;
 	unavailable?: boolean;
 	items?: typeof activity;
+	context?: Array<{ kind: "message"; role: "assistant"; body: string }>;
 	save?: object | null;
 	generateError?: Error;
 }) => {
@@ -38,6 +39,7 @@ const fixture = (options: {
 		activity: async () => ({
 			cursor: "cursor-2",
 			items: options.items ?? activity,
+			context: options.context ?? [],
 			completed: options.completed ?? false,
 			needsInput: options.needsInput ?? false,
 			unavailable: options.unavailable ?? false,
@@ -100,8 +102,38 @@ test("initial generation works when activity is unavailable", async () => {
 	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
 	expect(calls.generate).toHaveLength(1);
 	expect((calls.generate[0] as { messages: Array<{ body: string }> }).messages.at(-1)?.body).toContain(
-		"The activity source is unavailable.",
+		"Some message coverage is unavailable.",
 	);
+});
+
+test("20 completed tools trigger with unavailable messages, signals, and uncertain context", async () => {
+	const { calls, deps } = fixture({
+		unavailable: true,
+		completed: true,
+		needsInput: true,
+		context: [{ kind: "message", role: "assistant", body: "An unproven complete assistant message." }],
+	});
+	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
+	expect(calls.generate).toHaveLength(1);
+	const prompt = (calls.generate[0] as { messages: Array<{ body: string }> }).messages.at(-1)?.body;
+	expect(prompt).toContain("Some message coverage is unavailable.");
+	expect(prompt).toContain("An unproven complete assistant message.");
+});
+
+test("a completed user correction updates standalone session context", async () => {
+	const correction = {
+		kind: "message" as const,
+		role: "user" as const,
+		name: null,
+		body: "Use 20 completed activity items and never a timer.",
+	};
+	const { calls, deps } = fixture({ hasInitialUpdate: false, items: [correction] });
+	await prepareSessionObserverGenerations({} as IoCtx, {}, deps);
+	const prompt = (calls.generate[0] as { messages: Array<{ body: string }> }).messages.at(-1)?.body;
+	expect(prompt).toContain("Explain session progress without a worker prompt.");
+	expect(prompt).toContain("TRL: Trellis");
+	expect(prompt).toContain(correction.body);
+	expect(prompt).toContain("Use the latest user direction when the two conflict.");
 });
 
 test("a disable can discard a late provider result", async () => {
