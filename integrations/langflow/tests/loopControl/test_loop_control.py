@@ -71,6 +71,24 @@ def make_graph() -> Graph:
 	return graph
 
 
+def metadata(node: str = "loop") -> dict:
+	return {
+		"nodeId": node,
+		"title": "Loop title",
+		"instructions": "Run the child before the condition.",
+		"actionIdentity": node,
+	}
+
+
+def condition(output: str, *, round_number: int = 1) -> dict:
+	return {
+		"exitKind": "completed",
+		"output": output,
+		"completionId": f"completion-{round_number}",
+		"trellisOutput": {"receiptId": f"condition-receipt-{round_number}"},
+	}
+
+
 async def begin(
 	graph: Graph,
 	*,
@@ -88,6 +106,7 @@ async def begin(
 		selected_inputs=inputs,
 		selected_input_bytes=input_bytes,
 		inherited_scope=scope or inherited_scope(),
+		metadata=metadata(node),
 	)
 
 
@@ -129,7 +148,7 @@ async def test_one_round_runs_child_before_yes_condition() -> None:
 		"phase": "condition",
 	}
 	visit = await graph.commit_trellis_loop_condition(
-		visit["visitKey"], {"exitKind": "completed", "output": " YES\n"}
+		visit["visitKey"], condition(" YES\n")
 	)
 	assert visit["phase"] == "completed"
 	assert visit["childOutput"]["outputBytes"] == "child-1"
@@ -213,7 +232,7 @@ async def test_no_feedback_starts_next_round_with_exact_prior_output() -> None:
 	graph = make_graph()
 	visit = await commit_child(graph, await begin(graph), round_number=1)
 	visit = await graph.commit_trellis_loop_condition(
-		visit["visitKey"], {"exitKind": "completed", "output": "\tNO \n"}
+		visit["visitKey"], condition("\tNO \n")
 	)
 	assert visit["phase"] == "children"
 	assert visit["round"] == 2
@@ -227,7 +246,7 @@ async def test_no_on_explicit_last_round_fails_the_visit() -> None:
 	visit = await commit_child(graph, await begin(graph, rounds=1), round_number=1)
 	with pytest.raises(RuntimeError, match="loop_rounds_exhausted"):
 		await graph.commit_trellis_loop_condition(
-			visit["visitKey"], {"exitKind": "completed", "output": "NO"}
+			visit["visitKey"], condition("NO")
 		)
 	assert graph.read_trellis_loop_visit(visit["visitKey"])["phase"] == "failed"
 
@@ -250,7 +269,7 @@ async def test_later_round_retains_human_wait_identity_and_deadline() -> None:
 	graph = make_graph()
 	visit = await commit_child(graph, await begin(graph), round_number=1)
 	visit = await graph.commit_trellis_loop_condition(
-		visit["visitKey"], {"exitKind": "completed", "output": "NO"}
+		visit["visitKey"], condition("NO")
 	)
 	human_wait = {
 		"waitId": "wait-2",
@@ -289,11 +308,11 @@ async def test_round_values_above_fifty_remain_valid() -> None:
 	for round_number in range(1, 51):
 		visit = await commit_child(graph, visit, round_number=round_number)
 		visit = await graph.commit_trellis_loop_condition(
-			visit["visitKey"], {"exitKind": "completed", "output": "NO"}
+			visit["visitKey"], condition("NO", round_number=round_number)
 		)
 	visit = await commit_child(graph, visit, round_number=51)
 	visit = await graph.commit_trellis_loop_condition(
-		visit["visitKey"], {"exitKind": "completed", "output": "YES"}
+		visit["visitKey"], condition("YES", round_number=51)
 	)
 	assert visit["phase"] == "completed"
 	assert visit["round"] == 51
@@ -301,3 +320,14 @@ async def test_round_values_above_fifty_remain_valid() -> None:
 	done_context = graph.trellis_loop_output_context(visit["visitKey"], "done")
 	assert done_context["output"] == "child-51"
 	assert done_context["scope"] == inherited_scope()
+	assert len(visit["history"]) == 51
+	assert visit["history"][0]["occurrence"]["occurrenceKey"].endswith(".1")
+	assert visit["history"][-1]["projection"] == {
+		"state": "succeeded",
+		"acceptedResultId": "completion-51",
+		"startedAt": visit["history"][-1]["projection"]["startedAt"],
+		"endedAt": visit["history"][-1]["projection"]["endedAt"],
+		"error": None,
+		"skipReason": None,
+	}
+	assert visit["history"][-1]["resultReceiptIds"] == ["receipt-51", "condition-receipt-51"]

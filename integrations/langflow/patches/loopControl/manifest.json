@@ -55,7 +55,7 @@
 		"className": "TrellisLoopV1",
 		"sourceNodeType": "loop",
 		"sourcePath": "integrations/langflow/components/trellisLoop/trellisLoop.py",
-		"sourceSha256": "f92c9e589bf84f31bcde27922e1c00b2befab10122293cc1ccf228e7ffda64ee",
+		"sourceSha256": "767413979d85404b890c97d622745d656a37de6ea33d51345df7d088f69de560",
 		"inputs": ["scope_entry", "seed", "max_rounds"],
 		"inputPorts": [
 			{
@@ -90,6 +90,6 @@
 	},
 	"fixture": {
 		"path": "integrations/langflow/tests/loopControl/test_loop_control.py",
-		"sha256": "afebfa4a23566f100f1e5669d5088e4c5a7284a6da0440e7665b07c8d2c5dbb1"
+		"sha256": "04b215e8175c8e859fc1f12caa4fb3c1ba260cbb6c6866ccffaadafe48a05bde"
 	}
 }
