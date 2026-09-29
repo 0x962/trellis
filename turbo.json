@@ -10,7 +10,9 @@
 			"dependsOn": ["^build"],
 			"outputs": ["dist/**"]
 		},
-		"typecheck": {},
+		"typecheck": {
+			"dependsOn": ["^typecheck"]
+		},
 		"lint": {},
 		"db:generate": {
 			"cache": false,
