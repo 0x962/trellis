@@ -64,6 +64,7 @@ import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
+import { get as getSessionObserver, setEnabledForProcedure as setSessionObserverEnabled } from "./sessionObservers";
 import { finishSessionStatusRequests, prepareSessionStatusRequests } from "./sessionStatusRequests";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
@@ -108,6 +109,8 @@ export const services = {
 	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
+	"sessionObservers.get": core("read", getSessionObserver),
+	"sessionObservers.setEnabled": core("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
 	"sessionStatusRequests.dispatch": prepared("mutation", prepareSessionStatusRequests, finishSessionStatusRequests),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
