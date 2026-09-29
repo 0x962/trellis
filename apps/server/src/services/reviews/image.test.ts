@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import type { ServiceTransport } from "../../db/transport.ts";
+import type { Logger } from "../../log.ts";
 import { reviewImageRoute } from "../../routes/reviewImage.ts";
 import type { PrepareCtx } from "../support.ts";
 import { image } from "./image.ts";
@@ -16,13 +17,24 @@ const deps = (response: Response) => ({
 
 const routeResponse = async (stream: ReadableStream<Uint8Array>) => {
 	const transport = { call: async () => stream } as unknown as ServiceTransport;
+	const errors: Array<[string, Record<string, unknown> | undefined]> = [];
+	const log: Logger = {
+		level: "error",
+		debug() {},
+		info() {},
+		warn() {},
+		error(message, fields) {
+			errors.push([message, fields]);
+		},
+		close() {},
+	};
 	const app = new Hono();
 	app.use(async (c, next) => {
 		c.set("requestId", "review-image-test");
 		await next();
 	});
-	app.get("/api/review-image", reviewImageRoute(transport));
-	return app.request(`/api/review-image?url=${encodeURIComponent(sourceUrl)}`);
+	app.get("/api/review-image", reviewImageRoute({ transport, log }));
+	return { response: await app.request(`/api/review-image?url=${encodeURIComponent(sourceUrl)}`), errors };
 };
 
 describe("review images", () => {
@@ -44,7 +56,7 @@ describe("review images", () => {
 			{ url: sourceUrl },
 			deps(new Response(upstream, { headers: { "content-type": "image/png; charset=binary" } })),
 		);
-		const response = await routeResponse(stream);
+		const { response } = await routeResponse(stream);
 		expect(remaining).toBeGreaterThan(0);
 		const reader = response.body!.getReader();
 		let received = 0;
@@ -94,10 +106,11 @@ describe("review images", () => {
 			{ url: sourceUrl },
 			deps(new Response(body, { headers: { "content-type": "image/webp" } })),
 		);
-		const response = await routeResponse(stream);
+		const { response, errors } = await routeResponse(stream);
 		const reader = response.body!.getReader();
 		expect(await reader.read()).toEqual({ done: false, value: Uint8Array.of(1, 2, 3) });
 		await expect(reader.read()).rejects.toBe(interruption);
+		expect(errors).toEqual([["review image failed", { reqId: "review-image-test", message: "source interrupted" }]]);
 	});
 
 	test("cancels the source when the response reader cancels", async () => {
@@ -115,7 +128,7 @@ describe("review images", () => {
 			{ url: sourceUrl },
 			deps(new Response(body, { headers: { "content-type": "image/jpeg" } })),
 		);
-		const response = await routeResponse(stream);
+		const { response } = await routeResponse(stream);
 		await response.body!.cancel("client stopped");
 		expect(reason).toBe("client stopped");
 	});
