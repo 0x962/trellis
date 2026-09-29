@@ -11,3 +11,5 @@ export { readDocumentSaveReceipt } from "./readSaveReceipt.ts";
 export { readDocumentSaveReceiptsByRef } from "./readSaveReceiptsByRef";
 export { type SaveDocumentInput, type SaveDocumentResult, saveDocument } from "./save.ts";
 export { writeDocumentPublicationState } from "./writePublicationState.ts";
+
+export * from "./documentActions";
