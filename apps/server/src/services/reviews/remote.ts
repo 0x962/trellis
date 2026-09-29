@@ -133,55 +133,112 @@ export async function submit(ctx: ServiceCtx, tx: Tx, input: ReviewSubmit) {
 export const actionResult = async (ctx: IoCtx, tx: Tx, input: PreparedAction) => {
 	return recordAction(ctx, tx, input);
 };
-// With a project, the search covers the repositories of that project. A
-// project with no repository has no pull request of its own, so the search
-// does not run.
+
+type PageInfo = { hasNextPage: boolean; endCursor: string | null };
+
+const incomplete = (subject: string): never => {
+	const error = fail("GH_UNAVAILABLE", { reason: "error" });
+	error.message = `GitHub returned an incomplete ${subject}.`;
+	throw error;
+};
+
+const nextCursor = (page: PageInfo, cursor: string | null, subject: string) => {
+	if (!page.hasNextPage) return null;
+	if (page.endCursor !== null && page.endCursor !== cursor) return page.endCursor;
+	return incomplete(subject);
+};
+
+type MinePullRequest = {
+	number: number;
+	title: string;
+	repository: { nameWithOwner: string };
+	isDraft: boolean;
+	url: string;
+};
+
+const mineQuery = `query($cursor:String) {
+	viewer { pullRequests(first:100,after:$cursor,states:OPEN,orderBy:{field:UPDATED_AT,direction:DESC}) {
+		nodes { number title repository { nameWithOwner } isDraft url }
+		pageInfo { hasNextPage endCursor } totalCount
+	} }
+}`;
+
+// With a project, mine returns only pull requests from repositories of that project.
+// A project with no repository returns an empty list without a GitHub request.
 export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string }) {
 	const project = input.project;
 	const repos = project === undefined ? [] : await ctx.newTx((tx) => projectRepos(ctx.core, tx, { project }));
 	if (project !== undefined && repos.length === 0) return [];
-	return ghJson<
-		{
-			number: number;
-			title: string;
-			repository: { nameWithOwner: string };
-			isDraft: boolean;
-			url: string;
-		}[]
-	>(ctx, [
-		"search",
-		"prs",
-		"--author",
-		"@me",
-		"--state",
-		"open",
-		"--limit",
-		"100",
-		"--sort",
-		"updated",
-		...repos.flatMap((repo) => ["--repo", `${repo.owner}/${repo.repo}`]),
-		"--json",
-		"number,title,repository,isDraft,url",
-	]);
+	const projectReposByName = new Set(repos.map((repo) => `${repo.owner}/${repo.repo}`.toLowerCase()));
+	const pullRequests: MinePullRequest[] = [];
+	let totalCount: number | undefined;
+	let cursor: string | null = null;
+	do {
+		const page = await ghJson<{
+			data: { viewer: { pullRequests: { nodes: MinePullRequest[]; pageInfo: PageInfo; totalCount: number } } };
+		}>(ctx, ["api", "graphql", "-f", `query=${mineQuery}`, ...(cursor === null ? [] : ["-f", `cursor=${cursor}`])]);
+		const connection = page.data.viewer.pullRequests;
+		totalCount ??= connection.totalCount;
+		if (connection.totalCount !== totalCount) incomplete("pull request list");
+		pullRequests.push(...connection.nodes);
+		cursor = nextCursor(connection.pageInfo, cursor, "pull request list");
+	} while (cursor !== null);
+	if (pullRequests.length !== totalCount || new Set(pullRequests.map((row) => row.url)).size !== totalCount)
+		incomplete("pull request list");
+	return pullRequests.filter(
+		(row) => project === undefined || projectReposByName.has(row.repository.nameWithOwner.toLowerCase()),
+	);
 }
+
+type StackEntry = {
+	position: number;
+	pullRequest: { number: number; title: string; state: string; url: string; isDraft: boolean };
+};
+
+type MetadataPullRequest = Record<string, unknown> & {
+	stack?: { entries: { nodes: StackEntry[]; pageInfo: PageInfo; totalCount: number } } | null;
+};
+
+const metadataQuery =
+	"query($owner:String!,$repo:String!,$num:Int!,$cursor:String){repository(owner:$owner,name:$repo){pullRequest(number:$num){mergeQueueEntry{position enqueuedAt} stack{entries(first:50,after:$cursor){nodes{position pullRequest{number title state url isDraft}} pageInfo{hasNextPage endCursor} totalCount}}}}}";
+
 export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
-	const query =
-		"query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){mergeQueueEntry{position enqueuedAt} stack{entries(first:50){nodes{position pullRequest{number title state url isDraft}}}}}}}";
-	const graph = await ghJson<{
-		data: { repository: { pullRequest: Record<string, unknown> } };
-	}>(ctx, [
-		"api",
-		"graphql",
-		"-f",
-		`query=${query}`,
-		"-f",
-		`owner=${ref.owner}`,
-		"-f",
-		`repo=${ref.repo}`,
-		"-F",
-		`num=${ref.number}`,
-	]);
-	return graph.data.repository.pullRequest as Record<string, unknown>;
+	const stack: StackEntry[] = [];
+	let first: MetadataPullRequest | undefined;
+	let totalCount: number | undefined;
+	let cursor: string | null = null;
+	do {
+		const graph = await ghJson<{
+			data: { repository: { pullRequest: MetadataPullRequest } };
+		}>(ctx, [
+			"api",
+			"graphql",
+			"-f",
+			`query=${metadataQuery}`,
+			"-f",
+			`owner=${ref.owner}`,
+			"-f",
+			`repo=${ref.repo}`,
+			"-F",
+			`num=${ref.number}`,
+			...(cursor === null ? [] : ["-f", `cursor=${cursor}`]),
+		]);
+		const pullRequest = graph.data.repository.pullRequest;
+		const firstPage = first === undefined;
+		first ??= pullRequest;
+		const entries = pullRequest.stack?.entries;
+		if (entries === undefined) {
+			if (firstPage) return first;
+			return incomplete("pull request stack");
+		}
+		totalCount ??= entries.totalCount;
+		if (entries.totalCount !== totalCount) incomplete("pull request stack");
+		stack.push(...entries.nodes);
+		cursor = nextCursor(entries.pageInfo, cursor, "pull request stack");
+	} while (cursor !== null);
+	if (stack.length !== totalCount || new Set(stack.map((entry) => entry.pullRequest.url)).size !== totalCount)
+		incomplete("pull request stack");
+	return { ...first, stack: { entries: { nodes: stack } } };
 }
 export const result = <T>(_ctx: ServiceCtx, _tx: Tx, input: T) => Promise.resolve(input);
