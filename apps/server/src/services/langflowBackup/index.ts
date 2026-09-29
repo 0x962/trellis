@@ -21,3 +21,10 @@ export { assertRestoreReconciled } from "./recoveryBlock";
 export { restorePairedSnapshot } from "./restorePairedSnapshot";
 export { type RestoreContext, restoreSnapshot } from "./restoreSnapshot";
 export { sealSnapshot } from "./sealSnapshot";
+export {
+	exportWorkspaceArchive,
+	restoreWorkspaceArchive,
+	type WorkspaceBinding,
+	type WorkspaceCaptureReader,
+	type WorkspaceInventory,
+} from "./workspaceArchive";
