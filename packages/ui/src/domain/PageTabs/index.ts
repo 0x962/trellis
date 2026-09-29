@@ -1,1 +1,1 @@
-export { type PageTab, PageTabs, type PageTabsProps } from "./PageTabs";
+export { type PageTabItem, PageTabs, type PageTabsProps } from "./PageTabs";

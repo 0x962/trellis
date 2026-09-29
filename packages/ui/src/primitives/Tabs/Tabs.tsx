@@ -1,8 +1,25 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import type { BaseUIEvent } from "@base-ui/react/types";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { ComponentProps, KeyboardEvent, ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
+
+export const TabsRoot = BaseTabs.Root;
+
+export function TabsTab({ value, ...props }: ComponentProps<typeof BaseTabs.Tab>) {
+	return <BaseTabs.Tab {...props} value={value} data-tabs-value={String(value)} />;
+}
+
+export type TabsListItem<Value extends string> = {
+	value: Value;
+	disabled?: boolean;
+};
+
+export type TabsListProps<Value extends string> = Omit<ComponentProps<typeof BaseTabs.List>, "onKeyDown"> & {
+	items: readonly TabsListItem<Value>[];
+	value: Value;
+	onValueChange: (value: Value) => void;
+};
 
 export type TabItem<Value extends string> = {
 	value: Value;
@@ -27,7 +44,7 @@ export type TabsProps<Value extends string> = {
 // The tab an arrow key lands on, among the enabled tabs only. Base UI moves
 // focus onto a disabled tab and leaves it unselected. A disabled tab cannot
 // be selected, so the keys pass over it and wrap at both ends.
-const step = <Value extends string>(items: readonly TabItem<Value>[], value: Value, key: string) => {
+const step = <Value extends string>(items: readonly TabsListItem<Value>[], value: Value, key: string) => {
 	const enabled = items.filter((item) => !item.disabled);
 	const index = enabled.findIndex((item) => item.value === value);
 	const moves: Record<string, number | undefined> = {
@@ -39,6 +56,21 @@ const step = <Value extends string>(items: readonly TabItem<Value>[], value: Val
 	const next = moves[key];
 	return next === undefined ? undefined : enabled[next];
 };
+
+export function TabsList<Value extends string>({ items, value, onValueChange, ...props }: TabsListProps<Value>) {
+	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
+		const next = step(items, value, event.key);
+		if (!next) return;
+		event.preventDefault();
+		event.preventBaseUIHandler();
+		onValueChange(next.value);
+		Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'))
+			.find((element) => element.dataset.tabsValue === next.value)
+			?.focus();
+	};
+
+	return <BaseTabs.List {...props} onKeyDown={onKeyDown} />;
+}
 
 // Underlined tabs over one panel. Arrow keys, Home, and End move the
 // selection and skip a disabled tab. The panel is a keyboard stop (Base UI
@@ -54,20 +86,11 @@ export function Tabs<Value extends string>({
 	panelClassName = "pt-3",
 	keepMounted = false,
 }: TabsProps<Value>) {
-	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
-		const next = step(items, value, event.key);
-		if (!next) return;
-		event.preventDefault();
-		event.preventBaseUIHandler();
-		onValueChange(next.value);
-		const tabs = event.currentTarget.querySelectorAll<HTMLElement>("[role=tab]");
-		tabs[items.indexOf(next)]?.focus();
-	};
 	return (
-		<BaseTabs.Root value={value} onValueChange={(next) => onValueChange(next as Value)} className={className}>
-			<BaseTabs.List onKeyDown={onKeyDown} className="flex gap-4 border-b border-border">
+		<TabsRoot value={value} onValueChange={(next) => onValueChange(next as Value)} className={className}>
+			<TabsList items={items} value={value} onValueChange={onValueChange} className="flex gap-4 border-b border-border">
 				{items.map((item) => (
-					<BaseTabs.Tab
+					<TabsTab
 						key={item.value}
 						value={item.value}
 						disabled={item.disabled}
@@ -82,9 +105,9 @@ export function Tabs<Value extends string>({
 						}
 					>
 						{item.label}
-					</BaseTabs.Tab>
+					</TabsTab>
 				))}
-			</BaseTabs.List>
+			</TabsList>
 			{items.map((item) => (
 				<BaseTabs.Panel
 					key={item.value}
@@ -98,6 +121,6 @@ export function Tabs<Value extends string>({
 					{item.content}
 				</BaseTabs.Panel>
 			))}
-		</BaseTabs.Root>
+		</TabsRoot>
 	);
 }

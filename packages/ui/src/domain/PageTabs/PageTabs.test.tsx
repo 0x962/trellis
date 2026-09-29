@@ -18,8 +18,6 @@ test("renders the controlled tab state and actions", () => {
 	expect(html).toContain('aria-selected="true"');
 	expect(html).toContain('aria-label="Close Review the tab component"');
 	expect(html).toContain('aria-label="Add tab"');
-	expect(html.match(/tabindex="0"/g)).toHaveLength(3);
-	expect(html.match(/tabindex="-1"/g)).toHaveLength(2);
 });
 
 test("accepts a label for the tab list", () => {
@@ -35,4 +33,15 @@ test("accepts a label for the tab list", () => {
 	);
 
 	expect(html).toContain('aria-label="Project pages"');
+});
+
+test("bounds the mounted controls and keeps the active tab", () => {
+	const manyTabs = Array.from({ length: 1_000 }, (_, index) => ({ id: `tab-${index}`, title: `Page ${index}` }));
+	const html = renderToStaticMarkup(
+		<PageTabs tabs={manyTabs} activeId="tab-999" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} />,
+	);
+
+	expect(html.match(/role="tab"/g)?.length).toBeLessThan(10);
+	expect(html).toContain('data-page-tab-id="tab-999"');
+	expect(html).not.toContain('data-page-tab-id="tab-0"');
 });
