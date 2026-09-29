@@ -715,6 +715,7 @@ Do not claim a finding is fixed because the discussion ends.
 | `trellis flow run list --diff <diff>` | Read existing runs for the diff. |
 | `trellis flow run show <run-id>` | Read one run, its step results, and its findings. |
 | `trellis flow start <flow> --diff <diff>` | Start a flow and wait for its result. |
+| `trellis flow start <flow> --diff <diff> --format-version 1` | Use the versioned start contract when the host provides versioned actions. |
 | `trellis flow start <flow> --diff <diff> --no-wait` | Start a flow and return its run record. |
 | `trellis diff set-state <diff> ready --flow-does-not-apply <reason>` | Record why no configured flow fits this change and ask for review. |
 
@@ -748,6 +749,10 @@ If the applicable flow has no existing run for this diff:
 ~~~sh
 trellis flow start <flow-slug> --diff example/app#123 --no-wait
 ~~~
+
+The `--format-version 1` option explicitly selects the versioned start contract.
+It requires a host with versioned actions. It does not retry through the legacy mutation route.
+Without this option, the command uses the legacy start contract.
 
 Run lists include both engines and follow every result page.
 Legacy runs retain their JSON shape. Langflow runs use the version 1 execution view.
