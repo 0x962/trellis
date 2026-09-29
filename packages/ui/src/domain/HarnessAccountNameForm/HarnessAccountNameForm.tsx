@@ -33,14 +33,7 @@ export function HarnessAccountNameForm({
 					onSubmit(name.trim());
 				}}
 			>
-				<Input
-					label="Account name"
-					value={name}
-					onChange={(event) => setName(event.target.value)}
-					required
-					maxLength={120}
-					autoFocus
-				/>
+				<Input label="Account name" value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
 				{error && (
 					<p role="alert" className="text-sm text-danger">
 						{error}

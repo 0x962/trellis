@@ -1,6 +1,6 @@
-import { ids, now } from "../../../../../db/queries/langflowExecution/fixtures/fixture";
-import { flows, projects, pullRequests, statuses, tickets } from "../../../../../db/schema";
-import { openTestDb } from "../../../../../db/testDb";
+import { ids, now } from "../../../../db/queries/langflowExecution/fixtures/fixture";
+import { flows, projects, pullRequests, statuses, tickets } from "../../../../db/schema";
+import { openTestDb } from "../../../../db/testDb";
 
 export async function migratedDatabase() {
 	const db = await openTestDb();

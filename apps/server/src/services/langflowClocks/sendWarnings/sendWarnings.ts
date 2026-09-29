@@ -7,9 +7,9 @@ import {
 	reserveWarning,
 } from "../../../db/queries/langflowExecution";
 import type { IoCtx } from "../../support.ts";
-import { deliverWarning } from "../deliverWarning";
-import { observeWarning } from "../observeWarning";
 import { timeWarning } from "../timeWarning";
+import { deliverWarning } from "./components/deliverWarning";
+import { observeWarning } from "./components/observeWarning";
 
 export async function sendWarnings(
 	ctx: Pick<IoCtx, "newTx" | "home" | "now" | "log">,
