@@ -112,21 +112,25 @@ test("501 anchor moves preserve thread identities, other anchors, and transactio
 	const untouched = await inTx((tx) => create(asHuman, tx, { resource: doc.id, anchor, body: "Keep this." }));
 	const foreign = await inTx((tx) => create(asHuman, tx, { resource: other.id, anchor, body: "Other document." }));
 	const ids = Array.from({ length: 501 }, () => ulid());
-	await inTx((tx) =>
-		tx.insert(resourceComments).values(
+	await inTx(async (tx) => {
+		const { rows: actors } = await tx.execute<{ id: string }>(
+			sql`SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY[${human.kind}, ${human.name}]::text[]`,
+		);
+		await tx.insert(resourceComments).values(
 			ids.map((id) => ({
 				id,
 				threadId: id,
 				resourceId: doc.id,
 				body: `Comment ${id}`,
 				...anchor,
+				actorId: actors[0]!.id,
 				actorName: human.name,
 				actorKind: human.kind,
 				createdAt: now,
 				updatedAt: now,
 			})),
-		),
-	);
+		);
+	});
 	await inTx((tx) => reply(asAgent, tx, { thread: ids[500]!, body: "Keep the reply." }));
 	const before = await inTx((tx) => list(asHuman, tx, { resource: doc.id }));
 	const moved = ids.map((thread, index) => ({
