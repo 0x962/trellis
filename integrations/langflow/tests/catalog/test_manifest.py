@@ -110,3 +110,25 @@ def test_archive_without_git_metadata_detects_changed_component_bytes(tmp_path, 
 	(trellis_copy / source["path"]).write_text("changed source\n")
 	with pytest.raises(ValueError, match="catalog_component_digest_conflict"):
 		read_catalog(trellis_copy, engine_copy, digest, engine_commit=ENGINE_COMMIT)
+
+
+def test_group_declarations_keep_policy_and_runtime_ports_distinct():
+	manifest = json.loads(MANIFEST.read_bytes())
+	by_id = {item["id"]: item for item in manifest["definitions"]}
+	expected = {
+		"group-scope-v1": ("TrellisGroupScopeV1", ["boundary_inputs", "scope_definition"], "entries", "open"),
+		"group-settlement-v1": ("TrellisGroupSettlementV1", ["result", "source_node_id"], "settlement", "settle"),
+		"group-output-v1": ("TrellisGroupOutputV1", ["scope_entry", "settlements"], "out", "collect"),
+	}
+	for key, (class_name, inputs, output, method) in expected.items():
+		definition = by_id[key]
+		assert definition["className"] == class_name
+		assert [port["name"] for port in definition["inputPorts"]] == inputs
+		assert [(port["name"], port["method"], port["types"]) for port in definition["outputPorts"]] == [(output, method, ["Data"])]
+		assert definition["source"]["sha256"] == hashlib.sha256((ROOT / definition["source"]["path"]).read_bytes()).hexdigest()
+		assert definition["allowedForPublication"] is False
+		assert definition["frontendTemplate"] is None
+	for mapping in manifest["legacyMappings"]:
+		if mapping["id"] in ("ordered-group", "parallel-group"):
+			assert mapping["definitionIds"] == list(expected)
+			assert mapping["status"] == "blocked"
