@@ -14,6 +14,7 @@ export function fingerprintLaunch(spec: LaunchSpec): string {
 				spec.rows ?? 24,
 				spec.separateStderr ?? false,
 				spec.timeoutMs ?? null,
+				spec.capture ?? null,
 			]),
 		)
 		.digest("hex");

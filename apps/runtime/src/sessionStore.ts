@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import type {
 	LaunchSpec,
+	RuntimeCaptureAction,
+	RuntimeCaptureRequest,
 	RuntimeExpectedTurn,
 	RuntimeListInput,
 	RuntimeMessageState,
@@ -12,6 +15,8 @@ import type {
 } from "@trellis/runtime-protocol";
 import { acceptSessionInput } from "./acceptSessionInput";
 import { assertExpectedTurn } from "./assertExpectedTurn.ts";
+import { CaptureExclusion } from "./captureExclusion.ts";
+import { withCaptureSnapshot } from "./captureSnapshot";
 import { authenticateSession } from "./authenticateSession.ts";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
 import { expireIdleSessions } from "./idleCleanup";
@@ -40,10 +45,12 @@ export class SessionStore {
 	private readonly idleSweeper: ReturnType<typeof setInterval>;
 	private readonly sweeper: ReturnType<typeof setInterval>;
 	private readonly recoveries = new Map<string, ReturnType<typeof recoverAttemptRecord>>();
+	private readonly captureExclusion = new CaptureExclusion();
 	constructor(
 		private readonly home: string,
 		private readonly daemonId: string,
 		private readonly retain: RetainOptions = defaultRetainOptions,
+		private readonly captureSnapshot: typeof withCaptureSnapshot = withCaptureSnapshot,
 	) {
 		mkdirSync(home, { recursive: true, mode: 0o700 });
 		this.records = new SessionRecords(home);
@@ -110,6 +117,28 @@ export class SessionStore {
 	list(input: RuntimeListInput = {}) {
 		return [...this.iterate(input)];
 	}
+	async capture<T>(request: RuntimeCaptureRequest, action: RuntimeCaptureAction<T>, signal?: AbortSignal) {
+		const records = request.identities.map((identity) => this.get(identity.attemptId));
+		for (const identity of request.identities) {
+			if (this.recoveries.has(identity.attemptId))
+				throw Object.assign(new Error(`Session ${identity.attemptId} has an active recovery`), {
+					code: "CAPTURE_UNAVAILABLE",
+				});
+		}
+		return this.captureExclusion.capture(
+			request.identities.map((identity) => identity.attemptId),
+			async () => {
+				const releases = records.map((record) => this.records.pin(record));
+				try {
+					return await this.captureSnapshot(dirname(this.home), request, records, action, signal, {
+						records: () => [...this.records.values()],
+					});
+				} finally {
+					for (const release of releases.reverse()) release();
+				}
+			},
+		);
+	}
 
 	inspect(id: string): RuntimeProcessStatus {
 		const record = this.get(id);
@@ -118,6 +147,7 @@ export class SessionStore {
 		return session;
 	}
 	recover(id: string) {
+		this.captureExclusion.assertWritable(id);
 		const existing = this.recoveries.get(id);
 		if (existing) return existing;
 		const recovery = recoverAttemptRecord(this.home, this.daemonId, id, this.records).finally(() =>
@@ -136,25 +166,34 @@ export class SessionStore {
 		};
 	}
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
+		this.captureExclusion.assertWritable(input.id);
 		return registerNativeDelivery(this.get(input.id), input);
 	}
 	async queueInput(id: string, messageId: string, data: string) {
-		return queueInput(this.get(id), messageId, data, (input) => this.input(id, input));
+		return this.captureExclusion.mutate(id, () =>
+			queueInput(this.get(id), messageId, data, (input) => this.input(id, input)),
+		);
 	}
 	observe({ id, token, event, expected }: RuntimeMethods["observe"]["params"]): RuntimeProcessStatus {
+		this.captureExclusion.assertWritable(id);
 		const record = this.get(id);
 		authenticateSession(record, token);
 		assertExpectedTurn(record, expected);
 		observeHarness(record, event);
 		if (record.activity?.state !== "working")
-			void flushQueuedInputs(record, (input) => this.input(record.session.id, input));
+			void this.captureExclusion.mutate(id, () =>
+				flushQueuedInputs(record, (input) => this.input(record.session.id, input)),
+			);
 		return this.inspect(id);
 	}
 	turn(input: RuntimeMethods["turn"]["params"]): RuntimeProcessStatus {
+		this.captureExclusion.assertWritable(input.id);
 		const record = this.get(input.id);
 		observeLegacyTurn(record, input);
 		if (record.activity?.state !== "working")
-			void flushQueuedInputs(record, (input) => this.input(record.session.id, input));
+			void this.captureExclusion.mutate(input.id, () =>
+				flushQueuedInputs(record, (data) => this.input(record.session.id, data)),
+			);
 		return this.inspect(input.id);
 	}
 	subscribe(
@@ -179,6 +218,7 @@ export class SessionStore {
 		};
 	}
 	start(spec: LaunchSpec): RuntimeSession {
+		this.captureExclusion.assertWritable(spec.id);
 		const fingerprint = fingerprintLaunch(spec);
 		const existing = this.records.get(spec.id);
 		if (existing) {
@@ -203,7 +243,7 @@ export class SessionStore {
 			session,
 			fingerprint,
 			identity: null,
-			launch: { command: spec.command, args: spec.args, cwd: spec.cwd },
+			launch: { command: spec.command, args: spec.args, cwd: spec.cwd, capture: spec.capture },
 			listeners: new Set(),
 			watchedPids: new Set(),
 			tokenHash: spec.env?.TRELLIS_ATTEMPT_TOKEN
@@ -224,11 +264,14 @@ export class SessionStore {
 		return this.inspect(spec.id);
 	}
 	async input(id: string, data: string, expected?: RuntimeExpectedTurn, userInput = true) {
-		const record = this.get(id);
-		assertExpectedTurn(record, expected);
-		return this.inputBytes(id, Buffer.from(data, "base64"), userInput);
+		return this.captureExclusion.mutate(id, () => {
+			const record = this.get(id);
+			assertExpectedTurn(record, expected);
+			return this.inputBytes(id, Buffer.from(data, "base64"), userInput);
+		});
 	}
 	async inputBytes(id: string, data: Buffer, userInput = true) {
+		this.captureExclusion.assertWritable(id);
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
 		acceptSessionInput(record, userInput);
@@ -236,38 +279,43 @@ export class SessionStore {
 		return null;
 	}
 	async deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
-		const record = this.get(id);
-		if (!record.ledger.has(messageId)) {
-			assertExpectedTurn(record, expected);
-			acceptSessionInput(record);
-		}
-		const unpin = this.records.pin(record);
-		try {
-			return await record.ledger.deliver(messageId, data, () => this.input(id, data));
-		} finally {
-			unpin();
-		}
+		return this.captureExclusion.mutate(id, async () => {
+			const record = this.get(id);
+			if (!record.ledger.has(messageId)) {
+				assertExpectedTurn(record, expected);
+				acceptSessionInput(record);
+			}
+			const unpin = this.records.pin(record);
+			try {
+				return await record.ledger.deliver(messageId, data, () => this.input(id, data));
+			} finally {
+				unpin();
+			}
+		});
 	}
 	resize(id: string, cols: number, rows: number) {
+		this.captureExclusion.assertWritable(id);
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
 		record.process.resize(cols, rows);
 		return null;
 	}
 	async stop(id: string) {
-		await this.recover(id);
-		const record = this.get(id);
-		if (record.retainForResume) {
-			record.retainForResume = false;
-			this.save(record);
-		}
-		if (record.process) {
-			const stopped = record.stopped;
-			record.process.stop();
-			const error = await stopped;
-			if (error) throw error;
-		}
-		return this.inspect(id);
+		return this.captureExclusion.mutate(id, async () => {
+			await this.recover(id);
+			const record = this.get(id);
+			if (record.retainForResume) {
+				record.retainForResume = false;
+				this.save(record);
+			}
+			if (record.process) {
+				const stopped = record.stopped;
+				record.process.stop();
+				const error = await stopped;
+				if (error) throw error;
+			}
+			return this.inspect(id);
+		});
 	}
 	output(id: string, offset: number, stream: RuntimeStream = "stdout") {
 		const output = this.outputBytes(id, offset, stream);

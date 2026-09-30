@@ -1,4 +1,4 @@
-import type { RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
+import type { LaunchSpec, RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
 import type { CompletionStore } from "./completionStore.ts";
 import type { HarnessObservations } from "./harnessObservations.ts";
 import type { InputLedger } from "./inputLedger.ts";
@@ -9,7 +9,7 @@ export type SessionRecord = {
 	session: RuntimeSession;
 	fingerprint: string | null;
 	identity: string | null;
-	launch: RuntimeProcessStatus["launch"];
+	launch: Pick<LaunchSpec, "command" | "args" | "cwd" | "capture"> | null;
 	listeners: Set<() => void>;
 	watchedPids: Set<number>;
 	tokenHash: Buffer | null;
