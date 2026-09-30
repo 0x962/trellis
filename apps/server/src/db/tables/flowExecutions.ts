@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { flowReconcilePredicate } from "../flowReconcilePredicate";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { projects } from "./projects.ts";
@@ -38,5 +39,6 @@ export const flowExecutions = pgTable(
 		),
 		index("flow_executions_ticket_idx").on(t.ticketId),
 		index("flow_executions_diff_flow_idx").on(t.diffId, t.flowId, t.createdAt),
+		index("flow_executions_reconcile_idx").on(t.createdAt, t.id).where(flowReconcilePredicate(t.state)),
 	],
 );

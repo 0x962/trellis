@@ -167,6 +167,9 @@ Trellis passes the full launch prompt and provider message text through the runt
 
 Native flows freeze the saved graph and inline node instructions for each execution.
 The host scans for flow work each second while earlier executions reconcile.
+The candidate query reads a partial index for running or waiting executions and steps that need a stop.
+A second indexed path finds tasks with open assignments that have a result or belong to a failed execution.
+The query returns each candidate once in creation order, with the execution ID as the tie breaker.
 Each execution has one active reconcile pass, so a slow launch does not hold new executions behind the full list.
 A late provider session identity attaches only to the current task attempt.
 A known session mismatch still refuses the result, and the matching attempt keeps its first saved process error.

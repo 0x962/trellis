@@ -5,6 +5,7 @@ import { boxClocks } from "../../agents/nativeFlow/boxClocks.ts";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import { timeWarning } from "../../agents/nativeFlow/timeWarning.ts";
 import type { HarnessSnapshot } from "../../agents/nativeHarness/types.ts";
+import { flowReconcileCandidates } from "../../db/queries/flowReconcileCandidates";
 import { rows } from "../../db/queries/support.ts";
 import { closeExitedAssignments } from "../agentRuns/closeExitedAssignments.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
@@ -41,12 +42,7 @@ export async function prepareFlowReconcile(
 	deps: Dependencies = defaults,
 ) {
 	await (deps.closeExited ?? closeExitedAssignments)(ctx);
-	const executions = await ctx.newTx((tx) =>
-		rows<{ id: string }>(
-			tx,
-			sql`SELECT id FROM flow_executions e WHERE e.state->>'status' IN ('running','waiting') OR EXISTS (SELECT 1 FROM jsonb_array_elements(e.state->'steps') s WHERE s->>'needsStop'='true') OR EXISTS (SELECT 1 FROM flow_execution_tasks t JOIN agent_runs r ON r.id=t.run_id WHERE t.execution_id=e.id AND (t.result_id IS NOT NULL OR e.state->>'status'='failed') AND r.closed_at IS NULL) ORDER BY created_at,id`,
-		),
-	);
+	const executions = await ctx.newTx(flowReconcileCandidates);
 	const pending = executions.filter((execution) => !active.has(`${ctx.home}:${execution.id}`));
 	const results = (
 		await Promise.allSettled(
