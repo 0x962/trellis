@@ -52,6 +52,10 @@ export async function exportCapturedHistory(
 		});
 		if (result.state === "unavailable") {
 			unavailable.push({ reference, reason: result.reason });
+			if ("history" in result && result.history)
+				for (const missing of result.history)
+					if (!inventory.unavailable.some((entry) => isDeepStrictEqual(entry, missing)))
+						unavailable.push({ reference: `${reference}:${protocolDigest(JSON.stringify(missing))}`, reason: `${missing.code}: ${missing.message}` });
 		} else {
 			conversations.push({ identity, path, manifestDigest: result.manifestSha256, receipts: result.receipts });
 			for (const missing of result.manifest.unavailable)
