@@ -32,7 +32,7 @@ export async function withPairedArchive<T>(
 			throw new Error("paired_archive_staging_inside_live_home");
 	}
 	const archive = join(await realpath(dirname(input.archive)), basename(input.archive));
-	const file = await open(archive, constants.O_RDONLY | constants.O_NOFOLLOW);
+	const file = await open(archive, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
 	try {
 		const stat = await file.stat();
 		if (!stat.isFile() || stat.nlink !== 1) throw new Error("paired_archive_invalid_source");

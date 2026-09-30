@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { protocolDigest } from "../../../../apps/server/src/langflowContracts";
@@ -6,6 +7,20 @@ import { archivePairedSnapshot, readSnapshot, restorePairedArchive, sealSnapshot
 import { manifestName, recoveryName } from "../../../../apps/server/src/services/langflowBackup/manifest";
 import { fixture } from "./fixture";
 import { pairedTarFixture } from "./pairedTarFixture";
+
+test("a FIFO without a writer is refused before the consumer runs", async () => {
+	const f = await fixture();
+	const archive = join(f.root, "archive.fifo");
+	let consumed = false;
+	try {
+		execFileSync("mkfifo", ["-m", "600", archive]);
+		await expect(withPairedArchive({ liveHome: f.snapshot }, {
+			archive, signal: new AbortController().signal,
+		}, async () => { consumed = true; })).rejects.toThrow("paired_archive_invalid_source");
+		expect(consumed).toBe(false);
+		expect((await stat(archive)).isFIFO()).toBe(true);
+	} finally { await rm(f.root, { recursive: true }); }
+}, 2000);
 
 async function archiveFixture() {
 	const f = await fixture();
