@@ -55,6 +55,33 @@ function expectExited(pid: number) {
 	expect(() => process.kill(pid, 0)).toThrow();
 }
 
+test.each([0, 7])("reads complete output from both pipes with exit code %i", async (code) => {
+	const { gh } = runner();
+	const stdout = JSON.stringify({ message: `${"x".repeat(4078)}é漢🚀${"tail".repeat(100_000)}` });
+	const stderr = `${"d".repeat(4090)}é漢🚀${"diagnostic".repeat(30_000)}`;
+	await Bun.write(join(directory, "stdout"), stdout);
+	await Bun.write(join(directory, "stderr"), stderr);
+	const result = await gh("interactive", [
+		"-e",
+		`import { readFileSync, writeSync } from "node:fs";
+const output = readFileSync(process.argv[1]);
+const error = readFileSync(process.argv[2]);
+writeSync(1, output.subarray(0, 4091));
+writeSync(2, error.subarray(0, 4091));
+await Bun.sleep(20);
+for (const [fd, bytes] of [[1, output], [2, error]]) {
+	let offset = 4091;
+	while (offset < bytes.length) offset += writeSync(fd, bytes.subarray(offset, offset + 16384));
+}
+process.exit(Number(process.argv[3]));`,
+		join(directory, "stdout"),
+		join(directory, "stderr"),
+		String(code),
+	]);
+	if (code === 0) expect(result).toEqual({ ok: true, code, stdout, stderr });
+	else expect(result).toEqual({ ok: false, reason: "error", code, stdout, message: stderr });
+});
+
 test("a default command completes after the former 30 second deadline", async () => {
 	const { gh } = runner();
 	const command = script("slow", 30_100);
