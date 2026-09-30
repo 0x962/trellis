@@ -656,6 +656,9 @@ line selection, and thread annotations. Review styles live in `packages/ui`.
 Drafts persist in browser storage until the user submits them.
 The `reviews.changed` event invalidates local review queries after commit.
 Current GitHub status polls separately from the saved diff revision.
+`reviews.overview` returns the saved pull request, linked ticket, summary, and evidence in one local read.
+The slideout shows this content while GitHub status and patch requests run.
+Pull request and review events invalidate the saved overview.
 
 `apps/server/src/gateway.ts` owns the optional localhost gateway.
 It reads the shared route file and forwards configured local hostnames.
