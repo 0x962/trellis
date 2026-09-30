@@ -5,6 +5,7 @@ import { type DesktopBridge, type DesktopSettingsBridge, desktopSettingsBridge }
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { ActorNameField } from "../ActorNameField";
+import { CleanupSettings } from "../CleanupSettings";
 import { DesktopSettings } from "../DesktopSettings";
 import { MenuLinks } from "../MenuLinks";
 import { NotificationSettings } from "../NotificationSettings";
@@ -29,6 +30,12 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
+	{
+		id: "cleanup",
+		title: "Clean up",
+		hint: "Choose when Trellis archives and deletes inactive sessions.",
+		rows: <CleanupSettings />,
+	},
 	{ id: "menu-links", title: "Menu links", hint: "Add HTTPS links to the workspace sidebar.", rows: <MenuLinks /> },
 	{
 		id: "agent-prompt",

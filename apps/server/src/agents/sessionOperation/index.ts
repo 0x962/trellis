@@ -1,1 +1,1 @@
-export { holdSession, sessionOperation } from "./sessionOperation.ts";
+export { holdSession, sessionOperation, tryHoldSession } from "./sessionOperation.ts";

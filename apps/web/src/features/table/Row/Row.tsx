@@ -72,7 +72,7 @@ export const Row = memo(function Row({
 	};
 	const onLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
 		event.stopPropagation();
-		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey) return;
 		event.preventDefault();
 		onClick?.(ticket.id, event);
 	};
@@ -86,7 +86,7 @@ export const Row = memo(function Row({
 				identifier={identifier}
 				selected={selected}
 				selecting={selecting}
-				onToggle={() => onToggleSelect?.(ticket.id)}
+				onToggle={(range) => onToggleSelect?.(ticket.id, range)}
 			/>
 		),
 		priority: (

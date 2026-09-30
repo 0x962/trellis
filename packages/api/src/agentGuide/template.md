@@ -519,7 +519,7 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis agent list --ticket <ticket>` | Find agents assigned to a ticket. |
 | `trellis agent start --ticket <ticket> [options]` | Assign an agent to the ticket. |
 | `trellis agent send <agent-id> --text <text>` | Send a direct message. |
-| `trellis agent broadcast --group <group> --text <text>` | Send a user broadcast to `working`, `idle`, or `both` groups. Idle agents have unfinished tickets. |
+| `trellis agent broadcast --group <group> --text <text> [--epic <epic>]` | Send a user broadcast to `working`, `idle`, or `both` groups, optionally within one epic. Idle agents have unfinished tickets. |
 | `trellis agent output <agent-id>` | Read that agent's terminal output. |
 | `trellis agent refresh <agent-id>` | Refresh its observed state. |
 | `trellis agent interrupt <agent-id>` | Interrupt its current turn while its session remains. |
@@ -536,6 +536,9 @@ A delete and a restore need a person, or `--force` from an agent.
 `agent start` accepts `--harness`, `--account`, `--model`, `--effort`, and `--request-id`.
 Use `trellis model list` and `trellis account list` to inspect available choices.
 Specify `--harness` when you also select `--model` or `--effort`.
+
+`agent broadcast --epic <epic>` selects agents on tickets in that epic, including flow agents.
+Without `--epic`, the command selects eligible agents across Trellis.
 
 A start request returns an agent record.
 Read its state to confirm that the agent started.

@@ -44,6 +44,49 @@ The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings call
 
 Use **Trellis > Restart** to load the installed package. A changed package restarts the host. It keeps a runtime that uses the same protocol. A protocol change stops the runtime before the new host starts.
 
+## Live UI preview
+
+Install a release that includes UI preview once. Open that app, then run this command from the workspace that holds the UI changes:
+
+```sh
+bun install --frozen-lockfile
+bun run desktop:preview
+```
+
+The command starts Vite under Node and opens its UI in the existing Trellis window.
+React and CSS edits update that window through hot reload.
+React retains component state when Fast Refresh supports the edit. Other edits can reload the page.
+The preview uses the current host and live data. Use a trusted workspace.
+Actions in preview change the same tickets, sessions, and settings as the installed app.
+The host and running agents keep their processes.
+Server, database, preload, and desktop code changes still require the normal release process.
+
+Preview has its own browser storage at `http://127.0.0.1:5173`.
+The current route carries over. The installed UI retains its saved tabs and drafts at its original address.
+Use `bun run desktop:preview --port 5174` to select another free port.
+The desktop refuses a preview that names another host.
+The desktop supplies authentication only for API and RPC requests from its window.
+The command reads no host token and puts no token in Vite configuration.
+
+To return to the installed UI, choose **Help > Stop UI preview**, then press Control-C in the preview terminal.
+The Help action also works after the preview server stops.
+The command `bun run desktop:preview --stop` also returns the window to the installed UI.
+Switching between the two UIs reloads the window. Save active edits before a switch.
+
+Preview starts only through the explicit command. The normal app uses its packaged UI.
+The production build keeps its existing configuration. The normal app starts no Vite process or file watcher.
+Preview uses extra CPU and memory while its server runs. Its development performance does not measure release performance.
+The preview does not publish source changes. Review and release the final changes through the normal workflow.
+
+Run the isolated desktop check with this command:
+
+```sh
+bun apps/web/scripts/desktopPreview/smoke/run.ts
+```
+
+The check needs the workspace Electron binary. Set `TRELLIS_TEST_ELECTRON` to an existing Electron executable when its install script has not run.
+The check uses a temporary profile and a synthetic host. It verifies hot reload, authentication, native calls, streams, sockets, and the return to the installed UI.
+
 ## Package
 
 ```sh

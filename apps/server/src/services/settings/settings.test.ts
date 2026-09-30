@@ -103,3 +103,15 @@ test("the startup prompt persists through reopen and ordinary settings edits", a
 		settings.setAgentPrompt(ctx, tx, { template: null, expectedTemplate: template }),
 	);
 }, 60_000);
+
+test("cleanup defaults and saved periods survive older clients and reopen", async () => {
+	expect((await readSettings()).sessionCleanup).toEqual({ archiveAfterDays: 3, deleteAfterDays: 7 });
+	const sessionCleanup = { archiveAfterDays: null, deleteAfterDays: 14 };
+	await writeSettings({ sessionCleanup });
+	await writeSettings({ defaultActorName: "older client" });
+	await database.close();
+	database = await openDatabase(home);
+	expect((await readSettings()).sessionCleanup).toEqual(sessionCleanup);
+	await expect(writeSettings({ sessionCleanup: { archiveAfterDays: 0, deleteAfterDays: 14 } })).rejects.toThrow();
+	expect((await readSettings()).sessionCleanup).toEqual(sessionCleanup);
+}, 60_000);

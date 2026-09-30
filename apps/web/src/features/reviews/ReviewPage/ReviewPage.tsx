@@ -49,19 +49,8 @@ export type ReviewPageProps = {
 export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: ReviewPageProps) {
 	const { orpc } = useApp();
 	const activeThread = useActiveThread(syncHash);
-	const {
-		revision,
-		status,
-		run,
-		linkedPr,
-		summary,
-		evidence,
-		overviewReady,
-		threads,
-		submissions,
-		refresh,
-		refreshAll,
-	} = useReviewData(pr);
+	const { revision, status, run, linkedPr, overview, identity, ticket, threads, submissions, refresh, refreshAll } =
+		useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
 	const { read, setRead } = useReadMarks(pr, changedFiles);
 	const ref = reviewRef(pr);
@@ -93,7 +82,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const statusMatchesRevision =
 		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
 	const displayRevision = revision ? { ...revision, meta: statusMatchesRevision ? status.data! : revision.meta } : null;
-	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
+	const displayMeta = identity as GithubPullRequest | undefined;
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -138,13 +127,13 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 					pr={pr}
 					revision={displayRevision}
 					pullRequest={displayMeta}
-					isQueued={status.data?.isQueued ?? false}
+					isQueued={overview.data?.pullRequest.isQueued ?? false}
 					linkedPr={linkedPr}
-					localState={status.data?.localState ?? null}
+					localState={overview.data?.pullRequest.localState ?? null}
 					locallyApproved={verdict === undefined ? null : verdict === "approved"}
 					mergeQueuePosition={reviewMetadata?.mergeQueueEntry?.position}
 					onAction={refreshAll}
-					ticket={status.data?.ticket ?? null}
+					ticket={ticket}
 				/>
 				<ReviewNotices
 					pr={pr}
@@ -172,10 +161,12 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							label: "Overview",
 							content: (
 								<ReviewOverview
-									ready={overviewReady}
+									ready={overview.isSuccess}
+									error={overview.error}
+									onRetry={() => void overview.refetch()}
 									linked={linkedPr !== null}
-									summary={summary.data ?? null}
-									evidence={evidence.data ?? null}
+									summary={overview.data?.summary ?? null}
+									evidence={overview.data?.evidence ?? null}
 									threads={allThreads}
 									revision={revision}
 									onOpen={(path, anchor) => {
@@ -191,7 +182,10 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							label: "Checks",
 							content: (
 								<div className="review-blocks">
-									<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
+									<ReviewChecks
+										checks={overview.data?.pullRequest.fetchedAt ? overview.data.pullRequest.checks : null}
+										pr={pr}
+									/>
 								</div>
 							),
 						},
@@ -263,7 +257,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						<VerdictBar
 							pr={pr}
 							revision={displayRevision}
-							ticket={status.data?.ticket?.identifier ?? null}
+							ticket={ticket?.identifier ?? null}
 							run={run}
 							submissions={allSubmissions}
 							submissionsFetched={submissions.isFetched}

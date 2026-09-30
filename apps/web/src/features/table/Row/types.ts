@@ -53,7 +53,7 @@ export type RowProps = {
 	onToggleDisclosure?: (id: string) => void;
 	// A double click on the title. The title never edits inline.
 	onOpen?: (id: string) => void;
-	onToggleSelect?: (id: string) => void;
+	onToggleSelect?: (id: string, range: boolean) => void;
 	onEditingChange?: (id: string, field: EditField | null) => void;
 	onChange?: (ticket: TicketSummary, change: RowChange) => void;
 };

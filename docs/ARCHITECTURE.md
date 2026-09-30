@@ -139,7 +139,7 @@ The host uses these observations for flow completion.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
+The ticket sheet holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
 Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
 Overview holds the summary and the evidence document. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
@@ -178,6 +178,18 @@ Cancellation retains files and output and records any worker whose stop remains 
 The desktop installs `~/.local/bin/trellis` from the active host release.
 Its default connection reads the selected data directory's current port and token on each invocation.
 An explicit URL uses explicitly supplied credentials and does not read the selected desktop connection.
+
+The desktop accepts an explicit `--ui-preview=http://127.0.0.1:<port>` command.
+It verifies that the preview server names the current host before it selects that UI origin.
+The `desktop:preview` command starts Vite under Node in the selected source workspace.
+Vite proxies API and RPC requests to the current host, including event streams and terminal sockets.
+The desktop adds the bearer only to authorized host requests and the selected preview's API and RPC paths.
+Preview assets receive no bearer. Vite forwards authentication from each incoming request.
+The proxy translates an Origin header only when it matches the preview origin.
+Native calls require the Trellis window at its selected UI origin.
+The preview origin has separate browser storage. The installed origin retains its tabs and drafts.
+Help > Stop UI preview or `--ui-preview=off` restores the installed UI without a host restart.
+The normal startup path selects the packaged UI and starts no preview server or watcher.
 
 The desktop retains each host resource version under `releases` in its application data directory.
 An application replacement can reuse that version while its runtime owns active sessions.
@@ -644,6 +656,9 @@ line selection, and thread annotations. Review styles live in `packages/ui`.
 Drafts persist in browser storage until the user submits them.
 The `reviews.changed` event invalidates local review queries after commit.
 Current GitHub status polls separately from the saved diff revision.
+`reviews.overview` returns the saved pull request, linked ticket, summary, and evidence in one local read.
+The slideout shows this content while GitHub status and patch requests run.
+Pull request and review events invalidate the saved overview.
 
 `apps/server/src/gateway.ts` owns the optional localhost gateway.
 It reads the shared route file and forwards configured local hostnames.
@@ -672,6 +687,11 @@ Session workspaces, active tickets, live processes, open files, and dirty worktr
 The sweep keeps the branch, assignment, and provider conversation.
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
+
+`agentRuns.broadcastRecipients` counts eligible working and idle agents.
+`agentRuns.broadcast` reads the recipients again before it sends through the normal message path.
+Both operations accept an optional epic reference or ID and select runs through the current epic of each ticket.
+An omitted epic selects eligible agents across Trellis. An unknown epic fails before delivery.
 
 `agentRuns.start` accepts an optional harness configuration and a canonical model ID for the assignment.
 The harness configuration includes its preset, model, and optional effort. The API validates effort against the selected harness and model.
@@ -766,8 +786,19 @@ Project Sessions puts project sessions and ticket agents in one list, in order o
 `agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
 An attempt start and an assignment close also count as activity.
 The host monitor requires a complete execution service read before it stores new activity.
-After 48 hours without activity, an unpinned row moves to Archived.
+The Clean up section in Settings sets the archive and deletion periods in whole days.
+The defaults are 3 days for archive and 7 days for deletion. Each rule can be disabled.
+After the archive period without activity, an unpinned, stopped row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
+The host also runs session cleanup at boot and once each hour.
+Cleanup archives sessions without a project by setting `archived_at`. This archive keeps the original activity time for deletion.
+Deletion applies only to session records, including sessions in projects. Ticket agents and flow runs remain.
+Cleanup uses the latest recorded activity, current runtime activity, and session edits.
+A current runtime record must report exit. An absent record requires a saved exit capture, unless the session has no attempt.
+Pinned sessions and sessions with a held start, pin, move, or rename operation remain intact.
+Deletion keeps directories with unsaved or ignored files and directories that a process holds open.
+Observer shutdown must succeed before directory deletion. The session row is removed after its directory.
+Run history and captured terminal output remain available.
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
 Terminal links include plain addresses and labeled OSC 8 hyperlinks.
@@ -777,7 +808,8 @@ Terminal links include plain addresses and labeled OSC 8 hyperlinks.
 The terminal copies those five fields into a plain record for plain and OSC 8 links.
 HTTP and HTTPS links use `openLink`. Other schemes and web addresses with credentials produce an error.
 Published Page messages still require confirmation in the trusted viewer before navigation.
-The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
+The terminal header of a ticket run opens the ticket sheet over the session.
+The shared URL `/t/<identifier>` opens that sheet over the home page and replaces the route with `/`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
 The session update pane groups retained updates by local calendar day, newest first.
@@ -1047,7 +1079,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
 | `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, its notes, its epics, or one epic |
-| `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/t/$identifier` | `t/$identifier/route.tsx` | opens the ticket sheet and replaces the route with `/` |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
@@ -1057,13 +1089,13 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
 
-Ticket links open `/t/$identifier`. The header shows the project name and ticket
-identifier, with the actions on the right. The content sits in fully rounded
-cards below the header.
+Ticket links open a sheet over the current page. The header shows the project name and ticket
+identifier, with the actions on the right. Shared ticket URLs open the sheet over the home page.
+The sheet keeps Close visible during loading and errors.
 Every page card has a gap from the sidebar, the right edge, and the bottom edge.
 The gap is 12 px on desktop and 8 px on a phone. Back restores the previous
-router entry, including its filters, tab, and hash. Ticket, review, and usage
-tabs each create a history entry. A ticket opens a pull request on its review route.
+router entry, including its filters, tab, and hash. Review and usage
+tabs each create a history entry. A ticket opens a pull request in a second sheet.
 Escape closes the active control or clears the selection first, then goes back.
 The terminal passes Escape to page navigation and keeps modified keys as terminal input.
 A direct entry with no previous app page returns to Needs you with a replacement
@@ -1128,7 +1160,8 @@ Done, each with its count. A row prints the name, a `StackedBar` of the counts b
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
 `/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+`IconButton`, the Broadcast `IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+Broadcast opens the shared dialog with the epic scope. Ticket filters do not change the broadcast recipients.
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete. The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
 Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
@@ -1161,10 +1194,12 @@ group, or into No wave, and a selected row drags the whole selection (`useWaveDr
 picker of the focused row or of the selection, and the picker of the bulk bar offers New wave, which adds a wave with
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
 `waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the same Add menu as the `Topbar`.
-Each epic saves its filters in local storage on the current device.
+Each epic saves its filters and sort field and direction in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
-Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
-Tabs, sort, and display options keep their existing behavior.
+An epic link without a sort restores that epic's saved order into the URL.
+Explicit URL filters replace the saved filters. An explicit URL sort replaces the saved order.
+A filter or sort change saves immediately. The default ID order also saves.
+Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
 The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
 The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
 waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The

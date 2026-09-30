@@ -237,6 +237,7 @@ export const createInlineTransport = ({
 					options.log("sweep agent files", result);
 					if (result.errors.length > 0)
 						options.log("sweep could not remove", { count: result.errors.length, errors: result.errors });
+					options.log("clean up sessions", (await backgroundCall("sessions.cleanup", {})) as Record<string, unknown>);
 				},
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,

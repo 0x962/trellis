@@ -10,6 +10,7 @@ import { searchOptions } from "../features/search/searchOptions";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { useApp } from "../lib/appContext";
+import { pageSheetActions } from "../stores/pageSheetStore";
 
 type SearchRouteSearch = Partial<View> & { rankProject?: string; internalLink?: string };
 
@@ -66,7 +67,7 @@ function SearchPage() {
 		event.preventDefault();
 		const ticket = TicketRefStringSchema.safeParse(trimmedDraft);
 		if (ticket.success) {
-			void navigate({ to: "/t/$identifier", params: { identifier: ticket.data } });
+			pageSheetActions.openTicket(ticket.data);
 			return;
 		}
 		void navigate({ to: "/search", search: { ...search, q: trimmedDraft === "" ? undefined : trimmedDraft } });
@@ -77,7 +78,7 @@ function SearchPage() {
 		const ticket = TicketRefStringSchema.safeParse(trimmedDraft);
 		if (!ticket.success) return;
 		event.preventDefault();
-		void navigate({ to: "/t/$identifier", params: { identifier: ticket.data } });
+		pageSheetActions.openTicket(ticket.data);
 	};
 
 	const remove = (field: keyof View) => {

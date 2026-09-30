@@ -45,6 +45,7 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 				family("tickets", "board"),
 				family("reviews", "prs"),
 				family("reviews", "status"),
+				family("reviews", "overview"),
 				family("reviews", "metadata"),
 			];
 		// Every cached summary holds the name, the color, and the group name

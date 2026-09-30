@@ -3,5 +3,6 @@ import { broadcastActions, useBroadcastStore } from "./broadcastStore";
 
 export function BroadcastHost() {
 	const open = useBroadcastStore((state) => state.open);
-	return open ? <BroadcastDialog onClose={broadcastActions.close} /> : null;
+	const epic = useBroadcastStore((state) => state.epic);
+	return open ? <BroadcastDialog key={epic?.ref ?? "global"} epic={epic} onClose={broadcastActions.close} /> : null;
 }

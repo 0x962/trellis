@@ -154,16 +154,21 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 Use `PageSheet` to show a ticket or a pull request over the current page.
-Render the same page component as the route. Do not build a compact copy of the page.
+Render the complete ticket or review content. Do not build a compact copy.
 `Topbar` renders the title and the actions of the page into the header of the sheet.
-The header adds the Open full page and Close buttons, and it shows them while the page loads.
+The header keeps Close visible while the content loads.
+A pull request also has Open full page. A ticket uses only the sheet.
 Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
 
 `pageSheetStore` holds the sheet stack: one ticket with one pull request over it.
 `PageSheetHost` mounts once in the root shell and draws the stack.
 Open a ticket with `pageSheetActions.openTicket`, and a pull request with `pageSheetActions.openPullRequest`.
-Give a ticket name in a list the `TicketLink` component: a plain click opens the sheet, and the href keeps the ticket page for a new tab.
-A list never navigates to `/t/$identifier`. The route stays for a link that arrives from outside the app.
+Give a ticket name in a list the `TicketLink` component. A plain click opens the sheet over the current page.
+A list never navigates to `/t/$identifier`.
+This URL opens the sheet over the home page when a link arrives from outside the app or opens in a new tab.
+It replaces the URL with the home route, so closing the sheet leaves a page to use.
+The table's Enter, Space, and O keys open the same sheet.
+Markdown links and resolved ticket record links also open the sheet over the current page.
 The review sheet takes the wide width, so it covers the ticket sheet under it.
 Escape, the back gesture and a click beside the sheets close the top sheet only.
 
@@ -201,14 +206,23 @@ The first wave that is not done carries the `Badge` Current after its label. An 
 When the view names one epic, the wave groups hold the Done and Canceled tickets too, last in each group under the default sort. A done wave starts collapsed, and Show completed turns the closed rows off.
 New ticket in this wave in the Wave actions `Menu` of such a group, and the `c` key, create a ticket inside the epic. The menu item also sets the wave of the group.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
-Each epic saves its filters in local storage on the current device.
+Each epic saves its filters and sort field and direction in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
-Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
-Tabs, sort, and display options keep their existing behavior.
+An epic link without a sort restores that epic's saved order into the URL.
+Explicit URL filters replace the saved filters. An explicit URL sort replaces the saved order.
+A filter or sort change saves immediately. The default ID order also saves.
+Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
 Needs you filters Active, Snoozed, or Ignored items. Its sort fields are Priority, Created, Updated, and Title.
 Priority defaults to highest first, then oldest ticket. Its groups remain Needs review and Mentioned.
+
+## Ticket range selection
+
+Select a ticket checkbox. Hold Shift and click another ticket checkbox or row to select the inclusive range.
+The range follows the displayed ticket order across expanded groups and scroll positions.
+Collapsed groups stay outside the range. Earlier selections outside the range stay selected.
+If the anchor ticket leaves the view, the next Shift click starts a new range.
 
 ## Group headers
 
@@ -236,7 +250,9 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add menu, and the epic actions `Menu`.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a Broadcast `IconButton`, an Add menu, and the epic actions `Menu`.
+The Broadcast control opens the shared broadcast dialog with the epic name and its working and idle recipient counts.
+It selects agents across the epic, independent of the ticket filters.
 The Add menu uses a plus `IconButton` with the `Tooltip` Add. Its options are Ticket and Wave.
 Ticket opens the project `TicketPicker`. Wave creates a wave through the existing wave actions.
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.

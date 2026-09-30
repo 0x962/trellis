@@ -58,3 +58,29 @@ test("epic filters survive a new store and preserve cleared choices", () => {
 		"QA/beta": { priority: ["high"] },
 	});
 });
+
+test("epic sort fields and directions survive a restart with their filters", () => {
+	const entries = new Map<string, string>();
+	globalThis.localStorage = memoryStorage(entries);
+	const store = createUiStore();
+	store.getState().setEpicFilters("QA/alpha", { priority: ["high"] });
+	store.getState().setEpicSort("QA/alpha", "-createdAt");
+	store.getState().setEpicSort("QA/beta", "priority");
+	const restarted = createUiStore();
+	expect(restarted.getState().epicSorts).toEqual({ "QA/alpha": "-createdAt", "QA/beta": "priority" });
+	expect(restarted.getState().epicFilters["QA/alpha"]).toEqual({ priority: ["high"] });
+	restarted.getState().setEpicSort("QA/alpha", "number");
+	expect(createUiStore().getState().epicSorts).toEqual({ "QA/alpha": "number", "QA/beta": "priority" });
+});
+
+test("stored UI settings from before sort persistence retain their filters", () => {
+	const entries = new Map([
+		[uiStorageKey, JSON.stringify({ state: { epicFilters: { "QA/alpha": { status: ["todo"] } } }, version: 0 })],
+	]);
+	globalThis.localStorage = memoryStorage(entries);
+	const store = createUiStore();
+	expect(store.getState().epicSorts).toEqual({});
+	expect(store.getState().epicFilters["QA/alpha"]).toEqual({ status: ["todo"] });
+	store.getState().setEpicSort("QA/alpha", "-priority");
+	expect(createUiStore().getState().epicSorts["QA/alpha"]).toBe("-priority");
+});
