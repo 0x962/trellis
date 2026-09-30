@@ -1,4 +1,4 @@
-import type { EpicCounts, EpicState, EpicSummary, StoredActorKind } from "@trellis/api";
+import type { EpicCounts, EpicSummary, StoredActorKind, WaveSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { iso } from "../../db/queries/support.ts";
@@ -12,6 +12,7 @@ export type RawEpic = {
 	slug: string;
 	name: string;
 	description: string;
+	canceled_at: string | null;
 	actor_name: string;
 	actor_kind: StoredActorKind;
 	actor_display_name: string | null;
@@ -35,9 +36,9 @@ export type RawEpic = {
 // slash.
 export const epicRefOf = (row: { project_key: string; slug: string }) => `${row.project_key}/${row.slug}`;
 
-// `done` when the epic holds at least one ticket and every ticket is done or
-// canceled. An epic with no ticket is open.
-export const stateOf = (counts: EpicCounts): EpicState =>
+// A nonempty ticket set is done when every member is done or canceled.
+// An empty set is open. Explicit epic cancellation takes precedence.
+export const stateOf = (counts: EpicCounts): WaveSummary["state"] =>
 	counts.total > 0 && counts.done + counts.canceled === counts.total ? "done" : "open";
 
 const categoryCount = (category: string) => sql`(count(*) FILTER (WHERE s.category = ${category}))::int`;
@@ -71,7 +72,7 @@ export const toCounts = (row: EpicCounts): EpicCounts => ({
 // position order that is open, with its place among the waves from 1.
 // A wave is open when it holds no ticket, or when one of its tickets is
 // not done and not canceled, which is the rule of `stateOf`. An epic with no
-// open wave gets NULL columns.
+// open wave or with explicit cancellation gets NULL columns.
 const currentWave = sql`LEFT JOIN LATERAL (
 		SELECT ordered.id, ordered.slug, ordered.name, ordered.index
 		FROM (
@@ -84,12 +85,13 @@ const currentWave = sql`LEFT JOIN LATERAL (
 				WHERE t.wave_id = ordered.id AND s.category NOT IN ('done', 'canceled')
 			)
 		ORDER BY ordered.index LIMIT 1
-	) cm ON true`;
+	) cm ON e.canceled_at IS NULL`;
 
 // `c` holds the counts of the tickets that point at the epic, and `cm` holds
 // the current wave. An agent actor is `agent:<run id>`, and the run name
 // is its display name.
 export const epicSelect = sql`SELECT e.id, e.project_id, proj.key AS project_key, e.slug, e.name, e.description,
+	${iso(sql`e.canceled_at`)} AS canceled_at,
 	e.actor_name, e.actor_kind, ${actorDisplayName(sql`e.actor_name`, sql`e.actor_kind`)} AS actor_display_name,
 	c.total, c.todo, c.started, c.review, c.done, c.canceled,
 	(SELECT count(*)::int FROM waves WHERE epic_id = e.id) AS wave_count,
@@ -102,9 +104,10 @@ export const epicSelect = sql`SELECT e.id, e.project_id, proj.key AS project_key
 	${ticketCounts(sql`t.epic_id = e.id`)}
 	${currentWave}`;
 
-// Open epics first, done epics after them; inside a group the latest change
-// comes first. The boolean is the `done` state, and false sorts before true.
-export const epicOrder = sql`(c.total > 0 AND c.done + c.canceled = c.total), e.updated_at DESC, e.id DESC`;
+// Epics sort by state, then by their latest change within each state.
+export const epicOrder = sql`CASE WHEN e.canceled_at IS NOT NULL THEN 2
+	WHEN c.total > 0 AND c.done + c.canceled = c.total THEN 1 ELSE 0 END,
+	e.updated_at DESC, e.id DESC`;
 
 export const toEpicSummary = (row: RawEpic): EpicSummary => {
 	const counts = toCounts(row);
@@ -117,7 +120,7 @@ export const toEpicSummary = (row: RawEpic): EpicSummary => {
 		name: row.name,
 		description: row.description,
 		counts,
-		state: stateOf(counts),
+		state: row.canceled_at === null ? stateOf(counts) : "canceled",
 		currentWave:
 			row.current_wave_id === null
 				? null

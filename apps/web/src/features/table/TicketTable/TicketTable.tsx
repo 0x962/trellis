@@ -2,7 +2,6 @@ import { type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
-import { useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
 import { type View, viewOf } from "../../filters/grammar";
@@ -86,8 +85,6 @@ export function TicketTable({
 	waveEditing,
 }: TicketTableProps) {
 	const view = viewOf(search);
-	const storedDensity = useUiStore((state) => state.density);
-	const density = search.density ?? storedDensity;
 	const root = useRef<HTMLDivElement>(null);
 	const pendingFocus = useRef<string | null>(null);
 	const [focusState, setFocusState] = useState<string | null>(null);
@@ -231,7 +228,6 @@ export function TicketTable({
 				items={items}
 				tableKind={tableKind}
 				columns={columnIds}
-				density={density}
 				project={project}
 				statuses={data.statuses}
 				loading={data.loading || groupsLoading}

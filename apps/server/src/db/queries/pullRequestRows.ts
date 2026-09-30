@@ -45,6 +45,7 @@ export type PullRequestRow = {
 	base_ref: string;
 	mergeable: Mergeable;
 	review_state: PullRequest["reviewState"];
+	local_verdict: PullRequest["localVerdict"];
 	merged_at: string | null;
 	closed_at: string | null;
 	checks: Check[];
@@ -89,6 +90,16 @@ export const submissionByPerson = (submission: SQL) => sql`EXISTS (
 	SELECT 1 FROM actors actor WHERE actor.name = ${submission}.actor AND actor.kind = 'human'
 )`;
 
+export const localHumanVerdict = (prId: SQL) => sql`(
+	SELECT submission.document->>'verdict'
+	FROM review_submissions submission
+	WHERE submission.pr_id = ${prId}
+		AND ${submissionByPerson(sql`submission`)}
+		AND submission.document->>'verdict' IN ('approved', 'changes_requested')
+	ORDER BY submission.created_at DESC, submission.id DESC
+	LIMIT 1
+)`;
+
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
 	p.url, p.title, p.state, p.is_draft, p.is_queued, p.local_state,
@@ -99,6 +110,7 @@ export const pullRequestColumns = sql`
 	${openFindingsSql(sql`p`)}::int AS open_findings,
 	p.head_ref, p.base_ref, p.mergeable,
 	${localReviewState(sql`p.id`)} AS review_state,
+	${localHumanVerdict(sql`p.id`)} AS local_verdict,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at
@@ -136,6 +148,7 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	baseRef: row.base_ref,
 	mergeable: row.mergeable,
 	reviewState: row.review_state,
+	localVerdict: row.local_verdict,
 	mergedAt: row.merged_at,
 	closedAt: row.closed_at,
 	checks: row.checks,

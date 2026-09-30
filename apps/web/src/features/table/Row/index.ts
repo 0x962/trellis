@@ -1,1 +1,2 @@
-export { type EditField, phoneRowHeight, Row, type RowChange, type RowProps, rowHeights } from "./Row";
+export { Row } from "./Row";
+export type { EditField, RowChange, RowProps } from "./types";

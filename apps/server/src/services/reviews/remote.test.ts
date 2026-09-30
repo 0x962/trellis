@@ -1,13 +1,23 @@
-import { expect, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { GhRunner } from "../../gh/run.ts";
+import { setRepos } from "../projectsRepos.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
+import { localReviewFixture } from "./localReviewState/fixture.ts";
 import { metadata, mine } from "./remote.ts";
 
-const runner = (responses: unknown[]) => {
+let h: Awaited<ReturnType<typeof localReviewFixture>>;
+beforeAll(async () => {
+	h = await localReviewFixture();
+	await h.run((tx) => setRepos(h.ctx(h.human).core, tx, { project: "GLY", repos: [{ owner: "ACME", repo: "APP" }] }));
+});
+afterAll(async () => h.close());
+
+const runner = (responses: unknown[], beforeCall = () => {}) => {
 	const calls: string[][] = [];
 	let index = 0;
 	const gh = Object.assign(
 		async (_slot: string, args: string[]) => {
+			beforeCall();
 			calls.push(args);
 			return {
 				ok: true as const,
@@ -72,13 +82,9 @@ const metadataPage = (nodes: ReturnType<typeof stackEntry>[], endCursor: string 
 test("lists an open pull request after the first 100 results", async () => {
 	const first = Array.from({ length: 100 }, (_, index) => pullRequest(200 - index));
 	const { gh, calls } = runner([minePage(first, "pull-page-2", 101), minePage([pullRequest(100)], null, 101)]);
-	const ctx = {
-		gh,
-		core: {},
-		newTx: async () => [{ owner: "acme", repo: "app" }],
-	} as unknown as IoCtx & PrepareCtx;
+	const ctx = { ...h.ctx(h.human), gh };
 
-	const result = await mine(ctx, { project: "TRL" });
+	const result = await mine(ctx, { project: "GLY" });
 
 	expect(result).toHaveLength(101);
 	expect(result.at(-1)?.number).toBe(100);
@@ -96,13 +102,9 @@ test("keeps only the project repositories without changing their order", async (
 		url: "https://github.com/other/repo/pull/3",
 	};
 	const { gh } = runner([minePage([pullRequest(4), other, pullRequest(2)], null, 3)]);
-	const ctx = {
-		gh,
-		core: {},
-		newTx: async () => [{ owner: "ACME", repo: "APP" }],
-	} as unknown as IoCtx & PrepareCtx;
+	const ctx = { ...h.ctx(h.human), gh };
 
-	const result = await mine(ctx, { project: "TRL" });
+	const result = await mine(ctx, { project: "GLY" });
 
 	expect(result.map((row) => row.number)).toEqual([4, 2]);
 });
@@ -124,7 +126,7 @@ test("lists a stack entry after the first 50 results", async () => {
 
 test("accepts empty final pages", async () => {
 	const mineRunner = runner([minePage([pullRequest(2)], "pull-page-2", 1), minePage([], null, 1)]);
-	const mineResult = await mine({ gh: mineRunner.gh } as unknown as IoCtx & PrepareCtx, {});
+	const mineResult = await mine({ ...h.ctx(h.human), gh: mineRunner.gh }, {});
 
 	const stackRunner = runner([metadataPage([stackEntry(1)], "stack-page-2", 1), metadataPage([], null, 1)]);
 	const metadataResult = await metadata({ gh: stackRunner.gh } as unknown as PrepareCtx, {
@@ -145,4 +147,32 @@ test("refuses an incomplete page set", async () => {
 	await expect(mine({ gh } as unknown as IoCtx & PrepareCtx, {})).rejects.toThrow(
 		"GitHub returned an incomplete pull request list.",
 	);
+});
+
+test("returns saved local intent and approval, with null only for a missing record", async () => {
+	await h.mark("ready");
+	await h.submit(h.human, "approve");
+	const saved = { ...pullRequest(1), url: h.url, repository: { nameWithOwner: "fixture/review" }, isDraft: true };
+	let transactionOpen = false;
+	const { gh } = runner([minePage([saved, pullRequest(999)], null, 2)], () => expect(transactionOpen).toBe(false));
+	const ctx = h.ctx(h.human);
+	const newTx: IoCtx["newTx"] = (work) =>
+		ctx.newTx(async (tx) => {
+			transactionOpen = true;
+			const result = await work(tx);
+			transactionOpen = false;
+			return result;
+		});
+	const result = await mine({ ...ctx, newTx, gh }, {});
+	expect(result[0]?.local).toEqual({ localState: "ready", localVerdict: "approved" });
+	expect(result[1]?.local).toBeNull();
+});
+
+test("propagates a failed local read instead of reporting missing intent", async () => {
+	const { gh } = runner([minePage([pullRequest(1)], null, 1)]);
+	const failure = new Error("Local read failed");
+	const newTx: IoCtx["newTx"] = async () => {
+		throw failure;
+	};
+	await expect(mine({ ...h.ctx(h.human), newTx, gh }, {})).rejects.toBe(failure);
 });

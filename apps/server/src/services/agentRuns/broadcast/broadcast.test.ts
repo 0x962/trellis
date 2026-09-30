@@ -11,13 +11,68 @@ beforeAll(async () => {
 
 afterAll(async () => fixture.close());
 
-beforeEach(() => fixture.resetProcesses());
+beforeEach(async () => {
+	fixture.resetProcesses();
+	await fixture.setTicketCategory("todo");
+});
 
 test("counts working and idle agents across projects and epics", async () => {
 	expect(await prepareBroadcastRecipients(fixture.ctx, {}, { read: fixture.read, send: async () => ({}) })).toEqual({
 		working: 2,
-		idle: 2,
+		idle: 1,
 	});
+});
+
+test.each(["todo", "started", "review"] as const)("includes idle agents on a %s ticket", async (category) => {
+	await fixture.setTicketCategory(category);
+	const calls: string[] = [];
+	const result = await prepareBroadcast(
+		fixture.ctx,
+		{ group: "idle", text: "Continue the task", requestId: "unfinished-ticket" },
+		{
+			read: fixture.read,
+			send: async (_ctx, input) => {
+				calls.push(input.id);
+			},
+		},
+	);
+	expect(result).toEqual({ group: "idle", recipientCount: 1, acceptedCount: 1, failures: [] });
+	expect(calls).toEqual([fixture.ids.idleAgent]);
+});
+
+test.each(["done", "canceled"] as const)("excludes idle agents after their ticket becomes %s", async (category) => {
+	const calls: string[] = [];
+	const deps = {
+		read: fixture.read,
+		send: async (_ctx: IoCtx, input: { id: string }) => {
+			calls.push(input.id);
+		},
+	};
+	expect(await prepareBroadcastRecipients(fixture.ctx, {}, deps)).toEqual({ working: 2, idle: 1 });
+	await fixture.setTicketCategory(category);
+	expect(await prepareBroadcastRecipients(fixture.ctx, {}, deps)).toEqual({ working: 2, idle: 0 });
+	for (const group of ["idle", "both"] as const) {
+		const result = await prepareBroadcast(fixture.ctx, { group, text: "Current work", requestId: category }, deps);
+		expect(result.failures).toEqual([]);
+		expect(result.recipientCount).toBe(group === "idle" ? 0 : 2);
+	}
+	expect(calls.sort()).toEqual([fixture.ids.workingAgent, fixture.ids.workingFlow].sort());
+});
+
+test("sends to both groups once and excludes idle sessions without a ticket", async () => {
+	const calls: string[] = [];
+	const result = await prepareBroadcast(
+		fixture.ctx,
+		{ group: "both", text: "Current work", requestId: "both-groups" },
+		{
+			read: fixture.read,
+			send: async (_ctx, input) => {
+				calls.push(input.id);
+			},
+		},
+	);
+	expect(result).toEqual({ group: "both", recipientCount: 3, acceptedCount: 3, failures: [] });
+	expect(calls.sort()).toEqual([fixture.ids.workingAgent, fixture.ids.workingFlow, fixture.ids.idleAgent].sort());
 });
 
 test("refreshes the group before it sends and excludes stopped, failed, and archived agents", async () => {
@@ -29,6 +84,7 @@ test("refreshes the group before it sends and excludes stopped, failed, and arch
 		id: string;
 		text: string;
 		messageId: string;
+		atTurnBoundary: true;
 		expectedTerminalId: string | null;
 		expectedSessionId: string | null;
 	}> = [];
@@ -51,6 +107,7 @@ test("refreshes the group before it sends and excludes stopped, failed, and arch
 			text: "This is a broadcast from the user.\n\nStatus check",
 			messageId: `request-working-${fixture.ids.workingFlow}`,
 			expectedTerminalId: fixture.terminals.workingFlow,
+			atTurnBoundary: true,
 			expectedSessionId: `provider-${fixture.ids.workingFlow}`,
 		},
 	]);
@@ -71,8 +128,8 @@ test("reports partial failures and gives each recipient one stable delivery id",
 	const input = { group: "idle", text: "New direction", requestId } as const;
 	const result = await prepareBroadcast(fixture.ctx, input, { read: fixture.read, send });
 
-	expect(result.recipientCount).toBe(3);
-	expect(result.acceptedCount).toBe(2);
+	expect(result.recipientCount).toBe(2);
+	expect(result.acceptedCount).toBe(1);
 	expect(result.failures).toEqual([
 		{
 			recipient: {
@@ -85,8 +142,9 @@ test("reports partial failures and gives each recipient one stable delivery id",
 			reason: "The execution service did not accept the message.",
 		},
 	]);
-	expect(new Set(calls.map((call) => call.id)).size).toBe(3);
-	expect(calls.map((call) => call.messageId).sort()).toEqual(calls.map((call) => `${requestId}-${call.id}`).sort());
+	expect(new Set(calls.map((call) => call.id)).size).toBe(2);
+	expect(new Set(calls.map((call) => call.messageId)).size).toBe(2);
+	for (const call of calls) expect(call.messageId.length).toBeLessThanOrEqual(128);
 
 	const repeated: Array<{ id: string; messageId: string }> = [];
 	await prepareBroadcast(fixture.ctx, input, {
@@ -109,9 +167,7 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		},
 	);
 	expect(distinctResult.failures).toEqual([]);
-	expect(distinct.map((call) => call.messageId).sort()).toEqual(
-		calls.map((call) => `${requestId}other-${call.id}`).sort(),
-	);
+	for (const call of distinct) expect(calls.map((prior) => prior.messageId)).not.toContain(call.messageId);
 });
 
 test("sends nothing for an empty recipient group", async () => {

@@ -21,8 +21,8 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 		>
 			<PrGlyph
 				state={pr.state}
-				isQueued={pr.isQueued}
-				askedForReview={askedForReview(pr)}
+				askedForReview={pr.localState === "ready"}
+				locallyApproved={pr.localVerdict === "approved"}
 				description={missingPartsText(pr)}
 			/>
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">

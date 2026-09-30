@@ -1,16 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApp } from "../../../lib/appContext";
 
-// The agent run that is assigned to the ticket, or undefined when the ticket
-// has no assigned agent. Every caller reads the one `agentRuns.list
-// { assigned: true }` query that `useWorkingAgents` also reads, so a list of
-// rows sends one request, not one request per row. The run kind is `agent`,
-// the kind the ticket page shows as the assigned agent.
+// Ticket controls share the assigned-run query and wait for its result before they permit a start.
 export function useAssignedRun(ticketId: string) {
 	const { orpc } = useApp();
 	return useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
-		select: (page) => page.items.find((run) => run.ticketId === ticketId && run.kind === "agent"),
+		select: (page) => page.items.find((run) => run.ticketId === ticketId && run.kind === "agent") ?? null,
 		refetchOnWindowFocus: "always",
-	}).data;
+	});
 }

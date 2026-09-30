@@ -1,5 +1,5 @@
 import { Paperclip } from "@phosphor-icons/react";
-import type { TicketSummary } from "@trellis/api";
+import { askedForReview, type TicketSummary } from "@trellis/api";
 import {
 	LabelPills,
 	LineChanges,
@@ -9,6 +9,7 @@ import {
 	ReviewStatusSummary,
 	StatusIcon,
 } from "@trellis/ui";
+import { useMemo } from "react";
 import { gap, ticketTrail } from "../../../../lib/ticketTrail";
 import { ActorAvatar } from "../../../agents/ActorAvatar";
 
@@ -17,6 +18,7 @@ export type CardContentProps = {
 	// On the all-tickets board a column holds several statuses, so the card
 	// names its own.
 	showStatus?: boolean;
+	readOnly?: boolean;
 	lineChanges?: LineChangesValue | null;
 	lineChangesPending?: boolean;
 };
@@ -27,7 +29,22 @@ export type CardContentProps = {
 // the board and the drag preview both draw it, so the preview looks like the
 // card under the pointer. On the top row the epic name gives way and the
 // identifiers stay, so `Routine runtime · OP-32` keeps its OP-32.
-export function CardContent({ ticket, showStatus = false, lineChanges, lineChangesPending = false }: CardContentProps) {
+export function CardContent({
+	ticket,
+	showStatus = false,
+	readOnly = false,
+	lineChanges,
+	lineChangesPending = false,
+}: CardContentProps) {
+	const reviews = useMemo(
+		() =>
+			ticket.prRows.map((pr) => ({
+				...pr,
+				askedForReview: askedForReview(pr),
+				locallyApproved: pr.verdict === "approved",
+			})),
+		[ticket.prRows],
+	);
 	const progress = ticket.childCount === 0 ? 0 : ticket.childDoneCount / ticket.childCount;
 	const trail = ticketTrail(ticket.ancestors, ticket.identifier);
 	const showLineChanges = lineChangesVisible(lineChanges);
@@ -68,12 +85,10 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 					</span>
 				)}
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
-				{ticket.status.category === "review" && ticket.pr !== null && (
-					<ReviewStatusSummary reviews={ticket.pr.reviews} />
-				)}
+				{ticket.status.category === "review" && ticket.pr !== null && <ReviewStatusSummary reviews={reviews} />}
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 empty:hidden">
 					{showLineChanges && <LineChanges value={lineChanges} pending={lineChangesPending} />}
-					<ActorAvatar ticketId={ticket.id} />
+					<ActorAvatar ticket={ticket} readOnly={readOnly} />
 				</span>
 			</div>
 		</>

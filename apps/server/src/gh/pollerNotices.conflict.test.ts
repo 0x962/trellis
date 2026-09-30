@@ -76,6 +76,7 @@ const row = (
 	checks: Check[],
 	state: PrState = "open",
 	mergeable: Mergeable = "unknown",
+	isDraft = false,
 ): PullRequestRow => ({
 	owner: "o",
 	repo: "r",
@@ -87,7 +88,7 @@ const row = (
 	url: `https://github.com/o/r/pull/${number}`,
 	title: "Fix the sort",
 	state,
-	isDraft: false,
+	isDraft,
 	isQueued: false,
 	queuePosition: null,
 	headSha,
@@ -164,11 +165,11 @@ beforeEach(() => {
 	logged.length = 0;
 });
 
-test("a conflict reaches the running agent once per head, after GitHub answers, and a clear follows", async () => {
+test.each([false, true])("a conflict and its clear reach the agent once with GitHub draft %s", async (isDraft) => {
 	const pr = await seed([]);
 	const url = `https://github.com/o/r/pull/${pr.number}`;
 
-	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting", isDraft));
 	await noticePullRequests(db, gh, later(1000));
 	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
 	expect(sent.map((entry) => entry.text)).toEqual([
@@ -186,11 +187,11 @@ test("a conflict reaches the running agent once per head, after GitHub answers, 
 
 	// A push gives a new head, and GitHub answers unknown until it computed
 	// the merge. Unknown sends nothing.
-	await write(later(4000), row(pr.number, "bbb2222bbbb", [], "open", "unknown"));
+	await write(later(4000), row(pr.number, "bbb2222bbbb", [], "open", "unknown", isDraft));
 	await noticePullRequests(db, gh, later(4000));
 	expect((await notices(pr.prId)).map((notice) => notice.kind)).toEqual(["conflict"]);
 
-	await write(later(5000), row(pr.number, "bbb2222bbbb", [], "open", "mergeable"));
+	await write(later(5000), row(pr.number, "bbb2222bbbb", [], "open", "mergeable", isDraft));
 	await noticePullRequests(db, gh, later(5000));
 	await noticePullRequests(db, gh, later(6000));
 	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
@@ -218,16 +219,13 @@ test("a check notice and a conflict notice in one tick both reach the agent", as
 	]);
 });
 
-test("a conflict on a GitHub draft, a merged pull request, or one with no ticket sends nothing", async () => {
-	const draft = await seed([]);
-	await write(later(1000), { ...row(draft.number, "aaa1111aaaa", [], "open", "conflicting"), isDraft: true });
+test("a conflict on a merged pull request or one with no ticket sends nothing", async () => {
 	const merged = await seed([]);
 	await write(later(1000), row(merged.number, "aaa1111aaaa", [], "merged", "conflicting"));
 	const orphan = await seed([], { withTicket: false });
 	await write(later(1000), row(orphan.number, "aaa1111aaaa", [], "open", "conflicting"));
 
 	await noticePullRequests(db, gh, later(1000));
-	expect(await notices(draft.prId)).toEqual([]);
 	expect(await notices(merged.prId)).toEqual([]);
 	expect(await notices(orphan.prId)).toEqual([]);
 });

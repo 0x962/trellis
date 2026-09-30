@@ -37,6 +37,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Assigned ticket agent, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Added and deleted lines of a workspace | `LineChanges` | `packages/ui/src/domain/LineChanges/LineChanges.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
+| Page tab actions | `ContextMenu`, `ContextMenuTrigger` | `packages/ui/src/primitives/ContextMenu/ContextMenu.tsx` |
 | Edit a short value in place | `InlineEdit` | `packages/ui/src/primitives/InlineEdit/InlineEdit.tsx` |
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
@@ -191,6 +192,8 @@ Use `ModelPicker` for each model field. It groups models by family and shows the
 
 Put the sort field and direction inside `DisplayPopover`. Use one option per field and a separate direction button.
 The direction button shows the current direction through its icon and tooltip.
+Epic ticket views offer Priority, Created, Status, and ID as sort fields. Their default is ascending ID within each ticket rank.
+An epic URL with either Updated direction uses the default order.
 `DisplayPopover` offers Group by Epic. The group label is the epic name, and No epic is the last group.
 `DisplayPopover` offers Group by Wave. Open waves follow the wave position order, then No wave, then done waves in position order.
 When the rows come from one epic, the count slot of a wave `GroupHeader` prints `done/total` of the wave, expanded or collapsed. The Show action of a collapsed group prints its row count.
@@ -233,13 +236,17 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add menu, and the epic actions `Menu`.
+The Add menu uses a plus `IconButton` with the `Tooltip` Add. Its options are Ticket and Wave.
+Ticket opens the project `TicketPicker`. Wave creates a wave through the existing wave actions.
+The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
+The share commands retain the current filters and the epic scope.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
-New wave adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
+The Wave option adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
 Delete wave asks first only when the wave holds tickets. The dialog names the tickets that move to No wave and the open agent runs among them.
 A ticket row drags into another wave group or into No wave. An accent outline marks the group that takes the drop. The `w` key is the keyboard path: it opens the wave picker of the focused row or of the selection.
-An epic with no ticket and no wave shows an `EmptyState` with the same New wave and Add tickets `IconButton`s as the `Topbar`.
+An epic with no ticket and no wave shows an `EmptyState` with the same Add menu as the `Topbar`.
 The page fixes the `epic` filter. By default the table groups by wave.
 The page holds no current line, no progress bar and no legend.
 The `SectionHeader` Plan collapses the description through its Show or Hide `Button`. `uiStore` keeps its collapsed state under `<route key>#plan`.
@@ -270,16 +277,6 @@ The Agent Usage tab puts Providers directly under Accounts.
 The model control uses `Popover`, `PickerButton`, `Command.Virtual`, and `Chip`. It accepts an identifier outside the catalog. Selected models use the shared virtual row hook in a scrollable viewport. Arrow keys, Home, End, Page Up, and Page Down reach remove buttons throughout the selection.
 The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 
-## Statistics page
-
-`/statistics` is one system page in the sidebar nav rows. It holds two blocks, each one a `section` with a `SectionHeader`.
-Block one lists every fault that no other screen reports: an agent run whose process is gone, a review message held or failed, and a flow run that waits or still runs.
-One row states one fault. It names the oldest case by ticket, counts the rest, and prints the age of that case. A fault with no case draws no row, and a page with no fault at all draws one line that says nothing is broken.
-Red marks a fault of the machine. Yellow marks the one fault a person clears, a held review message. Grey marks a flow run that still moves.
-Block two measures the review loop over the last 30 merged pull requests. It holds one table of the five changes that took the most review threads from the person, and three lines: the threads by author, the changes sent back and merged with no verdict, and the median wait from ready to a verdict.
-Every figure carries a source mark: `today` or `query`. A figure that the rows cannot answer prints what is missing in place of a number, such as the wait over a window where too few pull requests carry the ready stamp. The page never estimates a figure.
-The page adds no second time window. At thirty merges a move of three is sampling, and the page cannot tell sampling from a change.
-
 ## Dense rows
 
 Give each property a stable column. Let the title use the remaining width.
@@ -289,7 +286,7 @@ Truncate long titles and project paths within their columns. Use tabular numbers
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
 Use `ActorAvatar` when a row represents a ticket. It shows the provider mark and the work state for the agent run that is assigned to the ticket of the row.
-A ticket with no assigned agent run shows no avatar. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
+A ticket with no assigned agent shows the wave header's play control when the pointer enters its agent slot or the control receives keyboard focus. Touch devices keep the control visible. The control uses the most recent successful assignment choice. An invalid choice opens the shared assignment dialog. The assignment query must confirm that the ticket has no agent before the control appears. Completed tickets, archived projects, and drag previews keep the slot read only. The control keeps the current page open. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.

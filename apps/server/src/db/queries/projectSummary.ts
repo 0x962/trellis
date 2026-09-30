@@ -17,15 +17,15 @@ export type ProjectSummaryRow = {
 
 // The columns of ProjectSummary for the alias `p`. `openCount` counts the
 // open tickets of `p`. `openEpicCount` counts the epics of `p` whose state
-// is open: an epic with no ticket, or with one ticket at least whose status
-// is not done and not canceled. `openPageCommentCount` counts each Page once
+// is open: an uncanceled epic that is empty or has an unfinished ticket.
+// `openPageCommentCount` counts each Page once
 // when an unresolved thread contains a nondeleted human comment.
 export const projectSummaryColumns = sql`
 	p.id, p.key, p.slug, p.name, p.position, p.color,
 	(SELECT count(*)::int FROM tickets t
 		WHERE t.project_id = p.id AND t.completed_at IS NULL) AS open_count,
 	(SELECT count(*)::int FROM epics e
-		WHERE e.project_id = p.id AND (
+		WHERE e.project_id = p.id AND e.canceled_at IS NULL AND (
 			NOT EXISTS (SELECT 1 FROM tickets t WHERE t.epic_id = e.id)
 			OR EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id = t.status_id
 				WHERE t.epic_id = e.id AND s.category NOT IN ('done', 'canceled'))

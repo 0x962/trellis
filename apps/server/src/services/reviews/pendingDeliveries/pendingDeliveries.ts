@@ -144,23 +144,13 @@ const pendingNotices = async (tx: Tx, terminals: string[], idleTerminals: string
 		WHERE delivery.state = 'pending' AND ${due}
 		ORDER BY delivery.id LIMIT 20`,
 	);
-	const live = await targetsFor(
+	const targets = await targetsFor(
 		tx,
 		found.map((row) => row.ticketId),
-		terminals,
-	);
-	const resumable = await targetsFor(
-		tx,
-		found
-			.filter((row) => ["failed", "passed", "stuck"].includes(row.kind) || isQueueNoticeKind(row.kind))
-			.map((row) => row.ticketId),
 		[...terminals, ...idleTerminals],
 	);
 	return found.flatMap((row) => {
-		const target =
-			["failed", "passed", "stuck"].includes(row.kind) || isQueueNoticeKind(row.kind)
-				? resumable.get(row.ticketId)
-				: live.get(row.ticketId);
+		const target = targets.get(row.ticketId);
 		return target
 			? [
 					{

@@ -99,6 +99,7 @@ export const useReviewData = (pr: string) => {
 	const refreshAll = () => {
 		refresh.mutate();
 		void status.refetch();
+		void submissions.refetch();
 	};
 	// A refresh costs about seven gh calls. A focus while one is on its way
 	// starts no second one, so a person who switches windows while the first

@@ -133,6 +133,7 @@ export const ReviewPrSchema = z.object({
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
 	localState: LocalPrStateSchema,
+	localVerdict: z.enum(["approved", "changes_requested"]).nullable(),
 	// What this pull request still needs before the person reviews it, from
 	// `reviewGaps`. An empty list means ready for review.
 	reviewGaps: z.array(ReviewGapSchema),
@@ -145,6 +146,7 @@ export const ReviewPrSchema = z.object({
 // `gh pr view` supplies the other fields, whose shape belongs to GitHub.
 // Keep this schema loose so each GitHub field passes through unchanged.
 export const ReviewStatusSchema = z.looseObject({
+	localState: LocalPrStateSchema.nullable(),
 	// `gh pr view` always answers with the head commit, and a failed call
 	// throws, so every status that reaches a caller carries it.
 	headRefOid: z.string(),

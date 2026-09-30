@@ -981,6 +981,20 @@
       "when": 1790722249959,
       "tag": "0142_closed_pyro",
       "breakpoints": true
+    },
+    {
+      "idx": 143,
+      "version": "7",
+      "when": 1790734757987,
+      "tag": "0143_nervous_radioactive_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1790739606778,
+      "tag": "0144_epic_cancellation",
+      "breakpoints": true
     }
   ]
 }

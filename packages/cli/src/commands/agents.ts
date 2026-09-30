@@ -196,9 +196,9 @@ const send = defineCommand({
 });
 
 const broadcast = defineCommand({
-	meta: { name: "broadcast", description: "Send a user broadcast to working or idle agents" },
+	meta: { name: "broadcast", description: "Send a user broadcast to working agents, idle agents, or both" },
 	args: {
-		group: { type: "string", required: true, description: "Recipient group: working or idle" },
+		group: { type: "string", required: true, description: "Recipient groups: working, idle, or both" },
 		text: { type: "string", required: true, description: "Broadcast text, or - for stdin" },
 		"request-id": { type: "string", description: "Stable request ID for a retry" },
 	},

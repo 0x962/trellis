@@ -24,7 +24,6 @@ import { reviews } from "./reviews";
 import { sessionObservers } from "./sessionObservers.ts";
 import { sessions } from "./sessions.ts";
 import { sessionUpdates } from "./sessionUpdates.ts";
-import { statistics } from "./statistics.ts";
 import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
@@ -53,7 +52,6 @@ export const router = os.router({
 	labelGroups,
 	projects,
 	providers,
-	statistics,
 	statuses,
 	tickets,
 	timeline,

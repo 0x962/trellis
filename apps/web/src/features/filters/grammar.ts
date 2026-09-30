@@ -12,7 +12,6 @@ import {
 } from "@trellis/api";
 import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
-import type { Density } from "../../stores/uiStore";
 
 export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "wave" | "waiting" | "pr";
 
@@ -58,7 +57,6 @@ export type View = {
 	// carries the field only for the Resources tab. Every other route
 	// drops it.
 	tab?: "resources";
-	density: Density;
 	limit: number;
 	not?: NegatableField[];
 };
@@ -66,7 +64,6 @@ export type View = {
 export const viewDefaults = {
 	sort: "-updatedAt",
 	group: "status",
-	density: "comfortable",
 	limit: 50,
 } as const satisfies Partial<View>;
 
@@ -87,7 +84,6 @@ const groups: ReadonlySet<string> = new Set([
 	"waiting",
 	"pr",
 ]);
-const densities: ReadonlySet<string> = new Set(["comfortable", "compact"]);
 
 // A raw search value: the string a URL carries, or the typed value a Link
 // or a redirect passes, which the router validates again.
@@ -182,7 +178,6 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		group: group ?? viewDefaults.group,
 		closed: raw.closed === "hide" ? "hide" : undefined,
 		tab: raw.tab === "resources" ? "resources" : undefined,
-		density: oneOf<Density>(raw.density, densities) ?? viewDefaults.density,
 		limit: Number.isInteger(limit) && limit >= 1 && limit <= 200 ? limit : viewDefaults.limit,
 	};
 	for (const key of Object.keys(view) as (keyof View)[]) {

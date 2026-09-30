@@ -28,9 +28,8 @@ import { resolveEpic } from "./resolve.ts";
 import { epicOrder, epicRefOf, epicSelect, type RawEpic, toEpicSummary } from "./rows.ts";
 
 // An epic groups the tickets of one plan inside a project. The record holds
-// the name, the slug, and the plan as markdown. The counts and the state
-// come from the tickets that point at the epic, so a ticket write changes
-// them and no epic row changes with it.
+// the name, the slug, and the plan as markdown. Ticket writes determine
+// the counts and completion. Explicit cancellation takes precedence.
 
 const byId = async (tx: Tx, id: string) => {
 	const [row] = await rows<RawEpic>(tx, sql`${epicSelect} WHERE e.id = ${id}`);

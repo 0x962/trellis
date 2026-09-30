@@ -29,10 +29,17 @@ const runtimeUnavailable = (cause: unknown) =>
 
 export const prepareSend = async (
 	ctx: ResumeCtx,
-	input: { id: string; text: string; messageId?: string; interrupt?: boolean; idleForMs?: number } & SendTarget,
+	input: {
+		id: string;
+		text: string;
+		messageId?: string;
+		interrupt?: boolean;
+		idleForMs?: number;
+		atTurnBoundary?: boolean;
+	} & SendTarget,
 	deps: {
-		client: Pick<RuntimeClient, "inspect" | "deliver" | "subscribeSession">;
-		host: Pick<HarnessHost, "send" | "interrupt">;
+		client: Pick<RuntimeClient, "inspect" | "deliver" | "queueInput" | "subscribeSession">;
+		host: Pick<HarnessHost, "send" | "sendAtTurnBoundary" | "interrupt">;
 		preset: (id: string) => Promise<HarnessPreset>;
 		resume?: typeof resumeIdleSession;
 	} = { client: nativeClient(ctx.home), host: nativeHost(ctx.home), preset: (id) => nativePreset(ctx.home, id) },
@@ -79,14 +86,17 @@ export const prepareSend = async (
 					};
 		if (preset === "custom") {
 			const data = Buffer.from(`\x1b[200~${input.text}\x1b[201~\r`).toString("base64");
-			const sent = await client.deliver(run.terminalId, messageId, data, expected);
-			if (sent.status === "unknown")
+			const sent = input.atTurnBoundary
+				? await client.queueInput(run.terminalId, messageId, data)
+				: await client.deliver(run.terminalId, messageId, data, expected);
+			if (!input.atTurnBoundary && sent.status === "unknown")
 				throw new Error("Terminal input delivery is uncertain. Inspect the terminal before a resend.");
 		} else {
 			if (!session.acknowledgedMessageIds.includes(run.terminalId))
 				await waitForReceipt(client, run.terminalId, run.terminalId, 60_000);
 			if (input.interrupt) await host.interrupt(run.terminalId, { waitForIdle: false });
-			await host.send(run.terminalId, input.text, messageId, expected);
+			if (input.atTurnBoundary) await host.sendAtTurnBoundary(run.terminalId, input.text, messageId);
+			else await host.send(run.terminalId, input.text, messageId, expected);
 		}
 	} catch (cause) {
 		if ((cause as { code?: string }).code === "SESSION_IDLE_STOPPED") return resumeIdle();

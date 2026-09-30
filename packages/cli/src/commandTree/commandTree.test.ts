@@ -37,12 +37,21 @@ test("nested help names the canonical command and makes no server call", async (
 		"account quota show",
 		"host status show",
 		"session status write",
+		"epic cancel",
 	]) {
 		const f = fixture();
 		expect(await run([...command.split(" "), "--help"], f.deps)).toBe(0);
 		expect(f.text()).toContain(`trellis ${command}`);
 		expect(f.calls).toHaveLength(0);
 	}
+});
+
+test("epic cancel sends the epic ref and prints its canceled state", async () => {
+	const epic = { id: "epic", ref: "DEMO/old-plan", state: "canceled" };
+	const f = fixture(() => epic);
+	expect(await run(["epic", "cancel", "DEMO/old-plan", "--json"], f.deps)).toBe(0);
+	expect(f.calls).toEqual([{ path: "/rpc/epics/cancel", input: { epic: "DEMO/old-plan" } }]);
+	expect(JSON.parse(f.text())).toEqual(epic);
 });
 
 test("a session agent writes a requested update from standard input", async () => {
@@ -169,19 +178,87 @@ test("diff check reports the missing local request without a state mutation", as
 	]);
 });
 
-test("diff set-state clears the GitHub draft before the local request and reports the new state", async () => {
-	const f = fixture(reviewReply);
-	expect(await run(["diff", "set-state", "example/app#1", "ready"], f.deps)).toBe(0);
-	expect(f.calls.slice(-2)).toEqual([
-		{
-			path: "/rpc/reviews/action",
-			input: { pr: "https://github.com/example/app/pull/1", action: "ready", headSha: "commit" },
-		},
-		{ path: "/rpc/pullRequests/setLocalState", input: { id: "diff", localState: "ready" } },
-	]);
-	expect(JSON.parse(f.text())).toMatchObject({
-		requestRecorded: true,
-		ready: true,
-		pullRequest: { localState: "ready", isDraft: false },
+test("diff check retains an absent flow diagnostic after the local request", async () => {
+	const f = fixture((path) => {
+		if (path === "/rpc/pullRequests/refresh")
+			return { ...reviewReply(path), localState: "ready", reviewGaps: [{ kind: "flow-run", count: 1 }] };
+		if (path === "/rpc/flows/list") return [{ id: "review", name: "Review", slug: "review" }];
+		if (path === "/rpc/flowDocumentsV1/list") return [];
+		if (path === "/rpc/pullRequests/readFlowWaiver") return null;
+		return reviewReply(path);
 	});
+	expect(await run(["diff", "check", "example/app#1"], f.deps)).toBe(1);
+	expect(JSON.parse(f.text())).toMatchObject({
+		ready: false,
+		localState: "ready",
+		missing: ["flow-run"],
+		storedGaps: [{ kind: "flow-run", count: 1 }],
+	});
+	expect(f.calls.some((call) => call.path === "/rpc/pullRequests/setLocalState")).toBe(false);
+});
+
+test("both review commands record the local request with missing material and an unavailable GitHub action", async () => {
+	const pullRequest = {
+		id: "diff",
+		number: 1,
+		localState: "ready",
+		isDraft: true,
+		reviewGaps: [
+			{ kind: "flow-run", count: 1 },
+			{ kind: "explanation", count: 1 },
+			{ kind: "evidence", count: 1 },
+			{ kind: "checks-failed", count: 1 },
+			{ kind: "conflict", count: 1 },
+		],
+	};
+	for (const args of [
+		["diff", "set-state", "example/app#1", "ready"],
+		["ready", "example/app#1"],
+	]) {
+		const f = fixture((path) => {
+			if (path === "/rpc/pullRequests/resolve") return reviewReply(path);
+			if (path === "/rpc/pullRequests/setLocalState") return pullRequest;
+			throw new Error(`Unexpected readiness or GitHub request: ${path}`);
+		});
+		expect(await run([...args, "--json"], f.deps)).toBe(0);
+		expect(f.calls).toEqual([
+			{ path: "/rpc/pullRequests/resolve", input: { ref: "example/app#1" } },
+			{ path: "/rpc/pullRequests/setLocalState", input: { id: "diff", localState: "ready" } },
+		]);
+		expect(JSON.parse(f.text())).toEqual({ requestRecorded: true, pullRequest });
+	}
+});
+
+test("diff set-state withdraws the local request without a GitHub action", async () => {
+	const f = fixture((path) => {
+		if (path === "/rpc/pullRequests/setLocalState") return { id: "diff", localState: "not-ready" };
+		return reviewReply(path);
+	});
+	expect(await run(["diff", "set-state", "example/app#1", "not-ready"], f.deps)).toBe(0);
+	expect(f.calls).toEqual([
+		{ path: "/rpc/pullRequests/resolve", input: { ref: "example/app#1" } },
+		{ path: "/rpc/pullRequests/setLocalState", input: { id: "diff", localState: "not-ready" } },
+	]);
+	expect(JSON.parse(f.text())).toEqual({ id: "diff", localState: "not-ready" });
+});
+
+test("invalid local states and flow reasons make no server call", async () => {
+	for (const args of [
+		["approved"],
+		["not-ready", "--flow-does-not-apply", "No matching flow."],
+		["ready", "--flow-does-not-apply", " "],
+	]) {
+		const f = fixture();
+		expect(await run(["diff", "set-state", "example/app#1", ...args], f.deps)).toBe(2);
+		expect(f.calls).toHaveLength(0);
+	}
+});
+
+test("the legacy ready command reports the local request separately from review gaps", async () => {
+	const f = fixture(
+		(path) => (path === "/rpc/pullRequests/setLocalState" ? { number: 1, localState: "ready" } : reviewReply(path)),
+		true,
+	);
+	expect(await run(["ready", "example/app#1"], f.deps)).toBe(0);
+	expect(f.text()).toBe("#1 is ready for review in Trellis. Use trellis diff check 1 to read review gaps.\n");
 });

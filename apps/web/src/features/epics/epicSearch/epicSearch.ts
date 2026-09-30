@@ -1,15 +1,16 @@
 import { stringifySearchObject } from "../../../lib/searchParams";
 import { serializeSearch, stripDefaults, type View, viewDefaults, viewOf } from "../../filters/grammar";
 
-// The fields whose default on the epic page differs from the default of
-// every other list route. When the URL names no group, the page groups by
-// wave on every viewport.
+// Epic pages group by wave and sort by ascending ticket number on every viewport.
 //
 // `phone` stays in the signature for callers that compute canonical URLs from
 // the current viewport.
-const pageDefaults = (_phone: boolean) => ({ group: "wave" }) as const satisfies Partial<View>;
+const pageDefaults = (_phone: boolean) => ({ sort: "number", group: "wave" }) as const satisfies Partial<View>;
 type PageKey = keyof ReturnType<typeof pageDefaults>;
-const pageKeys: readonly PageKey[] = ["group"];
+const pageKeys: readonly PageKey[] = ["sort", "group"];
+
+const epicSort = (sort: View["sort"] = "number"): View["sort"] =>
+	sort === "updatedAt" || sort === "-updatedAt" ? "number" : sort;
 
 // Writes one page field. The generic key ties the value type to the field,
 // which a plain indexed write over the union of the keys does not.
@@ -35,6 +36,7 @@ export const epicPageSearch = (search: Partial<View>, epicRef: string, phone = f
 	const page: Partial<View> = { ...search, epic: epicRef };
 	const defaults = pageDefaults(phone);
 	for (const key of pageKeys) setField(page, key, search[key] ?? defaults[key]);
+	page.sort = epicSort(page.sort);
 	return page;
 };
 
@@ -43,11 +45,11 @@ export const epicPageSearch = (search: Partial<View>, epicRef: string, phone = f
 // list route default such as `group=status` is written, because it differs
 // from the page default.
 export const epicUrlSearch = (page: Partial<View>, phone = false): Partial<View> => {
-	const { epic, ...rest } = page;
+	const { epic, ...rest } = { ...page, sort: epicSort(page.sort) };
 	const url: Partial<View> = stripDefaults(rest);
 	const defaults = pageDefaults(phone);
 	for (const key of pageKeys) {
-		const value = page[key] ?? viewDefaults[key];
+		const value = rest[key] ?? viewDefaults[key];
 		if (value === defaults[key]) delete url[key];
 		else setField(url, key, value);
 	}

@@ -101,7 +101,7 @@ export function InboxSection({
 							status={<StatusIcon {...statusIconProps(item.ticket.status)} label={item.ticket.status.name} />}
 							age={compactRelativeTime(item.ticket.createdAt)}
 							createdAt={item.ticket.createdAt}
-							actor={<ActorAvatar ticketId={item.ticket.id} />}
+							actor={<ActorAvatar ticket={item.ticket} />}
 							wake={visibility === "snoozed" ? (item.snoozedUntil ?? undefined) : undefined}
 							link={<TicketLink identifier={item.ticket.identifier} />}
 							actions={[

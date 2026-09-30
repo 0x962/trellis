@@ -21,6 +21,7 @@ import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
+import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
 import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
@@ -75,7 +76,6 @@ import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
 import { sessionUpdateServices } from "./sessionUpdates/registry";
 import * as settings from "./settings/index.ts";
-import * as statistics from "./statistics/statistics.ts";
 import * as statuses from "./statuses.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
@@ -210,7 +210,6 @@ export const services = {
 	"statuses.delete": core("mutation", statuses.delete),
 	...ticketServices,
 	"timeline.list": core("read", timeline.list),
-	"statistics.get": prepared("read", statistics.prepare, statistics.get),
 	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
 	"needsYou.summary": prepared("read", needsYou.prepareSummary, needsYou.summary),
 	"needsYou.update": prepared("mutation", needsYou.prepareUpdate, needsYou.update),
@@ -224,6 +223,7 @@ export const services = {
 	"epics.get": core("read", epics.get),
 	"epics.create": core("mutation", epics.create),
 	"epics.update": core("mutation", epics.update),
+	"epics.cancel": core("mutation", cancelEpic),
 	"epics.delete": core("mutation", epics.remove),
 	"waves.create": core("mutation", waves.create),
 	"waves.update": core("mutation", waves.update),

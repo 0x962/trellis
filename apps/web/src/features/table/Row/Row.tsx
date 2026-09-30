@@ -1,21 +1,11 @@
-import type { EpicSummary, Label, Priority, StatusSummary, TicketSummary, WaveSummary } from "@trellis/api";
+import type { StatusSummary } from "@trellis/api";
 import { cx, DoneWash, insetRowSelection, TicketId } from "@trellis/ui";
 import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
-import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import {
-	type ColumnId,
-	gridColumnsClass,
-	gridStyle,
-	isEpicTable,
-	narrowHidden,
-	statusIconOnly,
-	type TableKind,
-} from "../columns";
+import { type ColumnId, gridColumnsClass, gridStyle, isEpicTable, narrowHidden, statusIconOnly } from "../columns";
+import { desktopRowHeight } from "../rowHeights";
 import { TreeStem } from "../TreeLines";
-import type { TicketAgentLine } from "../utils/agentLines";
-import type { TicketDisclosure as TicketDisclosureState } from "../utils/flattenGroups";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
 import { LabelsCell } from "./components/LabelsCell";
@@ -29,65 +19,7 @@ import { StatusCell } from "./components/StatusCell";
 import { TicketDisclosure } from "./components/TicketDisclosure";
 import { TitleCell } from "./components/TitleCell";
 import { WaitsCell } from "./components/WaitsCell";
-
-// The inline editors a row opens.
-export type EditField = "status" | "priority" | "parent" | "labels" | "epic" | "wave";
-
-// One change a row's picker or the bulk bar applies. `checked` on a label
-// change is the new state of that label on the ticket.
-export type RowChange =
-	| { status: StatusSummary }
-	| { priority: Priority }
-	| { parent: TicketSummary | null }
-	| { epic: EpicSummary | null }
-	| { wave: WaveSummary | null }
-	| { label: Label; checked: boolean };
-
-export type RowProps = {
-	ticket: TicketSummary;
-	density: Density;
-	// The visible column ids, in order.
-	columns: string[];
-	// The project ref of the route, or undefined on /all.
-	viewedProject?: string;
-	// The offset inside the virtual body.
-	top?: number;
-	// The group key, for the rows of a group.
-	group?: string;
-	// Below 768 px the row is a `PhoneRow` of two lines.
-	phone?: boolean;
-	// The layout of the `PhoneRow`.
-	phoneLayout?: TableKind;
-	// The line of the ticket's run, for the phone row.
-	agentLine?: TicketAgentLine | null;
-	disclosure?: TicketDisclosureState;
-	// True when child lines follow the row. The row then starts the tree
-	// rule under its status icon and draws no bottom border, so the ticket
-	// and its child lines read as one group.
-	hasChildLines?: boolean;
-	focused?: boolean;
-	// True while the row plays the green wash of a ticket that was marked
-	// done a moment ago.
-	washing?: boolean;
-	selected?: boolean;
-	// True while any row is selected.
-	selecting?: boolean;
-	// The picker that is open on this row.
-	editing?: EditField | null;
-	statuses?: readonly StatusSummary[];
-	onFocus?: (id: string) => void;
-	onClick?: (id: string, event: MouseEvent) => void;
-	onToggleDisclosure?: (id: string) => void;
-	// A double click on the title. The title never edits inline.
-	onOpen?: (id: string) => void;
-	onToggleSelect?: (id: string) => void;
-	onEditingChange?: (id: string, field: EditField | null) => void;
-	onChange?: (ticket: TicketSummary, change: RowChange) => void;
-};
-
-export { phoneRowHeight, rowHeights } from "../rowHeights";
-
-import { rowHeights } from "../rowHeights";
+import type { EditField, RowChange, RowProps } from "./types";
 
 const noStatuses: StatusSummary[] = [];
 const linkedCellClass =
@@ -98,7 +30,6 @@ const linkedCellClass =
 // re-renders that row alone.
 export const Row = memo(function Row({
 	ticket,
-	density,
 	columns,
 	viewedProject,
 	top,
@@ -192,11 +123,11 @@ export const Row = memo(function Row({
 				finalFocus={element}
 			/>
 		),
-		pr: ticket.pr === null ? null : <PrCell pr={ticket.pr} density={density} />,
+		pr: ticket.pr === null ? null : <PrCell pr={ticket.pr} />,
 		project: <ProjectCell projectKey={ticket.project.key} viewedProject={viewedProject} />,
 		waits: <WaitsCell waitsOn={ticket.waitsOn} ready={ticket.ready} />,
 		releases: <ReleasesCell releases={ticket.releases} />,
-		actor: <ActorAvatar ticketId={ticket.id} />,
+		actor: <ActorAvatar ticket={ticket} />,
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,
@@ -253,14 +184,13 @@ export const Row = memo(function Row({
 			data-selected={selected ? "" : undefined}
 			style={{
 				...gridStyle(columns),
-				height: `${rowHeights[density]}px`,
+				height: `${desktopRowHeight}px`,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"group/row absolute top-0 left-0 grid w-full items-center gap-3 px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
+				"group/row absolute top-0 left-0 grid w-full items-center gap-3 text-base px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
 				gridColumnsClass,
 				!hasChildLines && "border-b border-border",
-				density === "comfortable" ? "text-base" : "text-sm",
 				// The focus bar sits at the left edge of the inset hover and selection
 				// background. Its own layer keeps it visible while `DoneWash` crosses the row.
 				"before:absolute before:top-1 before:bottom-1 before:left-3 before:z-10 before:w-0.5 before:rounded-sm before:bg-accent before:opacity-0 before:content-[''] max-md:before:left-2",
