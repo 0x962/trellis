@@ -169,11 +169,6 @@ export function SessionConversation({
 					onDeleted={onDeleted}
 				/>
 			</div>
-			{run.switchedTo && (
-				<p role="status" className="px-3 py-2 text-xs text-fg-muted">
-					Switched to {run.switchedTo}
-				</p>
-			)}
 			<PendingQuestions run={run} readOnly={readOnly} />
 			<div className="flex min-h-0 flex-1 max-md:flex-col">
 				<div className="flex min-h-0 min-w-0 flex-1 flex-col">
