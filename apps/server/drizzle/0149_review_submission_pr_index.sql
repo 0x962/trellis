@@ -1,0 +1,1 @@
+CREATE INDEX "review_submissions_pr_created_idx" ON "review_submissions" USING btree ("pr_id","created_at" DESC NULLS FIRST,"id" DESC NULLS FIRST);
