@@ -12,12 +12,14 @@ export async function exportCapturedHistory(
 	capture: RuntimeCaptureProducer,
 	input: { directory: string; signal: AbortSignal },
 ) {
+	input.signal.throwIfAborted();
 	const unavailable: SnapshotMetadata["unavailable"] = [];
 	const inventory = await capture.inventory(capture.binding, input.signal);
+	input.signal.throwIfAborted();
 	if (!isDeepStrictEqual(inventory.binding, capture.binding)) throw new Error("paired_runtime_inventory_conflict");
 	await writeCaptureRecord(join(input.directory, "workspaces", "runtime-capture.json"), {
 		version: 1, binding: inventory.binding, unavailable: inventory.unavailable,
-	});
+	}, input.signal);
 	for (const missing of inventory.unavailable)
 		unavailable.push({
 			reference: `conversation:${missing.identity.agentRunId}:${missing.identity.attemptId}:${protocolDigest(JSON.stringify(missing))}`,
@@ -30,6 +32,7 @@ export async function exportCapturedHistory(
 	await mkdir(workspaceDirectory, { mode: 0o700 });
 	await mkdir(conversationDirectory, { mode: 0o700 });
 	for (const workspace of capture.binding.workspaces) {
+		input.signal.throwIfAborted();
 		const path = `workspaces/archives/${protocolDigest(workspace.workspaceId)}`;
 		const result = await exportWorkspaceArchive({ capture }, {
 			binding: capture.binding, workspaceId: workspace.workspaceId,
@@ -40,6 +43,7 @@ export async function exportCapturedHistory(
 			manifestDigest: result.sourceDigest, sealDigest: protocolDigest(result.sealSourceBytes) });
 	}
 	for (const identity of capture.binding.identities) {
+		input.signal.throwIfAborted();
 		const reference = `conversation:${identity.agentRunId}:${identity.attemptId}`;
 		if (identity.providerSessionId === null || !["claude", "codex", "pi", "muse", "opencode"].includes(identity.harness)) {
 			unavailable.push({ reference, reason: "The retained provider identity has no supported conversation exporter." });
@@ -65,9 +69,10 @@ export async function exportCapturedHistory(
 	}
 	await writeCaptureRecord(join(input.directory, "workspaces", "archives.json"), {
 		version: 1, binding: capture.binding, workspaces,
-	});
+	}, input.signal);
 	await writeCaptureRecord(join(input.directory, "conversations", "archives.json"), {
 		version: 1, binding: capture.binding, conversations, unavailable,
-	});
+	}, input.signal);
+	input.signal.throwIfAborted();
 	return unavailable;
 }
