@@ -40,6 +40,10 @@ export const reviews = {
 		.route({ method: "POST", path: "/reviews/status", summary: "Read current GitHub PR status" })
 		.input(pr)
 		.output(ReviewStatusSchema),
+	mergeTickets: base
+		.route({ method: "GET", path: "/reviews/merge-tickets", summary: "Read tickets that this merge can complete" })
+		.input(pr)
+		.output(z.array(z.object({ id: UlidSchema, identifier: z.string(), title: z.string() }))),
 	action: base
 		.errors(pickErrors(["GH_UNAVAILABLE", "PR_HEAD_MOVED"]))
 		.route({ method: "POST", path: "/reviews/action", summary: "Run an explicit GitHub action" })
@@ -57,9 +61,10 @@ export const reviews = {
 					"update-branch",
 				]),
 				headSha: z.string().min(1),
+				completeTicketIds: z.array(UlidSchema).default([]),
 			}),
 		)
-		.output(PullRequestSchema),
+		.output(PullRequestSchema.extend({ completedTicketIds: z.array(UlidSchema) })),
 	mine: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/mine", summary: "List the signed-in user's open PRs" })

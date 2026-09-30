@@ -1,16 +1,7 @@
 import { ArrowSquareOut, ArrowsClockwise, Eye, GitMerge, Lightning, Queue, XCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
-import {
-	Checkbox,
-	ConfirmDialog,
-	GithubMark,
-	IconButton,
-	type LinkPress,
-	Menu,
-	type MenuGroup,
-	toast,
-} from "@trellis/ui";
+import { ConfirmDialog, GithubMark, IconButton, type LinkPress, Menu, type MenuGroup, toast } from "@trellis/ui";
 import { type ReactElement, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { openLink } from "../../../lib/openLink";
@@ -23,6 +14,7 @@ import {
 	type ReviewActionMeta,
 	type ReviewActionMetadata,
 } from "../reviewActions/reviewActions";
+import { MergeDialog } from "./components/MergeDialog";
 
 export function ReviewHeaderActions({
 	pr,
@@ -41,7 +33,6 @@ export function ReviewHeaderActions({
 		confirmLabel: string;
 		danger?: boolean;
 	} | null>(null);
-	const [adminMerge, setAdminMerge] = useState(false);
 	const [metadataRequested, setMetadataRequested] = useState(false);
 	const meta = revision.meta as ReviewActionMeta;
 	const metadata = useQuery({
@@ -50,21 +41,28 @@ export function ReviewHeaderActions({
 	});
 	const extra = metadata.data as ReviewActionMetadata | undefined;
 	const action = useMutation({
-		mutationFn: (next: ReviewAction) => client.reviews.action({ pr, headSha: revision.headSha, action: next }),
-		onSuccess: () => {
+		mutationFn: (next: { action: ReviewAction; completeTicketIds?: string[] }) =>
+			client.reviews.action({ pr, headSha: revision.headSha, ...next }),
+		onSuccess: (result, input) => {
 			setConfirm(null);
-			setAdminMerge(false);
+			if (input.completeTicketIds?.some((id) => !result.completedTicketIds.includes(id)))
+				toast.warning("Some tickets remain open", {
+					description:
+						result.state === "merged"
+							? "The pull request is merged. Check the linked tickets for status or PR changes."
+							: "GitHub does not confirm the merge. Ticket status stays unchanged.",
+				});
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
 			onDone();
 		},
 		onError: (error) => {
 			if (isPrHeadMoved(error)) {
 				setConfirm(null);
-				setAdminMerge(false);
 				onDone();
 				return;
 			}
 			toast.error("The pull request action failed", { description: error.message });
+			void queryClient.invalidateQueries({ queryKey: orpc.reviews.mergeTickets.key() });
 		},
 	});
 	const iconByAction: Record<GithubMenuAction, ReactElement> = {
@@ -90,7 +88,6 @@ export function ReviewHeaderActions({
 				return;
 			}
 			if (item.confirm) {
-				setAdminMerge(false);
 				setConfirm({
 					action: item.action === "merge" ? "merge" : item.action,
 					title: item.action === "merge" ? `${item.label} pull request?` : `${item.label}?`,
@@ -105,7 +102,7 @@ export function ReviewHeaderActions({
 				});
 				return;
 			}
-			action.mutate(item.action);
+			action.mutate({ action: item.action });
 		},
 	});
 	const items: MenuGroup[] = [
@@ -142,7 +139,7 @@ export function ReviewHeaderActions({
 				items={items}
 			/>
 			<ConfirmDialog
-				open={confirm !== null}
+				open={confirm !== null && confirm.action !== "merge"}
 				title={confirm?.title ?? ""}
 				description={confirm?.description ?? ""}
 				confirmLabel={confirm?.confirmLabel ?? ""}
@@ -150,16 +147,17 @@ export function ReviewHeaderActions({
 				processing={action.isPending}
 				onCancel={() => {
 					setConfirm(null);
-					setAdminMerge(false);
 				}}
-				onConfirm={() =>
-					confirm && action.mutate(confirm.action === "merge" && adminMerge ? "admin-merge" : confirm.action)
-				}
-			>
-				{confirm?.action === "merge" && (
-					<Checkbox label="Admin merge" checked={adminMerge} onCheckedChange={setAdminMerge} className="text-sm" />
-				)}
-			</ConfirmDialog>
+				onConfirm={() => confirm && action.mutate({ action: confirm.action })}
+			/>
+			{confirm?.action === "merge" && (
+				<MergeDialog
+					pr={pr}
+					processing={action.isPending}
+					onMerge={(input) => action.mutate(input)}
+					onClose={() => setConfirm(null)}
+				/>
+			)}
 		</>
 	);
 }

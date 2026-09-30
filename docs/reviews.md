@@ -64,6 +64,11 @@ Merge, Admin merge, Merge when ready, and Add to merge queue first mark a GitHub
 If GitHub refuses that step, the server stops the action.
 If the merge fails after that step, the pull request stays ready on GitHub.
 Merge commands also pass the head hash to GitHub.
+When this is a ticket's last open pull request, the merge dialog offers **Merge and mark done** and **Merge**.
+The dialog names the tickets that **Merge and mark done** completes.
+This choice marks those tickets Done only after GitHub confirms the merge and their status and links still permit completion.
+**Merge**, GitHub polling, and manual refresh keep ticket status unchanged.
+An automatic merge or a merge queue entry also keeps ticket status unchanged.
 Live Branch controls appear for `canary-technologies-corp/canary`.
 Environment commands run only after an explicit form submission.
 

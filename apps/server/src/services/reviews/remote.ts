@@ -1,5 +1,6 @@
 import type { ReviewSubmit } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { mergeTickets } from "../../db/queries/mergeTickets/index.ts";
 import {
 	type PullRequestRow as LocalPullRequestRow,
 	pullRequestColumns,
@@ -13,6 +14,7 @@ import { fetchPullRequests, type PullRequestRow as GithubPullRequestRow, withQue
 import { projectRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
+import { move } from "../tickets/move.ts";
 import { parseRef, readThreads } from "./queries";
 import { recordSubmission } from "./recordSubmission";
 import { gh, ghJson } from "./revision";
@@ -31,6 +33,7 @@ export type Action = (typeof actionNames)[number];
 type PreparedAction = {
 	action: Action;
 	row: GithubPullRequestRow;
+	completeTickets: Array<{ id: string; statusId: string }>;
 };
 
 const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["action"]): Promise<PreparedAction> => {
@@ -47,11 +50,24 @@ const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["acti
 		error.message = first.error;
 		throw error;
 	}
-	return { action, row: first.row };
+	return { action, row: first.row, completeTickets: [] };
 };
 
-export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
+export async function action(
+	ctx: PrepareCtx,
+	input: { pr: string; action: Action; headSha: string; completeTicketIds: string[] },
+) {
 	const ref = parseRef(input.pr);
+	const selected = new Set(input.completeTicketIds);
+	let completeTickets: PreparedAction["completeTickets"] = [];
+	if (selected.size > 0) {
+		if (input.action !== "merge" && input.action !== "admin-merge")
+			throw invalidInput("completeTicketIds", "Only an immediate merge can mark tickets Done.");
+		const candidates = await ctx.newTx((tx) => mergeTickets(tx, { ref, state: "open" }));
+		completeTickets = candidates.filter((ticket) => selected.has(ticket.id));
+		if (completeTickets.length !== selected.size)
+			throw invalidInput("completeTicketIds", "The linked tickets changed. Open the merge dialog again.");
+	}
 	const meta = await ghJson<{
 		id: string;
 		headRefOid: string;
@@ -85,6 +101,7 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		await gh(ctx, ["pr", verb!, ref.url, ...flags]);
 	}
 	const prepared = await current(ctx, input.pr, input.action);
+	prepared.completeTickets = completeTickets;
 	if (a === "queue" || a === "dequeue") prepared.row = withQueueState(prepared.row, a === "queue");
 	return prepared;
 }
@@ -135,7 +152,18 @@ export async function submit(ctx: IoCtx, tx: Tx, input: ReviewSubmit) {
 }
 
 export const actionResult = async (ctx: IoCtx, tx: Tx, input: PreparedAction) => {
-	return recordAction(ctx, tx, input);
+	const pullRequest = await recordAction(ctx, tx, input);
+	const completedTicketIds: string[] = [];
+	if (input.completeTickets.length > 0 && pullRequest.state === "merged") {
+		const candidates = await mergeTickets(tx, { ref: parseRef(pullRequest.url), state: "merged" });
+		for (const ticket of candidates) {
+			if (!input.completeTickets.some((selected) => selected.id === ticket.id && selected.statusId === ticket.statusId))
+				continue;
+			await move(ctx.core, tx, { ticket: ticket.id, status: "category:done" });
+			completedTicketIds.push(ticket.id);
+		}
+	}
+	return { ...pullRequest, completedTicketIds };
 };
 
 type PageInfo = { hasNextPage: boolean; endCursor: string | null };

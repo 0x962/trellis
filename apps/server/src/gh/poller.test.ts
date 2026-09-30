@@ -37,7 +37,7 @@ afterEach(async () => {
 	await db.$client.close();
 });
 
-test("a poller tick moves a ticket whose linked pull requests are already terminal", async () => {
+test("a poller tick preserves ticket status when every linked pull request is terminal", async () => {
 	const ticketId = ulid();
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO tickets
@@ -76,5 +76,5 @@ test("a poller tick moves a ticket whose linked pull requests are already termin
 		WHERE t.id = ${ticketId}
 	`)
 	).rows as { category: string; completed: boolean }[];
-	expect(row).toEqual({ category: "done", completed: true });
+	expect(row).toEqual({ category: "review", completed: false });
 });

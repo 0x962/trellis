@@ -50,6 +50,7 @@ import * as resourceComments from "./resources/resourceComments.ts";
 import * as resources from "./resources/resources.ts";
 import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
+import { mergeTickets as reviewMergeTickets } from "./reviews/mergeTickets/index.ts";
 import * as reviewMessages from "./reviews/messages";
 import { overview as reviewOverview } from "./reviews/overview";
 import * as reviewPrs from "./reviews/prs";
@@ -150,6 +151,7 @@ export const services = {
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewStatus.prepare, reviewStatus.status),
+	"reviews.mergeTickets": io("read", reviewMergeTickets),
 	"reviews.overview": io("read", reviewOverview),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
 	"reviews.metadata": prepared("read", reviewRemote.metadata, reviewRemote.result),

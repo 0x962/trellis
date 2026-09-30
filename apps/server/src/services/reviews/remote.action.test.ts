@@ -67,7 +67,7 @@ const mergeCases: Array<{ name: Action; flags: string[]; state: RawPullRequest["
 test.each(mergeCases)("marks a draft ready before $name with the reviewed commit", async ({ name, flags, state }) => {
 	const { ctx, calls } = runner([meta(true), success(null), success(null), refreshed(state)]);
 
-	const result = await action(ctx, { pr, action: name, headSha });
+	const result = await action(ctx, { pr, completeTicketIds: [], action: name, headSha });
 
 	expect(calls.slice(0, 3)).toEqual([
 		viewCommand,
@@ -83,7 +83,7 @@ test.each(mergeCases)(
 	async ({ name, flags, state }) => {
 		const { ctx, calls } = runner([meta(false), success(null), refreshed(state)]);
 
-		await action(ctx, { pr, action: name, headSha });
+		await action(ctx, { pr, completeTicketIds: [], action: name, headSha });
 
 		expect(calls.slice(0, 2)).toEqual([viewCommand, ["pr", "merge", pr, ...flags, "--match-head-commit", headSha]]);
 		expect(calls).toHaveLength(3);
@@ -93,7 +93,7 @@ test.each(mergeCases)(
 test("marks a draft ready before it enters the merge queue", async () => {
 	const { ctx, calls } = runner([meta(true), success(null), success(null), refreshed("OPEN")]);
 
-	const result = await action(ctx, { pr, action: "queue", headSha });
+	const result = await action(ctx, { pr, completeTicketIds: [], action: "queue", headSha });
 
 	expect(calls.slice(0, 2)).toEqual([viewCommand, readyCommand]);
 	expect(calls[2]?.join(" ")).toContain("enqueuePullRequest(input:{pullRequestId:$id})");
@@ -107,7 +107,7 @@ test.each(["merge", "admin-merge", "automerge", "queue"] as const)(
 	async (name) => {
 		const { ctx, calls } = runner([meta(true, "another-head")]);
 
-		await expect(action(ctx, { pr, action: name, headSha })).rejects.toMatchObject({
+		await expect(action(ctx, { pr, completeTicketIds: [], action: name, headSha })).rejects.toMatchObject({
 			code: "PR_HEAD_MOVED",
 			data: { currentHeadSha: "another-head" },
 		});
@@ -120,7 +120,7 @@ test.each(["merge", "admin-merge", "automerge", "queue"] as const)(
 	async (name) => {
 		const { ctx, calls } = runner([meta(true), failure]);
 
-		await expect(action(ctx, { pr, action: name, headSha })).rejects.toMatchObject({
+		await expect(action(ctx, { pr, completeTicketIds: [], action: name, headSha })).rejects.toMatchObject({
 			code: "GH_UNAVAILABLE",
 			message: failure.message,
 		});
@@ -131,7 +131,7 @@ test.each(["merge", "admin-merge", "automerge", "queue"] as const)(
 test("awaits readiness before merge", async () => {
 	const ready = Promise.withResolvers<GhResult>();
 	const { ctx, calls } = runner([meta(true), ready.promise, success(null), refreshed("MERGED")]);
-	const pending = action(ctx, { pr, action: "merge", headSha });
+	const pending = action(ctx, { pr, completeTicketIds: [], action: "merge", headSha });
 
 	try {
 		await Bun.sleep(0);
@@ -146,7 +146,7 @@ test("awaits readiness before merge", async () => {
 test("returns the merge failure after readiness succeeds", async () => {
 	const { ctx, calls } = runner([meta(true), success(null), failure]);
 
-	await expect(action(ctx, { pr, action: "merge", headSha })).rejects.toMatchObject({
+	await expect(action(ctx, { pr, completeTicketIds: [], action: "merge", headSha })).rejects.toMatchObject({
 		code: "GH_UNAVAILABLE",
 		message: failure.message,
 	});
@@ -158,7 +158,7 @@ test.each(["disable-automerge", "dequeue", "close", "update-branch"] as const)(
 	async (name) => {
 		const { ctx, calls } = runner([meta(true), success(null), refreshed("OPEN", true)]);
 
-		const result = await action(ctx, { pr, action: name, headSha });
+		const result = await action(ctx, { pr, completeTicketIds: [], action: name, headSha });
 
 		expect(calls).toHaveLength(3);
 		expect(calls.some((args) => args[0] === "pr" && args[1] === "ready")).toBe(false);
@@ -169,7 +169,7 @@ test.each(["disable-automerge", "dequeue", "close", "update-branch"] as const)(
 test("sends one readiness command for the explicit ready action", async () => {
 	const { ctx, calls } = runner([meta(true), success(null), refreshed("OPEN")]);
 
-	await action(ctx, { pr, action: "ready", headSha });
+	await action(ctx, { pr, completeTicketIds: [], action: "ready", headSha });
 
 	expect(calls.slice(0, 2)).toEqual([viewCommand, readyCommand]);
 	expect(calls).toHaveLength(3);
