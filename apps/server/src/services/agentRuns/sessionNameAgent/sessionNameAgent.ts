@@ -5,10 +5,16 @@ import { join } from "node:path";
 import type { HarnessDescriptor } from "../../../agents/harnessHost/types.ts";
 import { nativeHost } from "../../../agents/native/harnessHost.ts";
 import type { IoCtx } from "../../support.ts";
-import { getRun } from "../queries.ts";
+import { getRun, type LaunchRun } from "../queries.ts";
+import { withSessionNameScope } from "./withSessionNameScope";
 
 export type RequestSessionNameInput = { runId: string; agentResponse: string };
 export type RequestedSessionName = { candidateName: string; initialPrompt: string; protectedTerms: string[] };
+
+type Dependencies = {
+	run: (ctx: IoCtx, id: string) => Promise<Pick<LaunchRun, "harness" | "terminalId" | "instruction" | "name" | "ticketIdentifier">>;
+	host: (...args: Parameters<typeof nativeHost>) => Pick<ReturnType<typeof nativeHost>, "start" | "waitFor" | "stop">;
+};
 
 const namePrompt = (initialPrompt: string, agentResponse: string) => `Write a short name for this work.
 
@@ -49,8 +55,12 @@ const cleanupAttempt = async (
 	}
 };
 
-export async function requestSessionName(ctx: IoCtx, input: RequestSessionNameInput): Promise<RequestedSessionName> {
-	const run = await ctx.newTx((tx) => getRun(tx, input.runId));
+export async function requestSessionName(
+	ctx: IoCtx,
+	input: RequestSessionNameInput,
+	deps: Partial<Dependencies> = {},
+): Promise<RequestedSessionName> {
+	const run = await (deps.run ?? ((context, id) => context.newTx((tx) => getRun(tx, id))))(ctx, input.runId);
 	const harness = run.harness;
 	if (harness === null || harness.preset === "custom")
 		throw new Error("A custom harness cannot create a session name.");
@@ -59,41 +69,44 @@ export async function requestSessionName(ctx: IoCtx, input: RequestSessionNameIn
 	);
 	const directory = await mkdtemp(join(tmpdir(), "trellis-session-name-"));
 	const attemptId = randomUUID();
-	const host = nativeHost(ctx.home, stripTrellisEnv(source.spec.env ?? {}));
-	const fields = { run: input.runId, attempt: attemptId };
-	let requestError: unknown = null;
-	ctx.log("session name attempt started", fields);
-	try {
-		const started = await host.start({
-			id: attemptId,
-			harness: source.harness,
-			cwd: directory,
-			prompt: namePrompt(run.instruction, input.agentResponse),
-			model: harness.model,
-			effort: harness.effort,
-			timeoutMs: 60_000,
-		});
-		const complete = (session: typeof started.process) =>
-			session.agent?.outcome === "completed" && session.agent.lastMessage !== null;
-		const completed = complete(started.process)
-			? started.process
-			: await host.waitFor(attemptId, complete, { limitMs: 60_000 });
-		ctx.log("session name attempt result", fields);
-		return {
-			candidateName: completed.agent!.lastMessage!.text,
-			initialPrompt: run.instruction,
-			protectedTerms: [run.name, run.ticketIdentifier ?? "", run.harness?.model ?? ""],
-		};
-	} catch (error) {
-		requestError = error;
-		throw error;
-	} finally {
-		await cleanupAttempt(ctx, fields, "stop", requestError, () => host.stop(attemptId));
-		await cleanupAttempt(ctx, fields, "remove directory", requestError, () =>
-			rm(directory, { recursive: true, force: true }),
-		);
-		await cleanupAttempt(ctx, fields, "remove attempt files", requestError, () =>
-			rm(join(ctx.home, "harness-attempts", attemptId), { recursive: true, force: true }),
-		);
-	}
+	return withSessionNameScope(ctx.home, source, attemptId, directory, async (writerScopes) => {
+		const host = (deps.host ?? nativeHost)(ctx.home, stripTrellisEnv(source.spec.env ?? {}));
+		const fields = { run: input.runId, attempt: attemptId };
+		let requestError: unknown = null;
+		ctx.log("session name attempt started", fields);
+		try {
+			const started = await host.start({
+				id: attemptId,
+				...(writerScopes === undefined ? {} : { writerScopes }),
+				harness: source.harness,
+				cwd: directory,
+				prompt: namePrompt(run.instruction, input.agentResponse),
+				model: harness.model,
+				effort: harness.effort,
+				timeoutMs: 60_000,
+			});
+			const complete = (session: typeof started.process) =>
+				session.agent?.outcome === "completed" && session.agent.lastMessage !== null;
+			const completed = complete(started.process)
+				? started.process
+				: await host.waitFor(attemptId, complete, { limitMs: 60_000 });
+			ctx.log("session name attempt result", fields);
+			return {
+				candidateName: completed.agent!.lastMessage!.text,
+				initialPrompt: run.instruction,
+				protectedTerms: [run.name, run.ticketIdentifier ?? "", run.harness?.model ?? ""],
+			};
+		} catch (error) {
+			requestError = error;
+			throw error;
+		} finally {
+			await cleanupAttempt(ctx, fields, "stop", requestError, () => host.stop(attemptId));
+			await cleanupAttempt(ctx, fields, "remove directory", requestError, () =>
+				rm(directory, { recursive: true, force: true }),
+			);
+			await cleanupAttempt(ctx, fields, "remove attempt files", requestError, () =>
+				rm(join(ctx.home, "harness-attempts", attemptId), { recursive: true, force: true }),
+			);
+		}
+	});
 }

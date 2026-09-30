@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import type { RuntimeLaunchCaptureIdentity } from "@trellis/runtime-protocol";
+import type { RuntimeLaunchCaptureIdentity, RuntimeLaunchWriterScope } from "@trellis/runtime-protocol";
 import { type RuntimeMutationScope, withRuntimeMutationExclusion } from "@trellis/runtime-protocol/mutation-exclusion";
 import type { HarnessDescriptor } from "../../../agents/harnessHost/types";
 import { gitCommonDirectory } from "../../../agents/native/gitCommonDirectory";
@@ -32,7 +32,12 @@ type Dependencies = {
 	env: NodeJS.ProcessEnv;
 	environment: typeof executionEnvironment;
 };
-type Selection = { baseEnv: NodeJS.ProcessEnv; workspaceId: string; capture: RuntimeLaunchCaptureIdentity | undefined };
+type Selection = {
+	baseEnv: NodeJS.ProcessEnv;
+	workspaceId: string;
+	capture: RuntimeLaunchCaptureIdentity | undefined;
+	writerScopes: RuntimeLaunchWriterScope[] | undefined;
+};
 
 async function selectedEnvironment(ctx: ServiceCtx, input: Input, deps: Partial<Dependencies>) {
 	const ambient = deps.env ?? (await (deps.environment ?? executionEnvironment)());
@@ -85,6 +90,11 @@ export async function withNativeLaunchScope<T>(
 			? [{ kind: "attempt" as const, directory: join(ctx.home, "harness-attempts", input.previousAttemptId) }] : []),
 		{ kind: "repository", directory: commonDirectory },
 	];
+	const writerScopes = harness === "custom" ? undefined
+		: current !== undefined ? current.spec.writerScopes
+		: provider?.profilePath === null ? undefined
+		: scopes.filter((scope): scope is RuntimeLaunchWriterScope =>
+			scope.kind === "workspace" || scope.kind === "provider" || scope.kind === "repository");
 	return withRuntimeMutationExclusion(ctx.home, scopes, async () => {
 		if (!isDeepStrictEqual(current, await readPrivateRecord<HarnessDescriptor>(currentPath)) ||
 			(previousPath && !isDeepStrictEqual(previous, await readPrivateRecord<HarnessDescriptor>(previousPath))))
@@ -103,6 +113,6 @@ export async function withNativeLaunchScope<T>(
 			home: ctx.home, harness, accountId: input.run.accountId, agentRunId: input.run.id,
 			attemptId: input.attempt.id, provider: provider!, priorScopePaths,
 		});
-		return action({ baseEnv, workspaceId, capture });
-	}, input.signal);
+		return action({ baseEnv, workspaceId, capture, writerScopes });
+	}, input.signal, { unprovenWriter: writerScopes === undefined });
 }
