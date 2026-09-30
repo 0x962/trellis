@@ -90,6 +90,9 @@ It runs outside the transport's automatic transaction.
 First it reads current runs, session directories, and retained native attempts in a short transaction.
 Then it reads original launch identities and acquires one runtime batch scope outside every database transaction.
 Launch uses the same runtime scopes before it opens a transaction, so the opposite order can deadlock.
+Before acquisition, `runtime-request.json` retains the exact request in the external paired journal.
+An empty identity set still requires the runtime's global admission and retention hold.
+Missing identities remain explicit in the aggregate manifest.
 
 Within the runtime scope, one transaction revalidates the original records and launch identities.
 It exports every selected workspace and provider conversation through producer-owned root IDs.
@@ -98,6 +101,13 @@ This preserves ticket, review, Page, and attachment records in the same Trellis 
 The callback syncs and places that snapshot, appends exact unavailable history, and seals the aggregate before the runtime scope ends.
 The result supplies the manifest, its original bytes and digest, and the Trellis export result.
 No callback crosses the worker transport.
+The producer's signal controls exports and checks around the complete transaction promise, including commit.
+Channel loss stops subsequent export and seal operations and preserves the original failure.
+A loss that races commit leaves its outcome unknown while the runtime retains a durable hold.
+The worker waits for the runtime's finalization receipt before it reports success.
+It stores the original `receiptBytes` string in external `runtime-finalized.json` before it returns the unchanged capture result.
+Recovery must prove the worker outcome before it calls `finalizeCapture` with the retained request.
+Manifest existence does not prove transaction commit or runtime finalization.
 
 Workspace archives appear below `workspaces/archives/`; conversation archives appear below `conversations/archives/`.
 Their indexes retain original identities and actual component manifest and seal receipts.
@@ -114,7 +124,8 @@ The host control stores the immutable operation journal under its external `pair
 The journal records an export attempt before the snapshot POST.
 
 `readPairedRecovery` reads that journal, current permits, and current capture grants without a network mutation.
-`finishPairedCapture` verifies a complete seal and recovers revocation with the same grant bytes.
+`finishPairedCapture` refuses recovery for a saved runtime request until runtime finalization has a retained, verified receipt.
+It verifies the receipt request, request digest, committed outcome, and exact host block before it recovers revocation with the same grant bytes.
 It never sends another export POST and never releases the host gate.
 An incomplete or unavailable seal keeps capture recovery blocked.
 

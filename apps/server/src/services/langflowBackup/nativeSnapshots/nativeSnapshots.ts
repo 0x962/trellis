@@ -11,17 +11,21 @@ const unavailableReasons = {
 	snapshot_unsafe: "The launch snapshot file does not meet the private file requirements.",
 };
 
-export async function exportNativeSnapshots(ctx: { home: string }, tx: Tx, input: { directory: string }) {
+export async function exportNativeSnapshots(ctx: { home: string }, tx: Tx, input: { directory: string; signal?: AbortSignal }) {
+	input.signal?.throwIfAborted();
 	const source = await readNativeSnapshotManifest(ctx, tx);
+	input.signal?.throwIfAborted();
 	const root = join(input.directory, "workspaces", "native-launches");
 	await mkdir(root, { mode: 0o700 });
 	const files = [];
 	for (const entry of source.files) {
+		input.signal?.throwIfAborted();
 		const bytes = await readLaunchSnapshot(ctx.home, entry.attemptId, entry.digest);
 		const path = `workspaces/native-launches/${entry.attemptId}.json`;
 		const file = await open(join(input.directory, path), "wx", 0o600);
 		try {
-			await file.writeFile(bytes);
+			input.signal?.throwIfAborted();
+			await file.writeFile(bytes, { signal: input.signal });
 			await file.sync();
 		} finally {
 			await file.close();
@@ -35,12 +39,14 @@ export async function exportNativeSnapshots(ctx: { home: string }, tx: Tx, input
 	const manifest = { version: 1, ready: source.ready, files, unavailable: source.unavailable };
 	const file = await open(join(root, "inventory.json"), "wx", 0o600);
 	try {
-		await file.writeFile(JSON.stringify(manifest));
+		input.signal?.throwIfAborted();
+		await file.writeFile(JSON.stringify(manifest), { signal: input.signal });
 		await file.sync();
 	} finally {
 		await file.close();
 	}
 	await syncDirectory(root);
 	await syncDirectory(join(input.directory, "workspaces"));
+	input.signal?.throwIfAborted();
 	return { manifest, unavailable };
 }

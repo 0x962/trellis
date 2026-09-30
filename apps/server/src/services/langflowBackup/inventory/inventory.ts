@@ -4,10 +4,12 @@ import { lstat, open, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { type SnapshotManifest, snapshotRoots } from "../manifest";
 
-export async function inventory(root: string) {
+export async function inventory(root: string, signal?: AbortSignal) {
+	signal?.throwIfAborted();
 	const directories: string[] = [];
 	const files: SnapshotManifest["files"] = [];
 	const visit = async (relative: string): Promise<void> => {
+		signal?.throwIfAborted();
 		const path = join(root, relative);
 		const stat = await lstat(path);
 		if (stat.isDirectory()) {
@@ -23,6 +25,7 @@ export async function inventory(root: string) {
 			const hash = createHash("sha256");
 			let size = 0;
 			for await (const chunk of file.createReadStream({ autoClose: false })) {
+				signal?.throwIfAborted();
 				hash.update(chunk);
 				size += chunk.length;
 			}
@@ -35,5 +38,6 @@ export async function inventory(root: string) {
 		if (!(await lstat(join(root, name))).isDirectory()) throw new Error("snapshot_root_not_directory");
 		await visit(name);
 	}
+	signal?.throwIfAborted();
 	return { directories, files };
 }

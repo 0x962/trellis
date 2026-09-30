@@ -26,6 +26,8 @@ export const pairedStages = [
 	"active",
 	"exporting",
 	"engine",
+	"runtime-request",
+	"runtime-finalized",
 	"trellis",
 	"sealed",
 	"revoking",
