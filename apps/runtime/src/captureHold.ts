@@ -37,6 +37,7 @@ export const retainRuntimeCaptureHold = (
 		global,
 		attemptIds: request.identities.map((identity) => identity.attemptId).sort(),
 		scopes: orderRuntimeMutationScopes(scopes),
+		overlapScopes: orderRuntimeMutationScopes(scopes).filter((scope) => scope.kind !== "attempt-retention"),
 		createdAt: new Date().toISOString(),
 	};
 	writeRuntimeCaptureHold(dataHome, hold);
