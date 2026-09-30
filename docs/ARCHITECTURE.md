@@ -549,8 +549,7 @@ in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
 answers with the parts that are missing, each with its plain words from
 `reviewGapText`. The wire carries the list as `reviewGaps` on a pull request
 row, on a ticket pull request row, on the PR badge of a ticket row and on a
-Diffs row, so the Waiting grouping, the Needs you inbox and the pull request
-sheet all read one answer.
+Diffs row, so the Waiting grouping and the pull request sheet read one answer.
 
 The glyph reads one part of that list and not the whole of it. It draws green
 when the agent asked for review, which `askedForReview` reads from the
@@ -932,16 +931,6 @@ Harness events establish turn activity. Terminal output alone does not establish
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-The web Needs you page lists each ticket whose turn is `you` across every project.
-`packages/api/src/turn/turn.ts` defines this turn from the status, pull requests, and the assigned run.
-Each person can snooze or ignore individual items. The database stores these choices in `needs_you_states`.
-A new status change creates a separate item. An item leaves the inbox when its ticket is done or canceled, when an agent works on it, or when its turn passes to somebody else.
-The default order is highest priority, then oldest ticket. Other orders use age, update time, or title.
-The server sorts before pagination and uses the item ID to break ties. The URL stores the selected order and view.
-The sidebar dot marks active items. Server events, snooze expiry, and window focus refresh the inbox.
-The command palette accepts `Snooze TR-123 1d` and natural dates, with an exact date preview before confirmation.
-Suffix `m` means minutes; prefix `m` means months. Past times require a future date.
-
 ### Flows
 
 A flow is a graph of agents with defined responsibilities and paths between their steps.
@@ -1073,8 +1062,8 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 
 | route | file | page |
 |---|---|---|
-| `/` | `index.tsx` | a replace redirect to `/needs-you` |
-| `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
+| `/` | `index.tsx` | a replace redirect to `/search` |
+| `/needs-you` | `needs-you/route.tsx` | a replace redirect to `/search` for saved links |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, its notes, its epics, or one epic |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
@@ -1095,8 +1084,8 @@ router entry, including its filters, tab, and hash. Ticket, review, and usage
 tabs each create a history entry. A ticket opens a pull request on its review route.
 Escape closes the active control or clears the selection first, then goes back.
 The terminal passes Escape to page navigation and keeps modified keys as terminal input.
-A direct entry with no previous app page returns to Needs you with a replacement
-entry. Back at the initial Needs you or setup page leaves the page in place.
+A direct entry with no previous app page returns to Search with a replacement
+entry. Back at the initial Search or setup page leaves the page in place.
 
 `/p/$` takes one splat, `[ref, view?]`. `ref` is the key or the slug of one
 project. The second segment is a view only when it is a reserved slug:
@@ -1130,7 +1119,7 @@ A custom link opens the browser sheet over the current page.
 Project settings hold the repository directory and repository selection.
 They write `projects.directory` and the project repositories.
 
-The sidebar holds the workspace row, Needs you, Search, Flows, Usage,
+The sidebar holds the workspace row, Search, Flows, Usage,
 the sessions, the project list, and the actor footer.
 The sessions and the project list share the one region that scrolls, so the fixed
 links keep their place at any height.
@@ -1470,7 +1459,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`, `labels.changed {projectId}`, `epics.changed {projectId, id}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, `providers.changed {id}`, and `needs-you.changed {actorName}`.
+`flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `providers.changed {id}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 
@@ -1770,7 +1759,7 @@ A boot removes stages that the previous process abandoned.
 Each sweep logs aggregate counts for purged Pages, expired uploads, removed objects, and removed stages.
 
 `apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
-attachments, board, command, composer, epics, filters, flows, navRows, needs-you,
+attachments, board, command, composer, epics, filters, flows, navRows,
 notes, pickers, project-actions, project-settings, prs, reviews, search,
 sessions, settings, setup, shell, sidebar, table, ticket, usage), `components/`,
 `hooks/`, `lib/`, and `stores/`.
@@ -1812,7 +1801,7 @@ Reuse these elements across pages. Ask the user for advice before adding a new U
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
-- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ReviewStateIcon, ReviewStatusSummary, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
+- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ReviewStateIcon, ReviewStatusSummary, ActorChip, TicketId, TrellisMark, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
 

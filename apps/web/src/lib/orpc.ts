@@ -73,8 +73,6 @@ export const createOrpc = (options: OrpcOptions = {}) => {
 		orpc.tickets.list.key(),
 		orpc.tickets.board.key(),
 		orpc.tickets.counts.key(),
-		orpc.needsYou.summary.key(),
-		orpc.needsYou.list.key(),
 		orpc.reviews.prs.key(),
 		orpc.reviews.mine.key(),
 		orpc.epics.list.key(),

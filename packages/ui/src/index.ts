@@ -37,7 +37,6 @@ export {
 } from "./domain/GroupHeader/GroupHeader";
 export * from "./domain/HarnessAccountForm";
 export * from "./domain/HarnessAccountNameForm";
-export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
 export { LabelDot, type LabelDotProps } from "./domain/LabelDot";
 export { LabelPill, type LabelPillProps } from "./domain/LabelPill";
 export { type LabelPillItem, LabelPills, type LabelPillsProps } from "./domain/LabelPills";

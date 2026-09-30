@@ -37,7 +37,7 @@ test("redacts provider keys from the data export", async () => {
 	expect(lines.join("")).not.toContain("export-secret");
 });
 
-test("exports complete pages for all four exclusion identities", async () => {
+test("exports complete pages for all exclusion identities", async () => {
 	await db.$client.exec(`
 		INSERT INTO projects (id,key,slug,name,created_at,updated_at)
 		VALUES ('export-project','EX','export-project','Export',now(),now());
@@ -74,17 +74,10 @@ test("exports complete pages for all four exclusion identities", async () => {
 		 FROM (VALUES ('human'),('agent')) AS a(kind),generate_series(1,501) AS n`,
 		[prefix],
 	);
-	await db.$client.query(
-		`INSERT INTO needs_you_states (actor_name,item_id,ticket_id,updated_at)
-		 SELECT $1 || suffix,$1 || lpad(n::text,4,'0'),'export-ticket',now()
-		 FROM (VALUES ('a'),('b')) AS a(suffix),generate_series(1,501) AS n`,
-		[prefix],
-	);
 	const keys: Record<string, string[]> = {
 		provider_models: ["provider_id", "model_id"],
 		agent_start_requests: ["actor_kind", "actor_name", "request_id"],
 		langflow_start_receipts: ["actor_kind", "actor_name", "request_id"],
-		needs_you_states: ["actor_name", "item_id"],
 	};
 	const exported = new Map(Object.keys(keys).map((table) => [table, [] as Record<string, unknown>[]]));
 	const ctx = { now: () => at } as unknown as IoCtx;

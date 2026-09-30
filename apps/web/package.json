@@ -45,7 +45,6 @@
 		"@trellis/api": "workspace:*",
 		"@trellis/ui": "workspace:*",
 		"@xyflow/react": "12.11.6",
-		"chrono-node": "2.10.1",
 		"highlight.js": "11.11.1",
 		"lowlight": "3.3.0",
 		"marked": "17.0.6",

@@ -19,7 +19,7 @@ export const localStateItem = (localState: LocalPrState): { label: string; next:
 
 // The ⋯ menu of the pull request sheet. The server event of the write
 // refetches every row, so the glyph on the epic page, the ticket page, the
-// Diffs list and the Needs you inbox follows the new state.
+// Diffs list follows the saved state.
 export function LocalStateMenu({ id, number, localState }: LocalStateMenuProps) {
 	const { client } = useApp();
 	const item = localStateItem(localState);

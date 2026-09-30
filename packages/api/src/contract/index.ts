@@ -15,7 +15,6 @@ import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
 import { models } from "./models.ts";
-import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
@@ -44,7 +43,6 @@ export const contract = {
 	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
 	internalLinks: oc.tag("internal links").router(internalLinks),
 	usage: oc.tag("usage").router(usage),
-	needsYou: oc.tag("needs you").router(needsYou),
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	flows: oc.tag("flows").router(flows),

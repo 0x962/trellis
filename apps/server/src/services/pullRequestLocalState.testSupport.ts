@@ -7,7 +7,6 @@ import { openTestDb } from "../db/testDb.ts";
 import type { Tx } from "../db/tx.ts";
 import type { PullRequestRow } from "../gh/graphql.ts";
 import { upsertPullRequests } from "../gh/pollerWrite.ts";
-import { candidates } from "./needsYou/candidates.ts";
 import { setLocalState } from "./pullRequestLocalState.ts";
 import { link } from "./pullRequests.ts";
 import type { IoCtx } from "./support.ts";
@@ -82,8 +81,6 @@ export const openPullRequestLocalStateTest = async () => {
 		return ticket!.prRows[0]!.reviewGaps.map((gap) => gap.kind);
 	};
 
-	const inboxOf = async () => (await run((tx) => candidates(tx, "dana"))).map((item) => item.identifier);
-
 	const activityOf = async (id: string) => {
 		const found = await db.execute(
 			sql`SELECT action, actor_name, actor_kind FROM activity
@@ -147,7 +144,6 @@ export const openPullRequestLocalStateTest = async () => {
 		writeParts,
 		readyPullRequest,
 		gapsOf,
-		inboxOf,
 		activityOf,
 		readyAtOf,
 		poll,
