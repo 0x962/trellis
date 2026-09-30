@@ -66,3 +66,4 @@ export {
 } from "./restoredEngine";
 export { readRestoredEngineStartup, type RestoredEngineStartup, type ReadRestoredEngineStartupInput } from "./restoredStartup";
 export { LangflowSupervisor } from "./supervisor";
+export { type IsolatedRestoreInput, type IsolatedRestoreScope, withIsolatedRestore } from "./restoreExclusion";
