@@ -5,17 +5,18 @@ import { readReconciliationFacts } from "../../../db/queries/langflowExecution";
 import { agentRuns } from "../../../db/tables/agentRuns";
 import type { Tx } from "../../../db/tx";
 import { readStopReconciliation } from "../../langflowStops";
+import { prepareSystemSnapshot } from "../../prepareSystemSnapshot";
 import type { IoCtx } from "../../support";
-import { snapshot } from "../../system";
 import { exportNativeSnapshots } from "../nativeSnapshots";
 import type { TrellisCaptureInput, TrellisCaptureResult } from "../pairedContracts";
 import { syncDirectory } from "../syncDirectory";
 
-export async function captureTrellisSnapshot(
-	ctx: IoCtx,
-	tx: Tx,
-	input: TrellisCaptureInput,
-): Promise<TrellisCaptureResult> {
+export async function captureTrellisSnapshot(ctx: IoCtx, input: TrellisCaptureInput): Promise<TrellisCaptureResult> {
+	const taken = await prepareSystemSnapshot(ctx, (tx) => captureState(ctx, tx, input));
+	return { staging: taken.staging, ...taken.value };
+}
+
+async function captureState(ctx: IoCtx, tx: Tx, input: TrellisCaptureInput) {
 	const databaseFacts = await readReconciliationFacts(tx);
 	if (
 		ctx.version !== input.expectedVersion.trellisRelease ||
@@ -75,6 +76,5 @@ export async function captureTrellisSnapshot(
 		await factsFile.close();
 	}
 	await syncDirectory(join(input.directory, "workspaces"));
-	const taken = await snapshot(ctx, tx, {});
-	return { staging: taken.staging, unavailable, native: native.manifest, version: input.expectedVersion };
+	return { unavailable, native: native.manifest, version: input.expectedVersion };
 }

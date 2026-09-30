@@ -4,33 +4,31 @@ import { mkdir, mkdtemp, readdir, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { backupFixture } from "./db/backupFixture";
 import { openDatabase } from "./db/open.ts";
-import { pageHomeFixture } from "./db/pageHomeFixture.ts";
 import { lockHome } from "./homeLock.ts";
 import { restoreHome } from "./restore.ts";
 import { listHeldPageObjects, remove } from "./services/pages/pages.ts";
-import { archive, snapshot } from "./services/system.ts";
+import { archive, prepareSnapshot } from "./services/system.ts";
 import { BACKUP_MANIFEST, verifyPageObjects } from "./storage/backups.ts";
 import { blobPath } from "./storage/blobs.ts";
 import { pageObjectPath } from "./storage/pageObjects.ts";
 
-let fixture: Awaited<ReturnType<typeof pageHomeFixture>>;
+let fixture: Awaited<ReturnType<typeof backupFixture>>;
 let root: string;
 let backup: string;
 let documentSha: string;
 let attachmentSha: string;
 
 beforeAll(async () => {
-	fixture = await pageHomeFixture();
+	fixture = await backupFixture("REST");
 	root = await mkdtemp(join(tmpdir(), "trellis-restore-proof-"));
-	await fixture.project("REST");
 	const page = await fixture.page("REST", "Restore", "<p>Restore</p>", "restore-css");
 	documentSha = page.document.sha256;
 	await fixture.newTx((tx) => remove(fixture.core, tx, { page: page.page.id, expectedVersion: 1 }));
 	await fixture.stage("REST", "staged restore");
-	attachmentSha = new Bun.CryptoHasher("sha256").update("attachment").digest("hex");
-	await Bun.write(blobPath(fixture.home, attachmentSha), "attachment");
-	backup = (await archive(await fixture.newTx((tx) => snapshot(fixture.ctx, tx, {})))).path;
+	attachmentSha = (await fixture.attach("attachment")).sha256;
+	backup = (await archive(await prepareSnapshot(fixture.ctx, {}))).path;
 	await fixture.flush();
 }, 30_000);
 afterAll(async () => {

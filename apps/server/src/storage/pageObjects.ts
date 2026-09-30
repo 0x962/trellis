@@ -3,6 +3,7 @@ import { mkdir, readdir, rename, rm, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ulid } from "ulid";
 import { hashFile, shardedHashPath, withHashLock } from "./hashStore.ts";
+import { withObjectRetention } from "./objectRetention";
 
 const PAGES_DIR = "pages";
 const PAGE_OBJECTS_DIR = "objects";
@@ -149,7 +150,8 @@ export const gcPageObjects = async (
 ) => {
 	const removed: string[] = [];
 	for (const sha256 of new Set(sha256s)) {
-		if (await removePageObject(home, sha256, () => holdsSha(sha256))) removed.push(sha256);
+		if (await withObjectRetention(home, () => removePageObject(home, sha256, () => holdsSha(sha256))))
+			removed.push(sha256);
 	}
 	return { removed };
 };

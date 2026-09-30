@@ -1,14 +1,14 @@
-import { mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { BackupOutput, GhStatus, Health } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import { fail } from "../errors.ts";
 import { executionEnvironment } from "../executionEnvironment";
 import type { GhRunner } from "../gh/run.ts";
-import { BACKUP_MANIFEST, PARTIAL_SUFFIX, SNAPSHOT_PREFIX, snapshotPageObjects } from "../storage/backups.ts";
-import { listHeldPageObjects } from "./pages/pages.ts";
+import { backupCommand } from "../storage/backupCommand";
+import { BACKUP_MANIFEST, PARTIAL_SUFFIX } from "../storage/backups.ts";
+import { prepareSystemSnapshot } from "./prepareSystemSnapshot";
 import type { ServiceCtx } from "./support.ts";
 
 // The three answers a person needs about the running server: is it healthy,
@@ -55,10 +55,6 @@ export const checkGh = async (runner: GhRunner, at: Date): Promise<GhStatus> => 
 	return { ok: true, user: ACCOUNT.exec(result.stdout)?.[1] ?? null, reason: null, message: null, checkedAt };
 };
 
-// `2026-09-09T10-00-00-000Z`: the ISO stamp with every colon and dot as a
-// dash, so the name is a file name on every platform and sorts by time.
-const stampOf = (at: Date) => at.toISOString().replace(/[:.]/g, "-");
-
 // Keeps the newest KEEP_ARCHIVES archives and removes the rest.
 const pruneArchives = (dir: string) => {
 	const archives = readdirSync(dir)
@@ -71,43 +67,9 @@ const pruneArchives = (dir: string) => {
 // `staging` is the copy under `backups/`. `path` is the archive file.
 export type Snapshot = { staging: string; path: string };
 
-// Runs a copy or an archive command. `cp` and `tar` are outside the server,
-// so a nonzero exit is a boundary failure and gets a declared error. The
-// message names the tool, its exit status, and its stderr, so a person who
-// calls system.backup reads why the backup stopped.
-const run = async (command: string[]) => {
-	const proc = Bun.spawn(command, { env: await executionEnvironment(), stdout: "ignore", stderr: "pipe" });
-	const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-	if (code !== 0) {
-		const text = stderr.trim();
-		throw fail("BACKUP_FAILED", { command: command[0]!, code, stderr: text }, `${command[0]} exited ${code}: ${text}`);
-	}
-};
-
-// APFS and btrfs copy a file by reference, so a snapshot at 50k tickets
-// takes milliseconds and no disk. Another file system copies the bytes.
-const copyArgs = process.platform === "darwin" ? ["cp", "-cR"] : ["cp", "-R", "--reflink=auto"];
-
-// CHECKPOINT writes every dirty page to the data directory first, so the
-// snapshot holds a database that opens without a replay. The database
-// worker runs nothing else until this returns, so the database files and the
-// blobs in the snapshot agree. PGlite runs no autovacuum, so the busy tables
-// are vacuumed once the transaction commits.
-export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<Snapshot> => {
-	ctx.afterCommit(ctx.vacuum);
-	await tx.execute(sql`CHECKPOINT`);
-	const dir = join(ctx.home, "backups");
-	const stamp = `${stampOf(ctx.now())}-${crypto.randomUUID()}`;
-	const staging = join(dir, `${SNAPSHOT_PREFIX}${stamp}`);
-	mkdirSync(staging, { recursive: true });
-	try {
-		await run([...copyArgs, join(ctx.home, "db"), join(ctx.home, "attachments"), staging]);
-		await snapshotPageObjects(ctx.home, staging, await listHeldPageObjects(tx));
-	} catch (error) {
-		rmSync(staging, { recursive: true, force: true });
-		throw error;
-	}
-	return { staging, path: join(dir, `trellis-${stamp}.tar.gz`) };
+export const prepareSnapshot = async (ctx: ServiceCtx, _input: EmptyInput): Promise<Snapshot> => {
+	const { staging, path } = await prepareSystemSnapshot(ctx, async () => undefined);
+	return { staging, path };
 };
 
 // Build the archive from the snapshot. Then remove the snapshot. Keep the newest archives.
@@ -118,7 +80,10 @@ export const snapshot = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Prom
 export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
 	const partial = `${taken.path}${PARTIAL_SUFFIX}`;
 	try {
-		await run(["tar", "-czf", partial, "-C", taken.staging, "db", "attachments", "pages", BACKUP_MANIFEST]);
+		await backupCommand(
+			["tar", "-czf", partial, "-C", taken.staging, "db", "attachments", "pages", BACKUP_MANIFEST],
+			await executionEnvironment(),
+		);
 		renameSync(partial, taken.path);
 	} finally {
 		rmSync(taken.staging, { recursive: true, force: true });
@@ -129,8 +94,8 @@ export const archive = async (taken: Snapshot): Promise<BackupOutput> => {
 };
 
 // A whole backup in one call: the snapshot, then its archive.
-export const backup = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promise<BackupOutput> =>
-	archive(await snapshot(ctx, tx, input));
+export const backup = async (ctx: ServiceCtx, input: EmptyInput): Promise<BackupOutput> =>
+	archive(await prepareSnapshot(ctx, input));
 
 // These non-null columns identify one row through each table's equality exclusion constraint.
 const EXCLUSION_KEYS: Record<string, string[]> = {

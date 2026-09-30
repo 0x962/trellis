@@ -9,7 +9,7 @@ The directory contains these roots:
 
 | Root | Required producer content |
 | --- | --- |
-| `trellis` | Complete `system.snapshot(ctx, tx, {})` output, including PGlite, Pages, attachments, and its manifest |
+| `trellis` | Complete `system.snapshot` output, including PGlite, Pages, attachments, and its manifest |
 | `engine` | Consistent engine database export, jobs, checkpoints, and accepted decision/continuation receipts |
 | `secrets` | The matching engine encryption secret and its version |
 | `workspaces` | Self-contained exports for the retained native workspace identities |
@@ -84,10 +84,10 @@ The worker ports call `readTrellisSnapshotVersion` and `captureTrellisSnapshot` 
 TRL-696 owns their registration and the public system procedure.
 
 `readTrellisSnapshotVersion(ctx, tx)` returns the installed Trellis version and a SHA256 of the ordered migration records.
-`captureTrellisSnapshot(ctx, tx, input)` exports verified private launch files, run identity references, canonical stop facts, and the complete `system.snapshot` output.
+`captureTrellisSnapshot(ctx, input)` prepares a snapshot outside the caller transaction. Its capture callback exports verified private launch files, run identity references, and canonical stop facts in the same transaction as the database copy. Object retention protects the later attachment and Page copies.
 The input includes the destination, expected Trellis version, and exact dispatch block.
 `TrellisCaptureResult` supplies the staging path, unavailable history, native inventory status, and verified version.
-The worker holds the database queue through that operation.
+The worker releases the database transaction before it copies retained attachment and Page objects.
 Complete workspace and provider conversation exports remain unavailable; their retained run references appear in the manifest.
 
 The capture sequence closes the host gate, drains durable permits, and commits the exact capture grant to the engine.
@@ -132,7 +132,7 @@ The integrated runner must supply these exact paths to its cleanup owner.
 
 ## Canonical database facts
 
-The capture worker calls `readReconciliationFacts(tx)` before `system.snapshot` in the same transaction.
+The capture callback calls `readReconciliationFacts(tx)` before the checkpoint and database copy in the same transaction.
 It saves the result in `workspaces/trellis-database-facts.json` with mode 0600 and syncs the file before the seal.
 The result holds `migrations` and `facts`, each with an exact `sourceBytes` string and its UTF-8 SHA256 in `sourceDigest`.
 The storage query owns the canonical representation of the rows and retained native associations.
