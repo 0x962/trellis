@@ -122,13 +122,6 @@
 .review-diff-line:not(.review-diff-line-empty):hover {
 	background-image: linear-gradient(var(--band-translucent), var(--band-translucent));
 }
-/* The row is a button, so a person who moves by keyboard must see where they
-   are. The ring is drawn inside the row, because the scrolling box cuts off
-   anything that reaches past a row's edge. */
-.review-diff-line:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: -2px;
-}
 .review-diff-line-empty {
 	cursor: default;
 	background: var(--surface);

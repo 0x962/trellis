@@ -6,6 +6,7 @@ export type { DiscoveryAvailability, DiscoveryResult, DiscoverySummary } from ".
 export { discovery } from "./discovery";
 export type { CapturedDocument, DocumentActionServices } from "./documentActionServices";
 export { documentBytes } from "./documentBytes";
+export type { DocumentActionReceipt, DocumentActionReceiptInput } from "./documentIntentReceipt";
 export { get } from "./get";
 export { installedEditorManifest } from "./installedEditorManifest";
 export { installedPublisher, type PublicationDispatch } from "./installedPublisher";
@@ -16,6 +17,7 @@ export { publicationDispatch } from "./publicationDispatch";
 export { publishDocument } from "./publishDocument";
 export type { DocumentPublisher, Publication, SavedDocument } from "./publisher";
 export { publishSavedDocument } from "./publishSavedDocument";
+export { readDocumentActionReceipt } from "./readDocumentActionReceipt";
 export { type RetainedExecutionPublication, readExecutionPublication } from "./readExecutionPublication";
 export { requireCurrentPublication } from "./requireCurrentPublication";
 export { save } from "./save";

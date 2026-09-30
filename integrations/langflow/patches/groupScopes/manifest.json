@@ -1,9 +1,9 @@
 {
 	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
 	"patch": "0001-executable-group-scopes.patch",
-	"sha256": "f78ee6fd8e11844925d2e3d668e9877e442398f08c5a7810fbf3e50b1a83914a",
+	"sha256": "eabba03a359d6e43497052873f6d8745e9bf2c10574d4d4153ab54ffcf4f3c37",
 	"files": {
-		"src/lfx/src/lfx/graph/group_scope.py": "74bb39696d443f767945ec70faf71801a547ccfa039870439368558ea9a6f491",
+		"src/lfx/src/lfx/graph/group_scope.py": "320ea298816e17d32175ea222a1c0b53f44a92d46be94535a03dbd949d8e0af5",
 		"src/backend/base/langflow/services/trellis_v1/group_scope_deadline.py": "09ba4453ae066f856c771ea8f81f70120b85c412cb2514001e9898c3ed7b20c9",
 		"src/backend/base/langflow/services/trellis_v1/group_scope_reader.py": "36c98c49ae6a072868863afcb84a6e89b42d2e15e1ec9a7471c92791e9c59efa",
 		"src/lfx/src/lfx/graph/graph/base.py": "3acc01f2c151a4af7a661a0b0ae663e76ae682ac4d119746ffcaf582fc7a2e93",
@@ -32,10 +32,10 @@
 	"components": {
 		"integrations/langflow/components/groupScope/__init__.py": "120d5257438ed801bb36010338a233e23920552997ffd9cbcad86b48c2a30ea5",
 		"integrations/langflow/components/groupScope/expansion.py": "66c441d2773f0fd5f7c6e967ef405ffe3eeac36f4b952ba95e0c192afa89593b",
-		"integrations/langflow/components/groupScope/groupScope.py": "a96ae607bd0e44b680fe17c1aa0e2810ed6d390ccde2355474b96e982de853c6"
+		"integrations/langflow/components/groupScope/groupScope.py": "ed130a55cfb9b02f760df649185036a2807eba2c269cefb83e7d00180215a866"
 	},
 	"tests": {
-		"tests/test_group_scope.py": "73bc288a3b339afaa358260c93b67668607bee37c7effca9c44657d1e1968941",
+		"tests/test_group_scope.py": "d258fbb3db626d62a008c1bad253d972c276d4e54e18e5a6d5980c8a11310b5a",
 		"tests/test_group_scope_deadline.py": "0fd7526dc621d8c5390716586b46921381bd295924620ac1f82e25844a80affd",
 		"tests/test_group_scope_reader.py": "00291c655d93b6d4bb00f05e259118a86bbb0b06df5ba1907af49c961919545c",
 		"../../tests/groupScopes/test_expansion.py": "e8ac4d5943a327b81dc7199e32064cb00eb696aa79333bd154e4f03958fc1be3"
@@ -57,6 +57,7 @@
 		"Graph.trellis_current_loop_policy",
 		"Graph.commit_trellis_loop_children",
 		"Graph.read_trellis_loop_visit",
+		"Graph.read_trellis_loop_visit metadata.nodeId from the loop metadata patch",
 		"TrellisLoopV1.scope_entry",
 		"TRL-1030 POST /api/langflow-private/v1/group-deadlines",
 		"the composed external-wait checkpoint fields",

@@ -3,7 +3,9 @@
 `TrellisGroupScopeV1` accepts `boundary_inputs` and the static `scope_definition`.
 It reads the actual input receipts with `capture_visit_scope`.
 It allocates the saved occurrence with `allocate_control_visit` and `scope_definition.groupNodeId`.
-It reads the optional loop visit key from `graph.trellis_current_loop_policy()`.
+It reads the optional loop visit key from `loop_body_visit_key`.
+That helper compares the group definition with the archived node ID for the active loop.
+It returns a commit target only for the loop's published body scope.
 It allocates the group occurrence from the boundary consumer scope.
 It sets the child scope parent to that group occurrence and sets its phase to `children`.
 It activates the child scope before it opens the group scope.
@@ -27,7 +29,8 @@ It emits `settlement` with the source node, child occurrence, state, exact outpu
 The `scope_entry` input orders an empty group after the saved scope entry.
 It emits `out` after every source child has a completed, failed, or skipped settlement.
 The output joins non-skipped bytes in source node order with exactly two newline characters.
-For a loop body, it calls `graph.commit_trellis_loop_children(loopVisitKey, output)` after the group output is complete.
+For the exact loop body, it calls `graph.commit_trellis_loop_children(loopVisitKey, output)` after the group output is complete.
+A nested group completes without a loop commit target.
 
 `expand_group_scope(group, nodes, edges)` creates the boundary, settlement, and output nodes.
 It returns actual ports, edges, and stable source associations.

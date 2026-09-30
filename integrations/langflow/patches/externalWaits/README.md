@@ -236,6 +236,9 @@ The condition receipt closes one loop round.
 That method locks the Job row and writes the graph plus projection snapshot in one transaction.
 Failed and canceled jobs close active container rows before the terminal projection snapshot.
 
+Apply `0009-loop-metadata-wrapper.patch` after `0008-container-lifecycle-history.patch`.
+The Graph wrapper forwards the archived loop metadata to `loop_control.begin_visit` unchanged.
+
 Apply `0003-native-completion-obligation-consumer.patch` after the native engine API patch.
 It adds this service interface:
 

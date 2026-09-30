@@ -118,3 +118,11 @@ It preserves the exact validated intent bytes as receipt identity.
 Preparation runs outside the transaction, and the final flow lock protects the shared version.
 The commit saves generated content, flow briefing, harness, and the original response together.
 The preparation result retains the original source and each derived edit in its provenance.
+
+`readDocumentActionReceipt(ctx, tx, { operation, value })` reads the original receipt before host access.
+`operation` is `publish`, `convert`, or `edit`. The result distinguishes `completed`, `pending`, and `miss`.
+A completed result includes `requestId` and the original `document`; other results include `requestId`.
+The lookup requires an actor and locks the flow while it compares the exact intent bytes.
+A miss creates no claim. Composition calls this operation before configuration, package, or supervisor access.
+After a miss or pending result, the full operation repeats its receipt and version checks under its own transaction.
+Only a fresh publication claim permits a POST. A pending claim permits receipt recovery.

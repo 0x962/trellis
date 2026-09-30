@@ -4,6 +4,7 @@ from lfx.graph.group_scope import (
     GroupSettlement,
     activate_group_occurrence,
     complete_group_scope,
+    loop_body_visit_key,
     open_group_scope,
     settle_group_child,
     settle_group_exclusions,
@@ -149,3 +150,35 @@ def test_completed_scope_retains_identity_metadata_and_receipts():
     assert retained["resultReceiptIds"] == [
         "first:receipt", "second:receipt", "third:receipt", "group-receipt",
     ]
+
+
+def test_published_loop_body_scope_keeps_the_active_visit_key():
+    graph = Graph()
+    graph.trellis_loop_active_visit_key = "loop-visit"
+    graph.trellis_loop_visits = {
+        "loop-visit": {
+            "visitKey": "loop-visit",
+            "loopNodeId": "loop",
+            "phase": "children",
+            "maxRounds": 3,
+            "metadata": {**metadata(), "nodeId": "loop", "actionIdentity": "loop"},
+        },
+    }
+    body = definition().model_copy(update={"group_node_id": "loop", "scope_vertex_id": "loop:scope"})
+    assert loop_body_visit_key(graph, body, "loop:scope") == "loop-visit"
+
+
+def test_nested_group_does_not_commit_the_parent_loop_visit():
+    graph = Graph()
+    graph.trellis_loop_active_visit_key = "loop-visit"
+    graph.trellis_loop_visits = {
+        "loop-visit": {
+            "visitKey": "loop-visit",
+            "loopNodeId": "loop",
+            "phase": "children",
+            "maxRounds": 3,
+            "metadata": {**metadata(), "nodeId": "loop", "actionIdentity": "loop"},
+        },
+    }
+    assert loop_body_visit_key(graph, definition(), "group-scope") is None
+    assert graph.read_trellis_loop_visit("loop-visit")["phase"] == "children"

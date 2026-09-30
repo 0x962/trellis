@@ -12,6 +12,7 @@ import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
+import { documentActions, type DocumentActionRuntime } from "./documentActions";
 import { type EditorGatewayConfiguration, editorGateway } from "./editorGateway";
 import type { Bus } from "./events/bus.ts";
 import type { GhAccess } from "./ghState.ts";
@@ -47,6 +48,7 @@ export type AppOptions = {
 	editor?: EditorGatewayConfiguration;
 	nativeReservations?: NativeReservationTransport;
 	groupDeadlines?: (request: Request) => Promise<Response>;
+	documentActionRuntime?: DocumentActionRuntime;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
 	chooseDirectory?: () => Promise<string | null>;
@@ -116,10 +118,12 @@ export const createApp = ({
 	editor,
 	nativeReservations,
 	groupDeadlines,
+	documentActionRuntime,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
 }: AppOptions) => {
 	const app = new Hono();
+	const actions = documentActions({ home: config.home, transport, runtime: documentActionRuntime });
 	const editorSessions = editor === undefined ? undefined : editorGateway(config, transport, editor);
 	// The database timing of each procedure request, by its request. The
 	// request log line reads it. A streaming batch writes its line when its
@@ -216,6 +220,7 @@ export const createApp = ({
 		return {
 			headers: c.req.raw.headers,
 			editorGateway: editorSessions,
+			documentActions: actions,
 			reqId: c.get("requestId"),
 			transport,
 			actor: null,
@@ -278,7 +283,7 @@ export const createApp = ({
 		);
 	});
 
-	return { app, bye: events.bye };
+	return { app, bye: events.bye, stopDocumentActions: actions.stop };
 };
 
 export type App = ReturnType<typeof createApp>["app"];
