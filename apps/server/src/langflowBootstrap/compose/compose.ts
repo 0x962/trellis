@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { LangflowSidecarManifestV1 } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
-import type { CandidatePackage } from "../../../../../integrations/langflow/release";
+import type { CandidatePackage, LoadQualifiedPackageInput } from "../../../../../integrations/langflow/release";
 import type { Config } from "../../config";
 import type { EditorGatewayConfiguration } from "../../editorGateway";
 import type {
@@ -8,6 +8,7 @@ import type {
 	HostControlIdentity,
 	LangflowSupervisor,
 	OciDriverOptions,
+	RestoredEngineStartup,
 	SidecarDriver,
 	SupervisorDependencies,
 } from "../../langflowHost";
@@ -18,14 +19,16 @@ export type BootstrapSupervisor = Pick<LangflowSupervisor, "start" | "shutdown">
 export type LangflowBootstrapDependencies<Supervisor extends BootstrapSupervisor = BootstrapSupervisor> = {
 	readConfiguration(path: string): Promise<LangflowBootstrapConfiguration>;
 	readIdentity(home: string): HostControlIdentity;
-	qualify(
-		configuration: LangflowBootstrapConfiguration,
-		identity: HostControlIdentity,
-	): Promise<{
+	qualify(input: LoadQualifiedPackageInput): Promise<{
 		candidate: CandidatePackage;
 		manifest: LangflowSidecarManifestV1;
 		qualificationSha256: string;
 	}>;
+	restoredStartup(input: {
+		home: string;
+		receiptId: string | null;
+		qualification: LoadQualifiedPackageInput;
+	}): RestoredEngineStartup | undefined;
 	engineConfiguration(
 		path: string,
 		qualified: { candidate: CandidatePackage; manifest: LangflowSidecarManifestV1 },
@@ -43,6 +46,7 @@ export type LangflowBootstrapDependencies<Supervisor extends BootstrapSupervisor
 		hostId: string;
 		manifest: LangflowSidecarManifestV1;
 		dependencies: SupervisorDependencies;
+		restoredStartup?: RestoredEngineStartup;
 	}): Promise<Supervisor>;
 };
 
@@ -61,7 +65,15 @@ export async function composeLangflowBootstrap<Supervisor extends BootstrapSuper
 		configured.runtime.epochOwnership.dataHomeId !== identity.dataHomeId
 	)
 		throw new Error("langflow_bootstrap_identity_conflict");
-	const qualified = await deps.qualify(configured, identity);
+	const qualification: LoadQualifiedPackageInput = {
+		packageRoot: configured.packageRoot,
+		packageId: configured.packageId,
+		qualificationFile: configured.qualificationFile,
+		qualificationSha256: configured.qualificationSha256,
+		dataHomeId: identity.dataHomeId,
+		runtime: configured.runtime,
+	};
+	const qualified = await deps.qualify(qualification);
 	if (
 		qualified.candidate.qualification !== "candidate" ||
 		qualified.manifest.qualification !== "verified" ||
@@ -70,6 +82,11 @@ export async function composeLangflowBootstrap<Supervisor extends BootstrapSuper
 		qualified.manifest.epochOwnership.dataHomeId !== identity.dataHomeId
 	)
 		throw new Error("langflow_bootstrap_qualification_conflict");
+	const restoredStartup = deps.restoredStartup({
+		home: config.home,
+		receiptId: configured.restoredEngineReceiptId ?? null,
+		qualification,
+	});
 	const engineConfiguration = await deps.engineConfiguration(configured.engineApiConfigFile, qualified);
 	const installed = await deps.installedManifest(qualified.candidate);
 	const current = deps.readIdentity(config.home);
@@ -91,6 +108,7 @@ export async function composeLangflowBootstrap<Supervisor extends BootstrapSuper
 		hostId: identity.hostId,
 		manifest: qualified.manifest,
 		dependencies: { driver, authority: deps.authority(identity), now: () => new Date() },
+		restoredStartup,
 	});
 	const live = await supervisor.start();
 	const editor: EditorGatewayConfiguration = {

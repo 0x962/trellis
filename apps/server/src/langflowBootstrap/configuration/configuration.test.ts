@@ -23,6 +23,19 @@ test("bootstrap refuses a static callback credential in host configuration", () 
 	).toThrow();
 });
 
+test("restored engine receipt configuration requires an exact digest", () => {
+	const { configuration } = bootstrapFixture();
+	const restoredEngineReceiptId = "a".repeat(64);
+	expect(LangflowBootstrapConfigurationSchema.parse({ ...configuration, restoredEngineReceiptId })).toEqual({
+		...configuration,
+		restoredEngineReceiptId,
+	});
+	for (const value of ["", "A".repeat(64), "a".repeat(63), "/fixture/receipt"])
+		expect(() =>
+			LangflowBootstrapConfigurationSchema.parse({ ...configuration, restoredEngineReceiptId: value }),
+		).toThrow();
+});
+
 test("configuration requires a private regular file and distinct origins", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-langflow-bootstrap-"));
 	try {

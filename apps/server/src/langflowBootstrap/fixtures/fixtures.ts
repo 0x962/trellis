@@ -85,6 +85,10 @@ export function bootstrapFixture() {
 			calls.push("qualification");
 			return { candidate, manifest, qualificationSha256: digest };
 		},
+		restoredStartup: () => {
+			calls.push("restored-startup");
+			return undefined;
+		},
 		engineConfiguration: async () => {
 			calls.push("engine-configuration");
 			return { sha256: digest };

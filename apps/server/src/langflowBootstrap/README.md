@@ -21,6 +21,15 @@ The driver receives the digest of those unchanged bytes and checks it on each re
 
 The existing host control identity must match both configured identity fields.
 The bootstrap reads the identity again before image import.
+
+A restored home requires `restoredEngineReceiptId` in the private configuration.
+The value is the exact receipt ID from `installRestoredEngine`.
+`readRestoredEngineStartup` checks the actual restore block with the server's held home lock before image import.
+The bootstrap passes that result unchanged to `LangflowSupervisor.open`.
+The driver verifies the restored volumes and secret before the supervisor reserves an instance.
+The home, supervisor, and dispatch locks remain held through this initial start and its receipt.
+An uncertain start retains the closed block and initial intent for later reconciliation.
+
 The runtime directory is `langflow` below the configured Trellis home.
 The capture issuer and engine configuration use separate private files.
 The supervisor retains one outgoing callback credential for each engine instance.

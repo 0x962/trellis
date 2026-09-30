@@ -1,8 +1,15 @@
 import { loadQualifiedPackage } from "../../../../integrations/langflow/release";
 import type { Config } from "../config";
 import type { ServiceTransport } from "../db/transport";
+import type { HomeLock } from "../homeLock";
 import { type JobsLog, scaledClock } from "../jobs";
-import { createOciDriver, importVerifiedOciImage, LangflowHostControl, LangflowSupervisor } from "../langflowHost";
+import {
+	createOciDriver,
+	importVerifiedOciImage,
+	LangflowHostControl,
+	LangflowSupervisor,
+	readRestoredEngineStartup,
+} from "../langflowHost";
 import { startLangflowLifecycle } from "../langflowLifecycle";
 import { langflowLifecycleTransport } from "../langflowLifecycle/transport";
 import { installedEditorManifest } from "../services/flowDocuments";
@@ -15,19 +22,18 @@ import { readEngineConfiguration } from "./engineConfiguration";
 import { groupDeadlines } from "./groupDeadlines";
 import { nativeReservations } from "./nativeReservations";
 
-export async function startLangflowBootstrap(config: Config, transport: ServiceTransport, log: JobsLog) {
+export async function startLangflowBootstrap(
+	config: Config,
+	transport: ServiceTransport,
+	log: JobsLog,
+	homeLock: HomeLock,
+) {
 	const composed = await composeLangflowBootstrap(config, {
 		readConfiguration: readLangflowBootstrapConfiguration,
 		readIdentity: LangflowHostControl.readIdentity,
-		qualify: (configuration, identity) =>
-			loadQualifiedPackage({
-				packageRoot: configuration.packageRoot,
-				packageId: configuration.packageId,
-				qualificationFile: configuration.qualificationFile,
-				qualificationSha256: configuration.qualificationSha256,
-				dataHomeId: identity.dataHomeId,
-				runtime: configuration.runtime,
-			}),
+		qualify: loadQualifiedPackage,
+		restoredStartup: (input) =>
+			readRestoredEngineStartup({ ...input, homeLock, signal: new AbortController().signal }),
 		engineConfiguration: readEngineConfiguration,
 		installedManifest: installedEditorManifest,
 		importImage: importVerifiedOciImage,

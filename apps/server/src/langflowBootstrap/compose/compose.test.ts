@@ -18,6 +18,7 @@ test("verified composition imports before start and retains the editor manifest"
 		"configuration",
 		"identity",
 		"qualification",
+		"restored-startup",
 		"engine-configuration",
 		"manifest",
 		"identity",

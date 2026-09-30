@@ -1,0 +1,1 @@
+export { restoredCompositionFixture } from "./restoredCompositionFixture";

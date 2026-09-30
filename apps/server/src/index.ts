@@ -179,7 +179,12 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			clearTimer: pageClock.clearTimer,
 			log: (message, fields) => log.info(message, fields),
 		});
-		const langflow = await startLangflowBootstrap(config, transport, (message, fields) => log.info(message, fields));
+		const langflow = await startLangflowBootstrap(
+			config,
+			transport,
+			(message, fields) => log.info(message, fields),
+			lock,
+		);
 		const { app, bye, stopDocumentActions } = createApp({
 			config,
 			log,
