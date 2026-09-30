@@ -9,7 +9,7 @@ The directory contains these roots:
 
 | Root | Required producer content |
 | --- | --- |
-| `trellis` | Complete `system.snapshot(ctx, tx, {})` output, including PGlite, Pages, attachments, and its manifest |
+| `trellis` | Complete `system.snapshot` output, including PGlite, Pages, attachments, and its manifest |
 | `engine` | Consistent engine database export, jobs, checkpoints, and accepted decision/continuation receipts |
 | `secrets` | The matching engine encryption secret and its version |
 | `workspaces` | Self-contained exports for the retained native workspace identities |
@@ -132,7 +132,7 @@ The integrated runner must supply these exact paths to its cleanup owner.
 
 ## Canonical database facts
 
-The capture worker calls `readReconciliationFacts(tx)` before `system.snapshot` in the same transaction.
+The capture callback calls `readReconciliationFacts(tx)` before the checkpoint and database copy in the same transaction.
 It saves the result in `workspaces/trellis-database-facts.json` with mode 0600 and syncs the file before the seal.
 The result holds `migrations` and `facts`, each with an exact `sourceBytes` string and its UTF-8 SHA256 in `sourceDigest`.
 The storage query owns the canonical representation of the rows and retained native associations.
