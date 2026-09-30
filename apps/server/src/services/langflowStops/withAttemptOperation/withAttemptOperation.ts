@@ -1,6 +1,10 @@
 import { join } from "node:path";
-import { workspaceOperation } from "../../../agents/native/workspaceOperation";
+import { withRuntimeMutationExclusion } from "@trellis/runtime-protocol/mutation-exclusion";
 
 export function withAttemptOperation<T>(home: string, attemptId: string, action: () => Promise<T>) {
-	return workspaceOperation(join(home, "harness-attempts", attemptId), action);
+	return withRuntimeMutationExclusion(
+		home,
+		[{ kind: "attempt", directory: join(home, "harness-attempts", attemptId) }],
+		action,
+	);
 }

@@ -129,7 +129,7 @@ test("releases snapshot retention after the callback fails", async () => {
 	).rejects.toThrow("snapshot_failed");
 	expect(await sweepAttempts(f.ctx, [attempt], ATTEMPT_MIN_AGE_MS)).toBe(1);
 	let acquired = false;
-	await workspaceOperation(join(f.home, "harness-attempts"), async () => {
+	await workspaceOperation(f.home, join(f.home, "harness-attempts"), async () => {
 		acquired = true;
 	});
 	expect(acquired).toBe(true);
