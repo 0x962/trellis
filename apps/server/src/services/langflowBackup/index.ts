@@ -1,5 +1,6 @@
 export { capturePairedSnapshot } from "./capturePairedSnapshot";
 export { type CaptureContext, captureSnapshot, type PreparedSnapshot } from "./captureSnapshot";
+export { captureTrellisAndSeal } from "./captureTrellisAndSeal";
 export { captureTrellisSnapshot } from "./captureTrellisSnapshot";
 export { exportEngineSnapshot } from "./engineSnapshot";
 export { finishPairedCapture } from "./finishPairedCapture";
@@ -10,6 +11,8 @@ export type {
 	PairedCaptureInput,
 	TrellisCaptureInput,
 	TrellisCaptureResult,
+	TrellisSealInput,
+	TrellisSealResult,
 	TrellisSnapshotVersion,
 } from "./pairedContracts";
 export { readEngineCompatibility } from "./readEngineCompatibility";

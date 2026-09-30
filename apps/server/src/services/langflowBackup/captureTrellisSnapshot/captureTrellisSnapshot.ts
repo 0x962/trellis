@@ -1,20 +1,23 @@
 import { open } from "node:fs/promises";
 import { join } from "node:path";
-import { asc } from "drizzle-orm";
+import { isDeepStrictEqual } from "node:util";
 import { readReconciliationFacts } from "../../../db/queries/langflowExecution";
-import { agentRuns } from "../../../db/tables/agentRuns";
 import type { Tx } from "../../../db/tx";
 import { readStopReconciliation } from "../../langflowStops";
 import type { IoCtx } from "../../support";
 import { snapshot } from "../../system";
+import type { CapturedHistory } from "../captureHistoryContracts";
 import { exportNativeSnapshots } from "../nativeSnapshots";
 import type { TrellisCaptureInput, TrellisCaptureResult } from "../pairedContracts";
+import { readCaptureRecords } from "../readCaptureRecords";
 import { syncDirectory } from "../syncDirectory";
+import { uncapturedHistory } from "../uncapturedHistory";
 
 export async function captureTrellisSnapshot(
 	ctx: IoCtx,
 	tx: Tx,
 	input: TrellisCaptureInput,
+	history?: CapturedHistory,
 ): Promise<TrellisCaptureResult> {
 	const databaseFacts = await readReconciliationFacts(tx);
 	if (
@@ -23,32 +26,12 @@ export async function captureTrellisSnapshot(
 	)
 		throw new Error("paired_trellis_version_changed");
 	const native = await exportNativeSnapshots(ctx, tx, input);
-	const runs = await tx
-		.select({
-			agentRunId: agentRuns.id,
-			attemptId: agentRuns.terminalId,
-			workspaceId: agentRuns.workspaceId,
-			providerSessionId: agentRuns.sessionId,
-			sessionLost: agentRuns.sessionLost,
-		})
-		.from(agentRuns)
-		.orderBy(asc(agentRuns.id));
-	const unavailable = [...native.unavailable];
-	for (const run of runs) {
-		if (run.workspaceId)
-			unavailable.push({
-				reference: `workspace:${run.agentRunId}`,
-				reason: "A consistent self-contained workspace exporter is unavailable; the database retains its identity.",
-			});
-		if (run.providerSessionId || run.sessionLost)
-			unavailable.push({
-				reference: `conversation:${run.agentRunId}`,
-				reason: "A consistent provider conversation exporter is unavailable; the database retains its identity.",
-			});
-	}
+	const records = await readCaptureRecords(tx);
+	if (history && !isDeepStrictEqual(history.records, records)) throw new Error("paired_retained_records_changed");
+	const unavailable = [...native.unavailable, ...(history ? history.unavailable : uncapturedHistory(records))];
 	const file = await open(join(input.directory, "conversations", "inventory.json"), "wx", 0o600);
 	try {
-		await file.writeFile(JSON.stringify({ version: 1, runs }));
+		await file.writeFile(JSON.stringify({ version: 1, ...records }));
 		await file.sync();
 	} finally {
 		await file.close();

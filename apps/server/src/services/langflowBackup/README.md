@@ -79,16 +79,31 @@ No production restore, provider call, or conversation reset forms part of these 
 ## Paired domain entrypoints
 
 `capturePairedSnapshot(context, input)` accepts a snapshot UUID, request ID, new export directory, and abort signal.
-Its context holds the real host control, supervisor, capture authority, authentication file, and two database worker ports.
-The worker ports call `readTrellisSnapshotVersion` and `captureTrellisSnapshot` through `ServiceTransport`.
-TRL-696 owns their registration and the public system procedure.
+Its context holds capture-only host control, a held supervisor, capture authority, an authentication file, and two database worker ports.
+The worker ports call `readTrellisSnapshotVersion` and `captureTrellisAndSeal` through `ServiceTransport`.
+TRL-696 owns the prepared mutation and the public system procedure.
+The caller constructs capture authority inside `withHeldEngine` and passes that held supervisor to the paired adapter.
 
 `readTrellisSnapshotVersion(ctx, tx)` returns the installed Trellis version and a SHA256 of the ordered migration records.
-`captureTrellisSnapshot(ctx, tx, input)` exports verified private launch files, run identity references, canonical stop facts, and the complete `system.snapshot` output.
-The input includes the destination, expected Trellis version, and exact dispatch block.
-`TrellisCaptureResult` supplies the staging path, unavailable history, native inventory status, and verified version.
-The worker holds the database queue through that operation.
-Complete workspace and provider conversation exports remain unavailable; their retained run references appear in the manifest.
+`captureTrellisAndSeal(ctx, input)` requires the system actor and the exact closed, drained host block with an active capture grant.
+It runs outside the transport's automatic transaction.
+First it reads current runs, session directories, and retained native attempts in a short transaction.
+Then it reads original launch identities and acquires one runtime batch scope outside every database transaction.
+Launch uses the same runtime scopes before it opens a transaction, so the opposite order can deadlock.
+
+Within the runtime scope, one transaction revalidates the original records and launch identities.
+It exports every selected workspace and provider conversation through producer-owned root IDs.
+`captureTrellisSnapshot` then exports private launch files, canonical stop and database facts, and the complete `system.snapshot` output.
+This preserves ticket, review, Page, and attachment records in the same Trellis snapshot.
+The callback syncs and places that snapshot, appends exact unavailable history, and seals the aggregate before the runtime scope ends.
+The result supplies the manifest, its original bytes and digest, and the Trellis export result.
+No callback crosses the worker transport.
+
+Workspace archives appear below `workspaces/archives/`; conversation archives appear below `conversations/archives/`.
+Their indexes retain original identities and actual component manifest and seal receipts.
+Missing launch metadata, provider history, and session-loss facts remain unavailable.
+A runtime refusal aborts capture and leaves the host gate closed.
+The standalone `captureTrellisSnapshot` entry keeps unavailable records when it has no held history export.
 
 The capture sequence closes the host gate, drains durable permits, and commits the exact capture grant to the engine.
 The grant excludes engine writers through both exports and the manifest seal.

@@ -1,11 +1,11 @@
 import { isDeepStrictEqual } from "node:util";
-import type { CaptureAuthority, LangflowHostControl } from "../../../langflowHost";
+import type { CaptureAuthority, HostCaptureControl } from "../../../langflowHost";
 import { CaptureRecordSchema } from "../../../langflowHost/captureAuthority/schema/schema";
 import { PairedJournal } from "../pairedJournal";
 import { readPairedSeal } from "../readPairedSeal";
 
 export async function finishPairedCapture(
-	ctx: { control: LangflowHostControl; authority: CaptureAuthority },
+	ctx: { control: Pick<HostCaptureControl, "identity"> & { gate: Pick<HostCaptureControl["gate"], "read"> }; authority: CaptureAuthority },
 	input: { snapshotId: string; signal: AbortSignal },
 ) {
 	const sealed = await readPairedSeal(ctx, input);

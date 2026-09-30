@@ -1,0 +1,1 @@
+export { exportCapturedHistory } from "./exportCapturedHistory";
