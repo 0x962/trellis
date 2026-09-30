@@ -266,6 +266,6 @@ const start = async (
 };
 
 export const startNative = (...args: Parameters<typeof start>) =>
-	workspaceOperation(args[1].run.workspaceId ?? agentWorkspace(args[0].home, args[1].run.id), () =>
+	workspaceOperation(args[0].home, args[1].run.workspaceId ?? agentWorkspace(args[0].home, args[1].run.id), () =>
 		args[1].withLaunchOperation ? args[1].withLaunchOperation(() => start(...args)) : start(...args),
 	);

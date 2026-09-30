@@ -72,7 +72,7 @@ async function fixture(snapshot = true) {
 		control,
 		newTx: <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn),
 		withSnapshotRetention: <T>(path: string, action: () => Promise<T>) =>
-			workspaceOperation(join(path, "fixture-retention"), action),
+			workspaceOperation(path, join(path, "fixture-retention"), action),
 	};
 	const block = control.gate.read().block!;
 	const client = { inspect: async () => runtimeFixture(handle) };
