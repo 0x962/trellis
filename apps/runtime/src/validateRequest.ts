@@ -95,7 +95,8 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			)
 				throw new Error("A list limit must be a whole number of at least 1");
 			break;
-		case "capture": {
+		case "capture":
+		case "readCaptureFinalization": {
 			validateCaptureRequest(params);
 			break;
 		}

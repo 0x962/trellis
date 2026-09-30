@@ -60,6 +60,10 @@ export async function startRuntime(home: string) {
 				return store.recover((request.params as RuntimeMethods["recover"]["params"]).id);
 			case "finalizeCapture":
 				return store.finalizeCapture(request.params as RuntimeMethods["finalizeCapture"]["params"]);
+			case "readCaptureFinalization":
+				return store.readCaptureFinalization(
+					request.params as RuntimeMethods["readCaptureFinalization"]["params"],
+				);
 			case "hasMessage":
 				return store.hasMessage(request.params as RuntimeMethods["hasMessage"]["params"]);
 			case "registerNativeDelivery":

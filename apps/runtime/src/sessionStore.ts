@@ -17,7 +17,7 @@ import type {
 import { acceptSessionInput } from "./acceptSessionInput";
 import { assertExpectedTurn } from "./assertExpectedTurn.ts";
 import { CaptureExclusion } from "./captureExclusion.ts";
-import { finalizeRuntimeCaptureHold } from "./captureHold.ts";
+import { finalizeRuntimeCaptureHold, readRuntimeCaptureFinalization } from "./captureHold.ts";
 import { withCaptureSnapshot } from "./captureSnapshot";
 import { authenticateSession } from "./authenticateSession.ts";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
@@ -147,6 +147,9 @@ export class SessionStore {
 	}
 	finalizeCapture(input: RuntimeCaptureFinalizeInput) {
 		return finalizeRuntimeCaptureHold(dirname(dirname(this.home)), input);
+	}
+	readCaptureFinalization(request: RuntimeCaptureRequest) {
+		return readRuntimeCaptureFinalization(dirname(dirname(this.home)), request);
 	}
 
 	inspect(id: string): RuntimeProcessStatus {

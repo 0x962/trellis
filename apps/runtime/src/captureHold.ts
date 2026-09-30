@@ -72,6 +72,30 @@ function readFinalization(dataHome: string, captureId: string): RuntimeCaptureFi
 	};
 }
 
+export const readRuntimeCaptureFinalization = (
+	dataHome: string,
+	request: RuntimeCaptureRequest,
+): RuntimeCaptureFinalization | null => {
+	const requestSha256 = runtimeCaptureRequestSha256(request);
+	const finalization = readFinalization(dataHome, request.captureId);
+	if (finalization === undefined) {
+		const hold = readRuntimeCaptureHold(dataHome, request.captureId);
+		if (hold !== undefined && hold.requestSha256 !== requestSha256)
+			throw Object.assign(new Error(`Capture ${request.captureId} has a different request`), {
+				code: "CAPTURE_CONFLICT",
+			});
+		return null;
+	}
+	if (
+		finalization.receipt.requestSha256 !== requestSha256 ||
+		runtimeCaptureRequestSha256(finalization.receipt.request) !== requestSha256
+	)
+		throw Object.assign(new Error(`Capture ${request.captureId} has a different request`), {
+			code: "CAPTURE_CONFLICT",
+		});
+	return finalization;
+};
+
 export const completeRuntimeCaptureHold = (
 	dataHome: string,
 	input: RuntimeCaptureFinalizeInput,

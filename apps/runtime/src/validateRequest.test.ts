@@ -172,6 +172,13 @@ test("accepts retained launch capture identity and a capture request", () => {
 		params: { request: empty.params, outcome: "abandoned" },
 	};
 	expect(validateRequest(finalize) === finalize).toBe(true);
+	const readFinalization = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "readCaptureFinalization",
+		params: empty.params,
+	};
+	expect(validateRequest(readFinalization) === readFinalization).toBe(true);
 });
 
 test("rejects invalid retained conversation roots", () => {

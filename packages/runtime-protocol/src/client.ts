@@ -159,6 +159,9 @@ export class RuntimeClient {
 	finalizeCapture(input: RuntimeCaptureFinalizeInput, signal?: AbortSignal) {
 		return this.call("finalizeCapture", input, signal);
 	}
+	readCaptureFinalization(request: RuntimeCaptureRequest, signal?: AbortSignal) {
+		return this.call("readCaptureFinalization", request, signal);
+	}
 	// An explicit timeoutMs preserves completed pages with complete=false.
 	// Cancellation rejects the whole list, including its hello request.
 	async list(input: RuntimeListInput = {}, signal?: AbortSignal): Promise<RuntimeSessionList> {
