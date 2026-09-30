@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { UsageDays } from "@trellis/api";
 import { useApp } from "../../../../../lib/appContext";
+import { failToast } from "../../../../../lib/failToast";
 
 // The range the page opens on when the URL names none.
 const DEFAULT_DAYS: UsageDays = 30;
@@ -20,15 +21,13 @@ export function useUsageReport() {
 		staleTime: 5 * 60_000,
 		placeholderData: keepPreviousData,
 	});
-	// A new scan reads every agent transcript on this machine again, so the
-	// server takes the work and the query then re-reads the answer.
+	// The returned range identifies the cache entry even if the person switches ranges during the scan.
 	const refresh = useMutation({
 		mutationFn: () => client.usage.report({ days, refresh: true }),
-		onSuccess: () =>
-			Promise.all([
-				queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
-				queryClient.invalidateQueries({ queryKey: orpc.usage.ranking.key() }),
-			]),
+		onSuccess: (next) => {
+			queryClient.setQueryData(orpc.usage.report.queryOptions({ input: { days: next.days } }).queryKey, next);
+		},
+		onError: (error) => failToast("Could not refresh usage", error, () => refresh.mutate()),
 	});
 	// A change of range drops the selected row and the selected day,
 	// because neither one survives a different set of days.

@@ -82,7 +82,17 @@ export function AgentUsage() {
 			<div className="flex flex-wrap items-end gap-2">
 				<div className="mr-auto min-w-0 max-sm:w-full">
 					<h2 className="text-lg font-semibold text-fg">Agent usage</h2>
-					<p className="text-xs text-fg-muted">Cost and token activity for the last {days} days.</p>
+					<p className="text-xs text-fg-muted">
+						Cost and token activity for {report.data?.days ?? days} days.
+						{report.data && (
+							<>
+								{" "}
+								Updated{" "}
+								<time dateTime={report.data.computedAt}>{new Date(report.data.computedAt).toLocaleString()}</time>.
+								Select Refresh usage to update.
+							</>
+						)}
+					</p>
 				</div>
 				<FilterBar
 					filters={
