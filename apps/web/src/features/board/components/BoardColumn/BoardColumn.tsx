@@ -65,7 +65,10 @@ export function BoardColumn({
 	// column draws, so the number stays the same when the person opens it.
 	const open = visibleCards(column, { collapsed: false, showAllDone });
 	const count = column.category === "done" && !showAllDone ? open.length : column.count;
-	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
+	const dropIndex =
+		over === null
+			? null
+			: workingGroupInsertIndex(visible, { id: over.ticketId, createdAt: over.createdAt }, workingTicketIds);
 
 	if (collapsed) {
 		return (

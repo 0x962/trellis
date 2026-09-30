@@ -197,7 +197,7 @@ export const ListQuerySchema = z.strictObject({
 	updated: IsoDateTimeSchema.optional(),
 	created: IsoDateTimeSchema.optional(),
 	completed: IsoDateTimeSchema.optional(),
-	sort: SortSchema.default("-updatedAt"),
+	sort: SortSchema.default("-createdAt"),
 	cursor: z.string().optional(),
 	limit: z.coerce
 		.number()

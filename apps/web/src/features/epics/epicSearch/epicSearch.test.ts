@@ -39,8 +39,8 @@ describe("epicSearch", () => {
 		expect(isCanonicalEpicSearch("?sort=number", validated({ sort: "number" }))).toBe(false);
 	});
 
-	test("ordinary list routes retain the Updated default and both directions", () => {
-		expect(parseSearch({}).sort).toBe("-updatedAt");
+	test("ordinary list routes default to creation time and accept explicit Updated sorts", () => {
+		expect(parseSearch({}).sort).toBe("-createdAt");
 		expect(parseSearch({ sort: "updatedAt" }).sort).toBe("updatedAt");
 		expect(parseSearch({ sort: "-updatedAt" }).sort).toBe("-updatedAt");
 	});

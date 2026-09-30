@@ -17,10 +17,6 @@ import { upsert } from "../actors.ts";
 import { assertProjectActive, resolveProject } from "../refs.ts";
 import { noteSelect, type RawNote, toNote } from "./rows.ts";
 
-// A note that is written on a project reaches that project and every
-// project below it, so a read collects the notes of the project and of every
-// ancestor. Newest change first: the first note is the most recent state.
-
 const toNotes = (ctx: ServiceCtx, found: RawNote[]) =>
 	found.map((row) => toNote(row, ctx.cache.get(row.project_id).key));
 
@@ -51,7 +47,7 @@ export const activeNotes = async (
 	const found = await rows<RawNote>(
 		tx,
 		sql`${noteSelect} WHERE n.project_id = ${input.projectId} AND n.audience IN ('all', ${input.audience})
-			AND (n.expires_at IS NULL OR n.expires_at > ${ctx.now}) ORDER BY n.updated_at DESC, n.id DESC`,
+			AND (n.expires_at IS NULL OR n.expires_at > ${ctx.now}) ORDER BY n.created_at DESC, n.id DESC`,
 	);
 	return toNotes(ctx, found);
 };
@@ -64,7 +60,7 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		sql`${noteSelect} WHERE n.project_id = ${project.id}
 			AND ${input.audience === undefined ? sql`true` : sql`n.audience IN ('all', ${input.audience})`}
 			AND ${input.includeExpired ? sql`true` : sql`(n.expires_at IS NULL OR n.expires_at > ${ctx.now})`}
-			ORDER BY n.updated_at DESC, n.id DESC`,
+			ORDER BY n.created_at DESC, n.id DESC`,
 	);
 	return toNotes(ctx, found);
 };

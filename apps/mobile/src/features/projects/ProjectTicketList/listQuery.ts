@@ -4,8 +4,7 @@ import { type ListQueryInput, ProjectRefSchema, type Sort, type StatusCategory }
 // status category once, so a ticket sits under exactly one segment.
 export type Segment = "active" | "review" | "done";
 
-// The two orders of the sort toggle.
-export type SortValue = "updated" | "priority";
+export type SortValue = "created" | "updated" | "priority";
 
 // The rows one page holds. The number is fixed, so a cursor always pages
 // through the same size.
@@ -19,7 +18,7 @@ const categories: Record<Segment, StatusCategory[]> = {
 
 export const categoryOf = (segment: Segment): StatusCategory[] => categories[segment];
 
-const sorts: Record<SortValue, Sort> = { updated: "-updatedAt", priority: "priority" };
+const sorts: Record<SortValue, Sort> = { created: "-createdAt", updated: "-updatedAt", priority: "priority" };
 
 export const sortOf = (sort: SortValue): Sort => sorts[sort];
 

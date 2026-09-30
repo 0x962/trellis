@@ -60,7 +60,7 @@ export function sessionGroups<T extends GroupableRun>(
 	matches.sort(
 		(a, b) =>
 			Number(b.pinnedAt !== null) - Number(a.pinnedAt !== null) ||
-			descending(a.activityAt ?? "", b.activityAt ?? "") ||
+			descending(a.createdAt, b.createdAt) ||
 			descending(a.id, b.id),
 	);
 	return {

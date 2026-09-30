@@ -81,9 +81,9 @@ Every ref is case-insensitive on the way in and canonical on the way out.
 
 ## The list grammar
 
-\`GET /api/tickets\` takes flat query parameters. A parameter that takes several values takes a comma list. \`parent=none\` keeps top-level tickets only. \`epic=<ref>\` keeps the tickets of one epic, and \`epic=none\` the tickets outside every epic. \`wave=<ref>\` keeps the tickets of one wave, and \`wave=none\` the tickets outside every wave. \`sort\` takes \`[-]updatedAt\`, \`createdAt\`, \`priority\`, \`number\`, \`status\`, or \`position\`; the default is \`-updatedAt\`. \`limit\` is 1 to 200; \`cursor\` continues a page and belongs to one filter and sort.
+\`GET /api/tickets\` takes flat query parameters. A parameter that takes several values takes a comma list. \`parent=none\` keeps top-level tickets only. \`epic=<ref>\` keeps the tickets of one epic, and \`epic=none\` the tickets outside every epic. \`wave=<ref>\` keeps the tickets of one wave, and \`wave=none\` the tickets outside every wave. \`sort\` takes \`[-]updatedAt\`, \`createdAt\`, \`priority\`, \`number\`, \`status\`, or \`position\`; the default is \`-createdAt\`. \`limit\` is 1 to 200; \`cursor\` continues a page and belongs to one filter and sort.
 
-Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt\`
+Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&ci=fail&sort=-createdAt\`
 
 ## Rules for agents
 

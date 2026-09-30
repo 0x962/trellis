@@ -39,7 +39,7 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 		tx,
 		sql`WITH selected_prs AS MATERIALIZED (
 			SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state, p.mergeable,
-				p.is_draft, p.is_queued, p.local_state, p.checks, p.ci_state, p.head_sha, p.updated_at
+				p.is_draft, p.is_queued, p.local_state, p.checks, p.ci_state, p.head_sha, p.created_at, p.updated_at
 			FROM pull_requests p WHERE ${where}
 		), thread_totals AS (
 			SELECT t.pr_id,
@@ -84,7 +84,7 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 		FROM selected_prs p
 		LEFT JOIN thread_totals ON thread_totals.pr_id = p.id
 		LEFT JOIN flow_totals ON flow_totals.pr_id = p.id
-		ORDER BY "updatedAt" DESC`,
+		ORDER BY p.created_at DESC, p.id DESC`,
 	);
 	return found.map(({ hasExplanation, hasEvidence, flowAnswered, mergeable, ...row }) => ({
 		...row,

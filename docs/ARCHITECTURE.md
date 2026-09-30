@@ -258,7 +258,7 @@ A note is titled markdown on one project. Agents read project notes through
 the notes API and ticket briefs. `notes` holds one row per
 note with its `audience` (`all` or `worker`), an optional
 `expires_at`, and the actor of the last write. A read collects the notes of
-the project, newest change first, and drops an expired note. A title is unique in its project without case; a repeated title is
+the project in creation order, newest first, and drops an expired note. A title is unique in its project without case; a repeated title is
 `DUPLICATE`. A human and an agent can create, update, and delete a note. An
 archived project serves reads and refuses writes. A project delete cascades
 to its notes.
@@ -314,6 +314,8 @@ checks that the epic sits in the project of the ticket, and checks
 change of `epic` records field `epic` with the epic refs as `from_value` and
 `to_value` and the ids in `meta.fromId` and `meta.toId`. `TicketSummary`
 carries `epic` as `{id, ref, name}` or `null`.
+
+`epics.list` groups open, completed, and canceled epics in that order. Each group uses creation time, newest first, with ID as the tie breaker.
 
 The API is `epics.list`, `epics.get`, `epics.create`, `epics.update`, `epics.cancel`, and
 `epics.delete`. `epics.get` returns the summary, the waves of the epic in
@@ -389,9 +391,8 @@ waves of one epic never share a slug; a taken slug is `DUPLICATE` with
 field `slug`. A create without `slug` derives one from `name`, and a derived
 slug that collides takes the lowest free numeric suffix from `-2`. A create
 puts the wave after the last wave of the epic. A delete leaves a gap
-in the positions, and the order still holds. A wave write leaves
-`updated_at` and the actor of the epic as they are, so the order of
-`epics.list` stays. An archived project refuses every wave write of its
+in the positions, and the order still holds. A wave write preserves
+`updated_at` and the actor of the epic. An archived project refuses every wave write of its
 epics (`PROJECT_ARCHIVED`).
 
 A ticket joins a wave through `wave` on `tickets.create`,
@@ -825,7 +826,8 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
 `sessions.setArchived` puts a session away, or brings it back. It stops the agent the same way a delete does, and keeps the directory, the files, and the conversation.
 An archived session runs no agent and holds no project: `sessions.start` and `sessions.move` refuse it, and a session that holds a project cannot be archived.
-Project Sessions puts project sessions and ticket agents in one list, in order of the latest stored process or conversation activity.
+Project Sessions puts project sessions and ticket agents in one list, with pinned rows first.
+Each group uses creation time, newest first, with ID as the tie breaker.
 `agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
 An attempt start and an assignment close also count as activity.
 The host monitor requires a complete execution service read before it stores new activity.
@@ -1466,15 +1468,15 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | actor | `kind:name` or `name`, matched against the last actor |
 | q | full text search with a prefix on the last token |
 | updated, created, completed | ISO lower bounds |
-| sort | `[-]updatedAt`, createdAt, priority, number, status, or position |
+| sort | `[-]updatedAt`, createdAt, priority, number, status, or position; default `-createdAt` |
 | cursor, limit | an opaque cursor bound to the filter hash; limit 1 to 200, default 50 |
 
 One example on the three surfaces:
 
 ```
-GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
-/p/CDE?status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
-trellis ticket list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -updatedAt
+GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-createdAt
+/p/CDE?status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-createdAt
+trellis ticket list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -createdAt
 ```
 
 The contract declares every error as `{defined, code, status, message, data}`.
