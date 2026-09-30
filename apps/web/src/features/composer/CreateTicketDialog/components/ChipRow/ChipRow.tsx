@@ -117,11 +117,6 @@ export function ChipRow({
 				</Popover>
 			</div>
 			{parent && <p className="mt-2 text-xs text-fg-muted">Sub-ticket of {parent}</p>}
-			{placement.message && (
-				<p role="status" className="mt-2 text-xs text-fg-muted">
-					{placement.message}
-				</p>
-			)}
 		</>
 	);
 }

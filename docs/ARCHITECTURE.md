@@ -295,7 +295,12 @@ Classification creates no ticket, epic, or wave.
 Manual field choices and explicit page context constrain automatic selection.
 The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
 A stale response cannot change a newer draft or a submitted ticket.
-A provider error leaves manual creation available and appears in the existing placement status text.
+A provider error leaves manual creation available and appears inside the epic and wave picker.
+Jev assesses implementation difficulty separately from priority and recommends a model for the selected harness.
+The model choices come from the compatible catalog and exclude contributor variants that require an explicit choice.
+The agent picker applies the recommendation and preserves the account and any compatible effort.
+A manual agent choice, including No agent, stays fixed through later classification calls and a dialog reopen.
+Classification and ticket submission use the existing controls without an extra status paragraph below the fields.
 
 ### Epics
 
