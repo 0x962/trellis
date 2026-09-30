@@ -8,5 +8,15 @@ export function withCaptureTransaction<T>(
 	request: RuntimeCaptureRequest,
 	consume: (tx: Tx, capture: RuntimeCaptureProducer) => Promise<T>,
 ) {
-	return ctx.runtime.withCaptureSnapshot(request, (capture) => ctx.newTx((tx) => consume(tx, capture)));
+	return ctx.runtime.withCaptureSnapshot(request, async (capture) => {
+		capture.signal.throwIfAborted();
+		const result = await ctx.newTx(async (tx) => {
+			capture.signal.throwIfAborted();
+			const value = await consume(tx, capture);
+			capture.signal.throwIfAborted();
+			return value;
+		});
+		capture.signal.throwIfAborted();
+		return result;
+	});
 }
