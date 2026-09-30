@@ -1,0 +1,89 @@
+.broadcast-composer-scope {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--fg-muted);
+}
+
+.broadcast-composer-title {
+	margin: 0;
+	font-size: var(--text-xl);
+	font-weight: 500;
+	line-height: 28px;
+	letter-spacing: -0.025em;
+}
+
+.broadcast-composer-fields {
+	min-width: 0;
+	margin-top: 8px;
+}
+
+.broadcast-composer-message {
+	min-height: 156px;
+	font-size: var(--text-md);
+	line-height: 23px;
+}
+
+.broadcast-composer-message:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 4px;
+}
+
+.broadcast-composer-recipients {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 20px;
+	padding-top: 20px;
+	font-size: var(--text-sm);
+	color: var(--fg-muted);
+}
+
+.broadcast-composer-recipient {
+	min-height: 28px;
+	min-width: 150px;
+	font-size: var(--text-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+.broadcast-composer-hint {
+	min-height: 32px;
+	margin-top: 8px;
+}
+
+.broadcast-composer-action {
+	margin-left: auto;
+	font-variant-numeric: tabular-nums;
+}
+
+.broadcast-composer-result {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 16px;
+	outline: none;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+	.broadcast-composer-scope {
+		max-width: 50%;
+	}
+
+	.broadcast-composer-message {
+		min-height: 132px;
+		font-size: var(--text-lg);
+	}
+
+	.broadcast-composer-recipient {
+		min-height: 44px;
+	}
+}
+
+@media (pointer: coarse) {
+	.broadcast-composer-recipient {
+		min-height: 44px;
+	}
+}
