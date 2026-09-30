@@ -31,7 +31,7 @@ export function SidebarMachinePressure({ collapsed = false }: { collapsed?: bool
 					onClick={() => changeOpen(false)}
 					className="font-medium text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 				>
-					Open Usage for the full reading.
+					Open Usage
 				</Link>
 			}
 		/>

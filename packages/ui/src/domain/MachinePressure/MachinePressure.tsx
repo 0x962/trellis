@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AttentionDot } from "../../primitives/AttentionDot";
 import { Popover } from "../../primitives/Popover";
 import { cx } from "../../utils/cx";
+import { MachinePanel } from "./components/MachinePanel";
 
 export type MachinePressureReadingView = {
 	key: string;
@@ -11,14 +12,15 @@ export type MachinePressureReadingView = {
 	unit?: string;
 	tone: "normal" | "warning" | "danger";
 	freshness: "live" | "stale" | "unavailable" | "lost";
-	detail?: string;
+	details?: { label: string; value: string }[];
+	capacity?: { total: string; usedPercent: number };
 };
 
 export type MachinePressureMachineView = {
 	id: string;
 	name: string;
 	readings: MachinePressureReadingView[];
-	runs?: string[];
+	runs?: { id: string; label: string; memory: string }[];
 	ageText?: string;
 };
 
@@ -81,57 +83,6 @@ function PressureDots({
 	);
 }
 
-function MachinePanel({ machines, usageLink }: Pick<MachinePressureProps, "machines" | "usageLink">) {
-	return (
-		<div className="w-80 max-w-full">
-			{machines.map((machine, index) => (
-				<section key={machine.id} className={cx("p-3", index > 0 && "border-border border-t")}>
-					<p className="truncate text-xs text-fg-muted uppercase tracking-wide">Machine · {machine.name}</p>
-					<dl className="mt-3 flex flex-col gap-2">
-						{machine.readings.map((reading) => (
-							<div key={reading.key}>
-								<div className="flex min-w-0 items-baseline gap-3 text-sm">
-									<dt className="min-w-0 flex-1 text-fg">{reading.label}</dt>
-									<dd
-										className={cx(
-											"shrink-0 text-right font-medium tabular",
-											reading.tone === "danger"
-												? "text-danger"
-												: reading.tone === "warning"
-													? "text-warning"
-													: "text-fg-muted",
-										)}
-									>
-										{reading.value}
-										{reading.unit && <span className="font-normal text-fg-faint"> {reading.unit}</span>}
-									</dd>
-								</div>
-								{reading.freshness !== "live" && (
-									<p className="text-xs text-fg-muted">
-										{reading.freshness === "stale"
-											? "Stale reading"
-											: reading.freshness === "lost"
-												? "Reading lost"
-												: "Reading unavailable"}
-									</p>
-								)}
-								{reading.detail && <p className="mt-1 break-words text-xs text-fg-faint">{reading.detail}</p>}
-							</div>
-						))}
-					</dl>
-					{((machine.runs && machine.runs.length > 0) || machine.ageText) && (
-						<div className="mt-3 border-border border-t pt-3 text-xs text-fg-muted">
-							{machine.runs && machine.runs.length > 0 && <p>Heaviest runs: {machine.runs.join(", ")}.</p>}
-							{machine.ageText && <p>{machine.ageText}</p>}
-						</div>
-					)}
-				</section>
-			))}
-			<div className="px-3 pb-3 text-xs text-fg-muted">{usageLink}</div>
-		</div>
-	);
-}
-
 export function MachinePressure({
 	machines,
 	machinesWithAlerts,
@@ -177,7 +128,7 @@ export function MachinePressure({
 				label="Machine pressure details"
 				side="right"
 				align="start"
-				className="max-w-(--available-width) p-0"
+				className="max-h-(--available-height) max-w-(--available-width) overflow-y-auto p-0!"
 				open={open}
 				onOpenChange={onOpenChange}
 			>

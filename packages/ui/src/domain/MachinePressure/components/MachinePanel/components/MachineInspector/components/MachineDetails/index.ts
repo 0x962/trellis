@@ -1,0 +1,1 @@
+export { MachineDetails } from "./MachineDetails";

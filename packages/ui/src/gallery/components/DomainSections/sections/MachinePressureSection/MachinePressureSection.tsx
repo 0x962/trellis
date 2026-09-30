@@ -13,7 +13,11 @@ const readings = {
 		unit: "available",
 		tone: "danger",
 		freshness: "live",
-		detail: "926.4 GiB total · 99.8% used. Volume 16777232 · /Users/navidkhan/.trellis/agents",
+		capacity: { total: "926.4 GiB", usedPercent: 99.8 },
+		details: [
+			{ label: "Disk volume", value: "16777232" },
+			{ label: "Measured path", value: "/Users/navidkhan/.trellis/agents" },
+		],
 	},
 	cpuLoad: {
 		key: "cpuLoad",
@@ -44,7 +48,10 @@ const readings = {
 		unit: "°C",
 		tone: "danger",
 		freshness: "live",
-		detail: "PMU tdie6 sensor · 2.5 ms read",
+		details: [
+			{ label: "Temperature sensor", value: "PMU tdie6" },
+			{ label: "Sensor read time", value: "2.5 ms" },
+		],
 	},
 } as const satisfies Record<string, MachinePressureReadingView>;
 
@@ -56,7 +63,10 @@ const machine = (
 		id: "server",
 		name: "Canary-JQV57W1HPL",
 		readings: items,
-		runs: ["TRL-441 4.2 GB", "TRL-454 3.1 GB"],
+		runs: [
+			{ id: "441", label: "TRL-441", memory: "4.2 GB" },
+			{ id: "454", label: "TRL-454", memory: "3.1 GB" },
+		],
 		ageText: "Last read 2 s ago.",
 		...extra,
 	},
@@ -72,7 +82,7 @@ const usageLink = (
 		href="#machine-pressure"
 		className="font-medium text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 	>
-		Open Usage for the full reading.
+		Open Usage
 	</a>
 );
 
@@ -109,7 +119,7 @@ export function MachinePressureSection() {
 							...readings.temperature,
 							value: "Unavailable",
 							unit: undefined,
-							detail: undefined,
+							details: undefined,
 							tone: "normal",
 							freshness: "unavailable",
 						},
@@ -134,7 +144,7 @@ export function MachinePressureSection() {
 							...readings.temperature,
 							value: "Unavailable",
 							unit: undefined,
-							detail: undefined,
+							details: undefined,
 							tone: "normal",
 							freshness: "lost",
 						},
