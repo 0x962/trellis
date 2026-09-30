@@ -4,6 +4,7 @@ import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
+import { withChatter } from "../epicChatter/withChatter";
 import type { ServiceCtx } from "../support.ts";
 import { getRun } from "./queries.ts";
 import { assertSendTarget, type SendTarget } from "./sendTarget.ts";
@@ -41,12 +42,14 @@ export const output = async (ctx: ServiceCtx, input: { id: string; offset?: numb
 export const input = async (ctx: ServiceCtx, input: { id: string; text: string; userInput?: boolean } & SendTarget) => {
 	const run = await target(ctx, input.id);
 	assertSendTarget(run, input);
-	const client = await terminalHost(ctx.home);
-	const process = await client.status(run.terminalId!);
-	if (process?.mode !== "pty" || process.status !== "running")
-		throw invalidInput("id", "This agent does not have a running interactive terminal.");
-	await client.input(run.terminalId!, input.text, input.userInput);
-	return {};
+	return withChatter(ctx, input, async () => {
+		const client = await terminalHost(ctx.home);
+		const process = await client.status(run.terminalId!);
+		if (process?.mode !== "pty" || process.status !== "running")
+			throw invalidInput("id", "This agent does not have a running interactive terminal.");
+		await client.input(run.terminalId!, input.text, input.userInput);
+		return {};
+	});
 };
 
 export const interrupt = async (ctx: ServiceCtx, input: { id: string } & SendTarget) => {

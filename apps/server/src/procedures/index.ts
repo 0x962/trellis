@@ -1,6 +1,7 @@
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
+import { epicChatter } from "./epicChatter";
 import { epics } from "./epics.ts";
 import { flowDocumentProcedures } from "./flowDocumentRoutes";
 import { flowExecutionProcedures } from "./flowExecutionRoutes";
@@ -55,6 +56,7 @@ export const router = os.router({
 	timeline,
 	notes,
 	pages,
+	epicChatter,
 	epics,
 	waves,
 	attachments,
