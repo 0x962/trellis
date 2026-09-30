@@ -28,7 +28,7 @@ const request = async (path: string, init: RequestInit = {}, rpc = false) => {
 		calls.push(name);
 		const entry = services[name];
 		if (entry.family !== "core") throw new Error(`Expected a core service: ${name}`);
-		return h.db.transaction((tx) => entry.run({ ...h.ctx, ...ctx }, tx, input));
+		return h.db.transaction((tx) => entry.run({ ...h.ctx, ...ctx, now: h.ctx.now }, tx, input));
 	};
 	const result = await (rpc ? rpcHandler : handler).handle(raw, {
 		prefix,
