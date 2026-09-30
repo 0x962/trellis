@@ -42,7 +42,7 @@ export async function workspaceFixture(register: (path: string) => void) {
 		captureId: "synthetic-capture", snapshotId: "00000000-0000-4000-8000-000000000001",
 		hostId: "00000000-0000-4000-8000-000000000002", dataHomeId: "00000000-0000-4000-8000-000000000003",
 		blockId: "00000000-0000-4000-8000-000000000004", generation: 1,
-		workspaceId: worktree, identities: [{ harness: "codex", accountId: "account", profileId: "profile", agentRunId: "original-run", attemptId: "original-attempt", providerSessionId: "synthetic-session" }],
+		workspaces: [{ workspaceId: worktree, attemptIds: ["original-attempt"], worktreeRootId: rootIds.worktree, gitRootId: rootIds.git, commonRootId: rootIds.common }], identities: [{ harness: "codex", accountId: "account", profileId: "profile", agentRunId: "original-run", attemptId: "original-attempt", providerSessionId: "synthetic-session" }],
 		roots: [
 			{ rootId: rootIds.worktree, kind: "worktree", sourceKind: "workspace", originalIdentity: worktree },
 			{ rootId: rootIds.git, kind: "git", sourceKind: "git-directory", originalIdentity: gitDirectory, objectFormat: "sha1" },

@@ -6,9 +6,9 @@ import { selectWorkspaceInventory } from "../selectWorkspaceInventory";
 export function validateWorkspaceInventory(inventory: WorkspaceInventory) {
 	const selected = selectWorkspaceInventory({
 		binding: inventory.binding,
-		entries: inventory.entries.map(({ root: _root, ...entry }) => entry),
+		entries: [...new Map(inventory.entries.map(({ root: _root, ...entry }) => [JSON.stringify(entry), entry])).values()],
 		unavailable: inventory.unavailable,
-	});
+	}, inventory.workspaceId);
 	if (!isDeepStrictEqual(selected, inventory)) throw new Error("workspace_capture_root_mismatch");
 	const entries = new Map<string, WorkspaceInventory["entries"][number]>();
 	for (const entry of inventory.entries) {

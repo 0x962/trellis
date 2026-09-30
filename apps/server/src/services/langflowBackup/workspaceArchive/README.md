@@ -1,6 +1,6 @@
 # Workspace archives
 
-`exportWorkspaceArchive({capture}, {binding,destination})` consumes a producer-owned read API.
+`exportWorkspaceArchive({capture}, {binding,workspaceId,destination})` consumes a producer-owned read API.
 `WorkspaceCaptureReader` aliases `RuntimeCaptureProducer` from `@trellis/runtime-protocol`.
 The protocol type does not prove OS exclusion.
 Without that producer, the function returns `consistency_unavailable` before it creates files.
@@ -9,7 +9,9 @@ The outer caller must retain the actual scope through every export and the aggre
 The exporter does not release that scope.
 
 `binding` identifies the capture, snapshot, host, data home, dispatch block, generation, workspace, and complete harness, account, profile, run, attempt, and provider-session identities.
-The producer supplies opaque root IDs with `worktree`, `git`, and `common` roles.
+The full batch binding retains every workspace association.
+`workspaceId` selects the exact worktree, private Git, and common Git root IDs from that binding.
+Shared roots remain deduplicated by the producer.
 Conversation roots and unavailable identities remain in the binding and inventory; this exporter does not read their bytes.
 The API never accepts a caller path as a source of consistent bytes.
 TRL-1170 owns the concrete runtime producer and its proof of exclusion.

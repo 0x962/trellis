@@ -23,7 +23,10 @@ const runtimeRoot = z.discriminatedUnion("kind", [
 export const WorkspaceBindingSchema = z.strictObject({
 	captureId: label, snapshotId: label, hostId: label, dataHomeId: label, blockId: label,
 	generation: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-	workspaceId: label, identities: z.array(identity), roots: z.array(runtimeRoot),
+	workspaces: z.array(z.strictObject({
+		workspaceId: label, attemptIds: z.array(label), worktreeRootId: label,
+		gitRootId: label.nullable(), commonRootId: label.nullable(),
+	})), identities: z.array(identity), roots: z.array(runtimeRoot),
 }) satisfies z.ZodType<RuntimeCaptureBinding>;
 
 const unavailable = z.array(z.strictObject({
@@ -44,7 +47,7 @@ export const WorkspaceEntrySchema = z.discriminatedUnion("kind", [
 	z.strictObject({ ...location, kind: z.literal("symlink"), target: label }),
 ]);
 export const WorkspaceInventorySchema = z.strictObject({
-	binding: WorkspaceBindingSchema,
+	binding: WorkspaceBindingSchema, workspaceId: label,
 	repository: z.strictObject({ gitDirectory: label, commonDirectory: label, objectFormat: z.enum(["sha1", "sha256"]) }).nullable(),
 	entries: z.array(WorkspaceEntrySchema), unavailable,
 });

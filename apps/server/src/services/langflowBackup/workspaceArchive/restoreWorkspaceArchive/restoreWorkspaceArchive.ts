@@ -83,9 +83,9 @@ export async function restoreWorkspaceArchive(
 		if (!stat.isFile() || stat.nlink !== 1) throw new Error("workspace_archive_unsafe_seal");
 		sealBytes = await seal.readFile();
 	} finally { await seal.close(); }
-	validateWorkspaceSeal(sealBytes, archive.inventory.binding, input.sourceDigest);
+	validateWorkspaceSeal(sealBytes, archive.inventory.binding, archive.inventory.workspaceId, input.sourceDigest);
 	const destination = join(await realpath(dirname(input.destination)), basename(input.destination));
-	const protectedPaths = [await realpath(ctx.liveHome), archiveRoot, resolve(archive.inventory.binding.workspaceId),
+	const protectedPaths = [await realpath(ctx.liveHome), archiveRoot, ...archive.inventory.binding.workspaces.map((workspace) => resolve(workspace.workspaceId)),
 		...archive.inventory.binding.roots.filter((root) => root.kind !== "conversation").map((root) => resolve(root.originalIdentity))];
 	for (const path of protectedPaths)
 		if (contains(path, destination) || contains(destination, path)) throw new Error("workspace_restore_destination_conflict");
@@ -139,10 +139,10 @@ export async function restoreWorkspaceArchive(
 	}
 	if (archive.inventory.repository) await syncDirectory(join(worktree, ".git"));
 	await syncDirectory(worktree);
-	const receipt = JSON.stringify({ version: 1, binding: archive.inventory.binding, sourceDigest: input.sourceDigest, worktree });
+	const receipt = JSON.stringify({ version: 1, binding: archive.inventory.binding, workspaceId: archive.inventory.workspaceId, sourceDigest: input.sourceDigest, worktree });
 	await writeFile(join(destination, "workspace-restore.json"), receipt, { flag: "wx", mode: 0o600 });
 	const saved = await open(join(destination, "workspace-restore.json"), "r");
 	try { await saved.sync(); } finally { await saved.close(); }
 	await syncDirectory(destination);
-	return { state: "isolated" as const, worktree, archive: retained, binding: archive.inventory.binding, sourceDigest: input.sourceDigest };
+	return { state: "isolated" as const, worktree, archive: retained, binding: archive.inventory.binding, workspaceId: archive.inventory.workspaceId, sourceDigest: input.sourceDigest };
 }
