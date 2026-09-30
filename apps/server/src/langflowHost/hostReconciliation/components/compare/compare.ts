@@ -88,5 +88,6 @@ export function compareRetainedProof(proof: Proof) {
 			!isDeepStrictEqual(opened.record.evidence.migrations, facts.migrations) ||
 			!isDeepStrictEqual(opened.record.evidence.facts, facts.facts)
 		) throw new Error("host_reconciliation_restored_database_conflict");
+		throw new Error("host_reconciliation_destination_components_unverified");
 	}
 }

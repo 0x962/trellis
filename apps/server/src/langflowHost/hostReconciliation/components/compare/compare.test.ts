@@ -73,9 +73,9 @@ function fixture(): Proof {
 	};
 }
 
-test("restore comparison requires matching captured, opened, and current source bytes", () => {
+test("restore refuses without destination components despite matching database and captured bytes", () => {
 	const proof = fixture();
-	expect(() => compareRetainedProof(proof)).not.toThrow();
+	expect(() => compareRetainedProof(proof)).toThrow("host_reconciliation_destination_components_unverified");
 	proof.facts.facts = source({ tables: [{ name: "clock", rows: [{ deadline: "changed" }] }], version: 1 });
 	expect(() => compareRetainedProof(proof)).toThrow("host_reconciliation_database_changed");
 });
@@ -153,4 +153,13 @@ test("a different Trellis release cannot reuse the capture compatibility", () =>
 	const proof = fixture();
 	proof.trellisRelease = "different-release";
 	expect(() => compareRetainedProof(proof)).toThrow("host_reconciliation_paired_engine_conflict");
+});
+
+
+test("capture comparison accepts matching retained facts without destination installation", () => {
+	const proof = fixture();
+	proof.input.block.reason = { kind: "capture", snapshotId: uuid };
+	proof.opened = null;
+	expect(proof.seal!.manifest.unavailable).toEqual([]);
+	expect(() => compareRetainedProof(proof)).not.toThrow();
 });

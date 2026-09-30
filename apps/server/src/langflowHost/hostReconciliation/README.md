@@ -36,6 +36,9 @@ The physical engine database digest, package, Alembic heads, and encryption secr
 These checks preserve the original fact strings.
 
 Workspace and conversation entries marked unavailable prevent release.
+Restore also refuses release with `host_reconciliation_destination_components_unverified` after the database comparison.
+Component archives prove captured bytes, even when every export is available.
+Destination installation and provider identity require an actual retained receipt and current verification before restore can release dispatch.
 The native boundary covers private launch snapshots and Trellis attempt operations.
 It does not prove a consistent export of live provider workspace or conversation files.
 Startup changes can also prevent an exact comparison with the sealed database.
