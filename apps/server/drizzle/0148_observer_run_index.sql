@@ -1,0 +1,1 @@
+CREATE INDEX "agent_start_requests_observer_run_idx" ON "agent_start_requests" USING btree ("run_id") WHERE "agent_start_requests"."actor_kind" = 'system' AND "agent_start_requests"."actor_name" = 'session-observer';

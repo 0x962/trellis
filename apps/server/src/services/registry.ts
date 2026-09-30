@@ -278,6 +278,8 @@ export const services = {
 	"settings.defaultActorName": core("read", settings.defaultActorName),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
+	"settings.agentPrompt": core("read", settings.agentPromptSettings),
+	"settings.setAgentPrompt": core("mutation", settings.setAgentPrompt),
 	"system.health": io("read", system.health),
 	"system.usage": prepared("read", prepareSystemUsage, agentTerminal.result),
 	"system.processes": prepared("read", prepareSystemProcesses, agentTerminal.result),

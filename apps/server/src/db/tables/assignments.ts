@@ -21,6 +21,9 @@ export const agentStartRequests = pgTable(
 	(t) => [
 		index("agent_start_requests_identity").using("hash", sql`ARRAY[${t.actorKind}, ${t.actorName}, ${t.requestId}]`),
 		index("agent_start_requests_request_id_idx").using("hash", t.requestId),
+		index("agent_start_requests_observer_run_idx")
+			.on(t.runId)
+			.where(sql`${t.actorKind} = 'system' AND ${t.actorName} = 'session-observer'`),
 		index("agent_start_requests_latest_switch_idx")
 			.on(t.runId, t.createdAt.desc())
 			.where(sql`${t.target}->>'switchedTo' IS NOT NULL`),

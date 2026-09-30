@@ -19,6 +19,7 @@ beforeEach(() => {
 test("the settings URL opens the sheet at the section it names", () => {
 	expect(settingsEntry("cleanup", false)).toEqual({ draw: "sheet", section: "cleanup" });
 	expect(settingsEntry("notifications", false)).toEqual({ draw: "sheet", section: "notifications" });
+	expect(settingsEntry("agent-prompt", false)).toEqual({ draw: "sheet", section: "agent-prompt" });
 });
 
 test("the settings URL with no section opens the sheet at the account section", () => {

@@ -46,6 +46,7 @@ export const reviewSubmissions = pgTable(
 	},
 	(t) => [
 		index("review_submissions_request_identity").using("hash", sql`ARRAY[${t.prId}, ${t.actor}, ${t.requestId}]`),
+		index("review_submissions_pr_created_idx").on(t.prId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst()),
 	],
 );
 // One row is one message that waits for the agent of one ticket. The message
