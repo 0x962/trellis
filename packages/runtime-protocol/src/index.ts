@@ -1,4 +1,38 @@
 import type { HarnessAttention, HarnessEvent, HarnessTool, RecordedTokenUsage } from "./harnessEvents/index.ts";
+import type {
+	RuntimeCaptureFinalizeInput,
+	RuntimeCaptureFinalization,
+	RuntimeCaptureFinalizationReceipt,
+	RuntimeCaptureRequest,
+	RuntimeCaptureResult,
+	RuntimeLaunchCaptureIdentity,
+	RuntimeLaunchWriterScope,
+} from "./capture.ts";
+
+export type {
+	RuntimeCaptureAction,
+	RuntimeCaptureBinding,
+	RuntimeCaptureEntry,
+	RuntimeCaptureFrame,
+	RuntimeCaptureFinalizeInput,
+	RuntimeCaptureFinalization,
+	RuntimeCaptureFinalizationReceipt,
+	RuntimeCaptureIdentity,
+	RuntimeCaptureInventory,
+	RuntimeCaptureProducer,
+	RuntimeCaptureReadInput,
+	RuntimeCaptureRequest,
+	RuntimeCaptureResult,
+	RuntimeCaptureRoot,
+	RuntimeCaptureRootKind,
+	RuntimeCaptureRootSourceKind,
+	RuntimeCaptureSealInput,
+	RuntimeCaptureSealReceipt,
+	RuntimeCaptureUnavailable,
+	RuntimeLaunchCaptureIdentity,
+	RuntimeLaunchCaptureProviderRoot,
+	RuntimeLaunchWriterScope,
+} from "./capture.ts";
 
 export type {
 	HarnessAttention,
@@ -11,7 +45,7 @@ export type {
 	RuntimeHarnessActivitySignal,
 	RuntimeHarnessObservation,
 } from "./harnessEvents/index.ts";
-export const RUNTIME_PROTOCOL_VERSION = 16;
+export const RUNTIME_PROTOCOL_VERSION = 18;
 export const MAX_TERMINAL_DIMENSION = 0xffff;
 export type RuntimeStream = "stdout" | "stderr" | "events";
 export interface RuntimeAgentMetadata {
@@ -46,6 +80,8 @@ export interface LaunchSpec {
 	timeoutMs?: number;
 	cols?: number;
 	rows?: number;
+	capture?: RuntimeLaunchCaptureIdentity;
+	writerScopes?: RuntimeLaunchWriterScope[];
 }
 export interface RuntimeSession {
 	stopReason?: "idle";
@@ -167,6 +203,8 @@ export interface RuntimeMessageState {
 	status: SessionStatus;
 }
 export interface RuntimeMethods {
+	capture: { params: RuntimeCaptureRequest; result: never };
+	finalizeCapture: { params: RuntimeCaptureFinalizeInput; result: RuntimeCaptureFinalization };
 	terminal: {
 		params: { id: string; offset: number };
 		result: RuntimeTerminalEvent;

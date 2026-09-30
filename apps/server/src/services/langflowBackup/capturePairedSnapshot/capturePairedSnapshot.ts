@@ -1,17 +1,15 @@
-import { chmod, mkdir, readFile, realpath, rename } from "node:fs/promises";
+import { mkdir, realpath } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { protocolDigest } from "../../../langflowContracts";
 import { LangflowHostControl } from "../../../langflowHost";
 import { CaptureGrantSchema } from "../../../langflowHost/captureAuthority/schema/schema";
-import { captureSnapshot } from "../captureSnapshot";
 import { exportEngineSnapshot } from "../engineSnapshot";
-import { manifestName, type SnapshotMetadata } from "../manifest/manifest";
+import type { SnapshotMetadata } from "../manifest/manifest";
 import type { PairedCaptureContext, PairedCaptureInput } from "../pairedContracts";
 import { PairedJournal } from "../pairedJournal";
 import { readEngineCompatibility } from "../readEngineCompatibility";
 import { syncDirectory } from "../syncDirectory";
-import { syncSnapshotTree } from "../syncSnapshotTree";
 
 export async function capturePairedSnapshot(ctx: PairedCaptureContext, input: PairedCaptureInput) {
 	const directory = join(await realpath(dirname(input.directory)), basename(input.directory));
@@ -74,39 +72,32 @@ export async function capturePairedSnapshot(ctx: PairedCaptureContext, input: Pa
 		boundary: { kind: "quiesced-export", receiptId: boundaryReceiptId },
 		unavailable: [],
 	};
-	const captured = await captureSnapshot({
-		withQuiescedSnapshot: (consume) =>
-			ctx.supervisor.withHealthyEngine(async (engine) => {
-				if (!isDeepStrictEqual(engine.identity, grant.identity)) throw new Error("paired_engine_changed");
-				await mkdir(directory, { mode: 0o700 });
-				for (const root of ["engine", "secrets", "workspaces", "conversations"])
-					await mkdir(join(directory, root), { mode: 0o700 });
-				await syncDirectory(dirname(directory));
-				await journal.write("exporting", { metadata, identity: engine.identity });
-				const receipt = await exportEngineSnapshot({
-					endpoint: engine.endpoint,
-					authenticationFile: ctx.authenticationFile,
-					directory,
-					metadata,
-					signal: input.signal,
-				});
-				await journal.write("engine", receipt);
-				const trellis = await ctx.captureTrellis({ directory, expectedVersion: trellisVersion, block });
-				await journal.write("trellis", trellis);
-				await chmod(trellis.staging, 0o700);
-				await syncSnapshotTree(trellis.staging);
-				await rename(trellis.staging, join(directory, "trellis"));
-				await syncDirectory(dirname(trellis.staging));
-				await syncDirectory(directory);
-				metadata.unavailable.push(...trellis.unavailable);
-				return consume({ directory, metadata });
-			}),
+	const captured = await ctx.supervisor.withHealthyEngine(async (engine) => {
+		if (!isDeepStrictEqual(engine.identity, grant.identity)) throw new Error("paired_engine_changed");
+		await mkdir(directory, { mode: 0o700 });
+		for (const root of ["engine", "secrets", "workspaces", "conversations"])
+			await mkdir(join(directory, root), { mode: 0o700 });
+		await syncDirectory(dirname(directory));
+		await journal.write("exporting", { metadata, identity: engine.identity });
+		const receipt = await exportEngineSnapshot({
+			endpoint: engine.endpoint,
+			authenticationFile: ctx.authenticationFile,
+			directory,
+			metadata,
+			signal: input.signal,
+		});
+		await journal.write("engine", receipt);
+		const sealed = await ctx.captureTrellisAndSeal({ directory, expectedVersion: trellisVersion, block, metadata });
+		if (sealed.directory !== directory || protocolDigest(sealed.manifestBytes) !== sealed.manifestDigest ||
+			!isDeepStrictEqual(JSON.parse(sealed.manifestBytes), sealed.manifest))
+			throw new Error("paired_worker_seal_mismatch");
+		await journal.write("trellis", sealed.trellis);
+		await journal.write("sealed", { manifest: sealed.manifest, manifestDigest: sealed.manifestDigest });
+		return sealed;
 	});
-	const manifestDigest = protocolDigest(await readFile(join(directory, manifestName), "utf8"));
-	await journal.write("sealed", { manifest: captured.manifest, manifestDigest });
 	await journal.write("revoking", { grantBytes: issued.grantBytes });
 	const revoked = await ctx.authority.revoke(issued.grantBytes, input.signal);
 	if (revoked.state !== "revoked") throw new Error("paired_capture_revocation_unknown");
 	await journal.write("revoked", revoked);
-	return { ...captured, manifestDigest, block, state: "requires-reconciliation" as const };
+	return { ...captured, block, state: "requires-reconciliation" as const };
 }

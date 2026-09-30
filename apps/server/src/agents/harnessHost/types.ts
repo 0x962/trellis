@@ -1,5 +1,5 @@
 import type { HarnessEffort } from "@trellis/api";
-import type { LaunchSpec, RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import type { LaunchSpec, RuntimeLaunchCaptureIdentity, RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import type { JobsLog } from "../../jobs.ts";
 import type { BuiltInHarness } from "../harnesses/types.ts";
@@ -31,6 +31,7 @@ export type HarnessStartInput = {
 	kind?: "builder" | "reviewer";
 	textOnly?: { system: string; sessionId: string };
 	signal?: AbortSignal;
+	capture?: RuntimeLaunchCaptureIdentity;
 };
 export type HarnessDescriptor = {
 	fingerprint: string;

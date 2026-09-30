@@ -79,16 +79,41 @@ No production restore, provider call, or conversation reset forms part of these 
 ## Paired domain entrypoints
 
 `capturePairedSnapshot(context, input)` accepts a snapshot UUID, request ID, new export directory, and abort signal.
-Its context holds the real host control, supervisor, capture authority, authentication file, and two database worker ports.
-The worker ports call `readTrellisSnapshotVersion` and `captureTrellisSnapshot` through `ServiceTransport`.
-TRL-696 owns their registration and the public system procedure.
+Its context holds capture-only host control, a held supervisor, capture authority, an authentication file, and two database worker ports.
+The worker ports call `readTrellisSnapshotVersion` and `captureTrellisAndSeal` through `ServiceTransport`.
+TRL-696 owns the prepared mutation and the public system procedure.
+The caller constructs capture authority inside `withHeldEngine` and passes that held supervisor to the paired adapter.
 
 `readTrellisSnapshotVersion(ctx, tx)` returns the installed Trellis version and a SHA256 of the ordered migration records.
-`captureTrellisSnapshot(ctx, tx, input)` exports verified private launch files, run identity references, canonical stop facts, and the complete `system.snapshot` output.
-The input includes the destination, expected Trellis version, and exact dispatch block.
-`TrellisCaptureResult` supplies the staging path, unavailable history, native inventory status, and verified version.
-The worker holds the database queue through that operation.
-Complete workspace and provider conversation exports remain unavailable; their retained run references appear in the manifest.
+`captureTrellisAndSeal(ctx, input)` requires the system actor and the exact closed, drained host block with an active capture grant.
+It runs outside the transport's automatic transaction.
+First it reads current runs, session directories, and retained native attempts in a short transaction.
+Then it reads original launch identities and acquires one runtime batch scope outside every database transaction.
+Launch uses the same runtime scopes before it opens a transaction, so the opposite order can deadlock.
+Before acquisition, `runtime-request.json` retains the exact request in the external paired journal.
+An empty identity set still requires the runtime's global admission and retention hold.
+Missing identities remain explicit in the aggregate manifest.
+
+Within the runtime scope, one transaction revalidates the original records and launch identities.
+It exports every selected workspace and provider conversation through producer-owned root IDs.
+`captureTrellisSnapshot` then exports private launch files, canonical stop and database facts, and the complete `system.snapshot` output.
+This preserves ticket, review, Page, and attachment records in the same Trellis snapshot.
+The callback syncs and places that snapshot, appends exact unavailable history, and seals the aggregate before the runtime scope ends.
+The result supplies the manifest, its original bytes and digest, and the Trellis export result.
+No callback crosses the worker transport.
+The producer's signal controls exports and checks around the complete transaction promise, including commit.
+Channel loss stops subsequent export and seal operations and preserves the original failure.
+A loss that races commit leaves its outcome unknown while the runtime retains a durable hold.
+The worker waits for the runtime's finalization receipt before it reports success.
+It stores the original `receiptBytes` string in external `runtime-finalized.json` before it returns the unchanged capture result.
+Recovery must prove the worker outcome before it calls `finalizeCapture` with the retained request.
+Manifest existence does not prove transaction commit or runtime finalization.
+
+Workspace archives appear below `workspaces/archives/`; conversation archives appear below `conversations/archives/`.
+Their indexes retain original identities and actual component manifest and seal receipts.
+Missing launch metadata, provider history, and session-loss facts remain unavailable.
+A runtime refusal aborts capture and leaves the host gate closed.
+The standalone `captureTrellisSnapshot` entry keeps unavailable records when it has no held history export.
 
 The capture sequence closes the host gate, drains durable permits, and commits the exact capture grant to the engine.
 The grant excludes engine writers through both exports and the manifest seal.
@@ -99,11 +124,14 @@ The host control stores the immutable operation journal under its external `pair
 The journal records an export attempt before the snapshot POST.
 
 `readPairedRecovery` reads that journal, current permits, and current capture grants without a network mutation.
-`finishPairedCapture` verifies a complete seal and recovers revocation with the same grant bytes.
+`finishPairedCapture` refuses recovery for a saved runtime request until runtime finalization has a retained, verified receipt.
+It verifies the receipt request, request digest, committed outcome, and exact host block before it recovers revocation with the same grant bytes.
 It never sends another export POST and never releases the host gate.
 An incomplete or unavailable seal keeps capture recovery blocked.
 
 `restorePairedSnapshot` accepts a source snapshot, new envelope, new target home, request ID, compatibility, and abort signal.
+`restorePairedArchive` supplies that snapshot through `withPairedArchive`, which retains private staging through the complete restore operation.
+The archive reader validates entry paths and types, then verifies the extracted manifest inventory before restore begins.
 Its context provides the current live home.
 The target home, source, live home, and envelope must remain separate.
 After the restore marker exists, it creates external host control with the exact restore block before it copies payload files.
@@ -146,3 +174,20 @@ A snapshot without this file fails with `paired_trellis_facts_unavailable` for r
 Its physical files remain readable through `readSnapshot`.
 The live worker must compare these facts under the required exclusion before release.
 The presence of this file does not prove current destination state or complete workspace and conversation exports.
+
+## Paired archive
+
+`archivePairedSnapshot({directory,manifestDigest,path})` returns the existing `BackupOutput` shape, `{path,bytes}`.
+The caller supplies the digest from the completed capture result or its verified recovery record.
+The producer verifies the source, copies the manifest entries to a private stage, and verifies the copied bytes.
+It archives `paired-backup.json` and all five component roots at the archive root.
+The manifest bytes remain exact, including unavailable history.
+The archive preserves executable files and uses mode 0600 for its output.
+Publication refuses an existing destination or a path inside the source envelope.
+
+The producer removes only its temporary stage and retains the original capture envelope and recovery journal.
+It does not prune older archives or grant dispatch authority.
+The host must await the producer before it releases the supervisor and transport.
+`withPairedArchive` reads this format within a private callback scope; `restorePairedArchive` connects it to isolated restore.
+Synthetic fixtures cover archive extraction, manifest identity, component bytes, private mode, corruption, and destination refusal.
+These fixtures do not establish live capture or restore acceptance.

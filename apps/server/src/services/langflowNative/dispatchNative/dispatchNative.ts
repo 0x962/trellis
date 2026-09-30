@@ -4,7 +4,6 @@ import type { Tx } from "../../../db/tx";
 import type { DeliveryAuthorityV1 } from "../../../langflowContracts";
 import type { DispatchGate } from "../../../langflowHost";
 import { startNative } from "../../agentRuns";
-import { withAttemptOperation } from "../../langflowStops/withAttemptOperation";
 import type { IoCtx } from "../../support";
 import { nativePromptGuide } from "../nativePromptGuide";
 import { readReservation } from "../readReservation";
@@ -70,7 +69,6 @@ export async function dispatchNative(
 		{
 			...reserved.launch,
 			...claimed.limits,
-			withLaunchOperation: (action) => withAttemptOperation(ctx.home, reserved.launch.attempt.id, action),
 			preserveAssignmentOnFailure: true,
 			authorizeLaunch: () =>
 				ctx.newTx(async (tx: Tx) => {

@@ -1,0 +1,1 @@
+export { validateCaptureBinding } from "./validateCaptureBinding";

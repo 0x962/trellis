@@ -4,7 +4,7 @@ import { protocolDigest } from "../../langflowContracts";
 import type { DispatchBlock } from "../dispatchGate";
 import { DispatchStore } from "../dispatchGate/store/store";
 import { createEngineClient, type EngineClientOptions } from "../engineClient";
-import { LangflowHostControl } from "../hostControl";
+import { type HostCaptureControl, LangflowHostControl } from "../hostControl";
 import type { LangflowSupervisor } from "../supervisor";
 import { readCaptureIssuer } from "./credential/credential";
 import {
@@ -19,7 +19,7 @@ export class CaptureAuthority {
 	private readonly store: DispatchStore;
 
 	constructor(
-		private readonly control: LangflowHostControl,
+		private readonly control: Pick<HostCaptureControl, "identity">,
 		private readonly supervisor: Pick<LangflowSupervisor, "withHealthyEngine">,
 		private readonly transport: Omit<EngineClientOptions, "endpoint">,
 	) {

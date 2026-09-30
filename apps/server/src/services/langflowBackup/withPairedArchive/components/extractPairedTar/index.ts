@@ -1,0 +1,1 @@
+export { extractPairedTar } from "./extractPairedTar";

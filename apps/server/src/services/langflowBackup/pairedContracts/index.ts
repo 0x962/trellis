@@ -3,5 +3,7 @@ export type {
 	PairedCaptureInput,
 	TrellisCaptureInput,
 	TrellisCaptureResult,
+	TrellisSealInput,
+	TrellisSealResult,
 	TrellisSnapshotVersion,
 } from "./pairedContracts";

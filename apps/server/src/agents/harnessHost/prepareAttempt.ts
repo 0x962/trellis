@@ -36,6 +36,7 @@ export async function prepareAttempt(
 		env,
 		options.bun,
 		options.runtime.socketPath,
+		...(input.capture === undefined ? [] : [{ capture: input.capture }]),
 	]);
 	const path = join(directory, "launch.json");
 	const verify = (record: HarnessDescriptor) => {
@@ -82,6 +83,7 @@ export async function prepareAttempt(
 		...(input.effort === undefined ? {} : { effort: input.effort }),
 		spec: {
 			id: input.id,
+			...(input.capture === undefined ? {} : { capture: input.capture }),
 			command:
 				input.harness === "codex" || input.harness === "muse"
 					? launch.executable.startsWith("/")

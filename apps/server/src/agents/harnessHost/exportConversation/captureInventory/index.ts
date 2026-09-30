@@ -1,0 +1,1 @@
+export { captureInventory } from "./captureInventory";

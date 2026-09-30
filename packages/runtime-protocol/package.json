@@ -8,9 +8,17 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./client": "./src/client.ts",
+		"./capture-wire": "./src/captureWire/index.ts",
+		"./mutation-exclusion": "./src/mutationExclusion/index.ts",
 		"./terminal-wire": "./src/terminalWire/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"fs-ext": "2.1.1"
+	},
+	"devDependencies": {
+		"@types/fs-ext": "2.0.3"
 	}
 }

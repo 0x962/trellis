@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { ReconciliationFactsSchema } from "../../../db/queries/langflowExecution";
 import { protocolDigest } from "../../../langflowContracts";
-import type { LangflowHostControl } from "../../../langflowHost";
+import type { HostCaptureControl } from "../../../langflowHost";
 import { CaptureGrantSchema, CaptureRecordSchema } from "../../../langflowHost/captureAuthority/schema/schema";
 import { ReconciliationReceiptSchema } from "../../../langflowHost/dispatchGate/store/schema";
 import { EngineSnapshotReceiptSchema } from "../engineSnapshot/components/receipt";
@@ -12,7 +12,7 @@ import { manifestName, SnapshotManifestSchema } from "../manifest/manifest";
 import { PairedJournal, PairedRequestSchema } from "../pairedJournal";
 import { readSnapshot } from "../readSnapshot";
 
-export async function readPairedSeal(ctx: { control: LangflowHostControl }, input: { snapshotId: string }) {
+export async function readPairedSeal(ctx: { control: Pick<HostCaptureControl, "identity"> }, input: { snapshotId: string }) {
 	const journal = await PairedJournal.open(ctx.control, input.snapshotId);
 	const request = PairedRequestSchema.parse(await journal.read("request"));
 	const block = ReconciliationReceiptSchema.shape.block.parse(await journal.read("block"));

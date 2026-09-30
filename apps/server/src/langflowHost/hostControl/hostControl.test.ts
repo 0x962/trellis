@@ -175,3 +175,51 @@ test("restore initialization refuses a target inside the recovery envelope", () 
 	).toThrow("dispatch_control_inside_restore");
 	expect(LangflowHostControl.recovery(input.home).state).toBe("unavailable");
 });
+
+test("capture control closes and drains durable effects without release authority", async () => {
+	const input = fixture();
+	const full = LangflowHostControl.create(input);
+	const initial = full.gate.read().block;
+	if (!initial) throw new Error("missing_initial_block");
+	await full.gate.reconcile(initial, "initialized");
+	const effects = LangflowHostControl.openEffects({
+		home: input.home,
+		readTerminal: async (permit, id) => ({ id, permit, outcome: "completed" }),
+	});
+	const permit = effects.gate.acquire({
+		effectId: "capture-effect",
+		kind: "cancellation",
+		executionId: "execution",
+		attemptId: null,
+		jobId: null,
+		requestId: "request",
+		payloadDigest: "a".repeat(64),
+	});
+	const capture = LangflowHostControl.openCapture({ home: input.home });
+	expect(capture.identity).toEqual(full.identity);
+	for (const method of ["reconcile", "acquire", "settle", "recoverPermit"]) {
+		expect(method in capture.gate).toBe(false);
+	}
+	const block = capture.gate.closeDispatch({
+		requestId: "capture-only",
+		reason: { kind: "capture", snapshotId: "snapshot" },
+	});
+	expect(full.gate.read().block).toEqual(block);
+	let drained = false;
+	const wait = capture.gate.waitForDrain(block).then(() => {
+		drained = true;
+	});
+	await Promise.resolve();
+	expect(drained).toBe(false);
+	await effects.gate.settle(permit, "committed");
+	await wait;
+	const reopened = LangflowHostControl.openCapture({ home: input.home });
+	expect(reopened.gate.read().block).toEqual(block);
+	expect(reopened.gate.closeDispatch({ requestId: block.requestId, reason: block.reason })).toEqual(block);
+});
+
+test("capture control refuses missing state without initialization", () => {
+	const input = fixture();
+	expect(() => LangflowHostControl.openCapture({ home: input.home })).toThrow();
+	expect(LangflowHostControl.recovery(input.home).state).toBe("unavailable");
+});

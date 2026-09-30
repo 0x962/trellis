@@ -207,9 +207,10 @@ export async function openPersistentNativeLifecycleFixture(home: string, boundar
 	const launch = async (claim: Claim) =>
 		startNative(ctx, claim, {
 			workspace: async () => home,
+			commonDirectory: async () => home,
 			runtime: async () => processes.client() as never,
 			guide: async () => "Run the persistent native lifecycle fixture.",
-			env: {},
+			env: { HOME: home, CODEX_HOME: join(home, "synthetic-profile") },
 		});
 	const recordLaunch = (claim: Claim, launchedAt: string) =>
 		run((tx) =>

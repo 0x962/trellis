@@ -28,7 +28,9 @@ export {
 	type EngineReconciliationInput,
 	provisionReconciliationIssuer,
 } from "./engineReconciliation";
+export { type HeldEngineScope, withHeldEngine } from "./heldEngine";
 export {
+	type HostCaptureControl,
 	type HostControlIdentity,
 	type HostControlInitialization,
 	type HostRecoveryState,

@@ -1,5 +1,5 @@
-import type { CaptureAuthority, DispatchBlock, LangflowHostControl, LangflowSupervisor } from "../../../langflowHost";
-import type { SnapshotCompatibility, SnapshotMetadata } from "../manifest";
+import type { CaptureAuthority, DispatchBlock, HostCaptureControl, LangflowSupervisor } from "../../../langflowHost";
+import type { SnapshotCompatibility, SnapshotManifest, SnapshotMetadata } from "../manifest";
 
 export type TrellisSnapshotVersion = Pick<SnapshotCompatibility, "trellisRelease" | "trellisDatabaseVersion">;
 export type TrellisCaptureInput = { directory: string; expectedVersion: TrellisSnapshotVersion; block: DispatchBlock };
@@ -9,14 +9,22 @@ export type TrellisCaptureResult = {
 	native: { ready: boolean; unavailable: unknown[] };
 	version: TrellisSnapshotVersion;
 };
+export type TrellisSealInput = TrellisCaptureInput & { metadata: SnapshotMetadata };
+export type TrellisSealResult = {
+	directory: string;
+	manifest: SnapshotManifest;
+	manifestBytes: string;
+	manifestDigest: string;
+	trellis: TrellisCaptureResult;
+};
 
 export type PairedCaptureContext = {
-	control: LangflowHostControl;
-	supervisor: LangflowSupervisor;
+	control: HostCaptureControl;
+	supervisor: Pick<LangflowSupervisor, "withHealthyEngine">;
 	authority: CaptureAuthority;
 	authenticationFile: string;
 	readTrellisVersion(): Promise<TrellisSnapshotVersion>;
-	captureTrellis(input: TrellisCaptureInput): Promise<TrellisCaptureResult>;
+	captureTrellisAndSeal(input: TrellisSealInput): Promise<TrellisSealResult>;
 };
 
 export type PairedCaptureInput = {

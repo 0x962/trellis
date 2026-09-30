@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
+import type { LaunchSpec, RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
 import { ExitReceipts } from "../exitReceipts";
 import { exitedRecordsToRemove, type RetainOptions, resumableRecordsToRemove } from "../retainExited.ts";
 import { sessionFileSuffixes, sessionFiles } from "../sessionFiles.ts";
@@ -12,7 +12,7 @@ type SavedRecord = {
 	session: RuntimeSession;
 	fingerprint: string | null;
 	identity?: string | null;
-	launch?: RuntimeProcessStatus["launch"];
+	launch?: Pick<LaunchSpec, "command" | "args" | "cwd" | "capture" | "writerScopes"> | null;
 };
 type IndexEntry = {
 	retainForResume: boolean;

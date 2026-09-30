@@ -1,8 +1,8 @@
-import type { LangflowHostControl } from "../../../langflowHost";
+import type { HostCaptureControl } from "../../../langflowHost";
 import { CaptureGrantSchema } from "../../../langflowHost/captureAuthority/schema/schema";
 import { PairedJournal, PairedRequestSchema, pairedStages } from "../pairedJournal";
 
-export async function readPairedRecovery(ctx: { control: LangflowHostControl }, input: { snapshotId: string }) {
+export async function readPairedRecovery(ctx: { control: Pick<HostCaptureControl, "identity"> & { gate: Pick<HostCaptureControl["gate"], "read"> } }, input: { snapshotId: string }) {
 	const journal = await PairedJournal.open(ctx.control, input.snapshotId);
 	const request = PairedRequestSchema.parse(await journal.read("request"));
 	const stages = Object.fromEntries(

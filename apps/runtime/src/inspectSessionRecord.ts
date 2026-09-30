@@ -38,7 +38,10 @@ export function inspectSessionRecord(record: SessionRecord): RuntimeProcessStatu
 		...observed,
 		checkedAt,
 		elapsedMs: elapsedEnd === null ? null : Date.parse(elapsedEnd) - Date.parse(record.session.startedAt),
-		launch: record.launch,
+		launch:
+			record.launch === null
+				? null
+				: { command: record.launch.command, args: record.launch.args, cwd: record.launch.cwd },
 		agent: record.observations.agent,
 		activity: record.activity,
 		acknowledgedMessageIds: record.ledger.acknowledgedMessageIds(),
