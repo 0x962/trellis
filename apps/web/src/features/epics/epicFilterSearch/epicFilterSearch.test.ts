@@ -40,6 +40,27 @@ const makeRouter = (href: string) => {
 const alpha = "/p/QA/epics/alpha";
 const beta = "/p/QA/epics/beta";
 
+test.each(["updatedAt", "-updatedAt"])("an old %s link keeps filters and replaces its history entry", async (sort) => {
+	const router = makeRouter(`${alpha}?priority=high&sort=${sort}&group=status&tab=resources`);
+	await router.load();
+	expect(router.state.matches.at(-1)!.search).toEqual({
+		priority: ["high"],
+		group: "status",
+		tab: "resources",
+	});
+	expect(router.state.location.searchStr).toBe("?priority=high&group=status&tab=resources");
+	expect(router.history.length).toBe(1);
+});
+
+test("an explicit sort and group load without a canonical redirect", async () => {
+	const href = `${alpha}?sort=-createdAt&group=status`;
+	const router = makeRouter(href);
+	await router.load();
+	expect(router.state.matches.at(-1)!.search).toEqual({ sort: "-createdAt", group: "status" });
+	expect(router.state.location.href).toBe(href);
+	expect(router.history.length).toBe(1);
+});
+
 test("each epic restores its filters after navigation away and back", async () => {
 	const router = makeRouter(`${alpha}?priority=high`);
 	await router.load();

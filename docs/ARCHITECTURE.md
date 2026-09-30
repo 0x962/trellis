@@ -1143,7 +1143,10 @@ section starts collapsed when the description is longer than 1200 characters, an
 state under the key `<route key>#plan`. The band and the plan take at most half of the page card and scroll
 inside it.
 The tickets show in the full-width `TicketTable` of the project table view. Its search is the URL search with
-`epic` fixed to the epic ref and `group` default `wave` (`epicSearch.ts`). The URL carries `sort`,
+`epic` fixed to the epic ref, `group` default `wave`, and `sort` default `number` (`epicSearch.ts`).
+Tickets use ascending numbers within each ticket rank by default. The epic sort menu offers Priority, Created, Status, and ID.
+An epic URL with either Updated direction uses the default order. The canonical URL omits `sort=number`.
+The URL carries `sort`,
 `density`, `columns`, and the filters, as the project table does. The URL never carries `epic`, it omits
 `group=wave`, and it writes `group=status`. The row actions, the bulk bar, and the keyboard navigation are the ones of
 the table. The bulk bar Set epic with None, and the Epic row of the ticket rail, take a ticket out of the epic.
