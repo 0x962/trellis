@@ -54,6 +54,7 @@ export const PullRequestSchema = z.object({
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
 	localState: LocalPrStateSchema,
+	localVerdict: z.enum(["approved", "changes_requested"]).nullable(),
 	// What this pull request still needs before the person reviews it, from
 	// `reviewGaps`. An empty list means ready for review.
 	reviewGaps: z.array(ReviewGapSchema),

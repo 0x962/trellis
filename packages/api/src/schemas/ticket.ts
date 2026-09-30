@@ -41,6 +41,7 @@ const PrReviewSchema = z.object({
 // the parts of the first one that misses a part when the agent handed every
 // one over.
 const PrBadgeSchema = z.object({
+	locallyApproved: z.boolean(),
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),
 	isQueued: z.boolean(),

@@ -19,8 +19,8 @@ export async function ensurePr(tx: Tx, input: string) {
 	const [pr] = await rows<{ id: string; url: string }>(
 		tx,
 		sql`
-		INSERT INTO pull_requests (id, owner, repo, number, url, state, review_retained, created_at, updated_at)
-		VALUES (${ulid()}, ${ref.owner}, ${ref.repo}, ${ref.number}, ${ref.url}, 'open', true, now(), now())
+		INSERT INTO pull_requests (id, owner, repo, number, url, state, review_retained, created_at, updated_at, local_state)
+		VALUES (${ulid()}, ${ref.owner}, ${ref.repo}, ${ref.number}, ${ref.url}, 'open', true, now(), now(), 'not-ready')
 		ON CONFLICT (owner, repo, number) DO UPDATE SET review_retained = true RETURNING id, url
 	`,
 	);

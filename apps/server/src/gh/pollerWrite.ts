@@ -27,7 +27,7 @@ export type WriteInput = { at: Date; written: Polled[]; failed: PolledFailure[] 
 
 export const PR_COLUMNS = sql.raw(`(
 	id, owner, repo, number, additions, deletions, changed_files, files, url, title, state, is_draft, is_queued, queue_position, head_sha, head_ref, base_ref, mergeable, review_state,
-	merged_at, closed_at, checks, checks_changed_at, ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at
+	merged_at, closed_at, checks, checks_changed_at, ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at, local_state
 )`);
 
 export const prValues = (at: Date, row: PullRequestRow) => sql`(
@@ -35,7 +35,7 @@ export const prValues = (at: Date, row: PullRequestRow) => sql`(
 	${JSON.stringify(row.files)}::jsonb,
 	${row.url}, ${row.title}, ${row.state}, ${row.isDraft}, ${row.isQueued}, ${row.queuePosition},
 	${row.headSha}, ${row.headRef}, ${row.baseRef}, ${row.mergeable}, ${row.reviewState}, ${row.mergedAt}, ${row.closedAt},
-	${JSON.stringify(row.checks)}::jsonb, ${at}, ${row.ciState}, ${row.contentHash}, ${at}, NULL, ${at}, ${at}
+	${JSON.stringify(row.checks)}::jsonb, ${at}, ${row.ciState}, ${row.contentHash}, ${at}, NULL, ${at}, ${at}, 'not-ready'
 )`;
 
 // `checks_changed_at` moves only when the checks or the head commit differ,

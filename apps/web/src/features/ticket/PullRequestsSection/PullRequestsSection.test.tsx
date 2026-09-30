@@ -28,7 +28,7 @@ describe("PullRequestsSection", () => {
 		const html = renderToStaticMarkup(<PullRequestsSection ticket={ticket([pr({ verdict: "approved" })])} />);
 
 		expect(textOf(html)).toContain("Pull requests(1)#304Remove the ticket composer");
-		expect(html).toContain('data-pr-glyph="open"');
+		expect(html).toContain('data-pr-glyph="approved"');
 		expect(html).toContain('data-review-state="approved"');
 		expect(html).toContain("You approved this commit");
 	});
