@@ -9,7 +9,15 @@ const binding: RuntimeCaptureBinding = {
 	dataHomeId: "home-1",
 	generation: 4,
 	blockId: "block-1",
-	workspaceId: "/home/agents/run-1/work",
+	workspaces: [
+		{
+			workspaceId: "/home/agents/run-1/work",
+			attemptIds: ["attempt-1"],
+			worktreeRootId: "worktree-1",
+			gitRootId: null,
+			commonRootId: "common-1",
+		},
+	],
 	identities: [
 		{
 			harness: "codex",
