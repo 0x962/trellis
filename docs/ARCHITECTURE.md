@@ -139,7 +139,7 @@ The host uses these observations for flow completion.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
+The ticket sheet holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
 Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
 Overview holds the summary and the evidence document. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
@@ -782,7 +782,8 @@ Terminal links include plain addresses and labeled OSC 8 hyperlinks.
 The terminal copies those five fields into a plain record for plain and OSC 8 links.
 HTTP and HTTPS links use `openLink`. Other schemes and web addresses with credentials produce an error.
 Published Page messages still require confirmation in the trusted viewer before navigation.
-The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
+The terminal header of a ticket run opens the ticket sheet over the session.
+The shared URL `/t/<identifier>` opens that sheet over the home page and replaces the route with `/`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
 The session update pane groups retained updates by local calendar day, newest first.
@@ -1052,7 +1053,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
 | `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, its notes, its epics, or one epic |
-| `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/t/$identifier` | `t/$identifier/route.tsx` | opens the ticket sheet and replaces the route with `/` |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
@@ -1062,13 +1063,13 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
 
-Ticket links open `/t/$identifier`. The header shows the project name and ticket
-identifier, with the actions on the right. The content sits in fully rounded
-cards below the header.
+Ticket links open a sheet over the current page. The header shows the project name and ticket
+identifier, with the actions on the right. Shared ticket URLs open the sheet over the home page.
+The sheet keeps Close visible during loading and errors.
 Every page card has a gap from the sidebar, the right edge, and the bottom edge.
 The gap is 12 px on desktop and 8 px on a phone. Back restores the previous
-router entry, including its filters, tab, and hash. Ticket, review, and usage
-tabs each create a history entry. A ticket opens a pull request on its review route.
+router entry, including its filters, tab, and hash. Review and usage
+tabs each create a history entry. A ticket opens a pull request in a second sheet.
 Escape closes the active control or clears the selection first, then goes back.
 The terminal passes Escape to page navigation and keeps modified keys as terminal input.
 A direct entry with no previous app page returns to Needs you with a replacement
