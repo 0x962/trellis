@@ -134,6 +134,7 @@ test.each([false, true])("a retained hold refuses preparation with historical sc
 		schemaVersion: 1, captureId: "retained-capture", requestSha256: "a".repeat(64), global: false,
 		attemptIds: ["captured-attempt"], createdAt: "2026-09-29T00:00:00Z",
 		scopes: [{ kind: "provider", directory: historical ? join(f.home, "unknown-profile") : f.writerScopes[1]!.directory }],
+		overlapScopes: [{ kind: "provider", directory: historical ? join(f.home, "unknown-profile") : f.writerScopes[1]!.directory }],
 	});
 	let entered = false;
 	await expect(withSessionNameScope(f.home, f.source, "naming-attempt", directory, async () => {
