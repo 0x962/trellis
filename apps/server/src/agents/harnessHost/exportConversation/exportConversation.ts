@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, open, rename } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import type { RuntimeCaptureUnavailable } from "@trellis/runtime-protocol";
 import { z } from "zod";
 import type {
 	ConversationCaptureBinding,
@@ -50,6 +51,8 @@ export async function exportConversation(
 	if (!input.binding.identities.some((identity) => isDeepStrictEqual(identity, input.identity)))
 		throw new Error("conversation_capture_identity_conflict");
 	const adapter = providers[input.identity.harness].conversationExport;
+	const unavailable: Array<RuntimeCaptureUnavailable & { rootId?: string; originalIdentity?: string | null }> =
+		captured.unavailable.filter((entry) => isDeepStrictEqual(entry.identity, input.identity));
 	const selections = [];
 	for (const root of captured.binding.roots) {
 		if (root.kind !== "conversation" || !isDeepStrictEqual(root.identity, input.identity)) continue;
@@ -57,14 +60,24 @@ export async function exportConversation(
 		if (inventory.state === "unavailable") return inventory;
 		const selection = adapter.select(input.identity, inventory);
 		if (selection.state === "unavailable") {
-			if (selection.reason === "historical_content_missing") continue;
+			if (selection.reason === "historical_content_missing") {
+				unavailable.push({
+					identity: root.identity,
+					sourceKind: root.sourceKind,
+					originalIdentity: root.originalIdentity,
+					rootId: root.rootId,
+					code: selection.reason,
+					message: "The captured root has no transcript for the requested provider session.",
+				});
+				continue;
+			}
 			return selection;
 		}
 		selections.push({ inventory, selection });
 	}
 	if (selections.length === 0) return {
 		state: "unavailable" as const, reason: "historical_content_missing",
-		history: captured.unavailable.filter((entry) => isDeepStrictEqual(entry.identity, input.identity)),
+		history: unavailable,
 	};
 	if (!isAbsolute(input.directory)) throw new Error("conversation_export_destination_invalid");
 	await mkdir(input.directory, { mode: 0o700 });
@@ -93,7 +106,7 @@ export async function exportConversation(
 		identity: input.identity,
 		roots: selections.map(({ inventory }) => ({ rootId: inventory.rootId, sourceKind: inventory.sourceKind })),
 		history: "available_records_only",
-		unavailable: captured.unavailable.filter((entry) => isDeepStrictEqual(entry.identity, input.identity)),
+		unavailable,
 		files,
 	};
 	const manifestBytes = `${JSON.stringify(manifest)}\n`;
