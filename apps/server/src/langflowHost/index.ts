@@ -53,4 +53,13 @@ export {
 	type VerifiedRestoredDatabase,
 	withRestoredDatabaseOpen,
 } from "./restoredDatabase";
+export {
+	installRestoredEngine,
+	type RestoredEngineInput,
+	RestoredEngineInputSchema,
+	type RestoredEngineReceipt,
+	RestoredEngineReceiptSchema,
+	type RestoredEngineResult,
+	verifyRestoredEngine,
+} from "./restoredEngine";
 export { LangflowSupervisor } from "./supervisor";
