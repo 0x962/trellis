@@ -1,4 +1,5 @@
 import { type SQL, sql } from "drizzle-orm";
+import type { OperationDiagnostics } from "./operationDiagnostics";
 
 type Executor = { execute(query: SQL): Promise<unknown> };
 
@@ -12,7 +13,7 @@ const VACUUMED_TABLES = ["tickets", "activity"] as const;
 // happened since the last run. `tick` is what the periodic timer calls;
 // `runNow` is for after a backup or a restore. VACUUM cannot run inside a
 // transaction, so both take the database and not a tx.
-export const createMaintenance = (db: Executor) => {
+export const createMaintenance = (db: Executor, diagnostics?: OperationDiagnostics, reqId = "maintenance.timer") => {
 	let pendingWrites = 0;
 
 	const recordWrites = (count: number) => {
@@ -21,7 +22,14 @@ export const createMaintenance = (db: Executor) => {
 
 	const runNow = async () => {
 		for (const table of VACUUMED_TABLES) {
-			await db.execute(sql.raw(`VACUUM (ANALYZE) ${table}`));
+			const finish = diagnostics?.begin({ phase: "maintenance.submitted", name: `vacuum.${table}`, reqId });
+			let outcome: "success" | "failure" = "failure";
+			try {
+				await db.execute(sql.raw(`VACUUM (ANALYZE) ${table}`));
+				outcome = "success";
+			} finally {
+				finish?.(outcome);
+			}
 		}
 		pendingWrites = 0;
 	};

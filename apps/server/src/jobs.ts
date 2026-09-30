@@ -1,5 +1,7 @@
 import type { ProjectCache } from "./db/cache.ts";
+import { createMeasuredTransaction } from "./db/createMeasuredTransaction";
 import { createMaintenance, VACUUM_AFTER_WRITES } from "./db/maintenance.ts";
+import type { OperationDiagnostics } from "./db/operationDiagnostics";
 import type { withTx } from "./db/tx.ts";
 import type { Bus } from "./events/bus.ts";
 import * as poller from "./gh/poller.ts";
@@ -35,6 +37,7 @@ export type JobsOptions = {
 	bus: Bus;
 	log: JobsLog;
 	clock: JobsClock;
+	diagnostics?: OperationDiagnostics;
 };
 
 export type Jobs = { stop: () => Promise<void> };
@@ -84,13 +87,31 @@ const within = async (work: Promise<void>, ms: number) => {
 	return settled;
 };
 
-export const startJobs = ({ db, cache, actorCache, publicUrl, gh, bus, log, clock }: JobsOptions): Jobs => {
-	const maintenance = createMaintenance(db);
+export const startJobs = ({
+	db,
+	cache,
+	actorCache,
+	publicUrl,
+	gh,
+	bus,
+	log,
+	clock,
+	diagnostics,
+}: JobsOptions): Jobs => {
+	const maintenance = createMaintenance(db, diagnostics);
 	const unsubscribe = bus.subscribe(({ event }) => {
 		if (event.type !== "gh.status") maintenance.recordWrites(1);
 	});
 	const handle = poller.start({
-		db,
+		db: {
+			transaction: createMeasuredTransaction(db, {
+				name: "gh.poller",
+				reqId: "gh.poller",
+				log,
+				longTransactionMs: Infinity,
+				diagnostics,
+			}),
+		},
 		cache,
 		actorCache,
 		publicUrl,

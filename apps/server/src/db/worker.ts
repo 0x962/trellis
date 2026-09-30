@@ -6,6 +6,7 @@ import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
 import { createDbTiming } from "../serverTiming.ts";
 import { type ServiceKind, services } from "../services/registry.ts";
 import { openDatabase } from "./open.ts";
+import { createOperationDiagnostics, diagnosticNow, type OperationDiagnostics } from "./operationDiagnostics";
 import { createInlineTransport, type Runtime, type ServiceTransport } from "./transport.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./workerProtocol.ts";
 
@@ -83,6 +84,7 @@ const startHost = () => {
 	let draining = false;
 	let scheduled = false;
 	let closing = false;
+	let diagnostics: OperationDiagnostics | undefined;
 	// The start builds the transport a call runs on. The host answers a call
 	// only after the start settles, so a call that arrives during the boot
 	// waits in the queue instead of reading a transport that is not there
@@ -108,6 +110,8 @@ const startHost = () => {
 	};
 
 	const run = async (call: WorkerCall) => {
+		if (diagnostics !== undefined)
+			send({ type: "diagnostic", event: { type: "execution", id: call.id, at: diagnosticNow() } });
 		currentGhStatus = call.ghStatus;
 		const timing = createDbTiming();
 		timing.queueMs = performance.now() - received.get(call.id)!;
@@ -174,6 +178,7 @@ const startHost = () => {
 
 	self.onmessage = ({ data }: MessageEvent<WorkerInput>) => {
 		if (data.type === "start") {
+			if (data.jobs !== null) diagnostics = createOperationDiagnostics((event) => send({ type: "diagnostic", event }));
 			void (async () => {
 				database = await openDatabase(
 					data.config.dbDir,
@@ -217,6 +222,7 @@ const startHost = () => {
 					config: data.config,
 					runtime,
 					log: jobs === null ? undefined : log,
+					diagnostics,
 				});
 				const started = await transport.start(jobs === null ? undefined : { clockRate: jobs.clockRate, log });
 				send({
@@ -234,6 +240,8 @@ const startHost = () => {
 		}
 		if (data.type === "calls") {
 			for (const call of data.calls) {
+				if (diagnostics !== undefined)
+					send({ type: "diagnostic", event: { type: "receipt", id: call.id, at: diagnosticNow() } });
 				received.set(call.id, performance.now());
 				const dropped = queue.push(call);
 				if (dropped) {

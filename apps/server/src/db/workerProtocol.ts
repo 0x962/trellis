@@ -6,6 +6,7 @@ import type { DbTiming } from "../serverTiming.ts";
 import type { ServiceKind, ServiceName } from "../services/registry.ts";
 import type { RestoredDatabaseOpenReceipt } from "./open.ts";
 import type { Runtime } from "./transport.ts";
+import type { WorkerDiagnostic } from "./workerDiagnostics";
 
 export type WorkerCall = {
 	type: "call";
@@ -39,6 +40,7 @@ export type SerializedError = {
 };
 
 export type WorkerOutput =
+	| { type: "diagnostic"; event: WorkerDiagnostic }
 	| { type: "ready"; applied: number; liveShas: string[]; restoredOpen?: RestoredDatabaseOpenReceipt }
 	| { type: "startError"; error: SerializedError }
 	| { type: "result"; id: number; result: unknown; timing: DbTiming }

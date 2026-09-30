@@ -8,6 +8,7 @@ import type { DbTiming } from "../../serverTiming.ts";
 import type { ServiceName } from "../../services/registry.ts";
 import type { Db } from "../client.ts";
 import type { RestoredDatabaseOpenReceipt } from "../open.ts";
+import type { OperationDiagnostics } from "../operationDiagnostics";
 
 // The facts of the running process a service reports or uses: the package
 // version, the boot id, the gh runner, the gh state the poller keeps, and
@@ -51,6 +52,7 @@ export type InlineTransportOptions = {
 	applied?: number;
 	log?: JobsLog;
 	longTransactionMs?: number;
+	diagnostics?: OperationDiagnostics;
 };
 
 export type InlineTransport = ServiceTransport;

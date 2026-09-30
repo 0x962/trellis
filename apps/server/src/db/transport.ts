@@ -8,7 +8,6 @@ import { startSessionMonitor } from "../agents/sessionMonitor/sessionMonitor.ts"
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
 import { type Jobs, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
-import { recordObservedActivity } from "../services/agentRuns/activity.ts";
 import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcBlobs } from "../services/blobs.ts";
@@ -22,6 +21,7 @@ import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
 import { allResourceBlobShas } from "./queries/epicResources.ts";
 import { allPrFileBlobShas } from "./queries/prFiles.ts";
+import { createSessionActivityRecorder } from "./sessionActivityRecorder";
 import type { InlineTransport, InlineTransportOptions, JobsStart } from "./transportTypes";
 import { type Emit, type Tx, withTx } from "./tx.ts";
 import { warmWrites } from "./warmWrites.ts";
@@ -48,6 +48,7 @@ export const createInlineTransport = ({
 	applied = 0,
 	log = () => undefined,
 	longTransactionMs = LONG_TRANSACTION_MS,
+	diagnostics,
 }: InlineTransportOptions): InlineTransport => {
 	const cache = createCache();
 	const actorCache = new Map<string, number>();
@@ -92,15 +93,33 @@ export const createInlineTransport = ({
 		},
 		background: (task) => {
 			const pending: Array<() => Promise<void>> = [];
-			const background = ioCtx({ ...ctx, now: new Date() }, (event) => bus.emit(event, ctx.actor), pending);
+			const transaction = createMeasuredTransaction(db, {
+				name: "background",
+				reqId: ctx.reqId,
+				log,
+				longTransactionMs: Infinity,
+				diagnostics,
+			});
+			const background = ioCtx(
+				{ ...ctx, now: new Date() },
+				(event) => bus.emit(event, ctx.actor),
+				pending,
+				transaction,
+			);
+			const finish = diagnostics?.begin({ phase: "service", name: "background", reqId: ctx.reqId });
+			let outcome: "success" | "failure" = "success";
 			const work = (async () => {
 				await task(background);
 				for (const followup of pending) await followup();
 			})()
 				.catch((error: unknown) => {
+					outcome = "failure";
 					log("background task failed", { error: error instanceof Error ? error.message : String(error) });
 				})
-				.finally(() => backgroundTasks.delete(work));
+				.finally(() => {
+					finish?.(outcome);
+					backgroundTasks.delete(work);
+				});
 			backgroundTasks.add(work);
 		},
 		newTx: <T>(fn: (tx: Tx) => Promise<T>) =>
@@ -108,7 +127,7 @@ export const createInlineTransport = ({
 				await assertCurrentAttempt(ctx, tx);
 				return fn(tx);
 			}),
-		vacuum: () => createMaintenance(db).runNow(),
+		vacuum: () => createMaintenance(db, diagnostics, ctx.reqId).runNow(),
 	});
 
 	// A `prepare` step runs first, with no transaction open. Only its context
@@ -118,7 +137,16 @@ export const createInlineTransport = ({
 	// writes that its own short transactions committed, so they reach the bus
 	// also when the call throws.
 	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, timing?: DbTiming) => {
-		const transaction = createMeasuredTransaction(db, { name, reqId: ctx.reqId, log, longTransactionMs, timing });
+		const finish = diagnostics?.begin({ phase: "service", name, reqId: ctx.reqId });
+		let outcome: "success" | "failure" = "success";
+		const transaction = createMeasuredTransaction(db, {
+			name,
+			reqId: ctx.reqId,
+			log,
+			longTransactionMs,
+			timing,
+			diagnostics,
+		});
 		const entry: ServiceEntry = services[name];
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
@@ -147,8 +175,11 @@ export const createInlineTransport = ({
 			for (const event of [...early.splice(0), ...events]) bus.emit(event, ctx.actor);
 			return result;
 		} catch (error) {
+			outcome = "failure";
 			for (const event of early) bus.emit(event, ctx.actor);
 			throw error;
+		} finally {
+			finish?.(outcome);
 		}
 	};
 
@@ -180,7 +211,7 @@ export const createInlineTransport = ({
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({
 				read: () => backgroundCall("agentRuns.activity", {}) as Promise<AgentActivity[]>,
-				record: (input) => db.transaction((tx) => recordObservedActivity(systemContext(), tx, input)),
+				record: createSessionActivityRecorder(db, log, diagnostics),
 				client: nativeClient(config.home),
 				emit: (event) => bus.emit(event),
 				complete: (input) => backgroundCall("sessions.nameFirstExchange", input),
@@ -238,6 +269,7 @@ export const createInlineTransport = ({
 				bus,
 				log: options.log,
 				clock,
+				diagnostics,
 			});
 		}
 		return {

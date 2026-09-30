@@ -1649,6 +1649,13 @@ The `lock` and `db` totals cover every request transaction, including preparatio
 Each transaction contributes its lock wait and its duration through commit or rollback.
 External calls outside transactions contribute only to the total request duration.
 Detached background tasks use separate transactions and contribute no time to the initiating request.
+The HTTP thread checks outstanding worker requests once per second and emits at most one `worker delay` snapshot every five seconds.
+Snapshots separate host enqueue, batch dispatch, worker receipt, and service execution with epoch timestamps and request identifiers.
+Each snapshot contains up to eight requests, sixteen active operations, and sixteen recent slow completed operations, with counts for omitted active details.
+The diagnostic ledger retains up to 128 general operation details and every pending request, transaction, and submitted maintenance identity until settlement.
+`transaction.wait` precedes database acquisition; `transaction` includes commit or rollback.
+`maintenance.submitted` includes the internal database wait and execution of a named VACUUM operation.
+Diagnostics contain service and maintenance names, identifiers, outcomes, and timing, without SQL text or parameter values.
 A search request carries a client id, and a newer request drops a superseded one
 before it runs. Lists carry `TicketSummary` and never the description. The board
 and the counts replace a total and a large limit. Events patch first and carry a
