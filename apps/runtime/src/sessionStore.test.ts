@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RuntimeSession } from "@trellis/runtime-protocol";
+import type {
+	RuntimeCaptureProducer,
+	RuntimeCaptureRequest,
+	RuntimeLaunchCaptureIdentity,
+	RuntimeSession,
+} from "@trellis/runtime-protocol";
 import type { RetainOptions } from "./retainExited.ts";
+import type { withCaptureSnapshot } from "./captureSnapshot";
 import { sessionFiles } from "./sessionFiles.ts";
 import { SessionStore } from "./sessionStore.ts";
 
@@ -69,5 +75,62 @@ test("the store keeps its exits inside the count it is given", () => {
 	seedExits();
 	const store = new SessionStore(home, "test", { ...keepEverything, maxExitedRecords: 50 });
 	expect([...store.entries({ status: "exited" })]).toHaveLength(50);
+	store.closeWatchers();
+});
+
+test("a capture callback excludes a mutation of the exact runtime attempt", async () => {
+	seedExit("captured");
+	const saved = JSON.parse(readFileSync(sessionFiles(home, "captured").session, "utf8"));
+	const launch: RuntimeLaunchCaptureIdentity = {
+		harness: "claude",
+		accountId: "account-1",
+		profileId: "profile-1",
+		agentRunId: "run-1",
+		attemptId: "captured",
+		providerScopePaths: ["/profiles/one"],
+		providerRoots: [],
+	};
+	saved.launch = { command: "true", args: [], cwd: "/tmp", capture: launch };
+	writeFileSync(sessionFiles(home, "captured").session, JSON.stringify(saved));
+	const entered = Promise.withResolvers<void>();
+	const release = Promise.withResolvers<void>();
+	const captureSnapshot: typeof withCaptureSnapshot = async (_runtimeHome, captureRequest, _records, action) => {
+		entered.resolve();
+		const value = await action({} as RuntimeCaptureProducer);
+		await release.promise;
+		return {
+			value,
+			finalization: {
+				receipt: {
+					schemaVersion: 1,
+					kind: "trellis-runtime-capture-finalization",
+					request: captureRequest,
+					requestSha256: "a".repeat(64),
+					outcome: "committed",
+					finalizedAt: "2026-09-30T00:00:00.000Z",
+				},
+				receiptBytes: "{}",
+			},
+		};
+	};
+	const store = new SessionStore(home, "test", keepEverything, captureSnapshot);
+	const request: RuntimeCaptureRequest = {
+		captureId: "capture-1",
+		snapshotId: "snapshot-1",
+		hostId: "host-1",
+		dataHomeId: "home-1",
+		generation: 1,
+		blockId: "block-1",
+		identities: [{ ...launch, providerSessionId: null }],
+	};
+	const capture = store.capture(request, async () => {
+		await release.promise;
+	});
+	await entered.promise;
+	expect(() => store.start({ id: "captured", command: "true", args: [], cwd: "/tmp", mode: "stdio" })).toThrow(
+		"held by a capture snapshot",
+	);
+	release.resolve();
+	await capture;
 	store.closeWatchers();
 });
