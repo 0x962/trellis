@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { RuntimeCaptureProducer } from "@trellis/runtime-protocol";
 import {
 	readRuntimeCaptureHold,
+	readRuntimeCaptureHolds,
 	withRuntimeMutationExclusion,
 } from "@trellis/runtime-protocol/mutation-exclusion";
 import { finalizeRuntimeCaptureHold } from "../captureHold.ts";
@@ -362,4 +363,48 @@ test("a failure after the last root seal retains the durable hold", async () => 
 	const finalization = await finalizeRuntimeCaptureHold(home, { request: input, outcome: "abandoned" });
 	expect(finalization.receipt.outcome).toBe("abandoned");
 	expect(readRuntimeCaptureHold(home, input.captureId)).toBeUndefined();
+});
+
+test("two lost capture requests leave only the acquired hold for recovery", async () => {
+	const firstRequest = { ...request([]), captureId: "capture-a" };
+	const secondRequest = { ...request([]), captureId: "capture-b" };
+	const firstController = new AbortController();
+	const secondController = new AbortController();
+	const firstEntered = Promise.withResolvers<void>();
+	let secondEntered = false;
+	const first = withCaptureSnapshot(
+		join(home, "runtime"),
+		firstRequest,
+		[],
+		async (producer) => {
+			firstEntered.resolve();
+			await new Promise<void>((resolve) => producer.signal.addEventListener("abort", () => resolve(), { once: true }));
+			throw producer.signal.reason;
+		},
+		firstController.signal,
+		dependencies,
+	);
+	await firstEntered.promise;
+	const second = withCaptureSnapshot(
+		join(home, "runtime"),
+		secondRequest,
+		[],
+		async () => {
+			secondEntered = true;
+		},
+		secondController.signal,
+		dependencies,
+	);
+	const firstFailure = expect(first).rejects.toThrow("first channel lost");
+	const secondFailure = expect(second).rejects.toThrow("second channel lost");
+	await Promise.resolve();
+	expect(readRuntimeCaptureHolds(home).map((hold) => hold.captureId)).toEqual(["capture-a"]);
+	secondController.abort(new Error("second channel lost"));
+	firstController.abort(new Error("first channel lost"));
+	await Promise.all([firstFailure, secondFailure]);
+	expect(secondEntered).toBe(false);
+	expect(readRuntimeCaptureHolds(home).map((hold) => hold.captureId)).toEqual(["capture-a"]);
+	const recovered = await finalizeRuntimeCaptureHold(home, { request: firstRequest, outcome: "abandoned" });
+	expect(recovered.receipt.outcome).toBe("abandoned");
+	expect(readRuntimeCaptureHolds(home)).toEqual([]);
 });
