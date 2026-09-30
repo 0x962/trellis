@@ -20,17 +20,22 @@ export async function captureTrellisAndSeal(ctx: IoCtx, input: TrellisSealInput)
 		metadata.compatibility.trellisDatabaseVersion !== expectedVersion.trellisDatabaseVersion)
 		throw new Error("paired_trellis_capture_binding_mismatch");
 	assertCaptureGate(ctx.home, input);
-	return captureTrellisSnapshotHeld(ctx, input, async (trellis) => {
+	return captureTrellisSnapshotHeld(ctx, input, async (trellis, signal) => {
+		signal.throwIfAborted();
 		await chmod(trellis.staging, 0o700);
-		await syncSnapshotTree(trellis.staging);
+		await syncSnapshotTree(trellis.staging, signal);
+		signal.throwIfAborted();
 		await rename(trellis.staging, join(input.directory, "trellis"));
 		await syncDirectory(dirname(trellis.staging));
 		await syncDirectory(input.directory);
+		signal.throwIfAborted();
 		const manifest = await sealSnapshot({
 			directory: input.directory,
+			signal,
 			metadata: { ...metadata, unavailable: [...metadata.unavailable, ...trellis.unavailable] },
 		});
-		const manifestBytes = await readFile(join(input.directory, manifestName), "utf8");
+		const manifestBytes = await readFile(join(input.directory, manifestName), { encoding: "utf8", signal });
+		signal.throwIfAborted();
 		if (!isDeepStrictEqual(JSON.parse(manifestBytes), manifest)) throw new Error("paired_seal_changed");
 		return { directory: input.directory, manifest, manifestBytes, manifestDigest: protocolDigest(manifestBytes), trellis };
 	});

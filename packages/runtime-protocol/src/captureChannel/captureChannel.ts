@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Socket } from "node:net";
 import type {
 	RuntimeCaptureAction,
@@ -8,6 +8,7 @@ import type {
 	RuntimeCaptureProducer,
 	RuntimeCaptureReadInput,
 	RuntimeCaptureRequest,
+	RuntimeCaptureResult,
 	RuntimeCaptureSealInput,
 } from "../capture.ts";
 import { RUNTIME_PROTOCOL_VERSION } from "../index.ts";
@@ -16,18 +17,35 @@ import { CaptureFrameDecoder, encodeCaptureFrame } from "../captureWire";
 const failure = (frame: Extract<RuntimeCaptureFrame, { type: "error" }>) =>
 	Object.assign(new Error(frame.message), { code: frame.code });
 
+const validateFinalization = (value: RuntimeCaptureResult<unknown>["finalization"], request: RuntimeCaptureRequest) => {
+	const receipt = JSON.parse(value.receiptBytes);
+	if (
+		JSON.stringify(receipt) !== JSON.stringify(value.receipt) ||
+		receipt.schemaVersion !== 1 ||
+		receipt.kind !== "trellis-runtime-capture-finalization" ||
+		JSON.stringify(receipt.request) !== JSON.stringify(request) ||
+		receipt.requestSha256 !== createHash("sha256").update(JSON.stringify(request)).digest("hex") ||
+		receipt.outcome !== "committed" ||
+		typeof receipt.finalizedAt !== "string" ||
+		!Number.isFinite(Date.parse(receipt.finalizedAt))
+	)
+		throw new Error("Runtime capture returned an invalid finalization receipt");
+};
+
 export async function withCaptureSnapshot<T>(
 	socketPath: string,
 	request: RuntimeCaptureRequest,
 	action: RuntimeCaptureAction<T>,
 	timeoutMs?: number,
 	signal?: AbortSignal,
-): Promise<T> {
+): Promise<RuntimeCaptureResult<T>> {
 	signal?.throwIfAborted();
 	const socket = new Socket();
 	const decoder = new CaptureFrameDecoder();
+	const lifetime = new AbortController();
 	let stopped: Error | undefined;
 	const stop = (error: Error) => {
+		if (!lifetime.signal.aborted) lifetime.abort(error);
 		stopped = error;
 		socket.destroy(error);
 	};
@@ -38,6 +56,12 @@ export async function withCaptureSnapshot<T>(
 	const connected = Promise.withResolvers<void>();
 	socket.once("connect", () => connected.resolve());
 	socket.once("error", (error) => connected.reject(error));
+	socket.once("close", () => {
+		if (!lifetime.signal.aborted) lifetime.abort(new Error("Runtime capture channel closed"));
+	});
+	socket.once("end", () => {
+		if (!lifetime.signal.aborted) lifetime.abort(new Error("Runtime capture channel ended"));
+	});
 	const frames = (async function* () {
 		for await (const chunk of socket) yield* decoder.push(chunk as Buffer);
 		if (stopped !== undefined) throw stopped;
@@ -53,7 +77,7 @@ export async function withCaptureSnapshot<T>(
 		operationSignal?.addEventListener("abort", operationAbort, { once: true });
 		try {
 			const result = await iterator.next();
-			if (result.done) throw new Error("Runtime capture channel closed before release");
+			if (result.done) throw new Error("Runtime capture channel closed before finalization");
 			if (result.value.type === "error") throw failure(result.value);
 			return result.value;
 		} finally {
@@ -123,14 +147,16 @@ export async function withCaptureSnapshot<T>(
 		});
 		const opened = await next(signal);
 		if (opened.type !== "binding") throw new Error("Runtime capture did not return a binding");
-		const producer: RuntimeCaptureProducer = { binding: opened.binding, inventory, read, seal };
+		const producer: RuntimeCaptureProducer = { binding: opened.binding, signal: lifetime.signal, inventory, read, seal };
 		const result = await action(producer);
 		if (operation !== undefined) throw new Error("A runtime capture operation is still active");
-		await write({ type: "release" });
-		const released = await next(signal);
-		if (released.type !== "released") throw new Error("Runtime capture did not confirm release");
+		producer.signal.throwIfAborted();
+		await write({ type: "finalize", outcome: "committed" });
+		const finalized = await next(signal);
+		if (finalized.type !== "finalized") throw new Error("Runtime capture did not confirm finalization");
+		validateFinalization(finalized.finalization, request);
 		socket.end();
-		return result;
+		return { value: result, finalization: finalized.finalization };
 	} finally {
 		signal?.removeEventListener("abort", abort);
 		socket.destroy();

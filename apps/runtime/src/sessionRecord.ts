@@ -9,7 +9,7 @@ export type SessionRecord = {
 	session: RuntimeSession;
 	fingerprint: string | null;
 	identity: string | null;
-	launch: Pick<LaunchSpec, "command" | "args" | "cwd" | "capture"> | null;
+	launch: Pick<LaunchSpec, "command" | "args" | "cwd" | "capture" | "writerScopes"> | null;
 	listeners: Set<() => void>;
 	watchedPids: Set<number>;
 	tokenHash: Buffer | null;

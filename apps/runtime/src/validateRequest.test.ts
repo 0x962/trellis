@@ -134,7 +134,18 @@ test("accepts retained launch capture identity and a capture request", () => {
 		id: "request",
 		version: RUNTIME_PROTOCOL_VERSION,
 		method: "start",
-		params: { id: "attempt-1", command: "true", args: [], cwd: "/tmp", mode: "stdio", capture },
+		params: {
+			id: "attempt-1",
+			command: "true",
+			args: [],
+			cwd: "/tmp",
+			mode: "stdio",
+			capture,
+			writerScopes: [
+				{ kind: "workspace", directory: "/tmp" },
+				{ kind: "provider", directory: "/profiles/one" },
+			],
+		},
 	};
 	expect(validateRequest(start) === start).toBe(true);
 	const snapshot = {
@@ -152,6 +163,15 @@ test("accepts retained launch capture identity and a capture request", () => {
 		},
 	};
 	expect(validateRequest(snapshot) === snapshot).toBe(true);
+	const empty = { ...snapshot, params: { ...snapshot.params, identities: [] } };
+	expect(validateRequest(empty) === empty).toBe(true);
+	const finalize = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "finalizeCapture",
+		params: { request: empty.params, outcome: "abandoned" },
+	};
+	expect(validateRequest(finalize) === finalize).toBe(true);
 });
 
 test("rejects invalid retained conversation roots", () => {

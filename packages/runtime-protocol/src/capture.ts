@@ -27,6 +27,11 @@ export type RuntimeLaunchCaptureIdentity = Omit<RuntimeCaptureIdentity, "provide
 	providerRoots: RuntimeLaunchCaptureProviderRoot[];
 };
 
+export type RuntimeLaunchWriterScope = {
+	kind: "workspace" | "provider" | "repository";
+	directory: string;
+};
+
 export type RuntimeCaptureRequest = {
 	captureId: string;
 	snapshotId: string;
@@ -130,8 +135,33 @@ export type RuntimeCaptureSealReceipt = {
 	manifestSha256: string;
 };
 
+export type RuntimeCaptureFinalizeInput = {
+	request: RuntimeCaptureRequest;
+	outcome: "committed" | "abandoned";
+};
+
+export type RuntimeCaptureFinalizationReceipt = {
+	schemaVersion: 1;
+	kind: "trellis-runtime-capture-finalization";
+	request: RuntimeCaptureRequest;
+	requestSha256: string;
+	outcome: RuntimeCaptureFinalizeInput["outcome"];
+	finalizedAt: string;
+};
+
+export type RuntimeCaptureFinalization = {
+	receipt: RuntimeCaptureFinalizationReceipt;
+	receiptBytes: string;
+};
+
+export type RuntimeCaptureResult<T> = {
+	value: T;
+	finalization: RuntimeCaptureFinalization;
+};
+
 export type RuntimeCaptureProducer = {
 	binding: RuntimeCaptureBinding;
+	signal: AbortSignal;
 	inventory: (binding: RuntimeCaptureBinding, signal?: AbortSignal) => Promise<RuntimeCaptureInventory>;
 	read: (input: RuntimeCaptureReadInput, signal?: AbortSignal) => AsyncIterable<Uint8Array>;
 	seal: (input: RuntimeCaptureSealInput, signal?: AbortSignal) => Promise<Uint8Array>;
@@ -148,6 +178,6 @@ export type RuntimeCaptureFrame =
 	| { type: "end" }
 	| { type: "seal"; input: RuntimeCaptureSealInput }
 	| { type: "receipt"; receipt: Uint8Array }
-	| { type: "release" }
-	| { type: "released" }
+	| { type: "finalize"; outcome: "committed" }
+	| { type: "finalized"; finalization: RuntimeCaptureFinalization }
 	| { type: "error"; code: string; message: string };
