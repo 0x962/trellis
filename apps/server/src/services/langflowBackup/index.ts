@@ -24,6 +24,7 @@ export { readTrellisSnapshotVersion } from "./readTrellisSnapshotVersion";
 export { assertRestoreReconciled } from "./recoveryBlock";
 export { restorePairedArchive } from "./restorePairedArchive";
 export { restorePairedSnapshot } from "./restorePairedSnapshot";
+export { readRestoredNativeSnapshots, type RestoredNativeSnapshotsResult, type RestoreNativeSnapshotsInput, restoreNativeSnapshots } from "./restoreNativeSnapshots";
 export { type RestoreContext, restoreSnapshot } from "./restoreSnapshot";
 export { sealSnapshot } from "./sealSnapshot";
 export { type PairedArchiveSnapshot, withPairedArchive } from "./withPairedArchive";
