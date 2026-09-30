@@ -38,37 +38,44 @@ test("a failed first read stays unavailable until a retry returns the human appr
 	function Probe() {
 		const query = useQuery({ ...options, enabled: false });
 		const verdict = useLocalReviewVerdict(query.data);
-		retry = async () => { await query.refetch(); };
-		markup = () => renderToStaticMarkup(
-			<>
-				<ReviewIdentity
-					pr={approval.url}
-					revision={null}
-					pullRequest={{ state: "OPEN" }}
-					isQueued={false}
-					linkedPr={null}
-					localState="ready"
-					locallyApproved={verdict === undefined ? null : verdict === "approved"}
-					onAction={() => void retry()}
-				/>
-				<ReviewNotices
-					pr={approval.url}
-					hasRevision={false}
-					metadata={undefined}
-					metadataError={null}
-					statusError={null}
-					refreshError={null}
-					threadsError={null}
-					submissionsError={query.isError ? query.error.message : null}
-					retrySubmissions={() => void retry()}
-				/>
-			</>,
-		);
+		retry = async () => {
+			await query.refetch();
+		};
+		markup = () =>
+			renderToStaticMarkup(
+				<>
+					<ReviewIdentity
+						pr={approval.url}
+						revision={null}
+						pullRequest={{ state: "OPEN" }}
+						isQueued={false}
+						linkedPr={null}
+						localState="ready"
+						locallyApproved={verdict === undefined ? null : verdict === "approved"}
+						onAction={() => void retry()}
+					/>
+					<ReviewNotices
+						pr={approval.url}
+						hasRevision={false}
+						metadata={undefined}
+						metadataError={null}
+						statusError={null}
+						refreshError={null}
+						threadsError={null}
+						submissionsError={query.isError ? query.error.message : null}
+						retrySubmissions={() => void retry()}
+					/>
+				</>,
+			);
 		return null;
 	}
 	const root = createRoot();
 	await act(async () => {
-		root.render(<QueryClientProvider client={queryClient}><Probe /></QueryClientProvider>);
+		root.render(
+			<QueryClientProvider client={queryClient}>
+				<Probe />
+			</QueryClientProvider>,
+		);
 	});
 	await act(async () => {
 		await expect(queryClient.fetchQuery(options)).rejects.toThrow("Submission read failed");

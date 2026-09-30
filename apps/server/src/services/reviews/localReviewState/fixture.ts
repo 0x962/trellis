@@ -12,8 +12,8 @@ import { prs } from "../prs.ts";
 import { submit } from "../remote.ts";
 import { status } from "../status.ts";
 
-export async function localReviewFixture() {
-	const db = await openTestDb();
+export async function localReviewFixture(database?: Awaited<ReturnType<typeof openTestDb>>) {
+	const db = database ?? (await openTestDb());
 	const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 	const events: TrellisEvent[] = [];
 	let clock = Date.parse("2026-09-29T20:00:00Z");

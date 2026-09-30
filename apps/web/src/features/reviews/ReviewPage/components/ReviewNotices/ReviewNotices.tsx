@@ -26,11 +26,21 @@ export function ReviewNotices({
 	return (
 		<div className="review-notices">
 			{hasRevision && <ReviewStack pr={pr} meta={metadata} error={metadataError} />}
-			{statusError !== null && <p role="alert" className="review-notice">GitHub status: {statusError}</p>}
-			{refreshError !== null && (
-				<p role="alert" className="review-error">{refreshError}. Local comments remain available.</p>
+			{statusError !== null && (
+				<p role="alert" className="review-notice">
+					GitHub status: {statusError}
+				</p>
 			)}
-			{threadsError !== null && <p role="alert" className="review-error">{threadsError}</p>}
+			{refreshError !== null && (
+				<p role="alert" className="review-error">
+					{refreshError}. Local comments remain available.
+				</p>
+			)}
+			{threadsError !== null && (
+				<p role="alert" className="review-error">
+					{threadsError}
+				</p>
+			)}
 			{submissionsError !== null && (
 				<div role="alert" className="review-error">
 					Local review: {submissionsError}
