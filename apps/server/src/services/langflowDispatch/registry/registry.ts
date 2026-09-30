@@ -1,3 +1,4 @@
+import { reconcileHostControl } from "../../../langflowHost";
 import * as agentTerminal from "../../agentRuns/terminal.ts";
 import * as flowDocuments from "../../flowDocuments";
 import { decide as decideFlowExecution } from "../../flowExecutions/decide.ts";
@@ -26,6 +27,7 @@ export const flowServices = {
 	"flowDocuments.action": prepared("mutation", documentAction, agentTerminal.result),
 	"langflowClocks.reserveGroupDeadline": io("mutation", reserveObservedGroupDeadline),
 	"langflowHost.executions": io("read", authorityExecutions),
+	"langflowHost.reconcile": prepared("mutation", reconcileHostControl, agentTerminal.result),
 	"langflowStart.state": core("mutation", startState),
 	"langflowDecisions.state": core("mutation", decisionState),
 	"langflowStops.state": core("mutation", stopState),
