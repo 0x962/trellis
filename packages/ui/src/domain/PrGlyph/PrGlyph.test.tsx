@@ -6,7 +6,7 @@ test("a locally ready pull request draws the open glyph in blue", () => {
 	const html = renderToStaticMarkup(<PrGlyph state="open" askedForReview />);
 
 	expect(html).toContain('data-pr-glyph="open"');
-	expect(html).toContain("text-label-blue");
+	expect(html).toContain("text-pr-ready");
 	expect(html).toContain("Ready for review");
 });
 

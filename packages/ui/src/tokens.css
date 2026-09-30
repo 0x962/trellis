@@ -40,6 +40,7 @@
 	--accent-soft: #EDEDEF;
 	--agent: #693ACF;
 	--agent-soft: #EFE8FB;
+	--pr-ready: #0969DA;
 	--success: #097F34;
 	--success-soft: #E3F8EA;
 	--check-ribbon-pass: #5DA873;
@@ -193,6 +194,7 @@
 		--accent-soft: #2A2A2C;
 		--agent: #9D6AFB;
 		--agent-soft: #24183F;
+		--pr-ready: #388BFD;
 		--success: #5ECC71;
 		--success-soft: #10301A;
 		--check-ribbon-pass: #4F9B5B;
@@ -294,6 +296,7 @@
 	--accent-soft: #2A2A2C;
 	--agent: #9D6AFB;
 	--agent-soft: #24183F;
+	--pr-ready: #388BFD;
 	--success: #5ECC71;
 	--success-soft: #10301A;
 	--check-ribbon-pass: #4F9B5B;
@@ -404,6 +407,7 @@
 	--color-accent-soft: var(--accent-soft);
 	--color-agent: var(--agent);
 	--color-agent-soft: var(--agent-soft);
+	--color-pr-ready: var(--pr-ready);
 	--color-success: var(--success);
 	--color-success-soft: var(--success-soft);
 	--color-check-ribbon-pass: var(--check-ribbon-pass);

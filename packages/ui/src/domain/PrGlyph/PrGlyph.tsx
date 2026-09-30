@@ -36,7 +36,7 @@ type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
 const looks = {
-	open: { label: "Ready for review", tone: "text-label-blue", Icon: GitPullRequestIcon },
+	open: { label: "Ready for review", tone: "text-pr-ready", Icon: GitPullRequestIcon },
 	"not-ready": {
 		label: "Not ready for review",
 		tone: "text-fg-muted",
