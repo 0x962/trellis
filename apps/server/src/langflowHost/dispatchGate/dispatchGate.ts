@@ -1,8 +1,7 @@
-import { realpathSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
+import { DispatchClosure } from "../dispatchClosure";
 import { DispatchEffects } from "../dispatchEffects";
 import type { BlockReason, DispatchBlock, DispatchEvidence } from "./contracts";
-import { waitForDrain } from "./drain/drain";
 import { ReconciliationReceiptSchema } from "./store/schema";
 import { DispatchStore } from "./store/store";
 
@@ -38,44 +37,16 @@ export class DispatchGate extends DispatchEffects {
 		return { dataHomeId: state.dataHomeId, generation: state.generation };
 	}
 
-	closeDispatch(input: { requestId: string; reason: BlockReason }): DispatchBlock {
-		const reason = structuredClone(input.reason);
-		if (reason.kind === "restore") {
-			reason.directory = realpathSync(reason.directory);
-			if (this.store.directory === reason.directory || this.store.directory.startsWith(`${reason.directory}/`)) {
-				throw new Error("dispatch_control_inside_restore");
-			}
-		}
-		return this.store.mutate((state) => {
-			if (state.reconciliations.some((receipt) => receipt.block.requestId === input.requestId)) {
-				throw new Error("dispatch_block_already_reconciled");
-			}
-			if (state.block) {
-				if (state.block.requestId !== input.requestId || !isDeepStrictEqual(state.block.reason, reason)) {
-					throw new Error("dispatch_block_conflict");
-				}
-				return structuredClone(state.block);
-			}
-			state.generation += 1;
-			state.block = {
-				id: crypto.randomUUID(),
-				dataHomeId: state.dataHomeId,
-				generation: state.generation,
-				requestId: input.requestId,
-				reason,
-			};
-			return structuredClone(state.block);
-		});
+	closeDispatch(input: { requestId: string; reason: BlockReason }) {
+		return new DispatchClosure(this.store).closeDispatch(input);
 	}
 
 	waitForDrain(block: DispatchBlock, signal?: AbortSignal) {
-		return waitForDrain(this.store, block, signal);
+		return new DispatchClosure(this.store).waitForDrain(block, signal);
 	}
 
-	async blockDispatch(input: { requestId: string; reason: BlockReason; signal?: AbortSignal }) {
-		const block = this.closeDispatch(input);
-		await this.waitForDrain(block, input.signal);
-		return block;
+	blockDispatch(input: { requestId: string; reason: BlockReason; signal?: AbortSignal }) {
+		return new DispatchClosure(this.store).blockDispatch(input);
 	}
 
 	async reconcile(block: DispatchBlock, receiptId: string) {
