@@ -39,7 +39,8 @@ jobs:
           storybook_pid=$!
           trap 'kill "$storybook_pid"; wait "$storybook_pid" || true' EXIT
           curl --fail --silent --output /dev/null --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:6006/index.json
-          STORYBOOK_RESULTS=storybook-results.json bun run storybook:test
+          STORYBOOK_RESULTS="$GITHUB_WORKSPACE/storybook-results.json" bun run storybook:test
+          test -s storybook-results.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
