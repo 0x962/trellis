@@ -114,6 +114,7 @@ export async function provisionStorage(
 		engineApiConfigFile: string | null;
 		nativeReservationAuthenticationFile: string;
 		storage: StorageNames;
+		preservedSecret?: { sha256: string; size: number };
 	},
 ) {
 	const result = await run([
@@ -156,13 +157,14 @@ export async function provisionStorage(
 		"/bin/sh",
 		input.image,
 		"-c",
-		storageProvisionScript,
+		storageProvisionScript(input.preservedSecret),
 	]);
 	if (result.exitCode !== 0) throw new Error("sidecar_storage_provision_failed");
 }
 
-const storageProvisionScript = [
+const storageProvisionScript = (preservedSecret?: { sha256: string; size: number }) => [
 	"set -eu",
+	...(preservedSecret ? [verifyRestoredSecret(preservedSecret)] : []),
 	"install -d -o 10001 -g 10001 -m 0700 /engine /engine/config /secrets",
 	"install -o 10001 -g 10001 -m 0600 /input/authentication /secrets/authentication",
 	"install -o 10001 -g 10001 -m 0600 /input/capture-issuer /secrets/capture-issuer",
@@ -172,9 +174,29 @@ const storageProvisionScript = [
 	"rm -f /secrets/engine-api.json",
 	"fi",
 	"install -o 10001 -g 10001 -m 0600 /input/native-reservations /secrets/native-reservations.token",
+	...(preservedSecret ? [verifyRestoredSecret(preservedSecret)] : [
 	"if [ ! -s /secrets/engine-secret ]; then",
 	"python -c 'from pathlib import Path; from secrets import token_urlsafe; Path(\"/secrets/engine-secret\").write_text(token_urlsafe(48))'",
 	"chown 10001:10001 /secrets/engine-secret",
 	"chmod 0400 /secrets/engine-secret",
 	"fi",
+	]),
 ].join("\n");
+
+function verifyRestoredSecret(expected: { sha256: string; size: number }) {
+	if (!/^[a-f0-9]{64}$/.test(expected.sha256) || !Number.isSafeInteger(expected.size) || expected.size <= 0)
+		throw new Error("restored_secret_binding_invalid");
+	const source = [
+		"import os,stat,hashlib",
+		"fd=os.open(\"/secrets/engine-secret\",os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)",
+		"info=os.fstat(fd)",
+		'if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1:\n raise RuntimeError("restored_secret_unsafe")',
+		'if (info.st_uid,info.st_gid,stat.S_IMODE(info.st_mode))!=(10001,10001,0o400):\n raise RuntimeError("restored_secret_mode_conflict")',
+		"digest=hashlib.sha256()",
+		"size=0",
+		"while chunk := os.read(fd,1024*1024):\n digest.update(chunk)\n size+=len(chunk)",
+		`if digest.hexdigest()!="${expected.sha256}" or size!=${expected.size}:\n raise RuntimeError("restored_secret_bytes_changed")`,
+		"os.close(fd)",
+	].join("\n");
+	return `python -I -B -c '${source}'`;
+}

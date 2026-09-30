@@ -7,6 +7,9 @@ import { type HomeLock, lockHome } from "../../homeLock";
 import { protocolDigest } from "../../langflowContracts";
 import { ExecutionAuthority, type RenewalInput, type TakeoverInput } from "../authority";
 import type { LiveOwnership, SidecarIdentity, SupervisorDependencies } from "../contracts";
+import { restoreStartupRequired } from "../restoredStartup/components/context";
+import type { RestoredEngineStartup } from "../restoredStartup";
+import { assertRestoredReservation, type RestoredStartScope } from "../restoredStartup/withRestoredEngineStart";
 import { PrivateState } from "../privateState";
 import { authenticateEngine } from "./components/authenticateEngine";
 
@@ -24,11 +27,12 @@ export class LangflowSupervisor {
 		private readonly hostId: string,
 		private readonly manifest: LangflowSidecarManifestV1,
 		private readonly deps: SupervisorDependencies,
+		private readonly restoredStartup?: RestoredEngineStartup,
 	) {
 		this.authority = new ExecutionAuthority(deps.authority);
 	}
 
-	static async open(input: { home: string; hostId: string; manifest: unknown; dependencies: SupervisorDependencies }) {
+	static async open(input: { home: string; hostId: string; manifest: unknown; dependencies: SupervisorDependencies; restoredStartup?: RestoredEngineStartup }) {
 		const manifest = LangflowSidecarManifestV1Schema.parse(input.manifest);
 		if (
 			manifest.target.kind !== "linux-oci" ||
@@ -38,13 +42,16 @@ export class LangflowSupervisor {
 			throw new Error("sidecar_package_not_approved");
 		const state = await PrivateState.open(input.home);
 		const lock = lockHome(state.lockDirectory, "server", null);
-		return new LangflowSupervisor(state, lock, input.hostId, manifest, input.dependencies);
+		return new LangflowSupervisor(state, lock, input.hostId, manifest, input.dependencies, input.restoredStartup);
 	}
 
 	async start() {
 		return this.exclusive(async () => {
 			if (this.identity) throw new Error("sidecar_already_started");
+			if (restoreStartupRequired(this.state.home) && !this.restoredStartup)
+				throw new Error("restored_startup_receipt_required");
 			const previous = await this.state.read();
+			if (this.restoredStartup && previous) throw new Error("restored_startup_process_present");
 			if (previous) {
 				await this.retire(previous);
 			}
@@ -55,16 +62,30 @@ export class LangflowSupervisor {
 				instanceId: crypto.randomUUID(),
 				manifestDigest: protocolDigest(JSON.stringify(this.manifest)),
 			};
-			await this.state.reserve(identity);
-			this.identity = identity;
-			await this.deps.driver.start({
-				identity,
-				manifest: this.manifest,
-				dataDirectory: this.state.dataDirectory,
-				authenticationFile: this.state.authenticationFile(identity),
-				...(await this.state.nativeReservationAuthentication(identity)),
-			});
-			return this.live(identity);
+			const launch = async (restoredStartup?: RestoredStartScope) => {
+				if (this.restoredStartup) {
+					if (!restoredStartup) throw new Error("restored_startup_scope_required");
+					assertRestoredReservation(restoredStartup, identity, this.manifest, this.state.home);
+				}
+				await this.state.reserve(identity);
+				this.identity = identity;
+				await this.deps.driver.start({
+					restoredStartup,
+					identity,
+					manifest: this.manifest,
+					dataDirectory: this.state.dataDirectory,
+					authenticationFile: this.state.authenticationFile(identity),
+					...(await this.state.nativeReservationAuthentication(identity)),
+				});
+				return this.live(identity);
+			};
+			if (this.restoredStartup) {
+				if (!this.deps.driver.withRestoredStart) throw new Error("restored_startup_driver_required");
+				return this.deps.driver.withRestoredStart({
+					startup: this.restoredStartup, supervisorLock: this.lock, identity, manifest: this.manifest,
+				}, launch);
+			}
+			return launch();
 		});
 	}
 
