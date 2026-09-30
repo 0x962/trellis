@@ -127,7 +127,7 @@ export const Row = memo(function Row({
 		project: <ProjectCell projectKey={ticket.project.key} viewedProject={viewedProject} />,
 		waits: <WaitsCell waitsOn={ticket.waitsOn} ready={ticket.ready} />,
 		releases: <ReleasesCell releases={ticket.releases} />,
-		actor: <ActorAvatar ticketId={ticket.id} />,
+		actor: <ActorAvatar ticket={ticket} />,
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,

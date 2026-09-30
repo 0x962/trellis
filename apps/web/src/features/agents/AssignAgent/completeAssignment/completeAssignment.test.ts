@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory } from "@tanstack/react-router";
 import type { AgentRun, AgentRunListOutput } from "@trellis/api";
-import { pageSheetActions, usePageSheetStore } from "../../../../../../stores/pageSheetStore";
+import { pageSheetActions, usePageSheetStore } from "../../../../stores/pageSheetStore";
 import { completeAssignment } from "./completeAssignment";
 
 const ticketRuns = ["agentRuns", "list", { ticket: "TRL-481" }] as const;

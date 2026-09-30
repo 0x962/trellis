@@ -8,7 +8,7 @@ import {
 	MODEL_CATALOG,
 	supportsModel,
 } from "@trellis/api";
-import { harnessLabel, type NativePreset } from "../../../../harnessPresets";
+import { harnessLabel, type NativePreset } from "../../harnessPresets";
 
 // One agent choice: the four values `agentRuns.start` takes. A null model
 // means the default model of the harness, a null effort means the harness

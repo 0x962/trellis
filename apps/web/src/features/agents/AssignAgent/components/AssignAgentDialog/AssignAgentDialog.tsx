@@ -1,9 +1,9 @@
 import { effortForHarness, HARNESS_DEFAULT_MODELS, type HarnessEffort } from "@trellis/api";
 import { Button, ChoiceBoxes, Dialog, Field, ProviderIcon, Select } from "@trellis/ui";
 import { type RefObject, useState } from "react";
-import { harnessPresets, type NativePreset } from "../../../../../harnessPresets";
-import { ModelPicker } from "../../../../../ModelPicker";
-import { modelProviderOf } from "../../../../../modelProviderOf";
+import { harnessPresets, type NativePreset } from "../../../harnessPresets";
+import { ModelPicker } from "../../../ModelPicker";
+import { modelProviderOf } from "../../../modelProviderOf";
 import { type AssignAccounts, type AssignChoice, modelIdOf, withoutLostValues } from "../../assignChoice";
 
 const DEFAULT_ACCOUNT = "default";
