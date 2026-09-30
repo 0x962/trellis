@@ -37,7 +37,6 @@ import {
 	touchTicket,
 	writeActivity,
 } from "./support.ts";
-import { completeMergedPullRequestTickets } from "./tickets/completeMergedPullRequests.ts";
 
 // One pull request is one row, whatever number of tickets link it. The link
 // row carries the actor who linked it. A new link by an agent sets the local
@@ -235,7 +234,6 @@ export const refresh = async (ctx: IoCtx, tx: Tx, input: PreparedRefresh): Promi
 	if (first.row.contentHash === row.content_hash) {
 		await tx.execute(sql`UPDATE pull_requests SET fetched_at = ${at}, fetch_error = NULL WHERE id = ${row.id}`);
 		const refreshed = await findPullRequestRow(tx, row.id);
-		await completeMergedPullRequestTickets(ctx.core, tx, { pullRequestId: row.id });
 		return toPullRequest(refreshed);
 	}
 	await writeFetched(tx, at, first.row);
@@ -247,7 +245,6 @@ export const refresh = async (ctx: IoCtx, tx: Tx, input: PreparedRefresh): Promi
 		state: fresh.state,
 		ciState: fresh.ci_state,
 	});
-	await completeMergedPullRequestTickets(ctx.core, tx, { pullRequestId: fresh.id });
 	return toPullRequest(fresh);
 };
 

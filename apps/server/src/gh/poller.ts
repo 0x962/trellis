@@ -2,7 +2,6 @@ import type { GhReason, TrellisEvent } from "@trellis/api";
 import { type ServiceCtx, SYSTEM_ACTOR } from "../context.ts";
 import type { ProjectCache } from "../db/cache.ts";
 import { withTx } from "../db/tx.ts";
-import { completeMergedPullRequestTickets } from "../services/tickets/completeMergedPullRequests.ts";
 import { fetchPullRequests } from "./graphql.ts";
 import { type DueRow, isDue, refOf, selectCandidates } from "./pollerDue.ts";
 import { noticePullRequests } from "./pollerNotices.ts";
@@ -183,7 +182,6 @@ const tick = async (hook: PollerHook, state: PollerState) => {
 	await readBudget(hook, state, atMs);
 	await pollDue(hook, state, at);
 	await noticePullRequests(hook.db, hook.gh, at, hook.log);
-	await withTx(hook.db, (tx, emit) => completeMergedPullRequestTickets(serviceCtx(hook, emit, at), tx), hook.sink);
 };
 
 export const start = (hook: PollerHook): PollerHandle => {
