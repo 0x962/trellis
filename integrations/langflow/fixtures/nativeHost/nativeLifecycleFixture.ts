@@ -99,9 +99,10 @@ export async function nativeLifecycleFixture(flow: { nodes: FlowNode[]; edges: F
 			throw new Error("unbound_native_claim");
 		return startNative(ctx, claim, {
 			workspace: async () => home,
+			commonDirectory: async () => home,
 			runtime: async () => processes.client() as never,
 			guide: async () => "Run the deterministic native lifecycle fixture.",
-			env: {},
+			env: { HOME: home, CODEX_HOME: join(home, "synthetic-profile") },
 		});
 	};
 	const observe = (_ctx: FlowCtx, run: LaunchRun): Promise<HarnessSnapshot | null> =>

@@ -96,8 +96,9 @@ const launch = async (runId: string, prompt?: string) => {
 		},
 		{
 			workspace: async () => home,
+			commonDirectory: async () => home,
 			runtime: async () => client,
-			env: {},
+			env: { HOME: home },
 			...(prompt === undefined ? {} : { guide: async () => prompt }),
 		},
 	);

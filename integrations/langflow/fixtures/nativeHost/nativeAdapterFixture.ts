@@ -108,6 +108,7 @@ export async function openNativeAdapterFixture(home: string) {
 	};
 	const deps: Parameters<typeof requestNativeAttempt>[2] = {
 		workspace: async () => home,
+		commonDirectory: async () => home,
 		runtime: async () => processes.client() as never,
 		guide: async () => "Return the exact fixture result.",
 		env: { CODEX_HOME: join(home, "unused-provider-profile") },

@@ -24,6 +24,7 @@ describe("native workspace", () => {
 		roots.push(root);
 		const source = join(root, "source");
 		await mkdir(source);
+		await mkdir(join(source, ".git"));
 		const environment = { PATH: "/usr/bin:/bin" };
 		const gitEnvironments: NodeJS.ProcessEnv[] = [];
 
@@ -31,6 +32,7 @@ describe("native workspace", () => {
 			environment: async () => environment,
 			exec: async (_file, args, options) => {
 				gitEnvironments.push(options.env);
+				if (args.includes("--git-common-dir")) return { stdout: `${source}/.git\n` };
 				if (args.includes("--symbolic-full-name")) return { stdout: "refs/heads/main\n" };
 				if (args.includes("HEAD")) return { stdout: "abc123\n" };
 				if (args.includes("rev-parse") && args.some((arg) => arg.startsWith("refs/heads/")))

@@ -24,9 +24,9 @@ test.each(["codex", "claude", "pi", "muse", "opencode"] as const)("exports exact
 	expect(await readFile(join(directory, "files/0"))).toEqual(Buffer.from(f.bytes));
 	const manifestBytes = await readFile(join(directory, "manifest.json"));
 	expect(createHash("sha256").update(manifestBytes).digest("hex")).toBe(result.manifestSha256);
-	const receiptBytes = await readFile(join(directory, "capture-receipt.json"), "utf8");
+	const receiptBytes = await readFile(join(directory, "capture-receipt-0.json"), "utf8");
 	expect(receiptBytes.startsWith(" ")).toBe(true);
-	expect(createHash("sha256").update(receiptBytes).digest("hex")).toBe(result.receiptSha256);
+	expect(createHash("sha256").update(receiptBytes).digest("hex")).toBe(result.receipts[0]!.sha256);
 	expect((await stat(directory)).mode & 0o777).toBe(0o700);
 	expect((await stat(join(directory, "manifest.json"))).mode & 0o777).toBe(0o600);
 	expect((await stat(join(directory, "files/0"))).mode & 0o777).toBe(0o600);
@@ -41,6 +41,30 @@ test("the real host refuses export without a capture producer", async () => {
 		state: "unavailable", reason: "consistency_unavailable",
 	});
 	expect(existsSync(directory)).toBe(false);
+});
+
+test("retains active and archived roots with separate exact receipts", async () => {
+	const f = conversationFixture();
+	f.binding.roots.push({ ...f.binding.roots[0]!, rootId: "archived-root" });
+	const reader = {
+		...f.reader,
+		async inventory() {
+			const value = await f.reader.inventory(f.binding);
+			value.entries.push({ ...value.entries[0]!, rootId: "archived-root" });
+			return value;
+		},
+	};
+	const directory = join(await temporary("trellis-conversation-multi-root-"), "archive");
+	const result = await exportConversation(reader, { binding: f.binding, identity: f.identity, directory, signal: signal() });
+	if (result.state !== "exported") throw new Error("fixture_export_unavailable");
+	expect(result.manifest.files.map((file) => file.rootId)).toEqual([f.inventory.rootId, "archived-root"]);
+	expect(result.receipts).toHaveLength(2);
+	for (const receipt of result.receipts) {
+		const bytes = await readFile(join(directory, receipt.path));
+		expect(createHash("sha256").update(bytes).digest("hex")).toBe(receipt.sha256);
+		expect(JSON.parse(bytes.toString()).rootId).toBe(receipt.rootId);
+	}
+	expect(await readFile(join(directory, "files/1"))).toEqual(Buffer.from(f.bytes));
 });
 
 test("missing, ambiguous, unsupported, and linked content stays unavailable", () => {
