@@ -866,7 +866,8 @@ The runtime checks the resumed provider session identifier before it accepts the
 `agentRuns.switchAccount` stops a native process and resumes its saved conversation with another account of the same harness.
 The procedure also resumes exited processes and sessions without a project. It checks the account and attempt before it stops the process.
 The session page and session sheet share the Switch account picker. It shows account quotas and requires confirmation before the switch.
-The session shows the latest successful switch from the saved request record. A repeated request does not restart the process again.
+The account picker marks the selected account. The saved request record retains switch history.
+A repeated request does not restart the process again.
 The CLI command is `trellis agents account <id> --account <id>`. The command authorizes interruption of the active turn.
 ### Agent observations
 
