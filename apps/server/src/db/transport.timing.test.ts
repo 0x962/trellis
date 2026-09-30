@@ -84,13 +84,13 @@ test("HTTP timings sum preparation, guard, final, and cleanup transactions but e
 		},
 		async (_ctx, tx) => {
 			await query(tx, 5);
-			return [];
+			return { items: [], nextCursor: null };
 		},
 	);
 	const { app } = createApp({ config, log, bus, runtime, transport: transport() });
 	const response = await app.request("http://localhost/api/agent-runs");
 	expect(response.status).toBe(200);
-	expect(await response.json()).toEqual([]);
+	expect(await response.json()).toEqual({ items: [], nextCursor: null });
 	expect(response.headers.get("server-timing")).toBe("db;dur=534.00, lock;dur=28.00, queue;dur=0.00");
 	expect(lines.find((line) => line.msg === "request")).toMatchObject({ ms: 2562, dbMs: 534, lockMs: 28, queueMs: 0 });
 	expect(lines.filter((line) => line.msg === "long transaction")).toEqual([
