@@ -233,7 +233,9 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the epic actions `Menu`.
+The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
+The share commands retain the current filters and the epic scope.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
 New wave adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.

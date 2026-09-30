@@ -1,5 +1,6 @@
 import { DotsThree, PencilSimple, Plus, RowsPlusBottom, Trash } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
+import type { MenuItem } from "@trellis/ui";
 import { TopbarActionButton, TopbarActionMenu } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 import { EpicCreateActions } from "../EpicCreateActions";
@@ -22,6 +23,7 @@ export type EpicTopbarActionsProps = {
 	// write to it.
 	readOnly: boolean;
 	waveEditing: WaveEditing;
+	shareItems: readonly MenuItem[];
 	onAddTicket: (ticket: TicketSummary) => void;
 	onEdit: () => void;
 	onDelete: () => void;
@@ -37,6 +39,7 @@ export function EpicTopbarActions({
 	epic,
 	readOnly,
 	waveEditing,
+	shareItems,
 	onAddTicket,
 	onEdit,
 	onDelete,
@@ -69,6 +72,7 @@ export function EpicTopbarActions({
 					label={`Actions for ${epic.name}`}
 					triggerTooltip="Epic actions"
 					items={[
+						...shareItems,
 						{ label: "Edit", icon: <PencilSimple />, disabled: readOnly, onSelect: onEdit },
 						{ label: "Delete…", icon: <Trash />, danger: true, disabled: readOnly, onSelect: onDelete },
 					]}

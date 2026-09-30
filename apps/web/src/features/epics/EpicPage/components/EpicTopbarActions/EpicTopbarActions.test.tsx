@@ -38,6 +38,7 @@ const render = (epic: EpicTopbarEpic | null, readOnly = false) =>
 					epic={epic}
 					readOnly={readOnly}
 					waveEditing={waveEditing}
+					shareItems={[]}
 					onAddTicket={() => {}}
 					onEdit={() => {}}
 					onDelete={() => {}}
