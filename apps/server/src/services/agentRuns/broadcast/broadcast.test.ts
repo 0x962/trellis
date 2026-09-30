@@ -29,6 +29,7 @@ test("refreshes the group before it sends and excludes stopped, failed, and arch
 		id: string;
 		text: string;
 		messageId: string;
+		atTurnBoundary: true;
 		expectedTerminalId: string | null;
 		expectedSessionId: string | null;
 	}> = [];
@@ -51,6 +52,7 @@ test("refreshes the group before it sends and excludes stopped, failed, and arch
 			text: "This is a broadcast from the user.\n\nStatus check",
 			messageId: `request-working-${fixture.ids.workingFlow}`,
 			expectedTerminalId: fixture.terminals.workingFlow,
+			atTurnBoundary: true,
 			expectedSessionId: `provider-${fixture.ids.workingFlow}`,
 		},
 	]);
@@ -86,7 +88,8 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		},
 	]);
 	expect(new Set(calls.map((call) => call.id)).size).toBe(3);
-	expect(calls.map((call) => call.messageId).sort()).toEqual(calls.map((call) => `${requestId}-${call.id}`).sort());
+	expect(new Set(calls.map((call) => call.messageId)).size).toBe(3);
+	for (const call of calls) expect(call.messageId.length).toBeLessThanOrEqual(128);
 
 	const repeated: Array<{ id: string; messageId: string }> = [];
 	await prepareBroadcast(fixture.ctx, input, {
@@ -109,9 +112,7 @@ test("reports partial failures and gives each recipient one stable delivery id",
 		},
 	);
 	expect(distinctResult.failures).toEqual([]);
-	expect(distinct.map((call) => call.messageId).sort()).toEqual(
-		calls.map((call) => `${requestId}other-${call.id}`).sort(),
-	);
+	for (const call of distinct) expect(calls.map((prior) => prior.messageId)).not.toContain(call.messageId);
 });
 
 test("sends nothing for an empty recipient group", async () => {

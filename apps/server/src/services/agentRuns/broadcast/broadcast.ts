@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { AgentBroadcastInputSchema, type AgentBroadcastRecipient, type AgentBroadcastResult } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
@@ -23,6 +24,7 @@ type BroadcastDeps = {
 			id: string;
 			text: string;
 			messageId: string;
+			atTurnBoundary: true;
 			expectedTerminalId: string | null;
 			expectedSessionId: string | null;
 		},
@@ -30,6 +32,11 @@ type BroadcastDeps = {
 };
 
 const markUserBroadcast = (text: string) => `This is a broadcast from the user.\n\n${text}`;
+
+const deliveryId = (requestId: string, runId: string) => {
+	const id = `${requestId}-${runId}`;
+	return id.length <= 128 ? id : createHash("sha256").update(id).digest("hex");
+};
 
 const depsOf = (ctx: IoCtx): BroadcastDeps => ({
 	read: readRuntimeSessionsRequired,
@@ -118,7 +125,8 @@ export async function prepareBroadcast(
 			deps.send(ctx, {
 				id: target.run.id,
 				text: markUserBroadcast(input.text),
-				messageId: `${input.requestId}-${target.run.id}`,
+				messageId: deliveryId(input.requestId, target.run.id),
+				atTurnBoundary: true,
 				expectedTerminalId: target.run.terminalId,
 				expectedSessionId: target.run.sessionId,
 			}),

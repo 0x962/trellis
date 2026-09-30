@@ -150,9 +150,15 @@ async function fixture() {
 			deliver: async () => {
 				throw new Error("Unexpected terminal delivery");
 			},
+			queueInput: async () => {
+				throw new Error("Unexpected queued delivery");
+			},
 			subscribeSession: async function* () {},
 		},
 		host: {
+			sendAtTurnBoundary: async () => {
+				throw new Error("Unexpected boundary delivery");
+			},
 			send: async () => {
 				sends++;
 				return current;
