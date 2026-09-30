@@ -55,3 +55,13 @@ Shutdown aborts and awaits domain calls before native callbacks, supervisor, and
 Stops continue until that scope calls `freezeStops`.
 Both phases retain queued notices for `resume`.
 The reconciliation owner holds this scope alongside the engine, native, and database exclusions.
+
+`nativePolicy` optionally supplies an absolute `path` and an independently trusted `sha256` for a private policy file.
+The file requires mode `0600` and the current process owner.
+Document actions read the completed receipt before they access that file or the supervisor.
+Conversion and edit actions verify the original file digest while the supervisor holds the current engine.
+`retainNativePolicy` stores the original bytes and host identity under the external control directory in `native-policy-configurations`.
+The worker receives those bytes and the expected digest through the internal service transport.
+`createTrustedConversionProducer` checks the exact effective source and qualified package on each compile or regeneration.
+A changed source requires its own trusted policy configuration.
+Missing policies retain the compiler diagnostics for native nodes.

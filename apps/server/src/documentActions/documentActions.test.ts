@@ -93,6 +93,9 @@ test("completed replay skips a configured but unhealthy supervisor", async () =>
 			get package() {
 				throw new Error("Package access before replay");
 			},
+			get nativePolicy() {
+				throw new Error("Policy access before replay");
+			},
 			engineCommit: base.manifest.source.commit,
 			supervisor: {
 				withHealthyEngine: async () => {
@@ -101,12 +104,21 @@ test("completed replay skips a configured but unhealthy supervisor", async () =>
 			},
 		},
 	);
-	const response = await f.app.request(`http://localhost/api/flows/${input.flowId}/publication-v1`, {
-		method: "POST",
-		headers,
-		body: JSON.stringify(input),
-	});
-	expect(response.status).toBe(200);
+	for (const [path, value] of [
+		["publication-v1", input],
+		["conversion-v1", input],
+		[
+			"conversion-edits-v1",
+			{ ...input, schemaVersion: 1, edits: [{ kind: "set-flow-briefing", briefing: "exact  text" }] },
+		],
+	] as const) {
+		const response = await f.app.request(`http://localhost/api/flows/${input.flowId}/${path}`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify(value),
+		});
+		expect(response.status).toBe(200);
+	}
 	await f.stopDocumentActions();
 });
 
@@ -127,6 +139,7 @@ test("pending publication holds the current supervisor through the worker and sh
 			expect(held).toBe(true);
 			const action = value as DocumentActionInput;
 			expect(action.value).toEqual(input);
+			expect(action.nativePolicyConfiguration).toBeNull();
 			expect(action.authenticationFile).toBe("/isolated/trellis/langflow/secrets/current-instance.token");
 			started.resolve();
 			return result.promise;

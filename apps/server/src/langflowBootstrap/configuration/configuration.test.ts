@@ -56,3 +56,18 @@ test("authority duration and permissions require explicit configuration", () => 
 		}),
 	).toThrow();
 });
+
+test("native policy configuration requires a path and an independent exact digest", () => {
+	const { configuration } = bootstrapFixture();
+	const nativePolicy = { path: "/private/native-policy.json", sha256: "a".repeat(64) };
+	expect(LangflowBootstrapConfigurationSchema.parse({ ...configuration, nativePolicy }).nativePolicy).toEqual(
+		nativePolicy,
+	);
+	for (const invalid of [
+		{ path: nativePolicy.path },
+		{ sha256: nativePolicy.sha256 },
+		{ ...nativePolicy, path: "relative.json" },
+		{ ...nativePolicy, sha256: `${nativePolicy.sha256}\n` },
+	])
+		expect(() => LangflowBootstrapConfigurationSchema.parse({ ...configuration, nativePolicy: invalid })).toThrow();
+});

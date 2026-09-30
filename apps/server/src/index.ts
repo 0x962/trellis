@@ -196,6 +196,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 					: {
 							package: langflow.qualified.candidate,
 							engineCommit: langflow.qualified.manifest.source.commit,
+							nativePolicy: langflow.configured.nativePolicy,
 							supervisor: langflow.supervisor,
 						},
 		});

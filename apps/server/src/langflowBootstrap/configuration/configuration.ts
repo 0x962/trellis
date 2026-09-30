@@ -25,6 +25,7 @@ export const LangflowBootstrapConfigurationSchema = z
 		editorOrigin: origin,
 		engineApiConfigFile: path,
 		captureIssuerFile: path,
+		nativePolicy: z.strictObject({ path, sha256: z.string().length(64).regex(/^[a-f0-9]{64}$/) }).optional(),
 		authorityPolicy: AuthorityLeasePolicySchema,
 		authorityPermissions: DeliveryAuthorityV1Schema.shape.permissions,
 		grantDurationMs: z.number().int().positive().optional(),

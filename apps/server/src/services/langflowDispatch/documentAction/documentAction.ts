@@ -13,13 +13,18 @@ import {
 	publishSavedDocument,
 	saveConversionEdit,
 } from "../../flowDocuments";
-import { createConversionProducer, prepareConversionEdit } from "../../langflowMigration";
+import {
+	createTrustedConversionProducer,
+	prepareConversionEdit,
+	type TrustedConversionProducerInput,
+} from "../../langflowMigration";
 import type { IoCtx } from "../../support";
 import { actionControl } from "../actionControl";
 
 export type DocumentActionInput = DocumentActionReceiptInput & {
 	package: CandidatePackage;
 	engineCommit: string;
+	nativePolicyConfiguration: TrustedConversionProducerInput["configuration"];
 	observation: LiveOwnership;
 	authenticationFile: string;
 };
@@ -64,7 +69,7 @@ export async function documentAction(ctx: IoCtx, input: DocumentActionInput) {
 			const templates = identity.frontendTemplates;
 			if (templates !== null && templates.engineOverlayHash !== identity.engineOverlayHash)
 				throw new Error("document_action_overlay_conflict");
-			return createConversionProducer(
+			return createTrustedConversionProducer(
 				{
 					catalogBytes: await readSealedBytes(identity.componentManifestPath, identity.componentManifestHash),
 					frontendTemplateBytes: templates === null ? null : await readSealedBytes(templates.path, templates.sha256),
@@ -72,7 +77,7 @@ export async function documentAction(ctx: IoCtx, input: DocumentActionInput) {
 					enginePackageDigest: identity.enginePackageDigest,
 					engineCommit: input.engineCommit,
 					engineOverlayHash: identity.engineOverlayHash,
-					nativePolicies: {},
+					configuration: input.nativePolicyConfiguration,
 				},
 				createConversionValidator(base, publisher, savedAt),
 			);

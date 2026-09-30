@@ -4,6 +4,8 @@ import type { FlowDocumentActionResultV1 } from "@trellis/api";
 import type { CandidatePackage } from "../../../../integrations/langflow/release";
 import type { RequestContext } from "../context";
 import type { ServiceTransport } from "../db/transport";
+import type { LangflowBootstrapConfiguration } from "../langflowBootstrap/configuration";
+import { retainNativePolicy } from "../langflowBootstrap/nativePolicy";
 import type { LangflowSupervisor } from "../langflowHost";
 import type { DbTiming } from "../serverTiming";
 import type { DocumentActionReceipt, DocumentActionReceiptInput } from "../services/flowDocuments";
@@ -12,6 +14,7 @@ import type { DocumentActionInput } from "../services/langflowDispatch/documentA
 export type DocumentActionRuntime = {
 	package: CandidatePackage;
 	engineCommit: string;
+	nativePolicy?: LangflowBootstrapConfiguration["nativePolicy"];
 	supervisor: Pick<LangflowSupervisor, "withHealthyEngine">;
 };
 
@@ -32,11 +35,13 @@ export function documentActions(options: {
 		if (receipt.state === "completed") return { requestId: receipt.requestId, document: receipt.document };
 		const runtime = options.runtime;
 		if (runtime === undefined) throw new ORPCError("FLOW_RUNTIME_UNAVAILABLE", { status: 503, defined: true });
-		return runtime.supervisor.withHealthyEngine((observation) => {
+		return runtime.supervisor.withHealthyEngine(async (observation) => {
 			const input: DocumentActionInput = {
 				...request,
 				package: runtime.package,
 				engineCommit: runtime.engineCommit,
+				nativePolicyConfiguration:
+					request.operation === "publish" ? null : await retainNativePolicy(options.home, runtime.nativePolicy),
 				observation,
 				authenticationFile: join(options.home, "langflow", "secrets", `${observation.identity.instanceId}.token`),
 			};
