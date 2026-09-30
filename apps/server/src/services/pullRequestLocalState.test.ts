@@ -26,12 +26,12 @@ test("a pull request that an agent links waits for the agent to ask for review",
 	expect(linked.reviewGaps).toContainEqual({ kind: "not-asked", count: 1 });
 });
 
-test("a pull request that a person links starts as ready", async () => {
+test("a pull request that a person links waits for an explicit ready mark", async () => {
 	const ticket = await h.newTicket("Link as a person");
 
 	const linked = await h.linkAs(h.person, ticket.identifier, 102);
 
-	expect(linked.localState).toBe("ready");
+	expect(linked.localState).toBe("not-ready");
 });
 
 test("a second link of the same pull request keeps the state that trellis ready set", async () => {

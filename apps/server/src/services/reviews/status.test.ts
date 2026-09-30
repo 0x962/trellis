@@ -89,5 +89,12 @@ test("review status returns null row facts for an unlinked pull request", async 
 		status({} as ServiceCtx, tx, { pr: "acme/app#29", remote: { headRefOid: "head-sha" } }),
 	);
 	expect(ReviewStatusSchema.parse(result)).toEqual(result);
-	expect(result).toEqual({ headRefOid: "head-sha", isQueued: false, ticket: null, prRow: null, checks: null });
+	expect(result).toEqual({
+		headRefOid: "head-sha",
+		isQueued: false,
+		localState: null,
+		ticket: null,
+		prRow: null,
+		checks: null,
+	});
 });
