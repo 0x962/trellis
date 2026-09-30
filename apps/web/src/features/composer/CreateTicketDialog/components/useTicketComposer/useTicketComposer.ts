@@ -12,6 +12,7 @@ import { useComposerDraft } from "../../../hooks/useComposerDraft";
 import { useComposerSubmission } from "../../../hooks/useComposerSubmission";
 import { useCreatePlacement } from "../../../hooks/useCreatePlacement";
 import { useCreateTicket } from "../../../hooks/useCreateTicket";
+import { useClassifiedDraft } from "../../hooks/useClassifiedDraft";
 
 export function useTicketComposer() {
 	const { client, orpc, queryClient } = useApp();
@@ -24,7 +25,7 @@ export function useTicketComposer() {
 	const status =
 		defaults.statuses.find((entry) => entry.slug === (draft.status ?? defaults.status)) ??
 		defaultStatus(defaults.statuses);
-	const priority = draft.priority ?? defaults.priority;
+	const priority = draft.priority ?? options.priority ?? defaults.priority;
 	const parent = draft.parent === undefined ? defaults.parent : draft.parent;
 	const epic = draft.epic === undefined ? defaults.epic : (draft.epic ?? undefined);
 	const wave = draft.wave === undefined ? defaults.wave : (draft.wave ?? undefined);
@@ -54,6 +55,17 @@ export function useTicketComposer() {
 	const titleId = useId();
 	const errorId = useId();
 	const locked = submission.busy || submission.receipt !== null;
+	const classification = useClassifiedDraft({
+		draft,
+		setDraft,
+		options,
+		project,
+		description,
+		template: defaults.template,
+		defaultPriority: defaults.priority,
+		disabled: locked || asking,
+		isSubmitting: submission.isRunning,
+	});
 	const choiceError = choice === null ? null : staleReasonOf(choice, accounts.data);
 	const completedStatus = status?.category === "done" || status?.category === "canceled";
 	const assignmentError =
@@ -138,7 +150,8 @@ export function useTicketComposer() {
 		status,
 		priority,
 		parent,
-		placement,
+		placement: { ...placement, message: classification.message ?? placement.message },
+		chooseClassification: classification.choose,
 		choice,
 		labels,
 		description,

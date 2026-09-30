@@ -284,6 +284,19 @@ An omitted wave uses that default only when it is the sole wave in the selected 
 Every other existing epic or wave requires explicit selection, even when it is the sole choice.
 The defaults and the ticket share one database transaction, so simultaneous requests reuse the same defaults.
 
+The ticket composer sends the title and description to `tickets.classify` after 600 ms without an edit.
+This prepared read uses the configured Jev provider to select a priority and an existing epic and wave.
+The request includes epic plans, wave order, and counts of total and unfinished tickets.
+Each epic plan appears once in the request.
+Database transactions finish before the provider request starts.
+The final transaction checks the selected references again.
+Classification creates no ticket, epic, or wave.
+
+Manual field choices and explicit page context constrain automatic selection.
+The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
+A stale response cannot change a newer draft or a submitted ticket.
+A provider error leaves manual creation available and appears in the existing placement status text.
+
 ### Epics
 
 `epics` holds one row per epic: `project_id`, `slug`, `name`,

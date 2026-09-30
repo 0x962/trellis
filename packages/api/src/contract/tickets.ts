@@ -10,6 +10,7 @@ import {
 	TicketGetInputSchema,
 	TicketSchema,
 } from "../schemas/ticket.ts";
+import { TicketClassificationInputSchema, TicketClassificationSchema } from "../schemas/ticketClassification.ts";
 import {
 	TicketContractInputSchema,
 	TicketCreateInputSchema,
@@ -45,6 +46,11 @@ const writeErrors = pickErrors([
 const filterErrors = pickErrors(["LABEL_AMBIGUOUS"]);
 
 export const tickets = {
+	classify: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "CROSS_PROJECT_LINK", "WAVE_OUTSIDE_EPIC"]))
+		.route({ method: "POST", path: "/tickets/classify", summary: "Select an epic, wave, and priority for a draft" })
+		.input(TicketClassificationInputSchema)
+		.output(TicketClassificationSchema),
 	list: base
 		.errors(filterErrors)
 		.errors(pickErrors(["INVALID_CURSOR"]))

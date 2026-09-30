@@ -2,6 +2,7 @@ import type { Ticket } from "@trellis/api";
 import { call, os, setLocation, withIfMatch } from "./base.ts";
 
 export const tickets = os.tickets.router({
+	classify: os.tickets.classify.handler(({ context, input }) => call(context, "tickets.classify", input)),
 	list: os.tickets.list.handler(({ context, input }) => call(context, "tickets.list", input)),
 	counts: os.tickets.counts.handler(({ context, input }) => call(context, "tickets.counts", input)),
 	board: os.tickets.board.handler(({ context, input }) => call(context, "tickets.board", input)),
