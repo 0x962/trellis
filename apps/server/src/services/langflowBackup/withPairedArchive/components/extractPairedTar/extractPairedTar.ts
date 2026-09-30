@@ -32,7 +32,7 @@ export async function extractPairedTar(source: AsyncIterable<Buffer>, directory:
 			}
 			continue;
 		}
-		if (!["0", "5"].includes(header.type) || header.link !== "" || (header.mode & ~0o777) !== 0)
+		if (!["0", "5"].includes(header.type) || header.link !== "" || header.mode > 0o777)
 			throw new Error("paired_archive_unsupported_entry");
 		const name = extended?.path ?? header.path;
 		const path = header.type === "5" && name.endsWith("/") ? name.slice(0, -1) : name;
