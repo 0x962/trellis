@@ -15,6 +15,7 @@ export function SessionStatusPane({
 	renderMarkdown,
 	onOpenLink,
 	historyControl,
+	resize,
 	className,
 }: SessionStatusPaneProps) {
 	const notice =
@@ -24,7 +25,7 @@ export function SessionStatusPane({
 	const history =
 		updates.history ?? [updates.latest, updates.previous].filter((update): update is SessionUpdate => update !== null);
 	return (
-		<SessionStatusPaneShell className={className}>
+		<SessionStatusPaneShell className={className} resize={resize}>
 			<ScrollArea label="Observer status updates" className="min-h-0 flex-1">
 				<div className="flex min-h-full min-w-0 flex-col gap-3 px-5.5 py-4 max-md:px-4.5">
 					{notice !== null && (

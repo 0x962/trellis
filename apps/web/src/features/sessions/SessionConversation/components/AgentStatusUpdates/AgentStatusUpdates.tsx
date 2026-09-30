@@ -6,10 +6,12 @@ import { useApp } from "../../../../../lib/appContext";
 import { useOpenLink } from "../../../../../lib/openLink";
 import { AgentStatusUpdatesPane } from "./AgentStatusUpdatesPane";
 import { agentStatusUpdatesQueryOptions } from "./agentStatusUpdatesState";
+import { useStatusPaneWidth } from "./components/useStatusPaneWidth";
 
 export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; observerError: string | null }) {
 	const { orpc, scheduler } = useApp();
 	const openLink = useOpenLink();
+	const resize = useStatusPaneWidth();
 	const [now, setNow] = useState(() => scheduler.now());
 	const query = useInfiniteQuery(agentStatusUpdatesQueryOptions(orpc, run));
 
@@ -40,6 +42,7 @@ export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; obse
 			<AgentStatusUpdatesPane
 				key={run.id}
 				run={run}
+				resize={resize}
 				updates={updates!}
 				historyControl={{
 					hasMore: query.hasNextPage,
@@ -55,7 +58,7 @@ export function AgentStatusUpdates({ run, observerError }: { run: AgentRun; obse
 		);
 
 	return (
-		<SessionStatusPaneShell>
+		<SessionStatusPaneShell resize={resize}>
 			<div className="flex min-h-0 flex-1 flex-col">
 				{query.isError ? (
 					<FailureState

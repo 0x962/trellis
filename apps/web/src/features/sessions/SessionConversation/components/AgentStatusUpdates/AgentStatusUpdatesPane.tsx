@@ -12,6 +12,7 @@ export function AgentStatusUpdatesPane({
 	now,
 	observerError,
 	historyControl,
+	resize,
 	onOpenLink,
 	renderMarkdown = renderStatusMarkdown,
 }: {
@@ -20,6 +21,7 @@ export function AgentStatusUpdatesPane({
 	now: string;
 	observerError: string | null;
 	historyControl?: SessionStatusPaneProps["historyControl"];
+	resize?: SessionStatusPaneProps["resize"];
 	onOpenLink: (href: string, press: LinkPress) => void;
 	renderMarkdown?: (markdown: string) => ReactNode;
 }) {
@@ -30,6 +32,7 @@ export function AgentStatusUpdatesPane({
 			now={now}
 			observerError={observerError}
 			historyControl={historyControl}
+			resize={resize}
 			renderMarkdown={renderMarkdown}
 			onOpenLink={(href, target, press) => onOpenLink(href, agentStatusLinkPress(target, press))}
 		/>

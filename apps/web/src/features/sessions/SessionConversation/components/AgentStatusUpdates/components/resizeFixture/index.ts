@@ -1,0 +1,1 @@
+export { resizeFixture } from "./resizeFixture";

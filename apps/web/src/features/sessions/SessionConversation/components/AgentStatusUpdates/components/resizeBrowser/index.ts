@@ -1,0 +1,1 @@
+export { createResizeBrowser } from "./resizeBrowser";
