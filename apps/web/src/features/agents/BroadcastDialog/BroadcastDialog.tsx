@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AgentBroadcastInput, AgentBroadcastResult } from "@trellis/api";
-import { Button, Checkbox, Dialog, FailureState, FieldHint, Textarea } from "@trellis/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { BroadcastComposer, Button, Checkbox, FailureState, FieldHint, Textarea } from "@trellis/ui";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
 import type { BroadcastEpic } from "./broadcastStore";
@@ -38,9 +38,8 @@ export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null
 	const canSend = group !== null && counts.isSuccess && count > 0 && text.trim().length > 0 && !delivery.isPending;
 	const result = delivery.data;
 	const submitted = delivery.variables;
-	const submit = (event: FormEvent) => {
-		event.preventDefault();
-		if (!canSend) return;
+	const submit = () => {
+		if (!canSend || result) return;
 		const previous = request.current;
 		const requestId =
 			previous?.group === group && previous.text === text && previous.epic === scope.epic
@@ -57,23 +56,48 @@ export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null
 	}, [result]);
 
 	return (
-		<Dialog
-			open
+		<BroadcastComposer
 			title="Broadcast a message"
+			scope={epic?.name ?? "All of Trellis"}
+			busy={delivery.isPending}
 			description={
 				epic
 					? `Send one message to the selected groups in ${epic.name}.`
 					: "Send one normal message to each agent in the selected groups."
 			}
 			initialFocus={result ? undefined : message}
-			onOpenChange={(open) => !open && close()}
+			onClose={close}
+			onSubmit={submit}
+			footer={
+				result ? (
+					<Button size="md" variant="primary" className="composer-create broadcast-composer-action" onClick={close}>
+						Done
+					</Button>
+				) : (
+					<>
+						<Button type="button" size="md" onClick={close} disabled={delivery.isPending}>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							size="md"
+							variant="primary"
+							processing={delivery.isPending}
+							disabled={!canSend}
+							className="composer-create broadcast-composer-action"
+						>
+							{counts.isSuccess ? `Send to ${agents(count)}` : "Send"}
+						</Button>
+					</>
+				)
+			}
 		>
 			<div
 				ref={resultStatus}
 				role="status"
 				aria-live="polite"
 				tabIndex={result ? -1 : undefined}
-				className={result ? "flex flex-col gap-2 outline-none" : "sr-only"}
+				className={result ? "broadcast-composer-result" : "sr-only"}
 			>
 				{result && (
 					<>
@@ -103,40 +127,47 @@ export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null
 					</>
 				)}
 			</div>
-			{result ? (
-				<div className="flex justify-end">
-					<Button size="md" variant="primary" onClick={close}>
-						Done
-					</Button>
-				</div>
-			) : (
-				<form className="flex flex-col gap-4" onSubmit={submit}>
-					<fieldset disabled={delivery.isPending} className="flex flex-col gap-4">
-						<fieldset className="flex flex-col gap-3">
-							<legend className="mb-2 text-sm text-fg-muted">Recipient groups</legend>
+			{!result && (
+				<>
+					<fieldset disabled={delivery.isPending} className="broadcast-composer-fields">
+						<Textarea
+							ref={message}
+							label="Message"
+							hideLabel
+							variant="composer"
+							className="broadcast-composer-message"
+							placeholder="Write a message for your agents..."
+							rows={6}
+							value={text}
+							onChange={(event) => setText(event.target.value)}
+						/>
+						<fieldset className="broadcast-composer-recipients">
+							<legend className="sr-only">Recipient groups</legend>
 							<Checkbox
 								label={counts.isSuccess ? `Working agents (${counts.data.working})` : "Working agents"}
 								checked={working}
 								onCheckedChange={setWorking}
 								disabled={delivery.isPending}
-								className="min-h-7 text-sm tabular-nums pointer-coarse:min-h-11"
+								className="broadcast-composer-recipient"
 							/>
 							<Checkbox
 								label={counts.isSuccess ? `Idle agents (${counts.data.idle})` : "Idle agents"}
 								checked={idle}
 								onCheckedChange={setIdle}
 								disabled={delivery.isPending}
-								className="min-h-7 text-sm tabular-nums pointer-coarse:min-h-11"
+								className="broadcast-composer-recipient"
 							/>
-							<FieldHint className="min-h-8" aria-live="polite">
-								{counts.isPending
-									? "Counting recipients."
-									: group === null
-										? "Select at least one group."
-										: "Select one or both groups."}{" "}
-								Idle agents have unfinished tickets.
-							</FieldHint>
 						</fieldset>
+						<FieldHint className="broadcast-composer-hint" aria-live="polite">
+							{counts.isPending
+								? "Counting recipients."
+								: group === null
+									? "Select at least one group."
+									: counts.isSuccess && count === 0
+										? "No agents match the selected groups."
+										: "Select one or both groups."}{" "}
+							Idle agents have unfinished tickets.
+						</FieldHint>
 						{counts.isError && (
 							<FailureState
 								title="The recipient count did not load"
@@ -144,34 +175,12 @@ export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null
 								variant="section"
 							/>
 						)}
-						<Textarea
-							ref={message}
-							label="Message"
-							rows={6}
-							value={text}
-							onChange={(event) => setText(event.target.value)}
-						/>
 					</fieldset>
 					{delivery.isError && (
 						<FailureState title="The broadcast did not send" detail={errorMessage(delivery.error)} variant="section" />
 					)}
-					<div className="flex justify-end gap-2">
-						<Button type="button" size="md" onClick={close}>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							size="md"
-							variant="primary"
-							processing={delivery.isPending}
-							disabled={!canSend}
-							className="min-w-40 tabular-nums"
-						>
-							{counts.isSuccess ? `Send to ${agents(count)}` : "Send"}
-						</Button>
-					</div>
-				</form>
+				</>
 			)}
-		</Dialog>
+		</BroadcastComposer>
 	);
 }

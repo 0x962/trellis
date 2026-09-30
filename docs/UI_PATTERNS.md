@@ -354,3 +354,12 @@ A failed upload or assignment keeps the saved ticket. An assignment retry keeps 
 Close and Escape retain the draft and selected files. Create another clears the content and retains the settings.
 Command+Enter creates the ticket. Command+Shift+Enter also keeps the composer open.
 On other platforms, Control replaces Command.
+
+## Broadcast a message
+
+The broadcast dialog uses the ticket composer shell through `BroadcastComposer`.
+Its header names the epic or all of Trellis. The message comes before the working and idle recipient choices.
+The footer shows the current recipient count in Send. An empty message, no selected group, or an unavailable count prevents sending.
+Command+Enter and Control+Enter use the same send action. Shift does not keep the composer open for another message.
+A pending delivery prevents sending and closing. The result receives focus and reports accepted deliveries and each failed recipient.
+Done closes the dialog and returns focus to its opener. The phone layout keeps the header and footer visible while the body scrolls.

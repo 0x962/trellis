@@ -2,6 +2,7 @@ export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
 export { AgentLaunchPicker } from "./domain/AgentLaunchPicker";
 export { ArchivedToggle, type ArchivedToggleProps } from "./domain/ArchivedToggle";
+export { BroadcastComposer } from "./domain/BroadcastComposer";
 export * from "./domain/ChatterPanel";
 export { CheckConfetti, type CheckConfettiProps, confettiMs } from "./domain/CheckConfetti";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";

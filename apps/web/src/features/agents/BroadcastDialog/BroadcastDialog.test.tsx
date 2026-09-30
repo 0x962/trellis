@@ -10,11 +10,15 @@ import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 
+type ComposerProps = ComponentProps<typeof import("@trellis/ui").BroadcastComposer>;
 mock.module("@trellis/ui", () => ({
-	Dialog: ({ children, description }: { children: ReactNode; description: string }) => (
+	BroadcastComposer: ({ children, description, footer, onSubmit }: ComposerProps) => (
 		<section>
 			<p>{description}</p>
-			{children}
+			<form onSubmit={() => onSubmit()}>
+				{children}
+				{footer}
+			</form>
 		</section>
 	),
 	Button: ({ processing: _processing, ...props }: ComponentProps<"button"> & { processing?: boolean }) => (
@@ -289,4 +293,6 @@ test("the dialog blocks a pending send and displays partial delivery with the ac
 	expect(text).toContain("The recipient group changed from ");
 	expect(text).toContain("Busy recipient (TEST-1)");
 	expect(text).toContain("The process stops.");
+	await f.submit();
+	expect(calls).toBe(1);
 });
