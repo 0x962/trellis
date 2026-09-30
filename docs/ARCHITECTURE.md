@@ -89,6 +89,11 @@ The helper reads the highest `PMU tdie` event from the private `IOHIDEventSystem
 A missing helper, an unsupported sensor, or a failed process supplies no temperature value.
 The desktop supplies thermal state through the trusted preload bridge.
 The renderer combines that state only when the desktop host origin exactly matches the page origin.
+The sidebar shows Machine only when a metric has warning or danger pressure.
+The expanded row shows one yellow or red dot for CPU load, memory pressure, disk space, and heat, up to four dots.
+Processor temperature and thermal pressure share the heat dot at their higher severity. The Inspector retains both readings.
+The collapsed rail shows one dot at the highest severity.
+When the last alert clears, the Inspector closes and requests for run details stop.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
 Its private Unix socket uses protocol 16. A lifetime file lock permits one runtime owner.
