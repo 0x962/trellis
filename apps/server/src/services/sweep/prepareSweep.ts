@@ -11,16 +11,15 @@ import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
-import { outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
+import { attemptsToRemove, outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
 import { openPaths } from "./openPaths.ts";
-import { sweepAttempts } from "./sweepAttempts.ts";
 import { type ScratchSweepResult, sweepScratch } from "./sweepScratch.ts";
 
 // The sweep removes the files of finished agent work from the data home:
 // the clean worktree of a stopped run on a done or canceled ticket, the
 // terminal output files of earlier terminals, and the launch directory of
-// an attempt that no run or native reservation holds. It then removes the
-// scratch directories that the agents left in the temporary directory of the
+// an attempt that no run holds any more. It then removes the scratch
+// directories that the agents left in the temporary directory of the
 // person. The runtime keeps its own session records within a ceiling; this
 // sweep covers the files the server writes.
 //
@@ -117,13 +116,17 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 			if (removed !== null) result.removedWorkspaces.push(removed);
 		});
 	}
+	const current = new Set((await readRuns(ctx)).map((run) => run.terminalId).filter((id): id is string => id !== null));
 	const attemptsRoot = join(ctx.home, "harness-attempts");
 	const attempts = [];
 	for (const name of await directories(attemptsRoot)) {
 		if (!attemptName.test(name)) continue;
 		attempts.push({ id: name, modifiedAt: (await stat(join(attemptsRoot, name))).mtimeMs });
 	}
-	result.removedAttempts = await sweepAttempts(ctx, attempts, ATTEMPT_MIN_AGE_MS);
+	for (const id of attemptsToRemove(attempts, current, ctx.now().getTime(), ATTEMPT_MIN_AGE_MS)) {
+		await rm(join(attemptsRoot, id), { recursive: true, force: true });
+		result.removedAttempts += 1;
+	}
 	const scratch = await sweepScratch(tmpdir(), ctx.now().getTime(), heldPaths);
 	result.removedScratch = scratch.removedScratch;
 	result.removedScratchBytes = scratch.removedScratchBytes;

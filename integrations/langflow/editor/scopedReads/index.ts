@@ -1,1 +1,0 @@
-export { openEditorReads } from "./scopedReads";

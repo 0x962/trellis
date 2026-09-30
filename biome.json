@@ -59,17 +59,6 @@
 	},
 	"overrides": [
 		{
-			"includes": [
-				"apps/server/src/langflowContracts/fixtures/*.json",
-				"integrations/langflow/tests/decisions/fixtures/authority.json",
-				"integrations/langflow/tests/decisions/fixtures/checkpoint.json",
-				"integrations/langflow/tests/decisions/fixtures/human-decision.json"
-			],
-			"formatter": {
-				"enabled": false
-			}
-		},
-		{
 			"includes": ["packages/ui/src/tokens.css"],
 			"formatter": {
 				"enabled": false

@@ -96,11 +96,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			return;
 		}
 		if (data.type === "ready") {
-			ready?.resolve({
-				applied: data.applied,
-				liveShas: data.liveShas,
-				...(data.restoredOpen === undefined ? {} : { restoredOpen: data.restoredOpen }),
-			});
+			ready?.resolve({ applied: data.applied, liveShas: data.liveShas });
 			return;
 		}
 		if (data.type === "startError") {

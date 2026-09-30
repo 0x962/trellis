@@ -1,1 +1,0 @@
-export { catalogDiagnostics } from "./catalogDiagnostics";

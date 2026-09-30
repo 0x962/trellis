@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
 import { check, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
-import type {
-	GroupDeadlineV1,
-	HumanDeliveryV1,
-	RenewalReceiptV1,
-	StopObligationV1,
-	TakeoverReceiptV1,
-} from "../../../langflowContracts";
 import { langflowExecutions } from "./executions";
 
 export const langflowDecisions = pgTable(
@@ -19,7 +12,7 @@ export const langflowDecisions = pgTable(
 		engineJobId: text("engine_job_id").notNull(),
 		engineRequestId: text("engine_request_id").notNull(),
 		payloadBytes: text("payload_bytes").notNull(),
-		delivery: jsonb().$type<HumanDeliveryV1>().notNull(),
+		delivery: jsonb().notNull(),
 	},
 	(t) => [unique("langflow_decision_wait").on(t.engineJobId, t.engineRequestId)],
 );
@@ -30,9 +23,9 @@ export const langflowOutbox = pgTable(
 		executionId: text("execution_id")
 			.notNull()
 			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
-		kind: text().$type<"admission" | "completion" | "decision" | "cancel">().notNull(),
+		kind: text().notNull(),
 		payloadBytes: text("payload_bytes").notNull(),
-		receipt: jsonb().$type<Record<string, unknown>>(),
+		receipt: jsonb(),
 	},
 	(t) => [primaryKey({ columns: [t.kind, t.id] })],
 );
@@ -45,7 +38,7 @@ export const langflowOwnershipReceipts = pgTable(
 			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
 		requestBytes: text("request_bytes").notNull(),
-		receipt: jsonb().$type<TakeoverReceiptV1 | RenewalReceiptV1>().notNull(),
+		receipt: jsonb().notNull(),
 	},
 	(t) => [unique("langflow_ownership_request").on(t.executionId, t.requestId)],
 );
@@ -57,7 +50,7 @@ export const langflowStops = pgTable(
 			.notNull()
 			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 		attemptId: text("attempt_id").notNull(),
-		obligation: jsonb().$type<StopObligationV1>().notNull(),
+		obligation: jsonb().notNull(),
 	},
 	(t) => [unique("langflow_stop_attempt").on(t.executionId, t.attemptId)],
 );
@@ -70,7 +63,7 @@ export const langflowDeadlines = pgTable(
 			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 		groupOccurrenceKey: text("group_occurrence_key").notNull(),
 		groupDigest: text("group_digest").notNull(),
-		deadline: jsonb().$type<GroupDeadlineV1>().notNull(),
+		deadline: jsonb().notNull(),
 	},
 	(t) => [
 		unique("langflow_deadline_group").on(t.executionId, t.groupDigest),
@@ -90,9 +83,9 @@ export const langflowWarnings = pgTable(
 			.references(() => langflowExecutions.executionId, { onDelete: "cascade" }),
 		attemptId: text("attempt_id").notNull(),
 		deadlineId: text("deadline_id").notNull(),
-		threshold: text().$type<"half" | "quarter">().notNull(),
+		threshold: text().notNull(),
 		payloadBytes: text("payload_bytes").notNull(),
-		acknowledged: jsonb().$type<{ receiptId: string; acknowledgedAt: string }>(),
+		acknowledged: jsonb(),
 	},
 	(t) => [unique("langflow_warning_threshold").on(t.executionId, t.attemptId, t.deadlineId, t.threshold)],
 );

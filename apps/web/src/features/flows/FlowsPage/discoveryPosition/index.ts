@@ -1,1 +1,0 @@
-export { discoveryPosition } from "./discoveryPosition";

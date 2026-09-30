@@ -1,1 +1,0 @@
-export { inventory } from "./inventory";

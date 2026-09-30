@@ -1,4 +1,3 @@
-import type { FlowDocumentV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { check, foreignKey, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 import { langflowDocumentRevisions } from "./revisions";
@@ -8,12 +7,12 @@ export const langflowDocumentActions = pgTable(
 	{
 		flowId: text("flow_id").notNull(),
 		requestId: text("request_id").notNull(),
-		action: text().$type<"publish" | "convert">().notNull(),
+		action: text().notNull(),
 		requestBytes: text("request_bytes").notNull(),
 		requestDigest: text("request_digest").notNull(),
 		revision: integer().notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-		document: jsonb().$type<FlowDocumentV1>(),
+		document: jsonb(),
 	},
 	(t) => [
 		primaryKey({ columns: [t.flowId, t.requestId] }),

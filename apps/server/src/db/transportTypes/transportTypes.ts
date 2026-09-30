@@ -7,7 +7,6 @@ import type { JobsLog } from "../../jobs.ts";
 import type { DbTiming } from "../../serverTiming.ts";
 import type { ServiceName } from "../../services/registry.ts";
 import type { Db } from "../client.ts";
-import type { RestoredDatabaseOpenReceipt } from "../open.ts";
 import type { OperationDiagnostics } from "../operationDiagnostics";
 
 // The facts of the running process a service reports or uses: the package
@@ -37,7 +36,7 @@ export type ServiceTransport = {
 	close: () => Promise<void>;
 };
 
-export type TransportStart = { applied: number; liveShas: string[]; restoredOpen?: RestoredDatabaseOpenReceipt };
+export type TransportStart = { applied: number; liveShas: string[] };
 
 export type JobsStart = { clockRate: number; log: JobsLog };
 
