@@ -73,10 +73,21 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 							disabled={submission.busy}
 							className="composer-another"
 						/>
-						{submission.receipt && submission.failure?.stage === "assigning" && (
-							<Button className="composer-keep" onClick={() => finish(false)}>
+						{submission.receipt && submission.failure?.stage === "assigning" ? (
+							<Button className="composer-secondary" onClick={() => finish(false)}>
 								Keep ticket
 							</Button>
+						) : (
+							choice !== null && (
+								<Button
+									size="md"
+									className="composer-secondary"
+									disabled={locked || !placement.ready || !draft.title.trim()}
+									onClick={() => void create(undefined, false)}
+								>
+									Create
+								</Button>
+							)
 						)}
 						<Button
 							variant="primary"

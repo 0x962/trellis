@@ -37,7 +37,7 @@
 		padding: 12px 16px max(12px, env(safe-area-inset-bottom));
 	}
 	.ticket-composer-footer .composer-create,
-	.ticket-composer-footer .composer-keep {
+	.ticket-composer-footer .composer-secondary {
 		width: 100%;
 	}
 	.ticket-composer-footer .composer-another {

@@ -349,6 +349,8 @@ The property row holds status, priority, agent, placement, and labels.
 More properties holds the parent picker and Discard draft.
 The agent picker searches the supported models of each harness. Its account and effort fields use the current harness.
 Create and assign saves the ticket, uploads its attachments, and starts the selected agent.
+Create saves the ticket and uploads its attachments without an assignment.
+Create and assign stays primary when an agent is selected.
 No agent changes the action to Create ticket.
 A failed upload or assignment keeps the saved ticket. An assignment retry keeps its original request ID.
 Close and Escape retain the draft and selected files. Create another clears the content and retains the settings.

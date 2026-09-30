@@ -97,7 +97,7 @@ export function useTicketComposer() {
 			setDraft({ ...retained, title: "", description: "", editing: false });
 		} else composerActions.close();
 	}
-	async function create(stay = draft.createMore ?? false) {
+	async function create(stay = draft.createMore ?? false, assign = true) {
 		if (submission.isRunning() || asking) return;
 		if (submission.receipt === null) {
 			if (!draft.title.trim()) {
@@ -109,7 +109,7 @@ export function useTicketComposer() {
 				setValidation("Choose a project.");
 				return;
 			}
-			if (!placement.ready || assignmentError) return;
+			if (!placement.ready || (assign && assignmentError)) return;
 		}
 		setValidation(null);
 		setDraft(retained);
@@ -126,7 +126,7 @@ export function useTicketComposer() {
 					...(placement.wave ? { wave: placement.wave } : {}),
 					...(labels.length ? { labels: labels.map((label) => label.id) } : {}),
 				},
-				choice,
+				assign ? choice : null,
 			)
 		)
 			finish(stay);
