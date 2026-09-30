@@ -134,5 +134,7 @@ test("an upgrade from 0131 preserves legacy read, edit, start and versioned read
 	expect(FlowDocumentV1Schema.parse(await document.json()).engine).toBe("legacy");
 	const index = await request(`/flow-executions/index-v1?limit=501&flow=${flowId}`);
 	expect(index.status).toBe(200);
-	expect(await index.json()).toEqual([{ id: execution.id, engine: "legacy" }]);
+	expect(await index.json()).toEqual([
+		{ id: execution.id, engine: "legacy", flowId, status: "running", pendingSubmission: false },
+	]);
 });
