@@ -14,6 +14,7 @@ import { createLangflowConnections } from "./connections";
 import { readEngineConfiguration } from "./engineConfiguration";
 import { groupDeadlines } from "./groupDeadlines";
 import { nativeReservations } from "./nativeReservations";
+import { pairedBackup } from "./pairedBackup";
 
 export async function startLangflowBootstrap(config: Config, transport: ServiceTransport, log: JobsLog) {
 	const composed = await composeLangflowBootstrap(config, {
@@ -58,13 +59,17 @@ export async function startLangflowBootstrap(config: Config, transport: ServiceT
 		archive: actionControl(config.home).archive,
 	});
 	const deadlines = groupDeadlines({ home: config.home, transport: liveTransport, supervisor: composed.supervisor });
+	const backup = pairedBackup({ home: config.home, transport, supervisor: composed.supervisor });
 	return {
 		...composed,
 		lifecycle,
 		transport: liveTransport,
 		nativeReservations: native.transport,
 		groupDeadlines: deadlines.handle,
+		backup: backup.backup,
+		stopBackup: backup.stop,
 		stop: async () => {
+			await backup.stop();
 			await lifecycle.stop();
 			await Promise.all([native.stop(), deadlines.stop()]);
 			await composed.stop();

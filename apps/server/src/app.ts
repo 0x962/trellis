@@ -3,7 +3,7 @@ import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins";
 import type { StandardHandlerOptions } from "@orpc/server/standard";
-import { errors, reviewHref } from "@trellis/api";
+import { type BackupOutput, errors, reviewHref } from "@trellis/api";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
@@ -49,6 +49,7 @@ export type AppOptions = {
 	nativeReservations?: NativeReservationTransport;
 	groupDeadlines?: (request: Request) => Promise<Response>;
 	documentActionRuntime?: DocumentActionRuntime;
+	pairedBackup?: () => Promise<BackupOutput>;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
 	chooseDirectory?: () => Promise<string | null>;
@@ -119,6 +120,7 @@ export const createApp = ({
 	nativeReservations,
 	groupDeadlines,
 	documentActionRuntime,
+	pairedBackup,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
 }: AppOptions) => {
@@ -221,6 +223,7 @@ export const createApp = ({
 			headers: c.req.raw.headers,
 			editorGateway: editorSessions,
 			documentActions: actions,
+			pairedBackup,
 			reqId: c.get("requestId"),
 			transport,
 			actor: null,

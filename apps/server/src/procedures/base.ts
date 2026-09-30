@@ -1,5 +1,5 @@
 import { implement, ORPCError, ValidationError } from "@orpc/server";
-import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "@trellis/api";
+import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, type BackupOutput, contract } from "@trellis/api";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import type { documentActions } from "../documentActions";
@@ -22,6 +22,7 @@ export type ProcedureContext = {
 	headers: Headers;
 	editorGateway?: ReturnType<typeof editorGateway>;
 	documentActions?: ReturnType<typeof documentActions>;
+	pairedBackup?: () => Promise<BackupOutput>;
 	reqId: string;
 	transport: ServiceTransport;
 	actor: ActorRef | null;

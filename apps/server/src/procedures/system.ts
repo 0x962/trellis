@@ -12,10 +12,8 @@ export const system = os.system.router({
 	pressure: os.system.pressure.handler(({ context, input }) => call(context, "system.pressure", input)),
 	gh: os.system.gh.handler(({ context }) => context.gh.read()),
 	checkGh: os.system.checkGh.handler(({ context }) => context.gh.check()),
-	// The snapshot holds the database worker for a CHECKPOINT and a copy. The
-	// compression runs here, so the worker serves every other request while
-	// the archive is written.
-	backup: os.system.backup.handler(async ({ context }) =>
-		archive(await call<Snapshot>(context, "system.snapshot", {})),
-	),
+	backup: os.system.backup.handler(async ({ context }) => {
+		if (context.pairedBackup) return context.pairedBackup();
+		return archive(await call<Snapshot>(context, "system.snapshot", {}));
+	}),
 });

@@ -190,6 +190,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			editor: langflow?.editor,
 			nativeReservations: langflow?.nativeReservations,
 			groupDeadlines: langflow?.groupDeadlines,
+			pairedBackup: langflow?.backup,
 			documentActionRuntime:
 				langflow === undefined
 					? undefined
@@ -209,6 +210,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			process.off("SIGINT", onSignal);
 		};
 		const shutdown = async () => {
+			const backupStopped = langflow?.stopBackup();
 			await Bun.sleep(SHUTDOWN_GRACE_MS);
 			bye("shutdown");
 			await Promise.race([server.stop(), Bun.sleep(SHUTDOWN_DEADLINE_MS)]);
@@ -216,6 +218,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			await pageSearchBackfill.stop();
 			await pageSweep.stop();
 			await stopDocumentActions();
+			await backupStopped;
 			await langflow?.stop();
 			await transport.close();
 			if (database) await database.close();
