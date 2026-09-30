@@ -1,16 +1,17 @@
 import { expect, test } from "bun:test";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import type { ReviewSubmission } from "@trellis/api";
 import { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "test-renderer";
-import { createQueryClient } from "../../../../../lib/orpc";
 import { ReviewIdentity } from "../../components/ReviewIdentity";
 import { ReviewNotices } from "../../components/ReviewNotices";
 import { useLocalReviewVerdict } from "./useLocalReviewVerdict";
 
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
 test("a failed first read stays unavailable until a retry returns the human approval", async () => {
-	const queryClient = createQueryClient();
+	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 	let calls = 0;
 	const approval: ReviewSubmission = {
 		id: "01S",
@@ -38,6 +39,7 @@ test("a failed first read stays unavailable until a retry returns the human appr
 	function Probe() {
 		const query = useQuery({ ...options, enabled: false });
 		const verdict = useLocalReviewVerdict(query.data);
+		const submissionsError = query.isError ? query.error.message : null;
 		retry = async () => {
 			await query.refetch();
 		};
@@ -62,7 +64,7 @@ test("a failed first read stays unavailable until a retry returns the human appr
 						statusError={null}
 						refreshError={null}
 						threadsError={null}
-						submissionsError={query.isError ? query.error.message : null}
+						submissionsError={submissionsError}
 						retrySubmissions={() => void retry()}
 					/>
 				</>,
@@ -79,13 +81,17 @@ test("a failed first read stays unavailable until a retry returns the human appr
 	});
 	await act(async () => {
 		await expect(queryClient.fetchQuery(options)).rejects.toThrow("Submission read failed");
+		await new Promise((resolve) => setTimeout(resolve, 0));
 	});
 	expect(markup()).toContain("Local approval is unavailable");
 	expect(markup()).toContain("Submission read failed");
 	expect(markup()).toContain("Retry local reviews");
 	expect(markup()).not.toContain('data-pr-state="open"');
 	expect(markup()).not.toContain("Ready for review");
-	await act(async () => retry());
+	await act(async () => {
+		await retry();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+	});
 	expect(markup()).toContain("Locally approved");
 	expect(markup()).not.toContain("Submission read failed");
 	expect(calls).toBe(2);

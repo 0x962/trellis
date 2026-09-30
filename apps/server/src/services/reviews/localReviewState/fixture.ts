@@ -16,6 +16,7 @@ export async function localReviewFixture(database?: Awaited<ReturnType<typeof op
 	const db = database ?? (await openTestDb());
 	const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 	const events: TrellisEvent[] = [];
+	const cache = createCache();
 	let clock = Date.parse("2026-09-29T20:00:00Z");
 	const project = ulid();
 	const statusId = ulid();
@@ -51,7 +52,7 @@ export async function localReviewFixture(database?: Awaited<ReturnType<typeof op
 				reqId: ulid(),
 				now,
 				emit,
-				cache: createCache(),
+				cache,
 				actorCache: new Map(),
 				dropBlobs: () => {},
 				publicUrl: "http://localhost",
@@ -66,6 +67,7 @@ export async function localReviewFixture(database?: Awaited<ReturnType<typeof op
 		VALUES (${statusId}, ${project}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
 		VALUES (${ticketId}, ${project}, 1, 'Local review colors', ${statusId}, 0, ${at}, ${at})`);
+	await run((tx) => cache.rebuild(tx));
 	const url = "https://github.com/fixture/review/pull/1";
 	const linked = await run((tx) =>
 		link(ctx(human), tx, {
