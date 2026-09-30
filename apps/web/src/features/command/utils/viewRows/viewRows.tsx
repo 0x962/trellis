@@ -16,7 +16,6 @@ import {
 	SidebarSimple,
 	SquaresFour,
 	Table,
-	Tray,
 	X,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
@@ -37,7 +36,6 @@ import { routeDefaults } from "../routeDefaults";
 const icons: Record<string, ReactNode> = {
 	"create.ticket": <Plus />,
 	"create.project": <FolderPlus />,
-	"goto.needsYou": <Tray />,
 	"goto.board": <SquaresFour />,
 	"goto.table": <Table />,
 	"goto.diffs": <GitPullRequest />,
@@ -90,7 +88,6 @@ export const createRows = (deps: RowDeps): PaletteRow[] => {
 // project route there is no view to switch.
 export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
-		"goto.needsYou": run(deps, () => deps.action.navigate("/needs-you")),
 		"goto.usage": run(deps, () => deps.action.navigate("/usage")),
 		"goto.providers": run(deps, () => deps.action.navigate("/usage#providers")),
 		"goto.settings": run(deps, () => pageSheetActions.openSettings("account")),

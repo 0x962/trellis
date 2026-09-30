@@ -23,7 +23,7 @@ export const Route = createFileRoute("/setup")({
 	beforeLoad: async ({ context, search }) => {
 		const { projects, identity } = await loadEntry(context);
 		if (!(await resolveActor(context, identity, projects.length)) || search.step === "project") return;
-		if (projects.length > 0) throw redirect({ to: "/needs-you", replace: true });
+		if (projects.length > 0) throw redirect({ to: "/search", replace: true });
 		throw redirect({ to: "/setup", search: { step: "project" }, replace: true });
 	},
 	component: SetupPage,

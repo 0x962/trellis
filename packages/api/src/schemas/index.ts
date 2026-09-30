@@ -23,7 +23,6 @@ export * from "./flowWaiver.ts";
 export * from "./harnessAccount.ts";
 export * from "./internalLink.ts";
 export * from "./label.ts";
-export * from "./needsYou.ts";
 export * from "./note.ts";
 export * from "./page.ts";
 export * from "./pageComment.ts";

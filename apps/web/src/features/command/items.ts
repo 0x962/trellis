@@ -56,7 +56,6 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "selection.clear", label: "Clear selection", section: "selection", shortcutId: "escape" },
 	{ id: "create.ticket", label: "New ticket", section: "create", shortcutId: "create" },
 	{ id: "create.project", label: "New project", section: "create" },
-	{ id: "goto.needsYou", label: "Needs you", section: "goto", shortcutId: "gotoNeedsYou" },
 	{ id: "goto.board", label: "Board", section: "goto", shortcutId: "gotoBoard" },
 	{ id: "goto.table", label: "Table", section: "goto", shortcutId: "gotoTable" },
 	{ id: "goto.diffs", label: "Diffs", section: "goto" },

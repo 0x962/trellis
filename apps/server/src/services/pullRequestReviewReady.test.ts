@@ -25,7 +25,6 @@ test("a failed check takes a ready pull request back, and a pass brings it again
 
 	expect(failed).toEqual(["checks-failed"]);
 	expect(await h.gapsOf(ticket.id)).toEqual([]);
-	expect(await h.inboxOf()).toContain(ticket.identifier);
 });
 
 test("a new commit keeps the explanation and takes the evidence away", async () => {

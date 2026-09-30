@@ -16,8 +16,8 @@ const idSequence = () => {
 const createStore = (storage = memoryStorage(), origin = "http://host-a", createId = idSequence()) =>
 	createPageTabsStore({
 		origin,
-		initialPage: { url: "/needs-you", title: "Needs you" },
-		homePage: { url: "/needs-you", title: "Needs you" },
+		initialPage: { url: "/search", title: "Search" },
+		homePage: { url: "/search", title: "Search" },
 		storage,
 		createId,
 	});
@@ -38,8 +38,8 @@ test("each tab keeps its own current page and history", () => {
 
 	expect(activeTab(store)).toMatchObject({
 		id: firstId,
-		url: "/needs-you",
-		title: "Needs you",
+		url: "/search",
+		title: "Search",
 		backHistory: [],
 		forwardHistory: [{ url: "/p/TRL", title: "Trellis" }],
 	});
@@ -53,7 +53,7 @@ test("each tab keeps its own current page and history", () => {
 	expect(activeTab(store)).toMatchObject({
 		url: "/p/TRL",
 		title: "Trellis",
-		backHistory: [{ url: "/needs-you", title: "Needs you" }],
+		backHistory: [{ url: "/search", title: "Search" }],
 		forwardHistory: [],
 	});
 });
@@ -63,43 +63,43 @@ test("a navigation after Back replaces the forward history", () => {
 	store.getState().navigate({ url: "/p/TRL", title: "Trellis" });
 	store.getState().navigate({ url: "/t/TRL-643", title: "TRL-643" });
 	store.getState().goBack();
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 
 	expect(activeTab(store)).toMatchObject({
-		url: "/search",
-		title: "Search",
+		url: "/ai/flows",
+		title: "Flows",
 		backHistory: [
-			{ url: "/needs-you", title: "Needs you" },
+			{ url: "/search", title: "Search" },
 			{ url: "/p/TRL", title: "Trellis" },
 		],
 		forwardHistory: [],
 	});
 	store.getState().goForward();
-	expect(activeTab(store).url).toBe("/search");
+	expect(activeTab(store).url).toBe("/ai/flows");
 });
 
 test("replace updates the current page without a history entry", () => {
 	const store = createStore();
 	store.getState().navigate({ url: "/p/TRL?priority=high", title: "Trellis" });
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().goBack();
 	store.getState().replace({ url: "/p/TRL?priority=high&sort=-updatedAt", title: "Trellis" });
 
 	expect(activeTab(store)).toMatchObject({
 		url: "/p/TRL?priority=high&sort=-updatedAt",
 		title: "Trellis",
-		backHistory: [{ url: "/needs-you", title: "Needs you" }],
-		forwardHistory: [{ url: "/search", title: "Search" }],
+		backHistory: [{ url: "/search", title: "Search" }],
+		forwardHistory: [{ url: "/ai/flows", title: "Flows" }],
 	});
 });
 
 test("a navigation to the current URL updates its title without a history entry", () => {
 	const store = createStore();
-	store.getState().navigate({ url: "/needs-you", title: "Needs you (2)" });
+	store.getState().navigate({ url: "/search", title: "Search (2)" });
 
 	expect(activeTab(store)).toMatchObject({
-		url: "/needs-you",
-		title: "Needs you (2)",
+		url: "/search",
+		title: "Search (2)",
 		backHistory: [],
 		forwardHistory: [],
 	});
@@ -108,7 +108,7 @@ test("a navigation to the current URL updates its title without a history entry"
 test("closing the active tab selects the tab on its right, then its left", () => {
 	const store = createStore();
 	const firstId = store.getState().activeId;
-	const secondId = store.getState().addTab({ url: "/search", title: "Search" });
+	const secondId = store.getState().addTab({ url: "/ai/flows", title: "Flows" });
 	const thirdId = store.getState().addTab({ url: "/settings", title: "Settings" });
 	store.getState().selectTab(secondId);
 	store.getState().closeTab(secondId);
@@ -121,7 +121,7 @@ test("closing the active tab selects the tab on its right, then its left", () =>
 test("closing an inactive tab keeps the active tab", () => {
 	const store = createStore();
 	const firstId = store.getState().activeId;
-	const secondId = store.getState().addTab({ url: "/search", title: "Search" });
+	const secondId = store.getState().addTab({ url: "/ai/flows", title: "Flows" });
 	store.getState().closeTab(firstId);
 
 	expect(store.getState().activeId).toBe(secondId);
@@ -136,8 +136,8 @@ test("closing the last tab opens one usable home tab", () => {
 	expect(store.getState().tabs).toEqual([
 		{
 			id: "tab-2",
-			url: "/needs-you",
-			title: "Needs you",
+			url: "/search",
+			title: "Search",
 			backHistory: [],
 			forwardHistory: [],
 		},
@@ -149,7 +149,7 @@ test("tabs and the active selection restore for the same origin", () => {
 	const storage = memoryStorage();
 	const store = createStore(storage, "http://host-a", idSequence());
 	store.getState().navigate({ url: "/p/TRL", title: "Trellis" });
-	const activeId = store.getState().addTab({ url: "/search", title: "Search" });
+	const activeId = store.getState().addTab({ url: "/ai/flows", title: "Flows" });
 
 	const restored = createStore(storage, "http://host-a", idSequence());
 
@@ -164,7 +164,7 @@ test("different origins use separate saved tabs", () => {
 
 	const second = createStore(storage, "http://host-b", idSequence());
 
-	expect(activeTab(second).url).toBe("/needs-you");
+	expect(activeTab(second).url).toBe("/search");
 	expect(pageTabsStorageKey("http://host-a")).not.toBe(pageTabsStorageKey("http://host-b"));
 });
 
@@ -173,7 +173,7 @@ test("the UI projection contains the structural tab fields", () => {
 	const tabs = pageTabsSelectors.tabs(store.getState());
 	const projection = pageTabsUiProjection(tabs, []);
 
-	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Needs you", pinned: false, groupId: undefined }]);
+	expect(projection.tabs).toEqual([{ id: "tab-1", title: "Search", pinned: false, groupId: undefined }]);
 	expect(projection.groups).toEqual([]);
 });
 
@@ -188,7 +188,7 @@ test("the UI selectors return stable store fields", () => {
 test("a pin moves the tab to the end of the pinned region and keeps its record", () => {
 	const store = createStore();
 	const a = store.getState().activeId;
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().renameTab(a, "Mine");
 	const b = store.getState().addTab({ url: "/b", title: "B" });
 	const c = store.getState().addTab({ url: "/c", title: "C" });
@@ -198,11 +198,11 @@ test("a pin moves the tab to the end of the pinned region and keeps its record",
 	expect(store.getState().tabs.map((tab) => tab.id)).toEqual([c, a, b]);
 	expect(store.getState().tabs[1]).toEqual({
 		id: a,
-		url: "/search",
-		title: "Search",
+		url: "/ai/flows",
+		title: "Flows",
 		customTitle: "Mine",
 		pinned: true,
-		backHistory: [{ url: "/needs-you", title: "Needs you" }],
+		backHistory: [{ url: "/search", title: "Search" }],
 		forwardHistory: [],
 	});
 	expect(store.getState().activeId).toBe(c);

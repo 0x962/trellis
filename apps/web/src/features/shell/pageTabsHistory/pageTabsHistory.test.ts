@@ -25,8 +25,8 @@ const createStore = () => {
 	let id = 0;
 	return createPageTabsStore({
 		origin: "http://trellis.test",
-		initialPage: { url: "/needs-you", title: "Needs you" },
-		homePage: { url: "/needs-you", title: "Needs you" },
+		initialPage: { url: "/search", title: "Search" },
+		homePage: { url: "/search", title: "Search" },
 		storage: memoryStorage(),
 		createId: () => `tab-${++id}`,
 	});
@@ -72,7 +72,7 @@ test("keeps an explicit direct URL with its query and hash", () => {
 
 	expect(history.location.href).toBe("/t/TRL-645?tab=activity#agent");
 	expect(activeTab(store).backHistory).toEqual([
-		{ url: "/needs-you", title: "Needs you" },
+		{ url: "/search", title: "Search" },
 		{ url: "/p/TRL", title: "Trellis" },
 	]);
 });
@@ -80,8 +80,8 @@ test("keeps an explicit direct URL with its query and hash", () => {
 test("keeps independent back and forward history after a tab switch", () => {
 	const store = createStore();
 	const firstId = store.getState().activeId;
-	const { browser } = createBrowser("/needs-you");
-	const history = createPageTabsHistory({ store, browser, initialTitle: "Needs you" });
+	const { browser } = createBrowser("/search");
+	const history = createPageTabsHistory({ store, browser, initialTitle: "Search" });
 	history.push("/p/TRL?view=board#top");
 	const secondId = store.getState().addTab({ url: "/sessions/one", title: "Session one" });
 	history.replace("/sessions/one");
@@ -97,17 +97,17 @@ test("keeps independent back and forward history after a tab switch", () => {
 	expect(history.location.href).toBe("/p/TRL?view=board#top");
 	expect(history.canGoBack()).toBe(true);
 	history.back();
-	expect(history.location.href).toBe("/needs-you");
+	expect(history.location.href).toBe("/search");
 	expect(store.getState().tabs.find((tab) => tab.id === secondId)?.url).toBe("/sessions/one");
 });
 
 test("replace changes the full URL without a new history entry", () => {
 	const store = createStore();
-	const { browser } = createBrowser("/needs-you");
-	const history = createPageTabsHistory({ store, browser, initialTitle: "Needs you" });
+	const { browser } = createBrowser("/search");
+	const history = createPageTabsHistory({ store, browser, initialTitle: "Search" });
 	history.push("/reviews/o/r/1?tab=overview");
 	history.replace("/reviews/o/r/1?tab=diff#file");
 
 	expect(history.location.href).toBe("/reviews/o/r/1?tab=diff#file");
-	expect(activeTab(store).backHistory).toEqual([{ url: "/needs-you", title: "Needs you" }]);
+	expect(activeTab(store).backHistory).toEqual([{ url: "/search", title: "Search" }]);
 });

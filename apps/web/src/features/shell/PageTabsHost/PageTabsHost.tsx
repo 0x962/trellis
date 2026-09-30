@@ -59,7 +59,7 @@ export function PageTabsHost() {
 		[router],
 	);
 	const add = useCallback(() => {
-		pageTabsActions.addTab({ url: "/needs-you", title: "Needs you" });
+		pageTabsActions.addTab({ url: "/search", title: "Search" });
 		showActiveTab();
 	}, [showActiveTab]);
 	const select = useCallback(
@@ -99,7 +99,7 @@ export function PageTabsHost() {
 			const state = usePageTabsStore.getState();
 			switch (command) {
 				case "new":
-					state.addTab({ url: "/needs-you", title: "Needs you" });
+					state.addTab({ url: "/search", title: "Search" });
 					break;
 				case "close":
 					state.closeTab(state.activeId);

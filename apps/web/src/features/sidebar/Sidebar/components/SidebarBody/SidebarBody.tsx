@@ -1,7 +1,7 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
+import { cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useEffect } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
@@ -9,7 +9,6 @@ import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { projectMoreActions } from "../../../../../stores/projectMoreStore";
 import { uiActions } from "../../../../../stores/uiStore";
 import { menuLinkIcons, type NavTarget, navRows } from "../../../../navRows";
-import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
 import { SidebarMachinePressure } from "../../../MachinePressure";
@@ -46,7 +45,6 @@ export type SidebarBodyProps = {
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
 	const { live, orpc } = useApp();
 	const menuLinks = useQuery(orpc.settings.get.queryOptions({ select: (settings) => settings.menuLinks })).data;
-	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
@@ -57,10 +55,6 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 		projectMoreActions.setShownPathname(pathname);
 	}, [pathname]);
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
-	const needsYouActive = (inbox.data?.active ?? 0) > 0;
-	const needsYouMark = needsYouActive ? (
-		<ActivityDot label="Needs you has items" placement={collapsed ? "corner" : "inline"} tone="metal" />
-	) : undefined;
 
 	return (
 		<>
@@ -93,18 +87,11 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						key={row.to}
 						to={row.to}
 						search={row.to === "/search" && project !== null ? { rankProject: project } : undefined}
-						iconMark={row.to === "/needs-you" && collapsed ? needsYouMark : undefined}
 						icon={row.icon}
 						label={row.label}
 						accessibleLabel={collapsed ? row.label : undefined}
 						active={isActive(pathname, row.to)}
-						trailing={
-							row.to === "/search" && !collapsed ? (
-								<Kbd>/</Kbd>
-							) : row.to === "/needs-you" && !collapsed ? (
-								needsYouMark
-							) : undefined
-						}
+						trailing={row.to === "/search" && !collapsed ? <Kbd>/</Kbd> : undefined}
 					/>
 				))}
 				<SidebarMachinePressure collapsed={collapsed} />
