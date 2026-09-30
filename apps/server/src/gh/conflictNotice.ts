@@ -15,8 +15,8 @@ import type { CheckNoticeKind, NoticeDecision, StoredNotice } from "./checkNotic
 //   pull request said conflict.
 // GitHub answers `unknown` until it has computed the merge after a push or a
 // base change, and that answer sends nothing: the next poll reads the result.
-// A pull request that GitHub marks as a draft sends nothing. A pull request
-// whose local state is draft still sends, because its agent owns the branch.
+// GitHub drafts and pull requests that are not ready for local review receive
+// conflict notices because their assigned agents own the branches.
 
 export type ConflictSubject = { state: PrState; isDraft: boolean; headSha: string | null; mergeable: Mergeable };
 
@@ -26,7 +26,7 @@ export const isConflictKind = (kind: CheckNoticeKind) => conflictKinds.includes(
 
 // `notices` holds every merge notice of the pull request, oldest first.
 export const decideConflictNotice = (subject: ConflictSubject, notices: StoredNotice[]): NoticeDecision | null => {
-	if (subject.state !== "open" || subject.isDraft || subject.headSha === null) return null;
+	if (subject.state !== "open" || subject.headSha === null) return null;
 	const newest = notices.at(-1);
 	if (subject.mergeable === "conflicting") {
 		const told = newest?.kind === "conflict" && newest.headSha === subject.headSha;
