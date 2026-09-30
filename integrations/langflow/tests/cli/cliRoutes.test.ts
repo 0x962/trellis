@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { RPCHandler } from "@orpc/server/fetch";
 import { sql } from "drizzle-orm";
+import { SYSTEM_ACTOR } from "../../../../apps/server/src/context.ts";
 import { reviewFixture } from "../../../../apps/server/src/db/queries/reviewReady.fixtures.ts";
 import type { ServiceTransport } from "../../../../apps/server/src/db/transport.ts";
 import type { GhAccess } from "../../../../apps/server/src/ghState.ts";
@@ -28,8 +29,12 @@ const command = async (args: string[]) => {
 		const call: ServiceTransport["call"] = (name, ctx, input) => {
 			calls.push(name);
 			const entry = services[name];
-			if (entry.family !== "core") throw new Error(`Expected core service: ${name}`);
-			return h.db.transaction((tx) => entry.run({ ...h.ctx, ...ctx }, tx, input));
+			const core = { ...h.ctx, ...ctx };
+			if (entry.family === "core") return h.db.transaction((tx) => entry.run(core, tx, input));
+			if (entry.kind !== "read" || "prepare" in entry || !("run" in entry))
+				throw new Error(`Expected transactional IO read: ${name}`);
+			const io = { ...h.io, core, actor: ctx.actor ?? SYSTEM_ACTOR, session: ctx.session, now: () => ctx.now };
+			return h.db.transaction((tx) => entry.run(io, tx, input));
 		};
 		const result = await handler.handle(raw, {
 			prefix: "/rpc",

@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import type { Harness } from "@trellis/api";
 import { occurrenceFixture } from "./fixture";
 import { resolveNativeOccurrence } from "./resolveNativeOccurrence";
 
@@ -12,12 +13,12 @@ const muse = {
 	model: "meta/muse-spark-1.3",
 	startCommand: "muse --yolo {{prompt}}",
 	resumeCommand: "muse --yolo resume --last",
-};
+} satisfies Harness;
 const custom = {
 	preset: "custom",
 	startCommand: "fixture-agent {{prompt}}",
 	resumeCommand: "fixture-agent resume {{resumeText}}",
-};
+} satisfies Harness;
 const codex = {
 	preset: "codex",
 	model: "openai/gpt-6-astra",
@@ -31,7 +32,7 @@ async function resolve(harness: Record<string, string>) {
 	return db.transaction((tx) => resolveNativeOccurrence(ctx, tx, { requestBytes: visit.requestBytes, visit }));
 }
 
-const validPolicies: Record<string, string>[] = [muse, custom];
+const validPolicies: (typeof muse | typeof custom)[] = [muse, custom];
 for (const harness of validPolicies) {
 	test(`preserves explicit ${harness.preset} policy without unsupported fields`, async () => {
 		const approved = await resolve(harness);

@@ -39,13 +39,13 @@ export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
 export type * from "./ociDriver";
 export { createOciDriver, importVerifiedOciImage } from "./ociDriver";
 export { DispatchReceiptArchive, type ReconciliationSources, type ValidationSource } from "./receiptArchive";
-export { LangflowSupervisor } from "./supervisor";
 export {
-	installRestoredDatabase,
-	readRestoredDatabaseOpen,
-	withRestoredDatabaseOpen,
 	type InstalledDatabase,
+	installRestoredDatabase,
 	type OpenedDatabaseEvidence,
 	type OpenedDatabaseRecord,
+	readRestoredDatabaseOpen,
 	type VerifiedRestoredDatabase,
+	withRestoredDatabaseOpen,
 } from "./restoredDatabase";
+export { LangflowSupervisor } from "./supervisor";

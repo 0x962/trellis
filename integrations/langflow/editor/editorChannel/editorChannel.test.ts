@@ -175,7 +175,6 @@ test("an early connection initializes once and retains the origin and expiry che
 	expect(expired.sent).toHaveLength(0);
 });
 
-
 test("delivers the final draft before resolving suspension and correlates the acknowledgement", async () => {
 	const f = fixture();
 	f.start();
@@ -183,7 +182,13 @@ test("delivers the final draft before resolving suspension and correlates the ac
 	const command = f.sent.at(-1)!;
 	if (command.type !== "suspend-editing") throw new Error("Expected a suspension command.");
 	const final = { ...content, graphDocument: { nodes: [{ id: "last-edit" }], edges: [] } };
-	const acknowledgement = { ...envelope, sequence: 3, type: "editing-suspended", requestId: command.requestId, content: final };
+	const acknowledgement = {
+		...envelope,
+		sequence: 3,
+		type: "editing-suspended",
+		requestId: command.requestId,
+		content: final,
+	};
 	expect(f.receive({ ...acknowledgement, requestId: crypto.randomUUID() })).toBe(false);
 	expect(f.receive(acknowledgement, "https://other.test")).toBe(false);
 	expect(f.receive(acknowledgement, undefined, false)).toBe(false);
@@ -204,15 +209,19 @@ test("refusal preserves access while revocation rejects an outstanding suspensio
 	const f = fixture();
 	f.start();
 	const pending = f.channel.suspendEditing();
-	const rejection = expect(pending).rejects.toThrow("Save or cancel");
 	const command = f.sent.at(-1)!;
 	if (command.type !== "suspend-editing") throw new Error("Expected a suspension command.");
-	f.receive({ ...envelope, sequence: 2, type: "editing-suspend-refused", requestId: command.requestId, reason: "open-control" });
-	await rejection;
+	f.receive({
+		...envelope,
+		sequence: 2,
+		type: "editing-suspend-refused",
+		requestId: command.requestId,
+		reason: "open-control",
+	});
+	await expect(pending).rejects.toThrow("Save or cancel");
 	expect(f.channel.active()).toBe(true);
 	const next = f.channel.suspendEditing();
-	const revoked = expect(next).rejects.toThrow("Editor access ended");
 	f.channel.revoke();
-	await revoked;
+	await expect(next).rejects.toThrow("Editor access ended");
 	expect(f.channel.resumeEditing()).toBe(false);
 });

@@ -68,20 +68,27 @@ test("nonterminal engine acceptance and a failed native stop both remain pending
 test("the launch lock delays exact stop and a response for another attempt cannot confirm exit", async () => {
 	fixture = await connectionFixture();
 	fixture.behavior.wrongAttempt = true;
+	expect(fixture.home).toBe(fixture.control.identity.home);
+	const connection = await fixture.connect();
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
 	const launch = withAttemptOperation(fixture.home, fixture.handle.attemptId, async () => {
 		entered.resolve();
 		await release.promise;
 	});
-	await entered.promise;
-	const connection = await fixture.connect();
-	const pending = connection.committed(input);
-	const rejected = expect(pending).rejects.toThrow();
-	expect(fixture.behavior.stopped).toEqual([]);
-	release.resolve();
-	await launch;
-	await rejected;
+	let rejected: Promise<unknown> | undefined;
+	try {
+		await entered.promise;
+		rejected = connection.committed(input).then(
+			() => null,
+			(error: unknown) => error,
+		);
+		expect(fixture.behavior.stopped).toEqual([]);
+	} finally {
+		release.resolve();
+		await Promise.allSettled([launch, rejected]);
+	}
+	expect(await rejected).toBeInstanceOf(AggregateError);
 	expect((await read()).needsStop).toBe(true);
 	expect((await read()).stops[0]!.exitReceipt).toBeNull();
 	expect(fixture.behavior.stopped).toEqual([fixture.handle.attemptId]);

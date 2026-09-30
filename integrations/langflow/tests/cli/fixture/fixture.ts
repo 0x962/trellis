@@ -3,6 +3,7 @@ import type { ServiceCtx } from "../../../../../apps/server/src/context.ts";
 import { createCache } from "../../../../../apps/server/src/db/cache.ts";
 import { reviewFixture } from "../../../../../apps/server/src/db/queries/reviewReady.fixtures.ts";
 import { openTestDb } from "../../../../../apps/server/src/db/testDb.ts";
+import type { IoCtx } from "../../../../../apps/server/src/services/support.ts";
 
 export const fixture = async () => {
 	const db = await openTestDb();
@@ -24,5 +25,31 @@ export const fixture = async () => {
 		dropBlobs: () => {},
 		publicUrl: "http://localhost",
 	};
-	return { ...data, db, legacy, view, ctx };
+	const io: IoCtx = {
+		actor: { kind: "human", name: "Policy" },
+		session: null,
+		home: "/unused",
+		version: "fixture",
+		apiVersion: "1",
+		bootId: "cli-routes",
+		now: () => ctx.now,
+		ghStatus: () => ({ ok: true, user: "Policy", reason: null, message: null, checkedAt: null }),
+		addresses: async () => [],
+		log: () => {},
+		emit: ctx.emit,
+		afterCommit: () => {
+			throw new Error("Unexpected CLI read afterCommit");
+		},
+		newTx: db.transaction.bind(db),
+		vacuum: async () => {
+			throw new Error("Unexpected CLI read vacuum");
+		},
+		core: ctx,
+		localUrl: "http://localhost",
+		publicUrl: ctx.publicUrl,
+		background: () => {
+			throw new Error("Unexpected CLI read background");
+		},
+	};
+	return { ...data, db, legacy, view, ctx, io };
 };

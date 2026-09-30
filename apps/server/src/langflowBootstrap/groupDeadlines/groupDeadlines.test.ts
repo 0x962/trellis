@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createApp, type AppOptions } from "../../app";
+import { type AppOptions, createApp } from "../../app";
 import { loadConfig } from "../../config";
 import type { ServiceTransport } from "../../db/transport";
 import { createBus } from "../../events/bus";
@@ -173,9 +173,7 @@ test("the mounted callback uses the observed engine and awaits its worker before
 		await closing;
 		expect(stopped).toBe(true);
 		expect(engineReads).toBe(1);
-		await expect(connection.handle(new Request(path, { method: "POST" }))).rejects.toThrow(
-			"langflow_runtime_stopping",
-		);
+		await expect(connection.handle(new Request(path, { method: "POST" }))).rejects.toThrow("langflow_runtime_stopping");
 	} finally {
 		release.resolve();
 		await connection?.stop();

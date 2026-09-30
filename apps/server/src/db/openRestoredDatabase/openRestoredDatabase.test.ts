@@ -13,9 +13,7 @@ import { restoredDatabaseFixture } from "./components/fixture";
 test("restore configuration requires the exact install receipt digest", () => {
 	expect(loadConfig({}).restoredDatabaseInstallReceipt).toBeUndefined();
 	const digest = "a".repeat(64);
-	expect(loadConfig({ TRELLIS_RESTORED_DATABASE_INSTALL_RECEIPT: digest }).restoredDatabaseInstallReceipt).toBe(
-		digest,
-	);
+	expect(loadConfig({ TRELLIS_RESTORED_DATABASE_INSTALL_RECEIPT: digest }).restoredDatabaseInstallReceipt).toBe(digest);
 	for (const invalid of ["", "receipt", digest.toUpperCase(), `${digest}\n`])
 		expect(() => loadConfig({ TRELLIS_RESTORED_DATABASE_INSTALL_RECEIPT: invalid })).toThrow();
 });

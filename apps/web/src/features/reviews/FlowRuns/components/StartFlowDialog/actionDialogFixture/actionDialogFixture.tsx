@@ -89,6 +89,15 @@ export function fixture(client = {}) {
 			}),
 		button: (label: string) =>
 			root.container.queryAll((node) => node.type === "button" && node.children.includes(label))[0]!,
+		waitForEnabledButton: async (label: string) => {
+			const deadline = performance.now() + 2_000;
+			while (true) {
+				const button = root.container.queryAll((node) => node.type === "button" && node.children.includes(label))[0];
+				if (button?.props.disabled === false) return button;
+				if (performance.now() >= deadline) throw new Error(`The ${label} button did not become enabled.`);
+				await flush();
+			}
+		},
 		text: () => JSON.stringify(root.container.toJSON()),
 		close: async () => {
 			await act(async () => root.unmount());

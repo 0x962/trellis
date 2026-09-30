@@ -23,7 +23,8 @@ export async function installRestoredDatabase(input: { home: string; signal: Abo
 			const manifest = await readSnapshot(payload);
 			const manifestBytes = await readFile(join(payload, manifestName), "utf8");
 			const manifestDigest = protocolDigest(manifestBytes);
-			if (!isDeepStrictEqual(manifest, JSON.parse(manifestBytes))) throw new Error("restored_database_manifest_changed");
+			if (!isDeepStrictEqual(manifest, JSON.parse(manifestBytes)))
+				throw new Error("restored_database_manifest_changed");
 			if (
 				manifestDigest !== block.reason.manifestDigest ||
 				manifest.snapshotId !== block.reason.snapshotId ||
@@ -40,7 +41,8 @@ export async function installRestoredDatabase(input: { home: string; signal: Abo
 					.filter((file) => file.path.startsWith(prefix))
 					.map((file) => ({ ...file, path: file.path.slice(prefix.length) })),
 			};
-			if (!inventory.files.some((file) => file.path === "PG_VERSION")) throw new Error("restored_database_cluster_missing");
+			if (!inventory.files.some((file) => file.path === "PG_VERSION"))
+				throw new Error("restored_database_cluster_missing");
 			const dataDir = join(ctx.identity.home, "db");
 			input.signal.throwIfAborted();
 			await mkdir(dataDir, { mode: 0o700 });
@@ -65,7 +67,8 @@ export async function installRestoredDatabase(input: { home: string; signal: Abo
 					await source.close();
 				}
 			}
-			if (!isDeepStrictEqual(await databaseInventory(dataDir), inventory)) throw new Error("restored_database_copy_conflict");
+			if (!isDeepStrictEqual(await databaseInventory(dataDir), inventory))
+				throw new Error("restored_database_copy_conflict");
 			for (const relative of [...inventory.directories].reverse()) await syncDirectory(join(dataDir, relative));
 			await syncDirectory(dataDir);
 			await syncDirectory(ctx.identity.home);

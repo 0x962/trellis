@@ -13,8 +13,8 @@ import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
 import { outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
 import { openPaths } from "./openPaths.ts";
-import { type ScratchSweepResult, sweepScratch } from "./sweepScratch.ts";
 import { sweepAttempts } from "./sweepAttempts.ts";
+import { type ScratchSweepResult, sweepScratch } from "./sweepScratch.ts";
 
 // The sweep removes the files of finished agent work from the data home:
 // the clean worktree of a stopped run on a done or canceled ticket, the
