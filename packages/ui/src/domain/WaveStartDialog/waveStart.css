@@ -1,0 +1,137 @@
+.wave-start-dialog {
+	width: 680px;
+	overflow: hidden;
+}
+.wave-start-heading {
+	display: flex;
+	flex: none;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 24px;
+}
+.wave-start-tickets {
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 0 24px 16px;
+}
+.wave-start-counts {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 44px;
+}
+.wave-start-hint {
+	margin: 0 0 8px 28px;
+	font-size: var(--text-sm);
+	color: var(--fg-muted);
+}
+.wave-ticket-tree {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.wave-ticket-tree .wave-ticket-tree {
+	margin-left: 8px;
+	padding-left: 24px;
+}
+.wave-ticket-tree .wave-ticket-tree > li {
+	position: relative;
+}
+.wave-ticket-tree .wave-ticket-tree > li::before {
+	content: "";
+	position: absolute;
+	left: -24px;
+	top: 0;
+	bottom: 0;
+	border-left: 1px solid var(--border-strong);
+}
+.wave-ticket-tree .wave-ticket-tree > li:last-child::before {
+	bottom: auto;
+	height: 18px;
+}
+.wave-ticket-tree .wave-ticket-tree > li::after {
+	content: "";
+	position: absolute;
+	left: -24px;
+	top: 18px;
+	width: 16px;
+	border-top: 1px solid var(--border-strong);
+}
+.wave-ticket-tree .wave-ticket-tree .wave-ticket-tree .wave-ticket-tree .wave-ticket-tree {
+	margin-left: 0;
+	padding-left: 0;
+}
+.wave-ticket-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 10px 0;
+	min-height: 44px;
+}
+.wave-ticket-title {
+	display: flex;
+	flex-wrap: wrap;
+	column-gap: 8px;
+	row-gap: 0;
+	overflow-wrap: anywhere;
+}
+.wave-start-footer {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	border-top: 1px solid var(--border);
+	padding: 16px 24px;
+}
+.wave-start-agent {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	align-items: center;
+}
+@media (max-width: 767px) {
+	.wave-start-heading {
+		padding: 20px;
+	}
+	.wave-start-heading button {
+		width: 44px;
+		height: 44px;
+	}
+	.wave-start-tickets {
+		padding: 0 20px 16px;
+	}
+	.wave-start-footer {
+		padding: 12px 20px 16px;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.wave-start-footer > div:last-child {
+		margin-left: auto;
+	}
+	.wave-start-footer button {
+		min-height: 44px;
+	}
+	.wave-start-agent {
+		flex-basis: 100%;
+	}
+	.wave-start-agent:empty {
+		display: none;
+	}
+	.wave-ticket-tree .wave-ticket-tree {
+		padding-left: 16px;
+	}
+	.wave-ticket-tree .wave-ticket-tree > li::before,
+	.wave-ticket-tree .wave-ticket-tree > li::after {
+		left: -16px;
+	}
+	.wave-ticket-tree .wave-ticket-tree > li::after {
+		width: 8px;
+	}
+	.wave-ticket-tree .wave-ticket-tree .wave-ticket-tree .wave-ticket-tree {
+		margin-left: 0;
+		padding-left: 0;
+	}
+}
