@@ -21,6 +21,7 @@ import {
 	ReviewSubmitSchema,
 	ReviewThreadSchema,
 } from "../schemas/review";
+import { ReviewOverviewSchema } from "../schemas/reviewOverview.ts";
 import { base } from "./base";
 
 const id = z.object({ id: z.string().min(1) });
@@ -30,6 +31,10 @@ const pr = z.object({ pr: ReviewRefSchema });
 // the project.
 const project = z.object({ project: ProjectRefStringSchema.optional() });
 export const reviews = {
+	overview: base
+		.route({ method: "GET", path: "/reviews/overview", summary: "Read the saved pull request overview" })
+		.input(pr)
+		.output(ReviewOverviewSchema.nullable()),
 	status: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/status", summary: "Read current GitHub PR status" })
