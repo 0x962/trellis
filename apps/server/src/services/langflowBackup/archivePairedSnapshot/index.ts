@@ -1,0 +1,1 @@
+export { archivePairedSnapshot } from "./archivePairedSnapshot";

@@ -161,3 +161,20 @@ A snapshot without this file fails with `paired_trellis_facts_unavailable` for r
 Its physical files remain readable through `readSnapshot`.
 The live worker must compare these facts under the required exclusion before release.
 The presence of this file does not prove current destination state or complete workspace and conversation exports.
+
+## Paired archive
+
+`archivePairedSnapshot({directory,manifestDigest,path})` returns the existing `BackupOutput` shape, `{path,bytes}`.
+The caller supplies the digest from the completed capture result or its verified recovery record.
+The producer verifies the source, copies the manifest entries to a private stage, and verifies the copied bytes.
+It archives `paired-backup.json` and all five component roots at the archive root.
+The manifest bytes remain exact, including unavailable history.
+The archive preserves executable files and uses mode 0600 for its output.
+Publication refuses an existing destination or a path inside the source envelope.
+
+The producer removes only its temporary stage and retains the original capture envelope and recovery journal.
+It does not prune older archives or grant dispatch authority.
+The host must await the producer before it releases the supervisor and transport.
+The paired archive needs a paired extraction reader; the legacy restore layout is incompatible.
+Synthetic fixtures cover archive extraction, manifest identity, component bytes, private mode, corruption, and destination refusal.
+These fixtures do not establish live capture or restore acceptance.

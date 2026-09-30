@@ -1,3 +1,4 @@
+export { archivePairedSnapshot } from "./archivePairedSnapshot";
 export { capturePairedSnapshot } from "./capturePairedSnapshot";
 export { type CaptureContext, captureSnapshot, type PreparedSnapshot } from "./captureSnapshot";
 export { captureTrellisAndSeal } from "./captureTrellisAndSeal";
