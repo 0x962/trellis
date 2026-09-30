@@ -9,11 +9,8 @@ import { type AppContext, AppProvider } from "../../../lib/appContext";
 import { createLive } from "../../../lib/live";
 import { ResourceList } from "./ResourceList";
 
-// ResourceList reads the application context and the router during its
-// render, for the link hook. No case here sends a request or navigates, so
-// the fixture holds a real client over a transport that refuses every
-// request, a live connection that never starts, and a router with one
-// memory route around the element.
+// ResourceList calls useOpenLink, which requires AppProvider and a router.
+// noRequest prevents these render fixtures from contacting a live server.
 const noRequest: FetchLike = (request) => {
 	throw new Error(`The test expected no request, and the app sent one to ${request.url}.`);
 };
