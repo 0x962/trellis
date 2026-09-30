@@ -1,8 +1,8 @@
 // The part of the settings the nav on the left names. The account section
 // is the one a URL with no section opens.
-export type SettingsSectionId = "account" | "notifications" | "menu-links" | "desktop";
+export type SettingsSectionId = "account" | "notifications" | "menu-links" | "desktop" | "cleanup";
 
-const sectionIds: readonly SettingsSectionId[] = ["account", "notifications", "menu-links", "desktop"];
+const sectionIds: readonly SettingsSectionId[] = ["account", "notifications", "menu-links", "desktop", "cleanup"];
 
 const isSectionId = (value: string): value is SettingsSectionId => sectionIds.some((id) => id === value);
 
