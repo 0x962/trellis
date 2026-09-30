@@ -1145,7 +1145,8 @@ state under the key `<route key>#plan`. The band and the plan take at most half 
 inside it.
 The tickets show in the full-width `TicketTable` of the project table view. Its search is the URL search with
 `epic` fixed to the epic ref and `group` default `wave` (`epicSearch.ts`). The URL carries `sort`,
-`density`, `columns`, and the filters, as the project table does. The URL never carries `epic`, it omits
+`columns`, and the filters, as the project table does. Tables always use comfortable spacing.
+The URL never carries `epic`, it omits
 `group=wave`, and it writes `group=status`. The row actions, the bulk bar, and the keyboard navigation are the ones of
 the table. The bulk bar Set epic with None, and the Epic row of the ticket rail, take a ticket out of the epic.
 The Overview manages the waves (`useWaveEditing`). Every wave of the epic draws a header, and a wave that holds no
