@@ -590,6 +590,8 @@ The in-app browser is one sheet in the shell sheet stack, and every link in the
 app reaches it. On desktop, HTTP and HTTPS links open that sheet over the current page.
 Command-click and the Open in browser control send external URLs to the system browser.
 The browser sheet uses a separate partition, disables Node integration, and keeps its sandbox.
+Cmd+K and Ctrl+K open the Trellis command palette only in the desktop app.
+Regular browser tabs keep those native shortcuts. A focused browser sheet handles keys in its own document.
 
 The epic route shows the resources of an epic. The ticket route `/t/<KEY-n>`
 draws none.
@@ -752,7 +754,6 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
 `sessions.setArchived` puts a session away, or brings it back. It stops the agent the same way a delete does, and keeps the directory, the files, and the conversation.
 An archived session runs no agent and holds no project: `sessions.start` and `sessions.move` refuse it, and a session that holds a project cannot be archived.
-The sidebar draws the archived sessions under the session list, in an Archived group that opens on a press.
 Project Sessions puts project sessions and ticket agents in one list, in order of the latest stored process or conversation activity.
 `agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
 An attempt start and an assignment close also count as activity.
@@ -1095,7 +1096,7 @@ The sidebar holds the workspace row, Needs you, Search, Flows, Usage,
 the sessions, the project list, and the actor footer.
 The sessions and the project list share the one region that scrolls, so the fixed
 links keep their place at any height.
-The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
+The global Sessions section lists unarchived sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
 The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
 Session creation commits the session and its attempt before workspace preparation and agent startup.
 The response opens the session view and closes the dialog while a tracked background task completes the launch.
@@ -1105,13 +1106,14 @@ Repository initialization runs outside the database transaction. An idempotent r
 After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
+The project list shows active projects.
 Each project row shows the Trellis mark and project name. Tickets, Epics, Diffs, and Sessions appear below it.
 The Epics row prints `openEpicCount` when it is above zero. The Tickets row is off on the epics pages.
 The row menu of a project opens its Settings page.
 The Diffs page at `/p/<KEY>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
 project, and the ones kept for a review in a repository of the project. Its second source lists the open pull
 requests of the signed-in GitHub user in those repositories.
-The selected state follows the current page for an active and for an archived project.
+The selected state of a project row follows the current page.
 The Epics page at `/p/<KEY>/epics` lists the epics of the project in two groups, Open and
 Done, each with its count. A row prints the name, a `StackedBar` of the counts by category, `done/total`, the
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the

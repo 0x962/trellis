@@ -71,6 +71,7 @@ export {
 	type PrGlyphProps,
 	type PrGlyphSize,
 	type PullRequestState,
+	prGlyphLabel,
 } from "./domain/PrGlyph";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { ProjectColorField, type ProjectColorFieldProps } from "./domain/ProjectColorField";
@@ -99,7 +100,6 @@ export {
 	type PullRequestReviewState,
 	ReviewStateIcon,
 	type ReviewStateIconProps,
-	reviewStateLabel,
 } from "./domain/ReviewStateIcon";
 export {
 	type PullRequestReviewStatus,

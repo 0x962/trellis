@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { Session } from "@trellis/api";
-import { archivedSessions, openSessions } from "./sidebarSessions";
+import { openSessions } from "./sidebarSessions";
 
 const session = (fields: Partial<Session>) =>
 	({
@@ -20,16 +20,6 @@ const all = [open, archived, owned];
 
 test("the Sessions section holds the sessions of no project that nobody archived", () => {
 	expect(openSessions(all).map((row) => row.name)).toEqual(["wispy-harbor"]);
-});
-
-test("the Archived section holds the sessions a person archived", () => {
-	expect(archivedSessions(all).map((row) => row.name)).toEqual(["amber-delta"]);
-});
-
-test("the two sections take no session two times", () => {
-	const drawn = [...openSessions(all), ...archivedSessions(all)].map((row) => row.name);
-
-	expect(new Set(drawn).size).toBe(drawn.length);
 });
 
 test("a pinned session leads the Sessions section", () => {

@@ -169,7 +169,7 @@ export function PageTabs({
 	);
 	return (
 		<ContextMenu {...menu.context}>
-			<div className="relative flex min-w-0 items-end bg-surface px-1 pt-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
+			<div className="relative flex min-w-0 items-end bg-surface px-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border/60">
 				<TabsRoot
 					value={activeId}
 					onValueChange={(value) => onSelect(value as string)}
@@ -181,14 +181,14 @@ export function PageTabs({
 						value={activeId}
 						onValueChange={select}
 						aria-label={ariaLabel}
-						className="flex h-9 min-w-0 flex-1 max-sm:h-11 pointer-coarse:h-11"
+						className="flex h-8 min-w-0 flex-1 max-sm:h-11 pointer-coarse:h-11"
 						{...menu.list}
 					>
 						<div
 							ref={pinnedLayout.ref}
 							className={cx(
 								regionClass,
-								"mr-1 max-w-1/2 shrink-0 border-r border-border pr-1",
+								"mr-1 max-w-1/2 shrink-0 border-r border-border/60 pr-1",
 								pinnedCount === 0 && "hidden",
 							)}
 							onScroll={pinnedLayout.onScroll}

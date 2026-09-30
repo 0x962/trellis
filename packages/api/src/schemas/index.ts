@@ -42,7 +42,6 @@ export * from "./sessionActivity.ts";
 export * from "./sessionObservers/index.ts";
 export * from "./sessionUpdates/index.ts";
 export * from "./settings/index.ts";
-export * from "./statistics.ts";
 export * from "./status.ts";
 export * from "./system.ts";
 export * from "./ticket.ts";

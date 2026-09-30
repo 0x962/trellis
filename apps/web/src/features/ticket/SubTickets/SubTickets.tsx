@@ -1,11 +1,12 @@
 import { Plus } from "@phosphor-icons/react";
-import { askedForReview, prStateWord, type Ticket, type TicketSummary } from "@trellis/api";
+import { askedForReview, type Ticket, type TicketSummary } from "@trellis/api";
 import {
 	Button,
 	CheckRibbon,
 	EmptyState,
 	PrGlyph,
 	PriorityIcon,
+	prGlyphLabel,
 	SectionHeader,
 	StatusIcon,
 	TicketId,
@@ -35,7 +36,7 @@ const badgeChecks = (pr: NonNullable<TicketSummary["pr"]>) => [
 const ciLabels = { none: "none", pending: "pending", pass: "passed", fail: "failed" } as const;
 
 const prLabel = (pr: NonNullable<TicketSummary["pr"]>) => {
-	const word = prStateWord(pr);
+	const word = prGlyphLabel(pr.state, askedForReview(pr), pr.locallyApproved);
 	return `${word.charAt(0).toUpperCase()}${word.slice(1)} PR, checks ${ciLabels[pr.ciState]}`;
 };
 
@@ -109,8 +110,8 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 						<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
 							<PrGlyph
 								state={pr.state}
-								isQueued={pr.isQueued}
 								askedForReview={askedForReview(pr)}
+								locallyApproved={pr.locallyApproved}
 								size="sm"
 								decorative
 							/>

@@ -24,10 +24,10 @@ export function PullRequestsSection({ ticket }: PullRequestsSectionProps) {
 						<button type="button" className={rowClass} onClick={() => pageSheetActions.openPullRequest(pr.url)}>
 							<PrGlyph
 								state={pr.state}
-								isQueued={pr.isQueued}
 								askedForReview={askedForReview(pr)}
+								locallyApproved={pr.verdict === "approved"}
 								size="sm"
-								decorative
+								tooltip={false}
 							/>
 							<span className={`w-14 shrink-0 text-fg-muted ${tabularClass}`}>#{pr.number}</span>
 							<span className="min-w-0 flex-1 truncate">{pr.title}</span>

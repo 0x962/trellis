@@ -34,7 +34,7 @@ export function TabStripControls({
 	onGroupSelect,
 }: Props) {
 	return (
-		<div className="relative flex h-9 shrink-0 items-center gap-1 px-1 max-sm:h-11 pointer-coarse:h-11">
+		<div className="relative flex h-8 shrink-0 items-center gap-0.5 px-0.5 max-sm:h-11 pointer-coarse:h-11">
 			<Tooltip content="Add tab">
 				<IconButton
 					ref={addButton}

@@ -23,7 +23,7 @@ test("puts My open PRs first and All PRs second", () => {
 	]);
 });
 
-test("starts on My open PRs and loads only that query", () => {
+test("loads only the selected My open PRs result", () => {
 	const source = restoreProjectDiffSource(memoryStorage(), "project-1");
 
 	expect(source).toBe(defaultProjectDiffSource);
