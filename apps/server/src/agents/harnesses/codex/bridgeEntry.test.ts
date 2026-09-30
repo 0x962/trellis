@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fakeRuntimeSocket, scratchHome, spawnBridge, writeExecutable } from "../bridgeTestFixtures/index.ts";
@@ -14,11 +15,12 @@ test("the Codex bridge records why it stopped when its engine gives no app serve
 	const home = await scratchHome(cleanups);
 	const runtime = await fakeRuntimeSocket(home, cleanups, () => ({}), "refused");
 	const engine = join(home, "codex-engine");
+	const diagnostic = '{"level":"ERROR","fields":{"message":"failed to renew cache TTL: cache not found"}}';
 	// The fake engine writes a plain file where the app server socket belongs,
 	// so the bridge finds the path and then fails to speak to it.
 	const executable = await writeExecutable(
 		join(home, "codex"),
-		'#!/bin/sh\n: > "$TRELLIS_CODEX_ENGINE_SOCKET"\nsleep 30\n',
+		`#!/bin/sh\nprintf '%s\\n' '${diagnostic}' >&2\n: > "$TRELLIS_CODEX_ENGINE_SOCKET"\nexec sleep 30\n`,
 	);
 	const bridge = spawnBridge({
 		entry: pathFromHere("./bridgeEntry.ts"),
@@ -40,4 +42,7 @@ test("the Codex bridge records why it stopped when its engine gives no app serve
 	// test reads one keyword and not the full text.
 	expect(runtime.observed[0]!.error).toMatch(/WebSocket|ENOTSOCK|connect/);
 	expect(run.exitCode).toBe(1);
+	expect(run.stderr).toContain("The bridge stopped:");
+	expect(run.stderr).not.toContain(diagnostic);
+	expect(await readFile(join(home, "codex-engine.log"), "utf8")).toBe(`${diagnostic}\n`);
 });
