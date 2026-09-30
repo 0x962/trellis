@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EpicRefStringSchema } from "../refs.ts";
 import { AgentRunKindSchema } from "./agentRun.ts";
 import { CountSchema, UlidSchema } from "./primitives.ts";
 
@@ -20,7 +21,12 @@ export const AgentBroadcastCountsSchema = z.object({
 });
 export type AgentBroadcastCounts = z.infer<typeof AgentBroadcastCountsSchema>;
 
-export const AgentBroadcastInputSchema = z.strictObject({
+export const AgentBroadcastRecipientsInputSchema = z.strictObject({
+	epic: EpicRefStringSchema.optional(),
+});
+export type AgentBroadcastRecipientsInput = z.infer<typeof AgentBroadcastRecipientsInputSchema>;
+
+export const AgentBroadcastInputSchema = AgentBroadcastRecipientsInputSchema.extend({
 	group: AgentBroadcastGroupSchema,
 	text: z.string().refine((text) => text.trim().length > 0, "Enter a message."),
 	requestId: z

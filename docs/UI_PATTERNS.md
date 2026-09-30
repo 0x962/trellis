@@ -250,7 +250,9 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add menu, and the epic actions `Menu`.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a Broadcast `IconButton`, an Add menu, and the epic actions `Menu`.
+The Broadcast control opens the shared broadcast dialog with the epic name and its working and idle recipient counts.
+It selects agents across the epic, independent of the ticket filters.
 The Add menu uses a plus `IconButton` with the `Tooltip` Add. Its options are Ticket and Wave.
 Ticket opens the project `TicketPicker`. Wave creates a wave through the existing wave actions.
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
