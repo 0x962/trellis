@@ -12,7 +12,11 @@ type Handlers = {
 };
 
 export const createFlowDocumentsV1 = (handlers: Handlers) => {
-	const base = implement(flowDocumentsV1).$context<ProcedureContext>();
+	const base = implement({
+		get: flowDocumentsV1.get,
+		save: flowDocumentsV1.save,
+		view: flowDocumentsV1.view,
+	}).$context<ProcedureContext>();
 	const actor = base.middleware(async ({ context, next, procedure }) => {
 		const header = context.headers.get("x-trellis-actor");
 		const parsed = ActorHeaderSchema.safeParse(header);
