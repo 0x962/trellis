@@ -74,9 +74,7 @@ export const readTrustedNativePolicies = (input: TrustedNativePolicyInput): Trus
 			!policy ||
 			!isDeepStrictEqual(inherited, policy.sourceHarness) ||
 			(inherited !== null &&
-				Object.entries(inherited).some(
-					([key, value]) => policy.harness[key as keyof typeof policy.harness] !== value,
-				))
+				Object.entries(inherited).some(([key, value]) => policy.harness[key as keyof typeof policy.harness] !== value))
 		) {
 			return blocked(
 				"conversion_native_policy_unresolved",
