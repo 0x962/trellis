@@ -62,9 +62,7 @@ export function PageTab({
 			}}
 			className={cx(
 				"group absolute top-0 left-0 flex h-8 items-center rounded-t-hairline max-sm:h-11 pointer-coarse:h-11",
-				active
-					? "z-10 bg-bg text-fg before:pointer-events-none before:absolute before:inset-x-2 before:bottom-0 before:h-0.5 before:bg-accent"
-					: "text-fg-muted hover:bg-fg/6 hover:text-fg",
+				active ? "z-10 bg-bg text-fg" : "text-fg-muted hover:bg-fg/6 hover:text-fg",
 				separator &&
 					"after:pointer-events-none after:absolute after:right-0 after:inset-y-2 after:w-px after:bg-border/60",
 			)}
