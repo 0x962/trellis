@@ -1,5 +1,5 @@
-import { expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { expect, spyOn, test } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
@@ -20,6 +20,27 @@ const runtime: Runtime = {
 	ghStatus: () => ({ ok: true, user: null, reason: null, message: null, checkedAt: new Date().toISOString() }),
 	addresses: async () => [],
 };
+
+test("clears diagnostic timers when the real worker fails to open its database", async () => {
+	const home = await mkdtemp(join(tmpdir(), "trellis-worker-diagnostic-failure-"));
+	const config = loadConfig({ TRELLIS_HOME: home, TRELLIS_PORT: "0" });
+	await writeFile(config.dbDir, "not a database directory");
+	const interval = spyOn(globalThis, "setInterval");
+	const clear = spyOn(globalThis, "clearInterval");
+	const transport = createWorkerTransport({ bus: createBus({ bootId: runtime.bootId }), config, runtime });
+	try {
+		await expect(transport.start({ log: () => undefined, clockRate: 1 })).rejects.toThrow();
+		const timer = interval.mock.results[0]!.value;
+		expect(timer).toBeDefined();
+		expect(clear).toHaveBeenCalledWith(timer);
+		await transport.close();
+	} finally {
+		interval.mockRestore();
+		clear.mockRestore();
+		await transport.close();
+		await rm(home, { recursive: true, force: true });
+	}
+}, 30_000);
 
 test("relays an error and closes the worker stream", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-worker-stream-"));

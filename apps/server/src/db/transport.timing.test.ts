@@ -9,6 +9,7 @@ import { createDbTiming } from "../serverTiming.ts";
 import { services } from "../services/registry.ts";
 import { prepared } from "../services/registryEntry";
 import type { Db } from "./client.ts";
+import { createOperationDiagnostics, type OperationEvent } from "./operationDiagnostics";
 import { openTestDb } from "./testDb.ts";
 import { createInlineTransport, type Runtime } from "./transport.ts";
 import type { Tx } from "./tx.ts";
@@ -19,6 +20,8 @@ let now = 0;
 let clock: ReturnType<typeof spyOn>;
 let transaction: ReturnType<typeof spyOn>;
 const lines: LogRecord[] = [];
+const diagnosticEvents: OperationEvent[] = [];
+const diagnostics = createOperationDiagnostics((event) => diagnosticEvents.push(event));
 const config = loadConfig({ TRELLIS_PORT: "0" });
 const log = createLogger({
 	level: "debug",
@@ -39,7 +42,7 @@ const runtime: Runtime = {
 	addresses: async () => [],
 };
 const bus = createBus({ bootId: "test" });
-const transport = () => createInlineTransport({ db, config, bus, runtime, log: log.info });
+const transport = () => createInlineTransport({ db, config, bus, runtime, log: log.info, diagnostics });
 const query = async (tx: Tx, ms: number) => {
 	await tx.execute(sql`SELECT 1`);
 	now += ms;
@@ -54,6 +57,7 @@ afterAll(async () => {
 beforeEach(() => {
 	now = 0;
 	lines.length = 0;
+	diagnosticEvents.length = 0;
 	clock = spyOn(performance, "now").mockImplementation(() => now);
 	const execute = db.transaction.bind(db);
 	transaction = spyOn(db, "transaction").mockImplementation(async (fn, options) => {
@@ -69,6 +73,9 @@ afterEach(() => {
 	services["agentRuns.list"] = original;
 	transaction.mockRestore();
 	clock.mockRestore();
+	const started = diagnosticEvents.filter((event) => event.type === "begin").map((event) => event.operation.id);
+	const ended = diagnosticEvents.filter((event) => event.type === "end").map((event) => event.id);
+	expect(ended.sort()).toEqual(started.sort());
 });
 
 test("HTTP timings sum preparation, guard, final, and cleanup transactions but exclude external calls", async () => {
@@ -159,4 +166,10 @@ test("keeps concurrent requests and detached background transactions separate", 
 	await wire.close();
 	expect(first).toEqual({ ms: 111, lockMs: 14, queueMs: 0 });
 	expect(second).toEqual({ ms: 211, lockMs: 14, queueMs: 0 });
+	expect(
+		diagnosticEvents.filter(
+			(event) =>
+				event.type === "begin" && event.operation.name === "background" && event.operation.phase === "transaction",
+		),
+	).toHaveLength(2);
 });

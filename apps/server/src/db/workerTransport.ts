@@ -3,7 +3,9 @@ import type { RequestContext } from "../context.ts";
 import type { JobsLog } from "../jobs.ts";
 import { addTiming, type DbTiming } from "../serverTiming.ts";
 import { type ServiceName, services } from "../services/registry.ts";
+import { diagnosticNow } from "./operationDiagnostics";
 import type { JobsStart, ServiceTransport, TransportStart, WorkerTransportOptions } from "./transport.ts";
+import { type CallDiagnostic, createWorkerDiagnostics, WORKER_DELAY_MS } from "./workerDiagnostics";
 import { workerError } from "./workerError/workerError.ts";
 import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./workerProtocol.ts";
 
@@ -14,7 +16,12 @@ import type { SerializedError, WorkerCall, WorkerInput, WorkerOutput } from "./w
 
 // `timing` gains the queue, lock, and database time the worker reports with
 // the answer.
-type PendingCall = { resolve: (value: unknown) => void; reject: (error: unknown) => void; timing?: DbTiming };
+type PendingCall = {
+	resolve: (value: unknown) => void;
+	reject: (error: unknown) => void;
+	timing?: DbTiming;
+	diagnostic?: CallDiagnostic;
+};
 
 type StreamState = {
 	controller: ReadableStreamDefaultController<Uint8Array>;
@@ -52,7 +59,17 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 	let ready: PromiseWithResolvers<TransportStart> | null = null;
 	let closed: PromiseWithResolvers<void> | null = null;
 	let jobsLog: JobsLog;
+	let diagnosticTimer: ReturnType<typeof setInterval> | undefined;
+	const diagnostics = createWorkerDiagnostics(pending, (fields) =>
+		jobsLog("worker delay", { bootId: runtime.bootId, ...fields }),
+	);
+	const stopDiagnostics = () => {
+		clearInterval(diagnosticTimer);
+		diagnosticTimer = undefined;
+		diagnostics.clear();
+	};
 	const fail = (error: unknown) => {
+		stopDiagnostics();
 		ready?.reject(error);
 		for (const call of pending.values()) call.reject(error);
 		pending.clear();
@@ -63,10 +80,21 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 	const send = (message: WorkerInput) => worker?.postMessage(message);
 	const flush = () => {
 		batchScheduled = false;
-		if (outgoing.length > 0) send({ type: "calls", calls: outgoing.splice(0) });
+		if (outgoing.length > 0) {
+			const calls = outgoing.splice(0);
+			for (const call of calls) {
+				const diagnostic = pending.get(call.id)?.diagnostic;
+				if (diagnostic !== undefined) diagnostic.dispatchedAt = diagnosticNow();
+			}
+			send({ type: "calls", calls });
+		}
 	};
 
 	const receive = ({ data }: MessageEvent<WorkerOutput>) => {
+		if (data.type === "diagnostic") {
+			if (diagnosticTimer !== undefined) diagnostics.receive(data.event);
+			return;
+		}
 		if (data.type === "ready") {
 			ready?.resolve({
 				applied: data.applied,
@@ -76,11 +104,13 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			return;
 		}
 		if (data.type === "startError") {
+			stopDiagnostics();
 			ready?.reject(fromError(data.error));
 			return;
 		}
 		if (data.type === "result") {
 			const call = pending.get(data.id)!;
+			if (diagnosticTimer !== undefined) diagnostics.snapshot(call.diagnostic);
 			if (call.timing !== undefined) addTiming(call.timing, data.timing);
 			call.resolve(data.result);
 			pending.delete(data.id);
@@ -95,6 +125,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 				streams.delete(data.id);
 			} else {
 				const call = pending.get(data.id)!;
+				if (diagnosticTimer !== undefined) diagnostics.snapshot(call.diagnostic);
 				if (call.timing !== undefined) addTiming(call.timing, data.timing);
 				call.reject(error);
 				pending.delete(data.id);
@@ -118,6 +149,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			return;
 		}
 		if (data.type === "stream") {
+			if (diagnosticTimer !== undefined) diagnostics.snapshot(pending.get(data.id)!.diagnostic);
 			const stream = new ReadableStream<Uint8Array>({
 				start(controller) {
 					streams.set(data.id, { controller });
@@ -152,6 +184,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 			return;
 		}
 		closed?.resolve();
+		stopDiagnostics();
 	};
 
 	// The jobs run on the worker, beside the database. Their log lines come
@@ -164,7 +197,11 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		worker = new Worker(new URL("./worker.ts", import.meta.url).href, { name: "trellis-db" });
 		worker.onmessage = receive;
 		worker.onerror = (event) => fail(workerError(event));
-		if (jobs !== undefined) jobsLog = jobs.log;
+		if (jobs !== undefined) {
+			jobsLog = jobs.log;
+			diagnosticTimer = setInterval(() => diagnostics.snapshot(), WORKER_DELAY_MS);
+			diagnosticTimer.unref();
+		}
 		send({
 			type: "start",
 			config,
@@ -182,7 +219,9 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 	const call = (name: ServiceName, ctx: RequestContext, input: unknown, timing?: DbTiming) => {
 		if (worker === null) return Promise.reject(new Error("the database worker is not running"));
 		const id = nextId++;
-		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject, timing }));
+		const diagnostic =
+			diagnosticTimer === undefined ? undefined : { name, reqId: ctx.reqId, enqueuedAt: diagnosticNow() };
+		const promise = new Promise<unknown>((resolve, reject) => pending.set(id, { resolve, reject, timing, diagnostic }));
 		const entry = services[name];
 		outgoing.push({
 			type: "call",
@@ -214,6 +253,7 @@ export const createWorkerTransport = ({ bus, config, runtime }: WorkerTransportO
 		streams.clear();
 		send({ type: "close" });
 		await gate.promise;
+		stopDiagnostics();
 		running.terminate();
 		worker = null;
 		ready = null;
