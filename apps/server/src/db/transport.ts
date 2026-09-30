@@ -214,7 +214,7 @@ export const createInlineTransport = ({
 				record: createSessionActivityRecorder(db, log, diagnostics),
 				client: nativeClient(config.home),
 				emit: (event) => bus.emit(event),
-				complete: (input) => backgroundCall("sessions.nameFirstExchange", input),
+				nameSession: (input) => backgroundCall("sessions.nameFirstMessage", input),
 				log: options.log,
 			});
 			flowReconcile = startNativeReconcile({

@@ -737,11 +737,12 @@ The worktree lives under `agents/<run id>/work` in the data home and starts from
 A session without a project uses `sessions/<name>`, a Git repository on `main` with one empty commit.
 The session name contains 1 to 60 characters. Two sessions can hold the same name.
 An omitted name starts as `New session`.
-After the first complete exchange, a separate agent writes a short name and the existing rename service saves it.
+When the runtime confirms the first user prompt, a separate agent writes a short name from that prompt.
+The existing rename service saves the name while the session continues its first turn.
 The name request runs once and does not use the saved conversation.
 A user rename before or during that request wins.
 The internal name state is `temporary`, `requested`, or `set`.
-This state makes two completion events claim one name request.
+This state makes duplicate prompt confirmations claim one name request.
 It also keeps later messages, resumes, and server restarts from making another name.
 The `sessions` row keeps the name, directory, harness, and run. The run holds the project, conversation, and process attempts.
 The launch accepts a harness, model, effort, account, prompt, and files. A project session receives the prompt that the person entered.
