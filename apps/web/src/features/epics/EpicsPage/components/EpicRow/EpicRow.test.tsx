@@ -35,7 +35,7 @@ const epic = {
 
 const render = async () => {
 	const root = createRootRoute({
-		component: () => <EpicRow epic={epic} density="compact" readOnly onEdit={() => {}} onDelete={() => {}} />,
+		component: () => <EpicRow epic={epic} readOnly onEdit={() => {}} onDelete={() => {}} />,
 	});
 	const route = createRoute({ getParentRoute: () => root, path: "/p/$", component: () => null });
 	const router = createRouter({

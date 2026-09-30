@@ -47,8 +47,8 @@ const render = (epic: EpicTopbarEpic | null, readOnly = false) =>
 		</AppProvider>,
 	);
 
-test("the bar draws its three controls before the epic arrives", () => {
-	expect(barSlots(render(null))).toEqual(["new-wave", "add-tickets", "epic-actions"]);
+test("the bar draws its two controls before the epic arrives", () => {
+	expect(barSlots(render(null))).toEqual(["add", "epic-actions"]);
 });
 
 test("the epic fills the bar and moves no control", () => {
@@ -58,8 +58,8 @@ test("the epic fills the bar and moves no control", () => {
 test("every control of the waiting bar is disabled", () => {
 	const waiting = render(null);
 
-	expect(waiting.match(/<button/g)?.length).toBe(3);
-	expect(waiting.match(/ disabled=""/g)?.length).toBe(3);
+	expect(waiting.match(/<button/g)?.length).toBe(2);
+	expect(waiting.match(/ disabled=""/g)?.length).toBe(2);
 	expect(render(openEpic)).not.toContain(' disabled=""');
 });
 

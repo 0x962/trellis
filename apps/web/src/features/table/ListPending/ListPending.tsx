@@ -20,7 +20,7 @@ export function ListPending({ view, title }: ListPendingProps) {
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				<div aria-hidden="true" className="h-9 shrink-0 border-b border-border" />
 				<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
-					{view === "table" ? <TableSkeleton density="comfortable" /> : <BoardSkeleton />}
+					{view === "table" ? <TableSkeleton /> : <BoardSkeleton />}
 				</div>
 				<div aria-hidden="true" className="h-7 shrink-0 border-t border-border" />
 			</div>

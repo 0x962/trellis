@@ -1,0 +1,7 @@
+Page tabs open their actions from a right click or a touch long press. A focused tab also accepts the context-menu key and Shift+F10. The menu uses the tab that opens it. Opening the menu keeps the selected page unchanged.
+
+The menu shares its popup and rows with `Menu`. Its target stays mounted through dismissal and focus return. Rename and new-group actions pass focus to their fields. The group picker keeps its target separate from the selected page. A tab move stays inside its pinned region, group, or ungrouped region.
+
+`PageTabs.actions.dom.test.tsx` and `PageTabs.access.dom.test.tsx` mount the real controls. They require the DOM test host, including `ResizeObserver`, `DOMRect`, and pointer events. The fixture supplies viewport geometry because a DOM host has no layout engine. Plain Bun runs skip these DOM cases. A skipped case gives no verification proof.
+
+The release batch runs the mounted cases, the existing PageTabs tests, the Menu tests, the UI and web type checks, and scoped Biome. Browser checks cover native keyboard input, physical touch, focus, and drag behavior.
