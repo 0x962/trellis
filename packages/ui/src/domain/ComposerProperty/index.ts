@@ -1,0 +1,1 @@
+export { ComposerProperty } from "./ComposerProperty";

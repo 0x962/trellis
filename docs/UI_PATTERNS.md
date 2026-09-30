@@ -320,3 +320,17 @@ Check populated, empty, loading, and error states. Check long titles and rows wi
 Verify the layout in both themes at desktop and phone widths.
 Check keyboard access, focus return, filter removal, group collapse, sort direction, and URL persistence.
 Run the linter and type checks for each page that uses a changed shared element.
+
+## Create a ticket
+
+The ticket composer uses `TicketComposer`, `ComposerTitle`, and `ComposerProperty`.
+The header selects the project. The title and description come before the properties.
+The property row holds status, priority, agent, placement, and labels.
+More properties holds the parent picker and Discard draft.
+The agent picker searches the supported models of each harness. Its account and effort fields use the current harness.
+Create and assign saves the ticket, uploads its attachments, and starts the selected agent.
+No agent changes the action to Create ticket.
+A failed upload or assignment keeps the saved ticket. An assignment retry keeps its original request ID.
+Close and Escape retain the draft and selected files. Create another clears the content and retains the settings.
+Command+Enter creates the ticket. Command+Shift+Enter also keeps the composer open.
+On other platforms, Control replaces Command.

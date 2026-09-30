@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { toast } from "@trellis/ui";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { projectRefOfPathname } from "../../../lib/projectUrl";
 import { composerActions, useComposerStore } from "../composerStore";
@@ -10,11 +10,11 @@ const CreateTicketDialog = lazy(() =>
 	import("../CreateTicketDialog/CreateTicketDialog").then((module) => ({ default: module.CreateTicketDialog })),
 );
 
-// Mounts the composer while the store says it is open. The root shell
-// renders it once, so every page can open it. An archived project takes no
-// new ticket, so an open that targets one closes at once with a toast.
+// The mounted composer retains selected files and requests while its dialog is closed.
 export function ComposerHost() {
 	const open = useComposerStore((state) => state.open);
+	const [mounted, setMounted] = useState(open);
+	if (open && !mounted) setMounted(true);
 	const project = useComposerStore((state) => state.options.project);
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const { isArchived, notice } = useArchivedProjects();
@@ -27,10 +27,10 @@ export function ComposerHost() {
 		composerActions.close();
 	}, [refused, target, notice]);
 
-	if (!open || refused) return null;
+	if (!mounted) return null;
 	return (
 		<Suspense fallback={null}>
-			<CreateTicketDialog />
+			<CreateTicketDialog open={open && !refused} />
 		</Suspense>
 	);
 }
