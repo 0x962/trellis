@@ -161,6 +161,8 @@ export {
 	type CommandVirtualProps,
 } from "./primitives/Command";
 export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDialog";
+export { ContextMenu, type ContextMenuProps } from "./primitives/ContextMenu";
+export { ContextMenuTrigger } from "./primitives/ContextMenuTrigger";
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";

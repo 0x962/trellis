@@ -1,5 +1,6 @@
 import { PushPinSimple, X } from "@phosphor-icons/react";
 import { type CSSProperties, type PointerEvent, useLayoutEffect, useRef, useState } from "react";
+import { ContextMenuTrigger } from "../../../../primitives/ContextMenuTrigger";
 import { IconButton } from "../../../../primitives/IconButton";
 import { InlineEdit } from "../../../../primitives/InlineEdit";
 import { TabsTab } from "../../../../primitives/Tabs";
@@ -16,6 +17,7 @@ type Props = {
 	separator: boolean;
 	onClose: () => void;
 	editing: boolean;
+	menuOpen: boolean;
 	onEditingChange: (focus: boolean) => void;
 	onRename: (title: string) => void;
 	onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
@@ -32,6 +34,7 @@ export function PageTab({
 	separator,
 	onClose,
 	editing,
+	menuOpen,
 	onEditingChange,
 	onRename,
 	onPointerDown,
@@ -48,8 +51,15 @@ export function PageTab({
 		return () => observer.disconnect();
 	}, [tab.title, editing]);
 	return (
-		<div
+		<ContextMenuTrigger
 			role="presentation"
+			data-page-tab-target={tab.id}
+			onClickCapture={(event) => {
+				if (menuOpen) {
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			}}
 			className={cx(
 				"group absolute top-0 left-0 flex h-9 items-center rounded-t-lg border-x border-t max-sm:h-11 pointer-coarse:h-11",
 				active ? "z-10 border-border bg-bg text-fg" : "border-transparent text-fg-muted hover:bg-fg/6 hover:text-fg",
@@ -73,6 +83,7 @@ export function PageTab({
 					open={truncated || tab.pinned ? undefined : false}
 				>
 					<TabsTab
+						aria-haspopup="menu"
 						onAuxClick={(event) => {
 							if (event.button === 1 && !tab.pinned) {
 								event.preventDefault();
@@ -117,6 +128,6 @@ export function PageTab({
 					/>
 				</Tooltip>
 			)}
-		</div>
+		</ContextMenuTrigger>
 	);
 }
