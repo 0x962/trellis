@@ -9,21 +9,23 @@ import {
 	WorkspaceBindingSchema,
 	type WorkspaceBinding,
 	type WorkspaceCaptureReader,
-	WorkspaceInventorySchema,
 } from "../contracts";
+import { selectWorkspaceInventory } from "../selectWorkspaceInventory";
 import { validateWorkspaceInventory } from "../validateWorkspaceInventory";
+import { validateWorkspaceSeal } from "../validateWorkspaceSeal";
 
 export async function exportWorkspaceArchive(
 	ctx: { capture?: WorkspaceCaptureReader },
-	input: { binding: WorkspaceBinding; destination: string },
+	input: { binding: WorkspaceBinding; destination: string; signal?: AbortSignal },
 ) {
 	if (!ctx.capture) return { state: "unavailable" as const, reason: "consistency_unavailable" as const };
 	const binding = WorkspaceBindingSchema.parse(input.binding);
-	const inventory = WorkspaceInventorySchema.parse(await ctx.capture.list(binding));
+	if (!isDeepStrictEqual(ctx.capture.binding, binding)) throw new Error("workspace_capture_identity_mismatch");
+	const inventory = selectWorkspaceInventory(await ctx.capture.inventory(binding, input.signal));
 	if (!isDeepStrictEqual(inventory.binding, binding)) throw new Error("workspace_capture_identity_mismatch");
 	validateWorkspaceInventory(inventory);
 	const destination = join(await realpath(dirname(input.destination)), basename(input.destination));
-	const sources = [binding.workspaceId, ...(inventory.repository
+	const sources = [binding.workspaceId, ...binding.roots.filter((root) => root.kind === "worktree").map((root) => root.originalIdentity), ...(inventory.repository
 		? [inventory.repository.gitDirectory, inventory.repository.commonDirectory] : [])];
 	for (const source of sources) {
 		const path = resolve(source);
@@ -41,7 +43,7 @@ export async function exportWorkspaceArchive(
 		const hash = createHash("sha256");
 		let size = 0;
 		try {
-			for await (const chunk of ctx.capture.read(binding, { root: entry.root, path: entry.path })) {
+			for await (const chunk of ctx.capture.read({ binding, rootId: entry.rootId, path: entry.path }, input.signal)) {
 				hash.update(chunk);
 				size += chunk.byteLength;
 				await output.writeFile(chunk);
@@ -50,9 +52,11 @@ export async function exportWorkspaceArchive(
 		} finally {
 			await output.close();
 		}
-		files.push({ root: entry.root, path: entry.path, object, sha256: hash.digest("hex"), size });
+		const sha256 = hash.digest("hex");
+		if (size !== entry.size || sha256 !== entry.sha256) throw new Error("workspace_capture_content_mismatch");
+		files.push({ root: entry.root, path: entry.path, object, sha256, size });
 	}
-	const after = WorkspaceInventorySchema.parse(await ctx.capture.list(binding));
+	const after = selectWorkspaceInventory(await ctx.capture.inventory(binding, input.signal));
 	if (!isDeepStrictEqual(after, inventory)) throw new Error("workspace_capture_inventory_changed");
 	const archive: WorkspaceArchive = { version: 1, inventory, files };
 	const sourceBytes = JSON.stringify(archive);
@@ -65,5 +69,15 @@ export async function exportWorkspaceArchive(
 		await manifest.close();
 	}
 	await syncDirectory(destination);
-	return { state: "exported" as const, binding, sourceBytes, sourceDigest: protocolDigest(sourceBytes) };
+	const sourceDigest = protocolDigest(sourceBytes);
+	const rootId = binding.roots.find((root) => root.kind === "worktree")!.rootId;
+	const sealBytes = await ctx.capture.seal({ binding, rootId, manifestSha256: sourceDigest }, input.signal);
+	const sealSourceBytes = validateWorkspaceSeal(sealBytes, binding, sourceDigest);
+	const seal = await open(join(destination, "capture-seal.json"), "wx", 0o600);
+	try {
+		await seal.writeFile(sealBytes);
+		await seal.sync();
+	} finally { await seal.close(); }
+	await syncDirectory(destination);
+	return { state: "exported" as const, binding, sourceBytes, sourceDigest, sealSourceBytes };
 }

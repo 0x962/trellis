@@ -28,6 +28,7 @@ test("restores staged, dirty, untracked and executable files after source reposi
 	expect((await lstat(join(restored.worktree, "untracked.sh"))).mode & 0o777).toBe(0o755);
 	expect(await readlink(join(restored.worktree, "link"))).toBe("tracked.txt");
 	expect(restored.binding).toEqual(f.binding);
+	expect(await readFile(join(restored.archive, "capture-seal.json"), "utf8")).toBe(captured.sealSourceBytes);
 	const manifest = JSON.parse(await readFile(join(restored.archive, "workspace.json"), "utf8"));
 	const config = manifest.files.find((entry: { root: string; path: string }) => entry.root === "common" && entry.path === "config");
 	expect(await readFile(join(restored.archive, "objects", config.object), "utf8")).toContain("https://example.test/retained.git");
@@ -44,10 +45,10 @@ test("a lost synthetic scope fails without a manifest or a release call", async 
 	const f = await fixture();
 	let reads = 0;
 	await expect(exportWorkspaceArchive({ capture: {
-		list: f.reader.list,
-		async *read(binding, location) {
+		...f.reader,
+		async *read(input, signal) {
 			if (++reads === 2) throw new Error("capture_scope_lost");
-			yield* f.reader.read(binding, location);
+			yield* f.reader.read(input, signal);
 		},
 	} }, { binding: f.binding, destination: f.archive })).rejects.toThrow("capture_scope_lost");
 	await expect(lstat(join(f.archive, "workspace.json"))).rejects.toThrow();
@@ -55,23 +56,32 @@ test("a lost synthetic scope fails without a manifest or a release call", async 
 
 test("rejects changed identities, external links, and repository alternates", async () => {
 	const f = await fixture();
-	const list = async () => ({ ...f.inventory, binding: { ...f.binding, captureId: "other" } });
-	await expect(exportWorkspaceArchive({ capture: { ...f.reader, list } },
+	const inventory = async () => ({ ...f.inventory, binding: { ...f.binding, captureId: "other" } });
+	await expect(exportWorkspaceArchive({ capture: { ...f.reader, inventory } },
 		{ binding: f.binding, destination: f.archive })).rejects.toThrow("workspace_capture_identity_mismatch");
-	f.inventory.entries.push({ root: "worktree", path: "escape", kind: "symlink", target: "../outside" });
+	f.inventory.entries.push({ rootId: f.rootIds.worktree, path: "escape", kind: "symlink", target: "../outside" });
 	await expect(exportWorkspaceArchive({ capture: f.reader }, { binding: f.binding, destination: f.archive }))
 		.rejects.toThrow("workspace_link_outside_capture");
 	f.inventory.entries.pop();
 	f.inventory.entries.push(
-		{ root: "worktree", path: "alias", kind: "symlink", target: "." },
-		{ root: "worktree", path: "chained", kind: "symlink", target: "alias/../outside" },
+		{ rootId: f.rootIds.worktree, path: "alias", kind: "symlink", target: "." },
+		{ rootId: f.rootIds.worktree, path: "chained", kind: "symlink", target: "alias/../outside" },
 	);
 	await expect(exportWorkspaceArchive({ capture: f.reader }, { binding: f.binding, destination: f.archive }))
 		.rejects.toThrow("workspace_link_outside_capture");
 	f.inventory.entries.splice(-2);
-	f.inventory.entries.push({ root: "common", path: "objects/info/alternates", kind: "file", mode: 0o600 });
+	f.inventory.entries.push({ rootId: f.rootIds.common, path: "objects/info/alternates", kind: "file", mode: 0o600, size: 0, sha256: "a".repeat(64) });
 	await expect(exportWorkspaceArchive({ capture: f.reader }, { binding: f.binding, destination: f.archive }))
 		.rejects.toThrow("workspace_repository_dependency_unavailable");
+});
+
+test("rejects a seal for another generation before it can authorize restore", async () => {
+	const f = await fixture();
+	await expect(exportWorkspaceArchive({ capture: {
+		...f.reader,
+		seal: (input) => f.reader.seal({ ...input, binding: { ...input.binding, generation: input.binding.generation + 1 } }),
+	} }, { binding: f.binding, destination: f.archive })).rejects.toThrow("workspace_capture_seal_mismatch");
+	await expect(lstat(join(f.archive, "capture-seal.json"))).rejects.toThrow();
 });
 
 test("refuses live and existing destinations and corrupt archive bytes", async () => {

@@ -6,6 +6,7 @@ import { protocolDigest } from "../../../../langflowContracts";
 import { syncDirectory } from "../../syncDirectory";
 import { type WorkspaceArchive, WorkspaceArchiveSchema, type WorkspaceInventory } from "../contracts";
 import { validateWorkspaceInventory } from "../validateWorkspaceInventory";
+import { validateWorkspaceSeal } from "../validateWorkspaceSeal";
 
 type Entry = WorkspaceInventory["entries"][number];
 const contains = (parent: string, child: string) => parent === child || child.startsWith(`${parent}${sep}`);
@@ -75,15 +76,25 @@ export async function restoreWorkspaceArchive(
 	if (protocolDigest(sourceBytes) !== input.sourceDigest) throw new Error("workspace_archive_manifest_mismatch");
 	const archive = WorkspaceArchiveSchema.parse(JSON.parse(sourceBytes));
 	validateWorkspaceInventory(archive.inventory);
+	const seal = await open(join(archiveRoot, "capture-seal.json"), constants.O_RDONLY | constants.O_NOFOLLOW);
+	let sealBytes: Uint8Array;
+	try {
+		const stat = await seal.stat();
+		if (!stat.isFile() || stat.nlink !== 1) throw new Error("workspace_archive_unsafe_seal");
+		sealBytes = await seal.readFile();
+	} finally { await seal.close(); }
+	validateWorkspaceSeal(sealBytes, archive.inventory.binding, input.sourceDigest);
 	const destination = join(await realpath(dirname(input.destination)), basename(input.destination));
-	const protectedPaths = [await realpath(ctx.liveHome), archiveRoot, resolve(archive.inventory.binding.workspaceId)];
+	const protectedPaths = [await realpath(ctx.liveHome), archiveRoot, resolve(archive.inventory.binding.workspaceId),
+		...archive.inventory.binding.roots.filter((root) => root.kind !== "conversation").map((root) => resolve(root.originalIdentity))];
 	for (const path of protectedPaths)
 		if (contains(path, destination) || contains(destination, path)) throw new Error("workspace_restore_destination_conflict");
 	const files = new Map(archive.files.map((entry) => [key(entry), entry]));
 	if (files.size !== archive.files.length || new Set(archive.files.map((entry) => entry.object)).size !== files.size)
 		throw new Error("workspace_archive_duplicate_file");
 	const expected = archive.inventory.entries.filter((entry) => entry.kind === "file");
-	if (expected.length !== files.size || expected.some((entry) => !files.has(key(entry))))
+	if (expected.length !== files.size || expected.some((entry) =>
+		files.get(key(entry))?.sha256 !== entry.sha256 || files.get(key(entry))?.size !== entry.size))
 		throw new Error("workspace_archive_file_inventory_mismatch");
 	for (const file of archive.files) await copyObject(archiveRoot, file);
 	const entries = restoredEntries(archive.inventory);
@@ -95,6 +106,8 @@ export async function restoreWorkspaceArchive(
 	for (const file of archive.files) await copyObject(archiveRoot, file, join(retained, "objects", file.object));
 	const retainedManifest = await open(join(retained, "workspace.json"), "wx", 0o600);
 	try { await retainedManifest.writeFile(sourceBytes); await retainedManifest.sync(); } finally { await retainedManifest.close(); }
+	const retainedSeal = await open(join(retained, "capture-seal.json"), "wx", 0o600);
+	try { await retainedSeal.writeFile(sealBytes); await retainedSeal.sync(); } finally { await retainedSeal.close(); }
 	await syncDirectory(join(retained, "objects"));
 	await syncDirectory(retained);
 	const worktree = join(destination, "worktree");

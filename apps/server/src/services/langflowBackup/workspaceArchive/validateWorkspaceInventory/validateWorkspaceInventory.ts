@@ -1,7 +1,15 @@
 import { posix } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type { WorkspaceInventory } from "../contracts";
+import { selectWorkspaceInventory } from "../selectWorkspaceInventory";
 
 export function validateWorkspaceInventory(inventory: WorkspaceInventory) {
+	const selected = selectWorkspaceInventory({
+		binding: inventory.binding,
+		entries: inventory.entries.map(({ root: _root, ...entry }) => entry),
+		unavailable: inventory.unavailable,
+	});
+	if (!isDeepStrictEqual(selected, inventory)) throw new Error("workspace_capture_root_mismatch");
 	const entries = new Map<string, WorkspaceInventory["entries"][number]>();
 	for (const entry of inventory.entries) {
 		const key = `${entry.root}/${entry.path}`;

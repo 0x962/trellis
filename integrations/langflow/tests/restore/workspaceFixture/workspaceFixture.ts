@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
+import type { RuntimeCaptureInventory } from "@trellis/runtime-protocol";
 import { chmod, lstat, mkdir, mkdtemp, readFile, readdir, readlink, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { WorkspaceBinding, WorkspaceCaptureReader, WorkspaceInventory } from "../../../../../apps/server/src/services/langflowBackup/workspaceArchive";
+import type { WorkspaceBinding, WorkspaceCaptureReader } from "../../../../../apps/server/src/services/langflowBackup/workspaceArchive";
 
 export async function git(directory: string, ...args: string[]) {
 	const child = Bun.spawn(["git", "-c", "commit.gpgsign=false", "-C", directory, ...args], {
@@ -35,32 +37,46 @@ export async function workspaceFixture(register: (path: string) => void) {
 	await symlink("tracked.txt", join(worktree, "link"));
 	const gitDirectory = (await git(worktree, "rev-parse", "--absolute-git-dir")).trim();
 	const commonDirectory = join(repository, ".git");
+	const rootIds = { worktree: "opaque-w", git: "opaque-g", common: "opaque-c" };
 	const binding: WorkspaceBinding = {
 		captureId: "synthetic-capture", snapshotId: "00000000-0000-4000-8000-000000000001",
 		hostId: "00000000-0000-4000-8000-000000000002", dataHomeId: "00000000-0000-4000-8000-000000000003",
 		blockId: "00000000-0000-4000-8000-000000000004", generation: 1,
-		workspaceId: worktree, runs: [{ runId: "original-run", attemptId: "original-attempt" }],
+		workspaceId: worktree, identities: [{ harness: "codex", accountId: "account", profileId: "profile", agentRunId: "original-run", attemptId: "original-attempt", providerSessionId: "synthetic-session" }],
+		roots: [
+			{ rootId: rootIds.worktree, kind: "worktree", sourceKind: "workspace", originalIdentity: worktree },
+			{ rootId: rootIds.git, kind: "git", sourceKind: "git-directory", originalIdentity: gitDirectory, objectFormat: "sha1" },
+			{ rootId: rootIds.common, kind: "common", sourceKind: "common-directory", originalIdentity: commonDirectory, objectFormat: "sha1" },
+		],
 	};
-	const inventory: WorkspaceInventory = { binding, repository: { gitDirectory, commonDirectory, objectFormat: "sha1" }, entries: [] };
+	const inventory: RuntimeCaptureInventory = { binding, entries: [], unavailable: [] };
 	const roots = { worktree, git: gitDirectory, common: commonDirectory };
 	for (const root of ["worktree", "git", "common"] as const) {
 		const visit = async (path: string): Promise<void> => {
 			if ((root === "worktree" && path === ".git") || (root === "common" && path === "worktrees")) return;
 			const absolute = join(roots[root], path);
 			const stat = await lstat(absolute);
-			if (stat.isSymbolicLink()) inventory.entries.push({ root, path, kind: "symlink", target: await readlink(absolute) });
+			if (stat.isSymbolicLink()) inventory.entries.push({ rootId: rootIds[root], path, kind: "symlink", target: await readlink(absolute) });
 			else if (stat.isDirectory()) {
-				inventory.entries.push({ root, path, kind: "directory", mode: stat.mode & 0o777 });
+				inventory.entries.push({ rootId: rootIds[root], path, kind: "directory", mode: stat.mode & 0o777 });
 				for (const name of (await readdir(absolute)).sort()) await visit(`${path}/${name}`);
-			} else inventory.entries.push({ root, path, kind: "file", mode: stat.mode & 0o777 });
+			} else {
+				const bytes = await readFile(absolute);
+				inventory.entries.push({ rootId: rootIds[root], path, kind: "file", mode: stat.mode & 0o777, size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") });
+			}
 		};
 		for (const name of (await readdir(roots[root])).sort()) await visit(name);
 	}
 	const reader: WorkspaceCaptureReader = {
-		async list() { return structuredClone(inventory); },
-		async *read(_binding, location) { yield await readFile(join(roots[location.root], location.path)); },
+		binding,
+		async inventory() { return structuredClone(inventory); },
+		async *read(input) {
+			const root = (Object.keys(rootIds) as (keyof typeof roots)[]).find((root) => rootIds[root] === input.rootId)!;
+			yield await readFile(join(roots[root], input.path));
+		},
+		async seal(input) { return new TextEncoder().encode(JSON.stringify({ schemaVersion: 1, kind: "trellis-runtime-capture-seal", ...input }, null, 2)); },
 	};
 	const liveHome = join(directory, "live");
 	await mkdir(liveHome);
-	return { directory, worktree, repository, inventory, binding, reader, liveHome, archive: join(directory, "export"), destination: join(directory, "restore") };
+	return { directory, worktree, repository, inventory, binding, reader, rootIds, liveHome, archive: join(directory, "export"), destination: join(directory, "restore") };
 }

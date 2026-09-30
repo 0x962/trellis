@@ -1,16 +1,18 @@
 # Workspace archives
 
 `exportWorkspaceArchive({capture}, {binding,destination})` consumes a producer-owned read API.
-`WorkspaceCaptureReader` is a consumer requirement, not an implementation of OS exclusion.
+`WorkspaceCaptureReader` aliases `RuntimeCaptureProducer` from `@trellis/runtime-protocol`.
+The protocol type does not prove OS exclusion.
 Without that producer, the function returns `consistency_unavailable` before it creates files.
-The producer must reject expired or changed capture identities on every list and read.
+The producer must reject expired or changed capture identities on every inventory and read operation.
 The outer caller must retain the actual scope through every export and the aggregate snapshot seal.
 The exporter does not release that scope.
 
-`binding` identifies the capture, snapshot, host, data home, dispatch block, generation, workspace, and exact run/attempt associations.
-The `worktree`, `git`, and `common` roots are logical selectors into the held capture.
+`binding` identifies the capture, snapshot, host, data home, dispatch block, generation, workspace, and complete harness, account, profile, run, attempt, and provider-session identities.
+The producer supplies opaque root IDs with `worktree`, `git`, and `common` roles.
+Conversation roots and unavailable identities remain in the binding and inventory; this exporter does not read their bytes.
 The API never accepts a caller path as a source of consistent bytes.
-TRL-1074 owns the concrete runtime producer and its proof of exclusion.
+TRL-1170 owns the concrete runtime producer and its proof of exclusion.
 The current paired capture continues to report workspaces unavailable until that producer and composition exist.
 
 The producer supplies complete root inventories, including ignored and untracked files.
@@ -26,12 +28,17 @@ The common `worktrees` registry can be omitted because the private `git` root su
 Regular files retain their modes. Directory records preserve empty directories and modes.
 Symbolic links retain their text but must resolve within the captured worktree.
 Links inside Git metadata, escaping links, cycles, duplicate paths, and children of a non-directory fail.
-The exporter syncs every object before it publishes the manifest.
+The exporter checks each stream against the producer inventory size and SHA256.
+It syncs every object before it publishes the manifest.
+It calls `seal({binding,rootId,manifestSha256})` for the worktree root and retains the exact response bytes in `capture-seal.json`.
+The receipt must match the full binding, root, and manifest.
+An absent or unknown seal response leaves an incomplete archive.
 Repeated inventory reads detect a changed contract response; they do not prove filesystem consistency.
 
 `restoreWorkspaceArchive({liveHome}, {archive,sourceDigest,destination})` verifies the supplied manifest digest and all object bytes.
 The caller obtains `sourceDigest` from the sealed paired snapshot, not from an untrusted restore request.
 The destination must be absent and outside the live home, archive, and original workspace.
+It requires the matching `capture-seal.json` receipt before it creates the destination.
 It receives a `worktree` and a complete retained `archive` with independent file copies.
 The returned binding preserves original workspace and run identities; the restore does not rewrite database associations.
 
