@@ -1,6 +1,7 @@
 import { realScheduler, type Scheduler } from "@trellis/api";
 import { isTextEntry, useHotkey } from "@trellis/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isDesktopApp } from "./desktopBridge";
 import { parseProjectSplat, projectHref } from "./projectUrl";
 import { toggleSidebarOnce } from "./sidebarHotkey";
 import { toggleTheme } from "./theme";
@@ -118,7 +119,11 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 		setPending(null);
 	}, [scheduler]);
 
-	useHotkey("mod+k", onPalette);
+	useHotkey("mod+k", (event) => {
+		if (!isDesktopApp()) return;
+		event.preventDefault();
+		onPalette();
+	});
 	useHotkey("/", onSearch);
 	useHotkey("c", (event) => {
 		event.preventDefault();

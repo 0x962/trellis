@@ -1,10 +1,6 @@
-import type { Density } from "../../stores/uiStore";
-
-// The fixed row box per density. The virtualizer estimates with the same
-// number, so a row never changes the scroll height. The route skeletons
-// read these numbers too, so this module imports no component: a route's
-// pending state must not load the row and its pickers.
-export const rowHeights: Record<Density, number> = { comfortable: 36, compact: 32 };
+// Desktop rows, virtualizer estimates, and loading placeholders share this
+// height to keep the scroll position stable when ticket data arrives.
+export const desktopRowHeight = 36;
 
 // The row box below 768 px, where a row is two lines. On the epic table the
 // second line holds one fact of the ticket, and the table draws no pull

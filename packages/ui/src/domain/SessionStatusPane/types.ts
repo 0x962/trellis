@@ -40,6 +40,7 @@ export type SessionStatusPaneProps = {
 	now: string;
 	observerError?: string | null;
 	historyControl?: { hasMore: boolean; loading: boolean; error: boolean; load: () => void; retry: () => void };
+	resize?: { width: number | null; onWidthChange: (width: number) => void };
 	renderMarkdown: (markdown: string) => ReactNode;
 	onOpenLink: (href: string, target: string, press: LinkPress) => void;
 	className?: string;

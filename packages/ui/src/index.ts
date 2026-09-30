@@ -161,6 +161,8 @@ export {
 	type CommandVirtualProps,
 } from "./primitives/Command";
 export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDialog";
+export { ContextMenu, type ContextMenuProps } from "./primitives/ContextMenu";
+export { ContextMenuTrigger } from "./primitives/ContextMenuTrigger";
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
@@ -177,6 +179,7 @@ export { Pagination } from "./primitives/Pagination";
 export { PickerButton } from "./primitives/PickerButton";
 export { Popover, type PopoverProps } from "./primitives/Popover";
 export { PropertyRow, type PropertyRowProps } from "./primitives/PropertyRow";
+export { ResizeHandle } from "./primitives/ResizeHandle";
 export { ScrollArea, type ScrollAreaProps } from "./primitives/ScrollArea";
 export { SectionHeader, type SectionHeaderProps } from "./primitives/SectionHeader";
 export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitives/Segmented";

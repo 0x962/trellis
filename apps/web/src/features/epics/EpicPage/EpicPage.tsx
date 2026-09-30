@@ -5,9 +5,9 @@ import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref } from "../../../lib/projectUrl";
-import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
+import { useViewShareItems } from "../../filters/hooks/useViewShareItems";
 import { hasFilters } from "../../filters/labels";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
@@ -45,9 +45,8 @@ const breadcrumbLinkClass =
 // One epic, in two tabs. Overview is the tickets of the epic in the ticket
 // table of the project routes, with nothing above the table. Resources is
 // the documents and the files of the epic, with the epic description as the
-// first document. The Statistics sheet holds the counts of the epic. The
-// table search is the URL search with `epic` fixed to this epic, and it
-// groups by wave when the URL names no group. An epic belongs to one
+// first document. The table search uses the URL search with `epic` fixed to this epic.
+// The table groups by wave when the URL names no group. An epic belongs to one
 // project, so the rows match the counts of the epic and the tickets that Add
 // offers. The filter bar receives `epic` as a fixed filter,
 // so it draws no epic chip and "Copy as CLI" still names the epic. Add puts
@@ -61,7 +60,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const navigate = useNavigate();
 	const resourceId = useLocation({ select: (location) => location.hash });
 	const mutations = useTicketMutations();
-	const storedDensity = useUiStore((state) => state.density);
 	const ref = `${project.key}/${slug}`;
 	const epic = useQuery(orpc.epics.get.queryOptions({ input: { epic: ref } }));
 	const readOnly = project.archivedAt !== null;
@@ -116,6 +114,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const tableSearch = useMemo(() => epicPageSearch(search, ref, phone), [search, ref, phone]);
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
+	const shareItems = useViewShareItems({
+		project: project.key,
+		search: barSearch,
+		statuses: project.statuses,
+		fixed: { epic: ref },
+		linkSearch: epicQueryString,
+	});
 	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next, phone));
 	// The Overview tab opens first. The URL names the Resources tab alone, so
 	// a shared link to the resources opens on them.
@@ -130,6 +135,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			statuses={project.statuses}
 			fixed={{ epic: ref }}
 			linkSearch={epicQueryString}
+			showShare={false}
 			actions={
 				<DisplayPopover
 					routeKey={routeKey}
@@ -138,7 +144,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 					epicFixed
 					search={barSearch}
 					onSearchChange={setSearch}
-					density={search.density ?? storedDensity}
 					group={full.group}
 					sort={full.sort}
 				/>
@@ -152,30 +157,35 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const title = (epicRef: string, name: string) => (
 		<EpicSwitcher project={project.key} epicRef={epicRef} name={name} tab={tab} />
 	);
+	const identifiers = epic.data?.tickets.map((ticket) => ticket.identifier) ?? [];
+	const topbar = (
+		<Topbar
+			actions={
+				<EpicTopbarActions
+					project={project.key}
+					epic={epic.data ? { ref: epic.data.ref, name: epic.data.name, identifiers } : null}
+					readOnly={readOnly}
+					waveEditing={waveEditing}
+					shareItems={shareItems}
+					onAddTicket={(ticket) => void addTicket(ticket, epic.data?.ref ?? ref)}
+					onEdit={() => setEditing(true)}
+					onDelete={() => setDeleting(true)}
+				/>
+			}
+		>
+			<PageTitle parent={titleParent} title={title(epic.data?.ref ?? ref, epic.data?.name ?? slug)} />
+			{filterBar}
+		</Topbar>
+	);
 
 	if (epic.isPending) {
 		return (
 			<>
-				<Topbar
-					actions={
-						<EpicTopbarActions
-							project={project.key}
-							epic={null}
-							readOnly={readOnly}
-							waveEditing={waveEditing}
-							onAddTicket={() => {}}
-							onEdit={() => setEditing(true)}
-							onDelete={() => setDeleting(true)}
-						/>
-					}
-				>
-					<PageTitle parent={titleParent} title={title(ref, slug)} />
-					{filterBar}
-				</Topbar>
+				{topbar}
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
 					{readOnly && <ArchivedBanner project={project} />}
 					<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
-						<TableSkeleton density={search.density ?? storedDensity} />
+						<TableSkeleton />
 					</div>
 				</div>
 			</>
@@ -195,8 +205,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	}
 
 	const record = epic.data;
-	const identifiers = record.tickets.map((ticket) => ticket.identifier);
-	// The top bar and the empty state of the Overview draw the same two buttons.
+	// The top bar and the empty state of the Overview share the Add menu.
 	const createActions = readOnly ? null : (
 		<EpicCreateActions
 			project={project.key}
@@ -207,22 +216,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	);
 	return (
 		<>
-			<Topbar
-				actions={
-					<EpicTopbarActions
-						project={project.key}
-						epic={{ ref: record.ref, name: record.name, identifiers }}
-						readOnly={readOnly}
-						waveEditing={waveEditing}
-						onAddTicket={(ticket) => void addTicket(ticket, record.ref)}
-						onEdit={() => setEditing(true)}
-						onDelete={() => setDeleting(true)}
-					/>
-				}
-			>
-				<PageTitle parent={titleParent} title={title(record.ref, record.name)} />
-				{filterBar}
-			</Topbar>
+			{topbar}
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
 				{/* The tab panels fill the card. The ticket table starts right under the tab strip. */}

@@ -134,7 +134,7 @@ export function GroupHeader({
 					className={cx(
 						"-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11",
 						appearance === "sidebar" || appearance === "strip" ? "text-xs" : "text-sm",
-						appearance === "strip" && "min-w-0 flex-1",
+						appearance === "strip" && "min-w-7 flex-1 max-sm:h-11 max-sm:min-w-11",
 					)}
 				>
 					<Chevron aria-hidden="true" className="size-3 shrink-0 text-fg-faint" />

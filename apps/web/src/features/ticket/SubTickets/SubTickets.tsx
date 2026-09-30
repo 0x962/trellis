@@ -22,7 +22,7 @@ export type SubTicketsProps = {
 	ticket: Ticket;
 };
 
-const rowClass = "flex h-9 w-full items-center gap-3 border-b border-border px-3 text-base text-fg";
+const rowClass = "flex h-9 w-full items-center gap-3 border-b border-border px-3 text-base text-fg pointer-coarse:h-11";
 
 // The check segments a child's PR badge stands for: the counts, in bucket
 // order. The summary holds no check names, so each segment reads "1 check".
@@ -95,11 +95,16 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void }) {
 	const { status, pr } = child;
 	return (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: The overlay button supplies keyboard access to the row.
+		<div
 			onClick={onOpen}
-			className={`${rowClass} text-left transition-colors duration-hover ease-out hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2`}
+			className={`${rowClass} relative text-left transition-colors duration-hover ease-out hover:bg-band`}
 		>
+			<button
+				type="button"
+				aria-label={`Open ${child.identifier}`}
+				className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+			/>
 			<StatusIcon {...statusIconProps(status)} />
 			<TicketId id={child.identifier} className="w-16" />
 			<span className="min-w-0 flex-1 truncate">{child.title}</span>
@@ -107,7 +112,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 			<span className="flex w-16 shrink-0 items-center gap-1">
 				{pr !== null && (
 					<Tooltip content={prLabel(pr)}>
-						<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
+						<span role="img" aria-label={prLabel(pr)} className="relative inline-flex items-center gap-1 text-fg-muted">
 							<PrGlyph
 								state={pr.state}
 								askedForReview={askedForReview(pr)}
@@ -120,12 +125,12 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 					</Tooltip>
 				)}
 			</span>
-			<span className="flex w-5 shrink-0 justify-center">
-				<ActorAvatar ticketId={child.id} />
+			<span className="relative flex w-5 shrink-0 justify-center pointer-coarse:w-11">
+				<ActorAvatar ticket={child} />
 			</span>
 			<time dateTime={child.updatedAt} className="w-8 shrink-0 text-right text-sm text-fg-muted tabular">
 				{compactRelativeTime(child.updatedAt)}
 			</time>
-		</button>
+		</div>
 	);
 }

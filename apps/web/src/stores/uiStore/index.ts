@@ -1,1 +1,1 @@
-export { createUiStore, type Density, type UiData, type UiState, uiActions, uiStorageKey, useUiStore } from "./uiStore";
+export { createUiStore, type UiData, type UiState, uiActions, uiStorageKey, useUiStore } from "./uiStore";

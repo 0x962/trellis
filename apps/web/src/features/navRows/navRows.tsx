@@ -1,6 +1,5 @@
 import {
 	BookOpen,
-	ChartBar,
 	ChartLine,
 	FlowArrow,
 	GithubLogo,
@@ -13,7 +12,7 @@ import {
 import type { MenuLinkIcon } from "@trellis/api";
 import type { ReactElement } from "react";
 
-export type NavTarget = "/needs-you" | "/search" | "/ai/flows" | "/statistics" | "/usage";
+export type NavTarget = "/needs-you" | "/search" | "/ai/flows" | "/usage";
 
 export type NavRow = { to: NavTarget; label: string; icon: ReactElement };
 
@@ -24,7 +23,6 @@ export const navRows: readonly NavRow[] = [
 	{ to: "/needs-you", label: "Needs you", icon: <Tray /> },
 	{ to: "/search", label: "Search", icon: <MagnifyingGlass /> },
 	{ to: "/ai/flows", label: "Flows", icon: <FlowArrow /> },
-	{ to: "/statistics", label: "Statistics", icon: <ChartBar /> },
 	{ to: "/usage", label: "Usage", icon: <ChartLine /> },
 ];
 

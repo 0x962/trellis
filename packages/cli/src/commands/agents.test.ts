@@ -33,7 +33,7 @@ const agent = (id: string, name: string) => ({
 	updatedAt: "2026-09-29T07:00:00.000Z",
 });
 
-test("agent broadcast sends the selected group and text", async () => {
+test.each(["working", "idle", "both"])("agent broadcast sends the %s group and text", async (group) => {
 	const calls: { path: string; input: unknown }[] = [];
 	let output = "";
 	const deps = {
@@ -51,22 +51,22 @@ test("agent broadcast sends the selected group and text", async () => {
 			const input = ((await request.json()) as { json: unknown }).json;
 			calls.push({ path, input });
 			return Response.json(
-				{ json: { group: "working", recipientCount: 2, acceptedCount: 2, failures: [] } },
+				{ json: { group, recipientCount: 2, acceptedCount: 2, failures: [] } },
 				{ headers: { "x-trellis-api-version": "1" } },
 			);
 		},
 	} as unknown as Deps;
 
 	expect(
-		await run(["agent", "broadcast", "--group", "working", "--text", "-", "--request-id", "release-check"], deps),
+		await run(["agent", "broadcast", "--group", group, "--text", "-", "--request-id", "release-check"], deps),
 	).toBe(0);
 	expect(calls).toEqual([
 		{
 			path: "/rpc/agentRuns/broadcast",
-			input: { group: "working", text: "Check the release", requestId: "release-check" },
+			input: { group, text: "Check the release", requestId: "release-check" },
 		},
 	]);
-	expect(JSON.parse(output)).toEqual({ group: "working", recipientCount: 2, acceptedCount: 2, failures: [] });
+	expect(JSON.parse(output)).toEqual({ group, recipientCount: 2, acceptedCount: 2, failures: [] });
 });
 
 test("agent list follows every cursor for all rows", async () => {

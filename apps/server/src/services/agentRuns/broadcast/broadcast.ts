@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { AgentBroadcastInputSchema, type AgentBroadcastRecipient, type AgentBroadcastResult } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
@@ -23,6 +24,7 @@ type BroadcastDeps = {
 			id: string;
 			text: string;
 			messageId: string;
+			atTurnBoundary: true;
 			expectedTerminalId: string | null;
 			expectedSessionId: string | null;
 		},
@@ -30,6 +32,11 @@ type BroadcastDeps = {
 };
 
 const markUserBroadcast = (text: string) => `This is a broadcast from the user.\n\n${text}`;
+
+const deliveryId = (requestId: string, runId: string) => {
+	const id = `${requestId}-${runId}`;
+	return id.length <= 128 ? id : createHash("sha256").update(id).digest("hex");
+};
 
 const depsOf = (ctx: IoCtx): BroadcastDeps => ({
 	read: readRuntimeSessionsRequired,
@@ -81,6 +88,13 @@ export const selectBroadcastTargets = (runs: StoredRun[], processes: RuntimeProc
 	return runs.flatMap((run) => {
 		const process = byTerminal.get(run.terminalId!);
 		const group = process === undefined ? null : groupOf(process);
+		if (
+			group === "idle" &&
+			(run.ticketStatusCategory === null ||
+				run.ticketStatusCategory === "done" ||
+				run.ticketStatusCategory === "canceled")
+		)
+			return [];
 		return group === null ? [] : [{ group, run, recipient: recipientOf(run) }];
 	});
 };
@@ -112,13 +126,16 @@ export async function prepareBroadcast(
 	deps: BroadcastDeps = depsOf(ctx),
 ): Promise<AgentBroadcastResult> {
 	const input = AgentBroadcastInputSchema.parse(value);
-	const selected = (await targets(ctx, deps.read)).filter((target) => target.group === input.group);
+	const selected = (await targets(ctx, deps.read)).filter(
+		(target) => input.group === "both" || target.group === input.group,
+	);
 	const deliveries = await Promise.allSettled(
 		selected.map((target) =>
 			deps.send(ctx, {
 				id: target.run.id,
 				text: markUserBroadcast(input.text),
-				messageId: `${input.requestId}-${target.run.id}`,
+				messageId: deliveryId(input.requestId, target.run.id),
+				atTurnBoundary: true,
 				expectedTerminalId: target.run.terminalId,
 				expectedSessionId: target.run.sessionId,
 			}),

@@ -1,0 +1,1 @@
+ALTER TABLE "epics" ADD COLUMN "canceled_at" timestamp (3) with time zone;

@@ -10,5 +10,6 @@ export const epics = os.epics.router({
 		return epic;
 	}),
 	update: os.epics.update.handler(({ context, input }) => call(context, "epics.update", input)),
+	cancel: os.epics.cancel.handler(({ context, input }) => call(context, "epics.cancel", input)),
 	delete: os.epics.delete.handler(({ context, input }) => call(context, "epics.delete", input)),
 });

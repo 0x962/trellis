@@ -12,8 +12,6 @@ import { menuLinkIcons, type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
-import { ArchivedProjects } from "../../../ArchivedProjects";
-import { ArchivedSessions } from "../../../ArchivedSessions";
 import { SidebarMachinePressure } from "../../../MachinePressure";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
@@ -41,13 +39,6 @@ export type SidebarBodyProps = {
 // The sessions and the project list share the one region that scrolls and
 // takes the spare height. Every fixed destination sits above it, so none of
 // them moves when the region grows.
-//
-// The archive area holds the archived sessions and the archived projects. It
-// is the last child of that region and carries `mt-auto`, so a short list
-// leaves it at the bottom edge of the region, directly above the connection
-// panel and the actor footer. A list that fills the region leaves no spare
-// height, so the archive area follows the project list and a scroll reaches
-// it.
 //
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
@@ -166,10 +157,6 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						</Tooltip>
 					</div>
 					<ProjectTree />
-				</div>
-				<div className="mt-auto flex shrink-0 flex-col">
-					<ArchivedSessions />
-					<ArchivedProjects />
 				</div>
 			</div>
 			<div className="mt-auto shrink-0">

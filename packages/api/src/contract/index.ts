@@ -25,7 +25,6 @@ import { sessionObservers } from "./sessionObservers.ts";
 import { sessions } from "./sessions.ts";
 import { sessionUpdates } from "./sessionUpdates.ts";
 import { settings } from "./settings.ts";
-import { statistics } from "./statistics.ts";
 import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
@@ -50,7 +49,6 @@ export const contract = {
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),
 	providers: oc.tag("providers").router(providers),
-	statistics: oc.tag("statistics").router(statistics),
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),
 	timeline: oc.tag("timeline").router(timeline),

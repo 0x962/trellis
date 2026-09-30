@@ -6,8 +6,8 @@ import { projects } from "./projects.ts";
 // An epic groups the tickets that deliver one plan inside a project. The
 // `description` holds the plan as markdown. The actor columns name the last
 // writer. The unique (project_id, slug) pair gives the epic its `KEY/slug`
-// ref. The epic keeps no state column: its state derives from the tickets
-// that point at it.
+// ref. `canceled_at` records explicit cancellation. Other states derive
+// from the tickets that point at the epic.
 // `epics_project_slug_equality` keeps each slug unique within its project.
 // The migration creates this hash index as an equality exclusion constraint,
 // so long slugs fit. The slug syntax excludes the separator slash.
@@ -21,6 +21,7 @@ export const epics = pgTable(
 		slug: text().notNull(),
 		name: text().notNull(),
 		description: text().notNull().default(""),
+		canceledAt: at("canceled_at"),
 		...actorColumns(),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),

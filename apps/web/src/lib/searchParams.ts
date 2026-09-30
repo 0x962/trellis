@@ -2,8 +2,11 @@
 // per field, comma-separated lists, no brackets and no quotes. A route's
 // validateSearch turns these raw strings into its typed view.
 
-export const parseSearchString = (searchStr: string): Record<string, string> =>
-	Object.fromEntries(new URLSearchParams(searchStr));
+export const parseSearchString = (searchStr: string): Record<string, string> => {
+	// The router merges raw fields into validated search. Discard density here to preserve saved epic filters.
+	const { density: _density, ...search } = Object.fromEntries(new URLSearchParams(searchStr));
+	return search;
+};
 
 // A comma, a colon, an at sign, and a slash stay readable in the URL. The
 // slash separates a group from a label in a label ref such as `type/bug`. The
@@ -34,7 +37,6 @@ export const searchParamOrder = [
 	"group",
 	"closed",
 	"tab",
-	"density",
 	"limit",
 ] as const;
 

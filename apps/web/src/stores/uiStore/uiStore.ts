@@ -2,15 +2,13 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { View } from "../../features/filters/grammar";
 
-export type Density = "comfortable" | "compact";
-
 export const uiStorageKey = "trellis-ui";
 
 // The persisted values.
 export type UiData = {
 	epicFilters: Record<string, Partial<View>>;
+	epicSorts: Record<string, View["sort"]>;
 	sidebarCollapsed: boolean;
-	density: Density;
 	// The collapsed group names per route: `{"/p/CDE": ["done"]}`. A route
 	// with no entry collapses its Done and Canceled groups.
 	collapsedGroups: Record<string, string[]>;
@@ -31,8 +29,8 @@ export type UiState = UiData & {
 	setMobileSidebarOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
-	setDensity: (density: Density) => void;
 	setEpicFilters: (epicFilterKey: string, filters: Partial<View>) => void;
+	setEpicSort: (epicFilterKey: string, sort: View["sort"]) => void;
 	toggleProject: (id: string) => void;
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
@@ -43,8 +41,8 @@ export type UiState = UiData & {
 
 const defaults: UiData = {
 	epicFilters: {},
+	epicSorts: {},
 	sidebarCollapsed: false,
-	density: "comfortable",
 	collapsedGroups: {},
 	expandedTickets: {},
 	expandedProjects: {},
@@ -61,9 +59,13 @@ const updates = {
 		(state: UiData): Partial<UiData> => ({
 			epicFilters: { ...state.epicFilters, [epicFilterKey]: filters },
 		}),
+	setEpicSort:
+		(epicFilterKey: string, sort: View["sort"]) =>
+		(state: UiData): Partial<UiData> => ({
+			epicSorts: { ...state.epicSorts, [epicFilterKey]: sort },
+		}),
 	toggleSidebar: (state: UiData): Partial<UiData> => ({ sidebarCollapsed: !state.sidebarCollapsed }),
 	setSidebarCollapsed: (sidebarCollapsed: boolean) => (): Partial<UiData> => ({ sidebarCollapsed }),
-	setDensity: (density: Density) => (): Partial<UiData> => ({ density }),
 	toggleProject:
 		(id: string) =>
 		(state: UiData): Partial<UiData> => ({
@@ -124,10 +126,8 @@ const browserStorage = {
 	},
 };
 
-// The renderer-local preferences: the sidebar, density, table expansion,
-// project expansion, and visible columns. Every change writes to
-// browser storage when the browser permits it. A new store reads the stored
-// state at creation.
+// Browser storage keeps the sidebar, table expansion, project expansion,
+// visible columns, epic filters, and epic sort settings for each renderer.
 export const createUiStore = () =>
 	create<UiState>()(
 		persist(
@@ -135,11 +135,11 @@ export const createUiStore = () =>
 				...defaults,
 				activeEpicFilterKey: null,
 				setEpicFilters: (epicFilterKey, filters) => set(updates.setEpicFilters(epicFilterKey, filters)),
+				setEpicSort: (epicFilterKey, sort) => set(updates.setEpicSort(epicFilterKey, sort)),
 				mobileSidebarOpen: false,
 				setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),
 				setSidebarCollapsed: (collapsed) => set(updates.setSidebarCollapsed(collapsed)),
-				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
 				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
 				toggleTicketExpanded: (route, ticketId) => set(updates.toggleTicketExpanded(route, ticketId)),
@@ -151,8 +151,8 @@ export const createUiStore = () =>
 				storage: createJSONStorage(() => browserStorage),
 				partialize: (state) => ({
 					epicFilters: state.epicFilters,
+					epicSorts: state.epicSorts,
 					sidebarCollapsed: state.sidebarCollapsed,
-					density: state.density,
 					collapsedGroups: state.collapsedGroups,
 					expandedTickets: state.expandedTickets,
 					expandedProjects: state.expandedProjects,
@@ -169,7 +169,6 @@ export const uiActions = {
 	setMobileSidebarOpen: (open: boolean) => useUiStore.setState({ mobileSidebarOpen: open }),
 	toggleSidebar: () => useUiStore.setState(updates.toggleSidebar),
 	setSidebarCollapsed: (collapsed: boolean) => useUiStore.setState(updates.setSidebarCollapsed(collapsed)),
-	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
 	toggleGroup: (route: string, group: string, defaults?: string[]) =>
 		useUiStore.setState(updates.toggleGroup(route, group, defaults)),

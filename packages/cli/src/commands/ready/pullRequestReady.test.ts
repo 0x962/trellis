@@ -22,7 +22,7 @@ const readiness = (
 
 test("names each missing part with its command", () => {
 	expect(pullRequestReadyText(readiness(["explanation", "evidence"]))).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
+		`#131 has incomplete review material. The local review request is independent of these checks:
   MISSING  explanation  trellis diff summary write 131 --headline "..." --why - --watch "..."
   MISSING  evidence     trellis diff evidence write 131 --body -
 `,
@@ -31,7 +31,7 @@ test("names each missing part with its command", () => {
 
 test("names only the evidence document when the explanation exists", () => {
 	expect(pullRequestReadyText(readiness(["evidence"]))).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
+		`#131 has incomplete review material. The local review request is independent of these checks:
   MISSING  evidence  trellis diff evidence write 131 --body -
 `,
 	);
@@ -39,7 +39,7 @@ test("names only the evidence document when the explanation exists", () => {
 
 test("names the missing data model diagram and tells the agent how to add it", () => {
 	expect(pullRequestReadyText(readiness(["data-model-diagram"], true))).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
+		`#131 has incomplete review material. The local review request is independent of these checks:
   MISSING  data model diagram  add a \`\`\`mermaid erDiagram\`\`\` block to the explanation or evidence document
 `,
 	);
@@ -58,7 +58,7 @@ test("names each flow with the command that runs it when no flow ran", () => {
 	};
 
 	expect(pullRequestReadyText(result)).toBe(
-		`#131 is not ready for review. Add each missing item, then run: trellis diff set-state 131 ready
+		`#131 has incomplete review material. The local review request is independent of these checks:
   MISSING  flow run  no flow ran for this pull request
     Pick the flows that fit this change and run each one:
     review  Read the diff.  trellis flow start review --diff 131
@@ -69,10 +69,8 @@ test("names each flow with the command that runs it when no flow ran", () => {
 	);
 });
 
-test("says the pull request is ready when both parts exist", () => {
-	expect(pullRequestReadyText(readiness([]))).toBe(
-		"#131 is ready for review. It has the explanation and the evidence document. Trellis marked it ready for review.\n",
-	);
+test("reports complete material without claiming a local request", () => {
+	expect(pullRequestReadyText(readiness([]))).toBe("Review material for #131 is complete.\n");
 });
 
 test("names what the pull request still waits for after the agent asked for review", () => {
@@ -82,7 +80,7 @@ test("names what the pull request still waits for after the agent asked for revi
 	]);
 
 	expect(pullRequestReadyText(result)).toBe(
-		`#131 is not ready for review yet. It has the explanation and the evidence document, and Trellis recorded that you asked for review. It turns green for the person when this is true as well:
+		`Review material for #131 is complete. Other review gaps remain:
   MISSING  2 checks pending
   MISSING  1 review finding open
 `,
@@ -190,9 +188,7 @@ test("takes a succeeded run as the flow run", async () => {
 	);
 
 	expect(result.ready).toBe(true);
-	expect(pullRequestReadyText(result)).toBe(
-		"#131 is ready for review. It has the explanation, the evidence document, and a flow run. Trellis marked it ready for review.\n",
-	);
+	expect(pullRequestReadyText(result)).toBe("Review material for #131 is complete.\n");
 });
 
 // One flow run answers for the whole diff. The agent pushed three

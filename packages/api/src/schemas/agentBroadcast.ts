@@ -2,7 +2,7 @@ import { z } from "zod";
 import { AgentRunKindSchema } from "./agentRun.ts";
 import { CountSchema, UlidSchema } from "./primitives.ts";
 
-export const AgentBroadcastGroupSchema = z.enum(["working", "idle"]);
+export const AgentBroadcastGroupSchema = z.enum(["working", "idle", "both"]);
 export type AgentBroadcastGroup = z.infer<typeof AgentBroadcastGroupSchema>;
 
 export const AgentBroadcastRecipientSchema = z.object({
@@ -22,7 +22,7 @@ export type AgentBroadcastCounts = z.infer<typeof AgentBroadcastCountsSchema>;
 
 export const AgentBroadcastInputSchema = z.strictObject({
 	group: AgentBroadcastGroupSchema,
-	text: z.string().trim().min(1),
+	text: z.string().refine((text) => text.trim().length > 0, "Enter a message."),
 	requestId: z
 		.string()
 		.min(1)

@@ -6,11 +6,10 @@ import { Dialog } from "../../../primitives/Dialog";
 import { IconButton } from "../../../primitives/IconButton";
 import { Menu } from "../../../primitives/Menu";
 import { Popover } from "../../../primitives/Popover";
+import { ResizeHandle } from "../../../primitives/ResizeHandle";
 import { Sheet } from "../../../primitives/Sheet";
 import { Toaster, toast } from "../../../primitives/Toast";
 import { Tooltip } from "../../../primitives/Tooltip";
-import { cx } from "../../../utils/cx";
-import { hitArea } from "../../../utils/hitArea";
 import { Section } from "../Section";
 
 const commands = [
@@ -86,17 +85,7 @@ export function OverlaySections() {
 					onOpenChange={setSheetOpen}
 					modal={false}
 					title="CDE-43"
-					resizeHandle={
-						<button
-							type="button"
-							aria-label="Resize"
-							className={cx(
-								"h-full w-1 cursor-col-resize transition-colors duration-hover hover:bg-accent focus-visible:bg-accent",
-								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-								hitArea.handle4,
-							)}
-						/>
-					}
+					resizeHandle={<ResizeHandle label="Sheet width" value={720} min={720} max={720} />}
 				>
 					<div className="flex flex-col gap-2 p-4">
 						<h3 className="text-xl font-semibold">Merge upstream 1.27 and keep every marked site</h3>
