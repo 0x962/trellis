@@ -4,12 +4,12 @@ import { Avatar, Button, ConfirmDialog, IconButton, Tooltip, toast } from "@trel
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { AssignAgent } from "../AssignAgent";
 import { agentKindOf } from "../agentKindOf";
 import { agentMarkState } from "../agentMarkState";
 import { agentProfileOf } from "../agentProfileOf";
 import { allAgentRunsOptions } from "../allAgentRuns";
 import { agentLabel } from "./agentLabel";
-import { AssignAgent } from "./components/AssignAgent";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
 	month: "short",

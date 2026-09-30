@@ -17,8 +17,32 @@ describe("epicSearch", () => {
 		expect(page).toEqual({
 			priority: ["high"],
 			epic: "OP/routine-runtime",
+			sort: "number",
 			group: "wave",
 		});
+	});
+
+	test.each(["updatedAt", "-updatedAt"])("an epic link with %s uses ascending ticket numbers", (sort) => {
+		const search = validated({ sort, group: "status", priority: "high" });
+		const page = epicPageSearch(search, "OP/routine-runtime");
+		expect(page.sort).toBe("number");
+		expect(epicUrlSearch(page)).toEqual({ group: "status", priority: ["high"] });
+		expect(epicQueryString(search)).toBe("?priority=high&group=status");
+		expect(isCanonicalEpicSearch(`?priority=high&sort=${sort}&group=status`, search)).toBe(false);
+	});
+
+	test("an explicit sort and group retain their canonical parameter order", () => {
+		const search = validated({ sort: "-createdAt", group: "status" });
+		expect(epicPageSearch(search, "OP/routine-runtime").sort).toBe("-createdAt");
+		expect(epicQueryString(search)).toBe("?sort=-createdAt&group=status");
+		expect(isCanonicalEpicSearch("?sort=-createdAt&group=status", search)).toBe(true);
+		expect(isCanonicalEpicSearch("?sort=number", validated({ sort: "number" }))).toBe(false);
+	});
+
+	test("ordinary list routes retain the Updated default and both directions", () => {
+		expect(parseSearch({}).sort).toBe("-updatedAt");
+		expect(parseSearch({ sort: "updatedAt" }).sort).toBe("updatedAt");
+		expect(parseSearch({ sort: "-updatedAt" }).sort).toBe("-updatedAt");
 	});
 
 	test("the query string of a link writes the status group and leaves out the page defaults", () => {

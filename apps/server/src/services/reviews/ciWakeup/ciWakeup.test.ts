@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { getRun } from "../../agentRuns/queries.ts";
 import { waitingForRun } from "../../deliveries/sentences.ts";
@@ -11,7 +11,7 @@ beforeEach(async () => {
 }, 30_000);
 afterEach(async () => f.close());
 
-test.each(["failed", "passed", "stuck", "queued", "dequeued", "merged"] as const)(
+test.each(["failed", "passed", "stuck", "queued", "dequeued", "merged", "conflict", "clear"] as const)(
 	"a %s notice resumes the saved conversation once",
 	async (kind) => {
 		const queued = await f.queue(kind);
@@ -45,15 +45,18 @@ test.each(["failed", "passed", "stuck", "queued", "dequeued", "merged"] as const
 	},
 );
 
-test("a held CI notice wakes an idle-expired agent", async () => {
-	const queued = await f.queue();
-	await f.db.execute(
-		sql`UPDATE review_deliveries SET state='held',error=${waitingForRun} WHERE id=${queued.deliveryId}`,
-	);
-	await f.dispatch(f.ctx, [f.saved]);
-	expect(f.prompts).toHaveLength(1);
-	expect(await f.delivery(queued.deliveryId)).toEqual({ state: "sent", error: null });
-});
+test.each(["failed", "conflict", "clear"] as const)(
+	"a held %s notice resumes an agent after idle expiry",
+	async (kind) => {
+		const queued = await f.queue(kind);
+		await f.db.execute(
+			sql`UPDATE review_deliveries SET state='held',error=${waitingForRun} WHERE id=${queued.deliveryId}`,
+		);
+		await f.dispatch(f.ctx, [f.saved]);
+		expect(f.prompts).toHaveLength(1);
+		expect(await f.delivery(queued.deliveryId)).toEqual({ state: "sent", error: null });
+	},
+);
 
 test("another CI notice waits for the new attempt before delivery", async () => {
 	const first = await f.queue();
@@ -102,19 +105,21 @@ test("a merge completion resumes the idle conversation after the pull request me
 	expect(await f.delivery(queued.deliveryId)).toEqual({ state: "sent", error: null });
 });
 
-test.each(["new head", "merged", "closed"])("a notice for a PR with %s cannot resume its agent", async (reason) => {
-	const queued = await f.queue();
-	if (reason === "new head")
-		await f.db.execute(sql`UPDATE pull_requests SET head_sha='replacement' WHERE id=${queued.prId}`);
-	else await f.db.execute(sql`UPDATE pull_requests SET state=${reason} WHERE id=${queued.prId}`);
-	await f.dispatch(f.ctx, [f.saved]);
-	expect(f.prompts).toEqual([]);
-	expect((await f.delivery(queued.deliveryId)).state).toBe("failed");
+describe.each(["failed", "conflict", "clear"] as const)("stale %s notices", (kind) => {
+	test.each(["new head", "merged", "closed"])("a notice for a PR with %s cannot resume its agent", async (reason) => {
+		const queued = await f.queue(kind);
+		if (reason === "new head")
+			await f.db.execute(sql`UPDATE pull_requests SET head_sha='replacement' WHERE id=${queued.prId}`);
+		else await f.db.execute(sql`UPDATE pull_requests SET state=${reason} WHERE id=${queued.prId}`);
+		await f.dispatch(f.ctx, [f.saved]);
+		expect(f.prompts).toEqual([]);
+		expect((await f.delivery(queued.deliveryId)).state).toBe("failed");
+	});
 });
 
-test.each(["conflict", "clear"] as const)("a %s notice waits for a live agent", async (kind) => {
+test.each(["conflict", "clear"] as const)("a %s notice holds delivery to an explicitly stopped agent", async (kind) => {
 	const queued = await f.queue(kind);
-	await f.dispatch(f.ctx, [f.saved]);
+	await f.dispatch(f.ctx, [{ ...f.saved, stopReason: undefined }]);
 	expect(f.prompts).toEqual([]);
 	expect(await f.delivery(queued.deliveryId)).toEqual({ state: "held", error: waitingForRun });
 });

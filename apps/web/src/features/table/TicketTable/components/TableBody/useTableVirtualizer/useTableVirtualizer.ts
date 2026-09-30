@@ -9,8 +9,7 @@ export type TableVirtualizerOptions = {
 	// The scroll container of the list.
 	viewport: RefObject<HTMLDivElement | null>;
 	items: readonly TableItem[];
-	// The height of a ticket row and of a group header at the current density
-	// and width.
+	// The height of a ticket row and of a group header at the current viewport width.
 	rowHeight: number;
 	headerHeight: number;
 	// The id of a row a key moved the focus to. The list scrolls it into
@@ -100,7 +99,7 @@ export function useTableVirtualizer({
 		getItemKey: (index) => items[index]!.key,
 	});
 
-	// A density or a width change resizes every line.
+	// A viewport breakpoint changes the height of ticket rows and group headers.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the line heights are the trigger; the virtualizer is stable
 	useEffect(() => virtualizer.measure(), [rowHeight, headerHeight]);
 

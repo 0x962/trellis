@@ -1,20 +1,21 @@
 import { type RefObject, useLayoutEffect, useRef } from "react";
 
-// A flag that a strip action sets when the focus must land on the active
-// tab after the next render, such as after a move or a close. When no tab
-// draws the active id, the focus lands on the Add tab button.
+// An action can focus a specific tab or the active tab after a render.
+// The active tab or Add tab receives focus when the target leaves the strip.
 export function useFocusAfterChange(
 	listRef: RefObject<HTMLDivElement | null>,
 	addButton: RefObject<HTMLButtonElement | null>,
 	activeId: string,
 ) {
-	const focusAfterChange = useRef(false);
+	const focusAfterChange = useRef<boolean | string>(false);
 	useLayoutEffect(() => {
 		if (!focusAfterChange.current) return;
+		const targetId = typeof focusAfterChange.current === "string" ? focusAfterChange.current : activeId;
 		focusAfterChange.current = false;
-		const tab = Array.from(listRef.current!.querySelectorAll<HTMLElement>('[role="tab"]')).find(
-			(element) => element.dataset.pageTabId === activeId,
-		);
+		const tabs = Array.from(listRef.current!.querySelectorAll<HTMLElement>('[role="tab"]'));
+		const tab =
+			tabs.find((element) => element.dataset.pageTabId === targetId) ??
+			tabs.find((element) => element.dataset.pageTabId === activeId);
 		(tab ?? addButton.current)?.focus({ preventScroll: true });
 	});
 	return focusAfterChange;

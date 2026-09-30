@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type AgentRun, HarnessSchema } from "@trellis/api";
+import { type AgentRun, HarnessSchema, type TicketSummary } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 import { ActorAvatar } from "./ActorAvatar";
@@ -11,6 +11,8 @@ const appOf = (queryClient: QueryClient) =>
 	({
 		queryClient,
 		orpc: {
+			projects: { list: { queryOptions: () => ({ queryKey: ["archived"], queryFn: async () => [] }) } },
+			harnessAccounts: { list: { queryOptions: () => ({ queryKey: ["accounts"], queryFn: async () => [] }) } },
 			agentRuns: {
 				list: {
 					queryOptions: () => ({
@@ -48,22 +50,44 @@ const crispFjord = {
 	updatedAt: "2026-09-21T23:26:05.825Z",
 } as AgentRun;
 
-const render = (runs: AgentRun[]) => {
+const ticket = {
+	id: crispFjord.ticketId,
+	identifier: "TRL-281",
+	status: { category: "todo" },
+	project: { key: "TRL" },
+	completedAt: null,
+} as TicketSummary;
+
+const render = (runs: AgentRun[] | undefined, category = "todo", archived: boolean | null = false) => {
 	const queryClient = new QueryClient();
-	queryClient.setQueryData(assignedQueryKey, { items: runs, nextCursor: null });
+	if (runs !== undefined) queryClient.setQueryData(assignedQueryKey, { items: runs, nextCursor: null });
+	if (archived !== null) queryClient.setQueryData(["archived"], archived ? [{ key: "TRL" }] : []);
 	const app = appOf(queryClient);
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={app}>
-				<ActorAvatar ticketId="01M334MED9Z2GKBXMB6MVTED50" />
+				<ActorAvatar
+					ticket={{
+						...ticket,
+						status: { ...ticket.status, category: category as TicketSummary["status"]["category"] },
+					}}
+				/>
 			</AppProvider>
 		</QueryClientProvider>,
 	);
 };
 
 describe("ActorAvatar", () => {
-	test("draws no avatar when no agent run is assigned", () => {
-		expect(render([])).toBe("");
+	test("offers a start after the assignment query confirms an unassigned ticket", () => {
+		expect(render([])).toContain('aria-label="Start TRL-281"');
+		expect(render(undefined)).not.toContain('aria-label="Start TRL-281"');
+		expect(render([], "todo", null)).not.toContain('aria-label="Start TRL-281"');
+	});
+
+	test("keeps completed and archived tickets read only", () => {
+		expect(render([], "done")).not.toContain('aria-label="Start TRL-281"');
+		expect(render([], "canceled")).not.toContain('aria-label="Start TRL-281"');
+		expect(render([], "todo", true)).not.toContain('aria-label="Start TRL-281"');
 	});
 
 	test("marks an agent that starts apart from one that sits idle", () => {
@@ -81,5 +105,6 @@ describe("ActorAvatar", () => {
 		expect(html).toContain('data-provider="openai"');
 		expect(html).toContain("GPT-6 Astra");
 		expect(html).toContain("Max");
+		expect(html).not.toContain('aria-label="Start TRL-281"');
 	});
 });

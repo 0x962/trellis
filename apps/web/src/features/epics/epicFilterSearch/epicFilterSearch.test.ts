@@ -40,6 +40,27 @@ const makeRouter = (href: string) => {
 const alpha = "/p/QA/epics/alpha";
 const beta = "/p/QA/epics/beta";
 
+test.each(["updatedAt", "-updatedAt"])("an old %s link keeps filters and replaces its history entry", async (sort) => {
+	const router = makeRouter(`${alpha}?priority=high&sort=${sort}&group=status&tab=resources`);
+	await router.load();
+	expect(router.state.matches.at(-1)!.search).toEqual({
+		priority: ["high"],
+		group: "status",
+		tab: "resources",
+	});
+	expect(router.state.location.searchStr).toBe("?priority=high&group=status&tab=resources");
+	expect(router.history.length).toBe(1);
+});
+
+test("an explicit sort and group load without a canonical redirect", async () => {
+	const href = `${alpha}?sort=-createdAt&group=status`;
+	const router = makeRouter(href);
+	await router.load();
+	expect(router.state.matches.at(-1)!.search).toEqual({ sort: "-createdAt", group: "status" });
+	expect(router.state.location.href).toBe(href);
+	expect(router.history.length).toBe(1);
+});
+
 test("each epic restores its filters after navigation away and back", async () => {
 	const router = makeRouter(`${alpha}?priority=high`);
 	await router.load();
@@ -89,16 +110,17 @@ test("removal of the last filter stays cleared on return and reload", async () =
 	expect(reloaded.state.matches.at(-1)!.search).toEqual({});
 });
 
-test("display-only and Resources links retain their choices and restore filters", async () => {
+test.each(["number", "updatedAt", "-updatedAt"])("legacy density links with %s restore filters", async (sort) => {
 	useUiStore.getState().setEpicFilters("QA/alpha", { priority: ["high"] });
-	const router = makeRouter(`${alpha}?group=status&tab=resources&density=compact`);
+	const router = makeRouter(`${alpha}?sort=${sort}&group=status&tab=resources&density=compact`);
 	await router.load();
 	expect(router.state.matches.at(-1)!.search).toEqual({
 		priority: ["high"],
 		group: "status",
 		tab: "resources",
-		density: "compact",
 	});
+	expect(router.state.location.searchStr).toBe("?priority=high&group=status&tab=resources");
+	expect(router.history.length).toBe(1);
 	expect(useUiStore.getState().epicFilters["QA/alpha"]).toEqual({ priority: ["high"] });
 });
 

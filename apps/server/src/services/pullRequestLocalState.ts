@@ -31,11 +31,8 @@ const writeTimeline = async (ctx: IoCtx, tx: Tx, input: { id: string; localState
 		});
 };
 
-// `trellis ready` writes `ready` after its checks pass, and a person flips
-// the state by hand from the pull request sheet. It records that the agent
-// asked for review, which is one part of being ready for review;
-// `reviewGaps` in `packages/api` holds the whole rule. GitHub never sees
-// this state, and a poll or a push leaves it as it is.
+// The CLI and the pull request sheet record an explicit local review request.
+// `reviewGaps` reports the review material and check results separately.
 //
 // `ready_for_review_at` is the moment the wait of the person started. It is
 // stamped here and cleared when the agent takes the ask back, so a screen

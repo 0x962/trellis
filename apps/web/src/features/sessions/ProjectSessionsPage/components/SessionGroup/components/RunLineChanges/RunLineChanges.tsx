@@ -6,8 +6,7 @@ import { useWorkspaceSummary, type WorkspaceSummaryRun } from "../../../../../..
 // group passes enabled false, so useWorkspaceSummary does not call the server.
 export function RunLineChanges({ run, enabled }: { run: WorkspaceSummaryRun; enabled: boolean }) {
 	const summary = useWorkspaceSummary(run, { enabled }).data;
-	if (summary === undefined) return <LineChanges value={null} pending align="end" />;
-	if (summary.state === "ready" && lineChangesVisible(summary))
+	if (summary?.state === "ready" && lineChangesVisible(summary))
 		return <LineChanges value={summary} pending={false} align="end" />;
 	return <LineChanges value={null} pending={false} align="end" />;
 }

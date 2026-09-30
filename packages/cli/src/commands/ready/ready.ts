@@ -3,11 +3,10 @@ import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { type CliContext, contextOf, wantsJson } from "../../context.ts";
-import { usageError } from "../../errors.ts";
 import { json } from "../../output.ts";
-import { currentHead, type PullRequestRef, resolvePullRequest } from "../pullRequestRef.ts";
+import { resolvePullRequest } from "../pullRequestRef.ts";
+import { requestReview } from "../requestReview/index.ts";
 import { workingTicketIds } from "../workingTicketIds/index.ts";
-import { pullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
 
 const nameFor = (ticket: TicketSummary, waiting: Waiting, hasWorkingRun: boolean): string => {
@@ -32,33 +31,6 @@ export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: Readon
 	};
 };
 
-export const markPullRequestReady = async (
-	client: TrellisClient,
-	resolved: { id: string; url: string },
-	result: Awaited<ReturnType<typeof pullRequestReadiness>>,
-): Promise<void> => {
-	if (!result.ready) return;
-	if (result.pullRequest.isDraft)
-		await client.reviews.action({ pr: resolved.url, action: "ready", headSha: result.pullRequest.headSha });
-	await client.pullRequests.setLocalState({ id: resolved.id, localState: "ready" });
-};
-
-// Stores the agent's own sentence about why no flow fits. The flow check then
-// takes that sentence in place of a run, and the person reads it beside the
-// change. The stored commit says which commit the agent looked at when it
-// wrote the sentence.
-const recordFlowDoesNotApply = async (client: TrellisClient, ref: PullRequestRef, reason: string): Promise<void> => {
-	const head = await currentHead(client, ref);
-	await client.pullRequests.writeFlowWaiver({ id: ref.id, headSha: head.sha, reason });
-};
-
-// Exits 1 until the pull request has the explanation and the evidence
-// document. `trellis pr add` links a pull request but opens no review, so
-// this opens it the way `trellis summary write` does.
-//
-// An agent must also have run one flow for the pull request when the server
-// holds any flow, or have said with `--flow-does-not-apply` why no flow fits.
-// A person is never held back by that, so the check runs only for an agent.
 const pullRequestReady = async (
 	ctx: CliContext,
 	client: TrellisClient,
@@ -66,21 +38,19 @@ const pullRequestReady = async (
 	flowDoesNotApply: string | undefined,
 ): Promise<number> => {
 	const resolved = await resolvePullRequest(client, ref, true);
-	if (flowDoesNotApply !== undefined) {
-		if (flowDoesNotApply.trim() === "")
-			throw usageError('--flow-does-not-apply needs the reason: --flow-does-not-apply "<reason>"');
-		await recordFlowDoesNotApply(client, resolved, flowDoesNotApply.trim());
-	}
-	const result = await pullRequestReadiness(client, resolved, { checkFlows: ctx.actor().kind === "agent" });
-	await markPullRequestReady(client, resolved, result);
-	ctx.out.write(wantsJson(ctx) ? json(result) : pullRequestReadyText(result));
-	return result.ready ? 0 : 1;
+	const pullRequest = await requestReview(client, resolved, flowDoesNotApply);
+	ctx.out.write(
+		wantsJson(ctx)
+			? json({ pullRequest, requestRecorded: true })
+			: `#${pullRequest.number} is ready for review in Trellis. Use trellis diff check ${pullRequest.number} to read review gaps.\n`,
+	);
+	return 0;
 };
 
 export default defineCommand({
 	meta: {
 		name: "ready",
-		description: "Check a pull request for review, or show what each ticket of an epic waits for",
+		description: "Request local review of a pull request, or show what each ticket of an epic waits for",
 	},
 	args: {
 		ref: {

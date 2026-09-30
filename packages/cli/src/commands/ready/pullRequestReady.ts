@@ -29,17 +29,12 @@ export type PullRequestReadiness = {
 	// The parts the pull request still needs, in the order an agent writes them.
 	missing: ReadinessPart[];
 	ready: boolean;
-	// What the server says the pull request still needs, from `reviewGaps` in
-	// `packages/api`, which is the list the glyph reads. The agent asking for
-	// review is left out, because this command does that. `missing` above is
-	// this command's own read of the parts the agent writes, and it carries
-	// the command that writes each one.
+	// Stored diagnostics supplement the material checks in `missing`.
+	// The caller handles the local request through `pullRequest.localState`.
 	storedGaps: ReviewGap[];
 };
 
-// The explanation describes the pull request until its meaning changes. The
-// evidence proves the current head commit. An agent also needs a completed
-// flow or a reason that no flow fits.
+// Review diagnostics compare the saved explanation, current evidence, and flow results.
 export const pullRequestReadiness = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
@@ -94,7 +89,7 @@ export const pullRequestWaitingText = (number: number): string =>
 const nextStepOf = (result: PullRequestReadiness, part: ReadinessPart, number: number): string => {
 	if (part === "explanation") return `trellis diff summary write ${number} --headline "..." --why - --watch "..."`;
 	if (part === "evidence") return `trellis diff evidence write ${number} --body -`;
-	if (part === "flow-run") return flowRunMissingSummary(result.flows, number);
+	if (part === "flow-run") return flowRunMissingSummary(result.flows);
 	return "add a ```mermaid erDiagram``` block to the explanation or evidence document";
 };
 
@@ -114,14 +109,10 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 	const { pullRequest, missing, storedGaps } = result;
 	const { number } = pullRequest;
 	if (missing.length === 0) {
-		const parts =
-			result.flows.runs.length === 0
-				? "the explanation and the evidence document"
-				: "the explanation, the evidence document, and a flow run";
 		const head =
 			storedGaps.length === 0
-				? `#${number} is ready for review. It has ${parts}. Trellis marked it ready for review.`
-				: `#${number} is not ready for review yet. It has ${parts}, and Trellis recorded that you asked for review. It turns green for the person when this is true as well:`;
+				? `Review material for #${number} is complete.`
+				: `Review material for #${number} is complete. Other review gaps remain:`;
 		return [
 			head,
 			...storedGaps.map((gap) => `  MISSING  ${reviewGapText(gap)}`),
@@ -132,7 +123,7 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 	}
 	const labelWidth = Math.max(...missing.map((part) => labelOf(part).length));
 	return [
-		`#${number} is not ready for review. Add each missing item, then run: trellis diff set-state ${number} ready`,
+		`#${number} has incomplete review material. The local review request is independent of these checks:`,
 		...missing.flatMap((part) => [
 			`  MISSING  ${labelOf(part).padEnd(labelWidth)}  ${nextStepOf(result, part, number)}`,
 			...detailOf(result, part, number),

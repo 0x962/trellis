@@ -1,4 +1,4 @@
-import type { AgentRunKind } from "@trellis/api";
+import type { AgentRunKind, StatusCategory } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -66,7 +66,7 @@ export async function broadcastFixture() {
 		string
 	>;
 	const projects = { activeA: ulid(), activeB: ulid(), archived: ulid() };
-	const statuses = { activeA: ulid(), activeB: ulid() };
+	const statuses = { activeA: ulid(), todo: ulid(), started: ulid(), review: ulid(), done: ulid(), canceled: ulid() };
 	const epics = { activeA: ulid(), activeB: ulid() };
 	const tickets = { activeA: ulid(), activeB: ulid() };
 	const insertRun = async (input: {
@@ -100,7 +100,11 @@ export async function broadcastFixture() {
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES
 		(${statuses.activeA}, ${projects.activeA}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${at}, ${at}),
-		(${statuses.activeB}, ${projects.activeB}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${at}, ${at})`);
+		(${statuses.todo}, ${projects.activeB}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${at}, ${at}),
+		(${statuses.started}, ${projects.activeB}, 'In progress', 'in-progress', 'started', 'gray', 1, false, ${at}, ${at}),
+		(${statuses.review}, ${projects.activeB}, 'Review', 'review', 'review', 'gray', 2, false, ${at}, ${at}),
+		(${statuses.done}, ${projects.activeB}, 'Complete', 'complete', 'done', 'gray', 3, false, ${at}, ${at}),
+		(${statuses.canceled}, ${projects.activeB}, 'Abandoned', 'abandoned', 'canceled', 'gray', 4, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
 		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id) VALUES
 		(${epics.activeA}, ${projects.activeA}, 'first-plan', 'First plan', 'qa', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[])),
@@ -109,7 +113,12 @@ export async function broadcastFixture() {
 		id, project_id, number, title, status_id, epic_id, position, created_at, updated_at
 	) VALUES
 		(${tickets.activeA}, ${projects.activeA}, 1, 'First task', ${statuses.activeA}, ${epics.activeA}, 1024, ${at}, ${at}),
-		(${tickets.activeB}, ${projects.activeB}, 2, 'Second task', ${statuses.activeB}, ${epics.activeB}, 1024, ${at}, ${at})`);
+		(${tickets.activeB}, ${projects.activeB}, 2, 'Second task', ${statuses.todo}, ${epics.activeB}, 1024, ${at}, ${at})`);
+	const setTicketCategory = async (category: StatusCategory) => {
+		await db.execute(sql`UPDATE tickets SET status_id=${statuses[category]},
+			completed_at=${category === "done" || category === "canceled" ? at : null}
+			WHERE id=${tickets.activeB}`);
+	};
 
 	await insertRun({
 		id: ids.workingAgent,
@@ -207,5 +216,15 @@ export async function broadcastFixture() {
 		background: () => {},
 	} satisfies IoCtx;
 
-	return { close: () => db.$client.close(), ctx, ids, processOf, processes, read, resetProcesses, terminals };
+	return {
+		close: () => db.$client.close(),
+		ctx,
+		ids,
+		processOf,
+		processes,
+		read,
+		resetProcesses,
+		setTicketCategory,
+		terminals,
+	};
 }

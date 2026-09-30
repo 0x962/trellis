@@ -4,6 +4,14 @@ import { AgentBroadcastInputSchema } from "./agentBroadcast.ts";
 const input = (text: string) => ({ group: "working" as const, text, requestId: "request-1" });
 
 describe("AgentBroadcastInputSchema", () => {
+	test.each(["working", "idle", "both"])("accepts the %s recipient selection", (group) => {
+		expect(AgentBroadcastInputSchema.parse({ ...input("Message"), group }).group).toBe(group);
+	});
+
+	test.each([[undefined], [""], ["all"], [[]]])("rejects an invalid recipient selection: %j", (group) => {
+		expect(AgentBroadcastInputSchema.safeParse({ ...input("Message"), group }).success).toBe(false);
+	});
+
 	test.each([
 		["ASCII", "a".repeat(20_001)],
 		["multibyte", "界".repeat(20_001)],

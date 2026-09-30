@@ -64,7 +64,8 @@ export async function fixture() {
 		throw error;
 	}
 	const token = "controlled-recipient";
-	const start = async (key: "workingAgent" | "workingFlow" | "idleSession") => {
+	type Recipient = "workingAgent" | "workingFlow" | "idleAgent" | "idleSession";
+	const start = async (key: Recipient) => {
 		const id = database.terminals[key];
 		const sessionId = `provider-${database.ids[key]}`;
 		const spec = {
@@ -80,11 +81,13 @@ export async function fixture() {
 		await client.start(spec);
 		await client.observe(id, token, { kind: "session", sessionId });
 		await client.observe(id, token, { kind: "prompt", sessionId, prompt: `trellis-message:${id}\nInitial task` });
-		if (key === "idleSession") await client.observe(id, token, { kind: "idle", sessionId, outcome: "completed" });
+		if (key === "idleAgent" || key === "idleSession")
+			await client.observe(id, token, { kind: "idle", sessionId, outcome: "completed" });
 	};
 	try {
 		await start("workingAgent");
 		await start("workingFlow");
+		await start("idleAgent");
 		await start("idleSession");
 	} catch (error) {
 		await host.close();
@@ -98,9 +101,9 @@ export async function fixture() {
 		ctx: { ...database.ctx, home },
 		idle: (key: "workingAgent" | "workingFlow") =>
 			client.observe(database.terminals[key], token, { kind: "idle", outcome: "completed" }),
-		output: async (key: "workingAgent" | "workingFlow" | "idleSession") =>
+		output: async (key: Recipient) =>
 			Buffer.from((await client.output(database.terminals[key])).data, "base64").toString(),
-		async waitForOutput(key: "workingAgent" | "workingFlow" | "idleSession", text: string) {
+		async waitForOutput(key: Recipient, text: string) {
 			for (let i = 0; i < 100; i++) {
 				const output = Buffer.from((await client.output(database.terminals[key])).data, "base64").toString();
 				if (output.includes(text)) return;

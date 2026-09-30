@@ -488,20 +488,19 @@ A write reads Markdown from a file or stdin, uploads local images, and replaces 
 `trellis diff summary write` uploads images the same way.
 
 `trellis diff link <url> --ticket <ticket>` records the link and refreshes its GitHub data.
-`trellis diff check <diff>` reads the review requirements without a local state change.
-`trellis diff set-state <diff> ready` requires a saved explanation and the
-current-head evidence document.
-For an agent, it also requires a completed applicable flow or a recorded reason that no flow fits.
+`trellis diff check <diff>` reads review diagnostics without a local state change.
+`trellis diff set-state <diff> ready` records an explicit local request for human review.
+The legacy `trellis ready <diff>` command records the same request.
+Both commands write the local mark without a flow check, a material check, or a GitHub action.
+The optional `--flow-does-not-apply` flag saves a reason against the current head before the local write.
 Ticket statuses come from project configuration.
 `trellis ticket set-status` passes the requested status to the server's ticket transition rules.
 
 `pull_requests.local_state` records the local request for review: `not-ready` or `ready`.
-A new link by an agent writes `not-ready`; other new records start as `ready`.
-`trellis diff set-state <diff> ready` clears the GitHub draft flag before it records the local request.
-A failed GitHub action leaves the local request unchanged.
-CI, conflicts, and open comments can still prevent full readiness after the request is recorded.
-A person changes the local state from the diff sheet menu.
+New pull requests start as `not-ready` until a person or an agent sets the local mark.
+A person also changes this state from the diff sheet menu.
 A poll or push preserves the local state.
+GitHub draft status remains separate.
 
 `pull_requests.ready_for_review_at` is the moment that state became `ready`,
 which is the moment the wait of the person started. `setLocalState` stamps it,
@@ -511,37 +510,23 @@ ticket with the actor. A poll that finds a new head commit clears it, and so
 does `setHeadSha`, because the person then waits for nothing. The pull request
 payload carries it as `readyForReviewAt`.
 
-A pull request is ready for review only when every one of these holds: the
-agent asked for review, no check failed and none is pending, a flow run for that diff succeeded or the agent recorded why no
-flow fits, no review finding is open, the pull request merges cleanly, and a
-saved explanation and the current-head evidence document exist. A flow is
-machine review and it asks the person nothing, so a flow run that stopped and
-waits counts as a run that did not finish. `reviewGaps`
-in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
-answers with the parts that are missing, each with its plain words from
-`reviewGapText`. The wire carries the list as `reviewGaps` on a pull request
-row, on a ticket pull request row, on the PR badge of a ticket row and on a
-Diffs row, so the Waiting grouping, the Needs you inbox and the pull request
-sheet all read one answer.
+`reviewGaps` in `packages/api/src/reviewReady` reports stored review diagnostics.
+It checks the local request, CI, flow results, findings, conflicts, the explanation, and the current evidence.
+The flow check passes if an applicable run succeeds, an agent records a waiver, or no flow applies.
+A running or waiting flow remains incomplete. A successful flow retains credit across later commits.
+The wire carries these diagnostics on pull requests, ticket rows, ticket badges, and Diffs rows.
+The ticket filters, wave counts, Waiting grouping, and `trellis diff check` use the complete list.
+`notReadyForReviewSql` in `apps/server/src/db/queries/reviewReady.ts` supplies its SQL form.
 
-The glyph reads one part of that list and not the whole of it. It draws green
-when the agent asked for review, which `askedForReview` reads from the
-`not-asked` gap. A failed check, a pending check, an open finding and a
-conflict leave the glyph green, and the check ribbon, the conflict mark and
-the tooltip of the glyph state each of those parts beside it. `prStateWord`
-writes the same answer as one word for the Diffs row, the child row of a
-ticket and the epic row of the CLI, and `ticketReviewGaps` picks the parts
-that the one badge of a ticket row shows. The ticket filters, the wave counts,
-the Waiting grouping and `trellis diff check` keep the whole rule. `notReadyForReviewSql` in
-`apps/server/src/db/queries/reviewReady.ts` is its SQL form, which the ticket
-filters and the wave counts use. Nothing in the rule reads the GitHub draft
-flag.
-
-A pull request goes back to not ready on its own. A new commit requires an
-explanation for that commit; a successful flow remains valid across commits; a failed check, a
-new finding or a conflict adds its own missing part. It turns green again as
-soon as the facts hold, with no command from the agent, except for the parts
-only the agent writes.
+The canonical `PrGlyph` reads the local request and the local human approval separately.
+An open pull request with the local mark shows blue. Local human approval changes it to green.
+An open pull request without the mark shows grey. Closed and merged pull requests retain their existing icons.
+`askedForReview` reads the local mark from the `not-asked` gap on each row.
+Other review gaps leave the local mark and its icon unchanged.
+The check ribbon, conflict mark, and tooltip expose those separate facts.
+`prStateWord` uses the same local mark for the Diffs row, ticket child row, and CLI epic row.
+`ticketReviewGaps` selects the diagnostics for a ticket with several pull requests.
+A push requires fresh evidence for the new commit but preserves the local request.
 
 The web route `/reviews/<owner>/<repo>/<number>` renders the evidence document
 on its Overview tab, under the summary.
@@ -669,6 +654,12 @@ Read [the review guide](reviews.md) for commands and review behavior.
 An agent run stores its name, kind, and instruction at launch. A ticket agent names one ticket.
 The row retains the project key and ticket identifier so its history remains readable.
 
+The broadcast dialog lets the user select working agents, idle agents, or both groups.
+Send requires at least one selected group and shows the current recipient count.
+Idle recipients have tickets in the todo, started, or review category. Idle sessions without a ticket stay excluded.
+The server selects each recipient once and refreshes the groups before delivery.
+`agentRuns.broadcast` accepts `group: "working" | "idle" | "both"`.
+
 `agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
@@ -746,11 +737,12 @@ The worktree lives under `agents/<run id>/work` in the data home and starts from
 A session without a project uses `sessions/<name>`, a Git repository on `main` with one empty commit.
 The session name contains 1 to 60 characters. Two sessions can hold the same name.
 An omitted name starts as `New session`.
-After the first complete exchange, a separate agent writes a short name and the existing rename service saves it.
+When the runtime confirms the first user prompt, a separate agent writes a short name from that prompt.
+The existing rename service saves the name while the session continues its first turn.
 The name request runs once and does not use the saved conversation.
 A user rename before or during that request wins.
 The internal name state is `temporary`, `requested`, or `set`.
-This state makes two completion events claim one name request.
+This state makes duplicate prompt confirmations claim one name request.
 It also keeps later messages, resumes, and server restarts from making another name.
 The `sessions` row keeps the name, directory, harness, and run. The run holds the project, conversation, and process attempts.
 The launch accepts a harness, model, effort, account, prompt, and files. A project session receives the prompt that the person entered.
@@ -1140,10 +1132,11 @@ Done, each with its count. A row prints the name, a `StackedBar` of the counts b
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
 `/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the New wave `IconButton`, the Add tickets `IconButton`, and the `Menu` with Edit and Delete. The page fixes the `epic`
+`IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete. The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
 Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
-writes its query through `epicQueryString`, so `group=status` stays in the URL. Add tickets opens the
+writes its query through `epicQueryString`, so `group=status` stays in the URL. Ticket in the Add menu opens the
 `TicketPicker` of the project and
 writes `tickets.updateMany { epic }`.
 A header band below the `Topbar` prints the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar`
@@ -1154,12 +1147,16 @@ section starts collapsed when the description is longer than 1200 characters, an
 state under the key `<route key>#plan`. The band and the plan take at most half of the page card and scroll
 inside it.
 The tickets show in the full-width `TicketTable` of the project table view. Its search is the URL search with
-`epic` fixed to the epic ref and `group` default `wave` (`epicSearch.ts`). The URL carries `sort`,
-`density`, `columns`, and the filters, as the project table does. The URL never carries `epic`, it omits
+`epic` fixed to the epic ref, `group` default `wave`, and `sort` default `number` (`epicSearch.ts`).
+Tickets use ascending numbers within each ticket rank by default. The epic sort menu offers Priority, Created, Status, and ID.
+An epic URL with either Updated direction uses the default order. The canonical URL omits `sort=number`.
+The URL carries `sort`,
+`columns`, and the filters, as the project table does. Tables always use comfortable spacing.
+The URL never carries `epic`, it omits
 `group=wave`, and it writes `group=status`. The row actions, the bulk bar, and the keyboard navigation are the ones of
 the table. The bulk bar Set epic with None, and the Epic row of the ticket rail, take a ticket out of the epic.
 The Overview manages the waves (`useWaveEditing`). Every wave of the epic draws a header, and a wave that holds no
-ticket draws one line under it, "No tickets in this wave." (`withEmptyWaves`). New wave adds `Wave <n>` at the end
+ticket draws one line under it, "No tickets in this wave." (`withEmptyWaves`). Wave in the Add menu adds `Wave <n>` at the end
 and opens its name as a field inside the header. Each wave header holds Add tickets to this wave (the `TicketPicker`,
 which writes `tickets.updateMany { epic, wave }`) and the Wave actions `Menu`: New ticket in this wave, Rename (F2),
 Move up and Move down (Alt+Shift+Up and Alt+Shift+Down), and Delete wave. A wave that holds no ticket deletes at once;
@@ -1167,8 +1164,7 @@ a wave that holds tickets asks first and names the tickets that move to No wave.
 group, or into No wave, and a selected row drags the whole selection (`useWaveDrop`). The `w` key opens the wave
 picker of the focused row or of the selection, and the picker of the bulk bar offers New wave, which adds a wave with
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
-`waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the New wave
-and the Add tickets buttons of the `Topbar`.
+`waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the same Add menu as the `Topbar`.
 Each epic saves its filters in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
 Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
@@ -1561,12 +1557,12 @@ gives no lines.
 **Delivery.** A notice queues one `review_deliveries` row with
 `check_notice_id` for each linked ticket, through `recipientsOf`.
 The delivery loop reads the current attempt of each assigned agent with a pending or held notice.
-CI and queue notices can resume an attempt that exited after idle expiry.
+Check results, merge conflicts, conflict resolutions, and queue changes can resume an attempt after idle expiry.
 The resume preserves the conversation and workspace.
 The notice supplies the resume prompt. Provider startup confirmation determines when that delivery completes.
 A live process receives its notice through the 15 second send deadline.
 One notice resumes an idle assignment per dispatch pass. The next pass reads the new attempt before it sends another notice.
-An explicitly stopped agent keeps its notice in `held`. Review and merge-conflict notices wait for a live process.
+An explicitly stopped agent keeps its notice in `held`. Review submissions wait for a live process.
 A pull request with no linked ticket gets no notice row.
 The dispatcher drops an old check or conflict notice after a newer fact replaces it.
 The dispatcher keeps each queue notice because each one records a completed state change.
@@ -1586,10 +1582,9 @@ kinds:
 - `clear`: GitHub answers `mergeable`, and the newest merge notice is
   `conflict`.
 
-`unknown` sends nothing. A pull request that GitHub marks as a draft sends
-nothing. A pull request that is not ready for review still sends, because its
-agent owns the branch. The
-conflict kinds and the check kinds are separate families. `decideNotice`
+`unknown` sends nothing. GitHub drafts and pull requests that are not ready for
+local review receive conflict notices because their assigned agents own the branches.
+The conflict kinds and the check kinds are separate families. `decideNotice`
 reads only the check kinds. A notice of one family never replaces a pending
 notice of another family. The pull request rows of the ticket page and the epic table,
 and the review header, draw `MergeConflictMark` (packages/ui): the Phosphor
