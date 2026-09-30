@@ -24,7 +24,7 @@ export function langflowNativeReservations(transport: NativeReservationTransport
 		const handleBytes = await transport
 			.reserve({ authorization, capabilityId, requestBytes })
 			.catch((error: unknown) => {
-				if (error instanceof Error && error.message === "authentication_denied")
+				if (error instanceof Error && error.message === "sidecar_authentication_denied")
 					throw new ORPCError("UNAUTHORIZED", { status: 401 });
 				throw error;
 			});
