@@ -131,7 +131,7 @@ test("is not satisfied by a run that failed", async () => {
 test("names every flow and its command when no flow ran", () => {
 	const state = readiness([]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe("no flow ran for this pull request");
+	expect(flowRunMissingSummary(state)).toBe("no flow ran for this pull request");
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    Pick the flows that fit this change and run each one:",
 		"    review  Read the diff and report every fault.  trellis flow start review --diff 131",
@@ -145,9 +145,7 @@ test("names every flow and its command when no flow ran", () => {
 test("tells the agent to wait only while a run works on its own", () => {
 	const state = readiness([{ slug: "review", name: "Review", status: "running" }]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe(
-		"a flow still works. Wait for it, then run: trellis diff set-state 131 ready",
-	);
+	expect(flowRunMissingSummary(state)).toBe("a flow still works");
 	expect(flowRunMissingLines(state, 131)).toEqual(["    The Review flow is still at work."]);
 });
 

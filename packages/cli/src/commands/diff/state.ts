@@ -3,9 +3,9 @@ import { clientOf } from "../../client.ts";
 import { contextOf } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { json } from "../../output.ts";
-import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
+import { resolvePullRequest } from "../pullRequestRef.ts";
 import { pullRequestReadiness } from "../ready/pullRequestReady.ts";
-import { markPullRequestReady } from "../ready/ready.ts";
+import { requestReview } from "../requestReview/index.ts";
 
 const diff = { type: "positional", required: true, description: "Diff ID, URL, or owner/repo#number" } as const;
 
@@ -51,26 +51,9 @@ const setState = defineCommand({
 			ctx.out.write(json(await client.pullRequests.setLocalState({ id: ref.id, localState: "not-ready" })));
 			return 0;
 		}
-		if (reason !== undefined) {
-			const head = await currentHead(client, ref);
-			await client.pullRequests.writeFlowWaiver({ id: ref.id, headSha: head.sha, reason: reason.trim() });
-		}
-		const result = await pullRequestReadiness(client, ref, { checkFlows: ctx.actor().kind === "agent" });
-		await markPullRequestReady(client, ref, result);
-		ctx.out.write(
-			json({
-				...result,
-				pullRequest: {
-					...result.pullRequest,
-					...(result.ready ? { localState: "ready", isDraft: false } : {}),
-				},
-				ready: result.ready && result.storedGaps.length === 0,
-				materialComplete: result.ready,
-				requestRecorded: result.ready,
-				githubDraftCleared: result.ready && result.pullRequest.isDraft,
-			}),
-		);
-		return result.ready ? 0 : 1;
+		const pullRequest = await requestReview(client, ref, reason);
+		ctx.out.write(json({ pullRequest, requestRecorded: true }));
+		return 0;
 	},
 });
 
