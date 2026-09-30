@@ -9,7 +9,7 @@ export const codexConversationExport: ConversationAdapter = {
 	select: (identity, inventory) =>
 		selectConversationFiles(
 			inventory,
-			(path) => path.startsWith("sessions/") && path.split("/").at(-1)!.endsWith(`-${identity.providerSessionId}.jsonl`),
+			(path) => path.split("/").at(-1)!.endsWith(`-${identity.providerSessionId}.jsonl`),
 		),
 	identifies(value, sessionId) {
 		const parsed = metadata.safeParse(value);

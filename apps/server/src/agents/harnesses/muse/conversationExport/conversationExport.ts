@@ -19,7 +19,7 @@ export const museConversationExport: ConversationAdapter = {
 	select: (identity, inventory) =>
 		selectConversationFiles(
 			inventory,
-			(path) => path.startsWith("muse/sessions/") && path.endsWith(`/${identity.providerSessionId}/session.jsonl`),
+			(path) => path.endsWith(`/${identity.providerSessionId}/session.jsonl`),
 			(path, transcript) => path.startsWith(transcript.slice(0, -"session.jsonl".length)),
 		),
 	identifies,

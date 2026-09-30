@@ -9,13 +9,14 @@ import type {
 export function captureInventory(
 	capture: RuntimeCaptureInventory,
 	identity: ConversationIdentity,
+	rootId: string,
 ): ConversationInventory | ConversationUnavailable {
 	if (identity.profileId === null || identity.providerSessionId.length === 0)
 		return { state: "unavailable", reason: "conversation_launch_identity_missing" };
 	if (!capture.binding.identities.some((saved) => isDeepStrictEqual(saved, identity)))
 		throw new Error("conversation_capture_identity_conflict");
 	const roots = capture.binding.roots.filter(
-		(root) => root.kind === "conversation" && isDeepStrictEqual(root.identity, identity),
+		(root) => root.kind === "conversation" && root.rootId === rootId && isDeepStrictEqual(root.identity, identity),
 	);
 	const history = capture.unavailable.filter((entry) => isDeepStrictEqual(entry.identity, identity));
 	if (roots.length === 0) return { state: "unavailable", reason: "conversation_root_unavailable", history };

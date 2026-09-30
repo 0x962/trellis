@@ -10,8 +10,7 @@ export const claudeConversationExport: ConversationAdapter = {
 		selectConversationFiles(
 			inventory,
 			(path) =>
-				path.startsWith("projects/") &&
-				path.split("/").length === 3 &&
+				path.split("/").length === 2 &&
 				path.endsWith(`/${identity.providerSessionId}.jsonl`),
 			(path, transcript) => path === transcript || path.startsWith(`${transcript.slice(0, -6)}/`),
 		),

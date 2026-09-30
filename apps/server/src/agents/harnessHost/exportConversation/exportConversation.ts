@@ -47,53 +47,73 @@ export async function exportConversation(
 	if (!isDeepStrictEqual(reader.binding, input.binding)) throw new Error("conversation_capture_identity_conflict");
 	const captured = await reader.inventory(input.binding, input.signal);
 	if (!isDeepStrictEqual(captured.binding, input.binding)) throw new Error("conversation_capture_identity_conflict");
-	const inventory = captureInventory(captured, input.identity);
-	if (inventory.state === "unavailable") return inventory;
+	if (!input.binding.identities.some((identity) => isDeepStrictEqual(identity, input.identity)))
+		throw new Error("conversation_capture_identity_conflict");
 	const adapter = providers[input.identity.harness].conversationExport;
-	const selection = adapter.select(input.identity, inventory);
-	if (selection.state === "unavailable") return selection;
+	const selections = [];
+	for (const root of captured.binding.roots) {
+		if (root.kind !== "conversation" || !isDeepStrictEqual(root.identity, input.identity)) continue;
+		const inventory = captureInventory(captured, input.identity, root.rootId);
+		if (inventory.state === "unavailable") return inventory;
+		const selection = adapter.select(input.identity, inventory);
+		if (selection.state === "unavailable") {
+			if (selection.reason === "historical_content_missing") continue;
+			return selection;
+		}
+		selections.push({ inventory, selection });
+	}
+	if (selections.length === 0) return {
+		state: "unavailable" as const, reason: "historical_content_missing",
+		history: captured.unavailable.filter((entry) => isDeepStrictEqual(entry.identity, input.identity)),
+	};
 	if (!isAbsolute(input.directory)) throw new Error("conversation_export_destination_invalid");
 	await mkdir(input.directory, { mode: 0o700 });
 	const filesRoot = join(input.directory, "files");
 	await mkdir(filesRoot, { mode: 0o700 });
 	const files = [];
-	for (const [index, file] of selection.files.entries()) {
-		input.signal.throwIfAborted();
-		const path = `files/${index}`;
-		const result = await copyCapturedFile({
-			source: reader.read({ binding: input.binding, rootId: inventory.rootId, path: file.path }, input.signal),
-			target: join(input.directory, path),
-			file,
-			transcript: file.path === selection.transcript,
-			adapter,
-			sessionId: input.identity.providerSessionId,
-			signal: input.signal,
-		});
-		files.push({ path, sourcePath: file.path, sourceMode: file.mode, ...result });
+	for (const { inventory, selection } of selections) {
+		for (const file of selection.files) {
+			input.signal.throwIfAborted();
+			const path = `files/${files.length}`;
+			const result = await copyCapturedFile({
+				source: reader.read({ binding: input.binding, rootId: inventory.rootId, path: file.path }, input.signal),
+				target: join(input.directory, path),
+				file,
+				transcript: file.path === selection.transcript,
+				adapter,
+				sessionId: input.identity.providerSessionId,
+				signal: input.signal,
+			});
+			files.push({ path, rootId: inventory.rootId, sourcePath: file.path, sourceMode: file.mode, ...result });
+		}
 	}
 	const manifest = {
 		version: 1,
 		binding: input.binding,
 		identity: input.identity,
-		rootId: inventory.rootId,
-		sourceKind: inventory.sourceKind,
+		roots: selections.map(({ inventory }) => ({ rootId: inventory.rootId, sourceKind: inventory.sourceKind })),
 		history: "available_records_only",
-		unavailable: inventory.unavailable,
+		unavailable: captured.unavailable.filter((entry) => isDeepStrictEqual(entry.identity, input.identity)),
 		files,
 	};
 	const manifestBytes = `${JSON.stringify(manifest)}\n`;
 	const manifestSha256 = hash(manifestBytes);
 	await writePrivate(join(input.directory, "manifest.partial"), manifestBytes);
-	const sealBytes = await reader.seal({ binding: input.binding, rootId: inventory.rootId, manifestSha256 }, input.signal);
-	const seal = sealSchema.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(sealBytes)));
-	if (
-		!isDeepStrictEqual(seal.binding, input.binding) ||
-		seal.rootId !== inventory.rootId ||
-		seal.manifestSha256 !== manifestSha256
-	)
-		throw new Error("conversation_capture_seal_conflict");
-	input.signal.throwIfAborted();
-	await writePrivate(join(input.directory, "capture-receipt.json"), sealBytes);
+	const receipts = [];
+	for (const { inventory } of selections) {
+		const sealBytes = await reader.seal({ binding: input.binding, rootId: inventory.rootId, manifestSha256 }, input.signal);
+		const seal = sealSchema.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(sealBytes)));
+		if (
+			!isDeepStrictEqual(seal.binding, input.binding) ||
+			seal.rootId !== inventory.rootId ||
+			seal.manifestSha256 !== manifestSha256
+		)
+			throw new Error("conversation_capture_seal_conflict");
+		input.signal.throwIfAborted();
+		const path = `capture-receipt-${receipts.length}.json`;
+		await writePrivate(join(input.directory, path), sealBytes);
+		receipts.push({ rootId: inventory.rootId, path, sha256: hash(sealBytes) });
+	}
 	await rename(join(input.directory, "manifest.partial"), join(input.directory, "manifest.json"));
 	const directory = await open(input.directory, "r");
 	try {
@@ -105,7 +125,7 @@ export async function exportConversation(
 		state: "exported" as const,
 		directory: input.directory,
 		manifestSha256,
-		receiptSha256: hash(sealBytes),
+		receipts,
 		manifest,
 	};
 }

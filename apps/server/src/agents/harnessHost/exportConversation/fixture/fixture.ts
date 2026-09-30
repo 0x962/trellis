@@ -23,7 +23,7 @@ export function conversationFixture(harness: BuiltInHarness = "codex") {
 		dataHomeId: "home-fixture",
 		generation: 9,
 		blockId: "block-fixture",
-		workspaceId: "/synthetic/work",
+		workspaces: [{ workspaceId: "/synthetic/work", attemptIds: [identity.attemptId], worktreeRootId: "worktree", gitRootId: null, commonRootId: null }],
 		identities: [identity],
 		roots: [{
 			rootId: "root-original-profile",
@@ -34,10 +34,10 @@ export function conversationFixture(harness: BuiltInHarness = "codex") {
 		}],
 	};
 	const cases = {
-		codex: ["sessions/2026/09/29/rollout-session-original.jsonl", '{"type":"session_meta","payload":{"id":"session-original"}}\n'],
-		claude: ["projects/-synthetic-work/session-original.jsonl", '{"type":"user","sessionId":"session-original","message":{"content":"Synthetic prompt"}}\n'],
-		pi: ["sessions/--synthetic-work--/2026_session-original.jsonl", '{"type":"session","id":"session-original","cwd":"/synthetic/work"}\n'],
-		muse: ["muse/sessions/2026/09/29/session-original/session.jsonl", '{"stream":{"id":"session-original"},"payload_type":"runtime.session.metadata","payload":{"record":{"workspace_root":"/synthetic/work"}}}\n'],
+		codex: ["2026/09/29/rollout-session-original.jsonl", '{"type":"session_meta","payload":{"id":"session-original"}}\n'],
+		claude: ["-synthetic-work/session-original.jsonl", '{"type":"user","sessionId":"session-original","message":{"content":"Synthetic prompt"}}\n'],
+		pi: ["--synthetic-work--/2026_session-original.jsonl", '{"type":"session","id":"session-original","cwd":"/synthetic/work"}\n'],
+		muse: ["2026/09/29/session-original/session.jsonl", '{"stream":{"id":"session-original"},"payload_type":"runtime.session.metadata","payload":{"record":{"workspace_root":"/synthetic/work"}}}\n'],
 		opencode: ["session.json", '{"info":{"id":"session-original"},"messages":[]}\n'],
 	} as const;
 	const [path, content] = cases[harness];

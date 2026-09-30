@@ -9,7 +9,7 @@ export const piConversationExport: ConversationAdapter = {
 	select: (identity, inventory) =>
 		selectConversationFiles(
 			inventory,
-			(path) => path.startsWith("sessions/") && path.endsWith(`_${identity.providerSessionId}.jsonl`),
+			(path) => path.endsWith(`_${identity.providerSessionId}.jsonl`),
 		),
 	identifies(value, sessionId) {
 		const parsed = header.safeParse(value);
