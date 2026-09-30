@@ -200,6 +200,12 @@
     "packages/runtime-protocol": {
       "name": "@trellis/runtime-protocol",
       "version": "0.0.0",
+      "dependencies": {
+        "fs-ext": "2.1.1",
+      },
+      "devDependencies": {
+        "@types/fs-ext": "2.0.3",
+      },
     },
     "packages/ui": {
       "name": "@trellis/ui",
