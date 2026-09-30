@@ -90,10 +90,10 @@ test("completed replay skips a configured but unhealthy supervisor", async () =>
 	const f = fixture(
 		async () => ({ state: "completed", requestId: input.requestId, document: pendingDocumentV1Example }),
 		{
-			get package() {
+			get package(): DocumentActionRuntime["package"] {
 				throw new Error("Package access before replay");
 			},
-			get nativePolicy() {
+			get nativePolicy(): DocumentActionRuntime["nativePolicy"] {
 				throw new Error("Policy access before replay");
 			},
 			engineCommit: base.manifest.source.commit,
