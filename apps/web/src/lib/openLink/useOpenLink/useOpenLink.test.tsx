@@ -29,7 +29,7 @@ afterEach(async () => {
 	else Reflect.deleteProperty(globalThis, "location");
 });
 
-async function mount(href: string) {
+async function mount(href: string, resolvedHref = "/t/TRL-1255") {
 	const root = createRootRoute();
 	const router = createRouter({
 		routeTree: root.addChildren([createRoute({ getParentRoute: () => root, path: "$" })]),
@@ -41,7 +41,7 @@ async function mount(href: string) {
 			internalLinks: {
 				resolve: async ({ link }: { link: string }) => {
 					resolved.push(link);
-					return { href: "/t/TRL-1255" };
+					return { href: resolvedHref };
 				},
 			},
 		},
@@ -88,4 +88,58 @@ test("a non-ticket route still navigates", async () => {
 	await fixture.open("http://localhost/p/TRL/table?group=wave");
 	expect(usePageSheetStore.getState().ticket).toBeNull();
 	expect(fixture.router.history.location.href).toBe("/p/TRL/table?group=wave");
+});
+
+test("a Page link opens above the session and close returns to that session", async () => {
+	const origin = "/p/TRL/epics/review?group=wave#row-5";
+	const fixture = await mount(origin);
+	pageSheetActions.openTicket("TRL-1304");
+	pageSheetActions.openSession("session-1304");
+	await fixture.open("http://localhost/p/trl/pages/report?version=2");
+
+	expect(usePageSheetStore.getState()).toMatchObject({
+		ticket: "TRL-1304",
+		session: "session-1304",
+		publishedPage: { ref: "TRL/pages/report", version: 2 },
+	});
+	expect(fixture.router.history.location.href).toBe(origin);
+	expect(fixture.router.history.length).toBe(1);
+	expect(fixture.resolved).toEqual([]);
+
+	pageSheetActions.closePublishedPage();
+	expect(usePageSheetStore.getState()).toMatchObject({
+		ticket: "TRL-1304",
+		session: "session-1304",
+		publishedPage: null,
+	});
+	expect(fixture.router.history.location.href).toBe(origin);
+});
+
+test("a Page record link resolves before it opens above the session", async () => {
+	const fixture = await mount("/search", "/p/TRL/pages/report");
+	pageSheetActions.openSession("session-1304");
+	const link = "trellis://page/01M3RBQQ6HGKVWC09YHXS77E84";
+	await fixture.open(link);
+
+	expect(fixture.resolved).toEqual([link]);
+	expect(usePageSheetStore.getState()).toMatchObject({
+		session: "session-1304",
+		publishedPage: { ref: "TRL/pages/report" },
+	});
+	expect(fixture.router.history.location.href).toBe("/search");
+});
+
+test("Pages outside a session keep their route behavior", async () => {
+	const fixture = await mount("/search");
+	await fixture.open("http://localhost/p/TRL/pages/report?version=3");
+	expect(usePageSheetStore.getState().publishedPage).toBeNull();
+	expect(fixture.router.history.location.href).toBe("/p/TRL/pages/report?version=3");
+});
+
+test("the Page list still navigates while a session is open", async () => {
+	const fixture = await mount("/search");
+	pageSheetActions.openSession("session-1304");
+	await fixture.open("http://localhost/p/TRL/pages");
+	expect(usePageSheetStore.getState().publishedPage).toBeNull();
+	expect(fixture.router.history.location.href).toBe("/p/TRL/pages");
 });

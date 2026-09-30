@@ -4,6 +4,7 @@ import {
 	epicSplat,
 	isEpicPathname,
 	pageHref,
+	pageRefOfPathname,
 	parseProjectSplat,
 	projectHref,
 	projectRefOfPathname,
@@ -46,6 +47,13 @@ test("pages/<slug> is one Page even when the slug names another view", () => {
 test("a project ref is one segment", () => {
 	expect(() => parseProjectSplat("CDE/web/auth")).toThrow();
 	expect(projectRefOfPathname("/p/EPICS/routine-runtime")).toBe(null);
+});
+
+test("Page paths preserve the project ref and normalize the slug", () => {
+	expect(pageRefOfPathname("/p/trl/Pages/Release-Report")).toBe("TRL/pages/release-report");
+	expect(pageRefOfPathname("/p/hardware-shop/pages/diffs")).toBe("hardware-shop/pages/diffs");
+	for (const pathname of ["/p/TRL/pages", "/p/TRL/epics/report", "/p/TRL/pages/report/extra", "/t/TRL-1"])
+		expect(pageRefOfPathname(pathname)).toBeNull();
 });
 
 test("the epic hrefs keep slashes", () => {

@@ -174,6 +174,10 @@ This URL opens the sheet over the home page when a link arrives from outside the
 It replaces the URL with the home route, so closing the sheet leaves a page to use.
 The table's Enter, Space, and O keys open the same sheet.
 Markdown links and resolved ticket record links also open the sheet over the current page.
+Page links inside a session open the complete Page viewer in a sheet above that session.
+The session keeps its content, and the background route stays in place.
+Version history and comment-version links update the Page sheet.
+Close returns to the session. On desktop, external links use the browser sheet above the Page.
 The review sheet takes the wide width, so it covers the ticket sheet under it.
 Escape, the back gesture and a click beside the sheets close the top sheet only.
 

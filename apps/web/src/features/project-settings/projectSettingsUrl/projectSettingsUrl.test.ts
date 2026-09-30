@@ -6,6 +6,7 @@ const closed = {
 	ticket: null,
 	pr: null,
 	session: null,
+	publishedPage: null,
 	settings: null,
 	projectSettings: null,
 	browser: null,

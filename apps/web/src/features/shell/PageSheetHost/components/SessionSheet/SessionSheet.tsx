@@ -8,6 +8,7 @@ import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
 import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
+import { PublishedPageSheet } from "../PublishedPageSheet";
 import { SettingsSheet } from "../SettingsSheet";
 
 const sheetOpenMotionMs = () =>
@@ -58,6 +59,7 @@ export function SessionSheet() {
 					onLeaveTerminal={pageSheetActions.closeSession}
 				/>
 			)}
+			<PublishedPageSheet />
 			<SettingsSheet at="session" />
 			<ProjectSettingsSheet at="session" />
 			<BrowserSheet at="session" />
