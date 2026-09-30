@@ -76,8 +76,7 @@ export async function resolveNativeOccurrence(
 	const publication = readExecutionPublication(execution);
 	const specs = z.record(z.string(), z.json()).parse(publication.graphDocument.trellisRequestSpecsV1);
 	const spec = SpecSchema.parse(specs[visit.engineNodeId]);
-	if (!ResolvedConversionHarnessSchema.safeParse(spec.harness).success)
-		throw new Error("native_policy_unresolved");
+	if (!ResolvedConversionHarnessSchema.safeParse(spec.harness).success) throw new Error("native_policy_unresolved");
 	const harness = HarnessSchema.parse(spec.harness);
 	if (!isDeepStrictEqual(harness, spec.harness)) throw new Error("native_harness_conflict");
 	const approved: ApprovedNativeOccurrence = {
