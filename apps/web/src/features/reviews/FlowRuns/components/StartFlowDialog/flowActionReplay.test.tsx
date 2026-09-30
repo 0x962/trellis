@@ -39,15 +39,21 @@ test("a failed preview permits a fresh confirmed start", async () => {
 		},
 	});
 	await f.render(dialog());
-	await flush();
+	await f.waitForEnabledButton("Review target");
+	expect(f.button("Review target").props.disabled).toBeFalse();
 	await act(async () => f.button("Review target").props.onClick());
+	expect(f.button("Start flow")).toBeDefined();
+	expect(f.button("Start flow").props.disabled).toBeFalse();
 	await act(async () => f.button("Start flow").props.onClick());
 	await flush();
 	expect(sent).toEqual([]);
 	expect(f.text()).toContain("No start request was sent");
 	await act(async () => f.button("Refresh preview").props.onClick());
-	await flush();
+	await f.waitForEnabledButton("Review target");
+	expect(f.button("Review target").props.disabled).toBeFalse();
 	await act(async () => f.button("Review target").props.onClick());
+	expect(f.button("Start flow")).toBeDefined();
+	expect(f.button("Start flow").props.disabled).toBeFalse();
 	await act(async () => f.button("Start flow").props.onClick());
 	await flush();
 	expect(sent).toHaveLength(1);
@@ -77,8 +83,11 @@ test("unknown start replays its exact input after reopen and respects recovery",
 		},
 	});
 	await f.render(dialog());
-	await flush();
+	await f.waitForEnabledButton("Review target");
+	expect(f.button("Review target").props.disabled).toBeFalse();
 	await act(async () => f.button("Review target").props.onClick());
+	expect(f.button("Start flow")).toBeDefined();
+	expect(f.button("Start flow").props.disabled).toBeFalse();
 	await act(async () => f.button("Start flow").props.onClick());
 	await flush();
 	await f.render(<div />);

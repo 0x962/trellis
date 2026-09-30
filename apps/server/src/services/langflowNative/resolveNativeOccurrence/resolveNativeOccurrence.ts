@@ -13,6 +13,7 @@ import {
 	readProtocolBytes,
 } from "../../../langflowContracts";
 import { readExecutionPublication } from "../../flowDocuments";
+import { ResolvedConversionHarnessSchema } from "../../langflowMigration";
 import { assembleNativePrompt } from "../assembleNativePrompt";
 import type { NativeVisit } from "../nativeVisit";
 import type { ApprovedNativeOccurrence } from "../types";
@@ -75,8 +76,7 @@ export async function resolveNativeOccurrence(
 	const publication = readExecutionPublication(execution);
 	const specs = z.record(z.string(), z.json()).parse(publication.graphDocument.trellisRequestSpecsV1);
 	const spec = SpecSchema.parse(specs[visit.engineNodeId]);
-	if (spec.harness.model === undefined || spec.harness.effort === undefined)
-		throw new Error("native_policy_unresolved");
+	if (!ResolvedConversionHarnessSchema.safeParse(spec.harness).success) throw new Error("native_policy_unresolved");
 	const harness = HarnessSchema.parse(spec.harness);
 	if (!isDeepStrictEqual(harness, spec.harness)) throw new Error("native_harness_conflict");
 	const approved: ApprovedNativeOccurrence = {

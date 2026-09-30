@@ -6,8 +6,8 @@ import {
 	inspectConversionGraph,
 	type NativePolicyConfigurationV1,
 	NativePolicyConfigurationV1Schema,
-	readTrustedNativePolicies,
 	ResolvedConversionHarnessSchema,
+	readTrustedNativePolicies,
 } from "../../../../apps/server/src/services/langflowMigration";
 import { sourceDigest } from "../../../../apps/server/src/services/langflowMigration/sourceDigest";
 import { fixtureDocument, fixtureId } from "./fixture";
@@ -90,7 +90,8 @@ test("source identity and exact bytes must match even after a configuration is r
 		if (key === "sha256") input.record.source.sha256 = "d".repeat(64);
 		const result = readTrustedNativePolicies({ ...input, configuration: seal(input.record) });
 		expect(result.state).toBe("blocked");
-		if (result.state === "blocked") expect(result.diagnostics[0]!.code).toBe("conversion_native_policy_source_conflict");
+		if (result.state === "blocked")
+			expect(result.diagnostics[0]!.code).toBe("conversion_native_policy_source_conflict");
 	}
 	const input = fixture();
 	const result = readTrustedNativePolicies({
@@ -108,7 +109,8 @@ test("each selected package identity must match", () => {
 		const packageIdentity = { ...input.packageIdentity, [key]: "d".repeat(64) };
 		const result = readTrustedNativePolicies({ ...input, packageIdentity, configuration });
 		expect(result.state).toBe("blocked");
-		if (result.state === "blocked") expect(result.diagnostics[0]!.code).toBe("conversion_native_policy_package_conflict");
+		if (result.state === "blocked")
+			expect(result.diagnostics[0]!.code).toBe("conversion_native_policy_package_conflict");
 	}
 });
 

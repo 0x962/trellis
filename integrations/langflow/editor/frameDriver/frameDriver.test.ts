@@ -46,8 +46,10 @@ function fixture(initialize: (content: EditorContent) => Promise<void> = async (
 		},
 		driver: {
 			initialize,
-			suspendEditing: () => refusal ? { state: "refused", reason: refusal } : { state: "suspended", content },
-			resumeEditing: () => { resumed++; },
+			suspendEditing: () => (refusal ? { state: "refused", reason: refusal } : { state: "suspended", content }),
+			resumeEditing: () => {
+				resumed++;
+			},
 			subscribe: (listener) => {
 				callbacks = listener;
 				return () => {
@@ -70,7 +72,9 @@ function fixture(initialize: (content: EditorContent) => Promise<void> = async (
 		sent,
 		focused,
 		resumed: () => resumed,
-		refuse: (reason: "open-control" | "invalid-field") => { refusal = reason; },
+		refuse: (reason: "open-control" | "invalid-field") => {
+			refusal = reason;
+		},
 		callbacks: () => callbacks,
 		unsubscribed: () => unsubscribed,
 		expire: () => {
@@ -162,7 +166,6 @@ test("connect announces the installed listener once before hydration", async () 
 	expect(expired.sent).toHaveLength(0);
 });
 
-
 test("acknowledges the final draft and permits only the matching resume", async () => {
 	const f = fixture();
 	await f.receive(initial);
@@ -170,7 +173,9 @@ test("acknowledges the final draft and permits only the matching resume", async 
 	expect(await f.receive({ ...envelope, sequence: 2, type: "suspend-editing", requestId })).toBe(true);
 	expect(f.sent.at(-1)).toMatchObject({ type: "editing-suspended", requestId, content });
 	expect(await f.receive({ ...envelope, sequence: 3, type: "restore-focus", focus: null })).toBe(false);
-	expect(await f.receive({ ...envelope, sequence: 3, type: "resume-editing", requestId: crypto.randomUUID() })).toBe(false);
+	expect(await f.receive({ ...envelope, sequence: 3, type: "resume-editing", requestId: crypto.randomUUID() })).toBe(
+		false,
+	);
 	expect(f.resumed()).toBe(0);
 	expect(await f.receive({ ...envelope, sequence: 4, type: "resume-editing", requestId })).toBe(true);
 	expect(f.resumed()).toBe(1);

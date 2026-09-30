@@ -52,6 +52,7 @@ export async function restoredDatabaseFixture() {
 			},
 		},
 	});
+	if (block === null) throw new Error("Missing initialized restore block");
 	const installed = await installRestoredDatabase({ home, signal: new AbortController().signal });
 	return {
 		home,

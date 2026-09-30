@@ -44,8 +44,9 @@ export const compileFlow = (
 	};
 	const create = (source: FlowNode, id: string, className: string, values: CompilerObject = {}) => {
 		const created = graph.create(position(source), id, className, values);
-		sourceAssociations[source.id] ??= [];
-		sourceAssociations[source.id].push(id);
+		const associations = sourceAssociations[source.id] ?? [];
+		sourceAssociations[source.id] = associations;
+		associations.push(id);
 		return created;
 	};
 	const native = (source: FlowNode, id: string, phase: "step" | "children" | "condition") => {

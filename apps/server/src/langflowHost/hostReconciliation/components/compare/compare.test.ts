@@ -155,7 +155,6 @@ test("a different Trellis release cannot reuse the capture compatibility", () =>
 	expect(() => compareRetainedProof(proof)).toThrow("host_reconciliation_paired_engine_conflict");
 });
 
-
 test("capture comparison accepts matching retained facts without destination installation", () => {
 	const proof = fixture();
 	proof.input.block.reason = { kind: "capture", snapshotId: uuid };

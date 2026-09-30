@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { ids } from "../../../../apps/server/src/db/queries/langflowExecution/fixtures/fixture";
 import { nativeAdapterCase } from "../../fixtures/nativeHost/nativeAdapterCase.ts";
 
 describe.serial("native adapter with a real fixture process", () => {
@@ -10,7 +11,9 @@ describe.serial("native adapter with a real fixture process", () => {
 			expect(reserved.replay).toBe(false);
 			const original = reserved.reservation;
 			expect(original.launchSnapshotDigest).toMatch(/^[a-f0-9]{64}$/);
-			expect(original.taskKey).toBe("root/501/review/step/51");
+			expect(original.taskKey).toBe(
+				JSON.stringify(["root/501/review", ids.node, "outer.501", "step", [["outer", 501]]]),
+			);
 			expect(original.launchReceipt).toBeNull();
 			expect(await current().processes.records()).toEqual([]);
 			await reopen();

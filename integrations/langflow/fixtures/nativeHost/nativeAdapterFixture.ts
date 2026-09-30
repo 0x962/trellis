@@ -7,9 +7,7 @@ import type { ServiceCtx } from "../../../../apps/server/src/context.ts";
 import { createCache } from "../../../../apps/server/src/db/cache.ts";
 import { openDatabase } from "../../../../apps/server/src/db/open.ts";
 import { ids, now } from "../../../../apps/server/src/db/queries/langflowExecution/fixtures/fixture.ts";
-import { nativeRequest } from "../../../../apps/server/src/db/queries/langflowExecution/fixtures/native.ts";
 import type { Tx } from "../../../../apps/server/src/db/tx.ts";
-import { type DeliveryAuthorityV1, protocolDigest } from "../../../../apps/server/src/langflowContracts";
 import { DispatchGate } from "../../../../apps/server/src/langflowHost";
 import {
 	observeNativeAttempt,
@@ -19,14 +17,16 @@ import {
 	requestNativeAttempt,
 	reserveNativeRequest,
 	resolveNativeLimits,
+	resolveNativeOccurrence,
 } from "../../../../apps/server/src/services/langflowNative";
 import type { IoCtx } from "../../../../apps/server/src/services/support.ts";
 import { DeterministicProcessHost } from "./deterministicProcess.ts";
+import type { nativeAdapterPublication } from "./nativeAdapterPublication";
 
 export async function openNativeAdapterFixture(home: string) {
-	const { authority } = JSON.parse(await readFile(join(home, "adapter.json"), "utf8")) as {
-		authority: DeliveryAuthorityV1;
-	};
+	const { authority, requestBytes, visit } = JSON.parse(await readFile(join(home, "adapter.json"), "utf8")) as Awaited<
+		ReturnType<typeof nativeAdapterPublication>
+	>;
 	const database = await openDatabase(join(home, "db"));
 	const run = <T>(fn: (tx: Tx) => Promise<T>) => database.db.transaction(fn);
 	const cache = createCache();
@@ -89,22 +89,13 @@ export async function openNativeAdapterFixture(home: string) {
 	const dispatchGate = (await Bun.file(join(home, "dispatch", "dispatch.json")).exists())
 		? DispatchGate.open(gateInput)
 		: DispatchGate.create(gateInput);
-	const requestBytes = JSON.stringify(nativeRequest);
 	const ctx: Parameters<typeof requestNativeAttempt>[0] & Parameters<typeof observeNativeAttempt>[0] = {
 		...io,
 		dispatchGate,
 		nativeAuthority: authority,
-		async resolveOccurrence(_tx, input) {
+		async resolveOccurrence(tx, input) {
 			if (input.requestBytes !== requestBytes) throw new Error("fixture_occurrence_not_approved");
-			return {
-				requestDigest: protocolDigest(requestBytes),
-				specHash: nativeRequest.specHash,
-				taskKey: "root/501/review/step/51",
-				name: "Native fixture",
-				instruction: "Return the exact fixture result.",
-				harness: { preset: "codex" },
-				accountId: "native-adapter-account",
-			};
+			return resolveNativeOccurrence({ now, nativeAuthority: authority }, tx, { requestBytes, visit });
 		},
 		resolveProcessLimits: (tx, input) => resolveNativeLimits(core, tx, input),
 		recordObservedLaunch: (tx, input) => recordNativeLaunch(core, tx, input),

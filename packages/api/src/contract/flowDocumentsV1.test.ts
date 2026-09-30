@@ -111,7 +111,8 @@ test("typed document actions keep request identities and pending outcomes", asyn
 		await client.flowDocumentsV1.publish(input),
 		await client.flowDocumentsV1.activateConversion(input),
 		await client.flowDocumentsV1.editConversion(edit),
-	]) expect(result).toEqual({ state: "pending", requestId: input.requestId });
+	])
+		expect(result).toEqual({ state: "pending", requestId: input.requestId });
 	expect(received).toEqual([
 		{ path: "/rpc/flowDocumentsV1/publish", body: { json: input } },
 		{ path: "/rpc/flowDocumentsV1/activateConversion", body: { json: input } },

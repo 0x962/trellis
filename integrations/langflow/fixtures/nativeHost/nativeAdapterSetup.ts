@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { sql } from "drizzle-orm";
 import { openDatabase } from "../../../../apps/server/src/db/open.ts";
-import { ids, now, receiptFixture } from "../../../../apps/server/src/db/queries/langflowExecution/fixtures/fixture.ts";
+import { ids, now } from "../../../../apps/server/src/db/queries/langflowExecution/fixtures/fixture.ts";
 import {
 	flows,
 	harnessAccounts,
@@ -13,6 +13,7 @@ import {
 	statuses,
 	tickets,
 } from "../../../../apps/server/src/db/schema.ts";
+import { nativeAdapterPublication } from "./nativeAdapterPublication";
 
 export async function createNativeAdapterFixture(home: string) {
 	await mkdir(home, { recursive: true, mode: 0o700 });
@@ -79,12 +80,12 @@ export async function createNativeAdapterFixture(home: string) {
 			createdAt: now,
 			updatedAt: now,
 		});
-		const { authority } = await receiptFixture(true, database.db);
+		const retained = await database.db.transaction(nativeAdapterPublication);
 		await database.db.execute(sql`CREATE TABLE native_adapter_workspace_fixture (
 			step_id text PRIMARY KEY, attempt_id text NOT NULL,
 			workspace_id text NOT NULL, workspace_commit text
 		)`);
-		await writeFile(join(home, "adapter.json"), JSON.stringify({ authority }), { mode: 0o600 });
+		await writeFile(join(home, "adapter.json"), JSON.stringify(retained), { mode: 0o600 });
 	} finally {
 		await database.close();
 	}

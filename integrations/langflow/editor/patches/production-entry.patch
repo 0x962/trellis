@@ -251,7 +251,7 @@ diff --git a/src/customization/trellis/api/flowEditorProtocolV1.ts b/src/customi
 new file mode 100644
 --- /dev/null
 +++ b/src/customization/trellis/api/flowEditorProtocolV1.ts
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,63 @@
 +import { z } from "zod/v4";
 +
 +const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -292,7 +292,12 @@ new file mode 100644
 +	z.strictObject({ ...envelope, type: z.literal("ready") }),
 +	z.strictObject({ ...envelope, type: z.literal("draft-changed"), content: EditorContentSchema }),
 +	z.strictObject({ ...envelope, type: z.literal("selection-changed"), focus: EditorFocusSchema.nullable() }),
-+	z.strictObject({ ...envelope, type: z.literal("editing-suspended"), requestId: z.uuid(), content: EditorContentSchema }),
++	z.strictObject({
++		...envelope,
++		type: z.literal("editing-suspended"),
++		requestId: z.uuid(),
++		content: EditorContentSchema,
++	}),
 +	z.strictObject({
 +		...envelope,
 +		type: z.literal("editing-suspend-refused"),

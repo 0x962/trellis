@@ -4,6 +4,8 @@ import { loadConfig } from "../../config";
 import type { ServiceTransport } from "../../db/transport";
 import { createBus } from "../../events/bus";
 import { createGhRunner } from "../../gh/run";
+import { nativeReservations } from "../../langflowBootstrap/nativeReservations";
+import { supervisorFixture } from "../../langflowHost/fixtures/supervisorFixture";
 import { createLogger } from "../../log";
 import type { NativeReservationTransport } from "./langflow-native-reservations";
 
@@ -111,13 +113,56 @@ test("absent configuration leaves the private route unavailable", async () => {
 	expect(response.status).toBe(404);
 });
 
-test("an unknown reservation failure remains an error response", async () => {
-	const app = fixture({
-		reserve: async () => {
-			throw new Error("response_lost");
-		},
-	});
-	const response = await app.request(path, { method: "POST", headers, body: requestBytes });
-	expect(response.status).toBe(500);
-	expect(await response.text()).not.toContain(handleBytes);
+test("the mounted route maps a real supervisor credential rejection to HTTP 401", async () => {
+	const f = await supervisorFixture();
+	const supervisor = await f.open();
+	let connection: ReturnType<typeof nativeReservations> | undefined;
+	let calls = 0;
+	try {
+		await supervisor.start();
+		connection = nativeReservations({
+			home: f.home,
+			supervisor,
+			transport: {
+				start: async () => {
+					throw new Error("Unexpected start");
+				},
+				close: async () => {},
+				call: async () => {
+					calls++;
+					throw new Error("Worker access before authentication");
+				},
+			},
+			archive: {
+				readAuthorityBytes: () => {
+					throw new Error("Engine authority access before authentication");
+				},
+			},
+		});
+		const app = fixture(connection.transport);
+		const response = await app.request(path, {
+			method: "POST",
+			headers: { ...headers, authorization: "Bearer wrong" },
+			body: requestBytes,
+		});
+		expect(response.status).toBe(401);
+		expect(calls).toBe(0);
+	} finally {
+		await connection?.stop();
+		await supervisor.shutdown();
+		await f.remove();
+	}
+});
+
+test("unrelated reservation failures remain HTTP 500", async () => {
+	for (const message of ["response_lost", "unsafe_sidecar_authentication", "sidecar_authentication_digest_conflict"]) {
+		const app = fixture({
+			reserve: async () => {
+				throw new Error(message);
+			},
+		});
+		const response = await app.request(path, { method: "POST", headers, body: requestBytes });
+		expect(response.status).toBe(500);
+		expect(await response.text()).not.toContain(handleBytes);
+	}
 });

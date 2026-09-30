@@ -60,8 +60,19 @@ test("journal replay, revision conflicts, retention and rollback share the real 
 	const retained = await h.call((ctx, tx) => update(ctx, tx, input(event("first"))));
 	expect(retained.result).toMatchObject({ state: "duplicate", event: { seq: 1 } });
 	h.f.observed.expectedRevision = 3;
+	const unchanged = await h.call((ctx, tx) => update(ctx, tx, input(null)));
+	expect(unchanged.result).toMatchObject({
+		state: "unchanged",
+		event: null,
+		view: { revision: 3, lastEventSeq: 2 },
+	});
+	expect(unchanged.result.view).toEqual(second.result.view);
+	expect(unchanged.events).toEqual([]);
+	h.f.observed.status = "succeeded";
 	const reconciled = await h.call((ctx, tx) => update(ctx, tx, input(null)));
-	expect(reconciled.result.view).toMatchObject({ revision: 4, lastEventSeq: 2 });
+	expect(reconciled.result).toMatchObject({ state: "updated", event: null });
+	expect(reconciled.result.view).toMatchObject({ revision: 4, lastEventSeq: 2, status: "succeeded" });
+	expect(reconciled.events).toEqual([{ type: "flows.changed", id: h.f.view.flowId }]);
 	h.f.observed.expectedRevision = 4;
 	await expect(
 		h.call(async (ctx, tx) => {
@@ -71,6 +82,7 @@ test("journal replay, revision conflicts, retention and rollback share the real 
 	).rejects.toThrow("rollback");
 	const saved = await h.call((_ctx, tx) => readProjection(tx, { executionId: h.f.view.id }));
 	expect(saved.result!.view).toMatchObject({ revision: 4, lastEventSeq: 2 });
+	expect(saved.result!.view).toEqual(reconciled.result.view);
 	const view = await h.call((ctx, tx) => getView(ctx, tx, { id: h.f.view.id }));
 	expect(view.result).toEqual(saved.result!.view);
 });
