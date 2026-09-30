@@ -16,14 +16,15 @@ export type RuntimeCaptureIdentity = {
 };
 
 export type RuntimeLaunchCaptureProviderRoot = {
+	contentKind: "conversation-directory";
 	sourceKind: "account-profile" | "opencode-export";
 	path: string;
-	excludedPaths: string[];
 	externalLinks: { path: string; target: string }[];
 };
 
 export type RuntimeLaunchCaptureIdentity = Omit<RuntimeCaptureIdentity, "providerSessionId"> & {
-	providerRoot: RuntimeLaunchCaptureProviderRoot | null;
+	providerScopePaths: string[];
+	providerRoots: RuntimeLaunchCaptureProviderRoot[];
 };
 
 export type RuntimeCaptureRequest = {
@@ -63,7 +64,13 @@ export type RuntimeCaptureRoot =
 	  });
 
 export type RuntimeCaptureBinding = RuntimeCaptureRequest & {
-	workspaceId: string;
+	workspaces: {
+		workspaceId: string;
+		attemptIds: string[];
+		worktreeRootId: string;
+		gitRootId: string | null;
+		commonRootId: string | null;
+	}[];
 	roots: RuntimeCaptureRoot[];
 };
 
