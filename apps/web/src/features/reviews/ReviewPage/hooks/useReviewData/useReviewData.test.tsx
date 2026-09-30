@@ -219,3 +219,15 @@ test("a first GitHub refresh invalidates an overview that has no stored pull req
 		await h.close();
 	}
 });
+
+test("a saved unlinked pull request keeps its title without ticket-only controls", async () => {
+	const h = await mount(async () => ({ ...saved, ticket: null }));
+	try {
+		expect(h.data().identity?.title).toBe("Saved title");
+		expect(h.data().linkedPr).toBeNull();
+		expect(h.data().ticket).toBeNull();
+		expect(h.calls).not.toContain("runs");
+	} finally {
+		await h.close();
+	}
+});

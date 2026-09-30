@@ -18,20 +18,21 @@ export const useReviewData = (pr: string) => {
 		refetchInterval: 45000,
 		refetchOnWindowFocus: "always",
 	});
-	const linkedPr = overview.data?.pullRequest ?? null;
-	const ticket = overview.data?.ticket ?? null;
+	const storedPr = overview.data?.pullRequest ?? null;
+	const linkedPr = overview.data?.ticket == null ? null : storedPr;
+	const ticket = status.data === undefined ? (overview.data?.ticket ?? null) : status.data.ticket;
 	const identifier = ticket?.identifier ?? "";
 	const identity =
 		status.data ??
-		(linkedPr === null
+		(storedPr === null
 			? undefined
 			: {
-					title: linkedPr.title,
-					state: linkedPr.state.toUpperCase(),
-					isDraft: linkedPr.isDraft,
-					mergeable: linkedPr.mergeable.toUpperCase(),
-					headRefName: linkedPr.headRef,
-					baseRefName: linkedPr.baseRef,
+					title: storedPr.title,
+					state: storedPr.state.toUpperCase(),
+					isDraft: storedPr.isDraft,
+					mergeable: storedPr.mergeable.toUpperCase(),
+					headRefName: storedPr.headRef,
+					baseRefName: storedPr.baseRef,
 				});
 	// The verdict bar delivers to this agent assignment. A restart replaces
 	// the run, so this read follows the 45 second beat of the GitHub status.
