@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, text } from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { agentExecutionAttempts } from "./assignments.ts";
@@ -19,5 +19,5 @@ export const flowExecutionTasks = pgTable(
 		resultId: text("result_id"),
 		createdAt: at("created_at").notNull(),
 	},
-	(t) => [primaryKey({ columns: [t.executionId, t.key] })],
+	(t) => [primaryKey({ columns: [t.executionId, t.key] }), index("flow_execution_tasks_run_idx").on(t.runId)],
 );

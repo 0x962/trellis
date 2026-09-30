@@ -46,5 +46,6 @@ export const agentRuns = pgTable(
 		index("agent_runs_pinned_at_idx").on(t.pinnedAt).where(sql`${t.pinnedAt} IS NOT NULL`),
 		index("agent_runs_created_at_idx").on(t.createdAt),
 		index("agent_runs_updated_at_idx").on(t.updatedAt),
+		index("agent_runs_open_idx").on(t.id).where(sql`${t.closedAt} IS NULL`),
 	],
 );
