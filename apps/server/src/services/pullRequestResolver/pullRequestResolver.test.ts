@@ -1,13 +1,14 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { openTestDb } from "../db/testDb.ts";
-import { resolve } from "./pullRequests.ts";
-import type { ServiceCtx } from "./support.ts";
+import { openTestDb } from "../../db/testDb.ts";
+import type { ServiceCtx } from "../support.ts";
+import { resolve } from "./pullRequestResolver.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const firstId = ulid();
 const secondId = ulid();
+const missingId = ulid();
 const at = new Date("2026-09-21T12:00:00.000Z");
 
 beforeAll(async () => {
@@ -31,6 +32,12 @@ test("resolves a known pull request URL without a review row", async () => {
 	expect(result).toEqual({ id: firstId, url: "https://github.com/acme/app/pull/57245" });
 });
 
+test("resolves a known stored pull request ID", async () => {
+	const result = await db.transaction((tx) => resolve({} as ServiceCtx, tx, { ref: firstId }));
+
+	expect(result).toEqual({ id: firstId, url: "https://github.com/acme/app/pull/57245" });
+});
+
 test("resolves a known owner repo ref without a review row", async () => {
 	const result = await db.transaction((tx) => resolve({} as ServiceCtx, tx, { ref: "example/service#57245" }));
 
@@ -48,5 +55,12 @@ test("returns a named not-found payload for an unknown pull request", async () =
 	await expect(db.transaction((tx) => resolve({} as ServiceCtx, tx, { ref: "acme/app#404" }))).rejects.toMatchObject({
 		code: "NOT_FOUND",
 		data: { kind: "pull request", ref: "acme/app#404" },
+	});
+});
+
+test("returns a named not-found payload for an unknown stored pull request ID", async () => {
+	await expect(db.transaction((tx) => resolve({} as ServiceCtx, tx, { ref: missingId }))).rejects.toMatchObject({
+		code: "NOT_FOUND",
+		data: { kind: "pull request", ref: missingId },
 	});
 });
