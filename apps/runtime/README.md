@@ -42,6 +42,8 @@ The capture channel retains one ordered exclusion for all selected attempts. It 
 
 An inventory identifies each immutable root and relative entry. A read validates the binding and the file hash. A seal returns exact receipt bytes without release authority. A successful channel returns exact finalization receipt bytes after the caller action settles. A disconnect or another unknown result keeps a durable hold until a recovery call records a committed or abandoned outcome. An empty capture uses a global admission hold and returns an exact empty binding. A later verifier opens a new capture and validates its sources again.
 
+The live capture lock includes the shared attempt-retention directory. A durable hold compares exact attempts and resource directories. The shared retention directory does not make unrelated launches overlap.
+
 A repeated launch identifier returns its existing session. A changed command under that identifier returns `LAUNCH_CONFLICT`. The runtime records the identifier before it starts the process. A stop before launch records cancellation, so a delayed launch cannot create a process.
 
 A transport error after a request means the result is unknown. A caller reconciles a launch through its existing identifier. Keyed `deliver` calls persist the message identifier and byte hash before they write input. Repeated calls return the recorded outcome. An interrupted write remains unknown and never resends automatically.

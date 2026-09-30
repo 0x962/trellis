@@ -10,6 +10,7 @@ export type RuntimeCaptureHold = {
 	global: boolean;
 	attemptIds: string[];
 	scopes: RuntimeMutationScope[];
+	overlapScopes: RuntimeMutationScope[];
 	createdAt: string;
 };
 
@@ -41,7 +42,7 @@ export const readRuntimeCaptureHold = (dataHome: string, captureId: string) =>
 
 export const runtimeCaptureHoldOverlaps = (hold: RuntimeCaptureHold, scopes: RuntimeMutationScope[]) => {
 	if (hold.global) return true;
-	const held = new Set(hold.scopes.map(key));
+	const held = new Set(hold.overlapScopes.map(key));
 	return scopes.some((scope) => held.has(key(scope)));
 };
 
