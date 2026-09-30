@@ -5,7 +5,7 @@ import { bindLaunchSnapshot } from "../../../../apps/server/src/db/queries/langf
 import { langflowNativeHandles } from "../../../../apps/server/src/db/tables/langflowExecution";
 import { readSnapshot, restoreSnapshot, sealSnapshot } from "../../../../apps/server/src/services/langflowBackup";
 import { exportNativeSnapshots } from "../../../../apps/server/src/services/langflowBackup/nativeSnapshots";
-import { writeLaunchSnapshot } from "../../../../apps/server/src/services/langflowNative";
+import { writeLaunchSnapshot } from "../../../../apps/server/src/services/langflowNative/launchSnapshot";
 import { fixture } from "./fixture/fixture";
 import { receiptData } from "./receiptData/receiptData";
 
