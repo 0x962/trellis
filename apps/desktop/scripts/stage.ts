@@ -2,20 +2,14 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { RUNTIME_PROTOCOL_VERSION } from "@trellis/runtime-protocol";
 import { writeDesktopBuild } from "../src/desktopBuild/desktopBuild.ts";
-import { stagePackages } from "../src/packageClosure/packageClosure.ts";
+import { stageHostPackages } from "../src/packageClosure/stageHostPackages";
 import { writeBundleManifest } from "../src/resourceBundle/resourceBundle.ts";
 
 const repo = resolve(import.meta.dir, "../../..");
 const target = resolve(import.meta.dir, "../dist/host");
 await rm(target, { recursive: true, force: true });
 await mkdir(join(target, "bin"), { recursive: true });
-const copies = await stagePackages(repo, target, [
-	"apps/server",
-	"packages/api",
-	"packages/cli",
-	"apps/runtime",
-	"packages/runtime-protocol",
-]);
+const copies = await stageHostPackages(repo, target);
 await cp(join(repo, "apps/web/dist"), join(target, "apps/web/dist"), { recursive: true });
 await cp(process.execPath, join(target, "bin/bun"));
 await cp(join(repo, "node_modules/node/bin/node"), join(target, "bin/node"));
