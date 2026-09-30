@@ -2,12 +2,19 @@ import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Command, IconButton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
+import { useCommandItems } from "../useCommandItems";
 
 const items = [
 	{ id: "TRL-42", label: "Restore the project view", hint: "TRL-42", current: true },
 	{ id: "TRL-43", label: "Retain the selected tickets", hint: "TRL-43", checked: true },
 	{ id: "TRL-44", label: "Review the release", hint: "TRL-44", checked: "mixed" as const },
 ];
+const virtualItems = Array.from({ length: 200 }, (_, index) => ({
+	id: `TRL-${index + 1}`,
+	label: `Ticket ${index + 1}`,
+	checked: index === 120,
+}));
 const meta = {
 	title: "Components/Command",
 	component: Command,
@@ -21,10 +28,10 @@ const meta = {
 		},
 	},
 	render: function Render(args) {
-		const [selected, setSelected] = useState("");
+		const { selected, ...command } = useCommandItems(args);
 		return (
 			<>
-				<Command {...args} onSelect={setSelected} />
+				<Command {...args} {...command} />
 				<p role="status" className="mt-3 text-sm text-fg-muted">
 					Selected: {selected || "None"}
 				</p>
@@ -47,44 +54,101 @@ export const Grouped: Story = {
 	},
 };
 export const Virtualized: Story = {
-	render: (args) => (
-		<Command.Virtual
-			{...args}
-			items={Array.from({ length: 200 }, (_, index) => ({
-				id: `TRL-${index + 1}`,
-				label: `Ticket ${index + 1}`,
-				checked: index === 120,
-			}))}
-		/>
-	),
+	args: { items: virtualItems },
+	render: function Render(args) {
+		const { selected, ...command } = useCommandItems(args);
+		return (
+			<>
+				<Command.Virtual {...args} {...command} />
+				<p role="status" className="mt-3 text-sm text-fg-muted">
+					Selected: {selected || "None"}
+				</p>
+			</>
+		);
+	},
 };
 export const Dialog: Story = {
 	render: function Render(args) {
 		const [open, setOpen] = useState(false);
+		const { selected: _selected, ...command } = useCommandItems(args);
 		return (
 			<>
 				<Tooltip content="Search">
 					<IconButton label="Search" icon={<MagnifyingGlass />} onClick={() => setOpen(true)} />
 				</Tooltip>
 				<Command.Dialog open={open} onOpenChange={setOpen}>
-					<Command {...args} onSelect={() => setOpen(false)} />
+					<Command
+						{...args}
+						{...command}
+						onSelect={(id) => {
+							command.onSelect(id);
+							setOpen(false);
+						}}
+					/>
 				</Command.Dialog>
 			</>
 		);
 	},
 };
 export const Composition: Story = {
-	render: () => (
-		<Command.Root label="Project commands">
-			<Command.Field label="Search commands" placeholder="Search commands" />
-			<Command.List>
-				<Command.Empty>No command matches.</Command.Empty>
-				<Command.Group heading="Project">
-					<Command.Row value="settings" label="Settings" onSelect={() => {}} />
-					<Command.Row value="archive" label="Archive" onSelect={() => {}} />
-				</Command.Group>
-			</Command.List>
-			<Command.Footer>Enter selects a command.</Command.Footer>
-		</Command.Root>
-	),
+	render: function Render() {
+		const [selected, setSelected] = useState("");
+		return (
+			<Command.Root label="Project commands">
+				<Command.Field label="Search commands" placeholder="Search commands" />
+				<Command.List>
+					<Command.Empty>No command matches.</Command.Empty>
+					<Command.Group heading="Project">
+						<Command.Row value="settings" label="Settings" onSelect={() => setSelected("Settings")} />
+						<Command.Row value="archive" label="Archive" onSelect={() => setSelected("Archive")} />
+					</Command.Group>
+				</Command.List>
+				<Command.Footer>
+					<span role="status">{selected ? `Selected: ${selected}` : "Enter selects a command."}</span>
+				</Command.Footer>
+			</Command.Root>
+		);
+	},
+};
+export const ToggleSelection: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const checked = canvas.getByRole("option", { name: "Retain the selected tickets" });
+		await expect(checked).toHaveAttribute("data-checked", "true");
+		await userEvent.click(checked);
+		await expect(checked).toHaveAttribute("data-checked", "false");
+		const mixed = canvas.getByRole("option", { name: "Review the release" });
+		await userEvent.click(mixed);
+		await expect(mixed).toHaveAttribute("data-checked", "true");
+		await expect(canvas.getByText("Selected: TRL-44")).toBeVisible();
+	},
+};
+export const VirtualSelection: Story = {
+	...Virtualized,
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.type(canvas.getByRole("combobox"), "Ticket 121");
+		const ticket = await canvas.findByRole("option", { name: "Ticket 121" });
+		await expect(ticket).toHaveAttribute("data-checked", "true");
+		await userEvent.keyboard("{Enter}");
+		await expect(ticket).toHaveAttribute("data-checked", "false");
+		await expect(canvas.getByText("Selected: TRL-121")).toBeVisible();
+	},
+};
+export const DialogSelection: Story = {
+	...Dialog,
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		const trigger = within(canvasElement).getByRole("button", { name: "Search" });
+		await userEvent.click(trigger);
+		const ticket = await body.findByRole("option", { name: "Retain the selected tickets" });
+		await expect(ticket).toHaveAttribute("data-checked", "true");
+		await userEvent.click(ticket);
+		await userEvent.click(trigger);
+		await expect(await body.findByRole("option", { name: "Retain the selected tickets" })).toHaveAttribute(
+			"data-checked",
+			"false",
+		);
+		await userEvent.keyboard("{Escape}");
+	},
 };

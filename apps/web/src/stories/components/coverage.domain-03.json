@@ -46,10 +46,11 @@
 			"Components/PageCommentPin/Default",
 			"Components/PageCommentPin/Selected",
 			"Components/PageCommentPin/Resolved",
-			"Components/PageCommentPin/LargeNumber"
+			"Components/PageCommentPin/LargeNumber",
+			"Components/PageCommentPin/Selection"
 		],
-		"states": ["default", "selected", "resolved", "large number"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"states": ["default", "selected", "resolved", "large number", "local selection toggle"],
+		"notes": "Click or press Space to select the pin. Selection verifies both states. Resolved and selected pins retain their named stories."
 	},
 	{
 		"source": "packages/ui/src/domain/PageRow/PageRow.tsx",

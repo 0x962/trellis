@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type FlowRunRow, type FlowRunState, FlowRunTree } from "@trellis/ui";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { useStoryState } from "../useStoryState";
 
 const startedAt = Date.parse("2026-09-30T12:00:00Z");
 const states: FlowRunState[] = [
@@ -59,6 +61,10 @@ const meta = {
 			},
 		},
 	},
+	render: function Render(args) {
+		const [state, setState] = useStoryState(args.state);
+		return <FlowRunTree {...args} state={state} onStateChange={setState} />;
+	},
 } satisfies Meta<typeof FlowRunTree>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -70,4 +76,32 @@ export const Collapsed: Story = {
 };
 export const SelectedOutput: Story = {
 	args: { state: { collapsed: [], selectedKey: "succeeded", outputKeys: ["succeeded"], scrollTop: 0, scrollLeft: 0 } },
+};
+export const ExpandAndCollapse: Story = {
+	args: Collapsed.args,
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const root = await canvas.findByRole("treeitem");
+		await expect(root).toHaveAttribute("aria-expanded", "false");
+		await userEvent.click(root);
+		await expect(root).toHaveAttribute("aria-expanded", "true");
+		await expect(canvas.getByText("Review step: not_started")).toBeVisible();
+		await userEvent.keyboard("{ArrowRight}");
+		await expect(canvas.getByText("Review step: not_started").closest('[role="treeitem"]')).toHaveFocus();
+		await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+		await expect(root).toHaveAttribute("aria-expanded", "false");
+		await expect(canvas.getAllByRole("treeitem")).toHaveLength(1);
+	},
+};
+export const OutputToggle: Story = {
+	args: SelectedOutput.args,
+	play: async ({ canvasElement }) => {
+		const row = within(canvasElement).getByText("Review step: succeeded").closest('[role="treeitem"]')!;
+		const output = within(row as HTMLElement).getByText("Output");
+		await expect(output.parentElement).toHaveAttribute("open");
+		await userEvent.click(output);
+		await waitFor(() => expect(output.parentElement).not.toHaveAttribute("open"));
+		await userEvent.click(output);
+		await waitFor(() => expect(output.parentElement).toHaveAttribute("open"));
+	},
 };
