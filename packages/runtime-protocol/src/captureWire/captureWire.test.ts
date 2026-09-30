@@ -1,23 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import type { RuntimeCaptureBinding, RuntimeCaptureFrame } from "../capture.ts";
 import { CaptureFrameDecoder, decodeCaptureFrame, encodeCaptureFrame } from "./captureWire.ts";
 
-const binding: RuntimeCaptureBinding = {
+const request = {
 	captureId: "capture-1",
 	snapshotId: "snapshot-1",
 	hostId: "host-1",
 	dataHomeId: "home-1",
 	generation: 4,
 	blockId: "block-1",
-	workspaces: [
-		{
-			workspaceId: "/home/agents/run-1/work",
-			attemptIds: ["attempt-1"],
-			worktreeRootId: "worktree-1",
-			gitRootId: null,
-			commonRootId: "common-1",
-		},
-	],
 	identities: [
 		{
 			harness: "codex",
@@ -26,6 +18,19 @@ const binding: RuntimeCaptureBinding = {
 			agentRunId: "run-1",
 			attemptId: "attempt-1",
 			providerSessionId: "session-1",
+		},
+	],
+};
+
+const binding: RuntimeCaptureBinding = {
+	...request,
+	workspaces: [
+		{
+			workspaceId: "/home/agents/run-1/work",
+			attemptIds: ["attempt-1"],
+			worktreeRootId: "worktree-1",
+			gitRootId: null,
+			commonRootId: "common-1",
 		},
 	],
 	roots: [
@@ -47,6 +52,14 @@ const binding: RuntimeCaptureBinding = {
 
 describe("capture wire", () => {
 	test("round trips each frame kind", () => {
+		const finalizationReceipt = {
+			schemaVersion: 1 as const,
+			kind: "trellis-runtime-capture-finalization" as const,
+			request,
+			requestSha256: createHash("sha256").update(JSON.stringify(request)).digest("hex"),
+			outcome: "committed" as const,
+			finalizedAt: "2026-09-30T00:00:00.000Z",
+		};
 		const frames: RuntimeCaptureFrame[] = [
 			{ type: "binding", binding },
 			{ type: "inventory", binding },
@@ -56,8 +69,14 @@ describe("capture wire", () => {
 			{ type: "end" },
 			{ type: "seal", input: { binding, rootId: "worktree-1", manifestSha256: "a".repeat(64) } },
 			{ type: "receipt", receipt: new Uint8Array([1, 2, 3]) },
-			{ type: "release" },
-			{ type: "released" },
+			{ type: "finalize", outcome: "committed" },
+			{
+				type: "finalized",
+				finalization: {
+					receipt: finalizationReceipt,
+					receiptBytes: JSON.stringify(finalizationReceipt),
+				},
+			},
 			{ type: "error", code: "CAPTURE_UNAVAILABLE", message: "A writer is active" },
 		];
 		for (const frame of frames) {
