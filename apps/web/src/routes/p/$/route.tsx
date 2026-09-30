@@ -24,7 +24,6 @@ import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectHref } from "../../../lib/projectUrl";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { useUiStore } from "../../../stores/uiStore";
 import { PageListLoading } from "./components/PageListLoading";
 import { ProjectError } from "./components/ProjectError";
 import { ProjectLoading } from "./components/ProjectLoading";
@@ -158,7 +157,6 @@ function ProjectPage() {
 	const pageSearch = parsePageSearch(routeSearch);
 	const navigate = useNavigate();
 	const context = useApp();
-	const storedDensity = useUiStore((state) => state.density);
 	const { ref, view, epic, page } = parseProjectSplat(_splat);
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
 	const full = viewOf(search);
@@ -261,7 +259,6 @@ function ProjectPage() {
 							showProject={false}
 							search={search}
 							onSearchChange={setSearch}
-							density={search.density ?? storedDensity}
 							group={full.group}
 							sort={full.sort}
 						/>

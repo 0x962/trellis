@@ -8,14 +8,13 @@ import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
 import { formatCount } from "../../../lib/format";
 import { epicHref, projectHref } from "../../../lib/projectUrl";
-import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { ProjectSectionMenu } from "../../shell/ProjectSectionMenu";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
-import { rowHeights } from "../../table/rowHeights";
+import { desktopRowHeight } from "../../table/rowHeights";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
 import { EpicRow } from "./components/EpicRow";
@@ -39,7 +38,6 @@ const skeletonWidths = ["w-2/5", "w-1/2", "w-[30%]", "w-[45%]"];
 export function EpicsPage({ project }: EpicsPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
-	const density = useUiStore((state) => state.density);
 	const readOnly = project.archivedAt !== null;
 	const epicsOptions = orpc.epics.list.queryOptions({ input: { project: project.key } });
 	const epics = useQuery(epicsOptions);
@@ -81,7 +79,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 							{skeletonWidths.map((width) => (
 								<div
 									key={width}
-									style={{ height: `${rowHeights[density]}px` }}
+									style={{ height: `${desktopRowHeight}px` }}
 									className="flex items-center gap-3 border-b border-border px-5 max-md:px-4"
 								>
 									<div className="min-w-0 flex-1">
@@ -153,7 +151,6 @@ export function EpicsPage({ project }: EpicsPageProps) {
 												<EpicRow
 													key={epic.id}
 													epic={epic}
-													density={density}
 													readOnly={readOnly}
 													onEdit={() => setEditor({ epic })}
 													onDelete={() => setDeleting(epic)}

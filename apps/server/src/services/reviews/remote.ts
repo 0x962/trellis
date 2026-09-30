@@ -55,9 +55,12 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 	const meta = await ghJson<{
 		id: string;
 		headRefOid: string;
-	}>(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid"]);
+		isDraft: boolean;
+	}>(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid,isDraft"]);
 	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const a = input.action;
+	if (meta.isDraft && (a === "merge" || a === "admin-merge" || a === "automerge" || a === "queue"))
+		await gh(ctx, ["pr", "ready", ref.url]);
 	if (a === "queue" || a === "dequeue") {
 		const mutation = a === "queue" ? "enqueuePullRequest" : "dequeuePullRequest";
 		await gh(ctx, [

@@ -1,4 +1,4 @@
-import { DotsThree, PencilSimple, Plus, RowsPlusBottom, Trash } from "@phosphor-icons/react";
+import { DotsThree, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { TopbarActionButton, TopbarActionMenu } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
@@ -27,11 +27,7 @@ export type EpicTopbarActionsProps = {
 	onDelete: () => void;
 };
 
-// The three controls on the right of the epic top bar: New wave, Add
-// tickets and the epic menu. The bar draws all three before the `epics.get`
-// read answers, each one disabled, so the loaded bar adds no button and the
-// pointer of a person who reaches for one of them lands on the button that
-// was there.
+// The Add and epic action controls keep their positions while the epic loads.
 export function EpicTopbarActions({
 	project,
 	epic,
@@ -43,13 +39,8 @@ export function EpicTopbarActions({
 }: EpicTopbarActionsProps) {
 	return (
 		<>
-			{/* An archived project takes no ticket and no wave, so its bar
-			    carries neither button in either state. */}
 			{readOnly ? null : epic === null ? (
-				<>
-					<TopbarActionButton data-bar-slot="new-wave" label="New wave" icon={<RowsPlusBottom />} disabled />
-					<TopbarActionButton data-bar-slot="add-tickets" label="Add tickets" icon={<Plus />} disabled />
-				</>
+				<TopbarActionButton data-bar-slot="add" label="Add" icon={<Plus />} disabled />
 			) : (
 				<EpicCreateActions
 					project={project}

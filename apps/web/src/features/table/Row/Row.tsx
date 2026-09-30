@@ -4,6 +4,7 @@ import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } fro
 import { compactRelativeTime } from "../../../lib/format";
 import { ActorAvatar } from "../../agents/ActorAvatar";
 import { type ColumnId, gridColumnsClass, gridStyle, isEpicTable, narrowHidden, statusIconOnly } from "../columns";
+import { desktopRowHeight } from "../rowHeights";
 import { TreeStem } from "../TreeLines";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
@@ -18,12 +19,7 @@ import { StatusCell } from "./components/StatusCell";
 import { TicketDisclosure } from "./components/TicketDisclosure";
 import { TitleCell } from "./components/TitleCell";
 import { WaitsCell } from "./components/WaitsCell";
-import type { EditField, RowChange, RowProps } from "./rowTypes";
-
-export { phoneRowHeight, rowHeights } from "../rowHeights";
-export type { EditField, RowChange, RowProps } from "./rowTypes";
-
-import { rowHeights } from "../rowHeights";
+import type { EditField, RowChange, RowProps } from "./types";
 
 const noStatuses: StatusSummary[] = [];
 const linkedCellClass =
@@ -34,7 +30,6 @@ const linkedCellClass =
 // re-renders that row alone.
 export const Row = memo(function Row({
 	ticket,
-	density,
 	columns,
 	viewedProject,
 	top,
@@ -128,7 +123,7 @@ export const Row = memo(function Row({
 				finalFocus={element}
 			/>
 		),
-		pr: ticket.pr === null ? null : <PrCell pr={ticket.pr} density={density} />,
+		pr: ticket.pr === null ? null : <PrCell pr={ticket.pr} />,
 		project: <ProjectCell projectKey={ticket.project.key} viewedProject={viewedProject} />,
 		waits: <WaitsCell waitsOn={ticket.waitsOn} ready={ticket.ready} />,
 		releases: <ReleasesCell releases={ticket.releases} />,
@@ -189,14 +184,13 @@ export const Row = memo(function Row({
 			data-selected={selected ? "" : undefined}
 			style={{
 				...gridStyle(columns),
-				height: `${rowHeights[density]}px`,
+				height: `${desktopRowHeight}px`,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"group/row absolute top-0 left-0 grid w-full items-center gap-3 px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
+				"group/row absolute top-0 left-0 grid w-full items-center gap-3 text-base px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
 				gridColumnsClass,
 				!hasChildLines && "border-b border-border",
-				density === "comfortable" ? "text-base" : "text-sm",
 				// The focus bar sits at the left edge of the inset hover and selection
 				// background. Its own layer keeps it visible while `DoneWash` crosses the row.
 				"before:absolute before:top-1 before:bottom-1 before:left-3 before:z-10 before:w-0.5 before:rounded-sm before:bg-accent before:opacity-0 before:content-[''] max-md:before:left-2",

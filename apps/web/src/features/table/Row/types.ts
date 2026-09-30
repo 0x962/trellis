@@ -1,9 +1,8 @@
 import type { EpicSummary, Label, Priority, StatusSummary, TicketSummary, WaveSummary } from "@trellis/api";
 import type { MouseEvent } from "react";
-import type { Density } from "../../../../stores/uiStore";
-import type { TableKind } from "../../columns";
-import type { TicketAgentLine } from "../../utils/agentLines";
-import type { TicketDisclosure as TicketDisclosureState } from "../../utils/flattenGroups";
+import type { TableKind } from "../columns";
+import type { TicketAgentLine } from "../utils/agentLines";
+import type { TicketDisclosure as TicketDisclosureState } from "../utils/flattenGroups";
 
 // The inline editors a row opens.
 export type EditField = "status" | "priority" | "parent" | "labels" | "epic" | "wave";
@@ -20,7 +19,6 @@ export type RowChange =
 
 export type RowProps = {
 	ticket: TicketSummary;
-	density: Density;
 	// The visible column ids, in order.
 	columns: string[];
 	// The project ref of the route, or undefined on /all.

@@ -5,7 +5,6 @@ import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref } from "../../../lib/projectUrl";
-import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
@@ -60,7 +59,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const navigate = useNavigate();
 	const resourceId = useLocation({ select: (location) => location.hash });
 	const mutations = useTicketMutations();
-	const storedDensity = useUiStore((state) => state.density);
 	const ref = `${project.key}/${slug}`;
 	const epic = useQuery(orpc.epics.get.queryOptions({ input: { epic: ref } }));
 	const readOnly = project.archivedAt !== null;
@@ -137,7 +135,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 					epicFixed
 					search={barSearch}
 					onSearchChange={setSearch}
-					density={search.density ?? storedDensity}
 					group={full.group}
 					sort={full.sort}
 				/>
@@ -174,7 +171,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
 					{readOnly && <ArchivedBanner project={project} />}
 					<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
-						<TableSkeleton density={search.density ?? storedDensity} />
+						<TableSkeleton />
 					</div>
 				</div>
 			</>
@@ -195,7 +192,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 
 	const record = epic.data;
 	const identifiers = record.tickets.map((ticket) => ticket.identifier);
-	// The top bar and the empty state of the Overview draw the same two buttons.
+	// The top bar and the empty state of the Overview share the Add menu.
 	const createActions = readOnly ? null : (
 		<EpicCreateActions
 			project={project.key}
