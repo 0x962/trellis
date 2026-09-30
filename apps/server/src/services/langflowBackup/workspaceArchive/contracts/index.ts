@@ -1,4 +1,5 @@
 export {
+	RuntimeWorkspaceInventorySchema,
 	type WorkspaceArchive,
 	WorkspaceArchiveSchema,
 	type WorkspaceBinding,
@@ -6,4 +7,5 @@ export {
 	type WorkspaceCaptureReader,
 	type WorkspaceInventory,
 	WorkspaceInventorySchema,
+	WorkspaceSealSchema,
 } from "./contracts";
