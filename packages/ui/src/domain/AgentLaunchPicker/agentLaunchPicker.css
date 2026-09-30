@@ -1,0 +1,36 @@
+.agent-launch-trigger {
+	width: auto;
+	max-width: 100%;
+	min-width: 0;
+	border-color: transparent;
+	background: transparent;
+	padding-inline: 8px;
+}
+.agent-launch-trigger:hover {
+	background: var(--control-hover);
+	border-color: var(--border);
+}
+.agent-launch-value {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.agent-launch-popover {
+	width: 300px;
+	max-width: calc(100vw - 24px);
+	padding: 16px;
+}
+.agent-launch-fields {
+	display: grid;
+	gap: 12px;
+}
+.agent-launch-fields button {
+	width: 100%;
+	min-width: 0;
+}
+@media (max-width: 767px) {
+	.agent-launch-trigger,
+	.agent-launch-fields button {
+		min-height: 44px;
+	}
+}

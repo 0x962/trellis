@@ -260,6 +260,13 @@ Ticket opens the project `TicketPicker`. Wave creates a wave through the existin
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
 The share commands retain the current filters and the epic scope.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
+Start wave opens one surface with a dependency tree, status icons, and checkboxes.
+Ready, unassigned Todo tickets start checked. Waiting Todo tickets remain available for an explicit start.
+Each ticket appears under its first unfinished prerequisite in the wave. Its row names every unfinished prerequisite, including other waves.
+Assigned tickets and tickets outside Todo remain visible with disabled checkboxes.
+The compact agent picker beside Start holds the shared harness, model, and effort fields.
+Submission locks the selection and agent choice. Each accepted request updates its ticket immediately.
+A failed request shows its complete error. Retry sends only failed tickets with their original request identifiers and agent choice.
 The Wave option adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
 Delete wave asks first only when the wave holds tickets. The dialog names the tickets that move to No wave and the open agent runs among them.

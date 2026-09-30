@@ -1,5 +1,6 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
+export { AgentLaunchPicker } from "./domain/AgentLaunchPicker";
 export { ArchivedToggle, type ArchivedToggleProps } from "./domain/ArchivedToggle";
 export * from "./domain/ChatterPanel";
 export { CheckConfetti, type CheckConfettiProps, confettiMs } from "./domain/CheckConfetti";
@@ -135,6 +136,7 @@ export {
 export { TrellisWordmark, type TrellisWordmarkProps } from "./domain/TrellisWordmark";
 export { ticketCardFrame } from "./domain/ticketCardFrame";
 export { UsageChart, type UsageChartProps, type UsageChartSeries, type UsageChartTone } from "./domain/UsageChart";
+export { WaveStartContent, WaveStartDialog, type WaveStartTicket } from "./domain/WaveStartDialog";
 export { WorkingAgentText, type WorkingAgentTextProps, workingAgentsLabel } from "./domain/WorkingAgentText";
 export { WorkspaceChanges } from "./domain/WorkspaceChanges";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
