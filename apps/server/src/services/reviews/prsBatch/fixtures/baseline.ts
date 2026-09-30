@@ -1,0 +1,61 @@
+import { type PrState, type ReviewPrSchema, type ReviewReadyFacts, reviewGaps } from "@trellis/api";
+import { type SQL, sql } from "drizzle-orm";
+import type { z } from "zod";
+import { localHumanVerdict } from "../../../../db/queries/pullRequestRows.ts";
+import {
+	flowAnsweredSql,
+	hasEvidenceSql,
+	hasExplanationSql,
+	reviewReadyFacts,
+} from "../../../../db/queries/reviewReady.ts";
+import { iso, rows } from "../../../../db/queries/support";
+import type { Tx } from "../../../../db/tx";
+import { resolveProject } from "../../../refs";
+import type { IoCtx } from "../../../support";
+
+const projectClause = async (ctx: IoCtx, tx: Tx, ref: string): Promise<SQL> => {
+	const project = await resolveProject(ctx.core, tx, ref);
+	return sql`(EXISTS (SELECT 1 FROM ticket_pull_requests l JOIN tickets t ON t.id = l.ticket_id
+			WHERE l.pull_request_id = p.id AND t.project_id = ${project.id})
+		OR EXISTS (SELECT 1 FROM repos r
+			WHERE r.project_id = ${project.id} AND r.owner = p.owner AND r.repo = p.repo))`;
+};
+
+export async function baselinePrs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: boolean }) {
+	const where =
+		input.project === undefined
+			? input.all
+				? sql`true`
+				: sql`p.review_retained`
+			: await projectClause(ctx, tx, input.project);
+	const found = await rows<z.infer<typeof ReviewPrSchema> & ReviewPrFacts>(
+		tx,
+		sql`SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state, p.mergeable,
+		p.is_draft AS "isDraft", p.is_queued AS "isQueued", p.local_state AS "localState", p.checks, p.ci_state AS "ciState",
+		${localHumanVerdict(sql`p.id`)} AS "localVerdict",
+		${hasExplanationSql(sql`p`)} AS "hasExplanation",
+		${hasEvidenceSql(sql`p`)} AS "hasEvidence",
+		${flowAnsweredSql(sql`p`)} AS "flowAnswered",
+		(SELECT count(*)::int FROM review_threads t WHERE t.pr_id = p.id AND t.document->>'status' = 'open') AS open,
+		(SELECT count(*)::int FROM review_threads t WHERE t.pr_id = p.id AND t.document->>'status' = 'resolved') AS resolved,
+		${iso(sql`COALESCE((SELECT max(t.updated_at) FROM review_threads t WHERE t.pr_id = p.id), p.updated_at)`)} AS "updatedAt"
+		FROM pull_requests p WHERE ${where} ORDER BY "updatedAt" DESC`,
+	);
+	return found.map(({ hasExplanation, hasEvidence, flowAnswered, mergeable, ...row }) => ({
+		...row,
+		reviewGaps: reviewGaps(
+			reviewReadyFacts({
+				state: row.state as PrState,
+				localState: row.localState,
+				checks: row.checks,
+				openFindings: row.open,
+				hasExplanation,
+				hasEvidence,
+				flowAnswered,
+				mergeable,
+			}),
+		),
+	}));
+}
+
+type ReviewPrFacts = Pick<ReviewReadyFacts, "hasExplanation" | "hasEvidence" | "flowAnswered" | "mergeable">;
