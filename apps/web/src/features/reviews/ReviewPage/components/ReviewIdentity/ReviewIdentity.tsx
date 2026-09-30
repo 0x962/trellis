@@ -1,8 +1,8 @@
 import { LinkSimple } from "@phosphor-icons/react";
 import {
-	askedForReview,
 	internalLink,
 	type LinkedPullRequest,
+	type LocalPrState,
 	missingPartsText,
 	type ReviewRevision,
 	reviewRef,
@@ -36,7 +36,6 @@ export const stateWord = (pullRequest: GithubPullRequest | undefined, isQueued =
 export const stateTone = (pullRequest: GithubPullRequest | undefined, isQueued = false): BadgeTone => {
 	if (isQueued) return "wait";
 	if (pullRequest?.state === "MERGED") return "agent";
-	if (pullRequest?.state === "OPEN") return "ok";
 	return "neutral";
 };
 
@@ -62,10 +61,10 @@ export type ReviewIdentityProps = {
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
 	isQueued: boolean;
-	// The Trellis row of the pull request when a ticket links it. It holds
-	// what the pull request still needs before the person reviews it. A pull
-	// request that no ticket links reads as ready for review.
+	// The linked row supplies the menu identity and the missing review material.
 	linkedPr: LinkedPullRequest | null;
+	localState: LocalPrState | null;
+	locallyApproved: boolean;
 	mergeQueuePosition?: number | null;
 	onAction: () => void;
 };
@@ -77,14 +76,12 @@ export function ReviewIdentity({
 	pullRequest,
 	isQueued,
 	linkedPr,
+	localState,
+	locallyApproved,
 	mergeQueuePosition,
 	onAction,
 }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
-	// The stored local review state, which `LocalStateMenu` writes. The glyph
-	// reads the same flag through `askedForReview`, the one answer that every
-	// surface of a pull request draws from.
-	const localState = linkedPr?.localState ?? "ready";
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	const stateBadge = <Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>;
 	return (
@@ -101,7 +98,7 @@ export function ReviewIdentity({
 					</div>
 					<div data-bar-slot="local-state" className="review-header-slot">
 						{linkedPr !== null && pullRequest?.state === "OPEN" && (
-							<LocalStateMenu id={linkedPr.id} number={linkedPr.number} localState={localState} />
+							<LocalStateMenu id={linkedPr.id} number={linkedPr.number} localState={linkedPr.localState} />
 						)}
 					</div>
 					<div data-bar-slot="internal-link" className="review-header-slot">
@@ -129,8 +126,8 @@ export function ReviewIdentity({
 						{pullRequest !== undefined && (
 							<PrGlyph
 								state={glyphState}
-								isQueued={isQueued}
-								askedForReview={linkedPr === null || askedForReview(linkedPr)}
+								askedForReview={localState === "ready"}
+								locallyApproved={locallyApproved}
 								description={linkedPr === null ? null : missingPartsText(linkedPr)}
 								size="sm"
 							/>

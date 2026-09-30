@@ -1,31 +1,41 @@
-import { PrGlyph } from "../../domain/PrGlyph";
+import { PrGlyph, prGlyphLabel } from "../../domain/PrGlyph";
 import { Badge } from "../../primitives/Badge";
 
-// The state of a pull request as one glyph and one word. `askedForReview` is
-// the local review flag of the pull request, and it draws the glyph and the
-// tone of the badge. `word` is the text of the badge, which the caller
-// writes, such as `Not ready` or `Merged`.
+// The open state uses the saved local mark and human approval.
+// The caller supplies the badge text for a closed or merged pull request.
 export function ReviewStatus({
 	state: value,
 	isQueued,
 	askedForReview,
+	locallyApproved,
 	word,
 }: {
 	state: string;
 	isQueued: boolean;
 	askedForReview: boolean;
+	locallyApproved: boolean;
 	word: string;
 }) {
 	const state = value.toUpperCase();
 	const glyphState = state === "MERGED" ? "merged" : state === "CLOSED" ? "closed" : "open";
-	// The badge takes the green tone on the same condition as the open glyph:
-	// the pull request is open and the agent asked for review.
-	const tone = isQueued ? "wait" : state === "MERGED" ? "agent" : state === "OPEN" && askedForReview ? "ok" : "neutral";
+	const tone = isQueued
+		? "wait"
+		: state === "MERGED"
+			? "agent"
+			: state === "OPEN" && askedForReview && locallyApproved
+				? "ok"
+				: "neutral";
 	return (
 		<span className="inline-flex items-center gap-1">
-			<PrGlyph state={glyphState} isQueued={isQueued} askedForReview={askedForReview} size="sm" decorative />
+			<PrGlyph
+				state={glyphState}
+				askedForReview={askedForReview}
+				locallyApproved={locallyApproved}
+				size="sm"
+				decorative
+			/>
 			<Badge tone={tone} size="sm">
-				{word}
+				{glyphState === "open" ? prGlyphLabel(glyphState, askedForReview, locallyApproved) : word}
 			</Badge>
 		</span>
 	);

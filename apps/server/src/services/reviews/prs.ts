@@ -1,6 +1,7 @@
 import { type PrState, type ReviewPrSchema, type ReviewReadyFacts, reviewGaps } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { z } from "zod";
+import { localHumanVerdict } from "../../db/queries/pullRequestRows.ts";
 import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql, reviewReadyFacts } from "../../db/queries/reviewReady.ts";
 import { iso, rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
@@ -36,6 +37,7 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 		tx,
 		sql`SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state, p.mergeable,
 		p.is_draft AS "isDraft", p.is_queued AS "isQueued", p.local_state AS "localState", p.checks, p.ci_state AS "ciState",
+		${localHumanVerdict(sql`p.id`)} AS "localVerdict",
 		${hasExplanationSql(sql`p`)} AS "hasExplanation",
 		${hasEvidenceSql(sql`p`)} AS "hasEvidence",
 		${flowAnsweredSql(sql`p`)} AS "flowAnswered",

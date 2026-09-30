@@ -143,6 +143,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						pullRequest={displayMeta}
 						isQueued={status.data?.isQueued ?? false}
 						linkedPr={linkedPr}
+						localState={status.data?.localState ?? null}
+						locallyApproved={verdictMark(allSubmissions) === "approved"}
 						mergeQueuePosition={reviewMetadata?.mergeQueueEntry?.position}
 						onAction={refreshAll}
 					/>

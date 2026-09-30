@@ -41,10 +41,10 @@ export function ProjectColorSection() {
 						<StatusIcon category="done" label="Done" />
 						<CheckStatusIcon status="failed" />
 						<CheckStatusIcon status="success" />
-						<PrGlyph state="open" isQueued={false} askedForReview />
-						<PrGlyph state="closed" isQueued={false} askedForReview />
-						<PrGlyph state="merged" isQueued={false} askedForReview />
-						<PrGlyph state="open" isQueued askedForReview />
+						<PrGlyph state="open" askedForReview />
+						<PrGlyph state="closed" askedForReview />
+						<PrGlyph state="merged" askedForReview />
+						<PrGlyph state="open" askedForReview locallyApproved />
 						<ActivityDot label="Waits for you" placement="inline" tone="metal" />
 					</span>
 				</div>

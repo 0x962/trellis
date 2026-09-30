@@ -21,8 +21,8 @@ export function PrCells({ pr, cells }: { pr: TicketPr; cells: readonly PrRowCell
 		<>
 			<PrGlyph
 				state={pr.state}
-				isQueued={pr.isQueued}
 				askedForReview={askedForReview(pr)}
+				locallyApproved={pr.verdict === "approved"}
 				description={missingPartsText(pr)}
 				size="sm"
 			/>

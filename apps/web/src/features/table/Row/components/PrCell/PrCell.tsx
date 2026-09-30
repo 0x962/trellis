@@ -37,8 +37,8 @@ export function PrCell({ pr, density }: PrCellProps) {
 		<span className="inline-flex items-center gap-1.5">
 			<PrGlyph
 				state={pr.state}
-				isQueued={pr.isQueued}
 				askedForReview={askedForReview(pr)}
+				locallyApproved={pr.locallyApproved}
 				description={missingPartsText(pr)}
 				size="sm"
 			/>

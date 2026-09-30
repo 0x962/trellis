@@ -25,7 +25,7 @@ export const saveProjectDiffSource = (
 
 export const projectDiffQueryActivation = (source: ProjectDiffSource) => ({
 	mine: source === "mine",
-	all: source === "all",
+	all: true,
 });
 
 export const projectDiffEmptyState = (source: ProjectDiffSource, filter: string) => {

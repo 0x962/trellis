@@ -129,8 +129,8 @@ const writeFetched = (tx: Tx, at: Date, row: GraphqlPullRequestRow) =>
 // survives. Its size fields stay null until a later request succeeds.
 const writeUnfetched = (tx: Tx, at: Date, ref: PullRequestRef, url: string, error: string) =>
 	tx.execute(sql`
-	INSERT INTO pull_requests (id, owner, repo, number, url, state, fetch_error, created_at, updated_at)
-	VALUES (${ulid()}, ${ref.owner}, ${ref.repo}, ${ref.number}, ${url}, 'open', ${error}, ${at}, ${at})
+	INSERT INTO pull_requests (id, owner, repo, number, url, state, fetch_error, created_at, updated_at, local_state)
+	VALUES (${ulid()}, ${ref.owner}, ${ref.repo}, ${ref.number}, ${url}, 'open', ${error}, ${at}, ${at}, 'not-ready')
 	ON CONFLICT (owner, repo, number) DO UPDATE SET fetch_error = EXCLUDED.fetch_error
 `);
 

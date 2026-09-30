@@ -1,5 +1,5 @@
 import { Paperclip } from "@phosphor-icons/react";
-import type { TicketSummary } from "@trellis/api";
+import { askedForReview, type TicketSummary } from "@trellis/api";
 import {
 	LabelPills,
 	LineChanges,
@@ -69,7 +69,13 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 				)}
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
 				{ticket.status.category === "review" && ticket.pr !== null && (
-					<ReviewStatusSummary reviews={ticket.pr.reviews} />
+					<ReviewStatusSummary
+						reviews={ticket.prRows.map((pr) => ({
+							...pr,
+							askedForReview: askedForReview(pr),
+							locallyApproved: pr.verdict === "approved",
+						}))}
+					/>
 				)}
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 empty:hidden">
 					{showLineChanges && <LineChanges value={lineChanges} pending={lineChangesPending} />}

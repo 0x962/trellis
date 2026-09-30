@@ -1,8 +1,8 @@
 import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { askedForReview, type Check, type Project, prStateWord, reviewRef } from "@trellis/api";
-import { Button, CheckRibbon, EmptyState, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
+import { type Check, type Project, prStateWord, reviewRef } from "@trellis/api";
+import { Button, CheckRibbon, EmptyState, Input, prGlyphLabel, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -78,6 +78,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 			setBusy(false);
 		}
 	};
+	const localRows = new Map((prs.data ?? []).map((pr) => [pr.url, pr]));
 	const rows =
 		source === "all"
 			? (prs.data ?? []).map((pr) => ({
@@ -91,10 +92,12 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 					title: pr.title,
 					repository: pr.repository.nameWithOwner,
 					state: "open",
-					word: "open",
+					word: localRows.get(pr.url) ? prStateWord(localRows.get(pr.url)!) : "not ready",
+					localState: localRows.get(pr.url)?.localState ?? "not-ready",
+					localVerdict: localRows.get(pr.url)?.localVerdict ?? null,
 					isDraft: pr.isDraft,
 					isQueued: false,
-					reviewGaps: [],
+					reviewGaps: localRows.get(pr.url)?.reviewGaps ?? [{ kind: "not-asked" as const, count: 1 }],
 					checks: [],
 					ciState: "none" as const,
 					open: 0,
@@ -181,7 +184,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 										return (
 											<Link
 												className="review-index-row"
-												aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.word.toUpperCase()}${pr.open ? `, ${openLabel}` : ""}`}
+												aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${prGlyphLabel(pr.state === "merged" ? "merged" : pr.state === "closed" ? "closed" : "open", pr.localState === "ready", pr.localVerdict === "approved")}${pr.open ? `, ${openLabel}` : ""}`}
 												key={pr.id}
 												to="/reviews/$owner/$repo/$number"
 												params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
@@ -204,7 +207,8 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 												<ReviewStatus
 													state={pr.state}
 													isQueued={pr.isQueued}
-													askedForReview={askedForReview(pr)}
+													askedForReview={pr.localState === "ready"}
+													locallyApproved={pr.localVerdict === "approved"}
 													word={sentenceCase(pr.word)}
 												/>
 												<ArrowRight className="review-row-arrow" aria-hidden="true" />

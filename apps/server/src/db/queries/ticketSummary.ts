@@ -160,6 +160,7 @@ export const summaryStatement = (cte: SQL, extra: SQL, orderBy: SQL) =>
 
 export const toSummary = (row: SummaryRow): TicketSummary => {
 	const prRows = toTicketPrRows(row.pr_rows);
+	const openPrs = prRows.filter((pr) => pr.state === "open");
 	return {
 		id: row.id,
 		identifier: row.identifier,
@@ -202,6 +203,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => {
 				? null
 				: {
 						reviewGaps: ticketReviewGaps(prRows),
+						locallyApproved: openPrs.length > 0 && openPrs.every((pr) => pr.verdict === "approved"),
 						state: row.pr_state,
 						isDraft: row.pr_is_draft as boolean,
 						isQueued: row.pr_is_queued as boolean,
