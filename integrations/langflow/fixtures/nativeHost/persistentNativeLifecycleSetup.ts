@@ -63,8 +63,9 @@ export async function createPersistentNativeLifecycleFixture(home: string, human
 	const diff = await database.db.transaction((tx) => ensurePr(tx, `example/app#${ticket.number}`));
 	await database.db.execute(
 		sql`INSERT INTO ticket_pull_requests
-		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
-		VALUES (${ticket.id},${diff.id},'manual','Crash fixture','agent',${at})`,
+		(ticket_id,pull_request_id,source,actor_name,actor_kind,created_at,actor_id)
+		VALUES (${ticket.id},${diff.id},'manual','Crash fixture','agent',${at},
+			(SELECT id FROM actors WHERE ARRAY[kind,name] = ARRAY['agent','Crash fixture']::text[]))`,
 	);
 	const execution = await database.db.transaction((tx) =>
 		startExecution(core, tx, {
