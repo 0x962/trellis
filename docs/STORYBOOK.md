@@ -77,4 +77,8 @@ Use CSF with `Meta` and `StoryObj` from `@storybook/react-vite`. Import interact
 
 Add a named story for each supported state. Include empty, loading, error, disabled, selected, expanded, pending, success, long content, and narrow layouts where they apply. Use the real interaction for a state that the component owns internally. Include compound components in their parent story and name that relationship in the coverage record.
 
+Bind controlled props to local state and connect their change callbacks. A fixed value with an empty callback prevents interaction.
+
+A play function runs when a person opens its story. Keep the final visible state consistent with the story name. Use a separate interaction story, or restore the named state after the assertions.
+
 Add the coverage entry to the matching `coverage*.json` file. Keep each file below 300 lines. Check the catalog after a component or route changes.
