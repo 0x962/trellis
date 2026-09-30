@@ -42,13 +42,20 @@ export function conversationFixture(harness: BuiltInHarness = "codex") {
 	} as const;
 	const [path, content] = cases[harness];
 	const bytes = new TextEncoder().encode(` ${content}`);
+	const unavailable = [{
+		identity,
+		sourceKind: "account-profile" as const,
+		originalIdentity: null,
+		code: "earlier_history_not_retained",
+		message: "Earlier history is unavailable.",
+	}];
 	const inventory: ConversationInventory = {
 		state: "held",
 		binding,
 		rootId: "root-original-profile",
 		sourceKind: harness === "opencode" ? "opencode-export" : "account-profile",
 		files: [{ path, kind: "file", bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), mode: 0o600 }],
-		unavailable: [{ identity, sourceKind: "account-profile", code: "earlier_history_not_retained", message: "Earlier history is unavailable." }],
+		unavailable,
 	};
 	const calls: string[] = [];
 	let active = true;

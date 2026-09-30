@@ -7,7 +7,9 @@ import {
 	RUNTIME_PROTOCOL_VERSION,
 	type RuntimeExpectedTurn,
 	type RuntimeCaptureAction,
+	type RuntimeCaptureFinalizeInput,
 	type RuntimeCaptureRequest,
+	type RuntimeCaptureResult,
 	type RuntimeListInput,
 	type RuntimeListPage,
 	type RuntimeListPageInput,
@@ -146,13 +148,16 @@ export class RuntimeClient {
 		request: RuntimeCaptureRequest,
 		action: RuntimeCaptureAction<T>,
 		signal?: AbortSignal,
-	): Promise<T> {
+	): Promise<RuntimeCaptureResult<T>> {
 		if (this.capabilities === undefined) await this.hello(signal);
 		if (!this.capabilities!.includes("capture-snapshot-v1"))
 			throw Object.assign(new Error("The runtime does not support capture snapshots"), {
 				code: "CAPTURE_UNAVAILABLE",
 			});
 		return withCaptureSnapshot(this.socketPath, request, action, this.timeoutMs, signal);
+	}
+	finalizeCapture(input: RuntimeCaptureFinalizeInput, signal?: AbortSignal) {
+		return this.call("finalizeCapture", input, signal);
 	}
 	// An explicit timeoutMs preserves completed pages with complete=false.
 	// Cancellation rejects the whole list, including its hello request.

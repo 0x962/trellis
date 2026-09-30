@@ -68,6 +68,7 @@ export async function workspaceFixture(register: (path: string) => void) {
 		for (const name of (await readdir(roots[root])).sort()) await visit(name);
 	}
 	const reader: WorkspaceCaptureReader = {
+		signal: new AbortController().signal,
 		binding,
 		async inventory() { return structuredClone(inventory); },
 		async *read(input) {

@@ -3,7 +3,8 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
 	LaunchSpec,
-	RuntimeCaptureAction,
+	RuntimeCaptureFinalizeInput,
+	RuntimeCaptureProducer,
 	RuntimeCaptureRequest,
 	RuntimeExpectedTurn,
 	RuntimeListInput,
@@ -16,6 +17,7 @@ import type {
 import { acceptSessionInput } from "./acceptSessionInput";
 import { assertExpectedTurn } from "./assertExpectedTurn.ts";
 import { CaptureExclusion } from "./captureExclusion.ts";
+import { finalizeRuntimeCaptureHold } from "./captureHold.ts";
 import { withCaptureSnapshot } from "./captureSnapshot";
 import { authenticateSession } from "./authenticateSession.ts";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
@@ -117,7 +119,11 @@ export class SessionStore {
 	list(input: RuntimeListInput = {}) {
 		return [...this.iterate(input)];
 	}
-	async capture<T>(request: RuntimeCaptureRequest, action: RuntimeCaptureAction<T>, signal?: AbortSignal) {
+	async capture<T>(
+		request: RuntimeCaptureRequest,
+		action: (producer: RuntimeCaptureProducer) => Promise<T>,
+		signal?: AbortSignal,
+	) {
 		const records = request.identities.map((identity) => this.get(identity.attemptId));
 		for (const identity of request.identities) {
 			if (this.recoveries.has(identity.attemptId))
@@ -138,6 +144,9 @@ export class SessionStore {
 				}
 			},
 		);
+	}
+	finalizeCapture(input: RuntimeCaptureFinalizeInput) {
+		return finalizeRuntimeCaptureHold(dirname(dirname(this.home)), input);
 	}
 
 	inspect(id: string): RuntimeProcessStatus {
@@ -218,7 +227,7 @@ export class SessionStore {
 		};
 	}
 	start(spec: LaunchSpec): RuntimeSession {
-		this.captureExclusion.assertWritable(spec.id);
+		this.captureExclusion.assertLaunchWritable(dirname(dirname(this.home)), spec.id, spec.writerScopes);
 		const fingerprint = fingerprintLaunch(spec);
 		const existing = this.records.get(spec.id);
 		if (existing) {
@@ -243,7 +252,13 @@ export class SessionStore {
 			session,
 			fingerprint,
 			identity: null,
-			launch: { command: spec.command, args: spec.args, cwd: spec.cwd, capture: spec.capture },
+			launch: {
+				command: spec.command,
+				args: spec.args,
+				cwd: spec.cwd,
+				capture: spec.capture,
+				writerScopes: spec.writerScopes,
+			},
 			listeners: new Set(),
 			watchedPids: new Set(),
 			tokenHash: spec.env?.TRELLIS_ATTEMPT_TOKEN
