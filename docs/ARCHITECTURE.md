@@ -669,6 +669,12 @@ Read [the review guide](reviews.md) for commands and review behavior.
 An agent run stores its name, kind, and instruction at launch. A ticket agent names one ticket.
 The row retains the project key and ticket identifier so its history remains readable.
 
+The broadcast dialog lets the user select working agents, idle agents, or both groups.
+Send requires at least one selected group and shows the current recipient count.
+Idle recipients have tickets in the todo, started, or review category. Idle sessions without a ticket stay excluded.
+The server selects each recipient once and refreshes the groups before delivery.
+`agentRuns.broadcast` accepts `group: "working" | "idle" | "both"`.
+
 `agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
