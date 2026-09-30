@@ -1129,8 +1129,8 @@ Done, each with its count. A row prints the name, a `StackedBar` of the counts b
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
 `/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the Add menu, and the `Menu` with Edit and Delete. The Add menu offers Ticket and Wave.
-The page fixes the `epic`
+`IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete. The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
 Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
 writes its query through `epicQueryString`, so `group=status` stays in the URL. Ticket in the Add menu opens the

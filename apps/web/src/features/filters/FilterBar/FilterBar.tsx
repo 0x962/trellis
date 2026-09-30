@@ -1,14 +1,13 @@
-import { Copy, FunnelSimple, Link, ShareFat } from "@phosphor-icons/react";
-import { useRouterState } from "@tanstack/react-router";
+import { FunnelSimple, ShareFat } from "@phosphor-icons/react";
 import type { StatusSummary } from "@trellis/api";
-import { FilterBar as FilterToolbar, IconButton, Menu, toast, useHotkey, writeClipboard } from "@trellis/ui";
+import { FilterBar as FilterToolbar, IconButton, Menu, useHotkey } from "@trellis/ui";
 import { type ReactNode, useMemo, useState } from "react";
 import { useEscapeLayer } from "../../../lib/hotkeys";
-import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
 import { chipFields, type FilterField } from "../fields";
-import { serializeSearch, stripDefaults, toListQuery, type View, viewOf } from "../grammar";
+import { stripDefaults, type View, viewOf } from "../grammar";
 import { useScopeLabels } from "../hooks/useScopeLabels";
+import { useViewShareItems } from "../hooks/useViewShareItems";
 import { filterLabels } from "../labelValues";
 import { FilterPicker, type PickerStage } from "./components/FilterPicker";
 
@@ -27,6 +26,8 @@ export type FilterBarProps = {
 	// The query string of a view for "Copy link", with the leading `?` or "".
 	// A route whose defaults differ from `viewDefaults` supplies it.
 	linkSearch?: (view: View) => string;
+	// A page with share commands in its action menu hides this trigger.
+	showShare?: boolean;
 	// The controls at the right end, between Filter and the Share menu.
 	actions?: ReactNode;
 	// A control drawn first in the group at the right end, such as the view
@@ -38,11 +39,6 @@ const fields: PickerStage = { kind: "fields" };
 
 const noFixed: Partial<Pick<View, FilterField>> = {};
 
-const listLinkSearch = (view: View) => {
-	const query = serializeSearch(view);
-	return query === "" ? "" : `?${query}`;
-};
-
 // The bar under the topbar: one chip per active filter on the left, then
 // Filter, the route's Display control, and Share at the right end. The three
 // are icons, because their menus name what they do. `f` opens the picker;
@@ -53,11 +49,12 @@ export function FilterBar({
 	onSearchChange,
 	statuses,
 	fixed,
-	linkSearch = listLinkSearch,
+	linkSearch,
+	showShare = true,
 	actions,
 	lead,
 }: FilterBarProps) {
-	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const shareItems = useViewShareItems({ project, search, statuses, fixed, linkSearch });
 	const [open, setOpen] = useState(false);
 	const [stage, setStage] = useState<PickerStage>(fields);
 	const view = viewOf(search);
@@ -88,24 +85,6 @@ export function FilterBar({
 	useEscapeLayer("popover", open, () => {
 		setOpen(false);
 	});
-
-	const query = {
-		...toListQuery({ ...view, ...fixed }, { statuses }),
-		updated: view.updated,
-		created: view.created,
-		completed: view.completed,
-	};
-	for (const key of ["updated", "created", "completed"] as const) if (query[key] === undefined) delete query[key];
-
-	const copyCli = async () => {
-		await writeClipboard(toCli(project === undefined ? query : { project, ...query }));
-		toast("Copied the CLI command");
-	};
-
-	const copyLink = async () => {
-		await writeClipboard(`${window.location.origin}${pathname}${linkSearch(view)}`);
-		toast("Copied the link");
-	};
 
 	return (
 		<FilterToolbar
@@ -138,14 +117,13 @@ export function FilterBar({
 				trigger={<IconButton label="Filter" icon={<FunnelSimple />} variant="default" data-filter-button="" />}
 			/>
 			{actions}
-			<Menu
-				label="Share"
-				trigger={<IconButton label="Share" icon={<ShareFat />} variant="default" />}
-				items={[
-					{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
-					{ label: "Copy link", icon: <Link />, onSelect: () => void copyLink() },
-				]}
-			/>
+			{showShare && (
+				<Menu
+					label="Share"
+					trigger={<IconButton label="Share" icon={<ShareFat />} variant="default" />}
+					items={shareItems}
+				/>
+			)}
 		</FilterToolbar>
 	);
 }
