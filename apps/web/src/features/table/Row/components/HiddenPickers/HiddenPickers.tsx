@@ -6,7 +6,7 @@ import { PriorityPicker } from "../../../../pickers/PriorityPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 import { WavePicker } from "../../../../pickers/WavePicker";
-import type { EditField, RowChange } from "../../Row";
+import type { EditField, RowChange } from "../../types";
 
 export type HiddenPickersProps = {
 	ticket: TicketSummary;

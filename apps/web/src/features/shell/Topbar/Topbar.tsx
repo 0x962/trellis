@@ -42,7 +42,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 			{children}
 		</div>
 	);
-	const controls = actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>;
+	const controls = actions && <div className="ml-auto flex shrink-0 items-center gap-1.5">{actions}</div>;
 	// A page in a `PageSheet` draws no bar of its own. The heading and the
 	// controls render into the header of the sheet, before the buttons that
 	// open the full page and close the sheet. The sidebar buttons stay out,
@@ -62,7 +62,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 	return (
 		<header
 			data-page-topbar=""
-			className="relative flex h-13 shrink-0 items-center gap-3 border-x border-transparent px-5 max-md:px-2 max-sm:gap-2"
+			className="relative flex h-13 shrink-0 items-center gap-1.5 border-x border-transparent px-5 max-md:px-2"
 		>
 			{!phone && collapsed && (
 				<Tooltip content="Expand sidebar">

@@ -1,6 +1,6 @@
 import type { Sort } from "@trellis/api";
-import { cx, DisplayPopover as DisplayOptions, Segmented, Select, Switch } from "@trellis/ui";
-import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
+import { cx, DisplayPopover as DisplayOptions, Select, Switch } from "@trellis/ui";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
 import { alwaysVisible, type ColumnId, columnLabels, columnOrder, type TableKind } from "../columns";
 import { columnVisibility, kindShows } from "../utils/columnVisibility";
@@ -19,15 +19,9 @@ export type DisplayPopoverProps = {
 	epicFixed?: boolean;
 	search: Partial<View>;
 	onSearchChange: (next: Partial<View>) => void;
-	density: Density;
 	group: Group;
 	sort: Sort;
 };
-
-const densities = [
-	{ value: "comfortable", label: "Comfortable" },
-	{ value: "compact", label: "Compact" },
-] as const;
 
 const groups = [
 	{ value: "none", label: "None" },
@@ -53,10 +47,8 @@ const sortFields = [
 
 const overline = "text-xs font-medium tracking-[0.04em] text-fg-faint uppercase";
 
-// The Display popover: the columns as toggle chips, the grouping, the sort
-// and its direction, Show completed, and the density. Columns and density
-// are preferences of this machine; group, sort, and Show completed are the
-// URL, so a link carries them.
+// Column visibility stays on this machine. The URL carries grouping,
+// sorting, and Show completed so a shared link keeps those choices.
 export function DisplayPopover({
 	routeKey,
 	tableKind = "list",
@@ -64,7 +56,6 @@ export function DisplayPopover({
 	epicFixed = false,
 	search,
 	onSearchChange,
-	density,
 	group,
 	sort,
 }: DisplayPopoverProps) {
@@ -85,10 +76,6 @@ export function DisplayPopover({
 	const fields = sortFields.filter((entry) => !epicFixed || entry.value !== "updatedAt");
 	const field = sort.replace(/^-/, "");
 
-	const setDensity = (next: Density) => {
-		uiActions.setDensity(next);
-		onSearchChange({ ...search, density: next });
-	};
 	const setSort = (next: string, nextDescending: boolean) =>
 		onSearchChange({ ...search, sort: `${nextDescending ? "-" : ""}${next}` as Sort });
 
@@ -134,20 +121,14 @@ export function DisplayPopover({
 				</>
 			}
 			afterSort={
-				<>
-					<div className="flex h-7 items-center">
-						<Switch
-							label="Show completed"
-							checked={search.closed !== "hide"}
-							disabled={!showsClosed}
-							onCheckedChange={(on) => onSearchChange({ ...search, closed: on ? undefined : "hide" })}
-						/>
-					</div>
-					<section className="flex flex-col gap-1.5">
-						<h3 className={overline}>Density</h3>
-						<Segmented label="Density" options={densities} value={density} onValueChange={setDensity} />
-					</section>
-				</>
+				<div className="flex h-7 items-center">
+					<Switch
+						label="Show completed"
+						checked={search.closed !== "hide"}
+						disabled={!showsClosed}
+						onCheckedChange={(on) => onSearchChange({ ...search, closed: on ? undefined : "hide" })}
+					/>
+				</div>
 			}
 		/>
 	);

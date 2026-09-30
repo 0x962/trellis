@@ -110,16 +110,17 @@ test("removal of the last filter stays cleared on return and reload", async () =
 	expect(reloaded.state.matches.at(-1)!.search).toEqual({});
 });
 
-test("display-only and Resources links retain their choices and restore filters", async () => {
+test.each(["number", "updatedAt", "-updatedAt"])("legacy density links with %s restore filters", async (sort) => {
 	useUiStore.getState().setEpicFilters("QA/alpha", { priority: ["high"] });
-	const router = makeRouter(`${alpha}?group=status&tab=resources&density=compact`);
+	const router = makeRouter(`${alpha}?sort=${sort}&group=status&tab=resources&density=compact`);
 	await router.load();
 	expect(router.state.matches.at(-1)!.search).toEqual({
 		priority: ["high"],
 		group: "status",
 		tab: "resources",
-		density: "compact",
 	});
+	expect(router.state.location.searchStr).toBe("?priority=high&group=status&tab=resources");
+	expect(router.history.length).toBe(1);
 	expect(useUiStore.getState().epicFilters["QA/alpha"]).toEqual({ priority: ["high"] });
 });
 
