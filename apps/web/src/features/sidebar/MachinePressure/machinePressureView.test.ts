@@ -61,7 +61,10 @@ describe("machinePressureView", () => {
 			{ label: "Processor temperature", value: "97", unit: "°C" },
 			{ label: "Disk space", value: "Unavailable", unit: undefined },
 		]);
-		expect(view.readings.find(({ key }) => key === "temperature")?.detail).toBe("PMU tdie6 sensor · 2.5 ms read");
+		expect(view.readings.find(({ key }) => key === "temperature")?.details).toEqual([
+			{ label: "Temperature sensor", value: "PMU tdie6" },
+			{ label: "Sensor read time", value: "2.5 ms" },
+		]);
 		expect(view.ageText).toBe("Last read 0 s ago.");
 		expect(pressureView.machinesWithAlerts[0]?.readings.map(({ key }) => key)).toEqual([
 			"cpuLoad",
@@ -141,7 +144,11 @@ test("disk details keep the host volume identity through failure and recovery", 
 	expect(low.readings.find((s) => s.key === "disk")).toMatchObject({
 		value: "2.0 GiB",
 		unit: "available",
-		detail: "100.0 GiB total · 98.0% used. Volume 42 · /remote/agents",
+		capacity: { total: "100.0 GiB", usedPercent: 98 },
+		details: [
+			{ label: "Disk volume", value: "42" },
+			{ label: "Measured path", value: "/remote/agents" },
+		],
 	});
 	const stale = onlyMachine(machinePressureView(sample, monitor.update(readings(1), 1), 1));
 	expect(stale.readings.find((s) => s.key === "disk")).toMatchObject({ value: "2.0 GiB", freshness: "stale" });
@@ -150,5 +157,38 @@ test("disk details keep the host volume identity through failure and recovery", 
 		key: "disk",
 		value: "Unavailable",
 		freshness: "lost",
+		capacity: undefined,
+		details: [{ label: "Measured path", value: "/agents" }],
 	});
+});
+
+test("keeps each run identity and uses a session name when no ticket is assigned", () => {
+	const monitor = new MachinePressureMonitor();
+	const view = onlyMachine(
+		machinePressureView(
+			{
+				...sample,
+				runs: [
+					{
+						id: "01M3RESWB4R02P4ANY7DXV60NJ",
+						name: "Agent",
+						ticketIdentifier: "TRL-1265",
+						memoryBytes: 12 * 1024 ** 3,
+					},
+					{
+						id: "01M3RC6ZT562QCB8NYVQAMTMKR",
+						name: "Investigate machine readings",
+						ticketIdentifier: null,
+						memoryBytes: 512 * 1024 ** 2,
+					},
+				],
+			},
+			monitor.update(readings(0), 0),
+			0,
+		),
+	);
+	expect(view.runs).toEqual([
+		{ id: "01M3RESWB4R02P4ANY7DXV60NJ", label: "TRL-1265", memory: "12 GB" },
+		{ id: "01M3RC6ZT562QCB8NYVQAMTMKR", label: "Investigate machine readings", memory: "512 MB" },
+	]);
 });

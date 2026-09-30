@@ -26,9 +26,15 @@ const diskView = (signal: MachinePressureState["disk"], path: string): MachinePr
 		unit: disk ? "available" : undefined,
 		tone: signal.tier,
 		freshness: signal.freshness,
-		detail: disk
-			? `${(disk.totalBytes / 1024 ** 3).toFixed(1)} GiB total · ${disk.usedPercent.toFixed(1)}% used. Volume ${disk.volumeId} · ${disk.path}`
-			: `Workspace volume · ${path}`,
+		capacity: disk
+			? { total: `${(disk.totalBytes / 1024 ** 3).toFixed(1)} GiB`, usedPercent: disk.usedPercent }
+			: undefined,
+		details: disk
+			? [
+					{ label: "Disk volume", value: disk.volumeId },
+					{ label: "Measured path", value: disk.path },
+				]
+			: [{ label: "Measured path", value: path }],
 	};
 };
 
@@ -70,7 +76,12 @@ const readingView = (signal: MachinePressureState[NonDiskSignalKey]): MachinePre
 		unit: reading ? "°C" : undefined,
 		tone,
 		freshness: signal.freshness,
-		detail: reading ? `${reading.sensor} sensor · ${reading.readDurationMs.toFixed(1)} ms read` : undefined,
+		details: reading
+			? [
+					{ label: "Temperature sensor", value: reading.sensor },
+					{ label: "Sensor read time", value: `${reading.readDurationMs.toFixed(1)} ms` },
+				]
+			: [{ label: "Temperature sensor", value: "Unavailable" }],
 	};
 };
 
@@ -101,7 +112,11 @@ export const machinePressureView = (
 		id: "server",
 		name: sample.hostname,
 		readings,
-		runs: sample.runs.map((run) => `${run.ticketIdentifier ?? run.name} ${formatBytes(run.memoryBytes)}`),
+		runs: sample.runs.map((run) => ({
+			id: run.id,
+			label: run.ticketIdentifier ?? run.name,
+			memory: formatBytes(run.memoryBytes),
+		})),
 		ageText: ageText(state, now),
 	};
 	const alertReadings = readings.filter((reading) => reading.tone !== "normal");
