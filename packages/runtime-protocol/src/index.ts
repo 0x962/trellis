@@ -205,6 +205,10 @@ export interface RuntimeMessageState {
 export interface RuntimeMethods {
 	capture: { params: RuntimeCaptureRequest; result: never };
 	finalizeCapture: { params: RuntimeCaptureFinalizeInput; result: RuntimeCaptureFinalization };
+	readCaptureFinalization: {
+		params: RuntimeCaptureRequest;
+		result: RuntimeCaptureFinalization | null;
+	};
 	terminal: {
 		params: { id: string; offset: number };
 		result: RuntimeTerminalEvent;

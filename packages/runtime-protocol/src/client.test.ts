@@ -5,7 +5,7 @@ import { createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeClient } from "./client";
-import type { RuntimeProcessStatus, RuntimeRequest } from "./index";
+import type { RuntimeCaptureRequest, RuntimeProcessStatus, RuntimeRequest } from "./index";
 
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -212,4 +212,30 @@ test("a successful call removes its cancellation listener", async () => {
 	expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
 	controller.abort();
 	expect(await client.inspect("done")).toEqual(session("done"));
+});
+
+test("readCaptureFinalization sends the exact request and returns the saved finalization", async () => {
+	const request: RuntimeCaptureRequest = {
+		captureId: "capture-1",
+		snapshotId: "snapshot-1",
+		hostId: "host-1",
+		dataHomeId: "home-1",
+		generation: 1,
+		blockId: "block-1",
+		identities: [],
+	};
+	const receipt = {
+		schemaVersion: 1 as const,
+		kind: "trellis-runtime-capture-finalization" as const,
+		request,
+		requestSha256: "a".repeat(64),
+		outcome: "committed" as const,
+		finalizedAt: "2026-09-30T00:00:00.000Z",
+	};
+	const finalization = { receipt, receiptBytes: JSON.stringify(receipt) };
+	const { client, requests } = await runtime(() => finalization);
+	expect(await client.readCaptureFinalization(request)).toEqual(finalization);
+	expect(requests).toHaveLength(1);
+	expect(requests[0]?.method).toBe("readCaptureFinalization");
+	expect(requests[0]?.params).toEqual(request);
 });

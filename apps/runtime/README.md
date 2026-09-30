@@ -17,7 +17,7 @@ The manifest contains the protocol version, daemon identifier, PID, start time, 
 
 ## Protocol
 
-Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each ordinary call opens one socket connection. Requests and responses use protocol version 17.
+Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each ordinary call opens one socket connection. Requests and responses use protocol version 18.
 
 | Method | Input | Result |
 | --- | --- | --- |
@@ -31,6 +31,8 @@ Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each ordinary ca
 | `stop` | Session identifier | Session |
 | `output` | Session identifier, byte offset | Base64 bytes and retained byte interval |
 | `capture` | Retained launch identities | A held snapshot channel |
+| `finalizeCapture` | Capture request and outcome | Finalization receipt |
+| `readCaptureFinalization` | Exact capture request | Saved finalization or null |
 
 A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields include `env`, `cols`, `rows`, `timeoutMs`, `capture`, and `writerScopes`. The capture field retains the exact launch identity and the selected conversation roots. The writer scopes bind the process to its workspace, provider, and repository directories. Historical launches without these fields cannot produce capture roots.
 
@@ -41,6 +43,8 @@ The modes are `pty` and `stdio`. `separateStderr: true` retains standard error i
 The capture channel retains one ordered exclusion for all selected attempts. It covers runtime mutations, workspaces, provider roots, attempt files, and shared Git data. The exclusion stays active until the `withCaptureSnapshot` action and finalization complete. The runtime refuses active or unknown processes. It also refuses unsupported Git storage, escaping links, and roots without a retained launch scope.
 
 An inventory identifies each immutable root and relative entry. A read validates the binding and the file hash. A seal returns exact receipt bytes without release authority. A successful channel returns exact finalization receipt bytes after the caller action settles. A disconnect or another unknown result keeps a durable hold until a recovery call records a committed or abandoned outcome. An empty capture uses a global admission hold and returns an exact empty binding. A later verifier opens a new capture and validates its sources again.
+
+`readCaptureFinalization` returns the original bytes of a saved finalization for the exact request. A missing receipt returns null. The read does not select an outcome or release a durable hold.
 
 The live capture lock includes the shared attempt-retention directory. A durable hold compares exact attempts and resource directories. The shared retention directory does not make unrelated launches overlap.
 
