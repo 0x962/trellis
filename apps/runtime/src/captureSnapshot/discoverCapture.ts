@@ -182,7 +182,6 @@ export async function discoverCapture(
 			providers.push({ identity, root, directory });
 		}
 	}
-	if (identities.length === 0) throw captureError("Capture requires at least one exact attempt identity");
 	const repositories = await Promise.all(
 		[...workspaces].sort(([left], [right]) => left.localeCompare(right)).map(([workspace, attemptIds]) =>
 			captureRepositoryIdentity(workspace, attemptIds),

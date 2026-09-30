@@ -7,10 +7,15 @@ import type {
 	RuntimeCaptureEntry,
 	RuntimeCaptureProducer,
 	RuntimeCaptureRequest,
+	RuntimeCaptureResult,
 	RuntimeCaptureSealReceipt,
 } from "@trellis/runtime-protocol";
-import { withRuntimeMutationExclusion } from "@trellis/runtime-protocol/mutation-exclusion";
+import {
+	removeRuntimeCaptureHold,
+	withRuntimeMutationExclusion,
+} from "@trellis/runtime-protocol/mutation-exclusion";
 import { attemptProcesses } from "../attemptProcesses";
+import { completeRuntimeCaptureHold, retainRuntimeCaptureHold } from "../captureHold.ts";
 import { inspectSessionRecord } from "../inspectSessionRecord.ts";
 import type { SessionRecord } from "../sessionRecord.ts";
 import { captureError, sameCaptureValue } from "./captureError.ts";
@@ -64,12 +69,13 @@ export async function withCaptureSnapshot<T>(
 	action: (producer: RuntimeCaptureProducer) => Promise<T>,
 	signal?: AbortSignal,
 	dependencies: Partial<CaptureSnapshotDependencies> = {},
-): Promise<T> {
+): Promise<RuntimeCaptureResult<T>> {
 	const inspect = dependencies.inspect ?? inspectSessionRecord;
 	const processes = dependencies.processes ?? attemptProcesses;
 	const relatedRecords = dependencies.records ?? (() => records);
 	const dataHome = dirname(runtimeHome);
 	const before = await discoverCapture(request, records);
+	const global = request.identities.length === 0;
 	const scopes = [
 		...before.repositories.map((repository) => ({ kind: "workspace" as const, directory: repository.workspace })),
 		...before.providerScopes.map((directory) => ({ kind: "provider" as const, directory })),
@@ -82,85 +88,101 @@ export async function withCaptureSnapshot<T>(
 			repository.common === null ? [] : [{ kind: "repository" as const, directory: repository.common }],
 		),
 	];
-	return withRuntimeMutationExclusion(
-		dataHome,
-		scopes,
-		async () => {
-			const held = await discoverCapture(request, records, true);
-			if (!sameCaptureValue(before, held)) throw captureError("Capture sources changed before exclusion completed");
-			await assertNoRelatedWriter(runtimeHome, held, records, relatedRecords(), { inspect, processes });
-			for (const record of records) {
-				const status = inspect(record).status;
-				if (status !== "exited") throw captureError(`Attempt ${record.session.id} is ${status}`);
-				if (processes(runtimeHome, record.session.id).length > 0)
-					throw captureError(`Attempt ${record.session.id} still has provider processes`);
-			}
-			const { states, workspaces } = buildCaptureRoots(held);
-			const binding: RuntimeCaptureBinding = {
-				...request,
-				identities: held.identities,
-				workspaces,
-				roots: states.map((state) => state.root),
-			};
-			let active = true;
-			let inventory: Awaited<ReturnType<RuntimeCaptureProducer["inventory"]>> | undefined;
-			const assertBinding = (value: RuntimeCaptureBinding) => {
-				if (!active || !sameCaptureValue(value, binding)) throw captureError("Capture binding is not active");
-			};
-			const producer: RuntimeCaptureProducer = {
-				binding,
-				inventory: async (value, operationSignal) => {
-					operationSignal?.throwIfAborted();
-					assertBinding(value);
-					if (inventory === undefined) {
-						const entries: RuntimeCaptureEntry[] = [];
-						for (const state of states) entries.push(...(await inventoryCaptureRoot(state, operationSignal)));
-						inventory = { binding, entries, unavailable: held.unavailable };
-					}
-					return inventory;
-				},
-				read: async function* (input, operationSignal) {
-					operationSignal?.throwIfAborted();
-					assertBinding(input.binding);
-					const state = states.find((item) => item.root.rootId === input.rootId);
-					const entry = inventory?.entries.find(
-						(item) => item.rootId === input.rootId && item.path === input.path,
-					);
-					if (state === undefined || entry?.kind !== "file") throw captureError("Capture file is not in the inventory");
-					const path = captureRelativePath(input.path);
-					const hash = createHash("sha256");
-					let size = 0;
-					for await (const chunk of createReadStream(join(state.directory, path))) {
+	retainRuntimeCaptureHold(dataHome, request, scopes, global);
+	let opened = false;
+	try {
+		return await withRuntimeMutationExclusion(
+			dataHome,
+			scopes,
+			async () => {
+				const held = await discoverCapture(request, records, true);
+				if (!sameCaptureValue(before, held))
+					throw captureError("Capture sources changed before exclusion completed");
+				await assertNoRelatedWriter(runtimeHome, held, records, relatedRecords(), { inspect, processes });
+				for (const record of records) {
+					const status = inspect(record).status;
+					if (status !== "exited") throw captureError(`Attempt ${record.session.id} is ${status}`);
+					if (processes(runtimeHome, record.session.id).length > 0)
+						throw captureError(`Attempt ${record.session.id} still has provider processes`);
+				}
+				const { states, workspaces } = buildCaptureRoots(held);
+				const binding: RuntimeCaptureBinding = {
+					...request,
+					identities: held.identities,
+					workspaces,
+					roots: states.map((state) => state.root),
+				};
+				let active = true;
+				let inventory: Awaited<ReturnType<RuntimeCaptureProducer["inventory"]>> | undefined;
+				const assertBinding = (value: RuntimeCaptureBinding) => {
+					if (!active || !sameCaptureValue(value, binding)) throw captureError("Capture binding is not active");
+				};
+				const producer: RuntimeCaptureProducer = {
+					binding,
+					signal: signal ?? new AbortController().signal,
+					inventory: async (value, operationSignal) => {
 						operationSignal?.throwIfAborted();
-						const bytes = Buffer.from(chunk);
-						hash.update(bytes);
-						size += bytes.length;
-						yield bytes;
-					}
-					if (size !== entry.size || hash.digest("hex") !== entry.sha256)
-						throw captureError("Capture file changed after inventory");
-				},
-				seal: async (input, operationSignal) => {
-					operationSignal?.throwIfAborted();
-					assertBinding(input.binding);
-					if (!states.some((state) => state.root.rootId === input.rootId))
-						throw captureError("Capture seal root is not in the binding");
-					if (!/^[a-f0-9]{64}$/.test(input.manifestSha256))
-						throw captureError("Capture seal needs a SHA256 digest");
-					const receipt: RuntimeCaptureSealReceipt = {
-						schemaVersion: 1,
-						kind: "trellis-runtime-capture-seal",
-						...input,
+						assertBinding(value);
+						if (inventory === undefined) {
+							const entries: RuntimeCaptureEntry[] = [];
+							for (const state of states) entries.push(...(await inventoryCaptureRoot(state, operationSignal)));
+							inventory = { binding, entries, unavailable: held.unavailable };
+						}
+						return inventory;
+					},
+					read: async function* (input, operationSignal) {
+						operationSignal?.throwIfAborted();
+						assertBinding(input.binding);
+						const state = states.find((item) => item.root.rootId === input.rootId);
+						const entry = inventory?.entries.find(
+							(item) => item.rootId === input.rootId && item.path === input.path,
+						);
+						if (state === undefined || entry?.kind !== "file")
+							throw captureError("Capture file is not in the inventory");
+						const path = captureRelativePath(input.path);
+						const hash = createHash("sha256");
+						let size = 0;
+						for await (const chunk of createReadStream(join(state.directory, path))) {
+							operationSignal?.throwIfAborted();
+							const bytes = Buffer.from(chunk);
+							hash.update(bytes);
+							size += bytes.length;
+							yield bytes;
+						}
+						if (size !== entry.size || hash.digest("hex") !== entry.sha256)
+							throw captureError("Capture file changed after inventory");
+					},
+					seal: async (input, operationSignal) => {
+						operationSignal?.throwIfAborted();
+						assertBinding(input.binding);
+						if (!states.some((state) => state.root.rootId === input.rootId))
+							throw captureError("Capture seal root is not in the binding");
+						if (!/^[a-f0-9]{64}$/.test(input.manifestSha256))
+							throw captureError("Capture seal needs a SHA256 digest");
+						const receipt: RuntimeCaptureSealReceipt = {
+							schemaVersion: 1,
+							kind: "trellis-runtime-capture-seal",
+							...input,
+						};
+						return Buffer.from(JSON.stringify(receipt));
+					},
+				};
+				opened = true;
+				try {
+					const value = await action(producer);
+					return {
+						value,
+						finalization: completeRuntimeCaptureHold(dataHome, { request, outcome: "committed" }),
 					};
-					return Buffer.from(JSON.stringify(receipt));
-				},
-			};
-			try {
-				return await action(producer);
-			} finally {
-				active = false;
-			}
-		},
-		signal,
-	);
+				} finally {
+					active = false;
+				}
+			},
+			signal,
+			{ captureId: request.captureId, exclusiveAdmission: global },
+		);
+	} catch (error) {
+		if (!opened) removeRuntimeCaptureHold(dataHome, request.captureId);
+		throw error;
+	}
 }

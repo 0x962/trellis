@@ -35,7 +35,7 @@ export async function serveCaptureChannel(
 	socket.once("end", abort);
 	socket.resume();
 	try {
-		await store.capture(
+		const result = await store.capture(
 			request,
 			async (producer) => {
 				await write({ type: "binding", binding: producer.binding });
@@ -48,16 +48,16 @@ export async function serveCaptureChannel(
 						await write({ type: "end" });
 					} else if (frame.type === "seal") {
 						await write({ type: "receipt", receipt: await producer.seal(frame.input, controller.signal) });
-					} else if (frame.type === "release") {
-						await write({ type: "released" });
-						socket.end();
-						return;
+					} else if (frame.type === "finalize") {
+						return frame.outcome;
 					} else throw new Error(`Unexpected capture frame ${frame.type}`);
 				}
-				throw new Error("Capture channel closed before release");
+				throw new Error("Capture channel closed before finalization");
 			},
 			controller.signal,
 		);
+		await write({ type: "finalized", finalization: result.finalization });
+		socket.end();
 	} catch (error) {
 		if (!socket.destroyed) {
 			await write(errorFrame(error));
