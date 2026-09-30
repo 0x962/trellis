@@ -1,0 +1,1 @@
+export { createSessionActivityRecorder } from "./sessionActivityRecorder";

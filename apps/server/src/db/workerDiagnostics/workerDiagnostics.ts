@@ -41,7 +41,6 @@ export const createWorkerDiagnostics = (
 			slowRequests += 1;
 			if (calls.length < REQUESTS_PER_SNAPSHOT) calls.push(call);
 		}
-		if (calls.length === 0 && settled !== undefined && at - settled.enqueuedAt >= WORKER_DELAY_MS) calls.push(settled);
 		if (calls.length === 0) return;
 		lastSnapshot = at;
 		const selected: OperationRecord[] = [];
