@@ -1,0 +1,50 @@
+@media (max-width: 767px) {
+	.ticket-composer {
+		width: 100%;
+		max-width: 100%;
+		border-radius: 12px 12px 0 0;
+		overflow: hidden;
+	}
+	.ticket-composer-header {
+		padding: 8px 12px 12px 20px;
+	}
+	.ticket-composer-body {
+		padding: 0 20px 20px;
+	}
+	.ticket-composer-description {
+		font-size: 16px;
+		min-height: 132px;
+	}
+	.ticket-composer-properties {
+		gap: 8px;
+	}
+	.composer-property {
+		min-height: 44px;
+		max-width: 100%;
+	}
+	.ticket-composer-header button,
+	.ticket-composer-properties > button,
+	.ticket-composer-footer button {
+		min-width: 44px;
+		min-height: 44px;
+	}
+	.composer-property-detail {
+		display: none;
+	}
+	.ticket-composer-footer {
+		flex-wrap: wrap;
+		gap: 12px;
+		padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+	}
+	.ticket-composer-footer .composer-create,
+	.ticket-composer-footer .composer-keep {
+		width: 100%;
+	}
+	.ticket-composer-footer .composer-another {
+		min-height: 44px;
+	}
+	.composer-agent-picker [role="option"],
+	.composer-agent-settings [role="combobox"] {
+		min-height: 44px;
+	}
+}

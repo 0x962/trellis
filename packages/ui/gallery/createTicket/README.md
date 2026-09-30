@@ -33,4 +33,4 @@ node_modules/.bin/biome check packages/ui/gallery/createTicket
 node_modules/.bin/tsc --noEmit -p packages/ui/gallery/createTicket/tsconfig.json
 ```
 
-Production integration remains open. It must preserve placement rules, draft recovery, attachments, keyboard controls, and the assignment request identity. An assignment failure must retain the created ticket. A retry must not create a second ticket.
+The app uses the approved composer through `packages/ui/src/domain/TicketComposer` and `apps/web/src/features/composer`. Its model and account choices come from the application. It uploads attachments before assignment. A failed assignment retains the saved ticket and its request ID. This gallery remains the approved design reference.

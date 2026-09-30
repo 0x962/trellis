@@ -1,30 +1,56 @@
-import { X } from "@phosphor-icons/react";
-import { IconButton } from "@trellis/ui";
+import { CaretRight, FolderOpen, X } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { ComposerProperty, IconButton, Tooltip } from "@trellis/ui";
+import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
+import { useApp } from "../../../../../lib/appContext";
+import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 
-export type ComposerHeaderProps = {
-	closeDisabled?: boolean;
+export function ComposerHeader({
+	project,
+	disabled,
+	locked,
+	onProject,
+	onClose,
+}: {
+	project?: string;
+	disabled: boolean;
+	locked: boolean;
+	onProject: (project: string) => void;
 	onClose: () => void;
-};
-
-// The dialog title stays in the DOM for assistive technology. This visible
-// label gives sighted readers the same name and keeps the close action near
-// it. This label uses a smaller size and a muted colour, because a person
-// reads the ticket title under it first.
-export function ComposerHeader({ closeDisabled = false, onClose }: ComposerHeaderProps) {
+}) {
+	const { orpc } = useApp();
+	const { isArchived } = useArchivedProjects();
+	const projects = (useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? []).filter(
+		(entry) => !isArchived(entry.key),
+	);
+	const selected = projects.find((entry) => entry.key === project || entry.id === project);
 	return (
-		<div className="flex min-h-7 items-center gap-2">
-			<span aria-hidden="true" className="text-sm font-medium text-fg-muted">
-				New ticket
-			</span>
-			<IconButton
-				variant="quiet"
-				size="sm"
-				label="Close"
-				icon={<X />}
-				disabled={closeDisabled}
-				onClick={onClose}
-				className="ml-auto"
+		<>
+			<ProjectPicker
+				projects={projects}
+				value={project}
+				onPick={onProject}
+				trigger={
+					<ComposerProperty
+						icon={<FolderOpen />}
+						aria-label={`Project: ${project ?? "Choose a project"}`}
+						disabled={locked}
+					>
+						{selected?.name ?? project ?? "Choose a project"}
+					</ComposerProperty>
+				}
 			/>
-		</div>
+			<CaretRight className="size-2.5 shrink-0" aria-hidden="true" />
+			<span className="whitespace-nowrap">New ticket</span>
+			<Tooltip content="Close and keep draft">
+				<IconButton
+					label="Close and keep draft"
+					icon={<X />}
+					disabled={disabled}
+					onClick={onClose}
+					className="ml-auto"
+				/>
+			</Tooltip>
+		</>
 	);
 }

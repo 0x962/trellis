@@ -1,1 +1,1 @@
-export { ComposerHeader, type ComposerHeaderProps } from "./ComposerHeader";
+export { ComposerHeader } from "./ComposerHeader";

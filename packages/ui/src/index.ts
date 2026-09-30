@@ -4,6 +4,8 @@ export { ArchivedToggle, type ArchivedToggleProps } from "./domain/ArchivedToggl
 export { CheckConfetti, type CheckConfettiProps, confettiMs } from "./domain/CheckConfetti";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
+export { ComposerProperty } from "./domain/ComposerProperty";
+export { ComposerTitle } from "./domain/ComposerTitle";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
 export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
@@ -120,6 +122,7 @@ export {
 	StatusIcon,
 	type StatusIconProps,
 } from "./domain/StatusIcon";
+export { TicketComposer } from "./domain/TicketComposer";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export {

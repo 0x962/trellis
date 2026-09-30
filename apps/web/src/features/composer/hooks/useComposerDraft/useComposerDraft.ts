@@ -1,6 +1,21 @@
-import { useCallback, useState } from "react";
+import type { Priority, TicketLabel } from "@trellis/api";
+import { useCallback, useRef, useState } from "react";
+import type { AssignChoice } from "../../../agents/AssignAgent/assignChoice";
 
-export type ComposerDraft = { title: string; description: string };
+export type ComposerDraft = {
+	title: string;
+	description: string;
+	project?: string;
+	status?: string;
+	priority?: Priority;
+	parent?: string | null;
+	epic?: string | null;
+	wave?: string | null;
+	labels?: TicketLabel[];
+	assignment?: AssignChoice | null;
+	createMore?: boolean;
+	editing?: boolean;
+};
 
 export const draftKey = "trellis-composer-draft";
 
@@ -15,11 +30,15 @@ const read = (): ComposerDraft => {
 // A closed dialog loses nothing; a reopened one reads the draft back.
 export const useComposerDraft = () => {
 	const [draft, setState] = useState<ComposerDraft>(read);
-	const setDraft = useCallback((next: ComposerDraft) => {
+	const current = useRef(draft);
+	const setDraft = useCallback((change: ComposerDraft | ((draft: ComposerDraft) => ComposerDraft)) => {
+		const next = typeof change === "function" ? change(current.current) : change;
+		current.current = next;
 		setState(next);
 		sessionStorage.setItem(draftKey, JSON.stringify(next));
 	}, []);
 	const clearDraft = useCallback(() => {
+		current.current = empty;
 		setState(empty);
 		sessionStorage.removeItem(draftKey);
 	}, []);
