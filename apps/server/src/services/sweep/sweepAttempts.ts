@@ -6,7 +6,7 @@ import { rows } from "../../db/queries/support";
 import { withNativeSnapshotRetention } from "../langflowNative/withNativeSnapshotRetention";
 import { withAttemptOperation } from "../langflowStops/withAttemptOperation";
 import type { ServiceCtx } from "../support";
-import { attemptsToRemove, type AttemptDirectory } from "./decide";
+import { type AttemptDirectory, attemptsToRemove } from "./decide";
 
 type AttemptSweepCtx = Pick<ServiceCtx, "home" | "newTx" | "now">;
 

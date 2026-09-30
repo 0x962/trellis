@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
+import { DispatchClosure } from "../dispatchClosure";
 import { DispatchEffects } from "../dispatchEffects";
 import { type BlockReason, type DispatchEvidence, DispatchGate } from "../dispatchGate";
 import { DispatchStore } from "../dispatchGate/store/store";
@@ -22,6 +23,10 @@ const IdentitySchema = z.strictObject({
 	dataHomeId: z.uuid(),
 });
 export type HostControlIdentity = z.infer<typeof IdentitySchema>;
+export type HostCaptureControl = {
+	identity: HostControlIdentity;
+	gate: Pick<DispatchClosure, "read" | "closeDispatch" | "waitForDrain" | "blockDispatch">;
+};
 export type HostRecoveryState =
 	| { state: "unavailable"; generation: null }
 	| { state: "open" | "blocked"; generation: number };
@@ -108,6 +113,15 @@ export class LangflowHostControl {
 			directory: join(LangflowHostControl.directory(input.home), "dispatch"),
 			dataHomeId: identity.dataHomeId,
 			readTerminal: input.readTerminal,
+		});
+		return { identity, gate };
+	}
+
+	static openCapture(input: { home: string }): HostCaptureControl {
+		const identity = LangflowHostControl.readIdentity(input.home);
+		const gate = DispatchClosure.open({
+			directory: join(LangflowHostControl.directory(input.home), "dispatch"),
+			dataHomeId: identity.dataHomeId,
 		});
 		return { identity, gate };
 	}

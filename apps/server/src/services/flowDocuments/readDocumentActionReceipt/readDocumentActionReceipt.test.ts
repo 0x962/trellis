@@ -42,7 +42,13 @@ const inputFor = (
 			? ({
 					...intent,
 					schemaVersion: 1,
-					edits: [{ kind: "set-node-instruction", sourceNodeId: "original", instruction: "  Exact\ntext.  " }],
+					edits: [
+						{
+							kind: "set-node-instruction",
+							sourceNodeId: "00000000000000000000000003",
+							instruction: "  Exact\ntext.  ",
+						},
+					],
 				} satisfies ConversionEditIntentV1)
 			: intent,
 });

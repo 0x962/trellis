@@ -16,7 +16,7 @@ export function context(home: string) {
 
 export function closed(ctx: ReturnType<typeof context>, block?: DispatchBlock) {
 	const state = ctx.store.read();
-	if (!state.block || state.block.reason.kind !== "restore" || (block && !isDeepStrictEqual(state.block, block))) {
+	if (state.block?.reason.kind !== "restore" || (block && !isDeepStrictEqual(state.block, block))) {
 		throw new Error("restored_database_block_changed");
 	}
 	if (state.permits.some((entry) => !entry.terminal)) throw new Error("restored_database_effects_pending");

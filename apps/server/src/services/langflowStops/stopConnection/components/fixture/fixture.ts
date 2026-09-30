@@ -1,5 +1,5 @@
 import { expect } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RuntimeSession } from "@trellis/runtime-protocol";
@@ -19,7 +19,7 @@ import { type StopStateCall, stopState } from "../../../stopState";
 import { createStopConnection } from "../../stopConnection";
 
 export async function connectionFixture() {
-	const root = mkdtempSync(join(tmpdir(), "trellis-stop-connection-"));
+	const root = realpathSync(mkdtempSync(join(tmpdir(), "trellis-stop-connection-")));
 	const home = join(root, "home");
 	mkdirSync(home);
 	let archive: DispatchReceiptArchive;
