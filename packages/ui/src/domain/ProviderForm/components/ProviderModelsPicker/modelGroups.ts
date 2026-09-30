@@ -13,11 +13,12 @@ export function modelGroups(
 	models: readonly { id: string; name: string }[],
 	selected: readonly string[],
 ): CommandGroup[] {
+	const selectedIds = new Set(selected);
 	const groups = new Map<string, { heading: string; items: CommandItem[] }>();
 	for (const model of models) {
 		const creator = model.id.includes("/") ? model.id.split("/")[0]! : "Other";
 		const group = groups.get(creator) ?? { heading: creators[creator] ?? creator, items: [] };
-		group.items.push({ id: model.id, label: model.name, keywords: [model.id], checked: selected.includes(model.id) });
+		group.items.push({ id: model.id, label: model.name, keywords: [model.id], checked: selectedIds.has(model.id) });
 		groups.set(creator, group);
 	}
 	return [...groups]

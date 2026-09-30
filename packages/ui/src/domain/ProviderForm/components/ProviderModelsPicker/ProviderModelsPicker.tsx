@@ -1,11 +1,11 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
-import { Chip } from "../../../../primitives/Chip";
 import { Command } from "../../../../primitives/Command";
 import { IconButton } from "../../../../primitives/IconButton";
 import { PickerButton } from "../../../../primitives/PickerButton";
 import { Popover } from "../../../../primitives/Popover";
 import { Tooltip } from "../../../../primitives/Tooltip";
+import { SelectedModels } from "./components/SelectedModels";
 import { modelGroups } from "./modelGroups";
 
 export type ProviderModelsPickerProps = {
@@ -39,11 +39,10 @@ export function ProviderModelsPicker({
 	const [open, setOpen] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const typed = search.trim();
+	const modelIds = new Set(models.map((model) => model.id));
 	const choices = [
 		...models,
-		...value
-			.filter((entry) => !models.some((model) => model.id === entry))
-			.map((entry) => ({ id: entry, name: entry })),
+		...value.filter((entry) => !modelIds.has(entry)).map((entry) => ({ id: entry, name: entry })),
 	];
 	const add =
 		typed &&
@@ -100,8 +99,7 @@ export function ProviderModelsPicker({
 						</Tooltip>
 					</div>
 				)}
-				<Command
-					className="pointer-coarse:[&_[cmdk-item]]:h-11"
+				<Command.Virtual
 					label="Search models"
 					placeholder="Search models"
 					inputRef={input}
@@ -112,21 +110,7 @@ export function ProviderModelsPicker({
 					onSelect={(selected) => toggle(add && selected === `Add model ${typed}` ? typed : selected)}
 				/>
 			</Popover>
-			{value.length > 0 && (
-				<div className="flex flex-wrap gap-x-3 gap-y-4 py-2">
-					{value.map((model) => (
-						<Chip
-							key={model}
-							label=""
-							op=""
-							value={model}
-							removeLabel={`Remove ${model}`}
-							onRemove={disabled ? undefined : () => toggle(model)}
-							className="max-w-full [&>span]:truncate"
-						/>
-					))}
-				</div>
-			)}
+			{value.length > 0 && <SelectedModels value={value} disabled={disabled} onRemove={toggle} />}
 		</div>
 	);
 }
