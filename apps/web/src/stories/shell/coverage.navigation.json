@@ -39,8 +39,13 @@
 	{
 		"source": "apps/web/src/features/sidebar/ActorFooter/ActorFooter.tsx",
 		"export": "ActorFooter",
-		"stories": ["Pages/Navigation/Expanded", "Pages/Navigation/Collapsed", "Pages/Navigation/RenameActor"],
-		"states": ["expanded", "collapsed", "rename popover"],
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Collapsed",
+			"Pages/Navigation/RenameActor",
+			"Pages/Navigation/RenamedActor"
+		],
+		"states": ["expanded", "collapsed", "rename popover", "saved name"],
 		"notes": "The preview uses the synthetic Storybook identity."
 	},
 	{

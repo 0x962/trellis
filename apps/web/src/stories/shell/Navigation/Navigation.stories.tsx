@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { EmptyState } from "@trellis/ui";
-import { expect, userEvent, within } from "storybook/test";
+import { useEffect } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { PageTabsHost } from "../../../features/shell/PageTabsHost";
 import { PageTitle } from "../../../features/shell/PageTitle";
 import { ShellFrame } from "../../../features/shell/ShellFrame";
@@ -14,6 +15,13 @@ import { projectResponses } from "../../pages/fixtures/responses";
 import { session } from "../../pages/fixtures/session";
 
 function Navigation() {
+	useEffect(() => {
+		const title = document.title;
+		document.title = "Navigation · trellis";
+		return () => {
+			document.title = title;
+		};
+	}, []);
 	return (
 		<div className="flex h-full bg-bg text-fg">
 			<MachinePressureContext.Provider value={{ machines: [], machinesWithAlerts: [], setDetailsOpen: () => {} }}>
@@ -71,7 +79,7 @@ const meta = {
 				"agentRuns.activity": [],
 				"settings.get": { menuLinks: [] },
 				"system.gh": { ok: true, login: "storybook", error: null },
-				"actors.setDefault": { name: "Storybook" },
+				"settings.set": (input: unknown) => input,
 			},
 		},
 	},
@@ -79,7 +87,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Expanded: Story = {};
+export const Expanded: Story = {
+	play: async ({ canvasElement }) => {
+		await expect(await within(canvasElement).findByRole("tab", { name: "Navigation" })).toHaveAttribute(
+			"aria-selected",
+			"true",
+		);
+	},
+};
 export const Collapsed: Story = {
 	beforeEach: () => {
 		uiActions.setSidebarCollapsed(true);
@@ -123,5 +138,17 @@ export const RenameActor: Story = {
 	play: async ({ canvasElement }) => {
 		await userEvent.click(await within(canvasElement).findByRole("button", { name: /Storybook/ }));
 		await expect(await within(document.body).findByRole("textbox", { name: "Name" })).toHaveValue("Storybook");
+	},
+};
+export const RenamedActor: Story = {
+	play: async ({ canvasElement }) => {
+		await userEvent.click(await within(canvasElement).findByRole("button", { name: /Storybook/ }));
+		const body = within(document.body);
+		const name = await body.findByRole("textbox", { name: "Name" });
+		await userEvent.clear(name);
+		await userEvent.type(name, "Catalog reviewer");
+		await userEvent.click(body.getByRole("button", { name: "Rename" }));
+		await expect(await within(canvasElement).findByRole("button", { name: /Catalog reviewer/ })).toBeVisible();
+		await waitFor(() => expect(body.queryByRole("textbox", { name: "Name" })).not.toBeInTheDocument());
 	},
 };
