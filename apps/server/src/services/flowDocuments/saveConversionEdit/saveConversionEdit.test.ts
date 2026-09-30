@@ -68,17 +68,30 @@ test("a competing edit wins the shared version while preparation waits", async (
 			return f.services.prepare(input);
 		},
 	});
-	const refused = expect(first).rejects.toMatchObject({ code: "FLOW_VERSION_CONFLICT" });
-	await entered.promise;
-	const second = await saveConversionEdit(
-		f.io,
-		{ ...f.intent, requestId: crypto.randomUUID(), edits: [{ kind: "set-flow-briefing", briefing: "Winner" }] },
-		f.services,
+	const observed = first.then(
+		(value) => ({ status: "fulfilled" as const, value }),
+		(reason: unknown) => ({ status: "rejected" as const, reason }),
 	);
-	release.resolve();
-	await refused;
-	expect(second).toMatchObject({ document: { flow: { briefing: "Winner" } } });
-	expect(await f.run((tx) => readDocumentSaveReceipt(tx, f.intent))).toBeUndefined();
+	try {
+		await Promise.race([
+			entered.promise,
+			observed.then(() => {
+				throw new Error("first_edit_settled_before_release");
+			}),
+		]);
+		const second = await saveConversionEdit(
+			f.io,
+			{ ...f.intent, requestId: crypto.randomUUID(), edits: [{ kind: "set-flow-briefing", briefing: "Winner" }] },
+			f.services,
+		);
+		release.resolve();
+		expect(await observed).toMatchObject({ status: "rejected", reason: { code: "FLOW_VERSION_CONFLICT" } });
+		expect(second).toMatchObject({ document: { flow: { briefing: "Winner" } } });
+		expect(await f.run((tx) => readDocumentSaveReceipt(tx, f.intent))).toBeUndefined();
+	} finally {
+		release.resolve();
+		await observed;
+	}
 });
 
 test.each([false, true])("a concurrent identical request returns the first receipt (blocked=%s)", async (blocked) => {
