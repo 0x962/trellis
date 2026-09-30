@@ -4,11 +4,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
-	RuntimeCaptureAction,
 	RuntimeCaptureBinding,
 	RuntimeCaptureProducer,
 	RuntimeCaptureRequest,
 } from "@trellis/runtime-protocol";
+import { CaptureFrameDecoder, encodeCaptureFrame } from "@trellis/runtime-protocol/capture-wire";
 import type { SessionStore } from "../sessionStore.ts";
 import { serveCaptureChannel } from "./captureChannel.ts";
 
@@ -37,20 +37,34 @@ const request: RuntimeCaptureRequest = {
 
 const binding: RuntimeCaptureBinding = { ...request, workspaces: [], roots: [] };
 
-test("a client disconnect releases the retained capture action", async () => {
-	const released = Promise.withResolvers<void>();
-	const producer: RuntimeCaptureProducer = {
-		binding,
-		inventory: async () => ({ binding, entries: [], unavailable: [] }),
-		read: async function* () {},
-		seal: async () => new Uint8Array(),
-	};
+test("a disconnect after the last seal aborts the action without finalization", async () => {
+	const completed = Promise.withResolvers<void>();
+	let signal: AbortSignal | undefined;
+	let sealed = false;
+	let finalized = false;
 	const store = {
-		capture: async <T>(_request: RuntimeCaptureRequest, action: RuntimeCaptureAction<T>) => {
+		capture: async (
+			_request: RuntimeCaptureRequest,
+			action: (producer: RuntimeCaptureProducer) => Promise<unknown>,
+			captureSignal: AbortSignal,
+		) => {
+			signal = captureSignal;
+			const producer: RuntimeCaptureProducer = {
+				binding,
+				signal: captureSignal,
+				inventory: async () => ({ binding, entries: [], unavailable: [] }),
+				read: async function* () {},
+				seal: async () => {
+					sealed = true;
+					return new Uint8Array([1]);
+				},
+			};
 			try {
-				return await action(producer);
+				await action(producer);
+				finalized = true;
+				throw new Error("The fixture expected a disconnect");
 			} finally {
-				released.resolve();
+				completed.resolve();
 			}
 		},
 	} as unknown as SessionStore;
@@ -63,13 +77,28 @@ test("a client disconnect releases the retained capture action", async () => {
 		server.listen(socketPath, resolve);
 	});
 	const client = createConnection(socketPath);
+	const decoder = new CaptureFrameDecoder();
 	await new Promise<void>((resolve, reject) => {
 		client.once("error", reject);
-		client.once("data", () => {
-			client.destroy();
-			resolve();
+		client.on("data", (chunk) => {
+			for (const frame of decoder.push(chunk)) {
+				if (frame.type === "binding")
+					client.write(
+						encodeCaptureFrame({
+							type: "seal",
+							input: { binding, rootId: "root-1", manifestSha256: "a".repeat(64) },
+						}),
+					);
+				if (frame.type === "receipt") {
+					client.destroy();
+					resolve();
+				}
+			}
 		});
 	});
-	await released.promise;
+	await completed.promise;
+	expect(sealed).toBe(true);
+	expect(signal?.aborted).toBe(true);
+	expect(finalized).toBe(false);
 	expect(client.destroyed).toBe(true);
 });
