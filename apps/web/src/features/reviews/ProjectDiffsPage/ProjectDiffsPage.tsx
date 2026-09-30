@@ -4,7 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type Check, type Project, prStateWord, reviewRef } from "@trellis/api";
 import { Button, CheckRibbon, EmptyState, Input, prGlyphLabel, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
@@ -78,31 +78,32 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 			setBusy(false);
 		}
 	};
-	const localRows = new Map((prs.data ?? []).map((pr) => [pr.url, pr]));
-	const rows =
-		source === "all"
-			? (prs.data ?? []).map((pr) => ({
-					...pr,
-					repository: `${pr.owner}/${pr.repo}`,
-					word: prStateWord(pr),
-				}))
-			: (mine.data ?? []).map((pr) => ({
-					...reviewRef(pr.url),
-					id: pr.url,
-					title: pr.title,
-					repository: pr.repository.nameWithOwner,
-					state: "open",
-					word: localRows.get(pr.url) ? prStateWord(localRows.get(pr.url)!) : "not ready",
-					localState: localRows.get(pr.url)?.localState ?? "not-ready",
-					localVerdict: localRows.get(pr.url)?.localVerdict ?? null,
-					isDraft: pr.isDraft,
-					isQueued: false,
-					reviewGaps: localRows.get(pr.url)?.reviewGaps ?? [{ kind: "not-asked" as const, count: 1 }],
-					checks: [],
-					ciState: "none" as const,
-					open: 0,
-					resolved: 0,
-				}));
+	const rows = useMemo(
+		() =>
+			source === "all"
+				? (prs.data ?? []).map((pr) => ({
+						...pr,
+						repository: `${pr.owner}/${pr.repo}`,
+						word: prStateWord(pr),
+					}))
+				: (mine.data ?? []).map((pr) => ({
+						...reviewRef(pr.url),
+						id: pr.url,
+						title: pr.title,
+						repository: pr.repository.nameWithOwner,
+						state: "open",
+						word: pr.local?.localState === "ready" ? "ready" : "not ready",
+						localState: pr.local?.localState ?? "not-ready",
+						localVerdict: pr.local?.localVerdict ?? null,
+						isDraft: pr.isDraft,
+						isQueued: false,
+						checks: [],
+						ciState: "none" as const,
+						open: 0,
+						resolved: 0,
+					})),
+		[source, prs.data, mine.data],
+	);
 	const visible = rows.filter((pr) => {
 		const text = `${pr.repository} ${pr.number} ${pr.title} ${pr.ciState} ${checkWords(pr.checks)}`;
 		return text.toLowerCase().includes(filter.toLowerCase());

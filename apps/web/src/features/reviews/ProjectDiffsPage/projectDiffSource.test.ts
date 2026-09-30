@@ -23,11 +23,11 @@ test("puts My open PRs first and All PRs second", () => {
 	]);
 });
 
-test("loads local review facts with My open PRs", () => {
+test("loads only the selected My open PRs result", () => {
 	const source = restoreProjectDiffSource(memoryStorage(), "project-1");
 
 	expect(source).toBe(defaultProjectDiffSource);
-	expect(projectDiffQueryActivation(source)).toEqual({ mine: true, all: true });
+	expect(projectDiffQueryActivation(source)).toEqual({ mine: true, all: false });
 });
 
 test("loads All PRs after the tab changes", () => {

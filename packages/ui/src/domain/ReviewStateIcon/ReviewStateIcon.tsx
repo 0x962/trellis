@@ -35,9 +35,6 @@ const keys: Record<PullRequestReviewState, keyof typeof looks> = {
 	none: "idle",
 };
 
-export const reviewStateLabel = (reviewState: PullRequestReviewState, notReady: boolean) =>
-	looks[notReady ? "idle" : keys[reviewState]].label;
-
 // The review state of one pull request uses a distinct icon and color. A
 // pull request whose agent has not asked for review uses the idle icon,
 // because it takes no review. The accessible name and the tooltip say the

@@ -67,6 +67,7 @@ export const reviews = {
 					repository: z.object({ nameWithOwner: z.string() }),
 					isDraft: z.boolean(),
 					url: z.string(),
+					local: ReviewPrSchema.pick({ localState: true, localVerdict: true }).nullable(),
 				}),
 			),
 		),

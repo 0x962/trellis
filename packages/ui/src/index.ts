@@ -100,7 +100,6 @@ export {
 	type PullRequestReviewState,
 	ReviewStateIcon,
 	type ReviewStateIconProps,
-	reviewStateLabel,
 } from "./domain/ReviewStateIcon";
 export {
 	type PullRequestReviewStatus,

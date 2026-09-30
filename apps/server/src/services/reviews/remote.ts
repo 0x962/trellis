@@ -5,6 +5,7 @@ import {
 	pullRequestColumns,
 	toPullRequest,
 } from "../../db/queries/pullRequestRows.ts";
+import { reviewLocalFacts } from "../../db/queries/reviewLocalFacts";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
@@ -183,9 +184,11 @@ export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string })
 	} while (cursor !== null);
 	if (pullRequests.length !== totalCount || new Set(pullRequests.map((row) => row.url)).size !== totalCount)
 		incomplete("pull request list");
-	return pullRequests.filter(
+	const selected = pullRequests.filter(
 		(row) => project === undefined || projectReposByName.has(row.repository.nameWithOwner.toLowerCase()),
 	);
+	const local = await ctx.newTx((tx) => reviewLocalFacts(tx, { urls: selected.map((row) => row.url) }));
+	return selected.map((row) => ({ ...row, local: local.get(row.url) ?? null }));
 }
 
 type StackEntry = {

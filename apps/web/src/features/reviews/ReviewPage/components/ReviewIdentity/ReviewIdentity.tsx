@@ -61,10 +61,9 @@ export type ReviewIdentityProps = {
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
 	isQueued: boolean;
-	// The linked row supplies the menu identity and the missing review material.
 	linkedPr: LinkedPullRequest | null;
 	localState: LocalPrState | null;
-	locallyApproved: boolean;
+	locallyApproved: boolean | null;
 	mergeQueuePosition?: number | null;
 	onAction: () => void;
 };
@@ -123,15 +122,20 @@ export function ReviewIdentity({
 			<div className="review-heading-meta">
 				<span className="review-meta-marks">
 					<span data-bar-slot="glyph" className="review-meta-glyph">
-						{pullRequest !== undefined && (
-							<PrGlyph
-								state={glyphState}
-								askedForReview={localState === "ready"}
-								locallyApproved={locallyApproved}
-								description={linkedPr === null ? null : missingPartsText(linkedPr)}
-								size="sm"
-							/>
-						)}
+						{pullRequest !== undefined &&
+							(glyphState === "open" && locallyApproved === null ? (
+								<span role="status" className="sr-only">
+									Local approval is unavailable.
+								</span>
+							) : (
+								<PrGlyph
+									state={glyphState}
+									askedForReview={localState === "ready"}
+									locallyApproved={locallyApproved === true}
+									description={linkedPr === null ? null : missingPartsText(linkedPr)}
+									size="sm"
+								/>
+							))}
 					</span>
 					<span data-bar-slot="conflict" className="review-meta-conflict">
 						{hasConflict(pullRequest, linkedPr) && (
