@@ -590,6 +590,8 @@ The in-app browser is one sheet in the shell sheet stack, and every link in the
 app reaches it. On desktop, HTTP and HTTPS links open that sheet over the current page.
 Command-click and the Open in browser control send external URLs to the system browser.
 The browser sheet uses a separate partition, disables Node integration, and keeps its sandbox.
+Cmd+K and Ctrl+K open the Trellis command palette only in the desktop app.
+Regular browser tabs keep those native shortcuts. A focused browser sheet handles keys in its own document.
 
 The epic route shows the resources of an epic. The ticket route `/t/<KEY-n>`
 draws none.
