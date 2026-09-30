@@ -1,7 +1,9 @@
-import { core } from "../../registryEntry";
+import { core, prepared } from "../../registryEntry";
 import * as tickets from "../../tickets.ts";
+import { classificationResult, classify } from "../classify";
 
 export const ticketServices = {
+	"tickets.classify": prepared("read", classify, classificationResult),
 	"tickets.list": core("read", tickets.list),
 	"tickets.counts": core("read", tickets.counts),
 	"tickets.board": core("read", tickets.board),
