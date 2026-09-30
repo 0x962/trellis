@@ -105,8 +105,8 @@ function PageNotFound() {
 			title="Page not found"
 			description="No page has this URL."
 			action={
-				<Link to="/needs-you" className={linkButtonClass}>
-					Needs you
+				<Link to="/search" className={linkButtonClass}>
+					Search
 				</Link>
 			}
 		/>

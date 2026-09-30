@@ -32,11 +32,11 @@ test("the desktop app before the first run draws the settings as a page", () => 
 	expect(settingsEntry("desktop", true)).toEqual({ draw: "page", section: "desktop" });
 });
 
-test("the settings URL opens the sheet over Needs you, and closing it leaves that page", () => {
+test("the settings URL opens the sheet over Search, and closing it leaves that page", () => {
 	const entry = settingsEntry("notifications", false);
 	pageSheetActions.openSettings(entry.section);
 
-	expect(settingsBehind).toBe("/needs-you");
+	expect(settingsBehind).toBe("/search");
 	expect(usePageSheetStore.getState().settings).toBe("notifications");
 
 	pageSheetActions.closeSettings();

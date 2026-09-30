@@ -20,8 +20,8 @@ const fixture = () => {
 			origin,
 			storage,
 			createId: () => `id-${++id}`,
-			initialPage: { url: "/needs-you", title: "Needs you" },
-			homePage: { url: "/needs-you", title: "Needs you" },
+			initialPage: { url: "/search", title: "Search" },
+			homePage: { url: "/search", title: "Search" },
 		});
 	return { open, entries };
 };
@@ -192,7 +192,7 @@ test("groups, membership, order, and collapsed state survive reload per host", (
 test("saved state without groups reads as no group", () => {
 	const { open, entries } = fixture();
 	const store = open();
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	const key = [...entries.keys()][0]!;
 	const saved = JSON.parse(entries.get(key)!);
 	delete saved.state.groups;

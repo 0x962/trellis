@@ -100,16 +100,16 @@ test("draws a header before each group and hides the tabs of a collapsed group",
 
 test("a pinned tab keeps its full name in the accessible name and has no close button", () => {
 	const pinned = [
-		{ id: "home", title: "Needs you for the whole team", pinned: true },
+		{ id: "home", title: "Search for the whole team", pinned: true },
 		{ id: "tickets", title: "Tickets", pinned: false },
 	];
 	const html = renderToStaticMarkup(
 		<PageTabs tabs={pinned} activeId="home" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} onPin={() => {}} />,
 	);
 
-	expect(html).toContain('aria-label="Pinned: Needs you for the whole team"');
+	expect(html).toContain('aria-label="Pinned: Search for the whole team"');
 	expect(html).toContain('data-pinned="true"');
-	expect(html).not.toContain('aria-label="Close Needs you for the whole team"');
+	expect(html).not.toContain('aria-label="Close Search for the whole team"');
 	expect(html).toContain('aria-label="Close Tickets"');
 	expect(html).not.toContain('aria-label="Tab actions"');
 	expect(html).toContain('aria-haspopup="menu"');

@@ -21,8 +21,8 @@ const fixture = () => {
 			origin,
 			storage,
 			createId: () => `tab-${++id}`,
-			initialPage: { url: "/needs-you", title: "Needs you" },
-			homePage: { url: "/needs-you", title: "Needs you" },
+			initialPage: { url: "/search", title: "Search" },
+			homePage: { url: "/search", title: "Search" },
 		});
 	return { open, entries };
 };
@@ -89,7 +89,7 @@ test("the store sort keeps the active tab, every tab record, and the saved order
 	const { open } = fixture();
 	const store = open();
 	const a = store.getState().activeId;
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().navigate({ url: "/usage", title: "Usage" });
 	store.getState().goBack();
 	store.getState().renameTab(a, "Zeta");
@@ -138,7 +138,7 @@ test("a sort handles many tabs and long names", () => {
 	for (let index = 999; index >= 0; index--) store.getState().addTab({ url: `/${index}`, title: `${long} ${index}` });
 	store.getState().sortTabs("ascending");
 	const titles = store.getState().tabs.map((tab) => tab.title);
-	expect(titles[0]).toBe("Needs you");
+	expect(titles[0]).toBe("Search");
 	expect(titles[1]).toBe(`${long} 0`);
 	expect(titles[1000]).toBe(`${long} 999`);
 	expect(store.getState().tabs).toHaveLength(1001);

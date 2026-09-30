@@ -11,7 +11,6 @@ import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
 import { models } from "./models.ts";
-import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
@@ -38,7 +37,6 @@ export const router = os.router({
 	harnessAccounts,
 	internalLinks,
 	usage,
-	needsYou,
 	reviews,
 	agentRuns,
 	sessions,

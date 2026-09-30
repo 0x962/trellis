@@ -19,8 +19,8 @@ const fixture = () => {
 			origin,
 			storage,
 			createId: () => `tab-${++id}`,
-			initialPage: { url: "/needs-you", title: "Needs you" },
-			homePage: { url: "/needs-you", title: "Needs you" },
+			initialPage: { url: "/search", title: "Search" },
+			homePage: { url: "/search", title: "Search" },
 		});
 	return { open, entries };
 };
@@ -29,7 +29,7 @@ test("a move preserves the selected tab and both histories across reload", () =>
 	const { open } = fixture();
 	const store = open();
 	const a = store.getState().activeId;
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().navigate({ url: "/usage", title: "Usage" });
 	store.getState().goBack();
 	const original = store.getState().tabs[0]!;
@@ -50,7 +50,7 @@ test("repeated close and reopen restores exact tabs and positions after reload",
 	const { open } = fixture();
 	const store = open();
 	const a = store.getState().activeId;
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().navigate({ url: "/usage", title: "Usage" });
 	store.getState().goBack();
 	const b = store.getState().addTab({ url: "/b", title: "B" });
@@ -76,15 +76,15 @@ test("reopen preserves a replacement home tab after the person uses it", () => {
 	const store = open();
 	const a = store.getState().activeId;
 	store.getState().closeTab(a);
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().reopenClosedTab();
-	expect(store.getState().tabs.map((tab) => tab.url)).toEqual(["/needs-you", "/search"]);
+	expect(store.getState().tabs.map((tab) => tab.url)).toEqual(["/search", "/ai/flows"]);
 });
 
 test("existing saved tabs load with an empty closed stack", () => {
 	const { open, entries } = fixture();
 	const store = open();
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	const { tabs, activeId } = store.getState();
 	entries.set(pageTabsStorageKey("http://host-a"), JSON.stringify({ state: { tabs, activeId }, version: 0 }));
 	const restored = open();
@@ -111,8 +111,8 @@ test("custom names survive navigation, automatic titles, moves, reopen, and rest
 	const store = open();
 	const id = store.getState().activeId;
 	store.getState().renameTab(id, "  My work  ");
-	store.getState().navigate({ url: "/search", title: "Search" });
-	store.getState().setTitle("Search results");
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
+	store.getState().setTitle("Flows results");
 	const other = store.getState().addTab({ url: "/usage", title: "Usage" });
 	store.getState().moveTab(id, null);
 	store.getState().closeTab(id);
@@ -121,12 +121,12 @@ test("custom names survive navigation, automatic titles, moves, reopen, and rest
 	expect(restored.getState().tabs.map((tab) => tab.id)).toEqual([other, id]);
 	expect(restored.getState().tabs[1]).toMatchObject({
 		customTitle: "My work",
-		title: "Search results",
-		url: "/search",
+		title: "Flows results",
+		url: "/ai/flows",
 	});
 	restored.getState().renameTab(id, "   ");
 	expect(restored.getState().tabs[1]!.customTitle).toBeUndefined();
-	expect(restored.getState().tabs[1]!.title).toBe("Search results");
+	expect(restored.getState().tabs[1]!.title).toBe("Flows results");
 	restored.getState().renameTab(id, "Named");
 	restored.getState().renameTab(id, null);
 	expect(open().getState().tabs[1]!.customTitle).toBeUndefined();
@@ -139,7 +139,7 @@ test("adjacent selection wraps in current order and persists without changing pa
 	store.getState().selectAdjacentTab(-1);
 	store.getState().selectAdjacentTab(1);
 	expect(store.getState().activeId).toBe(a);
-	store.getState().navigate({ url: "/search", title: "Search" });
+	store.getState().navigate({ url: "/ai/flows", title: "Flows" });
 	store.getState().navigate({ url: "/usage", title: "Usage" });
 	store.getState().goBack();
 	const b = store.getState().addTab({ url: "/b", title: "B" });

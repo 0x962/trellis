@@ -44,22 +44,19 @@ test("a second link of the same pull request keeps the state that trellis ready 
 	expect(again.localState).toBe("ready");
 });
 
-test("setLocalState writes the state, announces the update and moves the inbox item", async () => {
+test("setLocalState writes the state, announces the update and clears the review gap", async () => {
 	const ticket = await h.newTicket("Ask for review");
 	const linked = await h.linkAs(h.agent, ticket.identifier, 104);
 	await h.writeParts(linked.id, "head104");
 	const beforeGaps = await h.gapsOf(ticket.id);
-	const beforeInbox = await h.inboxOf();
 	h.events.length = 0;
 
 	const ready = await h.run((tx) => setLocalState(h.ctxOf(h.agent), tx, { id: linked.id, localState: "ready" }));
 
 	expect(beforeGaps).toEqual(["not-asked"]);
-	expect(beforeInbox).not.toContain(ticket.identifier);
 	expect(ready.localState).toBe("ready");
 	expect(h.events.map((event) => event.type)).toEqual(["pr.updated"]);
 	expect(await h.gapsOf(ticket.id)).toEqual([]);
-	expect(await h.inboxOf()).toContain(ticket.identifier);
 });
 
 test("the ask stamps the moment the wait started and writes the timeline row", async () => {

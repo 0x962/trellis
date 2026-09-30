@@ -32,7 +32,6 @@ import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
 import { flowServices } from "./langflowDispatch/registry";
-import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
@@ -210,9 +209,6 @@ export const services = {
 	"statuses.delete": core("mutation", statuses.delete),
 	...ticketServices,
 	"timeline.list": core("read", timeline.list),
-	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
-	"needsYou.summary": prepared("read", needsYou.prepareSummary, needsYou.summary),
-	"needsYou.update": prepared("mutation", needsYou.prepareUpdate, needsYou.update),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

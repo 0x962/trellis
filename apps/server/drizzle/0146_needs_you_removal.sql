@@ -1,0 +1,1 @@
+DROP TABLE "needs_you_states" CASCADE;

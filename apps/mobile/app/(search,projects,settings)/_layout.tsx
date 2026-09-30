@@ -10,7 +10,6 @@ const projectRoute = "project/[ref]";
 
 // The title of the first screen of each tab, by route name.
 const titles: Record<string, string> = {
-	index: "Needs you",
 	search: "Search",
 	projects: "Projects",
 	settings: "Settings",
@@ -18,7 +17,7 @@ const titles: Record<string, string> = {
 
 const identifierOf = (params: object | undefined) => (params as { identifier?: string } | undefined)?.identifier ?? "";
 
-// One stack per tab. The file name lists the four tab groups, so expo-router
+// One stack per tab. The file name lists the three tab groups, so expo-router
 // gives each group its own copy of this stack and of the ticket screen under
 // it. A ticket opened in a tab stays in that tab: the tab bar stays visible,
 // a second ticket pushes on top of the first, and back returns to the ticket
