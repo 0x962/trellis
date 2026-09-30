@@ -25,7 +25,7 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 	const resultStatus = useRef<HTMLDivElement>(null);
 	const [group, setGroup] = useState<AgentBroadcastGroup>("working");
 	const [text, setText] = useState("");
-	const [requestId] = useState(() => crypto.randomUUID());
+	const request = useRef<DeliveryInput | null>(null);
 	const counts = useQuery({
 		...orpc.agentRuns.broadcastRecipients.queryOptions({ input: {} }),
 		refetchInterval: 2000,
@@ -59,7 +59,10 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
 		if (!canSend) return;
-		delivery.mutate({ group, text: text.trim(), requestId, previewCount: count });
+		const previous = request.current;
+		const requestId = previous?.group === group && previous.text === text ? previous.requestId : crypto.randomUUID();
+		request.current = { group, text, requestId, previewCount: count };
+		delivery.mutate(request.current);
 	};
 	const close = () => {
 		if (!delivery.isPending) onClose();

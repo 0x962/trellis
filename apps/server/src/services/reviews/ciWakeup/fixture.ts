@@ -142,9 +142,15 @@ export async function fixture() {
 			deliver: async () => {
 				throw new Error("Unexpected terminal delivery");
 			},
+			queueInput: async () => {
+				throw new Error("Unexpected queued delivery");
+			},
 			subscribeSession: async function* () {},
 		},
 		host: {
+			sendAtTurnBoundary: async () => {
+				throw new Error("Unexpected boundary delivery");
+			},
 			send: async (terminalId: string, text: string, messageId: string) => {
 				messages.push({ terminalId, text, messageId });
 				return current;
