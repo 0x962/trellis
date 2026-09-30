@@ -192,6 +192,8 @@ Use `ModelPicker` for each model field. It groups models by family and shows the
 
 Put the sort field and direction inside `DisplayPopover`. Use one option per field and a separate direction button.
 The direction button shows the current direction through its icon and tooltip.
+Epic ticket views offer Priority, Created, Status, and ID as sort fields. Their default is ascending ID within each ticket rank.
+An epic URL with either Updated direction uses the default order.
 `DisplayPopover` offers Group by Epic. The group label is the epic name, and No epic is the last group.
 `DisplayPopover` offers Group by Wave. Open waves follow the wave position order, then No wave, then done waves in position order.
 When the rows come from one epic, the count slot of a wave `GroupHeader` prints `done/total` of the wave, expanded or collapsed. The Show action of a collapsed group prints its row count.
