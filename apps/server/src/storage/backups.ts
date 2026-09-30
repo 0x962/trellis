@@ -1,8 +1,9 @@
 import { constants, existsSync, lstatSync, readdirSync, rmSync } from "node:fs";
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "zod";
-import { hashFile, withHashLock } from "./hashStore.ts";
+import { blobPath } from "./blobs.ts";
+import { hashFile } from "./hashStore.ts";
 import { pageObjectPath } from "./pageObjects.ts";
 
 // A backup copies the data home to `backups/snapshot-<stamp>`, then writes
@@ -51,20 +52,26 @@ export const readBackupManifest = async (home: string) => {
 	if (existsSync(path)) manifestSchema.parse(await Bun.file(path).json());
 };
 
-// The caller keeps the database transaction open until the snapshot holds a copy of each object.
-export const snapshotPageObjects = async (
-	home: string,
-	staged: string,
-	objects: Array<{ sha256: string; size: number }>,
-) => {
-	await mkdir(join(staged, "pages", "objects"), { recursive: true });
-	for (const { sha256 } of objects) {
-		const source = pageObjectPath(home, sha256);
-		const target = pageObjectPath(staged, sha256);
-		await mkdir(dirname(target), { recursive: true });
-		await withHashLock(source, () => copyFile(source, target, constants.COPYFILE_FICLONE));
+export type SnapshotObjects = { blobs: Array<{ sha256: string }>; pages: Array<{ sha256: string; size: number }> };
+
+// The caller holds withObjectRetention through inventory capture and this copy, outside the database transaction.
+// Stored hash files are immutable. Each copy owns its bytes after the caller releases collection.
+export const copySnapshotObjects = async (home: string, staged: string, objects: SnapshotObjects) => {
+	await mkdir(join(staged, "attachments", "tmp"), { recursive: true, mode: 0o700 });
+	await mkdir(join(staged, "pages", "objects"), { recursive: true, mode: 0o700 });
+	for (const [entries, pathOf] of [
+		[objects.blobs, blobPath],
+		[objects.pages, pageObjectPath],
+	] as const) {
+		for (const { sha256 } of entries) {
+			const target = pathOf(staged, sha256);
+			await mkdir(dirname(target), { recursive: true, mode: 0o700 });
+			await copyFile(pathOf(home, sha256), target, constants.COPYFILE_FICLONE);
+		}
 	}
-	await Bun.write(join(staged, BACKUP_MANIFEST), JSON.stringify({ version: 1, capabilities: ["pages-v1"] }));
+	await writeFile(join(staged, BACKUP_MANIFEST), JSON.stringify({ version: 1, capabilities: ["pages-v1"] }), {
+		mode: 0o600,
+	});
 };
 
 export const verifyPageObjects = async (home: string, objects: Array<{ sha256: string; size: number }>) => {

@@ -3,6 +3,7 @@ import { mkdir, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ulid } from "ulid";
 import { hashFile, shardedHashPath, withHashLock } from "./hashStore.ts";
+import { withObjectRetention } from "./objectRetention";
 
 // An attachment or pull request file is stored once per sha256 and is named by that hash.
 // The first two characters of the hash are a directory, so one directory
@@ -86,11 +87,13 @@ export const storedMime = (type: string) => {
 // holds it. Returns whether the file was removed. `hasRows` runs under the
 // lock, so a finalize of the same hash finishes first and its row is counted.
 const gc = (home: string, sha: string, hasRows: () => Promise<boolean>): Promise<boolean> =>
-	withHashLock(blobPath(home, sha), async () => {
-		if (await hasRows()) return false;
-		await unlink(blobPath(home, sha));
-		return true;
-	});
+	withObjectRetention(home, () =>
+		withHashLock(blobPath(home, sha), async () => {
+			if (await hasRows()) return false;
+			await unlink(blobPath(home, sha));
+			return true;
+		}),
+	);
 
 export const gcBlobs = async (home: string, shas: string[], holdsSha: (sha256: string) => Promise<boolean>) => {
 	const removed: string[] = [];

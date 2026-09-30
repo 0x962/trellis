@@ -1767,10 +1767,21 @@ server. A Biome import rule enforces the `tx`-first boundary.
 Shutdown stops the listener, sends `bye` on every stream, drains the poller for
 up to 5 seconds, closes the worker, and exits 0.
 
-A backup runs `CHECKPOINT` in the worker and copies `db/` and `attachments/` to
-`backups/snapshot-<stamp>` by reference. It also copies every Page object named
-by `page_uploads`, `page_versions`, or `page_assets` into the snapshot.
-The worker holds its queue until these copies finish. The HTTP process then runs `tar` over the
+A backup acquires the object-retention lock for its data home before it opens a database transaction.
+Blob and Page collectors acquire the same lock before their database holder checks.
+The lock delays collection while other database requests continue.
+The worker captures every hash from `attachments`, `pr_files`, and `epic_resources` in one transaction.
+It also captures every Page object from `page_uploads`, `page_versions`, and `page_assets` in that transaction.
+It runs `CHECKPOINT` and copies only `db/` to `backups/snapshot-<stamp>` before the transaction ends.
+This transaction protects the database files from writes until their copy completes.
+
+After commit, the worker copies the inventoried immutable objects into the private snapshot.
+Uploads can continue. Later uploads do not change the captured inventory or the database copy.
+The worker releases object retention after the copies finish or fail.
+Collection then checks current rows before each removal.
+The boot blob sweep runs before the server accepts backup requests.
+Each snapshot owns a unique directory and removes only that directory on copy failure.
+The HTTP process then runs `tar` over the
 snapshot into `trellis-<stamp>.tar.gz.partial`, renames the file when tar exits
 0, and removes the snapshot. A failed backup removes both, and so does the next
 boot. The data home keeps the 10 newest archives. `trellis data export` streams

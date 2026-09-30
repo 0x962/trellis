@@ -284,7 +284,7 @@ export const services = {
 	"system.usage": prepared("read", prepareSystemUsage, agentTerminal.result),
 	"system.processes": prepared("read", prepareSystemProcesses, agentTerminal.result),
 	"system.pressure": prepared("read", prepareMachinePressure, agentTerminal.result),
-	"system.snapshot": io("mutation", system.snapshot),
+	"system.snapshot": prepared("mutation", system.prepareSnapshot, agentTerminal.result),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
 } satisfies Record<string, ServiceEntry>;
 

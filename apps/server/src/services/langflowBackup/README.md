@@ -84,10 +84,10 @@ The worker ports call `readTrellisSnapshotVersion` and `captureTrellisSnapshot` 
 TRL-696 owns their registration and the public system procedure.
 
 `readTrellisSnapshotVersion(ctx, tx)` returns the installed Trellis version and a SHA256 of the ordered migration records.
-`captureTrellisSnapshot(ctx, tx, input)` exports verified private launch files, run identity references, canonical stop facts, and the complete `system.snapshot` output.
+`captureTrellisSnapshot(ctx, input)` prepares a snapshot outside the caller transaction. Its capture callback exports verified private launch files, run identity references, and canonical stop facts in the same transaction as the database copy. Object retention protects the later attachment and Page copies.
 The input includes the destination, expected Trellis version, and exact dispatch block.
 `TrellisCaptureResult` supplies the staging path, unavailable history, native inventory status, and verified version.
-The worker holds the database queue through that operation.
+The worker releases the database transaction before it copies retained attachment and Page objects.
 Complete workspace and provider conversation exports remain unavailable; their retained run references appear in the manifest.
 
 The capture sequence closes the host gate, drains durable permits, and commits the exact capture grant to the engine.
