@@ -25,6 +25,7 @@ import {
 	renderTable,
 	ticketList,
 } from "../output.ts";
+import { autopilot } from "./epics/autopilot";
 import { planGuideText } from "./epics/planGuide.ts";
 import { countsText, progress, waveList } from "./waves.ts";
 
@@ -269,5 +270,5 @@ const del = defineCommand({
 
 export default defineCommand({
 	meta: { name: "epics", description: "List, show, plan, create, edit, fill, cancel, or delete epics" },
-	subCommands: { list, show, guide, create, edit, add, remove, cancel, delete: del },
+	subCommands: { list, show, guide, create, edit, add, remove, cancel, autopilot, delete: del },
 });

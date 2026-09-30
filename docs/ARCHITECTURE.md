@@ -306,6 +306,34 @@ A repeated cancellation changes only members that become unfinished again.
 The saved cancellation takes precedence when a person later changes a member ticket.
 Ticket automation follows the normal canceled status behavior.
 
+`epics.autopilot` stores optional settings for automatic ticket starts.
+The settings contain `enabled`, `maxConcurrency`, `harness`, and `accountId`.
+A null value leaves autopilot off. `epics.autopilot` reads the settings through the API.
+`epics.setAutopilot` saves them and emits `epics.changed`.
+Enablement requires an active project, an epic without cancellation, and a configured `started` status.
+An explicit account must belong to the selected harness.
+
+The database worker calls `epics.dispatchAutopilot` through its existing repeating service loop.
+Each reservation checks the saved settings, dependencies, assignments, and capacity in one transaction.
+A ready ticket has category `todo`, completed or canceled dependencies, and no open ticket-agent assignment.
+Wave position and ticket position select the order among ready tickets.
+An unfinished earlier wave does not block a ready ticket in a later wave.
+The normal reservation service creates the assignment and its attempt.
+The normal ticket update service moves the ticket to the first configured `started` status.
+Only a committed reservation reaches the native launch service.
+
+Assigned tickets in `todo` or `started` consume slots, including manual assignments and failed starts.
+A move to review or completion releases the slot and preserves the assignment.
+Manual starts can exceed the limit. Autopilot waits for capacity before its next reservation.
+A lower limit preserves existing agents and waits for capacity.
+Disablement stops new reservations and permits accepted starts to finish.
+Cancellation disables autopilot. Project archival prevents reservations.
+Saved settings and assignments survive restart. Autopilot never repeats an existing assignment.
+
+The CLI exposes `trellis epic autopilot show`, `enable`, and `disable`.
+Enablement requires `--max-concurrency` and `--harness`.
+The optional `--model`, `--effort`, and `--account` flags select the launch settings.
+
 The ticket brief names the epic. The header gains
 `- Epic: <name> (<ref>), <done> of <total - canceled> done`. After the
 description, `## Epic: <name>` prints the plan in full, and `## Epic tickets`
