@@ -4,7 +4,7 @@ import { useUiStore } from "../../../stores/uiStore";
 import { parseSearch, type View } from "../../filters/grammar";
 import { epicPageSearch, epicUrlSearch, isCanonicalEpicSearch } from "../epicSearch";
 
-const filtersOf = ({ epic, tab, sort, group, density, limit, ...filters }: Partial<View>) => filters;
+const filtersOf = ({ epic, tab, sort, group, limit, ...filters }: Partial<View>) => filters;
 
 type Input = {
 	splat: string;
