@@ -42,6 +42,7 @@ export function CardPreview({
 				)}
 			>
 				<CardContent
+					readOnly
 					ticket={ticket}
 					showStatus={showStatus}
 					lineChanges={lineChanges}

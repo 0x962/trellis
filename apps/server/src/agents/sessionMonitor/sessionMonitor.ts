@@ -33,13 +33,14 @@ export function startSessionMonitor(options: {
 	record: (values: Array<{ id: string; activityAt: string }>) => Promise<unknown>;
 	client: Pick<RuntimeClient, "subscribeSession">;
 	emit: (event: TrellisEvent) => unknown;
-	complete: (input: { sessionId: string; runId: string; agentResponse: string }) => Promise<unknown>;
+	nameSession: (input: { sessionId: string; runId: string }) => Promise<unknown>;
 	log: (message: string, fields?: Record<string, unknown>) => void;
 }) {
 	const subscriptions = new Map<string, { abort: AbortController; done: Promise<void> }>();
 	const sessions = new Map<string, AgentActivity>();
 	const fingerprints = new Map<string, string>();
 	const recordedActivity = new Map<string, string>();
+	const requestedNames = new Set<string>();
 	let stopped = false;
 	let initialized = false;
 	const record = async (entries: AgentActivity[]) => {
@@ -53,25 +54,19 @@ export function startSessionMonitor(options: {
 		await options.record(values);
 		for (const value of values) recordedActivity.set(value.id, value.activityAt);
 	};
-	const publish = (session: AgentActivity, notify: boolean, completedEvent: boolean) => {
+	const publish = (session: AgentActivity, notify: boolean, firstMessageSent: boolean) => {
 		const key = `${session.run.id}:${session.run.terminalId}`;
 		const next = fingerprint(session);
 		if (fingerprints.get(key) !== next) {
 			fingerprints.set(key, next);
 			options.emit({ type: "agent-runs.status", activity: session, notify });
 		}
-		const agentResponse = session.run.observation?.lastMessage?.text;
-		if (
-			!completedEvent ||
-			session.sessionId === null ||
-			session.run.observation?.outcome !== "completed" ||
-			agentResponse === undefined
-		)
-			return;
+		if (!firstMessageSent || session.sessionId === null || requestedNames.has(session.sessionId)) return;
+		requestedNames.add(session.sessionId);
 		const fields = { session: session.sessionId, run: session.run.id };
 		options.log("session name trigger", fields);
 		void options
-			.complete({ sessionId: session.sessionId, runId: session.run.id, agentResponse })
+			.nameSession({ sessionId: session.sessionId, runId: session.run.id })
 			.catch((error) => options.log("session name failed", { ...fields, error: String(error) }));
 	};
 	const tick = async () => {
@@ -112,7 +107,7 @@ export function startSessionMonitor(options: {
 						const next = { ...current, run };
 						await record([next]);
 						sessions.set(id, next);
-						publish(next, true, true);
+						publish(next, true, event.session.acknowledgedMessageIds.includes(id));
 					}
 				} catch (error) {
 					if (!abort.signal.aborted) options.log("Session observation failed", { id, error: String(error) });
@@ -125,6 +120,8 @@ export function startSessionMonitor(options: {
 		initialized = true;
 		const keys = new Set(entries.map((entry) => `${entry.run.id}:${entry.run.terminalId}`));
 		for (const key of fingerprints.keys()) if (!keys.has(key)) fingerprints.delete(key);
+		const sessionIds = new Set(entries.map((entry) => entry.sessionId));
+		for (const id of requestedNames) if (!sessionIds.has(id)) requestedNames.delete(id);
 	};
 	const loop = startNativeReconcile({
 		tick,

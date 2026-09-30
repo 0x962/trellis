@@ -6,7 +6,7 @@ import { recipientsOf } from "./enqueueReviewDeliveries.ts";
 
 // Writes one system notice and queues it for every ticket that links the
 // pull request. One row of `review_deliveries` is one message that waits to
-// be sent, and `dispatchDeliveries` sends it. A CI or queue notice can resume
+// be sent, and `dispatchDeliveries` sends it. A pull request notice can resume
 // an agent after idle expiry. Other stopped agents keep their notices in `held`.
 // A pull request that no ticket links gets no notice row:
 // the person reads the checks on the page. A notice describes the pull

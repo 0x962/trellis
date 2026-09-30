@@ -88,6 +88,13 @@ export const selectBroadcastTargets = (runs: StoredRun[], processes: RuntimeProc
 	return runs.flatMap((run) => {
 		const process = byTerminal.get(run.terminalId!);
 		const group = process === undefined ? null : groupOf(process);
+		if (
+			group === "idle" &&
+			(run.ticketStatusCategory === null ||
+				run.ticketStatusCategory === "done" ||
+				run.ticketStatusCategory === "canceled")
+		)
+			return [];
 		return group === null ? [] : [{ group, run, recipient: recipientOf(run) }];
 	});
 };
@@ -119,7 +126,9 @@ export async function prepareBroadcast(
 	deps: BroadcastDeps = depsOf(ctx),
 ): Promise<AgentBroadcastResult> {
 	const input = AgentBroadcastInputSchema.parse(value);
-	const selected = (await targets(ctx, deps.read)).filter((target) => target.group === input.group);
+	const selected = (await targets(ctx, deps.read)).filter(
+		(target) => input.group === "both" || target.group === input.group,
+	);
 	const deliveries = await Promise.allSettled(
 		selected.map((target) =>
 			deps.send(ctx, {

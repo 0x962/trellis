@@ -73,15 +73,16 @@ export function DisplayPopover({
 	const oneEpic = epicFixed || (search.epic !== undefined && search.epic !== "none");
 	const showsClosed = group === "status" || ((group === "wave" || group === "waiting") && oneEpic);
 	const descending = sort.startsWith("-");
-	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
+	const fields = sortFields.filter((entry) => !epicFixed || entry.value !== "updatedAt");
+	const field = sort.replace(/^-/, "");
 
 	const setSort = (next: string, nextDescending: boolean) =>
 		onSearchChange({ ...search, sort: `${nextDescending ? "-" : ""}${next}` as Sort });
 
 	return (
 		<DisplayOptions
-			fields={sortFields}
-			field={field.value}
+			fields={fields}
+			field={field}
 			descending={descending}
 			onSortChange={setSort}
 			beforeSort={

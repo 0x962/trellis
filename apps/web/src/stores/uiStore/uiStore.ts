@@ -7,6 +7,7 @@ export const uiStorageKey = "trellis-ui";
 // The persisted values.
 export type UiData = {
 	epicFilters: Record<string, Partial<View>>;
+	epicSorts: Record<string, View["sort"]>;
 	sidebarCollapsed: boolean;
 	// The collapsed group names per route: `{"/p/CDE": ["done"]}`. A route
 	// with no entry collapses its Done and Canceled groups.
@@ -29,6 +30,7 @@ export type UiState = UiData & {
 	toggleSidebar: () => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setEpicFilters: (epicFilterKey: string, filters: Partial<View>) => void;
+	setEpicSort: (epicFilterKey: string, sort: View["sort"]) => void;
 	toggleProject: (id: string) => void;
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
@@ -39,6 +41,7 @@ export type UiState = UiData & {
 
 const defaults: UiData = {
 	epicFilters: {},
+	epicSorts: {},
 	sidebarCollapsed: false,
 	collapsedGroups: {},
 	expandedTickets: {},
@@ -55,6 +58,11 @@ const updates = {
 		(epicFilterKey: string, filters: Partial<View>) =>
 		(state: UiData): Partial<UiData> => ({
 			epicFilters: { ...state.epicFilters, [epicFilterKey]: filters },
+		}),
+	setEpicSort:
+		(epicFilterKey: string, sort: View["sort"]) =>
+		(state: UiData): Partial<UiData> => ({
+			epicSorts: { ...state.epicSorts, [epicFilterKey]: sort },
 		}),
 	toggleSidebar: (state: UiData): Partial<UiData> => ({ sidebarCollapsed: !state.sidebarCollapsed }),
 	setSidebarCollapsed: (sidebarCollapsed: boolean) => (): Partial<UiData> => ({ sidebarCollapsed }),
@@ -119,7 +127,7 @@ const browserStorage = {
 };
 
 // Browser storage keeps the sidebar, table expansion, project expansion,
-// visible columns, and epic filters for each renderer.
+// visible columns, epic filters, and epic sort settings for each renderer.
 export const createUiStore = () =>
 	create<UiState>()(
 		persist(
@@ -127,6 +135,7 @@ export const createUiStore = () =>
 				...defaults,
 				activeEpicFilterKey: null,
 				setEpicFilters: (epicFilterKey, filters) => set(updates.setEpicFilters(epicFilterKey, filters)),
+				setEpicSort: (epicFilterKey, sort) => set(updates.setEpicSort(epicFilterKey, sort)),
 				mobileSidebarOpen: false,
 				setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 				toggleSidebar: () => set(updates.toggleSidebar),
@@ -142,6 +151,7 @@ export const createUiStore = () =>
 				storage: createJSONStorage(() => browserStorage),
 				partialize: (state) => ({
 					epicFilters: state.epicFilters,
+					epicSorts: state.epicSorts,
 					sidebarCollapsed: state.sidebarCollapsed,
 					collapsedGroups: state.collapsedGroups,
 					expandedTickets: state.expandedTickets,

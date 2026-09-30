@@ -110,10 +110,11 @@ GitHub comments are for people.
 Post agent review findings with `trellis diff comment`.
 
 Use `trellis diff set-state <diff> ready` to ask for review.
-The command checks the required material, marks a GitHub draft ready when needed, then records the local state.
-If the GitHub action fails, the local state stays unchanged.
-A successful command can still report pending checks or other review gaps.
-Read the result before you describe the diff as ready.
+The command records the explicit local ready mark.
+An open pull request with that mark shows a blue icon.
+A local human approval changes that icon to green.
+The command preserves the GitHub draft state.
+Flow results, review material, CI, findings, and conflicts remain separate from the local mark.
 
 Use `trellis diff check <diff>` to read all readiness gaps without a local state change.
 Use `trellis diff set-state <diff> not-ready` to withdraw the local request.
@@ -531,7 +532,7 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis agent list --ticket <ticket>` | Find agents assigned to a ticket. |
 | `trellis agent start --ticket <ticket> [options]` | Assign an agent to the ticket. |
 | `trellis agent send <agent-id> --text <text>` | Send a direct message. |
-| `trellis agent broadcast --group <group> --text <text>` | Send a user broadcast to the working or idle group. |
+| `trellis agent broadcast --group <group> --text <text>` | Send a user broadcast to `working`, `idle`, or `both` groups. Idle agents have unfinished tickets. |
 | `trellis agent output <agent-id>` | Read that agent's terminal output. |
 | `trellis agent refresh <agent-id>` | Refresh its observed state. |
 | `trellis agent interrupt <agent-id>` | Interrupt its current turn while its session remains. |
@@ -601,7 +602,7 @@ The observer conversation stays separate from the worker conversation.
 | `trellis diff evidence write <diff> --body <file-or-dash>` | Write the evidence document for the current head commit. |
 | `trellis diff evidence show <diff>` | Read the evidence document. |
 | `trellis diff check <diff>` | Report review readiness without a local state change. |
-| `trellis diff set-state <diff> ready` | Check required material and record the request for review. |
+| `trellis diff set-state <diff> ready` | Record the explicit local request for review. |
 | `trellis diff set-state <diff> not-ready` | Withdraw the local request for review. |
 
 `diff list` includes records without a linked ticket.
@@ -661,18 +662,18 @@ Rewrite the evidence document after each push.
 The readiness check can also require an ER diagram for detected data-model changes.
 Read each reported gap and address it.
 
-`set-state ready` requires an explanation. It also requires evidence for the current head.
-It also requires a data model diagram when the check detects a data model change.
-For an agent, it also requires a successful applicable flow.
-This flow requirement does not apply when no flows are available.
-A valid reason can record why none of the available flows fits.
-CI gaps, unresolved findings, and conflicts remain visible but do not block the local request for review.
+`set-state ready` records the local request without a readiness check or a GitHub action.
+Missing review material and absent, running, or failed flows do not block the mark.
+CI gaps, unresolved findings, and conflicts do not block it either.
+Use `diff check` to inspect these facts separately.
+The optional `--flow-does-not-apply` flag records a reason when none of the available flows fits.
+An agent needs no waiver to set the local mark.
 
 `diff check` exits `0` when no review gap remains and `1` when any gap remains.
 An absent local request for review counts as a gap.
 `diff set-state ready` exits `0` when it records the request, even if separate readiness gaps remain.
-Missing required material returns `1` and leaves the local state unchanged.
-External failures use the CLI's external-service error result.
+A successful local mark does not claim that checks or flows pass.
+A failed local write returns an error.
 
 ## Local reviews
 
@@ -768,7 +769,7 @@ An unknown format fails explicitly. Use `trellis flow document show <flow>` to r
 Read the existing run's result with `trellis flow run show <run-id>`.
 Do not run the start command again to wait for it.
 
-After the work and required review material are complete:
+When you ask the user to review the diff:
 
 ~~~sh
 trellis diff set-state example/app#123 ready
@@ -1000,6 +1001,9 @@ Choose any clear form of explanation or proof.
 7. Read and answer the local review threads.
 8. Run `trellis diff set-state <diff> ready` when the work is ready for the user.
 9. Read the result and report any remaining gaps.
+
+The local review request does not require a successful flow.
+Report a missing, running, or failed flow accurately when you ask for review.
 
 Do not repeat a flow after a push or a fix to its findings.
 If the latest run ended with an execution error, fix the cause and start the flow again.

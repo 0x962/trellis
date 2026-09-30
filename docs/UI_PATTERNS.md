@@ -191,6 +191,8 @@ Use `ModelPicker` for each model field. It groups models by family and shows the
 
 Put the sort field and direction inside `DisplayPopover`. Use one option per field and a separate direction button.
 The direction button shows the current direction through its icon and tooltip.
+Epic ticket views offer Priority, Created, Status, and ID as sort fields. Their default is ascending ID within each ticket rank.
+An epic URL with either Updated direction uses the default order.
 `DisplayPopover` offers Group by Epic. The group label is the epic name, and No epic is the last group.
 `DisplayPopover` offers Group by Wave. Open waves follow the wave position order, then No wave, then done waves in position order.
 When the rows come from one epic, the count slot of a wave `GroupHeader` prints `done/total` of the wave, expanded or collapsed. The Show action of a collapsed group prints its row count.
@@ -198,10 +200,12 @@ The first wave that is not done carries the `Badge` Current after its label. An 
 When the view names one epic, the wave groups hold the Done and Canceled tickets too, last in each group under the default sort. A done wave starts collapsed, and Show completed turns the closed rows off.
 New ticket in this wave in the Wave actions `Menu` of such a group, and the `c` key, create a ticket inside the epic. The menu item also sets the wave of the group.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
-Each epic saves its filters in local storage on the current device.
+Each epic saves its filters and sort field and direction in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
-Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
-Tabs, sort, and display options keep their existing behavior.
+An epic link without a sort restores that epic's saved order into the URL.
+Explicit URL filters replace the saved filters. An explicit URL sort replaces the saved order.
+A filter or sort change saves immediately. The default ID order also saves.
+Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
 ## Group headers
@@ -230,9 +234,11 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add menu, and the `Menu` with Edit and Delete.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add menu, and the epic actions `Menu`.
 The Add menu uses a plus `IconButton` with the `Tooltip` Add. Its options are Ticket and Wave.
 Ticket opens the project `TicketPicker`. Wave creates a wave through the existing wave actions.
+The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
+The share commands retain the current filters and the epic scope.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
 The Wave option adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
@@ -278,7 +284,7 @@ Truncate long titles and project paths within their columns. Use tabular numbers
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
 Use `ActorAvatar` when a row represents a ticket. It shows the provider mark and the work state for the agent run that is assigned to the ticket of the row.
-A ticket with no assigned agent run shows no avatar. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, and the epic page.
+A ticket with no assigned agent shows the wave header's play control when the pointer enters its agent slot or the control receives keyboard focus. Touch devices keep the control visible. The control uses the most recent successful assignment choice. An invalid choice opens the shared assignment dialog. The assignment query must confirm that the ticket has no agent before the control appears. Completed tickets, archived projects, and drag previews keep the slot read only. The control keeps the current page open. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, and the epic page.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.
