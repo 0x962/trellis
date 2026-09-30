@@ -55,6 +55,14 @@ test("preserves every ordered candidate across statuses, stop values, and task a
 	expect(await compare()).toEqual(expected);
 });
 
+test("orders by creation time before the execution ID", async () => {
+	await db.execute(sql`UPDATE flow_executions SET created_at='2026-08-01' WHERE id='waiting-0-0'`);
+	await db.execute(sql`UPDATE flow_executions SET created_at='2026-10-01' WHERE id='failed-2-0'`);
+	const found = await compare();
+	expect(found[0]).toBe("waiting-0-0");
+	expect(found.at(-1)).toBe("failed-2-0");
+});
+
 test("reflects committed stops, task settlement, and assignment closure", async () => {
 	await db.execute(sql`UPDATE flow_executions SET state=jsonb_set(state,'{steps,1,needsStop}','true')
 		WHERE id='canceled-1-1'`);

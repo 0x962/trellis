@@ -1,0 +1,3 @@
+CREATE INDEX "agent_runs_open_idx" ON "agent_runs" USING btree ("id") WHERE "agent_runs"."closed_at" IS NULL;--> statement-breakpoint
+CREATE INDEX "flow_executions_reconcile_idx" ON "flow_executions" USING btree ("created_at","id") WHERE "flow_executions"."state"->>'status' IN ('running', 'waiting') OR "flow_executions"."state" @? 'strict $.steps[*] ? (@.needsStop == true || @.needsStop == "true")'::jsonpath;--> statement-breakpoint
+CREATE INDEX "flow_execution_tasks_run_idx" ON "flow_execution_tasks" USING btree ("run_id");

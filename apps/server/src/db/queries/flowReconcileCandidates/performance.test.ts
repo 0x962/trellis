@@ -51,7 +51,8 @@ const contents = async (tx: Tx) => {
 };
 
 test("migration preserves data and keeps history out of concurrent tick requests", async () => {
-	let db = await beforeIndex();
+	const setup = await beforeIndex();
+	let db = setup.db;
 	try {
 		await db.transaction((tx) =>
 			seed(tx, {
@@ -78,7 +79,7 @@ test("migration preserves data and keeps history out of concurrent tick requests
 		const before = await db.transaction(contents);
 		const baseline = await concurrentRequest(db, oracle);
 		const baselinePlan = await db.transaction((tx) => explain(tx, oracle));
-		expect(await migrate(db)).toBe(1);
+		expect(await migrate(db)).toBe(setup.pending);
 		expect(await db.transaction(contents)).toEqual(before);
 		const indexedPlan = await db.transaction((tx) => explain(tx, query));
 		const indexedNodes = nodes(indexedPlan.Plan);

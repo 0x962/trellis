@@ -17,7 +17,7 @@ export async function beforeIndex() {
 		await writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
 		for (const entry of entries) await copyFile(join(source, `${entry.tag}.sql`), join(directory, `${entry.tag}.sql`));
 		await migrate(db, { migrationsFolder: directory });
-		return db;
+		return { db, pending: journal.entries.length - entries.length };
 	} catch (error) {
 		await db.$client.close();
 		throw error;
