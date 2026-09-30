@@ -55,8 +55,9 @@ export async function fixture() {
 	const ticket = await run((context, tx) => createTicket(context, tx, { project: "SYSTEM", title: "System fixture" }));
 	const diff = await run((_context, tx) => ensurePr(tx, "example/system#1"));
 	await db.execute(sql`UPDATE pull_requests SET head_sha=${"a".repeat(40)} WHERE id=${diff.id}`);
-	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_name,actor_kind,created_at)
-		VALUES (${ticket.id},${diff.id},'manual','fixture','human',${now})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id,pull_request_id,source,actor_id,actor_name,actor_kind,created_at)
+		VALUES (${ticket.id},${diff.id},'manual',
+			(SELECT id FROM actors WHERE name='fixture' AND kind='human'),'fixture','human',${now})`);
 	const saveInput: FlowDocumentSaveV1Input = {
 		flow: flow.id,
 		expectedVersion: flow.version,
