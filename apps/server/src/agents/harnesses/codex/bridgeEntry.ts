@@ -2,8 +2,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { chmod, mkdir, readFile, rm } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname } from "node:path";
-import { createInterface } from "node:readline";
+import { dirname, join } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
@@ -14,6 +13,7 @@ import type { HarnessEvent } from "../types.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 import { codexControl } from "./codexControl.ts";
+import { recordEngineDiagnostics } from "./components/engineDiagnostics/index.ts";
 import { engineOptions } from "./engineOptions.ts";
 import { updateCheckOption } from "./updateCheckOption.ts";
 
@@ -28,6 +28,7 @@ const env = z
 		TRELLIS_ATTEMPT_TOKEN: z.string(),
 	})
 	.parse(process.env);
+const launchPath = process.argv[2]!;
 const launch = z
 	.object({
 		cwd: z.string(),
@@ -36,7 +37,7 @@ const launch = z
 		effort: z.string().optional(),
 		sessionId: z.string().optional(),
 	})
-	.parse(JSON.parse(await readFile(process.argv[2]!, "utf8")));
+	.parse(JSON.parse(await readFile(launchPath, "utf8")));
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_CODEX_ENGINE_SOCKET);
 await mkdir(directory, { mode: 0o700 });
@@ -87,11 +88,11 @@ const { terminated, receivedSignal, stopNormally } = listenForStopSignals();
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
 const { observationFailed, reportFailure, closeReports } = failureReporter();
+let diagnostics!: Promise<void>;
 // The reason that reached the session output already. The drain in the finally
 // block holds the same rejection, and one reason reads as one failure.
 let reportedReason: string | null = null;
 async function start() {
-	await socketReady;
 	let parser: CodexAppServerEvents | undefined;
 	const current = { turnId: null as string | null, working: false };
 	let submitted!: () => void;
@@ -109,6 +110,10 @@ async function start() {
 			eventQueue.catch(reportFailure);
 		}
 	};
+	diagnostics = recordEngineDiagnostics(engine.stderr!, join(dirname(launchPath), "codex-engine.log"), (entry) => {
+		if (parser) observe(parser.compactionProgress(entry));
+	}).catch(reportFailure);
+	await socketReady;
 	client = new CodexAppServerClient(
 		env.TRELLIS_CODEX_ENGINE_SOCKET,
 		(notification) => {
@@ -119,21 +124,6 @@ async function start() {
 			return undefined;
 		},
 	);
-	const engineLines = createInterface({ input: engine.stderr! });
-	engineLines.on("line", (line) => {
-		if (line.startsWith("{")) {
-			const entry = JSON.parse(line);
-			if (parser) observe(parser.compactionProgress(entry));
-			if (
-				["codex_core::tasks", "codex_api::endpoint::responses_websocket", "codex_api::sse::responses"].includes(
-					entry.target,
-				) &&
-				["INFO", "DEBUG", "TRACE"].includes(entry.level)
-			)
-				return;
-		}
-		process.stderr.write(`${line}\n`);
-	});
 	client.closed.catch(reportFailure);
 	await client.initialize();
 	const result = z
@@ -241,6 +231,7 @@ try {
 			clearTimeout(timer);
 		}),
 	);
+	await diagnostics;
 	client?.close();
 	control?.close();
 	await rm(directory, { recursive: true, force: true });
