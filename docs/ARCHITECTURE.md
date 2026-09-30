@@ -179,6 +179,18 @@ The desktop installs `~/.local/bin/trellis` from the active host release.
 Its default connection reads the selected data directory's current port and token on each invocation.
 An explicit URL uses explicitly supplied credentials and does not read the selected desktop connection.
 
+The desktop accepts an explicit `--ui-preview=http://127.0.0.1:<port>` command.
+It verifies that the preview server names the current host before it selects that UI origin.
+The `desktop:preview` command starts Vite under Node in the selected source workspace.
+Vite proxies API and RPC requests to the current host, including event streams and terminal sockets.
+The desktop adds the bearer only to authorized host requests and the selected preview's API and RPC paths.
+Preview assets receive no bearer. Vite forwards authentication from each incoming request.
+The proxy translates an Origin header only when it matches the preview origin.
+Native calls require the Trellis window at its selected UI origin.
+The preview origin has separate browser storage. The installed origin retains its tabs and drafts.
+Help > Stop UI preview or `--ui-preview=off` restores the installed UI without a host restart.
+The normal startup path selects the packaged UI and starts no preview server or watcher.
+
 The desktop retains each host resource version under `releases` in its application data directory.
 An application replacement can reuse that version while its runtime owns active sessions.
 The update status blocks an incompatible runtime protocol and retains the prior host until work stops.
