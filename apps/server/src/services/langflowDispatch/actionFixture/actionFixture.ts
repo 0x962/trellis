@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
+import { FlowExecutionStartInputSchema } from "@trellis/api";
 import { fixture } from "../../../../../../integrations/langflow/tests/system/fixture";
 import type { ServiceTransport } from "../../../db/transport";
 import type { GhAccess } from "../../../ghState";
@@ -13,6 +14,7 @@ import type { IoCtx } from "../../support";
 
 export async function actionFixture() {
 	const h = await fixture();
+	const input = FlowExecutionStartInputSchema.parse(h.input);
 	const root = mkdtempSync(join(process.env.TMPDIR!, "trellis-flow-actions-"));
 	const home = join(root, "home");
 	mkdirSync(home);
@@ -89,6 +91,7 @@ export async function actionFixture() {
 	};
 	return {
 		...h,
+		input,
 		home,
 		io,
 		control,
