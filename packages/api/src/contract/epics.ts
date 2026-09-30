@@ -39,6 +39,11 @@ export const epics = {
 		.route({ method: "PATCH", path: "/epics/{+epic}", summary: "Change the name, the slug, or the description" })
 		.input(EpicUpdateInputSchema)
 		.output(EpicSchema),
+	cancel: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT"]))
+		.route({ method: "POST", path: "/epics/cancel", summary: "Cancel an epic and its unfinished tickets" })
+		.input(EpicRefInputSchema)
+		.output(EpicSchema),
 	delete: base
 		.errors(pickErrors(["PROJECT_ARCHIVED", "AGENT_CANNOT_DELETE"]))
 		.route({ method: "DELETE", path: "/epics/{+epic}", summary: "Delete an epic and detach its tickets" })

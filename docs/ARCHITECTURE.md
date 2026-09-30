@@ -228,13 +228,14 @@ before another agent can take the ticket.
 - A project delete needs a project with no ticket, or `force`.
 - An epic groups the tickets that deliver one plan inside a project. It is its own record with a name, a slug, and a markdown description that holds the plan. An epic is never a ticket.
 - A ticket belongs to at most one epic (`tickets.epic_id`). The epic and the ticket sit in one project (`CROSS_PROJECT_LINK`).
-- An epic stores no state. Its counts by status category come from its tickets. Its state is `done` when it has at least one ticket and every ticket is done or canceled. Otherwise it is `open`, so an epic with no ticket is open.
+- An epic with `canceled_at` set has state `canceled`. Other epics derive their state from their tickets. A nonempty epic is `done` when every ticket is done or canceled. Otherwise it is `open`. Counts always reflect ticket statuses.
+- Epic cancellation sets `canceled_at` and cancels every unfinished member ticket in one transaction. It uses the project's first status in the `canceled` category. Completed tickets keep their status. The epic keeps its tickets, waves, resources, and assignment records.
 - An epic delete sets `epic_id` and `wave_id` NULL on its tickets, raises their `version`, records field `epic` for each ticket, records field `wave` for a ticket that held one, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`). A project delete cascades its epics.
 - A wave is one ordered phase of an epic. It is its own record with a name, a slug, and a position. A wave belongs to one epic, and an epic delete cascades its waves.
 - A ticket belongs to at most one wave (`tickets.wave_id`), and that wave belongs to the epic of the ticket. A ticket with no epic has no wave (CHECK `tickets_wave_needs_epic`).
 - A ticket write that gives `wave` sets the epic of the ticket to the epic of that wave in the same write. An `epic` value in that write that names another epic, or `epic: null`, is `WAVE_OUTSIDE_EPIC`.
 - A ticket write that gives an `epic` that differs from the current epic, or `epic: null`, sets `wave_id` NULL.
-- A wave stores no state. Its counts by status category and its state come from its tickets, with the rules of the epic.
+- A wave derives its counts and state from its tickets. A nonempty wave is `done` when every ticket is done or canceled. Otherwise it is `open`.
 - A wave delete sets `wave_id` NULL on its tickets, and each ticket stays in its epic. The delete raises their `version`, records field `wave` for each ticket, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`).
 
 ### Project notes
@@ -272,7 +273,7 @@ The defaults and the ticket share one database transaction, so simultaneous requ
 ### Epics
 
 `epics` holds one row per epic: `project_id`, `slug`, `name`,
-`description`, and the actor of the last write. An EpicRef is a ULID or
+`description`, `canceled_at`, and the actor of the last write. An EpicRef is a ULID or
 `KEY/slug`, such as `OP/routine-runtime`. Two epics of one project never share a
 slug; a taken slug is `DUPLICATE` with field `slug`. A create without `slug`
 derives one from `name`, and a derived slug that collides takes the lowest free
@@ -287,15 +288,23 @@ change of `epic` records field `epic` with the epic refs as `from_value` and
 `to_value` and the ids in `meta.fromId` and `meta.toId`. `TicketSummary`
 carries `epic` as `{id, ref, name}` or `null`.
 
-The API is `epics.list`, `epics.get`, `epics.create`, `epics.update`, and
+The API is `epics.list`, `epics.get`, `epics.create`, `epics.update`, `epics.cancel`, and
 `epics.delete`. `epics.get` returns the summary, the waves of the epic in
 position order, and the tickets in number order. The event `epics.changed {projectId, id}` fires on a create, an
-update, and a delete. Every ticket row copies the epic name and ref, so the
+update, cancellation, and delete. Every ticket row copies the epic name and ref, so the
 event refetches the `epics` family, the `tickets` family, and `projects.list`.
 The counts of an epic and of each wave follow its tickets, so a ticket
 event whose fields include `epic`, `wave`, `status`, or `completedAt`
 invalidates the `epics` query family. `ProjectSummary.openEpicCount` counts the open epics of that project
 alone, and the sidebar prints it.
+
+`epics.cancel` uses the normal ticket update service for each unfinished member.
+Each changed ticket receives a completion time, a new version, status activity, and a ticket event.
+A missing canceled status refuses the transaction when unfinished tickets remain.
+An empty epic can also have state `canceled`.
+A repeated cancellation changes only members that become unfinished again.
+The saved cancellation takes precedence when a person later changes a member ticket.
+Ticket automation follows the normal canceled status behavior.
 
 The ticket brief names the epic. The header gains
 `- Epic: <name> (<ref>), <done> of <total - canceled> done`. After the
@@ -312,7 +321,7 @@ holds no wave. The launch instruction stays title plus
 description; an agent reads the epic through `trellis brief`.
 
 The CLI verb is `trellis epics` with `list`, `show`, `create`, `edit`, `add`,
-`remove`, and `delete`. `--epic <ref>` joins `create`, `sub`, and `edit`
+`remove`, `cancel`, and `delete`. `--epic <ref>` joins `create`, `sub`, and `edit`
 (`--epic none` clears), and `--epic <ref|none>` joins `list`. The web routes
 are `/p/<KEY>/epics` and `/p/<KEY>/epics/<slug>`.
 
@@ -1177,7 +1186,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (default `''`), created_at, updated_at. Hash exclusions on ARRAY[group_id, lower(name)] WHERE group_id IS NOT NULL and ARRAY[project_id, lower(name)] WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
 | tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
-| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description text, actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). The state of an epic is never stored. |
+| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description text, canceled_at (nullable), actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). Cancellation takes precedence over completion from ticket counts. |
 | waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), position integer (CHECK >= 0), created_at, updated_at. Hash equality exclusion on (epic_id || / || slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
@@ -1314,10 +1323,11 @@ returns one canonical spelling.
 | tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
 | tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | all supplied refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
-| epics.list | GET /api/epics?project=KEY | the epics of the project; open first, then done, then by updated desc |
+| epics.list | GET /api/epics?project=KEY | the epics of the project; open, done, then canceled; updated desc within each state |
 | epics.get | GET /api/epics/{epic} | the summary, its waves in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
 | epics.create | POST /api/epics | 201 and `Location`; `slug` derives from `name` when absent |
 | epics.update | PATCH /api/epics/{epic} | name, slug, description |
+| epics.cancel | POST /api/epics/cancel | body `{epic}`; cancels the epic and its unfinished tickets in one transaction |
 | epics.delete | DELETE /api/epics/{epic} | `{id}`; detaches its tickets; `force` overrides the agent policy |
 | waves.create | POST /api/waves | body `{epic, name, slug?}`; 201 and no `Location`; the wave takes the last position; `slug` derives from `name` when absent |
 | waves.update | PATCH /api/waves/{wave} | name, slug; `{wave}` takes `KEY/epic-slug/wave-slug` with its slashes |

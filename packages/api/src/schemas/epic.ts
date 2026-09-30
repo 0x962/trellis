@@ -12,8 +12,8 @@ export { type EpicLink, EpicLinkSchema } from "./epicLink.ts";
 // An epic groups the tickets that deliver one plan inside a project. Its
 // `description` holds the plan as markdown. An epic is its own record, not
 // a ticket. A ticket belongs to at most one epic, and the epic sits in the
-// project of the ticket. The state of an epic derives from its tickets
-// and is never stored.
+// project of the ticket. Explicit cancellation takes precedence over
+// the state that derives from the tickets.
 
 export const EpicNameSchema = z.string().trim().min(1, "Enter an epic name.");
 
@@ -26,8 +26,8 @@ export const EpicSlugSchema = z
 	.regex(slugPattern, "Expected a slug: lower-case letters, digits, and single dashes.");
 
 // One row of the epic list. `actor` is the last writer of the record.
-// `currentWave` is the first wave in position order whose state is
-// open, and null when the epic has no open wave. `currentWaveIndex`
+// `currentWave` is the first open wave in position order.
+// A canceled epic or an epic with no open wave has null. `currentWaveIndex`
 // is its place among the waves of the epic, from 1, and null with it.
 export const EpicSummarySchema = z.object({
 	id: UlidSchema,

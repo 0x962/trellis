@@ -241,6 +241,16 @@ const remove = defineCommand({
 	},
 });
 
+const cancel = defineCommand({
+	meta: { name: "cancel", description: "Cancel an epic and its unfinished tickets" },
+	args: { epic: epicArg },
+	async run(context) {
+		const ctx = contextOf(context);
+		const epic = await clientOf(ctx).epics.cancel({ epic: context.args.epic });
+		printRecord(ctx.out, ctx.format, epic, epicRecord);
+	},
+});
+
 const del = defineCommand({
 	meta: { name: "delete", description: "Delete an epic and detach its tickets" },
 	args: {
@@ -258,6 +268,6 @@ const del = defineCommand({
 });
 
 export default defineCommand({
-	meta: { name: "epics", description: "List, show, plan, create, edit, fill, or delete the epics of a project" },
-	subCommands: { list, show, guide, create, edit, add, remove, delete: del },
+	meta: { name: "epics", description: "List, show, plan, create, edit, fill, cancel, or delete epics" },
+	subCommands: { list, show, guide, create, edit, add, remove, cancel, delete: del },
 });

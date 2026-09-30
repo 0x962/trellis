@@ -21,6 +21,7 @@ import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
+import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
 import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
@@ -222,6 +223,7 @@ export const services = {
 	"epics.get": core("read", epics.get),
 	"epics.create": core("mutation", epics.create),
 	"epics.update": core("mutation", epics.update),
+	"epics.cancel": core("mutation", cancelEpic),
 	"epics.delete": core("mutation", epics.remove),
 	"waves.create": core("mutation", waves.create),
 	"waves.update": core("mutation", waves.update),
