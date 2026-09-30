@@ -30,7 +30,7 @@ export const WorkspaceBindingSchema = z.strictObject({
 }) satisfies z.ZodType<RuntimeCaptureBinding>;
 
 const unavailable = z.array(z.strictObject({
-	identity, sourceKind: z.enum(["account-profile", "opencode-export"]), code: label, message: z.string(),
+	identity, sourceKind: z.enum(["account-profile", "opencode-export"]), originalIdentity: label.nullable(), code: label, message: z.string(),
 }));
 const runtimeEntry = z.discriminatedUnion("kind", [
 	z.strictObject({ rootId: label, path, kind: z.literal("directory"), mode }),
