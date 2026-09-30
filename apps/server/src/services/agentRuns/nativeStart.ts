@@ -67,7 +67,7 @@ const start = async (
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
-		await withNativeLaunchScope(ctx, input, deps, async ({ baseEnv, workspaceId, capture }) => {
+		await withNativeLaunchScope(ctx, input, deps, async ({ baseEnv, workspaceId, capture, writerScopes }) => {
 			const owned = await ctx.newTx(async (tx) => {
 				if (run.ticketId !== null) {
 					const [ticket] = await rows<{ id: string }>(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
@@ -146,6 +146,7 @@ const start = async (
 				const launch: HarnessStartInput = {
 					id: terminalId,
 					...(capture === undefined ? {} : { capture }),
+					...(writerScopes === undefined ? {} : { writerScopes }),
 					...(run.kind === "session" ? {} : { kind: "builder" }),
 					harness: config.harness.preset,
 					cwd: workspaceId,
