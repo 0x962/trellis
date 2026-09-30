@@ -100,5 +100,5 @@ export async function composeLangflowBootstrap<Supervisor extends BootstrapSuper
 		grantDurationMs: configured.grantDurationMs,
 		installedManifest: async () => installed,
 	};
-	return { editor, supervisor, live, configured, stop: () => supervisor.shutdown() };
+	return { editor, supervisor, live, configured, qualified, stop: () => supervisor.shutdown() };
 }

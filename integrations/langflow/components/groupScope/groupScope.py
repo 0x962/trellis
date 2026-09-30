@@ -6,6 +6,7 @@ from lfx.graph.group_scope import (
 	GroupSettlement,
 	complete_group_scope,
 	extend_group_deadlines,
+	loop_body_visit_key,
 	open_group_scope,
 	settle_group_child,
 )
@@ -40,8 +41,7 @@ class TrellisGroupScopeV1(Component):
 			parent_occurrence_key=occurrence["occurrenceKey"],
 			phase="children",
 		)
-		loop_policy = self.graph.trellis_current_loop_policy()
-		loop_visit_key = None if loop_policy is None else loop_policy["visitKey"]
+		loop_visit_key = loop_body_visit_key(self.graph, definition, vertex_id)
 		visit = self.graph.activate_group_occurrence(
 			vertex_id, occurrence, loop_visit_key, child_scope.to_engine(),
 		)

@@ -2,9 +2,19 @@ import { ORPCError } from "@orpc/server";
 import type { FlowDocumentV1 } from "@trellis/api";
 import { documentTag } from "../../services/langflowDispatch";
 import { call, os } from "../base.ts";
+import { runDocumentAction } from "./components/runDocumentAction";
 import { saveWithEditor } from "./components/saveWithEditor";
 
 export const flowDocumentProcedures = os.flowDocumentsV1.router({
+	publish: os.flowDocumentsV1.publish.handler(({ context, input }) =>
+		runDocumentAction(context, { operation: "publish", value: input }),
+	),
+	activateConversion: os.flowDocumentsV1.activateConversion.handler(({ context, input }) =>
+		runDocumentAction(context, { operation: "convert", value: input }),
+	),
+	editConversion: os.flowDocumentsV1.editConversion.handler(({ context, input }) =>
+		runDocumentAction(context, { operation: "edit", value: input }),
+	),
 	editorHost: os.flowDocumentsV1.editorHost.handler(({ context }) => ({ host: context.editorGateway?.host() ?? null })),
 	editorSession: os.flowDocumentsV1.editorSession.handler(({ context, input }) => {
 		if (!context.editorGateway) throw new ORPCError("EDITOR_UNAVAILABLE", { status: 503, defined: true });

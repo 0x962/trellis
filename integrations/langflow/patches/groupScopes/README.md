@@ -16,7 +16,9 @@ The join emits `out`.
 
 The scope component calls `capture_visit_scope` from its actual engine vertex.
 It calls `allocate_control_visit` with the immutable `scope_definition.groupNodeId`.
-It reads the optional loop visit key from `graph.trellis_current_loop_policy()`.
+It reads the optional loop visit key from `loop_body_visit_key`.
+That helper compares the saved group definition with the archived node ID for the active loop.
+It returns a commit target only for the loop's published body scope.
 It then calls `graph.activate_group_occurrence` before it opens the group scope.
 The boundary allocation retains the incoming consumer scope.
 The activation supplies the full saved occurrence, loop visit key, and a child scope with that occurrence as its parent.
@@ -67,7 +69,8 @@ Branch routing uses the child binding's `outputPorts` map.
 A gate routes through its `yes` and `no` ports and settles from its common committed result producer.
 The scope `entries` port connects to the output `scope_entry` port, so an empty group opens before it completes.
 
-When `loopVisitKey` exists, the join calls `graph.commit_trellis_loop_children(loopVisitKey, output)`.
+When the group is the exact loop body, the join calls `graph.commit_trellis_loop_children(loopVisitKey, output)`.
+A nested group completes with no loop commit target.
 TRL-984 supplies that checkpoint interface and the later condition phase.
 
 Apply this fragment after the external-wait and occurrence-request fragments.
