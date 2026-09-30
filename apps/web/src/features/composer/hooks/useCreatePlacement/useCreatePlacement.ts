@@ -17,9 +17,7 @@ export function useCreatePlacement(project?: string, epic?: string, wave?: strin
 		enabled: chosenEpic !== undefined,
 	});
 	const waves = detail.data?.waves;
-	const selectedWave = waves?.find((entry) => entry.ref === wave || entry.id === wave);
-	const soleDefaultWave = waves?.length === 1 && waves[0]?.slug === "default" ? waves[0] : undefined;
-	const chosenWave = selectedWave ?? (wave === undefined ? soleDefaultWave : undefined);
+	const chosenWave = waves?.find((entry) => entry.ref === wave || entry.id === wave);
 	const newWave = newEpic || waves?.length === 0;
 	const pending = project !== undefined && (list.isPending || (chosenEpic !== undefined && detail.isPending));
 	const error = list.isError || (chosenEpic !== undefined && detail.isError);

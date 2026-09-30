@@ -293,6 +293,8 @@ The final transaction checks the selected references again.
 Classification creates no ticket, epic, or wave.
 
 Manual field choices and explicit page context constrain automatic selection.
+The composer starts without an existing wave unless the caller or the saved draft selects one.
+Automatic wave and priority changes use one standard text glimmer sweep and respect reduced motion.
 The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
 A stale response cannot change a newer draft or a submitted ticket.
 A provider error leaves manual creation available and appears in the existing placement status text.
