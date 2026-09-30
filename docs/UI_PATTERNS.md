@@ -180,7 +180,7 @@ Place filter chips beside the page title. Align Filter and Display at the right 
 Filter uses the funnel icon. Display uses the sliders icon. Both use circular `IconButton` triggers with tooltips.
 The filter picker uses `FilterPopover` and `Command`. Selected filters use `Chip`, with an edit action and a remove action.
 
-Use `Command.Virtual` for a large, flat collection. It accepts stable item IDs, labels, optional search keywords, and the current item. It uses the shared Command field, rows, and empty state. Search and keyboard selection use the full collection while the list mounts nearby rows and the selected row. Arrow keys, Home, End, Page Up, and Page Down move the selection. Enter selects an item.
+Use `Command.Virtual` for a large collection. It accepts stable item IDs, labels, optional search keywords, groups, checked items, and the current item. Pinned items remain available during search. The search callback supplies text for an option that adds a typed value. It uses the shared Command field, rows, and empty state. Search and keyboard selection use the full collection while the list mounts nearby rows and the selected row. Arrow keys, Home, End, Page Up, and Page Down move the selection. Enter selects an item.
 The `f` shortcut opens the filter picker.
 The `epic` stage of the picker lists the epics of the project from `epics.list` and the choice No epic.
 The chip prints the epic name, or No epic for `none`.
@@ -267,7 +267,7 @@ The words carry no blame, no apology and no exclamation mark. Red marks one thin
 The Agent Usage tab puts Providers directly under Accounts.
 `ProviderCard` is the second card shape on the page. It shows the key status, balance, and selected models.
 `ProviderForm` uses the account dialog shape for Add and Edit. Edit leaves the key blank and preserves it until a person enters a replacement.
-The model control uses `Popover`, `PickerButton`, `Command`, and `Chip`. It accepts an identifier outside the catalog.
+The model control uses `Popover`, `PickerButton`, `Command.Virtual`, and `Chip`. It accepts an identifier outside the catalog. Selected models use the shared virtual row hook in a scrollable viewport. Arrow keys, Home, End, Page Up, and Page Down reach remove buttons throughout the selection.
 The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 
 ## Statistics page
