@@ -1,3 +1,9 @@
+import type { RuntimeLaunchWriterScope } from "@trellis/runtime-protocol";
+import {
+	readRuntimeCaptureHolds,
+	runtimeCaptureHoldOverlaps,
+} from "@trellis/runtime-protocol/mutation-exclusion";
+
 const captureHeld = (message: string) => Object.assign(new Error(message), { code: "CAPTURE_HELD" });
 const captureUnavailable = (message: string) => Object.assign(new Error(message), { code: "CAPTURE_UNAVAILABLE" });
 
@@ -7,6 +13,17 @@ export class CaptureExclusion {
 
 	assertWritable(id: string) {
 		if (this.captures.has(id)) throw captureHeld(`Session ${id} is held by a capture snapshot`);
+	}
+
+	assertLaunchWritable(dataHome: string, id: string, scopes?: RuntimeLaunchWriterScope[]) {
+		this.assertWritable(id);
+		for (const hold of readRuntimeCaptureHolds(dataHome)) {
+			if (hold.global || hold.attemptIds.includes(id))
+				throw captureHeld(`Capture ${hold.captureId} holds this runtime launch`);
+			if (scopes === undefined) throw captureUnavailable(`Capture ${hold.captureId} cannot prove this launch is unrelated`);
+			if (runtimeCaptureHoldOverlaps(hold, scopes))
+				throw captureHeld(`Capture ${hold.captureId} holds this runtime launch scope`);
+		}
 	}
 
 	async mutate<T>(id: string, action: () => Promise<T>): Promise<T> {

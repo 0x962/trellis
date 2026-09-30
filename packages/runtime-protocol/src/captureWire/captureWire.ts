@@ -9,8 +9,8 @@ const kinds = {
 	end: 6,
 	seal: 7,
 	receipt: 8,
-	release: 9,
-	released: 10,
+	finalize: 9,
+	finalized: 10,
 	error: 11,
 } as const;
 
@@ -32,7 +32,7 @@ export function encodeCaptureFrame(frame: RuntimeCaptureFrame): Buffer {
 			? Buffer.from(frame.data)
 			: frame.type === "receipt"
 				? Buffer.from(frame.receipt)
-				: frame.type === "end" || frame.type === "release" || frame.type === "released"
+				: frame.type === "end"
 					? Buffer.alloc(0)
 					: Buffer.from(JSON.stringify(frame));
 	const bytes = allocate(kinds[frame.type], payload.length);
@@ -46,7 +46,7 @@ export function decodeCaptureFrame(bytes: Buffer): RuntimeCaptureFrame {
 	const payload = bytes.subarray(1);
 	if (type === "data") return { type, data: payload };
 	if (type === "receipt") return { type, receipt: payload };
-	if (type === "end" || type === "release" || type === "released") {
+	if (type === "end") {
 		if (payload.length !== 0) throw new Error(`Invalid ${type} capture frame`);
 		return { type };
 	}

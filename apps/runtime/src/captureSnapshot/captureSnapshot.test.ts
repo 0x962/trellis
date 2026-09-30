@@ -4,7 +4,11 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RuntimeCaptureProducer } from "@trellis/runtime-protocol";
-import { withRuntimeMutationExclusion } from "@trellis/runtime-protocol/mutation-exclusion";
+import {
+	readRuntimeCaptureHold,
+	withRuntimeMutationExclusion,
+} from "@trellis/runtime-protocol/mutation-exclusion";
+import { finalizeRuntimeCaptureHold } from "../captureHold.ts";
 import { type CaptureSnapshotDependencies, withCaptureSnapshot } from "./captureSnapshot.ts";
 import {
 	captureBytes as bytes,
@@ -292,4 +296,70 @@ test("refuses a conversation root without its exact writer scope", async () => {
 			dependencies,
 		),
 	).rejects.toThrow("does not exclude its conversation root");
+});
+
+test("an empty capture returns an exact empty binding under a global hold", async () => {
+	const input = request([]);
+	let writerEntered = false;
+	let writer: Promise<void> | undefined;
+	const result = await withCaptureSnapshot(
+		join(home, "runtime"),
+		input,
+		[],
+		async (producer) => {
+			expect(producer.binding.identities).toEqual([]);
+			expect(producer.binding.workspaces).toEqual([]);
+			expect(producer.binding.roots).toEqual([]);
+			expect(await producer.inventory(producer.binding)).toEqual({
+				binding: producer.binding,
+				entries: [],
+				unavailable: [],
+			});
+			writer = withRuntimeMutationExclusion(
+				home,
+				[{ kind: "provider", directory: join(home, "profiles", "future") }],
+				async () => {
+					writerEntered = true;
+				},
+			);
+			await Promise.resolve();
+			expect(writerEntered).toBe(false);
+		},
+		undefined,
+		dependencies,
+	);
+	await writer;
+	expect(writerEntered).toBe(true);
+	expect(result.finalization.receipt.request).toEqual(input);
+	expect(result.finalization.receipt.outcome).toBe("committed");
+	expect(readRuntimeCaptureHold(home, input.captureId)).toBeUndefined();
+	const recovered = await finalizeRuntimeCaptureHold(home, { request: input, outcome: "committed" });
+	expect(recovered.receiptBytes).toBe(result.finalization.receiptBytes);
+});
+
+test("a failure after the last root seal retains the durable hold", async () => {
+	const workspace = await repository("lost-after-seal");
+	const launch = await launchIdentity("14", workspace);
+	const input = request([launch]);
+	await expect(
+		withCaptureSnapshot(
+			join(home, "runtime"),
+			input,
+			[record(workspace, launch)],
+			async (producer) => {
+				await producer.seal({
+					binding: producer.binding,
+					rootId: producer.binding.workspaces[0]!.worktreeRootId,
+					manifestSha256: "c".repeat(64),
+				});
+				throw new Error("Capture channel closed");
+			},
+			undefined,
+			dependencies,
+		),
+	).rejects.toThrow("Capture channel closed");
+	expect(readRuntimeCaptureHold(home, input.captureId)?.requestSha256).toBeDefined();
+	const finalization = await finalizeRuntimeCaptureHold(home, { request: input, outcome: "abandoned" });
+	expect(finalization.receipt.outcome).toBe("abandoned");
+	expect(readRuntimeCaptureHold(home, input.captureId)).toBeUndefined();
 });

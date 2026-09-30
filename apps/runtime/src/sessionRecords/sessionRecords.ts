@@ -12,7 +12,7 @@ type SavedRecord = {
 	session: RuntimeSession;
 	fingerprint: string | null;
 	identity?: string | null;
-	launch?: Pick<LaunchSpec, "command" | "args" | "cwd" | "capture"> | null;
+	launch?: Pick<LaunchSpec, "command" | "args" | "cwd" | "capture" | "writerScopes"> | null;
 };
 type IndexEntry = {
 	retainForResume: boolean;

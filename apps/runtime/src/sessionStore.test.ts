@@ -94,11 +94,24 @@ test("a capture callback excludes a mutation of the exact runtime attempt", asyn
 	writeFileSync(sessionFiles(home, "captured").session, JSON.stringify(saved));
 	const entered = Promise.withResolvers<void>();
 	const release = Promise.withResolvers<void>();
-	const captureSnapshot: typeof withCaptureSnapshot = async (_runtimeHome, _request, _records, action) => {
+	const captureSnapshot: typeof withCaptureSnapshot = async (_runtimeHome, captureRequest, _records, action) => {
 		entered.resolve();
-		const result = await action({} as RuntimeCaptureProducer);
+		const value = await action({} as RuntimeCaptureProducer);
 		await release.promise;
-		return result;
+		return {
+			value,
+			finalization: {
+				receipt: {
+					schemaVersion: 1,
+					kind: "trellis-runtime-capture-finalization",
+					request: captureRequest,
+					requestSha256: "a".repeat(64),
+					outcome: "committed",
+					finalizedAt: "2026-09-30T00:00:00.000Z",
+				},
+				receiptBytes: "{}",
+			},
+		};
 	};
 	const store = new SessionStore(home, "test", keepEverything, captureSnapshot);
 	const request: RuntimeCaptureRequest = {

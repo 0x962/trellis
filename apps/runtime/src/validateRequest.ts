@@ -2,6 +2,24 @@ import { MAX_TERMINAL_DIMENSION, RUNTIME_PROTOCOL_VERSION, type RuntimeRequest }
 
 import { validateHarnessEvent } from "./validateHarnessEvent.ts";
 
+const validateCaptureRequest = (params: Record<string, unknown>) => {
+	for (const key of ["captureId", "snapshotId", "hostId", "dataHomeId", "blockId"])
+		if (typeof params[key] !== "string" || params[key] === "") throw new Error(`Capture ${key} is required`);
+	if (!Number.isSafeInteger(params.generation) || (params.generation as number) < 0)
+		throw new Error("Capture generation must be a nonnegative safe integer");
+	if (!Array.isArray(params.identities)) throw new Error("Capture identities must be an array");
+	for (const value of params.identities) {
+		if (typeof value !== "object" || value === null) throw new Error("Capture identity must be an object");
+		const identity = value as Record<string, unknown>;
+		for (const key of ["harness", "agentRunId", "attemptId"])
+			if (typeof identity[key] !== "string" || identity[key] === "")
+				throw new Error(`Capture identity ${key} is required`);
+		for (const key of ["accountId", "profileId", "providerSessionId"])
+			if (identity[key] !== null && typeof identity[key] !== "string")
+				throw new Error(`Capture identity ${key} must be a string or null`);
+	}
+};
+
 export function validateRequest(value: unknown): RuntimeRequest {
 	const request = value as RuntimeRequest;
 	if (!request || typeof request.id !== "string" || request.id.length > 128)
@@ -78,22 +96,15 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("A list limit must be a whole number of at least 1");
 			break;
 		case "capture": {
-			for (const key of ["captureId", "snapshotId", "hostId", "dataHomeId", "blockId"])
-				if (typeof params[key] !== "string" || params[key] === "") throw new Error(`Capture ${key} is required`);
-			if (!Number.isSafeInteger(params.generation) || (params.generation as number) < 0)
-				throw new Error("Capture generation must be a nonnegative safe integer");
-			if (!Array.isArray(params.identities) || params.identities.length === 0)
-				throw new Error("Capture identities are required");
-			for (const value of params.identities) {
-				if (typeof value !== "object" || value === null) throw new Error("Capture identity must be an object");
-				const identity = value as Record<string, unknown>;
-				for (const key of ["harness", "agentRunId", "attemptId"])
-					if (typeof identity[key] !== "string" || identity[key] === "")
-						throw new Error(`Capture identity ${key} is required`);
-				for (const key of ["accountId", "profileId", "providerSessionId"])
-					if (identity[key] !== null && typeof identity[key] !== "string")
-						throw new Error(`Capture identity ${key} must be a string or null`);
-			}
+			validateCaptureRequest(params);
+			break;
+		}
+		case "finalizeCapture": {
+			if (typeof params.request !== "object" || params.request === null)
+				throw new Error("Capture finalization request is required");
+			validateCaptureRequest(params.request as Record<string, unknown>);
+			if (params.outcome !== "committed" && params.outcome !== "abandoned")
+				throw new Error("Capture finalization outcome is required");
 			break;
 		}
 		case "hasMessage":
@@ -184,6 +195,21 @@ export function validateRequest(value: unknown): RuntimeRequest {
 						)
 							throw new Error("Launch conversation external link is invalid");
 					}
+				}
+			}
+			if (params.writerScopes !== undefined) {
+				if (!Array.isArray(params.writerScopes)) throw new Error("Launch writer scopes must be an array");
+				for (const value of params.writerScopes) {
+					if (
+						typeof value !== "object" ||
+						value === null ||
+						!["workspace", "provider", "repository"].includes(
+							(value as Record<string, unknown>).kind as string,
+						) ||
+						typeof (value as Record<string, unknown>).directory !== "string" ||
+						!((value as Record<string, unknown>).directory as string).startsWith("/")
+					)
+						throw new Error("Launch writer scope is invalid");
 				}
 			}
 			for (const key of ["cols", "rows"])
