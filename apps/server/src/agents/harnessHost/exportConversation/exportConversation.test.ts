@@ -33,6 +33,17 @@ test.each(["codex", "claude", "pi", "muse", "opencode"] as const)("exports exact
 	expect(f.calls).toEqual(["inventory", `read:${f.inventory.files[0]!.path}`, "seal"]);
 });
 
+test.each([null, "/synthetic/original/sessions"])("retains the producer history identity %s", async (originalIdentity) => {
+	const f = conversationFixture();
+	const history = { ...f.inventory.unavailable[0]!, originalIdentity };
+	f.inventory.unavailable = [history];
+	const directory = join(await temporary("trellis-conversation-history-identity-"), "archive");
+	const result = await exportConversation(f.reader, { binding: f.binding, identity: f.identity, directory, signal: signal() });
+	if (result.state !== "exported") throw new Error("fixture_export_unavailable");
+	expect(result.manifest.unavailable).toEqual([history]);
+	expect(JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")).unavailable).toEqual([history]);
+});
+
 test("the real host refuses export without a capture producer", async () => {
 	const f = conversationFixture();
 	const directory = join(await temporary("trellis-conversation-unavailable-"), "archive");
