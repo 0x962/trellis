@@ -1,5 +1,5 @@
 import { dlopen, FFIType } from "bun:ffi";
-import { closeSync, ftruncateSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
+import { closeSync, ftruncateSync, mkdirSync, openSync, readFileSync, realpathSync, writeSync } from "node:fs";
 import { join } from "node:path";
 
 // One process at a time owns a data home: the server, or a restore. Two
@@ -24,6 +24,24 @@ export type HomeLock = {
 	setPort: (port: number) => void;
 	release: () => void;
 };
+
+const heldLocks = new WeakMap<HomeLock, { home: string; active: boolean; borrowers: number }>();
+
+export function assertHomeLock(handle: HomeLock, home: string) {
+	const held = heldLocks.get(handle);
+	if (!held?.active || held.home !== realpathSync(home)) throw new Error("home_lock_not_held");
+}
+
+export async function withHomeLock<T>(handle: HomeLock, home: string, operation: () => Promise<T>): Promise<T> {
+	assertHomeLock(handle, home);
+	const held = heldLocks.get(handle)!;
+	held.borrowers += 1;
+	try {
+		return await operation();
+	} finally {
+		held.borrowers -= 1;
+	}
+}
 
 const LOCK_EX = 2;
 const LOCK_NB = 4;
@@ -71,11 +89,20 @@ export const lockHome = (home: string, role: HomeLockRole, port: number | null):
 		writeSync(fd, JSON.stringify(holder));
 	};
 	write({ pid: process.pid, role, port });
-	return {
-		setPort: (bound) => write({ pid: process.pid, role, port: bound }),
+	const held = { home: realpathSync(home), active: true, borrowers: 0 };
+	const handle: HomeLock = {
+		setPort: (bound) => {
+			assertHomeLock(handle, home);
+			write({ pid: process.pid, role, port: bound });
+		},
 		release: () => {
+			assertHomeLock(handle, home);
+			if (held.borrowers !== 0) throw new Error("home_lock_in_use");
+			held.active = false;
 			flockOf()(fd, LOCK_UN);
 			closeSync(fd);
 		},
 	};
+	heldLocks.set(handle, held);
+	return handle;
 };

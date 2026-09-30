@@ -25,7 +25,9 @@ export const ResolvedConversionHarnessSchema = z
 			return;
 		}
 		const effort = effortForHarness(value.preset, value.model);
-		if (effort === null ? value.effort !== undefined : !effort.options.some((option) => option.value === value.effort)) {
+		if (
+			effort === null ? value.effort !== undefined : !effort.options.some((option) => option.value === value.effort)
+		) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["effort"],

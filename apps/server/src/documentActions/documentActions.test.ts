@@ -9,7 +9,7 @@ import { createGhRunner } from "../gh/run";
 import { bootstrapFixture } from "../langflowBootstrap/fixtures";
 import { createLogger } from "../log";
 import type { DocumentActionInput } from "../services/langflowDispatch/documentAction";
-import { documentActions, type DocumentActionRuntime } from "./documentActions";
+import { type DocumentActionRuntime, documentActions } from "./documentActions";
 
 const input: PublishDocumentV1Input = {
 	flowId: pendingDocumentV1Example.flow.id,
@@ -90,7 +90,7 @@ test("completed replay skips a configured but unhealthy supervisor", async () =>
 	const f = fixture(
 		async () => ({ state: "completed", requestId: input.requestId, document: pendingDocumentV1Example }),
 		{
-			get package() {
+			get package(): DocumentActionRuntime["package"] {
 				throw new Error("Package access before replay");
 			},
 			engineCommit: base.manifest.source.commit,

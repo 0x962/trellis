@@ -36,6 +36,11 @@ export {
 	type HostRecoveryState,
 	LangflowHostControl,
 } from "./hostControl";
+export {
+	type HostReconciliationInput,
+	type HostReconciliationResult,
+	reconcileHostControl,
+} from "./hostReconciliation";
 export { type InitialAuthorityInput, InitialAuthorityIssuer } from "./initialAuthority";
 export { InitialAuthorityRecovery } from "./initialAuthorityRecovery";
 export type * from "./ociDriver";
@@ -50,4 +55,14 @@ export {
 	type VerifiedRestoredDatabase,
 	withRestoredDatabaseOpen,
 } from "./restoredDatabase";
+export {
+	installRestoredEngine,
+	type RestoredEngineInput,
+	RestoredEngineInputSchema,
+	type RestoredEngineReceipt,
+	RestoredEngineReceiptSchema,
+	type RestoredEngineResult,
+	verifyRestoredEngine,
+} from "./restoredEngine";
+export { readRestoredEngineStartup, type RestoredEngineStartup, type ReadRestoredEngineStartupInput } from "./restoredStartup";
 export { LangflowSupervisor } from "./supervisor";

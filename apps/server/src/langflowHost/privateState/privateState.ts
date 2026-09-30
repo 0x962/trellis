@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { chmod, lstat, mkdir, open, readFile, rename } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import type { SidecarIdentity } from "../contracts";
@@ -31,6 +31,10 @@ export class PrivateState {
 			await chmod(path, 0o700);
 		}
 		return new PrivateState(root);
+	}
+
+	get home() {
+		return dirname(this.root);
 	}
 
 	get lockDirectory() {

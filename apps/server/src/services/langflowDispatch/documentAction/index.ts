@@ -1,1 +1,1 @@
-export { documentAction, type DocumentActionInput } from "./documentAction";
+export { type DocumentActionInput, documentAction } from "./documentAction";

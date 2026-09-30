@@ -4,6 +4,8 @@ import { isAbsolute, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { LangflowSidecarManifestV1Schema } from "../../../../../integrations/langflow/package-probe/sidecarManifest";
 import type { NativeReservationAuthentication, SidecarDriver, SidecarIdentity, SidecarObservation } from "../contracts";
+import { withRestoredEngineStart } from "../restoredStartup/withRestoredEngineStart";
+import { restoredDriverScope } from "../restoredStartup/restoredDriverScope";
 import { assertContainerBinding } from "./containerBinding";
 import { containerCreateArgs } from "./createArgs/createArgs";
 import { engineApiConfiguration } from "./engineApiConfiguration";
@@ -78,6 +80,10 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 
 	async function start(input: Parameters<SidecarDriver["start"]>[0]) {
 		if (!isDeepStrictEqual(input.manifest, manifest)) throw new Error("sidecar_manifest_conflict");
+		const restoredBinding = {
+			identity: input.identity, privateRoot, imageConfigDigest: image.configDigest, manifest,
+		};
+		const preservedSecret = restoredDriverScope(input.restoredStartup, restoredBinding);
 		const identityLabels = labels(input.identity);
 		const instanceNames = names(input.identity);
 		const data = await privateDirectory(input.dataDirectory);
@@ -92,6 +98,7 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		let container = await inspectContainer(run, instanceNames.container);
 		if (container.state === "unknown") throw new Error("sidecar_ownership_unknown");
 		if (container.state === "found") {
+			if (input.restoredStartup) throw new Error("restored_startup_container_present");
 			const storage = await assertIsolation(input.identity);
 			assertContainerBinding(container.value, input.identity, image, storage, configuredEngineApi, native.digest);
 		} else {
@@ -116,10 +123,15 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 			for (const kind of ["data", "secrets"] as const) {
 				const volume = await inspectVolume(run, storage[kind]);
 				if (volume.state === "found") assertVolume(volume.value, input.identity, privateRootDigest, kind);
-				else if (volume.state === "absent") await createVolume(run, input.identity, privateRootDigest, kind);
+				else if (volume.state === "absent") {
+					if (input.restoredStartup) throw new Error("restored_startup_volume_missing");
+					await createVolume(run, input.identity, privateRootDigest, kind);
+				}
 				else throw new Error("sidecar_volume_unknown");
 			}
+			restoredDriverScope(input.restoredStartup, restoredBinding);
 			await provisionStorage(run, {
+				preservedSecret,
 				image: image.reference,
 				authenticationFile: authentication,
 				captureIssuerFile: captureIssuer,
@@ -276,5 +288,11 @@ export function createOciDriver(options: OciDriverOptions): SidecarDriver {
 		if (network.state === "unknown") throw new Error("sidecar_network_unknown");
 	}
 
-	return { start, observe, stop };
+	return {
+		start, observe, stop,
+		withRestoredStart: (input, operation) => {
+			if (!isDeepStrictEqual(input.manifest, manifest)) throw new Error("sidecar_manifest_conflict");
+			return withRestoredEngineStart({ ...input, privateRoot, imageConfigDigest: image.configDigest, run }, operation);
+		},
+	};
 }

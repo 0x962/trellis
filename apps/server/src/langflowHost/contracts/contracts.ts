@@ -5,6 +5,7 @@ import type {
 	RenewalReceiptV1,
 	TakeoverReceiptV1,
 } from "../../langflowContracts";
+import type { RestoredDriverStart, RestoredStartScope } from "../restoredStartup/withRestoredEngineStart";
 import type { DispatchPermit } from "../dispatchGate/contracts";
 
 export type SidecarIdentity = {
@@ -42,7 +43,9 @@ export type NativeReservationAuthentication = {
 };
 
 export type SidecarDriver = {
+	withRestoredStart?(input: RestoredDriverStart, operation: (scope: RestoredStartScope) => Promise<LiveOwnership>): Promise<LiveOwnership>;
 	start(input: {
+		restoredStartup?: RestoredStartScope;
 		identity: SidecarIdentity;
 		manifest: LangflowSidecarManifestV1;
 		dataDirectory: string;

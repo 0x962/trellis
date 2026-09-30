@@ -12,7 +12,7 @@ import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
-import { documentActions, type DocumentActionRuntime } from "./documentActions";
+import { type DocumentActionRuntime, documentActions } from "./documentActions";
 import { type EditorGatewayConfiguration, editorGateway } from "./editorGateway";
 import type { Bus } from "./events/bus.ts";
 import type { GhAccess } from "./ghState.ts";

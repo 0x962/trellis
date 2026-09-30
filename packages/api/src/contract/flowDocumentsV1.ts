@@ -53,7 +53,11 @@ export const flowDocumentsV1 = {
 		.input(ActivateConversionV1InputSchema)
 		.output(FlowDocumentActionResultV1Schema),
 	editConversion: base
-		.route({ method: "POST", path: "/flows/{flowId}/conversion-edits-v1", summary: "Apply an explicit conversion edit" })
+		.route({
+			method: "POST",
+			path: "/flows/{flowId}/conversion-edits-v1",
+			summary: "Apply an explicit conversion edit",
+		})
 		.errors(flowDocumentV1Errors)
 		.input(ConversionEditIntentV1Schema)
 		.output(FlowDocumentActionResultV1Schema),

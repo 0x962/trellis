@@ -40,7 +40,12 @@ export function documentActions(options: {
 				observation,
 				authenticationFile: join(options.home, "langflow", "secrets", `${observation.identity.instanceId}.token`),
 			};
-			return options.transport.call("flowDocuments.action", context, input, timing) as Promise<FlowDocumentActionResultV1>;
+			return options.transport.call(
+				"flowDocuments.action",
+				context,
+				input,
+				timing,
+			) as Promise<FlowDocumentActionResultV1>;
 		});
 	};
 	return {
