@@ -64,6 +64,30 @@ test("restores exited history without resources or rewritten session files", () 
 	expect([...records.values()]).toHaveLength(0);
 });
 
+test("restores the capture identity from the original launch", () => {
+	seed("captured");
+	const path = sessionFiles(home, "captured").session;
+	const saved = JSON.parse(readFileSync(path, "utf8"));
+	saved.launch.capture = {
+		harness: "claude",
+		accountId: "account-1",
+		profileId: "profile-1",
+		agentRunId: "run-1",
+		attemptId: "captured",
+		providerScopePaths: ["/profiles/one", "/profiles/one/projects/project"],
+		providerRoots: [
+			{
+				contentKind: "conversation-directory",
+				sourceKind: "account-profile",
+				path: "/profiles/one/projects/project",
+				externalLinks: [],
+			},
+		],
+	};
+	writeFileSync(path, JSON.stringify(saved));
+	expect(restore().get("captured")!.launch!.capture).toEqual(saved.launch.capture);
+});
+
 test("retains subscribers and pending deliveries until both finish", () => {
 	seed("active", { status: "running", endedAt: null });
 	const records = restore();

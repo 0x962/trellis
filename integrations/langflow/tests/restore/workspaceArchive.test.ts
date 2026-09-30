@@ -41,6 +41,26 @@ test("an absent capture producer cannot read or publish a workspace", async () =
 	await expect(lstat(f.archive)).rejects.toThrow();
 });
 
+test("workspace archives retain each missing conversation root identity", async () => {
+	const f = await fixture();
+	const unavailable = ["/fixture/profile/archived_sessions", null].map((originalIdentity) => ({
+		identity: f.binding.identities[0]!, sourceKind: "account-profile" as const,
+		originalIdentity, code: "conversation_root_missing", message: "The retained root is unavailable.",
+	}));
+	f.inventory.unavailable.push(...unavailable);
+	const captured = await exportWorkspaceArchive({ capture: f.reader }, {
+		binding: f.binding, workspaceId: f.worktree, destination: f.archive,
+	});
+	if (captured.state !== "exported") throw new Error("fixture_export_unavailable");
+	const manifest = JSON.parse(captured.sourceBytes);
+	expect(manifest.inventory.unavailable).toEqual(unavailable);
+	const restored = await restoreWorkspaceArchive({ liveHome: f.liveHome }, {
+		archive: f.archive, sourceDigest: captured.sourceDigest, destination: f.destination,
+	});
+	const retained = JSON.parse(await readFile(join(restored.archive, "workspace.json"), "utf8"));
+	expect(retained.inventory.unavailable).toEqual(unavailable);
+});
+
 test("a lost synthetic scope fails without a manifest or a release call", async () => {
 	const f = await fixture();
 	let reads = 0;
