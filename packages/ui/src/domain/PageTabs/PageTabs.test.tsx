@@ -111,7 +111,8 @@ test("a pinned tab keeps its full name in the accessible name and has no close b
 	expect(html).toContain('data-pinned="true"');
 	expect(html).not.toContain('aria-label="Close Search for the whole team"');
 	expect(html).toContain('aria-label="Close Tickets"');
-	expect(html).toContain('aria-label="Tab actions"');
+	expect(html).not.toContain('aria-label="Tab actions"');
+	expect(html).toContain('aria-haspopup="menu"');
 });
 
 test("accepts the sort callback beside the other tab actions", () => {
@@ -126,5 +127,6 @@ test("accepts the sort callback beside the other tab actions", () => {
 		/>,
 	);
 
-	expect(html).toContain('aria-label="Tab actions"');
+	expect(html).not.toContain('aria-label="Tab actions"');
+	expect(html).toContain('aria-haspopup="menu"');
 });

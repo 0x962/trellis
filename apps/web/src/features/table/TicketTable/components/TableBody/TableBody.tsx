@@ -2,14 +2,13 @@ import type { StatusSummary, TicketSummary } from "@trellis/api";
 import { CheckConfetti, cx, useMediaQuery } from "@trellis/ui";
 import { type MouseEvent, type RefObject, useMemo, useRef } from "react";
 import { useStableCallback } from "../../../../../hooks/useStableCallback";
-import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
 import type { ColumnId, TableKind } from "../../../columns";
 import { phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
-import { groupHeaderHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
+import { desktopRowHeight, groupHeaderHeight, phoneRowHeight, prRowHeight } from "../../../rowHeights";
 import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import type { WaveHeaderOptions } from "../../../WaveHeader";
 import { waveBoxes } from "../../waveBoxes";
@@ -28,7 +27,6 @@ export type TableBodyProps = {
 	// On a phone, a row of an epic table draws the epic layout of `PhoneRow`.
 	tableKind: TableKind;
 	columns: readonly ColumnId[];
-	density: Density;
 	project?: string;
 	statuses: readonly StatusSummary[];
 	loading: boolean;
@@ -72,7 +70,6 @@ export function TableBody({
 	items: allItems,
 	tableKind,
 	columns,
-	density,
 	project,
 	statuses,
 	loading,
@@ -98,7 +95,7 @@ export function TableBody({
 	const body = useRef<HTMLDivElement>(null);
 	// Below 768 px every row is two lines, so the row height changes with it.
 	const phone = useMediaQuery("(max-width: 767px)");
-	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
+	const rowHeight = phone ? phoneRowHeight : desktopRowHeight;
 	const headerHeight = phone ? phoneGroupHeaderHeight : groupHeaderHeight;
 	const items = useMemo(() => (phone ? phoneItems(allItems) : allItems), [phone, allItems]);
 	const { virtualizer, headerIndexes } = useTableVirtualizer({
@@ -148,7 +145,7 @@ export function TableBody({
 			className={cx("min-h-0 flex-1 overflow-auto outline-none [scrollbar-gutter:stable]", bottomRoom && "pb-18")}
 		>
 			{loading ? (
-				<TableSkeleton density={density} />
+				<TableSkeleton />
 			) : (
 				<div
 					ref={body}
@@ -216,7 +213,6 @@ export function TableBody({
 							<Row
 								key={virtual.key}
 								ticket={ticket}
-								density={density}
 								columns={columns as string[]}
 								viewedProject={project}
 								top={virtual.start}

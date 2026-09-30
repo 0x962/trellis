@@ -995,6 +995,13 @@
       "when": 1790739606778,
       "tag": "0144_epic_cancellation",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1790747794744,
+      "tag": "0145_epic_autopilot",
+      "breakpoints": true
     }
   ]
 }

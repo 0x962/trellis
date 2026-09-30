@@ -22,7 +22,7 @@ import type { ReactNode } from "react";
 import { projectHref } from "../../../../lib/projectUrl";
 import { toggleTheme } from "../../../../lib/theme";
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
-import { uiActions, useUiStore } from "../../../../stores/uiStore";
+import { uiActions } from "../../../../stores/uiStore";
 import { composerActions } from "../../../composer";
 import { itemsOfSection } from "../../items";
 import { dispatchPageTabCommand } from "../../pageTabCommands";
@@ -51,7 +51,6 @@ const icons: Record<string, ReactNode> = {
 	"view.filter": <Funnel />,
 	"view.sort": <ArrowsDownUp />,
 	"view.group": <Rows />,
-	"view.density": <Rows />,
 	"view.back": <ArrowLeft />,
 	"view.forward": <ArrowRight />,
 	"view.theme": <Moon />,
@@ -123,9 +122,6 @@ export const viewRows = (deps: RowDeps): PaletteRow[] => {
 		),
 		"view.sort": () => deps.openSubmenu({ kind: "sort" }),
 		"view.group": () => deps.openSubmenu({ kind: "group" }),
-		"view.density": run(deps, () =>
-			uiActions.setDensity(useUiStore.getState().density === "compact" ? "comfortable" : "compact"),
-		),
 		"view.back": run(deps, deps.action.back),
 		"view.forward": run(deps, deps.action.forward),
 		"view.theme": run(deps, toggleTheme),
