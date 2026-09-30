@@ -88,13 +88,15 @@ export async function withCaptureSnapshot<T>(
 			repository.common === null ? [] : [{ kind: "repository" as const, directory: repository.common }],
 		),
 	];
-	retainRuntimeCaptureHold(dataHome, request, scopes, global);
+	let retained = false;
 	let opened = false;
 	try {
 		return await withRuntimeMutationExclusion(
 			dataHome,
 			scopes,
 			async () => {
+				retainRuntimeCaptureHold(dataHome, request, scopes, global);
+				retained = true;
 				const held = await discoverCapture(request, records, true);
 				if (!sameCaptureValue(before, held))
 					throw captureError("Capture sources changed before exclusion completed");
@@ -182,7 +184,7 @@ export async function withCaptureSnapshot<T>(
 			{ captureId: request.captureId, exclusiveAdmission: global },
 		);
 	} catch (error) {
-		if (!opened) removeRuntimeCaptureHold(dataHome, request.captureId);
+		if (retained && !opened) removeRuntimeCaptureHold(dataHome, request.captureId);
 		throw error;
 	}
 }
