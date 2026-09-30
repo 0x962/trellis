@@ -146,11 +146,13 @@ describe("SessionStatusPane", () => {
 		expect(html).toContain('data-markdown="Latest **status**"');
 	});
 
-	test("describes activity-based observer updates behind a disclosure", () => {
+	test("keeps the update history name without explanatory text", () => {
 		const html = render();
-		expect(html).toContain("How updates work");
-		expect(html).toContain("The observer reads completed session activity and writes a rich update.");
-		expect(html).toContain("A paused session receives no update.");
+		expect(html).toContain('aria-label="Update history"');
+		expect(html).not.toContain("How updates work");
+		expect(html).not.toContain("The observer reads completed session activity and writes a rich update.");
+		expect(html).not.toContain("A paused session receives no update.");
+		expect(html).not.toContain("Up/Down: Browse. Left/Right: Fold days. Enter: Select.");
 	});
 });
 

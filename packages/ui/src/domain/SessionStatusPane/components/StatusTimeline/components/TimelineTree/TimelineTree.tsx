@@ -15,7 +15,6 @@ type Props = Pick<SessionStatusPaneProps, "renderMarkdown" | "onOpenLink"> & {
 	selected: string;
 	latest: string;
 	newUpdate: boolean;
-	helpId: string;
 	onKeyDown: (event: KeyboardEvent<HTMLDivElement>, key: string, day: string, update?: SessionUpdate) => void;
 	onFocus: (key: string) => void;
 	onToggle: (key: string) => void;
@@ -30,7 +29,6 @@ export function TimelineTree({
 	selected,
 	latest,
 	newUpdate,
-	helpId,
 	onKeyDown,
 	onFocus,
 	onToggle,
@@ -73,7 +71,6 @@ export function TimelineTree({
 				ref={root}
 				role="tree"
 				aria-label="Update history"
-				aria-describedby={helpId}
 				className="relative min-w-0 [--timeline-compact:0] max-md:[--timeline-compact:1]"
 				style={{ height: window.offsets.at(-1) }}
 			>
