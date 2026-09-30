@@ -1551,12 +1551,12 @@ gives no lines.
 **Delivery.** A notice queues one `review_deliveries` row with
 `check_notice_id` for each linked ticket, through `recipientsOf`.
 The delivery loop reads the current attempt of each assigned agent with a pending or held notice.
-CI and queue notices can resume an attempt that exited after idle expiry.
+Check results, merge conflicts, conflict resolutions, and queue changes can resume an attempt after idle expiry.
 The resume preserves the conversation and workspace.
 The notice supplies the resume prompt. Provider startup confirmation determines when that delivery completes.
 A live process receives its notice through the 15 second send deadline.
 One notice resumes an idle assignment per dispatch pass. The next pass reads the new attempt before it sends another notice.
-An explicitly stopped agent keeps its notice in `held`. Review and merge-conflict notices wait for a live process.
+An explicitly stopped agent keeps its notice in `held`. Review submissions wait for a live process.
 A pull request with no linked ticket gets no notice row.
 The dispatcher drops an old check or conflict notice after a newer fact replaces it.
 The dispatcher keeps each queue notice because each one records a completed state change.
@@ -1576,10 +1576,9 @@ kinds:
 - `clear`: GitHub answers `mergeable`, and the newest merge notice is
   `conflict`.
 
-`unknown` sends nothing. A pull request that GitHub marks as a draft sends
-nothing. A pull request that is not ready for review still sends, because its
-agent owns the branch. The
-conflict kinds and the check kinds are separate families. `decideNotice`
+`unknown` sends nothing. GitHub drafts and pull requests that are not ready for
+local review receive conflict notices because their assigned agents own the branches.
+The conflict kinds and the check kinds are separate families. `decideNotice`
 reads only the check kinds. A notice of one family never replaces a pending
 notice of another family. The pull request rows of the ticket page and the epic table,
 and the review header, draw `MergeConflictMark` (packages/ui): the Phosphor

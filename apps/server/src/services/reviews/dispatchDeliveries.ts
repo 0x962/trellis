@@ -142,10 +142,8 @@ const waitingDeliveries = (tx: Tx, state: "pending" | "held") =>
 	rows<WaitingDelivery>(
 		tx,
 		sql`SELECT delivery.id, delivery.ticket_id AS "ticketId",
-			COALESCE(delivery.thread_message_id IS NOT NULL
-				OR notice.kind IN ('failed', 'passed', 'stuck', 'queued', 'dequeued', 'merged'), false) AS "resumesIdle"
+			delivery.thread_message_id IS NOT NULL OR delivery.check_notice_id IS NOT NULL AS "resumesIdle"
 		FROM review_deliveries delivery
-		LEFT JOIN check_notices notice ON notice.id = delivery.check_notice_id
 		WHERE delivery.state = ${state} AND ${due}
 		ORDER BY delivery.id`,
 	);
@@ -197,7 +195,7 @@ const outcomeOf = (failure: unknown) => {
 	return text === unconfirmedDelivery ? { state: "unknown", error: text } : { state: "failed", error: text };
 };
 
-// A due comment, check result, or queue notice can restart an idle run.
+// A due comment or pull request notice can resume an agent after idle expiry.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],
