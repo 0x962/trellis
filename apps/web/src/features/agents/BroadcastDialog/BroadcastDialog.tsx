@@ -1,14 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { AgentBroadcastGroup, AgentBroadcastResult } from "@trellis/api";
+import type { AgentBroadcastInput, AgentBroadcastResult } from "@trellis/api";
 import { Button, Checkbox, Dialog, FailureState, FieldHint, Textarea } from "@trellis/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
+import type { BroadcastEpic } from "./broadcastStore";
 
-type DeliveryInput = {
-	group: AgentBroadcastGroup;
-	text: string;
-	requestId: string;
+type DeliveryInput = AgentBroadcastInput & {
 	previewCount: number;
 };
 
@@ -19,7 +17,7 @@ const recipientLabel = (failure: AgentBroadcastResult["failures"][number]) =>
 		? `${failure.recipient.name} (${failure.recipient.ticketIdentifier})`
 		: failure.recipient.name;
 
-export function BroadcastDialog({ onClose }: { onClose: () => void }) {
+export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null; onClose: () => void }) {
 	const { client, orpc } = useApp();
 	const message = useRef<HTMLTextAreaElement>(null);
 	const resultStatus = useRef<HTMLDivElement>(null);
@@ -27,8 +25,9 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 	const [idle, setIdle] = useState(false);
 	const [text, setText] = useState("");
 	const request = useRef<DeliveryInput | null>(null);
+	const scope = epic ? { epic: epic.ref } : {};
 	const counts = useQuery({
-		...orpc.agentRuns.broadcastRecipients.queryOptions({ input: {} }),
+		...orpc.agentRuns.broadcastRecipients.queryOptions({ input: scope }),
 		refetchInterval: 2000,
 	});
 	const delivery = useMutation({
@@ -43,8 +42,11 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 		event.preventDefault();
 		if (!canSend) return;
 		const previous = request.current;
-		const requestId = previous?.group === group && previous.text === text ? previous.requestId : crypto.randomUUID();
-		request.current = { group, text, requestId, previewCount: count };
+		const requestId =
+			previous?.group === group && previous.text === text && previous.epic === scope.epic
+				? previous.requestId
+				: crypto.randomUUID();
+		request.current = { ...scope, group, text, requestId, previewCount: count };
 		delivery.mutate(request.current);
 	};
 	const close = () => {
@@ -58,7 +60,11 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 		<Dialog
 			open
 			title="Broadcast a message"
-			description="Send one normal message to each agent in the selected groups."
+			description={
+				epic
+					? `Send one message to the selected groups in ${epic.name}.`
+					: "Send one normal message to each agent in the selected groups."
+			}
 			initialFocus={result ? undefined : message}
 			onOpenChange={(open) => !open && close()}
 		>

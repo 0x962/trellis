@@ -1,6 +1,7 @@
-import { DotsThree, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { DotsThree, Megaphone, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import type { MenuItem } from "@trellis/ui";
+import { broadcastActions } from "../../../../agents/BroadcastDialog";
 import { TopbarActionButton, TopbarActionMenu } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 import { EpicCreateActions } from "../EpicCreateActions";
@@ -42,6 +43,15 @@ export function EpicTopbarActions({
 }: EpicTopbarActionsProps) {
 	return (
 		<>
+			{!readOnly && (
+				<TopbarActionButton
+					data-bar-slot="broadcast"
+					label="Broadcast to epic"
+					icon={<Megaphone />}
+					disabled={epic === null}
+					onClick={epic ? () => broadcastActions.open({ ref: epic.ref, name: epic.name }) : undefined}
+				/>
+			)}
 			{readOnly ? null : epic === null ? (
 				<TopbarActionButton data-bar-slot="add" label="Add" icon={<Plus />} disabled />
 			) : (

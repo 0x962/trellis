@@ -673,6 +673,11 @@ The sweep keeps the branch, assignment, and provider conversation.
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
 
+`agentRuns.broadcastRecipients` counts eligible working and idle agents.
+`agentRuns.broadcast` reads the recipients again before it sends through the normal message path.
+Both operations accept an optional epic reference or ID and select runs through the current epic of each ticket.
+An omitted epic selects eligible agents across Trellis. An unknown epic fails before delivery.
+
 `agentRuns.start` accepts an optional harness configuration and a canonical model ID for the assignment.
 The harness configuration includes its preset, model, and optional effort. The API validates effort against the selected harness and model.
 An omitted model uses the configured default. Custom commands reject explicit model overrides.
@@ -1121,7 +1126,8 @@ Done, each with its count. A row prints the name, a `StackedBar` of the counts b
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
 `/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+`IconButton`, the Broadcast `IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+Broadcast opens the shared dialog with the epic scope. Ticket filters do not change the broadcast recipients.
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete. The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
 Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
