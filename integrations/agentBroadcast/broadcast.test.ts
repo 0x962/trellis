@@ -51,14 +51,37 @@ test.each(["claude", "pi", "custom"])(
 	},
 );
 
-test("an idle recipient receives the complete original message", async () => {
+test("an idle ticket agent receives the complete original message", async () => {
 	const text = "  First line\n\tSecond line 文\n\n";
 	const result = await prepareBroadcast(f.ctx, { group: "idle", text, requestId: "exact" });
 	expect(result).toEqual({ group: "idle", recipientCount: 1, acceptedCount: 1, failures: [] });
-	await f.waitForOutput("idleSession", "Second line");
-	expect(await f.output("idleSession")).toBe(
-		`\u001b[200~trellis-message:exact-${f.ids.idleSession}\nThis is a broadcast from the user.\n\n${text}\u001b[201~\r`,
+	await f.waitForOutput("idleAgent", "Second line");
+	expect(await f.output("idleAgent")).toBe(
+		`\u001b[200~trellis-message:exact-${f.ids.idleAgent}\nThis is a broadcast from the user.\n\n${text}\u001b[201~\r`,
 	);
+	expect(await f.output("idleSession")).toBe("");
+});
+
+test("both groups receive one delivery with each working agent held until its turn ends", async () => {
+	const input = { group: "both", text: "One message for both groups", requestId: "both" } as const;
+	expect(await prepareBroadcast(f.ctx, input)).toEqual({
+		group: "both",
+		recipientCount: 3,
+		acceptedCount: 3,
+		failures: [],
+	});
+	await prepareBroadcast(f.ctx, input);
+	await f.waitForOutput("idleAgent", input.text);
+	expect(await f.output("workingAgent")).toBe("");
+	expect(await f.output("workingFlow")).toBe("");
+	expect(await f.output("idleSession")).toBe("");
+	for (const key of ["workingAgent", "workingFlow"] as const) {
+		await f.idle(key);
+		await f.waitForOutput(key, input.text);
+	}
+	for (const key of ["workingAgent", "workingFlow", "idleAgent"] as const) {
+		expect((await f.output(key)).split(input.text)).toHaveLength(2);
+	}
 });
 
 test("a failed recipient keeps its identity and does not stop another delivery", async () => {

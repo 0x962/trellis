@@ -7,10 +7,12 @@ bunx tsc --noEmit -p integrations/agentBroadcast/tsconfig.json
 
 The fixture uses an isolated database, the real send service, HarnessHost, and the runtime socket.
 Node runs the runtime because its native modules use the Node ABI.
-Three controlled cat processes act as terminal recipients.
+Four controlled cat processes act as terminal recipients.
 The fixture closes these processes and removes its temporary home after each case.
 
 The checks cover group selection, exact message bytes, delivery after each turn, request replay, changed targets, partial failures, and long request IDs.
+The combined selection sends once to each working agent and each idle agent on an unfinished ticket.
+An idle session without a ticket receives no broadcast.
 They verify terminal transport.
 They do not prove that an external provider reads the message.
 

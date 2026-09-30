@@ -26,6 +26,7 @@ export async function cancel(ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	if (existing.canceled_at === null || members.length > 0) {
 		const actorId = await resolveActorId(ctx, tx, actor);
 		await tx.execute(sql`UPDATE epics SET canceled_at = COALESCE(canceled_at, ${ctx.now}),
+			autopilot = jsonb_set(autopilot, '{enabled}', 'false'::jsonb),
 			actor_id = ${actorId}, actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now}
 			WHERE id = ${existing.id}`);
 		ctx.emit({ type: "epics.changed", projectId: existing.project_id, id: existing.id });

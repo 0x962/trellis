@@ -200,10 +200,12 @@ The first wave that is not done carries the `Badge` Current after its label. An 
 When the view names one epic, the wave groups hold the Done and Canceled tickets too, last in each group under the default sort. A done wave starts collapsed, and Show completed turns the closed rows off.
 New ticket in this wave in the Wave actions `Menu` of such a group, and the `c` key, create a ticket inside the epic. The menu item also sets the wave of the group.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
-Each epic saves its filters in local storage on the current device.
+Each epic saves its filters and sort field and direction in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
-Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
-Tabs, sort, and display options keep their existing behavior.
+An epic link without a sort restores that epic's saved order into the URL.
+Explicit URL filters replace the saved filters. An explicit URL sort replaces the saved order.
+A filter or sort change saves immediately. The default ID order also saves.
+Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
 ## Group headers
@@ -282,7 +284,7 @@ Truncate long titles and project paths within their columns. Use tabular numbers
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
 Use `ActorAvatar` when a row represents a ticket. It shows the provider mark and the work state for the agent run that is assigned to the ticket of the row.
-A ticket with no assigned agent shows the wave header's play control when the pointer enters its agent slot or the control receives keyboard focus. Touch devices keep the control visible. The control uses the most recent successful assignment choice. An invalid choice opens the shared assignment dialog. The assignment query must confirm that the ticket has no agent before the control appears. Completed tickets, archived projects, and drag previews keep the slot read only. The control keeps the current page open. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page.
+A ticket with no assigned agent shows the wave header's play control when the pointer enters its agent slot or the control receives keyboard focus. Touch devices keep the control visible. The control uses the most recent successful assignment choice. An invalid choice opens the shared assignment dialog. The assignment query must confirm that the ticket has no agent before the control appears. Completed tickets, archived projects, and drag previews keep the slot read only. The control keeps the current page open. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, and the epic page.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.

@@ -7,7 +7,6 @@ import { LinkCapture } from "../features/shell/LinkCapture";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { PageTabsHost } from "../features/shell/PageTabsHost";
 import { RouteError } from "../features/shell/RouteError";
-import { RouteProgress } from "../features/shell/RouteProgress";
 import { ShellFrame, ShellSidebar } from "../features/shell/ShellFrame";
 import { ShellOverlays } from "../features/shell/ShellOverlays";
 import { MachinePressureProvider } from "../features/sidebar/MachinePressure";
@@ -82,7 +81,6 @@ function RootComponent() {
 			</MachinePressureProvider>
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<PageTabsHost />
-				<RouteProgress />
 				<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Outlet />
 				</main>

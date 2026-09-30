@@ -22,10 +22,11 @@ import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
 import * as epicChatter from "./epicChatter";
+import * as epicAutopilot from "./epics/autopilot";
 import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
-import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
+import { prepareNameFromFirstMessage, saveNameFromFirstMessage } from "./firstMessageName";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
@@ -104,7 +105,7 @@ export const services = {
 	"sessions.start": sessionMutation(startSession),
 	"sessions.move": core("mutation", moveSession),
 	"sessions.rename": core("mutation", renameSession),
-	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
+	"sessions.nameFirstMessage": prepared("mutation", prepareNameFromFirstMessage, saveNameFromFirstMessage),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	...sessionObserverServices,
@@ -220,6 +221,9 @@ export const services = {
 	"epicChatter.set": core("mutation", epicChatter.set),
 	"epicChatter.list": core("read", epicChatter.list),
 	"epics.list": core("read", epics.list),
+	"epics.autopilot": core("read", epicAutopilot.get),
+	"epics.setAutopilot": core("mutation", epicAutopilot.set),
+	"epics.dispatchAutopilot": prepared("mutation", epicAutopilot.dispatch, agentTerminal.result),
 	"epics.get": core("read", epics.get),
 	"epics.create": core("mutation", epics.create),
 	"epics.update": core("mutation", epics.update),

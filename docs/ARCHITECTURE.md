@@ -306,6 +306,34 @@ A repeated cancellation changes only members that become unfinished again.
 The saved cancellation takes precedence when a person later changes a member ticket.
 Ticket automation follows the normal canceled status behavior.
 
+`epics.autopilot` stores optional settings for automatic ticket starts.
+The settings contain `enabled`, `maxConcurrency`, `harness`, and `accountId`.
+A null value leaves autopilot off. `epics.autopilot` reads the settings through the API.
+`epics.setAutopilot` saves them and emits `epics.changed`.
+Enablement requires an active project, an epic without cancellation, and a configured `started` status.
+An explicit account must belong to the selected harness.
+
+The database worker calls `epics.dispatchAutopilot` through its existing repeating service loop.
+Each reservation checks the saved settings, dependencies, assignments, and capacity in one transaction.
+A ready ticket has category `todo`, completed or canceled dependencies, and no open ticket-agent assignment.
+Wave position and ticket position select the order among ready tickets.
+An unfinished earlier wave does not block a ready ticket in a later wave.
+The normal reservation service creates the assignment and its attempt.
+The normal ticket update service moves the ticket to the first configured `started` status.
+Only a committed reservation reaches the native launch service.
+
+Assigned tickets in `todo` or `started` consume slots, including manual assignments and failed starts.
+A move to review or completion releases the slot and preserves the assignment.
+Manual starts can exceed the limit. Autopilot waits for capacity before its next reservation.
+A lower limit preserves existing agents and waits for capacity.
+Disablement stops new reservations and permits accepted starts to finish.
+Cancellation disables autopilot. Project archival prevents reservations.
+Saved settings and assignments survive restart. Autopilot never repeats an existing assignment.
+
+The CLI exposes `trellis epic autopilot show`, `enable`, and `disable`.
+Enablement requires `--max-concurrency` and `--harness`.
+The optional `--model`, `--effort`, and `--account` flags select the launch settings.
+
 The ticket brief names the epic. The header gains
 `- Epic: <name> (<ref>), <done> of <total - canceled> done`. After the
 description, `## Epic: <name>` prints the plan in full, and `## Epic tickets`
@@ -654,6 +682,12 @@ Read [the review guide](reviews.md) for commands and review behavior.
 An agent run stores its name, kind, and instruction at launch. A ticket agent names one ticket.
 The row retains the project key and ticket identifier so its history remains readable.
 
+The broadcast dialog lets the user select working agents, idle agents, or both groups.
+Send requires at least one selected group and shows the current recipient count.
+Idle recipients have tickets in the todo, started, or review category. Idle sessions without a ticket stay excluded.
+The server selects each recipient once and refreshes the groups before delivery.
+`agentRuns.broadcast` accepts `group: "working" | "idle" | "both"`.
+
 `agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
@@ -731,11 +765,12 @@ The worktree lives under `agents/<run id>/work` in the data home and starts from
 A session without a project uses `sessions/<name>`, a Git repository on `main` with one empty commit.
 The session name contains 1 to 60 characters. Two sessions can hold the same name.
 An omitted name starts as `New session`.
-After the first complete exchange, a separate agent writes a short name and the existing rename service saves it.
+When the runtime confirms the first user prompt, a separate agent writes a short name from that prompt.
+The existing rename service saves the name while the session continues its first turn.
 The name request runs once and does not use the saved conversation.
 A user rename before or during that request wins.
 The internal name state is `temporary`, `requested`, or `set`.
-This state makes two completion events claim one name request.
+This state makes duplicate prompt confirmations claim one name request.
 It also keeps later messages, resumes, and server restarts from making another name.
 The `sessions` row keeps the name, directory, harness, and run. The run holds the project, conversation, and process attempts.
 The launch accepts a harness, model, effort, account, prompt, and files. A project session receives the prompt that the person entered.
@@ -1137,10 +1172,12 @@ group, or into No wave, and a selected row drags the whole selection (`useWaveDr
 picker of the focused row or of the selection, and the picker of the bulk bar offers New wave, which adds a wave with
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
 `waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the same Add menu as the `Topbar`.
-Each epic saves its filters in local storage on the current device.
+Each epic saves its filters and sort field and direction in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
-Explicit URL filters replace the saved filters. A filter change or clear saves immediately.
-Tabs, sort, and display options keep their existing behavior.
+An epic link without a sort restores that epic's saved order into the URL.
+Explicit URL filters replace the saved filters. An explicit URL sort replaces the saved order.
+A filter or sort change saves immediately. The default ID order also saves.
+Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
 The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
 The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
 waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The

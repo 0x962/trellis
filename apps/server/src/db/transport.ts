@@ -194,9 +194,8 @@ export const createInlineTransport = ({
 
 	let sessionMonitor: ReturnType<typeof startSessionMonitor> | null = null;
 	let jobs: Jobs | null = null;
-	let pageDelivery: ReturnType<typeof startRepeatingCall> | null = null;
+	let repeatingCalls: Array<ReturnType<typeof startRepeatingCall>> = [];
 	let reviewDelivery: ReturnType<typeof startReviewDeliveryLoop> | null = null;
-	let sessionObserverGeneration: ReturnType<typeof startRepeatingCall> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let fileSweep: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
@@ -214,7 +213,7 @@ export const createInlineTransport = ({
 				record: createSessionActivityRecorder(db, log, diagnostics),
 				client: nativeClient(config.home),
 				emit: (event) => bus.emit(event),
-				complete: (input) => backgroundCall("sessions.nameFirstExchange", input),
+				nameSession: (input) => backgroundCall("sessions.nameFirstMessage", input),
 				log: options.log,
 			});
 			flowReconcile = startNativeReconcile({
@@ -243,22 +242,24 @@ export const createInlineTransport = ({
 				log: options.log,
 				intervalMs: FILE_SWEEP_MS,
 			});
-			pageDelivery = startRepeatingCall({
-				clock,
-				log: options.log,
-				failureLogMessage: "Page comment delivery failed",
-				call: () => backgroundCall("pages.dispatchWatches", {}),
-			});
+			repeatingCalls = (
+				[
+					["pages.dispatchWatches", "Page comment delivery failed"],
+					["sessionObservers.dispatch", "Session observer generation failed"],
+					["epics.dispatchAutopilot", "Epic autopilot dispatch failed"],
+				] as const
+			).map(([name, failureLogMessage]) =>
+				startRepeatingCall({
+					clock,
+					log: options.log,
+					failureLogMessage,
+					call: () => backgroundCall(name, {}),
+				}),
+			);
 			reviewDelivery = startReviewDeliveryLoop({
 				clock,
 				log: options.log,
 				call: () => backgroundCall("reviews.dispatchDeliveries", {}),
-			});
-			sessionObserverGeneration = startRepeatingCall({
-				clock,
-				log: options.log,
-				failureLogMessage: "Session observer generation failed",
-				call: () => backgroundCall("sessionObservers.dispatch", {}),
 			});
 			jobs = startBackgroundJobs({
 				db,
@@ -280,9 +281,8 @@ export const createInlineTransport = ({
 
 	const close = async () => {
 		await sessionMonitor?.stop();
-		await sessionObserverGeneration?.stop();
+		await Promise.all(repeatingCalls.map((call) => call.stop()));
 		await reviewDelivery?.stop();
-		await pageDelivery?.stop();
 		await flowReconcile?.stop();
 		await fileSweep?.stop();
 		if (jobs !== null) await jobs.stop();
