@@ -1,7 +1,7 @@
 import { List, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import type { Project } from "@trellis/api";
+import { defaultSessionCleanup, type Project, SESSION_DAY_MS } from "@trellis/api";
 import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -30,12 +30,14 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const [heldSelectedId, setHeldSelectedId] = useState<string>();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
+	const settings = useQuery(orpc.settings.get.queryOptions({}));
+	const archiveAfterDays = (settings.data?.sessionCleanup ?? defaultSessionCleanup).archiveAfterDays;
 	const runsOptions = allAgentRunsOptions(
 		orpc,
 		client,
-		showArchived
+		showArchived || archiveAfterDays === null || archiveAfterDays * SESSION_DAY_MS > Date.now()
 			? { project: project.id, includePinnedHistory: true, allHistory: true, limit: 1000 }
-			: { project: project.id, includePinnedHistory: true, windowHours: 48, limit: 1000 },
+			: { project: project.id, includePinnedHistory: true, windowHours: archiveAfterDays * 24, limit: 1000 },
 	);
 	const selectedRunOptions = orpc.agentRuns.list.queryOptions({ input: { ids: hash ? [hash] : [] } });
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
@@ -66,17 +68,17 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 		return availableRuns.filter((run) => run.kind !== "flow" && (run.kind !== "session" || sessionRunIds.has(run.id)));
 	}, [runs.data, linkedRun, sessions.data]);
 	useEffect(() => {
-		const nextArchiveTimeMs = nextSessionArchiveTimeMs(items, archiveClock);
+		const nextArchiveTimeMs = nextSessionArchiveTimeMs(items, archiveClock, archiveAfterDays);
 		if (nextArchiveTimeMs === null) return;
 		const timer = window.setTimeout(
 			() => setArchiveClock(Date.now()),
 			Math.min(nextArchiveTimeMs - Date.now() + 1, 2_147_483_647),
 		);
 		return () => window.clearTimeout(timer);
-	}, [items, archiveClock]);
+	}, [items, archiveClock, archiveAfterDays]);
 	const current = useMemo(
-		() => sessionGroups(items, { search: "", showArchived: false, now: archiveClock }),
-		[items, archiveClock],
+		() => sessionGroups(items, { search: "", showArchived: false, now: archiveClock, archiveAfterDays }),
+		[items, archiveClock, archiveAfterDays],
 	);
 	const selected = selectedSession(items, current.runs, hash, heldSelectedId);
 	useEffect(() => {
@@ -107,6 +109,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			showArchived={showArchived}
 			onShowArchivedChange={setShowArchived}
 			archiveClock={archiveClock}
+			archiveAfterDays={archiveAfterDays}
 		/>
 	);
 	return (

@@ -776,8 +776,19 @@ Project Sessions puts project sessions and ticket agents in one list, in order o
 `agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
 An attempt start and an assignment close also count as activity.
 The host monitor requires a complete execution service read before it stores new activity.
-After 48 hours without activity, an unpinned row moves to Archived.
+The Clean up section in Settings sets the archive and deletion periods in whole days.
+The defaults are 3 days for archive and 7 days for deletion. Each rule can be disabled.
+After the archive period without activity, an unpinned, stopped row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
+The host also runs session cleanup at boot and once each hour.
+Cleanup archives sessions without a project by setting `archived_at`. This archive keeps the original activity time for deletion.
+Deletion applies only to session records, including sessions in projects. Ticket agents and flow runs remain.
+Cleanup uses the latest recorded activity, current runtime activity, and session edits.
+A current runtime record must report exit. An absent record requires a saved exit capture, unless the session has no attempt.
+Pinned sessions and sessions with a held start, pin, move, or rename operation remain intact.
+Deletion keeps directories with unsaved or ignored files and directories that a process holds open.
+Observer shutdown must succeed before directory deletion. The session row is removed after its directory.
+Run history and captured terminal output remain available.
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
 Terminal links include plain addresses and labeled OSC 8 hyperlinks.
