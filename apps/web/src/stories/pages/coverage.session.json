@@ -1,0 +1,70 @@
+[
+	{
+		"source": "apps/web/src/features/sessions/SessionConversation/SessionConversation.tsx",
+		"export": "SessionConversation",
+		"stories": [
+			"Pages/Session/Running",
+			"Pages/Session/Idle",
+			"Pages/Session/Completed",
+			"Pages/Session/NeedsInput",
+			"Pages/Session/Interrupted",
+			"Pages/Session/Unavailable",
+			"Pages/Session/RunningNarrow",
+			"Pages/Session/CompletedAfterExit",
+			"Pages/Session/StatusUpdatesLoading",
+			"Pages/Session/StatusUpdatesError",
+			"Pages/Session/StatusUpdatesEmpty"
+		],
+		"states": [
+			"running",
+			"idle",
+			"completed turn",
+			"needs input",
+			"interrupted turn",
+			"unknown process",
+			"local terminal output",
+			"completed process",
+			"status history",
+			"status loading",
+			"status error",
+			"status empty"
+		],
+		"notes": "SessionPage renders SessionConversation and NativeTerminal with a local terminal transport. Story setup releases a prepared registry lease for the real terminal and disposes its identity after each story. Completed output remains visible while the process exists. An exited process uses the paused pane and keeps its saved status history."
+	},
+	{
+		"source": "apps/web/src/features/agents/NativeTerminal/NativeTerminal.tsx",
+		"export": "NativeTerminal",
+		"stories": [
+			"Pages/Session/Running",
+			"Pages/Session/Idle",
+			"Pages/Session/Completed",
+			"Pages/Session/NeedsInput",
+			"Pages/Session/Interrupted",
+			"Pages/Session/Unavailable",
+			"Pages/Session/RunningNarrow"
+		],
+		"states": [
+			"running",
+			"idle",
+			"completed turn",
+			"needs input",
+			"interrupted turn",
+			"unknown process",
+			"local terminal output"
+		],
+		"notes": "The real NativeTerminal uses a local transport through the terminal registry. Each story checks the visible status and terminal output. The transport opens no runtime, provider, or network connection."
+	},
+	{
+		"source": "apps/web/src/features/sessions/SessionConversation/components/AgentStatusUpdates/AgentStatusUpdates.tsx",
+		"export": "AgentStatusUpdates",
+		"stories": [
+			"Pages/Session/Completed",
+			"Pages/Session/CompletedAfterExit",
+			"Pages/Session/StatusUpdatesLoading",
+			"Pages/Session/StatusUpdatesError",
+			"Pages/Session/StatusUpdatesEmpty"
+		],
+		"states": ["populated", "completed", "loading", "error", "empty"],
+		"notes": "The status history renders inside the full session page. The completed process keeps its saved updates and shows the paused pane."
+	}
+]

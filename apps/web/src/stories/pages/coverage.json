@@ -1,0 +1,122 @@
+[
+	{
+		"source": "apps/web/src/routes/index.tsx",
+		"export": "Route",
+		"stories": ["Pages/Search/Initial"],
+		"states": ["redirect"],
+		"notes": "Redirect: / replaces its route with /search."
+	},
+	{
+		"source": "apps/web/src/routes/needs-you/route.tsx",
+		"export": "Route",
+		"stories": ["Pages/Search/Initial"],
+		"states": ["redirect"],
+		"notes": "Redirect: /needs-you replaces its route with /search."
+	},
+	{
+		"source": "apps/web/src/routes/p/$/route.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Project/Board",
+			"Pages/Project/Table",
+			"Pages/Epics/Populated",
+			"Pages/Epic/WavesAndTickets",
+			"Pages/Diffs/Populated",
+			"Pages/Page list/Populated",
+			"Pages/Page detail/Populated",
+			"Pages/Project settings/General",
+			"Pages/Project settings/Notes",
+			"Pages/Project/BoardSelection",
+			"Pages/Project/TableSelection"
+		],
+		"states": [
+			"board",
+			"table",
+			"epics",
+			"epic",
+			"diffs",
+			"Pages",
+			"Page",
+			"settings redirect",
+			"notes redirect",
+			"legacy board redirect",
+			"selected tickets",
+			"bulk toolbar"
+		],
+		"notes": "The splat selects each primary project view. Settings and notes open their sheet and redirect to the board. The legacy /board path redirects to the bare project path."
+	},
+	{
+		"source": "apps/web/src/routes/t/$identifier/route.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Ticket sheet/Open",
+			"Pages/Ticket sheet/Loading",
+			"Pages/Ticket sheet/RequestError",
+			"Pages/Ticket sheet/Narrow"
+		],
+		"states": ["redirect", "ticket sheet", "loading", "error", "narrow"],
+		"notes": "Redirect: /t/<identifier> opens the ticket sheet and replaces its route with /. The sheet uses the real TicketView."
+	},
+	{
+		"source": "apps/web/src/routes/sessions.$id.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Session/Paused",
+			"Pages/Session/RequestError",
+			"Pages/Session/Starting",
+			"Pages/Session/Failed",
+			"Pages/Session/Archived",
+			"Pages/Session/Loading",
+			"Pages/Session/Narrow",
+			"Pages/Session/LongName",
+			"Pages/Session/Running",
+			"Pages/Session/Idle",
+			"Pages/Session/Completed",
+			"Pages/Session/NeedsInput",
+			"Pages/Session/Interrupted",
+			"Pages/Session/Unavailable",
+			"Pages/Session/RunningNarrow",
+			"Pages/Session/CompletedAfterExit",
+			"Pages/Session/StatusUpdatesLoading",
+			"Pages/Session/StatusUpdatesError",
+			"Pages/Session/StatusUpdatesEmpty"
+		],
+		"states": [
+			"paused",
+			"starting",
+			"failed",
+			"archived",
+			"loading",
+			"error",
+			"narrow",
+			"long name",
+			"running",
+			"idle",
+			"completed turn",
+			"needs input",
+			"interrupted turn",
+			"unknown process",
+			"local terminal output",
+			"completed process",
+			"status history",
+			"status loading",
+			"status error",
+			"status empty"
+		],
+		"notes": "SessionPage renders SessionConversation and NativeTerminal with a local terminal transport. Story setup releases a prepared registry lease for the real terminal and disposes its identity after each story. Completed output remains visible while the process exists. An exited process uses the paused pane and keeps its saved status history."
+	},
+	{
+		"source": "apps/web/src/routes/sessions.project.$project.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Project sessions/Populated",
+			"Pages/Project sessions/Empty",
+			"Pages/Project sessions/Loading",
+			"Pages/Project sessions/RequestError",
+			"Pages/Project sessions/ArchivedProject",
+			"Pages/Project sessions/Narrow"
+		],
+		"states": ["populated", "empty", "loading", "error", "archived", "narrow"],
+		"notes": ""
+	}
+]

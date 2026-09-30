@@ -1,0 +1,200 @@
+[
+	{
+		"source": "packages/ui/src/primitives/ActivityDot/ActivityDot.tsx",
+		"export": "ActivityDot",
+		"stories": [
+			"Components/ActivityDot/Default",
+			"Components/ActivityDot/Metal",
+			"Components/ActivityDot/NoTooltip",
+			"Components/ActivityDot/Corner"
+		],
+		"states": ["default", "metal", "no tooltip", "corner"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/AttentionDot/AttentionDot.tsx",
+		"export": "AttentionDot",
+		"stories": [
+			"Components/AttentionDot/Default",
+			"Components/AttentionDot/Danger",
+			"Components/AttentionDot/NoTooltip"
+		],
+		"states": ["default", "danger", "no tooltip"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Avatar/Avatar.tsx",
+		"export": "Avatar",
+		"stories": [
+			"Components/Avatar/Default",
+			"Components/Avatar/Agent",
+			"Components/Avatar/Starting",
+			"Components/Avatar/Working",
+			"Components/Avatar/Profile",
+			"Components/Avatar/Large",
+			"Components/Avatar/LongName",
+			"Components/Avatar/StatusStarting",
+			"Components/Avatar/StatusWorking",
+			"Components/Avatar/StatusNeedsInput",
+			"Components/Avatar/StatusDone",
+			"Components/Avatar/StatusIdle",
+			"Components/Avatar/StatusFailed",
+			"Components/Avatar/StatusInterrupted",
+			"Components/Avatar/StatusUnavailable"
+		],
+		"states": [
+			"default",
+			"agent",
+			"starting",
+			"working",
+			"profile",
+			"large",
+			"long name",
+			"status starting",
+			"status working",
+			"status needs input",
+			"status done",
+			"status idle",
+			"status failed",
+			"status interrupted",
+			"status unavailable"
+		],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Badge/Badge.tsx",
+		"export": "Badge",
+		"stories": [
+			"Components/Badge/Default",
+			"Components/Badge/Success",
+			"Components/Badge/ErrorState",
+			"Components/Badge/Waiting",
+			"Components/Badge/Agent",
+			"Components/Badge/Accent",
+			"Components/Badge/Small",
+			"Components/Badge/WithIcon",
+			"Components/Badge/LongContent"
+		],
+		"states": ["default", "success", "error", "waiting", "agent", "accent", "small", "with icon", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Button/Button.tsx",
+		"export": "Button",
+		"stories": [
+			"Components/Button/Default",
+			"Components/Button/Primary",
+			"Components/Button/Quiet",
+			"Components/Button/Danger",
+			"Components/Button/Disabled",
+			"Components/Button/Processing",
+			"Components/Button/Medium",
+			"Components/Button/Shortcut",
+			"Components/Button/LongLabel",
+			"Components/Button/DangerSoft",
+			"Components/Button/AlignStart"
+		],
+		"states": [
+			"default",
+			"primary",
+			"quiet",
+			"danger",
+			"disabled",
+			"processing",
+			"medium",
+			"shortcut",
+			"long label",
+			"danger soft",
+			"align start"
+		],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Checkbox/Checkbox.tsx",
+		"export": "Checkbox",
+		"stories": [
+			"Components/Checkbox/Default",
+			"Components/Checkbox/Checked",
+			"Components/Checkbox/Disabled",
+			"Components/Checkbox/DisabledChecked",
+			"Components/Checkbox/Mixed",
+			"Components/Checkbox/HiddenLabel"
+		],
+		"states": ["default", "checked", "disabled", "disabled checked", "mixed", "hidden label"],
+		"notes": "Click the control or press Space to change its value."
+	},
+	{
+		"source": "packages/ui/src/primitives/Chip/Chip.tsx",
+		"export": "Chip",
+		"stories": [
+			"Components/Chip/Default",
+			"Components/Chip/Removable",
+			"Components/Chip/Editable",
+			"Components/Chip/LongContent"
+		],
+		"states": ["default", "removable", "editable", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/ChoiceBoxes/ChoiceBoxes.tsx",
+		"export": "ChoiceBoxes",
+		"stories": [
+			"Components/ChoiceBoxes/Default",
+			"Components/ChoiceBoxes/SecondSelected",
+			"Components/ChoiceBoxes/Disabled"
+		],
+		"states": ["default", "second selected", "disabled"],
+		"notes": "Arrow keys select an option. Tab moves to the next control."
+	},
+	{
+		"source": "packages/ui/src/primitives/ChoiceGroup/ChoiceGroup.tsx",
+		"export": "ChoiceGroup",
+		"stories": [
+			"Components/ChoiceGroup/Default",
+			"Components/ChoiceGroup/SecondSelected",
+			"Components/ChoiceGroup/Disabled"
+		],
+		"states": ["default", "second selected", "disabled"],
+		"notes": "Arrow keys select an option. Tab moves to the next control."
+	},
+	{
+		"source": "packages/ui/src/primitives/CodeText/CodeText.tsx",
+		"export": "CodeText",
+		"stories": ["Components/CodeText/Default", "Components/CodeText/LongContent"],
+		"states": ["default", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Command/Command.tsx",
+		"export": "Command",
+		"stories": [
+			"Components/Command/Default",
+			"Components/Command/Empty",
+			"Components/Command/Grouped",
+			"Components/Command/Virtualized",
+			"Components/Command/Dialog",
+			"Components/Command/Composition"
+		],
+		"states": ["default", "empty", "grouped", "virtualized", "dialog", "composition"],
+		"notes": "Type to filter. Arrow keys move focus and Enter selects an item. The virtual list also supports Home, End, Page Up, and Page Down."
+	},
+	{
+		"source": "packages/ui/src/primitives/ConfirmDialog/ConfirmDialog.tsx",
+		"export": "ConfirmDialog",
+		"stories": [
+			"Components/ConfirmDialog/Default",
+			"Components/ConfirmDialog/Open",
+			"Components/ConfirmDialog/Danger",
+			"Components/ConfirmDialog/Processing"
+		],
+		"states": ["default", "open", "danger", "processing"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/ContextMenu/ContextMenu.tsx",
+		"export": "ContextMenu",
+		"stories": ["Components/ContextMenu/Default", "Components/ContextMenu/Disabled"],
+		"states": ["default", "disabled"],
+		"notes": "Right-click the page tab or press Shift+F10 to open the menu. This story also renders ContextMenuTrigger."
+	}
+]

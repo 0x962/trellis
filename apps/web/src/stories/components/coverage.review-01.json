@@ -1,0 +1,186 @@
+[
+	{
+		"source": "packages/ui/src/review/ChangeSummary/ChangeSummary.tsx",
+		"export": "ChangeSummary",
+		"stories": [
+			"Components/ChangeSummary/Default",
+			"Components/ChangeSummary/Empty",
+			"Components/ChangeSummary/LongContent"
+		],
+		"states": ["default", "empty", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/review/CheckResults/CheckResults.tsx",
+		"export": "CheckResults",
+		"stories": [
+			"Components/CheckResults/Default",
+			"Components/CheckResults/Empty",
+			"Components/CheckResults/Loading",
+			"Components/CheckResults/Collapsed"
+		],
+		"states": ["default", "empty", "loading", "collapsed"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/review/CheckStatusIcon/CheckStatusIcon.tsx",
+		"export": "CheckStatusIcon",
+		"stories": [
+			"Components/CheckStatusIcon/Default",
+			"Components/CheckStatusIcon/Failed",
+			"Components/CheckStatusIcon/Pending",
+			"Components/CheckStatusIcon/Running",
+			"Components/CheckStatusIcon/Canceled",
+			"Components/CheckStatusIcon/Skipped",
+			"Components/CheckStatusIcon/Neutral",
+			"Components/CheckStatusIcon/Unknown"
+		],
+		"states": ["default", "failed", "pending", "running", "canceled", "skipped", "neutral", "unknown"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/review/ChecksLine/ChecksLine.tsx",
+		"export": "ChecksLine",
+		"stories": [
+			"Components/ChecksLine/Default",
+			"Components/ChecksLine/Empty",
+			"Components/ChecksLine/Loading",
+			"Components/ChecksLine/Collapsed",
+			"Components/ChecksLine/Canceled",
+			"Components/ChecksLine/Unknown",
+			"Components/ChecksLine/Neutral",
+			"Components/ChecksLine/ManyChecks"
+		],
+		"states": ["default", "empty", "loading", "collapsed", "canceled", "unknown", "neutral", "many checks"],
+		"notes": "Expand each group to inspect its checks. Every check uses local data and no external link."
+	},
+	{
+		"source": "packages/ui/src/review/FileRiskGroups/FileRiskGroups.tsx",
+		"export": "FileRiskGroups",
+		"stories": [
+			"Components/FileRiskGroups/InteractiveStates",
+			"Components/FileRiskGroups/Default",
+			"Components/FileRiskGroups/Empty",
+			"Components/FileRiskGroups/Selected",
+			"Components/FileRiskGroups/AllRead",
+			"Components/FileRiskGroups/Collapsed"
+		],
+		"states": [
+			"interactive states",
+			"default",
+			"empty",
+			"selected",
+			"all read",
+			"collapsed",
+			"binary file",
+			"added file",
+			"deleted file",
+			"pure rename",
+			"changed rename",
+			"directory expansion"
+		],
+		"notes": "Expand each risk group and its directories. Select a file to inspect its selected state. The fixture includes binary, added, deleted, renamed, and read files."
+	},
+	{
+		"source": "packages/ui/src/review/ReviewCommentEditor/ReviewCommentEditor.tsx",
+		"export": "ReviewCommentEditor",
+		"stories": [
+			"Components/ReviewCommentEditor/Default",
+			"Components/ReviewCommentEditor/Empty",
+			"Components/ReviewCommentEditor/Pending",
+			"Components/ReviewCommentEditor/ErrorState",
+			"Components/ReviewCommentEditor/Suggestion",
+			"Components/ReviewCommentEditor/SuggestionUnavailable",
+			"Components/ReviewCommentEditor/Reply",
+			"Components/ReviewCommentEditor/Preview",
+			"Components/ReviewCommentEditor/EmptyPreview",
+			"Components/ReviewCommentEditor/SuggestionInserted"
+		],
+		"states": [
+			"default",
+			"empty",
+			"pending",
+			"error",
+			"suggestion",
+			"suggestion unavailable",
+			"reply",
+			"preview",
+			"empty preview",
+			"suggestion inserted"
+		],
+		"notes": "Write text or insert a suggestion. Preview shows the local draft. Save clears the draft. Cancel restores its initial text."
+	},
+	{
+		"source": "packages/ui/src/review/ReviewDiff/ReviewDiff.tsx",
+		"export": "ReviewDiff",
+		"stories": [
+			"Components/ReviewDiff/InteractiveStates",
+			"Components/ReviewDiff/Unified",
+			"Components/ReviewDiff/Split",
+			"Components/ReviewDiff/Empty",
+			"Components/ReviewDiff/NoMatchingFiles",
+			"Components/ReviewDiff/Binary",
+			"Components/ReviewDiff/Renamed",
+			"Components/ReviewDiff/Viewed",
+			"Components/ReviewDiff/SelectedRange",
+			"Components/ReviewDiff/Composer",
+			"Components/ReviewDiff/FullFile"
+		],
+		"states": [
+			"interactive states",
+			"unified",
+			"split",
+			"empty",
+			"no matching files",
+			"binary",
+			"renamed",
+			"viewed",
+			"selected range",
+			"composer",
+			"full file",
+			"risk groups",
+			"open thread",
+			"resolved thread",
+			"outdated thread",
+			"loading pane",
+			"line selection",
+			"file read toggle"
+		],
+		"notes": "Select diff lines and inspect comment anchors. The fixture includes empty and loading panes, open and resolved threads, outdated anchors, and a read file."
+	},
+	{
+		"source": "packages/ui/src/review/ReviewDiff/ReviewDiffSkeleton.tsx",
+		"export": "ReviewDiffSkeleton",
+		"stories": ["Components/ReviewDiffSkeleton/Default"],
+		"states": ["default"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/review/ReviewStatus/ReviewStatus.tsx",
+		"export": "ReviewStatus",
+		"stories": [
+			"Components/ReviewStatus/Default",
+			"Components/ReviewStatus/Ready",
+			"Components/ReviewStatus/Approved",
+			"Components/ReviewStatus/Queued",
+			"Components/ReviewStatus/Merged",
+			"Components/ReviewStatus/Closed"
+		],
+		"states": ["default", "ready", "approved", "queued", "merged", "closed"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/review/ReviewSuggestion/ReviewSuggestion.tsx",
+		"export": "ReviewSuggestion",
+		"stories": [
+			"Components/ReviewSuggestion/Default",
+			"Components/ReviewSuggestion/Applied",
+			"Components/ReviewSuggestion/Outdated",
+			"Components/ReviewSuggestion/Preview",
+			"Components/ReviewSuggestion/Invalid",
+			"Components/ReviewSuggestion/Unknown"
+		],
+		"states": ["default", "applied", "outdated", "preview", "invalid", "unknown"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

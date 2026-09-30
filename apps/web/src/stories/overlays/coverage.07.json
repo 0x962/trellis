@@ -1,0 +1,181 @@
+[
+	{
+		"source": "apps/web/src/features/sessions/SessionActionsMenu/SessionActionsMenu.tsx",
+		"export": "SessionActionsMenu",
+		"stories": [
+			"Overlays/SessionControls/ClosedTrigger",
+			"Overlays/SessionControls/Open",
+			"Overlays/SessionControls/Disabled",
+			"Overlays/SessionControls/Pinned",
+			"Overlays/SessionControls/Archived"
+		],
+		"states": ["closed-trigger", "open", "disabled", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/sessions/SessionConversation/components/SessionDetails/SessionDetails.tsx",
+		"export": "SessionDetails",
+		"stories": [
+			"Overlays/SessionDetails/Open",
+			"Overlays/SessionDetails/ClosedTrigger",
+			"Overlays/SessionDetails/Loading",
+			"Overlays/SessionDetails/Empty",
+			"Overlays/SessionDetails/Missing",
+			"Overlays/SessionDetails/RequestError",
+			"Overlays/SessionDetails/Detached"
+		],
+		"states": ["open", "closed-trigger", "loading", "empty", "default", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/sessions/SwitchAccountDialog/SwitchAccountDialog.tsx",
+		"export": "SwitchAccountDialog",
+		"stories": [
+			"Overlays/SessionControls/AccountOpen",
+			"Overlays/SessionControls/AccountEmpty",
+			"Overlays/SessionControls/AccountLoading",
+			"Overlays/SessionControls/AccountError",
+			"Overlays/SessionControls/AccountSelected",
+			"Overlays/SessionControls/AccountPending",
+			"Overlays/SessionControls/AccountSwitchError"
+		],
+		"states": ["open", "empty", "loading", "error", "selected", "pending"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/settings/AgentPromptSettings/components/AgentPromptForm/AgentPromptForm.tsx",
+		"export": "AgentPromptForm",
+		"stories": [
+			"Overlays/AgentPromptForm/Selected",
+			"Overlays/AgentPromptForm/Default",
+			"Overlays/AgentPromptForm/VariablesOpen",
+			"Overlays/AgentPromptForm/Pending",
+			"Overlays/AgentPromptForm/RequestError",
+			"Overlays/AgentPromptForm/Success"
+		],
+		"states": ["selected", "default", "open", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/settings/DesktopSettings/DesktopSettings.tsx",
+		"export": "DesktopSettings",
+		"stories": [
+			"Overlays/DesktopSettings/Ready",
+			"Overlays/DesktopSettings/Selected",
+			"Overlays/DesktopSettings/Disabled",
+			"Overlays/DesktopSettings/Loading",
+			"Overlays/DesktopSettings/RequestError",
+			"Overlays/DesktopSettings/ActionPending",
+			"Overlays/DesktopSettings/ActionError",
+			"Overlays/DesktopSettings/LoginPending"
+		],
+		"states": ["default", "selected", "disabled", "loading", "error", "pending"],
+		"notes": "A synthetic DesktopSettingsBridge supplies machine status and action results."
+	},
+	{
+		"source": "apps/web/src/features/settings/MenuLinks/MenuLinks.tsx",
+		"export": "MenuLinks",
+		"stories": [
+			"Overlays/SettingsControls/MenuLinksClosed",
+			"Overlays/SettingsControls/MenuLinksOpen",
+			"Overlays/SettingsControls/MenuLinksEmpty",
+			"Overlays/SettingsControls/MenuLinksPending",
+			"Overlays/SettingsControls/MenuLinksError",
+			"Overlays/SettingsControls/MenuLinksSuccess"
+		],
+		"states": ["closed-trigger", "open", "empty", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/settings/MenuLinks/components/MenuLinkEditor/MenuLinkEditor.tsx",
+		"export": "MenuLinkEditor",
+		"stories": [
+			"Overlays/SettingsForms/MenuLinkCreate",
+			"Overlays/SettingsForms/MenuLinkSelected",
+			"Overlays/SettingsForms/MenuLinkPending",
+			"Overlays/SettingsForms/MenuLinkError",
+			"Overlays/SettingsForms/MenuLinkIcons"
+		],
+		"states": ["default", "selected", "pending", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/settings/NotificationSettings/NotificationSettings.tsx",
+		"export": "NotificationSettings",
+		"stories": ["Overlays/SettingsControls/NotificationsClosed", "Overlays/SettingsControls/NotificationsOpen"],
+		"states": ["closed-trigger", "open"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/settings/ThemeField/ThemeField.tsx",
+		"export": "ThemeField",
+		"stories": ["Overlays/SettingsControls/ThemeClosed", "Overlays/SettingsControls/ThemeOpen"],
+		"states": ["closed-trigger", "open"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/shell/ProjectSectionMenu/ProjectSectionMenu.tsx",
+		"export": "ProjectSectionMenu",
+		"stories": [
+			"Overlays/ProjectMenus/SectionClosed",
+			"Overlays/ProjectMenus/SectionOpen",
+			"Overlays/ProjectMenus/SectionSelected"
+		],
+		"states": ["closed-trigger", "open", "selected"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/sidebar/ProjectRowActions/ProjectRowActions.tsx",
+		"export": "ProjectRowActions",
+		"stories": [
+			"Overlays/ProjectMenus/ClosedTrigger",
+			"Overlays/ProjectMenus/Open",
+			"Overlays/ProjectMenus/Archived",
+			"Overlays/ProjectMenus/Pending",
+			"Overlays/ProjectMenus/RequestError",
+			"Overlays/ProjectMenus/DeleteConfirmation"
+		],
+		"states": ["closed-trigger", "open", "default", "pending", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx",
+		"export": "DisplayPopover",
+		"stories": [
+			"Overlays/Filters/DisplayClosed",
+			"Overlays/Filters/DisplayOpen",
+			"Overlays/Filters/DisplaySelected",
+			"Overlays/Filters/DisplayDisabled"
+		],
+		"states": ["closed-trigger", "open", "selected", "disabled"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/table/WaveHeader/components/WaveActions/WaveActions.tsx",
+		"export": "WaveActions",
+		"stories": [
+			"Overlays/EpicActions/WaveClosed",
+			"Overlays/EpicActions/WaveOpen",
+			"Overlays/EpicActions/WaveDisabled",
+			"Overlays/EpicActions/WaveAddTickets"
+		],
+		"states": ["closed-trigger", "open", "disabled", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/table/WaveStart/WaveStartDialog.tsx",
+		"export": "WaveStartDialog",
+		"stories": [
+			"Overlays/WaveStartDialog/Open",
+			"Overlays/WaveStartDialog/ClosedTrigger",
+			"Overlays/WaveStartDialog/Empty",
+			"Overlays/WaveStartDialog/Disabled",
+			"Overlays/WaveStartDialog/Waiting",
+			"Overlays/WaveStartDialog/Pending",
+			"Overlays/WaveStartDialog/RequestError",
+			"Overlays/WaveStartDialog/Success"
+		],
+		"states": ["open", "closed-trigger", "empty", "disabled", "default", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	}
+]
