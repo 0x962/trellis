@@ -22,6 +22,7 @@ export { readPairedSeal } from "./readPairedSeal";
 export { readSnapshot } from "./readSnapshot";
 export { readTrellisSnapshotVersion } from "./readTrellisSnapshotVersion";
 export { assertRestoreReconciled } from "./recoveryBlock";
+export { recoverPairedRuntimeFinalization } from "./recoverPairedRuntimeFinalization";
 export { restorePairedArchive } from "./restorePairedArchive";
 export { restorePairedSnapshot } from "./restorePairedSnapshot";
 export { type RestoreContext, restoreSnapshot } from "./restoreSnapshot";
