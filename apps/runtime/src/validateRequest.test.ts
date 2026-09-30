@@ -112,3 +112,76 @@ test("accepts a queued delivery", () => {
 	};
 	expect(validateRequest(value) === value).toBe(true);
 });
+
+test("accepts retained launch capture identity and a capture request", () => {
+	const capture = {
+		harness: "claude",
+		accountId: "account-1",
+		profileId: "profile-1",
+		agentRunId: "run-1",
+		attemptId: "attempt-1",
+		providerScopePaths: ["/profiles/one", "/profiles/one/projects/project"],
+		providerRoots: [
+			{
+				contentKind: "conversation-directory",
+				sourceKind: "account-profile",
+				path: "/profiles/one/projects/project",
+				externalLinks: [],
+			},
+		],
+	};
+	const start = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "start",
+		params: { id: "attempt-1", command: "true", args: [], cwd: "/tmp", mode: "stdio", capture },
+	};
+	expect(validateRequest(start) === start).toBe(true);
+	const snapshot = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "capture",
+		params: {
+			captureId: "capture-1",
+			snapshotId: "snapshot-1",
+			hostId: "host-1",
+			dataHomeId: "home-1",
+			generation: 3,
+			blockId: "block-1",
+			identities: [{ ...capture, providerScopePaths: undefined, providerRoots: undefined, providerSessionId: null }],
+		},
+	};
+	expect(validateRequest(snapshot) === snapshot).toBe(true);
+});
+
+test("rejects invalid retained conversation roots", () => {
+	const value = {
+		id: "request",
+		version: RUNTIME_PROTOCOL_VERSION,
+		method: "start",
+		params: {
+			id: "attempt-1",
+			command: "true",
+			args: [],
+			cwd: "/tmp",
+			mode: "stdio",
+			capture: {
+				harness: "claude",
+				accountId: "account-1",
+				profileId: "profile-1",
+				agentRunId: "run-1",
+				attemptId: "attempt-1",
+				providerScopePaths: ["/profiles/one"],
+				providerRoots: [
+					{
+						contentKind: "conversation-directory",
+						sourceKind: "account-profile",
+						path: "/profiles/one/projects/project",
+						externalLinks: [null],
+					},
+				],
+			},
+		},
+	};
+	expect(() => validateRequest(value)).toThrow("external link is invalid");
+});

@@ -17,7 +17,7 @@ The manifest contains the protocol version, daemon identifier, PID, start time, 
 
 ## Protocol
 
-Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 12.
+Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each ordinary call opens one socket connection. Requests and responses use protocol version 17.
 
 | Method | Input | Result |
 | --- | --- | --- |
@@ -30,8 +30,17 @@ Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens 
 | `resize` | Session identifier, columns, rows | Null |
 | `stop` | Session identifier | Session |
 | `output` | Session identifier, byte offset | Base64 bytes and retained byte interval |
+| `capture` | Retained launch identities | A held snapshot channel |
 
-A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields are `env`, `cols`, `rows`, and `timeoutMs`. A timeout must be a positive safe integer of milliseconds. The runtime enforces it independently of host connections. [Node.js accepts one timer delay through 2,147,483,647 milliseconds](https://nodejs.org/api/timers.html#settimeoutcallback-delay-args). The runtime divides a larger deadline into supported timer segments. A deadline stops the owned OS session and persists the timeout reason. The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
+A launch specification holds `id`, `command`, `args`, `cwd`, and `mode`. Optional fields include `env`, `cols`, `rows`, `timeoutMs`, and `capture`. The capture field retains the exact launch identity and the selected conversation roots. Historical launches without this field cannot produce capture roots.
+
+A timeout must be a positive safe integer of milliseconds. The runtime enforces it independently of host connections. [Node.js accepts one timer delay through 2,147,483,647 milliseconds](https://nodejs.org/api/timers.html#settimeoutcallback-delay-args). The runtime divides a larger deadline into supported timer segments. A deadline stops the owned OS session and saves the timeout reason.
+
+The modes are `pty` and `stdio`. `separateStderr: true` retains standard error in its own log. `output(id, offset, "stderr")` reads that log. The host assigns a distinct identifier to each execution attempt.
+
+The capture channel retains one ordered exclusion for all selected attempts. It covers runtime mutations, workspaces, provider roots, attempt files, and shared Git data. The exclusion stays active until the `withCaptureSnapshot` action returns. The runtime refuses active or unknown processes. It also refuses unsupported Git storage, escaping links, and roots without a retained launch scope.
+
+An inventory identifies each immutable root and relative entry. A read validates the binding and the file hash. A seal returns exact receipt bytes without release authority. Release, failure, abort, disconnect, and runtime shutdown close the channel and release the exclusion. A later verifier opens a new capture and validates its sources again.
 
 A repeated launch identifier returns its existing session. A changed command under that identifier returns `LAUNCH_CONFLICT`. The runtime records the identifier before it starts the process. A stop before launch records cancellation, so a delayed launch cannot create a process.
 
