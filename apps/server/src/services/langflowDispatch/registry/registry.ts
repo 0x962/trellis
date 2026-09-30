@@ -6,6 +6,7 @@ import { prepareFlowCancel } from "../../flowExecutions/prepareFlowCancel.ts";
 import { prepareFlowReconcile } from "../../flowExecutions/prepareFlowReconcile.ts";
 import { get as getFlowExecution } from "../../flowExecutions/queries.ts";
 import * as flows from "../../flows/flows.ts";
+import { captureTrellisAndSeal, readTrellisSnapshotVersion } from "../../langflowBackup";
 import { decisionState } from "../../langflowDecisions";
 import * as langflowDispatch from "../../langflowDispatch";
 import * as editorSessions from "../../langflowEditorSessions";
@@ -22,6 +23,8 @@ import { prepareNativeReservation } from "../prepareNativeReservation";
 import { reserveObservedGroupDeadline } from "../reserveGroupDeadline";
 
 export const flowServices = {
+	"langflowBackup.readTrellisVersion": io("read", readTrellisSnapshotVersion),
+	"langflowBackup.captureTrellisAndSeal": prepared("mutation", captureTrellisAndSeal, agentTerminal.result),
 	"flowDocuments.actionReceipt": core("read", flowDocuments.readDocumentActionReceipt),
 	"flowDocuments.action": prepared("mutation", documentAction, agentTerminal.result),
 	"langflowClocks.reserveGroupDeadline": io("mutation", reserveObservedGroupDeadline),
