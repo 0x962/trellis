@@ -41,11 +41,11 @@ test("Back traverses ticket and review tabs in order", () => {
 	expect(router.history.length).toBe(4);
 });
 
-test("Back from a direct entry replaces it with Needs you", async () => {
+test("Back from a direct entry replaces it with Search", async () => {
 	const router = makeRouter(["/t/QA-1"]);
 	await router.load();
 	await backNavigation(router);
-	expect(router.history.location.href).toBe("/needs-you");
+	expect(router.history.location.href).toBe("/search");
 	expect(router.history.length).toBe(1);
 	expect(router.history.canGoBack()).toBe(false);
 	backNavigation(router);
@@ -53,7 +53,7 @@ test("Back from a direct entry replaces it with Needs you", async () => {
 });
 
 test("a new destination after Back replaces the forward branch", async () => {
-	const router = makeRouter(["/needs-you", "/t/QA-1", "/t/QA-2"]);
+	const router = makeRouter(["/search", "/t/QA-1", "/t/QA-2"]);
 	backNavigation(router);
 	await router.navigate({ href: "/settings#general" });
 	expect(router.history.length).toBe(3);

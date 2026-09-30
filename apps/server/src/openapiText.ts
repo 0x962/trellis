@@ -13,7 +13,6 @@ export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The lo
 export const TAGS = [
 	{ name: "harness accounts", description: "Configured account profiles and provider quota." },
 	{ name: "providers", description: "External model gateways with a stored key and the models they offer." },
-	{ name: "needs you", description: "Work that requires a human decision." },
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Pull request diffs, local comments, and GitHub review actions." },
 	{ name: "sessions", description: "Scratch sessions: a git repository with one agent, outside every project." },
@@ -132,9 +131,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
 
 	"POST /native-work/stop": {},
-	"POST /needs-you/list": {},
-	"POST /needs-you/summary": {},
-	"POST /needs-you/update": { id: "mention:01J9Z0000000000000000000A1", action: "ignore" },
 	"POST /gh/check": {},
 	"POST /flow-executions": {
 		flow: "review",

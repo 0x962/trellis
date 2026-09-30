@@ -2,11 +2,9 @@ import { ArrowSquareOut, Check, GitPullRequest, TextAlignLeft } from "@phosphor-
 import { ActorChip } from "../../../domain/ActorChip";
 import { CheckRibbon, type Check as CheckRun } from "../../../domain/CheckRibbon";
 import { PriorityIcon } from "../../../domain/PriorityIcon";
-import { StatusIcon } from "../../../domain/StatusIcon";
 import { TicketId } from "../../../domain/TicketId";
 import { Avatar } from "../../../primitives/Avatar";
 import { Badge } from "../../../primitives/Badge";
-import { Button } from "../../../primitives/Button";
 import { Section } from "../Section";
 
 const checks: CheckRun[] = [
@@ -26,49 +24,9 @@ const cardChecks: CheckRun[] = [
 	{ name: "e2e", bucket: "pending" },
 ];
 
-// The Needs-you row, the board card, and the PR row, built from the real
-// components. This is where the pieces prove they fit together.
 export function CompositionSection() {
 	return (
-		<Section
-			name="Composition"
-			note="the Needs-you row, a board card, and the PR row"
-			className="flex-col items-stretch p-0"
-		>
-			<div
-				data-testid="needs-you-row"
-				className="group relative flex h-10 items-center gap-3 border-b border-border bg-accent-soft px-5 transition-colors duration-hover before:absolute before:top-1 before:bottom-1 before:left-0 before:w-0.5 before:rounded-r-sm before:bg-accent"
-			>
-				<span className="flex w-5 justify-center">
-					<PriorityIcon priority="high" />
-				</span>
-				<span className="w-15.5">
-					<TicketId id="CDE-42" />
-				</span>
-				<span className="flex min-w-0 flex-1 items-center gap-2">
-					<span className="truncate">Restore the export pages after the upstream 1.27 merge</span>
-					<Badge icon={<TextAlignLeft />}>4</Badge>
-				</span>
-				<span className="inline-flex w-37.5 items-center gap-2 whitespace-nowrap">
-					<StatusIcon category="review" />
-					Human Review
-				</span>
-				<span className="inline-flex w-27 items-center gap-1.5 text-fg-muted">
-					<GitPullRequest className="size-3.5" aria-hidden="true" />
-					<CheckRibbon size="mini" checks={checks} />
-				</span>
-				<span className="flex w-7 justify-center">
-					<Avatar kind="agent" name="claude-code" />
-				</span>
-				<span className="w-13 text-right text-sm text-fg-muted tabular">2h</span>
-				<span className="absolute inset-y-0 right-5 flex items-center gap-1.5 bg-accent-soft pl-3">
-					<Button variant="primary" kbd="a">
-						Approve
-					</Button>
-					<Button kbd="r">Send back</Button>
-				</span>
-			</div>
-
+		<Section name="Composition" note="a board card and the PR row" className="flex-col items-stretch p-0">
 			<div className="flex gap-6 bg-bg p-5">
 				<div
 					data-testid="board-card"

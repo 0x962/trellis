@@ -7,7 +7,6 @@ export type TicketLinkProps = {
 	identifier: string;
 	className?: string;
 	title?: string;
-	// `InboxRow` clones the link with the cells of the row as its children.
 	children?: ReactNode;
 };
 

@@ -36,7 +36,7 @@ afterEach(async () => {
 
 async function mount() {
 	const options: GlobalHotkeyOptions = {
-		pathname: "/needs-you",
+		pathname: "/search",
 		navigate: (href) => calls.push(href),
 		onPalette: () => calls.push("palette"),
 		onSearch: () => calls.push("search"),

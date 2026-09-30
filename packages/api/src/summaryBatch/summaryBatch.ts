@@ -67,7 +67,7 @@ export const createSummaryBatchApplier =
 			deps.tombstones.addMany([...byId.keys()]);
 			dropTicketQueries(client, accepted);
 		}
-		const matchers: Matcher[] = [family("needsYou")];
+		const matchers: Matcher[] = [];
 		for (const query of client.getQueryCache().getAll()) {
 			const data = query.state.data;
 			const fetching = query.state.fetchStatus !== "idle";

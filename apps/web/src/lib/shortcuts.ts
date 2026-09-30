@@ -24,7 +24,6 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "palette", keys: "mod+k", scope: "global", label: "Open the command palette in the desktop app" },
 	{ id: "search", keys: "/", scope: "global", label: "Search tickets" },
 	{ id: "create", keys: "c", scope: "global", label: "New ticket" },
-	{ id: "gotoNeedsYou", keys: "g h", scope: "global", label: "Go to Needs you" },
 	{ id: "gotoProject", keys: "g p", scope: "global", label: "Go to a project" },
 	{ id: "gotoEpic", keys: "g e", scope: "global", label: "Switch epic" },
 	{ id: "gotoBoard", keys: "g b", scope: "global", label: "Switch to the board" },
