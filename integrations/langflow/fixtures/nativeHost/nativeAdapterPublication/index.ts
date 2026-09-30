@@ -1,0 +1,1 @@
+export { nativeAdapterPublication } from "./nativeAdapterPublication";
