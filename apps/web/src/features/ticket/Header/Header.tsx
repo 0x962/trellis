@@ -1,11 +1,9 @@
-import { ArrowLeft, Copy, GitBranch } from "@phosphor-icons/react";
+import { Copy, GitBranch } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { Ticket } from "@trellis/api";
 import { isTextEntry, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
-import { useBackNavigation } from "../../../hooks/useBackNavigation";
 import { useApp } from "../../../lib/appContext";
 import { copyText } from "../../../lib/clipboard";
-import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
@@ -28,11 +26,9 @@ const claims = (event: KeyboardEvent) => {
 };
 
 export function Header({ ticket, readOnly }: HeaderProps) {
-	const { back } = useBackNavigation();
 	const { orpc } = useApp();
 	const project = useSuspenseQuery(orpc.projects.get.queryOptions({ input: { project: ticket.project.key } })).data;
 	const phone = useMediaQuery("(max-width: 767px)");
-	const inSheet = usePageSheet() !== null;
 	const branch = branchName(ticket.identifier, titleSlug(ticket.title));
 
 	useHotkey("mod+c", (event) => {
@@ -51,36 +47,29 @@ export function Header({ ticket, readOnly }: HeaderProps) {
 	return (
 		<Topbar
 			actions={
-				<>
-					{!inSheet && (
-						<Tooltip content="Back (Esc)">
-							<TopbarActionButton label="Back" icon={<ArrowLeft />} onClick={back} />
-						</Tooltip>
-					)}
-					<fieldset disabled={readOnly} className="contents">
-						<BriefCopy ticket={ticket} />
+				<fieldset disabled={readOnly} className="contents">
+					<BriefCopy ticket={ticket} />
 
-						{!phone && (
-							<>
-								<Tooltip content="Copy ID ⌘C">
-									<TopbarActionButton
-										label="Copy ID"
-										icon={<Copy />}
-										onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
-									/>
-								</Tooltip>
-								<Tooltip content="Copy branch name ⌘⇧C">
-									<TopbarActionButton
-										label="Copy branch name"
-										icon={<GitBranch />}
-										onClick={() => void copyText(branch, "Copied the branch name")}
-									/>
-								</Tooltip>
-							</>
-						)}
-						<MoreMenu ticket={ticket} />
-					</fieldset>
-				</>
+					{!phone && (
+						<>
+							<Tooltip content="Copy ID ⌘C">
+								<TopbarActionButton
+									label="Copy ID"
+									icon={<Copy />}
+									onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
+								/>
+							</Tooltip>
+							<Tooltip content="Copy branch name ⌘⇧C">
+								<TopbarActionButton
+									label="Copy branch name"
+									icon={<GitBranch />}
+									onClick={() => void copyText(branch, "Copied the branch name")}
+								/>
+							</Tooltip>
+						</>
+					)}
+					<MoreMenu ticket={ticket} />
+				</fieldset>
 			}
 		>
 			<PageTitle parent={<ProjectBreadcrumb project={project} />} title={ticket.identifier} />

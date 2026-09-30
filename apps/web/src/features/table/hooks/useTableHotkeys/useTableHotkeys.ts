@@ -27,7 +27,6 @@ export type TableController = {
 	groupKeys: readonly string[];
 	toggleGroup: (key: string) => void;
 	openTicket: (id: string) => void;
-	openPage: (id: string) => void;
 	openComposer: () => void;
 	copy: (id: string, kind: CopyKind) => void;
 	// Copies the IDs of the selection, one per line.
@@ -118,7 +117,7 @@ export const useTableHotkeys = (controller: TableController) => {
 	});
 	useHotkey("enter", openFocusedTicket);
 	useHotkey(" ", openFocusedTicket);
-	useHotkey("o", useStableCallback(withFocused((id) => controller.openPage(id))));
+	useHotkey("o", useStableCallback(withFocused((id) => controller.openTicket(id))));
 	useHotkey("x", useStableCallback(withFocused((id) => controller.selection.toggle(id))));
 	useHotkey("s", useStableCallback(withFocused((id) => controller.openField(id, "status"))));
 	useHotkey("p", useStableCallback(withFocused((id) => controller.openField(id, "priority"))));

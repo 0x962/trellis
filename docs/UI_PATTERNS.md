@@ -154,16 +154,21 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 Use `PageSheet` to show a ticket or a pull request over the current page.
-Render the same page component as the route. Do not build a compact copy of the page.
+Render the complete ticket or review content. Do not build a compact copy.
 `Topbar` renders the title and the actions of the page into the header of the sheet.
-The header adds the Open full page and Close buttons, and it shows them while the page loads.
+The header keeps Close visible while the content loads.
+A pull request also has Open full page. A ticket uses only the sheet.
 Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
 
 `pageSheetStore` holds the sheet stack: one ticket with one pull request over it.
 `PageSheetHost` mounts once in the root shell and draws the stack.
 Open a ticket with `pageSheetActions.openTicket`, and a pull request with `pageSheetActions.openPullRequest`.
-Give a ticket name in a list the `TicketLink` component: a plain click opens the sheet, and the href keeps the ticket page for a new tab.
-A list never navigates to `/t/$identifier`. The route stays for a link that arrives from outside the app.
+Give a ticket name in a list the `TicketLink` component. A plain click opens the sheet over the current page.
+A list never navigates to `/t/$identifier`.
+This URL opens the sheet over the home page when a link arrives from outside the app or opens in a new tab.
+It replaces the URL with the home route, so closing the sheet leaves a page to use.
+The table's Enter, Space, and O keys open the same sheet.
+Markdown links and resolved ticket record links also open the sheet over the current page.
 The review sheet takes the wide width, so it covers the ticket sheet under it.
 Escape, the back gesture and a click beside the sheets close the top sheet only.
 

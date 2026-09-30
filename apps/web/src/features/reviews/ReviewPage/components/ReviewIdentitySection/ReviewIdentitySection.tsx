@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
 import { TicketId } from "@trellis/ui";
 import type { ComponentProps } from "react";
+import { TicketLink } from "../../../../shell/TicketLink";
 import { ReviewIdentity } from "../ReviewIdentity";
 
 export function ReviewIdentitySection({
@@ -15,9 +15,9 @@ export function ReviewIdentitySection({
 			<div className="review-identity-lines">
 				{ticket && (
 					<p className="review-ticket-line">
-						<Link to="/t/$identifier" params={{ identifier: ticket.identifier }}>
+						<TicketLink identifier={ticket.identifier}>
 							<TicketId id={ticket.identifier} />
-						</Link>{" "}
+						</TicketLink>{" "}
 						{ticket.title}
 					</p>
 				)}
