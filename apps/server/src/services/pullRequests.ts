@@ -1,5 +1,4 @@
-import { type LinkedPullRequest, type PullRequest, type PullRequestDiffOutput, UlidSchema } from "@trellis/api";
-import { reviewRef } from "@trellis/api/client";
+import type { LinkedPullRequest, PullRequest, PullRequestDiffOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
@@ -13,7 +12,6 @@ import {
 } from "../db/queries/pullRequestRows.ts";
 import { iso, rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import { invalidInput } from "../errors.ts";
 import {
 	fetchPullRequests,
 	type PullRequestRow as GraphqlPullRequestRow,
@@ -55,6 +53,7 @@ import { completeMergedPullRequestTickets } from "./tickets/completeMergedPullRe
 // GH_UNAVAILABLE instead, because the caller asked for fresh fields.
 
 export { prepareDiff } from "./pullRequestDiff/index.ts";
+export { resolve } from "./pullRequestResolver/index.ts";
 export { parsePullRequestUrl };
 
 // The caller verifies `headSha` with GitHub before this transaction starts.
@@ -74,42 +73,6 @@ export const announcePullRequestUpdate = async (ctx: ServiceCtx, tx: Tx, row: Pu
 	if (scope.ticketIds.length > 0)
 		await tx.execute(sql`UPDATE tickets SET version = version + 1 WHERE id = ANY(${textArray(scope.ticketIds)})`);
 	ctx.emit({ type: "pr.updated", id: row.id, ...scope, state: row.state, ciState: row.ci_state });
-};
-
-export const resolve = async (_ctx: ServiceCtx, tx: Tx, input: { ref: string }) => {
-	if (UlidSchema.safeParse(input.ref).success) {
-		const [found] = await rows<{ id: string; url: string }>(
-			tx,
-			sql`SELECT id, url FROM pull_requests WHERE id = ${input.ref}`,
-		);
-		if (found === undefined) throw notFound("pull request", input.ref);
-		return found;
-	}
-	if (/^\d+$/.test(input.ref)) {
-		const found = await rows<{ id: string; url: string }>(
-			tx,
-			sql`SELECT id, url FROM pull_requests WHERE number = ${Number(input.ref)} ORDER BY owner, repo, id`,
-		);
-		if (found.length === 0) throw notFound("pull request", input.ref);
-		if (found.length > 1)
-			throw invalidInput(
-				"ref",
-				`Pull request ${input.ref} matches more than one repository. Use owner/repo#${input.ref}.`,
-			);
-		return found[0]!;
-	}
-	let ref: ReturnType<typeof reviewRef>;
-	try {
-		ref = reviewRef(input.ref);
-	} catch {
-		throw invalidInput("ref", "Use a GitHub PR URL or owner/repo#123.");
-	}
-	const [found] = await rows<{ id: string; url: string }>(
-		tx,
-		sql`SELECT id, url FROM pull_requests WHERE owner = ${ref.owner} AND repo = ${ref.repo} AND number = ${ref.number}`,
-	);
-	if (found === undefined) throw notFound("pull request", `${ref.owner}/${ref.repo}#${ref.number}`);
-	return found;
 };
 
 // The fields gh returned, or the message it printed. A message is stored on

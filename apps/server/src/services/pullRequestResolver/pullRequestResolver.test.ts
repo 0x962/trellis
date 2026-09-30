@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { openTestDb } from "../db/testDb.ts";
-import { resolve } from "./pullRequests.ts";
-import type { ServiceCtx } from "./support.ts";
+import { openTestDb } from "../../db/testDb.ts";
+import type { ServiceCtx } from "../support.ts";
+import { resolve } from "./pullRequestResolver.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const firstId = ulid();
