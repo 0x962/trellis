@@ -1129,10 +1129,11 @@ Done, each with its count. A row prints the name, a `StackedBar` of the counts b
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
 `/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the New wave `IconButton`, the Add tickets `IconButton`, and the `Menu` with Edit and Delete. The page fixes the `epic`
+`IconButton`, the Add menu, and the `Menu` with Edit and Delete. The Add menu offers Ticket and Wave.
+The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
 Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
-writes its query through `epicQueryString`, so `group=status` stays in the URL. Add tickets opens the
+writes its query through `epicQueryString`, so `group=status` stays in the URL. Ticket in the Add menu opens the
 `TicketPicker` of the project and
 writes `tickets.updateMany { epic }`.
 A header band below the `Topbar` prints the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar`
@@ -1148,7 +1149,7 @@ The tickets show in the full-width `TicketTable` of the project table view. Its 
 `group=wave`, and it writes `group=status`. The row actions, the bulk bar, and the keyboard navigation are the ones of
 the table. The bulk bar Set epic with None, and the Epic row of the ticket rail, take a ticket out of the epic.
 The Overview manages the waves (`useWaveEditing`). Every wave of the epic draws a header, and a wave that holds no
-ticket draws one line under it, "No tickets in this wave." (`withEmptyWaves`). New wave adds `Wave <n>` at the end
+ticket draws one line under it, "No tickets in this wave." (`withEmptyWaves`). Wave in the Add menu adds `Wave <n>` at the end
 and opens its name as a field inside the header. Each wave header holds Add tickets to this wave (the `TicketPicker`,
 which writes `tickets.updateMany { epic, wave }`) and the Wave actions `Menu`: New ticket in this wave, Rename (F2),
 Move up and Move down (Alt+Shift+Up and Alt+Shift+Down), and Delete wave. A wave that holds no ticket deletes at once;
@@ -1156,8 +1157,7 @@ a wave that holds tickets asks first and names the tickets that move to No wave.
 group, or into No wave, and a selected row drags the whole selection (`useWaveDrop`). The `w` key opens the wave
 picker of the focused row or of the selection, and the picker of the bulk bar offers New wave, which adds a wave with
 the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
-`waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the New wave
-and the Add tickets buttons of the `Topbar`.
+`waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the same Add menu as the `Topbar`.
 Each epic saves its filters in local storage on the current device.
 An epic link without filters restores that epic's saved filters into the URL.
 Explicit URL filters replace the saved filters. A filter change or clear saves immediately.

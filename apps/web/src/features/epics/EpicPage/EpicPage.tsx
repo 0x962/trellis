@@ -195,7 +195,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 
 	const record = epic.data;
 	const identifiers = record.tickets.map((ticket) => ticket.identifier);
-	// The top bar and the empty state of the Overview draw the same two buttons.
+	// The top bar and the empty state of the Overview share the Add menu.
 	const createActions = readOnly ? null : (
 		<EpicCreateActions
 			project={project.key}
