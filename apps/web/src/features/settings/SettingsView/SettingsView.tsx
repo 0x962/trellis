@@ -1,15 +1,20 @@
-import { SettingsNav } from "@trellis/ui";
-import type { ReactNode } from "react";
+import { SettingsNav, Skeleton } from "@trellis/ui";
+import { lazy, type ReactNode, Suspense } from "react";
 import { useActor } from "../../../lib/actor";
 import { type DesktopBridge, type DesktopSettingsBridge, desktopSettingsBridge } from "../../../lib/desktopBridge";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { ActorNameField } from "../ActorNameField";
+import { CleanupSettings } from "../CleanupSettings";
 import { DesktopSettings } from "../DesktopSettings";
 import { MenuLinks } from "../MenuLinks";
 import { NotificationSettings } from "../NotificationSettings";
 import type { SettingsSectionId } from "../settingsUrl";
 import { ThemeField } from "../ThemeField";
+
+const AgentPromptSettings = lazy(() =>
+	import("../AgentPromptSettings").then((module) => ({ default: module.AgentPromptSettings })),
+);
 
 export type SettingsViewProps = {
 	// The section the nav marks and the content shows.
@@ -25,7 +30,23 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
+	{
+		id: "cleanup",
+		title: "Clean up",
+		hint: "Choose when Trellis archives and deletes inactive sessions.",
+		rows: <CleanupSettings />,
+	},
 	{ id: "menu-links", title: "Menu links", hint: "Add HTTPS links to the workspace sidebar.", rows: <MenuLinks /> },
+	{
+		id: "agent-prompt",
+		title: "Agent prompt",
+		hint: "Edit the shared prompt for agent, session, and flow harnesses. Each start or resume uses the saved template.",
+		rows: (
+			<Suspense fallback={<Skeleton className="prompt-template-loading" />}>
+				<AgentPromptSettings />
+			</Suspense>
+		),
+	},
 	{
 		id: "notifications",
 		title: "Notifications",
@@ -88,7 +109,9 @@ export function SettingsView({ section, onSectionChange }: SettingsViewProps) {
 									</div>
 								</header>
 								<div className="project-settings-fields">
-									<div className="flex flex-col divide-y divide-border">{rows}</div>
+									<div className="flex flex-col divide-y divide-border">
+										{id === "agent-prompt" && selected !== id ? null : rows}
+									</div>
 								</div>
 							</section>
 						</div>

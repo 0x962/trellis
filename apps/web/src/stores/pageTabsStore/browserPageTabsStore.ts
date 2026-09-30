@@ -10,7 +10,7 @@ const currentPage = {
 export const usePageTabsStore = createPageTabsStore({
 	origin: window.location.origin,
 	initialPage: currentPage,
-	homePage: { url: "/needs-you", title: "Needs you" },
+	homePage: { url: "/search", title: "Search" },
 	storage: window.localStorage,
 });
 

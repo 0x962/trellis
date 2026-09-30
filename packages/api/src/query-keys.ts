@@ -170,7 +170,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// every change but a delete, which drops the ticket page.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
-		enqueue([family("needsYou")]);
 		if (change.deleted) {
 			tombstones.add(summary.id);
 			dropTicketQueries(queryClient, [summary]);

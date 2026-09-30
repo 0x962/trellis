@@ -1,13 +1,11 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
-import { useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { NotFoundState } from "../../shell/NotFoundState";
-import { usePageSheet } from "../../shell/PageSheet";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
@@ -24,30 +22,17 @@ export type TicketViewProps = {
 	identifier: string;
 };
 
-// The ticket page holds the title, the ask, the sub-tickets, the pull
+// The ticket sheet holds the title, the ask, the sub-tickets, the pull
 // requests and the attached files. The properties rail holds the ticket
 // fields and the assignment of the agent that holds the ticket.
-//
-// The page renders the same on its route and in a `PageSheet`, with these
-// differences in a sheet: the browser tab keeps the title of the page under
-// the sheet, and the sheet handles Escape.
 export function TicketView({ identifier }: TicketViewProps) {
 	const { orpc } = useApp();
-	const inSheet = usePageSheet() !== null;
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
 	const parentSummary = useParentSummary(query.data?.parent?.identifier ?? null);
 	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
-
-	useEffect(() => {
-		if (inSheet || query.data === undefined) return;
-		document.title = `${query.data.identifier} · ${query.data.title}`;
-		return () => {
-			document.title = "trellis";
-		};
-	}, [inSheet, query.data]);
 
 	if (query.error !== null) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {

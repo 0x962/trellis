@@ -67,7 +67,7 @@ export async function broadcastFixture() {
 	>;
 	const projects = { activeA: ulid(), activeB: ulid(), archived: ulid() };
 	const statuses = { activeA: ulid(), todo: ulid(), started: ulid(), review: ulid(), done: ulid(), canceled: ulid() };
-	const epics = { activeA: ulid(), activeB: ulid() };
+	const epics = { activeA: ulid(), activeB: ulid(), emptyA: ulid() };
 	const tickets = { activeA: ulid(), activeB: ulid() };
 	const insertRun = async (input: {
 		id: string;
@@ -108,6 +108,7 @@ export async function broadcastFixture() {
 	await db.execute(sql`INSERT INTO epics (
 		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at, actor_id) VALUES
 		(${epics.activeA}, ${projects.activeA}, 'first-plan', 'First plan', 'qa', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[])),
+		(${epics.emptyA}, ${projects.activeA}, 'empty-plan', 'Empty plan', 'qa', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[])),
 		(${epics.activeB}, ${projects.activeB}, 'second-plan', 'Second plan', 'qa', 'human', ${at}, ${at}, (SELECT id FROM actors WHERE ARRAY[kind, name] = ARRAY['human', 'qa']::text[]))`);
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, number, title, status_id, epic_id, position, created_at, updated_at
@@ -219,6 +220,8 @@ export async function broadcastFixture() {
 	return {
 		close: () => db.$client.close(),
 		ctx,
+		epics,
+		tickets,
 		ids,
 		processOf,
 		processes,

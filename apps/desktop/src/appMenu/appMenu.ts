@@ -10,6 +10,7 @@ export type AppMenuActions = {
 	stopLocalWork: () => void;
 	restart: MenuItemConstructorOptions;
 	quit: () => void;
+	stopUiPreview: () => void;
 };
 
 // The native menu works when the renderer cannot load. Keep reconnectHost,
@@ -59,6 +60,7 @@ export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] =
 	{
 		label: "Help",
 		submenu: [
+			{ id: "stop-ui-preview", label: "Stop UI preview", visible: false, click: actions.stopUiPreview },
 			{ label: "Open local logs", click: actions.openLogs },
 			{ label: "Reconnect host", click: actions.reconnectHost },
 		],

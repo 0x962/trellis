@@ -8,7 +8,6 @@ import { TicketSummarySchema } from "./schemas/ticket.ts";
 // Every SSE event name. `types=` on the events route takes these and
 // `prefix.*` forms.
 export const eventNames = [
-	"needs-you.changed",
 	"ticket.created",
 	"ticket.updated",
 	"ticket.deleted",
@@ -16,6 +15,7 @@ export const eventNames = [
 	"pr.unlinked",
 	"pr.updated",
 	"notes.changed",
+	"epic-chatter.changed",
 	"epics.changed",
 	"pages.changed",
 	"providers.changed",
@@ -184,6 +184,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("pr.unlinked", PrEventPayloadSchema),
 	typed("pr.updated", PrEventPayloadSchema),
 	typed("notes.changed", NotesChangedPayloadSchema),
+	typed("epic-chatter.changed", EpicsChangedPayloadSchema),
 	typed("epics.changed", EpicsChangedPayloadSchema),
 	typed("pages.changed", PagesChangedPayloadSchema),
 	typed("providers.changed", ProvidersChangedPayloadSchema),
@@ -209,7 +210,6 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("sessions.changed", AgentChangedPayloadSchema),
 	typed("session-updates.changed", AgentChangedPayloadSchema),
 	typed("agent-runs.status", z.object({ activity: AgentActivitySchema, notify: z.boolean() })),
-	typed("needs-you.changed", z.object({ actorName: z.string() })),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),

@@ -38,6 +38,7 @@ const scopeOf = (event: TrellisEvent): Scope => {
 			return { projectIds: event.projectId === undefined ? [] : [event.projectId], ticketIds: [event.ticketId] };
 		case "statuses.changed":
 		case "labels.changed":
+		case "epic-chatter.changed":
 		case "epics.changed":
 		case "pages.changed":
 		case "page-comments.changed":

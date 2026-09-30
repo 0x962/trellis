@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageSheetStore";
 import { TicketView } from "../../../../ticket/TicketView";
 import { PageSheet } from "../../../PageSheet";
@@ -9,8 +8,8 @@ import { PullRequestSheet } from "../PullRequestSheet";
 import { SessionSheet } from "../SessionSheet";
 import { SettingsSheet } from "../SettingsSheet";
 
-// One ticket, as the whole ticket page in a sheet over the list that opened
-// it. The review sheet and the session sheet render inside this sheet: Base
+// One ticket opens in a sheet over the page that holds its link.
+// The review sheet and the session sheet render inside this sheet: Base
 // UI treats a dialog inside another dialog as the top of the stack, so
 // Escape and a click beside the sheets close the top one and leave the
 // ticket open.
@@ -26,7 +25,6 @@ export function TicketSheet() {
 			onClose={pageSheetActions.closeTicket}
 			onReturn={pageSheetActions.returnToTicket}
 			title={shown ?? "Ticket"}
-			fullPage={shown === null ? undefined : <Link to="/t/$identifier" params={{ identifier: shown }} />}
 		>
 			{shown !== null && (
 				<>

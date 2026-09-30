@@ -2,6 +2,8 @@ import type { Epic } from "@trellis/api";
 import { call, os, setLocation } from "./base.ts";
 
 export const epics = os.epics.router({
+	autopilot: os.epics.autopilot.handler(({ context, input }) => call(context, "epics.autopilot", input)),
+	setAutopilot: os.epics.setAutopilot.handler(({ context, input }) => call(context, "epics.setAutopilot", input)),
 	list: os.epics.list.handler(({ context, input }) => call(context, "epics.list", input)),
 	get: os.epics.get.handler(({ context, input }) => call(context, "epics.get", input)),
 	create: os.epics.create.handler(async ({ context, input }) => {

@@ -1,6 +1,6 @@
 # UI patterns
 
-Trellis uses one set of UI elements across its boards, tables, and inbox.
+Trellis uses one set of UI elements across its boards and tables.
 `packages/ui` owns the visuals. Web feature components connect those visuals to data and navigation.
 
 ## Reuse before design
@@ -32,7 +32,6 @@ Each page supplies its data and available actions. It does not choose new contro
 | Ticket detail sections | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
 | Property label and value | `PropertyRow` | `packages/ui/src/primitives/PropertyRow/PropertyRow.tsx` |
 | Ticket table rows | `Row`, with `columns` and `rowHeights` | `apps/web/src/features/table/Row/Row.tsx` |
-| Review and mention rows | `InboxRow` | `packages/ui/src/domain/InboxRow/InboxRow.tsx` |
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
 | Assigned ticket agent, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Added and deleted lines of a workspace | `LineChanges` | `packages/ui/src/domain/LineChanges/LineChanges.tsx` |
@@ -154,16 +153,21 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 Use `PageSheet` to show a ticket or a pull request over the current page.
-Render the same page component as the route. Do not build a compact copy of the page.
+Render the complete ticket or review content. Do not build a compact copy.
 `Topbar` renders the title and the actions of the page into the header of the sheet.
-The header adds the Open full page and Close buttons, and it shows them while the page loads.
+The header keeps Close visible while the content loads.
+A pull request also has Open full page. A ticket uses only the sheet.
 Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
 
 `pageSheetStore` holds the sheet stack: one ticket with one pull request over it.
 `PageSheetHost` mounts once in the root shell and draws the stack.
 Open a ticket with `pageSheetActions.openTicket`, and a pull request with `pageSheetActions.openPullRequest`.
-Give a ticket name in a list the `TicketLink` component: a plain click opens the sheet, and the href keeps the ticket page for a new tab.
-A list never navigates to `/t/$identifier`. The route stays for a link that arrives from outside the app.
+Give a ticket name in a list the `TicketLink` component. A plain click opens the sheet over the current page.
+A list never navigates to `/t/$identifier`.
+This URL opens the sheet over the home page when a link arrives from outside the app or opens in a new tab.
+It replaces the URL with the home route, so closing the sheet leaves a page to use.
+The table's Enter, Space, and O keys open the same sheet.
+Markdown links and resolved ticket record links also open the sheet over the current page.
 The review sheet takes the wide width, so it covers the ticket sheet under it.
 Escape, the back gesture and a click beside the sheets close the top sheet only.
 
@@ -209,8 +213,12 @@ A filter or sort change saves immediately. The default ID order also saves.
 Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
-Needs you filters Active, Snoozed, or Ignored items. Its sort fields are Priority, Created, Updated, and Title.
-Priority defaults to highest first, then oldest ticket. Its groups remain Needs review and Mentioned.
+## Ticket range selection
+
+Select a ticket checkbox. Hold Shift and click another ticket checkbox or row to select the inclusive range.
+The range follows the displayed ticket order across expanded groups and scroll positions.
+Collapsed groups stay outside the range. Earlier selections outside the range stay selected.
+If the anchor ticket leaves the view, the next Shift click starts a new range.
 
 ## Group headers
 
@@ -238,7 +246,9 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add menu, and the epic actions `Menu`.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a Broadcast `IconButton`, an Add menu, and the epic actions `Menu`.
+The Broadcast control opens the shared broadcast dialog with the epic name and its working and idle recipient counts.
+It selects agents across the epic, independent of the ticket filters.
 The Add menu uses a plus `IconButton` with the `Tooltip` Add. Its options are Ticket and Wave.
 Ticket opens the project `TicketPicker`. Wave creates a wave through the existing wave actions.
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
@@ -256,6 +266,13 @@ The plan and the resources take at most half of the page card, so the table keep
 The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
+
+## Agent prompt settings
+
+The Agent prompt section of Settings uses TipTap to edit the complete startup template as plain source text.
+Variable fields use `{{name}}` syntax and a highlight. An unknown variable uses the danger treatment and prevents a save.
+The shared `Select` inserts a variable at the current text selection. The form uses the existing Save, Cancel, and Use default buttons.
+Use default changes the draft. Save prompt commits it. A load error uses `FailureState`, and a save error uses `FormStatus`.
 
 ## Failures
 
@@ -288,7 +305,7 @@ Truncate long titles and project paths within their columns. Use tabular numbers
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
 Use `ActorAvatar` when a row represents a ticket. It shows the provider mark and the work state for the agent run that is assigned to the ticket of the row.
-A ticket with no assigned agent shows the wave header's play control when the pointer enters its agent slot or the control receives keyboard focus. Touch devices keep the control visible. The control uses the most recent successful assignment choice. An invalid choice opens the shared assignment dialog. The assignment query must confirm that the ticket has no agent before the control appears. Completed tickets, archived projects, and drag previews keep the slot read only. The control keeps the current page open. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
+A ticket with no assigned agent shows the wave header's play control when the pointer enters its agent slot or the control receives keyboard focus. Touch devices keep the control visible. The control uses the most recent successful assignment choice. An invalid choice opens the shared assignment dialog. The assignment query must confirm that the ticket has no agent before the control appears. Completed tickets, archived projects, and drag previews keep the slot read only. The control keeps the current page open. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, and the epic page.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.
@@ -310,3 +327,17 @@ Check populated, empty, loading, and error states. Check long titles and rows wi
 Verify the layout in both themes at desktop and phone widths.
 Check keyboard access, focus return, filter removal, group collapse, sort direction, and URL persistence.
 Run the linter and type checks for each page that uses a changed shared element.
+
+## Create a ticket
+
+The ticket composer uses `TicketComposer`, `ComposerTitle`, and `ComposerProperty`.
+The header selects the project. The title and description come before the properties.
+The property row holds status, priority, agent, placement, and labels.
+More properties holds the parent picker and Discard draft.
+The agent picker searches the supported models of each harness. Its account and effort fields use the current harness.
+Create and assign saves the ticket, uploads its attachments, and starts the selected agent.
+No agent changes the action to Create ticket.
+A failed upload or assignment keeps the saved ticket. An assignment retry keeps its original request ID.
+Close and Escape retain the draft and selected files. Create another clears the content and retains the settings.
+Command+Enter creates the ticket. Command+Shift+Enter also keeps the composer open.
+On other platforms, Control replaces Command.

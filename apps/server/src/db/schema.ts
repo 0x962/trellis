@@ -1,3 +1,6 @@
+export * from "./tables/chatterMessages";
+export * from "./tables/epicChatterSettings";
+
 import { sql } from "drizzle-orm";
 import {
 	bigint,
@@ -290,5 +293,4 @@ export {
 } from "./tables/langflowDocuments/index.ts";
 export * from "./tables/langflowExecution/index.ts";
 export * from "./tables/nativeMigrations.ts";
-export * from "./tables/needsYouStates.ts";
 export * from "./tables/notes.ts";

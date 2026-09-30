@@ -184,8 +184,8 @@ export function DisplaySections() {
 			</Section>
 			<Section name="EmptyState" note="section: inside a list; page: fills the pane" className="justify-center">
 				<EmptyState
-					title="Nothing needs you"
-					description="Every review is done. Every check passed."
+					title="No tickets"
+					description="Create a ticket to track work in this project."
 					action={<Button>New ticket</Button>}
 					className="w-full"
 				/>
@@ -194,7 +194,7 @@ export function DisplaySections() {
 						variant="page"
 						title="Page not found"
 						description="No page has this URL."
-						action={<Button size="md">Needs you</Button>}
+						action={<Button size="md">Search</Button>}
 					/>
 				</div>
 			</Section>

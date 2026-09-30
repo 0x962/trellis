@@ -41,8 +41,8 @@ test("manual sessions and ticket agents share one list", () => {
 	]);
 });
 
-test("an unpinned session moves to Archived at the 48-hour boundary", () => {
-	const old = run("old", { activityAt: hoursAgo(48) });
+test("an unpinned session moves to Archived at the 72-hour boundary", () => {
+	const old = run("old", { activityAt: hoursAgo(72) });
 	setSystemTime(new Date(now.getTime() - 1));
 	expect(isAutomaticallyArchived(old)).toBe(false);
 	setSystemTime(now);
@@ -55,15 +55,15 @@ test("the next archive time skips pinned sessions and sessions with no activity"
 	setSystemTime(now);
 	expect(
 		nextSessionArchiveTimeMs([
-			run("later", { activityAt: hoursAgo(46) }),
-			run("next", { activityAt: hoursAgo(47) }),
-			run("pinned", { activityAt: hoursAgo(47.5), pinnedAt: hoursAgo(1) }),
+			run("later", { activityAt: hoursAgo(70) }),
+			run("next", { activityAt: hoursAgo(71) }),
+			run("pinned", { activityAt: hoursAgo(71.5), pinnedAt: hoursAgo(1) }),
 			run("unknown", { activityAt: null }),
 		]),
 	).toBe(now.getTime() + 3_600_000);
 });
 
-test("a pinned session stays current after 48 hours", () => {
+test("a pinned session stays current after 72 hours", () => {
 	setSystemTime(now);
 	const runs = [
 		run("current", { activityAt: hoursAgo(1) }),
@@ -79,7 +79,7 @@ test("a pinned session stays current after 48 hours", () => {
 
 test("new activity returns an automatically archived session to the current list", () => {
 	setSystemTime(now);
-	const old = run("session", { activityAt: hoursAgo(49) });
+	const old = run("session", { activityAt: hoursAgo(73) });
 	expect(sessionGroups([old], { search: "", showArchived: true }).runs).toHaveLength(1);
 	const active = { ...old, activityAt: hoursAgo(1) };
 	expect(sessionGroups([active], { search: "", showArchived: false }).runs).toHaveLength(1);
@@ -102,7 +102,7 @@ test("a refresh keeps the selected session when a pin changes the row order", ()
 test("search filters only the selected archive mode", () => {
 	setSystemTime(now);
 	const runs = [
-		run("old", { activityAt: hoursAgo(49) }),
+		run("old", { activityAt: hoursAgo(73) }),
 		run("current", { ticketIdentifier: "OP-21", ticketTitle: "Improve UI" }),
 	];
 	expect(sessionGroups(runs, { search: " DATABASE ", showArchived: false }).runs).toEqual([]);
@@ -144,4 +144,28 @@ test("the Tab key reaches the list controls at both ends of the list", () => {
 	expect(nextSessionRow({ focused: 0, total: 133, back: true, drawn: [0] })).toBeNull();
 	// A run that left the list between the key and the read.
 	expect(nextSessionRow({ focused: -1, total: 133, back: false, drawn })).toBeNull();
+});
+
+test("a saved archive period or disabled rule controls the list and timer", () => {
+	const old = run("old", { activityAt: hoursAgo(96) });
+	expect(isAutomaticallyArchived(old, now.getTime(), 5)).toBe(false);
+	expect(isAutomaticallyArchived(old, now.getTime(), 1)).toBe(true);
+	expect(isAutomaticallyArchived(old, now.getTime(), null)).toBe(false);
+	expect(nextSessionArchiveTimeMs([old], now.getTime(), null)).toBeNull();
+	expect(nextSessionArchiveTimeMs([old], now.getTime(), 5)).toBe(now.getTime() + 24 * 3_600_000);
+	expect(
+		sessionGroups([old], { search: "", showArchived: false, now: now.getTime(), archiveAfterDays: null }).runs,
+	).toEqual([old]);
+});
+
+test("running, unknown, and starting sessions stay current", () => {
+	for (const status of [
+		{ processStatus: "running" as const },
+		{ processStatus: "unknown" as const },
+		{ state: "starting" as const },
+	]) {
+		const active = run("active", { activityAt: hoursAgo(200), ...status });
+		expect(isAutomaticallyArchived(active, now.getTime())).toBe(false);
+		expect(nextSessionArchiveTimeMs([active], now.getTime())).toBeNull();
+	}
 });

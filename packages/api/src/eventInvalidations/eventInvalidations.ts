@@ -19,12 +19,14 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 		// every query that holds a ticket row refetches.
 		case "epics.changed":
 			return [family("epics"), family("tickets"), family("projects", "list")];
+		case "epic-chatter.changed":
+			return [family("epicChatter")];
 		case "pages.changed":
 			return [family("pages"), family("projects", "list"), family("search")];
 		case "providers.changed":
 			return [family("providers")];
 		case "page-comments.changed":
-			return [family("pages"), family("pageComments"), family("needsYou"), family("projects", "list")];
+			return [family("pages"), family("pageComments"), family("projects", "list")];
 		case "page-watches.changed":
 			return [family("pages"), family("pageWatches")];
 		case "page-pins.changed":
@@ -45,6 +47,7 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 				family("tickets", "board"),
 				family("reviews", "prs"),
 				family("reviews", "status"),
+				family("reviews", "overview"),
 				family("reviews", "metadata"),
 			];
 		// Every cached summary holds the name, the color, and the group name
@@ -53,7 +56,7 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 		// so no ticket event follows. So every query that holds a summary
 		// refetches with the label list.
 		case "labels.changed":
-			return [family("labels"), family("tickets"), family("search"), family("needsYou")];
+			return [family("labels"), family("tickets"), family("search")];
 		// A status rename or a color change alters the `status` inside
 		// every cached summary. No ticket row changes, so no ticket event
 		// follows. A project rename alters
@@ -64,9 +67,7 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 		case "project.updated":
 		case "project.deleted":
 		case "project.moved":
-			return [family("statuses"), family("projects"), family("tickets"), family("search"), family("needsYou")];
-		case "needs-you.changed":
-			return [family("needsYou")];
+			return [family("statuses"), family("projects"), family("tickets"), family("search")];
 		case "gh.status":
 			return [family("system", "gh")];
 		// A session detail carries the state of its run, so a run change

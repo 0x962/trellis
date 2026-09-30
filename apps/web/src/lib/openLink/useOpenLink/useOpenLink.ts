@@ -1,8 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type LinkPress, toast } from "@trellis/ui";
 import { useCallback } from "react";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useApp } from "../../appContext";
 import { errorMessage } from "../../conflict";
+import { ticketRefOfPathname } from "../../ticketUrl";
 import { openAppLink } from "../openAppLink";
 import { openLink } from "../openLink";
 import { sameOriginRouteHref } from "../sameOriginRouteHref";
@@ -19,6 +21,11 @@ export function useOpenLink() {
 					const { pageTabsActions } = await import("../../../stores/pageTabsStore");
 					pageTabsActions.addTab({ url: href, title: href });
 					await navigate({ href, replace: true });
+					return;
+				}
+				const ticket = ticketRefOfPathname(new URL(href, location.origin).pathname);
+				if (ticket !== null) {
+					pageSheetActions.openTicket(ticket);
 					return;
 				}
 				await navigate({ href });

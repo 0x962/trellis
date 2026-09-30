@@ -54,11 +54,11 @@ export const useRowSelection = ({ ids }: RowSelectionOptions): RowSelection => {
 	const extend = useCallback(
 		(id: string) => {
 			setState((current) => {
-				if (current.anchor === null) {
+				const from = current.anchor === null ? -1 : ids.indexOf(current.anchor);
+				if (from === -1) {
 					const selected = new Set(current.selected).add(id);
 					return { base: selected, anchor: id, selected };
 				}
-				const from = ids.indexOf(current.anchor);
 				const to = ids.indexOf(id);
 				const range = ids.slice(Math.min(from, to), Math.max(from, to) + 1);
 				return { ...current, selected: new Set([...current.base, ...range]) };

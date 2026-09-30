@@ -115,6 +115,8 @@ export async function loadCurrentRevision(ctx: PrepareCtx, ref: ReturnType<typeo
 		ghJson<{ merge_base_commit: { sha: string } }>(ctx, [
 			"api",
 			`repos/${ref.owner}/${ref.repo}/compare/${meta.baseRefOid}...${meta.headRefOid}`,
+			"--jq",
+			"{merge_base_commit: {sha: .merge_base_commit.sha}}",
 		]),
 		gh(ctx, ["pr", "diff", ref.url]),
 	]);

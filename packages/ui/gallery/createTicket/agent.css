@@ -1,0 +1,36 @@
+.assignment-picker {
+	width: 312px;
+	max-width: calc(100vw - 24px);
+	padding: 0;
+	overflow: hidden;
+}
+.assignment-picker [cmdk-input] {
+	font-size: 13px;
+}
+.assignment-picker [cmdk-item] {
+	font-size: 13px;
+}
+.assignment-settings {
+	display: grid;
+	grid-template-columns: 1fr 1.3fr;
+	gap: 12px;
+	padding: 12px;
+	border-top: 1px solid var(--border);
+}
+.assignment-settings label {
+	font-size: 11px;
+	font-weight: 400;
+	color: var(--fg-faint);
+}
+.assignment-settings [role="combobox"] {
+	width: 100%;
+	min-width: 0;
+	font-size: 12px;
+}
+.assignment-note {
+	margin: 0;
+	padding: 10px 12px;
+	border-top: 1px solid var(--border);
+	color: var(--fg-faint);
+	font-size: 11px;
+}

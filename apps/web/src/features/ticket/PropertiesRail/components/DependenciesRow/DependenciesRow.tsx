@@ -58,7 +58,6 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 				queryClient.invalidateQueries({ queryKey: orpc.tickets.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.search.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.epics.key() }),
-				queryClient.invalidateQueries({ queryKey: orpc.needsYou.key() }),
 			]);
 		} catch (error) {
 			failToast(

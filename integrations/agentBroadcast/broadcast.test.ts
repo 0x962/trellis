@@ -84,6 +84,22 @@ test("both groups receive one delivery with each working agent held until its tu
 	}
 });
 
+test("an epic broadcast reaches only its assigned recipient through the runtime", async () => {
+	expect(await prepareBroadcastRecipients(f.ctx, { epic: "ONE/first-plan" })).toEqual({ working: 1, idle: 0 });
+	const input = { epic: "ONE/first-plan", group: "working", text: "First epic only", requestId: "epic" } as const;
+	expect(await prepareBroadcast(f.ctx, input)).toEqual({
+		group: "working",
+		recipientCount: 1,
+		acceptedCount: 1,
+		failures: [],
+	});
+	await f.idle("workingAgent");
+	await f.waitForOutput("workingAgent", input.text);
+	await f.idle("workingFlow");
+	expect(await f.output("workingFlow")).toBe("");
+	expect(await f.output("idleSession")).toBe("");
+});
+
 test("a failed recipient keeps its identity and does not stop another delivery", async () => {
 	await rm(join(f.home, "harness-attempts", f.terminals.workingFlow, "launch.json"));
 	const result = await prepareBroadcast(f.ctx, { group: "working", text: "Partial delivery", requestId: "partial" });

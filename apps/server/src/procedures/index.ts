@@ -1,6 +1,7 @@
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
+import { epicChatter } from "./epicChatter";
 import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
@@ -9,7 +10,6 @@ import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
 import { models } from "./models.ts";
-import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
@@ -36,7 +36,6 @@ export const router = os.router({
 	harnessAccounts,
 	internalLinks,
 	usage,
-	needsYou,
 	reviews,
 	agentRuns,
 	sessions,
@@ -53,6 +52,7 @@ export const router = os.router({
 	timeline,
 	notes,
 	pages,
+	epicChatter,
 	epics,
 	waves,
 	attachments,

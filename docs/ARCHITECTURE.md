@@ -120,6 +120,8 @@ The first prompt contains only the saved run instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
+The bridge streams engine diagnostics to a private `codex-engine.log` beside the attempt launch file.
+These diagnostics stay outside the terminal screen. Structured log entries still report compaction progress.
 Muse runs one private `muse serve` session host per attempt. The Muse bridge speaks the Muse Session Protocol over its stdio, maps session, turn, item, and result notifications into the runtime journal, and prints the transcript to the terminal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
@@ -139,7 +141,7 @@ The host uses these observations for flow completion.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
+The ticket sheet holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
 Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
 Overview holds the summary and the evidence document. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
@@ -178,6 +180,18 @@ Cancellation retains files and output and records any worker whose stop remains 
 The desktop installs `~/.local/bin/trellis` from the active host release.
 Its default connection reads the selected data directory's current port and token on each invocation.
 An explicit URL uses explicitly supplied credentials and does not read the selected desktop connection.
+
+The desktop accepts an explicit `--ui-preview=http://127.0.0.1:<port>` command.
+It verifies that the preview server names the current host before it selects that UI origin.
+The `desktop:preview` command starts Vite under Node in the selected source workspace.
+Vite proxies API and RPC requests to the current host, including event streams and terminal sockets.
+The desktop adds the bearer only to authorized host requests and the selected preview's API and RPC paths.
+Preview assets receive no bearer. Vite forwards authentication from each incoming request.
+The proxy translates an Origin header only when it matches the preview origin.
+Native calls require the Trellis window at its selected UI origin.
+The preview origin has separate browser storage. The installed origin retains its tabs and drafts.
+Help > Stop UI preview or `--ui-preview=off` restores the installed UI without a host restart.
+The normal startup path selects the packaged UI and starts no preview server or watcher.
 
 The desktop retains each host resource version under `releases` in its application data directory.
 An application replacement can reuse that version while its runtime owns active sessions.
@@ -305,6 +319,34 @@ An empty epic can also have state `canceled`.
 A repeated cancellation changes only members that become unfinished again.
 The saved cancellation takes precedence when a person later changes a member ticket.
 Ticket automation follows the normal canceled status behavior.
+
+`epics.autopilot` stores optional settings for automatic ticket starts.
+The settings contain `enabled`, `maxConcurrency`, `harness`, and `accountId`.
+A null value leaves autopilot off. `epics.autopilot` reads the settings through the API.
+`epics.setAutopilot` saves them and emits `epics.changed`.
+Enablement requires an active project, an epic without cancellation, and a configured `started` status.
+An explicit account must belong to the selected harness.
+
+The database worker calls `epics.dispatchAutopilot` through its existing repeating service loop.
+Each reservation checks the saved settings, dependencies, assignments, and capacity in one transaction.
+A ready ticket has category `todo`, completed or canceled dependencies, and no open ticket-agent assignment.
+Wave position and ticket position select the order among ready tickets.
+An unfinished earlier wave does not block a ready ticket in a later wave.
+The normal reservation service creates the assignment and its attempt.
+The normal ticket update service moves the ticket to the first configured `started` status.
+Only a committed reservation reaches the native launch service.
+
+Assigned tickets in `todo` or `started` consume slots, including manual assignments and failed starts.
+A move to review or completion releases the slot and preserves the assignment.
+Manual starts can exceed the limit. Autopilot waits for capacity before its next reservation.
+A lower limit preserves existing agents and waits for capacity.
+Disablement stops new reservations and permits accepted starts to finish.
+Cancellation disables autopilot. Project archival prevents reservations.
+Saved settings and assignments survive restart. Autopilot never repeats an existing assignment.
+
+The CLI exposes `trellis epic autopilot show`, `enable`, and `disable`.
+Enablement requires `--max-concurrency` and `--harness`.
+The optional `--model`, `--effort`, and `--account` flags select the launch settings.
 
 The ticket brief names the epic. The header gains
 `- Epic: <name> (<ref>), <done> of <total - canceled> done`. After the
@@ -644,6 +686,9 @@ line selection, and thread annotations. Review styles live in `packages/ui`.
 Drafts persist in browser storage until the user submits them.
 The `reviews.changed` event invalidates local review queries after commit.
 Current GitHub status polls separately from the saved diff revision.
+`reviews.overview` returns the saved pull request, linked ticket, summary, and evidence in one local read.
+The slideout shows this content while GitHub status and patch requests run.
+Pull request and review events invalidate the saved overview.
 
 `apps/server/src/gateway.ts` owns the optional localhost gateway.
 It reads the shared route file and forwards configured local hostnames.
@@ -672,6 +717,11 @@ Session workspaces, active tickets, live processes, open files, and dirty worktr
 The sweep keeps the branch, assignment, and provider conversation.
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
+
+`agentRuns.broadcastRecipients` counts eligible working and idle agents.
+`agentRuns.broadcast` reads the recipients again before it sends through the normal message path.
+Both operations accept an optional epic reference or ID and select runs through the current epic of each ticket.
+An omitted epic selects eligible agents across Trellis. An unknown epic fails before delivery.
 
 `agentRuns.start` accepts an optional harness configuration and a canonical model ID for the assignment.
 The harness configuration includes its preset, model, and optional effort. The API validates effort against the selected harness and model.
@@ -702,6 +752,13 @@ An agent restart preserves the workspace and resumes a compatible provider conve
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `agentPrompt/launchGuide.ts` composes the common guide at every start and resume.
 `packages/api/src/agentGuide/template.md` supplies the concepts, CLI reference, context fields, and rules.
+Settings exposes this complete template in a TipTap source editor with highlighted variables.
+The `agentPromptTemplate` settings key stores an optional replacement as exact text.
+The settings API returns the effective template, the default template, and the supported variable names.
+A save rejects an empty template, an unknown variable, or a changed template since the editor opens.
+Use default removes the stored replacement when the person saves.
+Each harness start or resume reads the effective template in its context transaction.
+Template edits keep the existing assignments, workspaces, and provider conversations.
 The renderer reads current project records, configured statuses, resources, epic and wave context, and the full ticket.
 It includes the user context that Trellis has and the current workspace and session identifiers.
 A session request or flow node instruction follows the common context.
@@ -759,8 +816,19 @@ Project Sessions puts project sessions and ticket agents in one list, in order o
 `agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
 An attempt start and an assignment close also count as activity.
 The host monitor requires a complete execution service read before it stores new activity.
-After 48 hours without activity, an unpinned row moves to Archived.
+The Clean up section in Settings sets the archive and deletion periods in whole days.
+The defaults are 3 days for archive and 7 days for deletion. Each rule can be disabled.
+After the archive period without activity, an unpinned, stopped row moves to Archived.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
+The host also runs session cleanup at boot and once each hour.
+Cleanup archives sessions without a project by setting `archived_at`. This archive keeps the original activity time for deletion.
+Deletion applies only to session records, including sessions in projects. Ticket agents and flow runs remain.
+Cleanup uses the latest recorded activity, current runtime activity, and session edits.
+A current runtime record must report exit. An absent record requires a saved exit capture, unless the session has no attempt.
+Pinned sessions and sessions with a held start, pin, move, or rename operation remain intact.
+Deletion keeps directories with unsaved or ignored files and directories that a process holds open.
+Observer shutdown must succeed before directory deletion. The session row is removed after its directory.
+Run history and captured terminal output remain available.
 A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
 Terminal links include plain addresses and labeled OSC 8 hyperlinks.
@@ -770,7 +838,8 @@ Terminal links include plain addresses and labeled OSC 8 hyperlinks.
 The terminal copies those five fields into a plain record for plain and OSC 8 links.
 HTTP and HTTPS links use `openLink`. Other schemes and web addresses with credentials produce an error.
 Published Page messages still require confirmation in the trusted viewer before navigation.
-The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
+The terminal header of a ticket run opens the ticket sheet over the session.
+The shared URL `/t/<identifier>` opens that sheet over the home page and replaces the route with `/`.
 A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
 The session update pane groups retained updates by local calendar day, newest first.
@@ -895,16 +964,6 @@ Harness events establish turn activity. Terminal output alone does not establish
 
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
-
-The web Needs you page lists each ticket whose turn is `you` across every project.
-`packages/api/src/turn/turn.ts` defines this turn from the status, pull requests, and the assigned run.
-Each person can snooze or ignore individual items. The database stores these choices in `needs_you_states`.
-A new status change creates a separate item. An item leaves the inbox when its ticket is done or canceled, when an agent works on it, or when its turn passes to somebody else.
-The default order is highest priority, then oldest ticket. Other orders use age, update time, or title.
-The server sorts before pagination and uses the item ID to break ties. The URL stores the selected order and view.
-The sidebar dot marks active items. Server events, snooze expiry, and window focus refresh the inbox.
-The command palette accepts `Snooze TR-123 1d` and natural dates, with an exact date preview before confirmation.
-Suffix `m` means minutes; prefix `m` means months. Past times require a future date.
 
 ### Flows
 
@@ -1037,10 +1096,10 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 
 | route | file | page |
 |---|---|---|
-| `/` | `index.tsx` | a replace redirect to `/needs-you` |
-| `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
+| `/` | `index.tsx` | a replace redirect to `/search` |
+| `/needs-you` | `needs-you/route.tsx` | a replace redirect to `/search` for saved links |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, its notes, its epics, or one epic |
-| `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/t/$identifier` | `t/$identifier/route.tsx` | opens the ticket sheet and replaces the route with `/` |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
@@ -1050,17 +1109,17 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/setup` | `setup.tsx` | the first visit, and the new project step |
 | `/_gallery` | `[_]gallery.tsx` | every primitive in every state, in both themes |
 
-Ticket links open `/t/$identifier`. The header shows the project name and ticket
-identifier, with the actions on the right. The content sits in fully rounded
-cards below the header.
+Ticket links open a sheet over the current page. The header shows the project name and ticket
+identifier, with the actions on the right. Shared ticket URLs open the sheet over the home page.
+The sheet keeps Close visible during loading and errors.
 Every page card has a gap from the sidebar, the right edge, and the bottom edge.
 The gap is 12 px on desktop and 8 px on a phone. Back restores the previous
-router entry, including its filters, tab, and hash. Ticket, review, and usage
-tabs each create a history entry. A ticket opens a pull request on its review route.
+router entry, including its filters, tab, and hash. Review and usage
+tabs each create a history entry. A ticket opens a pull request in a second sheet.
 Escape closes the active control or clears the selection first, then goes back.
 The terminal passes Escape to page navigation and keeps modified keys as terminal input.
-A direct entry with no previous app page returns to Needs you with a replacement
-entry. Back at the initial Needs you or setup page leaves the page in place.
+A direct entry with no previous app page returns to Search with a replacement
+entry. Back at the initial Search or setup page leaves the page in place.
 
 `/p/$` takes one splat, `[ref, view?]`. `ref` is the key or the slug of one
 project. The second segment is a view only when it is a reserved slug:
@@ -1084,17 +1143,17 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#notifications`, `#menu-links`, `#desktop` in the macOS app |
+| `/settings` | Account (no hash), `#notifications`, `#menu-links`, `#agent-prompt`, `#desktop` in the macOS app |
 | `/p/<path>/settings` | General (no hash), `#notes`, `#template`, `#statuses`, `#labels`, `#archive` |
 
-`/settings` holds the actor name, theme, notifications, menu links, and desktop controls.
+`/settings` holds the actor name, theme, notifications, menu links, agent prompt, and desktop controls.
 Menu links stores an ordered list of labels, icons, and HTTPS URLs in the settings store.
 The sidebar shows each saved link after the fixed destinations.
 A custom link opens the browser sheet over the current page.
 Project settings hold the repository directory and repository selection.
 They write `projects.directory` and the project repositories.
 
-The sidebar holds the workspace row, Needs you, Search, Flows, Usage,
+The sidebar holds the workspace row, Search, Flows, Usage,
 the sessions, the project list, and the actor footer.
 The sessions and the project list share the one region that scrolls, so the fixed
 links keep their place at any height.
@@ -1121,7 +1180,8 @@ Done, each with its count. A row prints the name, a `StackedBar` of the counts b
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
 `/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+`IconButton`, the Broadcast `IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
+Broadcast opens the shared dialog with the epic scope. Ticket filters do not change the broadcast recipients.
 The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete. The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
 Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
@@ -1316,6 +1376,7 @@ returns one canonical spelling.
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
 | settings.get, set | GET, PUT /api/settings | |
+| settings.agentPrompt, setAgentPrompt | GET, PUT /api/settings/agent-prompt | effective and default templates, variables; saves require the previous template |
 | system.health, gh, checkGh, backup | GET /api/health, /api/gh; POST /api/gh/check, /api/backup | gh and checkGh run in the HTTP process, not the database worker |
 | system.chooseDirectory | POST /api/choose-directory | it opens the folder picker of the server computer |
 | export | GET /api/export | a Hono route, not a contract procedure: an NDJSON stream with `Content-Disposition: attachment` |
@@ -1393,7 +1454,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`, `labels.changed {projectId}`, `epics.changed {projectId, id}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, `providers.changed {id}`, and `needs-you.changed {actorName}`.
+`flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `providers.changed {id}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 
@@ -1692,7 +1753,7 @@ A boot removes stages that the previous process abandoned.
 Each sweep logs aggregate counts for purged Pages, expired uploads, removed objects, and removed stages.
 
 `apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
-attachments, board, command, composer, epics, filters, flows, navRows, needs-you,
+attachments, board, command, composer, epics, filters, flows, navRows,
 notes, pickers, project-actions, project-settings, prs, reviews, search,
 sessions, settings, setup, shell, sidebar, table, ticket, usage), `components/`,
 `hooks/`, `lib/`, and `stores/`.
@@ -1734,7 +1795,7 @@ Reuse these elements across pages. Ask the user for advice before adding a new U
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
-- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ReviewStateIcon, ReviewStatusSummary, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
+- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ReviewStateIcon, ReviewStatusSummary, ActorChip, TicketId, TrellisMark, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
 

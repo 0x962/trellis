@@ -3,6 +3,7 @@ import { actors } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
+import { epicChatter } from "./epicChatter";
 import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
@@ -11,7 +12,6 @@ import { internalLinks } from "./internalLinks.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
 import { models } from "./models.ts";
-import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
@@ -40,7 +40,6 @@ export const contract = {
 	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
 	internalLinks: oc.tag("internal links").router(internalLinks),
 	usage: oc.tag("usage").router(usage),
-	needsYou: oc.tag("needs you").router(needsYou),
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	flows: oc.tag("flows").router(flows),
@@ -54,6 +53,7 @@ export const contract = {
 	timeline: oc.tag("timeline").router(timeline),
 	notes: oc.tag("notes").router(notes),
 	pages: oc.tag("pages").router(pages),
+	epicChatter: oc.tag("epic chatter").router(epicChatter),
 	epics: oc.tag("epics").router(epics),
 	waves: oc.tag("waves").router(waves),
 	attachments: oc.tag("attachments").router(attachments),

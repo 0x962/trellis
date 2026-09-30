@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, Menu, powerMonitor, shell } from "electron";
+import { app, type BrowserWindow, dialog, Menu, shell } from "electron";
 import { activateHostRelease } from "./activateHostRelease/activateHostRelease.ts";
 import { appMenu } from "./appMenu/appMenu.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
@@ -12,13 +12,12 @@ import {
 	type DesktopStatus,
 	type DesktopUpdateStatus,
 	requireOpenedPath,
-	type ThermalState,
 	updateSummary,
 } from "./desktopSettings/desktopSettings.ts";
 import { askForFullDiskAccess, hasFullDiskAccess } from "./fullDiskAccess/fullDiskAccess.ts";
 import { connectHost, type HostConnection } from "./host/host.ts";
 import { installCli } from "./installCli/installCli.ts";
-import { deepLinkPath, rendererPath, sameOrigin } from "./navigation/navigation.ts";
+import { deepLinkPath, rendererPath } from "./navigation/navigation.ts";
 import { openWindow as openDesktopWindow } from "./openWindow";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
@@ -33,6 +32,9 @@ import { requireService, stopLocalWork } from "./serviceActions/serviceActions.t
 import { sessionNotifications } from "./sessionNotifications/sessionNotifications.ts";
 import { showStartupError } from "./showStartupError/index.ts";
 import { startupProgress } from "./startupProgress/index.ts";
+import { watchThermalState } from "./thermalState";
+import { trustRenderer } from "./trustRenderer";
+import { createUiPreview } from "./uiPreview";
 import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 
@@ -64,6 +66,19 @@ const developmentHostOptions = () => ({
 	entry: join(paths().hostRoot, "apps/server/src/index.ts"),
 	webDist: join(paths().hostRoot, "apps/web/dist"),
 });
+const rendererOrigin = () => preview.origin() ?? host.origin;
+const preview = createUiPreview({
+	hostOrigin: () => host.origin,
+	reload: async () => {
+		if (window) await window.loadURL(`${rendererOrigin()}${rendererPath(window.webContents.getURL())}`);
+	},
+	changed: (active) => {
+		const item = Menu.getApplicationMenu()?.getMenuItemById("stop-ui-preview");
+		if (item) item.visible = active;
+	},
+});
+let previewArguments = process.argv;
+const previewError = (error: Error) => dialog.showErrorBox("UI preview", error.message);
 const openWindow = () =>
 	openDesktopWindow({
 		current: () => window,
@@ -74,11 +89,11 @@ const openWindow = () =>
 			visibleSession = null;
 		},
 		finishProgress: progress.finish,
-		hostOrigin: () => host.origin,
+		hostOrigin: rendererOrigin,
 		initialPath: rendererNavigation.initialPath,
 		platform: process.platform,
 		preload: () => paths().preload,
-		secure: (value) => secureRenderer(value, () => host),
+		secure: (value) => secureRenderer(value, () => host, preview.origin),
 		startLoad: rendererNavigation.startLoad,
 	});
 const chooseHome = (current = desktopHome()) =>
@@ -147,17 +162,6 @@ const navigate = async (url: string) => {
 	if (host) await openWindow();
 };
 
-// Only the Trellis window, showing a page of its own host, may call the main process.
-const trustRenderer = (event: IpcMainInvokeEvent) => {
-	if (
-		!window ||
-		event.sender !== window.webContents ||
-		!event.senderFrame ||
-		!sameOrigin(event.senderFrame.url, host.origin)
-	)
-		throw new Error("Untrusted desktop request.");
-};
-
 const requirePackaged = () => {
 	if (!app.isPackaged) throw new Error("The development app uses TRELLIS_DESKTOP_HOME and has no background service.");
 };
@@ -170,17 +174,12 @@ const desktopServiceStatus = async (): Promise<DesktopServiceStatus> =>
 	app.isPackaged ? (await serviceCommand(paths().helper, "status")).status : null;
 const desktopUpdateStatus = async (): Promise<DesktopUpdateStatus> =>
 	app.isPackaged ? updateSummary(await readUpdateStatus(desktopHome(), availableRelease!)) : null;
-const openPath = async (path: string) => {
-	const error = await shell.openPath(path);
-	requireOpenedPath(error);
-};
-
 const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	chooseDataDirectory: async () => {
 		requirePackaged();
 		await chooseHome();
 	},
-	showDataDirectory: () => openPath(desktopHome()),
+	showDataDirectory: async () => requireOpenedPath(await shell.openPath(desktopHome())),
 	openServiceSettings: async () => {
 		requirePackaged();
 		await openServiceSettings(paths().helper);
@@ -191,7 +190,7 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	reconnectHost: async () => {
 		const path = window ? rendererPath(window.webContents.getURL()) : "/";
 		await connect();
-		await window?.loadURL(`${host.origin}${path}`);
+		await window?.loadURL(`${rendererOrigin()}${path}`);
 	},
 	quit: async () => app.quit(),
 };
@@ -212,6 +211,11 @@ else {
 		void navigate(url);
 	});
 	app.on("second-instance", (_event, argv) => {
+		if (argv.some((arg) => arg === "--ui-preview" || arg.startsWith("--ui-preview="))) {
+			if (host) void preview.apply(argv).then(openWindow).catch(previewError);
+			else previewArguments = argv;
+			return;
+		}
 		const url = argv.find((arg) => arg.startsWith("trellis:"));
 		if (url) void navigate(url);
 		else if (host) void openWindow();
@@ -225,7 +229,7 @@ else {
 			await progress.show("Prepare Trellis");
 
 			registerDesktopHandlers({
-				trust: trustRenderer,
+				trust: (event) => trustRenderer(event, window, rendererOrigin()),
 				window: () => window,
 				setVisible: (id) => {
 					visibleSession = id;
@@ -235,21 +239,16 @@ else {
 				status: desktopStatus,
 				serviceStatus: desktopServiceStatus,
 				updateStatus: desktopUpdateStatus,
-				hostOrigin: () => host.origin,
+				hostOrigin: rendererOrigin,
 				requirePackaged,
 				action: (action) => desktopActions[action](),
 			});
 			await connect(progress.show);
 			if (!host) return;
-			const sendThermalState = (details: { state: ThermalState }) => {
-				window?.webContents.send("trellis:thermal-state", {
-					state: details.state,
-					sampledAt: new Date().toISOString(),
-					hostOrigin: host.origin,
-				});
-			};
-			powerMonitor.on("thermal-state-change", sendThermalState);
-			app.once("before-quit", () => powerMonitor.removeListener("thermal-state-change", sendThermalState));
+			app.once(
+				"before-quit",
+				watchThermalState(() => window, rendererOrigin),
+			);
 			Menu.setApplicationMenu(
 				Menu.buildFromTemplate(
 					appMenu({
@@ -274,9 +273,11 @@ else {
 									},
 						),
 						quit: menuAction("quit", "Quit Trellis"),
+						stopUiPreview: () => void preview.stop().catch(previewError),
 					}),
 				),
 			);
+			await preview.apply(previewArguments).catch(previewError);
 			await progress.show("Open Trellis");
 			await openWindow();
 			if (app.isPackaged)

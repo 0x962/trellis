@@ -1,5 +1,6 @@
+import type { EpicAutopilot } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text } from "drizzle-orm/pg-core";
+import { check, index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
@@ -22,6 +23,7 @@ export const epics = pgTable(
 		name: text().notNull(),
 		description: text().notNull().default(""),
 		canceledAt: at("canceled_at"),
+		autopilot: jsonb().$type<EpicAutopilot>(),
 		...actorColumns(),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),

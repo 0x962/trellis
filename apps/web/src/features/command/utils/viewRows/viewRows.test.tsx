@@ -10,7 +10,7 @@ test("renders tab history actions and runs them after the palette closes", () =>
 			forward: () => calls.push("forward"),
 		},
 		close: () => calls.push("close"),
-		pathname: "/needs-you",
+		pathname: "/search",
 		search: {},
 	} as unknown as RowDeps;
 	const rows = viewRows(deps);

@@ -1,225 +1,127 @@
-import { ArrowElbowDownRight, FlagBanner, FolderOpen, Stack, Tag } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import type { Label, Priority, Status, TicketLabel, TicketSummary } from "@trellis/api";
-import { cx, LabelPills, PriorityIcon, StatusIcon } from "@trellis/ui";
+import { ArrowElbowDownRight, DotsThree, Tag } from "@phosphor-icons/react";
+import type { Label, Priority, Status, TicketLabel } from "@trellis/api";
+import { Button, ComposerProperty, IconButton, Popover, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactNode } from "react";
-import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
-import { useApp } from "../../../../../lib/appContext";
 import { labelNames } from "../../../../../lib/labelNames";
-
-import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
-import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
-import { WavePicker } from "../../../../pickers/WavePicker";
 import type { useCreatePlacement } from "../../../hooks/useCreatePlacement";
+import { PlacementPicker } from "../PlacementPicker";
 
-export type ChipRowProps = {
-	project: string | undefined;
-	// True after a submit without a project: the chip asks for one.
-	projectMissing: boolean;
-	statuses: readonly Status[];
-	status: Status | undefined;
-	priority: Priority;
-	parent: TicketSummary | null;
-	parentRef?: string;
-	placement: ReturnType<typeof useCreatePlacement>;
-	labels: readonly TicketLabel[];
-	onProject: (ref: string) => void;
-	onStatus: (status: Status) => void;
-	onPriority: (priority: Priority) => void;
-	onParent: (ticket: TicketSummary | null) => void;
-	// Each receives a ref, or `null` for the choice of none.
-	onEpic: (epic: string | null) => void;
-	onWave: (wave: string | null) => void;
-	// `checked` is the new state of the picked label row.
-	onLabel: (label: Label, checked: boolean) => void;
-};
-
-type ChipProps = {
-	// The accessible name, "Project: CDE/web". The chip shows the value only.
-	label: string;
-	icon: ReactNode;
-	children: ReactNode;
-	// True for a property with no value: a dashed border and faint text.
-	unset?: boolean;
-	invalid?: boolean;
-	disabled?: boolean;
-};
-
-// One property chip: 28 px, the icon, then the value. The pickers pass
-// their own props to the element they clone, so it is a plain button.
-//
-// An epic name runs to 40 characters and more. Without the width limit one
-// chip takes half of the row and pushes the chips after it to a second line.
-// `aria-label` carries the whole value, so a shortened chip loses no name.
-const chip = ({ label, icon, children, unset = false, invalid = false, disabled = false }: ChipProps) => (
-	<button
-		type="button"
-		aria-label={label}
-		aria-invalid={invalid || undefined}
-		aria-describedby={invalid ? "new-ticket-project-error" : undefined}
-		disabled={disabled}
-		className={cx(
-			"inline-flex h-7 max-w-40 shrink-0 items-center gap-1.5 rounded-md border px-2 text-sm whitespace-nowrap transition-colors duration-hover ease-out",
-			"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 enabled:hover:bg-fg/6",
-			invalid
-				? "border-danger text-danger"
-				: unset
-					? "border-dashed border-border text-fg-faint"
-					: "border-border-strong text-fg",
-		)}
-	>
-		<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
-			{icon}
-		</span>
-		<span className="min-w-0 truncate">{children}</span>
-	</button>
-);
-
-// The property chips under the description: project, status, priority,
-// parent, labels, epic, and wave. Each one opens the same picker the rail and the table
-// use. The labels belong to a project, so the labels chip waits for a
-// project.
 export function ChipRow({
 	project,
-	projectMissing,
 	statuses,
 	status,
 	priority,
 	parent,
-	parentRef,
 	placement,
 	labels,
-	onProject,
 	onStatus,
 	onPriority,
 	onParent,
 	onEpic,
 	onWave,
 	onLabel,
-}: ChipRowProps) {
-	const { orpc } = useApp();
-	const { isArchived } = useArchivedProjects();
-	// An archived project takes no new ticket, so the picker leaves it out.
-	const projects = (useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? []).filter(
-		(entry) => !isArchived(entry.key),
-	);
-	const projectName = project === undefined ? "Choose a project" : project;
-	const parentName = parent?.identifier ?? parentRef;
-	const { epic, wave, epicName, waveName, newEpic, newWave } = placement;
+	onDiscard,
+	agent,
+	disabled,
+}: {
+	project?: string;
+	statuses: readonly Status[];
+	status?: Status;
+	priority: Priority;
+	parent?: string | null;
+	placement: ReturnType<typeof useCreatePlacement>;
+	labels: readonly TicketLabel[];
+	onStatus: (status: Status) => void;
+	onPriority: (priority: Priority) => void;
+	onParent: (ref: string | null) => void;
+	onEpic: (ref: string | null) => void;
+	onWave: (ref: string | null) => void;
+	onLabel: (label: Label, checked: boolean) => void;
+	onDiscard: () => void;
+	agent: ReactNode;
+	disabled: boolean;
+}) {
 	return (
-		<div className="flex flex-col gap-1">
-			<div className="flex flex-wrap items-center gap-1.5">
-				<ProjectPicker
-					projects={projects}
-					value={project}
-					onPick={onProject}
-					trigger={chip({
-						label: `Project: ${projectName}`,
-						icon: <FolderOpen />,
-						unset: project === undefined,
-						invalid: projectMissing,
-						children: projectName,
-					})}
-				/>
+		<>
+			<div className="ticket-composer-properties">
 				<StatusPicker
 					statuses={statuses}
 					value={status?.id}
 					onPick={onStatus}
-					trigger={chip({
-						label: `Status: ${status?.name ?? "None"}`,
-						icon: status === undefined ? undefined : <StatusIcon category={status.category} />,
-						unset: status === undefined,
-						disabled: statuses.length === 0,
-						children: status?.name ?? "Status",
-					})}
+					trigger={
+						<ComposerProperty
+							aria-label={`Status: ${status?.name ?? "None"}`}
+							disabled={disabled || !statuses.length}
+							icon={status && <StatusIcon category={status.category} />}
+						>
+							{status?.name ?? "Status"}
+						</ComposerProperty>
+					}
 				/>
 				<PriorityPicker
 					value={priority}
 					onPick={onPriority}
-					trigger={chip({
-						label: `Priority: ${priorityLabels[priority]}`,
-						icon: <PriorityIcon priority={priority} />,
-						unset: priority === "none",
-						children: priority === "none" ? "Priority" : priorityLabels[priority],
-					})}
+					trigger={
+						<ComposerProperty
+							aria-label={`Priority: ${priorityLabels[priority]}`}
+							disabled={disabled}
+							icon={<PriorityIcon priority={priority} />}
+						>
+							{priority === "none" ? "Priority" : priorityLabels[priority]}
+						</ComposerProperty>
+					}
 				/>
-				<TicketPicker
-					project={project}
-					value={parentName}
-					onPick={onParent}
-					trigger={chip({
-						label: `Parent: ${parentName ?? "None"}`,
-						icon: <ArrowElbowDownRight />,
-						unset: parentName === undefined,
-						children: parentName ?? "Parent",
-					})}
-				/>
-				{project !== undefined && (
-					<>
-						{newEpic ? (
-							chip({ label: `Epic: ${epicName}`, icon: <Stack />, children: epicName, disabled: true })
-						) : (
-							<EpicPicker
-								project={project}
-								value={epic}
-								allowNone={false}
-								onPick={(next) => onEpic(next?.ref ?? null)}
-								trigger={chip({
-									label: `Epic: ${epicName}`,
-									icon: <Stack />,
-									children: epicName,
-									unset: epic === undefined,
-								})}
-							/>
-						)}
-						{newWave || epic === undefined ? (
-							chip({ label: `Wave: ${waveName}`, icon: <FlagBanner />, children: waveName, disabled: true })
-						) : (
-							<WavePicker
-								epic={epic}
-								value={wave}
-								allowNone={false}
-								onPick={(next) => onWave(next?.ref ?? null)}
-								trigger={chip({
-									label: `Wave: ${waveName}`,
-									icon: <FlagBanner />,
-									children: waveName,
-									unset: wave === undefined,
-								})}
-							/>
-						)}
-					</>
-				)}
-				{project === undefined ? (
-					chip({ label: "Labels", icon: <Tag />, unset: true, disabled: true, children: "Labels" })
-				) : (
+				{agent}
+				<PlacementPicker project={project} placement={placement} onEpic={onEpic} onWave={onWave} disabled={disabled} />
+				{project && (
 					<LabelPicker
 						project={project}
 						checked={labels.map((label) => label.id)}
 						onToggle={onLabel}
-						trigger={chip({
-							label: `Labels: ${labels.length === 0 ? "None" : labelNames(labels)}`,
-							icon: <Tag />,
-							unset: labels.length === 0,
-							children: labels.length === 0 ? "Labels" : <LabelPills labels={labels} />,
-						})}
+						trigger={
+							<ComposerProperty
+								aria-label={`Labels: ${labels.length ? labelNames(labels) : "None"}`}
+								disabled={disabled}
+								icon={<Tag />}
+							>
+								{labels.length ? labelNames(labels) : "Labels"}
+							</ComposerProperty>
+						}
 					/>
 				)}
+				<Popover
+					label="More properties"
+					triggerTooltip="More properties"
+					className="w-64 p-3"
+					trigger={<IconButton label="More properties" icon={<DotsThree />} disabled={disabled} />}
+				>
+					<div className="flex flex-col gap-4">
+						<TicketPicker
+							project={project}
+							value={parent ?? undefined}
+							onPick={(ticket) => onParent(ticket?.identifier ?? null)}
+							trigger={
+								<ComposerProperty icon={<ArrowElbowDownRight />} aria-label={`Parent: ${parent ?? "None"}`}>
+									{parent ?? "Parent ticket"}
+								</ComposerProperty>
+							}
+						/>
+						<Button variant="quiet" onClick={onDiscard}>
+							Discard draft…
+						</Button>
+					</div>
+				</Popover>
 			</div>
-			{project !== undefined && placement.message && (
-				<p role="status" className="text-xs text-fg-muted">
+			{parent && <p className="mt-2 text-xs text-fg-muted">Sub-ticket of {parent}</p>}
+			{placement.message && (
+				<p role="status" className="mt-2 text-xs text-fg-muted">
 					{placement.message}
 				</p>
 			)}
-			{projectMissing && (
-				<p id="new-ticket-project-error" role="alert" className="text-xs text-danger">
-					Choose a project.
-				</p>
-			)}
-		</div>
+		</>
 	);
 }

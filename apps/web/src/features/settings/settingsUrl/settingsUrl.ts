@@ -1,15 +1,22 @@
 // The part of the settings the nav on the left names. The account section
 // is the one a URL with no section opens.
-export type SettingsSectionId = "account" | "notifications" | "menu-links" | "desktop";
+export type SettingsSectionId = "account" | "notifications" | "menu-links" | "agent-prompt" | "desktop" | "cleanup";
 
-const sectionIds: readonly SettingsSectionId[] = ["account", "notifications", "menu-links", "desktop"];
+const sectionIds: readonly SettingsSectionId[] = [
+	"account",
+	"notifications",
+	"menu-links",
+	"agent-prompt",
+	"desktop",
+	"cleanup",
+];
 
 const isSectionId = (value: string): value is SettingsSectionId => sectionIds.some((id) => id === value);
 
 // The page the settings sheet stands over when a person opens the settings
 // URL itself. Settings holds no page of its own any more, and this is the
 // page a direct link falls back to everywhere else in the app.
-export const settingsBehind = "/needs-you";
+export const settingsBehind = "/search";
 
 export type SettingsEntry = {
 	// "sheet": open the settings sheet over `settingsBehind`.
