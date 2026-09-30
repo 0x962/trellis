@@ -1,4 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
 import type { TicketSummary } from "@trellis/api";
 import type { MouseEvent } from "react";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
@@ -34,7 +33,6 @@ export type RowActionsOptions = {
 
 export type RowActions = {
 	openTicket: (id: string) => void;
-	openPage: (id: string) => void;
 	onRowClick: (id: string, event: MouseEvent) => void;
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onEditingChange: (id: string, field: EditField | null) => void;
@@ -60,11 +58,10 @@ export function useRowActions({
 	onEditing,
 	onBulkPicker,
 }: RowActionsOptions): RowActions {
-	const navigate = useNavigate();
 	const copier = useCopyTickets();
 
-	// A click and Enter open the ticket in the sheet over this list, so the
-	// list keeps its scroll. The `o` key opens the ticket page on its route.
+	// A click or an open key shows the ticket over this list, so the list
+	// keeps its scroll position.
 	const openTicket = useStableCallback((id: string) => {
 		const ticket = findTicket(id);
 		if (ticket !== undefined) pageSheetActions.openTicket(ticket.identifier);
@@ -81,9 +78,6 @@ export function useRowActions({
 
 	return {
 		openTicket,
-		openPage: useStableCallback((id: string) =>
-			navigate({ to: "/t/$identifier", params: { identifier: findTicket(id)!.identifier } }),
-		),
 		onRowClick: useStableCallback((id: string, event: MouseEvent) => {
 			// The link that covers the whole row (`data-row-link` in `Row`) forwards
 			// its plain click here, with the link as `currentTarget`.

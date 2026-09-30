@@ -200,7 +200,6 @@ export function TicketTable({
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
 		openTicket: rowActions.openTicket,
-		openPage: rowActions.openPage,
 		openComposer: () => openNew(),
 		copy: rowActions.copy,
 		copySelection: rowActions.copyIds,

@@ -5,9 +5,13 @@ import { openSafeWebLink, sameOrigin } from "../navigation/navigation.ts";
 import { secureLinkBrowser } from "../secureLinkBrowser/secureLinkBrowser.ts";
 import { authorizedHostRequest } from "./authorizedHostRequest/authorizedHostRequest.ts";
 
-export function secureRenderer(window: BrowserWindow, connection: () => HostConnection) {
+export function secureRenderer(
+	window: BrowserWindow,
+	connection: () => HostConnection,
+	previewOrigin: () => string | undefined = () => undefined,
+) {
 	window.webContents.on("will-navigate", (event, url) => {
-		if (!sameOrigin(url, connection().origin)) event.preventDefault();
+		if (!sameOrigin(url, previewOrigin() ?? connection().origin)) event.preventDefault();
 	});
 	window.webContents.on("will-attach-webview", secureLinkBrowser);
 	window.webContents.on("did-attach-webview", (_event, page) => {
@@ -26,7 +30,7 @@ export function secureRenderer(window: BrowserWindow, connection: () => HostConn
 	rendererSession.setPermissionCheckHandler(() => false);
 	rendererSession.webRequest.onBeforeSendHeaders((details, callback) => {
 		const host = connection();
-		if (!window.isDestroyed() && authorizedHostRequest(details, window.webContents.id, host.origin))
+		if (!window.isDestroyed() && authorizedHostRequest(details, window.webContents.id, host.origin, previewOrigin()))
 			details.requestHeaders.Authorization = `Bearer ${host.token}`;
 		else delete details.requestHeaders.Authorization;
 		callback({ requestHeaders: details.requestHeaders });

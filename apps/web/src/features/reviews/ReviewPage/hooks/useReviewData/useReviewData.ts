@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { type ReviewRevision, type ReviewThread, reviewRef } from "@trellis/api";
+import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 
 export const useReviewData = (pr: string) => {
 	const { client, orpc, queryClient } = useApp();
+	const overview = useQuery(orpc.reviews.overview.queryOptions({ input: { pr } }));
 	const latest = useQuery(orpc.reviews.revision.queryOptions({ input: { pr } }));
 	const [shownRevision, setShownRevision] = useState<{ pr: string; revision: ReviewRevision } | null>(null);
 	const revision = shownRevision?.pr === pr ? shownRevision.revision : null;
@@ -17,14 +18,22 @@ export const useReviewData = (pr: string) => {
 		refetchInterval: 45000,
 		refetchOnWindowFocus: "always",
 	});
-	// `reviews.status` names the ticket that links this pull request. The
-	// ticket carries the pull request id that the summary and the evidence
-	// document are stored under.
-	const identifier = status.data?.ticket?.identifier ?? "";
-	const ticket = useQuery({
-		...orpc.tickets.get.queryOptions({ input: { ticket: identifier } }),
-		enabled: identifier !== "",
-	});
+	const storedPr = overview.data?.pullRequest ?? null;
+	const linkedPr = overview.data?.ticket == null ? null : storedPr;
+	const ticket = status.data === undefined ? (overview.data?.ticket ?? null) : status.data.ticket;
+	const identifier = ticket?.identifier ?? "";
+	const identity =
+		status.data ??
+		(storedPr === null
+			? undefined
+			: {
+					title: storedPr.title,
+					state: storedPr.state.toUpperCase(),
+					isDraft: storedPr.isDraft,
+					mergeable: storedPr.mergeable.toUpperCase(),
+					headRefName: storedPr.headRef,
+					baseRefName: storedPr.baseRef,
+				});
 	// The verdict bar delivers to this agent assignment. A restart replaces
 	// the run, so this read follows the 45 second beat of the GitHub status.
 	const runs = useQuery({
@@ -33,26 +42,6 @@ export const useReviewData = (pr: string) => {
 		refetchInterval: 45000,
 	});
 	const run = runs.data?.items.find((row) => row.kind === "agent") ?? null;
-	const ref = reviewRef(pr);
-	const linkedPr =
-		ticket.data?.prs.find((row) => row.owner === ref.owner && row.repo === ref.repo && row.number === ref.number) ??
-		null;
-	const summary = useQuery({
-		...orpc.pullRequests.readSummary.queryOptions({ input: { id: linkedPr?.id ?? "" } }),
-		enabled: linkedPr !== null,
-	});
-	const evidence = useQuery({
-		...orpc.pullRequests.readEvidence.queryOptions({ input: { id: linkedPr?.id ?? "" } }),
-		enabled: linkedPr !== null,
-	});
-	// The summary and the evidence document come from this chain of three
-	// requests. Until the last one answers, the Overview tab draws neither: a
-	// block that draws early would say that the agent wrote no summary before
-	// anybody asked for it.
-	const overviewReady =
-		status.isFetched &&
-		(status.data?.ticket == null || ticket.isFetched) &&
-		(linkedPr === null || (summary.isFetched && evidence.isFetched));
 	// A delivery changes state after the submit answers, and the server sends
 	// no event for it, so the read repeats while a delivery is on its way.
 	const submissions = useQuery({
@@ -86,6 +75,7 @@ export const useReviewData = (pr: string) => {
 		onSuccess: (data) => {
 			setRevision(data);
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
+			void queryClient.invalidateQueries({ queryKey: orpc.reviews.overview.queryKey({ input: { pr } }) });
 			queryClient.setQueryData(orpc.reviews.revision.queryKey({ input: { pr } }), data);
 		},
 	});
@@ -99,6 +89,7 @@ export const useReviewData = (pr: string) => {
 	const refreshAll = () => {
 		refresh.mutate();
 		void status.refetch();
+		void overview.refetch();
 		void submissions.refetch();
 	};
 	// A refresh costs about seven gh calls. A focus while one is on its way
@@ -130,9 +121,9 @@ export const useReviewData = (pr: string) => {
 		status,
 		run,
 		linkedPr,
-		summary,
-		evidence,
-		overviewReady,
+		overview,
+		identity,
+		ticket,
 		threads,
 		submissions,
 		refresh,

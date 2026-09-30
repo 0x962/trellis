@@ -1,8 +1,8 @@
-import { useRouter } from "@tanstack/react-router";
 import type { Ticket, TicketCreateInput } from "@trellis/api";
 import { toast } from "@trellis/ui";
 import { useCallback } from "react";
 import { useApp } from "../../../../lib/appContext";
+import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import { insertRow } from "../../../table/utils/cacheRows";
 import { summaryOf } from "../../../ticket/utils/summaryOf";
 
@@ -13,7 +13,6 @@ import { summaryOf } from "../../../ticket/utils/summaryOf";
 // so the caller decides what the person sees after a failed create.
 export const useCreateTicket = () => {
 	const { client, queryClient, orpc } = useApp();
-	const router = useRouter();
 	return useCallback(
 		async (input: TicketCreateInput): Promise<Ticket> => {
 			const ticket = await client.tickets.create(input);
@@ -22,10 +21,10 @@ export const useCreateTicket = () => {
 			void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
 			const identifier = ticket.identifier;
 			toast.success(`Created ${identifier}`, {
-				action: { label: "Open", onClick: () => void router.navigate({ href: `/t/${identifier}` }) },
+				action: { label: "Open", onClick: () => pageSheetActions.openTicket(identifier) },
 			});
 			return ticket;
 		},
-		[client, orpc, queryClient, router],
+		[client, orpc, queryClient],
 	);
 };

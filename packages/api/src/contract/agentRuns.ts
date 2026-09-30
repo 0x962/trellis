@@ -6,6 +6,7 @@ import { AgentActivitySchema } from "../schemas/agentActivity.ts";
 import {
 	AgentBroadcastCountsSchema,
 	AgentBroadcastInputSchema,
+	AgentBroadcastRecipientsInputSchema,
 	AgentBroadcastResultSchema,
 } from "../schemas/agentBroadcast.ts";
 import {
@@ -101,7 +102,7 @@ export const agentRuns = {
 			path: "/agent-runs/broadcast/recipients",
 			summary: "Count the working and idle agents that can receive a broadcast",
 		})
-		.input(z.strictObject({}))
+		.input(AgentBroadcastRecipientsInputSchema)
 		.output(AgentBroadcastCountsSchema),
 	broadcast: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

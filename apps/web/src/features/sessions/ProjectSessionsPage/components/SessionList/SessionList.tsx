@@ -20,6 +20,7 @@ export function SessionList({
 	showArchived,
 	onShowArchivedChange,
 	archiveClock,
+	archiveAfterDays,
 }: {
 	project: Project;
 	runs: AgentRun[];
@@ -34,6 +35,7 @@ export function SessionList({
 	showArchived: boolean;
 	onShowArchivedChange: (showArchived: boolean) => void;
 	archiveClock: number;
+	archiveAfterDays: number | null;
 }) {
 	const [search, setSearch] = useState("");
 	// The one element of this page that scrolls the rows. The virtual list
@@ -53,8 +55,8 @@ export function SessionList({
 		if (scroller !== null) scroller.scrollTop = 0;
 	};
 	const groups = useMemo(
-		() => sessionGroups(runs, { search, showArchived, now: archiveClock }),
-		[runs, search, showArchived, archiveClock],
+		() => sessionGroups(runs, { search, showArchived, now: archiveClock, archiveAfterDays }),
+		[runs, search, showArchived, archiveClock, archiveAfterDays],
 	);
 	const sessionsByRunId = useMemo(() => new Map(sessions.map((session) => [session.runId, session])), [sessions]);
 	return (

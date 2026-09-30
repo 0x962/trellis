@@ -9,8 +9,14 @@ const operations = new Set<string>();
 // marks it free again. The start hands that function to the background task
 // that launches the harness, so the mark stays on for the whole launch.
 export function holdSession(home: string, id: string): () => void {
+	const release = tryHoldSession(home, id);
+	if (release === null) throw invalidInput("id", "Another operation is in progress for this session.");
+	return release;
+}
+
+export function tryHoldSession(home: string, id: string): (() => void) | null {
 	const key = join(home, id);
-	if (operations.has(key)) throw invalidInput("id", "Another operation is in progress for this session.");
+	if (operations.has(key)) return null;
 	operations.add(key);
 	return () => operations.delete(key);
 }
