@@ -18,6 +18,7 @@ export type CardContentProps = {
 	// On the all-tickets board a column holds several statuses, so the card
 	// names its own.
 	showStatus?: boolean;
+	readOnly?: boolean;
 	lineChanges?: LineChangesValue | null;
 	lineChangesPending?: boolean;
 };
@@ -28,7 +29,13 @@ export type CardContentProps = {
 // the board and the drag preview both draw it, so the preview looks like the
 // card under the pointer. On the top row the epic name gives way and the
 // identifiers stay, so `Routine runtime · OP-32` keeps its OP-32.
-export function CardContent({ ticket, showStatus = false, lineChanges, lineChangesPending = false }: CardContentProps) {
+export function CardContent({
+	ticket,
+	showStatus = false,
+	readOnly = false,
+	lineChanges,
+	lineChangesPending = false,
+}: CardContentProps) {
 	const reviews = useMemo(
 		() =>
 			ticket.prRows.map((pr) => ({
@@ -81,7 +88,7 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 				{ticket.status.category === "review" && ticket.pr !== null && <ReviewStatusSummary reviews={reviews} />}
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 empty:hidden">
 					{showLineChanges && <LineChanges value={lineChanges} pending={lineChangesPending} />}
-					<ActorAvatar ticketId={ticket.id} />
+					<ActorAvatar ticket={ticket} readOnly={readOnly} />
 				</span>
 			</div>
 		</>
