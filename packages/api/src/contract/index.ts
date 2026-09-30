@@ -3,6 +3,7 @@ import { actors } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
+import { epicChatter } from "./epicChatter";
 import { epics } from "./epics.ts";
 import { flowDiscoveryV1 } from "./flowDiscoveryV1.ts";
 import { flowDocumentsV1, flowExecutionIndexV1 } from "./flowDocumentsV1.ts";
@@ -64,6 +65,7 @@ export const contract = {
 	timeline: oc.tag("timeline").router(timeline),
 	notes: oc.tag("notes").router(notes),
 	pages: oc.tag("pages").router(pages),
+	epicChatter: oc.tag("epic chatter").router(epicChatter),
 	epics: oc.tag("epics").router(epics),
 	waves: oc.tag("waves").router(waves),
 	attachments: oc.tag("attachments").router(attachments),

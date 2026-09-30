@@ -44,3 +44,18 @@ test("menu links preserve complete long labels", () => {
 	const label = "Release documentation ".repeat(100).trim();
 	expect(MenuLinkSchema.parse({ ...link, label: `  ${label}  ` }).label).toBe(label);
 });
+
+test("cleanup accepts complete positive day periods and disabled rules", () => {
+	for (const days of [1, 3, 7, 3650, Number.MAX_SAFE_INTEGER, null]) {
+		expect(
+			SettingsSetInputSchema.parse({ sessionCleanup: { archiveAfterDays: days, deleteAfterDays: days } })
+				.sessionCleanup,
+		).toEqual({ archiveAfterDays: days, deleteAfterDays: days });
+	}
+	for (const days of [0, -1, 1.5, Infinity, NaN, "3", Number.MAX_SAFE_INTEGER + 1]) {
+		expect(
+			SettingsSetInputSchema.safeParse({ sessionCleanup: { archiveAfterDays: days, deleteAfterDays: 7 } }).success,
+		).toBe(false);
+	}
+	expect(SettingsSetInputSchema.safeParse({ sessionCleanup: { archiveAfterDays: 3 } }).success).toBe(false);
+});

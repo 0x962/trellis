@@ -140,3 +140,13 @@ test("a saved session update refreshes the session update query", () => {
 	expect(client.getQueryState(queryKey)?.isInvalidated).toBe(true);
 	client.clear();
 });
+
+test("pull request updates invalidate the saved review overview", () => {
+	const { client, applier, flush } = setup();
+	const overview = generateOperationKey(["reviews", "overview"], { input: { pr: "acme/app#1" } });
+	client.setQueryData(overview, {});
+	applier.applyEvent({ type: "pr.updated", id: runId, ticketIds: [], projectIds: [], state: "open", ciState: "none" });
+	flush();
+	expect(client.getQueryState(overview)?.isInvalidated).toBe(true);
+	client.clear();
+});

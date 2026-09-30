@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type MenuLink, SettingsSetInputSchema } from "@trellis/api";
+import { defaultAgentPrompt } from "@trellis/api/agent-guide";
 import type { ServiceCtx } from "../../context";
 import { openDatabase } from "../../db/open";
 import * as settings from "./index";
@@ -87,3 +88,30 @@ test("default actor names retain distinct suffixes after the first 64 characters
 		});
 	}
 });
+
+test("the startup prompt persists through reopen and ordinary settings edits", async () => {
+	const template = "  # Custom instructions\n\t{{session.request}}\n";
+	await database.db.transaction((tx) =>
+		settings.setAgentPrompt(ctx, tx, { template, expectedTemplate: defaultAgentPrompt }),
+	);
+	await writeSettings({ defaultActorName: "test" });
+	await database.close();
+	database = await openDatabase(home);
+	expect((await database.db.transaction((tx) => settings.agentPromptSettings(ctx, tx))).template).toBe(template);
+	expect((await readSettings()).defaultActorName).toBe("test");
+	await database.db.transaction((tx) =>
+		settings.setAgentPrompt(ctx, tx, { template: null, expectedTemplate: template }),
+	);
+}, 60_000);
+
+test("cleanup defaults and saved periods survive older clients and reopen", async () => {
+	expect((await readSettings()).sessionCleanup).toEqual({ archiveAfterDays: 3, deleteAfterDays: 7 });
+	const sessionCleanup = { archiveAfterDays: null, deleteAfterDays: 14 };
+	await writeSettings({ sessionCleanup });
+	await writeSettings({ defaultActorName: "older client" });
+	await database.close();
+	database = await openDatabase(home);
+	expect((await readSettings()).sessionCleanup).toEqual(sessionCleanup);
+	await expect(writeSettings({ sessionCleanup: { archiveAfterDays: 0, deleteAfterDays: 14 } })).rejects.toThrow();
+	expect((await readSettings()).sessionCleanup).toEqual(sessionCleanup);
+}, 60_000);

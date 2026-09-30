@@ -80,6 +80,14 @@ const isMissing = (error: unknown) => (error as { code?: string }).code === "ENO
 // both give the unauthenticated reason and the same banner.
 const SIGN_IN_NEEDED = /gh auth login|HTTP 401|Bad credentials/;
 
+// Each pipe stays open until EOF. A UTF-8 character can span several chunks.
+const readPipe = async (stream: ReadableStream<Uint8Array>) => {
+	const decoder = new TextDecoder();
+	let text = "";
+	for await (const chunk of stream) text += decoder.decode(chunk, { stream: true });
+	return text + decoder.decode();
+};
+
 const spawnGh = async (
 	bin: string,
 	args: string[],
@@ -116,8 +124,8 @@ const spawnGh = async (
 	const abort = () => proc.kill("SIGKILL");
 	signal?.addEventListener("abort", abort, { once: true });
 	const [stdout, stderr, code] = await Promise.all([
-		new Response(proc.stdout as ReadableStream).text(),
-		new Response(proc.stderr as ReadableStream).text(),
+		readPipe(proc.stdout as ReadableStream<Uint8Array>),
+		readPipe(proc.stderr as ReadableStream<Uint8Array>),
 		proc.exited,
 	]);
 	clearTimeout(timer);

@@ -196,9 +196,10 @@ const send = defineCommand({
 });
 
 const broadcast = defineCommand({
-	meta: { name: "broadcast", description: "Send a user broadcast to working or idle agents" },
+	meta: { name: "broadcast", description: "Send a user broadcast to working agents, idle agents, or both" },
 	args: {
-		group: { type: "string", required: true, description: "Recipient group: working or idle" },
+		group: { type: "string", required: true, description: "Recipient groups: working, idle, or both" },
+		epic: { type: "string", description: "Send only to agents on tickets in this epic" },
 		text: { type: "string", required: true, description: "Broadcast text, or - for stdin" },
 		"request-id": { type: "string", description: "Stable request ID for a retry" },
 	},
@@ -206,6 +207,7 @@ const broadcast = defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		const result = await clientOf(ctx).agentRuns.broadcast({
+			...(args.epic !== undefined ? { epic: args.epic } : {}),
 			group: AgentBroadcastGroupSchema.parse(args.group),
 			text: await readText(ctx, args.text),
 			requestId: args["request-id"] ?? crypto.randomUUID(),

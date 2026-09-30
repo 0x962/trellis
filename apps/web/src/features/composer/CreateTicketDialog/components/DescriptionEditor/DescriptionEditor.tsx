@@ -6,21 +6,26 @@ import { ListDash } from "./utils/listDash";
 export type DescriptionEditorProps = {
 	// The markdown the editor starts with.
 	markdown: string;
+	autofocus?: boolean;
 	onChange: (markdown: string) => void;
 };
 
-// The Tiptap editor over the description, markdown in and markdown out.
-// It takes focus on mount, because the read-only view hands over to it.
-// The editor keeps the 80 px minimum height of the area around it, so a
-// click under the last line of text still puts the caret in the text.
-export function DescriptionEditor({ markdown, onChange }: DescriptionEditorProps) {
+// Markdown enters and leaves the editor without a separate document format.
+export function DescriptionEditor({ markdown, onChange, autofocus = true }: DescriptionEditorProps) {
 	const editor = useEditor({
 		extensions: [StarterKit, Markdown, ListDash],
 		content: markdown,
 		contentType: "markdown",
-		autofocus: "end",
+		autofocus: autofocus ? "end" : false,
 		onUpdate: ({ editor: instance }) => onChange(instance.getMarkdown()),
-		editorProps: { attributes: { class: "markdown min-h-20 outline-none", "aria-label": "Description" } },
+		editorProps: {
+			attributes: {
+				class: "markdown min-h-20 outline-none",
+				"aria-label": "Description",
+				role: "textbox",
+				"aria-multiline": "true",
+			},
+		},
 	});
 	return <EditorContent editor={editor} />;
 }

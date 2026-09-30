@@ -36,6 +36,7 @@ const unbatched = new Set([
 	"statuses.list",
 	"reviews.refresh",
 	"reviews.status",
+	"reviews.overview",
 	"reviews.file",
 	"reviews.metadata",
 	"reviews.mine",

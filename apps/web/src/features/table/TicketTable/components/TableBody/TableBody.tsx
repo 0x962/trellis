@@ -120,6 +120,10 @@ export function TableBody({
 	const focusRow = useStableCallback((id: string) => {
 		if (pendingFocus.current === null) onFocusRow(id);
 	});
+	const selectRow = useStableCallback((id: string, range: boolean) => {
+		if (range) selection.extend(id);
+		else selection.toggle(id);
+	});
 
 	// `getTotalSize` refreshes `measurementsCache`, which carries the height an
 	// agent line took after it wrapped, so each box ends where the header line
@@ -232,7 +236,7 @@ export function TableBody({
 								onClick={onRowClick}
 								onToggleDisclosure={onToggleTicket}
 								onOpen={onOpen}
-								onToggleSelect={selection.toggle}
+								onToggleSelect={selectRow}
 								onEditingChange={onEditingChange}
 								onChange={onRowChange}
 							/>

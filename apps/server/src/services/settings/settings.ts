@@ -1,5 +1,5 @@
 import { userInfo } from "node:os";
-import type { Settings, SettingsSetInput } from "@trellis/api";
+import { defaultSessionCleanup, type Settings, type SettingsSetInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows, textArray } from "../../db/queries/support.ts";
@@ -9,9 +9,10 @@ import type { Tx } from "../../db/tx.ts";
 export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
 	menuLinks: [],
+	sessionCleanup: defaultSessionCleanup,
 });
 
-const KEYS = ["defaultActorName", "notifications", "menuLinks"] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName", "notifications", "menuLinks", "sessionCleanup"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so

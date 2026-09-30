@@ -1,24 +1,44 @@
-import type { AgentRun } from "@trellis/api";
-
-export const SESSION_ARCHIVE_AFTER_MS = 48 * 60 * 60 * 1000;
+import { type AgentRun, defaultSessionCleanup, SESSION_DAY_MS } from "@trellis/api";
 
 const descending = (left: string, right: string) => (left === right ? 0 : left > right ? -1 : 1);
 
 type GroupableRun = Pick<
 	AgentRun,
 	"id" | "name" | "kind" | "ticketId" | "ticketIdentifier" | "ticketTitle" | "pinnedAt" | "activityAt" | "createdAt"
->;
+> &
+	Partial<Pick<AgentRun, "processStatus" | "state">>;
 
-export const isAutomaticallyArchived = (run: Pick<GroupableRun, "pinnedAt" | "activityAt">, now = Date.now()) =>
-	run.pinnedAt === null && run.activityAt !== null && now - Date.parse(run.activityAt) >= SESSION_ARCHIVE_AFTER_MS;
+type ArchiveRun = Pick<GroupableRun, "pinnedAt" | "activityAt" | "processStatus" | "state">;
+
+export const isAutomaticallyArchived = (
+	run: ArchiveRun,
+	now = Date.now(),
+	archiveAfterDays = defaultSessionCleanup.archiveAfterDays,
+) =>
+	archiveAfterDays !== null &&
+	run.pinnedAt === null &&
+	run.activityAt !== null &&
+	run.processStatus !== "running" &&
+	run.processStatus !== "unknown" &&
+	run.state !== "starting" &&
+	now - Date.parse(run.activityAt) >= archiveAfterDays * SESSION_DAY_MS;
 
 export const nextSessionArchiveTimeMs = (
-	runs: Array<Pick<GroupableRun, "pinnedAt" | "activityAt">>,
+	runs: ArchiveRun[],
 	now = Date.now(),
+	archiveAfterDays = defaultSessionCleanup.archiveAfterDays,
 ) => {
+	if (archiveAfterDays === null) return null;
 	const times = runs.flatMap((run) => {
-		if (run.pinnedAt !== null || run.activityAt === null) return [];
-		const archiveTimeMs = Date.parse(run.activityAt) + SESSION_ARCHIVE_AFTER_MS;
+		if (
+			run.pinnedAt !== null ||
+			run.activityAt === null ||
+			run.processStatus === "running" ||
+			run.processStatus === "unknown" ||
+			run.state === "starting"
+		)
+			return [];
+		const archiveTimeMs = Date.parse(run.activityAt) + archiveAfterDays * SESSION_DAY_MS;
 		return archiveTimeMs > now ? [archiveTimeMs] : [];
 	});
 	return times.length === 0 ? null : Math.min(...times);
@@ -26,11 +46,11 @@ export const nextSessionArchiveTimeMs = (
 
 export function sessionGroups<T extends GroupableRun>(
 	runs: T[],
-	options: { search: string; showArchived: boolean; now?: number },
+	options: { search: string; showArchived: boolean; now?: number; archiveAfterDays?: number | null },
 ) {
 	const query = options.search.trim().toLocaleLowerCase();
 	const matches = runs
-		.filter((run) => isAutomaticallyArchived(run, options.now) === options.showArchived)
+		.filter((run) => isAutomaticallyArchived(run, options.now, options.archiveAfterDays) === options.showArchived)
 		.filter((run) => {
 			if (!query) return true;
 			return [run.name, run.ticketIdentifier, run.ticketTitle, run.activityAt, run.createdAt].some((value) =>

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ProjectRefStringSchema, reviewRef, TicketRefStringSchema } from "@trellis/api";
 import { ReviewPage } from "../features/reviews/ReviewPage/ReviewPage";
 import { initialReviewTab, type ReviewTab, reviewTabOf } from "../features/reviews/ReviewPage/reviewTab";
+import { TicketLink } from "../features/shell/TicketLink";
 
 import { pageSheetActions, usePageSheetStore } from "../stores/pageSheetStore";
 
@@ -33,9 +34,7 @@ function Page() {
 	const pr = reviewRef(`${owner}/${repo}#${number}`).url;
 	const parent =
 		ticket !== undefined ? (
-			<Link to="/t/$identifier" params={{ identifier: ticket }}>
-				{ticket}
-			</Link>
+			<TicketLink identifier={ticket}>{ticket}</TicketLink>
 		) : project === undefined ? undefined : (
 			<Link to="/p/$" params={{ _splat: `${project}/diffs` }} search={{}}>
 				Diffs

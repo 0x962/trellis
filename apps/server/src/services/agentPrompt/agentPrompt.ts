@@ -5,6 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { LaunchRun } from "../agentRuns/queries.ts";
+import { agentPromptSettings } from "../settings/agentPromptSettings/index.ts";
 import { get as settings } from "../settings/index.ts";
 import { projectContext } from "./projectContext.ts";
 import { cell } from "./text.ts";
@@ -53,5 +54,5 @@ export async function agentPrompt(
 			await projectContext(ctx, tx, { projectId: run.projectId, epicId: ticket?.epic?.id ?? null }),
 		);
 	if (ticket !== null) Object.assign(context, await ticketContext(ctx, tx, ticket));
-	return agentGuide(context);
+	return agentGuide(context, (await agentPromptSettings(ctx, tx)).template);
 }

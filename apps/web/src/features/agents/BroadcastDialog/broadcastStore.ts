@@ -1,10 +1,12 @@
+import type { EpicLink } from "@trellis/api";
 import { create } from "zustand";
 
-type BroadcastState = { open: boolean };
+export type BroadcastEpic = Pick<EpicLink, "ref" | "name">;
+type BroadcastState = { open: boolean; epic: BroadcastEpic | null };
 
-export const useBroadcastStore = create<BroadcastState>()(() => ({ open: false }));
+export const useBroadcastStore = create<BroadcastState>()(() => ({ open: false, epic: null }));
 
 export const broadcastActions = {
-	open: () => useBroadcastStore.setState({ open: true }),
-	close: () => useBroadcastStore.setState({ open: false }),
+	open: (epic: BroadcastEpic | null = null) => useBroadcastStore.setState({ open: true, epic }),
+	close: () => useBroadcastStore.setState({ open: false, epic: null }),
 };

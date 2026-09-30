@@ -1,8 +1,15 @@
 import { createHash } from "node:crypto";
-import { AgentBroadcastInputSchema, type AgentBroadcastRecipient, type AgentBroadcastResult } from "@trellis/api";
+import {
+	AgentBroadcastInputSchema,
+	type AgentBroadcastRecipient,
+	type AgentBroadcastRecipientsInput,
+	AgentBroadcastRecipientsInputSchema,
+	type AgentBroadcastResult,
+} from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { Tx } from "../../../db/tx.ts";
+import { resolveEpic } from "../../epics/resolve.ts";
 import type { IoCtx } from "../../support.ts";
 import { prepareSend } from "../communication.ts";
 import { readRuntimeSessionsRequired } from "../liveState.ts";
@@ -43,11 +50,18 @@ const depsOf = (ctx: IoCtx): BroadcastDeps => ({
 	send: prepareSend,
 });
 
-export const broadcastRows = (tx: Tx) =>
+export const broadcastRows = (tx: Tx, input: { epicId?: string }) =>
 	storedRows<StoredRun>(
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs
 			WHERE runtime = 'native' AND terminal_id IS NOT NULL AND closed_at IS NULL
+			AND ${
+				input.epicId === undefined
+					? sql`TRUE`
+					: sql`EXISTS (
+				SELECT 1 FROM tickets WHERE tickets.id = agent_runs.ticket_id AND tickets.epic_id = ${input.epicId}
+			)`
+			}
 			AND (
 				project_id IS NULL OR EXISTS (
 					SELECT 1 FROM projects WHERE projects.id = agent_runs.project_id AND projects.archived_at IS NULL
@@ -88,23 +102,30 @@ export const selectBroadcastTargets = (runs: StoredRun[], processes: RuntimeProc
 	return runs.flatMap((run) => {
 		const process = byTerminal.get(run.terminalId!);
 		const group = process === undefined ? null : groupOf(process);
+		if (
+			group === "idle" &&
+			(run.ticketStatusCategory === null ||
+				run.ticketStatusCategory === "done" ||
+				run.ticketStatusCategory === "canceled")
+		)
+			return [];
 		return group === null ? [] : [{ group, run, recipient: recipientOf(run) }];
 	});
 };
 
-const targets = async (ctx: IoCtx, read: BroadcastDeps["read"]) => {
-	const runs = await ctx.newTx(broadcastRows);
+const targets = async (ctx: IoCtx, input: AgentBroadcastRecipientsInput, read: BroadcastDeps["read"]) => {
+	const runs = await ctx.newTx(async (tx) => {
+		const epicId = input.epic === undefined ? undefined : (await resolveEpic(ctx.core, tx, input.epic)).id;
+		return broadcastRows(tx, { epicId });
+	});
 	if (runs.length === 0) return [];
 	const terminalIds = [...new Set(runs.map((run) => run.terminalId!))];
 	return selectBroadcastTargets(runs, await read(ctx.home, { ids: terminalIds }));
 };
 
-export async function prepareBroadcastRecipients(
-	ctx: IoCtx,
-	_input: Record<string, never>,
-	deps: BroadcastDeps = depsOf(ctx),
-) {
-	const selected = await targets(ctx, deps.read);
+export async function prepareBroadcastRecipients(ctx: IoCtx, value: unknown, deps: BroadcastDeps = depsOf(ctx)) {
+	const input = AgentBroadcastRecipientsInputSchema.parse(value);
+	const selected = await targets(ctx, input, deps.read);
 	return {
 		working: selected.filter((target) => target.group === "working").length,
 		idle: selected.filter((target) => target.group === "idle").length,
@@ -119,7 +140,9 @@ export async function prepareBroadcast(
 	deps: BroadcastDeps = depsOf(ctx),
 ): Promise<AgentBroadcastResult> {
 	const input = AgentBroadcastInputSchema.parse(value);
-	const selected = (await targets(ctx, deps.read)).filter((target) => target.group === input.group);
+	const selected = (await targets(ctx, input, deps.read)).filter(
+		(target) => input.group === "both" || target.group === input.group,
+	);
 	const deliveries = await Promise.allSettled(
 		selected.map((target) =>
 			deps.send(ctx, {

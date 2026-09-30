@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SessionCleanupSchema } from "./sessionCleanup";
 
 export const MenuLinkIconSchema = z.enum(["Link", "GithubLogo", "Play", "Globe", "BookOpen", "ChartLine"]);
 export type MenuLinkIcon = z.infer<typeof MenuLinkIconSchema>;
@@ -16,6 +17,7 @@ export const MenuLinkSchema = z.strictObject({
 export type MenuLink = z.infer<typeof MenuLinkSchema>;
 
 export const SettingsSchema = z.object({
+	sessionCleanup: SessionCleanupSchema.optional(),
 	menuLinks: z
 		.array(MenuLinkSchema)
 		.refine((links) => new Set(links.map((link) => link.id)).size === links.length, "Use a unique ID for each link.")

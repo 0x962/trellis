@@ -19,6 +19,8 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 		// every query that holds a ticket row refetches.
 		case "epics.changed":
 			return [family("epics"), family("tickets"), family("projects", "list")];
+		case "epic-chatter.changed":
+			return [family("epicChatter")];
 		case "pages.changed":
 			return [family("pages"), family("projects", "list"), family("search")];
 		case "providers.changed":
@@ -45,6 +47,7 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 				family("tickets", "board"),
 				family("reviews", "prs"),
 				family("reviews", "status"),
+				family("reviews", "overview"),
 				family("reviews", "metadata"),
 			];
 		// Every cached summary holds the name, the color, and the group name

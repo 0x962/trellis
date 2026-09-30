@@ -21,10 +21,12 @@ import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
+import * as epicChatter from "./epicChatter";
+import * as epicAutopilot from "./epics/autopilot";
 import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
-import { prepareNameFromFirstExchange, saveNameFromFirstExchange } from "./firstExchangeName";
+import { prepareNameFromFirstMessage, saveNameFromFirstMessage } from "./firstMessageName";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
@@ -49,6 +51,7 @@ import * as resources from "./resources/resources.ts";
 import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
+import { overview as reviewOverview } from "./reviews/overview";
 import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewRevision from "./reviews/revision";
@@ -67,8 +70,10 @@ import {
 } from "./sessionObserverGeneration";
 import { sessionObserverServices } from "./sessionObservers/registry";
 import { prepareSetArchived as setSessionArchived } from "./sessions/archive.ts";
+import { cleanup as cleanupSessions } from "./sessions/cleanup";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
+import { prepareUpdate as prepareSessionUpdate } from "./sessions/prepareUpdate";
 import { prepareDelete as deleteSession } from "./sessions/remove.ts";
 import { rename as renameSession } from "./sessions/rename.ts";
 import * as sessions from "./sessions/sessions.ts";
@@ -101,11 +106,12 @@ export const services = {
 		sessions.finish,
 	),
 	"sessions.start": sessionMutation(startSession),
-	"sessions.move": core("mutation", moveSession),
-	"sessions.rename": core("mutation", renameSession),
-	"sessions.nameFirstExchange": prepared("mutation", prepareNameFromFirstExchange, saveNameFromFirstExchange),
+	"sessions.move": prepared("mutation", prepareSessionUpdate(moveSession, "session"), agentTerminal.result),
+	"sessions.rename": prepared("mutation", prepareSessionUpdate(renameSession, "session"), agentTerminal.result),
+	"sessions.nameFirstMessage": prepared("mutation", prepareNameFromFirstMessage, saveNameFromFirstMessage),
 	"sessions.setArchived": prepared("mutation", setSessionArchived, agentTerminal.result),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
+	"sessions.cleanup": prepared("mutation", cleanupSessions, agentTerminal.result),
 	...sessionObserverServices,
 	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
 	...sessionUpdateServices,
@@ -144,6 +150,7 @@ export const services = {
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewStatus.prepare, reviewStatus.status),
+	"reviews.overview": io("read", reviewOverview),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
 	"reviews.metadata": prepared("read", reviewRemote.metadata, reviewRemote.result),
 	"reviews.mine": prepared("read", reviewRemote.mine, reviewRemote.result),
@@ -168,7 +175,7 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRunList.prepareList, agentTerminal.result),
 	"agentRuns.latestByEpicTicket": prepared("read", agentRunList.prepareLatestByEpicTicket, agentTerminal.result),
-	"agentRuns.setPinned": core("mutation", setAgentRunPinned),
+	"agentRuns.setPinned": prepared("mutation", prepareSessionUpdate(setAgentRunPinned, "run"), agentTerminal.result),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": prepared(
 		"mutation",
@@ -215,7 +222,13 @@ export const services = {
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
 	...pageServices,
+	"epicChatter.get": core("read", epicChatter.get),
+	"epicChatter.set": core("mutation", epicChatter.set),
+	"epicChatter.list": core("read", epicChatter.list),
 	"epics.list": core("read", epics.list),
+	"epics.autopilot": core("read", epicAutopilot.get),
+	"epics.setAutopilot": core("mutation", epicAutopilot.set),
+	"epics.dispatchAutopilot": prepared("mutation", epicAutopilot.dispatch, agentTerminal.result),
 	"epics.get": core("read", epics.get),
 	"epics.create": core("mutation", epics.create),
 	"epics.update": core("mutation", epics.update),
@@ -265,6 +278,8 @@ export const services = {
 	"settings.defaultActorName": core("read", settings.defaultActorName),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
+	"settings.agentPrompt": core("read", settings.agentPromptSettings),
+	"settings.setAgentPrompt": core("mutation", settings.setAgentPrompt),
 	"system.health": io("read", system.health),
 	"system.usage": prepared("read", prepareSystemUsage, agentTerminal.result),
 	"system.processes": prepared("read", prepareSystemProcesses, agentTerminal.result),

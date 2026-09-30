@@ -330,6 +330,9 @@ Use the actual project's commands.
 | `trellis epic create --project <project> --name <text> [--description <text>]` | Create an epic. |
 | `trellis epic edit <epic> [--name <text>] [--description <text>]` | Update an epic. |
 | `trellis epic cancel <epic>` | Cancel an epic and its unfinished tickets. Completed tickets keep their status. |
+| `trellis epic autopilot show <epic>` | Read automatic ticket start settings. |
+| `trellis epic autopilot enable <epic> --max-concurrency <n> --harness <preset>` | Start ready tickets automatically within the limit. |
+| `trellis epic autopilot disable <epic>` | Stop new automatic assignments and keep existing agents. |
 | `trellis epic add <epic> <tickets...>` | Add tickets to an epic. |
 | `trellis epic remove <tickets...>` | Remove tickets from their epic. |
 | `trellis wave list <epic>` | List the epic's waves. |
@@ -347,6 +350,16 @@ trellis epic edit DEMO/account-settings --description - < plan.md
 
 The user and the project determine the plan's size and structure.
 Do not impose fixed counts of tickets or waves.
+
+Autopilot starts unassigned Todo tickets whose dependencies are Done or Canceled.
+It moves each selected ticket to the first status in the `started` category.
+Assigned Todo and In Progress tickets consume slots, including manual assignments.
+A ticket releases its slot when it moves to review or completion. Its assignment remains.
+Manual starts can exceed the limit. Autopilot waits for capacity before it starts more tickets.
+A lower limit or disablement preserves existing agents. Accepted starts can finish after disablement.
+Cancellation turns autopilot off. An archived project starts no ticket.
+Autopilot uses saved settings after a server restart.
+The enable command also accepts `--model`, `--effort`, and `--account`.
 
 ## Resources, documents, and project notes
 
@@ -519,7 +532,7 @@ A delete and a restore need a person, or `--force` from an agent.
 | `trellis agent list --ticket <ticket>` | Find agents assigned to a ticket. |
 | `trellis agent start --ticket <ticket> [options]` | Assign an agent to the ticket. |
 | `trellis agent send <agent-id> --text <text>` | Send a direct message. |
-| `trellis agent broadcast --group <group> --text <text>` | Send a user broadcast to the working or idle group. |
+| `trellis agent broadcast --group <group> --text <text> [--epic <epic>]` | Send a user broadcast to `working`, `idle`, or `both` groups, optionally within one epic. Idle agents have unfinished tickets. |
 | `trellis agent output <agent-id>` | Read that agent's terminal output. |
 | `trellis agent refresh <agent-id>` | Refresh its observed state. |
 | `trellis agent interrupt <agent-id>` | Interrupt its current turn while its session remains. |
@@ -536,6 +549,9 @@ A delete and a restore need a person, or `--force` from an agent.
 `agent start` accepts `--harness`, `--account`, `--model`, `--effort`, and `--request-id`.
 Use `trellis model list` and `trellis account list` to inspect available choices.
 Specify `--harness` when you also select `--model` or `--effort`.
+
+`agent broadcast --epic <epic>` selects agents on tickets in that epic, including flow agents.
+Without `--epic`, the command selects eligible agents across Trellis.
 
 A start request returns an agent record.
 Read its state to confirm that the agent started.
