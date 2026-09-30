@@ -1,4 +1,4 @@
-import { mkdir, open, realpath, rename } from "node:fs/promises";
+import { mkdir, open, readFile, realpath, rename } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { copySnapshot } from "../copySnapshot";
@@ -24,6 +24,9 @@ export async function restoreSnapshot(
 	if (destination === snapshot || destination.startsWith(`${snapshot}${sep}`))
 		throw new Error("restore_destination_inside_snapshot");
 	const manifest = await readSnapshot(snapshot);
+	const manifestBytes = await readFile(join(snapshot, manifestName));
+	if (!isDeepStrictEqual(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes)), manifest))
+		throw new Error("paired_restore_manifest_changed");
 	if (!isDeepStrictEqual(manifest.compatibility, input.compatibility)) throw new Error("restore_version_mismatch");
 	await mkdir(destination, { mode: 0o700 });
 	const block = await open(join(destination, recoveryName), "wx", 0o600);
@@ -49,7 +52,7 @@ export async function restoreSnapshot(
 	await copySnapshot(snapshot, payload, manifest);
 	const file = await open(join(payload, manifestName), "wx", 0o600);
 	try {
-		await file.writeFile(JSON.stringify(manifest));
+		await file.writeFile(manifestBytes);
 		await file.sync();
 	} finally {
 		await file.close();

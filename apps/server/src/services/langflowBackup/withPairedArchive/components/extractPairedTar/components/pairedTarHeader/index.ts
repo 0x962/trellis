@@ -1,0 +1,1 @@
+export { pairedTarHeader } from "./pairedTarHeader";

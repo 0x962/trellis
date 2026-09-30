@@ -1,7 +1,7 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, realpath } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { protocolDigest } from "../../../langflowContracts";
 import { type DispatchBlock, type HostControlIdentity, LangflowHostControl } from "../../../langflowHost";
 import { manifestName, type SnapshotCompatibility } from "../manifest";
 import { PairedJournal } from "../pairedJournal";
@@ -35,7 +35,7 @@ export async function restorePairedSnapshot(
 		throw new Error("paired_restore_destination_conflict");
 	const manifest = await readSnapshot(snapshot);
 	if (!isDeepStrictEqual(manifest.compatibility, input.compatibility)) throw new Error("restore_version_mismatch");
-	const manifestDigest = protocolDigest(JSON.stringify(manifest));
+	const manifestDigest = createHash("sha256").update(await readFile(join(snapshot, manifestName))).digest("hex");
 	await mkdir(targetHome, { mode: 0o700 });
 	await syncDirectory(dirname(targetHome));
 	const initialized: { identity: HostControlIdentity; block: DispatchBlock; journal: PairedJournal }[] = [];
@@ -78,7 +78,7 @@ export async function restorePairedSnapshot(
 	);
 	const retained = initialized[0];
 	if (!retained) throw new Error("paired_restore_not_initialized");
-	if (protocolDigest(await readFile(join(restored.payload, manifestName), "utf8")) !== manifestDigest)
+	if (createHash("sha256").update(await readFile(join(restored.payload, manifestName))).digest("hex") !== manifestDigest)
 		throw new Error("paired_restore_manifest_changed");
 	await retained.journal.write("restored", { payload: restored.payload, manifestDigest, targetHome });
 	return { ...restored, targetHome, identity: retained.identity, block: retained.block, manifestDigest };

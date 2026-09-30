@@ -1,0 +1,1 @@
+export { pairedTarFixture } from "./pairedTarFixture";

@@ -130,6 +130,8 @@ It never sends another export POST and never releases the host gate.
 An incomplete or unavailable seal keeps capture recovery blocked.
 
 `restorePairedSnapshot` accepts a source snapshot, new envelope, new target home, request ID, compatibility, and abort signal.
+`restorePairedArchive` supplies that snapshot through `withPairedArchive`, which retains private staging through the complete restore operation.
+The archive reader validates entry paths and types, then verifies the extracted manifest inventory before restore begins.
 Its context provides the current live home.
 The target home, source, live home, and envelope must remain separate.
 After the restore marker exists, it creates external host control with the exact restore block before it copies payload files.
@@ -186,6 +188,6 @@ Publication refuses an existing destination or a path inside the source envelope
 The producer removes only its temporary stage and retains the original capture envelope and recovery journal.
 It does not prune older archives or grant dispatch authority.
 The host must await the producer before it releases the supervisor and transport.
-The paired archive needs a paired extraction reader; the legacy restore layout is incompatible.
+`withPairedArchive` reads this format within a private callback scope; `restorePairedArchive` connects it to isolated restore.
 Synthetic fixtures cover archive extraction, manifest identity, component bytes, private mode, corruption, and destination refusal.
 These fixtures do not establish live capture or restore acceptance.
