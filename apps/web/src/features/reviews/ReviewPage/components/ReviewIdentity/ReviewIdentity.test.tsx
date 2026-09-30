@@ -30,6 +30,8 @@ test("a merged or closed pull request shows no conflict", () => {
 test("a queued pull request prints the queue position", () => {
 	const html = renderToStaticMarkup(
 		<ReviewIdentity
+			localState={null}
+			locallyApproved={false}
 			pr="https://github.com/acme/web/pull/12"
 			revision={null}
 			pullRequest={{ title: "Fix the header", state: "OPEN", isDraft: false }}
@@ -134,7 +136,13 @@ const headerHtml = (step: keyof typeof steps) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
-				<ReviewIdentity pr="https://github.com/acme/web/pull/370" {...steps[step]} onAction={() => {}} />
+				<ReviewIdentity
+					localState={null}
+					locallyApproved={false}
+					pr="https://github.com/acme/web/pull/370"
+					{...steps[step]}
+					onAction={() => {}}
+				/>
 			</QueryClientProvider>
 		</AppProvider>,
 	);
@@ -189,6 +197,8 @@ test("the queue position ends the row, after the branch", () => {
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
 				<ReviewIdentity
+					localState={null}
+					locallyApproved={false}
 					pr="https://github.com/acme/web/pull/370"
 					{...steps.pollArrived}
 					isQueued
@@ -201,4 +211,26 @@ test("the queue position ends the row, after the branch", () => {
 
 	expect(html.indexOf("review-branch")).toBeLessThan(html.indexOf("review-queue-position"));
 	expect(html).toContain("Position 2");
+});
+
+test("the header uses only the saved local mark and human verdict", () => {
+	const render = (localState: "ready" | "not-ready" | null, locallyApproved: boolean, isDraft: boolean) =>
+		renderToStaticMarkup(
+			<ReviewIdentity
+				pr="acme/app#12"
+				revision={null}
+				pullRequest={{ state: "OPEN", isDraft }}
+				isQueued={false}
+				linkedPr={null}
+				localState={localState}
+				locallyApproved={locallyApproved}
+				onAction={() => {}}
+			/>,
+		);
+	for (const isDraft of [true, false]) {
+		expect(render(null, false, isDraft)).toContain('aria-label="Not ready for review"');
+		expect(render("not-ready", true, isDraft)).toContain('aria-label="Not ready for review"');
+		expect(render("ready", false, isDraft)).toContain('aria-label="Ready for review"');
+		expect(render("ready", true, isDraft)).toContain('aria-label="Locally approved"');
+	}
 });

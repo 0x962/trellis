@@ -1,6 +1,5 @@
 import {
 	GitMergeIcon,
-	GitMergeQueueIcon,
 	GitPullRequestClosedIcon,
 	GitPullRequestDraftIcon,
 	GitPullRequestIcon,
@@ -15,12 +14,12 @@ export type PrGlyphSize = "sm" | "md";
 
 export type PrGlyphProps = {
 	state: PullRequestState;
-	isQueued: boolean;
 	// True when the agent asked the person to review the pull request. The
 	// agent sets that flag with `trellis diff set-state <diff> ready`. A
 	// failed check, a pending check, an open finding and a conflict do not
 	// clear it.
 	askedForReview: boolean;
+	locallyApproved?: boolean;
 	// The parts of the review material that the pull request still misses,
 	// such as "no evidence document". The tooltip prints it under its own
 	// words, and the accessible name leaves it out, so the name states the
@@ -36,27 +35,28 @@ type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
-// The shapes and the colors match GitHub, so a state reads the same in both
-// products.
 const looks = {
-	open: { label: "Ready for review", tone: "text-success", Icon: GitPullRequestIcon },
+	open: { label: "Ready for review", tone: "text-label-blue", Icon: GitPullRequestIcon },
 	"not-ready": {
 		label: "Not ready for review",
 		tone: "text-fg-muted",
 		Icon: GitPullRequestDraftIcon,
 	},
-	queued: { label: "Pull request queued", tone: "text-warning", Icon: GitMergeQueueIcon },
+	approved: { label: "Locally approved", tone: "text-success", Icon: GitPullRequestIcon },
 	merged: { label: "Pull request merged", tone: "text-agent", Icon: GitMergeIcon },
 	closed: { label: "Pull request closed", tone: "text-danger", Icon: GitPullRequestClosedIcon },
 } as const satisfies Record<string, Look>;
 
 type PrGlyphLook = keyof typeof looks;
 
-const prGlyphLook = (state: PullRequestState, isQueued: boolean, askedForReview: boolean): PrGlyphLook => {
+const prGlyphLook = (state: PullRequestState, askedForReview: boolean, locallyApproved: boolean): PrGlyphLook => {
 	if (state !== "open") return state;
-	if (isQueued) return "queued";
-	return askedForReview ? "open" : "not-ready";
+	if (!askedForReview) return "not-ready";
+	return locallyApproved ? "approved" : "open";
 };
+
+export const prGlyphLabel = (state: PullRequestState, askedForReview: boolean, locallyApproved: boolean) =>
+	looks[prGlyphLook(state, askedForReview, locallyApproved)].label;
 
 // A table row is 32 px tall and holds the small glyph. A pull request row has
 // more room and holds the medium one.
@@ -70,15 +70,15 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-4" };
 // the only signal.
 export function PrGlyph({
 	state,
-	isQueued,
 	askedForReview,
+	locallyApproved = false,
 	description = null,
 	size = "md",
 	tooltip = true,
 	focusable = true,
 	decorative = false,
 }: PrGlyphProps) {
-	const key = prGlyphLook(state, isQueued, askedForReview);
+	const key = prGlyphLook(state, askedForReview, locallyApproved);
 	const { label, tone, Icon } = looks[key];
 	if (decorative) {
 		return (

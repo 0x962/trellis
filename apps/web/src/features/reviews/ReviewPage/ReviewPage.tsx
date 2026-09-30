@@ -1,29 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { type ReviewSubmission, type ReviewThread, reviewRef, verdictMark } from "@trellis/api";
-import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
-import { type DiffAnchor, ReviewDiffSkeleton, type ThreadPlacement, threadDiffLine } from "@trellis/ui/review";
+import { type ReviewSubmission, type ReviewThread, reviewRef } from "@trellis/api";
+import { type TabItem, Tabs, useMediaQuery } from "@trellis/ui";
+import { type DiffAnchor, ReviewDiffSkeleton, type ThreadPlacement } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { ChangeSummary } from "../ChangeSummary";
-import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
 import { fileGroups } from "../FileRiskGroups/fileGroups";
-import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
-import { ReviewFindings } from "../ReviewFindings";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
-import { type ReviewMetadata, ReviewStack } from "../ReviewStack/ReviewStack";
+import type { ReviewMetadata } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
 import { PaneBoundary } from "./components/PaneBoundary";
-import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
+import { ReviewFlowPanel } from "./components/ReviewFlowPanel";
+import type { GithubPullRequest } from "./components/ReviewIdentity";
+import { ReviewIdentitySection } from "./components/ReviewIdentitySection";
+import { ReviewNotices } from "./components/ReviewNotices";
+import { ReviewOverview } from "./components/ReviewOverview";
 import { ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { useActiveThread } from "./hooks/useActiveThread";
+import { useLocalReviewVerdict } from "./hooks/useLocalReviewVerdict";
 import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
 import type { ReviewTab } from "./reviewTab";
@@ -119,7 +119,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
 	const selectedPath = pickedPath !== "" ? pickedPath : (pickedAnchor?.path ?? deepLinkPath ?? "");
 	const allSubmissions = submissions.data ?? noSubmissions;
-	const summaryRow = summary.data ?? null;
+	const verdict = useLocalReviewVerdict(submissions.data);
 	const metadata = useQuery({
 		...orpc.reviews.metadata.queryOptions({ input: { pr } }),
 		enabled: revision !== null || status.data?.isQueued === true,
@@ -133,50 +133,30 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} verdict={verdictMark(allSubmissions)} />
-				{/* The identity stays above the column, so the buttons that end
-				    the review are always in reach. */}
-				<div className="review-identity">
-					<ReviewIdentity
-						pr={pr}
-						revision={displayRevision}
-						pullRequest={displayMeta}
-						isQueued={status.data?.isQueued ?? false}
-						linkedPr={linkedPr}
-						mergeQueuePosition={reviewMetadata?.mergeQueueEntry?.position}
-						onAction={refreshAll}
-					/>
-					<div className="review-identity-lines">
-						{status.data?.ticket && (
-							<p className="review-ticket-line">
-								<Link to="/t/$identifier" params={{ identifier: status.data.ticket.identifier }}>
-									<TicketId id={status.data.ticket.identifier} />
-								</Link>{" "}
-								{status.data.ticket.title}
-							</p>
-						)}
-					</div>
-				</div>
-				{/* The notices sit above the tabs, so both tabs show them. The box
-				    is empty while nothing went wrong, and an empty box draws nothing. */}
-				<div className="review-notices">
-					{revision && <ReviewStack pr={pr} meta={reviewMetadata} error={metadata.error} />}
-					{status.isError && (
-						<p role="alert" className="review-notice">
-							GitHub status: {status.error.message}
-						</p>
-					)}
-					{refresh.isError && (
-						<p className="review-error" role="alert">
-							{refresh.error.message}. Local comments remain available.
-						</p>
-					)}
-					{threads.isError && (
-						<p role="alert" className="review-error">
-							{threads.error.message}
-						</p>
-					)}
-				</div>
+				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} verdict={verdict ?? null} />
+				<ReviewIdentitySection
+					pr={pr}
+					revision={displayRevision}
+					pullRequest={displayMeta}
+					isQueued={status.data?.isQueued ?? false}
+					linkedPr={linkedPr}
+					localState={status.data?.localState ?? null}
+					locallyApproved={verdict === undefined ? null : verdict === "approved"}
+					mergeQueuePosition={reviewMetadata?.mergeQueueEntry?.position}
+					onAction={refreshAll}
+					ticket={status.data?.ticket ?? null}
+				/>
+				<ReviewNotices
+					pr={pr}
+					hasRevision={revision !== null}
+					metadata={reviewMetadata}
+					metadataError={metadata.error}
+					statusError={status.isError ? status.error.message : null}
+					refreshError={refresh.isError ? refresh.error.message : null}
+					threadsError={threads.isError ? threads.error.message : null}
+					submissionsError={submissions.isError ? submissions.error.message : null}
+					retrySubmissions={() => void submissions.refetch()}
+				/>
 				{/* Every panel stays mounted: `DiffPane` reports the changed file list
 				    that the tree draws, and the diff keeps its scroll position while
 				    another tab shows. `withBoundaries` gives each panel its own error. */}
@@ -191,41 +171,19 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							value: "overview",
 							label: "Overview",
 							content: (
-								<div className="review-blocks">
-									{/* Trellis stores the summary and the evidence document under the
-									    linked pull request row, so a pull request that no ticket links
-									    draws neither. */}
-									{!overviewReady ? (
-										<section aria-busy="true">
-											<span className="sr-only" role="status">
-												The overview is loading.
-											</span>
-											<Skeleton lines={10} />
-										</section>
-									) : (
-										<>
-											{linkedPr !== null && <ChangeSummary summary={summaryRow} />}
-											{linkedPr !== null && <EvidenceDocument evidence={evidence.data ?? null} />}
-											<ReviewFindings
-												threads={allThreads}
-												revisionId={revision?.id ?? null}
-												onOpen={(thread) => {
-													// A thread of an earlier revision names a line of a diff
-													// that this page does not draw, so the link asks the
-													// patch on screen where that thread went. No line means
-													// the diff draws the thread at the top of its file, and
-													// the link goes to that file.
-													const line = revision === null ? null : threadDiffLine(revision.patch, thread, revision.id);
-													setPickedPath(line === null ? thread.path : "");
-													setPickedAnchor(
-														line === null ? null : { path: thread.path, side: thread.side, line, startLine: line },
-													);
-													onTabChange("diff");
-												}}
-											/>
-										</>
-									)}
-								</div>
+								<ReviewOverview
+									ready={overviewReady}
+									linked={linkedPr !== null}
+									summary={summary.data ?? null}
+									evidence={evidence.data ?? null}
+									threads={allThreads}
+									revision={revision}
+									onOpen={(path, anchor) => {
+										setPickedPath(path);
+										setPickedAnchor(anchor);
+										onTabChange("diff");
+									}}
+								/>
 							),
 						},
 						{
@@ -240,20 +198,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						{
 							value: "flows",
 							label: "Flows",
-							content: (
-								<div className="review-blocks">
-									{/* A flow runs against a ticket, so a pull request that no
-									    ticket links can hold no flow run. */}
-									{flowTarget === null ? (
-										<EmptyState
-											title="No flow runs"
-											description="No ticket links this pull request, and a flow runs against a ticket."
-										/>
-									) : (
-										<FlowRuns ticket={flowTarget.ticket} headSha={flowTarget.headSha} diffId={flowTarget.diffId} />
-									)}
-								</div>
-							),
+							content: <ReviewFlowPanel target={flowTarget} />,
 						},
 						{
 							value: "diff",

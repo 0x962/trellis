@@ -85,7 +85,7 @@ describe("PrRow", () => {
 		expect(html).toContain('aria-label="56 checks: 1 failed, 6 pending, 47 passed, 2 skipped"');
 	});
 
-	test("the glyph carries the not-ready, queued, and merged states", () => {
+	test("the queue does not replace local readiness, and merged stays distinct", () => {
 		const notReady = renderToStaticMarkup(
 			<PrRow pr={prOf({ reviewGaps: notAsked })} top={0} last={false} hasChildLines={false} />,
 		);
@@ -97,7 +97,7 @@ describe("PrRow", () => {
 		);
 
 		expect(notReady).toContain("Not ready for review");
-		expect(queued).toContain("Pull request queued");
+		expect(queued).toContain("Ready for review");
 		expect(merged).toContain("Pull request merged");
 	});
 

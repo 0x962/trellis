@@ -1,14 +1,15 @@
 import { Badge } from "../../primitives/Badge";
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
-import { type PullRequestReviewState, ReviewStateIcon, reviewStateLabel } from "../ReviewStateIcon";
+import { PrGlyph, type PullRequestState, prGlyphLabel } from "../PrGlyph";
 
 export type PullRequestReviewStatus = {
 	owner: string;
 	repo: string;
 	number: number;
-	reviewState: PullRequestReviewState;
-	notReady: boolean;
+	state: PullRequestState;
+	askedForReview: boolean;
+	locallyApproved: boolean;
 };
 
 export type ReviewStatusSummaryProps = {
@@ -27,7 +28,13 @@ export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryP
 		<span className={cx("inline-flex shrink-0 items-center gap-0.5", className)}>
 			<span className="sr-only">{reviews.length} pull request approval statuses</span>
 			{visible.map((review) => (
-				<ReviewStateIcon key={reference(review)} reviewState={review.reviewState} notReady={review.notReady} />
+				<PrGlyph
+					key={reference(review)}
+					state={review.state}
+					askedForReview={review.askedForReview}
+					locallyApproved={review.locallyApproved}
+					size="sm"
+				/>
 			))}
 			{hidden > 0 && (
 				<Tooltip
@@ -37,7 +44,9 @@ export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryP
 							{reviews.map((review) => (
 								<span key={reference(review)} className="flex items-center justify-between gap-4">
 									<span className="truncate font-mono text-fg tabular">{reference(review)}</span>
-									<span className="shrink-0">{reviewStateLabel(review.reviewState, review.notReady)}</span>
+									<span className="shrink-0">
+										{prGlyphLabel(review.state, review.askedForReview, review.locallyApproved)}
+									</span>
 								</span>
 							))}
 						</span>
