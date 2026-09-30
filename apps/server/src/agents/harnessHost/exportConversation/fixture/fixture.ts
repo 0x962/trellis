@@ -58,12 +58,13 @@ export function conversationFixture(harness: BuiltInHarness = "codex") {
 		unavailable,
 	};
 	const calls: string[] = [];
-	let active = true;
+	const controller = new AbortController();
 	const reader: ConversationCaptureReader = {
 		binding,
+		signal: controller.signal,
 		async inventory() {
 			calls.push("inventory");
-			if (!active) throw new Error("capture_released");
+			controller.signal.throwIfAborted();
 			return structuredClone({
 				binding: inventory.binding,
 				entries: inventory.files.map((file) => ({
@@ -79,16 +80,16 @@ export function conversationFixture(harness: BuiltInHarness = "codex") {
 		},
 		async *read(input) {
 			calls.push(`read:${input.path}`);
-			if (!active) throw new Error("capture_released");
+			controller.signal.throwIfAborted();
 			yield bytes.slice(0, 7);
-			if (!active) throw new Error("capture_released");
+			controller.signal.throwIfAborted();
 			yield bytes.slice(7);
 		},
 		async seal(input) {
 			calls.push("seal");
-			if (!active) throw new Error("capture_released");
+			controller.signal.throwIfAborted();
 			return new TextEncoder().encode(` ${JSON.stringify({ schemaVersion: 1, kind: "trellis-runtime-capture-seal", ...input })}\n`);
 		},
 	};
-	return { binding, identity, bytes, inventory, reader, calls, release: () => { active = false; } };
+	return { binding, identity, bytes, inventory, reader, calls, release: () => controller.abort(new Error("capture_released")) };
 }

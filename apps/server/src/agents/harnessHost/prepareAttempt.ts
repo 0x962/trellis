@@ -37,6 +37,7 @@ export async function prepareAttempt(
 		options.bun,
 		options.runtime.socketPath,
 		...(input.capture === undefined ? [] : [{ capture: input.capture }]),
+		...(input.writerScopes === undefined ? [] : [{ writerScopes: input.writerScopes }]),
 	]);
 	const path = join(directory, "launch.json");
 	const verify = (record: HarnessDescriptor) => {
@@ -84,6 +85,7 @@ export async function prepareAttempt(
 		spec: {
 			id: input.id,
 			...(input.capture === undefined ? {} : { capture: input.capture }),
+			...(input.writerScopes === undefined ? {} : { writerScopes: input.writerScopes }),
 			command:
 				input.harness === "codex" || input.harness === "muse"
 					? launch.executable.startsWith("/")
