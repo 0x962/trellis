@@ -7,10 +7,10 @@ import { nativeHost } from "../../../agents/native/harnessHost.ts";
 import type { IoCtx } from "../../support.ts";
 import { getRun } from "../queries.ts";
 
-export type RequestSessionNameInput = { runId: string; agentResponse: string };
+export type RequestSessionNameInput = { runId: string };
 export type RequestedSessionName = { candidateName: string; initialPrompt: string; protectedTerms: string[] };
 
-const namePrompt = (initialPrompt: string, agentResponse: string) => `Write a short name for this work.
+const namePrompt = (initialPrompt: string) => `Write a short name for this work.
 
 Use simple English and eight words or fewer.
 Explain the work, not the conversation.
@@ -19,10 +19,7 @@ Do not use a model name, agent name, ticket ID, commit ID, or branch name unless
 Do not use tools.
 
 User:
-${initialPrompt}
-
-Agent:
-${agentResponse}`;
+${initialPrompt}`;
 
 const stripTrellisEnv = (environment: Record<string, string>) =>
 	Object.fromEntries(Object.entries(environment).filter(([name]) => !name.startsWith("TRELLIS_")));
@@ -68,7 +65,7 @@ export async function requestSessionName(ctx: IoCtx, input: RequestSessionNameIn
 			id: attemptId,
 			harness: source.harness,
 			cwd: directory,
-			prompt: namePrompt(run.instruction, input.agentResponse),
+			prompt: namePrompt(run.instruction),
 			model: harness.model,
 			effort: harness.effort,
 			timeoutMs: 60_000,

@@ -11,7 +11,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	let aborted = false;
 	const emitted: TrellisEvent[] = [];
 	const recorded: Array<Array<{ id: string; activityAt: string }>> = [];
-	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
+	const completed: Array<{ sessionId: string; runId: string }> = [];
 	let deliver!: (value: RuntimeProcessStatus) => void;
 	const next = new Promise<RuntimeProcessStatus>((resolve) => {
 		deliver = resolve;
@@ -42,7 +42,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 			},
 		},
 		emit: (event) => emitted.push(event),
-		complete: async (input) => {
+		nameSession: async (input) => {
 			completed.push(input);
 		},
 		log: () => {},
@@ -81,7 +81,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 		notify: true,
 		activity: { run: { observation: { outcome: "completed" } } },
 	});
-	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id, agentResponse: "First response" }]);
+	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id }]);
 	expect(recorded.at(-1)).toEqual([{ id: "run", activityAt: "2026-09-18T12:00:01.000Z" }]);
 	const count = emitted.length;
 	await monitor.tick();
@@ -90,7 +90,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	expect(aborted).toBe(true);
 });
 
-test("a completed runtime event requests a name after a poll observed the same response", async () => {
+test("a prompt confirmation requests a name after a poll observes the completed response", async () => {
 	const process = {
 		id: "attempt",
 		checkedAt: "2026-09-18T12:00:01.000Z",
@@ -117,7 +117,7 @@ test("a completed runtime event requests a name after a poll observed the same r
 		sessionId: "session",
 	};
 	const emitted: TrellisEvent[] = [];
-	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
+	const completed: Array<{ sessionId: string; runId: string }> = [];
 	const monitor = startSessionMonitor({
 		read: async () => [structuredClone(value)],
 		record: async () => {},
@@ -127,7 +127,7 @@ test("a completed runtime event requests a name after a poll observed the same r
 			},
 		},
 		emit: (event) => emitted.push(event),
-		complete: async (input) => {
+		nameSession: async (input) => {
 			completed.push(input);
 		},
 		log: () => {},
@@ -136,7 +136,7 @@ test("a completed runtime event requests a name after a poll observed the same r
 	await monitor.tick();
 	await Bun.sleep(0);
 	expect(emitted).toHaveLength(1);
-	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id, agentResponse: "First response" }]);
+	expect(completed).toEqual([{ sessionId: "session", runId: value.run.id }]);
 	await monitor.stop();
 });
 
@@ -144,7 +144,7 @@ test("the monitor emits when the last message or the shown tool changes, and not
 	const value = { run: session().run, sessionId: "session" };
 	value.run.processStatus = "exited";
 	const emitted: TrellisEvent[] = [];
-	const completed: Array<{ sessionId: string; runId: string; agentResponse: string }> = [];
+	const completed: Array<{ sessionId: string; runId: string }> = [];
 	const monitor = startSessionMonitor({
 		read: async () => [structuredClone(value)],
 		record: async () => {},
@@ -152,7 +152,7 @@ test("the monitor emits when the last message or the shown tool changes, and not
 			subscribeSession: async function* () {},
 		},
 		emit: (event) => emitted.push(event),
-		complete: async (input) => {
+		nameSession: async (input) => {
 			completed.push(input);
 		},
 		log: () => {},
