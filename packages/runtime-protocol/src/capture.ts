@@ -105,6 +105,7 @@ export type RuntimeCaptureInventory = {
 export type RuntimeCaptureUnavailable = {
 	identity: RuntimeCaptureIdentity;
 	sourceKind: "account-profile" | "opencode-export";
+	originalIdentity: string | null;
 	code: string;
 	message: string;
 };
