@@ -51,9 +51,12 @@ export function PageTab({
 		<div
 			role="presentation"
 			className={cx(
-				"group absolute top-0 left-0 flex h-9 items-center rounded-t-lg border-x border-t max-sm:h-11 pointer-coarse:h-11",
-				active ? "z-10 border-border bg-bg text-fg" : "border-transparent text-fg-muted hover:bg-fg/6 hover:text-fg",
-				separator && "after:absolute after:right-0 after:top-2.5 after:h-4 after:w-px after:bg-border",
+				"group absolute top-0 left-0 flex h-8 items-center rounded-t-hairline max-sm:h-11 pointer-coarse:h-11",
+				active
+					? "z-10 bg-bg text-fg before:pointer-events-none before:absolute before:inset-x-2 before:bottom-0 before:h-0.5 before:bg-accent"
+					: "text-fg-muted hover:bg-fg/6 hover:text-fg",
+				separator &&
+					"after:pointer-events-none after:absolute after:right-0 after:inset-y-2 after:w-px after:bg-border/60",
 			)}
 			style={style}
 		>
@@ -65,7 +68,7 @@ export function PageTab({
 				onSave={async (title) => onRename(title)}
 				className="min-w-0 flex-1"
 				fieldClassName="px-1"
-				inputClassName="h-7 max-sm:h-11"
+				inputClassName="h-7 max-sm:h-11 pointer-coarse:h-11"
 			>
 				<Tooltip
 					content={tab.title}
@@ -90,8 +93,8 @@ export function PageTab({
 						aria-posinset={index + 1}
 						aria-setsize={count}
 						className={cx(
-							"flex h-9 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center gap-1.5 rounded-tl-lg text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-							tab.pinned ? "rounded-tr-lg px-2" : "px-3",
+							"flex h-8 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center gap-1.5 rounded-tl-hairline text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+							tab.pinned ? "rounded-tr-hairline px-1.5" : "px-2",
 						)}
 						onPointerDown={onPointerDown}
 					>
@@ -109,7 +112,7 @@ export function PageTab({
 						icon={<X />}
 						size="sm"
 						tabIndex={active ? 0 : -1}
-						className="mr-1 text-fg-muted max-sm:h-11 max-sm:min-w-11"
+						className="mr-1 text-fg-muted focus-visible:-outline-offset-2! max-sm:h-11 max-sm:min-w-11"
 						onClick={(event) => {
 							event.stopPropagation();
 							onClose();

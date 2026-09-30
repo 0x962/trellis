@@ -52,7 +52,7 @@ export function TabGroupHeader({
 			ref={box}
 			role="presentation"
 			data-page-tab-group={group.id}
-			className="absolute top-0 left-0 h-9 text-fg-muted max-sm:h-11 pointer-coarse:h-11"
+			className="absolute top-0 left-0 h-8 text-fg-muted max-sm:h-11 pointer-coarse:h-11"
 			style={style}
 		>
 			<GroupHeader
@@ -74,7 +74,7 @@ export function TabGroupHeader({
 							}}
 							onSave={async (name) => onRename!(group.id, name)}
 							className="min-w-0 flex-1"
-							inputClassName="h-7 max-sm:h-11"
+							inputClassName="h-7 max-sm:h-11 pointer-coarse:h-11"
 						/>
 					) : undefined
 				}
@@ -87,7 +87,7 @@ export function TabGroupHeader({
 								label={`${group.name} actions`}
 								icon={<DotsThree />}
 								size="sm"
-								className="max-sm:h-11 max-sm:min-w-11"
+								className="focus-visible:-outline-offset-2! max-sm:h-11 max-sm:min-w-11"
 							/>
 						}
 						items={items}
