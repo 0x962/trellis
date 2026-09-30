@@ -7,47 +7,35 @@ import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessH
 import { launchCommand } from "../../agents/launchCommand/launchCommand.ts";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { customLaunch } from "../../agents/native/customLaunch.ts";
+import type { gitCommonDirectory } from "../../agents/native/gitCommonDirectory";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
-import { agentWorkspace, nativeWorkspace } from "../../agents/native/workspace.ts";
-import { workspaceOperation } from "../../agents/native/workspaceOperation.ts";
+import type { nativeWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
-import { executionEnvironment } from "../../executionEnvironment";
 import { launchGuide } from "../agentPrompt/launchGuide.ts";
 import type { ExecutionAttempt } from "../assignments/attempts.ts";
-import { readHostDefault } from "../harnessAccounts/hostDefault.ts";
-import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
-import { getAccount } from "../harnessAccounts/queries.ts";
+import { profileDefault } from "../harnessAccounts/profiles.ts";
 import { transferSession } from "../harnessAccounts/transferSession";
 import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import type { IoCtx, ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
 import { launchedHarness } from "./launchedHarness";
+import { withNativeLaunchScope } from "./nativeLaunchCapture";
 import { observerLaunchFailureCode } from "./observerLaunchFailure/index.ts";
 import type { LaunchRun } from "./queries.ts";
 
 class MissingNativeSessionIdentity extends Error {}
 type Dependencies = {
 	workspace: typeof nativeWorkspace;
+	commonDirectory: typeof gitCommonDirectory;
 	runtime: typeof ensureNativeRuntime;
 	guide: typeof launchGuide;
 	env: Record<string, string | undefined>;
 	environment: () => Promise<NodeJS.ProcessEnv>;
 };
-const exportedProfile: Partial<Record<string, string>> = { claude: "CLAUDE_CONFIG_DIR", codex: "CODEX_HOME" };
 
 export const promptForLaunch = (resume: boolean, resumePrompt: string | undefined, guide: () => Promise<string>) =>
 	resume ? Promise.resolve(resumePrompt!) : guide();
-
-async function hostDefaultProfile(
-	preset: string,
-	env: NodeJS.ProcessEnv,
-): Promise<{ harness: "claude" | "codex"; profilePath: string } | null> {
-	if (preset !== "claude" && preset !== "codex") return null;
-	if (env[exportedProfile[preset]!]) return null;
-	const pointer = await readHostDefault(preset, env);
-	return pointer.profilePath ? { harness: preset, profilePath: pointer.profilePath } : null;
-}
 
 const start = async (
 	ctx: ServiceCtx & Pick<IoCtx, "core" | "localUrl">,
@@ -67,7 +55,6 @@ const start = async (
 		textOnly?: HarnessStartInput["textOnly"];
 		signal?: AbortSignal;
 		authorizeLaunch?: () => Promise<boolean>;
-		withLaunchOperation?: <T>(action: () => Promise<T>) => Promise<T>;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -80,167 +67,160 @@ const start = async (
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
-		const ambientEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
-		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
-		if (account && account.harness !== config.harness.preset)
-			throw new Error("The selected account belongs to another harness.");
-		// A run with no account reads the SuperSet pointer at every launch, so
-		// a switch made in SuperSet reaches the next Trellis launch. A profile
-		// the person exported in the login shell wins over the pointer.
-		const profile = account ?? (await hostDefaultProfile(config.harness.preset, ambientEnv));
-		const baseEnv = profile ? await profileEnvironment(profile, ambientEnv) : ambientEnv;
-		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
-		const owned = await ctx.newTx(async (tx) => {
-			if (run.ticketId !== null) {
-				const [ticket] = await rows<{ id: string }>(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
-				if (!ticket) {
-					await tx.execute(
-						sql`UPDATE agent_runs SET closed_at=${ctx.now()},error='The ticket no longer exists.' WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL`,
-					);
-					return [];
+		await withNativeLaunchScope(ctx, input, deps, async ({ baseEnv, workspaceId, capture }) => {
+			const owned = await ctx.newTx(async (tx) => {
+				if (run.ticketId !== null) {
+					const [ticket] = await rows<{ id: string }>(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
+					if (!ticket) {
+						await tx.execute(
+							sql`UPDATE agent_runs SET closed_at=${ctx.now()},error='The ticket no longer exists.' WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL`,
+						);
+						return [];
+					}
 				}
-			}
-			return rows<{ id: string }>(
-				tx,
-				sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL RETURNING id`,
-			);
-		});
-		if (owned.length === 0 || hostIsShuttingDown(ctx.home)) return { id: run.id };
-		const prompt = await promptForLaunch(resume, input.resumePrompt, () =>
-			(deps.guide ?? launchGuide)(ctx, {
-				run,
-				workspace: workspaceId,
-				attemptId: terminalId,
-				message: input.prompt,
-				env: baseEnv,
-			}),
-		);
-		const env = {
-			...baseEnv,
-			TRELLIS_URL: ctx.localUrl,
-			TRELLIS_ACTOR: `agent:${run.id}`,
-			TRELLIS_RUN_ID: run.id,
-			TRELLIS_ATTEMPT_ID: terminalId,
-			TRELLIS_RUNTIME_HOME: join(ctx.home, "runtime"),
-			TRELLIS_ATTEMPT_TOKEN: input.attempt.token,
-		};
-		const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
-		// A box clock that already runs gives its time left. A box clock that
-		// starts with this process gives its whole budget.
-		const remainingMs = input.deadlineAt === undefined ? Infinity : input.deadlineAt - Date.now();
-		if (remainingMs <= 0) throw new Error("The flow group deadline elapsed before launch");
-		const limitMs = Math.min(remainingMs, input.budgetMs ?? Infinity);
-		const timeoutMs = Number.isFinite(limitMs) ? limitMs : undefined;
-		let session: RuntimeProcessStatus;
-		if (config.harness.preset === "custom") {
-			const launch = launchCommand({
-				run,
-				url: ctx.localUrl,
-				messageId: terminalId,
-				directory: workspaceId,
-				template: resume ? config.harness.resumeCommand : config.harness.startCommand,
-				prompt,
-			});
-			const spec = await customLaunch(ctx.home, {
-				id: terminalId,
-				command: launch.command,
-				cwd: workspaceId,
-				env,
-				timeoutMs,
-			});
-			if (
-				!(await ctx.newTx((tx) =>
-					launchAllowed(tx, {
-						runId: run.id,
-						terminalId,
-					}),
-				))
-			)
-				return { id: run.id };
-			if (hostIsShuttingDown(ctx.home)) return { id: run.id };
-			input.signal?.throwIfAborted();
-			if (input.authorizeLaunch && !(await input.authorizeLaunch())) return { id: run.id };
-			launchSubmitted = true;
-			await client.start(spec);
-			session = await client.inspect(terminalId);
-		} else {
-			const host = nativeHost(ctx.home, env, client, ctx.log);
-			const launch: HarnessStartInput = {
-				id: terminalId,
-				...(run.kind === "session" ? {} : { kind: "builder" }),
-				harness: config.harness.preset,
-				cwd: workspaceId,
-				prompt,
-				model: config.harness.model,
-				effort: config.harness.effort,
-				...(input.textOnly ? { textOnly: input.textOnly } : {}),
-				signal: input.signal,
-				token: input.attempt.token,
-				timeoutMs,
-			};
-			let sessionId: string | undefined;
-			if (resume) {
-				if (!input.previousAttemptId)
-					throw new Error("This assignment has no prior native attempt. Start a new session.");
-				// Recovery stops orphaned processes and keeps a receipt before this attempt resumes the conversation.
-				const previous = await host.recover(input.previousAttemptId);
-				retireIdleAttempt = previous.stopReason === "idle";
-				if (previous.status !== "exited") throw new Error("This conversation already has an active agent.");
-				const identity = previous?.agent?.sessionId ?? run.sessionId;
-				if (input.textOnly && identity !== input.textOnly.sessionId)
-					throw new MissingNativeSessionIdentity("The observer attempt belongs to another saved conversation.");
-				if (identity == null || (await nativePreset(ctx.home, input.previousAttemptId)) !== config.harness.preset)
-					throw new MissingNativeSessionIdentity(
-						"The prior attempt has no confirmed session for this harness. Start a new session.",
-					);
-				sessionId = identity;
-				const old: HarnessDescriptor = JSON.parse(
-					await readFile(join(ctx.home, "harness-attempts", input.previousAttemptId, "launch.json"), "utf8"),
+				return rows<{ id: string }>(
+					tx,
+					sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL RETURNING id`,
 				);
-				const from = profileDefault(config.harness.preset, old.spec.env!);
-				const to = profileDefault(config.harness.preset, env);
-				if (from !== to)
-					await transferSession({
-						harness: config.harness.preset,
-						from,
-						to,
-						sessionId,
-						cwd: previous?.launch?.cwd ?? old.spec.cwd,
-						env,
-						directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
-					});
+			});
+			if (owned.length === 0 || hostIsShuttingDown(ctx.home)) return { id: run.id };
+			const prompt = await promptForLaunch(resume, input.resumePrompt, () =>
+				(deps.guide ?? launchGuide)(ctx, {
+					run,
+					workspace: workspaceId,
+					attemptId: terminalId,
+					message: input.prompt,
+					env: baseEnv,
+				}),
+			);
+			const env = {
+				...baseEnv,
+				TRELLIS_URL: ctx.localUrl,
+				TRELLIS_ACTOR: `agent:${run.id}`,
+				TRELLIS_RUN_ID: run.id,
+				TRELLIS_ATTEMPT_ID: terminalId,
+				TRELLIS_RUNTIME_HOME: join(ctx.home, "runtime"),
+				TRELLIS_ATTEMPT_TOKEN: input.attempt.token,
+			};
+			const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
+			// A box clock that already runs gives its time left. A box clock that
+			// starts with this process gives its whole budget.
+			const remainingMs = input.deadlineAt === undefined ? Infinity : input.deadlineAt - Date.now();
+			if (remainingMs <= 0) throw new Error("The flow group deadline elapsed before launch");
+			const limitMs = Math.min(remainingMs, input.budgetMs ?? Infinity);
+			const timeoutMs = Number.isFinite(limitMs) ? limitMs : undefined;
+			let session: RuntimeProcessStatus;
+			if (config.harness.preset === "custom") {
+				const launch = launchCommand({
+					run,
+					url: ctx.localUrl,
+					messageId: terminalId,
+					directory: workspaceId,
+					template: resume ? config.harness.resumeCommand : config.harness.startCommand,
+					prompt,
+				});
+				const spec = await customLaunch(ctx.home, {
+					id: terminalId,
+					command: launch.command,
+					cwd: workspaceId,
+					env,
+					timeoutMs,
+				});
+				if (
+					!(await ctx.newTx((tx) =>
+						launchAllowed(tx, {
+							runId: run.id,
+							terminalId,
+						}),
+					))
+				)
+					return { id: run.id };
+				if (hostIsShuttingDown(ctx.home)) return { id: run.id };
+				input.signal?.throwIfAborted();
+				if (input.authorizeLaunch && !(await input.authorizeLaunch())) return { id: run.id };
+				launchSubmitted = true;
+				await client.start(spec);
+				session = await client.inspect(terminalId);
+			} else {
+				const host = nativeHost(ctx.home, env, client, ctx.log);
+				const launch: HarnessStartInput = {
+					id: terminalId,
+					...(capture === undefined ? {} : { capture }),
+					...(run.kind === "session" ? {} : { kind: "builder" }),
+					harness: config.harness.preset,
+					cwd: workspaceId,
+					prompt,
+					model: config.harness.model,
+					effort: config.harness.effort,
+					...(input.textOnly ? { textOnly: input.textOnly } : {}),
+					signal: input.signal,
+					token: input.attempt.token,
+					timeoutMs,
+				};
+				let sessionId: string | undefined;
+				if (resume) {
+					if (!input.previousAttemptId)
+						throw new Error("This assignment has no prior native attempt. Start a new session.");
+					// Recovery stops orphaned processes and keeps a receipt before this attempt resumes the conversation.
+					const previous = await host.recover(input.previousAttemptId);
+					retireIdleAttempt = previous.stopReason === "idle";
+					if (previous.status !== "exited") throw new Error("This conversation already has an active agent.");
+					const identity = previous?.agent?.sessionId ?? run.sessionId;
+					if (input.textOnly && identity !== input.textOnly.sessionId)
+						throw new MissingNativeSessionIdentity("The observer attempt belongs to another saved conversation.");
+					if (identity == null || (await nativePreset(ctx.home, input.previousAttemptId)) !== config.harness.preset)
+						throw new MissingNativeSessionIdentity(
+							"The prior attempt has no confirmed session for this harness. Start a new session.",
+						);
+					sessionId = identity;
+					const old: HarnessDescriptor = JSON.parse(
+						await readFile(join(ctx.home, "harness-attempts", input.previousAttemptId, "launch.json"), "utf8"),
+					);
+					const from = profileDefault(config.harness.preset, old.spec.env!);
+					const to = profileDefault(config.harness.preset, env);
+					if (from !== to)
+						await transferSession({
+							harness: config.harness.preset,
+							from,
+							to,
+							sessionId,
+							cwd: previous?.launch?.cwd ?? old.spec.cwd,
+							env,
+							directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
+						});
+				}
+				await host.prepare(launch, sessionId);
+				if (
+					!(await ctx.newTx((tx) =>
+						launchAllowed(tx, {
+							runId: run.id,
+							terminalId,
+						}),
+					))
+				)
+					return { id: run.id };
+				if (hostIsShuttingDown(ctx.home)) return { id: run.id };
+				input.signal?.throwIfAborted();
+				if (input.authorizeLaunch && !(await input.authorizeLaunch())) return { id: run.id };
+				launchSubmitted = true;
+				({ process: session } =
+					sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 			}
-			await host.prepare(launch, sessionId);
-			if (
-				!(await ctx.newTx((tx) =>
-					launchAllowed(tx, {
-						runId: run.id,
-						terminalId,
-					}),
-				))
-			)
-				return { id: run.id };
-			if (hostIsShuttingDown(ctx.home)) return { id: run.id };
-			input.signal?.throwIfAborted();
-			if (input.authorizeLaunch && !(await input.authorizeLaunch())) return { id: run.id };
-			launchSubmitted = true;
-			({ process: session } =
-				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
-		}
-		launchedAt = session.pid === null ? undefined : session.startedAt;
-		const harness = launchedHarness(config.harness, session.agent?.model);
-		ctx.log("agent run launched", {
-			run: run.id,
-			ticket: run.ticketIdentifier,
-			harness: config.harness.preset,
-			waitMs: Date.parse(session.startedAt) - Date.parse(run.createdAt),
+			launchedAt = session.pid === null ? undefined : session.startedAt;
+			const harness = launchedHarness(config.harness, session.agent?.model);
+			ctx.log("agent run launched", {
+				run: run.id,
+				ticket: run.ticketIdentifier,
+				harness: config.harness.preset,
+				waitMs: Date.parse(session.startedAt) - Date.parse(run.createdAt),
+			});
+			await ctx.newTx((tx) =>
+				tx.execute(
+					sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, launched_at = COALESCE(launched_at, ${session.startedAt}), harness = ${JSON.stringify(harness)}::jsonb, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind NOT IN ('agent', 'session') THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				),
+			);
+			if (retireIdleAttempt) await client.stop(previousTerminalId!);
 		});
-		await ctx.newTx((tx) =>
-			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, launched_at = COALESCE(launched_at, ${session.startedAt}), harness = ${JSON.stringify(harness)}::jsonb, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind NOT IN ('agent', 'session') THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
-			),
-		);
-		if (retireIdleAttempt) await client.stop(previousTerminalId!);
 	} catch (error) {
 		if (input.textOnly)
 			ctx.log("observer launch failed", {
@@ -265,7 +245,4 @@ const start = async (
 	return { id: run.id, launchedAt };
 };
 
-export const startNative = (...args: Parameters<typeof start>) =>
-	workspaceOperation(args[0].home, args[1].run.workspaceId ?? agentWorkspace(args[0].home, args[1].run.id), () =>
-		args[1].withLaunchOperation ? args[1].withLaunchOperation(() => start(...args)) : start(...args),
-	);
+export const startNative = start;
