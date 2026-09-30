@@ -53,6 +53,9 @@ It writes one activity item for each linked ticket.
 
 Merge and repository actions use a separate sheet.
 The server checks the reviewed head before an action.
+Merge, Admin merge, Merge when ready, and Add to merge queue first mark a GitHub draft ready for review.
+If GitHub refuses that step, the server stops the action.
+If the merge fails after that step, the pull request stays ready on GitHub.
 Merge commands also pass the head hash to GitHub.
 Live Branch controls appear for `canary-technologies-corp/canary`.
 Environment commands run only after an explicit form submission.
