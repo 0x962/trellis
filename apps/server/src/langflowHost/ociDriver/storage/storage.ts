@@ -21,6 +21,7 @@ export const VolumeSchema = z
 export type VolumeInspection = z.infer<typeof VolumeSchema>[number];
 export type VolumeKind = "data" | "secrets";
 export type StorageNames = { data: string; secrets: string };
+export type StorageIdentity = Pick<SidecarIdentity, "hostId" | "dataHomeId">;
 export type StorageInspection = { state: "found"; value: VolumeInspection } | { state: "absent" | "unknown" };
 export async function privateFile(path: string) {
 	const metadata = await lstat(path);
@@ -46,7 +47,7 @@ export function privateDirectorySync(path: string) {
 	return realpathSync(path);
 }
 
-export function storageNames(identity: SidecarIdentity): StorageNames {
+export function storageNames(identity: StorageIdentity): StorageNames {
 	const suffix = createHash("sha256").update(identity.dataHomeId).digest("hex").slice(0, 32);
 	return {
 		data: `trellis-langflow-data-${suffix}`,
@@ -54,7 +55,7 @@ export function storageNames(identity: SidecarIdentity): StorageNames {
 	};
 }
 
-export function storageLabels(identity: SidecarIdentity, privateRootDigest: string, kind: VolumeKind) {
+export function storageLabels(identity: StorageIdentity, privateRootDigest: string, kind: VolumeKind) {
 	return {
 		[`${storageLabelPrefix}.data-home-id`]: identity.dataHomeId,
 		[`${storageLabelPrefix}.host-id`]: identity.hostId,
@@ -73,7 +74,7 @@ export async function inspectVolume(run: OciRun, name: string): Promise<StorageI
 
 export function assertVolume(
 	volume: VolumeInspection,
-	identity: SidecarIdentity,
+	identity: StorageIdentity,
 	privateRootDigest: string,
 	kind: VolumeKind,
 ) {
@@ -86,7 +87,7 @@ export function assertVolume(
 
 export async function createVolume(
 	run: OciRun,
-	identity: SidecarIdentity,
+	identity: StorageIdentity,
 	privateRootDigest: string,
 	kind: VolumeKind,
 ) {
