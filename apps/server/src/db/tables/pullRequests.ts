@@ -26,7 +26,7 @@ export const pullRequests = pgTable(
 		// link of an agent writes `not-ready`; `trellis ready` writes `ready`.
 		// It is one part of being ready for review; `reviewGaps` in
 		// `packages/api` holds the whole rule.
-		localState: text("local_state").notNull().default("ready"),
+		localState: text("local_state").notNull().default("not-ready"),
 		// The moment the state became `ready`, which is the moment the wait of
 		// the person started. A new head commit clears it, because the person
 		// then waits for nothing. A row written before this column existed
