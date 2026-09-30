@@ -1,8 +1,9 @@
-import { Circle, DotsThree, Flag, Paperclip, Tag, X } from "@phosphor-icons/react";
-import { FailureState, IconButton, Popover, Select, StatusIcon, Tooltip } from "../../../ui";
+import { Circle, DotsThree, Flag, FolderSimple, Paperclip, Tag, X } from "@phosphor-icons/react";
+import { Button, FailureState, IconButton, PickerButton, Popover, Select, StatusIcon, Tooltip } from "../../../ui";
+import { AgentFields } from "../AgentFields";
 import type { ComposerState } from "../useComposer";
 
-export function TicketFields({ state }: { state: ComposerState }) {
+export function TicketFields({ state, onDiscard }: { state: ComposerState; onDiscard: () => void }) {
 	return (
 		<div className="ticket-fields">
 			<div className="writing-area">
@@ -36,7 +37,7 @@ export function TicketFields({ state }: { state: ComposerState }) {
 					id="ticket-description"
 					value={state.description}
 					onChange={(event) => state.setDescription(event.target.value)}
-					placeholder="Describe the work, or paste a brief…"
+					placeholder="Add a description…"
 					className="ticket-description"
 					readOnly={state.locked}
 				/>
@@ -85,6 +86,36 @@ export function TicketFields({ state }: { state: ComposerState }) {
 						{ value: "low", label: "Low", icon: <Flag className="size-3.5" /> },
 					]}
 				/>
+				<AgentFields state={state} />
+				<Popover
+					label="Epic and wave"
+					className="placement-popover"
+					trigger={
+						<PickerButton
+							label="Epic and wave"
+							size="sm"
+							className="property-chip placement-chip"
+							disabled={state.locked}
+						>
+							<span className="chip-content">
+								<FolderSimple size={14} />
+								September 29 review
+							</span>
+						</PickerButton>
+					}
+				>
+					<div className="placement-heading">September 29 review</div>
+					<Select
+						label="Wave"
+						hideLabel={false}
+						value={state.wave}
+						onValueChange={state.setWave}
+						items={[
+							{ value: "tabs", label: "Tabs" },
+							{ value: "navigation", label: "Navigation" },
+						]}
+					/>
+				</Popover>
 				<Select
 					label="Label"
 					value={state.label}
@@ -112,6 +143,9 @@ export function TicketFields({ state }: { state: ComposerState }) {
 								{ value: "example", label: "Improve ticket navigation" },
 							]}
 						/>
+						<Button variant="danger-soft" onClick={onDiscard} className="discard-action">
+							Discard draft…
+						</Button>
 					</div>
 				</Popover>
 			</fieldset>

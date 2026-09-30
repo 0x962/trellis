@@ -1,19 +1,14 @@
 @container preview (max-width: 767px) {
-	.ticket-composer.composer-compact,
-	.ticket-composer.composer-split {
+	.ticket-composer {
 		width: 100%;
 		max-width: 100%;
 		border-radius: 12px 12px 0 0;
-		max-height: 92dvh;
 	}
 	.composer-header {
-		padding: 8px 12px 4px 16px;
-	}
-	.composer-body {
-		display: block;
+		padding: 8px 12px 12px 20px;
 	}
 	.ticket-fields {
-		padding: 12px 20px 0;
+		padding: 0 20px 20px;
 	}
 	.ticket-title {
 		font-size: 20px;
@@ -21,123 +16,57 @@
 	}
 	.ticket-description {
 		font-size: 16px;
-		min-height: 120px;
+		min-height: 132px;
 	}
-	.composer-header button,
+	.ticket-properties {
+		gap: 8px;
+		padding-top: 20px;
+	}
+	.ticket-properties [role="combobox"],
+	.ticket-properties .property-chip {
+		min-height: 44px;
+	}
 	.ticket-properties > button,
+	.composer-header button,
 	.footer-options > button,
 	.attachment-list button {
 		min-width: 44px;
 		min-height: 44px;
 	}
-	.footer-options label {
+	.ticket-properties .placement-chip {
+		max-width: 100%;
+	}
+	.chip-detail {
+		display: none;
+	}
+	.composer-footer {
+		flex-wrap: wrap;
+		gap: 12px;
+		padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+	}
+	.footer-options {
+		width: 44px;
+	}
+	.submit-actions {
+		display: contents;
+	}
+	.create-another {
+		margin-left: auto;
+		min-height: 44px;
+	}
+	.create-another label {
 		display: inline-flex;
 		align-items: center;
 		min-height: 44px;
 	}
-	.ticket-properties {
-		gap: 8px;
-		padding-top: 12px;
-	}
-	.ticket-properties [role="combobox"] {
+	.submit-actions > button,
+	.create-action {
+		width: 100%;
 		min-height: 44px;
-	}
-	[role="option"] {
-		min-height: 44px;
-	}
-	.placement-row {
-		padding: 12px 20px 16px;
-		gap: 6px;
-	}
-	.placement-row .wave-select {
-		height: 44px;
-	}
-	.agent-compact {
-		grid-template-columns: 1fr 1fr;
-		padding: 16px 20px;
-		gap: 8px;
-	}
-	.agent-compact .agent-heading {
-		grid-column: 1 / -1;
-	}
-	.agent-compact .agent-select {
-		width: 100%;
-		min-width: 0;
-		height: 44px;
-	}
-	.agent-compact .model-trigger {
-		height: 44px;
-		width: 100%;
-		border: 1px solid var(--border);
-		padding-left: 8px;
-	}
-	.model-effort {
-		display: none;
-	}
-	.agent-compact .assignment-note {
-		grid-column: 1 / -1;
-		margin-top: 4px;
-	}
-	.agent-split {
-		width: 100%;
-		padding: 16px 20px;
-		margin: 0;
-		border-left: 0;
-		border-top: 1px solid var(--border);
-	}
-	.agent-split .agent-select {
-		height: 44px;
-	}
-	.agent-split .agent-settings {
-		grid-template-columns: 1fr 1fr;
-		gap: 12px;
-		margin-top: 12px;
-	}
-	.agent-split .agent-settings > div:last-child {
-		grid-column: 1 / -1;
-	}
-	.agent-settings [role="combobox"] {
-		height: 44px;
-	}
-	.agent-split .assignment-note {
-		margin-top: 12px;
-	}
-	.composer-split .composer-body {
-		min-height: 0;
-	}
-	.composer-split .ticket-description {
-		min-height: 120px;
-	}
-	.composer-split .placement-row {
-		padding-top: 12px;
-		padding-bottom: 16px;
-	}
-	.composer-footer {
-		flex-wrap: wrap;
-		padding: 12px 16px max(12px, env(safe-area-inset-bottom));
-		gap: 8px;
-	}
-	.footer-options {
-		width: 100%;
-		justify-content: space-between;
-	}
-	.footer-options > div {
-		min-height: 44px;
-	}
-	.submit-actions {
-		width: 100%;
-		gap: 8px;
-	}
-	.submit-actions > button {
-		flex: 1;
-		min-height: 44px;
-	}
-	.submit-shortcut {
-		display: none;
 	}
 	.assignment-error {
-		padding: 12px 20px;
 		max-height: 180px;
 		overflow-y: auto;
+		padding: 12px 20px;
 	}
 }

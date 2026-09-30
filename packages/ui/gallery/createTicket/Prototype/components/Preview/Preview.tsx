@@ -1,19 +1,11 @@
 import { CheckCircle, Plus, Rows, SidebarSimple } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
-import type { CreatedTicket, Layout, Scenario } from "../../../model";
+import type { CreatedTicket, Scenario } from "../../../model";
 import { IconButton, StatusIcon, Tooltip, TrellisMark } from "../../../ui";
 import { Composer } from "../Composer";
 import { useComposer } from "../useComposer";
 
-export function Preview({
-	layout,
-	scenario,
-	embedded = false,
-}: {
-	layout: Layout;
-	scenario: Scenario;
-	embedded?: boolean;
-}) {
+export function Preview({ scenario, embedded = false }: { scenario: Scenario; embedded?: boolean }) {
 	const [open, setOpen] = useState(true);
 	const [created, setCreated] = useState<CreatedTicket[]>([]);
 	const opener = useRef<HTMLButtonElement>(null);
@@ -61,7 +53,7 @@ export function Preview({
 				{[
 					"Open tab actions from the tab menu",
 					"Improve the pull request actions",
-					"Simplify the create ticket dialog",
+					"Refine the create ticket dialog",
 				].map((title, index) => (
 					<div className="workspace-ticket" key={title}>
 						<StatusIcon category="todo" />
@@ -90,16 +82,13 @@ export function Preview({
 						</div>
 					</div>
 				)}
-				<div className="preview-label">Interactive preview · No real tickets or agents</div>
+				{!open && (state.title || state.description) && (
+					<div role="status" className="draft-receipt">
+						Draft saved. Open New ticket to continue.
+					</div>
+				)}
 			</main>
-			<Composer
-				open={open}
-				onClose={() => setOpen(false)}
-				opener={opener}
-				layout={layout}
-				state={state}
-				embedded={embedded}
-			/>
+			<Composer open={open} onClose={() => setOpen(false)} opener={opener} state={state} embedded={embedded} />
 		</div>
 	);
 }

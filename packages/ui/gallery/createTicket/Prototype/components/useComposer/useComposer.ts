@@ -81,9 +81,15 @@ export function useComposer(scenario: Scenario, onCreated: (ticket: CreatedTicke
 
 	return {
 		title,
-		setTitle,
+		setTitle: (value: string) => {
+			setTitle(value);
+			setReceipt("");
+		},
 		description,
-		setDescription,
+		setDescription: (value: string) => {
+			setDescription(value);
+			setReceipt("");
+		},
 		status,
 		setStatus,
 		priority,

@@ -1,15 +1,8 @@
-export type Layout = "compact" | "split";
 export type Scenario = "example" | "empty" | "failure";
 export type Agent = "none" | "codex" | "claude";
 export type Phase = "editing" | "creating" | "assigning" | "failed";
 export type CreatedTicket = { id: string; title: string; assigned: boolean; agent: string; model: string };
 export type Attachment = { id: string; name: string };
-
-export const agents = [
-	{ value: "none", label: "No agent" },
-	{ value: "codex", label: "Codex" },
-	{ value: "claude", label: "Claude Code" },
-] as const;
 
 export const models = {
 	none: [],

@@ -1,82 +1,81 @@
 import { UserCircle } from "@phosphor-icons/react";
-import { accounts, agents, efforts, type Layout, models } from "../../../model";
-import { PickerButton, Popover, ProviderIcon, Select } from "../../../ui";
+import { useRef, useState } from "react";
+import { accounts, efforts, models } from "../../../model";
+import { Command, PickerButton, Popover, ProviderIcon, Select } from "../../../ui";
 import type { ComposerState } from "../useComposer";
 
-export function AgentFields({ state, layout }: { state: ComposerState; layout: Layout }) {
+export function AgentFields({ state }: { state: ComposerState }) {
+	const [open, setOpen] = useState(false);
+	const search = useRef<HTMLInputElement>(null);
 	const chosen = state.agent !== "none";
-	const controls = (
-		<div className="agent-settings">
-			<Select
-				label="Model"
-				hideLabel={false}
-				items={models[state.agent]}
-				value={state.model}
-				onValueChange={state.setModel}
-				disabled={state.locked}
-			/>
-			<Select
-				label="Effort"
-				hideLabel={false}
-				items={efforts}
-				value={state.effort}
-				onValueChange={state.setEffort}
-				disabled={state.locked}
-			/>
-			<Select
-				label="Account"
-				hideLabel={false}
-				items={accounts}
-				value={state.account}
-				onValueChange={state.setAccount}
-				disabled={state.locked}
-			/>
-		</div>
-	);
 	return (
-		<section className={`agent-section agent-${layout}`} aria-label="Agent assignment">
-			<div className="agent-heading">
-				<span className="field-heading">Assign to</span>
-				{layout === "split" && <span className="optional-label">Optional</span>}
-			</div>
-			<Select
-				label="Agent"
-				items={agents.map((item) => ({
-					...item,
-					icon:
-						item.value === "none" ? (
-							<UserCircle className="size-4" />
+		<Popover
+			label="Assign agent"
+			open={open}
+			onOpenChange={setOpen}
+			initialFocus={search}
+			className="assignment-picker"
+			trigger={
+				<PickerButton label="Assign agent" size="sm" disabled={state.locked} className="property-chip agent-chip">
+					<span className="chip-content">
+						{chosen ? (
+							<ProviderIcon decorative provider={state.agent === "codex" ? "openai" : "anthropic"} />
 						) : (
-							<ProviderIcon decorative provider={item.value === "codex" ? "openai" : "anthropic"} />
-						),
+							<UserCircle size={15} />
+						)}
+						{chosen ? state.agentLabel : "Assign agent"}
+						{chosen && <span className="chip-detail">{state.modelLabel}</span>}
+					</span>
+				</PickerButton>
+			}
+		>
+			<Command
+				label="Search agents and models"
+				placeholder="Search agents and models…"
+				inputRef={search}
+				items={[{ id: "none", label: "No agent", icon: <UserCircle />, current: !chosen }]}
+				groups={(["codex", "claude"] as const).map((agent) => ({
+					heading: agent === "codex" ? "Codex" : "Claude Code",
+					items: models[agent].map((model) => ({
+						id: `${agent}/${model.value}`,
+						label: model.label,
+						keywords: [agent],
+						icon: <ProviderIcon decorative provider={agent === "codex" ? "openai" : "anthropic"} />,
+						current: state.agent === agent && state.model === model.value,
+						checked: state.agent === agent && state.model === model.value,
+					})),
 				}))}
-				value={state.agent}
-				onValueChange={state.chooseAgent}
-				disabled={state.locked}
-				className="agent-select"
-			/>
-			{chosen && layout === "compact" && (
-				<Popover
-					label="Agent settings"
-					side="top"
-					align="end"
-					className="agent-popover"
-					trigger={
-						<PickerButton label="Model and agent settings" size="sm" disabled={state.locked} className="model-trigger">
-							{state.modelLabel}
-							<span className="model-effort"> · {state.effort}</span>
-						</PickerButton>
+				onSelect={(id) => {
+					if (id === "none") state.chooseAgent("none");
+					else {
+						const [agent, model] = id.split("/") as ["codex" | "claude", string];
+						state.chooseAgent(agent);
+						state.setModel(model);
 					}
-				>
-					<div className="popover-heading">Agent settings</div>
-					{controls}
-					<p className="setting-note">These settings apply to this ticket.</p>
-				</Popover>
+					setOpen(false);
+				}}
+			/>
+			{chosen && (
+				<div className="assignment-settings">
+					<Select
+						label="Effort"
+						hideLabel={false}
+						items={efforts}
+						value={state.effort}
+						onValueChange={state.setEffort}
+					/>
+					<Select
+						label="Account"
+						hideLabel={false}
+						items={accounts}
+						value={state.account}
+						onValueChange={state.setAccount}
+					/>
+				</div>
 			)}
-			{chosen && layout === "split" && controls}
 			<p className="assignment-note">
-				{chosen ? "Starts when you create this ticket." : "You can assign an agent later."}
+				{chosen ? "The agent starts when you create the ticket." : "Create the ticket now. Assign an agent later."}
 			</p>
-		</section>
+		</Popover>
 	);
 }

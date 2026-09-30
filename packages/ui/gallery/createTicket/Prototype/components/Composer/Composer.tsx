@@ -1,8 +1,6 @@
 import { CaretRight, Paperclip, X } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
-import type { Layout } from "../../../model";
-import { Button, Checkbox, ConfirmDialog, FailureState, IconButton, Select, Tooltip } from "../../../ui";
-import { AgentFields } from "../AgentFields";
+import { Button, ConfirmDialog, FailureState, IconButton, Switch, Tooltip, TrellisMark } from "../../../ui";
 import { DialogFrame } from "../DialogFrame";
 import { TicketFields } from "../TicketFields";
 import type { ComposerState } from "../useComposer";
@@ -11,14 +9,12 @@ export function Composer({
 	open,
 	onClose,
 	opener,
-	layout,
 	state,
 	embedded,
 }: {
 	open: boolean;
 	onClose: () => void;
 	opener: React.RefObject<HTMLButtonElement | null>;
-	layout: Layout;
 	state: ComposerState;
 	embedded: boolean;
 }) {
@@ -27,8 +23,7 @@ export function Composer({
 	const retry = state.phase === "failed";
 	function requestClose() {
 		if (state.processing || retry) return;
-		if (state.title || state.description || state.files.length) setDiscard(true);
-		else onClose();
+		onClose();
 	}
 	return (
 		<>
@@ -41,7 +36,7 @@ export function Composer({
 				bare
 				initialFocus={state.titleRef}
 				finalFocus={opener}
-				className={`ticket-composer composer-${layout}`}
+				className="ticket-composer"
 			>
 				<form
 					noValidate
@@ -58,36 +53,24 @@ export function Composer({
 				>
 					<header className="composer-header">
 						<div className="composer-heading">
-							<span className="project-key">TRL</span>
+							<span className="composer-project">
+								<TrellisMark className="size-4" />
+								Trellis
+							</span>
 							<CaretRight size={12} aria-hidden="true" />
 							<span>New ticket</span>
 						</div>
-						<Tooltip content="Close">
-							<IconButton label="Close" icon={<X />} onClick={requestClose} disabled={state.processing || retry} />
+						<Tooltip content="Close and keep draft">
+							<IconButton
+								label="Close and keep draft"
+								icon={<X />}
+								onClick={requestClose}
+								disabled={state.processing || retry}
+							/>
 						</Tooltip>
 					</header>
 					<div className="composer-body">
-						<div className="composer-main">
-							<TicketFields state={state} />
-							<div className="placement-row">
-								<span className="placement-label">In</span>
-								<span className="epic-name">September 29 review</span>
-								<CaretRight size={12} aria-hidden="true" />
-								<Select
-									label="Wave"
-									className="wave-select"
-									value={state.wave}
-									onValueChange={state.setWave}
-									disabled={state.locked}
-									items={[
-										{ value: "tabs", label: "Tabs" },
-										{ value: "navigation", label: "Navigation" },
-									]}
-								/>
-							</div>
-							{layout === "compact" && <AgentFields state={state} layout={layout} />}
-						</div>
-						{layout === "split" && <AgentFields state={state} layout={layout} />}
+						<TicketFields state={state} onDiscard={() => setDiscard(true)} />
 					</div>
 					{retry && (
 						<div className="assignment-error" role="alert">
@@ -125,33 +108,39 @@ export function Composer({
 									disabled={state.locked}
 								/>
 							</Tooltip>
-							<Checkbox
-								label="Create another"
-								checked={state.keepOpen}
-								onCheckedChange={state.setKeepOpen}
-								disabled={state.locked}
-							/>
 						</div>
 						<div className="submit-actions">
+							{!retry && (
+								<Switch
+									label="Create another"
+									checked={state.keepOpen}
+									onCheckedChange={state.setKeepOpen}
+									disabled={state.locked}
+									className="create-another"
+								/>
+							)}
 							{retry && <Button onClick={() => state.finish(false)}>Keep unassigned</Button>}
-							{!retry && <kbd className="submit-shortcut">⌘ ↵</kbd>}
-							<Button
-								variant="primary"
-								type="button"
-								onClick={() => void state.submit()}
-								processing={state.processing}
-								className="create-action"
-							>
-								{state.phase === "creating"
-									? "Creating…"
-									: state.phase === "assigning"
-										? "Assigning…"
-										: retry
-											? "Retry assignment"
-											: state.agent === "none"
-												? "Create ticket"
-												: "Create and assign"}
-							</Button>
+							<Tooltip content="Create ticket · ⌘ Enter">
+								<Button
+									variant="primary"
+									size="md"
+									disabled={!state.title.trim()}
+									type="button"
+									onClick={() => void state.submit()}
+									processing={state.processing}
+									className="create-action"
+								>
+									{state.phase === "creating"
+										? "Creating…"
+										: state.phase === "assigning"
+											? "Assigning…"
+											: retry
+												? "Retry assignment"
+												: state.agent === "none"
+													? "Create ticket"
+													: "Create and assign"}
+								</Button>
+							</Tooltip>
 						</div>
 					</footer>
 				</form>
