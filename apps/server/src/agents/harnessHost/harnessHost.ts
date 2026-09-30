@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { InputAnswer } from "@trellis/api";
 import type {
+	RuntimeCaptureProducer,
 	RuntimeExpectedTurn,
 	RuntimeListInput,
 	RuntimeProcessStatus,
@@ -10,6 +11,7 @@ import type {
 } from "@trellis/runtime-protocol";
 import { z } from "zod";
 import { requestMuse } from "../harnesses/muse/requestMuse.ts";
+import { type ConversationExportInput, exportConversation } from "./exportConversation";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
 import { sendNativePrompt } from "./sendNativePrompt.ts";
@@ -28,6 +30,9 @@ const launchInput = z.object({
 });
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
+	exportConversation(input: ConversationExportInput, capture?: RuntimeCaptureProducer) {
+		return exportConversation(capture, input);
+	}
 	prepare(input: HarnessStartInput, sessionId?: string): Promise<HarnessDescriptor> {
 		launchInput.parse(input);
 		if (sessionId !== undefined) z.string().min(1).parse(sessionId);
