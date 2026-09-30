@@ -1,4 +1,4 @@
-import type { LinkedPullRequest, PullRequest, PullRequestDiffOutput } from "@trellis/api";
+import { type LinkedPullRequest, type PullRequest, type PullRequestDiffOutput, UlidSchema } from "@trellis/api";
 import { reviewRef } from "@trellis/api/client";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -77,6 +77,14 @@ export const announcePullRequestUpdate = async (ctx: ServiceCtx, tx: Tx, row: Pu
 };
 
 export const resolve = async (_ctx: ServiceCtx, tx: Tx, input: { ref: string }) => {
+	if (UlidSchema.safeParse(input.ref).success) {
+		const [found] = await rows<{ id: string; url: string }>(
+			tx,
+			sql`SELECT id, url FROM pull_requests WHERE id = ${input.ref}`,
+		);
+		if (found === undefined) throw notFound("pull request", input.ref);
+		return found;
+	}
 	if (/^\d+$/.test(input.ref)) {
 		const found = await rows<{ id: string; url: string }>(
 			tx,
