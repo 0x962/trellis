@@ -4,6 +4,7 @@
 @import "./page.css";
 @import "./project-settings.css";
 @import "./project-color.css";
+@import "./prompt-template.css";
 
 /*
  * The base layer of every trellis surface. The web app and the gallery

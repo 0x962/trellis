@@ -1,0 +1,43 @@
+.prompt-template-editor,
+.prompt-template-loading {
+	min-height: min(55dvh, 32rem);
+}
+
+.prompt-template-input {
+	@apply rounded-md border border-border-strong bg-control p-3 font-mono text-sm leading-relaxed text-fg outline-none;
+	height: min(55dvh, 32rem);
+	overflow: auto;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	tab-size: 4;
+
+	&:hover {
+		@apply border-fg-faint;
+	}
+
+	&:focus {
+		@apply border-accent ring-1 ring-accent;
+	}
+
+	&[aria-invalid="true"] {
+		@apply border-danger;
+	}
+
+	&[aria-disabled="true"] {
+		@apply bg-surface text-fg-muted;
+	}
+
+	pre,
+	code {
+		font: inherit;
+		white-space: inherit;
+	}
+}
+
+.prompt-variable {
+	@apply rounded-sm bg-agent-soft text-agent;
+}
+
+.prompt-variable-invalid {
+	@apply rounded-sm bg-danger-soft text-danger underline decoration-wavy;
+}

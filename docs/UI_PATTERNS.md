@@ -255,6 +255,13 @@ The page of an archived project shows the `ArchivedBanner` of the project routes
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
 
+## Agent prompt settings
+
+The Agent prompt section of Settings uses TipTap to edit the complete startup template as plain source text.
+Variable fields use `{{name}}` syntax and a highlight. An unknown variable uses the danger treatment and prevents a save.
+The shared `Select` inserts a variable at the current text selection. The form uses the existing Save, Cancel, and Use default buttons.
+Use default changes the draft. Save prompt commits it. A load error uses `FailureState`, and a save error uses `FormStatus`.
+
 ## Failures
 
 Every screen that reports a failure draws `FailureState`. It is the one shape, so a person reads the same block whatever broke. Its docstring holds these rules, and the gallery section prints them.
