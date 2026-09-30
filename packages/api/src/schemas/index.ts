@@ -9,6 +9,7 @@ export * from "./diagnostics.ts";
 export * from "./enums.ts";
 export * from "./epic.ts";
 export * from "./epicAutopilot";
+export * from "./epicChatter";
 export * from "./evidence.ts";
 export * from "./flow.ts";
 export * from "./flowDiscoveryV1.ts";

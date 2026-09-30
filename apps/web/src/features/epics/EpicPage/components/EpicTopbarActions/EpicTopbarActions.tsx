@@ -5,6 +5,7 @@ import { broadcastActions } from "../../../../agents/BroadcastDialog";
 import { TopbarActionButton, TopbarActionMenu } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 import { EpicCreateActions } from "../EpicCreateActions";
+import { EpicChatter } from "./components/EpicChatter";
 
 // The name and the ref of the open epic. The `epics.get` read answers with
 // them, and the bar has neither until it does.
@@ -43,6 +44,7 @@ export function EpicTopbarActions({
 }: EpicTopbarActionsProps) {
 	return (
 		<>
+			<EpicChatter epic={epic} readOnly={readOnly} />
 			{!readOnly && (
 				<TopbarActionButton
 					data-bar-slot="broadcast"

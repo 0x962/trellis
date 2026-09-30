@@ -21,6 +21,7 @@ import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
+import * as epicChatter from "./epicChatter";
 import * as epicAutopilot from "./epics/autopilot";
 import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
@@ -221,6 +222,9 @@ export const services = {
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
 	...pageServices,
+	"epicChatter.get": core("read", epicChatter.get),
+	"epicChatter.set": core("mutation", epicChatter.set),
+	"epicChatter.list": core("read", epicChatter.list),
 	"epics.list": core("read", epics.list),
 	"epics.autopilot": core("read", epicAutopilot.get),
 	"epics.setAutopilot": core("mutation", epicAutopilot.set),

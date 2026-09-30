@@ -1,3 +1,6 @@
+export * from "./tables/chatterMessages";
+export * from "./tables/epicChatterSettings";
+
 import { sql } from "drizzle-orm";
 import {
 	bigint,
