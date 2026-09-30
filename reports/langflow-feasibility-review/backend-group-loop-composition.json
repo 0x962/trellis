@@ -11,7 +11,7 @@
 	"upstream": "fec71dca901949c09ed4d63315804337cd2eb13d",
 	"series": {
 		"path": "integrations/langflow/patches/series.json",
-		"sha256": "5bf5642978a1eb2e3ff9070bbfc27ec23fc17edbf0abc529d26fe7ef4c4a9f2d",
+		"sha256": "13aa925b764af13dc8614794bdb1cc739cd9d51409850eec23ebe2ab0961b042",
 		"patches": 37
 	},
 	"adopted": [
@@ -162,7 +162,14 @@
 				"actual": "eabba03a359d6e43497052873f6d8745e9bf2c10574d4d4153ab54ffcf4f3c37"
 			}
 		],
-		"owner": "TRL-845"
+		"owner": "TRL-845",
+		"requiredRepair": {
+			"pullRequest": 1055,
+			"source": "5397adac1f49c1b65ac16c5bfa87ce265bd81062",
+			"sha256": "b00cd09d07cf88d14b8e1d368d6557404b3d5d0fd79ebc4c99166dbb2f738f7c",
+			"all111ReferencesMatchThisComposition": true,
+			"merged": false
+		}
 	},
 	"boundaries": {
 		"tests": false,
@@ -185,7 +192,7 @@
 		"authorPath": "integrations/langflow/patches/externalWaits/0008-container-lifecycle-history.patch",
 		"authorSha256": "0167be5f9467bb631ee82125784b451d72aef639e9f9770bdbc4176d99289d5d",
 		"path": "reports/langflow-feasibility-review/backend-container-history.patch",
-		"sha256": "830df102d712e108a317f5f28f9662a5f90fe50c0c9b4ee04093e9a937ea6217",
+		"sha256": "fbd9ccb704521334d81c615f33829b747db19957d2e22323b22ab6785a5cc140",
 		"authorAddedAndRemovedLinesUnchanged": true,
 		"change": "Use the new loop body helper as context before open_group_scope."
 	}

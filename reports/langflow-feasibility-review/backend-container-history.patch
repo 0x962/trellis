@@ -17,7 +17,7 @@ diff --git a/src/lfx/src/lfx/graph/group_scope.py b/src/lfx/src/lfx/graph/group_
      key = current_group_occurrence(graph, definition.scope_vertex_id)
      saved_definition = graph.group_scope_definitions.get(key)
      encoded_definition = definition.model_dump(by_alias=True)
-@@ -92,6 +93,20 @@ def open_group_scope(graph, definition, metadata: dict) -> dict:
+@@ -105,6 +106,20 @@ def open_group_scope(graph, definition, metadata: dict) -> dict:
          raise ValueError("group_scope_definition_conflict")
      graph.group_scope_definitions[key] = encoded_definition
      graph.group_scope_settlements.setdefault(key, {})
@@ -38,7 +38,7 @@ diff --git a/src/lfx/src/lfx/graph/group_scope.py b/src/lfx/src/lfx/graph/group_
      graph.group_active_occurrences[definition.output_vertex_id] = key
      for source_node_id in definition.child_node_ids:
          vertices = definition.child_vertices[source_node_id]
-@@ -102,6 +118,30 @@ def open_group_scope(graph, definition) -> dict:
+@@ -115,6 +131,30 @@ def open_group_scope(graph, definition) -> dict:
      return graph.group_visit_scopes[key]["scope"]
  
  
