@@ -61,7 +61,6 @@ export function PageSheet({ open, onClose, onReturn, title, fullPage, width = "p
 			bare
 			width={sheetWidth}
 			popupRef={setPanel}
-			className="overflow-hidden rounded-l-xl shadow-page-sheet max-md:rounded-none"
 			backdropClassName={depth === 0 ? undefined : "bg-fg/10"}
 			initialFocus={closeButton}
 			onBackdropPointerDown={(event) => {

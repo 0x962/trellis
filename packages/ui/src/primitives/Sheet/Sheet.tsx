@@ -102,13 +102,13 @@ export function Sheet({
 					finalFocus={finalFocus}
 					style={{ width }}
 					className={cx(
-						"fixed inset-y-0 z-50 flex max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",
+						"fixed inset-y-0 z-50 flex max-w-full flex-col overflow-hidden border-border bg-surface text-base text-fg shadow-page-sheet outline-none max-md:rounded-none",
 						"transition-transform ease-out",
 						motion === "peek" ? "duration-peek" : "duration-popover",
 						"motion-reduce:transition-opacity motion-reduce:data-starting-style:translate-x-0 motion-reduce:data-starting-style:opacity-0 motion-reduce:data-ending-style:translate-x-0 motion-reduce:data-ending-style:opacity-0",
 						side === "right"
-							? "right-0 border-l data-starting-style:translate-x-full data-ending-style:translate-x-full"
-							: "left-0 border-r data-starting-style:-translate-x-full data-ending-style:-translate-x-full",
+							? "right-0 rounded-l-xl border-l data-starting-style:translate-x-full data-ending-style:translate-x-full"
+							: "left-0 rounded-r-xl border-r data-starting-style:-translate-x-full data-ending-style:-translate-x-full",
 						className,
 					)}
 				>

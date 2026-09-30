@@ -152,6 +152,12 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 
 ## Pages in a sheet
 
+`Sheet` owns the appearance of every slideout, including forms and pages.
+It uses `rounded-xl` on the exposed corners and the `shadow-page-sheet` token.
+The corners face left for a right sheet and right for a left sheet.
+The sheet clips its content to these corners.
+Below the `md` breakpoint, the corners stay square.
+
 Use `PageSheet` to show a ticket or a pull request over the current page.
 Render the complete ticket or review content. Do not build a compact copy.
 `Topbar` renders the title and the actions of the page into the header of the sheet.
