@@ -75,7 +75,6 @@ import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
 import { sessionUpdateServices } from "./sessionUpdates/registry";
 import * as settings from "./settings/index.ts";
-import * as statistics from "./statistics/statistics.ts";
 import * as statuses from "./statuses.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
@@ -210,7 +209,6 @@ export const services = {
 	"statuses.delete": core("mutation", statuses.delete),
 	...ticketServices,
 	"timeline.list": core("read", timeline.list),
-	"statistics.get": prepared("read", statistics.prepare, statistics.get),
 	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
 	"needsYou.summary": prepared("read", needsYou.prepareSummary, needsYou.summary),
 	"needsYou.update": prepared("mutation", needsYou.prepareUpdate, needsYou.update),

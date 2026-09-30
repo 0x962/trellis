@@ -45,9 +45,8 @@ const breadcrumbLinkClass =
 // One epic, in two tabs. Overview is the tickets of the epic in the ticket
 // table of the project routes, with nothing above the table. Resources is
 // the documents and the files of the epic, with the epic description as the
-// first document. The Statistics sheet holds the counts of the epic. The
-// table search is the URL search with `epic` fixed to this epic, and it
-// groups by wave when the URL names no group. An epic belongs to one
+// first document. The table search uses the URL search with `epic` fixed to this epic.
+// The table groups by wave when the URL names no group. An epic belongs to one
 // project, so the rows match the counts of the epic and the tickets that Add
 // offers. The filter bar receives `epic` as a fixed filter,
 // so it draws no epic chip and "Copy as CLI" still names the epic. Add puts
