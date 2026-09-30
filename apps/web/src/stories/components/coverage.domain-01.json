@@ -19,10 +19,11 @@
 			"Components/AgentLaunchPicker/Default",
 			"Components/AgentLaunchPicker/Open",
 			"Components/AgentLaunchPicker/Disabled",
-			"Components/AgentLaunchPicker/LongContent"
+			"Components/AgentLaunchPicker/LongContent",
+			"Components/AgentLaunchPicker/ChooseEffort"
 		],
-		"states": ["default", "open", "disabled", "long content"],
-		"notes": "Open the picker to inspect the launch settings. The data stays local."
+		"states": ["default", "open", "disabled", "long content", "local effort selection"],
+		"notes": "Open the picker and select an effort. ChooseEffort verifies the local value. Disabled and long labels retain their named stories."
 	},
 	{
 		"source": "packages/ui/src/domain/ArchivedToggle/ArchivedToggle.tsx",

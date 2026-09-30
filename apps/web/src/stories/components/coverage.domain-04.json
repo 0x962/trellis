@@ -65,7 +65,8 @@
 			"Components/ProviderForm/RequestError",
 			"Components/ProviderForm/DisabledProvider",
 			"Components/ProviderForm/Compatible",
-			"Components/ProviderForm/AddressError"
+			"Components/ProviderForm/AddressError",
+			"Components/ProviderForm/FillEmpty"
 		],
 		"states": [
 			"default",
@@ -78,9 +79,10 @@
 			"request error",
 			"disabled provider",
 			"compatible",
-			"address error"
+			"address error",
+			"local validation and submit"
 		],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"notes": "Enter a name and an API key to enable the local submit action. Edit mode keeps the stored key when its field is blank. FillEmpty verifies validation and closes the form without a request."
 	},
 	{
 		"source": "packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx",

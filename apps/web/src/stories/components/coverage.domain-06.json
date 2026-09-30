@@ -90,9 +90,20 @@
 			"Components/WorkspaceChanges/TruncatedDiff",
 			"Components/WorkspaceChanges/File",
 			"Components/WorkspaceChanges/Binary",
-			"Components/WorkspaceChanges/TruncatedFile"
+			"Components/WorkspaceChanges/TruncatedFile",
+			"Components/WorkspaceChanges/SelectFiles"
 		],
-		"states": ["default", "empty", "loading", "error", "truncated diff", "file", "binary", "truncated file"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"states": [
+			"default",
+			"empty",
+			"loading",
+			"error",
+			"truncated diff",
+			"file",
+			"binary",
+			"truncated file",
+			"local file selection"
+		],
+		"notes": "Select a file to inspect its local content. SelectFiles checks text, binary content, and return to the workspace diff. The file list includes every selected fixture path."
 	}
 ]

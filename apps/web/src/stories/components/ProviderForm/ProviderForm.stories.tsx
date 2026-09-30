@@ -1,6 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { IconButton, ProviderForm, ProviderModelsPicker, Tooltip } from "@trellis/ui";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useStoryState } from "../useStoryState";
 
 const meta = {
@@ -36,7 +37,7 @@ const meta = {
 					open={open}
 					value={value}
 					onChange={setValue}
-					valid={args.valid && value.name.length > 0}
+					valid={args.valid && Boolean(value.name.trim() && (args.editing || value.apiKey.trim()))}
 					onClose={() => setOpen(false)}
 					onSubmit={() => setOpen(false)}
 					models={(id) => (
@@ -62,7 +63,6 @@ export const Default: Story = {};
 export const Empty: Story = {
 	args: {
 		value: { name: "", kind: "vercel-ai-gateway", baseUrl: "", apiKey: "", models: [], enabled: true },
-		valid: false,
 	},
 };
 export const Edit: Story = { args: { editing: true, keyLast4: "1234", value: { ...meta.args.value, apiKey: "" } } };
@@ -86,4 +86,19 @@ export const Compatible: Story = {
 };
 export const AddressError: Story = {
 	args: { ...Compatible.args, error: "The address does not identify a model gateway.", errorField: "baseUrl" },
+};
+export const FillEmpty: Story = {
+	...Empty,
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		const submit = await body.findByRole("button", { name: "Add provider" });
+		await expect(submit).toBeDisabled();
+		await userEvent.type(body.getByRole("textbox", { name: "Name" }), "Example gateway");
+		await expect(submit).toBeDisabled();
+		await userEvent.type(body.getByLabelText("API key"), "synthetic-key");
+		await expect(submit).toBeEnabled();
+		await userEvent.click(submit);
+		await waitFor(() => expect(body.queryByRole("dialog", { name: "Add provider" })).not.toBeInTheDocument());
+		await expect(within(canvasElement).getByRole("button", { name: "Edit provider" })).toBeVisible();
+	},
 };

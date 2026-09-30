@@ -2,9 +2,14 @@
 	{
 		"source": "packages/ui/src/domain/FilterBar/FilterBar.tsx",
 		"export": "FilterBar",
-		"stories": ["Components/FilterBar/Default", "Components/FilterBar/Filtered", "Components/FilterBar/LongFilters"],
-		"states": ["default", "filtered", "long filters"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"stories": [
+			"Components/FilterBar/Default",
+			"Components/FilterBar/Filtered",
+			"Components/FilterBar/LongFilters",
+			"Components/FilterBar/RemoveFilter"
+		],
+		"states": ["default", "filtered", "long filters", "local removal"],
+		"notes": "The filtered bar contains a removable local chip. RemoveFilter verifies that removal preserves the filter action. The long-filter story preserves both labels."
 	},
 	{
 		"source": "packages/ui/src/domain/FilterPopover/FilterPopover.tsx",
@@ -13,10 +18,11 @@
 			"Components/FilterPopover/Default",
 			"Components/FilterPopover/Open",
 			"Components/FilterPopover/Empty",
-			"Components/FilterPopover/Stage"
+			"Components/FilterPopover/Stage",
+			"Components/FilterPopover/ToggleSelection"
 		],
-		"states": ["default", "open", "empty", "stage"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"states": ["default", "open", "empty", "stage", "local checked toggle", "mixed to checked"],
+		"notes": "Select a filter to change its local check. ToggleSelection reopens the popup to verify checked and mixed choices."
 	},
 	{
 		"source": "packages/ui/src/domain/FlowDecisionContext/FlowDecisionContext.tsx",
@@ -51,10 +57,20 @@
 			"Components/FlowRunTree/AllStates",
 			"Components/FlowRunTree/Empty",
 			"Components/FlowRunTree/Collapsed",
-			"Components/FlowRunTree/SelectedOutput"
+			"Components/FlowRunTree/SelectedOutput",
+			"Components/FlowRunTree/ExpandAndCollapse",
+			"Components/FlowRunTree/OutputToggle"
 		],
-		"states": ["all states", "empty", "collapsed", "selected output"],
-		"notes": "Expand groups and output with the pointer or keyboard. Arrow keys move between rows. Terminal and decision actions stay local."
+		"states": [
+			"all states",
+			"empty",
+			"collapsed",
+			"selected output",
+			"pointer expansion",
+			"keyboard navigation",
+			"output toggle"
+		],
+		"notes": "Controlled states use local updates. ExpandAndCollapse checks pointer expansion and arrow-key navigation. OutputToggle checks collapse and expansion of selected output."
 	},
 	{
 		"source": "packages/ui/src/domain/GithubMark/GithubMark.tsx",

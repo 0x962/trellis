@@ -118,10 +118,20 @@
 			"Components/Checkbox/Disabled",
 			"Components/Checkbox/DisabledChecked",
 			"Components/Checkbox/Mixed",
-			"Components/Checkbox/HiddenLabel"
+			"Components/Checkbox/HiddenLabel",
+			"Components/Checkbox/MixedInteraction"
 		],
-		"states": ["default", "checked", "disabled", "disabled checked", "mixed", "hidden label"],
-		"notes": "Click the control or press Space to change its value."
+		"states": [
+			"default",
+			"checked",
+			"disabled",
+			"disabled checked",
+			"mixed",
+			"hidden label",
+			"mixed to checked",
+			"keyboard toggle"
+		],
+		"notes": "Click or press Space to change the value. MixedInteraction clears the mixed state before the next toggle."
 	},
 	{
 		"source": "packages/ui/src/primitives/Chip/Chip.tsx",
@@ -130,10 +140,19 @@
 			"Components/Chip/Default",
 			"Components/Chip/Removable",
 			"Components/Chip/Editable",
-			"Components/Chip/LongContent"
+			"Components/Chip/LongContent",
+			"Components/Chip/EditAndRemove"
 		],
-		"states": ["default", "removable", "editable", "long content"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"states": [
+			"default",
+			"removable",
+			"editable",
+			"long content",
+			"operator change",
+			"value selection",
+			"local removal"
+		],
+		"notes": "The editable chip changes its operator and opens local value choices. EditAndRemove verifies the operator, selected value, and removal."
 	},
 	{
 		"source": "packages/ui/src/primitives/ChoiceBoxes/ChoiceBoxes.tsx",
@@ -173,10 +192,24 @@
 			"Components/Command/Grouped",
 			"Components/Command/Virtualized",
 			"Components/Command/Dialog",
-			"Components/Command/Composition"
+			"Components/Command/Composition",
+			"Components/Command/ToggleSelection",
+			"Components/Command/VirtualSelection",
+			"Components/Command/DialogSelection"
 		],
-		"states": ["default", "empty", "grouped", "virtualized", "dialog", "composition"],
-		"notes": "Type to filter. Arrow keys move focus and Enter selects an item. The virtual list also supports Home, End, Page Up, and Page Down."
+		"states": [
+			"default",
+			"empty",
+			"grouped",
+			"virtualized",
+			"dialog",
+			"composition",
+			"local checked toggle",
+			"mixed to checked",
+			"virtual keyboard selection",
+			"dialog selection after reopen"
+		],
+		"notes": "Type to filter. Arrow keys move focus and Enter selects an item. ToggleSelection verifies checks. VirtualSelection verifies keyboard selection in the virtual list. DialogSelection verifies the check after reopen. Composition reports the selected command."
 	},
 	{
 		"source": "packages/ui/src/primitives/ConfirmDialog/ConfirmDialog.tsx",
@@ -193,8 +226,12 @@
 	{
 		"source": "packages/ui/src/primitives/ContextMenu/ContextMenu.tsx",
 		"export": "ContextMenu",
-		"stories": ["Components/ContextMenu/Default", "Components/ContextMenu/Disabled"],
-		"states": ["default", "disabled"],
-		"notes": "Right-click the page tab or press Shift+F10 to open the menu. This story also renders ContextMenuTrigger."
+		"stories": [
+			"Components/ContextMenu/Default",
+			"Components/ContextMenu/Disabled",
+			"Components/ContextMenu/ToggleCheck"
+		],
+		"states": ["default", "disabled", "local checked toggle"],
+		"notes": "Right-click the page tab or press Shift+F10 to open the menu. ContextMenuTrigger provides the target. ToggleCheck verifies the local check after the menu reopens."
 	}
 ]

@@ -2,9 +2,13 @@
 	{
 		"source": "packages/ui/src/primitives/ContextMenuTrigger/ContextMenuTrigger.tsx",
 		"export": "ContextMenuTrigger",
-		"stories": ["Components/ContextMenu/Default", "Components/ContextMenu/Disabled"],
-		"states": ["default", "disabled"],
-		"notes": "ContextMenuTrigger provides the trigger inside the real context menu. Open it with a secondary click or the keyboard menu key."
+		"stories": [
+			"Components/ContextMenu/Default",
+			"Components/ContextMenu/Disabled",
+			"Components/ContextMenu/ToggleCheck"
+		],
+		"states": ["default", "disabled", "secondary click and reopen"],
+		"notes": "ContextMenu renders ContextMenuTrigger as its page-tab target. Default and Disabled cover the trigger; ToggleCheck uses it to open the menu twice."
 	},
 	{
 		"source": "packages/ui/src/primitives/Dialog/Dialog.tsx",
@@ -88,7 +92,8 @@
 			"Components/IconButton/Primary",
 			"Components/IconButton/Danger",
 			"Components/IconButton/DefaultVariant",
-			"Components/IconButton/DangerSoft"
+			"Components/IconButton/DangerSoft",
+			"Components/IconButton/Toggle"
 		],
 		"states": [
 			"default",
@@ -100,9 +105,10 @@
 			"primary",
 			"danger",
 			"default variant",
-			"danger soft"
+			"danger soft",
+			"local pressed toggle"
 		],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"notes": "Pressed controls change with a click or Space. Toggle verifies both states. Disabled and processing controls retain their named stories."
 	},
 	{
 		"source": "packages/ui/src/primitives/InlineEdit/InlineEdit.tsx",
@@ -143,9 +149,9 @@
 	{
 		"source": "packages/ui/src/primitives/Menu/Menu.tsx",
 		"export": "Menu",
-		"stories": ["Components/Menu/Default", "Components/Menu/Grouped"],
-		"states": ["default", "grouped"],
-		"notes": "Open the menu to inspect selected, disabled, and destructive actions. Arrow keys move focus. Enter selects an action."
+		"stories": ["Components/Menu/Default", "Components/Menu/Grouped", "Components/Menu/ToggleCheck"],
+		"states": ["default", "grouped", "local checked toggle"],
+		"notes": "Open the menu to inspect selected, disabled, and destructive actions. ToggleCheck selects Pin and verifies its saved local check after the menu reopens."
 	},
 	{
 		"source": "packages/ui/src/primitives/OutputBlock/OutputBlock.tsx",

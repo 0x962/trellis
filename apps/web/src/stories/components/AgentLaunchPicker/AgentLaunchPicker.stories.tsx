@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { AgentLaunchPicker, ProviderIcon, Select } from "@trellis/ui";
+import { AgentLaunchPicker, ProviderIcon } from "@trellis/ui";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { EffortField } from "./components/EffortField";
 
 const meta = {
 	title: "Components/AgentLaunchPicker",
@@ -10,21 +11,10 @@ const meta = {
 		model: "GPT-6 Astra",
 		icon: <ProviderIcon provider="openai" />,
 		disabled: false,
-		children: (
-			<Select
-				label="Effort"
-				hideLabel={false}
-				items={[
-					{ value: "high", label: "High" },
-					{ value: "medium", label: "Medium" },
-				]}
-				value="high"
-				onValueChange={() => {}}
-			/>
-		),
+		children: <EffortField />,
 	},
 	parameters: {
-		docs: { description: { component: "Open the picker to inspect the launch settings. The data stays local." } },
+		docs: { description: { component: "Open the picker to change the effort. The selection stays local." } },
 	},
 } satisfies Meta<typeof AgentLaunchPicker>;
 export default meta;
@@ -41,4 +31,14 @@ export const Open: Story = {
 export const Disabled: Story = { args: { disabled: true } };
 export const LongContent: Story = {
 	args: { agent: "Shared review account", model: "A model with a long name and a detailed variant" },
+};
+export const ChooseEffort: Story = {
+	play: async (context) => {
+		await Open.play!(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		const effort = body.getByRole("combobox", { name: "Effort" });
+		await userEvent.click(effort);
+		await userEvent.click(await body.findByRole("option", { name: "Medium" }));
+		await expect(effort).toHaveTextContent("Medium");
+	},
 };
