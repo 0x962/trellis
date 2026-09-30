@@ -1,9 +1,9 @@
 import { LinkSimple } from "@phosphor-icons/react";
 import {
 	internalLink,
-	type LinkedPullRequest,
 	type LocalPrState,
 	missingPartsText,
+	type ReviewOverview,
 	type ReviewRevision,
 	reviewRef,
 } from "@trellis/api";
@@ -39,9 +39,12 @@ export const stateTone = (pullRequest: GithubPullRequest | undefined, isQueued =
 	return "neutral";
 };
 
-// The poller stores the state and the merge state of a linked pull request.
-// A pull request that no ticket links has only the answer of `gh pr view`.
-export const hasConflict = (pullRequest: GithubPullRequest | undefined, linkedPr: LinkedPullRequest | null) =>
+// The saved overview supplies the poller state and merge state.
+// A remote-only pull request uses the answer from `gh pr view`.
+export const hasConflict = (
+	pullRequest: GithubPullRequest | undefined,
+	linkedPr: ReviewOverview["pullRequest"] | null,
+) =>
 	linkedPr === null
 		? pullRequest?.state === "OPEN" && pullRequest.mergeable === "CONFLICTING"
 		: linkedPr.state === "open" && linkedPr.mergeable === "conflicting";
@@ -61,7 +64,7 @@ export type ReviewIdentityProps = {
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
 	isQueued: boolean;
-	linkedPr: LinkedPullRequest | null;
+	linkedPr: ReviewOverview["pullRequest"] | null;
 	localState: LocalPrState | null;
 	locallyApproved: boolean | null;
 	mergeQueuePosition?: number | null;
@@ -89,7 +92,7 @@ export function ReviewIdentity({
 				<h2>{pullRequest?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
 				{/* One box per button, all drawn at the first paint. The GitHub
 				    button and link appear when the stored revision arrives. The ...
-				    menu appears when the ticket arrives. Each control
+				    menu uses the saved pull request. Each control
 				    fills the box that waited for it, so neither one moves. */}
 				<div className="review-header-actions">
 					<div data-bar-slot="github" className="review-header-slot">

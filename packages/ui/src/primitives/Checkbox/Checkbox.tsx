@@ -9,7 +9,7 @@ export type CheckboxProps = {
 	// The label is read to assistive tech only.
 	hideLabel?: boolean;
 	checked: boolean;
-	onCheckedChange: (checked: boolean) => void;
+	onCheckedChange: NonNullable<BaseCheckbox.Root.Props["onCheckedChange"]>;
 	// A parent whose children are partly checked. It reads as "mixed".
 	indeterminate?: boolean;
 	disabled?: boolean;
@@ -43,7 +43,7 @@ export function Checkbox({
 			<BaseCheckbox.Root
 				checked={checked}
 				indeterminate={indeterminate}
-				onCheckedChange={(next) => onCheckedChange(next)}
+				onCheckedChange={onCheckedChange}
 				className={cx(
 					"inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface text-on-accent transition-colors duration-hover ease-out",
 					hitArea.box16Bordered,

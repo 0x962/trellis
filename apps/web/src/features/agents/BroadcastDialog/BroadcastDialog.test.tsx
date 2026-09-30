@@ -1,12 +1,22 @@
 import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { AgentBroadcastCounts, AgentBroadcastInput, AgentBroadcastResult } from "@trellis/api";
+import type {
+	AgentBroadcastCounts,
+	AgentBroadcastInput,
+	AgentBroadcastRecipientsInput,
+	AgentBroadcastResult,
+} from "@trellis/api";
 import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 
 mock.module("@trellis/ui", () => ({
-	Dialog: ({ children }: { children: ReactNode }) => <section>{children}</section>,
+	Dialog: ({ children, description }: { children: ReactNode; description: string }) => (
+		<section>
+			<p>{description}</p>
+			{children}
+		</section>
+	),
 	Button: ({ processing: _processing, ...props }: ComponentProps<"button"> & { processing?: boolean }) => (
 		<button {...props} />
 	),
@@ -46,22 +56,28 @@ afterEach(async () => {
 async function fixture(
 	send: (input: AgentBroadcastInput) => Promise<AgentBroadcastResult>,
 	counts: AgentBroadcastCounts | "pending" | "error" = { working: 2, idle: 1 },
+	epic?: { ref: string; name: string },
 ) {
 	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-	if (typeof counts === "object") queryClient.setQueryData(["broadcast-counts"], counts);
+	const scopes: AgentBroadcastRecipientsInput[] = [];
+	const queryKey = ["broadcast-counts", epic ? { epic: epic.ref } : {}];
+	if (typeof counts === "object") queryClient.setQueryData(queryKey, counts);
 	const app = {
 		client: { agentRuns: { broadcast: send } },
 		orpc: {
 			agentRuns: {
 				broadcastRecipients: {
-					queryOptions: () => ({
-						queryKey: ["broadcast-counts"],
-						queryFn: async () => {
-							if (counts === "pending") return new Promise<AgentBroadcastCounts>(() => {});
-							if (counts === "error") throw new Error("Count unavailable");
-							return counts;
-						},
-					}),
+					queryOptions: ({ input }: { input: AgentBroadcastRecipientsInput }) => {
+						scopes.push(input);
+						return {
+							queryKey: ["broadcast-counts", input],
+							queryFn: async () => {
+								if (counts === "pending") return new Promise<AgentBroadcastCounts>(() => {});
+								if (counts === "error") throw new Error("Count unavailable");
+								return counts;
+							},
+						};
+					},
 				},
 			},
 		},
@@ -72,7 +88,7 @@ async function fixture(
 		root.render(
 			<QueryClientProvider client={queryClient}>
 				<AppProvider value={app}>
-					<BroadcastDialog onClose={() => {}} />
+					<BroadcastDialog epic={epic} onClose={() => {}} />
 				</AppProvider>
 			</QueryClientProvider>,
 		);
@@ -92,6 +108,7 @@ async function fixture(
 		queryClient.clear();
 	});
 	return {
+		scopes,
 		settle,
 		text: () => JSON.stringify(root.container.toJSON(), (key, value) => (key === "ref" ? undefined : value)),
 		input: (text: string) => act(async () => node("textarea").props.onChange({ target: { value: text } })),
@@ -101,7 +118,7 @@ async function fixture(
 		counts: (next: AgentBroadcastCounts) =>
 			act(async () => {
 				counts = next;
-				queryClient.setQueryData(["broadcast-counts"], next);
+				queryClient.setQueryData(queryKey, next);
 				await settle();
 			}),
 		submit: async () => {
@@ -128,8 +145,32 @@ test("the dialog keeps exact text and rejects a blank message", async () => {
 	expect(f.sendDisabled()).toBe(false);
 	await f.submit();
 	expect(calls[0]?.text).toBe(text);
+	expect(calls[0]?.epic).toBeUndefined();
+	expect(f.scopes.every((scope) => scope.epic === undefined)).toBe(true);
 	expect(f.text()).toContain("Trellis accepted ");
 });
+
+test.each(["working", "idle", "both"] as const)(
+	"the epic dialog applies its scope to %s counts and delivery",
+	async (group) => {
+		const calls: AgentBroadcastInput[] = [];
+		const f = await fixture(
+			async (input) => {
+				calls.push(input);
+				return { group: input.group, recipientCount: 1, acceptedCount: 1, failures: [] };
+			},
+			undefined,
+			{ ref: "TRL/release", name: "Release" },
+		);
+		expect(f.text()).toContain("Send one message to the selected groups in Release.");
+		await f.input("Epic direction");
+		await f.check("Working", group !== "idle");
+		await f.check("Idle", group !== "working");
+		await f.submit();
+		expect(calls[0]).toMatchObject({ epic: "TRL/release", group, text: "Epic direction" });
+		expect(f.scopes.every((scope) => scope.epic === "TRL/release")).toBe(true);
+	},
+);
 
 test("an exact retry keeps its request ID while edited text or group gets a new ID", async () => {
 	const calls: AgentBroadcastInput[] = [];

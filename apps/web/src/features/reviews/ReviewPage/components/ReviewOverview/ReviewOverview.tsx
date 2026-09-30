@@ -1,5 +1,6 @@
+import { ArrowsClockwise } from "@phosphor-icons/react";
 import type { PullRequestEvidence, PullRequestSummary, ReviewRevision, ReviewThread } from "@trellis/api";
-import { Skeleton } from "@trellis/ui";
+import { IconButton, Skeleton, Tooltip } from "@trellis/ui";
 import { type DiffAnchor, threadDiffLine } from "@trellis/ui/review";
 import { ChangeSummary } from "../../../ChangeSummary";
 import { EvidenceDocument } from "../../../EvidenceDocument";
@@ -7,6 +8,8 @@ import { ReviewFindings } from "../../../ReviewFindings";
 
 export function ReviewOverview({
 	ready,
+	error,
+	onRetry,
 	linked,
 	summary,
 	evidence,
@@ -15,6 +18,8 @@ export function ReviewOverview({
 	onOpen,
 }: {
 	ready: boolean;
+	error: Error | null;
+	onRetry: () => void;
 	linked: boolean;
 	summary: PullRequestSummary | null;
 	evidence: PullRequestEvidence | null;
@@ -24,6 +29,14 @@ export function ReviewOverview({
 }) {
 	return (
 		<div className="review-blocks">
+			{error && (
+				<div role="alert" className="review-error">
+					Overview: {error.message}
+					<Tooltip content="Retry overview">
+						<IconButton label="Retry overview" icon={<ArrowsClockwise />} onClick={onRetry} />
+					</Tooltip>
+				</div>
+			)}
 			{!ready ? (
 				<section aria-busy="true">
 					<span className="sr-only" role="status">

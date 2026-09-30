@@ -1,9 +1,9 @@
 import { Copy } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
 import type { UsageMetric, UsageSession } from "@trellis/api";
 import { EmptyState, formatDayTime, IconButton, SectionHeader, TicketId, Tooltip } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { copyText } from "../../../../../lib/clipboard";
+import { TicketLink } from "../../../../shell/TicketLink";
 import { formatMetric, harnessLabel } from "../../../formatUsage";
 
 export type UsageSessionsProps = {
@@ -84,13 +84,9 @@ export function UsageSessions({ sessions, metric, groupLabel, filtered, total, p
 											<td className="max-w-0 pr-3">
 												<div className="flex min-w-0 items-center gap-2">
 													{session.run?.ticketIdentifier && (
-														<Link
-															to="/t/$identifier"
-															params={{ identifier: session.run.ticketIdentifier }}
-															className="shrink-0"
-														>
+														<TicketLink identifier={session.run.ticketIdentifier} className="shrink-0">
 															<TicketId id={session.run.ticketIdentifier} />
-														</Link>
+														</TicketLink>
 													)}
 													{name === null ? (
 														<span className="truncate font-mono text-fg tabular" title={session.sessionId}>

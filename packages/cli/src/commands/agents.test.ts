@@ -33,7 +33,9 @@ const agent = (id: string, name: string) => ({
 	updatedAt: "2026-09-29T07:00:00.000Z",
 });
 
-test.each(["working", "idle", "both"])("agent broadcast sends the %s group and text", async (group) => {
+test.each(
+	["working", "idle", "both"].flatMap((group) => [undefined, "TRL/release"].map((epic) => [group, epic] as const)),
+)("agent broadcast sends the %s group with epic %s", async (group, epic) => {
 	const calls: { path: string; input: unknown }[] = [];
 	let output = "";
 	const deps = {
@@ -58,12 +60,25 @@ test.each(["working", "idle", "both"])("agent broadcast sends the %s group and t
 	} as unknown as Deps;
 
 	expect(
-		await run(["agent", "broadcast", "--group", group, "--text", "-", "--request-id", "release-check"], deps),
+		await run(
+			[
+				"agent",
+				"broadcast",
+				"--group",
+				group,
+				"--text",
+				"-",
+				"--request-id",
+				"release-check",
+				...(epic ? ["--epic", epic] : []),
+			],
+			deps,
+		),
 	).toBe(0);
 	expect(calls).toEqual([
 		{
 			path: "/rpc/agentRuns/broadcast",
-			input: { group, text: "Check the release", requestId: "release-check" },
+			input: { group, text: "Check the release", requestId: "release-check", ...(epic ? { epic } : {}) },
 		},
 	]);
 	expect(JSON.parse(output)).toEqual({ group, recipientCount: 2, acceptedCount: 2, failures: [] });

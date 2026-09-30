@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
 import { IconButton, ProviderIcon, RankedBars, SectionHeader, Tooltip } from "@trellis/ui";
 import { type ReactNode, useMemo } from "react";
+import { TicketLink } from "../../../../shell/TicketLink";
 import { formatMetric, harnessProvider, modelProvider, rowTone } from "../../../formatUsage";
 
 export type UsageGroupsProps = {
@@ -30,7 +31,8 @@ function RowLink({ row }: { row: UsageGroupRow }) {
 				<IconButton
 					label={`Open ${identifier}`}
 					icon={<ArrowSquareOut />}
-					render={<Link to="/t/$identifier" params={{ identifier }} />}
+					nativeButton={false}
+					render={<TicketLink identifier={identifier} />}
 				/>
 			</Tooltip>
 		);

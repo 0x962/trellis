@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { ReviewStatusSchema } from "@trellis/api";
+import { ReviewOverviewSchema, ReviewStatusSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { openTestDb } from "../../db/testDb.ts";
 import type { ServiceCtx } from "../support.ts";
+import { overview } from "./overview";
 import { status } from "./status.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
@@ -97,4 +98,37 @@ test("review status returns null row facts for an unlinked pull request", async 
 		prRow: null,
 		checks: null,
 	});
+});
+
+test("the overview reads saved content without a GitHub client or revision", async () => {
+	await db.execute(sql`INSERT INTO pr_summaries
+		(pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
+		SELECT id, 'head', 'Saved summary', 'The overview loads locally.', 'nothing', ${at}, ${at}
+		FROM pull_requests WHERE owner = 'acme' AND repo = 'app' AND number = 28`);
+	await db.execute(sql`INSERT INTO pr_evidence_documents
+		(pull_request_id, head_sha, body, actor_id, actor_name, actor_kind, created_at, updated_at)
+		SELECT id, 'head', 'Saved evidence',
+			(SELECT id FROM actors WHERE kind = 'human' AND name = 'Test'), 'Test', 'human', ${at}, ${at}
+		FROM pull_requests WHERE owner = 'acme' AND repo = 'app' AND number = 28`);
+	const result = await db.transaction((tx) => overview({} as ServiceCtx, tx, { pr }));
+	expect(ReviewOverviewSchema.nullable().parse(result)).toEqual(result);
+	expect(result).toMatchObject({
+		pullRequest: { number: 28, headRef: "feature", baseRef: "main", isQueued: true },
+		ticket: { identifier: "AAA-7", title: "First project ticket" },
+		summary: { headline: "Saved summary" },
+		evidence: { body: "Saved evidence", headSha: "head" },
+	});
+	expect(result!.pullRequest).not.toHaveProperty("files");
+});
+
+test("the overview returns null for a pull request that Trellis does not store", async () => {
+	expect(await db.transaction((tx) => overview({} as ServiceCtx, tx, { pr: "acme/app#29" }))).toBeNull();
+});
+
+test("the overview reads a stored pull request without a ticket or review documents", async () => {
+	const id = ulid();
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, title, state, created_at, updated_at)
+		VALUES (${id}, 'acme', 'app', 30, 'https://github.com/acme/app/pull/30', 'Unlinked PR', 'open', ${at}, ${at})`);
+	const result = await db.transaction((tx) => overview({} as ServiceCtx, tx, { pr: "acme/app#30" }));
+	expect(result).toMatchObject({ pullRequest: { title: "Unlinked PR" }, ticket: null, summary: null, evidence: null });
 });

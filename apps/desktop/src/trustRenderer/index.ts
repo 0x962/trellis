@@ -1,0 +1,1 @@
+export { trustRenderer } from "./trustRenderer";
