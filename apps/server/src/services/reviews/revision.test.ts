@@ -19,6 +19,31 @@ test("reads the commit that both branches share", () => {
 	});
 });
 
+test("requests only the merge base from the comparison response", async () => {
+	const calls: string[][] = [];
+	const gh = async (_queue: string, args: string[]) => {
+		calls.push(args);
+		if (args[0] === "api")
+			return { ok: true as const, stdout: JSON.stringify({ merge_base_commit: { sha: "shared" } }) };
+		if (args[1] === "diff") return { ok: true as const, stdout: "patch" };
+		return { ok: true as const, stdout: JSON.stringify({ headRefOid: "head", baseRefOid: "base" }) };
+	};
+	const loaded = await loadCurrentRevision({ gh } as PrepareCtx, {
+		owner: "acme",
+		repo: "app",
+		number: 29,
+		url: "https://github.com/acme/app/pull/29",
+	});
+	expect(calls.find((args) => args[0] === "api")).toEqual([
+		"api",
+		"repos/acme/app/compare/base...head",
+		"--jq",
+		"{merge_base_commit: {sha: .merge_base_commit.sha}}",
+	]);
+	expect(loaded.meta.comparisonBaseSha).toBe("shared");
+	expect(loaded.patch).toBe("patch");
+});
+
 test("loads the revision again when the head changes during the first diff", async () => {
 	let metadataReads = 0;
 	const gh = async (_queue: string, args: string[]) => {
