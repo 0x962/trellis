@@ -183,7 +183,7 @@ export function PhoneRow({
 }: PhoneRowProps) {
 	const onLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
 		event.stopPropagation();
-		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey) return;
 		event.preventDefault();
 		onClick?.(ticket.id, event);
 	};

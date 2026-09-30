@@ -5,7 +5,7 @@ export type SelectCellProps = {
 	selected: boolean;
 	// True while any row is selected: every checkbox then stays visible.
 	selecting: boolean;
-	onToggle?: () => void;
+	onToggle?: (range: boolean) => void;
 };
 
 // The checkbox of a row. It shows on hover, on focus, and while a
@@ -16,7 +16,7 @@ export function SelectCell({ identifier, selected, selecting, onToggle }: Select
 			label={`Select ${identifier}`}
 			hideLabel
 			checked={selected}
-			onCheckedChange={() => onToggle?.()}
+			onCheckedChange={(_checked, { event }) => onToggle?.("shiftKey" in event && event.shiftKey === true)}
 			boxClassName={cx(
 				"transition-opacity duration-hover",
 				!selecting &&

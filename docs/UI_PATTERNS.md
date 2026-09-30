@@ -217,6 +217,13 @@ Keep filters and sort in the URL. Keep local display preferences, such as collap
 Needs you filters Active, Snoozed, or Ignored items. Its sort fields are Priority, Created, Updated, and Title.
 Priority defaults to highest first, then oldest ticket. Its groups remain Needs review and Mentioned.
 
+## Ticket range selection
+
+Select a ticket checkbox. Hold Shift and click another ticket checkbox or row to select the inclusive range.
+The range follows the displayed ticket order across expanded groups and scroll positions.
+Collapsed groups stay outside the range. Earlier selections outside the range stay selected.
+If the anchor ticket leaves the view, the next Shift click starts a new range.
+
 ## Group headers
 
 Use `GroupHeader` for groups of data rows. Use `SectionHeader` for sections in ticket details and settings.
