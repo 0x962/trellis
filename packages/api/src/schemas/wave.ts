@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { EpicRefStringSchema, WaveRefStringSchema } from "../refs.ts";
-import { EpicCountsSchema, EpicStateSchema } from "./epicCounts.ts";
+import { EpicCountsSchema } from "./epicCounts.ts";
 import { booleanString, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 
 // A wave is one ordered phase of an epic. A wave belongs to one
@@ -18,7 +18,7 @@ export const WaveSlugSchema = z
 
 // One wave of an epic. `position` orders the waves of the epic:
 // a lower position comes first. A delete leaves a gap in the positions.
-// `counts` and `state` follow the rules of the epic. `toStart` counts the
+// A nonempty wave is done when each ticket is done or canceled. `toStart` counts the
 // todo tickets whose dependencies are done. `waitsForYou` counts each ticket
 // whose turn is the person. A ticket contributes at most one to the count.
 export const WaveSummarySchema = z.object({
@@ -29,7 +29,7 @@ export const WaveSummarySchema = z.object({
 	name: z.string().min(1),
 	position: z.number().int().min(0),
 	counts: EpicCountsSchema,
-	state: EpicStateSchema,
+	state: z.enum(["open", "done"]),
 	toStart: z.number().int().min(0),
 	waitsForYou: z.number().int().min(0),
 	createdAt: IsoDateTimeSchema,

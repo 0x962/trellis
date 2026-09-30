@@ -37,12 +37,21 @@ test("nested help names the canonical command and makes no server call", async (
 		"account quota show",
 		"host status show",
 		"session status write",
+		"epic cancel",
 	]) {
 		const f = fixture();
 		expect(await run([...command.split(" "), "--help"], f.deps)).toBe(0);
 		expect(f.text()).toContain(`trellis ${command}`);
 		expect(f.calls).toHaveLength(0);
 	}
+});
+
+test("epic cancel sends the epic ref and prints its canceled state", async () => {
+	const epic = { id: "epic", ref: "DEMO/old-plan", state: "canceled" };
+	const f = fixture(() => epic);
+	expect(await run(["epic", "cancel", "DEMO/old-plan", "--json"], f.deps)).toBe(0);
+	expect(f.calls).toEqual([{ path: "/rpc/epics/cancel", input: { epic: "DEMO/old-plan" } }]);
+	expect(JSON.parse(f.text())).toEqual(epic);
 });
 
 test("a session agent writes a requested update from standard input", async () => {

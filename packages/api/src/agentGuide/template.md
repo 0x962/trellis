@@ -328,6 +328,7 @@ Use the actual project's commands.
 | `trellis epic status show <epic>` | Read progress, active assignments, and work that can start. |
 | `trellis epic create --project <project> --name <text> [--description <text>]` | Create an epic. |
 | `trellis epic edit <epic> [--name <text>] [--description <text>]` | Update an epic. |
+| `trellis epic cancel <epic>` | Cancel an epic and its unfinished tickets. Completed tickets keep their status. |
 | `trellis epic add <epic> <tickets...>` | Add tickets to an epic. |
 | `trellis epic remove <tickets...>` | Remove tickets from their epic. |
 | `trellis wave list <epic>` | List the epic's waves. |
