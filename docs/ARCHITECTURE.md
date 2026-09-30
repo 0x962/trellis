@@ -752,6 +752,13 @@ An agent restart preserves the workspace and resumes a compatible provider conve
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `agentPrompt/launchGuide.ts` composes the common guide at every start and resume.
 `packages/api/src/agentGuide/template.md` supplies the concepts, CLI reference, context fields, and rules.
+Settings exposes this complete template in a TipTap source editor with highlighted variables.
+The `agentPromptTemplate` settings key stores an optional replacement as exact text.
+The settings API returns the effective template, the default template, and the supported variable names.
+A save rejects an empty template, an unknown variable, or a changed template since the editor opens.
+Use default removes the stored replacement when the person saves.
+Each harness start or resume reads the effective template in its context transaction.
+Template edits keep the existing assignments, workspaces, and provider conversations.
 The renderer reads current project records, configured statuses, resources, epic and wave context, and the full ticket.
 It includes the user context that Trellis has and the current workspace and session identifiers.
 A session request or flow node instruction follows the common context.
@@ -1136,10 +1143,10 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#notifications`, `#menu-links`, `#desktop` in the macOS app |
+| `/settings` | Account (no hash), `#notifications`, `#menu-links`, `#agent-prompt`, `#desktop` in the macOS app |
 | `/p/<path>/settings` | General (no hash), `#notes`, `#template`, `#statuses`, `#labels`, `#archive` |
 
-`/settings` holds the actor name, theme, notifications, menu links, and desktop controls.
+`/settings` holds the actor name, theme, notifications, menu links, agent prompt, and desktop controls.
 Menu links stores an ordered list of labels, icons, and HTTPS URLs in the settings store.
 The sidebar shows each saved link after the fixed destinations.
 A custom link opens the browser sheet over the current page.
@@ -1415,6 +1422,7 @@ returns one canonical spelling.
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
 | settings.get, set | GET, PUT /api/settings | |
+| settings.agentPrompt, setAgentPrompt | GET, PUT /api/settings/agent-prompt | effective and default templates, variables; saves require the previous template |
 | system.health, gh, checkGh, backup | GET /api/health, /api/gh; POST /api/gh/check, /api/backup | gh and checkGh run in the HTTP process, not the database worker |
 | system.chooseDirectory | POST /api/choose-directory | it opens the folder picker of the server computer |
 | export | GET /api/export | a Hono route, not a contract procedure: an NDJSON stream with `Content-Disposition: attachment` |

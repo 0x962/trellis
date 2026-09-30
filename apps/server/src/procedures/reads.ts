@@ -21,6 +21,10 @@ export const actors = os.actors.router({
 });
 
 export const settings = os.settings.router({
+	agentPrompt: os.settings.agentPrompt.handler(({ context }) => call(context, "settings.agentPrompt", undefined)),
+	setAgentPrompt: os.settings.setAgentPrompt.handler(({ context, input }) =>
+		call(context, "settings.setAgentPrompt", input),
+	),
 	get: os.settings.get.handler(({ context }) => call(context, "settings.get", undefined)),
 	set: os.settings.set.handler(({ context, input }) => call(context, "settings.set", input)),
 });
