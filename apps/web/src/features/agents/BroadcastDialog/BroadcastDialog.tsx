@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AgentBroadcastGroup, AgentBroadcastResult } from "@trellis/api";
-import { Button, ChoiceGroup, Dialog, FailureState, Textarea } from "@trellis/ui";
+import { Button, Checkbox, Dialog, FailureState, FieldHint, Textarea } from "@trellis/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
@@ -23,7 +23,8 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 	const { client, orpc } = useApp();
 	const message = useRef<HTMLTextAreaElement>(null);
 	const resultStatus = useRef<HTMLDivElement>(null);
-	const [group, setGroup] = useState<AgentBroadcastGroup>("working");
+	const [working, setWorking] = useState(true);
+	const [idle, setIdle] = useState(false);
 	const [text, setText] = useState("");
 	const request = useRef<DeliveryInput | null>(null);
 	const counts = useQuery({
@@ -33,29 +34,11 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 	const delivery = useMutation({
 		mutationFn: ({ previewCount: _previewCount, ...input }: DeliveryInput) => client.agentRuns.broadcast(input),
 	});
-	const count = counts.data?.[group] ?? 0;
-	const canSend = counts.isSuccess && count > 0 && text.trim().length > 0 && !delivery.isPending;
+	const group = working ? (idle ? "both" : "working") : idle ? "idle" : null;
+	const count = (working ? (counts.data?.working ?? 0) : 0) + (idle ? (counts.data?.idle ?? 0) : 0);
+	const canSend = group !== null && counts.isSuccess && count > 0 && text.trim().length > 0 && !delivery.isPending;
 	const result = delivery.data;
 	const submitted = delivery.variables;
-	const countDescription = (target: AgentBroadcastGroup) => {
-		if (counts.isPending) return "Trellis is counting agents.";
-		if (counts.isError) return "The count is not available.";
-		return target === "working"
-			? `${agents(counts.data.working)} have an active turn.`
-			: `${agents(counts.data.idle)} can receive a new turn.`;
-	};
-	const options = [
-		{
-			value: "working" as const,
-			label: "All working agents",
-			description: countDescription("working"),
-		},
-		{
-			value: "idle" as const,
-			label: "All idle agents",
-			description: countDescription("idle"),
-		},
-	];
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
 		if (!canSend) return;
@@ -75,7 +58,7 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 		<Dialog
 			open
 			title="Broadcast a message"
-			description="Send one normal message to each agent in the selected group."
+			description="Send one normal message to each agent in the selected groups."
 			initialFocus={result ? undefined : message}
 			onOpenChange={(open) => !open && close()}
 		>
@@ -123,7 +106,31 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 			) : (
 				<form className="flex flex-col gap-4" onSubmit={submit}>
 					<fieldset disabled={delivery.isPending} className="flex flex-col gap-4">
-						<ChoiceGroup label="Recipient group" options={options} value={group} onValueChange={setGroup} />
+						<fieldset className="flex flex-col gap-3">
+							<legend className="mb-2 text-sm text-fg-muted">Recipient groups</legend>
+							<Checkbox
+								label={counts.isSuccess ? `Working agents (${counts.data.working})` : "Working agents"}
+								checked={working}
+								onCheckedChange={setWorking}
+								disabled={delivery.isPending}
+								className="min-h-7 text-sm tabular-nums pointer-coarse:min-h-11"
+							/>
+							<Checkbox
+								label={counts.isSuccess ? `Idle agents (${counts.data.idle})` : "Idle agents"}
+								checked={idle}
+								onCheckedChange={setIdle}
+								disabled={delivery.isPending}
+								className="min-h-7 text-sm tabular-nums pointer-coarse:min-h-11"
+							/>
+							<FieldHint className="min-h-8" aria-live="polite">
+								{counts.isPending
+									? "Counting recipients."
+									: group === null
+										? "Select at least one group."
+										: "Select one or both groups."}{" "}
+								Idle agents have unfinished tickets.
+							</FieldHint>
+						</fieldset>
 						{counts.isError && (
 							<FailureState
 								title="The recipient count did not load"
@@ -142,18 +149,20 @@ export function BroadcastDialog({ onClose }: { onClose: () => void }) {
 					{delivery.isError && (
 						<FailureState title="The broadcast did not send" detail={errorMessage(delivery.error)} variant="section" />
 					)}
-					<div className="flex items-center justify-between gap-3">
-						<p className="text-xs text-fg-muted tabular-nums" aria-live="polite">
-							{counts.isPending ? "Counting recipients" : agents(count)}
-						</p>
-						<div className="flex gap-2">
-							<Button type="button" size="md" onClick={close}>
-								Cancel
-							</Button>
-							<Button type="submit" size="md" variant="primary" processing={delivery.isPending} disabled={!canSend}>
-								Send
-							</Button>
-						</div>
+					<div className="flex justify-end gap-2">
+						<Button type="button" size="md" onClick={close}>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							size="md"
+							variant="primary"
+							processing={delivery.isPending}
+							disabled={!canSend}
+							className="min-w-40 tabular-nums"
+						>
+							{counts.isSuccess ? `Send to ${agents(count)}` : "Send"}
+						</Button>
 					</div>
 				</form>
 			)}
