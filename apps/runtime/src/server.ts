@@ -4,10 +4,12 @@ import { createServer, type Socket } from "node:net";
 import { join } from "node:path";
 import {
 	RUNTIME_PROTOCOL_VERSION,
+	type RuntimeCaptureRequest,
 	type RuntimeHello,
 	type RuntimeMethods,
 	type RuntimeRequest,
 } from "@trellis/runtime-protocol";
+import { serveCaptureChannel } from "./captureChannel";
 import { outputSubscription } from "./outputSubscription.ts";
 import { acquireRuntimeLock } from "./runtimeLock.ts";
 import { SessionStore } from "./sessionStore.ts";
@@ -28,10 +30,11 @@ export async function startRuntime(home: string) {
 		pid: process.pid,
 		startedAt: new Date().toISOString(),
 		socketPath,
-		capabilities: ["terminal-stream", "terminal-channel", "list-pages", "queued-input"],
+		capabilities: ["terminal-stream", "terminal-channel", "list-pages", "queued-input", "capture-snapshot-v1"],
 	};
 	let store: SessionStore;
 	const sockets = new Set<Socket>();
+	const captureOperations = new Set<Promise<void>>();
 	let closing = false;
 	let closePromise: Promise<void> | undefined;
 	async function dispatch(request: RuntimeRequest) {
@@ -107,6 +110,7 @@ export async function startRuntime(home: string) {
 				const value = JSON.parse(buffer.subarray(0, end).toString());
 				id = typeof value?.id === "string" ? value.id : "";
 				const request = validateRequest(value);
+				if (closing && request.method === "capture") throw new Error("Runtime is shutting down");
 				if (request.method === "list" || request.method === "listPage") {
 					listResponse = true;
 					await writeSessionList(
@@ -125,6 +129,21 @@ export async function startRuntime(home: string) {
 						request.params as RuntimeMethods["terminal"]["params"],
 						buffer.subarray(end + 1),
 					);
+					return;
+				}
+				if (request.method === "capture") {
+					const operation = serveCaptureChannel(
+						store,
+						socket,
+						request.params as RuntimeCaptureRequest,
+						buffer.subarray(end + 1),
+					);
+					captureOperations.add(operation);
+					try {
+						await operation;
+					} finally {
+						captureOperations.delete(operation);
+					}
 					return;
 				}
 				if (request.method === "subscribe") {
@@ -188,6 +207,7 @@ export async function startRuntime(home: string) {
 			await store.stopAll();
 			store.closeWatchers();
 			for (const socket of sockets) socket.destroy();
+			await Promise.allSettled([...captureOperations]);
 			await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
 			rmSync(join(home, "manifest.json"), { force: true });
 			releaseLock();

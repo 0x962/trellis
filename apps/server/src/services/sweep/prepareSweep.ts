@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { sql } from "drizzle-orm";
+import { gitCommonDirectory } from "../../agents/native/gitCommonDirectory.ts";
+import { repositoryOperation } from "../../agents/native/repositoryOperation.ts";
 import { agentWorkspacesRoot } from "../../agents/native/workspace.ts";
 import { workspaceOperation } from "../../agents/native/workspaceOperation.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -91,7 +93,7 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 	for (const runId of await directories(agents)) {
 		const directory = join(agents, runId);
 		const work = join(directory, "work");
-		await workspaceOperation(work, async () => {
+		await workspaceOperation(ctx.home, work, async () => {
 			const runs = await readRuns(ctx, { runId, work });
 			const names = await readdir(directory);
 			for (const name of outputFilesToRemove(
@@ -110,7 +112,11 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 				.map((session) => ({ id: session.id, cwd: session.launch?.cwd ?? null }));
 			const stopped = new Set(sessions.filter((session) => session.status === "exited").map((session) => session.id));
 			if (!workspaceRemovable(work, runs, running, stopped, heldPaths)) return;
-			const removed = await removeWorktree(work, await gitEnv()).catch((error: unknown) => {
+			const selectedEnv = await gitEnv();
+			const removed = await (async () => {
+				const commonDirectory = await gitCommonDirectory(work, selectedEnv);
+				return repositoryOperation(ctx.home, commonDirectory, () => removeWorktree(work, selectedEnv));
+			})().catch((error: unknown) => {
 				result.errors.push(`${work}: ${gitText(error)}`);
 				return null;
 			});

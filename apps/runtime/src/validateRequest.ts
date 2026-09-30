@@ -77,6 +77,25 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			)
 				throw new Error("A list limit must be a whole number of at least 1");
 			break;
+		case "capture": {
+			for (const key of ["captureId", "snapshotId", "hostId", "dataHomeId", "blockId"])
+				if (typeof params[key] !== "string" || params[key] === "") throw new Error(`Capture ${key} is required`);
+			if (!Number.isSafeInteger(params.generation) || (params.generation as number) < 0)
+				throw new Error("Capture generation must be a nonnegative safe integer");
+			if (!Array.isArray(params.identities) || params.identities.length === 0)
+				throw new Error("Capture identities are required");
+			for (const value of params.identities) {
+				if (typeof value !== "object" || value === null) throw new Error("Capture identity must be an object");
+				const identity = value as Record<string, unknown>;
+				for (const key of ["harness", "agentRunId", "attemptId"])
+					if (typeof identity[key] !== "string" || identity[key] === "")
+						throw new Error(`Capture identity ${key} is required`);
+				for (const key of ["accountId", "profileId", "providerSessionId"])
+					if (identity[key] !== null && typeof identity[key] !== "string")
+						throw new Error(`Capture identity ${key} must be a string or null`);
+			}
+			break;
+		}
 		case "hasMessage":
 			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
 				throw new Error("Message identifier must contain letters, numbers, underscores, or hyphens");
@@ -127,6 +146,46 @@ export function validateRequest(value: unknown): RuntimeRequest {
 					!Object.values(params.env).every((value) => typeof value === "string"))
 			)
 				throw new Error("Environment values must be strings");
+			if (params.capture !== undefined) {
+				if (typeof params.capture !== "object" || params.capture === null)
+					throw new Error("Launch capture must be an object");
+				const capture = params.capture as Record<string, unknown>;
+				for (const key of ["harness", "agentRunId", "attemptId"])
+					if (typeof capture[key] !== "string" || capture[key] === "")
+						throw new Error(`Launch capture ${key} is required`);
+				for (const key of ["accountId", "profileId"])
+					if (capture[key] !== null && typeof capture[key] !== "string")
+						throw new Error(`Launch capture ${key} must be a string or null`);
+				if (capture.attemptId !== params.id) throw new Error("Launch capture attempt does not match the session");
+				if (
+					!Array.isArray(capture.providerScopePaths) ||
+					!capture.providerScopePaths.every((path) => typeof path === "string" && path.startsWith("/"))
+				)
+					throw new Error("Launch provider scope paths must be absolute");
+				if (!Array.isArray(capture.providerRoots)) throw new Error("Launch conversation roots are required");
+				for (const value of capture.providerRoots) {
+					if (typeof value !== "object" || value === null)
+						throw new Error("Launch conversation root must be an object");
+					const root = value as Record<string, unknown>;
+					if (
+						root.contentKind !== "conversation-directory" ||
+						(root.sourceKind !== "account-profile" && root.sourceKind !== "opencode-export") ||
+						typeof root.path !== "string" ||
+						!root.path.startsWith("/") ||
+						!Array.isArray(root.externalLinks)
+					)
+						throw new Error("Launch conversation root is invalid");
+					for (const value of root.externalLinks) {
+						if (
+							typeof value !== "object" ||
+							value === null ||
+							typeof (value as Record<string, unknown>).path !== "string" ||
+							typeof (value as Record<string, unknown>).target !== "string"
+						)
+							throw new Error("Launch conversation external link is invalid");
+					}
+				}
+			}
 			for (const key of ["cols", "rows"])
 				if (
 					params[key] !== undefined &&
