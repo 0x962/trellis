@@ -1,0 +1,1 @@
+export { useStatusPaneWidth } from "./useStatusPaneWidth";

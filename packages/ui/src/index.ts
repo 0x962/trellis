@@ -177,6 +177,7 @@ export { Pagination } from "./primitives/Pagination";
 export { PickerButton } from "./primitives/PickerButton";
 export { Popover, type PopoverProps } from "./primitives/Popover";
 export { PropertyRow, type PropertyRowProps } from "./primitives/PropertyRow";
+export { ResizeHandle } from "./primitives/ResizeHandle";
 export { ScrollArea, type ScrollAreaProps } from "./primitives/ScrollArea";
 export { SectionHeader, type SectionHeaderProps } from "./primitives/SectionHeader";
 export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitives/Segmented";
