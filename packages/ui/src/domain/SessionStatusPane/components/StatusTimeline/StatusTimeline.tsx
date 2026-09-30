@@ -1,5 +1,5 @@
 import { ArrowLineUp } from "@phosphor-icons/react";
-import { type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconButton } from "../../../../primitives/IconButton";
 import { Tooltip } from "../../../../primitives/Tooltip";
 import type { SessionStatusPaneProps, SessionUpdate } from "../../types";
@@ -25,7 +25,6 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink }: Pro
 	const [seen, setSeen] = useState(updates[0]!.id);
 	const root = useRef<HTMLDivElement>(null);
 	const pendingFocus = useRef<string | null>(null);
-	const helpId = useId();
 	const date = new Date(now);
 	const day = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString();
 	const groups = useMemo(() => timelineGroups(retained.updates, day), [retained.updates, day]);
@@ -140,7 +139,6 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink }: Pro
 				selected={selected.id}
 				latest={latest.id}
 				newUpdate={newUpdate}
-				helpId={helpId}
 				onKeyDown={onKeyDown}
 				onFocus={setFocused}
 				onToggle={toggle}
@@ -148,9 +146,6 @@ export function StatusTimeline({ updates, now, renderMarkdown, onOpenLink }: Pro
 				renderMarkdown={renderMarkdown}
 				onOpenLink={onOpenLink}
 			/>
-			<p id={helpId} className="mt-3 text-xs text-fg-faint">
-				Up/Down: Browse. Left/Right: Fold days. Enter: Select.
-			</p>
 		</>
 	);
 }

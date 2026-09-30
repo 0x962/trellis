@@ -55,15 +55,6 @@ export function SessionStatusPane({
 						<StatusTimeline updates={history} now={now} renderMarkdown={renderMarkdown} onOpenLink={onOpenLink} />
 					)}
 					<HistoryControls historyControl={historyControl} />
-					<details className="mt-auto text-xs leading-relaxed text-fg-faint">
-						<summary className="flex min-h-7 w-fit cursor-pointer items-center rounded-sm text-fg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 max-md:min-h-11">
-							How updates work
-						</summary>
-						<p className="mt-2.5">
-							The observer reads completed session activity and writes a rich update. Select an update to read it. A
-							paused session receives no update.
-						</p>
-					</details>
 				</div>
 			</ScrollArea>
 		</SessionStatusPaneShell>
