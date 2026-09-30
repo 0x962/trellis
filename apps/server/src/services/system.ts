@@ -137,7 +137,6 @@ const EXCLUSION_KEYS: Record<string, string[]> = {
 	provider_models: ["provider_id", "model_id"],
 	agent_start_requests: ["actor_kind", "actor_name", "request_id"],
 	langflow_start_receipts: ["actor_kind", "actor_name", "request_id"],
-	needs_you_states: ["actor_name", "item_id"],
 };
 
 // The columns a row of this table is ordered and paged by, in key order.

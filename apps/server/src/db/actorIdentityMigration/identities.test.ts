@@ -2,8 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { randomBytes } from "node:crypto";
 import { rm } from "node:fs/promises";
 import type { Db } from "../client.ts";
-import { migrate } from "../migrate.ts";
-import { openPriorDatabase } from "./history.ts";
+import { migrateActorUpgrade, openPriorDatabase } from "./history.ts";
 import { seedActorHistory } from "./seed.ts";
 
 let db: Db;
@@ -57,7 +56,7 @@ const copies = (name: string, suffix: string): [string, string, Record<string, u
 test("0139 accepts complete actor identities and rechecks exact values on hash collisions", async () => {
 	({ db, directory } = await openPriorDatabase());
 	await seedActorHistory(db);
-	expect(await migrate(db)).toBeGreaterThan(0);
+	expect(await migrateActorUpgrade(db, directory)).toBe(1);
 	const common = randomBytes(8191).toString("hex");
 	const names = [randomBytes(2048).toString("hex"), `${common}aa`, `${common}ab`, "15601", "180514"];
 	expect(names.slice(0, 3).map((name) => name.length)).toEqual([4096, 16384, 16384]);

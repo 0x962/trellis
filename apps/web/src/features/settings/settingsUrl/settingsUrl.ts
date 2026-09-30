@@ -9,7 +9,7 @@ const isSectionId = (value: string): value is SettingsSectionId => sectionIds.so
 // The page the settings sheet stands over when a person opens the settings
 // URL itself. Settings holds no page of its own any more, and this is the
 // page a direct link falls back to everywhere else in the app.
-export const settingsBehind = "/needs-you";
+export const settingsBehind = "/search";
 
 export type SettingsEntry = {
 	// "sheet": open the settings sheet over `settingsBehind`.

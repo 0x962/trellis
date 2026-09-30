@@ -17,11 +17,11 @@ import { useTheme } from "../src/theme/useTheme";
 type IconName = keyof typeof Ionicons.glyphMap;
 
 // The tab navigator of the app. Each tab is a group that holds its own stack,
-// so the four tabs render no header of their own. The setup screen sits
+// so the three tabs render no header of their own. The setup screen sits
 // beside them without a tab bar item and carries its own header. The pair
 // route also has no tab bar item: it only sends a pair link on to setup.
 //
-// The four tabs are behind the guard: without a stored server URL and name,
+// The three tabs are behind the guard: without a stored server URL and name,
 // only the setup screen exists, so the app shows setup until both are saved.
 export default function RootLayout() {
 	const [url] = useStoredString(keys.serverUrl);
@@ -83,7 +83,7 @@ export default function RootLayout() {
 				}}
 			>
 				<Tabs.Protected guard={configured}>
-					<Tabs.Screen name="(needs-you)" options={tab("Needs you", "file-tray-outline")} />
+					<Tabs.Screen name="index" options={{ href: null }} />
 					<Tabs.Screen name="(search)" options={tab("Search", "search-outline")} />
 					<Tabs.Screen name="(projects)" options={tab("Projects", "folder-outline")} />
 					<Tabs.Screen name="(settings)" options={tab("Settings", "settings-outline")} />

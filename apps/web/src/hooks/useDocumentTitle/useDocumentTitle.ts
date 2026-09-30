@@ -5,7 +5,6 @@ import { parseProjectSplat } from "../../lib/projectUrl";
 // The name of the page at `pathname`, or null for a page with no name of
 // its own.
 const pageName = (pathname: string): string | null => {
-	if (pathname === "/needs-you") return "Needs you";
 	// The desktop app draws the settings at this URL before the first run.
 	// Every other visit opens the settings sheet and lands on another page.
 	if (pathname === "/settings") return "Settings";
@@ -19,7 +18,7 @@ const pageName = (pathname: string): string | null => {
 	return null;
 };
 
-// The tab title of a page: "Needs you · trellis". A ticket page and a
+// The tab title of a page: "Search · trellis". A ticket page and a
 // session page set their own titles from the record they read, so they get
 // null here.
 export const documentTitle = (pathname: string): string | null => {

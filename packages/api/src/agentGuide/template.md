@@ -330,6 +330,9 @@ Use the actual project's commands.
 | `trellis epic create --project <project> --name <text> [--description <text>]` | Create an epic. |
 | `trellis epic edit <epic> [--name <text>] [--description <text>]` | Update an epic. |
 | `trellis epic cancel <epic>` | Cancel an epic and its unfinished tickets. Completed tickets keep their status. |
+| `trellis epic autopilot show <epic>` | Read automatic ticket start settings. |
+| `trellis epic autopilot enable <epic> --max-concurrency <n> --harness <preset>` | Start ready tickets automatically within the limit. |
+| `trellis epic autopilot disable <epic>` | Stop new automatic assignments and keep existing agents. |
 | `trellis epic add <epic> <tickets...>` | Add tickets to an epic. |
 | `trellis epic remove <tickets...>` | Remove tickets from their epic. |
 | `trellis wave list <epic>` | List the epic's waves. |
@@ -347,6 +350,16 @@ trellis epic edit DEMO/account-settings --description - < plan.md
 
 The user and the project determine the plan's size and structure.
 Do not impose fixed counts of tickets or waves.
+
+Autopilot starts unassigned Todo tickets whose dependencies are Done or Canceled.
+It moves each selected ticket to the first status in the `started` category.
+Assigned Todo and In Progress tickets consume slots, including manual assignments.
+A ticket releases its slot when it moves to review or completion. Its assignment remains.
+Manual starts can exceed the limit. Autopilot waits for capacity before it starts more tickets.
+A lower limit or disablement preserves existing agents. Accepted starts can finish after disablement.
+Cancellation turns autopilot off. An archived project starts no ticket.
+Autopilot uses saved settings after a server restart.
+The enable command also accepts `--model`, `--effort`, and `--account`.
 
 ## Resources, documents, and project notes
 

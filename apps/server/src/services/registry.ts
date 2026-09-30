@@ -21,6 +21,8 @@ import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
 import { diagnostics } from "./diagnostics.ts";
+import * as epicChatter from "./epicChatter";
+import * as epicAutopilot from "./epics/autopilot";
 import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
@@ -32,7 +34,6 @@ import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
 import { flowServices } from "./langflowDispatch/registry";
-import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
@@ -215,16 +216,19 @@ export const services = {
 	"statuses.delete": core("mutation", statuses.delete),
 	...ticketServices,
 	"timeline.list": core("read", timeline.list),
-	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
-	"needsYou.summary": prepared("read", needsYou.prepareSummary, needsYou.summary),
-	"needsYou.update": prepared("mutation", needsYou.prepareUpdate, needsYou.update),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
 	...pageServices,
+	"epicChatter.get": core("read", epicChatter.get),
+	"epicChatter.set": core("mutation", epicChatter.set),
+	"epicChatter.list": core("read", epicChatter.list),
 	"epics.list": core("read", epics.list),
+	"epics.autopilot": core("read", epicAutopilot.get),
+	"epics.setAutopilot": core("mutation", epicAutopilot.set),
+	"epics.dispatchAutopilot": prepared("mutation", epicAutopilot.dispatch, agentTerminal.result),
 	"epics.get": core("read", epics.get),
 	"epics.create": core("mutation", epics.create),
 	"epics.update": core("mutation", epics.update),

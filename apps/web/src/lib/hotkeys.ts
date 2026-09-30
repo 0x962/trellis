@@ -162,7 +162,6 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 			if (key === "g") return;
 			clear();
 			const actions: Record<string, () => void> = {
-				h: () => navigate("/needs-you"),
 				e: () => document.querySelector<HTMLElement>("[data-epic-switcher]")?.click(),
 				p: onProjectPicker,
 				s: () =>

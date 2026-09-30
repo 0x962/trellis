@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import type { HarnessPreset } from "@trellis/api";
 import { errors } from "@trellis/api";
@@ -8,6 +7,7 @@ import { nativeClient } from "../../agents/native/connection.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
+import { withChatter } from "../epicChatter/withChatter";
 import type { ServiceCtx } from "../support.ts";
 import { attemptCapturePath } from "./attemptCapture.ts";
 import { historicalOutput } from "./history/historicalOutput.ts";
@@ -27,12 +27,12 @@ const runtimeUnavailable = (cause: unknown) =>
 		data: { reason: "error" },
 	});
 
-export const prepareSend = async (
+const send = async (
 	ctx: ResumeCtx,
 	input: {
 		id: string;
 		text: string;
-		messageId?: string;
+		messageId: string;
 		interrupt?: boolean;
 		idleForMs?: number;
 		atTurnBoundary?: boolean;
@@ -55,7 +55,7 @@ export const prepareSend = async (
 	const preset = await deps.preset(run.terminalId);
 	if (input.interrupt && preset === "custom")
 		throw invalidInput("interrupt", "Use the custom terminal controls to interrupt its process.");
-	const messageId = input.messageId ?? randomUUID();
+	const messageId = input.messageId;
 	const resumeIdle = async () => {
 		if (input.idleForMs !== undefined) return { id: run.id, skipped: true };
 		const latest = await client.inspect(run.terminalId!);
@@ -106,6 +106,12 @@ export const prepareSend = async (
 	}
 	return { id: run.id };
 };
+
+export const prepareSend = (
+	ctx: ResumeCtx,
+	input: Omit<Parameters<typeof send>[1], "messageId"> & { messageId?: string },
+	deps?: Parameters<typeof send>[2],
+) => withChatter(ctx, input, (messageId) => send(ctx, { ...input, messageId }, deps));
 
 export const prepareOutput = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));

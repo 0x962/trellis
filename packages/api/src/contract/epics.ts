@@ -10,6 +10,7 @@ import {
 	EpicSummarySchema,
 	EpicUpdateInputSchema,
 } from "../schemas/epic.ts";
+import { EpicAutopilotSchema, EpicAutopilotSetInputSchema } from "../schemas/epicAutopilot";
 import { base } from "./base.ts";
 
 const write = pickErrors(["PROJECT_ARCHIVED", "DUPLICATE"]);
@@ -17,6 +18,15 @@ const write = pickErrors(["PROJECT_ARCHIVED", "DUPLICATE"]);
 // `{+epic}` matches a ref with a slash, so `GET /api/epics/OP/routine-runtime`
 // reaches the epic. A ULID works in the same place.
 export const epics = {
+	autopilot: base
+		.route({ method: "GET", path: "/epics/autopilot/{+epic}", summary: "Read epic autopilot settings" })
+		.input(EpicRefInputSchema)
+		.output(EpicAutopilotSchema.nullable()),
+	setAutopilot: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT"]))
+		.route({ method: "PUT", path: "/epics/autopilot/{+epic}", summary: "Set epic autopilot settings" })
+		.input(EpicAutopilotSetInputSchema)
+		.output(EpicAutopilotSchema),
 	list: base
 		.route({
 			method: "GET",
