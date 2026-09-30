@@ -58,7 +58,7 @@ try {
 	assert(omittedError.includes("Cannot find module") && omittedError.includes("integrations/langflow"), omittedError);
 	await rename(join(root, "omitted-integrations"), join(target, "integrations"));
 	await copyFile(join(import.meta.dir, "stagedServerProbe.ts"), join(target, "probe.ts"));
-	child = Bun.spawn([process.execPath, join(target, "probe.ts")], {
+	const subprocess = Bun.spawn([process.execPath, join(target, "probe.ts")], {
 		cwd: target,
 		env: {
 			HOME: home,
@@ -73,10 +73,11 @@ try {
 		stderr: "pipe",
 		timeout: 120000,
 	});
+	child = subprocess;
 	const [stdout, stderr, exit] = await Promise.all([
-		new Response(child.stdout).text(),
-		new Response(child.stderr).text(),
-		child.exited,
+		new Response(subprocess.stdout).text(),
+		new Response(subprocess.stderr).text(),
+		subprocess.exited,
 	]);
 	console.log(JSON.stringify({ packages, links, extraFiles, omittedError, stdout, stderr, exit }, null, 2));
 	assert.equal(exit, 0);
