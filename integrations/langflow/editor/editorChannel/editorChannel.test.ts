@@ -209,7 +209,6 @@ test("refusal preserves access while revocation rejects an outstanding suspensio
 	const f = fixture();
 	f.start();
 	const pending = f.channel.suspendEditing();
-	const rejection = expect(pending).rejects.toThrow("Save or cancel");
 	const command = f.sent.at(-1)!;
 	if (command.type !== "suspend-editing") throw new Error("Expected a suspension command.");
 	f.receive({
@@ -219,11 +218,10 @@ test("refusal preserves access while revocation rejects an outstanding suspensio
 		requestId: command.requestId,
 		reason: "open-control",
 	});
-	await rejection;
+	await expect(pending).rejects.toThrow("Save or cancel");
 	expect(f.channel.active()).toBe(true);
 	const next = f.channel.suspendEditing();
-	const revoked = expect(next).rejects.toThrow("Editor access ended");
 	f.channel.revoke();
-	await revoked;
+	await expect(next).rejects.toThrow("Editor access ended");
 	expect(f.channel.resumeEditing()).toBe(false);
 });
