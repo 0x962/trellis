@@ -75,10 +75,9 @@ export const flowReadiness = async (
 };
 
 // The one sentence beside `MISSING  flow run`.
-export const flowRunMissingSummary = ({ runs }: FlowReadiness, number: number): string => {
+export const flowRunMissingSummary = ({ runs }: FlowReadiness): string => {
 	if (runs.length === 0) return "no flow ran for this pull request";
-	if (runs.some((run) => flowRunWorks(run.status)))
-		return `a flow still works. Wait for it, then run: trellis diff set-state ${number} ready`;
+	if (runs.some((run) => flowRunWorks(run.status))) return "a flow still works";
 	return "no flow run finished";
 };
 

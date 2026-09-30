@@ -6,6 +6,13 @@ The Diffs page lists the pull requests of the project, grouped by repository.
 The native URL is `/reviews/owner/repo/123`.
 A review can exist without a ticket.
 
+`trellis diff set-state <diff> ready` records an explicit local request for human review.
+An open pull request with this mark shows a blue icon.
+A local human approval changes the icon to green.
+The command preserves the GitHub draft flag and works without a successful flow or complete review material.
+`trellis diff check <diff>` reports review gaps separately.
+`trellis diff set-state <diff> not-ready` withdraws the request and restores the grey icon.
+
 The Changes tab uses Pierre Trees for file navigation and Pierre Diffs for code.
 The tree supports file search, keyboard navigation, Git status, and thread counts.
 The diff supports syntax colors, split and unified layouts, and inline threads.

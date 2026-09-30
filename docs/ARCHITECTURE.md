@@ -488,20 +488,19 @@ A write reads Markdown from a file or stdin, uploads local images, and replaces 
 `trellis diff summary write` uploads images the same way.
 
 `trellis diff link <url> --ticket <ticket>` records the link and refreshes its GitHub data.
-`trellis diff check <diff>` reads the review requirements without a local state change.
-`trellis diff set-state <diff> ready` requires a saved explanation and the
-current-head evidence document.
-For an agent, it also requires a completed applicable flow or a recorded reason that no flow fits.
+`trellis diff check <diff>` reads review diagnostics without a local state change.
+`trellis diff set-state <diff> ready` records an explicit local request for human review.
+The legacy `trellis ready <diff>` command records the same request.
+Both commands write the local mark without a flow check, a material check, or a GitHub action.
+The optional `--flow-does-not-apply` flag saves a reason against the current head before the local write.
 Ticket statuses come from project configuration.
 `trellis ticket set-status` passes the requested status to the server's ticket transition rules.
 
 `pull_requests.local_state` records the local request for review: `not-ready` or `ready`.
-A new link by an agent writes `not-ready`; other new records start as `ready`.
-`trellis diff set-state <diff> ready` clears the GitHub draft flag before it records the local request.
-A failed GitHub action leaves the local request unchanged.
-CI, conflicts, and open comments can still prevent full readiness after the request is recorded.
-A person changes the local state from the diff sheet menu.
+New pull requests start as `not-ready` until a person or an agent sets the local mark.
+A person also changes this state from the diff sheet menu.
 A poll or push preserves the local state.
+GitHub draft status remains separate.
 
 `pull_requests.ready_for_review_at` is the moment that state became `ready`,
 which is the moment the wait of the person started. `setLocalState` stamps it,
@@ -511,37 +510,23 @@ ticket with the actor. A poll that finds a new head commit clears it, and so
 does `setHeadSha`, because the person then waits for nothing. The pull request
 payload carries it as `readyForReviewAt`.
 
-A pull request is ready for review only when every one of these holds: the
-agent asked for review, no check failed and none is pending, a flow run for that diff succeeded or the agent recorded why no
-flow fits, no review finding is open, the pull request merges cleanly, and a
-saved explanation and the current-head evidence document exist. A flow is
-machine review and it asks the person nothing, so a flow run that stopped and
-waits counts as a run that did not finish. `reviewGaps`
-in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
-answers with the parts that are missing, each with its plain words from
-`reviewGapText`. The wire carries the list as `reviewGaps` on a pull request
-row, on a ticket pull request row, on the PR badge of a ticket row and on a
-Diffs row, so the Waiting grouping, the Needs you inbox and the pull request
-sheet all read one answer.
+`reviewGaps` in `packages/api/src/reviewReady` reports stored review diagnostics.
+It checks the local request, CI, flow results, findings, conflicts, the explanation, and the current evidence.
+The flow check passes if an applicable run succeeds, an agent records a waiver, or no flow applies.
+A running or waiting flow remains incomplete. A successful flow retains credit across later commits.
+The wire carries these diagnostics on pull requests, ticket rows, ticket badges, and Diffs rows.
+The ticket filters, wave counts, Waiting grouping, and `trellis diff check` use the complete list.
+`notReadyForReviewSql` in `apps/server/src/db/queries/reviewReady.ts` supplies its SQL form.
 
-The glyph reads one part of that list and not the whole of it. It draws green
-when the agent asked for review, which `askedForReview` reads from the
-`not-asked` gap. A failed check, a pending check, an open finding and a
-conflict leave the glyph green, and the check ribbon, the conflict mark and
-the tooltip of the glyph state each of those parts beside it. `prStateWord`
-writes the same answer as one word for the Diffs row, the child row of a
-ticket and the epic row of the CLI, and `ticketReviewGaps` picks the parts
-that the one badge of a ticket row shows. The ticket filters, the wave counts,
-the Waiting grouping and `trellis diff check` keep the whole rule. `notReadyForReviewSql` in
-`apps/server/src/db/queries/reviewReady.ts` is its SQL form, which the ticket
-filters and the wave counts use. Nothing in the rule reads the GitHub draft
-flag.
-
-A pull request goes back to not ready on its own. A new commit requires an
-explanation for that commit; a successful flow remains valid across commits; a failed check, a
-new finding or a conflict adds its own missing part. It turns green again as
-soon as the facts hold, with no command from the agent, except for the parts
-only the agent writes.
+The canonical `PrGlyph` reads the local request and the local human approval separately.
+An open pull request with the local mark shows blue. Local human approval changes it to green.
+An open pull request without the mark shows grey. Closed and merged pull requests retain their existing icons.
+`askedForReview` reads the local mark from the `not-asked` gap on each row.
+Other review gaps leave the local mark and its icon unchanged.
+The check ribbon, conflict mark, and tooltip expose those separate facts.
+`prStateWord` uses the same local mark for the Diffs row, ticket child row, and CLI epic row.
+`ticketReviewGaps` selects the diagnostics for a ticket with several pull requests.
+A push requires fresh evidence for the new commit but preserves the local request.
 
 The web route `/reviews/<owner>/<repo>/<number>` renders the evidence document
 on its Overview tab, under the summary.
