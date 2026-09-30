@@ -40,6 +40,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 		create,
 		action,
 		onLabel,
+		chooseClassification,
 	} = useTicketComposer();
 	return (
 		<>
@@ -130,10 +131,10 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								labels={labels}
 								disabled={locked}
 								onStatus={(next) => setDraft({ ...draft, status: next.slug })}
-								onPriority={(priority) => setDraft({ ...draft, priority })}
+								onPriority={(priority) => chooseClassification({ priority })}
 								onParent={(parent) => setDraft({ ...draft, parent })}
-								onEpic={(epic) => setDraft({ ...draft, epic, wave: null })}
-								onWave={(wave) => setDraft({ ...draft, wave })}
+								onEpic={(epic) => chooseClassification({ epic, wave: null })}
+								onWave={(wave) => chooseClassification({ wave })}
 								onLabel={onLabel}
 								onDiscard={() => setAsking(true)}
 								agent={
