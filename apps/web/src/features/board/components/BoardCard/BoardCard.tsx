@@ -56,6 +56,7 @@ export function BoardCard({
 		ref,
 		{
 			ticketId: ticket.id,
+			createdAt: ticket.createdAt,
 			columnId,
 			identifier: ticket.identifier,
 			title: ticket.title,

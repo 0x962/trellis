@@ -137,9 +137,7 @@ export const tickets = pgTable(
 		// filters it by project. Every column it reads is in this index, so
 		// it is read from the index alone, with no table row.
 		index("tickets_status_id_position_id_idx").on(t.statusId, t.position, t.id, t.projectId),
-		// A board column reads its tickets in (updated_at desc, id desc) order
-		// and filters them by project. Every column it reads is in this index,
-		// so the column is read from the index alone.
+		// The explicit Updated sort uses this index within a status.
 		index("tickets_status_id_updated_at_id_idx").on(
 			t.statusId,
 			t.updatedAt.desc().nullsFirst(),

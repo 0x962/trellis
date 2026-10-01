@@ -3,6 +3,10 @@ import type { BoardColumnModel } from "./types";
 
 export const categoryOrder: StatusCategory[] = ["todo", "started", "review", "done", "canceled"];
 
+type CreatedTicket = Pick<TicketSummary, "id" | "createdAt">;
+const createdFirst = (left: CreatedTicket, right: CreatedTicket) =>
+	right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id);
+
 const categoryNames: Record<StatusCategory, string> = {
 	todo: "Todo",
 	started: "Started",
@@ -32,12 +36,15 @@ export const workingFirst = (columns: BoardColumnModel[], workingTicketIds: Read
 
 export const workingGroupInsertIndex = (
 	items: readonly TicketSummary[],
-	ticketId: string,
+	ticket: CreatedTicket,
 	workingTicketIds: ReadonlySet<string>,
-) =>
-	workingTicketIds.has(ticketId)
-		? 0
-		: items.filter((ticket) => ticket.id !== ticketId && workingTicketIds.has(ticket.id)).length;
+) => {
+	const working = Number(workingTicketIds.has(ticket.id));
+	return items.filter((item) => {
+		const group = Number(workingTicketIds.has(item.id));
+		return item.id !== ticket.id && (group > working || (group === working && createdFirst(item, ticket) < 0));
+	}).length;
+};
 
 export const projectColumns = (data: BoardOutput, project: Project): BoardColumnModel[] => {
 	const items = itemsByStatus(data);
@@ -49,7 +56,7 @@ export const projectColumns = (data: BoardOutput, project: Project): BoardColumn
 		)
 		.map((status) => {
 			const original = source.get(status.id);
-			const current = items.get(status.id) ?? [];
+			const current = (items.get(status.id) ?? []).sort(createdFirst);
 			const unloaded = Math.max(0, (original?.count ?? 0) - (original?.items.length ?? 0));
 			return {
 				id: status.id,
@@ -65,7 +72,7 @@ export const projectColumns = (data: BoardOutput, project: Project): BoardColumn
 export const categoryColumns = (data: BoardOutput): BoardColumnModel[] => {
 	const tickets = data.columns.flatMap((column) => column.items);
 	return categoryOrder.map((category) => {
-		const items = tickets.filter((ticket) => ticket.status.category === category);
+		const items = tickets.filter((ticket) => ticket.status.category === category).sort(createdFirst);
 		const statuses = new Map(items.map((ticket) => [ticket.status.id, ticket.status]));
 		return {
 			id: `category:${category}`,
@@ -86,16 +93,14 @@ export const categoryColumns = (data: BoardOutput): BoardColumnModel[] => {
 	});
 };
 
-// The board after a status change. The server stamps the ticket, and a
-// column lists the last updated ticket first, so the card takes the head of
-// its new column.
+// The order shown before the server reply must match its saved order so a refresh keeps each card in place.
 export const moveInBoard = (data: BoardOutput, ticket: TicketSummary, targetStatus: StatusSummary): BoardOutput => {
 	const columns = data.columns.map((column) => {
 		const without = column.items.filter((item) => item.id !== ticket.id);
 		const lost = column.items.length - without.length;
 		if (column.statusId !== targetStatus.id) return { ...column, items: without, count: column.count - lost };
 		const moved = { ...ticket, status: targetStatus };
-		return { ...column, items: [moved, ...without], count: column.count + (lost === 0 ? 1 : 0) };
+		return { ...column, items: [moved, ...without].sort(createdFirst), count: column.count + (lost === 0 ? 1 : 0) };
 	});
 	return { columns };
 };

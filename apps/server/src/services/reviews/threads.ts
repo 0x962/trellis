@@ -76,7 +76,7 @@ export async function list(
 	);
 	const found = await rows<{ document: ReviewThread }>(
 		tx,
-		sql`SELECT document FROM review_threads WHERE pr_id = ${pr.id} AND (${input.all} OR document->>'status' = 'open') ORDER BY updated_at, id LIMIT ${input.limit} OFFSET ${input.offset}`,
+		sql`SELECT document FROM review_threads WHERE pr_id = ${pr.id} AND (${input.all} OR document->>'status' = 'open') ORDER BY (document->>'createdAt')::timestamptz, id LIMIT ${input.limit} OFFSET ${input.offset}`,
 	);
 	return {
 		items: await withAnchorLines(

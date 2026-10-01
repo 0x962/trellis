@@ -150,16 +150,18 @@ test("a ticket epic change records the field epic with both refs", async () => {
 	expect(cleared.epic).toBeNull();
 });
 
-test("list puts open epics before done epics and the latest change first inside a group", async () => {
+test("list keeps creation order within each state after an edit", async () => {
+	await db.execute(sql`UPDATE epics SET created_at='2026-09-18T10:02:00Z' WHERE slug='routine-runtime-2'`);
+	await db.execute(sql`UPDATE epics SET created_at='2026-09-18T10:03:00Z' WHERE slug='routine-runtime-3'`);
 	const later = ctxAt("2026-09-18T10:06:00.000Z");
-	await run((tx) => update(later, tx, { epic: "TST/routine-runtime-3", name: "Third, renamed" }));
+	await run((tx) => update(later, tx, { epic: "TST/routine-runtime-2", name: "Second, renamed" }));
 	const found = await run((tx) => list(later, tx, { project: "TST" }));
 	expect(found.map((epic) => [epic.slug, epic.state])).toEqual([
 		["routine-runtime-3", "open"],
 		["routine-runtime-2", "open"],
 		["routine-runtime", "done"],
 	]);
-	expect(found[0]?.name).toBe("Third, renamed");
+	expect(found[1]?.name).toBe("Second, renamed");
 	expect(found[0]?.actor).toEqual({ name: "Test", kind: "human" });
 });
 
