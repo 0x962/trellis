@@ -1,0 +1,228 @@
+[
+	{
+		"source": "apps/web/src/features/command/CommandPalette/components/PaletteDialog/PaletteDialog.tsx",
+		"export": "PaletteDialog",
+		"stories": [
+			"Overlays/CommandPalette/Open",
+			"Overlays/CommandPalette/ClosedTrigger",
+			"Overlays/CommandPalette/TicketContext",
+			"Overlays/CommandPalette/Selected",
+			"Overlays/CommandPalette/Projects",
+			"Overlays/CommandPalette/Search",
+			"Overlays/CommandPalette/SearchEmpty",
+			"Overlays/CommandPalette/SearchLoading",
+			"Overlays/CommandPalette/SearchError",
+			"Overlays/CommandPalette/Status",
+			"Overlays/CommandPalette/Priority",
+			"Overlays/CommandPalette/Parent",
+			"Overlays/CommandPalette/Labels",
+			"Overlays/CommandPalette/Epic",
+			"Overlays/CommandPalette/Wave",
+			"Overlays/CommandPalette/Group",
+			"Overlays/CommandPalette/Sort",
+			"Overlays/CommandPalette/DeleteConfirmation",
+			"Overlays/CommandPalette/BulkDeleteConfirmation"
+		],
+		"states": ["open", "closed-trigger", "default", "selected", "empty", "loading", "error"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/command/CommandPalette/components/PaletteDialog/components/DeleteConfirm/DeleteConfirm.tsx",
+		"export": "DeleteConfirm",
+		"stories": ["Overlays/CommandPalette/DeleteConfirmation"],
+		"states": ["default"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/command/CommandPalette/components/PalettePanel/PalettePanel.tsx",
+		"export": "PalettePanel",
+		"stories": [
+			"Overlays/CommandPalette/Open",
+			"Overlays/CommandPalette/ClosedTrigger",
+			"Overlays/CommandPalette/TicketContext",
+			"Overlays/CommandPalette/Selected",
+			"Overlays/CommandPalette/Projects",
+			"Overlays/CommandPalette/Search",
+			"Overlays/CommandPalette/SearchEmpty",
+			"Overlays/CommandPalette/SearchLoading",
+			"Overlays/CommandPalette/SearchError",
+			"Overlays/CommandPalette/Status",
+			"Overlays/CommandPalette/Priority",
+			"Overlays/CommandPalette/Parent",
+			"Overlays/CommandPalette/Labels",
+			"Overlays/CommandPalette/Epic",
+			"Overlays/CommandPalette/Wave",
+			"Overlays/CommandPalette/Group",
+			"Overlays/CommandPalette/Sort",
+			"Overlays/CommandPalette/DeleteConfirmation",
+			"Overlays/CommandPalette/BulkDeleteConfirmation"
+		],
+		"states": ["open", "closed-trigger", "default", "selected", "empty", "loading", "error"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/command/CommandPalette/components/SubmenuGroup/SubmenuGroup.tsx",
+		"export": "SubmenuGroup",
+		"stories": [
+			"Overlays/CommandPalette/Status",
+			"Overlays/CommandPalette/Priority",
+			"Overlays/CommandPalette/Parent",
+			"Overlays/CommandPalette/Labels",
+			"Overlays/CommandPalette/Epic",
+			"Overlays/CommandPalette/Wave",
+			"Overlays/CommandPalette/Group",
+			"Overlays/CommandPalette/Sort"
+		],
+		"states": ["default"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/composer/ComposerHost/ComposerHost.tsx",
+		"export": "ComposerHost",
+		"stories": [
+			"Overlays/CreateTicketDialog/Open",
+			"Overlays/CreateTicketDialog/ClosedTrigger",
+			"Overlays/CreateTicketDialog/Empty",
+			"Overlays/CreateTicketDialog/Loading",
+			"Overlays/CreateTicketDialog/PlacementError",
+			"Overlays/CreateTicketDialog/Pending",
+			"Overlays/CreateTicketDialog/RequestError",
+			"Overlays/CreateTicketDialog/Success",
+			"Overlays/CreateTicketDialog/AgentPicker",
+			"Overlays/CreateTicketDialog/PlacementPicker",
+			"Overlays/CreateTicketDialog/StatusPicker",
+			"Overlays/CreateTicketDialog/PriorityPicker",
+			"Overlays/CreateTicketDialog/LabelPicker",
+			"Overlays/CreateTicketDialog/MoreProperties",
+			"Overlays/CreateTicketDialog/DiscardConfirmation",
+			"Overlays/CreateTicketDialog/CreateAnother",
+			"Overlays/CreateTicketDialog/ParentLinked",
+			"Overlays/CreateTicketDialog/AssignmentError",
+			"Overlays/CreateTicketDialog/AssignmentPending",
+			"Overlays/CreateTicketDialog/UploadPending",
+			"Overlays/CreateTicketDialog/UploadError",
+			"Overlays/CreateTicketDialog/ProjectPicker",
+			"Overlays/CreateTicketDialog/AssignmentOff",
+			"Overlays/CreateTicketDialog/SavedToggles",
+			"Overlays/CreateTicketDialog/UnselectedWave",
+			"Overlays/CreateTicketDialog/AutomaticSelection"
+		],
+		"states": [
+			"open",
+			"closed-trigger",
+			"empty",
+			"loading",
+			"error",
+			"pending",
+			"success",
+			"default",
+			"disabled",
+			"selection-change",
+			"retained-draft"
+		],
+		"notes": "The production dialog uses local responses. Play actions verify submit, draft, picker, and disabled states."
+	},
+	{
+		"source": "apps/web/src/features/composer/CreateTicketDialog/CreateTicketDialog.tsx",
+		"export": "CreateTicketDialog",
+		"stories": [
+			"Overlays/CreateTicketDialog/Open",
+			"Overlays/CreateTicketDialog/ClosedTrigger",
+			"Overlays/CreateTicketDialog/Empty",
+			"Overlays/CreateTicketDialog/Loading",
+			"Overlays/CreateTicketDialog/PlacementError",
+			"Overlays/CreateTicketDialog/Pending",
+			"Overlays/CreateTicketDialog/RequestError",
+			"Overlays/CreateTicketDialog/Success",
+			"Overlays/CreateTicketDialog/AgentPicker",
+			"Overlays/CreateTicketDialog/PlacementPicker",
+			"Overlays/CreateTicketDialog/StatusPicker",
+			"Overlays/CreateTicketDialog/PriorityPicker",
+			"Overlays/CreateTicketDialog/LabelPicker",
+			"Overlays/CreateTicketDialog/MoreProperties",
+			"Overlays/CreateTicketDialog/DiscardConfirmation",
+			"Overlays/CreateTicketDialog/CreateAnother",
+			"Overlays/CreateTicketDialog/ParentLinked",
+			"Overlays/CreateTicketDialog/AssignmentError",
+			"Overlays/CreateTicketDialog/AssignmentPending",
+			"Overlays/CreateTicketDialog/UploadPending",
+			"Overlays/CreateTicketDialog/UploadError",
+			"Overlays/CreateTicketDialog/ProjectPicker",
+			"Overlays/CreateTicketDialog/AssignmentOff",
+			"Overlays/CreateTicketDialog/SavedToggles",
+			"Overlays/CreateTicketDialog/UnselectedWave",
+			"Overlays/CreateTicketDialog/AutomaticSelection"
+		],
+		"states": [
+			"open",
+			"closed-trigger",
+			"empty",
+			"loading",
+			"error",
+			"pending",
+			"success",
+			"default",
+			"disabled",
+			"selection-change",
+			"retained-draft"
+		],
+		"notes": "The production dialog uses local responses. Play actions verify submit, draft, picker, and disabled states."
+	},
+	{
+		"source": "apps/web/src/features/composer/CreateTicketDialog/components/AgentPicker/AgentPicker.tsx",
+		"export": "AgentPicker",
+		"stories": [
+			"Overlays/CreateTicketDialog/AgentPicker",
+			"Overlays/CreateTicketDialog/AssignmentPending",
+			"Overlays/CreateTicketDialog/AssignmentError"
+		],
+		"states": ["default", "pending", "error"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/composer/CreateTicketDialog/components/ChipRow/ChipRow.tsx",
+		"export": "ChipRow",
+		"stories": [
+			"Overlays/CreateTicketDialog/MoreProperties",
+			"Overlays/CreateTicketDialog/DiscardConfirmation",
+			"Overlays/CreateTicketDialog/StatusPicker",
+			"Overlays/CreateTicketDialog/PriorityPicker",
+			"Overlays/CreateTicketDialog/LabelPicker",
+			"Overlays/CreateTicketDialog/ParentLinked"
+		],
+		"states": ["default"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/composer/CreateTicketDialog/components/PlacementPicker/PlacementPicker.tsx",
+		"export": "PlacementPicker",
+		"stories": [
+			"Overlays/CreateTicketDialog/PlacementPicker",
+			"Overlays/CreateTicketDialog/Loading",
+			"Overlays/CreateTicketDialog/PlacementError"
+		],
+		"states": ["default", "loading", "error"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/epics/DeleteEpicDialog/DeleteEpicDialog.tsx",
+		"export": "DeleteEpicDialog",
+		"stories": [
+			"Overlays/DeleteEpicDialog/Open",
+			"Overlays/DeleteEpicDialog/ClosedTrigger",
+			"Overlays/DeleteEpicDialog/Pending",
+			"Overlays/DeleteEpicDialog/RequestError",
+			"Overlays/DeleteEpicDialog/Success",
+			"Overlays/DeleteEpicDialog/Empty"
+		],
+		"states": ["open", "closed-trigger", "pending", "error", "success", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicPage/components/EpicCreateActions/EpicCreateActions.tsx",
+		"export": "EpicCreateActions",
+		"stories": ["Overlays/EpicActions/AddMenu", "Overlays/EpicActions/AddPending", "Overlays/EpicActions/AddTickets"],
+		"states": ["default", "pending"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	}
+]

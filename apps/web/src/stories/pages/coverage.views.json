@@ -1,0 +1,178 @@
+[
+	{
+		"source": "apps/web/src/features/board/Board/Board.tsx",
+		"export": "Board",
+		"stories": [
+			"Pages/Project/Board",
+			"Pages/Project/Table",
+			"Pages/Project/NarrowBoard",
+			"Pages/Project/NarrowTable",
+			"Pages/Project/EmptyBoard",
+			"Pages/Project/EmptyTable",
+			"Pages/Project/FilteredTable",
+			"Pages/Project/NoFilterResults",
+			"Pages/Project/BoardLoading",
+			"Pages/Project/TableLoading",
+			"Pages/Project/BoardError",
+			"Pages/Project/TableError",
+			"Pages/Project/RouteLoading",
+			"Pages/Project/RouteError",
+			"Pages/Project/Archived",
+			"Pages/Project/LongProjectName",
+			"Pages/Project/BoardSelection",
+			"Pages/Project/TableSelection"
+		],
+		"states": [
+			"populated",
+			"empty",
+			"loading",
+			"error",
+			"archived",
+			"narrow",
+			"long title",
+			"selected tickets",
+			"bulk toolbar"
+		],
+		"notes": "The project route uses the canonical Board and TicketTable."
+	},
+	{
+		"source": "apps/web/src/features/table/TicketTable/TicketTable.tsx",
+		"export": "TicketTable",
+		"stories": [
+			"Pages/Project/Board",
+			"Pages/Project/Table",
+			"Pages/Project/NarrowBoard",
+			"Pages/Project/NarrowTable",
+			"Pages/Project/EmptyBoard",
+			"Pages/Project/EmptyTable",
+			"Pages/Project/FilteredTable",
+			"Pages/Project/NoFilterResults",
+			"Pages/Project/BoardLoading",
+			"Pages/Project/TableLoading",
+			"Pages/Project/BoardError",
+			"Pages/Project/TableError",
+			"Pages/Project/RouteLoading",
+			"Pages/Project/RouteError",
+			"Pages/Project/Archived",
+			"Pages/Project/LongProjectName",
+			"Pages/Project/BoardSelection",
+			"Pages/Project/TableSelection"
+		],
+		"states": [
+			"populated",
+			"empty",
+			"loading",
+			"error",
+			"filters",
+			"archived",
+			"narrow",
+			"selected tickets",
+			"bulk toolbar"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicsPage/EpicsPage.tsx",
+		"export": "EpicsPage",
+		"stories": [
+			"Pages/Epics/Populated",
+			"Pages/Epics/Empty",
+			"Pages/Epics/Loading",
+			"Pages/Epics/RequestError",
+			"Pages/Epics/Archived",
+			"Pages/Epics/Narrow"
+		],
+		"states": ["open", "done", "empty", "loading", "error", "archived", "narrow", "long title"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicPage/EpicPage.tsx",
+		"export": "EpicPage",
+		"stories": [
+			"Pages/Epic/WavesAndTickets",
+			"Pages/Epic/Empty",
+			"Pages/Epic/EmptyWaves",
+			"Pages/Epic/Loading",
+			"Pages/Epic/RequestError",
+			"Pages/Epic/Archived",
+			"Pages/Epic/Narrow",
+			"Pages/Epic/Resources",
+			"Pages/Epic/ResourceDocument",
+			"Pages/Epic/ResourceDocumentNarrow",
+			"Pages/Epic/ResourcesLoading",
+			"Pages/Epic/ResourcesError",
+			"Pages/Epic/SwitchTabs"
+		],
+		"states": [
+			"waves",
+			"tickets",
+			"empty",
+			"empty waves",
+			"loading",
+			"error",
+			"archived",
+			"narrow",
+			"resources",
+			"document",
+			"tab changes"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/ticket/TicketView/TicketView.tsx",
+		"export": "TicketView",
+		"stories": [
+			"Pages/Ticket/Populated",
+			"Pages/Ticket/Attachments",
+			"Pages/Ticket/AttachmentPreview",
+			"Pages/Ticket/LinkedPullRequest",
+			"Pages/Ticket/EmptySections",
+			"Pages/Ticket/Loading",
+			"Pages/Ticket/RequestError",
+			"Pages/Ticket/Narrow",
+			"Pages/Ticket/LongContent",
+			"Pages/Ticket/Completed",
+			"Pages/Ticket/Archived"
+		],
+		"states": [
+			"populated",
+			"empty sections",
+			"loading",
+			"error",
+			"narrow",
+			"long content",
+			"completed",
+			"archived",
+			"attachments",
+			"pull request"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/TicketSheet/TicketSheet.tsx",
+		"export": "TicketSheet",
+		"stories": [
+			"Pages/Ticket sheet/Open",
+			"Pages/Ticket sheet/Loading",
+			"Pages/Ticket sheet/RequestError",
+			"Pages/Ticket sheet/Narrow",
+			"Pages/Ticket sheet/ReviewStack",
+			"Pages/Ticket sheet/SessionStack",
+			"Pages/Ticket sheet/SettingsStack",
+			"Pages/Ticket sheet/ProjectSettingsStack",
+			"Pages/Ticket sheet/BrowserStack"
+		],
+		"states": [
+			"open",
+			"loading",
+			"error",
+			"narrow",
+			"nested review",
+			"nested session",
+			"nested settings",
+			"nested project settings",
+			"nested browser"
+		],
+		"notes": ""
+	}
+]

@@ -1,0 +1,247 @@
+[
+	{
+		"source": "packages/ui/src/domain/RunLine/RunLine.tsx",
+		"export": "RunLine",
+		"stories": [
+			"Components/RunLine/Default",
+			"Components/RunLine/Starts",
+			"Components/RunLine/Question",
+			"Components/RunLine/Permission",
+			"Components/RunLine/Elicitation",
+			"Components/RunLine/Idle",
+			"Components/RunLine/TurnDone",
+			"Components/RunLine/TurnDoneNew",
+			"Components/RunLine/Failed",
+			"Components/RunLine/Lost",
+			"Components/RunLine/Empty",
+			"Components/RunLine/NoMessage",
+			"Components/RunLine/RawError",
+			"Components/RunLine/Retry",
+			"Components/RunLine/RetryPending",
+			"Components/RunLine/RetryFailed",
+			"Components/RunLine/LongMessage",
+			"Components/RunLine/RetryRun"
+		],
+		"states": [
+			"default",
+			"starts",
+			"question",
+			"permission",
+			"elicitation",
+			"idle",
+			"turn done",
+			"turn done new",
+			"failed",
+			"lost",
+			"empty",
+			"no message",
+			"raw error",
+			"retry",
+			"retry pending",
+			"retry failed",
+			"long message",
+			"retry a failed run"
+		],
+		"notes": "Hover the run to inspect its metrics. Session reports the selected run. Retry changes the local run to its start state."
+	},
+	{
+		"source": "packages/ui/src/domain/SelectedTickets/SelectedTickets.tsx",
+		"export": "SelectedTickets",
+		"stories": [
+			"Components/SelectedTickets/Default",
+			"Components/SelectedTickets/Empty",
+			"Components/SelectedTickets/Loading",
+			"Components/SelectedTickets/ErrorState",
+			"Components/SelectedTickets/Pending",
+			"Components/SelectedTickets/Removing",
+			"Components/SelectedTickets/ManyTickets",
+			"Components/SelectedTickets/RetryAndRemove"
+		],
+		"states": ["default", "empty", "loading", "error", "pending", "removing", "many tickets", "retry and remove"],
+		"notes": "Remove updates the local relationship list. Retry restores two fixture tickets. Arrow keys move between removal controls."
+	},
+	{
+		"source": "packages/ui/src/domain/SessionStatusPane/SessionStatusPane.tsx",
+		"export": "SessionStatusPane",
+		"stories": [
+			"Components/SessionStatusPane/Default",
+			"Components/SessionStatusPane/Resizable",
+			"Components/SessionStatusPane/Empty",
+			"Components/SessionStatusPane/Paused",
+			"Components/SessionStatusPane/Completed",
+			"Components/SessionStatusPane/Pending",
+			"Components/SessionStatusPane/Sent",
+			"Components/SessionStatusPane/RequestFailed",
+			"Components/SessionStatusPane/ObserverError",
+			"Components/SessionStatusPane/HistoryLoading",
+			"Components/SessionStatusPane/HistoryError",
+			"Components/SessionStatusPane/WithEmbed",
+			"Components/SessionStatusPane/LongHistory",
+			"Components/SessionStatusPane/HistoryAvailable",
+			"Components/SessionStatusPane/RetryHistory"
+		],
+		"states": [
+			"default",
+			"resizable",
+			"empty",
+			"paused",
+			"completed",
+			"pending",
+			"sent",
+			"request failed",
+			"observer error",
+			"history loading",
+			"history error",
+			"with embed",
+			"long history",
+			"history available",
+			"retry history"
+		],
+		"notes": "Select an update to inspect its text. Arrow keys move tree focus and fold days. Load and retry append older fixture updates. SessionStatusPane renders SessionStatusPaneShell."
+	},
+	{
+		"source": "packages/ui/src/domain/SessionStatusPane/SessionStatusPaneShell.tsx",
+		"export": "SessionStatusPaneShell",
+		"stories": [
+			"Components/SessionStatusPane/Default",
+			"Components/SessionStatusPane/Resizable",
+			"Components/SessionStatusPane/Empty",
+			"Components/SessionStatusPane/Paused",
+			"Components/SessionStatusPane/Completed",
+			"Components/SessionStatusPane/Pending",
+			"Components/SessionStatusPane/Sent",
+			"Components/SessionStatusPane/RequestFailed",
+			"Components/SessionStatusPane/ObserverError",
+			"Components/SessionStatusPane/HistoryLoading",
+			"Components/SessionStatusPane/HistoryError",
+			"Components/SessionStatusPane/WithEmbed",
+			"Components/SessionStatusPane/LongHistory",
+			"Components/SessionStatusPane/HistoryAvailable",
+			"Components/SessionStatusPane/RetryHistory"
+		],
+		"states": [
+			"default",
+			"resizable",
+			"empty",
+			"paused",
+			"completed",
+			"pending",
+			"sent",
+			"request failed",
+			"observer error",
+			"history loading",
+			"history error",
+			"with embed",
+			"long history",
+			"history available",
+			"retry history"
+		],
+		"notes": "SessionStatusPane renders the shell in every state. Resizable enables its pointer and keyboard resize control. History examples retain the shell while data changes."
+	},
+	{
+		"source": "packages/ui/src/domain/SettingsListRow/SettingsListRow.tsx",
+		"export": "SettingsListRow",
+		"stories": [
+			"Components/SettingsListRow/Default",
+			"Components/SettingsListRow/Disabled",
+			"Components/SettingsListRow/Expanded",
+			"Components/SettingsListRow/LongContent",
+			"Components/SettingsListRow/ToggleEditor"
+		],
+		"states": ["default", "disabled", "expanded", "long content", "toggle editor"],
+		"notes": "Select the row or its edit action to open or close the local editor. Disabled also disables the action."
+	},
+	{
+		"source": "packages/ui/src/domain/StackedBar/StackedBar.tsx",
+		"export": "StackedBar",
+		"stories": [
+			"Components/StackedBar/Default",
+			"Components/StackedBar/Empty",
+			"Components/StackedBar/Zero",
+			"Components/StackedBar/Small",
+			"Components/StackedBar/WithoutLegend"
+		],
+		"states": ["default", "empty", "zero", "small", "without legend"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/StackedBarList/StackedBarList.tsx",
+		"export": "StackedBarList",
+		"stories": ["Components/StackedBarList/Default", "Components/StackedBarList/Empty"],
+		"states": ["default", "empty"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/StartControls/StartControls.tsx",
+		"export": "StartControls",
+		"stories": [
+			"Components/StartControls/Default",
+			"Components/StartControls/Disabled",
+			"Components/StartControls/Starting",
+			"Components/StartControls/ErrorState",
+			"Components/StartControls/OneDependency",
+			"Components/StartControls/SeveralDependencies",
+			"Components/StartControls/ManyAgents",
+			"Components/StartControls/StartAnyway"
+		],
+		"states": [
+			"default",
+			"disabled",
+			"starting",
+			"error",
+			"one dependency",
+			"several dependencies",
+			"many agents",
+			"start with open dependencies"
+		],
+		"notes": "Choose an agent and start a local run. Open dependencies permit an explicit start. The result appears below the control."
+	},
+	{
+		"source": "packages/ui/src/domain/StatusIcon/StatusIcon.tsx",
+		"export": "StatusIcon",
+		"stories": [
+			"Components/StatusIcon/Default",
+			"Components/StatusIcon/Started",
+			"Components/StatusIcon/Review",
+			"Components/StatusIcon/Done",
+			"Components/StatusIcon/Canceled",
+			"Components/StatusIcon/Queue",
+			"Components/StatusIcon/QuarterProgress",
+			"Components/StatusIcon/FullProgress",
+			"Components/StatusIcon/CustomColor",
+			"Components/StatusIcon/Decorative"
+		],
+		"states": [
+			"default",
+			"started",
+			"review",
+			"done",
+			"canceled",
+			"queue",
+			"quarter progress",
+			"full progress",
+			"custom color",
+			"decorative"
+		],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/TicketComposer/TicketComposer.tsx",
+		"export": "TicketComposer",
+		"stories": [
+			"Components/TicketComposer/Default",
+			"Components/TicketComposer/Closed",
+			"Components/TicketComposer/Empty",
+			"Components/TicketComposer/LongContent"
+		],
+		"states": ["default", "closed", "empty", "long content"],
+		"notes": "The form renders ComposerTitle and ComposerProperty. Command+Enter submits. Command+Shift+Enter submits and keeps the form open. Control replaces Command on other platforms."
+	},
+	{
+		"source": "packages/ui/src/domain/TicketGlimmer/TicketGlimmer.tsx",
+		"export": "TicketGlimmer",
+		"stories": ["Components/TicketGlimmer/InteractiveStates"],
+		"states": ["interactive states", "working", "inactive", "reduced motion"],
+		"notes": "Use the switch to start or stop the working treatment. The fixture uses the canonical ticket card. Reduced motion follows the browser preference."
+	}
+]

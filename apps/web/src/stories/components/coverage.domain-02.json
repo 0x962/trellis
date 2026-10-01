@@ -1,0 +1,189 @@
+[
+	{
+		"source": "packages/ui/src/domain/FilterBar/FilterBar.tsx",
+		"export": "FilterBar",
+		"stories": [
+			"Components/FilterBar/Default",
+			"Components/FilterBar/Filtered",
+			"Components/FilterBar/LongFilters",
+			"Components/FilterBar/RemoveFilter"
+		],
+		"states": ["default", "filtered", "long filters", "local removal"],
+		"notes": "The filtered bar contains a removable local chip. RemoveFilter verifies that removal preserves the filter action. The long-filter story preserves both labels."
+	},
+	{
+		"source": "packages/ui/src/domain/FilterPopover/FilterPopover.tsx",
+		"export": "FilterPopover",
+		"stories": [
+			"Components/FilterPopover/Default",
+			"Components/FilterPopover/Open",
+			"Components/FilterPopover/Empty",
+			"Components/FilterPopover/Stage",
+			"Components/FilterPopover/ToggleSelection"
+		],
+		"states": ["default", "open", "empty", "stage", "local checked toggle", "mixed to checked"],
+		"notes": "Select a filter to change its local check. ToggleSelection reopens the popup to verify checked and mixed choices."
+	},
+	{
+		"source": "packages/ui/src/domain/FlowDecisionContext/FlowDecisionContext.tsx",
+		"export": "FlowDecisionContext",
+		"stories": [
+			"Components/FlowDecisionContext/Default",
+			"Components/FlowDecisionContext/WithoutOutput",
+			"Components/FlowDecisionContext/LongOutput"
+		],
+		"states": ["default", "without output", "long output"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx",
+		"export": "FlowRunSummary",
+		"stories": [
+			"Components/FlowRunSummary/Default",
+			"Components/FlowRunSummary/Waiting",
+			"Components/FlowRunSummary/Succeeded",
+			"Components/FlowRunSummary/Failed",
+			"Components/FlowRunSummary/Canceled",
+			"Components/FlowRunSummary/Collapsed",
+			"Components/FlowRunSummary/LongName"
+		],
+		"states": ["default", "waiting", "succeeded", "failed", "canceled", "collapsed", "long name"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx",
+		"export": "FlowRunTree",
+		"stories": [
+			"Components/FlowRunTree/AllStates",
+			"Components/FlowRunTree/Empty",
+			"Components/FlowRunTree/Collapsed",
+			"Components/FlowRunTree/SelectedOutput",
+			"Components/FlowRunTree/ExpandAndCollapse",
+			"Components/FlowRunTree/OutputToggle"
+		],
+		"states": [
+			"all states",
+			"empty",
+			"collapsed",
+			"selected output",
+			"pointer expansion",
+			"keyboard navigation",
+			"output toggle"
+		],
+		"notes": "Controlled states use local updates. ExpandAndCollapse checks pointer expansion and arrow-key navigation. OutputToggle checks collapse and expansion of selected output."
+	},
+	{
+		"source": "packages/ui/src/domain/GithubMark/GithubMark.tsx",
+		"export": "GithubMark",
+		"stories": ["Components/GithubMark/Default", "Components/GithubMark/Large", "Components/GithubMark/Decorative"],
+		"states": ["default", "large", "decorative"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/GroupHeader/GroupHeader.tsx",
+		"export": "GroupHeader",
+		"stories": [
+			"Components/GroupHeader/Default",
+			"Components/GroupHeader/Collapsed",
+			"Components/GroupHeader/Empty",
+			"Components/GroupHeader/NoCount",
+			"Components/GroupHeader/Fixed",
+			"Components/GroupHeader/Band",
+			"Components/GroupHeader/Sidebar",
+			"Components/GroupHeader/Strip",
+			"Components/GroupHeader/Phone",
+			"Components/GroupHeader/Actions",
+			"Components/GroupHeader/LongLabel"
+		],
+		"states": [
+			"default",
+			"collapsed",
+			"empty",
+			"no count",
+			"fixed",
+			"band",
+			"sidebar",
+			"strip",
+			"phone",
+			"actions",
+			"long label"
+		],
+		"notes": "Select the heading to change its expansion. Create and Start report the selected action below the header."
+	},
+	{
+		"source": "packages/ui/src/domain/HarnessAccountForm/HarnessAccountForm.tsx",
+		"export": "HarnessAccountForm",
+		"stories": [
+			"Components/HarnessAccountForm/Default",
+			"Components/HarnessAccountForm/Closed",
+			"Components/HarnessAccountForm/Busy",
+			"Components/HarnessAccountForm/ErrorState"
+		],
+		"states": ["default", "closed", "busy", "error"],
+		"notes": "The form uses local data. Submit closes the dialog. The provider does not receive a request."
+	},
+	{
+		"source": "packages/ui/src/domain/HarnessAccountNameForm/HarnessAccountNameForm.tsx",
+		"export": "HarnessAccountNameForm",
+		"stories": [
+			"Components/HarnessAccountNameForm/Default",
+			"Components/HarnessAccountNameForm/Closed",
+			"Components/HarnessAccountNameForm/Busy",
+			"Components/HarnessAccountNameForm/ErrorState"
+		],
+		"states": ["default", "closed", "busy", "error"],
+		"notes": "The form uses local data. Submit closes the dialog. The provider does not receive a request."
+	},
+	{
+		"source": "packages/ui/src/domain/LabelDot/LabelDot.tsx",
+		"export": "LabelDot",
+		"stories": ["Components/LabelDot/Default", "Components/LabelDot/Icon", "Components/LabelDot/AllColors"],
+		"states": ["default", "icon", "all colors"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/LabelPill/LabelPill.tsx",
+		"export": "LabelPill",
+		"stories": ["Components/LabelPill/Default", "Components/LabelPill/Group", "Components/LabelPill/LongContent"],
+		"states": ["default", "group", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/LabelPills/LabelPills.tsx",
+		"export": "LabelPills",
+		"stories": [
+			"Components/LabelPills/Default",
+			"Components/LabelPills/Empty",
+			"Components/LabelPills/One",
+			"Components/LabelPills/Wrap",
+			"Components/LabelPills/SingleVisible"
+		],
+		"states": ["default", "empty", "one", "wrap", "single visible"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/LineChanges/LineChanges.tsx",
+		"export": "LineChanges",
+		"stories": [
+			"Components/LineChanges/Default",
+			"Components/LineChanges/Loading",
+			"Components/LineChanges/Unavailable",
+			"Components/LineChanges/Zero",
+			"Components/LineChanges/AdditionOnly",
+			"Components/LineChanges/DeletionOnly",
+			"Components/LineChanges/LargeCounts",
+			"Components/LineChanges/AlignStart"
+		],
+		"states": [
+			"default",
+			"loading",
+			"unavailable",
+			"zero",
+			"addition only",
+			"deletion only",
+			"large counts",
+			"align start"
+		],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

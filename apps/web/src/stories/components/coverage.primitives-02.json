@@ -1,0 +1,176 @@
+[
+	{
+		"source": "packages/ui/src/primitives/ContextMenuTrigger/ContextMenuTrigger.tsx",
+		"export": "ContextMenuTrigger",
+		"stories": [
+			"Components/ContextMenu/Default",
+			"Components/ContextMenu/Disabled",
+			"Components/ContextMenu/ToggleCheck"
+		],
+		"states": ["default", "disabled", "secondary click and reopen"],
+		"notes": "ContextMenu renders ContextMenuTrigger as its page-tab target. Default and Disabled cover the trigger; ToggleCheck uses it to open the menu twice."
+	},
+	{
+		"source": "packages/ui/src/primitives/Dialog/Dialog.tsx",
+		"export": "Dialog",
+		"stories": [
+			"Components/Dialog/Default",
+			"Components/Dialog/Open",
+			"Components/Dialog/Large",
+			"Components/Dialog/LongContent",
+			"Components/Dialog/NonModal"
+		],
+		"states": ["default", "open", "large", "long content", "non modal"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/EmptyState/EmptyState.tsx",
+		"export": "EmptyState",
+		"stories": [
+			"Components/EmptyState/Default",
+			"Components/EmptyState/Page",
+			"Components/EmptyState/WithoutImage",
+			"Components/EmptyState/WithAction"
+		],
+		"states": ["default", "page", "without image", "with action"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/EntityCard/EntityCard.tsx",
+		"export": "EntityCard",
+		"stories": [
+			"Components/EntityCard/Default",
+			"Components/EntityCard/Link",
+			"Components/EntityCard/WithBadge",
+			"Components/EntityCard/LongContent"
+		],
+		"states": ["default", "link", "with badge", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Field/Field.tsx",
+		"export": "Field",
+		"stories": [
+			"Components/Field/Default",
+			"Components/Field/Disabled",
+			"Components/Field/ErrorState",
+			"Components/Field/ReadOnly",
+			"Components/Field/TrailingAction"
+		],
+		"states": ["default", "disabled", "error", "read only", "trailing action"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/FieldHint/FieldHint.tsx",
+		"export": "FieldHint",
+		"stories": ["Components/FieldHint/Default", "Components/FieldHint/ErrorState", "Components/FieldHint/LongContent"],
+		"states": ["default", "error", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/FormStatus/FormStatus.tsx",
+		"export": "FormStatus",
+		"stories": [
+			"Components/FormStatus/Default",
+			"Components/FormStatus/Saving",
+			"Components/FormStatus/Saved",
+			"Components/FormStatus/ErrorState"
+		],
+		"states": ["default", "saving", "saved", "error"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/IconButton/IconButton.tsx",
+		"export": "IconButton",
+		"stories": [
+			"Components/IconButton/Default",
+			"Components/IconButton/Disabled",
+			"Components/IconButton/Processing",
+			"Components/IconButton/Pressed",
+			"Components/IconButton/ExtraSmall",
+			"Components/IconButton/Medium",
+			"Components/IconButton/Primary",
+			"Components/IconButton/Danger",
+			"Components/IconButton/DefaultVariant",
+			"Components/IconButton/DangerSoft",
+			"Components/IconButton/Toggle"
+		],
+		"states": [
+			"default",
+			"disabled",
+			"processing",
+			"pressed",
+			"extra small",
+			"medium",
+			"primary",
+			"danger",
+			"default variant",
+			"danger soft",
+			"local pressed toggle"
+		],
+		"notes": "Pressed controls change with a click or Space. Toggle verifies both states. Disabled and processing controls retain their named stories."
+	},
+	{
+		"source": "packages/ui/src/primitives/InlineEdit/InlineEdit.tsx",
+		"export": "InlineEdit",
+		"stories": [
+			"Components/InlineEdit/Default",
+			"Components/InlineEdit/Editing",
+			"Components/InlineEdit/Empty",
+			"Components/InlineEdit/Refused",
+			"Components/InlineEdit/Pending",
+			"Components/InlineEdit/LongValue"
+		],
+		"states": ["default", "editing", "empty", "refused", "pending", "long value"],
+		"notes": "Use Rename to edit the value. Enter or blur saves it. Escape restores it. Empty input, a pending save, and a refusal use the real field behavior."
+	},
+	{
+		"source": "packages/ui/src/primitives/Input/Input.tsx",
+		"export": "Input",
+		"stories": [
+			"Components/Input/Default",
+			"Components/Input/Empty",
+			"Components/Input/ErrorState",
+			"Components/Input/Disabled",
+			"Components/Input/ReadOnly",
+			"Components/Input/HiddenLabel",
+			"Components/Input/LongContent"
+		],
+		"states": ["default", "empty", "error", "disabled", "read only", "hidden label", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Kbd/Kbd.tsx",
+		"export": "Kbd",
+		"stories": ["Components/Kbd/Default", "Components/Kbd/SingleKey", "Components/Kbd/Enter", "Components/Kbd/Inverse"],
+		"states": ["default", "single key", "enter", "inverse"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Menu/Menu.tsx",
+		"export": "Menu",
+		"stories": ["Components/Menu/Default", "Components/Menu/Grouped", "Components/Menu/ToggleCheck"],
+		"states": ["default", "grouped", "local checked toggle"],
+		"notes": "Open the menu to inspect selected, disabled, and destructive actions. ToggleCheck selects Pin and verifies its saved local check after the menu reopens."
+	},
+	{
+		"source": "packages/ui/src/primitives/OutputBlock/OutputBlock.tsx",
+		"export": "OutputBlock",
+		"stories": ["Components/OutputBlock/Default", "Components/OutputBlock/Empty", "Components/OutputBlock/LongContent"],
+		"states": ["default", "empty", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Pagination/Pagination.tsx",
+		"export": "Pagination",
+		"stories": [
+			"Components/Pagination/Default",
+			"Components/Pagination/MiddlePage",
+			"Components/Pagination/LastPage",
+			"Components/Pagination/Pending",
+			"Components/Pagination/SinglePage"
+		],
+		"states": ["default", "middle page", "last page", "pending", "single page"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

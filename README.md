@@ -51,6 +51,7 @@ The installer builds the app from source, signs the local preview, and installs 
 
 ## Documentation
 
+- [Storybook component and page catalog](docs/STORYBOOK.md)
 - [Desktop build and install](apps/desktop/README.md)
 - [Agent runs and assignments](docs/agents.md)
 - [Local pull request reviews](docs/reviews.md)

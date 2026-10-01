@@ -1,0 +1,161 @@
+[
+	{
+		"source": "apps/web/src/routes/ai.flows.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Flows/MixedEnginesAndPublication",
+			"Pages/Flows/Empty",
+			"Pages/Flows/Loading",
+			"Pages/Flows/RequestError",
+			"Pages/Flows/Narrow",
+			"Pages/Flows/FilteredEmpty",
+			"Pages/Flows/SearchAndClear"
+		],
+		"states": [
+			"legacy",
+			"Langflow",
+			"pending publication",
+			"published",
+			"empty",
+			"loading",
+			"error",
+			"narrow",
+			"filtered empty",
+			"search and clear"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/routes/ai.flows_.$slug.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Flow editor/LegacyCanvas",
+			"Pages/Flow editor/EmptyCanvas",
+			"Pages/Flow editor/Loading",
+			"Pages/Flow editor/RequestError",
+			"Pages/Flow editor/EditorHostUnavailable",
+			"Pages/Flow editor/EditorHostLoading",
+			"Pages/Flow editor/Narrow",
+			"Pages/Flow editor/LegacyLoading",
+			"Pages/Flow editor/LegacyRequestError",
+			"Pages/Flow editor/LegacyMissing",
+			"Pages/Flow editor/EditorHostError"
+		],
+		"states": [
+			"legacy canvas",
+			"empty canvas",
+			"loading",
+			"error",
+			"unavailable host",
+			"narrow",
+			"legacy loading",
+			"legacy error",
+			"missing flow",
+			"host error"
+		],
+		"notes": "Langflow host states use a synthetic unavailable host. The stories load no external editor."
+	},
+	{
+		"source": "apps/web/src/routes/usage.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Usage/Agent",
+			"Pages/Usage/TokensByModel",
+			"Pages/Usage/SelectedDayAndTicket",
+			"Pages/Usage/Empty",
+			"Pages/Usage/Loading",
+			"Pages/Usage/RequestError",
+			"Pages/Usage/Narrow",
+			"Pages/Usage/System",
+			"Pages/Usage/SystemLoading",
+			"Pages/Usage/SystemError",
+			"Pages/Usage/MemoryPressure",
+			"Pages/Usage/SystemNarrow"
+		],
+		"states": ["agent", "system", "empty", "loading", "error", "filters", "memory pressure", "narrow"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/routes/reviews_.$owner.$repo.$number.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Review/Overview",
+			"Pages/Review/Checks",
+			"Pages/Review/Diff",
+			"Pages/Review/Flows",
+			"Pages/Review/FlowsWithoutTicket",
+			"Pages/Review/FlowsEmpty",
+			"Pages/Review/FlowsLoading",
+			"Pages/Review/FlowsError",
+			"Pages/Review/FlowsNarrow",
+			"Pages/Review/Narrow",
+			"Pages/Review/EmptyOverview",
+			"Pages/Review/Loading",
+			"Pages/Review/RequestError",
+			"Pages/Review/FailedChecks",
+			"Pages/Review/MergeConflict",
+			"Pages/Review/Queued",
+			"Pages/Review/SwitchTabs"
+		],
+		"states": [
+			"overview",
+			"checks",
+			"flows",
+			"diff",
+			"loading",
+			"error",
+			"empty",
+			"conflict",
+			"queued",
+			"narrow",
+			"flow history populated",
+			"flow history empty",
+			"flow history loading",
+			"flow history error",
+			"tab changes"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/routes/search.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Search/Results",
+			"Pages/Search/Initial",
+			"Pages/Search/Empty",
+			"Pages/Search/PriorityFilter",
+			"Pages/Search/Loading",
+			"Pages/Search/RequestError",
+			"Pages/Search/Narrow",
+			"Pages/Search/SearchAndClear",
+			"Pages/Search/LoadMore",
+			"Pages/Search/LoadMoreError"
+		],
+		"states": [
+			"initial",
+			"results",
+			"empty",
+			"loading",
+			"error",
+			"priority filter",
+			"narrow",
+			"search and clear",
+			"pagination",
+			"pagination error"
+		],
+		"notes": "The route can resolve an internal link and redirect. The stories cover the resulting primary views. The loading story uses the root route ShellFrame."
+	},
+	{
+		"source": "apps/web/src/routes/setup.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Setup/Name",
+			"Pages/Setup/BlankName",
+			"Pages/Setup/Project",
+			"Pages/Setup/ExistingProjects",
+			"Pages/Setup/Narrow"
+		],
+		"states": ["name", "blank name", "new project", "existing projects", "narrow"],
+		"notes": "The source route component uses the synthetic actor and project list. Stories skip the entry redirects to show each setup step."
+	}
+]

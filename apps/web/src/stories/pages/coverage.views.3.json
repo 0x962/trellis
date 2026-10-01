@@ -1,0 +1,171 @@
+[
+	{
+		"source": "apps/web/src/features/flows/LangflowEditor/components/FlowEditorRoute/FlowEditorRoute.tsx",
+		"export": "FlowEditorRoute",
+		"stories": [
+			"Pages/Flow editor/LegacyCanvas",
+			"Pages/Flow editor/EmptyCanvas",
+			"Pages/Flow editor/Loading",
+			"Pages/Flow editor/RequestError",
+			"Pages/Flow editor/EditorHostUnavailable",
+			"Pages/Flow editor/EditorHostLoading",
+			"Pages/Flow editor/Narrow",
+			"Pages/Flow editor/LegacyLoading",
+			"Pages/Flow editor/LegacyRequestError",
+			"Pages/Flow editor/LegacyMissing",
+			"Pages/Flow editor/EditorHostError"
+		],
+		"states": [
+			"legacy canvas",
+			"empty canvas",
+			"loading",
+			"error",
+			"unavailable host",
+			"narrow",
+			"legacy loading",
+			"legacy error",
+			"missing flow",
+			"host error"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowEditor/FlowEditor.tsx",
+		"export": "FlowEditor",
+		"stories": [
+			"Pages/Flow editor/LegacyCanvas",
+			"Pages/Flow editor/EmptyCanvas",
+			"Pages/Flow editor/LegacyLoading",
+			"Pages/Flow editor/LegacyRequestError",
+			"Pages/Flow editor/LegacyMissing",
+			"Pages/Flow editor/Narrow"
+		],
+		"states": ["legacy canvas", "empty canvas", "loading", "error", "missing flow", "narrow"],
+		"notes": "The legacy document selects FlowEditor. Its request states use flows.get responses."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageList/PageList.tsx",
+		"export": "PageList",
+		"stories": [
+			"Pages/Page list/Populated",
+			"Pages/Page list/Empty",
+			"Pages/Page list/FilteredEmpty",
+			"Pages/Page list/Loading",
+			"Pages/Page list/RequestError",
+			"Pages/Page list/Archived",
+			"Pages/Page list/Narrow",
+			"Pages/Page list/SearchAndClear"
+		],
+		"states": [
+			"populated",
+			"empty",
+			"filtered empty",
+			"loading",
+			"error",
+			"archived",
+			"narrow",
+			"long title",
+			"search and clear"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/pages/PageDetail/PageDetail.tsx",
+		"export": "PageDetail",
+		"stories": [
+			"Pages/Page detail/Populated",
+			"Pages/Page detail/EmptyComments",
+			"Pages/Page detail/Loading",
+			"Pages/Page detail/RequestError",
+			"Pages/Page detail/Missing",
+			"Pages/Page detail/Refused",
+			"Pages/Page detail/ContentLoading",
+			"Pages/Page detail/ContentError",
+			"Pages/Page detail/CommentsError",
+			"Pages/Page detail/Historical",
+			"Pages/Page detail/Deleted",
+			"Pages/Page detail/ArchivedProject",
+			"Pages/Page detail/Offline",
+			"Pages/Page detail/Narrow",
+			"Pages/Page detail/NarrowComments"
+		],
+		"states": [
+			"populated",
+			"empty comments",
+			"loading",
+			"error",
+			"missing",
+			"refused",
+			"content loading",
+			"content error",
+			"historical",
+			"deleted",
+			"offline",
+			"archived",
+			"narrow",
+			"comments sheet"
+		],
+		"notes": "The iframe uses local synthetic HTML and the existing page-ready message."
+	},
+	{
+		"source": "apps/web/src/features/settings/SettingsView/SettingsView.tsx",
+		"export": "SettingsView",
+		"stories": [
+			"Pages/Settings/Account",
+			"Pages/Settings/Notifications",
+			"Pages/Settings/Cleanup",
+			"Pages/Settings/MenuLinks",
+			"Pages/Settings/EmptyMenuLinks",
+			"Pages/Settings/AgentPrompt",
+			"Pages/Settings/PromptLoading",
+			"Pages/Settings/PromptError",
+			"Pages/Settings/CleanupLoading",
+			"Pages/Settings/CleanupError",
+			"Pages/Settings/Narrow",
+			"Pages/Settings/SwitchSections"
+		],
+		"states": [
+			"account",
+			"notifications",
+			"cleanup",
+			"menu links",
+			"agent prompt",
+			"loading",
+			"error",
+			"narrow",
+			"section changes"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/project-settings/ProjectSettingsView/ProjectSettingsView.tsx",
+		"export": "ProjectSettingsView",
+		"stories": [
+			"Pages/Project settings/General",
+			"Pages/Project settings/Notes",
+			"Pages/Project settings/EmptyNotes",
+			"Pages/Project settings/NotesLoading",
+			"Pages/Project settings/NotesError",
+			"Pages/Project settings/TicketTemplate",
+			"Pages/Project settings/Statuses",
+			"Pages/Project settings/Labels",
+			"Pages/Project settings/EmptyLabels",
+			"Pages/Project settings/Lifecycle",
+			"Pages/Project settings/Archived",
+			"Pages/Project settings/Narrow"
+		],
+		"states": [
+			"general",
+			"notes",
+			"ticket template",
+			"statuses",
+			"labels",
+			"archive",
+			"empty",
+			"loading",
+			"error",
+			"narrow"
+		],
+		"notes": ""
+	}
+]
