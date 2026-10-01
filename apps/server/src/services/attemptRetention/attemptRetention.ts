@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { withAttemptOperation } from "../langflowStops/withAttemptOperation";
+import { withAttemptOperation } from "../langflowStops";
 
 const readers = new Map<string, number>();
 const keyOf = (home: string, attemptId: string) => resolve(home, "harness-attempts", attemptId);
