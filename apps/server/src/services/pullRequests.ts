@@ -53,6 +53,7 @@ import {
 
 export { prepareDiff } from "./pullRequestDiff/index.ts";
 export { resolve } from "./pullRequestResolver/index.ts";
+export { readMergedWork } from "./pullRequests/components/readMergedWork/index.ts";
 export { parsePullRequestUrl };
 
 // The caller verifies `headSha` with GitHub before this transaction starts.

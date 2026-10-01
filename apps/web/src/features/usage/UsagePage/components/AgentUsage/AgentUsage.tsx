@@ -5,19 +5,22 @@ import {
 	Chip,
 	EmptyState,
 	FailureState,
+	GroupHeader,
 	Pagination,
+	Panel,
 	SectionHeader,
 	Select,
 	Skeleton,
 	UsageChart,
 } from "@trellis/ui";
+import { useId, useMemo, useState } from "react";
 import { formatDayLabel, formatMetric } from "../../../formatUsage";
 import { useUsageReport } from "../../hooks/useUsageReport";
-import { MergedWork } from "../MergedWork";
 import { UsageAccounts } from "../UsageAccounts";
 import { UsageGroups } from "../UsageGroups";
 import { UsageProviders } from "../UsageProviders";
 import { UsageTotals } from "../UsageTotals";
+import { MergedWork } from "./components/MergedWork";
 import { useUsageRanking } from "./components/useUsageRanking";
 import { usageChartSeries } from "./usageChartSeries";
 
@@ -32,6 +35,8 @@ const rangeOptions = [
 ] as const;
 
 export function AgentUsage() {
+	const [explanationOpen, setExplanationOpen] = useState(false);
+	const explanationId = useId();
 	const search = useSearch({ from: "/usage" });
 	const navigate = useNavigate({ from: "/usage" });
 	const { days, setDays, report } = useUsageReport();
@@ -52,13 +57,12 @@ export function AgentUsage() {
 		clearRow,
 	);
 	const selected = (group === "model" ? models : harnesses).data?.selected ?? null;
-	const buckets = report.data?.buckets ?? [];
-	const chartDays = buckets.map((bucket) => bucket.day);
-	const series = usageChartSeries(
-		chartDays,
-		buckets.map((bucket) => bucket[metric]),
-		selected,
-		metric,
+	const buckets = report.data?.buckets;
+	const chartDays = useMemo(() => buckets?.map((bucket) => bucket.day) ?? [], [buckets]);
+	const dayTotals = useMemo(() => buckets?.map((bucket) => bucket[metric]) ?? [], [buckets, metric]);
+	const series = useMemo(
+		() => usageChartSeries(chartDays, dayTotals, selected, metric),
+		[chartDays, dayTotals, selected, metric],
 	);
 	const metricLabel = metric === "usd" ? "API-rate cost" : "Tokens";
 	const title = `${selected?.label ?? metricLabel} per day`;
@@ -127,14 +131,11 @@ export function AgentUsage() {
 				/>
 			) : (
 				<>
-					<section
-						aria-label="Usage totals and daily chart"
-						className="overflow-hidden rounded-xl border border-border bg-usage-panel"
-					>
+					<Panel aria-label="Usage totals and daily chart">
 						<UsageTotals totals={report.data.totals} />
 						<div className="flex flex-col gap-6 border-t border-border px-7 pt-6 pb-4 max-sm:px-4">
 							<div className="flex flex-wrap items-center justify-between gap-3">
-								<h3 className="text-md font-medium text-fg">{title}</h3>
+								<SectionHeader title={title} level={3} appearance="overview" />
 								{selected && (
 									<Chip
 										label={group === "model" ? "Model" : "Harness"}
@@ -155,7 +156,7 @@ export function AgentUsage() {
 								appearance="overview"
 							/>
 						</div>
-					</section>
+					</Panel>
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 						{(
 							[
@@ -191,28 +192,35 @@ export function AgentUsage() {
 			)}
 			{report.data && <MergedWork report={report.data} />}
 			{report.data && (
-				<details className="border-t border-border pt-4 text-xs text-fg-muted">
-					<summary className="min-h-7 cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
-						How to read these charts
-					</summary>
-					<div className="mt-2 flex max-w-prose flex-col gap-2">
-						<p>
-							API-rate cost uses API list prices from {report.data.pricingTableUpdated}. It is not a subscription bill.
-							A ~ marks an approximate rate.
-						</p>
-						<p>
-							Model and harness bars show the same usage in two ways. Their filters change only the daily usage chart.
-						</p>
-						<p>
-							Merged work uses saved GitHub data. Each linked repository and PR number counts once, by merge date,
-							through the report time.
-						</p>
-						<p>
-							Line totals include all files. They measure changed lines, not productivity. Missing values are marked as
-							incomplete.
-						</p>
+				<div className="border-t border-border pt-4 text-xs text-fg-muted">
+					<GroupHeader
+						group="usage-explanation"
+						label="How to read these charts"
+						appearance="strip"
+						expanded={explanationOpen}
+						onToggle={() => setExplanationOpen((value) => !value)}
+						controls={explanationId}
+					/>
+					<div id={explanationId} hidden={!explanationOpen}>
+						<div className="mt-2 flex max-w-prose flex-col gap-2">
+							<p>
+								API-rate cost uses API list prices from {report.data.pricingTableUpdated}. It is not a subscription
+								bill. A ~ marks an approximate rate.
+							</p>
+							<p>
+								Model and harness bars show the same usage in two ways. Their filters change only the daily usage chart.
+							</p>
+							<p>
+								Merged work uses saved GitHub data. Each linked repository and PR number counts once, by merge date,
+								through the report time.
+							</p>
+							<p>
+								Line totals include all files. They measure changed lines, not productivity. Missing values are marked
+								as incomplete.
+							</p>
+						</div>
 					</div>
-				</details>
+				</div>
 			)}
 			<section aria-label="Configuration" className="mt-4 flex flex-col gap-4 border-t border-border pt-6">
 				<SectionHeader title="Configuration" />

@@ -21,7 +21,6 @@ export type StatTileProps = {
 	size?: "default" | "large";
 };
 
-// One measure: its name, the figure, and the detail that qualifies it.
 export function StatTile({
 	label,
 	value,

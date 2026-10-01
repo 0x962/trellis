@@ -32,6 +32,13 @@ export const Agent: Story = {
 		await expect(await canvas.findByRole("button", { name: "Clear usage filter" })).toBeVisible();
 		await expect(work.getByText("+2,800")).toBeVisible();
 		await userEvent.click(canvas.getByRole("button", { name: "Clear usage filter" }));
+		const explanation = canvas.getByRole("button", { name: "How to read these charts" });
+		await expect(explanation).toHaveAttribute("aria-expanded", "false");
+		await userEvent.click(explanation);
+		await expect(explanation).toHaveAttribute("aria-expanded", "true");
+		await expect(canvas.getByText(/Line totals include all files/)).toBeVisible();
+		await userEvent.click(explanation);
+		await expect(canvas.getByText(/Line totals include all files/)).not.toBeVisible();
 	},
 };
 export const TokensByModel: Story = { parameters: { trellis: { path: "/usage?metric=tokens&group=model" } } };

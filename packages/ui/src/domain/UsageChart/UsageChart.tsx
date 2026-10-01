@@ -67,15 +67,14 @@ export function UsageChart({
 	const count = days.length;
 	const dayIndexByDay = useMemo(() => new Map(days.map((day, index) => [day, index])), [days]);
 	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
-	const scaleMax =
-		max ??
-		niceMax(
-			Math.max(
-				0,
-				...(variant === "grouped" ? series.flatMap((row) => [...row.values]) : days.map((_, index) => dayTotal(index))),
-			),
-		);
-	const top = integerScale ? Math.max(4, Math.ceil(scaleMax / 4) * 4) : scaleMax;
+	const top = useMemo(() => {
+		const values =
+			variant === "grouped"
+				? series.flatMap((row) => [...row.values])
+				: days.map((_, index) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0));
+		const scaleMax = max ?? niceMax(Math.max(0, ...values));
+		return integerScale ? Math.max(4, Math.ceil(scaleMax / 4) * 4) : scaleMax;
+	}, [days, series, variant, max, integerScale]);
 	const selectedIndex = selectedDay === null ? -1 : (dayIndexByDay.get(selectedDay) ?? -1);
 	const cursorIndex = cursor.day === null ? -1 : (dayIndexByDay.get(cursor.day) ?? -1);
 	const focusIndex =
@@ -90,7 +89,7 @@ export function UsageChart({
 	const hoverIndex = hoverDay === null ? -1 : (dayIndexByDay.get(hoverDay) ?? -1);
 	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
-	// Each bar leaves space on both sides of its day slot.
+	// Gaps keep bars for adjacent days distinct.
 	const slot = 100 / Math.max(1, count);
 	const barWidth = slot * (appearance === "overview" ? 0.45 : 0.7);
 	const point = (index: number, value: number) => ({

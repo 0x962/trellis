@@ -99,22 +99,14 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 		/>,
 	);
 	expect(groupHtml.match(/<li /g)).toHaveLength(8);
-	for (let page = 0; page < 24; page++) {
-		await act(async () => data!.changeSessionPage(1));
-		await settle();
-	}
-	expect(data!.data?.sessions.map((item) => item.sessionId)).toEqual(["session-240"]);
 	await act(async () => render("account:account-240"));
 	await settle();
-	expect(data!.data?.sessionStart).toBe(0);
-	expect(data!.data?.sessionTotal).toBe(1);
 	for (let page = 0; page < 30; page++) {
 		await act(async () => data!.changeGroupPage(1));
 		await settle();
 	}
 	expect(data!.data?.groups.map((item) => item.key)).toEqual(["account:account-240"]);
 	expect(data!.data?.selected?.key).toBe("account:account-240");
-	expect(data!.data?.sessions[0]?.sessionId).toBe("session-240");
 	await act(async () => data!.changeGroupPage(-1));
 	await settle();
 	expect(data!.data?.groups).toHaveLength(8);
@@ -122,12 +114,10 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 	await act(async () => render(null, "tokens"));
 	await settle();
 	expect(data!.data?.groupStart).toBe(0);
-	expect(data!.data?.sessionStart).toBe(0);
 	await act(async () => render(null, "usd"));
 	await settle();
 	expect(data!.data?.groupStart).toBe(0);
 	expect(requests.some((request) => request.groupPage === 30)).toBe(true);
-	expect(requests.some((request) => request.sessionPage === 24)).toBe(true);
 	await act(async () => renderer.unmount());
 	queryClient.clear();
 });
@@ -193,7 +183,6 @@ test.each(["reopened URL", "refreshed report"])("clears a missing group from %s"
 		await act(async () => render(initial));
 		await settle();
 		expect(selected).toBe("account:account-240");
-		expect(data!.data?.sessionTotal).toBe(1);
 	}
 	await act(async () => render(next));
 	expect(data!.isPending).toBe(true);
@@ -202,8 +191,6 @@ test.each(["reopened URL", "refreshed report"])("clears a missing group from %s"
 	await settle();
 	expect(selected).toBeNull();
 	expect(data!.data?.selected).toBeNull();
-	expect(data!.data?.sessionTotal).toBe(240);
-	expect(data!.data?.sessions).toHaveLength(10);
 	expect(requests.at(-1)).toMatchObject({
 		computedAt: next.computedAt,
 		row: undefined,

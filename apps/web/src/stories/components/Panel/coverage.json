@@ -1,0 +1,9 @@
+[
+	{
+		"source": "packages/ui/src/primitives/Panel/Panel.tsx",
+		"export": "Panel",
+		"stories": ["Components/Panel/Default", "Components/Panel/WithHeading", "Components/Panel/Narrow"],
+		"states": ["default", "heading", "narrow"],
+		"notes": ""
+	}
+]
