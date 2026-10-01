@@ -33,7 +33,7 @@ export const SwitchTabs: Story = {
 		await userEvent.click(await canvas.findByRole("tab", { name: /Resources/ }));
 		await expect(await canvas.findByRole("tabpanel", { name: /Resources/ })).toBeVisible();
 		await userEvent.click(canvas.getByRole("tab", { name: "Overview" }));
-		await expect(await canvas.findByRole("row", { name: "Open DEMO-40" })).toBeVisible();
+		await expect(await canvas.findByRole("link", { name: "Open DEMO-40" })).toBeVisible();
 	},
 };
 export const Empty: Story = {
