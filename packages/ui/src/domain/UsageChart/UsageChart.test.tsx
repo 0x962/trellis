@@ -75,3 +75,29 @@ describe("UsageChart states", () => {
 		expect(html).not.toMatch(/animate-|motion-|transition-/);
 	});
 });
+
+test("grouped bars share a baseline and use the largest series value for the scale", () => {
+	const html = render({
+		variant: "grouped",
+		appearance: "overview",
+		days: ["2026-09-29"],
+		series: [
+			{ key: "added", label: "Added", tone: "added", values: [40] },
+			{ key: "deleted", label: "Deleted", tone: "deleted", values: [20] },
+		],
+	});
+	const rects = [...html.matchAll(/<rect[^>]*data-series="(added|deleted)"[^>]*>/g)].map((match) => match[0]);
+	expect(rects).toHaveLength(2);
+	const attribute = (rect: string, name: string) => Number(new RegExp(`${name}="([^" ]+)"`).exec(rect)![1]);
+	expect(attribute(rects[0]!, "height")).toBe(100);
+	expect(attribute(rects[1]!, "height")).toBe(50);
+	for (const rect of rects) expect(attribute(rect, "y") + attribute(rect, "height")).toBe(100);
+	expect(attribute(rects[0]!, "x") + attribute(rects[0]!, "width")).toBeLessThan(attribute(rects[1]!, "x"));
+});
+
+test("count charts keep integer grid labels when the largest count is seven", () => {
+	const html = render({ integerScale: true, format: String, series: [{ ...series[0]!, values: [7, 2, 1] }] });
+	expect(html).toContain(">12</span>");
+	expect(html).toContain(">9</span>");
+	expect(html).not.toContain(">7.5</span>");
+});

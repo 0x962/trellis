@@ -39,3 +39,14 @@ export const Zero: Story = {
 	args: { series: [{ key: "review", label: "Review agent", tone: "success", values: [0, 0, 0, 0] }] },
 };
 export const Empty: Story = { args: { days: [], series: [] } };
+
+export const Grouped: Story = {
+	args: {
+		variant: "grouped",
+		appearance: "overview",
+		series: [
+			{ key: "added", label: "Added", tone: "added", values: [20, 40, 30, 10] },
+			{ key: "deleted", label: "Deleted", tone: "deleted", values: [10, 5, 20, 8] },
+		],
+	},
+};

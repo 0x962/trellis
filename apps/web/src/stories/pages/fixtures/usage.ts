@@ -192,6 +192,18 @@ export const systemUsage: SystemUsage = {
 export const usageResponses = {
 	...projectResponses,
 	"usage.report": usageReport,
+	"usage.mergedWork": {
+		computedAt: timestamp,
+		buckets: days.map((day, index) => ({
+			day: day.day,
+			prs: index + 1,
+			additions: (index + 1) * 100,
+			deletions: (index + 1) * 40,
+			missingAdditions: 0,
+			missingDeletions: 0,
+		})),
+		totals: { prs: 28, additions: 2800, deletions: 1120, missingAdditions: 0, missingDeletions: 0 },
+	},
 	"usage.ranking": (input: UsageRankingInput) => ({
 		groups: groups[input.group],
 		sessions: usageSessions,

@@ -23,3 +23,16 @@ export const WithAction: Story = {
 	},
 };
 export const LongTitle: Story = { args: { title: "Review the work from every ticket in this wave" } };
+
+export const Overview: Story = {
+	args: { level: 4, title: "PRs merged per day", appearance: "overview", count: undefined },
+};
+export const Prominent: Story = {
+	args: {
+		title: "Merged work",
+		level: 3,
+		appearance: "prominent",
+		count: undefined,
+		description: "Unique linked PRs and the lines they change.",
+	},
+};

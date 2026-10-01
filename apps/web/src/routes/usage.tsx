@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { UsageDaysSchema, UsageGroupBySchema, UsageMetricSchema } from "@trellis/api";
+import { UsageDaysSchema, UsageMetricSchema } from "@trellis/api";
 import { z } from "zod";
 import { UsagePage } from "../features/usage/UsagePage";
 
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/usage")({
 		tab: z.enum(["agent", "system"]).optional().catch(undefined),
 		days: UsageDaysSchema.optional().catch(undefined),
 		metric: UsageMetricSchema.optional().catch(undefined),
-		group: UsageGroupBySchema.optional().catch(undefined),
+		group: z.enum(["model", "harness"]).optional().catch(undefined),
 		row: z.string().optional().catch(undefined),
 		day: z.string().optional().catch(undefined),
 	}),

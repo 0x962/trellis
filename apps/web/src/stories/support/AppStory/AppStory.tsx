@@ -1,24 +1,23 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { setTheme, Toaster } from "@trellis/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect } from "react";
 import { AppProvider } from "../../../lib/appContext";
-import { createStoryApp } from "../createStoryApp";
-import { createStoryRouter } from "../createStoryRouter";
+import { StoryContentContext } from "../components/StoryContent";
+import type { PreparedStory } from "../prepareStory";
 import type { StoryParameters } from "../types";
-import { StoryContent, StoryContentContext } from "./components/StoryContent";
 
 export function AppStory({
 	children,
+	prepared: { app, router },
 	parameters = {},
 	theme,
 }: {
 	children: ReactNode;
+	prepared: PreparedStory;
 	parameters?: StoryParameters;
 	theme: "light" | "dark";
 }) {
-	const [app] = useState(() => createStoryApp(parameters));
-	const [router] = useState(() => createStoryRouter(app, parameters, () => <StoryContent />));
 	useEffect(() => setTheme(theme), [theme]);
 	useEffect(() => () => app.queryClient.clear(), [app]);
 	return (

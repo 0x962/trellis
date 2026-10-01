@@ -13,13 +13,10 @@ export function useUsageRanking(
 ) {
 	const { orpc } = useApp();
 	const key = JSON.stringify([report?.computedAt, report?.days, group, metric]);
-	const sessionKey = JSON.stringify([key, row, day]);
+	const selectionKey = JSON.stringify([key, row, day]);
 	const [groups, setGroups] = useState({ key, page: 0 });
-	const [sessions, setSessions] = useState({ key: sessionKey, page: 0 });
 	if (groups.key !== key) setGroups({ key, page: 0 });
-	if (sessions.key !== sessionKey) setSessions({ key: sessionKey, page: 0 });
 	const groupPage = groups.key === key ? groups.page : 0;
-	const sessionPage = sessions.key === sessionKey ? sessions.page : 0;
 	const query = useQuery({
 		...orpc.usage.ranking.queryOptions({
 			input: {
@@ -28,7 +25,7 @@ export function useUsageRanking(
 				group,
 				metric,
 				groupPage,
-				sessionPage,
+				sessionPage: 0,
 				row: row ?? undefined,
 				day: day ?? undefined,
 			},
@@ -36,9 +33,9 @@ export function useUsageRanking(
 		enabled: report !== undefined,
 		staleTime: Infinity,
 		retry: false,
-		meta: { usageScope: sessionKey },
+		meta: { usageScope: selectionKey },
 		placeholderData: (previous, query) =>
-			query?.meta?.usageScope === sessionKey ? keepPreviousData(previous) : undefined,
+			query?.meta?.usageScope === selectionKey ? keepPreviousData(previous) : undefined,
 	});
 	useEffect(() => {
 		if (row !== null && query.isSuccess && !query.isPlaceholderData && query.data.selected === null) clearRow();
@@ -46,7 +43,5 @@ export function useUsageRanking(
 	return {
 		...query,
 		changeGroupPage: (direction: -1 | 1) => setGroups({ key, page: Math.max(0, groupPage + direction) }),
-		changeSessionPage: (direction: -1 | 1) =>
-			setSessions({ key: sessionKey, page: Math.max(0, sessionPage + direction) }),
 	};
 }
