@@ -39,14 +39,14 @@
 			"Overlays/PageControls/HistoryError"
 		],
 		"states": ["open", "empty", "loading", "error"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"notes": "The local trigger opens and closes the production sheet. Synthetic responses cover version records, an empty list, an unresolved request, and a request error."
 	},
 	{
 		"source": "apps/web/src/features/pages/PageDetail/components/PageShare/PageShare.tsx",
 		"export": "PageShare",
 		"stories": ["Overlays/PageControls/Share"],
 		"states": ["default"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"notes": "The local trigger opens and closes the production share popover."
 	},
 	{
 		"source": "apps/web/src/features/pages/PageDetail/components/PageWatcher/PageWatcher.tsx",
@@ -58,10 +58,11 @@
 			"Overlays/PageControls/WatcherDisabled",
 			"Overlays/PageControls/WatcherEmpty",
 			"Overlays/PageControls/WatcherLoading",
-			"Overlays/PageControls/WatcherError"
+			"Overlays/PageControls/WatcherError",
+			"Overlays/PageControls/ChangeWatcher"
 		],
-		"states": ["closed-trigger", "open", "selected", "disabled", "empty", "loading", "error"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "open", "selected", "disabled", "empty", "loading", "error", "interaction"],
+		"notes": "Synthetic get and watch responses retain the watcher. ChangeWatcher asserts assignment and removal through the real mutation and query refresh."
 	},
 	{
 		"source": "apps/web/src/features/pages/PageList/components/PageListFilters/PageListFilters.tsx",
@@ -73,10 +74,11 @@
 			"Overlays/PageControls/AuthorFilter",
 			"Overlays/PageControls/WatcherFilter",
 			"Overlays/PageControls/CommentsFilter",
-			"Overlays/PageControls/PinFilter"
+			"Overlays/PageControls/PinFilter",
+			"Overlays/PageControls/ChangeFilter"
 		],
-		"states": ["closed-trigger", "open", "selected", "default"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "open", "selected", "default", "interaction"],
+		"notes": "Local state retains search and filter choices. ChangeFilter asserts that a pin choice adds a chip and its remove control clears the filter."
 	},
 	{
 		"source": "apps/web/src/features/pickers/EpicPicker/EpicPicker.tsx",
@@ -88,10 +90,11 @@
 			"Overlays/EpicPicker/Selected",
 			"Overlays/EpicPicker/Mixed",
 			"Overlays/EpicPicker/Empty",
-			"Overlays/EpicPicker/Loading"
+			"Overlays/EpicPicker/Loading",
+			"Overlays/EpicPicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading", "interaction"],
+		"notes": "Local state controls the trigger and current choice. ChangeSelection asserts that a choice closes the picker and remains current after it reopens."
 	},
 	{
 		"source": "apps/web/src/features/pickers/LabelPicker/LabelPicker.tsx",
@@ -103,10 +106,24 @@
 			"Overlays/LabelPicker/Selected",
 			"Overlays/LabelPicker/Mixed",
 			"Overlays/LabelPicker/Empty",
-			"Overlays/LabelPicker/Loading"
+			"Overlays/LabelPicker/ListPending",
+			"Overlays/LabelPicker/ToggleSelection",
+			"Overlays/LabelPicker/CreateSuccess",
+			"Overlays/LabelPicker/CreateError"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": [
+			"closed-trigger",
+			"disabled",
+			"open",
+			"selected",
+			"default",
+			"empty",
+			"pending",
+			"success",
+			"error",
+			"interaction"
+		],
+		"notes": "Local state retains label toggles. Synthetic create and list responses retain new labels. ListPending uses an unresolved list request; the component shows its empty prompt while it waits. Interaction stories assert selection, removal, creation, and the request error."
 	},
 	{
 		"source": "apps/web/src/features/pickers/PriorityPicker/PriorityPicker.tsx",
@@ -115,10 +132,11 @@
 			"Overlays/PriorityPicker/ClosedTrigger",
 			"Overlays/PriorityPicker/Disabled",
 			"Overlays/PriorityPicker/Open",
-			"Overlays/PriorityPicker/Selected"
+			"Overlays/PriorityPicker/Selected",
+			"Overlays/PriorityPicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "disabled", "open", "selected", "interaction"],
+		"notes": "Local state controls the trigger and current choice. ChangeSelection asserts that a choice closes the picker and remains current after it reopens."
 	},
 	{
 		"source": "apps/web/src/features/pickers/ProjectPicker/ProjectPicker.tsx",
@@ -129,10 +147,11 @@
 			"Overlays/ProjectPicker/Open",
 			"Overlays/ProjectPicker/Selected",
 			"Overlays/ProjectPicker/Empty",
-			"Overlays/ProjectPicker/RequestError"
+			"Overlays/ProjectPicker/RequestError",
+			"Overlays/ProjectPicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected", "empty", "error"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "disabled", "open", "selected", "empty", "error", "interaction"],
+		"notes": "Local state controls the trigger and current choice. ChangeSelection asserts that a choice closes the picker and remains current after it reopens."
 	},
 	{
 		"source": "apps/web/src/features/pickers/StatusPicker/StatusPicker.tsx",
@@ -142,10 +161,11 @@
 			"Overlays/StatusPicker/Disabled",
 			"Overlays/StatusPicker/Open",
 			"Overlays/StatusPicker/Selected",
-			"Overlays/StatusPicker/Empty"
+			"Overlays/StatusPicker/Empty",
+			"Overlays/StatusPicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected", "empty"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "disabled", "open", "selected", "empty", "interaction"],
+		"notes": "Local state controls the trigger and current choice. ChangeSelection asserts that a choice closes the picker and remains current after it reopens."
 	},
 	{
 		"source": "apps/web/src/features/pickers/TicketPicker/TicketPicker.tsx",
@@ -159,10 +179,22 @@
 			"Overlays/TicketPicker/SearchResults",
 			"Overlays/TicketPicker/SelectionLoading",
 			"Overlays/TicketPicker/SelectionPending",
-			"Overlays/TicketPicker/SelectionError"
+			"Overlays/TicketPicker/SelectionError",
+			"Overlays/TicketPicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected", "empty", "default", "loading", "pending", "error"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": [
+			"closed-trigger",
+			"disabled",
+			"open",
+			"selected",
+			"empty",
+			"default",
+			"loading",
+			"pending",
+			"error",
+			"interaction"
+		],
+		"notes": "Local state controls the trigger and current choice. ChangeSelection asserts that a choice closes the picker and remains current after it reopens."
 	},
 	{
 		"source": "apps/web/src/features/pickers/WavePicker/WavePicker.tsx",
@@ -175,9 +207,10 @@
 			"Overlays/WavePicker/Mixed",
 			"Overlays/WavePicker/CreateWave",
 			"Overlays/WavePicker/Empty",
-			"Overlays/WavePicker/Loading"
+			"Overlays/WavePicker/Loading",
+			"Overlays/WavePicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading", "interaction"],
+		"notes": "Local state controls the trigger and current choice. ChangeSelection asserts that a choice closes the picker and remains current after it reopens."
 	}
 ]

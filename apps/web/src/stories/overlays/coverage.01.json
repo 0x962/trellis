@@ -80,10 +80,11 @@
 		"stories": [
 			"Overlays/Assignment/LaunchControls",
 			"Overlays/Assignment/LaunchControlsDisabled",
-			"Overlays/Assignment/LaunchControlsDefault"
+			"Overlays/Assignment/LaunchControlsDefault",
+			"Overlays/Assignment/ChangeLaunchHarness"
 		],
-		"states": ["default", "disabled"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["default", "disabled", "interaction"],
+		"notes": "Local state retains the harness, model, and effort. ChangeLaunchHarness asserts the model control after a harness choice and its removal for the inherited harness."
 	},
 	{
 		"source": "apps/web/src/features/agents/ModelPicker/ModelPicker.tsx",
@@ -97,10 +98,11 @@
 			"Overlays/ModelPicker/OpenCode",
 			"Overlays/ModelPicker/Pi",
 			"Overlays/ModelPicker/Muse",
-			"Overlays/ModelPicker/EmptySearch"
+			"Overlays/ModelPicker/EmptySearch",
+			"Overlays/ModelPicker/ChangeSelection"
 		],
-		"states": ["closed-trigger", "open", "disabled", "selected", "default", "empty"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "open", "disabled", "selected", "default", "empty", "interaction"],
+		"notes": "Local state retains the selected model. ChangeSelection asserts an explicit model choice, the trigger text, and the current option after the picker reopens."
 	},
 	{
 		"source": "apps/web/src/features/agents/TicketAgent/TicketAgent.tsx",

@@ -1,16 +1,29 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { createRef } from "react";
-import { userEvent, within } from "storybook/test";
+import { useQuery } from "@tanstack/react-query";
+import { createRef, useState } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { PageHistory } from "../../features/pages/PageDetail/components/PageHistory";
 import { PageShare } from "../../features/pages/PageDetail/components/PageShare";
 import { PageWatcher } from "../../features/pages/PageDetail/components/PageWatcher";
 import { PageListFilters } from "../../features/pages/PageList/components/PageListFilters";
+import type { PageSearch } from "../../features/pages/PageList/pageSearch";
+import { useApp } from "../../lib/appContext";
 import { at, failure, noop, page, pending, project, responses, run } from "./fixtures";
 import { clickButton } from "./interactions";
+import { OverlayTrigger } from "./OverlayTrigger";
+
+const selectedWatcher = { pageId: page.id, agent: { id: run.id, name: run.name }, createdAt: at, updatedAt: at };
+let watcher = page.watcher;
 
 const meta = {
 	title: "Overlays/PageControls",
 	component: PageHistory,
+	beforeEach: () => {
+		watcher = null;
+	},
+	render: (args) => (
+		<OverlayTrigger label="Page history">{(close) => <PageHistory {...args} onClose={close} />}</OverlayTrigger>
+	),
 	args: { page, onClose: noop, finalFocus: createRef<HTMLButtonElement>() },
 	parameters: {
 		trellis: {
@@ -21,7 +34,11 @@ const meta = {
 					nextCursor: null,
 				},
 				"pages.watcherOptions": { items: [run], nextCursor: null },
-				"pages.watch": page,
+				"pages.get": () => ({ ...page, watcher }),
+				"pages.watch": (input: unknown) => {
+					watcher = (input as { agentId: string | null }).agentId === null ? null : selectedWatcher;
+					return { ...page, watcher };
+				},
 			},
 		},
 	},
@@ -34,8 +51,23 @@ export const HistoryEmpty: Story = {
 };
 export const HistoryLoading: Story = { parameters: { trellis: { responses: { "pages.versions": pending } } } };
 export const HistoryError: Story = { parameters: { trellis: { responses: { "pages.versions": failure } } } };
-export const Share: Story = { render: () => <PageShare page={page} onClose={noop} finalFocus={createRef()} /> };
-export const WatcherClosed: Story = { render: () => <PageWatcher page={page} disabled={false} /> };
+export const Share: Story = {
+	render: () => (
+		<OverlayTrigger label="Share Page">
+			{(close) => <PageShare page={page} onClose={close} finalFocus={createRef()} />}
+		</OverlayTrigger>
+	),
+};
+export const WatcherClosed: Story = {
+	render: function Render() {
+		const { orpc } = useApp();
+		const current = useQuery({
+			...orpc.pages.get.queryOptions({ input: { page: page.id } }),
+			initialData: { ...page, watcher },
+		});
+		return <PageWatcher page={current.data} disabled={false} />;
+	},
+};
 export const WatcherOpen: Story = {
 	...WatcherClosed,
 	play: async ({ canvasElement }) => {
@@ -45,15 +77,10 @@ export const WatcherOpen: Story = {
 	},
 };
 export const WatcherSelected: Story = {
-	render: () => (
-		<PageWatcher
-			page={{
-				...page,
-				watcher: { pageId: page.id, agent: { id: run.id, name: run.name }, createdAt: at, updatedAt: at },
-			}}
-			disabled={false}
-		/>
-	),
+	...WatcherClosed,
+	beforeEach: () => {
+		watcher = selectedWatcher;
+	},
 };
 export const WatcherDisabled: Story = { render: () => <PageWatcher page={page} disabled /> };
 export const WatcherEmpty: Story = {
@@ -69,13 +96,17 @@ export const WatcherError: Story = {
 	parameters: { trellis: { responses: { "pages.watcherOptions": failure } } },
 };
 export const FiltersClosed: Story = {
-	render: () => <PageListFilters projectId={project.id} search={{}} onChange={noop} />,
+	render: function Render() {
+		const [search, setSearch] = useState<PageSearch>({});
+		return <PageListFilters projectId={project.id} search={search} onChange={setSearch} />;
+	},
 };
 export const FiltersOpen: Story = { ...FiltersClosed, play: clickButton("Filter Pages") };
 export const FiltersSelected: Story = {
-	render: () => (
-		<PageListFilters projectId={project.id} search={{ comment: "open", pin: true, q: "catalog" }} onChange={noop} />
-	),
+	render: function Render() {
+		const [search, setSearch] = useState<PageSearch>({ comment: "open", pin: true, q: "catalog" });
+		return <PageListFilters projectId={project.id} search={search} onChange={setSearch} />;
+	},
 };
 export const AuthorFilter: Story = {
 	...FiltersClosed,
@@ -109,5 +140,33 @@ export const PinFilter: Story = {
 	play: async (context) => {
 		await clickButton("Filter Pages")(context);
 		await userEvent.click(await within(context.canvasElement.ownerDocument.body).findByRole("option", { name: "Pin" }));
+	},
+};
+
+export const ChangeWatcher: Story = {
+	...WatcherClosed,
+	play: async (context) => {
+		const body = within(context.canvasElement.ownerDocument.body);
+		const control = await body.findByRole("combobox", { name: "Page watcher" });
+		await waitFor(() => expect(control).toBeEnabled());
+		await userEvent.click(control);
+		await userEvent.click(await body.findByRole("option", { name: run.name }));
+		await waitFor(() => expect(control).toHaveTextContent(run.name));
+		await waitFor(() => expect(control).toBeEnabled());
+		await userEvent.click(control);
+		await userEvent.click(await body.findByRole("option", { name: "No watcher" }));
+		await waitFor(() => expect(control).toHaveTextContent("No watcher"));
+	},
+};
+export const ChangeFilter: Story = {
+	...FiltersClosed,
+	play: async (context) => {
+		const body = within(context.canvasElement.ownerDocument.body);
+		await clickButton("Filter Pages")(context);
+		await userEvent.click(await body.findByRole("option", { name: "Pin" }));
+		await userEvent.click(await body.findByRole("option", { name: "Pinned" }));
+		await expect(await body.findByRole("button", { name: "Remove Pin filter" })).toBeVisible();
+		await clickButton("Remove Pin filter")(context);
+		await expect(body.queryByRole("button", { name: "Remove Pin filter" })).not.toBeInTheDocument();
 	},
 };

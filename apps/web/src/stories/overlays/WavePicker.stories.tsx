@@ -1,11 +1,31 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { PickerButton } from "@trellis/ui";
 import { WavePicker } from "../../features/pickers/WavePicker";
+import { useStoryState } from "../components/useStoryState";
 import { noop, pending, responses } from "./fixtures";
+import { chooseAndReopen } from "./interactions";
 
 const meta = {
 	title: "Overlays/WavePicker",
 	component: WavePicker,
+	render: function Render(args) {
+		const [open, setOpen] = useStoryState(args.open ?? false);
+		const [value, setValue] = useStoryState(args.value);
+		const [mixed, setMixed] = useStoryState(args.mixed);
+		return (
+			<WavePicker
+				{...args}
+				open={open}
+				value={value}
+				onOpenChange={setOpen}
+				mixed={mixed}
+				onPick={(picked) => {
+					setValue(picked?.ref);
+					setMixed(false);
+				}}
+			/>
+		);
+	},
 	args: { epic: "DEMO/catalog", onPick: noop, trigger: <PickerButton label="Wave">Wave</PickerButton> },
 	parameters: { trellis: { responses } },
 } satisfies Meta<typeof WavePicker>;
@@ -32,4 +52,9 @@ export const Empty: Story = {
 export const Loading: Story = {
 	args: { open: true },
 	parameters: { trellis: { responses: { "epics.get": pending } } },
+};
+
+export const ChangeSelection: Story = {
+	args: { open: false },
+	play: chooseAndReopen("Wave", "First wave"),
 };

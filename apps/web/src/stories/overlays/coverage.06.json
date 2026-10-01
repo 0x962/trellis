@@ -103,10 +103,11 @@
 			"Overlays/ReviewActions/VerdictNote",
 			"Overlays/ReviewActions/VerdictPending",
 			"Overlays/ReviewActions/VerdictError",
-			"Overlays/ReviewActions/VerdictEmpty"
+			"Overlays/ReviewActions/VerdictEmpty",
+			"Overlays/ReviewActions/EditVerdict"
 		],
-		"states": ["default", "pending", "error", "empty"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["default", "pending", "error", "empty", "interaction"],
+		"notes": "Local state retains the note and closes the dialog on confirm or cancel. EditVerdict asserts text entry and dismissal through the confirm control."
 	},
 	{
 		"source": "apps/web/src/features/sessions/DeleteSessionDialog/DeleteSessionDialog.tsx",
@@ -144,10 +145,28 @@
 			"Overlays/NewSessionDialog/Loading",
 			"Overlays/NewSessionDialog/Pending",
 			"Overlays/NewSessionDialog/RequestError",
-			"Overlays/NewSessionDialog/Success"
+			"Overlays/NewSessionDialog/Success",
+			"Overlays/NewSessionDialog/ProjectPicker",
+			"Overlays/NewSessionDialog/AgentPicker",
+			"Overlays/NewSessionDialog/ChangeProject",
+			"Overlays/NewSessionDialog/ChangeAgent",
+			"Overlays/NewSessionDialog/RetainedDraft",
+			"Overlays/NewSessionDialog/Attachment"
 		],
-		"states": ["open", "closed-trigger", "selected", "empty", "loading", "pending", "error", "success"],
-		"notes": "The parent story mounts this production child or its owning hook."
+		"states": [
+			"open",
+			"closed-trigger",
+			"selected",
+			"empty",
+			"loading",
+			"pending",
+			"error",
+			"success",
+			"disabled",
+			"selection-change",
+			"retained-draft"
+		],
+		"notes": "The production dialog uses local responses. Play actions verify submit, draft, picker, and disabled states."
 	},
 	{
 		"source": "apps/web/src/features/sessions/NewSessionHost/NewSessionHost.tsx",

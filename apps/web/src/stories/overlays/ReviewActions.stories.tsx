@@ -1,12 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
+import type { ComponentProps } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { PrActions } from "../../features/prs/PullRequestRow/components/PrActions";
 import { ApplySuggestionsDialog } from "../../features/reviews/ReviewApply/ApplySuggestionsDialog";
 import { LocalStateMenu } from "../../features/reviews/ReviewPage/components/ReviewIdentity/components/LocalStateMenu";
 import { DraftNote } from "../../features/reviews/VerdictBar/components/DraftNote";
+import { useStoryState } from "../components/useStoryState";
 import { pullRequest, reviewThread } from "../pages/fixtures/review";
 import { actor, at, failure, noop, pending, responses, ticket } from "./fixtures";
-import { clickButton } from "./interactions";
+import { clickButton, fillField } from "./interactions";
+import { OverlayTrigger } from "./OverlayTrigger";
 
 const pr = { ...pullRequest, source: "manual" as const, linkedBy: actor, linkedAt: at };
 const meta = {
@@ -74,72 +77,43 @@ export const CommitError: Story = {
 	parameters: { trellis: { responses: { "reviews.apply": failure } } },
 	play: clickButton("Commit changes"),
 };
-export const VerdictNote: Story = {
-	render: () => (
-		<DraftNote
-			open
-			title="Request changes"
-			description="Send the review with a note."
-			confirmLabel="Send review"
-			note="Please add a keyboard check."
-			noteRequired
-			error={null}
-			processing={false}
-			onNote={noop}
-			onConfirm={noop}
-			onCancel={noop}
-		/>
-	),
-};
-export const VerdictPending: Story = {
-	render: () => (
-		<DraftNote
-			open
-			title="Request changes"
-			description="Send the review with a note."
-			confirmLabel="Send review"
-			note="Please add a keyboard check."
-			noteRequired
-			error={null}
-			processing
-			onNote={noop}
-			onConfirm={noop}
-			onCancel={noop}
-		/>
-	),
-};
-export const VerdictError: Story = {
-	render: () => (
-		<DraftNote
-			open
-			title="Request changes"
-			description="Send the review with a note."
-			confirmLabel="Send review"
-			note="Please add a keyboard check."
-			noteRequired
-			error="The review did not send."
-			processing={false}
-			onNote={noop}
-			onConfirm={noop}
-			onCancel={noop}
-		/>
-	),
-};
+const renderVerdict = (args: Pick<ComponentProps<typeof DraftNote>, "note" | "error" | "processing">) =>
+	function Render() {
+		const [note, setNote] = useStoryState(args.note);
+		return (
+			<OverlayTrigger label="Review note">
+				{(close) => (
+					<DraftNote
+						{...args}
+						open
+						title="Request changes"
+						description="Send the review with a note."
+						confirmLabel="Send review"
+						note={note}
+						noteRequired
+						onNote={setNote}
+						onConfirm={close}
+						onCancel={close}
+					/>
+				)}
+			</OverlayTrigger>
+		);
+	};
+const verdict = { note: "Please add a keyboard check.", error: null, processing: false };
+export const VerdictNote: Story = { render: renderVerdict(verdict) };
+export const VerdictPending: Story = { render: renderVerdict({ ...verdict, processing: true }) };
+export const VerdictError: Story = { render: renderVerdict({ ...verdict, error: "The review did not send." }) };
 export const VerdictEmpty: Story = {
-	render: () => (
-		<DraftNote
-			open
-			title="Request changes"
-			description="Send the review with a note."
-			confirmLabel="Send review"
-			note=""
-			noteRequired
-			error={null}
-			processing={false}
-			onNote={noop}
-			onConfirm={noop}
-			onCancel={noop}
-		/>
-	),
+	render: renderVerdict({ ...verdict, note: "" }),
 	play: clickButton("Send review"),
+};
+export const EditVerdict: Story = {
+	...VerdictNote,
+	play: async (context) => {
+		const body = within(context.canvasElement.ownerDocument.body);
+		await fillField(context.canvasElement, "Note", "Please check the keyboard focus.");
+		await expect(body.getByRole("textbox", { name: "Note" })).toHaveValue("Please check the keyboard focus.");
+		await clickButton("Send review")(context);
+		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
+	},
 };

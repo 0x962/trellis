@@ -145,10 +145,11 @@
 			"Overlays/Filters/DisplayClosed",
 			"Overlays/Filters/DisplayOpen",
 			"Overlays/Filters/DisplaySelected",
-			"Overlays/Filters/DisplayDisabled"
+			"Overlays/Filters/DisplayDisabled",
+			"Overlays/Filters/ChangeDisplay"
 		],
-		"states": ["closed-trigger", "open", "selected", "disabled"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "open", "selected", "disabled", "interaction"],
+		"notes": "Local state retains group, sort, and completed choices. ChangeDisplay asserts the completed toggle and its disabled state after a group change."
 	},
 	{
 		"source": "apps/web/src/features/table/WaveHeader/components/WaveActions/WaveActions.tsx",

@@ -17,3 +17,15 @@ export const fillField = async (canvasElement: HTMLElement, label: string, value
 	await userEvent.clear(input);
 	await userEvent.type(input, value);
 };
+
+export const chooseAndReopen =
+	(trigger: string, option: string | RegExp, search?: { label: string; value: string }) =>
+	async (context: { canvasElement: HTMLElement }) => {
+		const body = within(context.canvasElement.ownerDocument.body);
+		await clickButton(trigger)(context);
+		if (search) await fillField(context.canvasElement, search.label, search.value);
+		await userEvent.click(await body.findByRole("option", { name: option }));
+		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
+		await clickButton(trigger)(context);
+		await waitFor(() => expect(body.getByRole("option", { name: option })).toHaveAttribute("data-current", "true"));
+	};

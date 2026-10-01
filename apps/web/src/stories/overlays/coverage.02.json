@@ -100,10 +100,27 @@
 			"Overlays/CreateTicketDialog/AssignmentError",
 			"Overlays/CreateTicketDialog/AssignmentPending",
 			"Overlays/CreateTicketDialog/UploadPending",
-			"Overlays/CreateTicketDialog/UploadError"
+			"Overlays/CreateTicketDialog/UploadError",
+			"Overlays/CreateTicketDialog/ProjectPicker",
+			"Overlays/CreateTicketDialog/AssignmentOff",
+			"Overlays/CreateTicketDialog/SavedToggles",
+			"Overlays/CreateTicketDialog/UnselectedWave",
+			"Overlays/CreateTicketDialog/AutomaticSelection"
 		],
-		"states": ["open", "closed-trigger", "empty", "loading", "error", "pending", "success", "default"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": [
+			"open",
+			"closed-trigger",
+			"empty",
+			"loading",
+			"error",
+			"pending",
+			"success",
+			"default",
+			"disabled",
+			"selection-change",
+			"retained-draft"
+		],
+		"notes": "The production dialog uses local responses. Play actions verify submit, draft, picker, and disabled states."
 	},
 	{
 		"source": "apps/web/src/features/composer/CreateTicketDialog/CreateTicketDialog.tsx",
@@ -129,10 +146,27 @@
 			"Overlays/CreateTicketDialog/AssignmentError",
 			"Overlays/CreateTicketDialog/AssignmentPending",
 			"Overlays/CreateTicketDialog/UploadPending",
-			"Overlays/CreateTicketDialog/UploadError"
+			"Overlays/CreateTicketDialog/UploadError",
+			"Overlays/CreateTicketDialog/ProjectPicker",
+			"Overlays/CreateTicketDialog/AssignmentOff",
+			"Overlays/CreateTicketDialog/SavedToggles",
+			"Overlays/CreateTicketDialog/UnselectedWave",
+			"Overlays/CreateTicketDialog/AutomaticSelection"
 		],
-		"states": ["open", "closed-trigger", "empty", "loading", "error", "pending", "success", "default"],
-		"notes": "The parent story mounts this production child or its owning hook."
+		"states": [
+			"open",
+			"closed-trigger",
+			"empty",
+			"loading",
+			"error",
+			"pending",
+			"success",
+			"default",
+			"disabled",
+			"selection-change",
+			"retained-draft"
+		],
+		"notes": "The production dialog uses local responses. Play actions verify submit, draft, picker, and disabled states."
 	},
 	{
 		"source": "apps/web/src/features/composer/CreateTicketDialog/components/AgentPicker/AgentPicker.tsx",

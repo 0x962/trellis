@@ -70,9 +70,9 @@
 	{
 		"source": "apps/web/src/features/filters/FilterBar/FilterBar.tsx",
 		"export": "FilterBar",
-		"stories": ["Overlays/Filters/FilterChips", "Overlays/Filters/ShareMenu"],
-		"states": ["default"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"stories": ["Overlays/Filters/FilterChips", "Overlays/Filters/ShareMenu", "Overlays/Filters/RemoveFilter"],
+		"states": ["default", "interaction"],
+		"notes": "Local state retains filter edits. RemoveFilter asserts that a removed filter loses its chip."
 	},
 	{
 		"source": "apps/web/src/features/filters/FilterBar/components/FilterPicker/FilterPicker.tsx",
@@ -95,10 +95,11 @@
 			"Overlays/Filters/Created",
 			"Overlays/Filters/Updated",
 			"Overlays/Filters/Selected",
-			"Overlays/Filters/Empty"
+			"Overlays/Filters/Empty",
+			"Overlays/Filters/ChangeFilter"
 		],
-		"states": ["open", "closed-trigger", "default", "selected", "empty"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["open", "closed-trigger", "default", "selected", "empty", "interaction"],
+		"notes": "Local state controls the trigger, field, and values. ChangeFilter asserts field selection, priority toggles, Escape, and a return to the field list."
 	},
 	{
 		"source": "apps/web/src/features/filters/FilterChip/FilterChip.tsx",
@@ -152,10 +153,11 @@
 		"stories": [
 			"Overlays/FlowEditorControls/ProjectSelected",
 			"Overlays/FlowEditorControls/ProjectDisabled",
-			"Overlays/FlowEditorControls/ProjectError"
+			"Overlays/FlowEditorControls/ProjectError",
+			"Overlays/FlowEditorControls/ChangeProject"
 		],
-		"states": ["selected", "disabled", "error"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["selected", "disabled", "error", "interaction"],
+		"notes": "Local state retains the project choice. ChangeProject asserts that the Every project choice updates the selector."
 	},
 	{
 		"source": "apps/web/src/features/flows/FlowsPage/components/FlowDiscoveryFilters/FlowDiscoveryFilters.tsx",
@@ -165,10 +167,11 @@
 			"Overlays/FlowDiscoveryFilters/Open",
 			"Overlays/FlowDiscoveryFilters/Selected",
 			"Overlays/FlowDiscoveryFilters/Empty",
-			"Overlays/FlowDiscoveryFilters/SearchEmpty"
+			"Overlays/FlowDiscoveryFilters/SearchEmpty",
+			"Overlays/FlowDiscoveryFilters/ChangeFilters"
 		],
-		"states": ["closed-trigger", "open", "selected", "empty"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
+		"states": ["closed-trigger", "open", "selected", "empty", "interaction"],
+		"notes": "Local state retains the query and project. ChangeFilters asserts text entry, a project choice, and removal of its chip. The empty state retains the All projects option."
 	},
 	{
 		"source": "apps/web/src/features/flows/FlowsPage/components/NewFlowDialog/NewFlowDialog.tsx",

@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FlowSettingsSheet } from "../../features/flows/FlowEditor/components/FlowSettingsSheet";
 import { NodeInspector } from "../../features/flows/FlowEditor/components/NodeInspector";
 import { FlowProjectSelect } from "../../features/flows/FlowProjectSelect";
@@ -59,11 +61,27 @@ export const SettingsPending: Story = {
 	parameters: { trellis: { responses: { "flows.update": pending } } },
 };
 export const DeleteConfirmation: Story = { ...Settings, play: clickButton("Delete flow") };
-export const ProjectSelected: Story = { render: () => <FlowProjectSelect value="DEMO" onChange={noop} /> };
+export const ProjectSelected: Story = {
+	render: function Render() {
+		const [project, setProject] = useState("DEMO");
+		return <FlowProjectSelect value={project} onChange={setProject} />;
+	},
+};
 export const ProjectDisabled: Story = { render: () => <FlowProjectSelect value="DEMO" onChange={noop} disabled /> };
 export const ProjectError: Story = {
 	...ProjectSelected,
 	parameters: { trellis: { responses: { "projects.list": failure } } },
+};
+export const ChangeProject: Story = {
+	...ProjectSelected,
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		const project = await body.findByRole("combobox", { name: "Project" });
+		await waitFor(() => expect(project).toBeEnabled());
+		await userEvent.click(project);
+		await userEvent.click(await body.findByRole("option", { name: "Every project" }));
+		await waitFor(() => expect(project).toHaveTextContent("Every project"));
+	},
 };
 export const NodeAgent: Story = {
 	render: () => (
