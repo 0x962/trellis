@@ -1,3 +1,7 @@
+export {
+	isAttemptRetained,
+	readRetainedNativeAttemptIds,
+} from "../../db/queries/langflowExecution/retainedNativeAttempts";
 export { assembleNativePrompt } from "./assembleNativePrompt";
 export { createNativeDispatchGate } from "./createNativeDispatchGate";
 export { dispatchNative } from "./dispatchNative";

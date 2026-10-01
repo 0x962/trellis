@@ -89,6 +89,10 @@ The database stores the exact snapshot digest with the reservation.
 The file and database are separate stores. A rollback can leave an orphan file.
 Only a committed reservation can authorize recovery.
 
+`readRetainedNativeAttemptIds(tx)` returns the attempt IDs that native reservations retain.
+`isAttemptRetained(tx, { attemptId })` checks one attempt through the same storage owner.
+Cleanup calls this lookup under `withAttemptOperation` before it removes an attempt directory.
+
 `recoverNativeAttempt` checks the snapshot digest, token hash, generation, current attempt, and immutable launch configuration.
 Only the reserved state can proceed through normal dispatch guards.
 Other states require observation of the original attempt.
