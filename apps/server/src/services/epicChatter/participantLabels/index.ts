@@ -1,0 +1,1 @@
+export { participantLabels } from "./participantLabels";

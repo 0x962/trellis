@@ -4,6 +4,9 @@ import type { ServiceCtx } from "../../../context.ts";
 import { iso, rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { resolveEpic } from "../../epics/resolve.ts";
+import { participantLabels } from "../participantLabels";
+
+const unnamed = (name: string, id: string) => name === "Agent" || name === id;
 
 export const list = async (ctx: ServiceCtx, tx: Tx, value: unknown) => {
 	const input = EpicChatterListInputSchema.parse(value);
@@ -16,5 +19,16 @@ export const list = async (ctx: ServiceCtx, tx: Tx, value: unknown) => {
 		${input.before ? sql`AND id < ${input.before}` : sql``} ORDER BY id DESC LIMIT 51`,
 	);
 	const items = found.slice(0, 50);
+	const labels = await participantLabels(
+		tx,
+		items.flatMap((message) => [
+			...(unnamed(message.senderName, message.senderId) ? [message.senderId] : []),
+			...(unnamed(message.recipientName, message.recipientId) ? [message.recipientId] : []),
+		]),
+	);
+	for (const message of items) {
+		if (unnamed(message.senderName, message.senderId)) message.senderName = labels.get(message.senderId)!;
+		if (unnamed(message.recipientName, message.recipientId)) message.recipientName = labels.get(message.recipientId)!;
+	}
 	return { items, nextCursor: found.length > 50 ? items[49]!.id : null };
 };

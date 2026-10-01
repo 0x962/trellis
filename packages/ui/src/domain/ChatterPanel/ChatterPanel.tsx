@@ -1,9 +1,12 @@
 import { ArrowClockwise, ArrowUp } from "@phosphor-icons/react";
 import { useLayoutEffect, useRef } from "react";
+import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Spinner } from "../../primitives/Spinner";
 import { Switch } from "../../primitives/Switch";
 import { Tooltip } from "../../primitives/Tooltip";
+import { FailureState } from "../FailureState";
+import { ChatterMessageRow } from "./components/ChatterMessageRow";
 
 export type ChatterMessage = {
 	id: string;
@@ -31,20 +34,6 @@ export type ChatterPanelProps = {
 	onLoadEarlier: () => void;
 };
 
-const stateText = {
-	pending: "Sending",
-	sent: "Sent",
-	queued: "Queued",
-	skipped: "Skipped",
-	unconfirmed: "Unconfirmed",
-};
-const clock = new Intl.DateTimeFormat(undefined, {
-	hour: "2-digit",
-	minute: "2-digit",
-	second: "2-digit",
-	hour12: false,
-});
-
 export function ChatterPanel({
 	epicName,
 	enabled,
@@ -59,7 +48,7 @@ export function ChatterPanel({
 	loadingEarlier,
 	onLoadEarlier,
 }: ChatterPanelProps) {
-	const scroll = useRef<HTMLDivElement>(null);
+	const scroll = useRef<HTMLElement>(null);
 	const pinned = useRef(true);
 	const previous = useRef<{ first: string | undefined; height: number }>({ first: undefined, height: 0 });
 	useLayoutEffect(() => {
@@ -72,42 +61,55 @@ export function ChatterPanel({
 	}, [messages]);
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<div className="flex shrink-0 flex-col gap-3 border-b border-border p-4">
-				<p className="truncate text-sm text-fg-muted" title={epicName}>
-					{epicName}
-				</p>
-				<Switch
-					label="Chatter"
-					checked={enabled === true}
-					disabled={enabled === undefined || saving || readOnly}
-					onCheckedChange={onEnabledChange}
-				/>
-				<p className="text-sm text-fg-muted">
+			<div className="shrink-0 border-b border-border px-4 py-3 sm:px-5">
+				<div className="flex min-h-7 items-center justify-between gap-4">
+					<p className="min-w-0 truncate text-sm font-medium" title={epicName}>
+						{epicName}
+					</p>
+					<Switch
+						label="Chatter"
+						className="shrink-0 [&_label]:sr-only"
+						checked={enabled === true}
+						disabled={enabled === undefined || saving || readOnly}
+						onCheckedChange={onEnabledChange}
+					/>
+				</div>
+				<p className="mt-0.5 text-xs text-fg-muted">
 					{enabled === undefined
-						? "Loading Chatter settings…"
+						? "Loading settings…"
 						: enabled
-							? "Agents can send messages to and from this epic."
-							: "Agent messages to and from this epic are off. Your messages and system notices still arrive."}
+							? "Agent messages to and from this epic."
+							: "Chatter is off. Your messages and system notices still arrive."}
 				</p>
 			</div>
 			{error && (
-				<div role="alert" className="flex items-center gap-2 border-b border-border p-4 text-sm text-danger">
-					<p className="min-w-0 flex-1 break-words">{error}</p>
-					<Tooltip content="Reload Chatter">
-						<IconButton label="Reload Chatter" icon={<ArrowClockwise />} onClick={onRetry} />
-					</Tooltip>
+				<div role="alert" className="shrink-0 border-b border-border px-4 py-3 sm:px-5">
+					<FailureState
+						title="Chatter is unavailable"
+						detail={error}
+						recovery="none"
+						variant="section"
+						action={
+							<Tooltip content="Reload Chatter">
+								<IconButton label="Reload Chatter" icon={<ArrowClockwise />} onClick={onRetry} />
+							</Tooltip>
+						}
+					/>
 				</div>
 			)}
-			<div
+			<section
 				ref={scroll}
-				className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"
+				className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+				aria-label="Chatter history"
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need focus in Chatter history to scroll through messages.
+				tabIndex={0}
 				onScroll={() => {
 					const element = scroll.current!;
 					pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 4;
 				}}
 			>
 				{hasEarlier && (
-					<div className="mb-4 flex items-center justify-center gap-2 text-sm text-fg-muted">
+					<div className="mb-3 flex items-center justify-center gap-1 text-xs text-fg-muted">
 						<Tooltip content="Load earlier messages">
 							<IconButton
 								label="Load earlier messages"
@@ -120,43 +122,32 @@ export function ChatterPanel({
 					</div>
 				)}
 				{loading ? (
-					<div role="status" className="flex items-center gap-2 text-sm text-fg-muted">
+					<div role="status" className="flex items-center gap-2 px-4 py-3 text-sm text-fg-muted sm:px-5">
 						<Spinner />
 						Loading messages…
 					</div>
 				) : messages.length === 0 && !error ? (
-					<div className="py-8 text-center text-sm text-fg-muted">
-						<p className="font-medium text-fg">No messages yet</p>
-						<p className="mt-2">Messages appear here when agents communicate.</p>
+					<div className="px-4 py-6 sm:px-5">
+						<EmptyState
+							title="No messages yet"
+							description="Agent messages appear here when Chatter is on."
+							image={null}
+						/>
 					</div>
 				) : null}
-				<ol aria-label="Agent messages" className="flex flex-col gap-4 font-mono text-sm">
-					{messages.map((message) => (
-						<li key={message.id} className="min-w-0">
-							<div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs">
-								<time
-									dateTime={message.createdAt}
-									title={new Date(message.createdAt).toLocaleString()}
-									className="tabular-nums text-fg-muted"
-								>
-									{clock.format(new Date(message.createdAt))}
-								</time>
-								<span className="break-all font-medium text-fg" title={message.senderId}>
-									{message.senderName}
-								</span>
-								<span className="text-fg-muted">to</span>
-								<span className="break-all text-fg-muted" title={message.recipientId}>
-									{message.recipientName}
-								</span>
-								<span className={message.state === "unconfirmed" ? "text-warning" : "text-fg-muted"}>
-									{stateText[message.state]}
-								</span>
-							</div>
-							<p className="whitespace-pre-wrap break-words text-fg [overflow-wrap:anywhere]">{message.text}</p>
-						</li>
+				<ol aria-label="Agent messages">
+					{messages.map((message, index) => (
+						<ChatterMessageRow
+							key={message.id}
+							message={message}
+							showDate={
+								index === 0 ||
+								new Date(message.createdAt).toDateString() !== new Date(messages[index - 1]!.createdAt).toDateString()
+							}
+						/>
 					))}
 				</ol>
-			</div>
+			</section>
 		</div>
 	);
 }
