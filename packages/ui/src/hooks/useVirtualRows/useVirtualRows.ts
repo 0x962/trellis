@@ -67,7 +67,7 @@ export function useVirtualRows(viewportRef: RefObject<HTMLElement | null>, sizes
 			const top = layout.offsets[index]!;
 			const element = viewportRef.current!;
 			element.scrollTop = top;
-			setViewport((current) => ({ ...current, top }));
+			setViewport((current) => ({ ...current, top: element.scrollTop }));
 			return element.scrollTop;
 		},
 		[layout, viewportRef],
