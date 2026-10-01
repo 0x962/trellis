@@ -5,7 +5,7 @@ import { cx } from "../../utils/cx";
 import { PageTab } from "./components/PageTab";
 import { TabGroupHeader } from "./components/TabGroupHeader";
 import { TabStripControls } from "./components/TabStripControls";
-import { dropTargetId, slotIndexOf } from "./components/tabSlots";
+import { dropTargetId, slotIndexOf, tabSlots } from "./components/tabSlots";
 import { useFocusAfterChange } from "./components/useFocusAfterChange";
 import { useTabContextMenu } from "./components/useTabContextMenu";
 import { useTabDrag } from "./components/useTabDrag";
@@ -39,7 +39,6 @@ export type PageTabsProps = {
 	"aria-label"?: string;
 };
 
-const pinnedWidth = 96;
 const emptyGroups: readonly PageTabGroupItem[] = [];
 
 const regionClass =
@@ -69,7 +68,8 @@ export function PageTabs({
 }: PageTabsProps) {
 	const { activeIndex, pinnedCount, activePinned, slots, activeSlot } = useTabRegions(tabs, groups, activeId);
 	const pinnedTabs = useMemo(() => tabs.slice(0, pinnedCount), [tabs, pinnedCount]);
-	const pinnedLayout = useTabLayout(pinnedTabs, activePinned ? activeIndex : -1, pinnedWidth);
+	const pinnedSlots = useMemo(() => tabSlots(pinnedTabs, []), [pinnedTabs]);
+	const pinnedLayout = useTabLayout(pinnedSlots, activePinned ? activeIndex : -1);
 	const layout = useTabLayout(slots, activeSlot);
 	const listRef = useRef<HTMLDivElement>(null);
 	const addButton = useRef<HTMLButtonElement>(null);
@@ -114,8 +114,7 @@ export function PageTabs({
 	});
 	const pinnedDrag = useTabDrag({
 		listRef: pinnedLayout.ref,
-		slotWidth: pinnedWidth,
-		slotCount: pinnedCount,
+		boxes: pinnedLayout.boxes,
 		enabled: onMove !== undefined,
 		onDrop: (id, index) => {
 			const before = tabs[index]?.id ?? null;
@@ -124,8 +123,7 @@ export function PageTabs({
 	});
 	const drag = useTabDrag({
 		listRef: layout.ref,
-		slotWidth: layout.width,
-		slotCount: slots.length,
+		boxes: layout.boxes,
 		enabled: onMove !== undefined,
 		onDrop: (id, index) => {
 			const before = dropTargetId(slots, index);
@@ -141,7 +139,7 @@ export function PageTabs({
 		...[...menu.retainedIds, drag.draggedId].map((id) => (id === null ? -1 : slotIndexOf(slots, id))),
 		slots.findIndex((slot) => slot.kind === "group" && slot.group.id === menu.editingGroupId),
 	]);
-	const pageTab = (index: number, style: CSSProperties, pointerDown: typeof drag.pointerDown, separator: boolean) => {
+	const pageTab = (index: number, style: CSSProperties, pointerDown: typeof drag.pointerDown) => {
 		const tab = tabs[index]!;
 		return (
 			<PageTab
@@ -151,7 +149,6 @@ export function PageTabs({
 				count={tabs.length}
 				style={style}
 				active={tab.id === activeId}
-				separator={separator}
 				onClose={() => close(tab.id)}
 				editing={menu.editingId === tab.id}
 				menuOpen={menu.context.open}
@@ -169,7 +166,7 @@ export function PageTabs({
 	);
 	return (
 		<ContextMenu {...menu.context}>
-			<div className="relative flex min-w-0 items-end bg-surface px-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border/60">
+			<div className="relative flex min-w-0 items-center bg-pane py-1 text-sm">
 				<TabsRoot
 					value={activeId}
 					onValueChange={(value) => onSelect(value as string)}
@@ -194,17 +191,10 @@ export function PageTabs({
 							onScroll={pinnedLayout.onScroll}
 							{...pinnedDrag.listHandlers}
 						>
-							<div className="relative h-full" style={{ width: pinnedCount * pinnedWidth }}>
-								{pinnedIndexes.map((index) =>
-									pageTab(
-										index,
-										{ left: index * pinnedWidth, width: pinnedWidth },
-										pinnedDrag.pointerDown,
-										index !== activeIndex && index + 1 !== activeIndex && index < pinnedCount - 1,
-									),
-								)}
+							<div className="relative h-full" style={{ width: pinnedLayout.width }}>
+								{pinnedIndexes.map((index) => pageTab(index, pinnedLayout.boxes[index]!, pinnedDrag.pointerDown))}
 								{pinnedDrag.dropIndex !== null &&
-									dropMarker(Math.min(pinnedDrag.dropIndex * pinnedWidth, pinnedCount * pinnedWidth - 2))}
+									dropMarker(pinnedLayout.boxes[pinnedDrag.dropIndex]?.left ?? pinnedLayout.width - 2)}
 							</div>
 						</div>
 						<div
@@ -213,10 +203,10 @@ export function PageTabs({
 							onScroll={layout.onScroll}
 							{...drag.listHandlers}
 						>
-							<div className="relative h-full" style={{ width: slots.length * layout.width }}>
+							<div className="relative h-full" style={{ width: layout.width }}>
 								{renderedIndexes.map((index) => {
 									const slot = slots[index]!;
-									const style = { left: index * layout.width, width: layout.width };
+									const style = layout.boxes[index]!;
 									if (slot.kind === "group")
 										return (
 											<TabGroupHeader
@@ -231,18 +221,9 @@ export function PageTabs({
 												onCollapse={onGroupCollapse!}
 											/>
 										);
-									return pageTab(
-										slot.tabIndex,
-										style,
-										drag.pointerDown,
-										index !== activeSlot &&
-											index + 1 !== activeSlot &&
-											index < slots.length - 1 &&
-											slots[index + 1]!.kind === "tab",
-									);
+									return pageTab(slot.tabIndex, style, drag.pointerDown);
 								})}
-								{drag.dropIndex !== null &&
-									dropMarker(Math.min(drag.dropIndex * layout.width, slots.length * layout.width - 2))}
+								{drag.dropIndex !== null && dropMarker(layout.boxes[drag.dropIndex]?.left ?? layout.width - 2)}
 							</div>
 						</div>
 					</TabsList>

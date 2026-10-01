@@ -1,9 +1,9 @@
 import { type PointerEvent, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { type TabBox, tabDropIndex } from "../tabGeometry";
 
 type Options = {
 	listRef: RefObject<HTMLDivElement | null>;
-	slotWidth: number;
-	slotCount: number;
+	boxes: readonly TabBox[];
 	enabled: boolean;
 	// Runs after each completed drag with the slot index under the pointer.
 	// The caller decides whether that index changes the tab order.
@@ -13,7 +13,7 @@ type Options = {
 // The pointer drag of one tab along the strip. A drag starts after 6 px of
 // travel, so a click stays a click. While a drag runs, the strip scrolls
 // itself when the pointer sits within 28 px of either edge.
-export function useTabDrag({ listRef, slotWidth, slotCount, enabled, onDrop }: Options) {
+export function useTabDrag({ listRef, boxes, enabled, onDrop }: Options) {
 	const dragged = useRef<string | null>(null);
 	const [draggedId, setDraggedId] = useState<string | null>(null);
 	const dragX = useRef(0);
@@ -23,10 +23,10 @@ export function useTabDrag({ listRef, slotWidth, slotCount, enabled, onDrop }: O
 	const positionFor = useCallback(
 		(clientX: number) => {
 			const element = listRef.current!;
-			const offset = clientX - element.getBoundingClientRect().left + element.scrollLeft + slotWidth / 2;
-			return Math.max(0, Math.min(slotCount, Math.floor(offset / slotWidth)));
+			const offset = clientX - element.getBoundingClientRect().left + element.scrollLeft;
+			return tabDropIndex(boxes, offset);
 		},
-		[listRef, slotWidth, slotCount],
+		[listRef, boxes],
 	);
 	const reset = () => {
 		pointerStart.current = null;

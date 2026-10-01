@@ -14,7 +14,6 @@ type Props = {
 	count: number;
 	style: CSSProperties;
 	active: boolean;
-	separator: boolean;
 	onClose: () => void;
 	editing: boolean;
 	menuOpen: boolean;
@@ -31,7 +30,6 @@ export function PageTab({
 	count,
 	style,
 	active,
-	separator,
 	onClose,
 	editing,
 	menuOpen,
@@ -61,10 +59,8 @@ export function PageTab({
 				}
 			}}
 			className={cx(
-				"group absolute top-0 left-0 flex h-8 items-center rounded-t-hairline max-sm:h-11 pointer-coarse:h-11",
-				active ? "z-10 bg-bg text-fg" : "text-fg-muted hover:bg-fg/6 hover:text-fg",
-				separator &&
-					"after:pointer-events-none after:absolute after:right-0 after:inset-y-2 after:w-px after:bg-border/60",
+				"group absolute top-0 left-0 flex h-8 items-center rounded-md max-sm:h-11 pointer-coarse:h-11",
+				active ? "bg-surface text-fg ring-1 ring-inset ring-border" : "text-fg-muted hover:bg-surface hover:text-fg",
 			)}
 			style={style}
 		>
@@ -102,13 +98,13 @@ export function PageTab({
 						aria-posinset={index + 1}
 						aria-setsize={count}
 						className={cx(
-							"flex h-8 max-sm:h-11 pointer-coarse:h-11 w-full min-w-0 flex-1 items-center gap-1.5 rounded-tl-hairline text-left text-sm select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-							tab.pinned ? "rounded-tr-hairline px-1.5" : "px-2",
+							"flex h-8 max-sm:h-11 pointer-coarse:h-11 w-full min-w-7 max-sm:min-w-11 pointer-coarse:min-w-11 flex-1 items-center gap-1.5 rounded-md text-left text-sm font-medium select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+							tab.pinned ? "px-1.5" : "px-2",
 						)}
 						onPointerDown={onPointerDown}
 					>
 						{tab.pinned && <PushPinSimple aria-hidden="true" className="size-3 shrink-0" />}
-						<span ref={label} className={cx("block truncate", active && "font-medium")}>
+						<span ref={label} className="block truncate">
 							{tab.title}
 						</span>
 					</TabsTab>
