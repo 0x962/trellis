@@ -26,11 +26,11 @@ export function HarnessAccountNameForm({
 			open={open}
 			onOpenChange={(next) => !next && !busy && onClose()}
 			title="Rename account"
+			description="Choose the account name that Trellis shows."
 			initialFocus={nameRef}
 			titleClassName="text-md font-medium"
 		>
 			<SheetBody>
-				<p className="text-sm text-fg-muted">Choose the account name that Trellis shows.</p>
 				<form
 					className="flex flex-col gap-4"
 					onSubmit={(event) => {

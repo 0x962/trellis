@@ -16,13 +16,13 @@ export function ProviderForm({
 			onOpenChange={(next) => !next && !props.busy && props.onClose()}
 			title={props.editing ? "Edit provider" : "Add provider"}
 			titleClassName="text-md font-medium"
+			description={
+				props.editing
+					? "Change the provider. Leave the key blank to keep the stored key."
+					: "Give Trellis a key for a model gateway. Trellis stores the key on this machine and never shows it again."
+			}
 		>
 			<SheetBody>
-				<p className="text-sm text-fg-muted">
-					{props.editing
-						? "Change the provider. Leave the key blank to keep the stored key."
-						: "Give Trellis a key for a model gateway. Trellis stores the key on this machine and never shows it again."}
-				</p>
 				<ProviderFields {...props} />
 			</SheetBody>
 		</Sheet>

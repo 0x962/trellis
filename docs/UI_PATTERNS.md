@@ -153,6 +153,7 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 `Sheet` owns the appearance of every slideout, including forms and pages.
+Its `description` prop shows the introductory text and supplies the accessible description.
 It uses `rounded-xl` on the exposed corners and the `shadow-page-sheet` token.
 The corners face left for a right sheet and right for a left sheet.
 The sheet clips its content to these corners.

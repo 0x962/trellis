@@ -28,13 +28,11 @@ export function HarnessAccountForm({
 			open={open}
 			onOpenChange={(next) => !next && !busy && onClose()}
 			title="Add agent account"
+			description="Create a separate login profile, or connect an existing profile on this machine."
 			initialFocus={nameRef}
 			titleClassName="text-md font-medium"
 		>
 			<SheetBody>
-				<p className="text-sm text-fg-muted">
-					Create a separate login profile, or connect an existing profile on this machine.
-				</p>
 				<form
 					className="flex flex-col gap-4"
 					onSubmit={(event) => {

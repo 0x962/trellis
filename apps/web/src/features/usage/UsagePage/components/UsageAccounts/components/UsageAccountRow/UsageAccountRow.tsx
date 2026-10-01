@@ -174,12 +174,10 @@ export function UsageAccountRow({
 					onActiveChange?.(open);
 				}}
 				title={`Edit details for ${account.name}`}
+				description="Review the account profile. Rename the account to change its display name."
 				titleClassName="text-md font-medium"
 			>
 				<SheetBody>
-					<p className="text-sm text-fg-muted">
-						Review the account profile. Rename the account to change its display name.
-					</p>
 					<dl className="flex flex-col">
 						<PropertyRow label="Harness">{harnessLabel[account.harness]}</PropertyRow>
 						<PropertyRow label="Default">{account.isDefault ? "Yes" : "No"}</PropertyRow>
@@ -228,12 +226,10 @@ export function UsageAccountRow({
 					onActiveChange?.(open);
 				}}
 				title={`Sign in to ${account.name}`}
+				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account."
 				titleClassName="text-md font-medium"
 			>
 				<SheetBody>
-					<p className="text-sm text-fg-muted">
-						Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account.
-					</p>
 					<div className="flex min-w-0 items-start gap-2">
 						<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
 						<Tooltip content="Copy command">
