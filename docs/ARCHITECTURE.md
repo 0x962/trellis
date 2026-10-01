@@ -620,6 +620,12 @@ Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
 ULID or `KEY-n`. Update, remove, and blob reads use the resource ULID. The CLI
 verb is `trellis resource` with `add`, `list`, and `rm`.
 
+The epic plan and document resources show an automatic contents list.
+`EpicDocument` observes the rendered Markdown headings, including edits before the body save completes.
+The list reads body headings at levels one through six.
+Each heading retains a separate navigation target while its element remains in the document.
+`DocumentLayout` puts the list in a right sidebar or a Contents popover, according to the available width.
+
 #### Document comments
 
 `resource_comments` holds the comment threads on the text of a document
