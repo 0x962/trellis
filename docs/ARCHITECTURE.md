@@ -623,6 +623,7 @@ The epic plan and document resources show an automatic contents list.
 The list reads body headings at levels one through six.
 Each heading retains a separate navigation target while its element remains in the document.
 `DocumentLayout` puts the list in a right sidebar or a Contents popover, according to the available width.
+The contents use the shared virtual-row hook with measured row heights and keyboard access to the complete list.
 
 #### Document comments
 

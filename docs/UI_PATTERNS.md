@@ -133,11 +133,14 @@ The product keeps two shapes. What the control changes picks the shape, not the 
 A document of the Resources tab of an epic keeps its own shape. Its title and its body save while the person types, so it is no in-place edit of one value.
 
 `DocumentLayout` places Contents to the right of the document.
-Below 48 rem of available document space, the circular Contents action opens a popover.
+Below the `--container-3xl` width, the circular Contents action opens a popover.
+The popover uses `--popover-max-height` and the available screen height.
 The comments pane uses its own space beside that region.
 The list follows headings at all six levels as the person edits the document.
 Each row scrolls the document to its heading. Duplicate names keep separate targets.
 Long names wrap, and an empty heading reads Untitled heading.
+The virtual list measures wrapped rows and keeps the focused heading mounted.
+Arrow keys, Home, End, and Tab reach headings outside the visible rows.
 
 ## Project-owned HTML Pages
 
@@ -161,6 +164,7 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 `Sheet` owns the appearance of every slideout, including forms and pages.
+Its `description` prop shows the introductory text and supplies the accessible description.
 It uses `rounded-xl` on the exposed corners and the `shadow-page-sheet` token.
 The corners face left for a right sheet and right for a left sheet.
 The sheet clips its content to these corners.
@@ -317,7 +321,9 @@ The words carry no blame, no apology and no exclamation mark. Red marks one thin
 
 The Agent Usage tab puts Providers directly under Accounts.
 `ProviderCard` is the second card shape on the page. It shows the key status, balance, and selected models.
-`ProviderForm` uses the account dialog shape for Add and Edit. Edit leaves the key blank and preserves it until a person enters a replacement.
+Account details, sign-in instructions, account forms, and `ProviderForm` use the shared `Sheet` and `SheetBody`.
+The slideout opens from the right and keeps Usage behind it.
+Edit leaves the key blank and preserves it until a person enters a replacement.
 The model control uses `Popover`, `PickerButton`, `Command.Virtual`, and `Chip`. It accepts an identifier outside the catalog. Selected models use the shared virtual row hook in a scrollable viewport. Arrow keys, Home, End, Page Up, and Page Down reach remove buttons throughout the selection.
 The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 

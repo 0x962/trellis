@@ -485,6 +485,7 @@
 	--font-weight-medium: 500;
 
 	--spacing: 4px;
+	--popover-max-height: 60dvh;
 
 	--radius-*: initial;
 	/* One step per box size. hairline rounds a mark of a few pixels, sm a
