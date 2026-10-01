@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { readCsf } from "storybook/internal/csf-tools";
 import { z } from "zod";
+import uiPackage from "../../../../packages/ui/package.json";
 import { publicComponents } from "./publicComponents";
 
 const root = resolve(import.meta.dir, "../../../..");
@@ -38,8 +39,8 @@ for (const entry of coverage) {
 	}
 }
 const exported = new Set<string>();
-for (const file of ["index.ts", "review/index.ts", "terminal/index.ts"]) {
-	for (const name of publicComponents(resolve(root, "packages/ui/src", file))) exported.add(name);
+for (const file of Object.values(uiPackage.exports).filter((path) => /\.tsx?$/.test(path))) {
+	for (const name of publicComponents(resolve(root, "packages/ui", file))) exported.add(name);
 }
 for (const name of exported) {
 	if (!coverage.some((entry) => entry.export === name && entry.source.startsWith("packages/ui/"))) {
