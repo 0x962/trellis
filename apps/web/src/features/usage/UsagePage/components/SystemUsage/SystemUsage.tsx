@@ -3,23 +3,17 @@ import { Button, FailureState, SectionHeader, Skeleton, StatTile, UsageChart } f
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { formatBytes } from "../../../../../lib/format";
-import { ProcessTable } from "./components/ProcessTable";
 import { formatAxisPercent, formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
 import { memoryPressureLevel } from "./memoryPressure";
 
 const USAGE_POLL_MS = 2_000;
-const PROCESS_POLL_MS = 15_000;
 
 export function SystemUsage() {
 	const { orpc } = useApp();
 	const [selectedSample, setSelectedSample] = useState<string | null>(null);
 	const usage = useQuery({ ...orpc.system.usage.queryOptions({}), refetchInterval: USAGE_POLL_MS });
-	// /bin/ps walks the whole process table, which costs about a second against
-	// the two thousand processes of a busy Mac. This read runs far apart, so the
-	// page does not add to the load that it reports.
-	const processes = useQuery({ ...orpc.system.processes.queryOptions({}), refetchInterval: PROCESS_POLL_MS });
 
-	const failure = usage.error ?? processes.error;
+	const failure = usage.error;
 	if (failure !== null) {
 		return (
 			<FailureState
@@ -28,10 +22,9 @@ export function SystemUsage() {
 				action={
 					<Button
 						size="md"
-						processing={usage.isFetching || processes.isFetching}
+						processing={usage.isFetching}
 						onClick={() => {
 							void usage.refetch();
-							void processes.refetch();
 						}}
 					>
 						Try again
@@ -42,14 +35,12 @@ export function SystemUsage() {
 	}
 
 	const data = usage.data;
-	const processData = processes.data;
-	if (data === undefined || processData === undefined) {
+	if (data === undefined) {
 		return (
 			<div role="status" aria-label="Load system usage" className="flex max-w-7xl flex-col gap-3">
 				<span className="sr-only">Load system usage</span>
 				<Skeleton height="h-24" />
 				<Skeleton height="h-64" />
-				<Skeleton height="h-80" />
 			</div>
 		);
 	}
@@ -78,12 +69,7 @@ export function SystemUsage() {
 					value={data.loadAverage[0].toFixed(2)}
 					detail={`Over 1 minute · ${data.loadAverage[1].toFixed(2)} over 5 · ${data.loadAverage[2].toFixed(2)} over 15`}
 				/>
-				<StatTile
-					framed
-					label="Uptime"
-					value={formatUptime(data.uptimeSeconds)}
-					detail={`${processData.processCount.toLocaleString("en-US")} processes`}
-				/>
+				<StatTile framed label="Uptime" value={formatUptime(data.uptimeSeconds)} />
 			</section>
 
 			<section aria-label="Recent history" className="flex flex-col gap-3">
@@ -133,8 +119,6 @@ export function SystemUsage() {
 					every 2 seconds
 				</p>
 			</section>
-
-			<ProcessTable processes={processData.processes} />
 		</div>
 	);
 }
