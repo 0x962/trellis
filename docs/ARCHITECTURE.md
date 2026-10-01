@@ -741,6 +741,13 @@ It removes a clean worktree for a done or canceled ticket after the assigned pro
 Session workspaces, active tickets, live processes, open files, and dirty worktrees keep their directories.
 `workspaceOperation` serializes launch and removal for the same workspace.
 The sweep keeps the branch, assignment, and provider conversation.
+
+The attempt sweep reads all references once, then skips referenced and recent directories.
+It checks each remaining attempt again under its attempt lock before removal.
+Between attempts, it yields after 25 milliseconds so the database worker can receive requests.
+Sweep logs identify each phase, its duration, and its counts under one sweep identifier.
+The attempt loop logs counts between candidates when at least five seconds pass.
+
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
 
