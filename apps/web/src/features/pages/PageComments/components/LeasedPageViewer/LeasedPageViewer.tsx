@@ -1,9 +1,8 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
-import { useNavigate } from "@tanstack/react-router";
 import type { PageCommentThread } from "@trellis/api";
 import { ConfirmDialog, FailureState, IconButton, PageViewer, Tooltip } from "@trellis/ui";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { openLink } from "../../../../../lib/openLink";
+import { useOpenLink } from "../../../../../lib/openLink";
 import { useTheme } from "../../../../../lib/theme";
 import { failureKind } from "../../../../shell/RouteError";
 import { readFrameMessage } from "../../../PageDetail/frameMessage";
@@ -40,7 +39,7 @@ export function LeasedPageViewer({
 	const theme = useTheme();
 	const leaseId = lease?.id;
 	const nonce = lease?.nonce;
-	const navigate = useNavigate();
+	const openLink = useOpenLink();
 	const commentIds = useMemo(() => new Set(comments.map(({ thread }) => thread.id)), [comments]);
 	const commentRevision = useMemo(
 		() => comments.map(({ thread }) => `${thread.id}:${thread.updatedAt}`).join("/"),
@@ -172,8 +171,7 @@ export function LeasedPageViewer({
 				onCancel={() => setLink(null)}
 				onConfirm={() => {
 					if (link === null) return;
-					if (link.internal) void navigate({ href: link.href });
-					else openLink(link.href);
+					openLink(link.href);
 					setLink(null);
 				}}
 			/>

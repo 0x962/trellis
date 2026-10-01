@@ -8,11 +8,21 @@ type Input = {
 	description: string;
 	epic: string | undefined;
 	wave: string | undefined;
+	harness?: TicketClassificationInput["harness"];
 	disabled: boolean;
 	onResult: (result: TicketClassification, input: TicketClassificationInput) => void;
 };
 
-export function useTicketClassification({ project, title, description, epic, wave, disabled, onResult }: Input) {
+export function useTicketClassification({
+	project,
+	title,
+	description,
+	epic,
+	wave,
+	harness,
+	disabled,
+	onResult,
+}: Input) {
 	const { client } = useApp();
 	const [state, setState] = useState<"idle" | "pending" | "error">("idle");
 	const apply = useRef(onResult);
@@ -21,7 +31,7 @@ export function useTicketClassification({ project, title, description, epic, wav
 		setState("idle");
 		if (disabled || !project || !title.trim()) return;
 		const controller = new AbortController();
-		const input = { project, title: title.trim(), description, epic, wave };
+		const input = { project, title: title.trim(), description, epic, wave, harness };
 		const timer = setTimeout(() => {
 			setState("pending");
 			void client.tickets.classify(input, { signal: controller.signal }).then(
@@ -39,6 +49,6 @@ export function useTicketClassification({ project, title, description, epic, wav
 			clearTimeout(timer);
 			controller.abort();
 		};
-	}, [client, project, title, description, epic, wave, disabled]);
+	}, [client, project, title, description, epic, wave, harness, disabled]);
 	return state;
 }

@@ -1,11 +1,11 @@
 import { ChatText } from "@phosphor-icons/react";
-import { useNavigate } from "@tanstack/react-router";
 import type { PageCommentAnchor } from "@trellis/api";
 import { ConfirmDialog, IconButton, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { ReviewCommentEditor } from "@trellis/ui/review";
 import { useMemo, useRef, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { errorMessage } from "../../../lib/conflict";
+import { usePageVersionNavigation } from "../usePageVersionNavigation";
 import { LeasedPageViewer } from "./components/LeasedPageViewer";
 import { PageCommentThreads } from "./PageCommentThreads";
 import { numberPageComments, pageCommentPins, pageCommentSearch } from "./pageCommentFilters";
@@ -32,7 +32,7 @@ export function PageComments({
 	blocked: boolean;
 }) {
 	const comments = usePageComments(page);
-	const navigate = useNavigate();
+	const { openVersion } = usePageVersionNavigation(page);
 	const wide = useMediaQuery(WIDE_QUERY);
 	const trigger = useRef<HTMLButtonElement>(null);
 	const [sheetOpen, setSheetOpen] = useState(false);
@@ -51,11 +51,7 @@ export function PageComments({
 	const select = (id: string) => {
 		const target = numbered.find(({ thread }) => thread.id === id)?.thread;
 		if (target !== undefined && target.version !== version) {
-			void navigate({
-				to: "/p/$",
-				params: { _splat: page },
-				search: pageCommentSearch(target.version, latestVersion),
-			});
+			openVersion(pageCommentSearch(target.version, latestVersion).version);
 			return;
 		}
 		if (target?.resolved !== null) setShowResolved(true);

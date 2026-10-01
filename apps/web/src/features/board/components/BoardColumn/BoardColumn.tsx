@@ -1,7 +1,7 @@
 import { CaretRight } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { Button, cx, IconButton, StatusIcon } from "@trellis/ui";
-import { type KeyboardEvent, type MouseEvent, useCallback, useRef } from "react";
+import { type KeyboardEvent, type MouseEvent, useCallback, useMemo, useRef } from "react";
 import { workingGroupInsertIndex } from "../../columns";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
@@ -60,12 +60,18 @@ export function BoardColumn({
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
-	const visible = visibleCards(column, { collapsed, showAllDone });
 	// The rail of a collapsed column prints the number of cards the open
 	// column draws, so the number stays the same when the person opens it.
-	const open = visibleCards(column, { collapsed: false, showAllDone });
+	const open = useMemo(() => visibleCards(column, { collapsed: false, showAllDone }), [column, showAllDone]);
+	const visible = useMemo(() => (collapsed ? [] : open), [collapsed, open]);
 	const count = column.category === "done" && !showAllDone ? open.length : column.count;
-	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
+	const dropIndex = useMemo(
+		() =>
+			over === null
+				? null
+				: workingGroupInsertIndex(visible, { id: over.ticketId, createdAt: over.createdAt }, workingTicketIds),
+		[visible, over, workingTicketIds],
+	);
 
 	if (collapsed) {
 		return (

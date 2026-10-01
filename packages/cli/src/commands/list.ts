@@ -53,7 +53,7 @@ export default defineCommand({
 		completed: { type: "string", description: "Completed after: ISO time, or 24h, 30d" },
 		sort: {
 			type: "string",
-			default: "-updatedAt",
+			default: "-createdAt",
 			description: "[-]updatedAt|createdAt|priority|number|status|position",
 		},
 		limit: { type: "string", default: "50", description: "Rows to print; pages follow cursors up to it" },

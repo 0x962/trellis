@@ -32,13 +32,31 @@ afterEach(() => setSystemTime());
 test("manual sessions and ticket agents share one list", () => {
 	setSystemTime(now);
 	const runs = [
-		run("ticket", { activityAt: hoursAgo(2) }),
-		run("manual", { kind: "session", ticketId: null, activityAt: hoursAgo(1) }),
+		run("ticket", { createdAt: hoursAgo(3), activityAt: hoursAgo(1) }),
+		run("manual", { kind: "session", ticketId: null, createdAt: hoursAgo(2), activityAt: hoursAgo(2) }),
 	];
 	expect(sessionGroups(runs, { search: "", showArchived: false }).runs.map((item) => item.id)).toEqual([
 		"manual",
 		"ticket",
 	]);
+});
+
+test.each([false, true])("activity cannot reorder sessions when showArchived is %s", (showArchived) => {
+	setSystemTime(now);
+	const activityAt = hoursAgo(showArchived ? 100 : 2);
+	const runs = [
+		run("older", { createdAt: hoursAgo(200), activityAt }),
+		run("newer-a", { createdAt: hoursAgo(150), activityAt }),
+		run("newer-b", { createdAt: hoursAgo(150), activityAt }),
+	];
+	const options = { search: "", showArchived };
+	const before = sessionGroups(runs, options).runs.map((item) => item.id);
+	expect(before).toEqual(["newer-b", "newer-a", "older"]);
+	expect(
+		sessionGroups([{ ...runs[0]!, activityAt: hoursAgo(showArchived ? 80 : 1) }, ...runs.slice(1)], options).runs.map(
+			(item) => item.id,
+		),
+	).toEqual(before);
 });
 
 test("an unpinned session moves to Archived at the 72-hour boundary", () => {

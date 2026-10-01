@@ -42,8 +42,7 @@ export const NoteSchema = z.object({
 });
 export type Note = z.infer<typeof NoteSchema>;
 
-// The notes of a project and of every ancestor, newest change first. An
-// `audience` filter keeps the notes that audience reads: its own and `all`.
+// The `audience` filter keeps notes for that audience and for `all`.
 export const NoteListInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	audience: NoteAudienceSchema.optional(),

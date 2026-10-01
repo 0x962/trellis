@@ -26,7 +26,6 @@ async function compare(input: { project?: string; all?: boolean } = { all: true 
 		actual: await prs(ctx, tx, input),
 		expected: await baselinePrs(ctx, tx, input),
 	}));
-	expect(actual.map((row) => row.updatedAt)).toEqual(expected.map((row) => row.updatedAt));
 	const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);
 	expect(actual.toSorted(byId)).toEqual(expected.toSorted(byId));
 	for (const row of actual) expect(ReviewPrSchema.parse(row)).toEqual(row);
@@ -36,10 +35,13 @@ async function compare(input: { project?: string; all?: boolean } = { all: true 
 const hasFlowGap = (rows: Awaited<ReturnType<typeof prs>>, id: string) =>
 	rows.find((row) => row.id === id)!.reviewGaps.some((gap) => gap.kind === "flow-run");
 
-test("the complete list preserves filters, fields, thread totals and timestamp order", async () => {
+test("the list preserves fields and filters while updates cannot change creation order", async () => {
 	const first = await reviewFixture(db);
 	const second = await reviewFixture(db);
 	const unlinked = await reviewFixture(db);
+	await db.execute(sql`UPDATE pull_requests SET created_at='2026-09-30T01:00:00Z' WHERE id=${first.pull}`);
+	await db.execute(sql`UPDATE pull_requests SET created_at='2026-09-30T02:00:00Z' WHERE id=${second.pull}`);
+	await db.execute(sql`UPDATE pull_requests SET created_at='2026-09-30T03:00:00Z' WHERE id=${unlinked.pull}`);
 	await db.execute(sql`DELETE FROM ticket_pull_requests WHERE pull_request_id = ${unlinked.pull}`);
 	await db.execute(sql`INSERT INTO repos (id,project_id,owner,repo)
 		SELECT ${ulid()},${first.project},owner,repo FROM pull_requests WHERE id=${unlinked.pull}`);
@@ -77,6 +79,8 @@ test("the complete list preserves filters, fields, thread totals and timestamp o
 		first.pull,
 	]);
 	expect(hasFlowGap(all, first.pull)).toBe(true);
+	await db.execute(sql`UPDATE review_threads SET updated_at='2026-10-01T00:00:00Z' WHERE pr_id=${first.pull}`);
+	expect((await compare()).map((row) => row.id)).toEqual(all.map((row) => row.id));
 });
 
 for (const engine of ["legacy", "langflow"] as const) {

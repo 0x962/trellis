@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
+import { decodeCursor, encodeCursor } from "../../db/queries/support.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { recordObservedActivity } from "./activity.ts";
@@ -73,7 +74,7 @@ beforeAll(async () => {
 			${hoursAgo(300)}, ${hoursAgo(300)})`);
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_id, project_key, pinned_at, closed_at, created_at, updated_at) VALUES
-		(${openRun}, 'open', 'session', 'Open prompt.', ${projectId}, 'LST', NULL, NULL, ${hoursAgo(200)}, ${hoursAgo(200)}),
+		(${openRun}, 'open', 'session', 'Open prompt.', ${projectId}, 'LST', NULL, NULL, ${hoursAgo(201)}, ${hoursAgo(200)}),
 		(${freshRun}, 'fresh', 'session', 'Fresh prompt.', ${projectId}, 'LST', NULL, ${hoursAgo(2)}, ${hoursAgo(3)}, ${hoursAgo(2)}),
 		(${recentActivityRun}, 'recent activity', 'session', 'Recent prompt.', ${projectId}, 'LST', NULL, ${hoursAgo(40)}, ${hoursAgo(200)}, ${hoursAgo(1.5)}),
 		(${oldRun}, 'old', 'session', 'Old prompt.', ${projectId}, 'LST', ${hoursAgo(1)}, ${hoursAgo(40)}, ${hoursAgo(48)}, ${hoursAgo(40)}),
@@ -125,9 +126,9 @@ beforeAll(async () => {
 
 afterAll(async () => db.$client.close());
 
-test("the list keeps open runs and uses stored activity instead of the creation time", async () => {
+test("the list keeps open and recently updated runs in creation order", async () => {
 	const rows = (await listRuns({ project: projectId })).items;
-	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun, freshRun, openRun]);
+	expect(rows.map((row) => row.id)).toEqual([flowRun, freshRun, recentActivityRun, openRun]);
 	expect(rows.find((row) => row.id === recentActivityRun)?.activityAt).toBe(hoursAgo(1.5));
 });
 
@@ -151,12 +152,12 @@ test("the generic list keeps its limit when the pin count meets that limit", asy
 
 test("a wider window reaches the runs that closed before it", async () => {
 	const rows = (await listRuns({ project: projectId, windowHours: 168 })).items;
-	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun, freshRun, oldRun, olderRun, openRun]);
+	expect(rows.map((row) => row.id)).toEqual([flowRun, freshRun, oldRun, olderRun, recentActivityRun, openRun]);
 });
 
 test("the limit cuts the answer to the newest rows", async () => {
 	const rows = (await listRuns({ project: projectId, windowHours: 168, limit: 2 })).items;
-	expect(rows.map((row) => row.id)).toEqual([flowRun, recentActivityRun]);
+	expect(rows.map((row) => row.id)).toEqual([flowRun, freshRun]);
 });
 
 test("a run named by its id comes back whatever its age", async () => {
@@ -217,12 +218,14 @@ test("the cursor reads more than 1000 run ids without a duplicate or a missing r
 	expect(new Set(found)).toEqual(new Set(ids));
 });
 
-test("a new run does not change the remaining cursor pages", async () => {
+test("new runs and activity changes cannot skip or repeat rows across cursor pages", async () => {
 	const first = await listRuns({ project: stableProjectId, allHistory: true, limit: 2 });
 	const newRun = ulid();
 	await db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_id, project_key, closed_at, created_at, updated_at) VALUES
 		(${newRun}, 'new', 'session', 'Prompt.', ${stableProjectId}, 'STB', ${now}, ${now}, ${now})`);
+	await db.execute(sql`UPDATE agent_runs SET updated_at = ${now} WHERE id = '01BRZ3NDEKTSV4RRFFQ69G0005'`);
+	await db.execute(sql`UPDATE agent_runs SET updated_at = ${hoursAgo(10)} WHERE id = ${first.items[0]!.id}`);
 	const remaining: string[] = [];
 	let cursor = first.nextCursor ?? undefined;
 	while (cursor !== undefined) {
@@ -248,6 +251,10 @@ test("the input accepts complete filters and an all-history request", () => {
 test("an invalid or mismatched cursor fails", async () => {
 	await expect(listRuns({ cursor: "invalid" })).rejects.toMatchObject({ code: "INVALID_CURSOR" });
 	const first = await listRuns({ project: stableProjectId, limit: 1 });
+	const oldCursor = encodeCursor({ ...(decodeCursor(first.nextCursor!) as object), format: 1 });
+	await expect(listRuns({ project: stableProjectId, limit: 1, cursor: oldCursor })).rejects.toMatchObject({
+		code: "INVALID_CURSOR",
+	});
 	await expect(listRuns({ project: bulkProjectId, limit: 1, cursor: first.nextCursor! })).rejects.toMatchObject({
 		code: "INVALID_CURSOR",
 	});

@@ -23,7 +23,7 @@ export async function ticketContext(ctx: ServiceCtx, tx: Tx, ticket: Ticket) {
 	);
 	const threads = await rows(
 		tx,
-		sql`SELECT id,pr_id AS "diffId",document FROM review_threads WHERE pr_id=ANY(${textArray(ticket.prs.map((pr) => pr.id))}) ORDER BY updated_at,id`,
+		sql`SELECT id,pr_id AS "diffId",document FROM review_threads WHERE pr_id=ANY(${textArray(ticket.prs.map((pr) => pr.id))}) ORDER BY (document->>'createdAt')::timestamptz,id`,
 	);
 	const flows = await rows(
 		tx,

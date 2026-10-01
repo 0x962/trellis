@@ -56,7 +56,7 @@ const deletedRecord: RecordSpec<{ id: string }> = {
 };
 
 const list = defineCommand({
-	meta: { name: "list", description: "List the notes of a project and its ancestors, newest change first" },
+	meta: { name: "list", description: "List project notes in creation order, newest first" },
 	args: {
 		project: projectArg,
 		audience: audienceArg,

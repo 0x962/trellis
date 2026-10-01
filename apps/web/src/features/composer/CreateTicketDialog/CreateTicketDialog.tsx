@@ -141,6 +141,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								statuses={defaults.statuses}
 								status={status}
 								priority={priority}
+								automatic={draft.automatic}
 								parent={parent}
 								placement={placement}
 								labels={labels}
@@ -156,7 +157,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 									<AgentPicker
 										value={choice}
 										accounts={accounts.data}
-										onChange={(assignment) => setDraft({ ...draft, assignment })}
+										onChange={(assignment) => chooseClassification({ assignment })}
 										disabled={locked}
 									/>
 								}
@@ -179,11 +180,6 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 									/>
 								))}
 							</div>
-						)}
-						{submission.receipt && (
-							<p role="status" className="mt-3 text-xs text-fg-muted">
-								Ticket {submission.receipt.identifier} is saved.
-							</p>
 						)}
 						{submission.failure && (
 							<FailureState

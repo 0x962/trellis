@@ -114,8 +114,8 @@ test("existing epics default to enabled and real sends retain complete text", as
 	EpicChatterPageSchema.parse(await history());
 	expect((await history()).items[0]).toMatchObject({
 		text,
-		senderName: "Builder",
-		recipientName: "Reviewer",
+		senderName: "CAN-1",
+		recipientName: "CAN-2",
 		state: "sent",
 	});
 });

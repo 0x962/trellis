@@ -104,10 +104,10 @@ export const epicSelect = sql`SELECT e.id, e.project_id, proj.key AS project_key
 	${ticketCounts(sql`t.epic_id = e.id`)}
 	${currentWave}`;
 
-// Epics sort by state, then by their latest change within each state.
+// State groups keep open epics ahead of completed and canceled epics.
 export const epicOrder = sql`CASE WHEN e.canceled_at IS NOT NULL THEN 2
 	WHEN c.total > 0 AND c.done + c.canceled = c.total THEN 1 ELSE 0 END,
-	e.updated_at DESC, e.id DESC`;
+	e.created_at DESC, e.id DESC`;
 
 export const toEpicSummary = (row: RawEpic): EpicSummary => {
 	const counts = toCounts(row);
