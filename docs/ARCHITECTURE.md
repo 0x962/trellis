@@ -948,7 +948,11 @@ Each mutation emits `providers.changed {id}`.
 The Usage page at `/usage` shows what every agent on the machine consumed.
 `usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
 The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
-The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server caches each range for five minutes. A refresh uses a cached result for ten seconds.
+The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server saves each completed range under `cache/usage-reports-v1` in the data home. An ordinary read uses this report across restarts. The first read of a range scans when that range has no saved report.
+
+An explicit refresh scans again. Concurrent refresh requests share that scan. Readers keep the completed report during the scan, and a failed scan preserves it. Account changes remove the saved ranges.
+
+The page shows the report time and the refresh control. Ranking pages retain the current and previous report in memory so an active reader can finish during a refresh.
 Every turn uses the rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark and Muse Glimmer cost $1.25 per million input tokens and $4.25 per million output tokens. Cached Muse input uses the input rate. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, and separate cost and token rankings. Each ranking holds one row list per grouping (ticket, agent, project, kind, account, model, harness) and every session with one key per grouping.
@@ -1454,7 +1458,7 @@ returns one canonical spelling.
 | providers.models | GET /api/providers/{id}/models | language models from the remote catalog; optional refresh |
 | providers.publicModels | GET /api/providers/kinds/{kind}/models | public Vercel catalog or an empty compatible catalog; optional refresh |
 | providers.check | GET /api/providers/{id}/check | key acceptance and optional credit balance; optional refresh |
-| usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; cached for five minutes |
+| usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; each range persists until an explicit refresh or an account change |
 | usage.ranking | GET /api/usage/ranking | ranked pages and the selected group from the exact cached report |
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |

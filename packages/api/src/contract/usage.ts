@@ -15,7 +15,7 @@ export const usage = {
 			method: "GET",
 			path: "/usage",
 			summary:
-				"Read token usage and API-rate cost from the harness transcripts on this machine, joined to agent runs, tickets, projects, and accounts. The report is cached for five minutes. Read usage/ranking for complete ranked pages.",
+				"Read token usage and API-rate cost from the harness transcripts on this machine, joined to agent runs, tickets, projects, and accounts. Each range retains its saved report across restarts. Set refresh to scan again. Read usage/ranking for complete ranked pages.",
 		})
 		.input(UsageReportInputSchema)
 		.output(UsageReportSchema),
