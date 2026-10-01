@@ -8,7 +8,6 @@ import { computeUsageReport } from "../../../../../../../../../server/src/servic
 import { rankingPage } from "../../../../../../../../../server/src/services/usage/ranking/components/rankingPage";
 import { type AppContext, AppProvider } from "../../../../../../../lib/appContext";
 import { UsageGroups } from "../../../UsageGroups";
-import { UsageSessions } from "../../../UsageSessions";
 import { useUsageRanking } from "./useUsageRanking";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -94,25 +93,12 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 			total={report.totals.usd}
 			maxValue={firstPage.maxValue}
 			count={firstPage.groupTotal}
-			start={0}
 			pages={null}
-			days={[]}
 			selectedRow={null}
 			onSelectRow={() => {}}
 		/>,
 	);
 	expect(groupHtml.match(/<li /g)).toHaveLength(8);
-	const sessionHtml = renderToStaticMarkup(
-		<UsageSessions
-			sessions={firstPage.sessions}
-			metric="usd"
-			groupLabel="account"
-			filtered={null}
-			total={firstPage.sessionTotal}
-			pages={null}
-		/>,
-	);
-	expect(sessionHtml.match(/<tr /g)).toHaveLength(11);
 	for (let page = 0; page < 24; page++) {
 		await act(async () => data!.changeSessionPage(1));
 		await settle();

@@ -6,7 +6,4 @@ export {
 	formatUsd,
 	harnessLabel,
 	harnessProvider,
-	harnessTone,
-	modelProvider,
-	rowTone,
 } from "./formatUsage";
