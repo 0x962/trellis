@@ -1,12 +1,15 @@
 import { type UseQueryResult, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { HarnessAccountQuota } from "@trellis/api";
-import { Dialog, Input, Select, toast } from "@trellis/ui";
+import { Button, ComposerTitle, FailureState, Textarea, TicketComposer, toast } from "@trellis/ui";
 import { useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
-import { LaunchFields } from "../../agents/LaunchFields";
-import { SessionPrompt } from "../SessionPrompt";
+import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
+import { DropTarget } from "../../attachments/DropTarget";
+import { UploadProgress } from "../../attachments/UploadProgress";
+import { ComposerHeader } from "../../composer/ComposerHeader";
 import { sessionComposerActions, useSessionComposerStore } from "../sessionComposerStore";
+import { SessionAgentPicker } from "./components/SessionAgentPicker";
 import { selectSessionAccount } from "./components/selectSessionAccount";
 
 const combineQuotas = (results: UseQueryResult<HarnessAccountQuota>[]) =>
@@ -20,7 +23,6 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 	const promptRef = useRef<HTMLTextAreaElement>(null);
 	const draft = useSessionComposerStore();
 	const { change } = sessionComposerActions;
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
 	const choices = useMemo(
 		() =>
@@ -48,13 +50,6 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 				quotas,
 			}),
 		[draft.harness, draft.accountId, choices, quotas],
-	);
-	const accountItems = useMemo(
-		() => [
-			{ value: "default", label: "Default account" },
-			...choices.map((account) => ({ value: account.id, label: account.name })),
-		],
-		[choices],
 	);
 	const create = useMutation({
 		mutationFn: () =>
@@ -103,81 +98,118 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 	const submit = () => {
 		if (!create.isPending && (draft.prompt.trim() || draft.files.length)) create.mutate();
 	};
+	const close = () => {
+		if (!create.isPending) onClose();
+	};
+	const addFiles = (files: File[]) => {
+		if (!create.isPending) change({ files: [...useSessionComposerStore.getState().files, ...files] });
+	};
+	const fileIds = useRef(new WeakMap<File, string>());
+	const fileId = (file: File) => {
+		const id = fileIds.current.get(file) ?? crypto.randomUUID();
+		fileIds.current.set(file, id);
+		return id;
+	};
 	return (
-		<Dialog
+		<TicketComposer
 			open
 			title="New session"
-			size="lg"
-			bare
 			initialFocus={promptRef}
-			className="gap-2 bg-surface p-3"
 			onOpenChange={(next) => {
-				if (!next && !create.isPending) onClose();
+				if (!next) close();
 			}}
-		>
-			<fieldset disabled={create.isPending} className="flex min-w-0 flex-col gap-2">
-				<Input
-					label="Session name"
-					hideLabel
-					className="border-transparent bg-transparent px-1 font-medium enabled:hover:border-transparent"
-					value={draft.name}
-					placeholder="Session name (optional)"
-					onChange={(event) => change({ name: event.target.value })}
-				/>
-				<SessionPrompt
-					label="Prompt"
-					compact
-					inputRef={promptRef}
-					text={draft.prompt}
-					files={draft.files}
-					onText={(prompt) => change({ prompt })}
-					onFiles={(files) => change({ files })}
-					onSubmit={submit}
+			onSubmit={submit}
+			header={
+				<ComposerHeader
+					title="New session"
+					project={draft.project}
+					allowNoProject
 					disabled={create.isPending}
-					tools={
-						<LaunchFields
-							compact
+					locked={create.isPending}
+					onProject={(project) => change({ project })}
+					onClose={close}
+				/>
+			}
+			footer={
+				<>
+					<fieldset disabled={create.isPending}>
+						<AddAttachmentButton uploads={{ addFiles }} />
+					</fieldset>
+					<span className="ml-auto text-xs text-fg-faint">⌘/Ctrl+Enter to start</span>
+					<Button
+						type="submit"
+						variant="primary"
+						size="md"
+						className="composer-create"
+						processing={create.isPending}
+						disabled={create.isPending || (!draft.prompt.trim() && draft.files.length === 0)}
+					>
+						Start session
+					</Button>
+				</>
+			}
+		>
+			<DropTarget identifier="new session" onFiles={addFiles}>
+				<fieldset disabled={create.isPending} className="min-w-0">
+					<ComposerTitle
+						aria-label="Session name"
+						value={draft.name}
+						placeholder="Session name (optional)"
+						onChange={(event) => change({ name: event.target.value })}
+					/>
+					<Textarea
+						ref={promptRef}
+						label="Prompt"
+						hideLabel
+						variant="composer"
+						className="ticket-composer-description"
+						value={draft.prompt}
+						rows={4}
+						placeholder="What do you want to do?"
+						onChange={(event) => change({ prompt: event.target.value })}
+						onPaste={(event) => {
+							if (event.clipboardData.files.length) {
+								event.preventDefault();
+								addFiles([...event.clipboardData.files]);
+							}
+						}}
+					/>
+					<div className="ticket-composer-properties">
+						<SessionAgentPicker
 							harness={draft.harness}
-							onChange={sessionComposerActions.selectHarness}
+							accountId={draft.accountId}
+							accounts={accounts.data}
 							disabled={create.isPending}
 						/>
-					}
-				/>
-				<div className="flex flex-wrap items-center gap-2">
-					<Select
-						label="Project"
-						className="max-w-full"
-						value={draft.project || "none"}
-						items={[
-							{ value: "none", label: "No project" },
-							...(projects.data ?? [])
-								.filter((project) => project.archivedAt === null)
-								.map((project) => ({ value: project.key, label: project.key })),
-						]}
-						onValueChange={(project) => change({ project: project === "none" ? "" : project })}
-					/>
-					<Select
-						label="Account"
-						className="max-w-full"
-						value={draft.accountId || "default"}
-						items={accountItems}
-						onValueChange={(accountId) =>
-							sessionComposerActions.selectAccount(accountId === "default" ? "" : accountId)
-						}
-					/>
-					<span className="ml-auto text-xs text-fg-faint">⌘/Ctrl+Enter to start</span>
-				</div>
-			</fieldset>
+					</div>
+					{draft.files.length > 0 && (
+						<div className="mt-3 flex flex-col gap-2">
+							{draft.files.map((file, index) => (
+								<UploadProgress
+									key={fileId(file)}
+									upload={{ id: String(index), file, percent: 0, status: "pending", error: null }}
+									onDismiss={() => {
+										if (!create.isPending) change({ files: draft.files.filter((_, i) => i !== index) });
+									}}
+								/>
+							))}
+						</div>
+					)}
+				</fieldset>
+			</DropTarget>
 			{create.isPending && (
-				<p role="status" className="text-sm text-fg-muted">
+				<p role="status" className="sr-only">
 					Start the session…
 				</p>
 			)}
 			{create.error && (
-				<p role="alert" className="text-sm text-danger">
-					{create.error.message}
-				</p>
+				<FailureState
+					title="The session could not be created."
+					description="Your draft stays here. Try Start session again."
+					detail={create.error.message}
+					className="mt-3"
+				/>
 			)}
-		</Dialog>
+		</TicketComposer>
 	);
 }

@@ -1,18 +1,22 @@
 import { CaretRight, FolderOpen, X } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { ComposerProperty, IconButton, Tooltip } from "@trellis/ui";
-import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
-import { useApp } from "../../../../../lib/appContext";
-import { ProjectPicker } from "../../../../pickers/ProjectPicker";
+import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
+import { useApp } from "../../../lib/appContext";
+import { ProjectPicker } from "../../pickers/ProjectPicker";
 
 export function ComposerHeader({
 	project,
+	title,
+	allowNoProject = false,
 	disabled,
 	locked,
 	onProject,
 	onClose,
 }: {
 	project?: string;
+	title: string;
+	allowNoProject?: boolean;
 	disabled: boolean;
 	locked: boolean;
 	onProject: (project: string) => void;
@@ -28,20 +32,22 @@ export function ComposerHeader({
 		<>
 			<ProjectPicker
 				projects={projects}
-				value={project}
+				value={selected?.key ?? project}
+				allowNoProject={allowNoProject}
+				disabled={locked}
 				onPick={onProject}
 				trigger={
 					<ComposerProperty
 						icon={<FolderOpen />}
-						aria-label={`Project: ${project ?? "Choose a project"}`}
+						aria-label={`Project: ${project || (allowNoProject ? "No project" : "Choose a project")}`}
 						disabled={locked}
 					>
-						{selected?.name ?? project ?? "Choose a project"}
+						{selected?.name ?? (project || (allowNoProject ? "No project" : "Choose a project"))}
 					</ComposerProperty>
 				}
 			/>
 			<CaretRight className="size-2.5 shrink-0" aria-hidden="true" />
-			<span className="whitespace-nowrap">New ticket</span>
+			<span className="whitespace-nowrap">{title}</span>
 			<Tooltip content="Close and keep draft">
 				<IconButton
 					label="Close and keep draft"
