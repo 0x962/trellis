@@ -18,7 +18,7 @@ type Story = StoryObj<typeof meta>;
 export const Populated: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		await expect(await canvas.findByRole("button", { name: /^Review the ticket layout ·/ })).toBeVisible();
+		await expect(await canvas.findByRole("button", { name: /^Review the ticket layout\b/ })).toBeVisible();
 		await expect(await canvas.findByRole("region", { name: "Review the ticket layout conversation" })).toBeVisible();
 	},
 };

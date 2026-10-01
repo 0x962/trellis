@@ -27,7 +27,7 @@ export const Board: Story = {};
 export const Table: Story = {
 	parameters: { trellis: { path: "/p/DEMO/table" } },
 	play: async ({ canvasElement }) => {
-		await expect(await within(canvasElement).findByRole("row", { name: "Open DEMO-40" })).toBeVisible();
+		await expect(await within(canvasElement).findByRole("link", { name: "Open DEMO-40" })).toBeVisible();
 	},
 };
 export const NarrowBoard: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
@@ -50,8 +50,8 @@ export const FilteredTable: Story = {
 	parameters: { trellis: { path: "/p/DEMO/table?q=review&priority=medium&group=none" } },
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		await expect(await canvas.findByRole("row", { name: "Open DEMO-42" })).toBeVisible();
-		await expect(canvas.getAllByRole("row", { name: /^Open DEMO-/ })).toHaveLength(1);
+		await expect(await canvas.findByRole("link", { name: "Open DEMO-42" })).toBeVisible();
+		await expect(canvas.getAllByRole("link", { name: /^Open DEMO-/ })).toHaveLength(1);
 	},
 };
 export const NoFilterResults: Story = {
