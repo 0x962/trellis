@@ -29,6 +29,52 @@ const run = (id: string, fields: Partial<Parameters<typeof sessionGroups>[0][num
 
 afterEach(() => setSystemTime());
 
+test.each(["done", "canceled"] as const)(
+	"a %s ticket moves its sessions to Archived immediately",
+	(ticketStatusCategory) => {
+		const completed = run("completed", { ticketStatusCategory });
+		const current = run("current");
+		const runs = [completed, current];
+		const options = { search: "", now: now.getTime() };
+		expect(sessionGroups(runs, { ...options, showArchived: false }).runs).toEqual([current]);
+		expect(sessionGroups(runs, { ...options, showArchived: true }).runs).toEqual([completed]);
+		expect(nextSessionArchiveTimeMs([completed], now.getTime())).toBeNull();
+		expect(selectedSession(runs, [current], completed.id)).toBe(completed);
+		expect(runs).toEqual([completed, current]);
+	},
+);
+
+test("completed tickets stay archived with pins, active processes, or disabled cleanup", () => {
+	for (const fields of [
+		{ pinnedAt: hoursAgo(1) },
+		{ processStatus: "running" as const },
+		{ processStatus: "unknown" as const },
+		{ state: "starting" as const },
+		{ activityAt: null },
+	]) {
+		const completed = run("completed", { ticketStatusCategory: "done", ...fields });
+		expect(isAutomaticallyArchived(completed, now.getTime(), null)).toBe(true);
+		expect(nextSessionArchiveTimeMs([completed], now.getTime())).toBeNull();
+	}
+});
+
+test.each(["todo", "started", "review", null] as const)(
+	"a %s ticket or standalone session stays current",
+	(ticketStatusCategory) => {
+		const current = run("current", { ticketStatusCategory });
+		expect(isAutomaticallyArchived(current, now.getTime())).toBe(false);
+	},
+);
+
+test("a reopened ticket returns to the current list unless its session is inactive", () => {
+	const completed = run("completed", { ticketStatusCategory: "done" });
+	const options = { search: "", showArchived: false, now: now.getTime() };
+	expect(sessionGroups([completed], options).runs).toEqual([]);
+	const reopened = { ...completed, ticketStatusCategory: "started" as const };
+	expect(sessionGroups([reopened], options).runs).toEqual([reopened]);
+	expect(sessionGroups([{ ...reopened, activityAt: hoursAgo(80) }], options).runs).toEqual([]);
+});
+
 test("manual sessions and ticket agents share one list", () => {
 	setSystemTime(now);
 	const runs = [

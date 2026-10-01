@@ -4,24 +4,37 @@ const descending = (left: string, right: string) => (left === right ? 0 : left >
 
 type GroupableRun = Pick<
 	AgentRun,
-	"id" | "name" | "kind" | "ticketId" | "ticketIdentifier" | "ticketTitle" | "pinnedAt" | "activityAt" | "createdAt"
+	| "id"
+	| "name"
+	| "kind"
+	| "ticketId"
+	| "ticketIdentifier"
+	| "ticketTitle"
+	| "ticketStatusCategory"
+	| "pinnedAt"
+	| "activityAt"
+	| "createdAt"
 > &
 	Partial<Pick<AgentRun, "processStatus" | "state">>;
 
-type ArchiveRun = Pick<GroupableRun, "pinnedAt" | "activityAt" | "processStatus" | "state">;
+type ArchiveRun = Pick<GroupableRun, "ticketStatusCategory" | "pinnedAt" | "activityAt" | "processStatus" | "state">;
+
+const hasCompletedTicket = (run: ArchiveRun) =>
+	run.ticketStatusCategory === "done" || run.ticketStatusCategory === "canceled";
 
 export const isAutomaticallyArchived = (
 	run: ArchiveRun,
 	now = Date.now(),
 	archiveAfterDays = defaultSessionCleanup.archiveAfterDays,
 ) =>
-	archiveAfterDays !== null &&
-	run.pinnedAt === null &&
-	run.activityAt !== null &&
-	run.processStatus !== "running" &&
-	run.processStatus !== "unknown" &&
-	run.state !== "starting" &&
-	now - Date.parse(run.activityAt) >= archiveAfterDays * SESSION_DAY_MS;
+	hasCompletedTicket(run) ||
+	(archiveAfterDays !== null &&
+		run.pinnedAt === null &&
+		run.activityAt !== null &&
+		run.processStatus !== "running" &&
+		run.processStatus !== "unknown" &&
+		run.state !== "starting" &&
+		now - Date.parse(run.activityAt) >= archiveAfterDays * SESSION_DAY_MS);
 
 export const nextSessionArchiveTimeMs = (
 	runs: ArchiveRun[],
@@ -31,6 +44,7 @@ export const nextSessionArchiveTimeMs = (
 	if (archiveAfterDays === null) return null;
 	const times = runs.flatMap((run) => {
 		if (
+			hasCompletedTicket(run) ||
 			run.pinnedAt !== null ||
 			run.activityAt === null ||
 			run.processStatus === "running" ||

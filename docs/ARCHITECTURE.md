@@ -853,6 +853,8 @@ The host monitor requires a complete execution service read before it stores new
 The Clean up section in Settings sets the archive and deletion periods in whole days.
 The defaults are 3 days for archive and 7 days for deletion. Each rule can be disabled.
 After the archive period without activity, an unpinned, stopped row moves to Archived.
+Ticket sessions move to Archived as soon as the ticket reaches Done or Canceled, regardless of pins, process activity, or the archive period.
+If the ticket reopens, its sessions use the normal inactivity rule again.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 The host also runs session cleanup at boot and once each hour.
 Cleanup archives sessions without a project by setting `archived_at`. This archive keeps the original activity time for deletion.
