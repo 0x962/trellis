@@ -31,7 +31,7 @@ export const SearchAndClear: Story = {
 		const search = await canvas.findByLabelText("Search Pages");
 		await userEvent.type(search, "unmatched");
 		await expect(await canvas.findByRole("heading", { name: "No Pages match" })).toBeVisible();
-		await userEvent.clear(search);
+		await userEvent.clear(await canvas.findByLabelText("Search Pages"));
 		await expect(await canvas.findByText("Interface review", { exact: true })).toBeVisible();
 	},
 };

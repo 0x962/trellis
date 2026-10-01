@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { SettingsView } from "../../features/settings/SettingsView";
 import { failure, pending } from "./fixtures/project";
 import { settings, settingsResponses } from "./fixtures/settings";
@@ -24,11 +24,11 @@ export const Account: Story = {};
 export const SwitchSections: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		const navigation = within(canvas.getByRole("navigation", { name: "Settings" }));
+		const navigation = () => within(canvas.getByRole("navigation", { name: "Settings" }));
 		for (const name of ["Clean up", "Agent prompt", "Menu links", "Notifications", "Account"]) {
-			await userEvent.click(navigation.getByRole("button", { name }));
+			await userEvent.click(navigation().getByRole("button", { name }));
 			await expect(await canvas.findByRole("heading", { name })).toBeVisible();
-			await expect(navigation.getByRole("button", { name })).toHaveAttribute("aria-current", "page");
+			await waitFor(() => expect(navigation().getByRole("button", { name })).toHaveAttribute("aria-current", "page"));
 		}
 	},
 };
