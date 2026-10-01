@@ -17,6 +17,8 @@ import { useClassifiedDraft } from "../../hooks/useClassifiedDraft";
 export function useTicketComposer() {
 	const { client, orpc, queryClient } = useApp();
 	const options = useComposerStore((state) => state.options);
+	const assignAgent = useComposerStore((state) => state.assignAgent);
+	const createMore = useComposerStore((state) => state.createMore);
 	const { draft, setDraft, clearDraft } = useComposerDraft();
 	const defaults = useComposerDefaults(options, draft.project);
 	const recent = useRecentChoices((state) => state.recent);
@@ -69,7 +71,11 @@ export function useTicketComposer() {
 	const choiceError = choice === null ? null : staleReasonOf(choice, accounts.data);
 	const completedStatus = status?.category === "done" || status?.category === "canceled";
 	const assignmentError =
-		choice !== null && completedStatus ? "Select an active status or choose No agent." : choiceError;
+		!assignAgent || choice === null
+			? null
+			: completedStatus
+				? "Select an active status or turn off Assign agent."
+				: choiceError;
 	const titleMissing = validation !== null && !draft.title.trim();
 	const retained = {
 		...draft,
@@ -97,7 +103,7 @@ export function useTicketComposer() {
 			setDraft({ ...retained, title: "", description: "", editing: false });
 		} else composerActions.close();
 	}
-	async function create(stay = draft.createMore ?? false, assign = true) {
+	async function create(stay = createMore) {
 		if (submission.isRunning() || asking) return;
 		if (submission.receipt === null) {
 			if (!draft.title.trim()) {
@@ -109,7 +115,7 @@ export function useTicketComposer() {
 				setValidation("Choose a project.");
 				return;
 			}
-			if (!placement.ready || (assign && assignmentError)) return;
+			if (!placement.ready || assignmentError) return;
 		}
 		setValidation(null);
 		setDraft(retained);
@@ -126,7 +132,7 @@ export function useTicketComposer() {
 					...(placement.wave ? { wave: placement.wave } : {}),
 					...(labels.length ? { labels: labels.map((label) => label.id) } : {}),
 				},
-				assign ? choice : null,
+				assignAgent ? choice : null,
 			)
 		)
 			finish(stay);
@@ -138,10 +144,14 @@ export function useTicketComposer() {
 		? { creating: "Creating…", uploading: "Uploading…", assigning: "Assigning…", idle: "" }[submission.phase]
 		: submission.receipt
 			? retryLabel
-			: choice === null
-				? "Create ticket"
+			: !assignAgent || choice === null
+				? "Create"
 				: "Create and assign";
 	return {
+		assignAgent,
+		createMore,
+		onAssignAgent: composerActions.setAssignAgent,
+		onCreateMore: composerActions.setCreateMore,
 		draft,
 		setDraft,
 		defaults,

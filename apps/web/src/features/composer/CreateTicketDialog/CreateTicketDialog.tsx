@@ -11,6 +11,10 @@ import { useTicketComposer } from "./components/useTicketComposer";
 
 export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 	const {
+		assignAgent,
+		createMore,
+		onAssignAgent,
+		onCreateMore,
 		draft,
 		setDraft,
 		defaults,
@@ -66,28 +70,28 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 						<fieldset disabled={locked}>
 							<AddAttachmentButton uploads={uploads} />
 						</fieldset>
-						<Switch
-							label="Create another"
-							checked={draft.createMore ?? false}
-							onCheckedChange={(createMore) => setDraft({ ...draft, createMore })}
-							disabled={submission.busy}
-							className="composer-another"
-						/>
-						{submission.receipt && submission.failure?.stage === "assigning" ? (
-							<Button className="composer-secondary" onClick={() => finish(false)}>
+						<div className="composer-options">
+							<Switch
+								label="Create another"
+								checked={createMore}
+								onCheckedChange={onCreateMore}
+								disabled={submission.busy}
+								className="composer-option"
+							/>
+							{choice !== null && (
+								<Switch
+									label="Assign agent"
+									checked={assignAgent}
+									onCheckedChange={onAssignAgent}
+									disabled={locked}
+									className="composer-option"
+								/>
+							)}
+						</div>
+						{submission.receipt && submission.failure?.stage === "assigning" && (
+							<Button className="composer-keep" onClick={() => finish(false)}>
 								Keep ticket
 							</Button>
-						) : (
-							choice !== null && (
-								<Button
-									size="md"
-									className="composer-secondary"
-									disabled={locked || !placement.ready || !draft.title.trim()}
-									onClick={() => void create(undefined, false)}
-								>
-									Create
-								</Button>
-							)
 						)}
 						<Button
 							variant="primary"

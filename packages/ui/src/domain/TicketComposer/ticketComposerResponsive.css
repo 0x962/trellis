@@ -37,10 +37,13 @@
 		padding: 12px 16px max(12px, env(safe-area-inset-bottom));
 	}
 	.ticket-composer-footer .composer-create,
-	.ticket-composer-footer .composer-secondary {
+	.ticket-composer-footer .composer-keep {
 		width: 100%;
 	}
-	.ticket-composer-footer .composer-another {
+	.ticket-composer-footer .composer-options {
+		flex: 1;
+	}
+	.ticket-composer-footer .composer-option {
 		min-height: 44px;
 	}
 	.composer-agent-picker [role="option"],
