@@ -90,7 +90,7 @@ test("lists an open pull request after the first 100 results", async () => {
 	expect(result.at(-1)?.number).toBe(100);
 	expect(calls).toHaveLength(2);
 	expect(calls[0]?.join(" ")).toContain(
-		"pullRequests(first:100,after:$cursor,states:OPEN,orderBy:{field:UPDATED_AT,direction:DESC})",
+		"pullRequests(first:100,after:$cursor,states:OPEN,orderBy:{field:CREATED_AT,direction:DESC})",
 	);
 	expect(calls[1]).toContain("cursor=pull-page-2");
 });

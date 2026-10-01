@@ -122,7 +122,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			const snapshot = context.queryClient.getQueryData<BoardOutput>(boardOptions.queryKey)!;
 			context.queryClient.setQueryData(boardOptions.queryKey, moveInBoard(snapshot, move.ticket, summary));
 			const targetItems = move.column.items.filter((ticket) => ticket.id !== move.ticket.id);
-			const position = workingGroupInsertIndex(targetItems, move.ticket.id, workingTickets);
+			const position = workingGroupInsertIndex(targetItems, move.ticket, workingTickets);
 			announce(`Moved to ${move.column.name}, position ${position + 1} of ${targetItems.length + 1}`);
 			const applier = eventApplierFor(context.queryClient);
 			applier.beginMutation(move.ticket.id);

@@ -7,7 +7,7 @@ export const openAgentRuns = (tx: Tx) =>
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs
 			WHERE kind = 'agent' AND closed_at IS NULL
-			ORDER BY updated_at DESC, id DESC`,
+			ORDER BY created_at DESC, id DESC`,
 	);
 
 export const unresolvedAttemptRuns = (tx: Tx, terminalIds: string[]) => {
@@ -22,6 +22,6 @@ export const unresolvedAttemptRuns = (tx: Tx, terminalIds: string[]) => {
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs
 			WHERE runtime = 'native' AND (closed_at IS NULL OR ${observed})
-			ORDER BY updated_at DESC, id DESC`,
+			ORDER BY created_at DESC, id DESC`,
 	);
 };

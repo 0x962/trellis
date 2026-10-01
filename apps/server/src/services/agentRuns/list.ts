@@ -45,7 +45,7 @@ const withinWindow = (input: AgentRunListInput, ticketId: string | null, start: 
 };
 
 type AgentRunCursor = {
-	format: 1;
+	format: 2;
 	filterHash: string;
 	windowStart: string | null;
 	pinned: 0 | 1;
@@ -80,7 +80,7 @@ const readCursor = (value: string | undefined, hash: string, allHistory: boolean
 	const cursor = parsed as Partial<AgentRunCursor> | null;
 	if (
 		cursor === null ||
-		cursor.format !== 1 ||
+		cursor.format !== 2 ||
 		cursor.filterHash !== hash ||
 		(allHistory ? cursor.windowStart !== null : !isIsoTimestamp(cursor.windowStart)) ||
 		(cursor.pinned !== 0 && cursor.pinned !== 1) ||
@@ -94,7 +94,7 @@ const readCursor = (value: string | undefined, hash: string, allHistory: boolean
 
 const afterCursor = (input: AgentRunListInput, cursor: AgentRunCursor | null): SQL => {
 	if (cursor === null) return sql`true`;
-	if (!input.includePinnedHistory) return sql`(updated_at, id) < (${cursor.orderedAt}::timestamptz, ${cursor.id})`;
+	if (!input.includePinnedHistory) return sql`(created_at, id) < (${cursor.orderedAt}::timestamptz, ${cursor.id})`;
 	return sql`(
 		CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END,
 		COALESCE(pinned_at, created_at),
@@ -136,7 +136,7 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const order = input.includePinnedHistory
 		? sql`CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC,
 			COALESCE(pinned_at, created_at) DESC, created_at DESC, id DESC`
-		: sql`updated_at DESC, id DESC`;
+		: sql`created_at DESC, id DESC`;
 	const found = await storedRows<StoredRun>(
 		tx,
 		sql`SELECT ${listColumns} FROM agent_runs WHERE ${scope} AND ${history} AND ${cursorWhere}
@@ -149,11 +149,11 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 		nextCursor:
 			found.length > input.limit && last !== undefined
 				? encodeCursor({
-						format: 1,
+						format: 2,
 						filterHash: hash,
 						windowStart: start,
 						pinned: last.pinnedAt === null ? 0 : 1,
-						orderedAt: input.includePinnedHistory ? (last.pinnedAt ?? last.createdAt) : last.updatedAt,
+						orderedAt: input.includePinnedHistory ? (last.pinnedAt ?? last.createdAt) : last.createdAt,
 						createdAt: last.createdAt,
 						id: last.id,
 					})

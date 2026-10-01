@@ -16,8 +16,8 @@ export function SidebarMachinePressure({ collapsed = false }: { collapsed?: bool
 	);
 	useEffect(() => () => setDetailsOpen(id, false), [id, setDetailsOpen]);
 	useEffect(() => {
-		if (open && machines.every((machine) => machine.readings.length === 0)) changeOpen(false);
-	}, [changeOpen, machines, open]);
+		if (open && machinesWithAlerts.length === 0) changeOpen(false);
+	}, [changeOpen, machinesWithAlerts, open]);
 	return (
 		<MachinePressure
 			machines={machines}

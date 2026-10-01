@@ -7,12 +7,14 @@ import type { useCreatePlacement } from "../../../hooks/useCreatePlacement";
 export function PlacementPicker({
 	project,
 	placement,
+	glimmer,
 	onEpic,
 	onWave,
 	disabled,
 }: {
 	project?: string;
 	placement: ReturnType<typeof useCreatePlacement>;
+	glimmer?: boolean;
 	onEpic: (ref: string | null) => void;
 	onWave: (ref: string | null) => void;
 	disabled: boolean;
@@ -24,6 +26,8 @@ export function PlacementPicker({
 			trigger={
 				<ComposerProperty
 					icon={<Stack />}
+					glimmer={glimmer}
+					glimmerValue={placement.wave}
 					aria-label={`Epic and wave: ${placement.epicName}, ${placement.waveName}`}
 					disabled={disabled || !project}
 					aria-invalid={!placement.ready || undefined}
@@ -55,7 +59,11 @@ export function PlacementPicker({
 							value={placement.wave}
 							allowNone={false}
 							onPick={(next) => onWave(next?.ref ?? null)}
-							trigger={<ComposerProperty>{placement.waveName}</ComposerProperty>}
+							trigger={
+								<ComposerProperty glimmer={glimmer} glimmerValue={placement.wave}>
+									{placement.waveName}
+								</ComposerProperty>
+							}
 						/>
 					)}
 				</Field>

@@ -13,5 +13,5 @@ export const classificationResult = async (ctx: IoCtx, tx: Tx, input: Awaited<Re
 		{ epicId: null, epicRef: null, waveId: null, waveRef: null },
 		input.suggestion,
 	);
-	return { epic: placement.epicRef, wave: placement.waveRef, priority: input.suggestion.priority };
+	return { ...input.suggestion, epic: placement.epicRef, wave: placement.waveRef };
 };

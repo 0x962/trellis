@@ -5,6 +5,7 @@ import type { PageDetail as PageRecord } from "@trellis/api";
 import { FailureState, IconButton, PageVersionRow, Sheet, Spinner, Tooltip } from "@trellis/ui";
 import { type RefObject, useMemo } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { usePageVersionNavigation } from "../../../usePageVersionNavigation";
 
 export function PageHistory({
 	page,
@@ -16,6 +17,7 @@ export function PageHistory({
 	finalFocus: RefObject<HTMLButtonElement | null>;
 }) {
 	const { orpc } = useApp();
+	const { onVersionClick } = usePageVersionNavigation(page.ref);
 	const query = useInfiniteQuery(
 		orpc.pages.versions.infiniteOptions({
 			input: (cursor: string | undefined) => ({ page: page.ref, cursor }),
@@ -58,7 +60,15 @@ export function PageHistory({
 						publishedAt={version.createdAt}
 						selected={page.requestedVersion.number === version.number}
 						link={
-							<Link to="/p/$" params={{ _splat: page.ref }} search={{ version: version.number }} onClick={onClose} />
+							<Link
+								to="/p/$"
+								params={{ _splat: page.ref }}
+								search={{ version: version.number }}
+								onClick={(event) => {
+									onVersionClick(event, version.number);
+									onClose();
+								}}
+							/>
 						}
 					/>
 				))}

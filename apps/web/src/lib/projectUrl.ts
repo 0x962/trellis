@@ -65,6 +65,14 @@ export const epicHref = (ref: string, slug: string) => `${projectHref(ref, "epic
 
 export const pageHref = (ref: string, slug: string) => `${projectHref(ref, "pages")}/${slug}`;
 
+export const pageRefOfPathname = (pathname: string): string | null => {
+	if (!pathname.startsWith("/p/")) return null;
+	const segments = pathname.slice(3).split("/").filter(Boolean);
+	const { page } = popView(segments);
+	const project = ProjectRefStringSchema.safeParse(segments[0]);
+	return page === undefined || !project.success ? null : `${project.data}/pages/${page}`;
+};
+
 // The `/p/$` splat of an epic page from the epic ref. An epic ref is
 // `KEY/slug`, and the epic page is `/p/KEY/epics/slug`.
 export const epicSplat = (epicRef: string) => epicRef.replace("/", "/epics/");

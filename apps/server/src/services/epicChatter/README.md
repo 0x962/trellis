@@ -10,10 +10,12 @@ Human messages and system notices use their existing delivery paths.
 The switch affects new sends. A send that already passes the check can finish.
 
 `agentRuns.send` and `agentRuns.terminalInput` use the same policy and record writer.
-The record contains the complete text, sender and recipient names, their epic memberships at send time, and a delivery state.
+The record contains the complete text, participant labels, their epic memberships at send time, and a delivery state.
+Each label uses the ticket identifier or session title. An agent without either uses the last six characters of its ID.
 Human messages and system notices do not enter this log.
 A message between epics appears in both epic logs. A message to or from a standalone session appears in the epic log.
-Names and memberships remain attached to the record when a ticket moves or an agent record changes.
+Labels and memberships remain attached to the record when a ticket moves or an agent record changes.
+`epicChatter.list` resolves saved generic labels from the current tickets and sessions in one query for the page.
 The log starts when this feature is installed.
 
 The writer commits `pending` before runtime delivery and commits the result after delivery returns.
@@ -27,6 +29,9 @@ The API exposes `epicChatter.get`, `epicChatter.set`, and `epicChatter.list`.
 The list returns the newest 50 records and a cursor for older records. Pagination has no total limit.
 The `epic-chatter.changed` event invalidates Chatter queries after a committed write.
 The UI keeps the latest message visible while the reader stays at the bottom. It preserves the reading position when older messages load.
+The pane uses monospace for participant labels and times, and proportional text for messages.
+Date labels use the local calendar. Each time exposes the full timestamp, and each participant label exposes the full agent ID.
+The pane shows pending, queued, skipped, and unconfirmed delivery below the message.
 
 Migration 0147 follows 0146 and adds two tables. An epic without a settings row uses the default enabled state.
 Deleting an epic removes its setting and clears that epic's reference in retained messages.

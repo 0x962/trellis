@@ -16,10 +16,12 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { ArchivedBanner } from "../../../../project-actions";
+import { usePageSheet } from "../../../../shell/PageSheet";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
 import { PageComments } from "../../../PageComments";
+import { usePageVersionNavigation } from "../../../usePageVersionNavigation";
 import { usePageActions } from "../../usePageActions";
 import { PageHistory } from "../PageHistory";
 import { PageShare } from "../PageShare";
@@ -37,6 +39,8 @@ export function PageDetailView({
 	offline: boolean;
 }) {
 	const { live } = useApp();
+	const inSheet = usePageSheet() !== null;
+	const { onVersionClick } = usePageVersionNavigation(page.ref);
 	const status = useLiveStatus(live);
 	const disconnected = offline || status !== "live";
 	const menuTrigger = useRef<HTMLButtonElement>(null);
@@ -47,8 +51,8 @@ export function PageDetailView({
 	const deleted = page.deletedAt !== null;
 	const blocked = disconnected || project.archivedAt !== null || mutation.isPending;
 	useEffect(() => {
-		document.title = `${page.title} · trellis`;
-	}, [page.title]);
+		if (!inSheet) document.title = `${page.title} · trellis`;
+	}, [inSheet, page.title]);
 	return (
 		<>
 			<Topbar
@@ -148,7 +152,14 @@ export function PageDetailView({
 							<TopbarActionButton
 								label="Back to current"
 								icon={<ArrowUUpLeft />}
-								render={<Link to="/p/$" params={{ _splat: page.ref }} search={{}} />}
+								render={
+									<Link
+										to="/p/$"
+										params={{ _splat: page.ref }}
+										search={{}}
+										onClick={(event) => onVersionClick(event)}
+									/>
+								}
 							/>
 						</Tooltip>
 					)}

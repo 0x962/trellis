@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { isDesktopApp } from "../../../lib/desktopBridge";
 import { useOpenLink } from "../../../lib/openLink";
 import { opensSheet } from "../../../lib/opensSheet";
+import { pageRefOfPathname } from "../../../lib/projectUrl";
+import { usePageSheetStore } from "../../../stores/pageSheetStore";
 import { interceptedLinkUrl } from "./interceptedLinkUrl";
 
 export function LinkCapture() {
@@ -22,21 +24,23 @@ export function LinkCapture() {
 			const internalTarget = url.startsWith("trellis:") || new URL(url).origin === location.origin;
 			open(url, anchor.target === "_blank" && internalTarget ? { ...press, metaKey: true } : press);
 		};
-		// Markdown anchors need the same sheet as TicketLink. The bubble
-		// listener lets row selection and other click handlers act first.
-		const ticketClicked = (event: MouseEvent) => {
+		// The bubble listener lets row selection and link handlers act before
+		// plain Markdown links open a sheet.
+		const sheetClicked = (event: MouseEvent) => {
 			if (event.defaultPrevented || !opensSheet(event)) return;
 			const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
 			if (anchor === null || anchor.hasAttribute("download")) return;
-			if (anchor.origin !== location.origin || !anchor.pathname.startsWith("/t/")) return;
+			if (anchor.origin !== location.origin) return;
+			const sessionPage = usePageSheetStore.getState().session !== null && pageRefOfPathname(anchor.pathname) !== null;
+			if (!anchor.pathname.startsWith("/t/") && !sessionPage) return;
 			event.preventDefault();
 			open(anchor.href);
 		};
 		document.addEventListener("click", clicked, true);
-		document.addEventListener("click", ticketClicked);
+		document.addEventListener("click", sheetClicked);
 		return () => {
 			document.removeEventListener("click", clicked, true);
-			document.removeEventListener("click", ticketClicked);
+			document.removeEventListener("click", sheetClicked);
 		};
 	}, [open]);
 	return null;

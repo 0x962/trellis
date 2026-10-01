@@ -7,6 +7,7 @@ import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
+import type { ComposerDraft } from "../../../hooks/useComposerDraft/useComposerDraft";
 import type { useCreatePlacement } from "../../../hooks/useCreatePlacement";
 import { PlacementPicker } from "../PlacementPicker";
 
@@ -15,6 +16,7 @@ export function ChipRow({
 	statuses,
 	status,
 	priority,
+	automatic,
 	parent,
 	placement,
 	labels,
@@ -32,6 +34,7 @@ export function ChipRow({
 	statuses: readonly Status[];
 	status?: Status;
 	priority: Priority;
+	automatic?: ComposerDraft["automatic"];
 	parent?: string | null;
 	placement: ReturnType<typeof useCreatePlacement>;
 	labels: readonly TicketLabel[];
@@ -68,6 +71,8 @@ export function ChipRow({
 					trigger={
 						<ComposerProperty
 							aria-label={`Priority: ${priorityLabels[priority]}`}
+							glimmer={automatic?.includes("priority")}
+							glimmerValue={priority}
 							disabled={disabled}
 							icon={<PriorityIcon priority={priority} />}
 						>
@@ -76,7 +81,14 @@ export function ChipRow({
 					}
 				/>
 				{agent}
-				<PlacementPicker project={project} placement={placement} onEpic={onEpic} onWave={onWave} disabled={disabled} />
+				<PlacementPicker
+					project={project}
+					placement={placement}
+					glimmer={automatic?.includes("wave")}
+					onEpic={onEpic}
+					onWave={onWave}
+					disabled={disabled}
+				/>
 				{project && (
 					<LabelPicker
 						project={project}
@@ -117,11 +129,6 @@ export function ChipRow({
 				</Popover>
 			</div>
 			{parent && <p className="mt-2 text-xs text-fg-muted">Sub-ticket of {parent}</p>}
-			{placement.message && (
-				<p role="status" className="mt-2 text-xs text-fg-muted">
-					{placement.message}
-				</p>
-			)}
 		</>
 	);
 }

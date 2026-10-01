@@ -43,11 +43,8 @@ const double: CursorKey = {
 	valid: (value) => typeof value === "number" && Number.isFinite(value),
 };
 
-// Every sort breaks ties by id descending, newest first. The default sort
-// is the board's order: a board column lists (updated_at, id) descending
-// and `list` with `status=` continues that column past 100 cards. The
-// position sort lists a column in its manual order, so its tiebreak follows
-// the sort direction.
+// The default sort must match `board` so a list for one status continues its column past 100 cards.
+// The position sort follows manual row positions and uses the same direction for equal positions.
 const fields: Record<string, SortField> = {
 	updatedAt: { exprs: [sql`t.updated_at`], reads: [iso(sql`t.updated_at`)], keys: [timestamptz], tie: "desc" },
 	createdAt: { exprs: [sql`t.created_at`], reads: [iso(sql`t.created_at`)], keys: [timestamptz], tie: "desc" },
@@ -124,7 +121,7 @@ const orderBy = (field: SortField, descending: boolean) => {
 // The page of summaries for the flat filter grammar. `limit` is 1 to 200.
 // The rows never carry the description or the search column.
 export const ticketList = async (tx: Tx, input: TicketListInput): Promise<ListOutput> => {
-	const { sort = "-updatedAt", cursor, limit = 50, ...filter } = input;
+	const { sort = "-createdAt", cursor, limit = 50, ...filter } = input;
 	const { field, descending } = parseSort(sort);
 	const hash = queryHash(filter, sort);
 	const start = cursor === undefined ? sql`true` : afterCursor(field, descending, readCursor(cursor, hash, field));

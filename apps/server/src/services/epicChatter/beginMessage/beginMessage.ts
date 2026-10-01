@@ -5,8 +5,9 @@ import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { fail, invalidInput } from "../../../errors.ts";
 import type { ServiceCtx } from "../../support.ts";
+import { participantLabels } from "../participantLabels";
 
-type Endpoint = { id: string; name: string; epicId: string | null; projectId: string | null; enabled: boolean };
+type Endpoint = { id: string; epicId: string | null; projectId: string | null; enabled: boolean };
 export type ChatterReceipt = { id: string; scopes: { id: string; projectId: string }[] };
 
 export const beginMessage = async (
@@ -17,7 +18,7 @@ export const beginMessage = async (
 	if (ctx.actor.kind !== "agent") return null;
 	const endpoints = await rows<Endpoint>(
 		tx,
-		sql`SELECT r.id, r.name, e.id AS "epicId", e.project_id AS "projectId",
+		sql`SELECT r.id, e.id AS "epicId", e.project_id AS "projectId",
 		coalesce(c.enabled, true) AS enabled FROM agent_runs r
 		LEFT JOIN tickets t ON t.id=r.ticket_id LEFT JOIN epics e ON e.id=t.epic_id
 		LEFT JOIN epic_chatter_settings c ON c.epic_id=e.id
@@ -51,9 +52,10 @@ export const beginMessage = async (
 		return { id: existing.id, scopes };
 	}
 	const id = ulid();
+	const labels = await participantLabels(tx, [ctx.actor.name, input.id]);
 	await tx.execute(sql`INSERT INTO chatter_messages
 		(id, delivery_key, message_id, sender_id, sender_name, recipient_id, recipient_name, sender_epic_id, recipient_epic_id, text, created_at)
-		VALUES (${id}, ${key}, ${input.messageId}, ${ctx.actor.name}, ${sender?.name ?? ctx.actor.name},
-		${input.id}, ${recipient.name}, ${sender?.epicId ?? null}, ${recipient.epicId}, ${input.text}, ${ctx.now()})`);
+		VALUES (${id}, ${key}, ${input.messageId}, ${ctx.actor.name}, ${labels.get(ctx.actor.name)!},
+		${input.id}, ${labels.get(input.id)!}, ${sender?.epicId ?? null}, ${recipient.epicId}, ${input.text}, ${ctx.now()})`);
 	return { id, scopes };
 };
