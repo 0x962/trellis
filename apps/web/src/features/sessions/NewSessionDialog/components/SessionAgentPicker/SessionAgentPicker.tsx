@@ -1,4 +1,5 @@
 import { HARNESS_PRESETS, type Harness, type HarnessAccount } from "@trellis/api";
+import { useMemo } from "react";
 import { ComposerAgentPicker } from "../../../../agents/ComposerAgentPicker";
 import { sessionComposerActions } from "../../../sessionComposerStore";
 
@@ -13,6 +14,7 @@ export function SessionAgentPicker({
 	accounts: readonly HarnessAccount[] | undefined;
 	disabled: boolean;
 }) {
+	const launchAccounts = useMemo(() => accounts?.filter((account) => account.capabilities.launch), [accounts]);
 	return (
 		<ComposerAgentPicker
 			value={{
@@ -21,7 +23,7 @@ export function SessionAgentPicker({
 				effort: harness.effort ?? null,
 				accountId: accountId || null,
 			}}
-			accounts={accounts?.filter((account) => account.capabilities.launch)}
+			accounts={launchAccounts}
 			disabled={disabled}
 			onPick={(preset, model) =>
 				sessionComposerActions.selectHarness({

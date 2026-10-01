@@ -13,7 +13,6 @@ export function ModelPicker({
 	onValueChange,
 	disabled = false,
 	className,
-	compact = false,
 	id,
 }: {
 	harness: Exclude<HarnessPreset, "custom">;
@@ -21,7 +20,6 @@ export function ModelPicker({
 	onValueChange: (value: string | undefined) => void;
 	disabled?: boolean;
 	className?: string;
-	compact?: boolean;
 	// The id of the trigger. A `Field` passes it, so its `<label htmlFor>`
 	// reaches the picker.
 	id?: string;
@@ -42,7 +40,7 @@ export function ModelPicker({
 				<PickerButton
 					id={id}
 					label="Model"
-					size={compact ? "sm" : "md"}
+					size="md"
 					title={value === undefined ? `Default · ${selected.name}` : selected.name}
 					disabled={disabled}
 					className={className}
@@ -51,9 +49,7 @@ export function ModelPicker({
 						{modelProviderOf(selectedId) && (
 							<ProviderIcon provider={modelProviderOf(selectedId)!} decorative className="size-3.5" />
 						)}
-						<span className="truncate">
-							{value === undefined && !compact ? `Default · ${selected.name}` : selected.name}
-						</span>
+						<span className="truncate">{value === undefined ? `Default · ${selected.name}` : selected.name}</span>
 					</span>
 				</PickerButton>
 			}

@@ -94,6 +94,7 @@ export function FailureState({
 		);
 	return (
 		<EmptyState
+			role="alert"
 			variant={variant}
 			image={null}
 			className={className}

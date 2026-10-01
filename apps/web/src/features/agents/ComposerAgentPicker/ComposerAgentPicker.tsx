@@ -57,6 +57,42 @@ export function ComposerAgentPicker({
 			]),
 		[],
 	);
+	const preset = value?.preset;
+	const model = value?.model;
+	const clearable = onClear !== undefined;
+	const items = useMemo(
+		() => [
+			...(clearable ? [{ id: "none", label: "No agent", icon: <UserCircle />, current: preset === undefined }] : []),
+			...(preset === "custom" ? [{ id: "custom", label: "Custom", current: true, checked: true }] : []),
+		],
+		[clearable, preset],
+	);
+	const groups = useMemo(
+		() =>
+			harnessPresets.map(({ label }) => ({
+				heading: label,
+				items: options
+					.filter((option) => option.group === label)
+					.map((option) => ({
+						id: option.id,
+						label: option.name,
+						keywords: [option.preset, option.group],
+						icon: option.provider ? <ProviderIcon provider={option.provider} decorative /> : undefined,
+						current: preset === option.preset && model === option.model,
+						checked: preset === option.preset && model === option.model,
+					})),
+			})),
+		[options, preset, model],
+	);
+	const accountItems = useMemo(
+		() => [
+			{ value: "default", label: "Default account" },
+			...(accounts ?? [])
+				.filter((account) => account.harness === preset)
+				.map((account) => ({ value: account.id, label: account.name })),
+		],
+		[accounts, preset],
+	);
 	const native = value && value.preset !== "custom" ? { ...value, preset: value.preset } : null;
 	const provider = native && modelProviderOf(modelIdOf(native));
 	const effort = native && effortForHarness(native.preset, modelIdOf(native));
@@ -84,23 +120,8 @@ export function ComposerAgentPicker({
 				label="Search agents and models"
 				placeholder="Search agents and models…"
 				inputRef={search}
-				items={[
-					...(onClear ? [{ id: "none", label: "No agent", icon: <UserCircle />, current: value === null }] : []),
-					...(value?.preset === "custom" ? [{ id: "custom", label: "Custom", current: true, checked: true }] : []),
-				]}
-				groups={harnessPresets.map(({ label }) => ({
-					heading: label,
-					items: options
-						.filter((option) => option.group === label)
-						.map((option) => ({
-							id: option.id,
-							label: option.name,
-							keywords: [option.preset, option.group],
-							icon: option.provider ? <ProviderIcon provider={option.provider} decorative /> : undefined,
-							current: value?.preset === option.preset && value?.model === option.model,
-							checked: value?.preset === option.preset && value?.model === option.model,
-						})),
-				}))}
+				items={items}
+				groups={groups}
 				onSelect={(id) => {
 					if (id === "none") onClear!();
 					else if (id !== "custom") {
@@ -127,12 +148,7 @@ export function ComposerAgentPicker({
 						hideLabel={false}
 						value={value.accountId ?? "default"}
 						disabled={disabled || accounts === undefined}
-						items={[
-							{ value: "default", label: "Default account" },
-							...(accounts ?? [])
-								.filter((account) => account.harness === value.preset)
-								.map((account) => ({ value: account.id, label: account.name })),
-						]}
+						items={accountItems}
 						onValueChange={(next) => onAccount(next === "default" ? null : next)}
 					/>
 				</div>
