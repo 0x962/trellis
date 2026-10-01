@@ -94,9 +94,7 @@ export function FlowCancelDialog({
 				</Button>
 			)}
 			{cancel.request?.error && (
-				<div role="alert">
-					<FailureState title="The cancellation request did not complete" detail={cancel.request.error} />
-				</div>
+				<FailureState title="The cancellation request did not complete" detail={cancel.request.error} />
 			)}
 		</FlowActionDialog>
 	);

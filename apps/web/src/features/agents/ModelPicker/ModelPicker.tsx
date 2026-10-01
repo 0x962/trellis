@@ -12,14 +12,12 @@ export function ModelPicker({
 	value,
 	onValueChange,
 	disabled = false,
-	className,
 	id,
 }: {
 	harness: Exclude<HarnessPreset, "custom">;
 	value?: string;
 	onValueChange: (value: string | undefined) => void;
 	disabled?: boolean;
-	className?: string;
 	// The id of the trigger. A `Field` passes it, so its `<label htmlFor>`
 	// reaches the picker.
 	id?: string;
@@ -43,7 +41,6 @@ export function ModelPicker({
 					size="md"
 					title={value === undefined ? `Default · ${selected.name}` : selected.name}
 					disabled={disabled}
-					className={className}
 				>
 					<span className="inline-flex min-w-0 items-center gap-2">
 						{modelProviderOf(selectedId) && (
