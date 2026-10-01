@@ -101,7 +101,10 @@
 			"Pages/Epic/ResourceDocumentNarrow",
 			"Pages/Epic/ResourcesLoading",
 			"Pages/Epic/ResourcesError",
-			"Pages/Epic/SwitchTabs"
+			"Pages/Epic/SwitchTabs",
+			"Pages/Epic/ResourceDocumentContents",
+			"Pages/Epic/ResourceDocumentReadOnly",
+			"Pages/Epic/PlanContents"
 		],
 		"states": [
 			"waves",
@@ -114,7 +117,10 @@
 			"narrow",
 			"resources",
 			"document",
-			"tab changes"
+			"tab changes",
+			"document contents",
+			"heading edits",
+			"read-only document"
 		],
 		"notes": ""
 	},

@@ -27,7 +27,10 @@
 			"Pages/Project settings/General",
 			"Pages/Project settings/Notes",
 			"Pages/Project/BoardSelection",
-			"Pages/Project/TableSelection"
+			"Pages/Project/TableSelection",
+			"Pages/Epic/ResourceDocumentContents",
+			"Pages/Epic/ResourceDocumentReadOnly",
+			"Pages/Epic/PlanContents"
 		],
 		"states": [
 			"board",
@@ -41,7 +44,10 @@
 			"notes redirect",
 			"legacy board redirect",
 			"selected tickets",
-			"bulk toolbar"
+			"bulk toolbar",
+			"document contents",
+			"heading edits",
+			"read-only document"
 		],
 		"notes": "The splat selects each primary project view. Settings and notes open their sheet and redirect to the board. The legacy /board path redirects to the bare project path."
 	},

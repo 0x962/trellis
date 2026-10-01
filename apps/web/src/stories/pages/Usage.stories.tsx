@@ -36,7 +36,16 @@ export const Empty: Story = {
 export const Loading: Story = { parameters: { trellis: { responses: { "usage.report": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "usage.report": failure } } } };
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
-export const System: Story = { parameters: { trellis: { path: "/usage?tab=system" } } };
+export const System: Story = {
+	parameters: { trellis: { path: "/usage?tab=system" } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("region", { name: "Right now" })).toBeVisible();
+		await expect(await canvas.findByRole("heading", { name: "CPU history" })).toBeVisible();
+		await expect(await canvas.findByRole("heading", { name: "Memory history" })).toBeVisible();
+		await expect(canvas.queryByRole("heading", { name: "Processes" })).not.toBeInTheDocument();
+	},
+};
 export const SystemLoading: Story = {
 	parameters: { trellis: { path: "/usage?tab=system", responses: { "system.usage": pending } } },
 };
@@ -52,6 +61,6 @@ export const MemoryPressure: Story = {
 	},
 };
 export const SystemNarrow: Story = {
-	parameters: { trellis: { path: "/usage?tab=system" } },
+	...System,
 	globals: { viewport: { value: "phone", isRotated: false } },
 };

@@ -73,7 +73,7 @@
 			"Pages/Usage/SystemNarrow"
 		],
 		"states": ["agent", "system", "empty", "loading", "error", "filters", "memory pressure", "narrow"],
-		"notes": ""
+		"notes": "System stories cover CPU, memory, load average, uptime, and recent history."
 	},
 	{
 		"source": "apps/web/src/routes/reviews_.$owner.$repo.$number.tsx",

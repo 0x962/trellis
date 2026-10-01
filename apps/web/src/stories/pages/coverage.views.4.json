@@ -50,22 +50,31 @@
 		"source": "apps/web/src/features/epics/EpicPage/components/EpicResources/EpicResources.tsx",
 		"export": "EpicResources",
 		"stories": [
-			"Pages/Epic/WavesAndTickets",
-			"Pages/Epic/Empty",
-			"Pages/Epic/EmptyWaves",
-			"Pages/Epic/Loading",
-			"Pages/Epic/RequestError",
-			"Pages/Epic/Archived",
-			"Pages/Epic/Narrow",
 			"Pages/Epic/Resources",
 			"Pages/Epic/ResourceDocument",
 			"Pages/Epic/ResourceDocumentNarrow",
 			"Pages/Epic/ResourcesLoading",
 			"Pages/Epic/ResourcesError",
-			"Pages/Epic/SwitchTabs"
+			"Pages/Epic/SwitchTabs",
+			"Pages/Epic/ResourceDocumentContents",
+			"Pages/Epic/ResourceDocumentReadOnly",
+			"Pages/Epic/PlanContents"
 		],
-		"states": ["plan", "document", "resource list", "comments", "loading", "error", "narrow", "tab changes"],
-		"notes": ""
+		"states": [
+			"plan",
+			"document",
+			"resource list",
+			"comments",
+			"loading",
+			"error",
+			"narrow",
+			"tab changes",
+			"automatic contents",
+			"contents navigation",
+			"heading edits",
+			"read-only document"
+		],
+		"notes": "The Resources tab renders the complete epic plan or resource document. SwitchTabs visits Resources before it returns to Overview."
 	},
 	{
 		"source": "apps/web/src/features/epics/ResourceList/components/ImageSheet/ImageSheet.tsx",
