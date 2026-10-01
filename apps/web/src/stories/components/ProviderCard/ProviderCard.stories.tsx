@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ProviderCard } from "@trellis/ui";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ProviderCardSection } from "../../../../../../packages/ui/src/gallery/components/DomainSections/sections/ProviderCardSection";
-import { useStoryState } from "../useStoryState";
+import { ProviderCardExample } from "./components/ProviderCardExample";
 
 const meta = {
 	title: "Components/ProviderCard",
@@ -26,14 +26,11 @@ const meta = {
 		docs: {
 			description: {
 				component:
-					"Use Add, Edit, and Remove to inspect local dialogs. The cards show balance, accepted, refused, forbidden, unreachable, disabled, and checking states.",
+					"Edit, check, toggle, and remove update a local provider. InteractiveStates also shows the gallery of provider states and the Add form.",
 			},
 		},
 	},
-	render: function Render(args) {
-		const [enabled, setEnabled] = useStoryState(args.provider.enabled);
-		return <ProviderCard {...args} provider={{ ...args.provider, enabled }} onToggle={() => setEnabled(!enabled)} />;
-	},
+	render: (args) => <ProviderCardExample {...args} />,
 } satisfies Meta<typeof ProviderCard>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -66,6 +63,34 @@ export const ActionsOpen: Story = {
 		await userEvent.click(await within(canvasElement).findByRole("button", { name: "Actions for Work gateway" }));
 		const action = await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "Turn off" });
 		await waitFor(() => expect(action).toBeVisible());
+	},
+};
+export const CheckKey: Story = {
+	args: { error: "The gateway is unavailable." },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(canvas.getByRole("button", { name: "Check the key of Work gateway" }));
+		await expect(canvas.getByRole("status")).toHaveTextContent("Key accepted");
+	},
+};
+export const EditProvider: Story = {
+	play: async ({ canvasElement }) => {
+		await userEvent.click(within(canvasElement).getByRole("button", { name: "Edit Work gateway" }));
+		const body = within(canvasElement.ownerDocument.body);
+		const name = await body.findByRole("textbox", { name: "Name" });
+		await userEvent.clear(name);
+		await userEvent.type(name, "Review gateway");
+		await userEvent.click(body.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
+		await expect(within(canvasElement).getByRole("article", { name: "Review gateway" })).toBeVisible();
+	},
+};
+export const RemoveProvider: Story = {
+	play: async ({ canvasElement }) => {
+		await userEvent.click(within(canvasElement).getByRole("button", { name: "Remove Work gateway" }));
+		const body = within(canvasElement.ownerDocument.body);
+		await userEvent.click(await body.findByRole("button", { name: "Remove provider" }));
+		await expect(within(canvasElement).getByText("No local provider")).toBeVisible();
 	},
 };
 export const LongContent: Story = {

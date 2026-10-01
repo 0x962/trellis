@@ -1,5 +1,12 @@
 [
 	{
+		"source": "packages/ui/src/gallery/Gallery.tsx",
+		"export": "Gallery",
+		"stories": ["Pages/Design gallery/BothThemes", "Pages/Design gallery/Narrow"],
+		"states": ["system theme", "light theme", "dark theme", "narrow viewport"],
+		"notes": "The Pages/Design gallery stories render the public gallery export. Its theme control changes the whole gallery. The narrow story uses the phone viewport."
+	},
+	{
 		"source": "packages/ui/src/desktop/DesktopChrome/DesktopChrome.tsx",
 		"export": "DesktopChrome",
 		"stories": ["Components/DesktopChrome/Default", "Components/DesktopChrome/Browser"],

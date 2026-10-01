@@ -19,7 +19,8 @@
 			"Components/RunLine/Retry",
 			"Components/RunLine/RetryPending",
 			"Components/RunLine/RetryFailed",
-			"Components/RunLine/LongMessage"
+			"Components/RunLine/LongMessage",
+			"Components/RunLine/RetryRun"
 		],
 		"states": [
 			"default",
@@ -38,9 +39,10 @@
 			"retry",
 			"retry pending",
 			"retry failed",
-			"long message"
+			"long message",
+			"retry a failed run"
 		],
-		"notes": "Hover the run to inspect its metrics. Session and retry actions stay local."
+		"notes": "Hover the run to inspect its metrics. Session reports the selected run. Retry changes the local run to its start state."
 	},
 	{
 		"source": "packages/ui/src/domain/SelectedTickets/SelectedTickets.tsx",
@@ -52,10 +54,11 @@
 			"Components/SelectedTickets/ErrorState",
 			"Components/SelectedTickets/Pending",
 			"Components/SelectedTickets/Removing",
-			"Components/SelectedTickets/ManyTickets"
+			"Components/SelectedTickets/ManyTickets",
+			"Components/SelectedTickets/RetryAndRemove"
 		],
-		"states": ["default", "empty", "loading", "error", "pending", "removing", "many tickets"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"states": ["default", "empty", "loading", "error", "pending", "removing", "many tickets", "retry and remove"],
+		"notes": "Remove updates the local relationship list. Retry restores two fixture tickets. Arrow keys move between removal controls."
 	},
 	{
 		"source": "packages/ui/src/domain/SessionStatusPane/SessionStatusPane.tsx",
@@ -73,7 +76,9 @@
 			"Components/SessionStatusPane/HistoryLoading",
 			"Components/SessionStatusPane/HistoryError",
 			"Components/SessionStatusPane/WithEmbed",
-			"Components/SessionStatusPane/LongHistory"
+			"Components/SessionStatusPane/LongHistory",
+			"Components/SessionStatusPane/HistoryAvailable",
+			"Components/SessionStatusPane/RetryHistory"
 		],
 		"states": [
 			"default",
@@ -88,9 +93,11 @@
 			"history loading",
 			"history error",
 			"with embed",
-			"long history"
+			"long history",
+			"history available",
+			"retry history"
 		],
-		"notes": "Select an update to inspect its text. Arrow keys move tree focus and fold days. SessionStatusPane renders SessionStatusPaneShell."
+		"notes": "Select an update to inspect its text. Arrow keys move tree focus and fold days. Load and retry append older fixture updates. SessionStatusPane renders SessionStatusPaneShell."
 	},
 	{
 		"source": "packages/ui/src/domain/SessionStatusPane/SessionStatusPaneShell.tsx",
@@ -108,7 +115,9 @@
 			"Components/SessionStatusPane/HistoryLoading",
 			"Components/SessionStatusPane/HistoryError",
 			"Components/SessionStatusPane/WithEmbed",
-			"Components/SessionStatusPane/LongHistory"
+			"Components/SessionStatusPane/LongHistory",
+			"Components/SessionStatusPane/HistoryAvailable",
+			"Components/SessionStatusPane/RetryHistory"
 		],
 		"states": [
 			"default",
@@ -123,9 +132,11 @@
 			"history loading",
 			"history error",
 			"with embed",
-			"long history"
+			"long history",
+			"history available",
+			"retry history"
 		],
-		"notes": "SessionStatusPane renders the shell in every state. Resizable enables its real pointer and keyboard resize control. Phone widths move the pane above the transcript."
+		"notes": "SessionStatusPane renders the shell in every state. Resizable enables its pointer and keyboard resize control. History examples retain the shell while data changes."
 	},
 	{
 		"source": "packages/ui/src/domain/SettingsListRow/SettingsListRow.tsx",
@@ -134,10 +145,11 @@
 			"Components/SettingsListRow/Default",
 			"Components/SettingsListRow/Disabled",
 			"Components/SettingsListRow/Expanded",
-			"Components/SettingsListRow/LongContent"
+			"Components/SettingsListRow/LongContent",
+			"Components/SettingsListRow/ToggleEditor"
 		],
-		"states": ["default", "disabled", "expanded", "long content"],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"states": ["default", "disabled", "expanded", "long content", "toggle editor"],
+		"notes": "Select the row or its edit action to open or close the local editor. Disabled also disables the action."
 	},
 	{
 		"source": "packages/ui/src/domain/StackedBar/StackedBar.tsx",
@@ -169,10 +181,20 @@
 			"Components/StartControls/ErrorState",
 			"Components/StartControls/OneDependency",
 			"Components/StartControls/SeveralDependencies",
-			"Components/StartControls/ManyAgents"
+			"Components/StartControls/ManyAgents",
+			"Components/StartControls/StartAnyway"
 		],
-		"states": ["default", "disabled", "starting", "error", "one dependency", "several dependencies", "many agents"],
-		"notes": "The start action is local. The control permits an explicit start when dependencies remain open."
+		"states": [
+			"default",
+			"disabled",
+			"starting",
+			"error",
+			"one dependency",
+			"several dependencies",
+			"many agents",
+			"start with open dependencies"
+		],
+		"notes": "Choose an agent and start a local run. Open dependencies permit an explicit start. The result appears below the control."
 	},
 	{
 		"source": "packages/ui/src/domain/StatusIcon/StatusIcon.tsx",

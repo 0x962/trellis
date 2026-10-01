@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ResourceList } from "@trellis/ui";
+import { useRef } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { useStoryState } from "../useStoryState";
 
 const meta = {
@@ -20,13 +22,33 @@ const meta = {
 		docs: {
 			description: {
 				component:
-					"Select a row to mark its local document active. ResourceList renders ResourceRow for document, link, image, and file rows.",
+					"Select a resource to mark it active. New document adds and selects a local draft. ResourceList renders ResourceRow for all four resource kinds.",
 			},
 		},
 	},
 	render: function Render(args) {
 		const [selectedId, setSelectedId] = useStoryState(args.selectedId);
-		return <ResourceList {...args} selectedId={selectedId} onOpen={setSelectedId} />;
+		const [rows, setRows] = useStoryState(args.rows);
+		const sequence = useRef(0);
+		return (
+			<ResourceList
+				{...args}
+				rows={rows}
+				selectedId={selectedId}
+				onOpen={setSelectedId}
+				onNewDocument={
+					args.onNewDocument &&
+					(() => {
+						const id = `new-document-${++sequence.current}`;
+						setRows([
+							...rows,
+							{ id, kind: "doc", name: `Document ${sequence.current}`, detail: "Local draft", pullRequest: null },
+						]);
+						setSelectedId(id);
+					})
+				}
+			/>
+		);
 	},
 } satisfies Meta<typeof ResourceList>;
 export default meta;
@@ -38,3 +60,12 @@ export const Loading: Story = { args: { rows: [], loading: true } };
 export const ErrorState: Story = { args: { rows: [], error: "The resources do not load." } };
 export const Selected: Story = { args: { selectedId: "doc" } };
 export const Creating: Story = { args: { newDocumentPending: true } };
+export const ReadOnly: Story = { args: { onNewDocument: undefined } };
+export const CreateDocument: Story = {
+	args: { rows: [] },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(canvas.getByRole("button", { name: "New document" }));
+		await expect(canvas.getByRole("button", { name: /Document 1/ })).toHaveAttribute("aria-current", "page");
+	},
+};

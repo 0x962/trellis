@@ -1,14 +1,37 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { GroupHeader } from "@trellis/ui";
+import { useState } from "react";
 import { useStoryState } from "../useStoryState";
 
 const meta = {
 	title: "Components/GroupHeader",
 	component: GroupHeader,
 	args: { group: "wave-1", label: "Wave 1", count: "3/5", expanded: true },
+	parameters: {
+		docs: {
+			description: {
+				component:
+					"Select the heading to change its expansion. Create and Start report the selected action below the header.",
+			},
+		},
+	},
 	render: function Render(args) {
 		const [expanded, setExpanded] = useStoryState(args.expanded);
-		return <GroupHeader {...args} expanded={expanded} onToggle={() => setExpanded(!expanded)} />;
+		const [action, setAction] = useState("");
+		return (
+			<>
+				<GroupHeader
+					{...args}
+					expanded={expanded}
+					onToggle={() => setExpanded(!expanded)}
+					onCreate={args.onCreate && (() => setAction("New ticket selected."))}
+					onStart={args.onStart && (() => setAction("Start wave selected."))}
+				/>
+				<p role="status" className="text-sm text-fg-muted">
+					{action}
+				</p>
+			</>
+		);
 	},
 } satisfies Meta<typeof GroupHeader>;
 export default meta;

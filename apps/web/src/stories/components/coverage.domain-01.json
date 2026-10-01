@@ -65,7 +65,9 @@
 			"Components/ChatterPanel/EarlierMessages",
 			"Components/ChatterPanel/LoadingEarlier",
 			"Components/ChatterPanel/DeliveryStates",
-			"Components/ChatterPanel/LongMessage"
+			"Components/ChatterPanel/LongMessage",
+			"Components/ChatterPanel/RetryMessages",
+			"Components/ChatterPanel/LoadEarlierMessages"
 		],
 		"states": [
 			"default",
@@ -78,9 +80,11 @@
 			"earlier messages",
 			"loading earlier",
 			"delivery states",
-			"long message"
+			"long message",
+			"local retry",
+			"load earlier history"
 		],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"notes": "The switch updates local settings. Reload restores fixture messages. Load earlier messages adds a prior day to the history."
 	},
 	{
 		"source": "packages/ui/src/domain/CheckConfetti/CheckConfetti.tsx",

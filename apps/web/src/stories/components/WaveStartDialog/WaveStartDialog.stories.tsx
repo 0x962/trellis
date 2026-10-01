@@ -8,7 +8,7 @@ import {
 	WaveStartDialog,
 	type WaveStartTicket,
 } from "@trellis/ui";
-import { useState } from "react";
+import type { ComponentProps } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useStoryState } from "../useStoryState";
 
@@ -43,62 +43,99 @@ const initialTickets = [
 	}),
 ];
 
+type Args = ComponentProps<typeof WaveStartDialog> & {
+	tickets: WaveStartTicket[];
+	submitted: boolean;
+};
+
+const flatten = (tickets: readonly WaveStartTicket[]): WaveStartTicket[] =>
+	tickets.flatMap((item) => [item, ...flatten(item.children)]);
+const mapTickets = (
+	tickets: readonly WaveStartTicket[],
+	update: (ticket: WaveStartTicket) => WaveStartTicket,
+): WaveStartTicket[] => tickets.map((item) => ({ ...update(item), children: mapTickets(item.children, update) }));
+
 const meta = {
 	title: "Components/WaveStartDialog",
 	component: WaveStartDialog,
-	args: { open: true, wave: "Wave 1", starting: false, onOpenChange: () => {}, children: null },
+	args: {
+		open: true,
+		wave: "Wave 1",
+		starting: false,
+		onOpenChange: () => {},
+		children: null,
+		tickets: initialTickets,
+		submitted: false,
+	},
 	parameters: {
 		docs: {
 			description: {
 				component:
-					"WaveStartContent renders the dependency list inside WaveStartDialog. Select ready or waiting tickets. Start records a local result and preserves the selection.",
+					"WaveStartContent renders the ticket tree inside WaveStartDialog. Select ready or waiting tickets. Start marks selected fixtures as started. Close and Cancel dismiss every state.",
 			},
 		},
 	},
-	render: function Render(args) {
+	render: function Render({ tickets: initial, submitted: wasSubmitted, ...args }) {
 		const [open, setOpen] = useStoryState(args.open);
-		const [tickets, setTickets] = useState(initialTickets);
-		const [submitted, setSubmitted] = useState(false);
-		const ready = tickets.filter((item) => !item.disabled && item.waitsOn.length === 0);
-		const selectedCount = tickets.filter((item) => item.checked).length;
+		const [tickets, setTickets] = useStoryState(initial);
+		const [submitted, setSubmitted] = useStoryState(wasSubmitted);
+		const all = flatten(tickets);
+		const ready = all.filter((item) => !item.disabled && item.waitsOn.length === 0);
+		const selectedCount = all.filter((item) => item.checked).length;
 		return (
 			<>
 				<Tooltip content="Start wave">
 					<IconButton label="Start wave" icon={<Play />} onClick={() => setOpen(true)} />
 				</Tooltip>
 				<WaveStartDialog {...args} open={open} onOpenChange={setOpen}>
-					{args.children ?? (
-						<WaveStartContent
-							wave={args.wave}
-							epic="Desktop release"
-							tickets={tickets}
-							total={tickets.length}
-							selectedCount={selectedCount}
-							readyCount={ready.length}
-							readySelected={ready.filter((item) => item.checked).length}
-							starting={args.starting}
-							submitted={submitted}
-							canSelect
-							hasWaiting
-							agent={<ProviderIcon provider="openai" />}
-							startLabel={submitted ? "Start again" : `Start ${selectedCount} tickets`}
-							onClose={() => setOpen(false)}
-							onStart={() => setSubmitted(true)}
-							onToggle={(id, checked) =>
-								setTickets(tickets.map((item) => (item.id === id ? { ...item, checked } : item)))
-							}
-							onSelectReady={(checked) =>
-								setTickets(
-									tickets.map((item) => (ready.some((entry) => entry.id === item.id) ? { ...item, checked } : item)),
-								)
-							}
-						/>
-					)}
+					<WaveStartContent
+						wave={args.wave}
+						epic="Desktop release"
+						tickets={tickets}
+						total={all.length}
+						selectedCount={selectedCount}
+						readyCount={ready.length}
+						readySelected={ready.filter((item) => item.checked).length}
+						starting={args.starting}
+						submitted={submitted}
+						canSelect={all.some((item) => !item.disabled)}
+						hasWaiting={all.some((item) => item.waitsOn.length > 0)}
+						agent={<ProviderIcon provider="openai" />}
+						startLabel={wasSubmitted ? "Retry failed ticket" : `Start ${selectedCount} tickets`}
+						onClose={() => setOpen(false)}
+						onStart={() => {
+							setSubmitted(true);
+							setTickets(
+								mapTickets(tickets, (item) =>
+									item.checked
+										? {
+												...item,
+												checked: false,
+												disabled: true,
+												status: { category: "started", label: "Started" },
+												note: "The local agent has started.",
+												tone: "success",
+											}
+										: item,
+								),
+							);
+						}}
+						onToggle={(id, checked) =>
+							setTickets(mapTickets(tickets, (item) => (item.id === id ? { ...item, checked } : item)))
+						}
+						onSelectReady={(checked) =>
+							setTickets(
+								mapTickets(tickets, (item) =>
+									ready.some((entry) => entry.id === item.id) ? { ...item, checked } : item,
+								),
+							)
+						}
+					/>
 				</WaveStartDialog>
 			</>
 		);
 	},
-} satisfies Meta<typeof WaveStartDialog>;
+} satisfies Meta<Args>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
@@ -113,74 +150,43 @@ export const NoneSelected: Story = {
 	},
 };
 export const NoSelectableTickets: Story = {
-	args: {
-		children: (
-			<WaveStartContent
-				wave="Wave 1"
-				tickets={[ticket("TRL-42", { disabled: true, checked: false, note: "An agent already owns this ticket." })]}
-				total={1}
-				selectedCount={0}
-				readyCount={0}
-				readySelected={0}
-				starting={false}
-				submitted={false}
-				canSelect={false}
-				hasWaiting={false}
-				agent={null}
-				startLabel="Start"
-				onClose={() => {}}
-				onStart={() => {}}
-				onToggle={() => {}}
-				onSelectReady={() => {}}
-			/>
-		),
-	},
+	args: { tickets: [ticket("TRL-42", { disabled: true, checked: false, note: "An agent already owns this ticket." })] },
 };
-export const Empty: Story = {
-	args: {
-		children: (
-			<WaveStartContent
-				wave="Wave 1"
-				tickets={[]}
-				total={0}
-				selectedCount={0}
-				readyCount={0}
-				readySelected={0}
-				starting={false}
-				submitted={false}
-				canSelect={false}
-				hasWaiting={false}
-				agent={null}
-				startLabel="Start"
-				onClose={() => {}}
-				onStart={() => {}}
-				onToggle={() => {}}
-				onSelectReady={() => {}}
-			/>
-		),
-	},
-};
+export const Empty: Story = { args: { tickets: [] } };
 export const Failed: Story = {
+	args: { tickets: [ticket("TRL-42", { note: "The agent does not start.", tone: "danger" })], submitted: true },
+};
+export const PartialSelection: Story = {
+	args: { tickets: [ticket("TRL-42"), ticket("TRL-43", { checked: false })] },
+};
+export const NestedTickets: Story = {
 	args: {
-		children: (
-			<WaveStartContent
-				wave="Wave 1"
-				tickets={[ticket("TRL-42", { note: "The agent does not start.", tone: "danger" })]}
-				total={1}
-				selectedCount={1}
-				readyCount={1}
-				readySelected={1}
-				starting={false}
-				submitted
-				canSelect
-				hasWaiting={false}
-				agent={<ProviderIcon provider="openai" />}
-				startLabel="Retry failed ticket"
-				onClose={() => {}}
-				onStart={() => {}}
-				onToggle={() => {}}
-				onSelectReady={() => {}}
-			/>
-		),
+		tickets: [
+			ticket("TRL-42", {
+				children: [
+					ticket("TRL-43", { checked: false, waitsOn: ["TRL-42"], note: "Waits for TRL-42", tone: "warning" }),
+				],
+			}),
+		],
+	},
+};
+export const RetryFailedTicket: Story = {
+	args: { ...Failed.args },
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		await userEvent.click(await body.findByRole("button", { name: "Retry failed ticket" }));
+		await expect(body.queryByRole("alert")).not.toBeInTheDocument();
+		await expect(body.getByText("The local agent has started.")).toBeVisible();
+		await expect(body.getByRole("checkbox", { name: "Start TRL-42: Restore the project view" })).toBeDisabled();
+		await userEvent.click(body.getAllByRole("button", { name: "Close" })[0]!);
+		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
+	},
+};
+export const CloseEmpty: Story = {
+	args: { tickets: [] },
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		await userEvent.click((await body.findAllByRole("button", { name: "Close" }))[0]!);
+		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
 	},
 };

@@ -47,10 +47,26 @@
 			"Components/WaveStartDialog/NoneSelected",
 			"Components/WaveStartDialog/NoSelectableTickets",
 			"Components/WaveStartDialog/Empty",
-			"Components/WaveStartDialog/Failed"
+			"Components/WaveStartDialog/Failed",
+			"Components/WaveStartDialog/PartialSelection",
+			"Components/WaveStartDialog/NestedTickets",
+			"Components/WaveStartDialog/RetryFailedTicket",
+			"Components/WaveStartDialog/CloseEmpty"
 		],
-		"states": ["default", "closed", "starting", "none selected", "no selectable tickets", "empty", "failed"],
-		"notes": "WaveStartContent provides the ticket tree, selection, agent, and footer inside the real dialog. All actions use local state."
+		"states": [
+			"default",
+			"closed",
+			"starting",
+			"none selected",
+			"no selectable tickets",
+			"empty",
+			"failed",
+			"partial selection",
+			"nested tickets",
+			"retry failed ticket",
+			"close empty dialog"
+		],
+		"notes": "WaveStartDialog renders WaveStartContent with local selection and start actions. The nested tree and partial selection have named examples. Failed tickets can retry. Empty dialogs can close."
 	},
 	{
 		"source": "packages/ui/src/domain/WaveStartDialog/WaveStartDialog.tsx",
@@ -62,10 +78,26 @@
 			"Components/WaveStartDialog/NoneSelected",
 			"Components/WaveStartDialog/NoSelectableTickets",
 			"Components/WaveStartDialog/Empty",
-			"Components/WaveStartDialog/Failed"
+			"Components/WaveStartDialog/Failed",
+			"Components/WaveStartDialog/PartialSelection",
+			"Components/WaveStartDialog/NestedTickets",
+			"Components/WaveStartDialog/RetryFailedTicket",
+			"Components/WaveStartDialog/CloseEmpty"
 		],
-		"states": ["default", "closed", "starting", "none selected", "no selectable tickets", "empty", "failed"],
-		"notes": "WaveStartContent renders the dependency list inside WaveStartDialog. Select ready or waiting tickets. Start records a local result and preserves the selection."
+		"states": [
+			"default",
+			"closed",
+			"starting",
+			"none selected",
+			"no selectable tickets",
+			"empty",
+			"failed",
+			"partial selection",
+			"nested tickets",
+			"retry failed ticket",
+			"close empty dialog"
+		],
+		"notes": "WaveStartContent renders the ticket tree inside WaveStartDialog. Select ready or waiting tickets. Start marks selected fixtures as started. Close and Cancel dismiss every state."
 	},
 	{
 		"source": "packages/ui/src/domain/WorkingAgentText/WorkingAgentText.tsx",

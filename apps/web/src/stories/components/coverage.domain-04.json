@@ -22,7 +22,10 @@
 			"Components/ProviderCard/CompactAccepted",
 			"Components/ProviderCard/CompactRefused",
 			"Components/ProviderCard/ActionsOpen",
-			"Components/ProviderCard/LongContent"
+			"Components/ProviderCard/LongContent",
+			"Components/ProviderCard/CheckKey",
+			"Components/ProviderCard/EditProvider",
+			"Components/ProviderCard/RemoveProvider"
 		],
 		"states": [
 			"interactive states",
@@ -47,9 +50,12 @@
 			"long content",
 			"local add dialog",
 			"local edit dialog",
-			"local remove confirmation"
+			"local remove confirmation",
+			"check key",
+			"edit provider",
+			"remove provider"
 		],
-		"notes": "Use Add, Edit, and Remove to inspect local dialogs. The cards show balance, accepted, refused, forbidden, unreachable, disabled, and checking states."
+		"notes": "Edit, check, toggle, and remove update a local provider. InteractiveStates also shows the gallery of provider states and the Add form."
 	},
 	{
 		"source": "packages/ui/src/domain/ProviderForm/ProviderForm.tsx",
@@ -111,10 +117,21 @@
 			"Components/ProviderModelsPicker/ErrorState",
 			"Components/ProviderModelsPicker/TypedOnly",
 			"Components/ProviderModelsPicker/Stale",
-			"Components/ProviderModelsPicker/ManySelected"
+			"Components/ProviderModelsPicker/ManySelected",
+			"Components/ProviderModelsPicker/RefreshModels"
 		],
-		"states": ["default", "empty", "loading", "disabled", "error", "typed only", "stale", "many selected"],
-		"notes": "Open the picker to search or type a model identifier. Enter selects it. Remove actions update the local selection."
+		"states": [
+			"default",
+			"empty",
+			"loading",
+			"disabled",
+			"error",
+			"typed only",
+			"stale",
+			"many selected",
+			"refresh stale models"
+		],
+		"notes": "Open the picker to search or type a model identifier. Enter selects it. Remove updates the selection. Refresh replaces stale fixture data."
 	},
 	{
 		"source": "packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx",
@@ -150,10 +167,12 @@
 			"Components/ResourceList/Loading",
 			"Components/ResourceList/ErrorState",
 			"Components/ResourceList/Selected",
-			"Components/ResourceList/Creating"
+			"Components/ResourceList/Creating",
+			"Components/ResourceList/ReadOnly",
+			"Components/ResourceList/CreateDocument"
 		],
-		"states": ["default", "empty", "loading", "error", "selected", "creating"],
-		"notes": "Select a row to mark its local document active. ResourceList renders ResourceRow for document, link, image, and file rows."
+		"states": ["default", "empty", "loading", "error", "selected", "creating", "read only", "create local document"],
+		"notes": "Select a resource to mark it active. New document adds and selects a local draft. ResourceList renders ResourceRow for all four resource kinds."
 	},
 	{
 		"source": "packages/ui/src/domain/ResourceList/components/ResourceRow/ResourceRow.tsx",
@@ -164,10 +183,12 @@
 			"Components/ResourceList/Loading",
 			"Components/ResourceList/ErrorState",
 			"Components/ResourceList/Selected",
-			"Components/ResourceList/Creating"
+			"Components/ResourceList/Creating",
+			"Components/ResourceList/ReadOnly",
+			"Components/ResourceList/CreateDocument"
 		],
-		"states": ["default", "empty", "loading", "error", "selected", "creating"],
-		"notes": "ResourceList renders ResourceRow for document, link, image, and file rows. The stories cover selection, the plan icon, evidence details, and the link or download mark on hover and focus."
+		"states": ["default", "empty", "loading", "error", "selected", "creating", "read only", "create local document"],
+		"notes": "ResourceList renders each row. The stories cover all four resource kinds, selection, the plan icon, evidence details, and hover or focus marks."
 	},
 	{
 		"source": "packages/ui/src/domain/ReviewStateIcon/ReviewStateIcon.tsx",

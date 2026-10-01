@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { PageRow } from "@trellis/ui";
+import { useState } from "react";
 
 const meta = {
 	title: "Components/PageRow",
@@ -16,6 +17,30 @@ const meta = {
 		pinned: false,
 		deleted: false,
 		link: <a href="#page">Open page</a>,
+	},
+	parameters: {
+		docs: {
+			description: {
+				component:
+					"Open the action menu to select Rename or Delete. The story reports the callback below the row. The page link stays in this document.",
+			},
+		},
+	},
+	render: function Render(args) {
+		const [action, setAction] = useState("");
+		return (
+			<>
+				<ul>
+					<PageRow
+						{...args}
+						actions={args.actions?.map((item) => ({ ...item, onSelect: () => setAction(`${item.label} selected.`) }))}
+					/>
+				</ul>
+				<p role="status" className="text-sm text-fg-muted">
+					{action}
+				</p>
+			</>
+		);
 	},
 } satisfies Meta<typeof PageRow>;
 export default meta;

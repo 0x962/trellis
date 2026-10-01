@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { RunLineValue } from "@trellis/ui";
 import { RunLine } from "@trellis/ui";
+import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
+import { useStoryState } from "../useStoryState";
 
 const run: RunLineValue = {
 	name: "Review agent",
@@ -18,7 +21,38 @@ const meta = {
 	component: RunLine,
 	args: { run, onOpenSession: () => {} },
 	parameters: {
-		docs: { description: { component: "Hover the run to inspect its metrics. Session and retry actions stay local." } },
+		docs: {
+			description: {
+				component:
+					"Hover the run to inspect its metrics. Session reports the selected run. Retry changes the local run to its start state.",
+			},
+		},
+	},
+	render: function Render(args) {
+		const [currentRun, setRun] = useStoryState(args.run);
+		const [retry, setRetry] = useStoryState(args.retry);
+		const [session, setSession] = useState("");
+		return (
+			<>
+				<RunLine
+					{...args}
+					run={currentRun}
+					onOpenSession={() => setSession(`Selected session: ${currentRun!.name}`)}
+					retry={
+						retry && {
+							...retry,
+							onRetry: () => {
+								setRun({ ...currentRun!, kind: "starts", words: "starts", time: "now", rawError: null });
+								setRetry(null);
+							},
+						}
+					}
+				/>
+				<p role="status" className="text-sm text-fg-muted">
+					{session}
+				</p>
+			</>
+		);
 	},
 } satisfies Meta<typeof RunLine>;
 export default meta;
@@ -43,5 +77,16 @@ export const Retry: Story = { args: { retry: { starting: false, error: null, onR
 export const RetryPending: Story = { args: { retry: { starting: true, error: null, onRetry: () => {} } } };
 export const RetryFailed: Story = {
 	args: { retry: { starting: false, error: "The process does not start.", onRetry: () => {} } },
+};
+export const RetryRun: Story = {
+	args: { run: { ...run, kind: "failed", words: "failed" }, ...RetryFailed.args },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(canvas.getByRole("button", { name: "Retry" }));
+		await expect(canvas.getByText("starts")).toBeVisible();
+		await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+		await userEvent.click(canvas.getByRole("button", { name: "Session" }));
+		await expect(canvas.getByRole("status")).toHaveTextContent("Selected session: Review agent");
+	},
 };
 export const LongMessage: Story = { args: { run: { ...run, lastMessage: "The checks pass. ".repeat(60) } } };

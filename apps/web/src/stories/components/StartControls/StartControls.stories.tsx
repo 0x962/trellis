@@ -1,11 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { PickerButton, StartControls } from "@trellis/ui";
+import { Select, StartControls } from "@trellis/ui";
+import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
+import { useStoryState } from "../useStoryState";
 
 const meta = {
 	title: "Components/StartControls",
 	component: StartControls,
 	args: {
-		pickers: <PickerButton label="Agent">Codex</PickerButton>,
+		pickers: null,
 		dependencies: [],
 		starting: false,
 		error: null,
@@ -14,9 +17,44 @@ const meta = {
 	parameters: {
 		docs: {
 			description: {
-				component: "The start action is local. The control permits an explicit start when dependencies remain open.",
+				component:
+					"Choose an agent and start a local run. Open dependencies permit an explicit start. The result appears below the control.",
 			},
 		},
+	},
+	render: function Render(args) {
+		const [agent, setAgent] = useState("Codex");
+		const [started, setStarted] = useState(false);
+		const [error, setError] = useStoryState(args.error);
+		return (
+			<>
+				<StartControls
+					{...args}
+					disabled={args.disabled || started}
+					error={error}
+					pickers={
+						<Select
+							label="Agent"
+							hideLabel
+							value={agent}
+							onValueChange={setAgent}
+							items={[
+								{ value: "Codex", label: "Codex" },
+								{ value: "Claude", label: "Claude" },
+							]}
+							disabled={args.starting}
+						/>
+					}
+					onStart={() => {
+						setError(null);
+						setStarted(true);
+					}}
+				/>
+				<p role="status" className="text-sm text-fg-muted">
+					{started ? `The local ${agent} run has started.` : ""}
+				</p>
+			</>
+		);
 	},
 } satisfies Meta<typeof StartControls>;
 export default meta;
@@ -38,3 +76,12 @@ export const SeveralDependencies: Story = {
 	},
 };
 export const ManyAgents: Story = { args: { label: "Start 4 agents" } };
+export const StartAnyway: Story = {
+	args: { ...OneDependency.args, error: "The agent does not start." },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(canvas.getByRole("button", { name: "Start" }));
+		await expect(canvas.getByRole("status")).toHaveTextContent("The local Codex run has started.");
+		await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+	},
+};

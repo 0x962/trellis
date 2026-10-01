@@ -108,7 +108,7 @@
 			"actions",
 			"long label"
 		],
-		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+		"notes": "Select the heading to change its expansion. Create and Start report the selected action below the header."
 	},
 	{
 		"source": "packages/ui/src/domain/HarnessAccountForm/HarnessAccountForm.tsx",

@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { SessionStatusPane } from "@trellis/ui";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
+import { useStoryState } from "../useStoryState";
 
 const latest = {
 	id: "update-2",
@@ -31,15 +33,34 @@ const meta = {
 		docs: {
 			description: {
 				component:
-					"Select an update to inspect its text. Arrow keys move tree focus and fold days. SessionStatusPane renders SessionStatusPaneShell.",
+					"Select an update to inspect its text. Arrow keys move tree focus and fold days. Load and retry append older fixture updates.",
 			},
 		},
 	},
-	render: (args) => (
-		<div className="flex h-160">
-			<SessionStatusPane {...args} />
-		</div>
-	),
+	render: function Render(args) {
+		const [updates, setUpdates] = useStoryState(args.updates);
+		const [historyControl, setHistoryControl] = useStoryState(args.historyControl);
+		const load = () => {
+			const history = updates.history ?? [updates.latest, updates.previous].filter((update) => update !== null);
+			setUpdates({
+				...updates,
+				history: [
+					...history,
+					{ ...previous, id: "update-0", body: "The agent reads the release plan.", createdAt: "2026-09-28T12:00:00Z" },
+				],
+			});
+			setHistoryControl(undefined);
+		};
+		return (
+			<div className="flex h-160">
+				<SessionStatusPane
+					{...args}
+					updates={updates}
+					historyControl={historyControl && { ...historyControl, load, retry: load }}
+				/>
+			</div>
+		);
+	},
 } satisfies Meta<typeof SessionStatusPane>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -96,6 +117,19 @@ export const HistoryLoading: Story = {
 };
 export const HistoryError: Story = {
 	args: { historyControl: { hasMore: true, loading: false, error: true, load: () => {}, retry: () => {} } },
+};
+export const HistoryAvailable: Story = {
+	args: { historyControl: { hasMore: true, loading: false, error: false, load: () => {}, retry: () => {} } },
+};
+export const RetryHistory: Story = {
+	args: { ...HistoryError.args },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(canvas.getByRole("button", { name: "Retry history" }));
+		await expect(canvas.queryByRole("button", { name: "Retry history" })).not.toBeInTheDocument();
+		await expect(canvas.queryByRole("button", { name: "Load older updates" })).not.toBeInTheDocument();
+		await expect(canvas.getByText("The agent reads the release plan.")).toBeVisible();
+	},
 };
 export const WithEmbed: Story = {
 	args: {
