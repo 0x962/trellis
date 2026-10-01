@@ -138,8 +138,15 @@
 .ticket-composer-footer .composer-create:active:not(:disabled) {
 	background: var(--fg-muted);
 }
-.ticket-composer-footer .composer-another {
+.ticket-composer-footer .composer-options {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: calc(var(--spacing) * 4);
 	margin-left: auto;
+}
+.ticket-composer-footer .composer-option {
 	color: var(--fg-faint);
 	font-size: 12px;
 }

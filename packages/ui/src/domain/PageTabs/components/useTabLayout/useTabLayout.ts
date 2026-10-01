@@ -13,60 +13,73 @@ const revealTab = (element: HTMLElement, left: number, width: number) => {
 export function useTabLayout(slots: readonly TabSlot[], activeIndex: number) {
 	const ref = useRef<HTMLDivElement>(null);
 	const [layout, setLayout] = useState(() => ({
-		boxes: tabBoxes(slots.map(() => 200)),
+		boxes: tabBoxes(
+			slots.map(() => 200),
+			0,
+		),
 		start: Math.max(0, activeIndex - 2),
 		end: Math.min(slots.length, activeIndex + 3),
+		viewportWidth: 0,
 	}));
 	useLayoutEffect(() => {
 		const element = ref.current!;
 		const context = document.createElement("canvas").getContext("2d")!;
-		const touch = matchMedia("(width < 640px), (pointer: coarse)");
 		const measure = () => {
 			const style = getComputedStyle(element);
-			const actionWidth = touch.matches ? 44 : 28;
+			const spacing = Number.parseFloat(style.getPropertyValue("--spacing"));
+			const actionWidth = Number.parseFloat(style.getPropertyValue("--tab-control-steps")) * spacing;
+			const weight = style.getPropertyValue("--font-weight-medium");
+			const maxWidth = spacing * 60;
 			const widths = slots.map((slot) => {
 				const size = slot.kind === "group" ? style.getPropertyValue("--text-xs") : style.fontSize;
-				context.font = `500 ${size} ${style.fontFamily}`;
+				context.font = `${weight} ${size} ${style.fontFamily}`;
 				if (slot.kind === "group") {
 					return Math.min(
-						240,
+						maxWidth,
 						Math.ceil(
 							context.measureText(slot.group.name).width +
 								context.measureText(String(slot.count)).width +
-								48 +
+								spacing * 12 +
 								actionWidth,
 						),
 					);
 				}
 				const labelWidth = Math.ceil(context.measureText(slot.tab.title).width);
 				return slot.tab.pinned
-					? Math.min(240, Math.max(actionWidth, labelWidth + 30))
-					: Math.min(240, Math.max(actionWidth, labelWidth + 16) + actionWidth + 4);
+					? Math.min(maxWidth, Math.max(actionWidth, labelWidth + spacing * 7.5))
+					: Math.min(maxWidth, Math.max(actionWidth, labelWidth + spacing * 4) + actionWidth + spacing);
 			});
-			const boxes = tabBoxes(widths);
-			const active = boxes[activeIndex];
-			if (active) revealTab(element, active.left, active.width);
-			const range = visibleTabRange(boxes, element.scrollLeft, element.clientWidth);
+			const boxes = tabBoxes(widths, spacing);
+			const viewportWidth = element.clientWidth;
+			const range = visibleTabRange(boxes, element.scrollLeft, viewportWidth);
 			setLayout((current) =>
 				current.start === range.start &&
 				current.end === range.end &&
+				current.viewportWidth === viewportWidth &&
 				current.boxes.length === boxes.length &&
-				current.boxes.every((box, index) => box.width === boxes[index]!.width)
+				current.boxes.every((box, index) => box.width === boxes[index]!.width && box.left === boxes[index]!.left)
 					? current
-					: { boxes, ...range },
+					: { boxes, ...range, viewportWidth },
 			);
 		};
 		measure();
 		const observer = new ResizeObserver(measure);
 		observer.observe(element);
-		touch.addEventListener("change", measure);
 		document.fonts.addEventListener("loadingdone", measure);
 		return () => {
 			observer.disconnect();
-			touch.removeEventListener("change", measure);
 			document.fonts.removeEventListener("loadingdone", measure);
 		};
-	}, [slots, activeIndex]);
+	}, [slots]);
+	useLayoutEffect(() => {
+		const element = ref.current!;
+		const active = layout.boxes[activeIndex];
+		if (active) revealTab(element, active.left, active.width);
+		setLayout((current) => {
+			const range = visibleTabRange(current.boxes, element.scrollLeft, element.clientWidth);
+			return current.start === range.start && current.end === range.end ? current : { ...current, ...range };
+		});
+	}, [layout.boxes, activeIndex]);
 	const onScroll = useCallback(() => {
 		const element = ref.current!;
 		setLayout((current) => {

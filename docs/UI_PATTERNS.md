@@ -353,7 +353,10 @@ The property row holds status, priority, agent, placement, and labels.
 More properties holds the parent picker and Discard draft.
 The agent picker searches the supported models of each harness. Its account and effort fields use the current harness.
 Create and assign saves the ticket, uploads its attachments, and starts the selected agent.
-No agent changes the action to Create ticket.
+Assign agent selects whether the primary action starts the selected agent.
+When Assign agent is off, Create saves the ticket and uploads its attachments without an assignment.
+No agent also changes the action to Create.
+The browser retains Assign agent and Create another across tickets and app restarts.
 A failed upload or assignment keeps the saved ticket. An assignment retry keeps its original request ID.
 Close and Escape retain the draft and selected files. Create another clears the content and retains the settings.
 Command+Enter creates the ticket. Command+Shift+Enter also keeps the composer open.
