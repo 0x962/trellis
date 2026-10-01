@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "../../primitives/Button";
-import { Dialog } from "../../primitives/Dialog";
 import { Input } from "../../primitives/Input";
+import { Sheet } from "../../primitives/Sheet";
+import { SheetBody } from "../../primitives/SheetBody";
 
 export function HarnessAccountNameForm({
 	open,
@@ -18,36 +19,47 @@ export function HarnessAccountNameForm({
 	onClose: () => void;
 	onSubmit: (name: string) => void;
 }) {
+	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState(initialName);
 	return (
-		<Dialog
+		<Sheet
 			open={open}
 			onOpenChange={(next) => !next && !busy && onClose()}
 			title="Rename account"
 			description="Choose the account name that Trellis shows."
+			initialFocus={nameRef}
+			titleClassName="text-md font-medium"
 		>
-			<form
-				className="flex flex-col gap-4"
-				onSubmit={(event) => {
-					event.preventDefault();
-					onSubmit(name.trim());
-				}}
-			>
-				<Input label="Account name" value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
-				{error && (
-					<p role="alert" className="text-sm text-danger">
-						{error}
-					</p>
-				)}
-				<div className="flex justify-end gap-2">
-					<Button disabled={busy} onClick={onClose}>
-						Cancel
-					</Button>
-					<Button type="submit" variant="primary" processing={busy} disabled={!name.trim()}>
-						Rename account
-					</Button>
-				</div>
-			</form>
-		</Dialog>
+			<SheetBody>
+				<form
+					className="flex flex-col gap-4"
+					onSubmit={(event) => {
+						event.preventDefault();
+						onSubmit(name.trim());
+					}}
+				>
+					<Input
+						ref={nameRef}
+						label="Account name"
+						value={name}
+						onChange={(event) => setName(event.target.value)}
+						required
+					/>
+					{error && (
+						<p role="alert" className="text-sm text-danger">
+							{error}
+						</p>
+					)}
+					<div className="flex justify-end gap-2">
+						<Button disabled={busy} onClick={onClose}>
+							Cancel
+						</Button>
+						<Button type="submit" variant="primary" processing={busy} disabled={!name.trim()}>
+							Rename account
+						</Button>
+					</div>
+				</form>
+			</SheetBody>
+		</Sheet>
 	);
 }

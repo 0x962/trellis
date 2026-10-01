@@ -164,6 +164,7 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 `Sheet` owns the appearance of every slideout, including forms and pages.
+Its `description` prop shows the introductory text and supplies the accessible description.
 It uses `rounded-xl` on the exposed corners and the `shadow-page-sheet` token.
 The corners face left for a right sheet and right for a left sheet.
 The sheet clips its content to these corners.
@@ -320,7 +321,9 @@ The words carry no blame, no apology and no exclamation mark. Red marks one thin
 
 The Agent Usage tab puts Providers directly under Accounts.
 `ProviderCard` is the second card shape on the page. It shows the key status, balance, and selected models.
-`ProviderForm` uses the account dialog shape for Add and Edit. Edit leaves the key blank and preserves it until a person enters a replacement.
+Account details, sign-in instructions, account forms, and `ProviderForm` use the shared `Sheet` and `SheetBody`.
+The slideout opens from the right and keeps Usage behind it.
+Edit leaves the key blank and preserves it until a person enters a replacement.
 The model control uses `Popover`, `PickerButton`, `Command.Virtual`, and `Chip`. It accepts an identifier outside the catalog. Selected models use the shared virtual row hook in a scrollable viewport. Arrow keys, Home, End, Page Up, and Page Down reach remove buttons throughout the selection.
 The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 
