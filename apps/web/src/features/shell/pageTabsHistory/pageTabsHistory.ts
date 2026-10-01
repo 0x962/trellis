@@ -10,6 +10,7 @@ type BrowserLocation = Pick<Location, "pathname" | "search" | "hash">;
 type PageTabsBrowser = {
 	location: BrowserLocation;
 	history: Pick<History, "state" | "replaceState">;
+	performance: Pick<Performance, "getEntriesByType">;
 };
 
 type PageTabsHistoryOptions = {
@@ -50,7 +51,12 @@ const syncBrowser = (browser: PageTabsBrowser, store: PageTabsStore, state: Hist
 
 export const createPageTabsHistory = ({ store, browser, initialTitle }: PageTabsHistoryOptions): RouterHistory => {
 	const requestedUrl = browserHref(browser.location);
-	if (requestedUrl !== "/" && requestedUrl !== activeTab(store).url) {
+	const navigation = browser.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+	// A reload retains the address of the page that the user left. A direct
+	// entry can request that same address, so its navigation type decides.
+	const directEntry = navigation?.type !== "reload" && requestedUrl !== "/";
+	store.getState().restorePinnedTabs(directEntry);
+	if (directEntry && requestedUrl !== activeTab(store).url) {
 		store.getState().navigate({ url: requestedUrl, title: initialTitle });
 	}
 
