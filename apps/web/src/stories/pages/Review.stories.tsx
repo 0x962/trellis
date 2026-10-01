@@ -28,8 +28,8 @@ export const SwitchTabs: Story = {
 		const canvas = within(canvasElement);
 		for (const name of ["Checks", "Flows", "Diff", "Overview"]) {
 			await userEvent.click(await canvas.findByRole("tab", { name }));
-			await expect(canvas.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
-			await expect(canvas.getByRole("tabpanel", { name })).toBeVisible();
+			await expect(await canvas.findByRole("tab", { name, selected: true })).toBeVisible();
+			await expect(await canvas.findByRole("tabpanel", { name })).toBeVisible();
 		}
 	},
 };
