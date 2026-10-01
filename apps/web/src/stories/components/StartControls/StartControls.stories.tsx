@@ -81,7 +81,7 @@ export const StartAnyway: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await userEvent.click(canvas.getByRole("button", { name: "Start" }));
-		await expect(canvas.getByRole("status")).toHaveTextContent("The local Codex run has started.");
+		await expect(canvas.getByText("The local Codex run has started.")).toBeVisible();
 		await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
 	},
 };

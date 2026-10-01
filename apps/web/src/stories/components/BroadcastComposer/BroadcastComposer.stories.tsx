@@ -1,6 +1,6 @@
 import { Megaphone } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { BroadcastComposer, Button, Checkbox, IconButton, Textarea, Tooltip } from "@trellis/ui";
+import { BroadcastComposer, Button, Checkbox, FailureState, IconButton, Textarea, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 
 const meta = {
@@ -113,9 +113,11 @@ export const LongScope: Story = {
 export const ErrorState: Story = {
 	args: {
 		children: (
-			<p role="alert" className="text-sm text-danger">
-				The message does not reach one recipient.
-			</p>
+			<FailureState
+				title="The broadcast did not send"
+				detail="The message does not reach one recipient."
+				variant="section"
+			/>
 		),
 	},
 };
