@@ -11,12 +11,19 @@ on:
       - tsconfig.base.json
       - .github/workflows/storybook.yml
   workflow_dispatch:
+    inputs:
+      filter:
+        description: Story ID text to check. Leave empty for the complete catalog.
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
   catalog:
+    name: ${{ inputs.filter && 'catalog (focused)' || 'catalog' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -33,7 +40,9 @@ jobs:
       - run: bun test apps/web/src/stories/support/createStoryClient/createStoryClient.test.ts apps/web/scripts/storybook/installStoryObserver.test.ts
       - run: bun run storybook:build
       - run: bunx playwright install --with-deps chromium
-      - name: Check every story in the static build
+      - name: Check stories in the static build
+        env:
+          STORYBOOK_FILTER: ${{ inputs.filter }}
         run: |
           bun run storybook:serve > storybook-server.log 2>&1 &
           storybook_pid=$!

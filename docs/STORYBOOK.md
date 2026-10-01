@@ -61,6 +61,8 @@ The complete browser check also verifies Controls, the theme toolbar, the 320 pi
 
 The Storybook GitHub workflow runs the coverage, type, lint, fixture, build, and browser checks for frontend changes. Its artifact retains the browser results and server log.
 
+A manual workflow run accepts an optional `filter` value for a story ID. An empty value checks the complete catalog and manager. Failed stories retain the input events, render phase, error stacks, and rendered HTML in the result artifact.
+
 Optional environment variables:
 
 - `STORYBOOK_URL` selects the running catalog. The default is `http://127.0.0.1:6006`.

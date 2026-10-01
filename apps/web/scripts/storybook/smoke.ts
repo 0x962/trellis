@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, type Page } from "playwright";
-import { installStoryObserver, type StoryWindow } from "./installStoryObserver";
+import { installStoryObserver, type StoryCheck, type StoryWindow } from "./installStoryObserver";
 import { managerCheck } from "./managerCheck";
 
 type StoryEntry = { id: string; title: string; name: string; type: string; tags: string[] };
@@ -11,6 +11,7 @@ type StoryResult = {
 	name: string;
 	viewport: { width: number; height: number } | null;
 	errors: string[];
+	diagnostics?: Pick<StoryCheck, "phase" | "inputs" | "stacks"> & { html: string; hasFocus: boolean };
 };
 
 const origin = process.env.STORYBOOK_URL ?? "http://127.0.0.1:6006";
@@ -68,6 +69,15 @@ const inspectStory = async (page: Page, story: StoryEntry): Promise<StoryResult>
 		name: story.name,
 		viewport: page.viewportSize(),
 		errors: [...new Set(errors)],
+		diagnostics:
+			errors.length === 0
+				? undefined
+				: await page.evaluate(() => {
+						const { phase, inputs, stacks } = (window as unknown as StoryWindow).__trellisStoryCheck;
+						const content = document.body.cloneNode(true) as HTMLElement;
+						for (const node of content.querySelectorAll("script, style, .sb-wrapper")) node.remove();
+						return { phase, inputs, stacks, html: content.innerHTML, hasFocus: document.hasFocus() };
+					}),
 	};
 };
 
@@ -93,6 +103,7 @@ try {
 
 const failed = results.filter((result) => result.errors.length > 0);
 const report = {
+	selection: filter ? { filter } : "all",
 	total: results.length,
 	passed: results.length - failed.length,
 	failed: failed.length,

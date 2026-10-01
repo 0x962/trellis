@@ -202,6 +202,7 @@ test("a pin moves the tab to the end of the pinned region and keeps its record",
 		title: "Flows",
 		customTitle: "Mine",
 		pinned: true,
+		pinnedPage: { url: "/ai/flows", title: "Flows" },
 		backHistory: [{ url: "/search", title: "Search" }],
 		forwardHistory: [],
 	});
