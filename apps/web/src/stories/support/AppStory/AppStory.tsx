@@ -4,8 +4,8 @@ import { setTheme, Toaster } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
 import { AppProvider } from "../../../lib/appContext";
 import type { loadStoryApp } from "../loadStoryApp";
-import type { StoryParameters } from "../types";
 import { StoryContentContext } from "../StoryContent";
+import type { StoryParameters } from "../types";
 
 export function AppStory({
 	children,
