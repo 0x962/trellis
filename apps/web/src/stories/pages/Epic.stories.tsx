@@ -33,7 +33,7 @@ export const SwitchTabs: Story = {
 		await userEvent.click(await canvas.findByRole("tab", { name: /Resources/ }));
 		await expect(await canvas.findByRole("tabpanel", { name: /Resources/ })).toBeVisible();
 		await userEvent.click(canvas.getByRole("tab", { name: "Overview" }));
-		await expect(await canvas.findByRole("row", { name: "Open DEMO-40" })).toBeVisible();
+		await expect(await canvas.findByRole("link", { name: "Open DEMO-40" })).toBeVisible();
 	},
 };
 export const Empty: Story = {
@@ -91,8 +91,9 @@ export const ResourceDocument: Story = {
 		},
 	},
 	play: async ({ canvasElement }) => {
-		const contents = within(await within(canvasElement).findByRole("navigation", { name: "Document contents" }));
-		await expect(await contents.findByRole("button", { name: "Required states" })).toBeVisible();
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("button", { name: "Required states" })).toBeVisible();
+		const contents = within(canvas.getByRole("navigation", { name: "Document contents" }));
 		await expect(contents.queryByRole("button", { name: documentResource.name })).not.toBeInTheDocument();
 	},
 };
@@ -109,11 +110,11 @@ const contentsResponses = {
 const checkDocumentContents = async (canvasElement: HTMLElement, compact: boolean) => {
 	const canvas = within(canvasElement);
 	const body = within(canvasElement.ownerDocument.body);
-	if (compact) await userEvent.click(await canvas.findByRole("button", { name: "Contents" }));
-	const contents = within(await body.findByRole("navigation", { name: "Document contents" }));
-	await expect(await contents.findByRole("button", { name: "Saved proof" })).toBeVisible();
-	await expect(contents.getAllByRole("button").map((button) => button.textContent)).toEqual(documentHeadingNames);
 	const heading = await canvas.findByRole("heading", { name: "Saved proof", level: 6 });
+	if (compact) await userEvent.click(await canvas.findByRole("button", { name: "Contents" }));
+	await waitFor(() => expect(body.getByRole("button", { name: "Saved proof" })).toBeVisible());
+	const contents = within(body.getByRole("navigation", { name: "Document contents" }));
+	await expect(contents.getAllByRole("button").map((button) => button.textContent)).toEqual(documentHeadingNames);
 	const scroll = heading.closest("article")!.parentElement!;
 	await userEvent.click(contents.getByRole("button", { name: "Saved proof" }));
 	await waitFor(() => expect(scroll.scrollTop).toBeGreaterThan(0));
@@ -124,7 +125,7 @@ const checkDocumentContents = async (canvasElement: HTMLElement, compact: boolea
 		await userEvent.click(canvas.getByRole("button", { name: "Contents" }));
 	}
 	const selected = await body.findByRole("button", { name: "Saved proof", current: "location" });
-	await expect(selected).toBeVisible();
+	await waitFor(() => expect(selected).toBeVisible());
 };
 
 export const ResourceDocumentContents: Story = {
