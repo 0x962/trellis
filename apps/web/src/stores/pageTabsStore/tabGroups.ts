@@ -41,8 +41,10 @@ export const insertIndex = (
 
 // Selecting a tab of a collapsed group expands that group, so the selected
 // tab is always visible in the strip.
-export const expandGroupOf = (groups: readonly PageTabGroup[], tab: PageTab) =>
-	groups.map((group) => (group.id === tab.groupId && group.collapsed ? { ...group, collapsed: false } : group));
+export const expandGroupOf = (groups: PageTabGroup[], tab: PageTab) => {
+	if (!groups.some((group) => group.id === tab.groupId && group.collapsed)) return groups;
+	return groups.map((group) => (group.id === tab.groupId && group.collapsed ? { ...group, collapsed: false } : group));
+};
 
 // Removes the group identified by `departedGroupId` only when it has no tab.
 // Every other group stays, with or without tabs.
