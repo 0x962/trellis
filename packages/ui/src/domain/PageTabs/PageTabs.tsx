@@ -42,7 +42,7 @@ export type PageTabsProps = {
 const emptyGroups: readonly PageTabGroupItem[] = [];
 
 const regionClass =
-	"relative h-full overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+	"relative h-full overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [--tab-control-steps:7] max-sm:[--tab-control-steps:11] pointer-coarse:[--tab-control-steps:11]";
 
 // Focus, editing, menus, and pointer capture require their target boxes to stay mounted.
 const withRetained = (indexes: number[], retained: number[]) =>

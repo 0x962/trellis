@@ -1,10 +1,10 @@
 export type TabBox = { left: number; width: number };
 
-export function tabBoxes(widths: readonly number[]): TabBox[] {
+export function tabBoxes(widths: readonly number[], gap: number): TabBox[] {
 	let left = 0;
 	return widths.map((width) => {
 		const box = { left, width };
-		left += width + 4;
+		left += width + gap;
 		return box;
 	});
 }
