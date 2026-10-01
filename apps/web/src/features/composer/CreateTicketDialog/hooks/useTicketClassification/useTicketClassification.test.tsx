@@ -14,7 +14,13 @@ type Request = {
 	resolve: (result: TicketClassification) => void;
 	reject: (error: Error) => void;
 };
-const suggestion: TicketClassification = { epic: "TRL/forms", wave: "TRL/forms/fixes", priority: "high" };
+const suggestion: TicketClassification = {
+	epic: "TRL/forms",
+	wave: "TRL/forms/fixes",
+	priority: "high",
+	difficulty: "medium",
+	model: null,
+};
 const disposals: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const dispose of disposals.splice(0)) await dispose();
@@ -97,7 +103,7 @@ test("a response from an earlier title cannot update the new draft", async () =>
 	await act(async () => f.requests[0]!.resolve(suggestion));
 	expect(f.applied).toHaveLength(0);
 	await wait();
-	const fresh = { epic: "TRL/database", wave: "TRL/database/fixes", priority: "urgent" } as const;
+	const fresh = { ...suggestion, epic: "TRL/database", wave: "TRL/database/fixes", priority: "urgent" } as const;
 	await act(async () => f.requests[1]!.resolve(fresh));
 	expect(f.applied[0]!.result).toEqual(fresh);
 });
@@ -110,6 +116,18 @@ test("project changes discard prior responses and send the current project", asy
 	expect(f.applied).toHaveLength(0);
 	await wait();
 	expect(f.requests[1]!.input.project).toBe("OP");
+});
+
+test("a harness change cancels its pending recommendation", async () => {
+	const f = await fixture({ harness: "claude" });
+	await wait();
+	expect(f.requests[0]!.input.harness).toBe("claude");
+	await f.render({ harness: "codex" });
+	expect(f.requests[0]!.signal.aborted).toBe(true);
+	await act(async () => f.requests[0]!.resolve({ ...suggestion, model: "anthropic/claude-opus-5.5" }));
+	expect(f.applied).toHaveLength(0);
+	await wait();
+	expect(f.requests[1]!.input.harness).toBe("codex");
 });
 
 test("manual placement constrains the next request and discards the pending choice", async () => {
