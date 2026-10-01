@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { AriaRole, ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import poster from "./poster.jpg";
 
@@ -17,16 +17,26 @@ export type EmptyStateProps = {
 	// block near 35% of its height.
 	variant?: "section" | "page";
 	className?: string;
+	role?: AriaRole;
 };
 
 // What a list or a page shows when it has nothing to show: the fact, then
 // the action, if one exists. It reads as the opening of a document, so it
 // starts at the left edge under a heading.
-export function EmptyState({ image, title, description, action, variant = "section", className }: EmptyStateProps) {
+export function EmptyState({
+	image,
+	title,
+	description,
+	action,
+	variant = "section",
+	className,
+	role,
+}: EmptyStateProps) {
 	const page = variant === "page";
 	const picture = image === null ? undefined : (image ?? (page ? poster : undefined));
 	return (
 		<div
+			role={role}
 			className={cx(
 				"flex flex-col items-start gap-2 text-fg-muted",
 				page ? "flex-1 px-5 pt-10 max-md:px-4" : title === undefined ? "py-0" : "py-3",

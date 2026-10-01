@@ -65,9 +65,7 @@ export function FlowTaskTerminal({
 			{runs.isPending ? (
 				<p role="status">Load task terminal…</p>
 			) : runs.isError ? (
-				<div role="alert">
-					<FailureState title="The terminal is unavailable" detail={runs.error.message} />
-				</div>
+				<FailureState title="The terminal is unavailable" detail={runs.error.message} />
 			) : run ? (
 				<NativeTerminal key={`${target.runId}:${target.attemptId}`} run={run} readOnly={recovery} />
 			) : (
@@ -78,9 +76,7 @@ export function FlowTaskTerminal({
 					) : retained.isPending ? (
 						<p role="status">Load retained output…</p>
 					) : retained.isError ? (
-						<div role="alert">
-							<FailureState title="The retained output is unavailable" detail={retained.error.message} />
-						</div>
+						<FailureState title="The retained output is unavailable" detail={retained.error.message} />
 					) : retained.data.output === null ? (
 						<p role="status">The host has no retained output for this exact result.</p>
 					) : (

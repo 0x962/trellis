@@ -110,9 +110,7 @@ export function FlowDecisionDialog({
 				</Button>
 			)}
 			{decide.request?.error && (
-				<div role="alert">
-					<FailureState title="The decision request did not complete" detail={decide.request.error} />
-				</div>
+				<FailureState title="The decision request did not complete" detail={decide.request.error} />
 			)}
 		</FlowActionDialog>
 	);
