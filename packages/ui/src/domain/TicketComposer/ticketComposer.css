@@ -143,7 +143,7 @@
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-end;
-	gap: 16px;
+	gap: calc(var(--spacing) * 4);
 	margin-left: auto;
 }
 .ticket-composer-footer .composer-option {
