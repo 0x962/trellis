@@ -112,7 +112,7 @@ const checkDocumentContents = async (canvasElement: HTMLElement, compact: boolea
 	const body = within(canvasElement.ownerDocument.body);
 	const heading = await canvas.findByRole("heading", { name: "Saved proof", level: 6 });
 	if (compact) await userEvent.click(await canvas.findByRole("button", { name: "Contents" }));
-	await expect(await body.findByRole("button", { name: "Saved proof" })).toBeVisible();
+	await waitFor(() => expect(body.getByRole("button", { name: "Saved proof" })).toBeVisible());
 	const contents = within(body.getByRole("navigation", { name: "Document contents" }));
 	await expect(contents.getAllByRole("button").map((button) => button.textContent)).toEqual(documentHeadingNames);
 	const scroll = heading.closest("article")!.parentElement!;
@@ -125,7 +125,7 @@ const checkDocumentContents = async (canvasElement: HTMLElement, compact: boolea
 		await userEvent.click(canvas.getByRole("button", { name: "Contents" }));
 	}
 	const selected = await body.findByRole("button", { name: "Saved proof", current: "location" });
-	await expect(selected).toBeVisible();
+	await waitFor(() => expect(selected).toBeVisible());
 };
 
 export const ResourceDocumentContents: Story = {
