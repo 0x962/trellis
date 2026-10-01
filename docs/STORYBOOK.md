@@ -21,7 +21,7 @@ An interactive story contains the supported transitions of its component. Its de
 
 ## Data boundaries
 
-The preview uses an isolated query cache and a memory router. It resets application stores before each story. The synthetic actor is `Storybook`.
+The preview uses an isolated query cache and a memory router. The Storybook loader waits for the memory router before it renders a story. Controls and toolbar updates retain the current router and query cache. A new story or Reload story resets the application stores and creates a fresh environment. The synthetic actor is `Storybook`.
 
 Story parameters supply local procedure responses:
 
