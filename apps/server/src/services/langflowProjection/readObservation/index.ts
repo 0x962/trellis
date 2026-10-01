@@ -1,1 +1,0 @@
-export { readObservation } from "./readObservation";

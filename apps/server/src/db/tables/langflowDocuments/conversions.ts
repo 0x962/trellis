@@ -1,21 +1,8 @@
-import type { FlowDiagnosticV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { check, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { at } from "../actors.ts";
 import { flows } from "../flows.ts";
 import { bytes } from "./bytes.ts";
-
-export type DocumentConversionProvenance = {
-	sourceExportRef: string;
-	converterVersion: string;
-	targetEngineVersion: string;
-	targetDocumentHash: string | null;
-	nodeMap: Record<string, string>;
-	edgeMap: Record<string, string>;
-	instructionHashes: Record<string, string>;
-	diagnostics: FlowDiagnosticV1[];
-	state: "converted" | "blocked" | "approved" | "activated";
-};
 
 export const langflowDocumentConversions = pgTable(
 	"langflow_document_conversions",
@@ -27,7 +14,7 @@ export const langflowDocumentConversions = pgTable(
 		sourceVersion: integer("source_version").notNull(),
 		sourceDocumentHash: text("source_document_hash").notNull(),
 		sourceBytes: bytes("source_bytes").notNull(),
-		provenance: jsonb().$type<DocumentConversionProvenance>().notNull(),
+		provenance: jsonb().notNull(),
 		createdAt: at("created_at").notNull(),
 	},
 	(t) => [

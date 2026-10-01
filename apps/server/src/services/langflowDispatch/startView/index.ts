@@ -1,1 +1,0 @@
-export { startView } from "./startView";

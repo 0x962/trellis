@@ -1,1 +1,0 @@
-export { authorityTransport } from "./authorityTransport";

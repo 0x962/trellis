@@ -1,1 +1,0 @@
-export { deliverAuthority } from "./deliverAuthority";

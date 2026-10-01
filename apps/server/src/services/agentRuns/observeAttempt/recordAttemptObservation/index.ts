@@ -1,1 +1,0 @@
-export { recordAttemptObservation } from "./recordAttemptObservation";

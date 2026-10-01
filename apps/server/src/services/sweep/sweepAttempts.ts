@@ -2,10 +2,9 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { sql } from "drizzle-orm";
+import { workspaceOperation } from "../../agents/native/workspaceOperation";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
-import { isAttemptRetained, readRetainedNativeAttemptIds, withNativeSnapshotRetention } from "../langflowNative";
-import { withAttemptOperation } from "../langflowStops/withAttemptOperation";
 import type { ServiceCtx } from "../support";
 import { type AttemptDirectory, attemptsToRemove } from "./decide";
 
@@ -16,21 +15,25 @@ const readAttemptReferences = async (tx: Tx) => {
 		tx,
 		sql`SELECT DISTINCT terminal_id AS "terminalId" FROM agent_runs WHERE terminal_id IS NOT NULL`,
 	);
-	const retained = await readRetainedNativeAttemptIds(tx);
-	return new Set([...current.map((row) => row.terminalId), ...retained]);
+	const retained = await rows<{ terminalId: string }>(
+		tx,
+		sql`SELECT attempt_id AS "terminalId" FROM langflow_native_handles`,
+	);
+	return new Set([...current, ...retained].map((row) => row.terminalId));
 };
 
 const attemptReferenced = async (tx: Tx, id: string) => {
 	const [row] = await rows<{ referenced: boolean }>(
 		tx,
-		sql`SELECT EXISTS(SELECT 1 FROM agent_runs WHERE terminal_id = ${id}) AS referenced`,
+		sql`SELECT EXISTS(SELECT 1 FROM agent_runs WHERE terminal_id = ${id})
+		OR EXISTS(SELECT 1 FROM langflow_native_handles WHERE attempt_id = ${id}) AS referenced`,
 	);
-	return row!.referenced || (await isAttemptRetained(tx, { attemptId: id }));
+	return row!.referenced;
 };
 
 export async function sweepAttempts(ctx: AttemptSweepCtx, attempts: AttemptDirectory[], minAgeMs: number) {
 	let removed = 0;
-	await withNativeSnapshotRetention(ctx.home, async () => {
+	await workspaceOperation(join(ctx.home, "harness-attempts"), async () => {
 		const started = performance.now();
 		const references = await ctx.newTx(readAttemptReferences);
 		const referenceReadMs = performance.now() - started;
@@ -45,7 +48,7 @@ export async function sweepAttempts(ctx: AttemptSweepCtx, attempts: AttemptDirec
 		let lastReport = performance.now();
 		let lastYield = lastReport;
 		for (const id of candidates) {
-			await withAttemptOperation(ctx.home, id, async () => {
+			await workspaceOperation(join(ctx.home, "harness-attempts", id), async () => {
 				// A launch can assign this attempt while the sweep waits for its attempt lock.
 				if (await ctx.newTx((tx) => attemptReferenced(tx, id))) {
 					retained += 1;
