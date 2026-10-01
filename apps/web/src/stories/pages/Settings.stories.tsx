@@ -1,10 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
+import { expect, userEvent, within } from "storybook/test";
 import { SettingsView } from "../../features/settings/SettingsView";
 import { failure, pending } from "./fixtures/project";
 import { settings, settingsResponses } from "./fixtures/settings";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Settings",
 	component: SettingsView,
 	args: { section: "account", onSectionChange: () => {} },
@@ -18,6 +21,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Account: Story = {};
+export const SwitchSections: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const navigation = within(canvas.getByRole("navigation", { name: "Settings" }));
+		for (const name of ["Clean up", "Agent prompt", "Menu links", "Notifications", "Account"]) {
+			await userEvent.click(navigation.getByRole("button", { name }));
+			await expect(await canvas.findByRole("heading", { name })).toBeVisible();
+			await expect(navigation.getByRole("button", { name })).toHaveAttribute("aria-current", "page");
+		}
+	},
+};
 export const Notifications: Story = { args: { section: "notifications" } };
 export const Cleanup: Story = { args: { section: "cleanup" } };
 export const MenuLinks: Story = { args: { section: "menu-links" } };

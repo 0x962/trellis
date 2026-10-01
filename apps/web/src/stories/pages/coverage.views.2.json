@@ -18,7 +18,8 @@
 			"Pages/Review/RequestError",
 			"Pages/Review/FailedChecks",
 			"Pages/Review/MergeConflict",
-			"Pages/Review/Queued"
+			"Pages/Review/Queued",
+			"Pages/Review/SwitchTabs"
 		],
 		"states": [
 			"overview",
@@ -34,7 +35,8 @@
 			"flow history populated",
 			"flow history empty",
 			"flow history loading",
-			"flow history error"
+			"flow history error",
+			"tab changes"
 		],
 		"notes": ""
 	},
@@ -141,9 +143,22 @@
 			"Pages/Flows/Empty",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
-			"Pages/Flows/Narrow"
+			"Pages/Flows/Narrow",
+			"Pages/Flows/FilteredEmpty",
+			"Pages/Flows/SearchAndClear"
 		],
-		"states": ["legacy", "Langflow", "pending publication", "published", "empty", "loading", "error", "narrow"],
+		"states": [
+			"legacy",
+			"Langflow",
+			"pending publication",
+			"published",
+			"empty",
+			"loading",
+			"error",
+			"narrow",
+			"filtered empty",
+			"search and clear"
+		],
 		"notes": ""
 	}
 ]

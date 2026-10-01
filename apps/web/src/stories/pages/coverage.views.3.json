@@ -9,9 +9,24 @@
 			"Pages/Flow editor/RequestError",
 			"Pages/Flow editor/EditorHostUnavailable",
 			"Pages/Flow editor/EditorHostLoading",
-			"Pages/Flow editor/Narrow"
+			"Pages/Flow editor/Narrow",
+			"Pages/Flow editor/LegacyLoading",
+			"Pages/Flow editor/LegacyRequestError",
+			"Pages/Flow editor/LegacyMissing",
+			"Pages/Flow editor/EditorHostError"
 		],
-		"states": ["legacy canvas", "empty canvas", "loading", "error", "unavailable host", "narrow"],
+		"states": [
+			"legacy canvas",
+			"empty canvas",
+			"loading",
+			"error",
+			"unavailable host",
+			"narrow",
+			"legacy loading",
+			"legacy error",
+			"missing flow",
+			"host error"
+		],
 		"notes": ""
 	},
 	{
@@ -20,14 +35,13 @@
 		"stories": [
 			"Pages/Flow editor/LegacyCanvas",
 			"Pages/Flow editor/EmptyCanvas",
-			"Pages/Flow editor/Loading",
-			"Pages/Flow editor/RequestError",
-			"Pages/Flow editor/EditorHostUnavailable",
-			"Pages/Flow editor/EditorHostLoading",
+			"Pages/Flow editor/LegacyLoading",
+			"Pages/Flow editor/LegacyRequestError",
+			"Pages/Flow editor/LegacyMissing",
 			"Pages/Flow editor/Narrow"
 		],
-		"states": ["legacy canvas", "empty canvas", "narrow"],
-		"notes": ""
+		"states": ["legacy canvas", "empty canvas", "loading", "error", "missing flow", "narrow"],
+		"notes": "The legacy document selects FlowEditor. Its request states use flows.get responses."
 	},
 	{
 		"source": "apps/web/src/features/pages/PageList/PageList.tsx",
@@ -39,9 +53,20 @@
 			"Pages/Page list/Loading",
 			"Pages/Page list/RequestError",
 			"Pages/Page list/Archived",
-			"Pages/Page list/Narrow"
+			"Pages/Page list/Narrow",
+			"Pages/Page list/SearchAndClear"
 		],
-		"states": ["populated", "empty", "filtered empty", "loading", "error", "archived", "narrow", "long title"],
+		"states": [
+			"populated",
+			"empty",
+			"filtered empty",
+			"loading",
+			"error",
+			"archived",
+			"narrow",
+			"long title",
+			"search and clear"
+		],
 		"notes": ""
 	},
 	{
@@ -96,9 +121,20 @@
 			"Pages/Settings/PromptError",
 			"Pages/Settings/CleanupLoading",
 			"Pages/Settings/CleanupError",
-			"Pages/Settings/Narrow"
+			"Pages/Settings/Narrow",
+			"Pages/Settings/SwitchSections"
 		],
-		"states": ["account", "notifications", "cleanup", "menu links", "agent prompt", "loading", "error", "narrow"],
+		"states": [
+			"account",
+			"notifications",
+			"cleanup",
+			"menu links",
+			"agent prompt",
+			"loading",
+			"error",
+			"narrow",
+			"section changes"
+		],
 		"notes": ""
 	},
 	{

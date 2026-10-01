@@ -5,8 +5,10 @@ import { actor, archivedProject, failure, pending, ticket, tickets, timestamp } 
 import { attachments } from "./fixtures/resources";
 import { projectResponses } from "./fixtures/responses";
 import { pullRequest } from "./fixtures/review";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Ticket",
 	component: TicketView,
 	args: { identifier: ticket.identifier },

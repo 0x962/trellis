@@ -144,5 +144,14 @@ export const reviewResponses = {
 		new: "export function title(value: string) {\n\tconst trimmed = value.trim();\n\treturn trimmed;\n}",
 	},
 	"reviews.prs": [{ ...pullRequest, open: 1, resolved: 2 }],
-	"reviews.mine": [],
+	"reviews.mine": [
+		{
+			number: pullRequest.number,
+			title: pullRequest.title,
+			repository: { nameWithOwner: `${pullRequest.owner}/${pullRequest.repo}` },
+			isDraft: pullRequest.isDraft,
+			url: pullRequest.url,
+			local: { localState: pullRequest.localState, localVerdict: pullRequest.localVerdict },
+		},
+	],
 };

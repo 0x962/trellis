@@ -1,10 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 import { UsagePage } from "../../features/usage/UsagePage";
 import { Route } from "../../routes/usage";
 import { failure, pending } from "./fixtures/project";
-import { systemUsage, usageReport, usageResponses } from "./fixtures/usage";
+import { emptyUsageRanking, emptyUsageReport, systemUsage, usageResponses } from "./fixtures/usage";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Usage",
 	component: UsagePage,
 	parameters: {
@@ -20,7 +23,14 @@ export const TokensByModel: Story = { parameters: { trellis: { path: "/usage?met
 export const SelectedDayAndTicket: Story = { parameters: { trellis: { path: "/usage?row=DEMO-40&day=2026-09-30" } } };
 export const Empty: Story = {
 	parameters: {
-		trellis: { responses: { "usage.report": { ...usageReport, totals: { ...usageReport.totals, sessions: 0 } } } },
+		trellis: { responses: { "usage.report": emptyUsageReport, "usage.ranking": emptyUsageRanking } },
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("heading", { name: "No usage in the last 30 days" })).toBeVisible();
+		const accounts = within(await canvas.findByRole("region", { name: "Accounts" }));
+		await expect(await accounts.findByText("$0", { exact: true })).toBeVisible();
+		await expect(accounts.queryByText("$35.00", { exact: true })).not.toBeInTheDocument();
 	},
 };
 export const Loading: Story = { parameters: { trellis: { responses: { "usage.report": pending } } } };

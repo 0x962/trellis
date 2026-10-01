@@ -100,7 +100,8 @@
 			"Pages/Epic/ResourceDocument",
 			"Pages/Epic/ResourceDocumentNarrow",
 			"Pages/Epic/ResourcesLoading",
-			"Pages/Epic/ResourcesError"
+			"Pages/Epic/ResourcesError",
+			"Pages/Epic/SwitchTabs"
 		],
 		"states": [
 			"waves",
@@ -112,7 +113,8 @@
 			"archived",
 			"narrow",
 			"resources",
-			"document"
+			"document",
+			"tab changes"
 		],
 		"notes": ""
 	},

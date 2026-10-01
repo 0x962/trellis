@@ -1,4 +1,4 @@
-import type { PageCommentThread, PageDetail, PageRenderLease } from "@trellis/api";
+import type { PageCommentThread, PageDetail, PageListInput, PageRenderLease } from "@trellis/api";
 import { actor, id, project, timestamp } from "./project";
 import { projectResponses } from "./responses";
 
@@ -77,23 +77,33 @@ export const pageLease = (): PageRenderLease => ({
 	absoluteExpiresAt: new Date(Date.now() + 8 * 60 * 60_000).toISOString(),
 });
 
+const pages = [
+	page,
+	{
+		...page,
+		id: id(601),
+		ref: "DEMO/pages/keyboard-review",
+		slug: "keyboard-review",
+		title: "Keyboard controls and focus order for every action in the ticket, project, and review views",
+		pinned: false,
+		openThreadCount: 0,
+	},
+];
+
 export const pageResponses = {
 	...projectResponses,
-	"pages.list": {
-		items: [
-			page,
-			{
-				...page,
-				id: id(601),
-				ref: "DEMO/pages/keyboard-review",
-				slug: "keyboard-review",
-				title: "Keyboard controls and focus order for every action in the ticket, project, and review views",
-				pinned: false,
-				openThreadCount: 0,
-			},
-		],
+	"pages.list": (input: PageListInput) => ({
+		items: pages.filter((item) => {
+			if (input.q && !`${item.title} ${item.summary}`.toLowerCase().includes(input.q.toLowerCase())) return false;
+			if (input.pinned !== undefined && item.pinned !== input.pinned) return false;
+			if (input.comment === "open" && item.openThreadCount === 0) return false;
+			if (input.comment === "none" && item.openThreadCount !== 0) return false;
+			if (input.author && `${item.publishedBy.kind}:${item.publishedBy.name}` !== input.author) return false;
+			if (input.watcher && item.watcher?.agent.id !== input.watcher) return false;
+			return true;
+		}),
 		nextCursor: null,
-	},
+	}),
 	"pages.get": page,
 	"pages.comments": [pageThread],
 	"pages.versions": {

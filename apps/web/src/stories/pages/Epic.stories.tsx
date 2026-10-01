@@ -1,14 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useArgs } from "storybook/preview-api";
+import { expect, userEvent, within } from "storybook/test";
 import { EpicPage } from "../../features/epics/EpicPage";
 import { emptyCounts, epic, waves } from "./fixtures/epic";
 import { archivedProject, failure, pending, project } from "./fixtures/project";
 import { documentResource, resources, resourceThread } from "./fixtures/resources";
 import { projectResponses, ticketCounts, ticketPage } from "./fixtures/responses";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Epic",
 	component: EpicPage,
 	args: { project, slug: epic.slug, search: {}, onSearchChange: () => {} },
+	render: function Render(args) {
+		const [, updateArgs] = useArgs();
+		return <EpicPage {...args} onSearchChange={(search) => updateArgs({ search })} />;
+	},
 	parameters: {
 		layout: "fullscreen",
 		trellis: { path: "/p/DEMO/epics/interface-review", responses: projectResponses },
@@ -18,6 +26,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const WavesAndTickets: Story = {};
+export const SwitchTabs: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("tab", { name: /Resources/ }));
+		await expect(await canvas.findByRole("tabpanel", { name: /Resources/ })).toBeVisible();
+		await userEvent.click(canvas.getByRole("tab", { name: "Overview" }));
+		await expect(await canvas.findByRole("row", { name: "Open DEMO-40" })).toBeVisible();
+	},
+};
 export const Empty: Story = {
 	parameters: {
 		trellis: {

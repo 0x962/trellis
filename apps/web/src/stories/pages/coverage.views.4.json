@@ -9,9 +9,22 @@
 			"Pages/Search/PriorityFilter",
 			"Pages/Search/Loading",
 			"Pages/Search/RequestError",
-			"Pages/Search/Narrow"
+			"Pages/Search/Narrow",
+			"Pages/Search/SearchAndClear",
+			"Pages/Search/LoadMore",
+			"Pages/Search/LoadMoreError"
 		],
-		"states": ["tickets", "projects", "Pages", "empty", "priority filter", "narrow"],
+		"states": [
+			"tickets",
+			"projects",
+			"Pages",
+			"empty",
+			"priority filter",
+			"narrow",
+			"search and clear",
+			"pagination",
+			"pagination error"
+		],
 		"notes": ""
 	},
 	{
@@ -48,16 +61,17 @@
 			"Pages/Epic/ResourceDocument",
 			"Pages/Epic/ResourceDocumentNarrow",
 			"Pages/Epic/ResourcesLoading",
-			"Pages/Epic/ResourcesError"
+			"Pages/Epic/ResourcesError",
+			"Pages/Epic/SwitchTabs"
 		],
-		"states": ["plan", "document", "resource list", "comments", "loading", "error", "narrow"],
+		"states": ["plan", "document", "resource list", "comments", "loading", "error", "narrow", "tab changes"],
 		"notes": ""
 	},
 	{
 		"source": "apps/web/src/features/epics/ResourceList/components/ImageSheet/ImageSheet.tsx",
 		"export": "ImageSheet",
-		"stories": ["Pages/Resource image/Open", "Pages/Resource image/Narrow"],
-		"states": ["open", "narrow"],
+		"stories": ["Pages/Resource image/Open", "Pages/Resource image/Narrow", "Pages/Resource image/Closed"],
+		"states": ["open", "narrow", "closed"],
 		"notes": ""
 	},
 	{

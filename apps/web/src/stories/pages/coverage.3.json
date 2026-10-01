@@ -13,7 +13,8 @@
 			"Pages/Settings/PromptError",
 			"Pages/Settings/CleanupLoading",
 			"Pages/Settings/CleanupError",
-			"Pages/Settings/Narrow"
+			"Pages/Settings/Narrow",
+			"Pages/Settings/SwitchSections"
 		],
 		"states": [
 			"redirect",
@@ -24,7 +25,8 @@
 			"agent prompt",
 			"loading",
 			"error",
-			"narrow"
+			"narrow",
+			"section changes"
 		],
 		"notes": "Redirect: /settings opens SettingsView in a sheet and returns to Search. Desktop controls have separate overlay stories."
 	},

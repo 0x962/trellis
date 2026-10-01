@@ -27,6 +27,7 @@ export const ticketPage = (rows: TicketSummary[]) => (input: ListQueryInput) => 
 		)
 			return false;
 		if (input.category && !input.category.includes(row.status.category)) return false;
+		if (input.priority && !input.priority.includes(row.priority)) return false;
 		if (input.q && !row.title.toLowerCase().includes(input.q.toLowerCase())) return false;
 		return true;
 	}),

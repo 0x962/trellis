@@ -1,11 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
+import { expect, userEvent, within } from "storybook/test";
 import { ReviewPage } from "../../features/reviews/ReviewPage/ReviewPage";
 import { flowHistoryResponses } from "./fixtures/flowHistory";
-import { failure, pending } from "./fixtures/project";
+import { failure, pending, ticket } from "./fixtures/project";
 import { pullRequest, reviewOverview, reviewResponses, reviewStatus } from "./fixtures/review";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Review",
 	component: ReviewPage,
 	args: { pr: pullRequest.url, tab: "overview", onTabChange: () => {}, syncHash: false },
@@ -19,13 +22,41 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Overview: Story = {};
+export const SwitchTabs: Story = {
+	parameters: { trellis: { responses: flowHistoryResponses } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		for (const name of ["Checks", "Flows", "Diff", "Overview"]) {
+			await userEvent.click(await canvas.findByRole("tab", { name }));
+			await expect(canvas.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
+			await expect(canvas.getByRole("tabpanel", { name })).toBeVisible();
+		}
+	},
+};
 export const Checks: Story = { args: { tab: "checks" } };
 export const Diff: Story = { args: { tab: "diff" } };
 export const Flows: Story = {
 	args: { tab: "flows" },
 	parameters: { trellis: { responses: flowHistoryResponses } },
 };
-export const FlowsWithoutTicket: Story = { args: { tab: "flows" } };
+export const FlowsWithoutTicket: Story = {
+	args: { tab: "flows" },
+	parameters: {
+		trellis: {
+			responses: {
+				"reviews.overview": { ...reviewOverview, ticket: null },
+				"reviews.status": { ...reviewStatus, ticket: null },
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(
+			await canvas.findByText("No ticket links this pull request, and a flow runs against a ticket."),
+		).toBeVisible();
+		await expect(canvas.queryByRole("link", { name: ticket.identifier })).not.toBeInTheDocument();
+	},
+};
 export const FlowsEmpty: Story = {
 	args: { tab: "flows" },
 	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowDocumentsV1.list": [] } } },

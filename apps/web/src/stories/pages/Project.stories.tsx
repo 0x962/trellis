@@ -1,15 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { ProjectLoadError } from "../../routes/p/$/components/ProjectLoadError";
 import { ProjectLoading } from "../../routes/p/$/components/ProjectLoading";
 import { Route } from "../../routes/p/$/route";
 import { archivedProject, failure, pending, project } from "./fixtures/project";
 import { projectResponses, ticketBoard, ticketCounts, ticketPage } from "./fixtures/responses";
+import { pageFrame } from "./pageFrame";
 
 const ProjectPage = Route.options.component as ComponentType;
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Project",
 	component: ProjectPage,
 	parameters: {
@@ -22,7 +24,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Board: Story = {};
-export const Table: Story = { parameters: { trellis: { path: "/p/DEMO/table" } } };
+export const Table: Story = {
+	parameters: { trellis: { path: "/p/DEMO/table" } },
+	play: async ({ canvasElement }) => {
+		await expect(await within(canvasElement).findByRole("row", { name: "Open DEMO-40" })).toBeVisible();
+	},
+};
 export const NarrowBoard: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
 export const NarrowTable: Story = {
 	parameters: { trellis: { path: "/p/DEMO/table" } },
@@ -41,6 +48,11 @@ export const EmptyTable: Story = {
 };
 export const FilteredTable: Story = {
 	parameters: { trellis: { path: "/p/DEMO/table?q=review&priority=medium&group=none" } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("row", { name: "Open DEMO-42" })).toBeVisible();
+		await expect(canvas.getAllByRole("row", { name: /^Open DEMO-/ })).toHaveLength(1);
+	},
 };
 export const NoFilterResults: Story = {
 	parameters: {

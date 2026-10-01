@@ -4,6 +4,7 @@ import type {
 	UsageAccount,
 	UsageGroupBy,
 	UsageGroupRow,
+	UsageRanking,
 	UsageRankingInput,
 	UsageReport,
 	UsageSession,
@@ -95,6 +96,53 @@ export const usageReport: UsageReport = {
 	scannedFiles: 7,
 	pricingTableUpdated: "2026-09-30",
 	computedAt: timestamp,
+};
+
+const emptyGroups: Record<UsageGroupBy, UsageGroupRow[]> = {
+	ticket: [],
+	agent: [],
+	project: [],
+	kind: [],
+	account: [],
+	model: [],
+	harness: [],
+};
+
+export const emptyUsageReport: UsageReport = {
+	...usageReport,
+	buckets: [],
+	totals: {
+		usd: 0,
+		tokens: 0,
+		uncachedInput: 0,
+		cachedInput: 0,
+		cacheWrite: 0,
+		output: 0,
+		reasoningOutput: 0,
+		cacheSavingsUsd: 0,
+		trellisUsd: 0,
+		sessions: 0,
+		runs: 0,
+		tickets: 0,
+		approximate: false,
+	},
+	rankings: {
+		usd: { groups: emptyGroups, sessions: [] },
+		tokens: { groups: emptyGroups, sessions: [] },
+	},
+	scannedFiles: 0,
+};
+
+export const emptyUsageRanking: UsageRanking = {
+	groups: [],
+	sessions: [],
+	selected: null,
+	groupTotal: 0,
+	sessionTotal: 0,
+	groupStart: 0,
+	sessionStart: 0,
+	maxValue: 0,
+	selectedRank: null,
 };
 
 export const usageAccounts: UsageAccount[] = [

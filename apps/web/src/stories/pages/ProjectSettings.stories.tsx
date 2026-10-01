@@ -3,8 +3,10 @@ import { useArgs } from "storybook/preview-api";
 import { ProjectSettingsView } from "../../features/project-settings/ProjectSettingsView";
 import { archivedProject, failure, pending } from "./fixtures/project";
 import { settingsResponses } from "./fixtures/settings";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Project settings",
 	component: ProjectSettingsView,
 	args: { project: "DEMO", section: "", onSectionChange: () => {} },

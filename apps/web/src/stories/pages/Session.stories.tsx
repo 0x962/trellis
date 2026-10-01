@@ -12,8 +12,10 @@ import {
 	terminalSession,
 } from "./fixtures/sessionStates";
 import { assertSessionTerminal, prepareSessionTerminal } from "./fixtures/sessionTerminal";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Session",
 	component: SessionPage,
 	args: { id: session.id },

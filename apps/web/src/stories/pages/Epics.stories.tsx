@@ -2,8 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { EpicsPage } from "../../features/epics/EpicsPage";
 import { archivedProject, failure, pending, project } from "./fixtures/project";
 import { projectResponses } from "./fixtures/responses";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Epics",
 	component: EpicsPage,
 	args: { project },

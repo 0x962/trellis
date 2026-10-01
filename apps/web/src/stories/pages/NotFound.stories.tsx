@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { NotFoundState } from "../../features/shell/NotFoundState";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Not found",
 	component: NotFoundState,
 	args: { ref: "DEMO-404", searchFor: "DEMO-404" },

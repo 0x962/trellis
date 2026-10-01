@@ -2,10 +2,12 @@ import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 import { PageDetail } from "../../features/pages/PageDetail";
-import { page, pageResponses } from "./fixtures/page";
+import { page, pageLease, pageResponses } from "./fixtures/page";
 import { actor, archivedProject, failure, pending, project, timestamp } from "./fixtures/project";
+import { pageFrame } from "./pageFrame";
 
 const meta = {
+	decorators: [pageFrame],
 	title: "Pages/Page detail",
 	component: PageDetail,
 	args: { project, slug: page.slug, search: {} },
@@ -13,6 +15,7 @@ const meta = {
 } satisfies Meta<typeof PageDetail>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+const historicalLease = () => ({ ...pageLease(), version: 1 });
 
 export const Populated: Story = {};
 export const EmptyComments: Story = {
@@ -50,7 +53,13 @@ export const CommentsError: Story = { parameters: { trellis: { responses: { "pag
 export const Historical: Story = {
 	args: { search: { version: 1 } },
 	parameters: {
-		trellis: { responses: { "pages.get": { ...page, requestedVersion: { ...page.requestedVersion, number: 1 } } } },
+		trellis: {
+			responses: {
+				"pages.get": { ...page, requestedVersion: { ...page.requestedVersion, number: 1, label: "First copy" } },
+				"pages.createRenderLease": historicalLease,
+				"pages.renewRenderLease": historicalLease,
+			},
+		},
 	},
 };
 export const Deleted: Story = {
