@@ -75,7 +75,8 @@ export const WatcherOpen: Story = {
 		const control = await body.findByRole("combobox", { name: "Page watcher" });
 		await waitFor(() => expect(control).toBeEnabled());
 		await userEvent.click(control);
-		await expect(await body.findByRole("option", { name: "No watcher" })).toBeVisible();
+		const noWatcher = await body.findByRole("option", { name: "No watcher" });
+		await waitFor(() => expect(noWatcher).toBeVisible());
 	},
 };
 export const WatcherSelected: Story = {
