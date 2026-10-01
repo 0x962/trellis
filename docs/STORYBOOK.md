@@ -57,7 +57,7 @@ The coverage check reads every CSF story and every `coverage*.json` file. It che
 
 The browser check requires a running Storybook and a Playwright Chromium installation. Run `bunx playwright install chromium` once, or set `STORYBOOK_BROWSER=chrome` to use an installed Chrome binary. Each story gets a new document with clear storage and cookies. The check applies the declared viewport before rendering and waits for the play action and final Storybook result. A missing fixture, render failure, or failed play action fails the check.
 
-The complete browser check also verifies Controls, the theme toolbar, the 320 pixel viewport, and the documentation page. A filtered run checks only its selected stories.
+The complete browser check also verifies Controls, the theme toolbar, the 320 pixel viewport, and the documentation page. It checks that a story change restores the synthetic actor. A filtered run checks only its selected stories.
 
 The Storybook GitHub workflow runs the coverage, type, lint, fixture, build, and browser checks for frontend changes. Its artifact retains the browser results and server log.
 

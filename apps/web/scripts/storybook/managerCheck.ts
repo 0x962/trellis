@@ -14,6 +14,12 @@ export const managerCheck = async (browser: Browser, origin: string) => {
 		const frame = page.frameLocator("#storybook-preview-iframe");
 		await frame.getByRole("button", { name: "Catalog preview", exact: true }).waitFor();
 		checks.push("Controls updates the rendered component.");
+		await page.goto(`${origin}/?path=/story/pages-navigation--renamed-actor`);
+		await frame.getByRole("button", { name: /Catalog reviewer/ }).waitFor();
+		await page.getByRole("link", { name: "Expanded", exact: true }).click();
+		await frame.getByRole("button", { name: /^Storybook/ }).waitFor();
+		checks.push("A story change restores the synthetic actor.");
+		await page.goto(`${origin}/?path=/story/components-button--default`);
 		await page.getByRole("button", { name: /^Application theme/ }).click();
 		await page.getByRole("option", { name: "light", exact: true }).click();
 		await frame.locator('html[data-theme="light"]').waitFor({ state: "attached" });
