@@ -2,10 +2,9 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { sql } from "drizzle-orm";
-import { readRetainedNativeAttemptIds } from "../../db/queries/langflowExecution/retainedNativeAttempts";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
-import { withNativeSnapshotRetention } from "../langflowNative/withNativeSnapshotRetention";
+import { isAttemptRetained, readRetainedNativeAttemptIds, withNativeSnapshotRetention } from "../langflowNative";
 import { withAttemptOperation } from "../langflowStops/withAttemptOperation";
 import type { ServiceCtx } from "../support";
 import { type AttemptDirectory, attemptsToRemove } from "./decide";
@@ -24,10 +23,9 @@ const readAttemptReferences = async (tx: Tx) => {
 const attemptReferenced = async (tx: Tx, id: string) => {
 	const [row] = await rows<{ referenced: boolean }>(
 		tx,
-		sql`SELECT EXISTS(SELECT 1 FROM agent_runs WHERE terminal_id = ${id})
-			OR EXISTS(SELECT 1 FROM langflow_native_handles WHERE attempt_id = ${id}) AS referenced`,
+		sql`SELECT EXISTS(SELECT 1 FROM agent_runs WHERE terminal_id = ${id}) AS referenced`,
 	);
-	return row!.referenced;
+	return row!.referenced || (await isAttemptRetained(tx, { attemptId: id }));
 };
 
 export async function sweepAttempts(ctx: AttemptSweepCtx, attempts: AttemptDirectory[], minAgeMs: number) {
