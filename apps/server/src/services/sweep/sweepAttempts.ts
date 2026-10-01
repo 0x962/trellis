@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { workspaceOperation } from "../../agents/native/workspaceOperation";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
+import { attemptRetention } from "../attemptRetention";
 import type { ServiceCtx } from "../support";
 import { type AttemptDirectory, attemptsToRemove } from "./decide";
 
@@ -50,7 +51,7 @@ export async function sweepAttempts(ctx: AttemptSweepCtx, attempts: AttemptDirec
 		for (const id of candidates) {
 			await workspaceOperation(join(ctx.home, "harness-attempts", id), async () => {
 				// A launch can assign this attempt while the sweep waits for its attempt lock.
-				if (await ctx.newTx((tx) => attemptReferenced(tx, id))) {
+				if (attemptRetention.has(ctx.home, id) || (await ctx.newTx((tx) => attemptReferenced(tx, id)))) {
 					retained += 1;
 					return;
 				}

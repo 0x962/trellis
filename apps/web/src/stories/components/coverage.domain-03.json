@@ -1,0 +1,171 @@
+[
+	{
+		"source": "packages/ui/src/domain/MachinePressure/MachinePressure.tsx",
+		"export": "MachinePressure",
+		"stories": [
+			"Components/MachinePressure/Default",
+			"Components/MachinePressure/Open",
+			"Components/MachinePressure/Collapsed",
+			"Components/MachinePressure/Empty",
+			"Components/MachinePressure/Normal",
+			"Components/MachinePressure/Warning",
+			"Components/MachinePressure/Stale",
+			"Components/MachinePressure/Unavailable",
+			"Components/MachinePressure/Lost",
+			"Components/MachinePressure/AllSignals"
+		],
+		"states": [
+			"default",
+			"open",
+			"collapsed",
+			"empty",
+			"normal",
+			"warning",
+			"stale",
+			"unavailable",
+			"lost",
+			"all signals"
+		],
+		"notes": "Open the machine panel, then inspect a reading or an agent. The values are synthetic and remain fixed."
+	},
+	{
+		"source": "packages/ui/src/domain/MergeConflictMark/MergeConflictMark.tsx",
+		"export": "MergeConflictMark",
+		"stories": [
+			"Components/MergeConflictMark/Default",
+			"Components/MergeConflictMark/Medium",
+			"Components/MergeConflictMark/LongBranch"
+		],
+		"states": ["default", "medium", "long branch"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/PageCommentPin/PageCommentPin.tsx",
+		"export": "PageCommentPin",
+		"stories": [
+			"Components/PageCommentPin/Default",
+			"Components/PageCommentPin/Selected",
+			"Components/PageCommentPin/Resolved",
+			"Components/PageCommentPin/LargeNumber",
+			"Components/PageCommentPin/Selection"
+		],
+		"states": ["default", "selected", "resolved", "large number", "local selection toggle"],
+		"notes": "Click or press Space to select the pin. Selection verifies both states. Resolved and selected pins retain their named stories."
+	},
+	{
+		"source": "packages/ui/src/domain/PageRow/PageRow.tsx",
+		"export": "PageRow",
+		"stories": [
+			"Components/PageRow/Default",
+			"Components/PageRow/Pinned",
+			"Components/PageRow/Deleted",
+			"Components/PageRow/Comments",
+			"Components/PageRow/Watched",
+			"Components/PageRow/Search",
+			"Components/PageRow/LongContent",
+			"Components/PageRow/Actions"
+		],
+		"states": ["default", "pinned", "deleted", "comments", "watched", "search", "long content", "actions"],
+		"notes": "Open the action menu to select Rename or Delete. The story reports the callback below the row. The page link stays in this document."
+	},
+	{
+		"source": "packages/ui/src/domain/PageTabs/PageTabs.tsx",
+		"export": "PageTabs",
+		"stories": [
+			"Components/PageTabs/Default",
+			"Components/PageTabs/Empty",
+			"Components/PageTabs/Groups",
+			"Components/PageTabs/CollapsedGroup",
+			"Components/PageTabs/Overflow"
+		],
+		"states": ["default", "empty", "groups", "collapsed group", "overflow"],
+		"notes": "Select, add, close, pin, rename, sort, and drag tabs. The context menu also creates and edits groups. Every action changes local data."
+	},
+	{
+		"source": "packages/ui/src/domain/PageVersionRow/PageVersionRow.tsx",
+		"export": "PageVersionRow",
+		"stories": [
+			"Components/PageVersionRow/Default",
+			"Components/PageVersionRow/Selected",
+			"Components/PageVersionRow/NoLabel",
+			"Components/PageVersionRow/LongPath"
+		],
+		"states": ["default", "selected", "no label", "long path"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/PageViewer/PageViewer.tsx",
+		"export": "PageViewer",
+		"stories": [
+			"Components/PageViewer/Default",
+			"Components/PageViewer/Loading",
+			"Components/PageViewer/ErrorState",
+			"Components/PageViewer/Refreshing",
+			"Components/PageViewer/Empty"
+		],
+		"states": ["default", "loading", "error", "refreshing", "empty"],
+		"notes": "The sandboxed frame uses a local data URL. This story makes no server request."
+	},
+	{
+		"source": "packages/ui/src/domain/PinMark/PinMark.tsx",
+		"export": "PinMark",
+		"stories": ["Components/PinMark/Default", "Components/PinMark/NoTooltip", "Components/PinMark/NotFocusable"],
+		"states": ["default", "no tooltip", "not focusable"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/PrGlyph/PrGlyph.tsx",
+		"export": "PrGlyph",
+		"stories": [
+			"Components/PrGlyph/Default",
+			"Components/PrGlyph/Ready",
+			"Components/PrGlyph/Approved",
+			"Components/PrGlyph/Closed",
+			"Components/PrGlyph/Merged",
+			"Components/PrGlyph/Small",
+			"Components/PrGlyph/WithDetail",
+			"Components/PrGlyph/Decorative"
+		],
+		"states": ["default", "ready", "approved", "closed", "merged", "small", "with detail", "decorative"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/PriorityIcon/PriorityIcon.tsx",
+		"export": "PriorityIcon",
+		"stories": [
+			"Components/PriorityIcon/Default",
+			"Components/PriorityIcon/Low",
+			"Components/PriorityIcon/Medium",
+			"Components/PriorityIcon/High",
+			"Components/PriorityIcon/Urgent"
+		],
+		"states": ["default", "low", "medium", "high", "urgent"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ProjectColorField/ProjectColorField.tsx",
+		"export": "ProjectColorField",
+		"stories": [
+			"Components/ProjectColorField/Default",
+			"Components/ProjectColorField/NoColor",
+			"Components/ProjectColorField/AllAvailable",
+			"Components/ProjectColorField/AllTaken"
+		],
+		"states": ["default", "no color", "all available", "all taken"],
+		"notes": "Select a color with the pointer or arrow keys. Reserved colors stay disabled. No color stays available."
+	},
+	{
+		"source": "packages/ui/src/domain/ProjectKey/ProjectKey.tsx",
+		"export": "ProjectKey",
+		"stories": ["Components/ProjectKey/Default", "Components/ProjectKey/NoColor", "Components/ProjectKey/LongKey"],
+		"states": ["default", "no color", "long key"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ProjectMark/ProjectMark.tsx",
+		"export": "ProjectMark",
+		"stories": ["Components/ProjectMark/Default", "Components/ProjectMark/NoColor", "Components/ProjectMark/Large"],
+		"states": ["default", "no color", "large"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

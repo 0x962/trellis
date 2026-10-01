@@ -1,0 +1,150 @@
+[
+	{
+		"source": "apps/web/src/features/project-actions/DeleteProjectDialog/DeleteProjectDialog.tsx",
+		"export": "DeleteProjectDialog",
+		"stories": [
+			"Overlays/DeleteProjectDialog/Open",
+			"Overlays/DeleteProjectDialog/ClosedTrigger",
+			"Overlays/DeleteProjectDialog/Selected",
+			"Overlays/DeleteProjectDialog/Empty",
+			"Overlays/DeleteProjectDialog/Loading",
+			"Overlays/DeleteProjectDialog/Pending",
+			"Overlays/DeleteProjectDialog/RequestError",
+			"Overlays/DeleteProjectDialog/Success"
+		],
+		"states": ["open", "closed-trigger", "selected", "empty", "loading", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/LabelDeleteDialog/LabelDeleteDialog.tsx",
+		"export": "LabelDeleteDialog",
+		"stories": [
+			"Overlays/LabelDeleteDialog/Open",
+			"Overlays/LabelDeleteDialog/ClosedTrigger",
+			"Overlays/LabelDeleteDialog/Pending",
+			"Overlays/LabelDeleteDialog/RequestError",
+			"Overlays/LabelDeleteDialog/Success",
+			"Overlays/LabelDeleteDialog/Empty"
+		],
+		"states": ["open", "closed-trigger", "pending", "error", "success", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/LabelEditor/LabelEditor.tsx",
+		"export": "LabelEditor",
+		"stories": [
+			"Overlays/SettingsForms/LabelCreate",
+			"Overlays/SettingsForms/LabelSelected",
+			"Overlays/SettingsForms/LabelColors",
+			"Overlays/SettingsForms/LabelPending",
+			"Overlays/SettingsForms/LabelError",
+			"Overlays/SettingsForms/LabelValidation"
+		],
+		"states": ["default", "selected", "pending", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/LabelGroupDeleteDialog/LabelGroupDeleteDialog.tsx",
+		"export": "LabelGroupDeleteDialog",
+		"stories": [
+			"Overlays/LabelGroupDeleteDialog/Open",
+			"Overlays/LabelGroupDeleteDialog/ClosedTrigger",
+			"Overlays/LabelGroupDeleteDialog/Pending",
+			"Overlays/LabelGroupDeleteDialog/RequestError",
+			"Overlays/LabelGroupDeleteDialog/Success",
+			"Overlays/LabelGroupDeleteDialog/Empty"
+		],
+		"states": ["open", "closed-trigger", "pending", "error", "success", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/LabelGroupRow/LabelGroupRow.tsx",
+		"export": "LabelGroupRow",
+		"stories": [
+			"Overlays/SettingsMenus/GroupClosed",
+			"Overlays/SettingsMenus/GroupOpen",
+			"Overlays/SettingsMenus/GroupRename"
+		],
+		"states": ["closed-trigger", "open", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/LabelRow/LabelRow.tsx",
+		"export": "LabelRow",
+		"stories": [
+			"Overlays/SettingsMenus/LabelClosed",
+			"Overlays/SettingsMenus/LabelOpen",
+			"Overlays/SettingsMenus/LabelGrouped",
+			"Overlays/SettingsMenus/LabelExpanded",
+			"Overlays/SettingsMenus/LabelMoveError"
+		],
+		"states": ["closed-trigger", "open", "default", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/StatusCreateForm/StatusCreateForm.tsx",
+		"export": "StatusCreateForm",
+		"stories": [
+			"Overlays/SettingsForms/StatusCreate",
+			"Overlays/SettingsForms/StatusCategory",
+			"Overlays/SettingsForms/StatusValidation"
+		],
+		"states": ["default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/StatusDeleteDialog/StatusDeleteDialog.tsx",
+		"export": "StatusDeleteDialog",
+		"stories": [
+			"Overlays/StatusDeleteDialog/Open",
+			"Overlays/StatusDeleteDialog/ClosedTrigger",
+			"Overlays/StatusDeleteDialog/RequestError",
+			"Overlays/StatusDeleteDialog/Success",
+			"Overlays/StatusDeleteDialog/InUse",
+			"Overlays/StatusDeleteDialog/LastStatus"
+		],
+		"states": ["open", "closed-trigger", "error", "success", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/StatusRow/StatusRow.tsx",
+		"export": "StatusRow",
+		"stories": ["Overlays/SettingsMenus/StatusClosed", "Overlays/SettingsMenus/StatusOpen"],
+		"states": ["closed-trigger", "open"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/project-settings/StatusRow/components/StatusEditor/StatusEditor.tsx",
+		"export": "StatusEditor",
+		"stories": ["Overlays/SettingsForms/StatusEdit", "Overlays/SettingsForms/StatusError"],
+		"states": ["default", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/prs/PullRequestRow/components/PrActions/PrActions.tsx",
+		"export": "PrActions",
+		"stories": [
+			"Overlays/ReviewActions/ClosedTrigger",
+			"Overlays/ReviewActions/Open",
+			"Overlays/ReviewActions/RemoveConfirmation",
+			"Overlays/ReviewActions/RemovePending",
+			"Overlays/ReviewActions/RemoveError"
+		],
+		"states": ["closed-trigger", "open", "default", "pending", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/prs/PullRequests/components/LinkPrDialog/LinkPrDialog.tsx",
+		"export": "LinkPrDialog",
+		"stories": [
+			"Overlays/LinkPrDialog/Open",
+			"Overlays/LinkPrDialog/ClosedTrigger",
+			"Overlays/LinkPrDialog/Selected",
+			"Overlays/LinkPrDialog/Pending",
+			"Overlays/LinkPrDialog/RequestError",
+			"Overlays/LinkPrDialog/Success"
+		],
+		"states": ["open", "closed-trigger", "selected", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	}
+]

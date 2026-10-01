@@ -48,7 +48,7 @@ test("Jev selects a project placement and priority without writing a ticket", as
 		}),
 	);
 	const result = await db.transaction((tx) => classificationResult(h.ctx, tx, prepared));
-	expect(result).toEqual({ epic: two.ref, wave: selected.ref, priority: "high", difficulty: "medium", model: null });
+	expect(result).toEqual({ epic: two.ref, wave: selected.ref, priority: "high" });
 	const count = await db.execute(sql`SELECT count(*)::int AS count FROM tickets WHERE project_id = ${p.id}`);
 	expect(count.rows).toEqual([{ count: 0 }]);
 	expect(JSON.stringify(h.logs)).not.toContain(description);
@@ -91,15 +91,13 @@ test("an empty project and an epic without waves keep normal creation defaults",
 			return undefined;
 		}),
 	);
-	expect(empty.suggestion).toEqual({ epic: null, wave: null, priority: "high", difficulty: "medium", model: null });
+	expect(empty.suggestion).toEqual({ epic: null, wave: null, priority: "high" });
 	const selected = await epic(p.id, "Plan");
 	const result = await classify(h.ctx, { project: p.key, title: "Work", description: "" }, first);
 	expect(result.suggestion).toEqual({
 		epic: selected.ref,
 		wave: null,
 		priority: "high",
-		difficulty: "medium",
-		model: null,
 	});
 });
 
@@ -199,49 +197,33 @@ test("the HTTP endpoint requires an actor and validates the draft before classif
 		epic: null,
 		wave: null,
 		priority: "high",
-		difficulty: "medium",
-		model: null,
 	});
 	expect(calls).toBe(1);
 });
 
-test("Jev receives difficulty and compatible model choices and returns its recommendation", async () => {
+test("Jev receives only placement and priority questions", async () => {
 	const p = await project();
-	for (const [harness, model] of [
-		["claude", "anthropic/claude-opus-5.5"],
-		["codex", "openai/gpt-5.6-luna"],
-		["muse", "meta/muse-spark-1.3"],
-		["pi", "google/gemini-3.8-flash"],
-		["opencode", "openai/gpt-6-astra"],
-	] as const) {
-		const prepared = await classify(
-			h.ctx,
-			{ project: p.key, title: "Fix form", description: "", harness },
-			answer((_, input) => {
-				expect(Object.keys(input.questions.difficulty!.criteria)).toEqual(["low", "medium", "high"]);
-				expect(input.questions.difficulty!.instructions).toContain("Urgency does not imply difficulty");
-				const models = Object.keys(input.questions.model!.criteria);
-				expect(models).toContain(model);
-				expect(models.some((id) => id.endsWith("-contributor"))).toBe(false);
-				if (harness === "claude") expect(models.every((id) => id.startsWith("anthropic/"))).toBe(true);
-				if (harness === "codex") expect(models.every((id) => id.startsWith("openai/"))).toBe(true);
-				return undefined;
-			}, model),
-		);
-		const result = await db.transaction((tx) => classificationResult(h.ctx, tx, prepared));
-		expect(result).toMatchObject({ difficulty: "medium", model });
-	}
+	await epic(p.id, "Plan");
+	await classify(
+		h.ctx,
+		{ project: p.key, title: "Diagnose data loss", description: "Investigate a critical failure" },
+		answer((choices, input) => {
+			expect(Object.keys(input.questions).sort()).toEqual(["placement", "priority"]);
+			return Object.keys(choices)[0];
+		}),
+	);
 });
 
-test("an unsupported recommendation fails and custom commands cannot request a model", async () => {
+test("classification rejects model selection input before a provider call", async () => {
 	const p = await project();
 	const input = { project: p.key, title: "Fix form", description: "", harness: "codex" };
+	expect(TicketClassificationInputSchema.safeParse(input).success).toBe(false);
+	let calls = 0;
 	await expect(
-		classify(
-			h.ctx,
-			input,
-			answer(() => undefined, "anthropic/claude-opus-5.5"),
-		),
-	).rejects.toThrow("invalid evaluation response");
-	expect(TicketClassificationInputSchema.safeParse({ ...input, harness: "custom" }).success).toBe(false);
+		classify(h.ctx, input, async () => {
+			calls += 1;
+			throw new Error("Unexpected provider call");
+		}),
+	).rejects.toThrow();
+	expect(calls).toBe(0);
 });

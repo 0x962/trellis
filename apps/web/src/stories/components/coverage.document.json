@@ -1,0 +1,52 @@
+[
+	{
+		"source": "packages/ui/src/domain/DocumentLayout/DocumentLayout.tsx",
+		"export": "DocumentLayout",
+		"stories": [
+			"Components/DocumentLayout/Wide",
+			"Components/DocumentLayout/Narrow",
+			"Components/DocumentLayout/SelectHeading",
+			"Components/DocumentLayout/NarrowSelection",
+			"Components/DocumentLayout/Empty",
+			"Components/DocumentLayout/Loading",
+			"Components/DocumentLayout/LongHeadings",
+			"Components/DocumentLayout/DuplicateHeadings",
+			"Components/DocumentLayout/WithMargin"
+		],
+		"states": [
+			"wide sidebar",
+			"narrow popover",
+			"selected heading",
+			"empty",
+			"loading",
+			"long labels",
+			"duplicate labels",
+			"document margin"
+		],
+		"notes": "The real layout holds a synthetic document and optional margin. Select a heading to scroll its section and change aria-current. NarrowSelection verifies that selection closes the popover and remains selected after it reopens."
+	},
+	{
+		"source": "packages/ui/src/domain/DocumentLayout/components/DocumentContents/DocumentContents.tsx",
+		"export": "DocumentContents",
+		"stories": [
+			"Components/DocumentLayout/Wide",
+			"Components/DocumentLayout/NarrowSelection",
+			"Components/DocumentLayout/Empty",
+			"Components/DocumentLayout/Loading",
+			"Components/DocumentLayout/LongHeadings",
+			"Components/DocumentLayout/DuplicateHeadings"
+		],
+		"states": [
+			"sidebar",
+			"popover",
+			"selected",
+			"empty",
+			"loading",
+			"levels one through six",
+			"untitled heading",
+			"long labels",
+			"duplicate labels"
+		],
+		"notes": "DocumentLayout renders its nested DocumentContents in every story. LongHeadings includes an empty label, all six levels, unbroken text, and literal markup. DuplicateHeadings selects the second entry by its distinct target. The component accepts empty and loading data; it has no error or disabled prop."
+	}
+]

@@ -5,33 +5,26 @@ import type { IoCtx } from "../support.ts";
 import { rangeStart } from "./aggregate.ts";
 import { claudeSessionOwners } from "./owners.ts";
 import { listUsageAccounts, listUsageProjects, listUsageRuns } from "./queries.ts";
+import { createReportCache } from "./reportCache";
 import { computeUsageReportInWorker } from "./reportWorker";
 import { usageRoots } from "./roots.ts";
 
-const CACHE_MS = 5 * 60 * 1000;
-const REFRESH_FLOOR_MS = 10 * 1000;
+const cache = createReportCache();
 
-const cache = new Map<string, { at: number; result: Promise<UsageReport> }>();
-
-export const invalidateUsageReports = (home: string) => {
-	for (const key of cache.keys()) if (key.startsWith(`${home}:`)) cache.delete(key);
-};
+export const invalidateUsageReports = (home: string) => cache.invalidate(home);
 
 // Builds the report outside every database transaction. The account, run,
-// and project reads use one short transaction. The transcript scan runs on
-// a separate worker. A report stays in the cache for five minutes per range.
-// A refresh uses a result from the last ten seconds.
+// and project reads share one transaction. The transcript scan runs on
+// a separate worker. Each range retains its completed report across restarts.
+// An explicit refresh replaces that report after the scan and save complete.
 const fullReport = async (
 	ctx: IoCtx,
 	input: UsageReportInput,
 	deps = { env: () => executionEnvironment(), now: Date.now },
 ): Promise<UsageReport> => {
 	const days = input.days ?? 30;
-	const key = `${ctx.home}:${days}`;
-	const saved = cache.get(key);
-	const now = deps.now();
-	if (saved && now - saved.at < (input.refresh ? REFRESH_FLOOR_MS : CACHE_MS)) return saved.result;
-	const result = (async () => {
+	return cache.report(ctx.home, days, input.refresh === true, async () => {
+		const now = deps.now();
 		const cutoffMs = rangeStart(days, new Date(now));
 		const { accounts, runs, projects } = await ctx.newTx(async (tx) => ({
 			accounts: await listUsageAccounts(tx),
@@ -50,17 +43,7 @@ const fullReport = async (
 			cutoffMs,
 			now: new Date(deps.now()),
 		});
-	})();
-	cache.set(key, { at: now, result });
-	void result.then(
-		() => {
-			if (cache.get(key)?.result === result) cache.set(key, { at: deps.now(), result });
-		},
-		() => {
-			if (cache.get(key)?.result === result) cache.delete(key);
-		},
-	);
-	return result;
+	});
 };
 
 export const prepareReport = async (ctx: IoCtx, input: UsageReportInput): Promise<UsageReport> => {
@@ -80,12 +63,9 @@ export const prepareReport = async (ctx: IoCtx, input: UsageReportInput): Promis
 export const readRankingReport = async (
 	ctx: IoCtx,
 	input: UsageRankingInput,
-	reports = cache,
+	reports: Pick<typeof cache, "ranking"> = cache,
 ): Promise<UsageReport> => {
-	const saved = reports.get(`${ctx.home}:${input.days}`);
-	if (!saved) throw invalidInput("computedAt", "The Usage report expired. Refresh usage to read its pages.");
-	const report = await saved.result;
-	if (report.computedAt !== input.computedAt)
-		throw invalidInput("computedAt", "The Usage report changed. Refresh usage to read its pages.");
+	const report = await reports.ranking(ctx.home, input.days, input.computedAt);
+	if (!report) throw invalidInput("computedAt", "The Usage report changed. Refresh usage to read its pages.");
 	return report;
 };

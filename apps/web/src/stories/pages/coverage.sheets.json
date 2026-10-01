@@ -1,0 +1,146 @@
+[
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/SessionSheet/SessionSheet.tsx",
+		"export": "SessionSheet",
+		"stories": [
+			"Pages/Session sheet/Paused",
+			"Pages/Session sheet/Loading",
+			"Pages/Session sheet/RequestError",
+			"Pages/Session sheet/Missing",
+			"Pages/Session sheet/Starting",
+			"Pages/Session sheet/Narrow"
+		],
+		"states": ["paused", "loading", "error", "missing", "starting", "narrow"],
+		"notes": "The real session sheet uses stopped native runs. Its terminal transport has no live process."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/PullRequestSheet/PullRequestSheet.tsx",
+		"export": "PullRequestSheet",
+		"stories": [
+			"Pages/Review sheet/Overview",
+			"Pages/Review sheet/FromTicket",
+			"Pages/Review sheet/Diff",
+			"Pages/Review sheet/Loading",
+			"Pages/Review sheet/RequestError",
+			"Pages/Review sheet/Narrow"
+		],
+		"states": ["overview", "diff", "ticket parent", "loading", "error", "narrow"],
+		"notes": "The real wide review sheet holds the review and full-page action."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/SettingsSheet/SettingsSheet.tsx",
+		"export": "SettingsSheet",
+		"stories": [
+			"Pages/Settings sheets/Account",
+			"Pages/Settings sheets/Narrow",
+			"Pages/Settings sheets/Project",
+			"Pages/Settings sheets/ProjectLoading",
+			"Pages/Settings sheets/ProjectError",
+			"Pages/Settings sheets/ProjectNarrow"
+		],
+		"states": ["account", "narrow", "nested"],
+		"notes": "Account settings render in the shared PageSheet. TicketSheet/SettingsStack covers the nested parent."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/ProjectSettingsSheet/ProjectSettingsSheet.tsx",
+		"export": "ProjectSettingsSheet",
+		"stories": [
+			"Pages/Settings sheets/Account",
+			"Pages/Settings sheets/Narrow",
+			"Pages/Settings sheets/Project",
+			"Pages/Settings sheets/ProjectLoading",
+			"Pages/Settings sheets/ProjectError",
+			"Pages/Settings sheets/ProjectNarrow"
+		],
+		"states": ["general", "loading", "error", "narrow", "nested"],
+		"notes": "The project settings sheet renders the lazy production view. TicketSheet/ProjectSettingsStack covers the nested parent."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/BrowserSheet/BrowserSheet.tsx",
+		"export": "BrowserSheet",
+		"stories": [
+			"Pages/Browser sheet/UnsupportedAddress",
+			"Pages/Browser sheet/InvalidAddress",
+			"Pages/Browser sheet/Narrow",
+			"Pages/Browser sheet/Loading",
+			"Pages/Browser sheet/Loaded",
+			"Pages/Browser sheet/LoadFailure",
+			"Pages/Browser sheet/BackAndForward",
+			"Pages/Browser sheet/LoadedNarrow"
+		],
+		"states": [
+			"unsupported address",
+			"invalid address",
+			"narrow",
+			"loading",
+			"loaded",
+			"load failure",
+			"back and forward"
+		],
+		"notes": "The real BrowserPage chrome renders in BrowserSheet. The catalog adapter simulates Electron webview methods and events with a local document. It treats the address as metadata. Native transport needs desktop verification."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheetHost/components/BrowserSheet/components/BrowserPage/BrowserPage.tsx",
+		"export": "BrowserPage",
+		"stories": [
+			"Pages/Browser sheet/UnsupportedAddress",
+			"Pages/Browser sheet/InvalidAddress",
+			"Pages/Browser sheet/Narrow",
+			"Pages/Browser sheet/Loading",
+			"Pages/Browser sheet/Loaded",
+			"Pages/Browser sheet/LoadFailure",
+			"Pages/Browser sheet/BackAndForward",
+			"Pages/Browser sheet/LoadedNarrow"
+		],
+		"states": [
+			"unsupported address",
+			"invalid address",
+			"narrow",
+			"loading",
+			"loaded",
+			"load failure",
+			"back and forward"
+		],
+		"notes": "The real BrowserPage chrome renders in BrowserSheet. The catalog adapter simulates Electron webview methods and events with a local document. It treats the address as metadata. Native transport needs desktop verification."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageSheet/PageSheet.tsx",
+		"export": "PageSheet",
+		"stories": [
+			"Pages/Ticket sheet/Open",
+			"Pages/Ticket sheet/Loading",
+			"Pages/Ticket sheet/RequestError",
+			"Pages/Ticket sheet/Narrow",
+			"Pages/Ticket sheet/ReviewStack",
+			"Pages/Ticket sheet/SessionStack",
+			"Pages/Ticket sheet/SettingsStack",
+			"Pages/Ticket sheet/ProjectSettingsStack",
+			"Pages/Ticket sheet/BrowserStack"
+		],
+		"states": [
+			"open",
+			"loading",
+			"error",
+			"narrow",
+			"nested review",
+			"nested session",
+			"nested settings",
+			"nested project settings",
+			"nested browser"
+		],
+		"notes": "The shared PageSheet renders through each real sheet wrapper. Nested stories preserve the ticket below the active sheet."
+	},
+	{
+		"source": "apps/web/src/features/shell/NotFoundState/NotFoundState.tsx",
+		"export": "NotFoundState",
+		"stories": [
+			"Pages/Not found/Ticket",
+			"Pages/Not found/Project",
+			"Pages/Not found/SearchLink",
+			"Pages/Not found/LongReference",
+			"Pages/Not found/Narrow"
+		],
+		"states": ["ticket", "project", "search link", "long reference", "narrow"],
+		"notes": "The real missing-entity view renders without a route loader or network request."
+	}
+]

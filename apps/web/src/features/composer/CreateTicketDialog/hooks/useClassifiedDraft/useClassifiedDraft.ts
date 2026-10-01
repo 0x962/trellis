@@ -1,5 +1,4 @@
-import { effortForHarness, type Priority } from "@trellis/api";
-import type { AssignChoice } from "../../../../agents/AssignAgent/assignChoice";
+import type { Priority } from "@trellis/api";
 import type { ComposerOptions } from "../../../composerStore";
 import type { ComposerDraft } from "../../../hooks/useComposerDraft/useComposerDraft";
 import { useTicketClassification } from "../useTicketClassification";
@@ -14,7 +13,6 @@ const pins = (draft: ComposerDraft, options: ComposerOptions, defaultPriority: P
 		priority:
 			!automatic.includes("priority") &&
 			(draft.priority !== undefined || options.priority !== undefined || defaultPriority !== "none"),
-		assignment: draft.assignment !== undefined && !automatic.includes("assignment"),
 	};
 };
 
@@ -26,7 +24,6 @@ export function useClassifiedDraft({
 	description,
 	template,
 	defaultPriority,
-	defaultAssignment,
 	disabled,
 	isSubmitting,
 }: {
@@ -37,33 +34,28 @@ export function useClassifiedDraft({
 	description: string;
 	template: string;
 	defaultPriority: Priority;
-	defaultAssignment: AssignChoice;
 	disabled: boolean;
 	isSubmitting: () => boolean;
 }) {
 	const fixed = pins(draft, options, defaultPriority);
-	const choice = draft.assignment === undefined ? defaultAssignment : draft.assignment;
 	const state = useTicketClassification({
 		project,
 		title: draft.title,
 		description,
 		epic: fixed.epic,
 		wave: fixed.wave,
-		harness: fixed.assignment ? undefined : choice?.preset,
-		disabled: disabled || (fixed.wave !== undefined && fixed.priority && fixed.assignment),
+		disabled: disabled || (fixed.wave !== undefined && fixed.priority),
 		onResult: (result, request) => {
 			if (isSubmitting()) return;
 			setDraft((current) => {
 				const currentDescription = current.editing || current.description !== "" ? current.description : template;
 				const selected = pins(current, options, defaultPriority);
-				const assignment = current.assignment === undefined ? defaultAssignment : current.assignment;
 				if (
 					(current.project ?? project) !== request.project ||
 					current.title.trim() !== request.title ||
 					currentDescription !== request.description ||
 					selected.epic !== request.epic ||
-					selected.wave !== request.wave ||
-					(selected.assignment ? undefined : assignment?.preset) !== request.harness
+					selected.wave !== request.wave
 				)
 					return current;
 				const automatic = fields.filter((field) => !selected[field]);
@@ -72,15 +64,6 @@ export function useClassifiedDraft({
 					...Object.fromEntries(automatic.map((field) => [field, result[field]])),
 					automatic,
 				};
-				if (!selected.assignment && assignment && result.model !== null) {
-					const effort = effortForHarness(assignment.preset, result.model);
-					next.assignment = {
-						...assignment,
-						model: result.model,
-						effort: effort?.options.some(({ value }) => value === assignment.effort) ? assignment.effort : null,
-					};
-					next.automatic = [...automatic, "assignment"];
-				}
 				return next;
 			});
 		},
@@ -91,7 +74,6 @@ export function useClassifiedDraft({
 			...change,
 			automatic: current.automatic?.filter((field) => !Object.hasOwn(change, field)),
 		}));
-	const message =
-		state === "error" ? "Automatic selection is unavailable. Select the ticket fields and agent model." : null;
+	const message = state === "error" ? "Automatic selection is unavailable. Select the ticket fields." : null;
 	return { choose, message };
 }

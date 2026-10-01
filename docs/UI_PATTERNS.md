@@ -50,6 +50,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
 | Anything that failed | `FailureState` | `packages/ui/src/domain/FailureState/FailureState.tsx` |
+| A document with its contents | `DocumentLayout` | `packages/ui/src/domain/DocumentLayout/DocumentLayout.tsx` |
 
 ## Form fields and type
 
@@ -130,6 +131,16 @@ The product keeps two shapes. What the control changes picks the shape, not the 
 | A new label, label group or status | Form with Cancel and Save | `apps/web/src/features/project-settings/StatusCreateForm/StatusCreateForm.tsx` |
 
 A document of the Resources tab of an epic keeps its own shape. Its title and its body save while the person types, so it is no in-place edit of one value.
+
+`DocumentLayout` places Contents to the right of the document.
+Below the `--container-3xl` width, the circular Contents action opens a popover.
+The popover uses `--popover-max-height` and the available screen height.
+The comments pane uses its own space beside that region.
+The list follows headings at all six levels as the person edits the document.
+Each row scrolls the document to its heading. Duplicate names keep separate targets.
+Long names wrap, and an empty heading reads Untitled heading.
+The virtual list measures wrapped rows and keeps the focused heading mounted.
+Arrow keys, Home, End, and Tab reach headings outside the visible rows.
 
 ## Project-owned HTML Pages
 

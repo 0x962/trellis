@@ -1,0 +1,48 @@
+[
+	{
+		"source": "apps/web/src/features/epics/EpicPage/components/EpicResources/components/EpicDocument/EpicDocument.tsx",
+		"export": "EpicDocument",
+		"stories": [
+			"Pages/Epic/ResourceDocument",
+			"Pages/Epic/ResourceDocumentNarrow",
+			"Pages/Epic/ResourceDocumentContents",
+			"Pages/Epic/ResourceDocumentReadOnly",
+			"Pages/Epic/PlanContents"
+		],
+		"states": [
+			"plan",
+			"resource document",
+			"comments",
+			"automatic contents",
+			"six heading levels",
+			"contents navigation",
+			"heading edits before save",
+			"read-only document",
+			"narrow contents popover"
+		],
+		"notes": "Stories render EpicDocument through the complete EpicPage. PlanContents changes a heading and adds a section while its synthetic save remains pending. The body supplies contents entries; the separate resource title stays outside the list."
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/components/SystemUsage/SystemUsage.tsx",
+		"export": "SystemUsage",
+		"stories": [
+			"Pages/Usage/System",
+			"Pages/Usage/SystemLoading",
+			"Pages/Usage/SystemError",
+			"Pages/Usage/MemoryPressure",
+			"Pages/Usage/SystemNarrow"
+		],
+		"states": [
+			"CPU",
+			"memory",
+			"load average",
+			"uptime",
+			"recent history",
+			"loading",
+			"error",
+			"memory pressure",
+			"narrow"
+		],
+		"notes": "The complete UsagePage renders its System tab from the synthetic system.usage response."
+	}
+]

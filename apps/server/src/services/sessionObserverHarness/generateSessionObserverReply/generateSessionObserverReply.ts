@@ -5,6 +5,7 @@ import { sessionOperation } from "../../../agents/sessionOperation/index.ts";
 import { startNative } from "../../agentRuns/nativeStart.ts";
 import { observerDeliveryReceipt, reserveObserverDelivery } from "../../agentRuns/observerRuns/index.ts";
 import { getRun } from "../../agentRuns/queries.ts";
+import { attemptRetention } from "../../attemptRetention";
 import { observerClaimIsActive } from "../../sessionObservers/index.ts";
 import type { IoCtx } from "../../support.ts";
 import { readAttemptUsage } from "../../usage/readAttemptUsage/index.ts";
@@ -31,57 +32,62 @@ export async function generateSessionObserverReply(
 		const client = await deps.runtime(ctx.home);
 		const host = nativeHost(ctx.home, process.env, client);
 		const previous = await ctx.newTx((tx) => getRun(tx, input.observerRunId));
-		const receipt = await ctx.newTx((tx) => observerDeliveryReceipt(tx, input));
-		if (previous.terminalId && !receipt) {
-			const active = await host.recover(previous.terminalId);
-			if (active.status !== "exited")
-				throw new ObserverHarnessError(
-					"OBSERVER_DELIVERY_UNKNOWN",
-					"The prior observer attempt is still active. Recover it before another update.",
-				);
-		}
-		const delivery = await reserveObserverDelivery(ctx, input);
-		const { run, attemptId, providerSessionId } = delivery;
+		const release = await attemptRetention.retain(ctx.home, previous.terminalId);
 		try {
-			if (!delivery.replay) {
-				const prompt = delivery.seed
-					? `Saved observer summary:\n${delivery.seed}\n\n${input.userContext}`
-					: input.userContext;
-				await mkdir(run.workspaceId!, { recursive: true, mode: 0o700 });
-				await deps.start(
-					ctx,
-					{
-						run,
-						config: { directory: run.workspaceId!, harness: run.harness!, accountId: null },
-						attempt: delivery.attempt,
-						resume: delivery.resume,
-						previousAttemptId: delivery.previousAttemptId,
-						resumePrompt: prompt,
-						preserveAssignmentOnFailure: true,
-						textOnly: { system: input.instruction, sessionId: providerSessionId },
-						signal: input.signal,
-						authorizeLaunch: () => ctx.newTx((tx) => observerClaimIsActive(tx, input)),
-					},
-					{ guide: async () => prompt },
-				);
+			const receipt = await ctx.newTx((tx) => observerDeliveryReceipt(tx, input));
+			if (previous.terminalId && !receipt) {
+				const active = await host.recover(previous.terminalId);
+				if (active.status !== "exited")
+					throw new ObserverHarnessError(
+						"OBSERVER_DELIVERY_UNKNOWN",
+						"The prior observer attempt is still active. Recover it before another update.",
+					);
 			}
-			const completed = await waitForObserverReply(client, { attemptId, providerSessionId, signal: input.signal });
-			const usage = await deps.usage(ctx.home, { attemptId, providerSessionId, text: completed.result.text });
-			if (!(await ctx.newTx((tx) => observerClaimIsActive(tx, input))))
-				throw new ObserverHarnessError("OBSERVER_DISABLED", "The observer was disabled or its update was replaced.");
-			input.signal.throwIfAborted();
-			return {
-				text: completed.result.text,
-				observerRunId: run.id,
-				attemptId,
-				providerSessionId,
-				messageId: attemptId,
-				resultId: completed.result.id,
-				modelId: SESSION_OBSERVER_MODEL,
-				usage,
-			};
+			const delivery = await reserveObserverDelivery(ctx, input);
+			const { run, attemptId, providerSessionId } = delivery;
+			try {
+				if (!delivery.replay) {
+					const prompt = delivery.seed
+						? `Saved observer summary:\n${delivery.seed}\n\n${input.userContext}`
+						: input.userContext;
+					await mkdir(run.workspaceId!, { recursive: true, mode: 0o700 });
+					await deps.start(
+						ctx,
+						{
+							run,
+							config: { directory: run.workspaceId!, harness: run.harness!, accountId: null },
+							attempt: delivery.attempt,
+							resume: delivery.resume,
+							previousAttemptId: delivery.previousAttemptId,
+							resumePrompt: prompt,
+							preserveAssignmentOnFailure: true,
+							textOnly: { system: input.instruction, sessionId: providerSessionId },
+							signal: input.signal,
+							authorizeLaunch: () => ctx.newTx((tx) => observerClaimIsActive(tx, input)),
+						},
+						{ guide: async () => prompt },
+					);
+				}
+				const completed = await waitForObserverReply(client, { attemptId, providerSessionId, signal: input.signal });
+				const usage = await deps.usage(ctx.home, { attemptId, providerSessionId, text: completed.result.text });
+				if (!(await ctx.newTx((tx) => observerClaimIsActive(tx, input))))
+					throw new ObserverHarnessError("OBSERVER_DISABLED", "The observer was disabled or its update was replaced.");
+				input.signal.throwIfAborted();
+				return {
+					text: completed.result.text,
+					observerRunId: run.id,
+					attemptId,
+					providerSessionId,
+					messageId: attemptId,
+					resultId: completed.result.id,
+					modelId: SESSION_OBSERVER_MODEL,
+					usage,
+				};
+			} finally {
+				await stopObserverAttempt(client, attemptId);
+			}
 		} finally {
-			await stopObserverAttempt(client, attemptId);
+			release();
 		}
 	}).catch((error) => {
 		if (error instanceof ObserverHarnessError) throw error;

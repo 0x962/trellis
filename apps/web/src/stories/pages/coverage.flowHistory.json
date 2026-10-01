@@ -1,0 +1,38 @@
+[
+	{
+		"source": "apps/web/src/features/reviews/ReviewPage/components/ReviewFlowPanel/ReviewFlowPanel.tsx",
+		"export": "ReviewFlowPanel",
+		"stories": [
+			"Pages/Review/Flows",
+			"Pages/Review/FlowsWithoutTicket",
+			"Pages/Review/FlowsEmpty",
+			"Pages/Review/FlowsLoading",
+			"Pages/Review/FlowsError",
+			"Pages/Review/FlowsNarrow",
+			"Pages/Review/SwitchTabs"
+		],
+		"states": ["populated", "empty", "loading", "error", "narrow", "tab changes"],
+		"notes": "Linked and unlinked review targets render the production flow panel."
+	},
+	{
+		"source": "apps/web/src/features/reviews/FlowRuns/FlowRuns.tsx",
+		"export": "FlowRuns",
+		"stories": [
+			"Pages/Review/Flows",
+			"Pages/Review/FlowsEmpty",
+			"Pages/Review/FlowsLoading",
+			"Pages/Review/FlowsError",
+			"Pages/Review/FlowsNarrow",
+			"Pages/Review/SwitchTabs"
+		],
+		"states": ["populated", "empty", "loading", "error", "narrow", "tab changes"],
+		"notes": "Synthetic execution records provide the history, loading, empty, and error states."
+	},
+	{
+		"source": "apps/web/src/features/reviews/FlowRuns/components/FlowRun/FlowRun.tsx",
+		"export": "FlowRun",
+		"stories": ["Pages/Review/Flows", "Pages/Review/FlowsNarrow", "Pages/Review/SwitchTabs"],
+		"states": ["human decision", "retained output", "narrow", "tab changes"],
+		"notes": "The populated review tab shows retained output and a human decision."
+	}
+]
