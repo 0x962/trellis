@@ -741,6 +741,10 @@ Session workspaces, active tickets, live processes, open files, and dirty worktr
 The sweep keeps the branch, assignment, and provider conversation.
 
 The attempt sweep reads all references once, then skips referenced and recent directories.
+Resume retains a temporary reference to the prior attempt before it replaces the database reference.
+Manual, idle, session, and observer resumes retain this reference through the required descriptor reads.
+A background session launch releases the reference after success or failure.
+The attempt lock orders temporary references and cleanup. Cleanup skips a directory while a resume retains it.
 It checks each remaining attempt again under its attempt lock before removal.
 Between attempts, it yields after 25 milliseconds so the database worker can receive requests.
 Sweep logs identify each phase, its duration, and its counts under one sweep identifier.

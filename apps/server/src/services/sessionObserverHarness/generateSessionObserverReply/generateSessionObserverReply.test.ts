@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
@@ -15,6 +15,9 @@ import {
 } from "../../sessionObservers/index.ts";
 import { at, context, seed } from "../../sessionObservers/testFixture/index.ts";
 import type { IoCtx } from "../../support.ts";
+import type { AttemptDirectory } from "../../sweep/decide";
+import { ATTEMPT_MIN_AGE_MS } from "../../sweep/prepareSweep";
+import { sweepAttempts } from "../../sweep/sweepAttempts";
 import { ensureSessionObserverRun } from "../ensureSessionObserverRun/index.ts";
 import { SESSION_OBSERVER_MODEL } from "../types.ts";
 import { generateSessionObserverReply } from "./index.ts";
@@ -52,6 +55,10 @@ test("returns a complete reply, replays it after restart, and stops the exact ca
 		};
 		const states = new Map<string, RuntimeProcessStatus>();
 		let starts = 0;
+		let retainedReads = 0;
+		let inventory: AttemptDirectory[] = [];
+		let priorInventory: AttemptDirectory[] = [];
+		const sweepCtx = { ...ctx, log: () => {} };
 		let cancel = false;
 		const stopped: string[] = [];
 		const client = {
@@ -74,6 +81,20 @@ test("returns a complete reply, replays it after restart, and stops the exact ca
 			runtime: async () => client,
 			start: async (_ctx, launch, hooks) => {
 				starts++;
+				if (launch.resume) {
+					priorInventory = inventory;
+					expect(await sweepAttempts(sweepCtx, inventory, ATTEMPT_MIN_AGE_MS)).toBe(0);
+					expect(await readFile(join(home, "harness-attempts", launch.previousAttemptId!, "launch.json"), "utf8")).toBe(
+						"observer descriptor",
+					);
+					retainedReads++;
+				}
+				const directory = join(home, "harness-attempts", launch.attempt.id);
+				await mkdir(directory, { recursive: true });
+				await writeFile(join(directory, "launch.json"), "observer descriptor");
+				const old = new Date(at.getTime() - ATTEMPT_MIN_AGE_MS - 1);
+				await utimes(directory, old, old);
+				inventory = [{ id: launch.attempt.id, modifiedAt: (await stat(directory)).mtimeMs }];
 				expect(launch.run.ticketId).toBeNull();
 				expect(launch.textOnly?.system).toBe(input.instruction);
 				expect(launch.resumePrompt).toBe(input.userContext);
@@ -130,6 +151,8 @@ test("returns a complete reply, replays it after restart, and stops the exact ca
 			generateSessionObserverReply(ctx, { ...input, claimId: replacement.claimId, deliveryId: "summary" }, deps),
 		).rejects.toMatchObject({ code: "OBSERVER_REQUEST_CANCELED" });
 		expect(starts).toBe(2);
+		expect(retainedReads).toBe(1);
+		expect(await sweepAttempts(sweepCtx, priorInventory, ATTEMPT_MIN_AGE_MS)).toBe(1);
 		expect(stopped.at(-1)).not.toBe(result.attemptId);
 	} finally {
 		await db.$client.close();

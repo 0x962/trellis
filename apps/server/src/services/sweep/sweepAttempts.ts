@@ -4,6 +4,7 @@ import { setImmediate } from "node:timers/promises";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
+import { attemptRetention } from "../attemptRetention";
 import { isAttemptRetained, readRetainedNativeAttemptIds, withNativeSnapshotRetention } from "../langflowNative";
 import { withAttemptOperation } from "../langflowStops/withAttemptOperation";
 import type { ServiceCtx } from "../support";
@@ -47,7 +48,7 @@ export async function sweepAttempts(ctx: AttemptSweepCtx, attempts: AttemptDirec
 		for (const id of candidates) {
 			await withAttemptOperation(ctx.home, id, async () => {
 				// A launch can assign this attempt while the sweep waits for its attempt lock.
-				if (await ctx.newTx((tx) => attemptReferenced(tx, id))) {
+				if (attemptRetention.has(ctx.home, id) || (await ctx.newTx((tx) => attemptReferenced(tx, id)))) {
 					retained += 1;
 					return;
 				}
