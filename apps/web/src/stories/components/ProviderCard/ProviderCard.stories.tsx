@@ -70,7 +70,8 @@ export const CheckKey: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await userEvent.click(canvas.getByRole("button", { name: "Check the key of Work gateway" }));
-		await expect(canvas.getByRole("status")).toHaveTextContent("Key accepted");
+		const provider = within(canvas.getByRole("article", { name: "Work gateway" }));
+		await expect(provider.getByRole("status")).toHaveTextContent("Key accepted");
 	},
 };
 export const EditProvider: Story = {

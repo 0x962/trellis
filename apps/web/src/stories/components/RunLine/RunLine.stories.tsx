@@ -86,7 +86,7 @@ export const RetryRun: Story = {
 		await expect(canvas.getByText("starts")).toBeVisible();
 		await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
 		await userEvent.click(canvas.getByRole("button", { name: "Session" }));
-		await expect(canvas.getByRole("status")).toHaveTextContent("Selected session: Review agent");
+		await expect(canvas.getByText("Selected session: Review agent")).toBeVisible();
 	},
 };
 export const LongMessage: Story = { args: { run: { ...run, lastMessage: "The checks pass. ".repeat(60) } } };

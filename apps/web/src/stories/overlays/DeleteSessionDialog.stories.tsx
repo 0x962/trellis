@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DeleteSessionDialog } from "../../features/sessions/DeleteSessionDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { failure, noop, pending, responses, session } from "./fixtures";
 import { clickButton } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/DeleteSessionDialog",

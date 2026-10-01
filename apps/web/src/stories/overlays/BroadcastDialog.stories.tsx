@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 import { BroadcastDialog } from "../../features/agents/BroadcastDialog/BroadcastDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { epic, failure, noop, pending, responses } from "./fixtures";
 import { clickButton, fillField } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const delivery = { recipientCount: 2, acceptedCount: 2, failures: [] };
 const meta = {

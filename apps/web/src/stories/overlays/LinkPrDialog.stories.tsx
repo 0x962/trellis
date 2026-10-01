@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useQuery } from "@tanstack/react-query";
 import { LinkPrDialog } from "../../features/prs/PullRequests/components/LinkPrDialog";
 import { useApp } from "../../lib/appContext";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { failure, noop, pending, responses, ticket } from "./fixtures";
 import { clickButton, fillField } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/LinkPrDialog",

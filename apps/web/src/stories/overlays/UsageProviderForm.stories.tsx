@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { Provider, ProviderModels } from "@trellis/api";
 import { createRef } from "react";
 import { UsageProviderForm } from "../../features/usage/UsagePage/components/UsageProviders/components/UsageProviderForm";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { at, failure, id, noop, pending } from "./fixtures";
 import { clickButton, fillField } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const provider: Provider = {
 	id: id(100),

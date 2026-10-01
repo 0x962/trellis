@@ -177,7 +177,10 @@ export const RetryFailedTicket: Story = {
 		await userEvent.click(await body.findByRole("button", { name: "Retry failed ticket" }));
 		await expect(body.queryByRole("alert")).not.toBeInTheDocument();
 		await expect(body.getByText("The local agent has started.")).toBeVisible();
-		await expect(body.getByRole("checkbox", { name: "Start TRL-42: Restore the project view" })).toBeDisabled();
+		await expect(body.getByRole("checkbox", { name: "Start TRL-42: Restore the project view" })).toHaveAttribute(
+			"aria-disabled",
+			"true",
+		);
 		await userEvent.click(body.getAllByRole("button", { name: "Close" })[0]!);
 		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
 	},

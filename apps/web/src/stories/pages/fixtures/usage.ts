@@ -1,5 +1,4 @@
 import type {
-	SystemProcesses,
 	SystemUsage,
 	UsageAccount,
 	UsageGroupBy,
@@ -190,35 +189,6 @@ export const systemUsage: SystemUsage = {
 	})),
 };
 
-export const systemProcesses: SystemProcesses = {
-	sampledAt: timestamp,
-	processCount: 142,
-	processes: [
-		{
-			pid: 421,
-			parentPid: 1,
-			user: "storybook",
-			cpuPercent: 22,
-			memoryBytes: 734003200,
-			memoryPercent: 2.1,
-			elapsedSeconds: 3600,
-			state: "S",
-			command: "trellis-host",
-		},
-		{
-			pid: 422,
-			parentPid: 421,
-			user: "storybook",
-			cpuPercent: 8,
-			memoryBytes: 419430400,
-			memoryPercent: 1.2,
-			elapsedSeconds: 1800,
-			state: "S",
-			command: "agent-runtime",
-		},
-	],
-};
-
 export const usageResponses = {
 	...projectResponses,
 	"usage.report": usageReport,
@@ -236,5 +206,4 @@ export const usageResponses = {
 	"usage.accounts": usageAccounts,
 	"providers.list": [],
 	"system.usage": systemUsage,
-	"system.processes": systemProcesses,
 };

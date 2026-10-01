@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { failure, pending, responses } from "./fixtures";
-import { clickButton } from "./interactions";
-import { WaveDeleteScenario } from "./WaveDeleteScenario";
+import { failure, pending, responses } from "../fixtures";
+import { clickButton } from "../interactions";
+import { WaveDeleteScenario } from "./components/WaveDeleteScenario";
 
 const meta = {
 	title: "Overlays/WaveDelete",

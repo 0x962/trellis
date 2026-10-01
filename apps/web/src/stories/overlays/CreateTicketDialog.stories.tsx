@@ -1,5 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { TicketClassification } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ComposerHost } from "../../features/composer/ComposerHost";
@@ -28,7 +29,7 @@ const meta = {
 				...responses,
 				"tickets.create": ticket,
 				"agentRuns.start": run,
-				"tickets.classify": { priority: "high", epic: epic.ref, wave: wave.ref, model: null },
+				"tickets.classify": { priority: "high", epic: epic.ref, wave: wave.ref } satisfies TicketClassification,
 			},
 		},
 	},

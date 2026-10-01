@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { Note } from "@trellis/api";
 import { NoteSheet } from "../../features/notes/NotesSettings/components/NoteSheet";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { actor, at, failure, id, noop, pending, project, responses } from "./fixtures";
 import { clickButton, fillField } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const note: Note = {
 	id: id(81),

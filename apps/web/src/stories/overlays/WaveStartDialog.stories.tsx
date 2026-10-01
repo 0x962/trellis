@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { WaveStartDialog } from "../../features/table/WaveStart/WaveStartDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { failure, noop, pending, responses, run, tickets } from "./fixtures";
 import { clickButton } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/WaveStartDialog",

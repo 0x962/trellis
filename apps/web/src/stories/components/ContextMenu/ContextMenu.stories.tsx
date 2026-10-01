@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ContextMenu, ContextMenuTrigger } from "@trellis/ui";
+import { Button, ContextMenu, ContextMenuTrigger } from "@trellis/ui";
 import { expect, userEvent, within } from "storybook/test";
 import { useMenuItems } from "../useMenuItems";
 import { useStoryState } from "../useStoryState";
@@ -17,15 +17,7 @@ const meta = {
 			{ label: "Archive", disabled: true, onSelect: () => {} },
 			{ label: "Delete", danger: true, onSelect: () => {} },
 		],
-		children: (
-			<ContextMenuTrigger
-				render={
-					<button type="button" className="rounded-md border border-border p-4">
-						Page tab
-					</button>
-				}
-			/>
-		),
+		children: <ContextMenuTrigger render={<Button>Page tab</Button>} />,
 	},
 	parameters: {
 		docs: {
