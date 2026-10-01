@@ -1,1 +1,0 @@
-export { connectionFixture } from "./fixture";

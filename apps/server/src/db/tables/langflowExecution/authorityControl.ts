@@ -1,18 +1,17 @@
 import { jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
-import type { AuthorityCommit, OwnerRevocation } from "../../../langflowHost/contracts";
 import { langflowOwnershipReceipts } from "./effects";
 
 export const langflowOwnerFences = pgTable("langflow_owner_fences", {
 	id: uuid().primaryKey(),
 	ownerKey: text("owner_key").array().notNull(),
-	revocation: jsonb().$type<OwnerRevocation>(),
+	revocation: jsonb(),
 });
 
 export const langflowAuthorityCommits = pgTable("langflow_authority_commits", {
 	receiptId: text("receipt_id")
 		.primaryKey()
 		.references(() => langflowOwnershipReceipts.id, { onDelete: "cascade" }),
-	commit: jsonb().$type<AuthorityCommit>().notNull(),
+	commit: jsonb().notNull(),
 });
 
 export const authorityControlRowsSql = `

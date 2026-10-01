@@ -13,7 +13,6 @@ import { createGhRunner } from "./gh/run.ts";
 import { createGhState } from "./ghState.ts";
 import { lockHome } from "./homeLock.ts";
 import { scaledClock } from "./jobs.ts";
-import { startLangflowBootstrap } from "./langflowBootstrap";
 import { listenAddresses } from "./listen.ts";
 import { createLogger, createRotatingSink, type LogSink, stdoutSink, teeSink } from "./log.ts";
 import { startPageRetention } from "./services/pages/retention/startPageRetention";
@@ -114,9 +113,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 		});
 		lock.setPort(server.port!);
 		Object.assign(config, loadConfig({ ...env, TRELLIS_PORT: String(server.port) }));
-		const startupDirs = [config.tmpDir, config.backupsDir];
-		if (config.restoredDatabaseInstallReceipt === undefined) startupDirs.push(config.dbDir);
-		for (const dir of startupDirs) mkdirSync(dir, { recursive: true });
+		for (const dir of [config.dbDir, config.tmpDir, config.backupsDir]) mkdirSync(dir, { recursive: true });
 		const leftovers = sweepBackups(config.backupsDir);
 		if (leftovers.length > 0) log.info("backup sweep", { removed: leftovers });
 
@@ -137,14 +134,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			ghStatus: ghState.current,
 			addresses: async () => listenAddresses(config.host, server.port!, networkInterfaces()),
 		};
-		const database = config.dbInline
-			? await openDatabase(
-					config.dbDir,
-					config.restoredDatabaseInstallReceipt === undefined
-						? undefined
-						: { home: config.home, installReceiptId: config.restoredDatabaseInstallReceipt, bootId },
-				)
-			: undefined;
+		const database = config.dbInline ? await openDatabase(config.dbDir) : undefined;
 		const transport = database
 			? createInlineTransport({
 					db: database.db,
@@ -157,13 +147,6 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			: createWorkerTransport({ bus, config, runtime });
 		const started = await transport.start({ clockRate: config.clockRate, log: (msg, fields) => log.info(msg, fields) });
 		log.info("migrate", { applied: started.applied });
-		const restoredOpen = database?.restoredOpen ?? started.restoredOpen;
-		if (restoredOpen)
-			log.info("restored database opened", {
-				bootId,
-				receiptId: restoredOpen.receiptId,
-				sourceDigest: restoredOpen.sourceDigest,
-			});
 		const swept = await sweep(config.home, started.liveShas);
 		log.info("sweep", { removedBlobs: swept.removedBlobs.length, removedTemp: swept.removedTemp.length });
 		const pageClock = scaledClock(config.clockRate);
@@ -179,26 +162,7 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			clearTimer: pageClock.clearTimer,
 			log: (message, fields) => log.info(message, fields),
 		});
-		const langflow = await startLangflowBootstrap(config, transport, (message, fields) => log.info(message, fields));
-		const { app, bye, stopDocumentActions } = createApp({
-			config,
-			log,
-			transport: langflow?.transport ?? transport,
-			bus,
-			runtime,
-			gh: ghState,
-			editor: langflow?.editor,
-			nativeReservations: langflow?.nativeReservations,
-			groupDeadlines: langflow?.groupDeadlines,
-			documentActionRuntime:
-				langflow === undefined
-					? undefined
-					: {
-							package: langflow.qualified.candidate,
-							engineCommit: langflow.qualified.manifest.source.commit,
-							supervisor: langflow.supervisor,
-						},
-		});
+		const { app, bye } = createApp({ config, log, transport, bus, runtime, gh: ghState });
 		handler = app.fetch;
 		log.info("listening", { host: config.host, port: server.port, home: config.home, version: pkg.version });
 		for (const hook of hooks) await hook.start();
@@ -215,8 +179,6 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			for (const hook of hooks) await hook.stop();
 			await pageSearchBackfill.stop();
 			await pageSweep.stop();
-			await stopDocumentActions();
-			await langflow?.stop();
 			await transport.close();
 			if (database) await database.close();
 			lock.release();

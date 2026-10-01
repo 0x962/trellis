@@ -42,11 +42,13 @@ export const ToggleCheck: Story = {
 	play: async ({ canvasElement }) => {
 		const trigger = within(canvasElement).getByRole("button", { name: "Page tab" });
 		const body = within(canvasElement.ownerDocument.body);
-		await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
+		const rect = trigger.getBoundingClientRect();
+		const coords = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
+		await userEvent.pointer({ target: trigger, keys: "[MouseRight]", coords });
 		const pin = await body.findByRole("menuitemcheckbox", { name: "Pin" });
 		await expect(pin).toHaveAttribute("aria-checked", "true");
 		await userEvent.click(pin);
-		await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
+		await userEvent.pointer({ target: trigger, keys: "[MouseRight]", coords });
 		await expect(await body.findByRole("menuitemcheckbox", { name: "Pin" })).toHaveAttribute("aria-checked", "false");
 		await userEvent.keyboard("{Escape}");
 	},

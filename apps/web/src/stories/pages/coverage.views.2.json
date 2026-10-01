@@ -139,26 +139,13 @@
 		"source": "apps/web/src/features/flows/FlowsPage/FlowsPage.tsx",
 		"export": "FlowsPage",
 		"stories": [
-			"Pages/Flows/MixedEnginesAndPublication",
+			"Pages/Flows/Populated",
 			"Pages/Flows/Empty",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
-			"Pages/Flows/Narrow",
-			"Pages/Flows/FilteredEmpty",
-			"Pages/Flows/SearchAndClear"
+			"Pages/Flows/Narrow"
 		],
-		"states": [
-			"legacy",
-			"Langflow",
-			"pending publication",
-			"published",
-			"empty",
-			"loading",
-			"error",
-			"narrow",
-			"filtered empty",
-			"search and clear"
-		],
+		"states": ["populated", "empty", "loading", "error", "narrow"],
 		"notes": ""
 	}
 ]

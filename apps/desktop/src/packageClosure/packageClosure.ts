@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, realpath, symlink } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { stageSourceImports } from "./sourceImports";
 
 type Manifest = {
 	name: string;
@@ -12,24 +11,12 @@ type Manifest = {
 	peerDependenciesMeta?: Record<string, { optional?: boolean }>;
 };
 
-export const stagePackages = async (
-	repo: string,
-	target: string,
-	workspacePaths: string[],
-	entrypoints: string[] = [],
-): Promise<number> => {
+export const stagePackages = async (repo: string, target: string, workspacePaths: string[]): Promise<number> => {
 	const copies = new Map<string, string>();
 	const optionalPeers: { source: string; name: string; destination: string }[] = [];
-	const workspaces = new Map<string, string>();
-	for (const path of workspacePaths) {
-		const manifest: Manifest = JSON.parse(await readFile(join(repo, path, "package.json"), "utf8"));
-		workspaces.set(manifest.name, join(repo, path));
-	}
 	const workspaceDestinations = new Map(workspacePaths.map((path) => [join(repo, path), join(target, path)]));
 
 	const packageAt = async (from: string, name: string, optional = false): Promise<string | undefined> => {
-		const workspace = workspaces.get(name);
-		if (workspace) return workspace;
 		let directory = from;
 		while (true) {
 			const path = join(directory, "node_modules", name);
@@ -93,10 +80,6 @@ export const stagePackages = async (
 	for (const path of workspacePaths) {
 		await copyPackage(join(repo, path), join(target, path));
 	}
-	await stageSourceImports(repo, target, workspacePaths, entrypoints, async (from, name, destination) => {
-		const source = await packageAt(from, name);
-		await link(await copyPackage(source!), destination);
-	});
 	for (const peer of optionalPeers) {
 		let directory = peer.source;
 		while (true) {

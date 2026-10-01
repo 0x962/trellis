@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ProviderModelsPicker } from "@trellis/ui";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useStoryState } from "../useStoryState";
 
 const meta = {
@@ -63,7 +63,7 @@ export const RefreshModels: Story = {
 		const body = within(canvasElement.ownerDocument.body);
 		await userEvent.click(await body.findByRole("button", { name: "Refresh models" }));
 		await expect(body.queryByRole("button", { name: "Refresh models" })).not.toBeInTheDocument();
-		await expect(body.getByText("Review model")).toBeVisible();
+		await waitFor(() => expect(body.getByText("Review model")).toBeVisible());
 	},
 };
 export const ManySelected: Story = {

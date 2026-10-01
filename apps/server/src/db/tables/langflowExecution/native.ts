@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
 import { bigint, check, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
-import type {
-	CompletionReceiptV1,
-	NativeCompletionV1,
-	NativeHandleV1,
-	NativeLaunchProvenanceV1,
-	NativeLaunchReceiptV1,
-} from "../../../langflowContracts";
 import { langflowExecutions } from "./executions";
 
 export const langflowNativeHandles = pgTable(
@@ -28,9 +21,9 @@ export const langflowNativeHandles = pgTable(
 		requestBytes: text("request_bytes").notNull(),
 		requestDigest: text("request_digest").notNull(),
 		launchSnapshotDigest: text("launch_snapshot_digest"),
-		provenance: jsonb().$type<NativeLaunchProvenanceV1>().notNull(),
-		handle: jsonb().$type<NativeHandleV1>().notNull(),
-		launchReceipt: jsonb("launch_receipt").$type<NativeLaunchReceiptV1>(),
+		provenance: jsonb().notNull(),
+		handle: jsonb().notNull(),
+		launchReceipt: jsonb("launch_receipt"),
 	},
 	(t) => [
 		check("langflow_native_snapshot_digest", sql`${t.launchSnapshotDigest} ~ '^[0-9a-f]{64}$'`),
@@ -69,8 +62,8 @@ export const langflowCompletions = pgTable(
 		resultVersion: bigint("result_version", { mode: "number" }).notNull(),
 		resultBytes: text("result_bytes").notNull(),
 		resultDigest: text("result_digest").notNull(),
-		completion: jsonb().$type<NativeCompletionV1>().notNull(),
-		acceptance: jsonb().$type<CompletionReceiptV1>(),
+		completion: jsonb().notNull(),
+		acceptance: jsonb(),
 	},
 	(t) => [unique("langflow_completion_result").on(t.attemptId, t.resultId, t.resultVersion)],
 );

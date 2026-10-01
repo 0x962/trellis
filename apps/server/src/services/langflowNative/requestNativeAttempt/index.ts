@@ -1,1 +1,0 @@
-export { requestNativeAttempt } from "./requestNativeAttempt";

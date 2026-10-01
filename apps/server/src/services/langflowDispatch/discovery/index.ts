@@ -1,1 +1,0 @@
-export { discovery } from "./discovery";

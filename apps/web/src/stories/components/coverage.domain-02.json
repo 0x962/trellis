@@ -70,7 +70,7 @@
 			"keyboard navigation",
 			"output toggle"
 		],
-		"notes": "Controlled states use local updates. ExpandAndCollapse checks pointer expansion and arrow-key navigation. OutputToggle checks collapse and expansion of selected output."
+		"notes": "The tree retains its state locally. ExpandAndCollapse checks pointer expansion and arrow keys. OutputToggle checks output expansion and collapse."
 	},
 	{
 		"source": "packages/ui/src/domain/GithubMark/GithubMark.tsx",

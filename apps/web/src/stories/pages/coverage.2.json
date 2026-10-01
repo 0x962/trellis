@@ -3,57 +3,28 @@
 		"source": "apps/web/src/routes/ai.flows.tsx",
 		"export": "Route",
 		"stories": [
-			"Pages/Flows/MixedEnginesAndPublication",
+			"Pages/Flows/Populated",
 			"Pages/Flows/Empty",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
-			"Pages/Flows/Narrow",
-			"Pages/Flows/FilteredEmpty",
-			"Pages/Flows/SearchAndClear"
+			"Pages/Flows/Narrow"
 		],
-		"states": [
-			"legacy",
-			"Langflow",
-			"pending publication",
-			"published",
-			"empty",
-			"loading",
-			"error",
-			"narrow",
-			"filtered empty",
-			"search and clear"
-		],
+		"states": ["populated", "empty", "loading", "error", "narrow"],
 		"notes": ""
 	},
 	{
 		"source": "apps/web/src/routes/ai.flows_.$slug.tsx",
 		"export": "Route",
 		"stories": [
-			"Pages/Flow editor/LegacyCanvas",
+			"Pages/Flow editor/Canvas",
 			"Pages/Flow editor/EmptyCanvas",
 			"Pages/Flow editor/Loading",
 			"Pages/Flow editor/RequestError",
-			"Pages/Flow editor/EditorHostUnavailable",
-			"Pages/Flow editor/EditorHostLoading",
 			"Pages/Flow editor/Narrow",
-			"Pages/Flow editor/LegacyLoading",
-			"Pages/Flow editor/LegacyRequestError",
-			"Pages/Flow editor/LegacyMissing",
-			"Pages/Flow editor/EditorHostError"
+			"Pages/Flow editor/Missing"
 		],
-		"states": [
-			"legacy canvas",
-			"empty canvas",
-			"loading",
-			"error",
-			"unavailable host",
-			"narrow",
-			"legacy loading",
-			"legacy error",
-			"missing flow",
-			"host error"
-		],
-		"notes": "Langflow host states use a synthetic unavailable host. The stories load no external editor."
+		"states": ["canvas", "empty canvas", "loading", "error", "narrow", "missing flow"],
+		"notes": "The canvas and request states use flows.get responses."
 	},
 	{
 		"source": "apps/web/src/routes/usage.tsx",

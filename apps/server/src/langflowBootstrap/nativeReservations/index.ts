@@ -1,1 +1,0 @@
-export { nativeReservations } from "./nativeReservations";

@@ -71,9 +71,9 @@ export const WatcherClosed: Story = {
 export const WatcherOpen: Story = {
 	...WatcherClosed,
 	play: async ({ canvasElement }) => {
-		await userEvent.click(
-			await within(canvasElement.ownerDocument.body).findByRole("combobox", { name: "Page watcher" }),
-		);
+		const control = await within(canvasElement.ownerDocument.body).findByRole("combobox", { name: "Page watcher" });
+		await waitFor(() => expect(control).toBeEnabled());
+		await userEvent.click(control);
 	},
 };
 export const WatcherSelected: Story = {

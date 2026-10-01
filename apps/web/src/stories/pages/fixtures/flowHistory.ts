@@ -1,60 +1,67 @@
-import {
-	executionViewV1Example,
-	type FlowExecutionIdentityV1,
-	type FlowExecutionViewV1,
-	occurrenceV1Example,
-	retainedOutputV1Example,
-} from "@trellis/api";
-import { flowResponses } from "./flow";
-import { actor, project, ticket, timestamp } from "./project";
+import type { FlowExecutionRecord } from "@trellis/api";
+import { flowDoc, flowResponses } from "./flow";
+import { actor, id, project, ticket, timestamp } from "./project";
 import { pullRequest, reviewResponses, reviewStatus } from "./review";
 
-const flowExecution: FlowExecutionViewV1 = {
-	...executionViewV1Example,
+const startedAt = Date.parse(timestamp);
+export const flowExecution: FlowExecutionRecord = {
+	id: id(560),
+	flowId: flowDoc.flow.id,
 	ticketId: ticket.id,
 	projectId: project.id,
 	diffId: pullRequest.id,
-	reviewedHead: reviewStatus.headRefOid,
-	status: "waiting",
-	detail: "waiting_human",
+	headSha: reviewStatus.headRefOid,
+	revision: 1,
+	doc: flowDoc,
+	tasks: [],
 	createdAt: timestamp,
 	updatedAt: timestamp,
-	occurrences: [
-		{
-			...retainedOutputV1Example,
-			occurrenceKey: "interface-review",
-			parentOccurrenceKey: null,
-			iterationPath: [],
-			title: "Review the interface",
-			startedAt: timestamp,
-			endedAt: timestamp,
-		},
-		{
-			...occurrenceV1Example,
-			kind: "human",
-			occurrenceKey: "approve-review",
-			parentOccurrenceKey: null,
-			iterationPath: [],
-			title: "Approve the result",
-			instruction: "Read the retained review result and approve the change.",
-			actionKey: "approve-review",
-			state: "waiting_human",
-			waitReason: "human",
-			attempts: [],
-		},
-	],
-};
-
-const history: FlowExecutionIdentityV1[] = [
-	{
-		id: flowExecution.id,
-		engine: flowExecution.engine,
-		flowId: flowExecution.flowId,
-		status: flowExecution.status,
-		pendingSubmission: false,
+	state: {
+		version: 1,
+		flowId: flowDoc.flow.id,
+		flowVersion: 1,
+		status: "waiting",
+		startedAt,
+		updatedAt: startedAt,
+		error: null,
+		steps: [
+			{
+				key: "interface-review",
+				actionKey: "interface-review",
+				nodeId: id(501),
+				parentKey: null,
+				iteration: 0,
+				round: 0,
+				state: "succeeded",
+				phase: "step",
+				output: "The interface checks pass.",
+				decision: null,
+				error: null,
+				startedAt,
+				endedAt: startedAt,
+				deadlineAt: null,
+				needsStop: false,
+			},
+			{
+				key: "approve-review",
+				actionKey: "approve-review",
+				nodeId: id(503),
+				parentKey: null,
+				iteration: 0,
+				round: 0,
+				state: "waiting_human",
+				phase: "step",
+				output: null,
+				decision: null,
+				error: null,
+				startedAt,
+				endedAt: null,
+				deadlineAt: null,
+				needsStop: false,
+			},
+		],
 	},
-];
-
+};
 export const flowHistoryResponses = {
 	...flowResponses,
 	...reviewResponses,
@@ -62,9 +69,7 @@ export const flowHistoryResponses = {
 		...reviewStatus,
 		prRow: { ...pullRequest, source: "manual", linkedBy: actor, linkedAt: timestamp },
 	},
-	"flowDocumentsV1.list": history,
-	"flowDocumentsV1.view": flowExecution,
-	"flowExecutionsV1.recovery": { state: "open" },
-	"flowExecutionsV1.cancel": { ...flowExecution, revision: 9, status: "canceled", detail: "canceled" },
-	"flowExecutionsV1.decision": { ...flowExecution, revision: 9, status: "succeeded", detail: "completed" },
+	"flowExecutions.list": [flowExecution],
+	"flowExecutions.cancel": { ...flowExecution, revision: 2, state: { ...flowExecution.state, status: "canceled" } },
+	"flowExecutions.decide": { ...flowExecution, revision: 2, state: { ...flowExecution.state, status: "running" } },
 };

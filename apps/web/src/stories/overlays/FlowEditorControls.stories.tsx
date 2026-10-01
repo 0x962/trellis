@@ -44,10 +44,6 @@ export const NewFlowPending: Story = {
 export const Settings: Story = {
 	render: () => <FlowSettingsSheet flow={flowDoc.flow} onSaved={noop} onClose={noop} />,
 };
-export const SettingsLoading: Story = {
-	...Settings,
-	parameters: { trellis: { responses: { "flowDocumentsV1.get": pending } } },
-};
 export const SettingsError: Story = {
 	...Settings,
 	parameters: { trellis: { responses: { "flows.update": failure } } },

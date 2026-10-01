@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { withAttemptOperation } from "../langflowStops";
+import { workspaceOperation } from "../../agents/native/workspaceOperation";
 
 const readers = new Map<string, number>();
 const keyOf = (home: string, attemptId: string) => resolve(home, "harness-attempts", attemptId);
@@ -9,7 +9,7 @@ const keyOf = (home: string, attemptId: string) => resolve(home, "harness-attemp
 export const attemptRetention = {
 	async retain(home: string, attemptId: string | null): Promise<() => void> {
 		if (attemptId === null) return () => {};
-		return withAttemptOperation(home, attemptId, async () => {
+		return workspaceOperation(keyOf(home, attemptId), async () => {
 			const key = keyOf(home, attemptId);
 			readers.set(key, (readers.get(key) ?? 0) + 1);
 			return () => {

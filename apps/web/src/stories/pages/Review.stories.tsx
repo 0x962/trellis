@@ -59,15 +59,15 @@ export const FlowsWithoutTicket: Story = {
 };
 export const FlowsEmpty: Story = {
 	args: { tab: "flows" },
-	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowDocumentsV1.list": [] } } },
+	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowExecutions.list": [] } } },
 };
 export const FlowsLoading: Story = {
 	args: { tab: "flows" },
-	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowDocumentsV1.list": pending } } },
+	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowExecutions.list": pending } } },
 };
 export const FlowsError: Story = {
 	args: { tab: "flows" },
-	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowDocumentsV1.list": failure } } },
+	parameters: { trellis: { responses: { ...flowHistoryResponses, "flowExecutions.list": failure } } },
 };
 export const FlowsNarrow: Story = { ...Flows, globals: { viewport: { value: "phone", isRotated: false } } };
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };

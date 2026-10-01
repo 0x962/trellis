@@ -1,1 +1,0 @@
-export { canonicalBytes } from "./canonicalBytes";
