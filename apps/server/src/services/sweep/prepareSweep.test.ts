@@ -30,6 +30,7 @@ async function fixture() {
 	const ctx = {
 		home,
 		now: () => now,
+		log: () => {},
 		newTx: <T>(action: (tx: Tx) => Promise<T>) => db.transaction(action),
 	};
 	const addAttempt = async (attemptId: string, bytes = "snapshot") => {
@@ -86,13 +87,29 @@ test("takes retention before the attempt lock and rechecks the current terminal"
 		await f.db.execute(sql`INSERT INTO agent_runs (id, terminal_id) VALUES (${ids.execution}, ${attempt.id})`);
 	});
 	await lockHeld;
-	const sweep = sweepAttempts(f.ctx, [attempt], ATTEMPT_MIN_AGE_MS);
+	let referencesRead!: () => void;
+	const initialRead = new Promise<void>((resolve) => {
+		referencesRead = resolve;
+	});
+	const sweep = sweepAttempts(
+		{
+			...f.ctx,
+			newTx: async <T>(action: (tx: Tx) => Promise<T>) => {
+				const result = await f.ctx.newTx(action);
+				referencesRead();
+				return result;
+			},
+		},
+		[attempt],
+		ATTEMPT_MIN_AGE_MS,
+	);
 	let laterRetentionRan = false;
 	const laterRetention = withNativeSnapshotRetention(f.home, async () => {
 		laterRetentionRan = true;
 	});
 	await Promise.resolve();
 	expect(laterRetentionRan).toBe(false);
+	await initialRead;
 	release();
 	await currentWrite;
 	expect(await sweep).toBe(0);
@@ -133,4 +150,78 @@ test("releases snapshot retention after the callback fails", async () => {
 		acquired = true;
 	});
 	expect(acquired).toBe(true);
+});
+
+const retainedAttempts = (count: number) =>
+	Array.from({ length: count }, (_, index) => ({
+		id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+		modifiedAt: 0,
+	}));
+
+const insertReferences = (tx: Tx, count: number) =>
+	tx.execute(sql`
+	INSERT INTO agent_runs SELECT i::text, '00000000-0000-4000-8000-' || lpad(i::text, 12, '0')
+	FROM generate_series(1, ${count}::int) AS n(i)
+`);
+
+test("reads references once for a large retained attempt inventory", async () => {
+	const f = await fixture();
+	const count = 1_000;
+	await f.ctx.newTx((tx) => insertReferences(tx, count));
+	let transactions = 0;
+	const logs: { message: string; fields: Record<string, unknown> | undefined }[] = [];
+	const removed = await sweepAttempts(
+		{
+			...f.ctx,
+			log: (message, fields) => logs.push({ message, fields }),
+			newTx: <T>(action: (tx: Tx) => Promise<T>) => {
+				transactions += 1;
+				return f.ctx.newTx(action);
+			},
+		},
+		retainedAttempts(count),
+		ATTEMPT_MIN_AGE_MS,
+	);
+	expect(removed).toBe(0);
+	expect(transactions).toBe(1);
+	expect(logs).toMatchObject([
+		{ message: "sweep attempt candidates", fields: { directories: count, candidates: 0 } },
+		{ message: "sweep attempts completed", fields: { checked: 0, retained: 0, removed: 0 } },
+	]);
+});
+
+test("serves a timer query while attempts gain references after the initial read", async () => {
+	const f = await fixture();
+	const count = 1_000;
+	let transactions = 0;
+	let sweepCompleted = false;
+	let readDuringSweep = false;
+	let timerQuery: Promise<void> | undefined;
+	const removed = await sweepAttempts(
+		{
+			...f.ctx,
+			newTx: async <T>(action: (tx: Tx) => Promise<T>) => {
+				const result = await f.ctx.newTx(action);
+				transactions += 1;
+				if (transactions === 1) {
+					await f.ctx.newTx((tx) => insertReferences(tx, count));
+					timerQuery = new Promise<void>((resolve) =>
+						setTimeout(async () => {
+							await f.db.execute(sql`SELECT 1`);
+							readDuringSweep = !sweepCompleted;
+							resolve();
+						}, 0),
+					);
+				}
+				return result;
+			},
+		},
+		retainedAttempts(count),
+		ATTEMPT_MIN_AGE_MS,
+	);
+	sweepCompleted = true;
+	await timerQuery;
+	expect(removed).toBe(0);
+	expect(transactions).toBe(count + 1);
+	expect(readDuringSweep).toBe(true);
 });
