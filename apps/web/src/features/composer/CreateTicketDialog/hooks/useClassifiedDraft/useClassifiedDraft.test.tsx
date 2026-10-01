@@ -36,14 +36,11 @@ const suggestion: TicketClassification = {
 	epic: "TRL/forms",
 	wave: "TRL/forms/first",
 	priority: "high",
-	difficulty: "medium",
-	model: null,
 };
 
 async function fixture(
 	options: ComposerOptions = {},
 	initial: ComposerDraft = { title: "", description: "", assignment: null },
-	defaultAssignment: AssignChoice = DEFAULT_CHOICE,
 ) {
 	storage.set("trellis-composer-draft", JSON.stringify(initial));
 	const requests: Array<{ input: TicketClassificationInput; resolve: (result: TicketClassification) => void }> = [];
@@ -67,7 +64,6 @@ async function fixture(
 			description: state.draft.description || "Template",
 			template: "Template",
 			defaultPriority: options.priority ?? "none",
-			defaultAssignment,
 			disabled: false,
 			isSubmitting: () => submitting,
 		});
@@ -122,42 +118,45 @@ test("automatic fields follow later edits and survive a dialog reopen", async ()
 	expect(f.draft()).toMatchObject(changed);
 });
 
-test("recommendations follow ticket edits and survive reopen with the selected account and supported effort", async () => {
-	const choice: AssignChoice = { preset: "codex", model: null, effort: "high", accountId: "account-one" };
-	const f = await fixture({}, { title: "Fix form", description: "" }, choice);
+test("classification preserves the last model, effort, and account through edits and reopen", async () => {
+	const choice: AssignChoice = {
+		preset: "codex",
+		model: "openai/gpt-6-astra",
+		effort: "high",
+		accountId: "account-one",
+	};
+	const f = await fixture({}, { title: "Fix form", description: "", assignment: choice });
 	await wait();
-	expect(f.requests[0]!.input.harness).toBe("codex");
-	expect(f.classification().message).toBeNull();
-	await act(async () => f.requests[0]!.resolve({ ...suggestion, model: "openai/gpt-5.6-luna" }));
-	expect(f.draft().assignment).toEqual({ ...choice, model: "openai/gpt-5.6-luna" });
-	expect(f.draft().automatic).toContain("assignment");
+	expect(f.requests[0]!.input).not.toHaveProperty("harness");
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
 	await f.reopen();
 	await f.edit({ title: "Diagnose database corruption" });
 	await wait();
-	await act(async () => f.requests[1]!.resolve({ ...suggestion, difficulty: "high", model: "openai/gpt-6-astra" }));
-	expect(f.draft().assignment).toEqual({ ...choice, model: "openai/gpt-6-astra" });
+	await act(async () => f.requests[1]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
 });
 
-test("an automatic model clears an incompatible recent effort", async () => {
-	const choice: AssignChoice = { ...DEFAULT_CHOICE, effort: "max", accountId: "account-one" };
-	const f = await fixture({}, { title: "Rename a label", description: "" }, choice);
+test("classification leaves the recent assignment available for a new draft", async () => {
+	const f = await fixture({}, { title: "Rename a label", description: "" });
 	await wait();
-	await act(async () => f.requests[0]!.resolve({ ...suggestion, model: "anthropic/claude-haiku-4.5" }));
-	expect(f.draft().assignment).toEqual({ ...choice, model: "anthropic/claude-haiku-4.5", effort: null });
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft().assignment).toBeUndefined();
+	expect(f.draft().automatic).toEqual(["epic", "wave", "priority"]);
 });
 
 test("manual model choices and No agent persist across edits and pending responses", async () => {
 	const f = await fixture({}, { title: "Fix form", description: "" });
 	await wait();
-	const model = "anthropic/claude-opus-5.5";
-	await act(async () => f.requests[0]!.resolve({ ...suggestion, model }));
-	await f.choose({ assignment: f.draft().assignment });
-	expect(f.draft().automatic).not.toContain("assignment");
+	const choice: AssignChoice = { ...DEFAULT_CHOICE, model: "anthropic/claude-opus-5.5" };
+	await f.choose({ assignment: choice });
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
 	await f.edit({ title: "A minor fix" });
 	await wait();
-	expect(f.requests[1]!.input.harness).toBeUndefined();
+	expect(f.requests[1]!.input).not.toHaveProperty("harness");
 	await act(async () => f.requests[1]!.resolve(suggestion));
-	expect(f.draft().assignment?.model).toBe(model);
+	expect(f.draft().assignment).toEqual(choice);
 	await f.choose({ assignment: null });
 	await f.reopen();
 	await wait();
@@ -165,15 +164,17 @@ test("manual model choices and No agent persist across edits and pending respons
 	expect(f.draft().assignment).toBeNull();
 });
 
-test("an immediate manual agent choice rejects a pending recommendation", async () => {
+test("an immediate manual agent choice survives a pending classification", async () => {
 	const f = await fixture({}, { title: "Fix form", description: "" });
 	await wait();
 	const choice: AssignChoice = { preset: "codex", model: "openai/gpt-6-astra", effort: null, accountId: null };
 	await act(async () => {
 		f.classification().choose({ assignment: choice });
-		f.requests[0]!.resolve({ ...suggestion, model: "anthropic/claude-opus-5.5" });
+		f.requests[0]!.resolve(suggestion);
 	});
 	expect(f.draft().assignment).toEqual(choice);
+	await wait();
+	expect(f.requests).toHaveLength(1);
 });
 
 test("a manual choice keeps its value when it matches the automatic value", async () => {

@@ -7,6 +7,10 @@ const markup = (props: Partial<FailureStateProps>) =>
 	renderToStaticMarkup(<FailureState title="The agent stopped before it finished" {...props} />);
 
 describe("FailureState title", () => {
+	test.each(["section", "page", "inline"] as const)("announces the %s failure", (variant) => {
+		expect(markup({ variant })).toContain('role="alert"');
+	});
+
 	test("prints the title", () => {
 		expect(markup({})).toContain("The agent stopped before it finished");
 	});

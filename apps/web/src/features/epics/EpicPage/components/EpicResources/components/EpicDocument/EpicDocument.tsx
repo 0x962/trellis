@@ -11,6 +11,7 @@ import {
 } from "../../../../../../ticket/Description/components/LazyEditor";
 import { UNTITLED } from "../../../../../epicDocs";
 import { typingSaver } from "../../typingSaver";
+import { DocumentColumns } from "./components/DocumentColumns";
 
 export type EpicDocumentProps = {
 	// `PLAN_DOC_ID` or a resource id. The editor takes a new text only when
@@ -163,19 +164,5 @@ export function EpicDocument({
 				</p>
 			)}
 		</DocumentColumns>
-	);
-}
-
-// The scrolling document column, and the comments margin beside it when a
-// document has one. The margin scrolls on its own, so a thread and the text
-// it is about can both be on screen.
-function DocumentColumns({ margin, children }: { margin: ReactNode; children: ReactNode }) {
-	return (
-		<div className="flex min-h-0 min-w-0 flex-1">
-			<div className="min-w-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
-				<article className="mx-auto flex max-w-3xl flex-col gap-4">{children}</article>
-			</div>
-			{margin}
-		</div>
 	);
 }

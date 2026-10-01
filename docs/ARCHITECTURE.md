@@ -303,10 +303,8 @@ Automatic wave and priority changes use one standard text glimmer sweep and resp
 The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
 A stale response cannot change a newer draft or a submitted ticket.
 A provider error leaves manual creation available and appears inside the epic and wave picker.
-Jev assesses implementation difficulty separately from priority and recommends a model for the selected harness.
-The model choices come from the compatible catalog and exclude contributor variants that require an explicit choice.
-The agent picker applies the recommendation and preserves the account and any compatible effort.
-A manual agent choice, including No agent, stays fixed through later classification calls and a dialog reopen.
+The agent picker uses the last saved harness, model, effort, and account choice.
+A draft retains its agent choice through later classification calls and a dialog reopen.
 Classification and ticket submission use the existing controls without an extra status paragraph below the fields.
 
 ### Epics
@@ -620,6 +618,12 @@ Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
 ULID or `KEY-n`. Update, remove, and blob reads use the resource ULID. The CLI
 verb is `trellis resource` with `add`, `list`, and `rm`.
 
+The epic plan and document resources show an automatic contents list.
+`EpicDocument` observes the rendered Markdown headings, including edits before the body save completes.
+The list reads body headings at levels one through six.
+Each heading retains a separate navigation target while its element remains in the document.
+`DocumentLayout` puts the list in a right sidebar or a Contents popover, according to the available width.
+
 #### Document comments
 
 `resource_comments` holds the comment threads on the text of a document
@@ -743,6 +747,10 @@ Session workspaces, active tickets, live processes, open files, and dirty worktr
 The sweep keeps the branch, assignment, and provider conversation.
 
 The attempt sweep reads all references once, then skips referenced and recent directories.
+Resume retains a temporary reference to the prior attempt before it replaces the database reference.
+Manual, idle, session, and observer resumes retain this reference through the required descriptor reads.
+A background session launch releases the reference after success or failure.
+The attempt lock orders temporary references and cleanup. Cleanup skips a directory while a resume retains it.
 It checks each remaining attempt again under its attempt lock before removal.
 Between attempts, it yields after 25 milliseconds so the database worker can receive requests.
 Sweep logs identify each phase, its duration, and its counts under one sweep identifier.
@@ -853,6 +861,8 @@ The host monitor requires a complete execution service read before it stores new
 The Clean up section in Settings sets the archive and deletion periods in whole days.
 The defaults are 3 days for archive and 7 days for deletion. Each rule can be disabled.
 After the archive period without activity, an unpinned, stopped row moves to Archived.
+Ticket sessions move to Archived as soon as the ticket reaches Done or Canceled, regardless of pins, process activity, or the archive period.
+If the ticket reopens, its sessions use the normal inactivity rule again.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 The host also runs session cleanup at boot and once each hour.
 Cleanup archives sessions without a project by setting `archived_at`. This archive keeps the original activity time for deletion.

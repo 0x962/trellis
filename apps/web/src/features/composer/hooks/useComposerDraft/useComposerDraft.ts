@@ -14,7 +14,7 @@ export type ComposerDraft = {
 	labels?: TicketLabel[];
 	assignment?: AssignChoice | null;
 	editing?: boolean;
-	automatic?: Array<"epic" | "wave" | "priority" | "assignment">;
+	automatic?: Array<"epic" | "wave" | "priority">;
 };
 
 export const draftKey = "trellis-composer-draft";

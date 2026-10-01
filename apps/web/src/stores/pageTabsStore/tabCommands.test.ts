@@ -25,6 +25,36 @@ const fixture = () => {
 	return { open, entries };
 };
 
+test.each(["none", "expanded", "collapsed elsewhere"])(
+	"selection keeps the tab and group arrays when the group state is %s",
+	(groupState) => {
+		const store = fixture().open();
+		const first = store.getState().activeId;
+		const second = store.getState().addTab({ url: "/b", title: "B" });
+		if (groupState !== "none") {
+			const group = store.getState().createGroup("Reviews");
+			if (groupState === "expanded") {
+				store.getState().setTabGroup(first, group);
+				store.getState().setTabGroup(second, group);
+			} else {
+				const third = store.getState().addTab({ url: "/c", title: "C" });
+				store.getState().setTabGroup(third, group);
+				store.getState().selectTab(first);
+				store.getState().setGroupCollapsed(group, true);
+			}
+		}
+		const { tabs, groups } = store.getState();
+		store.getState().selectTab(first);
+		expect(store.getState().activeId).toBe(first);
+		expect(store.getState().tabs).toBe(tabs);
+		expect(store.getState().groups).toBe(groups);
+		store.getState().selectAdjacentTab(1);
+		expect(store.getState().activeId).toBe(second);
+		expect(store.getState().tabs).toBe(tabs);
+		expect(store.getState().groups).toBe(groups);
+	},
+);
+
 test("a move preserves the selected tab and both histories across reload", () => {
 	const { open } = fixture();
 	const store = open();

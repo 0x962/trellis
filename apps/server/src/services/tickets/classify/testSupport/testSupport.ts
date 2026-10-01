@@ -51,10 +51,7 @@ export async function classificationHarness(at: string) {
 	type Evaluation = Parameters<typeof evaluate>[1];
 	type Candidate = { epic: string; wave: string | null; description: string };
 	const answer =
-		(
-			choose: (choices: Record<string, Candidate>, input: Evaluation) => string | undefined,
-			model?: string,
-		): ProviderFetch =>
+		(choose: (choices: Record<string, Candidate>, input: Evaluation) => string | undefined): ProviderFetch =>
 		async (_url, init) => {
 			expect(inside).toBe(false);
 			const input = JSON.parse(init.body as string) as Evaluation & {
@@ -64,10 +61,6 @@ export async function classificationHarness(at: string) {
 			return Response.json({
 				answers: {
 					priority: { type: "choice", choice: "high" },
-					difficulty: { type: "choice", choice: "medium" },
-					...(input.questions.model
-						? { model: { type: "choice", choice: model ?? Object.keys(input.questions.model.criteria)[0] } }
-						: {}),
 					...(placement === undefined ? {} : { placement: { type: "choice", choice: placement } }),
 				},
 			});

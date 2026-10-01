@@ -1,4 +1,4 @@
-import type { JobsLog } from "../../../jobs";
+import type { JobsLog } from "../../../../jobs";
 
 export function sweepLog(log: JobsLog) {
 	const sweepId = crypto.randomUUID();

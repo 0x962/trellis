@@ -8,6 +8,7 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
+import { attemptRetention } from "../attemptRetention";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
@@ -39,7 +40,15 @@ export const prepareResume = (
 	start: typeof startNative = startNative,
 	switchRunning = false,
 	recover: typeof recoverPreviousAttempt = recoverPreviousAttempt,
-) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning, recover));
+) =>
+	sessionOperation(ctx.home, input.id, async () => {
+		const release = await attemptRetention.retain(ctx.home, input.expectedTerminalId);
+		try {
+			return await resume(ctx, input, start, switchRunning, recover);
+		} finally {
+			release();
+		}
+	});
 
 async function resume(
 	ctx: ResumeCtx,

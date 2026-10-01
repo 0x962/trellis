@@ -11,10 +11,10 @@ import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
+import { sweepLog } from "./components/sweepLog";
 import { outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
 import { openPaths } from "./openPaths.ts";
 import { sweepAttempts } from "./sweepAttempts.ts";
-import { sweepLog } from "./sweepLog";
 import { type ScratchSweepResult, sweepScratch } from "./sweepScratch.ts";
 
 // The sweep removes the files of finished agent work from the data home:

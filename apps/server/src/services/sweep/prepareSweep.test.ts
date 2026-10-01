@@ -152,6 +152,37 @@ test("releases snapshot retention after the callback fails", async () => {
 	expect(acquired).toBe(true);
 });
 
+test("keeps a native reservation created after the initial reference read", async () => {
+	const f = await fixture();
+	const attempt = await f.addAttempt(handle.attemptId);
+	let initialRead = true;
+	const removed = await sweepAttempts(
+		{
+			...f.ctx,
+			newTx: async <T>(action: (tx: Tx) => Promise<T>) => {
+				const result = await f.ctx.newTx(action);
+				if (initialRead) {
+					initialRead = false;
+					await f.ctx.newTx((tx) =>
+						reserveNative(tx, {
+							requestBytes: JSON.stringify(nativeRequest),
+							taskKey: "late-reservation",
+							handle,
+							authority: f.authority,
+							now,
+						}),
+					);
+				}
+				return result;
+			},
+		},
+		[attempt],
+		ATTEMPT_MIN_AGE_MS,
+	);
+	expect(removed).toBe(0);
+	expect((await stat(join(f.home, "harness-attempts", attempt.id))).isDirectory()).toBe(true);
+});
+
 const retainedAttempts = (count: number) =>
 	Array.from({ length: count }, (_, index) => ({
 		id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
