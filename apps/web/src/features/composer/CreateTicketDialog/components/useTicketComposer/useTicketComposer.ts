@@ -66,7 +66,6 @@ export function useTicketComposer() {
 		description,
 		template: defaults.template,
 		defaultPriority: defaults.priority,
-		defaultAssignment,
 		disabled: locked || asking,
 		isSubmitting: submission.isRunning,
 	});
@@ -89,7 +88,6 @@ export function useTicketComposer() {
 		wave: wave ?? null,
 		labels,
 		assignment: choice,
-		automatic: draft.assignment === undefined ? [...(draft.automatic ?? []), "assignment" as const] : draft.automatic,
 	};
 	function close() {
 		if (submission.isRunning()) return;

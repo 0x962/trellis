@@ -18,8 +18,6 @@ const suggestion: TicketClassification = {
 	epic: "TRL/forms",
 	wave: "TRL/forms/fixes",
 	priority: "high",
-	difficulty: "medium",
-	model: null,
 };
 const disposals: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -116,18 +114,6 @@ test("project changes discard prior responses and send the current project", asy
 	expect(f.applied).toHaveLength(0);
 	await wait();
 	expect(f.requests[1]!.input.project).toBe("OP");
-});
-
-test("a harness change cancels its pending recommendation", async () => {
-	const f = await fixture({ harness: "claude" });
-	await wait();
-	expect(f.requests[0]!.input.harness).toBe("claude");
-	await f.render({ harness: "codex" });
-	expect(f.requests[0]!.signal.aborted).toBe(true);
-	await act(async () => f.requests[0]!.resolve({ ...suggestion, model: "anthropic/claude-opus-5.5" }));
-	expect(f.applied).toHaveLength(0);
-	await wait();
-	expect(f.requests[1]!.input.harness).toBe("codex");
 });
 
 test("manual placement constrains the next request and discards the pending choice", async () => {
