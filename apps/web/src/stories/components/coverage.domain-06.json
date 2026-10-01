@@ -1,0 +1,98 @@
+[
+	{
+		"source": "packages/ui/src/domain/TicketId/TicketId.tsx",
+		"export": "TicketId",
+		"stories": ["Components/TicketId/Default", "Components/TicketId/Small", "Components/TicketId/LongIdentifier"],
+		"states": ["default", "small", "long identifier"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/TicketLine/TicketLine.tsx",
+		"export": "TicketLine",
+		"stories": ["Components/TicketLine/Default", "Components/TicketLine/WithMark", "Components/TicketLine/LongTitle"],
+		"states": ["default", "with mark", "long title"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/TrellisWordmark/TrellisWordmark.tsx",
+		"export": "TrellisWordmark",
+		"stories": [
+			"Components/TrellisWordmark/Default",
+			"Components/TrellisWordmark/Short",
+			"Components/TrellisWordmark/Large"
+		],
+		"states": ["default", "short", "large"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/UsageChart/UsageChart.tsx",
+		"export": "UsageChart",
+		"stories": [
+			"Components/UsageChart/Default",
+			"Components/UsageChart/Line",
+			"Components/UsageChart/Selected",
+			"Components/UsageChart/Zero",
+			"Components/UsageChart/Empty"
+		],
+		"states": ["default", "line", "selected", "zero", "empty"],
+		"notes": "Click a day to select it. Arrow keys move between days. Enter changes the selection."
+	},
+	{
+		"source": "packages/ui/src/domain/WaveStartDialog/components/WaveStartContent/WaveStartContent.tsx",
+		"export": "WaveStartContent",
+		"stories": [
+			"Components/WaveStartDialog/Default",
+			"Components/WaveStartDialog/Closed",
+			"Components/WaveStartDialog/Starting",
+			"Components/WaveStartDialog/NoneSelected",
+			"Components/WaveStartDialog/NoSelectableTickets",
+			"Components/WaveStartDialog/Empty",
+			"Components/WaveStartDialog/Failed"
+		],
+		"states": ["default", "closed", "starting", "none selected", "no selectable tickets", "empty", "failed"],
+		"notes": "WaveStartContent provides the ticket tree, selection, agent, and footer inside the real dialog. All actions use local state."
+	},
+	{
+		"source": "packages/ui/src/domain/WaveStartDialog/WaveStartDialog.tsx",
+		"export": "WaveStartDialog",
+		"stories": [
+			"Components/WaveStartDialog/Default",
+			"Components/WaveStartDialog/Closed",
+			"Components/WaveStartDialog/Starting",
+			"Components/WaveStartDialog/NoneSelected",
+			"Components/WaveStartDialog/NoSelectableTickets",
+			"Components/WaveStartDialog/Empty",
+			"Components/WaveStartDialog/Failed"
+		],
+		"states": ["default", "closed", "starting", "none selected", "no selectable tickets", "empty", "failed"],
+		"notes": "WaveStartContent renders the dependency list inside WaveStartDialog. Select ready or waiting tickets. Start records a local result and preserves the selection."
+	},
+	{
+		"source": "packages/ui/src/domain/WorkingAgentText/WorkingAgentText.tsx",
+		"export": "WorkingAgentText",
+		"stories": [
+			"Components/WorkingAgentText/Default",
+			"Components/WorkingAgentText/Several",
+			"Components/WorkingAgentText/NoTooltip",
+			"Components/WorkingAgentText/LongContent"
+		],
+		"states": ["default", "several", "no tooltip", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/WorkspaceChanges/WorkspaceChanges.tsx",
+		"export": "WorkspaceChanges",
+		"stories": [
+			"Components/WorkspaceChanges/Default",
+			"Components/WorkspaceChanges/Empty",
+			"Components/WorkspaceChanges/Loading",
+			"Components/WorkspaceChanges/ErrorState",
+			"Components/WorkspaceChanges/TruncatedDiff",
+			"Components/WorkspaceChanges/File",
+			"Components/WorkspaceChanges/Binary",
+			"Components/WorkspaceChanges/TruncatedFile"
+		],
+		"states": ["default", "empty", "loading", "error", "truncated diff", "file", "binary", "truncated file"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

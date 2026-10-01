@@ -1,0 +1,183 @@
+[
+	{
+		"source": "apps/web/src/features/flows/LangflowEditor/components/DocumentDraftDialog/DocumentDraftDialog.tsx",
+		"export": "DocumentDraftDialog",
+		"stories": [
+			"Overlays/FlowDrafts/BrowserOpen",
+			"Overlays/FlowDrafts/BrowserEmpty",
+			"Overlays/FlowDrafts/BrowserPending",
+			"Overlays/FlowDrafts/BrowserDisabled",
+			"Overlays/FlowDrafts/BrowserError",
+			"Overlays/FlowDrafts/DiscardConfirmation"
+		],
+		"states": ["open", "empty", "pending", "disabled", "error", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/notes/NotesSettings/components/NoteSheet/NoteSheet.tsx",
+		"export": "NoteSheet",
+		"stories": [
+			"Overlays/NoteSheet/Open",
+			"Overlays/NoteSheet/ClosedTrigger",
+			"Overlays/NoteSheet/Selected",
+			"Overlays/NoteSheet/Disabled",
+			"Overlays/NoteSheet/Pending",
+			"Overlays/NoteSheet/RequestError",
+			"Overlays/NoteSheet/Success",
+			"Overlays/NoteSheet/DeleteConfirmation"
+		],
+		"states": ["open", "closed-trigger", "selected", "disabled", "pending", "error", "success", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageDetail/components/PageHistory/PageHistory.tsx",
+		"export": "PageHistory",
+		"stories": [
+			"Overlays/PageControls/HistoryOpen",
+			"Overlays/PageControls/HistoryEmpty",
+			"Overlays/PageControls/HistoryLoading",
+			"Overlays/PageControls/HistoryError"
+		],
+		"states": ["open", "empty", "loading", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageDetail/components/PageShare/PageShare.tsx",
+		"export": "PageShare",
+		"stories": ["Overlays/PageControls/Share"],
+		"states": ["default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageDetail/components/PageWatcher/PageWatcher.tsx",
+		"export": "PageWatcher",
+		"stories": [
+			"Overlays/PageControls/WatcherClosed",
+			"Overlays/PageControls/WatcherOpen",
+			"Overlays/PageControls/WatcherSelected",
+			"Overlays/PageControls/WatcherDisabled",
+			"Overlays/PageControls/WatcherEmpty",
+			"Overlays/PageControls/WatcherLoading",
+			"Overlays/PageControls/WatcherError"
+		],
+		"states": ["closed-trigger", "open", "selected", "disabled", "empty", "loading", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageList/components/PageListFilters/PageListFilters.tsx",
+		"export": "PageListFilters",
+		"stories": [
+			"Overlays/PageControls/FiltersClosed",
+			"Overlays/PageControls/FiltersOpen",
+			"Overlays/PageControls/FiltersSelected",
+			"Overlays/PageControls/AuthorFilter",
+			"Overlays/PageControls/WatcherFilter",
+			"Overlays/PageControls/CommentsFilter",
+			"Overlays/PageControls/PinFilter"
+		],
+		"states": ["closed-trigger", "open", "selected", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/EpicPicker/EpicPicker.tsx",
+		"export": "EpicPicker",
+		"stories": [
+			"Overlays/EpicPicker/ClosedTrigger",
+			"Overlays/EpicPicker/Disabled",
+			"Overlays/EpicPicker/Open",
+			"Overlays/EpicPicker/Selected",
+			"Overlays/EpicPicker/Mixed",
+			"Overlays/EpicPicker/Empty",
+			"Overlays/EpicPicker/Loading"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/LabelPicker/LabelPicker.tsx",
+		"export": "LabelPicker",
+		"stories": [
+			"Overlays/LabelPicker/ClosedTrigger",
+			"Overlays/LabelPicker/Disabled",
+			"Overlays/LabelPicker/Open",
+			"Overlays/LabelPicker/Selected",
+			"Overlays/LabelPicker/Mixed",
+			"Overlays/LabelPicker/Empty",
+			"Overlays/LabelPicker/Loading"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/PriorityPicker/PriorityPicker.tsx",
+		"export": "PriorityPicker",
+		"stories": [
+			"Overlays/PriorityPicker/ClosedTrigger",
+			"Overlays/PriorityPicker/Disabled",
+			"Overlays/PriorityPicker/Open",
+			"Overlays/PriorityPicker/Selected"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/ProjectPicker/ProjectPicker.tsx",
+		"export": "ProjectPicker",
+		"stories": [
+			"Overlays/ProjectPicker/ClosedTrigger",
+			"Overlays/ProjectPicker/Disabled",
+			"Overlays/ProjectPicker/Open",
+			"Overlays/ProjectPicker/Selected",
+			"Overlays/ProjectPicker/Empty",
+			"Overlays/ProjectPicker/RequestError"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected", "empty", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/StatusPicker/StatusPicker.tsx",
+		"export": "StatusPicker",
+		"stories": [
+			"Overlays/StatusPicker/ClosedTrigger",
+			"Overlays/StatusPicker/Disabled",
+			"Overlays/StatusPicker/Open",
+			"Overlays/StatusPicker/Selected",
+			"Overlays/StatusPicker/Empty"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/TicketPicker/TicketPicker.tsx",
+		"export": "TicketPicker",
+		"stories": [
+			"Overlays/TicketPicker/ClosedTrigger",
+			"Overlays/TicketPicker/Disabled",
+			"Overlays/TicketPicker/Open",
+			"Overlays/TicketPicker/Selected",
+			"Overlays/TicketPicker/Empty",
+			"Overlays/TicketPicker/SearchResults",
+			"Overlays/TicketPicker/SelectionLoading",
+			"Overlays/TicketPicker/SelectionPending",
+			"Overlays/TicketPicker/SelectionError"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected", "empty", "default", "loading", "pending", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/pickers/WavePicker/WavePicker.tsx",
+		"export": "WavePicker",
+		"stories": [
+			"Overlays/WavePicker/ClosedTrigger",
+			"Overlays/WavePicker/Disabled",
+			"Overlays/WavePicker/Open",
+			"Overlays/WavePicker/Selected",
+			"Overlays/WavePicker/Mixed",
+			"Overlays/WavePicker/CreateWave",
+			"Overlays/WavePicker/Empty",
+			"Overlays/WavePicker/Loading"
+		],
+		"states": ["closed-trigger", "disabled", "open", "selected", "default", "empty", "loading"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	}
+]

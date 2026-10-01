@@ -1,0 +1,181 @@
+[
+	{
+		"source": "packages/ui/src/domain/ActorChip/ActorChip.tsx",
+		"export": "ActorChip",
+		"stories": [
+			"Components/ActorChip/Default",
+			"Components/ActorChip/Agent",
+			"Components/ActorChip/Compact",
+			"Components/ActorChip/Profile",
+			"Components/ActorChip/LongName"
+		],
+		"states": ["default", "agent", "compact", "profile", "long name"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/AgentLaunchPicker/AgentLaunchPicker.tsx",
+		"export": "AgentLaunchPicker",
+		"stories": [
+			"Components/AgentLaunchPicker/Default",
+			"Components/AgentLaunchPicker/Open",
+			"Components/AgentLaunchPicker/Disabled",
+			"Components/AgentLaunchPicker/LongContent"
+		],
+		"states": ["default", "open", "disabled", "long content"],
+		"notes": "Open the picker to inspect the launch settings. The data stays local."
+	},
+	{
+		"source": "packages/ui/src/domain/ArchivedToggle/ArchivedToggle.tsx",
+		"export": "ArchivedToggle",
+		"stories": [
+			"Components/ArchivedToggle/Default",
+			"Components/ArchivedToggle/Expanded",
+			"Components/ArchivedToggle/PressedSemantics",
+			"Components/ArchivedToggle/NoCount",
+			"Components/ArchivedToggle/LargeCount"
+		],
+		"states": ["default", "expanded", "pressed semantics", "no count", "large count"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/BroadcastComposer/BroadcastComposer.tsx",
+		"export": "BroadcastComposer",
+		"stories": [
+			"Components/BroadcastComposer/Default",
+			"Components/BroadcastComposer/Busy",
+			"Components/BroadcastComposer/Global",
+			"Components/BroadcastComposer/LongScope",
+			"Components/BroadcastComposer/ErrorState"
+		],
+		"states": ["default", "busy", "global", "long scope", "error"],
+		"notes": "Edit the message and select recipient groups. Send records a local result. Busy prevents send and close. No message reaches an agent."
+	},
+	{
+		"source": "packages/ui/src/domain/ChatterPanel/ChatterPanel.tsx",
+		"export": "ChatterPanel",
+		"stories": [
+			"Components/ChatterPanel/Default",
+			"Components/ChatterPanel/Empty",
+			"Components/ChatterPanel/Loading",
+			"Components/ChatterPanel/ErrorState",
+			"Components/ChatterPanel/Disabled",
+			"Components/ChatterPanel/ReadOnly",
+			"Components/ChatterPanel/Saving",
+			"Components/ChatterPanel/EarlierMessages",
+			"Components/ChatterPanel/LoadingEarlier",
+			"Components/ChatterPanel/DeliveryStates",
+			"Components/ChatterPanel/LongMessage"
+		],
+		"states": [
+			"default",
+			"empty",
+			"loading",
+			"error",
+			"disabled",
+			"read only",
+			"saving",
+			"earlier messages",
+			"loading earlier",
+			"delivery states",
+			"long message"
+		],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/CheckConfetti/CheckConfetti.tsx",
+		"export": "CheckConfetti",
+		"stories": ["Components/CheckConfetti/InteractiveStates"],
+		"states": ["interactive states", "ready", "completion burst", "replay", "reduced motion"],
+		"notes": "Use the replay action to show the completion burst. The fixture includes a full check ribbon. Reduced motion follows the browser preference."
+	},
+	{
+		"source": "packages/ui/src/domain/CheckRibbon/CheckRibbon.tsx",
+		"export": "CheckRibbon",
+		"stories": [
+			"Components/CheckRibbon/Default",
+			"Components/CheckRibbon/Empty",
+			"Components/CheckRibbon/Failed",
+			"Components/CheckRibbon/Pending",
+			"Components/CheckRibbon/Canceled",
+			"Components/CheckRibbon/Skipped",
+			"Components/CheckRibbon/Mini",
+			"Components/CheckRibbon/Wide",
+			"Components/CheckRibbon/Crowded",
+			"Components/CheckRibbon/Decorative"
+		],
+		"states": ["default", "empty", "failed", "pending", "canceled", "skipped", "mini", "wide", "crowded", "decorative"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/CheckRing/CheckRing.tsx",
+		"export": "CheckRing",
+		"stories": [
+			"Components/CheckRing/Default",
+			"Components/CheckRing/Empty",
+			"Components/CheckRing/Success",
+			"Components/CheckRing/Failed",
+			"Components/CheckRing/Pending",
+			"Components/CheckRing/AllStates",
+			"Components/CheckRing/RareFailure"
+		],
+		"states": ["default", "empty", "success", "failed", "pending", "all states", "rare failure"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ComposerProperty/ComposerProperty.tsx",
+		"export": "ComposerProperty",
+		"stories": [
+			"Components/ComposerProperty/Default",
+			"Components/ComposerProperty/WithDetail",
+			"Components/ComposerProperty/Disabled",
+			"Components/ComposerProperty/LongContent"
+		],
+		"states": ["default", "with detail", "disabled", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ComposerTitle/ComposerTitle.tsx",
+		"export": "ComposerTitle",
+		"stories": [
+			"Components/ComposerTitle/Default",
+			"Components/ComposerTitle/Empty",
+			"Components/ComposerTitle/Disabled",
+			"Components/ComposerTitle/LongContent"
+		],
+		"states": ["default", "empty", "disabled", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/DisplayPopover/DisplayPopover.tsx",
+		"export": "DisplayPopover",
+		"stories": [
+			"Components/DisplayPopover/Default",
+			"Components/DisplayPopover/Descending",
+			"Components/DisplayPopover/WithExtraFields"
+		],
+		"states": ["default", "descending", "with extra fields"],
+		"notes": "Open Display to select a sort field and reverse its direction."
+	},
+	{
+		"source": "packages/ui/src/domain/DoneWash/DoneWash.tsx",
+		"export": "DoneWash",
+		"stories": ["Components/DoneWash/InteractiveStates"],
+		"states": ["interactive states", "ready", "completed row", "wave completion", "replay", "reduced motion"],
+		"notes": "Use the replay action to show a completed row and wave. Reduced motion follows the browser preference."
+	},
+	{
+		"source": "packages/ui/src/domain/FailureState/FailureState.tsx",
+		"export": "FailureState",
+		"stories": [
+			"Components/FailureState/Default",
+			"Components/FailureState/Page",
+			"Components/FailureState/Inline",
+			"Components/FailureState/Retrying",
+			"Components/FailureState/Waiting",
+			"Components/FailureState/NoDetail",
+			"Components/FailureState/LongDetail"
+		],
+		"states": ["default", "page", "inline", "retrying", "waiting", "no detail", "long detail"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

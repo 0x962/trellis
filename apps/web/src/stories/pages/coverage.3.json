@@ -1,0 +1,50 @@
+[
+	{
+		"source": "apps/web/src/routes/settings.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Settings/Account",
+			"Pages/Settings/Notifications",
+			"Pages/Settings/Cleanup",
+			"Pages/Settings/MenuLinks",
+			"Pages/Settings/EmptyMenuLinks",
+			"Pages/Settings/AgentPrompt",
+			"Pages/Settings/PromptLoading",
+			"Pages/Settings/PromptError",
+			"Pages/Settings/CleanupLoading",
+			"Pages/Settings/CleanupError",
+			"Pages/Settings/Narrow"
+		],
+		"states": [
+			"redirect",
+			"account",
+			"notifications",
+			"cleanup",
+			"menu links",
+			"agent prompt",
+			"loading",
+			"error",
+			"narrow"
+		],
+		"notes": "Redirect: /settings opens SettingsView in a sheet and returns to Search. Desktop controls have separate overlay stories."
+	},
+	{
+		"source": "apps/web/src/routes/[_]gallery.tsx",
+		"export": "Route",
+		"stories": ["Pages/Design gallery/BothThemes", "Pages/Design gallery/Narrow"],
+		"states": ["light", "dark", "narrow"],
+		"notes": "The original Gallery renders both themes."
+	},
+	{
+		"source": "apps/web/src/routes/__root.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Collapsed",
+			"Pages/Navigation/ShellLoading",
+			"Pages/Search/RequestError"
+		],
+		"states": ["shell", "navigation", "loading", "error"],
+		"notes": "The shell catalog supplies the real primary navigation. Stories omit the production entry gate and live transport."
+	}
+]

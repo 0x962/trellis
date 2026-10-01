@@ -1,0 +1,149 @@
+[
+	{
+		"source": "apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx",
+		"export": "ReviewPage",
+		"stories": [
+			"Pages/Review/Overview",
+			"Pages/Review/Checks",
+			"Pages/Review/Diff",
+			"Pages/Review/Flows",
+			"Pages/Review/FlowsWithoutTicket",
+			"Pages/Review/FlowsEmpty",
+			"Pages/Review/FlowsLoading",
+			"Pages/Review/FlowsError",
+			"Pages/Review/FlowsNarrow",
+			"Pages/Review/Narrow",
+			"Pages/Review/EmptyOverview",
+			"Pages/Review/Loading",
+			"Pages/Review/RequestError",
+			"Pages/Review/FailedChecks",
+			"Pages/Review/MergeConflict",
+			"Pages/Review/Queued"
+		],
+		"states": [
+			"overview",
+			"checks",
+			"flows",
+			"diff",
+			"loading",
+			"error",
+			"empty",
+			"conflict",
+			"queued",
+			"narrow",
+			"flow history populated",
+			"flow history empty",
+			"flow history loading",
+			"flow history error"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/reviews/ProjectDiffsPage/ProjectDiffsPage.tsx",
+		"export": "ProjectDiffsPage",
+		"stories": [
+			"Pages/Diffs/Populated",
+			"Pages/Diffs/Empty",
+			"Pages/Diffs/Loading",
+			"Pages/Diffs/RequestError",
+			"Pages/Diffs/Narrow"
+		],
+		"states": ["populated", "empty", "loading", "error", "narrow"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/sessions/SessionPage/SessionPage.tsx",
+		"export": "SessionPage",
+		"stories": [
+			"Pages/Session/Paused",
+			"Pages/Session/RequestError",
+			"Pages/Session/Starting",
+			"Pages/Session/Failed",
+			"Pages/Session/Archived",
+			"Pages/Session/Loading",
+			"Pages/Session/Narrow",
+			"Pages/Session/LongName",
+			"Pages/Session/Running",
+			"Pages/Session/Idle",
+			"Pages/Session/Completed",
+			"Pages/Session/NeedsInput",
+			"Pages/Session/Interrupted",
+			"Pages/Session/Unavailable",
+			"Pages/Session/RunningNarrow",
+			"Pages/Session/CompletedAfterExit",
+			"Pages/Session/StatusUpdatesLoading",
+			"Pages/Session/StatusUpdatesError",
+			"Pages/Session/StatusUpdatesEmpty"
+		],
+		"states": [
+			"paused",
+			"starting",
+			"failed",
+			"archived",
+			"loading",
+			"error",
+			"narrow",
+			"long name",
+			"running",
+			"idle",
+			"completed turn",
+			"needs input",
+			"interrupted turn",
+			"unknown process",
+			"local terminal output",
+			"completed process",
+			"status history",
+			"status loading",
+			"status error",
+			"status empty"
+		],
+		"notes": "SessionPage renders SessionConversation and NativeTerminal with a local terminal transport. Story setup releases a prepared registry lease for the real terminal and disposes its identity after each story. Completed output remains visible while the process exists. An exited process uses the paused pane and keeps its saved status history."
+	},
+	{
+		"source": "apps/web/src/features/sessions/ProjectSessionsPage/ProjectSessionsPage.tsx",
+		"export": "ProjectSessionsPage",
+		"stories": [
+			"Pages/Project sessions/Populated",
+			"Pages/Project sessions/Empty",
+			"Pages/Project sessions/Loading",
+			"Pages/Project sessions/RequestError",
+			"Pages/Project sessions/ArchivedProject",
+			"Pages/Project sessions/Narrow"
+		],
+		"states": ["populated", "empty", "loading", "error", "archived", "narrow"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/UsagePage.tsx",
+		"export": "UsagePage",
+		"stories": [
+			"Pages/Usage/Agent",
+			"Pages/Usage/TokensByModel",
+			"Pages/Usage/SelectedDayAndTicket",
+			"Pages/Usage/Empty",
+			"Pages/Usage/Loading",
+			"Pages/Usage/RequestError",
+			"Pages/Usage/Narrow",
+			"Pages/Usage/System",
+			"Pages/Usage/SystemLoading",
+			"Pages/Usage/SystemError",
+			"Pages/Usage/MemoryPressure",
+			"Pages/Usage/SystemNarrow"
+		],
+		"states": ["agent", "system", "empty", "loading", "error", "filters", "memory pressure", "narrow"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowsPage/FlowsPage.tsx",
+		"export": "FlowsPage",
+		"stories": [
+			"Pages/Flows/MixedEnginesAndPublication",
+			"Pages/Flows/Empty",
+			"Pages/Flows/Loading",
+			"Pages/Flows/RequestError",
+			"Pages/Flows/Narrow"
+		],
+		"states": ["legacy", "Langflow", "pending publication", "published", "empty", "loading", "error", "narrow"],
+		"notes": ""
+	}
+]

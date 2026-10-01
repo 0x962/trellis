@@ -1,0 +1,225 @@
+[
+	{
+		"source": "packages/ui/src/domain/RunLine/RunLine.tsx",
+		"export": "RunLine",
+		"stories": [
+			"Components/RunLine/Default",
+			"Components/RunLine/Starts",
+			"Components/RunLine/Question",
+			"Components/RunLine/Permission",
+			"Components/RunLine/Elicitation",
+			"Components/RunLine/Idle",
+			"Components/RunLine/TurnDone",
+			"Components/RunLine/TurnDoneNew",
+			"Components/RunLine/Failed",
+			"Components/RunLine/Lost",
+			"Components/RunLine/Empty",
+			"Components/RunLine/NoMessage",
+			"Components/RunLine/RawError",
+			"Components/RunLine/Retry",
+			"Components/RunLine/RetryPending",
+			"Components/RunLine/RetryFailed",
+			"Components/RunLine/LongMessage"
+		],
+		"states": [
+			"default",
+			"starts",
+			"question",
+			"permission",
+			"elicitation",
+			"idle",
+			"turn done",
+			"turn done new",
+			"failed",
+			"lost",
+			"empty",
+			"no message",
+			"raw error",
+			"retry",
+			"retry pending",
+			"retry failed",
+			"long message"
+		],
+		"notes": "Hover the run to inspect its metrics. Session and retry actions stay local."
+	},
+	{
+		"source": "packages/ui/src/domain/SelectedTickets/SelectedTickets.tsx",
+		"export": "SelectedTickets",
+		"stories": [
+			"Components/SelectedTickets/Default",
+			"Components/SelectedTickets/Empty",
+			"Components/SelectedTickets/Loading",
+			"Components/SelectedTickets/ErrorState",
+			"Components/SelectedTickets/Pending",
+			"Components/SelectedTickets/Removing",
+			"Components/SelectedTickets/ManyTickets"
+		],
+		"states": ["default", "empty", "loading", "error", "pending", "removing", "many tickets"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/SessionStatusPane/SessionStatusPane.tsx",
+		"export": "SessionStatusPane",
+		"stories": [
+			"Components/SessionStatusPane/Default",
+			"Components/SessionStatusPane/Resizable",
+			"Components/SessionStatusPane/Empty",
+			"Components/SessionStatusPane/Paused",
+			"Components/SessionStatusPane/Completed",
+			"Components/SessionStatusPane/Pending",
+			"Components/SessionStatusPane/Sent",
+			"Components/SessionStatusPane/RequestFailed",
+			"Components/SessionStatusPane/ObserverError",
+			"Components/SessionStatusPane/HistoryLoading",
+			"Components/SessionStatusPane/HistoryError",
+			"Components/SessionStatusPane/WithEmbed",
+			"Components/SessionStatusPane/LongHistory"
+		],
+		"states": [
+			"default",
+			"resizable",
+			"empty",
+			"paused",
+			"completed",
+			"pending",
+			"sent",
+			"request failed",
+			"observer error",
+			"history loading",
+			"history error",
+			"with embed",
+			"long history"
+		],
+		"notes": "Select an update to inspect its text. Arrow keys move tree focus and fold days. SessionStatusPane renders SessionStatusPaneShell."
+	},
+	{
+		"source": "packages/ui/src/domain/SessionStatusPane/SessionStatusPaneShell.tsx",
+		"export": "SessionStatusPaneShell",
+		"stories": [
+			"Components/SessionStatusPane/Default",
+			"Components/SessionStatusPane/Resizable",
+			"Components/SessionStatusPane/Empty",
+			"Components/SessionStatusPane/Paused",
+			"Components/SessionStatusPane/Completed",
+			"Components/SessionStatusPane/Pending",
+			"Components/SessionStatusPane/Sent",
+			"Components/SessionStatusPane/RequestFailed",
+			"Components/SessionStatusPane/ObserverError",
+			"Components/SessionStatusPane/HistoryLoading",
+			"Components/SessionStatusPane/HistoryError",
+			"Components/SessionStatusPane/WithEmbed",
+			"Components/SessionStatusPane/LongHistory"
+		],
+		"states": [
+			"default",
+			"resizable",
+			"empty",
+			"paused",
+			"completed",
+			"pending",
+			"sent",
+			"request failed",
+			"observer error",
+			"history loading",
+			"history error",
+			"with embed",
+			"long history"
+		],
+		"notes": "SessionStatusPane renders the shell in every state. Resizable enables its real pointer and keyboard resize control. Phone widths move the pane above the transcript."
+	},
+	{
+		"source": "packages/ui/src/domain/SettingsListRow/SettingsListRow.tsx",
+		"export": "SettingsListRow",
+		"stories": [
+			"Components/SettingsListRow/Default",
+			"Components/SettingsListRow/Disabled",
+			"Components/SettingsListRow/Expanded",
+			"Components/SettingsListRow/LongContent"
+		],
+		"states": ["default", "disabled", "expanded", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/StackedBar/StackedBar.tsx",
+		"export": "StackedBar",
+		"stories": [
+			"Components/StackedBar/Default",
+			"Components/StackedBar/Empty",
+			"Components/StackedBar/Zero",
+			"Components/StackedBar/Small",
+			"Components/StackedBar/WithoutLegend"
+		],
+		"states": ["default", "empty", "zero", "small", "without legend"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/StackedBarList/StackedBarList.tsx",
+		"export": "StackedBarList",
+		"stories": ["Components/StackedBarList/Default", "Components/StackedBarList/Empty"],
+		"states": ["default", "empty"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/StartControls/StartControls.tsx",
+		"export": "StartControls",
+		"stories": [
+			"Components/StartControls/Default",
+			"Components/StartControls/Disabled",
+			"Components/StartControls/Starting",
+			"Components/StartControls/ErrorState",
+			"Components/StartControls/OneDependency",
+			"Components/StartControls/SeveralDependencies",
+			"Components/StartControls/ManyAgents"
+		],
+		"states": ["default", "disabled", "starting", "error", "one dependency", "several dependencies", "many agents"],
+		"notes": "The start action is local. The control permits an explicit start when dependencies remain open."
+	},
+	{
+		"source": "packages/ui/src/domain/StatusIcon/StatusIcon.tsx",
+		"export": "StatusIcon",
+		"stories": [
+			"Components/StatusIcon/Default",
+			"Components/StatusIcon/Started",
+			"Components/StatusIcon/Review",
+			"Components/StatusIcon/Done",
+			"Components/StatusIcon/Canceled",
+			"Components/StatusIcon/Queue",
+			"Components/StatusIcon/QuarterProgress",
+			"Components/StatusIcon/FullProgress",
+			"Components/StatusIcon/CustomColor",
+			"Components/StatusIcon/Decorative"
+		],
+		"states": [
+			"default",
+			"started",
+			"review",
+			"done",
+			"canceled",
+			"queue",
+			"quarter progress",
+			"full progress",
+			"custom color",
+			"decorative"
+		],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/TicketComposer/TicketComposer.tsx",
+		"export": "TicketComposer",
+		"stories": [
+			"Components/TicketComposer/Default",
+			"Components/TicketComposer/Closed",
+			"Components/TicketComposer/Empty",
+			"Components/TicketComposer/LongContent"
+		],
+		"states": ["default", "closed", "empty", "long content"],
+		"notes": "The form renders ComposerTitle and ComposerProperty. Command+Enter submits. Command+Shift+Enter submits and keeps the form open. Control replaces Command on other platforms."
+	},
+	{
+		"source": "packages/ui/src/domain/TicketGlimmer/TicketGlimmer.tsx",
+		"export": "TicketGlimmer",
+		"stories": ["Components/TicketGlimmer/InteractiveStates"],
+		"states": ["interactive states", "working", "inactive", "reduced motion"],
+		"notes": "Use the switch to start or stop the working treatment. The fixture uses the canonical ticket card. Reduced motion follows the browser preference."
+	}
+]

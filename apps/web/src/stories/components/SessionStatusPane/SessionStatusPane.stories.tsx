@@ -1,0 +1,123 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { SessionStatusPane } from "@trellis/ui";
+import { useState } from "react";
+
+const latest = {
+	id: "update-2",
+	sessionId: "session-1",
+	runId: "run-1",
+	requestId: null,
+	body: "The build checks pass. The review needs a human decision.",
+	embeds: [],
+	createdAt: "2026-09-30T12:00:00Z",
+};
+const previous = {
+	...latest,
+	id: "update-1",
+	body: "The agent reviews the project view.",
+	createdAt: "2026-09-29T12:00:00Z",
+};
+const meta = {
+	title: "Components/SessionStatusPane",
+	component: SessionStatusPane,
+	args: {
+		updates: { latest, previous, request: null, history: [latest, previous] },
+		processState: "active",
+		now: "2026-09-30T12:05:00Z",
+		renderMarkdown: (body) => <p className="whitespace-pre-wrap">{body}</p>,
+		onOpenLink: () => {},
+	},
+	parameters: {
+		docs: {
+			description: {
+				component:
+					"Select an update to inspect its text. Arrow keys move tree focus and fold days. SessionStatusPane renders SessionStatusPaneShell.",
+			},
+		},
+	},
+	render: (args) => (
+		<div className="flex h-160">
+			<SessionStatusPane {...args} />
+		</div>
+	),
+} satisfies Meta<typeof SessionStatusPane>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};
+export const Resizable: Story = {
+	render: function Render(args) {
+		const [width, setWidth] = useState<number | null>(null);
+		return (
+			<div className="flex h-160 justify-end">
+				<SessionStatusPane {...args} resize={{ width, onWidthChange: setWidth }} />
+			</div>
+		);
+	},
+};
+export const Empty: Story = { args: { updates: { latest: null, previous: null, request: null } } };
+export const Paused: Story = { args: { processState: "paused" } };
+export const Completed: Story = { args: { processState: "completed" } };
+export const Pending: Story = {
+	args: {
+		updates: {
+			latest,
+			previous,
+			request: { requestId: "request", requestedAt: "2026-09-30T12:04:00Z", state: "pending", error: null },
+		},
+	},
+};
+export const Sent: Story = {
+	args: {
+		updates: {
+			latest,
+			previous,
+			request: { requestId: "request", requestedAt: "2026-09-30T12:04:00Z", state: "sent", error: null },
+		},
+	},
+};
+export const RequestFailed: Story = {
+	args: {
+		updates: {
+			latest,
+			previous,
+			request: {
+				requestId: "request",
+				requestedAt: "2026-09-30T12:04:00Z",
+				state: "failed",
+				error: "The update request failed.",
+			},
+		},
+	},
+};
+export const ObserverError: Story = { args: { observerError: "The observer request failed." } };
+export const HistoryLoading: Story = {
+	args: { historyControl: { hasMore: true, loading: true, error: false, load: () => {}, retry: () => {} } },
+};
+export const HistoryError: Story = {
+	args: { historyControl: { hasMore: true, loading: false, error: true, load: () => {}, retry: () => {} } },
+};
+export const WithEmbed: Story = {
+	args: {
+		updates: {
+			latest: { ...latest, embeds: [{ title: "Build report", html: "<h1>Build report</h1><p>All checks pass.</p>" }] },
+			previous,
+			request: null,
+		},
+	},
+};
+export const LongHistory: Story = {
+	args: {
+		updates: {
+			latest,
+			previous,
+			request: null,
+			history: Array.from({ length: 80 }, (_, index) => ({
+				...latest,
+				id: `update-${index}`,
+				body: `Status update ${index + 1}`,
+				createdAt: new Date(Date.UTC(2026, 8, 30, 12, -index)).toISOString(),
+			})),
+		},
+	},
+};

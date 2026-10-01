@@ -1,0 +1,85 @@
+[
+	{
+		"source": "apps/web/src/features/sidebar/Sidebar/Sidebar.tsx",
+		"export": "Sidebar",
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Collapsed",
+			"Pages/Navigation/MobileSidebar",
+			"Pages/Navigation/ManyProjects"
+		],
+		"states": ["expanded", "collapsed", "phone", "scrolling"],
+		"notes": "The real sidebar renders its session rows, project tree, and actor footer."
+	},
+	{
+		"source": "apps/web/src/features/sidebar/SessionList/SessionList.tsx",
+		"export": "SessionList",
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Empty",
+			"Pages/Navigation/Loading",
+			"Pages/Navigation/FailedRequest"
+		],
+		"states": ["populated", "empty", "loading", "error"],
+		"notes": "The sidebar owns the session list layout."
+	},
+	{
+		"source": "apps/web/src/features/sidebar/ProjectTree/ProjectTree.tsx",
+		"export": "ProjectTree",
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Empty",
+			"Pages/Navigation/Loading",
+			"Pages/Navigation/FailedRequest",
+			"Pages/Navigation/ManyProjects"
+		],
+		"states": ["populated", "empty", "loading", "error", "scrolling", "expand", "collapse"],
+		"notes": "Project controls remain interactive."
+	},
+	{
+		"source": "apps/web/src/features/sidebar/ActorFooter/ActorFooter.tsx",
+		"export": "ActorFooter",
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Collapsed",
+			"Pages/Navigation/RenameActor",
+			"Pages/Navigation/RenamedActor"
+		],
+		"states": ["expanded", "collapsed", "rename popover", "saved name"],
+		"notes": "The preview uses the synthetic Storybook identity."
+	},
+	{
+		"source": "apps/web/src/features/sidebar/Sidebar/components/ConnectionPanel/ConnectionPanel.tsx",
+		"export": "ConnectionPanel",
+		"stories": [
+			"Pages/Navigation/Expanded",
+			"Pages/Navigation/Connecting",
+			"Pages/Navigation/Reconnecting",
+			"Pages/Navigation/Restarting",
+			"Pages/Navigation/Offline"
+		],
+		"states": ["live", "connecting", "reconnecting", "restarting", "down"],
+		"notes": "The live state hides the connection message."
+	},
+	{
+		"source": "apps/web/src/features/shell/PageTabsHost/PageTabsHost.tsx",
+		"export": "PageTabsHost",
+		"stories": ["Pages/Navigation/Expanded", "Pages/Navigation/Narrow"],
+		"states": ["pinned", "grouped", "ungrouped", "active", "inactive", "phone"],
+		"notes": "Tab actions update the isolated memory router."
+	},
+	{
+		"source": "apps/web/src/features/shell/ShellFrame/ShellFrame.tsx",
+		"export": "ShellFrame",
+		"stories": ["Pages/Navigation/ShellLoading"],
+		"states": ["loading"],
+		"notes": "The product skeleton renders while route data loads."
+	},
+	{
+		"source": "apps/web/src/routes/__root.tsx",
+		"export": "Route",
+		"stories": ["Pages/Navigation/Expanded", "Pages/Navigation/Narrow", "Pages/Navigation/ShellLoading"],
+		"states": ["shell", "phone", "loading"],
+		"notes": "The navigation story composes the root route's real sidebar, tab host, and page frame. Authentication and live transport use the preview boundary."
+	}
+]
