@@ -1,9 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type LinkPress, toast } from "@trellis/ui";
 import { useCallback } from "react";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { parsePageDetailSearch } from "../../../features/pages/PageDetail/pageLink";
+import { pageSheetActions, usePageSheetStore } from "../../../stores/pageSheetStore";
 import { useApp } from "../../appContext";
 import { errorMessage } from "../../conflict";
+import { pageRefOfPathname } from "../../projectUrl";
 import { ticketRefOfPathname } from "../../ticketUrl";
 import { openAppLink } from "../openAppLink";
 import { openLink } from "../openLink";
@@ -23,9 +25,18 @@ export function useOpenLink() {
 					await navigate({ href, replace: true });
 					return;
 				}
-				const ticket = ticketRefOfPathname(new URL(href, location.origin).pathname);
+				const target = new URL(href, location.origin);
+				const ticket = ticketRefOfPathname(target.pathname);
 				if (ticket !== null) {
 					pageSheetActions.openTicket(ticket);
+					return;
+				}
+				const page = pageRefOfPathname(target.pathname);
+				if (page !== null && usePageSheetStore.getState().session !== null) {
+					pageSheetActions.openPublishedPage({
+						ref: page,
+						...parsePageDetailSearch(Object.fromEntries(target.searchParams)),
+					});
 					return;
 				}
 				await navigate({ href });
