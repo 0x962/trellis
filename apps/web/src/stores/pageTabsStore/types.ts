@@ -10,6 +10,7 @@ export type PageTab = PageTabPage & {
 	id: string;
 	customTitle?: string;
 	pinned?: boolean;
+	pinnedPage?: PageTabPage;
 	// The group the tab belongs to. Absent means the tab is ungrouped. A
 	// pinned tab has no group.
 	groupId?: string;
@@ -50,6 +51,7 @@ export type PageTabsState = {
 	setTabGroup: (id: string, groupId: string | null) => void;
 	renameTab: (id: string, title: string | null) => void;
 	setPinned: (id: string, pinned: boolean) => void;
+	restorePinnedTabs: (keepActivePage: boolean) => void;
 	moveTab: (id: string, beforeId: string | null) => void;
 	sortTabs: (direction: PageTabSortDirection) => void;
 	reopenClosedTab: () => void;
