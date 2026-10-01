@@ -96,7 +96,8 @@ The collapsed rail shows one dot at the highest severity.
 When the last alert clears, the Inspector closes and requests for run details stop.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 16. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 17. A lifetime file lock permits one runtime owner.
+Protocol 17 requires the validator for large prompts. Desktop activation replaces an older runtime before the host resumes saved conversations.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
@@ -990,7 +991,7 @@ Claude transcript snapshots and OpenCode text parts retain context with unproven
 Pi messages without identifiers also retain context with unproven completeness.
 A completion signal states unavailable message coverage without suppressing completed tool counts.
 The reader reports missing journal data separately. Legacy journals reconstruct tool state before the saved position and emit only new completed items.
-The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 16.
+The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 17.
 
 `isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
 Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.
