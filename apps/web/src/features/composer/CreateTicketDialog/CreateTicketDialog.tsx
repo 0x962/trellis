@@ -2,9 +2,9 @@ import { Button, ComposerTitle, ConfirmDialog, FailureState, Switch, TicketCompo
 import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
 import { DropTarget } from "../../attachments/DropTarget";
 import { UploadProgress } from "../../attachments/UploadProgress";
+import { ComposerHeader } from "../ComposerHeader";
 import { AgentPicker } from "./components/AgentPicker";
 import { ChipRow } from "./components/ChipRow";
-import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
 
 import { useTicketComposer } from "./components/useTicketComposer";
@@ -52,6 +52,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 				onSubmit={(stay) => void create(stay)}
 				header={
 					<ComposerHeader
+						title="New ticket"
 						project={project}
 						disabled={submission.busy}
 						locked={locked}

@@ -22,7 +22,12 @@ export function TicketComposer({
 					onSubmit();
 				}}
 				onKeyDownCapture={(event) => {
-					if (!event.defaultPrevented && (event.metaKey || event.ctrlKey) && event.key === "Enter") {
+					if (
+						!event.defaultPrevented &&
+						!event.nativeEvent.isComposing &&
+						(event.metaKey || event.ctrlKey) &&
+						event.key === "Enter"
+					) {
 						event.preventDefault();
 						onSubmit(event.shiftKey ? true : undefined);
 					}

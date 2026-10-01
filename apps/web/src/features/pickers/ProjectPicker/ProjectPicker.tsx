@@ -34,6 +34,8 @@ export type ProjectPickerProps = {
 	// When true, a pick leaves the picker open. The caller closes it after
 	// the server accepts the move, so a refusal shows inside the picker.
 	keepOpenOnPick?: boolean;
+	allowNoProject?: boolean;
+	disabled?: boolean;
 };
 
 // The project popover: every project, searchable by key, slug, and name.
@@ -48,6 +50,8 @@ export function ProjectPicker({
 	side,
 	error,
 	keepOpenOnPick = false,
+	allowNoProject = false,
+	disabled = false,
 }: ProjectPickerProps) {
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
@@ -60,7 +64,7 @@ export function ProjectPicker({
 		<Popover
 			trigger={trigger}
 			label="Project"
-			open={isOpen}
+			open={isOpen && !disabled}
 			onOpenChange={setOpen}
 			initialFocus={input}
 			finalFocus={finalFocus}
@@ -71,10 +75,13 @@ export function ProjectPicker({
 				inputRef={input}
 				label="Search projects"
 				placeholder="Move to project"
-				items={projectItems(selectableProjects(projects), value)}
+				items={[
+					...(allowNoProject ? [{ id: "no-project", label: "No project", current: !value }] : []),
+					...projectItems(selectableProjects(projects), value),
+				]}
 				onSelect={(key) => {
 					if (!keepOpenOnPick) setOpen(false);
-					onPick(key);
+					onPick(key === "no-project" ? "" : key);
 				}}
 			/>
 			{error !== undefined && error !== null && (

@@ -144,10 +144,19 @@
 	font-size: 12px;
 }
 .composer-agent-picker {
+	display: flex;
+	flex-direction: column;
 	width: 336px;
 	max-width: calc(100vw - 24px);
+	max-height: var(--available-height);
 	padding: 0;
 	overflow: hidden;
+}
+.composer-agent-picker [cmdk-root] {
+	min-height: 0;
+}
+.composer-agent-picker > p {
+	flex-shrink: 0;
 }
 .composer-agent-picker [cmdk-input],
 .composer-agent-picker [cmdk-item] {
@@ -155,6 +164,7 @@
 }
 .composer-agent-settings {
 	display: grid;
+	flex-shrink: 0;
 	grid-template-columns: 1fr 1.3fr;
 	gap: 12px;
 	padding: 12px;

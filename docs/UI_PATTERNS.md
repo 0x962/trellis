@@ -367,3 +367,12 @@ The footer shows the current recipient count in Send. An empty message, no selec
 Command+Enter and Control+Enter use the same send action. Shift does not keep the composer open for another message.
 A pending delivery prevents sending and closing. The result receives focus and reports accepted deliveries and each failed recipient.
 Done closes the dialog and returns focus to its opener. The phone layout keeps the header and footer visible while the body scrolls.
+
+### Session composer
+
+New Session uses `TicketComposer`, `ComposerHeader`, `ComposerTitle`, and `ComposerAgentPicker` from the ticket composer.
+The header selects a project or No project. The session name stays optional, and the prompt takes initial focus.
+The agent picker holds the harness, model, effort, and account. Automatic account selection continues until a person selects an account.
+The footer holds Add attachment and Start session. Paste and drop also add files.
+Escape and Close keep the draft and its files. Command-Enter or Control-Enter starts the session from any field.
+The pending request disables edits and Close. A failure keeps the draft and shows its details through `FailureState`.
