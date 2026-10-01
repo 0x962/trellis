@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { SessionDetails } from "../../features/sessions/SessionConversation/components/SessionDetails";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { noop, responses, run } from "./fixtures";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const summary = {
 	state: "ready" as const,

@@ -1,9 +1,9 @@
 import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { StatusDeleteDialog } from "../../features/project-settings/StatusDeleteDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { failure, noop, responses, statuses } from "./fixtures";
 import { clickButton } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/StatusDeleteDialog",

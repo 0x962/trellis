@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { LabelDeleteDialog } from "../../features/project-settings/LabelDeleteDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { failure, labels, noop, pending, responses } from "./fixtures";
 import { clickButton } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/LabelDeleteDialog",

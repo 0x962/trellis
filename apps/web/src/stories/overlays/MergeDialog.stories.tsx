@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 import { MergeDialog } from "../../features/reviews/ReviewHeaderActions/components/MergeDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { failure, noop, pending, responses, tickets } from "./fixtures";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/MergeDialog",

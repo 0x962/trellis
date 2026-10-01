@@ -7,9 +7,9 @@ import { LocalStateMenu } from "../../features/reviews/ReviewPage/components/Rev
 import { DraftNote } from "../../features/reviews/VerdictBar/components/DraftNote";
 import { useStoryState } from "../components/useStoryState";
 import { pullRequest, reviewThread } from "../pages/fixtures/review";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { actor, at, failure, noop, pending, responses, ticket } from "./fixtures";
 import { clickButton, fillField } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const pr = { ...pullRequest, source: "manual" as const, linkedBy: actor, linkedAt: at };
 const meta = {

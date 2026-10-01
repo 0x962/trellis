@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DeleteEpicDialog } from "../../features/epics/DeleteEpicDialog";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { epic, failure, noop, pending, responses } from "./fixtures";
 import { clickButton } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const meta = {
 	title: "Overlays/DeleteEpicDialog",

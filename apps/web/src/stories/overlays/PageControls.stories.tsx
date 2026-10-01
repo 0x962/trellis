@@ -8,9 +8,9 @@ import { PageWatcher } from "../../features/pages/PageDetail/components/PageWatc
 import { PageListFilters } from "../../features/pages/PageList/components/PageListFilters";
 import type { PageSearch } from "../../features/pages/PageList/pageSearch";
 import { useApp } from "../../lib/appContext";
+import { OverlayTrigger } from "./components/OverlayTrigger";
 import { at, failure, noop, page, pending, project, responses, run } from "./fixtures";
 import { clickButton } from "./interactions";
-import { OverlayTrigger } from "./OverlayTrigger";
 
 const selectedWatcher = { pageId: page.id, agent: { id: run.id, name: run.name }, createdAt: at, updatedAt: at };
 let watcher = page.watcher;
