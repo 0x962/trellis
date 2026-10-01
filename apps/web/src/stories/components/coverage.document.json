@@ -11,7 +11,8 @@
 			"Components/DocumentLayout/Loading",
 			"Components/DocumentLayout/LongHeadings",
 			"Components/DocumentLayout/DuplicateHeadings",
-			"Components/DocumentLayout/WithMargin"
+			"Components/DocumentLayout/WithMargin",
+			"Components/DocumentLayout/LargeDocument"
 		],
 		"states": [
 			"wide sidebar",
@@ -21,7 +22,8 @@
 			"loading",
 			"long labels",
 			"duplicate labels",
-			"document margin"
+			"document margin",
+			"500 headings with keyboard selection"
 		],
 		"notes": "The real layout holds a synthetic document and optional margin. Select a heading to scroll its section and change aria-current. NarrowSelection verifies that selection closes the popover and remains selected after it reopens."
 	},
@@ -34,7 +36,8 @@
 			"Components/DocumentLayout/Empty",
 			"Components/DocumentLayout/Loading",
 			"Components/DocumentLayout/LongHeadings",
-			"Components/DocumentLayout/DuplicateHeadings"
+			"Components/DocumentLayout/DuplicateHeadings",
+			"Components/DocumentLayout/LargeDocument"
 		],
 		"states": [
 			"sidebar",
@@ -45,7 +48,8 @@
 			"levels one through six",
 			"untitled heading",
 			"long labels",
-			"duplicate labels"
+			"duplicate labels",
+			"virtual rows with keyboard selection"
 		],
 		"notes": "DocumentLayout renders its nested DocumentContents in every story. LongHeadings includes an empty label, all six levels, unbroken text, and literal markup. DuplicateHeadings selects the second entry by its distinct target. The component accepts empty and loading data; it has no error or disabled prop."
 	}
