@@ -64,12 +64,20 @@ test("existing choices require an epic and wave even when each list has one entr
 	expect(render([plan], [wave], plan.ref, wave.ref)).toMatchObject({ ready: true, epic: plan.ref, wave: wave.ref });
 });
 
-test("sole defaults remain selected and additional choices require selection", () => {
+test("a sole Default wave requires selection", () => {
 	expect(render([defaultEpic], [defaultWave])).toMatchObject({
-		ready: true,
+		ready: false,
 		epic: defaultEpic.ref,
+		wave: undefined,
+		message: "Choose a wave.",
+	});
+	expect(render([defaultEpic], [defaultWave], undefined, defaultWave.ref)).toMatchObject({
+		ready: true,
 		wave: defaultWave.ref,
 	});
+});
+
+test("additional choices require selection", () => {
 	expect(render([defaultEpic, plan])).toMatchObject({ ready: false, epic: undefined });
 	expect(render([plan], [defaultWave, wave], plan.ref)).toMatchObject({ ready: false, wave: undefined });
 });

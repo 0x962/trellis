@@ -126,6 +126,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								statuses={defaults.statuses}
 								status={status}
 								priority={priority}
+								automatic={draft.automatic}
 								parent={parent}
 								placement={placement}
 								labels={labels}
