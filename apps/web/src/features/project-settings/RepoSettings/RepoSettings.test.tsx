@@ -1,6 +1,6 @@
 import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import type { Project, ProjectSetReposInput, ProjectUpdateInput } from "@trellis/api";
-import { act, type ComponentProps, type ReactNode, useEffect, useImperativeHandle, useRef } from "react";
+import { act, type ComponentProps, type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 
@@ -16,6 +16,11 @@ type ConfirmProps = {
 	onCancel: () => void;
 };
 
+type MockButtonProps = Omit<ComponentProps<"button">, "ref"> & {
+	processing?: boolean;
+	ref?: Ref<Pick<HTMLButtonElement, "focus">>;
+};
+
 const focusCalls: string[] = [];
 
 mock.module("@tanstack/react-query", () => ({
@@ -25,10 +30,8 @@ mock.module("@tanstack/react-router", () => ({
 	useNavigate: () => async () => {},
 }));
 mock.module("@trellis/ui", () => ({
-	Button: ({ processing, ref, children, ...props }: ComponentProps<"button"> & { processing?: boolean }) => {
-		useImperativeHandle(ref, () => ({ focus: () => focusCalls.push(String(children)) }) as HTMLButtonElement, [
-			children,
-		]);
+	Button: ({ processing, ref, children, ...props }: MockButtonProps) => {
+		useImperativeHandle(ref, () => ({ focus: () => focusCalls.push(String(children)) }), [children]);
 		return (
 			<button {...props} data-processing={processing || undefined} disabled={props.disabled === true || processing}>
 				{children}
