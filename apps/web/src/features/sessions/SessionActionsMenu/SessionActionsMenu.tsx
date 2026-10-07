@@ -91,18 +91,24 @@ export function SessionActionsMenu({
 				? {
 						label: "Unarchive",
 						icon: <BoxArrowUp />,
+						disabled: deleteDisabled || archive.isPending,
 						onSelect: () => archive.mutate({ session: session!, archived: false }),
 					}
 				: {
 						label: "Archive",
 						icon: <Archive />,
-						disabled: pinned,
+						disabled: deleteDisabled || archive.isPending || pinned,
 						onSelect: () => archive.mutate({ session: session!, archived: true }),
 					},
 		);
 	if (session) {
 		items.push(
-			{ label: "Move to project…", icon: <FolderSimple />, disabled: archived, onSelect: () => setMoveOpen(true) },
+			{
+				label: "Move to project…",
+				icon: <FolderSimple />,
+				disabled: deleteDisabled || archive.isPending || archived,
+				onSelect: () => setMoveOpen(true),
+			},
 			{
 				label: "Delete…",
 				icon: <Trash />,

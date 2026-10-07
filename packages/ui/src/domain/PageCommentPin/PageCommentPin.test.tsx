@@ -16,6 +16,8 @@ test("names an open Page comment pin with its thread details", () => {
 	);
 	expect(html).toContain('aria-label="Comment 3, Navid, open, selected text &quot;Revenue grew&quot;"');
 	expect(html).toContain('aria-pressed="false"');
+	expect(html).toContain("max-md:size-11");
+	expect(html).toContain("max-md:-translate-x-2");
 	expect(html).toContain(">3<");
 });
 

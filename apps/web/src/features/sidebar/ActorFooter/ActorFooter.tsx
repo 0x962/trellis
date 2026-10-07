@@ -53,20 +53,38 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 	};
 
 	return (
-		<div data-sidebar-actor-footer="" className={cx("flex shrink-0 items-center gap-1 pt-2", collapsed && "flex-col")}>
+		<div
+			data-sidebar-actor-footer=""
+			className={cx("flex shrink-0 items-center gap-1 pt-2", collapsed && "flex-col items-center")}
+		>
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
 				side="top"
+				triggerTooltip={collapsed ? `Actor: ${actor.name}` : undefined}
 				trigger={
 					<button
 						type="button"
-						className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+						aria-label={`Rename actor ${actor.name}`}
+						className={cx(
+							"text-fg hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+							collapsed
+								? "sidebar-rail-row"
+								: "flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out pointer-coarse:min-h-11",
+						)}
 					>
-						<Avatar kind="human" name={actor.name} className="size-6 shrink-0 text-xs" />
-						<span title={actor.name} className="min-w-0 truncate text-sm font-medium text-fg">
-							{actor.name}
-						</span>
+						<Avatar
+							kind="human"
+							name={actor.name}
+							className="size-6 shrink-0 text-xs"
+							tooltip={false}
+							focusable={false}
+						/>
+						{!collapsed && (
+							<span title={actor.name} className="min-w-0 truncate text-sm font-medium text-fg">
+								{actor.name}
+							</span>
+						)}
 					</button>
 				}
 			>
@@ -87,6 +105,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 				<IconButton
 					label="Broadcast a message"
 					icon={<Megaphone />}
+					className={collapsed ? "focus-visible:-outline-offset-2!" : undefined}
 					onClick={() => {
 						uiActions.setMobileSidebarOpen(false);
 						broadcastActions.open();

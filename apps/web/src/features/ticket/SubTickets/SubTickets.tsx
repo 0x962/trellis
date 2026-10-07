@@ -20,6 +20,7 @@ import { statusIconProps } from "../../statusIconProps";
 
 export type SubTicketsProps = {
 	ticket: Ticket;
+	readOnly?: boolean;
 };
 
 const rowClass = "flex h-9 w-full items-center gap-3 border-b border-border px-3 text-base text-fg pointer-coarse:h-11";
@@ -44,7 +45,7 @@ const prLabel = (pr: NonNullable<TicketSummary["pr"]>) => {
 // button, a progress bar, and one fixed-height row per child. Add opens the
 // create dialog with this ticket as the parent, so a sub-ticket takes a
 // status, a priority and a description like any other ticket.
-export function SubTickets({ ticket }: SubTicketsProps) {
+export function SubTickets({ ticket, readOnly = false }: SubTicketsProps) {
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const total = ticket.children.length;
 	const fill = total === 0 ? 0 : (done / total) * 100;
@@ -57,6 +58,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 				actions={
 					<Button
 						variant="quiet"
+						disabled={readOnly}
 						size="sm"
 						icon={<Plus />}
 						onClick={() => composerActions.open({ project: ticket.project.key, parent: ticket.identifier })}

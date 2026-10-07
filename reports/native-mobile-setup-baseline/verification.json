@@ -1,0 +1,421 @@
+{
+  "kind": "baseline browser evidence",
+  "checks": [
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "httpStatus": 200,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "title": "Native mobile setup baseline",
+      "cards": 32,
+      "images": [
+        {
+          "src": "assets/light/fresh-setup-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/invalid-url-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/invalid-name-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/connection-progress-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/connection-timeout-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/unreachable-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/non-trellis-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/successful-probe-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/existing-server-replacement-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/invalid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/valid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/camera-denied-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/camera-granted-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/scan-cancel-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/long-content-reflow-160px.png",
+          "complete": true,
+          "width": 160,
+          "height": 720
+        },
+        {
+          "src": "assets/light/desktop-success-1024px.png",
+          "complete": true,
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "assets/dark/fresh-setup-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/invalid-url-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/invalid-name-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/connection-progress-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/connection-timeout-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/unreachable-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/non-trellis-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/successful-probe-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/existing-server-replacement-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/invalid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/valid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/camera-denied-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/camera-granted-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/scan-cancel-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/long-content-reflow-160px.png",
+          "complete": true,
+          "width": 160,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/desktop-success-1024px.png",
+          "complete": true,
+          "width": 1024,
+          "height": 768
+        }
+      ],
+      "horizontalOverflow": 0,
+      "kind": true,
+      "nativeBoundary": true
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 720
+      },
+      "httpStatus": 200,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "title": "Native mobile setup baseline",
+      "cards": 32,
+      "images": [
+        {
+          "src": "assets/light/fresh-setup-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/invalid-url-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/invalid-name-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/connection-progress-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/connection-timeout-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/unreachable-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/non-trellis-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/successful-probe-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/existing-server-replacement-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/invalid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/valid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/camera-denied-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/camera-granted-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/scan-cancel-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/light/long-content-reflow-160px.png",
+          "complete": true,
+          "width": 160,
+          "height": 720
+        },
+        {
+          "src": "assets/light/desktop-success-1024px.png",
+          "complete": true,
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "assets/dark/fresh-setup-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/invalid-url-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/invalid-name-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/connection-progress-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/connection-timeout-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/unreachable-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/non-trellis-server-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/successful-probe-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/existing-server-replacement-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/invalid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/valid-pair-link-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/camera-denied-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/camera-granted-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/scan-cancel-320px.png",
+          "complete": true,
+          "width": 320,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/long-content-reflow-160px.png",
+          "complete": true,
+          "width": 160,
+          "height": 720
+        },
+        {
+          "src": "assets/dark/desktop-success-1024px.png",
+          "complete": true,
+          "width": 1024,
+          "height": 768
+        }
+      ],
+      "horizontalOverflow": 0,
+      "kind": true,
+      "nativeBoundary": true
+    }
+  ]
+}

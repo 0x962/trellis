@@ -961,7 +961,9 @@ The cached report retains every group and session. The report response carries r
 `usage.ranking` returns eight groups and ten sessions per page. It applies the selected group and day before it selects the session page.
 Each page request names the report timestamp. A missing or replaced report requires a refresh. Previous and Next controls expose every page.
 `usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A Codex account with no standard quota windows is `unlimited`. An API key is `metered`. A login with no quota endpoint or no usable quota data is `unavailable`. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`. Its windows come from the normal usage and quota files that Muse agent runs save. The page joins each login to its value through the account grouping of the selected ranking.
-The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
+The page shows model and harness breakdowns beside each other. A selected row filters the daily usage chart. The page keeps the range, metric, model or harness selection, and selected day in the URL.
+
+`usage.mergedWork` reads saved GitHub data through the report timestamp. It counts each linked PR once, even when several tickets link to it. The merge date places each PR in a local calendar day. Added and deleted lines include all changed files. Separate missing-value counts distinguish incomplete totals from zero. These charts stay independent of the model and harness selection.
 
 The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
 
@@ -1460,6 +1462,7 @@ returns one canonical spelling.
 | providers.publicModels | GET /api/providers/kinds/{kind}/models | public Vercel catalog or an empty compatible catalog; optional refresh |
 | providers.check | GET /api/providers/{id}/check | key acceptance and optional credit balance; optional refresh |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; each range persists until an explicit refresh or an account change |
+| usage.mergedWork | GET /api/usage/merged-work | unique linked PRs by merge date, known added and deleted lines, and missing-value counts |
 | usage.ranking | GET /api/usage/ranking | ranked pages and the selected group from the exact cached report |
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |

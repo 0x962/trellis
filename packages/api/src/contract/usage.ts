@@ -2,6 +2,8 @@ import { z } from "zod";
 import {
 	UsageAccountSchema,
 	UsageAccountsInputSchema,
+	UsageMergedWorkInputSchema,
+	UsageMergedWorkSchema,
 	UsageRankingInputSchema,
 	UsageRankingSchema,
 	UsageReportInputSchema,
@@ -10,6 +12,14 @@ import {
 import { base } from "./base.ts";
 
 export const usage = {
+	mergedWork: base
+		.route({
+			method: "GET",
+			path: "/usage/merged-work",
+			summary: "Read unique linked PRs by merge date and their known line totals for the Usage report range.",
+		})
+		.input(UsageMergedWorkInputSchema)
+		.output(UsageMergedWorkSchema),
 	report: base
 		.route({
 			method: "GET",

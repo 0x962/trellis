@@ -61,7 +61,7 @@
 		"stories": [
 			"Pages/Usage/Agent",
 			"Pages/Usage/TokensByModel",
-			"Pages/Usage/SelectedDayAndTicket",
+			"Pages/Usage/SelectedDayAndModel",
 			"Pages/Usage/Empty",
 			"Pages/Usage/Loading",
 			"Pages/Usage/RequestError",
