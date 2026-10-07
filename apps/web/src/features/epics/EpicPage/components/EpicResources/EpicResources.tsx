@@ -76,7 +76,7 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 
 	return (
 		<div className="flex min-h-0 flex-1 max-md:flex-col">
-			<div className="flex min-h-0 w-60 shrink-0 flex-col gap-1 border-r border-border px-2 py-3 max-md:h-1/2 max-md:min-h-60 max-md:w-full max-md:border-r-0 max-md:border-b">
+			<div className="flex min-h-0 w-60 shrink-0 flex-col gap-1 border-r border-border px-2 py-3 max-md:h-1/2 max-md:min-h-72 max-md:w-full max-md:border-r-0 max-md:border-b">
 				<ResourceList
 					resources={resources}
 					planTitle={planTitle(description)}

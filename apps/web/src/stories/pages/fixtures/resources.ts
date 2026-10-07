@@ -83,7 +83,7 @@ export const denseResources: Resource[] = [
 		Array.from({ length: 5 }, (_, index) => ({
 			...resource,
 			id: id(950 + group * 5 + index),
-			name: `${resource.name} ${index + 1}`,
+			name: `${resource.name}: resource acceptance checks and verification records ${index + 1}`,
 		})),
 	),
 ];

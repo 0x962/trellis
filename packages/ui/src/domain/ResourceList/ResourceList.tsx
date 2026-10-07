@@ -89,20 +89,6 @@ export function ResourceList({
 		) : null;
 	return (
 		<nav aria-busy={loading} aria-label="Resources" className="flex min-h-0 min-w-0 flex-1 flex-col">
-			{expandedKind !== "doc" && recovery !== null && (
-				<FailureState
-					variant="inline"
-					className="shrink-0"
-					title={recovery.title}
-					action={
-						recovery.action && (
-							<Button size="md" onClick={recovery.action}>
-								{recovery.label}
-							</Button>
-						)
-					}
-				/>
-			)}
 			{groupedRows.map(({ kind, title, rows: members }) => {
 				if (kind !== "doc" && members.length === 0) return null;
 				const expanded = expandedKind === kind;
@@ -111,7 +97,7 @@ export function ResourceList({
 					<section
 						key={kind}
 						aria-label={title}
-						className={`flex min-h-0 min-w-0 flex-col ${expanded ? "flex-1" : "shrink-0"}`}
+						className={`flex min-w-0 flex-col ${expanded ? "min-h-8 flex-1 pointer-coarse:min-h-12" : "shrink-0"}`}
 					>
 						<div className="shrink-0">
 							<GroupHeader
@@ -143,6 +129,19 @@ export function ResourceList({
 							/>
 						</div>
 						<div id={controls} hidden={!expanded} className="min-h-0 overflow-y-auto">
+							{kind !== "doc" && expanded && recovery !== null && (
+								<FailureState
+									variant="inline"
+									title={recovery.title}
+									action={
+										recovery.action && (
+											<Button size="md" onClick={recovery.action}>
+												{recovery.label}
+											</Button>
+										)
+									}
+								/>
+							)}
 							{kind === "doc" && error !== null && body}
 							{kind === "doc" && openError !== null && (
 								<FailureState

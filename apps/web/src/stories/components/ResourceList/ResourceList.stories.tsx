@@ -62,6 +62,39 @@ export const ErrorState: Story = { args: { rows: [], error: "The resources do no
 export const Selected: Story = { args: { selectedId: "doc" } };
 export const Creating: Story = { args: { newDocumentPending: true } };
 export const ReadOnly: Story = { args: { onNewDocument: undefined } };
+export const LongNames: Story = {
+	args: {
+		rows: (["doc", "link", "image", "file"] as const).flatMap((kind) =>
+			["A", "B"].map((suffix) => ({
+				id: `${kind}-${suffix}`,
+				kind,
+				name: `Acceptance checks and verification records for the complete resource journey version ${suffix}`,
+				detail: "Synthetic resource",
+				pullRequest: null,
+			})),
+		),
+	},
+	render: (args) => (
+		<div className="flex h-96 w-full max-w-80 flex-col">
+			<ResourceList {...args} />
+		</div>
+	),
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		for (const name of ["Documents", "Links", "Images", "Files"]) {
+			const header = canvas.getByRole("button", { name, exact: true });
+			if (header.getAttribute("aria-expanded") === "false") await userEvent.click(header);
+			const group = within(canvas.getByRole("region", { name, exact: true }));
+			const row = group.getByRole("button", { name: /version B$/ });
+			row.focus();
+			await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+			await expect(row).toHaveFocus();
+			const label = row.querySelector(".sidebar-label")!;
+			await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+			await expect(getComputedStyle(label).whiteSpace).toBe("normal");
+		}
+	},
+};
 export const Groups: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
