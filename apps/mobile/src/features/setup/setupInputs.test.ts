@@ -26,7 +26,7 @@ describe("setup inputs", () => {
 	});
 
 	test("rejects names that the actor header cannot carry", () => {
-		const error = "Write a nonempty name with printable ASCII characters and no colon.";
+		const error = "Use letters, numbers, spaces, or punctuation. Do not use a colon.";
 		expect(validateActorName("")).toEqual({ ok: false, error });
 		expect(validateActorName("Dana:agent")).toEqual({ ok: false, error });
 		expect(validateActorName("Dána")).toEqual({ ok: false, error });

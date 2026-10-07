@@ -168,6 +168,25 @@ export default function SetupScreen() {
 				onPress={() => void testConnection(url)}
 				disabled={busy}
 			/>
+			<Field
+				label="Your name"
+				value={name}
+				onChangeText={setName}
+				placeholder="dana"
+				autoCapitalize="none"
+				autoCorrect={false}
+				returnKeyType="done"
+				onSubmitEditing={canSave ? save : undefined}
+				error={nameError}
+				note="Trellis uses this name on tickets and messages."
+			/>
+			<Button
+				label="Save server"
+				accessibilityHint="Saves the verified server and your name on this phone."
+				onPress={save}
+				disabled={!canSave}
+				variant="primary"
+			/>
 			{feedback !== undefined && (
 				<View style={styles.feedback}>
 					{busy && <Spinner />}
@@ -184,33 +203,14 @@ export default function SetupScreen() {
 				<View style={[styles.card, { backgroundColor: palette.surface }]}>
 					<KeyValueRow label="Version" value={answer.version} />
 					<KeyValueRow label="Tickets" value={`${answer.ticketCount} tickets`} />
-					<KeyValueRow label="Server says you are" value={answer.actorName} />
+					<KeyValueRow label="Server default actor" value={answer.actorName} />
 				</View>
 			)}
-			<Field
-				label="Your name"
-				value={name}
-				onChangeText={setName}
-				placeholder="dana"
-				autoCapitalize="none"
-				autoCorrect={false}
-				returnKeyType="done"
-				onSubmitEditing={canSave ? save : undefined}
-				error={nameError}
-				note="Trellis uses this name on tickets and messages."
-			/>
 			{replacingServer && (
 				<Text accessibilityLiveRegion="polite" style={[styles.message, { color: palette.warning }]}>
 					Saving replaces the current server and clears its cached tickets from this phone.
 				</Text>
 			)}
-			<Button
-				label="Save server"
-				accessibilityHint="Saves the verified server and your name on this phone."
-				onPress={save}
-				disabled={!canSave}
-				variant="primary"
-			/>
 		</ScrollView>
 	);
 }
