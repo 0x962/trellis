@@ -103,7 +103,11 @@ export const DenseResources: Story = {
 			await expect(navigation.queryAllByRole("button", { expanded: true })).toHaveLength(name === "Documents" ? 0 : 1);
 		}
 		await expect(navigation.getByRole("button", { name: "Files" })).toHaveAttribute("aria-expanded", "true");
-		await expect(navigation.getByRole("button", { name: "Acceptance checks.txt 1" })).toBeVisible();
+		await expect(
+			navigation.getByRole("button", {
+				name: "Acceptance checks.txt: resource acceptance checks and verification records 1",
+			}),
+		).toBeVisible();
 	},
 };
 export const ResourceDocument: Story = {

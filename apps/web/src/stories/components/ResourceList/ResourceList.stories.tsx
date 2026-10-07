@@ -82,9 +82,9 @@ export const LongNames: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		for (const name of ["Documents", "Links", "Images", "Files"]) {
-			const header = canvas.getByRole("button", { name, exact: true });
+			const header = canvas.getByRole("button", { name });
 			if (header.getAttribute("aria-expanded") === "false") await userEvent.click(header);
-			const group = within(canvas.getByRole("region", { name, exact: true }));
+			const group = within(canvas.getByRole("region", { name }));
 			const row = group.getByRole("button", { name: /version B$/ });
 			row.focus();
 			await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
