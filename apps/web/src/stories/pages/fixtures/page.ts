@@ -64,18 +64,51 @@ export const pageThread: PageCommentThread = {
 	updatedAt: timestamp,
 };
 
-const frameDocument = `<!doctype html><html lang="en"><meta charset="utf-8"><title>Interface review</title><body><main><h1>Interface review</h1><p>The title remains readable.</p><h2>Acceptance checks</h2><ul><li>The ticket identifier remains visible.</li><li>The controls support keyboard access.</li><li>The phone layout preserves the reading order.</li></ul></main><script>parent.postMessage({type:"page-ready",nonce:"storybook-page-nonce"},"*");addEventListener("message",event=>{if(event.data.type==="page-comments-state")parent.postMessage({type:"page-comment-layout",nonce:"storybook-page-nonce",items:event.data.comments.map(comment=>({thread:comment.thread,x:24,y:96}))},"*")});</script></body></html>`;
+export const historicalPageThread: PageCommentThread = {
+	...pageThread,
+	id: id(612),
+	version: 1,
+	anchor: { kind: "text", path: "html>body>main>p", quote: "Earlier version text.", prefix: "", suffix: "" },
+	selectedText: "Earlier version text.",
+	comments: [
+		{
+			...pageThread.comments[0]!,
+			id: id(613),
+			threadId: id(612),
+			body: "Open the source version and keep this comment selected.",
+		},
+	],
+};
 
-export const pageLease = (): PageRenderLease => ({
-	id: "storybook-page-lease",
-	nonce: "storybook-page-nonce",
-	frameUrl: `data:text/html;charset=utf-8,${encodeURIComponent(frameDocument)}`,
-	contentRoot: "about:blank",
-	pageId: page.id,
-	version: 2,
-	idleExpiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
-	absoluteExpiresAt: new Date(Date.now() + 8 * 60 * 60_000).toISOString(),
-});
+const longSections = Array.from(
+	{ length: 24 },
+	(_, index) =>
+		`<section><h2>Review section ${index + 1}</h2><p>The Page keeps long content readable without covering the text.</p></section>`,
+).join("");
+
+const frameDocument = (targetOrigin: string) =>
+	`<!doctype html><html lang="en"><meta charset="utf-8"><title>Interface review</title><style>body{font-family:system-ui;margin:0;padding:32px;line-height:1.5}main{max-width:72ch;margin:auto}section{padding-block:16px;border-block-end:1px solid #ddd}@media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important;transition:none!important}}</style><body><main><h1>Interface review</h1><p>The title remains readable.</p><p><a href="https://example.com">Example link</a></p><h2>Acceptance checks</h2><ul><li>The ticket identifier remains visible.</li><li>The controls support keyboard access.</li><li>The phone layout preserves the reading order.</li></ul>${longSections}</main><script>const targetOrigin=${JSON.stringify(targetOrigin)};parent.postMessage({type:"page-ready",nonce:"storybook-page-nonce"},targetOrigin);addEventListener("click",event=>{const link=event.target.closest("a");if(!link)return;event.preventDefault();parent.postMessage({type:"page-link",nonce:"storybook-page-nonce",href:link.href},targetOrigin)});addEventListener("message",event=>{if(event.data.type==="page-comments-state")parent.postMessage({type:"page-comment-layout",nonce:"storybook-page-nonce",items:event.data.comments.map((comment,index)=>({thread:comment.thread,x:24,y:96+index*48}))},targetOrigin)});</script></body></html>`;
+
+let storyFrameUrl: string | null = null;
+
+const pageFrameUrl = () => {
+	storyFrameUrl ??= URL.createObjectURL(new Blob([frameDocument(location.origin)], { type: "text/html" }));
+	return storyFrameUrl;
+};
+
+export const pageLease = (): PageRenderLease => {
+	const frameUrl = pageFrameUrl();
+	return {
+		id: "storybook-page-lease",
+		nonce: "storybook-page-nonce",
+		frameUrl,
+		contentRoot: frameUrl,
+		pageId: page.id,
+		version: 2,
+		idleExpiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+		absoluteExpiresAt: new Date(Date.now() + 8 * 60 * 60_000).toISOString(),
+	};
+};
 
 const pages = [
 	page,
@@ -113,4 +146,13 @@ export const pageResponses = {
 	"pages.watcherOptions": { items: [], nextCursor: null },
 	"pages.createRenderLease": pageLease,
 	"pages.renewRenderLease": pageLease,
+	"pages.comment": pageThread,
+	"pages.commentReply": {},
+	"pages.commentResolve": {},
+	"pages.commentEdit": {},
+	"pages.commentDelete": {},
+	"pages.pin": {},
+	"pages.update": {},
+	"pages.delete": {},
+	"pages.restore": {},
 };

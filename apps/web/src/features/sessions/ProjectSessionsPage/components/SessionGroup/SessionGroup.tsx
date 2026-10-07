@@ -202,6 +202,8 @@ export function SessionGroup({
 						const avatar = (
 							<Avatar
 								kind="agent"
+								tooltip={false}
+								focusable={false}
 								name={name}
 								agentKind={agentKindOf(run.kind)}
 								agentProfile={agentProfileOf(run.harness)}

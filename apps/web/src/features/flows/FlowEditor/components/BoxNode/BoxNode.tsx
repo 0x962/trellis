@@ -1,3 +1,4 @@
+import { WarningCircle } from "@phosphor-icons/react";
 import { cx } from "@trellis/ui";
 import { Handle, type NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { flowKinds } from "../../../kinds";
@@ -13,6 +14,7 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 	const { fields } = data;
 	const meta = flowKinds[fields.kind];
 	const issue = issues.get(id);
+	const issueId = `flow-node-${id}-issue`;
 	const title = fields.kind === "group" && fields.title === "New budget" ? "" : fields.title;
 	const limit =
 		fields.kind === "group"
@@ -22,7 +24,8 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 			: `${fields.maxRounds} rounds at most`;
 	return (
 		<div
-			title={issue}
+			aria-invalid={issue !== undefined}
+			aria-describedby={issue === undefined ? undefined : issueId}
 			className={cx(
 				"flow-node-hover-handles flex size-full flex-col rounded-lg border border-dashed transition-colors duration-hover",
 				selected ? "border-accent" : issue !== undefined ? "border-danger" : "border-border",
@@ -36,6 +39,12 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				{title !== "" && <span className="truncate text-fg-muted">{title}</span>}
 				{limit !== "" && <span className="ml-auto shrink-0 tabular-nums">{limit}</span>}
 			</header>
+			{issue !== undefined && (
+				<p id={issueId} role="alert" className="flex items-start gap-1 px-3 text-xs text-danger">
+					<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+					<span>{issue}</span>
+				</p>
+			)}
 			{!unconnected.has(id) &&
 				sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)}
 		</div>

@@ -1,4 +1,5 @@
 import type { Ticket } from "@trellis/api";
+import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { TicketAgent } from "../../agents/TicketAgent";
 import { PickerRows } from "./components/PickerRows";
 
@@ -10,9 +11,10 @@ export type PropertiesRailProps = {
 // The rail holds fields that change the ticket record, plus the assignment of
 // the agent that holds the ticket.
 export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
+	const readOnly = useArchivedProjects().isArchived(ticket.project.key);
 	const agent = (
 		<div className="col-span-full">
-			<TicketAgent ticket={ticket.identifier} disabled={ticket.completedAt !== null} />
+			<TicketAgent ticket={ticket.identifier} disabled={readOnly || ticket.completedAt !== null} />
 		</div>
 	);
 	if (variant === "inline") {
