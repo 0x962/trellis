@@ -154,9 +154,10 @@
 			"Overlays/FlowEditorControls/ProjectSelected",
 			"Overlays/FlowEditorControls/ProjectDisabled",
 			"Overlays/FlowEditorControls/ProjectError",
+			"Overlays/FlowEditorControls/ProjectMenuOpen",
 			"Overlays/FlowEditorControls/ChangeProject"
 		],
-		"states": ["selected", "disabled", "error", "interaction"],
+		"states": ["selected", "disabled", "error", "open menu", "interaction"],
 		"notes": "Local state retains the project choice. ChangeProject asserts that the Every project choice updates the selector."
 	},
 	{
@@ -178,11 +179,13 @@
 		"export": "NewFlowDialog",
 		"stories": [
 			"Overlays/FlowEditorControls/NewFlow",
+			"Overlays/FlowEditorControls/NewFlowValidation",
 			"Overlays/FlowEditorControls/NewFlowLoading",
 			"Overlays/FlowEditorControls/NewFlowError",
-			"Overlays/FlowEditorControls/NewFlowPending"
+			"Overlays/FlowEditorControls/NewFlowPending",
+			"Overlays/FlowEditorControls/NewFlowSuccess"
 		],
-		"states": ["default", "loading", "error", "pending"],
+		"states": ["default", "validation", "loading", "error", "pending", "success"],
 		"notes": "Stories mount the production component with synthetic props and API responses."
 	}
 ]
