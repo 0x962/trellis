@@ -2,7 +2,7 @@ import { List, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { defaultSessionCleanup, type Project, SESSION_DAY_MS } from "@trellis/api";
-import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
+import { Button, EmptyState, FailureState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
@@ -53,9 +53,9 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const sessionsFailed =
 		listFailed || (Boolean(hash) && selectedRun.data === undefined && selectedRun.failureCount > 0);
 	const retrySessions = () => {
-		void queryClient.resetQueries({ queryKey: runsOptions.queryKey, exact: true });
-		if (hash) void queryClient.resetQueries({ queryKey: selectedRunOptions.queryKey, exact: true });
-		void queryClient.resetQueries({ queryKey: sessionsOptions.queryKey, exact: true });
+		void queryClient.refetchQueries({ queryKey: runsOptions.queryKey, exact: true });
+		if (hash) void queryClient.refetchQueries({ queryKey: selectedRunOptions.queryKey, exact: true });
+		void queryClient.refetchQueries({ queryKey: sessionsOptions.queryKey, exact: true });
 	};
 	const linkedRun = selectedRun.data?.items[0];
 	const items = useMemo(() => {
@@ -99,6 +99,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			pending={runs.isPending || sessions.isPending}
 			error={runs.error?.message ?? sessions.error?.message}
 			failed={listFailed}
+			retryInList={phone || Boolean(selected)}
 			onRetry={retrySessions}
 			onSelect={(id) => void open(id)}
 			onConversation={() => {
@@ -165,21 +166,17 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 					<p role="status" className="p-4 text-sm text-fg-muted">
 						Load sessions…
 					</p>
-				) : sessionsFailed ? (
-					<EmptyState
+				) : sessionsFailed || runs.isError || sessions.isError || selectedRun.isError ? (
+					<FailureState
 						variant="page"
-						title="Could not load sessions"
+						title="Sessions did not load"
+						description="Retry to open your sessions."
+						detail={runs.error?.message ?? sessions.error?.message ?? selectedRun.error?.message}
 						action={
 							<Button variant="primary" size="md" onClick={retrySessions}>
 								Retry
 							</Button>
 						}
-					/>
-				) : runs.isError || sessions.isError || selectedRun.isError ? (
-					<EmptyState
-						variant="page"
-						title="Sessions unavailable"
-						description={runs.error?.message ?? sessions.error?.message ?? selectedRun.error?.message}
 					/>
 				) : (
 					<EmptyState

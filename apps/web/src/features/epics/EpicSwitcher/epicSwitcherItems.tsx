@@ -1,8 +1,8 @@
 import { ListBullets } from "@phosphor-icons/react";
 import type { EpicSummary } from "@trellis/api";
 import type { CommandItem } from "@trellis/ui";
+import { formatCount } from "../../../lib/format";
 import { epicItems } from "../../pickers/EpicPicker";
-import { progressIcon } from "../../progressIcon";
 import { epicProgress } from "../epicBar";
 
 // The id of the last row, which opens the Epics list. An epic ref always
@@ -15,7 +15,15 @@ export const epicSwitcherItems = (epics: readonly EpicSummary[], current: string
 		...epicItems(openEpics, { current, picker: true }).map((item, index) => {
 			const epic = openEpics[index]!;
 			const { done, of } = epicProgress(epic.counts);
-			return { ...item, icon: progressIcon(done, of, false) };
+			return {
+				...item,
+				children: (
+					<span className="sr-only">
+						, {formatCount(done)} of {formatCount(of)} tickets done
+					</span>
+				),
+				hint: `${formatCount(done)}/${formatCount(of)} done`,
+			};
 		}),
 		{ id: allEpicsId, label: "All epics", icon: <ListBullets className="text-fg-muted" /> },
 	];

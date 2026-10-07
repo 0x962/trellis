@@ -32,7 +32,7 @@ import { TableError } from "./components/TableError";
 import { footerCounts } from "./footerCounts";
 import { useRowActions } from "./useRowActions";
 import { useVisibleColumns } from "./useVisibleColumns";
-import { useWaveStart } from "./useWaveStart";
+import { useWaveStart, type WaveStartAssignmentState } from "./useWaveStart";
 import { useWaveWrites } from "./useWaveWrites";
 
 export type TicketTableProps = {
@@ -60,7 +60,7 @@ export type TicketTableProps = {
 	// The ids of the tickets that hold an open agent run. The epic route
 	// passes it once the assigned runs load, and a wave header then offers
 	// Start wave.
-	assignedTicketIds?: ReadonlySet<string>;
+	assignedTicketIds?: WaveStartAssignmentState;
 	// The wave writes of the epic route. Each wave header then offers the
 	// wave actions, and a row drags into a wave group.
 	waveEditing?: WaveEditing;
@@ -175,7 +175,7 @@ export function TicketTable({
 			wave: group?.wave?.ref,
 		});
 
-	const waveStart = useWaveStart({ groups, assignedTicketIds });
+	const waveStart = useWaveStart({ groups, assignment: assignedTicketIds });
 	const { waves, createWave } = useWaveWrites({
 		waveEditing,
 		project,

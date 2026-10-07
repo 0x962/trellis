@@ -17,6 +17,9 @@ export function useUsageRanking(
 	const [groups, setGroups] = useState({ key, page: 0 });
 	if (groups.key !== key) setGroups({ key, page: 0 });
 	const groupPage = groups.key === key ? groups.page : 0;
+	const [sessions, setSessions] = useState({ key: selectionKey, page: 0 });
+	if (sessions.key !== selectionKey) setSessions({ key: selectionKey, page: 0 });
+	const sessionPage = sessions.key === selectionKey ? sessions.page : 0;
 	const query = useQuery({
 		...orpc.usage.ranking.queryOptions({
 			input: {
@@ -25,7 +28,7 @@ export function useUsageRanking(
 				group,
 				metric,
 				groupPage,
-				sessionPage: 0,
+				sessionPage,
 				row: row ?? undefined,
 				day: day ?? undefined,
 			},
@@ -43,5 +46,7 @@ export function useUsageRanking(
 	return {
 		...query,
 		changeGroupPage: (direction: -1 | 1) => setGroups({ key, page: Math.max(0, groupPage + direction) }),
+		changeSessionPage: (direction: -1 | 1) =>
+			setSessions({ key: selectionKey, page: Math.max(0, sessionPage + direction) }),
 	};
 }

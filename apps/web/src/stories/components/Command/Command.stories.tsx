@@ -53,6 +53,84 @@ export const Grouped: Story = {
 		],
 	},
 };
+
+function ResponsiveCommands({ args }: { args: NonNullable<Story["args"]> }) {
+	const { selected, ...command } = useCommandItems(args);
+	const [projectCommand, setProjectCommand] = useState("");
+	const [virtualTicket, setVirtualTicket] = useState("");
+	return (
+		<div className="grid gap-4 p-4">
+			<Command {...args} {...command} label="Search tickets" />
+			<Command.Root label="Project commands">
+				<Command.Field label="Search project commands" placeholder="Search project commands" />
+				<Command.List>
+					<Command.Group heading="Project">
+						<Command.Row value="settings" label="Settings" onSelect={() => setProjectCommand("settings")} />
+						<Command.Row value="archive" label="Archive" onSelect={() => setProjectCommand("archive")} />
+					</Command.Group>
+				</Command.List>
+			</Command.Root>
+			<Command.Virtual items={virtualItems} label="Search virtual tickets" onSelect={setVirtualTicket} />
+			<p role="status" className="text-sm text-fg-muted">
+				Selected: {selected || "None"}
+			</p>
+			<p role="status" className="text-sm text-fg-muted">
+				Project command: {projectCommand || "None"}
+			</p>
+			<p role="status" className="text-sm text-fg-muted">
+				Virtual ticket: {virtualTicket || "None"}
+			</p>
+		</div>
+	);
+}
+
+export const DesktopTargets: Story = {
+	render: (args) => <ResponsiveCommands args={args} />,
+	globals: { viewport: { value: "desktop", isRotated: false } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const fixedFields = [
+			canvas.getByRole("combobox", { name: "Search tickets" }),
+			canvas.getByRole("combobox", { name: "Project commands" }),
+		];
+		for (const field of fixedFields) {
+			const root = field.closest("[cmdk-root]") as HTMLElement;
+			for (const option of within(root).getAllByRole("option")) {
+				await expect(option.getBoundingClientRect().height).toBe(32);
+			}
+		}
+		const virtualRoot = canvas
+			.getByRole("combobox", { name: "Search virtual tickets" })
+			.closest("[cmdk-root]") as HTMLElement;
+		for (const option of within(virtualRoot).getAllByRole("option")) {
+			await expect(option.getBoundingClientRect().height).toBe(44);
+		}
+	},
+};
+
+export const NarrowTargets: Story = {
+	render: (args) => <ResponsiveCommands args={args} />,
+	globals: { viewport: { value: "narrow", isRotated: false } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		for (const option of canvas.getAllByRole("option")) {
+			const bounds = option.getBoundingClientRect();
+			await expect(bounds.height).toBeGreaterThanOrEqual(44);
+			await expect(bounds.width).toBeGreaterThanOrEqual(44);
+		}
+		await userEvent.click(canvas.getByRole("combobox", { name: "Search tickets" }));
+		await userEvent.keyboard("{End}{Enter}");
+		await expect(canvas.getByText("Selected: TRL-44")).toBeVisible();
+		await userEvent.click(canvas.getByRole("combobox", { name: "Project commands" }));
+		await userEvent.keyboard("{End}{Enter}");
+		await expect(canvas.getByText("Project command: archive")).toBeVisible();
+		await userEvent.click(canvas.getByRole("combobox", { name: "Search virtual tickets" }));
+		await userEvent.type(canvas.getByRole("combobox", { name: "Search virtual tickets" }), "Ticket 121");
+		await userEvent.keyboard("{Enter}");
+		await expect(canvas.getByText("Virtual ticket: TRL-121")).toBeVisible();
+	},
+};
+
 export const Virtualized: Story = {
 	args: { items: virtualItems },
 	render: function Render(args) {

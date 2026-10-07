@@ -12,6 +12,20 @@ const pageActionError = (error: Error) => {
 	return error.message;
 };
 
+const successMessage = (action: "pin" | "delete" | "restore" | "download", pinned: boolean) => {
+	if (action === "pin") return pinned ? "Page unpinned" : "Page pinned";
+	if (action === "delete") return "Page deleted";
+	if (action === "restore") return "Page restored";
+	return "Page download started";
+};
+
+const actionErrorMessage = (action: "pin" | "delete" | "restore" | "download") => {
+	if (action === "pin") return "The Page pin did not change";
+	if (action === "delete") return "The Page was not deleted";
+	if (action === "restore") return "The Page was not restored";
+	return "The Page download did not start";
+};
+
 export const usePageActions = (page: PageRecord, offline: boolean, archived: boolean) => {
 	const { client, orpc, queryClient } = useApp();
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: orpc.pages.key() });
@@ -33,10 +47,10 @@ export const usePageActions = (page: PageRecord, offline: boolean, archived: boo
 		},
 		onSuccess: async (_data, action) => {
 			await invalidate();
-			toast.success(action === "download" ? "Page download started" : "Page updated");
+			toast.success(successMessage(action, page.pinned));
 		},
-		onError: async (error) => {
-			toast.error("The Page action failed", { description: pageActionError(error) });
+		onError: async (error, action) => {
+			toast.error(actionErrorMessage(action), { description: pageActionError(error) });
 			await invalidate();
 		},
 	});

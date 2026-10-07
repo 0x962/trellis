@@ -25,8 +25,13 @@ export const epicSegments = (counts: EpicCounts): StackedBarSegment[] => [
 // canceled ticket is never done and never in the denominator.
 export const epicProgress = (counts: EpicCounts) => ({ done: counts.done, of: counts.total - counts.canceled });
 
-// "3/20", as a row prints it.
+// "3/20", as a desktop row prints it.
 export const epicProgressLabel = (counts: EpicCounts) => {
 	const { done, of } = epicProgress(counts);
 	return `${formatCount(done)}/${formatCount(of)}`;
+};
+
+export const epicProgressText = (counts: EpicCounts) => {
+	const { done, of } = epicProgress(counts);
+	return `${formatCount(done)} of ${formatCount(of)} done`;
 };
