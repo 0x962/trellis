@@ -13,6 +13,22 @@ import { useApp } from "../../../../../lib/appContext";
 import { noteAudiences } from "./audiences";
 
 type NoteSheetProps = { project: Project; note?: Note; readOnly?: boolean; onClose: () => void };
+type NoteField = "title" | "body" | "expires";
+type NoteFieldErrors = Partial<Record<NoteField, string>>;
+type NoteFormValidation =
+	| { success: true; data: NoteCreateInput; errors: NoteFieldErrors }
+	| { success: false; errors: NoteFieldErrors };
+
+const issueFor = (issues: { path: PropertyKey[]; message: string }[], field: "title" | "body") =>
+	issues.find((issue) => issue.path[0] === field)?.message;
+
+const expiresAtOf = (value: string) => {
+	if (value === "") return { value: null } as const;
+	const date = new Date(value);
+	return Number.isNaN(date.getTime())
+		? ({ error: "Enter a valid expiry date and time." } as const)
+		: ({ value: date.toISOString() } as const);
+};
 
 // The `datetime-local` control reads and writes `YYYY-MM-DDTHH:mm` in the
 // local zone. The API carries an ISO instant, so the two forms convert here.
@@ -22,23 +38,53 @@ const toLocalInput = (iso: string | null) => {
 	const pad = (value: number) => String(value).padStart(2, "0");
 	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
-const toIso = (local: string) => (local === "" ? null : new Date(local).toISOString());
+
+export const validateNoteForm = (fields: {
+	project: string;
+	title: string;
+	body: string;
+	audience: NoteAudience;
+	expires: string;
+}): NoteFormValidation => {
+	const expiry = expiresAtOf(fields.expires);
+	const parsed = NoteCreateInputSchema.safeParse({
+		project: fields.project,
+		title: fields.title,
+		body: fields.body,
+		audience: fields.audience,
+		expiresAt: "value" in expiry ? expiry.value : null,
+	});
+	const errors: NoteFieldErrors = {
+		title: parsed.success ? undefined : issueFor(parsed.error.issues, "title"),
+		body: parsed.success ? undefined : issueFor(parsed.error.issues, "body"),
+		expires: "error" in expiry ? expiry.error : undefined,
+	};
+	return parsed.success && errors.expires === undefined
+		? { success: true, data: parsed.data, errors }
+		: { success: false, errors };
+};
 
 export function NoteSheet({ project, note, readOnly = false, onClose }: NoteSheetProps) {
 	const { client, orpc, queryClient } = useApp();
 	const titleRef = useRef<HTMLInputElement>(null);
+	const bodyRef = useRef<HTMLTextAreaElement>(null);
+	const expiresRef = useRef<HTMLInputElement>(null);
 	const [title, setTitle] = useState(note?.title ?? "");
 	const [audience, setAudience] = useState<NoteAudience>(note?.audience ?? "all");
 	const [body, setBody] = useState(note?.body ?? "");
 	const [expires, setExpires] = useState(toLocalInput(note?.expiresAt ?? null));
+	const [showErrors, setShowErrors] = useState(false);
+	const [visited, setVisited] = useState<Partial<Record<NoteField, boolean>>>({});
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const input = NoteCreateInputSchema.safeParse({
+	const input = validateNoteForm({
 		project: project.key,
 		title,
 		body,
 		audience,
-		expiresAt: toIso(expires),
+		expires,
 	});
+	const errorFor = (field: NoteField) => (showErrors || visited[field] ? input.errors[field] : undefined);
+	const visit = (field: NoteField) => setVisited((current) => ({ ...current, [field]: true }));
 	const saved = async () => {
 		await queryClient.invalidateQueries({ queryKey: orpc.notes.key() });
 		onClose();
@@ -60,7 +106,10 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 	const pending = save.isPending || remove.isPending;
 	const dirty =
 		note !== undefined &&
-		(title !== note.title || audience !== note.audience || body !== note.body || toIso(expires) !== note.expiresAt);
+		(title !== note.title ||
+			audience !== note.audience ||
+			body !== note.body ||
+			(input.success ? (input.data.expiresAt ?? null) : undefined) !== note.expiresAt);
 
 	return (
 		<Sheet
@@ -72,9 +121,17 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 		>
 			<form
 				className="flex min-h-full flex-col"
+				noValidate
 				onSubmit={(event) => {
 					event.preventDefault();
-					if (input.success && !pending && !readOnly) save.mutate(input.data);
+					setShowErrors(true);
+					if (!input.success) {
+						if (input.errors.title !== undefined) titleRef.current?.focus();
+						else if (input.errors.body !== undefined) bodyRef.current?.focus();
+						else expiresRef.current?.focus();
+						return;
+					}
+					if (!pending && !readOnly) save.mutate(input.data);
 				}}
 			>
 				<SheetBody>
@@ -86,8 +143,10 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 						autoComplete="off"
 						maxLength={NOTE_TITLE_MAX}
 						disabled={readOnly || pending}
+						error={errorFor("title")}
 						value={title}
 						onChange={(event) => setTitle(event.target.value)}
+						onBlur={() => visit("title")}
 						className="pointer-coarse:h-11"
 					/>
 					<Field label="Audience" hint={noteAudiences.find((item) => item.value === audience)!.description}>
@@ -101,20 +160,26 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 						/>
 					</Field>
 					<Textarea
+						ref={bodyRef}
 						label="Body"
 						required
 						rows={12}
 						disabled={readOnly || pending}
+						error={errorFor("body")}
 						value={body}
 						onChange={(event) => setBody(event.target.value)}
+						onBlur={() => visit("body")}
 						placeholder="State the fact, the current state, or the decision that later agents must know."
 					/>
 					<Input
+						ref={expiresRef}
 						label="Expires"
 						type="datetime-local"
 						disabled={readOnly || pending}
+						error={errorFor("expires")}
 						value={expires}
 						onChange={(event) => setExpires(event.target.value)}
+						onBlur={() => visit("expires")}
 						className="pointer-coarse:h-11"
 					/>
 					<p className="text-xs text-fg-faint">
