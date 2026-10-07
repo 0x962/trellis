@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ResourceCommentThread } from "@trellis/api";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useApp } from "../../../../../../../../../lib/appContext";
 import type {
 	CommentsState,
@@ -18,6 +18,8 @@ export type DocumentComments = {
 	// The comment state of the editor, or null before the editor is ready.
 	editor: CommentsState | null;
 	loadError: Error | null;
+	retrying: boolean;
+	retry: () => Promise<unknown>;
 	// The text of the comment being written, or null.
 	draftQuote: string | null;
 	startDraft: () => boolean;
@@ -39,6 +41,7 @@ export type DocumentComments = {
 export function useDocumentComments(resourceId: string, handle: EditorHandle | null): DocumentComments {
 	const { client, orpc, queryClient } = useApp();
 	const list = useQuery(orpc.resourceComments.list.queryOptions({ input: { resource: resourceId } }));
+	const [retryError, setRetryError] = useState<Error | null>(null);
 	const threads = list.data ?? noThreads;
 	const comments = handle?.comments ?? null;
 	const editor = useSyncExternalStore(comments?.subscribe ?? noSubscription, comments?.snapshot ?? noSnapshot);
@@ -69,7 +72,13 @@ export function useDocumentComments(resourceId: string, handle: EditorHandle | n
 		resourceId,
 		threads,
 		editor,
-		loadError: list.error,
+		loadError: list.error ?? retryError,
+		retrying: retryError !== null,
+		retry: async () => {
+			setRetryError(list.error);
+			await list.refetch();
+			setRetryError(null);
+		},
 		draftQuote: editor === null || editor.draft === null ? null : (comments!.draftAnchor()?.quote ?? null),
 		startDraft: () => comments!.startDraft(),
 		cancelDraft: () => comments!.cancelDraft(),
