@@ -179,13 +179,14 @@ async function mount(options: MountOptions = {}) {
 		root.container.queryAll((node) => node.type === "button" && textOf(node) === label)[0]!;
 	const form = () => root.container.queryAll((node) => node.type === "form")[0]!;
 	const alerts = () => root.container.queryAll((node) => node.props.role === "alert").map(textOf);
-	const change = async (label: string, value: string) => {
+	const change = async (label: string, value: string, badInput = false) => {
 		await act(async () => {
-			const target = { value };
+			const target = { value, validity: { badInput } };
 			control(label).props.onChange({ currentTarget: target, target });
 		});
 	};
-	const blur = async (label: string) => act(async () => control(label).props.onBlur({}));
+	const blur = async (label: string, badInput = false) =>
+		act(async () => control(label).props.onBlur({ currentTarget: { validity: { badInput } } }));
 	const click = async (label: string) => act(async () => button(label).props.onClick());
 	const submit = async () => {
 		await act(async () => form().props.onSubmit({ preventDefault() {} }));
@@ -214,12 +215,12 @@ test("the form reports title and body errors only after a field exit", async () 
 	expect(fixture.button("Create note").props.disabled).toBe(false);
 });
 
-test("an invalid expiry stays on its field and never reaches create", async () => {
+test("a partial native expiry stays on its field and never reaches create", async () => {
 	const fixture = await mount();
 	await fixture.change("Title", "Release host");
 	await fixture.change("Body", "The release host uses protocol 17.");
-	await fixture.change("Expires", "not-a-date");
-	await fixture.blur("Expires");
+	await fixture.change("Expires", "", true);
+	await fixture.blur("Expires", true);
 
 	expect(fixture.alerts()).toEqual(["Enter a valid expiry date and time."]);
 	expect(fixture.control("Expires").props["aria-invalid"]).toBe(true);

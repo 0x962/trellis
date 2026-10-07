@@ -22,7 +22,8 @@ type NoteFormValidation =
 const issueFor = (issues: { path: PropertyKey[]; message: string }[], field: "title" | "body") =>
 	issues.find((issue) => issue.path[0] === field)?.message;
 
-const expiresAtOf = (value: string) => {
+const expiresAtOf = (value: string, badInput: boolean) => {
+	if (badInput) return { error: "Enter a valid expiry date and time." } as const;
 	if (value === "") return { value: null } as const;
 	const date = new Date(value);
 	return Number.isNaN(date.getTime())
@@ -45,8 +46,9 @@ export const validateNoteForm = (fields: {
 	body: string;
 	audience: NoteAudience;
 	expires: string;
+	expiresBadInput: boolean;
 }): NoteFormValidation => {
-	const expiry = expiresAtOf(fields.expires);
+	const expiry = expiresAtOf(fields.expires, fields.expiresBadInput);
 	const parsed = NoteCreateInputSchema.safeParse({
 		project: fields.project,
 		title: fields.title,
@@ -73,6 +75,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 	const [audience, setAudience] = useState<NoteAudience>(note?.audience ?? "all");
 	const [body, setBody] = useState(note?.body ?? "");
 	const [expires, setExpires] = useState(toLocalInput(note?.expiresAt ?? null));
+	const [expiresBadInput, setExpiresBadInput] = useState(false);
 	const [showErrors, setShowErrors] = useState(false);
 	const [visited, setVisited] = useState<Partial<Record<NoteField, boolean>>>({});
 	const [confirmDelete, setConfirmDelete] = useState(false);
@@ -82,6 +85,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 		body,
 		audience,
 		expires,
+		expiresBadInput,
 	});
 	const errorFor = (field: NoteField) => (showErrors || visited[field] ? input.errors[field] : undefined);
 	const visit = (field: NoteField) => setVisited((current) => ({ ...current, [field]: true }));
@@ -178,8 +182,14 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 						disabled={readOnly || pending}
 						error={errorFor("expires")}
 						value={expires}
-						onChange={(event) => setExpires(event.target.value)}
-						onBlur={() => visit("expires")}
+						onChange={(event) => {
+							setExpires(event.currentTarget.value);
+							setExpiresBadInput(event.currentTarget.validity.badInput);
+						}}
+						onBlur={(event) => {
+							setExpiresBadInput(event.currentTarget.validity.badInput);
+							visit("expires");
+						}}
 						className="pointer-coarse:h-11"
 					/>
 					<p className="text-xs text-fg-faint">
