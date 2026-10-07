@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Attachment } from "@trellis/api";
 import { Dialog, EmptyState, InlineEdit, SectionHeader } from "@trellis/ui";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { failToast } from "../../../lib/failToast";
 import { AddAttachmentButton } from "../AddAttachmentButton";
@@ -22,13 +22,14 @@ export type AttachmentGridProps = {
 	// The uploads of a surface that owns the drop target, such as the whole
 	// ticket view. With them, the section draws no drop overlay of its own.
 	uploads?: Uploads;
+	readOnly?: boolean;
 };
 
 // The attachments section of a ticket surface: the header, the uploads in
 // flight, the image thumbnails, and the file rows. Add stays in the header
 // while the attachment list changes.
-export function AttachmentGrid({ ticket, initialAttachments, uploads }: AttachmentGridProps) {
-	const { client, orpc, queryClient, scheduler } = useApp();
+export function AttachmentGrid({ ticket, initialAttachments, uploads, readOnly = false }: AttachmentGridProps) {
+	const { client, orpc, queryClient } = useApp();
 	const list = useQuery({
 		...orpc.attachments.list.queryOptions({ input: { ticket } }),
 		initialData: initialAttachments,
@@ -38,7 +39,6 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 	const [active, setActive] = useState<number | null>(null);
 	// The id of the thumbnail whose rename field is open.
 	const [renamingId, setRenamingId] = useState<string | null>(null);
-	const focusTimers = useRef<unknown[]>([]);
 
 	const attachments = list ?? [];
 	const images = attachments.filter((attachment) => isThumbnailImage(attachment.mime));
@@ -61,12 +61,6 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 		document.addEventListener("keydown", walk, true);
 		return () => document.removeEventListener("keydown", walk, true);
 	}, [active, images.length]);
-	useEffect(
-		() => () => {
-			for (const timer of focusTimers.current) scheduler.clearTimeout(timer);
-		},
-		[scheduler],
-	);
 	if (list === undefined) return null;
 
 	const refresh = () => queryClient.invalidateQueries({ queryKey: listKey, refetchType: "all" });
@@ -102,20 +96,13 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 		}
 		failToast(`${attachment.filename} is not renamed.`, failure.error, () => void rename(attachment, name));
 	};
-	const closeLightbox = () => {
-		const id = shown!.id;
-		setActive(null);
-		focusTimers.current.push(
-			scheduler.setTimeout(() => document.querySelector<HTMLElement>(`[data-thumbnail="${id}"]`)!.focus(), 200),
-		);
-	};
 	const body = (
 		<>
 			<div data-attachments="" className="flex flex-col gap-2">
 				<SectionHeader
 					title="Attachments"
 					count={list.length > 0 ? list.length : undefined}
-					actions={<AddAttachmentButton uploads={uploadManager} />}
+					actions={readOnly ? undefined : <AddAttachmentButton uploads={uploadManager} />}
 				/>
 				{uploadManager.uploads.map((upload) => (
 					<UploadProgress
@@ -123,7 +110,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 						upload={upload}
 						showName={false}
 						onDismiss={uploadManager.dismiss}
-						onRetry={(id) => void uploadManager.retry(id, ticket)}
+						onRetry={readOnly ? undefined : (id) => void uploadManager.retry(id, ticket)}
 					/>
 				))}
 				{attachments.length === 0 && uploadManager.uploads.length === 0 && (
@@ -149,6 +136,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 								<div className="absolute top-1 right-1 rounded-md bg-elevated shadow-sm">
 									<AttachmentActions
 										attachment={attachment}
+										readOnly={readOnly}
 										onDelete={() => remove(attachment)}
 										onRename={() => setRenamingId(attachment.id)}
 										triggerClassName="h-24 max-h-7"
@@ -157,18 +145,20 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 								{/* The tile shows no file name, so the field lies over its
 								    bottom edge while the edit runs. At rest the box holds
 								    the name for a screen reader and draws nothing. */}
-								<InlineEdit
-									label={`Rename ${attachment.filename}`}
-									value={attachment.filename}
-									editing={renamingId === attachment.id}
-									onEditingChange={(open) => setRenamingId(open ? attachment.id : null)}
-									onSave={(name) => rename(attachment, name)}
-									errorTitle={`${attachment.filename} kept its name.`}
-									className="absolute inset-x-1 bottom-1"
-									inputClassName="h-7 text-xs"
-								>
-									<span className="sr-only">{attachment.filename}</span>
-								</InlineEdit>
+								{!readOnly && (
+									<InlineEdit
+										label={`Rename ${attachment.filename}`}
+										value={attachment.filename}
+										editing={renamingId === attachment.id}
+										onEditingChange={(open) => setRenamingId(open ? attachment.id : null)}
+										onSave={(name) => rename(attachment, name)}
+										errorTitle={`${attachment.filename} kept its name.`}
+										className="absolute inset-x-1 bottom-1"
+										inputClassName="h-7 text-xs"
+									>
+										<span className="sr-only">{attachment.filename}</span>
+									</InlineEdit>
+								)}
 							</div>
 						))}
 					</div>
@@ -177,6 +167,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 					<AttachmentRow
 						key={attachment.id}
 						attachment={attachment}
+						readOnly={readOnly}
 						onDelete={() => remove(attachment)}
 						onRename={(name) => rename(attachment, name)}
 					/>
@@ -186,7 +177,8 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 				<Dialog
 					open
 					title={shown.filename}
-					onOpenChange={(open) => !open && closeLightbox()}
+					onOpenChange={(open) => !open && setActive(null)}
+					finalFocus={() => document.querySelector<HTMLElement>(`[data-thumbnail="${shown.id}"]`)}
 					className="w-auto max-w-full"
 				>
 					<div>
@@ -196,7 +188,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 			)}
 		</>
 	);
-	if (uploads !== undefined) {
+	if (uploads !== undefined || readOnly) {
 		return (
 			<section aria-label={`Attachments for ${ticket}`} className="relative">
 				{body}

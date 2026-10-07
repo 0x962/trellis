@@ -21,7 +21,11 @@ export async function contextMenuFixture(overrides: Partial<PageTabsProps> = {})
 		],
 		activeId: "active",
 		onAdd: () => {},
-		onSelect: (id) => selected.push(id),
+		onSelect: (id) => {
+			selected.push(id);
+			props = { ...props, activeId: id };
+			root.render(<PageTabs {...props} />);
+		},
 		onClose: (id) => {
 			closed.push(id);
 			const tabs = props.tabs.filter((tab) => tab.id !== id);
@@ -77,7 +81,9 @@ export async function contextMenuFixture(overrides: Partial<PageTabsProps> = {})
 		)!;
 	const key = async (element: Element, value: string, modifiers: KeyboardEventInit = {}) => {
 		await act(async () =>
-			element.dispatchEvent(new KeyboardEvent("keydown", { key: value, bubbles: true, cancelable: true, ...modifiers })),
+			element.dispatchEvent(
+				new KeyboardEvent("keydown", { key: value, bubbles: true, cancelable: true, ...modifiers }),
+			),
 		);
 		await settle();
 	};
@@ -94,6 +100,8 @@ export async function contextMenuFixture(overrides: Partial<PageTabsProps> = {})
 		tab,
 		menu,
 		item,
+		input: (name: string) =>
+			[...container.querySelectorAll("label")].find((label) => label.textContent === name)!.control as HTMLInputElement,
 		key,
 		settle,
 		async open(id: string) {
@@ -109,6 +117,7 @@ export async function contextMenuFixture(overrides: Partial<PageTabsProps> = {})
 			await settle();
 		},
 		async close() {
+			if (menu()) await key(menu(), "Escape");
 			await act(async () => root.unmount());
 			container.remove();
 		},

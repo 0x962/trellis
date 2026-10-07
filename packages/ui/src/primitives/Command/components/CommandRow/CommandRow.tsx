@@ -32,8 +32,8 @@ export type CommandRowProps = {
 	onSelect: () => void;
 } & Pick<ComponentProps<typeof Cmdk.Item>, "style" | "aria-posinset" | "aria-setsize">;
 
-// One option of a Command list. The height is fixed, so a list that grows
-// while a response arrives moves nothing that is already on screen.
+// Command options use one row height for each viewport, so content that
+// arrives later does not move the rows that are already on screen.
 export function CommandRow({
 	value,
 	label,

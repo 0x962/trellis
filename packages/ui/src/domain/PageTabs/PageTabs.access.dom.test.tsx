@@ -4,6 +4,84 @@ import { contextMenuFixture } from "./components/contextMenuFixture";
 
 const domTest = test.skipIf(typeof document === "undefined");
 
+domTest("the tablist owns only mounted tabs and leaves actions outside its ownership", async () => {
+	const f = await contextMenuFixture({
+		tabs: Array.from({ length: 100 }, (_, i) => ({ id: `tab ${i}`, title: `Page ${i}`, pinned: false })),
+		activeId: "tab 0",
+	});
+	try {
+		const assertOwned = () => {
+			const list = f.container.querySelector('[role="tablist"]')!;
+			const ids = list.getAttribute("aria-owns")!.split(" ");
+			const mounted = [...f.container.querySelectorAll('[role="tab"]')];
+			expect(ids).toEqual(mounted.map((tab) => tab.id));
+			expect(ids.every((id) => document.getElementById(id)?.getAttribute("role") === "tab")).toBe(true);
+			expect(list.querySelector("button")).toBeNull();
+			expect(mounted.filter((tab) => tab.getAttribute("tabindex") === "0")).toHaveLength(1);
+			return ids;
+		};
+		const first = assertOwned();
+		await act(async () => {
+			const region = f.tab("tab 0").closest<HTMLElement>(".overflow-x-auto")!;
+			region.scrollLeft = 8000;
+			region.dispatchEvent(new Event("scroll", { bubbles: true }));
+		});
+		expect(assertOwned()).not.toEqual(first);
+	} finally {
+		await f.close();
+	}
+});
+
+domTest("arrows and edge keys focus tabs across virtual regions and skip collapsed groups", async () => {
+	const f = await contextMenuFixture({
+		tabs: [
+			{ id: "pin", title: "Pinned page", pinned: true },
+			{ id: "hidden", title: "Hidden page", pinned: false, groupId: "g" },
+			...Array.from({ length: 100 }, (_, i) => ({ id: `tab-${i}`, title: `Page ${i}`, pinned: false })),
+		],
+		groups: [{ id: "g", name: "Later", collapsed: true }],
+		activeId: "tab-0",
+	});
+	try {
+		await act(async () => f.tab("tab-0").focus());
+		for (const [key, id] of [
+			["ArrowLeft", "pin"],
+			["ArrowRight", "tab-0"],
+			["End", "tab-99"],
+			["ArrowRight", "pin"],
+			["Home", "pin"],
+		] as const) {
+			await f.key(document.activeElement!, key);
+			expect(document.activeElement).toBe(f.tab(id));
+			expect(f.tab(id).getAttribute("aria-selected")).toBe("true");
+		}
+		await f.key(f.tab("pin"), "End");
+		await f.key(f.tab("tab-99"), "Delete");
+		expect(document.activeElement).toBe(f.tab("pin"));
+		expect(f.closed).toEqual(["tab-99"]);
+		expect(f.selected).not.toContain("hidden");
+	} finally {
+		await f.close();
+	}
+});
+
+domTest("the close action does not change pages with arrow keys", async () => {
+	const f = await contextMenuFixture();
+	try {
+		const close = f.container.querySelector<HTMLButtonElement>('[aria-label="Close Active page"]')!;
+		await act(async () => close.focus());
+		await f.key(close, "ArrowRight");
+		expect(f.selected).toEqual([]);
+		expect(document.activeElement).toBe(close);
+		const keys: string[] = [];
+		f.container.addEventListener("keydown", (event) => keys.push(event.key));
+		await f.key(close, "w", { metaKey: true });
+		expect(keys).toEqual(["w"]);
+	} finally {
+		await f.close();
+	}
+});
+
 domTest("both context-menu keys open on the focused inactive tab and Escape returns focus", async () => {
 	const f = await contextMenuFixture();
 	try {
@@ -164,29 +242,32 @@ domTest("a long press over the close icon keeps the tab open", async () => {
 });
 
 for (const pinned of [false, true]) {
-	domTest(`a ${pinned ? "pinned" : "regular"} menu target stays mounted through scrolling and focus return`, async () => {
-		const f = await contextMenuFixture({
-			tabs: Array.from({ length: 1_000 }, (_, index) => ({ id: `tab-${index}`, title: `Page ${index}`, pinned })),
-			activeId: "tab-0",
-		});
-		try {
-			await f.open("tab-1");
-			const target = f.tab("tab-1");
-			const region = target.closest<HTMLElement>(".overflow-x-auto")!;
-			await act(async () => {
-				region.scrollLeft = 50_000;
-				region.dispatchEvent(new Event("scroll", { bubbles: true }));
+	domTest(
+		`a ${pinned ? "pinned" : "regular"} menu target stays mounted through scrolling and focus return`,
+		async () => {
+			const f = await contextMenuFixture({
+				tabs: Array.from({ length: 1_000 }, (_, index) => ({ id: `tab-${index}`, title: `Page ${index}`, pinned })),
+				activeId: "tab-0",
 			});
-			expect(f.tab("tab-1")).toBe(target);
-			expect(f.menu()).not.toBeNull();
-			expect(f.container.querySelectorAll('[role="tab"]').length).toBeLessThan(15);
-			await f.key(f.menu(), "Escape");
-			expect(document.activeElement).toBe(target);
-			expect(f.selected).toEqual([]);
-			await act(async () => f.tab("tab-0").focus());
-			expect(f.tab("tab-1")).toBeNull();
-		} finally {
-			await f.close();
-		}
-	});
+			try {
+				await f.open("tab-1");
+				const target = f.tab("tab-1");
+				const region = target.closest<HTMLElement>(".overflow-x-auto")!;
+				await act(async () => {
+					region.scrollLeft = 50_000;
+					region.dispatchEvent(new Event("scroll", { bubbles: true }));
+				});
+				expect(f.tab("tab-1")).toBe(target);
+				expect(f.menu()).not.toBeNull();
+				expect(f.container.querySelectorAll('[role="tab"]').length).toBeLessThan(15);
+				await f.key(f.menu(), "Escape");
+				expect(document.activeElement).toBe(target);
+				expect(f.selected).toEqual([]);
+				await act(async () => f.tab("tab-0").focus());
+				expect(f.tab("tab-1")).toBeNull();
+			} finally {
+				await f.close();
+			}
+		},
+	);
 }

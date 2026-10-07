@@ -1,6 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
 import type { AgentRun, Project, Session } from "@trellis/api";
-import { ArchivedToggle, Button, IconButton, Input, Tooltip } from "@trellis/ui";
+import { ArchivedToggle, Button, FailureState, IconButton, Input, Tooltip } from "@trellis/ui";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { sessionComposerActions } from "../../../sessionComposerStore";
 import { sessionGroups } from "../../sessionGroups";
@@ -14,6 +14,7 @@ export function SessionList({
 	pending,
 	error,
 	failed,
+	retryInList,
 	onRetry,
 	onSelect,
 	onConversation,
@@ -29,6 +30,7 @@ export function SessionList({
 	pending: boolean;
 	error?: string;
 	failed: boolean;
+	retryInList: boolean;
 	onRetry: () => void;
 	onSelect: (id: string) => void;
 	onConversation: () => void;
@@ -95,17 +97,33 @@ export function SessionList({
 						</p>
 					)}
 					{failed && (
-						<div role="status" className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-fg-muted">
-							<span>Could not load sessions</span>
-							<Button onClick={onRetry}>Retry</Button>
-						</div>
+						<FailureState
+							variant="inline"
+							title="Sessions did not load"
+							className="px-4 py-2"
+							action={
+								retryInList && (
+									<Button size="md" onClick={onRetry}>
+										Retry
+									</Button>
+								)
+							}
+						/>
 					)}
 					{error && !failed && (
-						<p role="alert" className="px-4 py-2 text-sm text-danger">
-							{error}
-						</p>
+						<FailureState
+							title="The session list did not refresh"
+							description="Your loaded sessions stay available."
+							detail={error}
+							className="px-4"
+							action={
+								<Button size="md" onClick={onRetry}>
+									Retry
+								</Button>
+							}
+						/>
 					)}
-					{!pending && !error && !failed && (
+					{!pending && !failed && (
 						<>
 							{search.trim() && (
 								<p role="status" className="px-4 pb-1 text-xs text-fg-muted">

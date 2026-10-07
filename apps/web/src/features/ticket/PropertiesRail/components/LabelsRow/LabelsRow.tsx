@@ -9,6 +9,7 @@ import { usePickerStore } from "../../../stores/pickerStore";
 
 export type LabelsRowProps = {
 	ticket: Ticket;
+	readOnly?: boolean;
 };
 
 // The rail trigger draws every label of the ticket, so it holds as many
@@ -22,7 +23,7 @@ const triggerClass = "-ml-2 h-auto max-w-full min-h-7 justify-start py-1 font-no
 // never contradict each other, and two quick picks would otherwise refuse
 // the second one. A failure puts the labels the ticket had back and shows a
 // toast with a Retry action.
-export function LabelsRow({ ticket }: LabelsRowProps) {
+export function LabelsRow({ ticket, readOnly = false }: LabelsRowProps) {
 	const { write } = useTicketWrite(ticket.identifier);
 	const { groups } = useLabels(ticket.project.key);
 	const open = usePickerStore((state) => state.open);
@@ -46,7 +47,7 @@ export function LabelsRow({ ticket }: LabelsRowProps) {
 				checked={ticket.labels.map((label) => label.id)}
 				onToggle={(label, checked) => void toggle(label, checked)}
 				trigger={
-					<Button variant="quiet" className={triggerClass}>
+					<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 						{ticket.labels.length === 0 ? (
 							<span className="text-fg-muted">Add label</span>
 						) : (

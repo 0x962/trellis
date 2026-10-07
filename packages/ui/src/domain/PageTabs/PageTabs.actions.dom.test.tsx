@@ -98,7 +98,7 @@ domTest("rename keeps the inactive field focused and returns focus after save an
 	try {
 		await f.open("other");
 		await f.choose("Rename tab");
-		const input = f.container.querySelector<HTMLInputElement>('[aria-label="Tab name"]')!;
+		const input = f.input("Tab name");
 		expect(document.activeElement).toBe(input);
 		await act(async () => {
 			Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "Renamed page");
@@ -109,7 +109,7 @@ domTest("rename keeps the inactive field focused and returns focus after save an
 		expect(document.activeElement).toBe(f.tab("other"));
 		await f.open("other");
 		await f.choose("Rename tab");
-		await f.key(f.container.querySelector('[aria-label="Tab name"]')!, "Escape");
+		await f.key(f.input("Tab name"), "Escape");
 		expect(f.renamed).toHaveLength(1);
 		expect(document.activeElement).toBe(f.tab("other"));
 		expect(f.selected).toEqual([]);
@@ -124,7 +124,7 @@ domTest("a new group receives the inactive tab and focuses the group name", asyn
 		await f.open("other");
 		await f.choose("Add tab to new group");
 		expect(f.created).toEqual([["New group", "other"]]);
-		expect(document.activeElement).toBe(f.container.querySelector('[aria-label="Group name"]'));
+		expect(document.activeElement).toBe(f.input("Group name"));
 		expect(f.selected).toEqual([]);
 	} finally {
 		await f.close();
@@ -147,9 +147,7 @@ domTest("the group menu and strip pickers remain available beside tab context me
 		await f.open("other");
 		expect(f.menu()).not.toBeNull();
 		await f.key(f.menu(), "Escape");
-		await act(async () =>
-			f.container.querySelector<HTMLButtonElement>('[aria-label="Move tab to a group"]')!.click(),
-		);
+		await act(async () => f.container.querySelector<HTMLButtonElement>('[aria-label="Move tab to a group"]')!.click());
 		await f.settle();
 		await f.key(document.querySelector('[aria-label="Search groups"]')!, "Enter");
 		expect(f.grouped).toEqual([["active", "g"]]);
