@@ -230,8 +230,8 @@ export const PartialFailureAssignmentError: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const body = within(canvasElement.ownerDocument.body);
-		await expect(body.getByRole("button", { name: "Retry 1 failed ticket" })).toBeDisabled();
-		await expect(body.getByRole("button", { name: /^Retry$/ })).toBeEnabled();
+		await expect(await body.findByRole("button", { name: "Retry 1 failed ticket" })).toBeDisabled();
+		await expect(await body.findByRole("button", { name: /^Retry$/ })).toBeEnabled();
 	},
 };
 export const RetainedCodexChoice: Story = {
