@@ -2,10 +2,9 @@
 // height to keep the scroll position stable when ticket data arrives.
 export const desktopRowHeight = 36;
 
-// The row box below 768 px, where a row is two lines. On the epic table the
-// second line holds one fact of the ticket, and the table draws no pull
-// request line and no agent line, so every ticket takes 56 px.
-export const phoneRowHeight = 56;
+// Phone rows reserve 72 px for the identifier, two title lines, one fact,
+// and their gaps. The remaining 16 px separates the text from nearby rows.
+export const phoneRowHeight = 88;
 
 // The row box of one pull request under a ticket row, 768 px and up. The
 // virtualizer reserves this height before the line renders.

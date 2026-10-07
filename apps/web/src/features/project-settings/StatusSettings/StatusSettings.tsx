@@ -8,6 +8,7 @@ import { SettingsSection } from "../SettingsSection";
 import { StatusCreateForm } from "../StatusCreateForm";
 import { StatusDeleteDialog } from "../StatusDeleteDialog";
 import { StatusRow } from "../StatusRow";
+import { useStatusWrite } from "./useStatusWrite";
 
 export type StatusSettingsProps = {
 	project: Project;
@@ -29,6 +30,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 	const [editing, setEditing] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<Status | null>(null);
 	const [message, setMessage] = useState<string | null>(null);
+	const { busy: writing, write } = useStatusWrite();
 	const data = query.data;
 	const counts = countsQuery.data;
 
@@ -41,8 +43,11 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 		const [status] = order.splice(from, 1);
 		order.splice(to, 0, status!);
 		try {
-			await client.statuses.reorder({ project: project.key, statuses: order.map((entry) => entry.id) });
-			await refresh();
+			await write(async () => {
+				await client.statuses.reorder({ project: project.key, statuses: order.map((entry) => entry.id) });
+				await refresh();
+			});
+			setMessage(null);
 		} catch (error) {
 			setMessage((error as Error).message);
 		}
@@ -90,6 +95,7 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 									size="xs"
 									label={`Add a status to ${category.label}`}
 									icon={<Plus />}
+									disabled={writing}
 									onClick={() => {
 										setEditing(null);
 										setAdding(category.value);
@@ -107,6 +113,9 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 											count={statuses.length}
 											ticketCount={countByStatus.get(status.id) ?? 0}
 											expanded={editing === status.id}
+											busy={writing}
+											lastStatus={data.statuses.length === 1}
+											onWrite={write}
 											onChanged={refresh}
 											onEdit={() => {
 												setAdding(null);
@@ -130,6 +139,8 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 								<StatusCreateForm
 									project={project.key}
 									initialCategory={category.value}
+									busy={writing}
+									onWrite={write}
 									onCreated={async () => {
 										setAdding(null);
 										await refresh();
@@ -146,6 +157,9 @@ export function StatusSettings({ project }: StatusSettingsProps) {
 				project={project.key}
 				status={deleting}
 				statuses={data.statuses}
+				ticketCount={deleting === null ? 0 : (countByStatus.get(deleting.id) ?? 0)}
+				busy={writing}
+				onWrite={write}
 				onDeleted={refresh}
 				onClose={() => setDeleting(null)}
 			/>

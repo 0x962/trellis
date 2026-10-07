@@ -54,6 +54,7 @@ export {
 	type MachinePressureProps,
 	type MachinePressureReadingView,
 } from "./domain/MachinePressure";
+export { MachineRuns } from "./domain/MachineRuns";
 export {
 	MergeConflictMark,
 	type MergeConflictMarkProps,
