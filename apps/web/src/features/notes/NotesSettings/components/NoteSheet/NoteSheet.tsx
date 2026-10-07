@@ -128,14 +128,24 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 				noValidate
 				onSubmit={(event) => {
 					event.preventDefault();
+					const submittedExpiresBadInput = expiresRef.current!.validity.badInput || expiresBadInput;
+					setExpiresBadInput(submittedExpiresBadInput);
+					const submittedInput = validateNoteForm({
+						project: project.key,
+						title,
+						body,
+						audience,
+						expires,
+						expiresBadInput: submittedExpiresBadInput,
+					});
 					setShowErrors(true);
-					if (!input.success) {
-						if (input.errors.title !== undefined) titleRef.current?.focus();
-						else if (input.errors.body !== undefined) bodyRef.current?.focus();
+					if (!submittedInput.success) {
+						if (submittedInput.errors.title !== undefined) titleRef.current?.focus();
+						else if (submittedInput.errors.body !== undefined) bodyRef.current?.focus();
 						else expiresRef.current?.focus();
 						return;
 					}
-					if (!pending && !readOnly) save.mutate(input.data);
+					if (!pending && !readOnly) save.mutate(submittedInput.data);
 				}}
 			>
 				<SheetBody>
@@ -182,6 +192,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 						disabled={readOnly || pending}
 						error={errorFor("expires")}
 						value={expires}
+						onKeyUp={(event) => setExpiresBadInput(event.currentTarget.validity.badInput)}
 						onChange={(event) => {
 							setExpires(event.currentTarget.value);
 							setExpiresBadInput(event.currentTarget.validity.badInput);

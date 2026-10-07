@@ -5,6 +5,7 @@ import {
 	act,
 	type ChangeEventHandler,
 	type FocusEventHandler,
+	type KeyboardEventHandler,
 	type ReactNode,
 	type Ref,
 	useImperativeHandle,
@@ -21,6 +22,7 @@ type ControlProps = {
 	disabled?: boolean;
 	onChange?: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 	onBlur?: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+	onKeyUp?: KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 	ref?: Ref<HTMLInputElement | HTMLTextAreaElement>;
 };
 
@@ -35,7 +37,10 @@ mock.module("@trellis/ui", () => ({
 		</div>
 	),
 	Input: ({ label, error, ref, ...props }: ControlProps) => {
-		useImperativeHandle(ref, () => ({ focus: () => (focusedField = label) }) as unknown as HTMLInputElement);
+		useImperativeHandle(
+			ref,
+			() => ({ focus: () => (focusedField = label), validity: { badInput: false } }) as unknown as HTMLInputElement,
+		);
 		return (
 			<label>
 				{label}
@@ -185,6 +190,8 @@ async function mount(options: MountOptions = {}) {
 			control(label).props.onChange({ currentTarget: target, target });
 		});
 	};
+	const keyUp = async (label: string, badInput: boolean) =>
+		act(async () => control(label).props.onKeyUp({ currentTarget: { validity: { badInput } } }));
 	const blur = async (label: string, badInput = false) =>
 		act(async () => control(label).props.onBlur({ currentTarget: { validity: { badInput } } }));
 	const click = async (label: string) => act(async () => button(label).props.onClick());
@@ -192,24 +199,20 @@ async function mount(options: MountOptions = {}) {
 		await act(async () => form().props.onSubmit({ preventDefault() {} }));
 		await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
 	};
-	return { root, createNote, updateNote, deleteNote, close, control, button, alerts, change, blur, click, submit };
+	return { createNote, updateNote, close, control, button, alerts, change, keyUp, blur, click, submit };
 }
 
 test("the form reports title and body errors only after a field exit", async () => {
 	const fixture = await mount();
-
 	expect(fixture.alerts()).toEqual([]);
 	expect(fixture.button("Create note").props.disabled).toBe(true);
-
 	await fixture.blur("Title");
 	expect(fixture.alerts()).toEqual(["Enter a note title of 1 to 120 characters."]);
 	expect(fixture.control("Title").props["aria-invalid"]).toBe(true);
-
 	await fixture.change("Title", "Release host");
 	expect(fixture.alerts()).toEqual([]);
 	await fixture.blur("Body");
 	expect(fixture.alerts()).toEqual(["Enter a note body."]);
-
 	await fixture.change("Body", "The release host uses protocol 17.");
 	expect(fixture.alerts()).toEqual([]);
 	expect(fixture.button("Create note").props.disabled).toBe(false);
@@ -219,23 +222,29 @@ test("a partial native expiry stays on its field and never reaches create", asyn
 	const fixture = await mount();
 	await fixture.change("Title", "Release host");
 	await fixture.change("Body", "The release host uses protocol 17.");
-	await fixture.change("Expires", "", true);
+	await fixture.keyUp("Expires", true);
+	expect(fixture.alerts()).toEqual([]);
+	expect(fixture.button("Create note").props.disabled).toBe(true);
 	await fixture.blur("Expires", true);
-
 	expect(fixture.alerts()).toEqual(["Enter a valid expiry date and time."]);
 	expect(fixture.control("Expires").props["aria-invalid"]).toBe(true);
 	expect(fixture.button("Create note").props.disabled).toBe(true);
-
 	await fixture.submit();
 	expect(fixture.createNote).toHaveBeenCalledTimes(0);
+	expect(focusedField).toBe("Expires");
+	const submitFixture = await mount();
+	await submitFixture.change("Title", "Release host");
+	await submitFixture.change("Body", "The release host uses protocol 17.");
+	await submitFixture.keyUp("Expires", true);
+	await submitFixture.submit();
+	expect(submitFixture.alerts()).toEqual(["Enter a valid expiry date and time."]);
+	expect(submitFixture.createNote).toHaveBeenCalledTimes(0);
 	expect(focusedField).toBe("Expires");
 });
 
 test("submit shows every field error and focuses the first invalid field", async () => {
 	const fixture = await mount();
-
 	await fixture.submit();
-
 	expect(fixture.alerts()).toEqual(["Enter a note title of 1 to 120 characters.", "Enter a note body."]);
 	expect(fixture.createNote).toHaveBeenCalledTimes(0);
 	expect(focusedField).toBe("Title");
@@ -247,11 +256,9 @@ test("a valid note reaches create after every validation error is clear", async 
 	await fixture.change("Title", "  Release host  ");
 	await fixture.change("Body", "  The release host uses protocol 17.  ");
 	await fixture.change("Expires", "2026-10-08T09:30");
-
 	expect(fixture.alerts()).toEqual([]);
 	expect(fixture.button("Create note").props.disabled).toBe(false);
 	await fixture.submit();
-
 	expect(fixture.createNote).toHaveBeenCalledTimes(1);
 	expect(fixture.createNote.mock.calls[0]![0]).toEqual({
 		project: "TRL",
@@ -269,12 +276,10 @@ test("a pending create locks the form and refuses a close", async () => {
 	await fixture.change("Title", "Release host");
 	await fixture.change("Body", "The release host uses protocol 17.");
 	await fixture.submit();
-
 	expect(fixture.control("Title").props.disabled).toBe(true);
 	expect(fixture.button("Cancel").props.disabled).toBe(true);
 	await fixture.click("Close sheet");
 	expect(fixture.close).toHaveBeenCalledTimes(0);
-
 	finish(note);
 	await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
 	expect(fixture.close).toHaveBeenCalledTimes(1);
@@ -287,7 +292,6 @@ test("an edit keeps invalid data out of update and preserves a write error", asy
 	expect(fixture.button("Save changes").props.disabled).toBe(true);
 	await fixture.submit();
 	expect(fixture.updateNote).toHaveBeenCalledTimes(0);
-
 	await fixture.change("Body", "Keep the current catalog rules.");
 	await fixture.submit();
 	expect(fixture.updateNote).toHaveBeenCalledTimes(1);
