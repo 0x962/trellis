@@ -18,6 +18,7 @@ import { useTicketMutations } from "../../table/hooks/useTicketMutations";
 import { useWaveEditing } from "../../table/hooks/useWaveEditing";
 import { TicketTable } from "../../table/TicketTable";
 import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton";
+import type { WaveStartAssignmentState } from "../../table/TicketTable/useWaveStart";
 import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
@@ -70,6 +71,16 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const epicAgentRuns = useEpicAgentRuns(ref);
 	const runs = epicAgentRuns.data ?? noRuns;
 	const assigned = useMemo(() => assignedTicketIds(runs), [runs]);
+	const waveStartAssignment: WaveStartAssignmentState =
+		epicAgentRuns.status === "pending"
+			? { status: "loading" }
+			: epicAgentRuns.status === "error"
+				? {
+						status: "error",
+						detail: epicAgentRuns.error.message,
+						retry: () => void epicAgentRuns.refetch(),
+					}
+				: { status: "ready", ticketIds: assigned };
 	// A Set, because each row tests membership. Null until the query
 	// succeeds: an empty set would read a ticket whose agent works as a
 	// ticket that waits for the person, and the row would move when the
@@ -238,7 +249,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 											tableKind="epic"
 											search={tableSearch}
 											workingTicketIds={workingTicketIds}
-											assignedTicketIds={epicAgentRuns.status === "success" ? assigned : undefined}
+											assignedTicketIds={waveStartAssignment}
 											prRows
 											agentLines={agentLines}
 											waveEditing={readOnly ? undefined : waveEditing}
