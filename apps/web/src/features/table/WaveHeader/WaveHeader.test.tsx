@@ -115,6 +115,7 @@ test("the first open wave gets the canonical Current badge", () => {
 	expect(mark.props).toEqual({
 		tone: "accent",
 		size: "sm",
+		className: "text-fg-muted",
 		children: "Current",
 	});
 });
