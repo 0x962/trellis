@@ -5,10 +5,15 @@
 		"stories": [
 			"Pages/Flows/MixedEnginesAndPublication",
 			"Pages/Flows/Empty",
+			"Pages/Flows/EmptyCreateAction",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
 			"Pages/Flows/Narrow",
 			"Pages/Flows/FilteredEmpty",
+			"Pages/Flows/LongContent",
+			"Pages/Flows/DenseCards",
+			"Pages/Flows/CardHover",
+			"Pages/Flows/CardFocus",
 			"Pages/Flows/SearchAndClear"
 		],
 		"states": [
@@ -17,10 +22,15 @@
 			"pending publication",
 			"published",
 			"empty",
+			"empty action",
 			"loading",
 			"error",
 			"narrow",
 			"filtered empty",
+			"long content",
+			"dense cards",
+			"hover",
+			"focus",
 			"search and clear"
 		],
 		"notes": ""
@@ -39,7 +49,10 @@
 			"Pages/Flow editor/LegacyLoading",
 			"Pages/Flow editor/LegacyRequestError",
 			"Pages/Flow editor/LegacyMissing",
-			"Pages/Flow editor/EditorHostError"
+			"Pages/Flow editor/EditorHostError",
+			"Pages/Flow editor/InvalidNodes",
+			"Pages/Flow editor/DenseLongGraph",
+			"Pages/Flow editor/ConnectionLossUndo"
 		],
 		"states": [
 			"legacy canvas",
@@ -51,7 +64,10 @@
 			"legacy loading",
 			"legacy error",
 			"missing flow",
-			"host error"
+			"host error",
+			"invalid nodes",
+			"dense long graph",
+			"connection loss undo"
 		],
 		"notes": "Langflow host states use a synthetic unavailable host. The stories load no external editor."
 	},
