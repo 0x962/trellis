@@ -2,8 +2,9 @@ import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRouterState } from "@tanstack/react-router";
 import type { PageGetInput } from "@trellis/api";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { PageDetail } from "../../features/pages/PageDetail";
+import { PageShare } from "../../features/pages/PageDetail/components/PageShare";
 import { historicalPageThread, page, pageLease, pageResponses, pageThread } from "./fixtures/page";
 import { actor, archivedProject, failure, pending, project, timestamp } from "./fixtures/project";
 import { run } from "./fixtures/session";
@@ -95,7 +96,38 @@ export const Narrow: Story = { globals: { viewport: { value: "narrow", isRotated
 export const NarrowComments: Story = {
 	globals: { viewport: { value: "narrow", isRotated: false } },
 	play: async ({ canvasElement }) => {
-		await userEvent.click(await within(canvasElement).findByRole("button", { name: "Comments" }));
+		const canvas = within(canvasElement);
+		const body = within(canvasElement.ownerDocument.body);
+		const trigger = await canvas.findByRole("button", { name: "Comments" });
+		await userEvent.click(trigger);
+		const dialog = await body.findByRole("dialog", { name: "Comments" });
+		for (let index = 0; index < 8; index++) {
+			await userEvent.tab();
+			expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true);
+		}
+		await userEvent.tab({ shift: true });
+		expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true);
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(dialog).not.toBeVisible());
+		await waitFor(() => expect(trigger).toHaveFocus());
+	},
+};
+
+export const HistoricalShare: Story = {
+	globals: { viewport: { value: "narrow", isRotated: false } },
+	render: () => (
+		<PageShare
+			page={{ ...page, requestedVersion: { ...page.requestedVersion, number: 1, label: "First copy" } }}
+			onClose={() => {}}
+			finalFocus={{ current: null }}
+		/>
+	),
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		const dialog = await body.findByRole("dialog", { name: "Share Page" });
+		await expect(
+			await within(dialog).findByText("This link opens the current version of the Page, not version 1."),
+		).toBeVisible();
 	},
 };
 

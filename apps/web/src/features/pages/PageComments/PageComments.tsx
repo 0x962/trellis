@@ -162,7 +162,6 @@ export function PageComments({
 							}}
 							title="Comments"
 							titleClassName="text-md font-medium"
-							modal={false}
 							width={360}
 							finalFocus={trigger}
 						>
