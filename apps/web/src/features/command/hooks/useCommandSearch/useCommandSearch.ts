@@ -9,6 +9,9 @@ export type CommandSearch = {
 	// The identifier the query spells, or null. The match is local, so the
 	// jump item needs no request.
 	jump: string | null;
+	state: "idle" | "loading" | "success" | "error";
+	error: string | null;
+	retry: () => void;
 };
 
 // The debounce before a typed query reaches search.query.
@@ -49,11 +52,18 @@ export const useCommandSearch = (query: string): CommandSearch => {
 		enabled,
 	});
 
-	// The rendered results always belong to the query on screen, so a slow
-	// response for an earlier query never lands.
-	if (!enabled || results.data === undefined) return { tickets: empty, jump };
+	const retry = () => void results.refetch();
+	if (trimmed === "") return { tickets: empty, jump, state: "idle", error: null, retry };
+	if (!enabled || debounced !== trimmed || results.isPending) {
+		return { tickets: empty, jump, state: "loading", error: null, retry };
+	}
+	if (results.isError) return { tickets: empty, jump, state: "error", error: results.error.message, retry };
+	if (results.data === undefined) return { tickets: empty, jump, state: "loading", error: null, retry };
 	return {
 		tickets: results.data.tickets.filter((ticket) => ticket.identifier !== jump),
 		jump,
+		state: "success",
+		error: null,
+		retry,
 	};
 };

@@ -34,7 +34,7 @@ const rowClass = "h-9 border-b border-border text-fg transition-colors duration-
 const phoneRowClass = "h-14 border-b border-border text-fg transition-colors duration-hover ease-out hover:bg-band";
 // The link takes no height of its own, so the row keeps its 36 px.
 const linkClass =
-	"inline-flex items-center rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+	"inline-flex max-w-full items-center rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 // Below 768 px one link fills the whole row, so a tap anywhere on the 56 px
 // row opens the result, and the target clears 44 px on both axes.
 const phoneLinkClass =
@@ -114,7 +114,11 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 										<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
 									</TicketLink>
 								</td>
-								<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
+								<td className="truncate pr-3 text-base">
+									<TicketLink identifier={ticket.identifier} className={linkClass}>
+										<span className="truncate">{highlight(ticket.title, q)}</span>
+									</TicketLink>
+								</td>
 								<td className="w-40 pr-3" title={ticket.project.key}>
 									<span className="flex min-w-0 items-center gap-1.5">
 										<ProjectKey projectKey={segments[0]!} color={colors?.[segments[0]!] ?? null} />
@@ -162,7 +166,11 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 										<ProjectKey projectKey={project.key} color={project.color} />
 									</Link>
 								</td>
-								<td className="truncate pr-3 text-base">{highlight(project.name, q)}</td>
+								<td className="truncate pr-3 text-base">
+									<Link to="/p/$" params={{ _splat: project.key }} className={linkClass}>
+										<span className="truncate">{highlight(project.name, q)}</span>
+									</Link>
+								</td>
 								<td colSpan={3} className="pr-5 text-xs text-fg-faint">
 									{project.key}
 								</td>

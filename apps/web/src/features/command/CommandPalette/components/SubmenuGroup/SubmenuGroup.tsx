@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { Command } from "@trellis/ui";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Button, Command, FailureState, Spinner } from "@trellis/ui";
+import { useEffect } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import type { RowDeps, Submenu } from "../../../rows";
 import { drawRows } from "../../../utils/drawRows";
@@ -25,8 +26,13 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		...orpc.statuses.list.queryOptions({ input: { project } }),
 		enabled: submenu.kind === "status",
 	});
-	const tickets = useQuery({
-		...orpc.tickets.list.queryOptions({ input: { project, limit: 20 } }),
+	const tickets = useInfiniteQuery({
+		...orpc.tickets.list.infiniteOptions({
+			input: (cursor: string | undefined) =>
+				cursor === undefined ? { project, limit: 200 } : { project, limit: 200, cursor },
+			initialPageParam: undefined as string | undefined,
+			getNextPageParam: (last) => last.nextCursor ?? undefined,
+		}),
 		enabled: submenu.kind === "parent",
 	});
 	const labels = useQuery({
@@ -41,13 +47,69 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		...orpc.epics.get.queryOptions({ input: { epic: submenu.kind === "wave" ? submenu.epic : "" } }),
 		enabled: submenu.kind === "wave",
 	});
+	const ticketPageCount = tickets.data?.pages.length ?? 0;
+	useEffect(() => {
+		if (submenu.kind !== "parent" || ticketPageCount === 0 || !tickets.hasNextPage || tickets.isFetchingNextPage) {
+			return;
+		}
+		void tickets.fetchNextPage();
+	}, [submenu.kind, ticketPageCount, tickets.fetchNextPage, tickets.hasNextPage, tickets.isFetchingNextPage]);
 	const rows = submenuRows(submenu, deps, {
 		statuses: statuses.data?.statuses ?? [],
-		tickets: tickets.data?.items ?? [],
+		tickets: tickets.data?.pages.flatMap((page) => page.items) ?? [],
 		labels: labels.data?.labels ?? [],
 		labelGroups: labels.data?.groups ?? [],
 		epics: epics.data ?? [],
 		waves: epic.data?.waves ?? [],
 	});
-	return <Command.Group heading={submenuHeadings[submenu.kind]}>{drawRows(rows)}</Command.Group>;
+	const loading =
+		(submenu.kind === "status" && statuses.isPending) ||
+		(submenu.kind === "parent" && (tickets.isPending || tickets.hasNextPage || tickets.isFetchingNextPage)) ||
+		(submenu.kind === "labels" && labels.isPending) ||
+		(submenu.kind === "epic" && epics.isPending) ||
+		(submenu.kind === "wave" && epic.isPending);
+	const error =
+		submenu.kind === "status"
+			? statuses.error
+			: submenu.kind === "parent"
+				? tickets.error
+				: submenu.kind === "labels"
+					? labels.error
+					: submenu.kind === "epic"
+						? epics.error
+						: submenu.kind === "wave"
+							? epic.error
+							: null;
+	const retry = () => {
+		if (submenu.kind === "status") void statuses.refetch();
+		if (submenu.kind === "parent") void tickets.refetch();
+		if (submenu.kind === "labels") void labels.refetch();
+		if (submenu.kind === "epic") void epics.refetch();
+		if (submenu.kind === "wave") void epic.refetch();
+	};
+
+	return (
+		<Command.Group heading={submenuHeadings[submenu.kind]}>
+			{loading && (
+				<div
+					aria-live="polite"
+					aria-busy="true"
+					className="flex items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
+				>
+					<Spinner />
+					Loading options
+				</div>
+			)}
+			{!loading && error !== null && (
+				<FailureState
+					variant="section"
+					title="Options did not load"
+					detail={error.message}
+					action={<Button onClick={retry}>Retry</Button>}
+				/>
+			)}
+			{!loading && error === null && rows.length === 0 && <Command.Empty>No options available</Command.Empty>}
+			{!loading && error === null && drawRows(rows)}
+		</Command.Group>
+	);
 }

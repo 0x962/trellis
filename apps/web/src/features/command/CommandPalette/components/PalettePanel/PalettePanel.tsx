@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { CodeText, Command, Kbd } from "@trellis/ui";
+import { Button, CodeText, Command, FailureState, Kbd, Spinner } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
@@ -152,7 +152,8 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 	// What Enter runs: the ticket an ID names, then a matching command, then
 	// the first ticket result. An arrow key selects another row.
 	const best = typed === "" ? undefined : (results.jump ?? named?.value ?? results.tickets[0]?.identifier);
-	const nothing = typed !== "" && submenu === null && results.jump === null && groups.length === 0;
+	const nothing =
+		typed !== "" && submenu === null && results.state === "success" && results.jump === null && groups.length === 0;
 
 	useEffect(() => {
 		if (best !== undefined) setValue(best);
@@ -174,6 +175,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 			className="min-h-0"
 		>
 			<Command.Field
+				label={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
 				placeholder={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
 				context={identifier ?? undefined}
 				value={query}
@@ -182,6 +184,24 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 				autoFocus
 			/>
 			<Command.List>
+				{submenu === null && results.state === "loading" && (
+					<div
+						aria-live="polite"
+						aria-busy="true"
+						className="flex items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
+					>
+						<Spinner />
+						Searching tickets
+					</div>
+				)}
+				{submenu === null && results.state === "error" && (
+					<FailureState
+						variant="section"
+						title="Ticket search did not load"
+						detail={results.error}
+						action={<Button onClick={results.retry}>Retry</Button>}
+					/>
+				)}
 				{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
 				{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
 				{groups.map((group) => (
