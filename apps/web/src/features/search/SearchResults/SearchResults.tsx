@@ -32,9 +32,8 @@ export type SearchResultsProps = {
 // 768 px it takes the two-line box of the table's phone row, 56 px.
 const rowClass = "h-9 border-b border-border text-fg transition-colors duration-hover ease-out hover:bg-band";
 const phoneRowClass = "h-14 border-b border-border text-fg transition-colors duration-hover ease-out hover:bg-band";
-// The link takes no height of its own, so the row keeps its 36 px.
-const linkClass =
-	"inline-flex min-h-7 max-w-full items-center rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+const rowLinkClass =
+	"inline-flex min-h-7 max-w-full items-center rounded-sm after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-accent focus-visible:after:-outline-offset-2";
 // Below 768 px one link fills the whole row, so a tap anywhere on the 56 px
 // row opens the result, and the target clears 44 px on both axes.
 const phoneLinkClass =
@@ -62,6 +61,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	if (visibleTickets.length === 0 && projects.length === 0 && pages.length === 0 && !query.hasNextPage) {
 		return (
 			<EmptyState
+				role="status"
 				variant="page"
 				title={`No results for '${q}'`}
 				description="No ticket, project, or Page holds this text. Check the spelling, or search for one word."
@@ -105,19 +105,17 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							);
 						}
 						return (
-							<tr key={ticket.id} className={rowClass}>
+							<tr key={ticket.id} className={`${rowClass} relative`}>
 								<td className="w-9 pl-5">
 									<StatusIcon category={ticket.status.category} label={ticket.status.name} />
 								</td>
 								<td className="w-20">
-									<TicketLink identifier={ticket.identifier} className={linkClass}>
+									<TicketLink identifier={ticket.identifier} className={rowLinkClass}>
 										<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
 									</TicketLink>
 								</td>
 								<td className="truncate pr-3 text-base">
-									<TicketLink identifier={ticket.identifier} className={linkClass}>
-										<span className="truncate">{highlight(ticket.title, q)}</span>
-									</TicketLink>
+									<span className="truncate">{highlight(ticket.title, q)}</span>
 								</td>
 								<td className="w-40 pr-3" title={ticket.project.key}>
 									<span className="flex min-w-0 items-center gap-1.5">
@@ -160,20 +158,19 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								</td>
 							</tr>
 						) : (
-							<tr key={project.id} className={rowClass}>
-								<td colSpan={2} className="pl-5">
-									<Link to="/p/$" params={{ _splat: project.key }} className={linkClass}>
-										<ProjectKey projectKey={project.key} color={project.color} />
-									</Link>
+							<tr key={project.id} className={`${rowClass} relative`}>
+								<td className="w-9 pl-5" />
+								<td className="w-20">
+									<ProjectKey projectKey={project.key} color={project.color} />
 								</td>
 								<td className="truncate pr-3 text-base">
-									<Link to="/p/$" params={{ _splat: project.key }} className={linkClass}>
+									<Link to="/p/$" params={{ _splat: project.key }} className={rowLinkClass}>
 										<span className="truncate">{highlight(project.name, q)}</span>
 									</Link>
 								</td>
-								<td colSpan={3} className="pr-5 text-xs text-fg-faint">
-									{project.key}
-								</td>
+								<td className="w-40 pr-3 text-xs text-fg-faint">{project.key}</td>
+								<td className="w-8" />
+								<td className="w-14 pr-5" />
 							</tr>
 						)
 					}

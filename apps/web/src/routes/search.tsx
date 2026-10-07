@@ -1,3 +1,4 @@
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { InternalLinkSchema, ProjectRefStringSchema, TicketRefStringSchema } from "@trellis/api";
 import { Chip, EmptyState, Kbd } from "@trellis/ui";
@@ -46,12 +47,11 @@ export const Route = createFileRoute("/search")({
 	component: SearchPage,
 });
 
-// The field is the page's main control, 40 px tall in a 64 px band. It has
-// no box, so its text starts on the same edge as the page title under it.
-// The ring shows only for a keyboard focus, so the autofocus on arrival
-// draws no ring.
+// The field is the page's main control. It is 40 px tall on fine pointers.
+// It is 44 px tall on coarse pointers. The search mark names its purpose.
+// The ring shows only for a keyboard focus, so the autofocus draws no ring.
 const fieldClass =
-	"h-10 w-full rounded-md bg-transparent pr-10 text-md text-fg outline-none placeholder:text-fg-faint data-ring:ring-3 data-ring:ring-accent-soft [&::-webkit-search-cancel-button]:hidden";
+	"h-10 w-full [@media(pointer:coarse)]:h-11 rounded-md bg-transparent pr-10 pl-7 text-md text-fg outline-none placeholder:text-fg-faint data-ring:ring-3 data-ring:ring-accent-soft max-md:text-base [&::-webkit-search-cancel-button]:hidden";
 
 function SearchPage() {
 	const search = Route.useSearch();
@@ -110,6 +110,10 @@ function SearchPage() {
 						<label htmlFor={id} className="sr-only">
 							Search
 						</label>
+						<MagnifyingGlass
+							aria-hidden="true"
+							className="pointer-events-none absolute top-1/2 left-0.5 size-4 -translate-y-1/2 text-fg-faint"
+						/>
 						<input
 							id={id}
 							type="search"

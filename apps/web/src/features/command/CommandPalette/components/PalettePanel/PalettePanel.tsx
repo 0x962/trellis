@@ -1,8 +1,9 @@
+import { ArrowLeft } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { Button, CodeText, Command, FailureState, Kbd, Spinner } from "@trellis/ui";
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { Button, CodeText, Command, FailureState, IconButton, Kbd, Spinner, Tooltip } from "@trellis/ui";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { currentPlatform, formatShortcut } from "../../../../../lib/shortcuts";
@@ -69,6 +70,7 @@ const selectionHeading = (count: number) => (
 export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: PalettePanelProps) {
 	const { orpc } = useApp();
 	const mode = useCommandStore((state) => state.mode);
+	const fieldRef = useRef<HTMLInputElement>(null);
 	const selection = useCommandStore((state) => state.selection);
 	const selectionOwner = useCommandStore((state) => state.selectionOwner);
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -85,6 +87,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 	// searches tickets.
 	const results = useCommandSearch(submenu === null && mode !== "projects" ? query : "");
 	const typed = query.trim();
+	const fieldLabel = submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind];
 
 	const deps: RowDeps = {
 		action,
@@ -153,7 +156,12 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		.find((row) => rowMatches(row, typed));
 	// What Enter runs: the ticket an ID names, then a matching command, then
 	// the first ticket result. An arrow key selects another row.
-	const best = typed === "" ? undefined : (results.jump ?? named?.value ?? results.tickets[0]?.identifier);
+	const best =
+		submenu !== null
+			? undefined
+			: typed === ""
+				? groups[0]?.rows[0]?.value
+				: (results.jump ?? named?.value ?? results.tickets[0]?.identifier);
 	const nothing =
 		typed !== "" && submenu === null && results.state === "success" && results.jump === null && groups.length === 0;
 
@@ -161,12 +169,44 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		if (best !== undefined) setValue(best);
 	}, [best]);
 
+	const activeValue = submenu === null ? best : value;
+	useEffect(() => {
+		const field = fieldRef.current;
+		if (field === null || activeValue === undefined || activeValue === "") return;
+		const listId = field.getAttribute("aria-controls");
+		const list = listId === null ? null : document.getElementById(listId);
+		if (list === null) return;
+		const syncActiveOption = () => {
+			const selected = list.querySelector<HTMLElement>('[cmdk-item][aria-selected="true"]');
+			if (selected === null) field.removeAttribute("aria-activedescendant");
+			else if (field.getAttribute("aria-activedescendant") !== selected.id) {
+				field.setAttribute("aria-activedescendant", selected.id);
+			}
+		};
+		syncActiveOption();
+		const observer = new MutationObserver(syncActiveOption);
+		observer.observe(list, {
+			subtree: true,
+			attributes: true,
+			attributeFilter: ["aria-selected"],
+		});
+		observer.observe(field, {
+			attributes: true,
+			attributeFilter: ["aria-activedescendant"],
+		});
+		return () => observer.disconnect();
+	}, [activeValue]);
+
+	const leaveSubmenu = () => {
+		setQuery("");
+		setValue("");
+		onSubmenu(null);
+	};
+
 	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (event.key === "Backspace" && submenu !== null && query === "") {
 			event.preventDefault();
-			setQuery("");
-			setValue("");
-			onSubmenu(null);
+			leaveSubmenu();
 			return;
 		}
 		if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
@@ -177,26 +217,37 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 
 	return (
 		<Command.Root
-			label="Command palette"
+			label={fieldLabel}
 			value={value}
 			onValueChange={setValue}
 			shouldFilter={submenu !== null}
 			className="min-h-0 flex-1 max-md:[&_[cmdk-item]]:h-11"
 		>
 			<Command.Field
-				label={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
-				placeholder={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
+				label={fieldLabel}
+				placeholder={fieldLabel}
 				context={identifier ?? undefined}
+				inputRef={fieldRef}
+				leading={
+					submenu === null ? undefined : (
+						<Tooltip content="Back to commands" side="bottom">
+							<IconButton label="Back to commands" icon={<ArrowLeft />} size="xs" onClick={leaveSubmenu} />
+						</Tooltip>
+					)
+				}
 				value={query}
 				onValueChange={setQuery}
 				onKeyDown={onKeyDown}
 				autoFocus
 			/>
+			<p role="status" aria-live="polite" className="sr-only">
+				{nothing ? "No results" : ""}
+			</p>
 			{submenu === null && results.state === "loading" && (
 				<div
 					aria-live="polite"
 					aria-busy="true"
-					className="flex min-h-0 flex-1 items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
+					className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3 text-sm text-fg-muted"
 				>
 					<Spinner />
 					Searching tickets
@@ -204,14 +255,18 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 			)}
 			{submenu === null && results.state === "error" && (
 				<FailureState
-					variant="section"
+					variant="inline"
 					title="Ticket search did not load"
-					detail={results.error}
-					action={<Button onClick={results.retry}>Retry</Button>}
+					className="shrink-0 border-b border-border px-3 py-2"
+					action={
+						<Button size="sm" onClick={results.retry}>
+							Retry
+						</Button>
+					}
 				/>
 			)}
-			{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
-			{submenu === null && results.state !== "loading" && results.state !== "error" && (
+			{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} onDefaultValue={setValue} />}
+			{submenu === null && (
 				<Command.List className="min-h-0 flex-1 max-h-none">
 					{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
 					{groups.map((group) => (
@@ -223,23 +278,31 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 				</Command.List>
 			)}
 			<Command.Footer>
-				<span className="flex items-center gap-1.5 max-sm:hidden">
-					<Kbd className={footerKeyClass}>↑↓</Kbd> move
-				</span>
-				<span className="flex items-center gap-1.5 max-sm:hidden">
-					<Kbd className={footerKeyClass}>↵</Kbd> run
-				</span>
-				<span className="flex items-center gap-1.5 text-fg-muted">
-					{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
-						<Kbd key={cap} className={footerKeyClass}>
-							{cap}
-						</Kbd>
-					))}
-					open full search
-				</span>
-				<span className="ml-auto max-md:hidden" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
-					Type an ID such as <CodeText>{hintKey}-12</CodeText> to open the ticket
-				</span>
+				{submenu === null ? (
+					<>
+						<span className="flex items-center gap-1.5 max-sm:hidden">
+							<Kbd className={footerKeyClass}>↑↓</Kbd> move
+						</span>
+						<span className="flex items-center gap-1.5 max-sm:hidden">
+							<Kbd className={footerKeyClass}>↵</Kbd> run
+						</span>
+						<span className="flex items-center gap-1.5 text-fg-muted">
+							{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
+								<Kbd key={cap} className={footerKeyClass}>
+									{cap}
+								</Kbd>
+							))}
+							open full search
+						</span>
+						<span className="ml-auto max-md:hidden" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
+							Type an ID such as <CodeText>{hintKey}-12</CodeText> to open the ticket
+						</span>
+					</>
+				) : (
+					<span className="flex min-w-0 items-center gap-1.5 text-fg-muted">
+						<Kbd className={footerKeyClass}>backspace</Kbd> back
+					</span>
+				)}
 			</Command.Footer>
 		</Command.Root>
 	);

@@ -10,6 +10,7 @@ import { submenuHeadings, submenuRows } from "../../../utils/submenuRows";
 export type SubmenuGroupProps = {
 	submenu: Submenu;
 	deps: RowDeps;
+	onDefaultValue: (value: string) => void;
 };
 
 function FilteredEmpty({ hasRows }: { hasRows: boolean }) {
@@ -18,12 +19,28 @@ function FilteredEmpty({ hasRows }: { hasRows: boolean }) {
 	return <Command.Empty>No options match your search</Command.Empty>;
 }
 
+function SubmenuStatus({ available, hasRows }: { available: boolean; hasRows: boolean }) {
+	const filteredCount = useCommandState((state) => state.filtered.count);
+	const text = !available
+		? ""
+		: hasRows && filteredCount === 0
+			? "No options match your search"
+			: !hasRows
+				? "No options available"
+				: "";
+	return (
+		<span role="status" aria-live="polite" className="sr-only">
+			{text}
+		</span>
+	);
+}
+
 // The values one submenu offers. The five lists it can need come from the
 // server: the statuses of a project, the tickets a parent is picked from,
 // the labels of a project, the epics of a project, and the
 // waves of an epic. A query that is off never sends its placeholder
 // input.
-export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
+export function SubmenuGroup({ submenu, deps, onDefaultValue }: SubmenuGroupProps) {
 	const { orpc } = useApp();
 	const project =
 		submenu.kind === "status" || submenu.kind === "parent" || submenu.kind === "labels" || submenu.kind === "epic"
@@ -95,38 +112,47 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		if (submenu.kind === "wave") void epic.refetch();
 	};
 
-	if (loading) {
-		return (
-			<div
-				aria-live="polite"
-				aria-busy="true"
-				className="flex min-h-0 flex-1 items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
-			>
-				<Spinner />
-				Loading options
-			</div>
-		);
-	}
-
-	if (error !== null) {
-		return (
-			<FailureState
-				variant="section"
-				title="Options did not load"
-				detail={error.message}
-				action={<Button onClick={retry}>Retry</Button>}
-			/>
-		);
-	}
+	const firstValue = rows[0]?.value;
+	useEffect(() => {
+		if (loading || error !== null) return;
+		onDefaultValue(firstValue ?? "");
+	}, [error, firstValue, loading, onDefaultValue]);
 
 	return (
-		<Command.List className="min-h-0 flex-1 max-h-none">
-			{rows.length === 0 ? (
-				<Command.Empty>No options available</Command.Empty>
-			) : (
-				<Command.Group heading={submenuHeadings[submenu.kind]}>{drawRows(rows)}</Command.Group>
+		<>
+			<SubmenuStatus available={!loading && error === null} hasRows={rows.length > 0} />
+			{loading && (
+				<div
+					aria-live="polite"
+					aria-busy="true"
+					className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3 text-sm text-fg-muted"
+				>
+					<Spinner />
+					Loading options
+				</div>
 			)}
-			<FilteredEmpty hasRows={rows.length > 0} />
-		</Command.List>
+			{error !== null && (
+				<FailureState
+					variant="inline"
+					title="Options did not load"
+					className="shrink-0 border-b border-border px-3 py-2"
+					action={
+						<Button size="sm" onClick={retry}>
+							Retry
+						</Button>
+					}
+				/>
+			)}
+			<Command.List className="min-h-0 flex-1 max-h-none">
+				{!loading &&
+					error === null &&
+					(rows.length === 0 ? (
+						<Command.Empty>No options available</Command.Empty>
+					) : (
+						<Command.Group heading={submenuHeadings[submenu.kind]}>{drawRows(rows)}</Command.Group>
+					))}
+				{!loading && error === null && <FilteredEmpty hasRows={rows.length > 0} />}
+			</Command.List>
+		</>
 	);
 }

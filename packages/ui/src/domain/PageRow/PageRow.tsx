@@ -53,7 +53,7 @@ export function PageRow({
 				className: cx(
 					"grid min-w-0 flex-1 items-center gap-3 px-5 py-1.5 text-sm outline-none focus-visible:before:absolute focus-visible:before:inset-y-1 focus-visible:before:left-0 focus-visible:before:w-0.5 focus-visible:before:bg-accent max-md:grid-cols-[minmax(0,1fr)_3rem] max-md:gap-x-2 max-md:px-4",
 					search
-						? "grid-cols-[1rem_4rem_minmax(0,1fr)_10rem_3rem_3.5rem]"
+						? "grid-cols-[1rem_3.5rem_minmax(0,1fr)_10rem_3rem_3.5rem]"
 						: "grid-cols-[minmax(0,1fr)_3.5rem_7rem_7rem_3rem_3rem]",
 				),
 				children: search ? (

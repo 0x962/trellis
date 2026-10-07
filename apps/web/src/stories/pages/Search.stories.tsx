@@ -1,19 +1,28 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { PageSheetHost } from "../../features/shell/PageSheetHost";
 import { RouteError } from "../../features/shell/RouteError";
 import { ShellFrame } from "../../features/shell/ShellFrame";
 import { Route } from "../../routes/search";
+import { pageSheetActions } from "../../stores/pageSheetStore";
 import { projectResponses } from "./fixtures/responses";
 import { searchPage, searchPageError, searchResults } from "./fixtures/search";
 import { pageFrame } from "./pageFrame";
 
 const SearchPage = Route.options.component as ComponentType;
+const SearchJourney = () => (
+	<>
+		<SearchPage />
+		<PageSheetHost />
+	</>
+);
 
 const meta = {
 	decorators: [pageFrame],
 	title: "Pages/Search",
-	component: SearchPage,
+	component: SearchJourney,
+	beforeEach: () => pageSheetActions.closeTicket(),
 	parameters: {
 		layout: "fullscreen",
 		trellis: {
@@ -24,7 +33,7 @@ const meta = {
 			responses: { ...projectResponses, "search.query": searchResults },
 		},
 	},
-} satisfies Meta<typeof SearchPage>;
+} satisfies Meta<typeof SearchJourney>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
@@ -74,8 +83,26 @@ export const LoadMoreError: Story = {
 		const canvas = within(canvasElement);
 		await userEvent.click(await canvas.findByRole("button", { name: "Load more results" }));
 		await expect(await canvas.findByRole("heading", { name: "More results did not load" })).toBeVisible();
-		await expect(canvas.getByRole("link", { name: "DEMO-40" })).toBeVisible();
+		await expect(canvas.getByRole("link", { name: /DEMO-40/ })).toBeVisible();
 		await expect(canvas.getByRole("button", { name: "Retry" })).toBeVisible();
+	},
+};
+export const OpenTicketAndReturn: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const body = within(canvasElement.ownerDocument.body);
+		const field = await canvas.findByRole("searchbox", { name: "Search" });
+		const ticket = await canvas.findByRole("link", { name: "DEMO-40" });
+		await userEvent.click(ticket);
+		const dialog = await body.findByRole("dialog", { name: "DEMO-40" });
+		await waitFor(() => expect(dialog).toBeVisible());
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(body.queryByRole("dialog", { name: "DEMO-40" })).not.toBeInTheDocument());
+		await expect(field).toHaveValue("DEMO");
+		await waitFor(() => {
+			expect(ticket).toBeVisible();
+			expect(ticket).toHaveFocus();
+		});
 	},
 };
 export const Loading: Story = { render: () => <ShellFrame /> };
