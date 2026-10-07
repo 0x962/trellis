@@ -1,6 +1,6 @@
-import { EmptyState } from "../../../../../../../../primitives/EmptyState";
-import { SectionHeader } from "../../../../../../../../primitives/SectionHeader";
-import type { MachinePressureMachineView } from "../../../../../../MachinePressure";
+import { EmptyState } from "../../primitives/EmptyState";
+import { SectionHeader } from "../../primitives/SectionHeader";
+import type { MachinePressureMachineView } from "../MachinePressure";
 
 export function MachineRuns({ runs = [] }: Pick<MachinePressureMachineView, "runs">) {
 	return (
