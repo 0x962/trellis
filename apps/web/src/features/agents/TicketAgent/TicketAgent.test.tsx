@@ -82,11 +82,46 @@ describe("TicketAgent", () => {
 	});
 
 	test.each(["stopped", "exited"] as const)("labels an assigned %s process as paused", (state) => {
-		const html = render([run("current", { assigned: true, state })]);
+		const html = render([run("current", { assigned: true, state, ticketStatusCategory: "started" })]);
 
 		expect(html).toContain(">Paused<");
 		expect(html).not.toContain(">Idle<");
 		expect(html).not.toContain(" · idle");
+	});
+
+	test("labels a stopped assignment on a done ticket as done", () => {
+		const html = render([run("current", { assigned: true })]);
+
+		expect(html).toContain(">Done<");
+		expect(html).not.toContain(">Paused<");
+	});
+
+	test("labels a completed observation as done before the ticket status changes", () => {
+		const html = render([
+			run("current", {
+				assigned: true,
+				ticketStatusCategory: "started",
+				observation: {
+					checkedAt: "2026-09-26T12:00:00.000Z",
+					controllable: false,
+					activity: null,
+					lastMessage: null,
+					lastTool: null,
+					outcome: "completed",
+					turnId: null,
+				},
+			}),
+		]);
+
+		expect(html).toContain(">Done<");
+		expect(html).not.toContain(">Paused<");
+	});
+
+	test("does not label a canceled ticket assignment as paused", () => {
+		const html = render([run("current", { assigned: true, ticketStatusCategory: "canceled" })]);
+
+		expect(html).toContain(">Idle<");
+		expect(html).not.toContain(">Paused<");
 	});
 
 	test("does not label a live assigned process as paused", () => {
