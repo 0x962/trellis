@@ -3,7 +3,7 @@ import type { Provider } from "@trellis/api";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { UsageProviders } from "../../features/usage/UsagePage/components/UsageProviders";
 import { at, failure, id, pending } from "./fixtures";
-import { clickButton } from "./interactions";
+import { clickButton, fillField } from "./interactions";
 
 const provider: Provider = {
 	id: id(100),
@@ -33,6 +33,11 @@ const meta = {
 } satisfies Meta<typeof UsageProviders>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+const searchProviders = async (context: { canvasElement: HTMLElement }, query: string) => {
+	const search = within(context.canvasElement).getByRole("searchbox", { name: "Search providers" });
+	await waitFor(() => expect(search).toBeEnabled());
+	await fillField(context.canvasElement, "Search providers", query);
+};
 const menu = clickButton("Actions for Catalog provider");
 const choose = (name: string) => async (context: { canvasElement: HTMLElement }) => {
 	await menu(context);
@@ -153,6 +158,87 @@ export const DenseFailures: Story = {
 				"providers.check": { ok: false, balance: null, detail: "The provider refused the key.", checkedAt: at },
 			},
 		},
+	},
+};
+export const SearchName: Story = {
+	play: async (context) => {
+		const canvas = within(context.canvasElement);
+		const search = canvas.getByRole("searchbox", { name: "Search providers" });
+		const before = search.getBoundingClientRect();
+		await searchProviders(context, "CATALOG");
+		await expect(canvas.getByRole("button", { name: "Edit Catalog provider · On" })).toBeVisible();
+		await expect(search).toHaveFocus();
+		await expect(search.getBoundingClientRect().toJSON()).toEqual(before.toJSON());
+	},
+};
+export const SearchNoResults: Story = {
+	play: async (context) => {
+		await searchProviders(context, "No such provider");
+		const canvas = within(context.canvasElement);
+		await expect(canvas.getByRole("status")).toHaveTextContent("No matching providers");
+		await expect(canvas.queryByText("No providers")).not.toBeInTheDocument();
+		await expect(canvas.getByRole("button", { name: "Add provider" })).toBeEnabled();
+	},
+};
+export const SearchClear: Story = {
+	play: async (context) => {
+		await searchProviders(context, "No such provider");
+		const canvas = within(context.canvasElement);
+		const search = canvas.getByRole("searchbox", { name: "Search providers" });
+		await userEvent.keyboard("{Control>}a{/Control}{Backspace}");
+		await expect(search).toHaveValue("");
+		await expect(canvas.getByRole("button", { name: "Edit Catalog provider · On" })).toBeVisible();
+		await expect(search).toHaveFocus();
+	},
+};
+export const SearchKindAndState: Story = {
+	parameters: {
+		trellis: {
+			responses: {
+				"providers.list": [
+					provider,
+					{ ...provider, id: id(101), name: "Research lab", kind: "openai-compatible", enabled: false },
+				],
+			},
+		},
+	},
+	play: async (context) => {
+		await searchProviders(context, "openai off");
+		const canvas = within(context.canvasElement);
+		await expect(canvas.getByRole("button", { name: "Edit Research lab · Off" })).toBeVisible();
+		await expect(canvas.queryByRole("button", { name: "Edit Catalog provider · On" })).not.toBeInTheDocument();
+	},
+};
+export const DenseSearch: Story = {
+	...DenseFailures,
+	play: async (context) => {
+		await searchProviders(context, "Review gateway 40");
+		const canvas = within(context.canvasElement);
+		await expect(canvas.getByRole("button", { name: "Edit Review gateway 40 · On" })).toBeVisible();
+		await expect(canvas.getAllByRole("listitem")).toHaveLength(1);
+	},
+};
+export const LongSearch: Story = {
+	...LongFailure,
+	play: async (context) => {
+		await searchProviders(context, "desktop review");
+		await expect(
+			within(context.canvasElement).getByRole("button", {
+				name: "Edit The shared model gateway for every desktop review agent · On",
+			}),
+		).toBeVisible();
+	},
+};
+export const SearchEdit: Story = {
+	play: async (context) => {
+		await searchProviders(context, "Catalog");
+		await choose("Edit")(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		await expect(await body.findByRole("dialog")).toHaveTextContent("Edit provider");
+		await expect(body.getByLabelText("Name")).toHaveValue("Catalog provider");
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
+		await expect(body.getByRole("button", { name: "Actions for Catalog provider" })).toHaveFocus();
 	},
 };
 export const Empty: Story = { parameters: { trellis: { responses: { "providers.list": [] } } } };
