@@ -1,4 +1,4 @@
-import { formatCount } from "../../../lib/format";
+import { formatCount } from "../../../../lib/format";
 
 export type DeleteProjectStateInput = {
 	projectKey: string;

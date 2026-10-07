@@ -24,7 +24,7 @@ globalThis.window = {
 	localStorage,
 } as Window & typeof globalThis;
 
-const { createOrpc } = await import("../../../lib/orpc");
+const { createOrpc } = await import("../../../../lib/orpc");
 
 afterAll(() => {
 	if (hadLocalStorage) globalThis.localStorage = originalLocalStorage;
