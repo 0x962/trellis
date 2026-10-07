@@ -164,7 +164,7 @@ export function PageCommentThreads({
 						anchorAction={
 							<button
 								type="button"
-								className="block w-full text-left text-xs text-fg-muted"
+								className="flex w-full items-center text-left text-xs text-fg-muted max-md:min-h-11"
 								onClick={() => onSelect(thread.id)}
 							>
 								{anchor}
