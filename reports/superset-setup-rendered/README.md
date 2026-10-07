@@ -23,6 +23,9 @@ All 12 files in `source-manifest.json` match the official Git blobs at
 The source repository is https://github.com/superset-sh/superset.
 The fixture preserves the component markup, source styles, icon, and English messages.
 The `upstream/` files retain the Elastic License 2.0 and Superset copyright notice.
+The full English catalog is a reproducible download, not a tracked source file.
+The download uses the exact commit and checks its pinned SHA256 before use.
+Its bytes remain identical to the captured catalog.
 
 The local fixture adds an Expo entry point and a reduced Metro configuration.
 It replaces query, router, analytics, haptics, and native-header boundaries.
@@ -39,6 +42,7 @@ Use Bun 1.4.2 and the pinned fixture lockfile.
 ```sh
 cd reports/superset-setup-rendered/fixture
 bun install --frozen-lockfile
+node prepare-catalog.mjs
 bun x lingui compile
 bun x expo export --platform web --output-dir /tmp/trellis-trl1572-web
 PLAYWRIGHT_BROWSERS_PATH=/home/boxd/.cache/trl1420-playwright bun x playwright install chromium
