@@ -1,6 +1,7 @@
 import { type KeyboardEvent, type MouseEvent, useId, useMemo, useState } from "react";
 import { cx } from "../../utils/cx";
 import { type ChartTone, chartFillClass, chartToneClass } from "../chartTones";
+import { niceMax } from "./components/niceMax";
 import { UsageChartSelectionMarker } from "./components/UsageChartSelectionMarker";
 import { isUsageChartSelectKey, nextUsageChartFocusIndex } from "./nextUsageChartFocusIndex";
 
@@ -35,16 +36,6 @@ export type UsageChartProps = {
 
 // The gridlines, top first, as the share of the top value each one marks.
 const GRID_LINES = [1, 0.75, 0.5, 0.25, 0] as const;
-
-// A round number at or above `max`, so the top gridline prints a short
-// figure such as 50 instead of 47.3.
-const niceMax = (max: number) => {
-	if (max <= 0) return 1;
-	const power = 10 ** Math.floor(Math.log10(max));
-	const unit = max / power;
-	const step = unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 4 ? 4 : unit <= 5 ? 5 : 10;
-	return step * power;
-};
 
 export function UsageChart({
 	label,
@@ -101,6 +92,12 @@ export function UsageChart({
 		return Math.min(count - 1, Math.max(0, Math.floor(((event.clientX - bounds.left) / bounds.width) * count)));
 	};
 	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (event.key === "Escape" && selectedDay !== null) {
+			event.preventDefault();
+			event.stopPropagation();
+			onSelectDay(null);
+			return;
+		}
 		if (isUsageChartSelectKey(event.key)) {
 			event.preventDefault();
 			toggleDaySelection(focusIndex);
@@ -120,8 +117,8 @@ export function UsageChart({
 	return (
 		<figure className={cx("flex min-w-0 flex-col gap-2", className)}>
 			<span id={instructionsId} className="sr-only">
-				Use Left and Right to inspect days. Use Home and End to move to the first or last day. Press Enter or Space to
-				select or clear a day.
+				Use Left and Right to inspect chart points. Use Home and End to move to the first or last point. Press Enter or
+				Space to select or clear a point. Press Escape to clear the selected point.
 			</span>
 			<div className="flex min-w-0 gap-2">
 				<div
@@ -247,7 +244,10 @@ export function UsageChart({
 							aria-pressed={selectedDay === focusDay}
 							onPointerMove={(event) => setHoverDay(days[indexAtPointer(event)]!)}
 							onPointerLeave={() => setHoverDay(null)}
-							onFocus={() => setHasFocus(true)}
+							onFocus={() => {
+								setHasFocus(true);
+								if (selectedIndex >= 0) setCursor({ day: selectedDay, index: selectedIndex });
+							}}
 							onBlur={() => setHasFocus(false)}
 							onKeyDown={handleKeyDown}
 							onClick={(event) => toggleDaySelection(event.detail === 0 ? focusIndex : indexAtPointer(event))}
@@ -269,7 +269,13 @@ export function UsageChart({
 					</span>
 				))}
 			</div>
-			<figcaption role="status" className="flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1 pl-14 text-sm">
+			<figcaption
+				role="status"
+				className={cx(
+					"flex flex-wrap items-center gap-x-4 gap-y-1 pl-14 text-sm",
+					appearance === "overview" ? "min-h-16" : "min-h-5",
+				)}
+			>
 				{captionIndex >= 0 && (
 					<span className="font-medium text-fg tabular">
 						{formatDay(days[captionIndex]!)} · {format(dayTotal(captionIndex))}

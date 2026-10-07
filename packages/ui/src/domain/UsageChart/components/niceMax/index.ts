@@ -1,0 +1,1 @@
+export { niceMax } from "./niceMax";

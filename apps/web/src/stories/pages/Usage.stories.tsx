@@ -4,6 +4,7 @@ import { UsagePage } from "../../features/usage/UsagePage";
 import { Route } from "../../routes/usage";
 import { failure, pending } from "./fixtures/project";
 import { emptyUsageRanking, emptyUsageReport, systemUsage, usageResponses } from "./fixtures/usage";
+import { emptyMergedWork } from "./fixtures/usageMergedWork";
 import { pageFrame } from "./pageFrame";
 
 const meta = {
@@ -42,6 +43,44 @@ export const Agent: Story = {
 	},
 };
 export const TokensByModel: Story = { parameters: { trellis: { path: "/usage?metric=tokens&group=model" } } };
+export const MergedWorkComparison: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const region = await canvas.findByRole("region", { name: "Merged work" });
+		const work = within(region);
+		const prs = await work.findByRole("button", { name: /^PRs merged per day\./ });
+		const lines = work.getByRole("button", { name: /^Lines changed per day\./ });
+		prs.focus();
+		await userEvent.keyboard("{End}{Enter}");
+		await expect(prs).toHaveAttribute("aria-pressed", "true");
+		await expect(region.querySelectorAll('[data-selected-day="2026-09-30"]')).toHaveLength(2);
+		await userEvent.tab();
+		await expect(lines).toHaveFocus();
+		await expect(lines).toHaveAttribute("data-day", "2026-09-30");
+		await userEvent.keyboard("{Home}{ }");
+		await expect(region.querySelectorAll('[data-selected-day="2026-09-24"]')).toHaveLength(2);
+		await expect(work.getByText("+2,800")).toBeVisible();
+		await userEvent.keyboard("{Escape}");
+		await expect(lines).toHaveFocus();
+		await expect(work.queryByRole("button", { name: "Clear comparison date" })).not.toBeInTheDocument();
+		await expect(region.querySelector("[data-selected-day]")).toBeNull();
+		await userEvent.keyboard("{ArrowRight}{Enter}");
+		await userEvent.click(work.getByRole("button", { name: "Clear comparison date" }));
+		await expect(region.querySelector("[data-selected-day]")).toBeNull();
+	},
+};
+export const EmptyMergedWork: Story = {
+	parameters: { trellis: { responses: { "usage.mergedWork": emptyMergedWork } } },
+	play: async ({ canvasElement }) => {
+		const work = within(await within(canvasElement).findByRole("region", { name: "Merged work" }));
+		await expect(await work.findByText("No linked PRs merged in this range.")).toBeVisible();
+		await expect(work.queryByRole("img")).not.toBeInTheDocument();
+		await expect(work.getByText("+0")).toBeVisible();
+	},
+};
+export const MergedWorkLoading: Story = {
+	parameters: { trellis: { responses: { "usage.mergedWork": pending } } },
+};
 export const SelectedDayAndModel: Story = {
 	parameters: { trellis: { path: "/usage?group=model&row=anthropic%2Fclaude-sonnet-5.5&day=2026-09-30" } },
 };
@@ -81,6 +120,11 @@ export const IncompleteMergedWork: Story = {
 		await expect(await work.findByText("≥ +2,800")).toBeVisible();
 		await expect(work.getByText("Not available")).toBeVisible();
 		await expect(work.getByText("1 PR lacks this value")).toBeVisible();
+		const chart = work.getByRole("button", { name: /^Lines changed per day/ });
+		chart.focus();
+		await userEvent.keyboard("{Home}{Enter}");
+		await expect(work.getByText("Sep 24. Added: unavailable for 1 PR. Deleted: unavailable for 1 PR.")).toBeVisible();
+		await expect(work.getByText("Not available")).toBeVisible();
 	},
 };
 export const MergedWorkError: Story = {
