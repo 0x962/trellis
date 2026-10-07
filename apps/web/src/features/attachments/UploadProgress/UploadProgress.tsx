@@ -19,9 +19,9 @@ export function UploadProgress({ upload, showName = true, onDismiss, onRetry }: 
 		return (
 			<div
 				role="alert"
-				className="flex h-10 items-center gap-3 rounded-md border border-danger bg-danger-soft px-3 text-sm text-danger"
+				className="flex min-h-10 items-center gap-3 rounded-md border border-danger bg-danger-soft px-3 py-2 text-sm text-danger"
 			>
-				<span className="min-w-0 flex-1 truncate">{uploadErrorText(name, upload.error)}</span>
+				<span className="min-w-0 flex-1 wrap-anywhere">{uploadErrorText(name, upload.error)}</span>
 				{upload.error.code === "UPLOAD_FAILED" && onRetry !== undefined && (
 					<Tooltip content="Retry">
 						<IconButton
