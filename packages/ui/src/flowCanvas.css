@@ -33,7 +33,7 @@
 	font-family: var(--sans);
 }
 
-/* A handle draws as a 10 px dot. The ::before layer widens the hit area to 28 px. */
+/* A handle draws as a 10 px dot. The ::before layer widens its pointer target. */
 .flow-canvas .react-flow__handle {
 	width: 10px;
 	height: 10px;
@@ -45,6 +45,12 @@
 	content: "";
 	position: absolute;
 	inset: -9px;
+}
+
+@media (pointer: coarse) {
+	.flow-canvas .react-flow__handle::before {
+		inset: -17px;
+	}
 }
 
 .flow-canvas .react-flow__handle.connectingto,

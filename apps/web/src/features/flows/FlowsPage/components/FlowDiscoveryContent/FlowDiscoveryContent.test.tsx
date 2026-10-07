@@ -51,11 +51,46 @@ test("keeps the stable slug link during an engine outage", async () => {
 		<FlowDiscoveryContent
 			input={{ ...discoveryFixture, engine: { state: "unavailable", reason: "Offline" } }}
 			retryAction={null}
+			createAction={null}
 			clearFiltersAction={null}
 		/>,
 	);
 	expect(html).toContain("Flow engine unavailable");
 	expect(html).toContain('href="/ai/flows/review"');
+});
+
+test("keeps discovery cards compact and leaves diagnostics in settings", async () => {
+	const html = await render(
+		<FlowDiscoveryContent
+			input={{
+				...discoveryFixture,
+				filters: { query: "", project: null },
+				load: { state: "loaded", entries: [blockedDiscoveryEntry] },
+				engine: { state: "available" },
+			}}
+			retryAction={null}
+			createAction={null}
+			clearFiltersAction={null}
+		/>,
+	);
+	expect(html).toContain("Legacy");
+	expect(html).toContain("Version 2");
+	expect(html).toContain("No publication needed");
+	expect(html).toContain("Conversion blocked");
+	expect(html).not.toContain("UNSUPPORTED_COMPONENT");
+	expect(html).not.toContain("The service must confirm run capability.");
+});
+
+test("places direct actions in empty discovery states", async () => {
+	const empty = await render(
+		<FlowDiscoveryContent
+			input={{ ...discoveryFixture, filters: { query: "", project: null }, load: { state: "loaded", entries: [] } }}
+			retryAction={null}
+			createAction={<button type="button">New flow</button>}
+			clearFiltersAction={null}
+		/>,
+	);
+	expect(empty).toContain(">New flow</button>");
 });
 
 test("provides the flow list destination after deletion and identifies a metadata conflict", async () => {
