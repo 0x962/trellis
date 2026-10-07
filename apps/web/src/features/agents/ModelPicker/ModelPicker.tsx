@@ -1,6 +1,6 @@
 import { HARNESS_DEFAULT_MODELS, type HarnessPreset, MODEL_CATALOG, modelsForHarness } from "@trellis/api";
 import { Command, PickerButton, Popover, ProviderIcon } from "@trellis/ui";
-import { useRef, useState } from "react";
+import { type AriaAttributes, useRef, useState } from "react";
 import { pickerListClass } from "../../pickers/pickerListClass";
 import { modelProviderOf } from "../modelProviderOf";
 import { modelGroups } from "./modelGroups";
@@ -13,6 +13,7 @@ export function ModelPicker({
 	onValueChange,
 	disabled = false,
 	id,
+	...fieldProps
 }: {
 	harness: Exclude<HarnessPreset, "custom">;
 	value?: string;
@@ -21,7 +22,7 @@ export function ModelPicker({
 	// The id of the trigger. A `Field` passes it, so its `<label htmlFor>`
 	// reaches the picker.
 	id?: string;
-}) {
+} & AriaAttributes) {
 	const [open, setOpen] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const defaultModel = HARNESS_DEFAULT_MODELS[harness];
@@ -37,6 +38,7 @@ export function ModelPicker({
 			trigger={
 				<PickerButton
 					id={id}
+					{...fieldProps}
 					label="Model"
 					size="md"
 					title={value === undefined ? `Default · ${selected.name}` : selected.name}
@@ -54,7 +56,7 @@ export function ModelPicker({
 			open={open}
 			onOpenChange={setOpen}
 			initialFocus={input}
-			className="w-80 p-0"
+			className="w-80 max-w-(--available-width) p-0"
 		>
 			<Command
 				inputRef={input}
@@ -84,7 +86,7 @@ export function ModelPicker({
 					})),
 				}))}
 				listClassName={pickerListClass}
-				empty="No models found."
+				empty="No models match. Try another name or model ID."
 				onSelect={pick}
 			/>
 		</Popover>

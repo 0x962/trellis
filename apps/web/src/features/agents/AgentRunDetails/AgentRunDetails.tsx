@@ -1,7 +1,7 @@
 import { Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { type AgentRun, hasAssignedProcess } from "@trellis/api";
-import { Avatar, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
+import { type AgentRun, hasAssignedProcess, sessionStatus, sessionStatusLabels } from "@trellis/api";
+import { Avatar, Badge, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
@@ -37,6 +37,8 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 	const canStop = controls && (active || (run.kind === "agent" && run.assigned));
 	const stopLabel = run.kind === "agent" ? "Remove assignment" : "Stop agent";
 	const workspaceUrl = historical ? null : run.url;
+	const status = sessionStatus(run);
+	const profile = agentProfileOf(run.harness);
 
 	return (
 		<div className="flex min-w-0 flex-col gap-6">
@@ -47,12 +49,22 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 							kind="agent"
 							name={run.name}
 							agentKind={agentKindOf(run.kind)}
-							agentProfile={agentProfileOf(run.harness)}
+							agentProfile={profile}
+							status={status}
+							className="focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 							state={isAgentWorking(run) ? "working" : "static"}
 						/>
 						<div className="min-w-0">
-							<h2 className="truncate text-xl font-semibold text-fg">{run.name}</h2>
-							<p className="mt-1 truncate text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectKey}</p>
+							<h2 className="break-words text-xl font-semibold text-fg">{run.name}</h2>
+							<div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-fg-muted">
+								<span>{run.ticketIdentifier ?? run.projectKey}</span>
+								<Badge tone={status === "failed" ? "bad" : status === "needs-input" ? "wait" : "neutral"}>
+									{sessionStatusLabels[status]}
+								</Badge>
+							</div>
+							<p className="mt-1 break-words text-xs text-fg-muted">
+								{[profile.model, profile.effort].filter(Boolean).join(" · ")}
+							</p>
 						</div>
 					</div>
 				</header>
