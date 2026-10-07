@@ -168,14 +168,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// its caret and its height from the first paint. Until the epic answers
 	// it carries the slug from the URL, the only name the page knows.
 	const title = (epicRef: string, name: string, className?: string, wrap = false) => (
-		<EpicSwitcher
-			project={project.key}
-			epicRef={epicRef}
-			name={name}
-			tab={tab}
-			className={className}
-			wrap={wrap}
-		/>
+		<EpicSwitcher project={project.key} epicRef={epicRef} name={name} tab={tab} className={className} wrap={wrap} />
 	);
 	const identifiers = epic.data?.tickets.map((ticket) => ticket.identifier) ?? [];
 	const topbar = (
@@ -222,7 +215,9 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				error={epic.error}
 				onRetry={() => void epic.refetch()}
 				phone={phone}
-				context={<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass, true) : undefined} />}
+				context={
+					<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass, true) : undefined} />
+				}
 			/>
 		);
 	}

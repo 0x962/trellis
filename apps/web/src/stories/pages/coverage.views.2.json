@@ -141,10 +141,15 @@
 		"stories": [
 			"Pages/Flows/MixedEnginesAndPublication",
 			"Pages/Flows/Empty",
+			"Pages/Flows/EmptyCreateAction",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
 			"Pages/Flows/Narrow",
 			"Pages/Flows/FilteredEmpty",
+			"Pages/Flows/LongContent",
+			"Pages/Flows/DenseCards",
+			"Pages/Flows/CardHover",
+			"Pages/Flows/CardFocus",
 			"Pages/Flows/SearchAndClear"
 		],
 		"states": [
@@ -153,10 +158,15 @@
 			"pending publication",
 			"published",
 			"empty",
+			"empty action",
 			"loading",
 			"error",
 			"narrow",
 			"filtered empty",
+			"long content",
+			"dense cards",
+			"hover",
+			"focus",
 			"search and clear"
 		],
 		"notes": ""
