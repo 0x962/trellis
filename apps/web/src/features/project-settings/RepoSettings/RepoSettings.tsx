@@ -16,6 +16,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 	const [removeMessage, setRemoveMessage] = useState<string | null>(null);
 	const [write, setWrite] = useState<"add" | "remove" | null>(null);
 	const writing = useRef(false);
+	const addButton = useRef<HTMLButtonElement>(null);
 
 	const save = async (repos: { owner: string; repo: string }[], action: "add" | "remove") => {
 		if (writing.current) return false;
@@ -124,7 +125,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 					disabled={write !== null}
 					onChange={(event) => setValue(event.target.value)}
 				/>
-				<Button type="submit" icon={<Plus />} disabled={write !== null} processing={write === "add"}>
+				<Button ref={addButton} type="submit" icon={<Plus />} disabled={write !== null} processing={write === "add"}>
 					Add repository
 				</Button>
 			</form>
@@ -135,6 +136,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 				confirmLabel="Remove repository"
 				danger
 				processing={write === "remove"}
+				finalFocus={addButton}
 				onConfirm={() => void remove()}
 				onCancel={closeRemove}
 			>

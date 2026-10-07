@@ -1,6 +1,14 @@
 import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import type { Project, ProjectSetReposInput, ProjectUpdateInput } from "@trellis/api";
-import { act, type ComponentProps, type ReactNode } from "react";
+import {
+	act,
+	type ComponentProps,
+	type ReactNode,
+	type RefObject,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+} from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 
@@ -11,9 +19,12 @@ type ConfirmProps = {
 	confirmLabel: string;
 	processing?: boolean;
 	children?: ReactNode;
+	finalFocus?: RefObject<HTMLElement | null>;
 	onConfirm: () => void;
 	onCancel: () => void;
 };
+
+const focusCalls: string[] = [];
 
 mock.module("@tanstack/react-query", () => ({
 	useSuspenseQuery: () => ({ data: [] }),
@@ -22,9 +33,16 @@ mock.module("@tanstack/react-router", () => ({
 	useNavigate: () => async () => {},
 }));
 mock.module("@trellis/ui", () => ({
-	Button: ({ processing, ...props }: ComponentProps<"button"> & { processing?: boolean }) => (
-		<button {...props} data-processing={processing || undefined} disabled={props.disabled === true || processing} />
-	),
+	Button: ({ processing, ref, children, ...props }: ComponentProps<"button"> & { processing?: boolean }) => {
+		useImperativeHandle(ref, () => ({ focus: () => focusCalls.push(String(children)) }) as HTMLButtonElement, [
+			children,
+		]);
+		return (
+			<button {...props} data-processing={processing || undefined} disabled={props.disabled === true || processing}>
+				{children}
+			</button>
+		);
+	},
 	ConfirmDialog: ({
 		open,
 		title,
@@ -34,8 +52,15 @@ mock.module("@trellis/ui", () => ({
 		children,
 		onConfirm,
 		onCancel,
-	}: ConfirmProps) =>
-		open ? (
+		finalFocus,
+	}: ConfirmProps) => {
+		const previousOpen = useRef(open);
+		useEffect(() => {
+			const closed = previousOpen.current && !open;
+			previousOpen.current = open;
+			if (closed) finalFocus?.current?.focus();
+		}, [finalFocus, open]);
+		return open ? (
 			<section role="dialog" data-processing={processing || undefined}>
 				<h2>{title}</h2>
 				<p>{description}</p>
@@ -47,7 +72,8 @@ mock.module("@trellis/ui", () => ({
 					{confirmLabel}
 				</button>
 			</section>
-		) : null,
+		) : null;
+	},
 	FieldHint: ({ children }: { children: ReactNode }) => <p>{children}</p>,
 	FormStatus: ({ message }: { message?: string }) => (
 		<p role="alert" data-form-status>
@@ -236,6 +262,19 @@ test("repository removal confirms, locks writes, and rejects a second request", 
 	expect(f.formStatus()).toBe("Repository removal refused");
 	expect(f.current).toEqual(saved);
 	expect(f.invalidations).toEqual([]);
+});
+
+test("successful repository removal returns focus to Add repository", async () => {
+	focusCalls.length = 0;
+	const f = await fixture(async () => f.current);
+	await act(async () => f.button("Remove 0x962/trellis").props.onClick());
+	expect(f.dialog()).toBeDefined();
+	await act(async () => {
+		f.button("Remove repository").props.onClick();
+		await Promise.resolve();
+	});
+	expect(f.dialog()).toBeUndefined();
+	expect(focusCalls).toEqual(["Add repository"]);
 });
 
 test("a failed project request keeps the saved project and every draft field", async () => {
