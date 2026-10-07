@@ -28,6 +28,14 @@ describe("movedRefs", () => {
 		expect(movedRefs(mixed, "b", 1)).toBeNull();
 		expect(movedRefs(mixed, "done", -1)).toBeNull();
 	});
+
+	test("moves one wave without changing the other positions in a dense list", () => {
+		const dense = Array.from({ length: 12 }, (_, index) => wave(`wave-${index + 1}`));
+		const expected = dense.map((entry) => entry.ref);
+		[expected[5], expected[6]] = [expected[6]!, expected[5]!];
+
+		expect(movedRefs(dense, "wave-6", 1)).toEqual(expected);
+	});
 });
 
 describe("deleteWords", () => {
@@ -42,6 +50,12 @@ describe("deleteWords", () => {
 	test("names the open agent runs of the wave, and says a delete stops none", () => {
 		expect(deleteWords(wave("a", "a", 2), members, new Set(["t1", "t3"]))).toBe(
 			"The 2 tickets of the wave stay in the epic and move to No wave. 1 of them has an open agent run. A delete stops no agent.",
+		);
+	});
+
+	test("uses singular words for one ticket and one open agent run", () => {
+		expect(deleteWords(wave("a", "a", 1), [members[0]!], new Set(["t1"]))).toBe(
+			"The 1 ticket of the wave stays in the epic and moves to No wave. 1 of them has an open agent run. A delete stops no agent.",
 		);
 	});
 });
