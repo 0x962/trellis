@@ -36,7 +36,7 @@ export function PageVersionRow({
 				title={`Version ${number}${label ? `: ${label}` : ""}${selected ? " (selected)" : ""}`}
 				actions={
 					<Tooltip content={`Open version ${number}`}>
-						<IconButton label={`Open version ${number}`} icon={<ArrowSquareOut />} render={link} />
+						<IconButton label={`Open version ${number}`} icon={<ArrowSquareOut />} render={link} nativeButton={false} />
 					</Tooltip>
 				}
 			/>

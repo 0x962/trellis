@@ -30,7 +30,16 @@ test("shows the Page facts in stable row columns", () => {
 	expect(html).toContain("Agent");
 	expect(html).toContain("Page watcher");
 	expect(html).toContain(">2</span>");
+	expect(html).toContain("2 open comments");
+	expect(html).toContain("sr-only");
 	expect(html).toContain("tabular");
+});
+
+test("preserves a readable title at a phone width", () => {
+	const html = render();
+
+	expect(html).toContain("max-md:line-clamp-2");
+	expect(html).toContain("max-md:whitespace-normal");
 });
 
 test("gives keyboard focus to the title and the action menu", () => {

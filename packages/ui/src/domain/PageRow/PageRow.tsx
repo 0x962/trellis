@@ -87,7 +87,7 @@ export function PageRow({
 										<PushPinSimple aria-label="Pinned" weight="fill" className="size-3.5 shrink-0 text-accent" />
 									</Tooltip>
 								)}
-								<span className="truncate">{title}</span>
+								<span className="truncate max-md:line-clamp-2 max-md:whitespace-normal">{title}</span>
 								{deleted && <span className="shrink-0 text-xs text-danger">Deleted</span>}
 							</span>
 							<span className="truncate text-xs text-fg-muted">{summary || "No summary"}</span>
@@ -101,10 +101,13 @@ export function PageRow({
 						</span>
 						<span className="flex items-center justify-end gap-1 text-fg-muted tabular max-md:hidden">
 							{openThreadCount > 0 && (
-								<>
+								<span className="inline-flex items-center gap-1">
+									<span className="sr-only">
+										{openThreadCount === 1 ? "1 open comment" : `${openThreadCount} open comments`}
+									</span>
 									<ChatCircle aria-hidden="true" className="size-3.5" />
-									<span>{openThreadCount}</span>
-								</>
+									<span aria-hidden="true">{openThreadCount}</span>
+								</span>
 							)}
 						</span>
 						<time
@@ -116,7 +119,7 @@ export function PageRow({
 						</time>
 						<span className="col-span-2 hidden truncate text-xs text-fg-muted max-md:block">
 							v{latestVersion} · {publishedBy} · {watcher ?? "No watcher"}
-							{openThreadCount > 0 && ` · ${openThreadCount} open`}
+							{openThreadCount > 0 && ` · ${openThreadCount} open ${openThreadCount === 1 ? "comment" : "comments"}`}
 						</span>
 					</>
 				),

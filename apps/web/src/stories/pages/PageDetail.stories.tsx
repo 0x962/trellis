@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { PageDetail } from "../../features/pages/PageDetail";
 import { page, pageLease, pageResponses } from "./fixtures/page";
 import { actor, archivedProject, failure, pending, project, timestamp } from "./fixtures/project";
@@ -73,10 +73,33 @@ export const Deleted: Story = {
 };
 export const ArchivedProject: Story = { args: { project: archivedProject } };
 export const Offline: Story = { parameters: { trellis: { liveStatus: "down" } } };
-export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+export const Narrow: Story = { globals: { viewport: { value: "narrow", isRotated: false } } };
 export const NarrowComments: Story = {
-	globals: { viewport: { value: "phone", isRotated: false } },
+	globals: { viewport: { value: "narrow", isRotated: false } },
 	play: async ({ canvasElement }) => {
 		await userEvent.click(await within(canvasElement).findByRole("button", { name: "Comments" }));
+	},
+};
+
+export const VersionsAndRetainedDraft: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.type(await canvas.findByLabelText("Reply"), "Retain this draft");
+		await userEvent.click(await canvas.findByRole("button", { name: "Page actions" }));
+		await userEvent.click(await within(document.body).findByRole("menuitem", { name: "Version history" }));
+		await expect(await within(document.body).findByRole("heading", { name: "Version history" })).toBeVisible();
+		await userEvent.click(await within(document.body).findByRole("button", { name: "Close" }));
+		await expect(await canvas.findByDisplayValue("Retain this draft")).toBeVisible();
+	},
+};
+
+export const SafeLink: Story = {};
+
+export const CommentMutation: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.type(await canvas.findByLabelText("Reply"), "Story reply");
+		await userEvent.click(await canvas.findByRole("button", { name: "Post reply" }));
+		await expect(await canvas.findByText("Reply added")).toBeInTheDocument();
 	},
 };

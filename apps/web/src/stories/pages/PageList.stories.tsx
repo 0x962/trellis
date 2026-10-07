@@ -38,4 +38,4 @@ export const SearchAndClear: Story = {
 export const Loading: Story = { parameters: { trellis: { responses: { "pages.list": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "pages.list": failure } } } };
 export const Archived: Story = { args: { project: archivedProject } };
-export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+export const Narrow: Story = { globals: { viewport: { value: "narrow", isRotated: false } } };
