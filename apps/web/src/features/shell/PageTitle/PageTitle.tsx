@@ -19,19 +19,22 @@ export type PageTitleProps = {
 // control cuts its own label.
 export function PageTitle({ parent, title }: PageTitleProps) {
 	return (
-		<div className="flex min-w-0 items-center gap-2">
+		<div className="flex min-w-0 items-center gap-2 max-[theme(--container-xs)]:w-full max-[theme(--container-xs)]:flex-col max-[theme(--container-xs)]:items-start max-[theme(--container-xs)]:gap-0">
 			{parent !== undefined && (
 				<>
-					<span className="max-w-1/2 min-w-0 text-lg text-fg-muted *:max-w-full *:transition-colors *:duration-hover *:hover:text-fg max-md:w-11 max-md:shrink-0">
+					<span className="max-w-1/2 min-w-0 text-lg text-fg-muted *:max-w-full *:transition-colors *:duration-hover *:hover:text-fg max-md:w-11 max-md:shrink-0 max-[theme(--container-xs)]:w-full max-[theme(--container-xs)]:max-w-full">
 						{parent}
 					</span>
-					<span aria-hidden="true" className="text-fg-faint">
+					<span aria-hidden="true" className="text-fg-faint max-[theme(--container-xs)]:hidden">
 						/
 					</span>
 				</>
 			)}
 			<h1
-				className={cx("min-w-0 flex-1 text-lg font-semibold text-fg", typeof title === "string" ? "truncate" : "flex")}
+				className={cx(
+					"min-w-0 flex-1 text-lg font-semibold text-fg max-[theme(--container-xs)]:w-full",
+					typeof title === "string" ? "truncate" : "flex",
+				)}
 			>
 				{title}
 			</h1>
