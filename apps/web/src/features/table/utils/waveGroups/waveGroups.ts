@@ -16,12 +16,15 @@ export type WaveMark = {
 };
 
 // The marks of the waves of one epic, by wave id. `waves` is in position order.
-export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> =>
-	new Map(
-		waves.map((wave) => {
+export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> => {
+	const firstOpen = waves.findIndex((wave) => wave.state === "open");
+	return new Map(
+		waves.map((wave, index) => {
 			const { counts } = wave;
+			const stage = wave.state === "done" ? undefined : index === firstOpen ? "Current" : "Later";
+			const progress = `${formatCount(counts.done)}/${formatCount(counts.total - counts.canceled)}`;
 			const mark: WaveMark = {
-				countLabel: `${formatCount(counts.done)}/${formatCount(counts.total - counts.canceled)}`,
+				countLabel: stage === undefined ? progress : `${stage} \u00b7 ${progress}`,
 				completedCount: counts.done + counts.canceled,
 				totalCount: counts.total,
 				done: wave.state === "done",
@@ -29,6 +32,7 @@ export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> 
 			return [wave.id, mark];
 		}),
 	);
+};
 
 // The group keys of the done waves. A table of one epic collapses them
 // until the first toggle on its route. A wave group has the wave

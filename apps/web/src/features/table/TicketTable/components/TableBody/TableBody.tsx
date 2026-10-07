@@ -170,6 +170,7 @@ export function TableBody({
 									filling={wash.waves.includes(item.group.key)}
 									waves={waves}
 									onToggleGroup={onToggleGroup}
+									waveSection={waves !== undefined}
 									onCreateInGroup={onCreateInGroup}
 									onStartGroup={onStartGroup}
 								/>
