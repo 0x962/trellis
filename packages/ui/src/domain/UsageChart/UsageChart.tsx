@@ -267,10 +267,14 @@ export function UsageChart({
 				{ticks.map((index, position) => (
 					<span
 						key={index}
+						data-chart-tick={days[index]}
 						className={cx(
 							"flex-1",
 							position === 0 ? "text-left" : position === ticks.length - 1 ? "text-right" : "text-center",
-							position !== 0 && position !== ticks.length - 1 && position !== Math.floor(ticks.length / 2) && "max-sm:hidden",
+							position !== 0 &&
+								position !== ticks.length - 1 &&
+								position !== Math.floor(ticks.length / 2) &&
+								"max-sm:hidden",
 						)}
 					>
 						{formatDay(days[index]!)}
@@ -278,27 +282,30 @@ export function UsageChart({
 				))}
 			</div>
 			<figcaption
-				role="status"
 				className={cx(
 					"flex flex-wrap items-center gap-x-4 gap-y-1 pl-14 text-sm",
 					appearance === "overview" ? "min-h-16" : "min-h-5",
 				)}
 			>
-				{captionIndex >= 0 && (
-					<span className="font-medium text-fg tabular">
-						{formatDay(days[captionIndex]!)} · {format(dayTotal(captionIndex))}
-					</span>
-				)}
-				{series.map((row) => (
-					<span key={row.key} className="inline-flex min-w-0 items-center gap-1.5 text-fg-muted">
-						<span
-							aria-hidden="true"
-							className={cx("inline-block size-2 shrink-0 rounded-hairline bg-current", chartToneClass[row.tone])}
-						/>
-						<span className="truncate">{row.label}</span>
-						{captionIndex >= 0 && <span className="text-fg tabular">{format(row.values[captionIndex] ?? 0)}</span>}
-					</span>
-				))}
+				<div role="status" aria-atomic="true" className="font-medium text-fg tabular">
+					{captionIndex >= 0 && (
+						<>
+							{formatDay(days[captionIndex]!)} · {format(dayTotal(captionIndex))}
+						</>
+					)}
+				</div>
+				<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+					{series.map((row) => (
+						<span key={row.key} className="inline-flex min-w-0 items-center gap-1.5 text-fg-muted">
+							<span
+								aria-hidden="true"
+								className={cx("inline-block size-2 shrink-0 rounded-hairline bg-current", chartToneClass[row.tone])}
+							/>
+							<span className="truncate">{row.label}</span>
+							{captionIndex >= 0 && <span className="text-fg tabular">{format(row.values[captionIndex] ?? 0)}</span>}
+						</span>
+					))}
+				</div>
 			</figcaption>
 		</figure>
 	);

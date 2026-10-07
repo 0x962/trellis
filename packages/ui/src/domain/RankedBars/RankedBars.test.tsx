@@ -61,7 +61,8 @@ test("keeps rows dense and values aligned on desktop", () => {
 
 	expect(html).toContain("grid-cols-[minmax(0,1fr)_auto]");
 	expect(html).toContain("w-20 text-right text-sm text-fg tabular");
-	expect(html).toContain("w-10 text-right text-xs text-fg-muted tabular");
+	expect(html).toContain("w-10 text-right text-xs tabular max-md:w-auto max-md:text-left text-fg");
+	expect(html).toContain("w-10 text-right text-xs tabular max-md:w-auto max-md:text-left text-fg-muted");
 	expect(html).toContain("bg-accent-soft");
 });
 

@@ -118,7 +118,12 @@ export function RankedBars({
 										<span className="w-20 text-right text-sm text-fg tabular max-md:w-auto max-md:text-left">
 											{row.valueLabel}
 										</span>
-										<span className="w-10 text-right text-xs text-fg-muted tabular max-md:w-auto max-md:text-left">
+										<span
+											className={cx(
+												"w-10 text-right text-xs tabular max-md:w-auto max-md:text-left",
+												pressed ? "text-fg" : "text-fg-muted",
+											)}
+										>
 											{Math.round(row.share * 100)}%
 										</span>
 									</span>

@@ -30,6 +30,25 @@ describe("UsageChart keyboard entry", () => {
 		expect(html).toContain("Press Escape to clear the selected point.");
 	});
 
+	test.each([
+		[7, 4],
+		[30, 5],
+		[90, 7],
+	] as const)("uses %i days with %i ticks", (count, expected) => {
+		const range = Array.from({ length: count }, (_, index) =>
+			new Date(Date.UTC(2026, 0, index + 1)).toISOString().slice(0, 10),
+		);
+		const html = render({
+			days: range,
+			series: [{ ...series[0]!, values: Array.from({ length: count }, () => 1) }],
+			selectedDay: null,
+		});
+
+		expect(html.match(/data-chart-tick=/g)).toHaveLength(expected);
+		expect(html).toContain(`data-chart-tick="${range[0]}"`);
+		expect(html).toContain(`data-chart-tick="${range.at(-1)}"`);
+	});
+
 	test("uses point instructions for samples within one day", () => {
 		const html = render({
 			label: "CPU history",

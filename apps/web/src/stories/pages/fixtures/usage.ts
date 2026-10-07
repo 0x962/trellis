@@ -1,21 +1,32 @@
 import type {
 	SystemUsage,
 	UsageAccount,
+	UsageDays,
 	UsageGroupBy,
 	UsageGroupRow,
+	UsageMergedWork,
+	UsageMergedWorkInput,
 	UsageRanking,
 	UsageRankingInput,
 	UsageReport,
+	UsageReportInput,
 	UsageSession,
 } from "@trellis/api";
 import { id, timestamp } from "./project";
 import { projectResponses } from "./responses";
 
-const days = Array.from({ length: 7 }, (_, index) => ({
-	day: `2026-09-${24 + index}`,
-	usd: 2 + index,
-	tokens: (index + 1) * 16000,
-}));
+const usageDays = (count: UsageDays) =>
+	Array.from({ length: count }, (_, index) => {
+		const day = new Date(Date.UTC(2026, 8, 30 - count + index + 1)).toISOString().slice(0, 10);
+		const activeIndex = index - (count - 7);
+		return {
+			day,
+			usd: activeIndex < 0 ? 0 : 2 + activeIndex,
+			tokens: activeIndex < 0 ? 0 : (activeIndex + 1) * 16000,
+		};
+	});
+
+const days = usageDays(30);
 const groupKeys = {
 	ticket: "DEMO-40",
 	agent: "reviewer",
@@ -50,7 +61,7 @@ export const usageSessions: UsageSession[] = [
 	},
 ];
 
-const groupRow = (group: UsageGroupBy): UsageGroupRow => ({
+const groupRow = (group: UsageGroupBy, values = days): UsageGroupRow => ({
 	key: groupKeys[group],
 	label: groupKeys[group],
 	detail: group === "ticket" ? "Keep the ticket title readable" : null,
@@ -61,17 +72,18 @@ const groupRow = (group: UsageGroupBy): UsageGroupRow => ({
 	sessions: 1,
 	runs: 1,
 	approximate: false,
-	days,
+	days: values,
 });
-const groups = {
-	ticket: [groupRow("ticket")],
-	agent: [groupRow("agent")],
-	project: [groupRow("project")],
-	kind: [groupRow("kind")],
-	account: [groupRow("account")],
-	model: [groupRow("model")],
-	harness: [groupRow("harness")],
-};
+const groupsForDays = (values = days) => ({
+	ticket: [groupRow("ticket", values)],
+	agent: [groupRow("agent", values)],
+	project: [groupRow("project", values)],
+	kind: [groupRow("kind", values)],
+	account: [groupRow("account", values)],
+	model: [groupRow("model", values)],
+	harness: [groupRow("harness", values)],
+});
+const groups = groupsForDays();
 
 export const usageReport: UsageReport = {
 	days: 30,
@@ -96,6 +108,40 @@ export const usageReport: UsageReport = {
 	pricingTableUpdated: "2026-09-30",
 	computedAt: timestamp,
 };
+
+const reportForDays = (count: UsageDays): UsageReport => {
+	const values = usageDays(count);
+	const rangeGroups = groupsForDays(values);
+	return {
+		...usageReport,
+		days: count,
+		buckets: values.map((day) => ({ ...day, harnesses: { claude: { usd: day.usd, tokens: day.tokens } } })),
+		rankings: {
+			usd: { groups: rangeGroups, sessions: usageSessions },
+			tokens: { groups: rangeGroups, sessions: usageSessions },
+		},
+	};
+};
+
+const mergedWorkForDays = (count: UsageDays): UsageMergedWork => ({
+	computedAt: timestamp,
+	buckets: usageDays(count).map((day) => {
+		const prs = day.usd === 0 ? 0 : day.usd - 1;
+		return {
+			day: day.day,
+			prs,
+			additions: prs * 100,
+			deletions: prs * 40,
+			missingAdditions: 0,
+			missingDeletions: 0,
+		};
+	}),
+	totals: { prs: 28, additions: 2800, deletions: 1120, missingAdditions: 0, missingDeletions: 0 },
+});
+
+export const usageMergedWork = mergedWorkForDays(30);
+export const usageReport90 = reportForDays(90);
+export const usageMergedWork90 = mergedWorkForDays(90);
 
 const emptyGroups: Record<UsageGroupBy, UsageGroupRow[]> = {
 	ticket: [],
@@ -191,30 +237,23 @@ export const systemUsage: SystemUsage = {
 
 export const usageResponses = {
 	...projectResponses,
-	"usage.report": usageReport,
-	"usage.mergedWork": {
-		computedAt: timestamp,
-		buckets: days.map((day, index) => ({
-			day: day.day,
-			prs: index + 1,
-			additions: (index + 1) * 100,
-			deletions: (index + 1) * 40,
-			missingAdditions: 0,
-			missingDeletions: 0,
-		})),
-		totals: { prs: 28, additions: 2800, deletions: 1120, missingAdditions: 0, missingDeletions: 0 },
+	"usage.report": (input: UsageReportInput) => reportForDays(input.days ?? 30),
+	"usage.mergedWork": (input: UsageMergedWorkInput) => mergedWorkForDays(input.days),
+	"usage.ranking": (input: UsageRankingInput) => {
+		const values = usageDays(input.days);
+		const rangeGroups = groupsForDays(values);
+		return {
+			groups: rangeGroups[input.group],
+			sessions: usageSessions,
+			selected: input.row ? groupRow(input.group, values) : null,
+			groupTotal: 1,
+			sessionTotal: 1,
+			groupStart: 0,
+			sessionStart: 0,
+			maxValue: input.metric === "usd" ? 35 : 448000,
+			selectedRank: input.row ? 0 : null,
+		};
 	},
-	"usage.ranking": (input: UsageRankingInput) => ({
-		groups: groups[input.group],
-		sessions: usageSessions,
-		selected: input.row ? groupRow(input.group) : null,
-		groupTotal: 1,
-		sessionTotal: 1,
-		groupStart: 0,
-		sessionStart: 0,
-		maxValue: input.metric === "usd" ? 35 : 448000,
-		selectedRank: input.row ? 0 : null,
-	}),
 	"usage.accounts": usageAccounts,
 	"providers.list": [],
 	"system.usage": systemUsage,

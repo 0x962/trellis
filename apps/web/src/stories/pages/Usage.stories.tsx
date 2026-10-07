@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { UsagePage } from "../../features/usage/UsagePage";
 import { Route } from "../../routes/usage";
 import { failure, pending } from "./fixtures/project";
-import { emptyUsageRanking, emptyUsageReport, systemUsage, usageResponses } from "./fixtures/usage";
+import { emptyUsageRanking, emptyUsageReport, systemUsage, usageMergedWork, usageResponses } from "./fixtures/usage";
 import { attributionRanking, attributionReport } from "./fixtures/usageAttribution";
 import { emptyMergedWork } from "./fixtures/usageMergedWork";
 import { pageFrame } from "./pageFrame";
@@ -25,6 +25,8 @@ export const Agent: Story = {
 		const canvas = within(canvasElement);
 		await expect(await canvas.findByRole("heading", { name: "Breakdown by model" })).toBeVisible();
 		await expect(await canvas.findByRole("heading", { name: "Breakdown by harness" })).toBeVisible();
+		await expect(await canvas.findByText("Sep 1, 2026 to Sep 30, 2026")).toBeVisible();
+		await expect(canvasElement.querySelectorAll("[data-chart-tick]")).toHaveLength(15);
 		const work = within(await canvas.findByRole("region", { name: "Merged work" }));
 		await expect(await work.findByText("+2,800")).toBeVisible();
 		await expect(work.getByText("−1,120")).toBeVisible();
@@ -44,6 +46,24 @@ export const Agent: Story = {
 	},
 };
 export const TokensByModel: Story = { parameters: { trellis: { path: "/usage?metric=tokens&group=model" } } };
+export const SevenDays: Story = {
+	parameters: { trellis: { path: "/usage?days=7" } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByText("Sep 24, 2026 to Sep 30, 2026")).toBeVisible();
+		await waitFor(() => expect(canvasElement.querySelectorAll("[data-chart-tick]")).toHaveLength(12));
+	},
+};
+export const NinetyDays: Story = {
+	parameters: { trellis: { path: "/usage?days=90" } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByText("Jul 3, 2026 to Sep 30, 2026")).toBeVisible();
+		await waitFor(() => expect(canvasElement.querySelectorAll("[data-chart-tick]")).toHaveLength(21));
+		await expect(canvasElement.querySelector('[data-chart-tick="2026-07-03"]')).toHaveTextContent("Jul 3");
+		await expect(canvasElement.querySelector('[data-chart-tick="2026-09-30"]')).toHaveTextContent("Sep 30");
+	},
+};
 export const MergedWorkComparison: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
@@ -59,7 +79,7 @@ export const MergedWorkComparison: Story = {
 		await expect(lines).toHaveFocus();
 		await expect(lines).toHaveAttribute("data-day", "2026-09-30");
 		await userEvent.keyboard("{Home}{ }");
-		await expect(region.querySelectorAll('[data-selected-day="2026-09-24"]')).toHaveLength(2);
+		await expect(region.querySelectorAll('[data-selected-day="2026-09-01"]')).toHaveLength(2);
 		await expect(work.getByText("+2,800")).toBeVisible();
 		await userEvent.keyboard("{Escape}");
 		await expect(lines).toHaveFocus();
@@ -151,12 +171,12 @@ export const IncompleteMergedWork: Story = {
 		trellis: {
 			responses: {
 				"usage.mergedWork": {
-					...usageResponses["usage.mergedWork"],
+					...usageMergedWork,
 					totals: { prs: 28, additions: 2800, deletions: 0, missingAdditions: 1, missingDeletions: 28 },
-					buckets: usageResponses["usage.mergedWork"].buckets.map((bucket, index) => ({
+					buckets: usageMergedWork.buckets.map((bucket, index) => ({
 						...bucket,
 						deletions: 0,
-						missingAdditions: index === 0 ? 1 : 0,
+						missingAdditions: index === usageMergedWork.buckets.length - 1 ? 1 : 0,
 						missingDeletions: bucket.prs,
 					})),
 				},
@@ -170,8 +190,8 @@ export const IncompleteMergedWork: Story = {
 		await expect(work.getByText("1 PR lacks this value")).toBeVisible();
 		const chart = work.getByRole("button", { name: /^Lines changed per day/ });
 		chart.focus();
-		await userEvent.keyboard("{Home}{Enter}");
-		await expect(work.getByText("Sep 24. Added: unavailable for 1 PR. Deleted: unavailable for 1 PR.")).toBeVisible();
+		await userEvent.keyboard("{End}{Enter}");
+		await expect(work.getByText("Sep 30. Added: unavailable for 1 PR. Deleted: unavailable for 7 PRs.")).toBeVisible();
 		await expect(work.getByText("Not available")).toBeVisible();
 	},
 };

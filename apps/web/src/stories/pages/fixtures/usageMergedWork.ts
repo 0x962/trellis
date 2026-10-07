@@ -1,9 +1,9 @@
 import type { UsageMergedWork } from "@trellis/api";
-import { usageResponses } from "./usage";
+import { usageMergedWork } from "./usage";
 
 export const emptyMergedWork: UsageMergedWork = {
-	computedAt: usageResponses["usage.mergedWork"].computedAt,
-	buckets: usageResponses["usage.mergedWork"].buckets.map((bucket) => ({
+	computedAt: usageMergedWork.computedAt,
+	buckets: usageMergedWork.buckets.map((bucket) => ({
 		day: bucket.day,
 		prs: 0,
 		additions: 0,
