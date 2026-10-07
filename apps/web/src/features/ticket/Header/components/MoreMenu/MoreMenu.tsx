@@ -14,18 +14,20 @@ import { useCopyBrief } from "../BriefCopy";
 
 export type MoreMenuProps = {
 	ticket: Ticket;
+	readOnly?: boolean;
 };
 
 export const ticketLink = (identifier: string) => `${window.location.origin}/t/${identifier}`;
 
 // The rest of the ticket actions: the three copies, the property pickers,
 // and Delete behind a confirm.
-export function MoreMenu({ ticket }: MoreMenuProps) {
+export function MoreMenu({ ticket, readOnly = false }: MoreMenuProps) {
 	const { client, queryClient } = useApp();
 	const router = useRouter();
 	const sheet = usePageSheet();
 	const copyBrief = useCopyBrief(ticket);
 	const [confirming, setConfirming] = useState(false);
+	if (readOnly && confirming) setConfirming(false);
 	const branch = branchName(ticket.identifier, titleSlug(ticket.title));
 
 	const remove = async () => {
@@ -49,10 +51,10 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 					{ label: "Copy brief", onSelect: () => void copyBrief() },
 					{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
 					{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
-					{ label: "Set labels", onSelect: () => openPicker("labels") },
-					{ label: "Set parent", onSelect: () => openPicker("parent") },
-					{ label: "Set dependencies", onSelect: () => openPicker("dependencies") },
-					{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
+					{ label: "Set labels", onSelect: () => openPicker("labels"), disabled: readOnly },
+					{ label: "Set parent", onSelect: () => openPicker("parent"), disabled: readOnly },
+					{ label: "Set dependencies", onSelect: () => openPicker("dependencies"), disabled: readOnly },
+					{ label: "Delete", onSelect: () => setConfirming(true), danger: true, disabled: readOnly },
 				]}
 			/>
 			<Dialog
@@ -65,7 +67,7 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 					<Button variant="quiet" onClick={() => setConfirming(false)}>
 						Cancel
 					</Button>
-					<Button variant="danger" onClick={() => void remove()}>
+					<Button variant="danger" disabled={readOnly} onClick={() => void remove()}>
 						Delete
 					</Button>
 				</div>
