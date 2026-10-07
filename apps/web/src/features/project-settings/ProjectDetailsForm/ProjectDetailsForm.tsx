@@ -10,7 +10,7 @@ import {
 	ProjectColorField,
 	Textarea,
 } from "@trellis/ui";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { takenColors } from "../../../lib/projectColors";
 
@@ -36,9 +36,12 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 		select: (projects) => takenColors(projects, project.id),
 	}).data;
 	const locked = project.ticketCounter > 0;
+	const saving = useRef(false);
 
 	const save = async (event: FormEvent) => {
 		event.preventDefault();
+		if (saving.current) return;
+		saving.current = true;
 		setMessage(undefined);
 		setSaveStatus("saving");
 		try {
@@ -57,6 +60,8 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 		} catch (error) {
 			setMessage((error as Error).message);
 			setSaveStatus("error");
+		} finally {
+			saving.current = false;
 		}
 	};
 
@@ -82,7 +87,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 				onChange={(event) => setDescription(event.target.value)}
 			/>
 			<div className="project-settings-save">
-				<Button type="submit" variant="primary">
+				<Button type="submit" variant="primary" processing={saveStatus === "saving"}>
 					Save project
 				</Button>
 				<FormStatus status={saveStatus} message={message} />

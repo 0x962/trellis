@@ -1,0 +1,9 @@
+[
+	{
+		"source": "packages/ui/src/domain/MachineRuns/MachineRuns.tsx",
+		"export": "MachineRuns",
+		"stories": ["Pages/Usage/System", "Pages/Usage/SystemNoMeasuredRuns"],
+		"states": ["populated", "empty"],
+		"notes": "The System page reuses the canonical list for the three active runs with the most measured memory."
+	}
+]

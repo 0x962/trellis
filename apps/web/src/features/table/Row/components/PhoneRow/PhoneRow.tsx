@@ -19,13 +19,11 @@ export type PhoneRowProps = {
 	ticket: TicketSummary;
 	// The priority cell of the row, with its picker.
 	priority: ReactNode;
-	// The actor cell of the row. The epic layout draws it at the end of the
-	// first line.
+	// The epic layout places the actor beside the title and its facts.
 	actor: ReactNode;
 	// `epic` draws `EpicCells` and `list` draws `ListCells`.
 	layout: TableKind;
-	// The line of the ticket's run, or null when the run says nothing. The
-	// epic layout reads it for line 2.
+	// The epic layout places the agent message below the title.
 	agentLine: TicketAgentLine | null;
 	disclosure: TicketDisclosureState;
 	// The offset inside the virtual body.
@@ -43,10 +41,8 @@ export type PhoneRowProps = {
 	onToggleDisclosure?: () => void;
 };
 
-// The words of the run open its session. The row around them opens the
-// ticket, so the click stops there. The row keeps the finger target of the
-// phone list: it stands 56 px tall, and these words take one text line of
-// it.
+// AgentLineButton opens the agent session. Its click stops before the row
+// opens the ticket.
 const AgentLineButton = ({ line }: { line: TicketAgentLine }) => (
 	<button
 		type="button"
@@ -66,11 +62,8 @@ const phoneLineContent = (line: PhoneLine) => {
 	return <span className="truncate">{line.words}</span>;
 };
 
-// The row opens the ticket, and the words of the run inside it open the
-// session of that run. At 56 px the row is larger than the 44 px that a
-// finger needs, and the words take one text line of it. `overflow-hidden`
-// on line 2 cuts a long pull request line, so the row never grows to a
-// third line.
+// The title and the secondary fact share the space between the status
+// and the actor. Each keeps its own line limit within the virtual row.
 function EpicCells({
 	ticket,
 	actor,
@@ -86,15 +79,15 @@ function EpicCells({
 }) {
 	const line = disclosure === "collapsed" ? null : phoneLineOf(ticket, agentLine);
 	return (
-		<div className="flex min-w-0 flex-1 flex-col gap-1">
-			<div className="flex min-w-0 items-center gap-2">
-				{disclosure !== null && (
-					<TicketDisclosure identifier={ticket.identifier} disclosure={disclosure} onToggle={onToggleDisclosure} />
-				)}
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
-					<StatusIcon {...statusIconProps(ticket.status)} label={ticket.status.name} />
-				</div>
+		<div className="flex min-w-0 flex-1 items-center gap-2">
+			{disclosure !== null && (
+				<TicketDisclosure identifier={ticket.identifier} disclosure={disclosure} onToggle={onToggleDisclosure} />
+			)}
+			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+			<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
+				<StatusIcon {...statusIconProps(ticket.status)} label={ticket.status.name} />
+			</div>
+			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
 				<div
 					role="gridcell"
@@ -104,29 +97,25 @@ function EpicCells({
 					{ticket.identifier}
 				</div>
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="title" className="min-w-0 flex-1 truncate text-sm text-fg">
+				<div role="gridcell" data-column="title" className="line-clamp-2 min-w-0 wrap-anywhere text-sm text-fg">
 					{ticket.title}
 				</div>
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="actor" className="flex shrink-0 items-center empty:hidden">
-					{actor}
-				</div>
+				{line !== null && (
+					<div data-line={line.kind} className="flex min-w-0 items-center gap-2 overflow-hidden text-sm text-fg-muted">
+						{phoneLineContent(line)}
+					</div>
+				)}
 			</div>
-			{line !== null && (
-				<div
-					data-line={line.kind}
-					className="flex min-w-0 items-center gap-2 overflow-hidden pl-5.5 text-sm text-fg-muted"
-				>
-					{phoneLineContent(line)}
-				</div>
-			)}
+			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+			<div role="gridcell" data-column="actor" className="flex shrink-0 items-center empty:hidden">
+				{actor}
+			</div>
 		</div>
 	);
 }
 
-// The priority mark is the one control in the row. On a coarse pointer it
-// draws 44 px, which is taller than one text line, so it stays outside the
-// block that holds the two text lines and the 56 px row centres it.
+// The priority control stays beside the text block so its touch target
+// does not increase the height of a text line.
 function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: ReactNode }) {
 	return (
 		<>
@@ -147,7 +136,12 @@ function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: Reac
 					</div>
 				</div>
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="title" data-line="title" className="truncate text-sm text-fg">
+				<div
+					role="gridcell"
+					data-column="title"
+					data-line="title"
+					className="line-clamp-2 wrap-anywhere text-sm text-fg"
+				>
 					{ticket.title}
 				</div>
 			</div>
@@ -159,9 +153,8 @@ function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: Reac
 	);
 }
 
-// One ticket below 768 px, in two lines of 56 px. The row keeps the grid
-// roles, the roving tab stop, and the focus and selection states of the
-// wide row.
+// PhoneRow shares phoneRowHeight with the virtualizer so its text stays
+// inside the space reserved for the ticket.
 export function PhoneRow({
 	ref,
 	ticket,

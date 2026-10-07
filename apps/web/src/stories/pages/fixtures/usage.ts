@@ -1,4 +1,5 @@
 import type {
+	MemoryPressureLevel,
 	SystemUsage,
 	UsageAccount,
 	UsageGroupBy,
@@ -168,6 +169,8 @@ export const usageAccounts: UsageAccount[] = [
 	},
 ];
 
+const memoryTotalBytes = 32 * 1024 ** 3;
+
 export const systemUsage: SystemUsage = {
 	sampledAt: timestamp,
 	hostname: "storybook-host",
@@ -177,16 +180,43 @@ export const systemUsage: SystemUsage = {
 	cpuPercent: 38,
 	memoryPercent: 62,
 	memoryLevel: 1,
-	memoryUsedBytes: 21303037788,
-	memoryTotalBytes: 34359738368,
+	memoryUsedBytes: Math.round(memoryTotalBytes * 0.62),
+	memoryTotalBytes,
 	loadAverage: [2.4, 2.1, 1.8],
 	uptimeSeconds: 187200,
 	history: Array.from({ length: 16 }, (_, index) => ({
-		at: `2026-09-30T11:${String(44 + index).padStart(2, "0")}:00.000Z`,
-		cpuPercent: 15 + index * 2,
-		memoryPercent: 55 + index / 2,
+		at: new Date(Date.parse(timestamp) - (15 - index) * 2_000).toISOString(),
+		cpuPercent: 8 + index * 2,
+		memoryPercent: 55 + (index / 15) * 7,
 		memoryLevel: 1,
 	})),
+};
+
+export const systemUsageWithMemory = (memoryPercent: number, memoryLevel: MemoryPressureLevel): SystemUsage => ({
+	...systemUsage,
+	memoryPercent,
+	memoryLevel,
+	memoryUsedBytes: Math.round((memoryTotalBytes * memoryPercent) / 100),
+	history: systemUsage.history.map((sample) => ({ ...sample, memoryPercent, memoryLevel })),
+});
+
+export const systemUsageAt = (sampledAt: string): SystemUsage => {
+	const history = Array.from({ length: 16 }, (_, index) => {
+		const at = Date.parse(sampledAt) - (15 - index) * 2_000;
+		return {
+			at: new Date(at).toISOString(),
+			cpuPercent: 50 + Math.sin(at / 2_000) * 25,
+			memoryPercent: 62 + Math.cos(at / 2_000) * 3,
+			memoryLevel: 1,
+		};
+	});
+	const latest = history.at(-1)!;
+	return {
+		...systemUsageWithMemory(latest.memoryPercent, latest.memoryLevel),
+		sampledAt,
+		cpuPercent: latest.cpuPercent,
+		history,
+	};
 };
 
 export const usageResponses = {
@@ -218,4 +248,20 @@ export const usageResponses = {
 	"usage.accounts": usageAccounts,
 	"providers.list": [],
 	"system.usage": systemUsage,
+	"system.pressure": {
+		sampledAt: timestamp,
+		hostname: systemUsage.hostname,
+		platform: systemUsage.platform,
+		cpuCount: systemUsage.cpuCount,
+		loadAverage1m: systemUsage.loadAverage[0],
+		loadPerCore: systemUsage.loadAverage[0] / systemUsage.cpuCount,
+		memoryLevel: 1,
+		processorTemperature: { state: "unavailable" as const, reason: "reader-not-installed" as const, readDurationMs: 0 },
+		disk: { state: "failed" as const, path: "/workspace/storybook" },
+		runs: [
+			{ id: id(410), name: "Review the interface", ticketIdentifier: "DEMO-40", memoryBytes: 2 * 1024 ** 3 },
+			{ id: id(411), name: "Review the interface again", ticketIdentifier: "DEMO-40", memoryBytes: 512 * 1024 ** 2 },
+			{ id: id(412), name: "Synthetic standalone session", ticketIdentifier: null, memoryBytes: 256 * 1024 ** 2 },
+		],
+	},
 };
