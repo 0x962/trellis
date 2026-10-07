@@ -45,7 +45,16 @@ mock.module("@trellis/ui", () => ({
 	),
 	FieldHint: ({ children }: { children: ReactNode }) => <p>{children}</p>,
 	Textarea: ({ label: _label, ...props }: ComponentProps<"textarea"> & { label: string }) => <textarea {...props} />,
-	FailureState: ({ title }: { title: string }) => <p>{title}</p>,
+	FailureState: ({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) => (
+		<div>
+			<p>{title}</p>
+			<details>
+				<summary>Details</summary>
+				{detail}
+			</details>
+			{action}
+		</div>
+	),
 }));
 
 const { BroadcastDialog } = await import("./BroadcastDialog");

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { ProviderCreateInputSchema, ProviderUpdateInputSchema } from "./provider";
+import { ProviderCheckDraftInputSchema, ProviderCreateInputSchema, ProviderUpdateInputSchema } from "./provider";
 
 const input = {
 	name: "Gateway".repeat(1000),
@@ -38,4 +38,43 @@ test("provider configuration retains format and uniqueness rules", () => {
 		expect(ProviderCreateInputSchema.safeParse({ ...input, ...patch }).success).toBe(false);
 		expect(ProviderUpdateInputSchema.safeParse({ id: "01M2Q0Z191Q244RDP6R3SBFKE5", ...patch }).success).toBe(false);
 	}
+});
+test("draft checks accept only an unsaved credential and endpoint", () => {
+	expect(ProviderCheckDraftInputSchema.parse({ kind: "vercel-ai-gateway", apiKey: " synthetic-key " })).toEqual({
+		kind: "vercel-ai-gateway",
+		apiKey: "synthetic-key",
+		baseUrl: "https://ai-gateway.vercel.sh",
+	});
+	expect(
+		ProviderCheckDraftInputSchema.parse({
+			kind: "openai-compatible",
+			apiKey: "synthetic-key",
+			baseUrl: " https://provider.example/v1/ ",
+		}).baseUrl,
+	).toBe("https://provider.example/v1/");
+	for (const patch of [
+		{ kind: "unknown" },
+		{ apiKey: "" },
+		{ apiKey: " " },
+		{ baseUrl: undefined },
+		{ baseUrl: "http://provider.example" },
+		{ baseUrl: "https://user:password@provider.example" },
+		{ baseUrl: "https://provider.example?query" },
+		{ baseUrl: "https://provider.example#fragment" },
+		{ baseUrl: "https://provider.example/?" },
+		{ baseUrl: "https://provider.example/#" },
+		{ name: "Draft" },
+		{ id: "unsaved" },
+		{ models: [] },
+		{ enabled: false },
+		{ refresh: true },
+	])
+		expect(
+			ProviderCheckDraftInputSchema.safeParse({
+				kind: "openai-compatible",
+				apiKey: "synthetic-key",
+				baseUrl: "https://provider.example",
+				...patch,
+			}).success,
+		).toBe(false);
 });
