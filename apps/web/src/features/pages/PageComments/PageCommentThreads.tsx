@@ -103,7 +103,7 @@ export function PageCommentThreads({
 		<section aria-label="Comments" className="flex flex-col gap-2">
 			<SectionHeader
 				title="Comments"
-				level={3}
+				level={2}
 				actions={
 					resolvedCount > 0 ? (
 						<Tooltip content={showResolved ? "Hide resolved threads" : `Show ${resolvedCount} resolved`}>
