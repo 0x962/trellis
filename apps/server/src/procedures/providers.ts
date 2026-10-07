@@ -7,6 +7,7 @@ export const providers = os.providers.router({
 		call(context, "providers.publicModels", input),
 	),
 	check: os.providers.check.handler(({ context, input }) => call(context, "providers.check", input)),
+	checkDraft: os.providers.checkDraft.handler(({ context, input }) => call(context, "providers.checkDraft", input)),
 	list: os.providers.list.handler(({ context, input }) => call(context, "providers.list", input)),
 	get: os.providers.get.handler(({ context, input }) => call(context, "providers.get", input)),
 	create: os.providers.create.handler(async ({ context, input }) => {

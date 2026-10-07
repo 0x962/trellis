@@ -8,6 +8,7 @@ import { openTestDb } from "../db/testDb.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import type { GhAccess } from "../ghState.ts";
 import { createDbTiming } from "../serverTiming.ts";
+import { prepareDraftCheck } from "../services/providers/draftCheck/index.ts";
 import { create as createProvider, update as updateProvider } from "../services/providers/providers.ts";
 import type { ServiceName } from "../services/registry.ts";
 import type { IoCtx } from "../services/support.ts";
@@ -130,4 +131,79 @@ test("routes catalogs and checks with a boolean refresh input", async () => {
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual(result);
 	}
+});
+test("routes an unsaved credential to the draft checker without a provider record", async () => {
+	const key = "synthetic-draft-key-9876";
+	for (const status of [200, 401]) {
+		const logs: unknown[] = [];
+		const response = await request(
+			"/providers/check-draft",
+			{
+				method: "POST",
+				...json({ kind: "vercel-ai-gateway", apiKey: ` ${key} ` }),
+			},
+			async (name, _ctx, input) => {
+				expect(name).toBe("providers.checkDraft");
+				expect(input).toEqual({ kind: "vercel-ai-gateway", apiKey: key, baseUrl: "https://ai-gateway.vercel.sh" });
+				return prepareDraftCheck(
+					{
+						log: (...data: unknown[]) => logs.push(data),
+						newTx: () => {
+							throw new Error("The draft cannot access the database.");
+						},
+					} as unknown as IoCtx,
+					input,
+					{
+						now: () => Date.parse("2026-10-06T12:00:00.000Z"),
+						fetch: async () => (status === 200 ? Response.json({ balance: "9.00" }) : new Response(key, { status })),
+					},
+				);
+			},
+		);
+		expect(response.status).toBe(200);
+		const result = await response.json();
+		expect(result).toEqual({
+			ok: status === 200,
+			balance: status === 200 ? "9.00" : null,
+			detail: status === 200 ? null : "The provider refused the key.",
+			checkedAt: "2026-10-06T12:00:00.000Z",
+		});
+		expect(JSON.stringify([result, logs])).not.toContain(key);
+	}
+	const providers = await db.execute(sql`SELECT id FROM providers`);
+	const models = await db.execute(sql`SELECT provider_id FROM provider_models`);
+	expect(providers.rows).toHaveLength(0);
+	expect(models.rows).toHaveLength(0);
+});
+
+test("rejects invalid draft requests before the service and does not echo the key", async () => {
+	let calls = 0;
+	const key = "synthetic-private-draft-key";
+	for (const fields of [
+		{ apiKey: "" },
+		{ apiKey: " " },
+		{ baseUrl: undefined },
+		{ baseUrl: "http://provider.example" },
+		{ baseUrl: "https://user:password@provider.example" },
+		{ baseUrl: "https://provider.example?query" },
+		{ baseUrl: "https://provider.example#fragment" },
+		{ id: "unsaved" },
+	]) {
+		const response = await request(
+			"/providers/check-draft",
+			{
+				method: "POST",
+				...json({ kind: "openai-compatible", apiKey: key, baseUrl: "https://provider.example", ...fields }),
+			},
+			async () => {
+				calls++;
+				throw new Error("Invalid input cannot reach the service.");
+			},
+		);
+		expect(response.status).toBe(400);
+		const body = await response.text();
+		expect(body).toContain("INPUT_VALIDATION_FAILED");
+		expect(body).not.toContain(key);
+	}
+	expect(calls).toBe(0);
 });
