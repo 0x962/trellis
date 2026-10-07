@@ -10,7 +10,20 @@ import { pageFrame } from "./pageFrame";
 const baseNode = flowDoc.nodes[0]!;
 const invalidFlowDoc: FlowDoc = {
 	...flowDoc,
-	nodes: [{ ...baseNode, instruction: "" }, ...flowDoc.nodes.slice(1)],
+	nodes: [
+		{ ...baseNode, instruction: "" },
+		{
+			...baseNode,
+			id: id(699),
+			kind: "group",
+			title: "",
+			instruction: "",
+			x: 320,
+			width: 320,
+			height: 200,
+		},
+		...flowDoc.nodes.slice(1),
+	],
 };
 const denseLongFlowDoc: FlowDoc = {
 	...flowDoc,
@@ -136,10 +149,14 @@ export const EditorHostError: Story = {
 export const InvalidNodes: Story = {
 	parameters: { trellis: { responses: { "flows.get": invalidFlowDoc } } },
 	play: async ({ canvasElement }) => {
-		const issue = await within(canvasElement).findByText("Write an instruction.", { exact: true });
-		await waitFor(() => expect(issue).toBeVisible());
-		await expect(issue.closest("[role=alert]")).toBeVisible();
-		await expect(issue.closest("[aria-invalid=true]")).toHaveAttribute("aria-describedby", issue.parentElement!.id);
+		const canvas = within(canvasElement);
+		for (const message of ["Write an instruction.", "Write a title."]) {
+			const issue = await canvas.findByText(message, { exact: true });
+			await waitFor(() => expect(issue).toBeVisible());
+			const alert = issue.closest("[role=alert]")!;
+			await expect(alert).toBeVisible();
+			await expect(issue.closest("[aria-invalid=true]")).toHaveAttribute("aria-describedby", alert.parentElement!.id);
+		}
 	},
 };
 export const DenseLongGraph: Story = {

@@ -44,6 +44,7 @@ export function FlowCancelDialog({
 				<Button
 					type="button"
 					variant="danger"
+					processing={cancel.request?.phase === "pending"}
 					disabled={blocked}
 					onClick={() => {
 						if (blocked) return;

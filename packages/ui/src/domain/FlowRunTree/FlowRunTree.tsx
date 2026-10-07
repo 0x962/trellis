@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useVirtualRows } from "../../hooks/useVirtualRows";
+import { EmptyState } from "../../primitives/EmptyState";
 import { FlowRunRow } from "./components/FlowRunRow";
 import { MeasuredRunRow } from "./components/MeasuredRunRow";
 import type { FlowRunRow as Row } from "./types";
@@ -154,41 +155,45 @@ export function FlowRunTree({
 				onViewportChange?.(currentView.current);
 			}}
 		>
-			<div role="presentation" className="relative" style={{ height: offsets.at(-1) }}>
-				{rendered.map((index) => {
-					const row = visible[index]!;
-					return (
-						<MeasuredRunRow key={row.key} rowKey={row.key} top={offsets[index]!} onMeasure={onMeasure}>
-							<FlowRunRow
-								key={row.key}
-								row={row}
-								now={now}
-								expanded={row.hasChildren ? !collapsed.has(row.key) : undefined}
-								tabIndex={row.key === current ? 0 : -1}
-								ref={(element) => {
-									if (element) elements.current.set(row.key, element);
-									else elements.current.delete(row.key);
-								}}
-								onToggle={() => toggle(row.key)}
-								onKeyDown={(event) => keyDown(event, row, index)}
-								onFocus={() => update({ selectedKey: row.key })}
-								selected={row.key === focusKey}
-								outputExpanded={outputKeys.has(row.key)}
-								onOutputToggle={(expanded) => {
-									if (expanded === outputKeys.has(row.key)) return;
-									update({
-										outputKeys: expanded
-											? [...view.outputKeys, row.key]
-											: view.outputKeys.filter((key) => key !== row.key),
-									});
-								}}
-								onDecide={() => onDecide(row.key)}
-								onOpenTerminal={() => onOpenTerminal(row.key)}
-							/>
-						</MeasuredRunRow>
-					);
-				})}
-			</div>
+			{visible.length === 0 ? (
+				<EmptyState title="No execution steps" description="This run has no saved step activity." className="px-1" />
+			) : (
+				<div role="presentation" className="relative" style={{ height: offsets.at(-1) }}>
+					{rendered.map((index) => {
+						const row = visible[index]!;
+						return (
+							<MeasuredRunRow key={row.key} rowKey={row.key} top={offsets[index]!} onMeasure={onMeasure}>
+								<FlowRunRow
+									key={row.key}
+									row={row}
+									now={now}
+									expanded={row.hasChildren ? !collapsed.has(row.key) : undefined}
+									tabIndex={row.key === current ? 0 : -1}
+									ref={(element) => {
+										if (element) elements.current.set(row.key, element);
+										else elements.current.delete(row.key);
+									}}
+									onToggle={() => toggle(row.key)}
+									onKeyDown={(event) => keyDown(event, row, index)}
+									onFocus={() => update({ selectedKey: row.key })}
+									selected={row.key === focusKey}
+									outputExpanded={outputKeys.has(row.key)}
+									onOutputToggle={(expanded) => {
+										if (expanded === outputKeys.has(row.key)) return;
+										update({
+											outputKeys: expanded
+												? [...view.outputKeys, row.key]
+												: view.outputKeys.filter((key) => key !== row.key),
+										});
+									}}
+									onDecide={() => onDecide(row.key)}
+									onOpenTerminal={() => onOpenTerminal(row.key)}
+								/>
+							</MeasuredRunRow>
+						);
+					})}
+				</div>
+			)}
 		</div>
 	);
 }

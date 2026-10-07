@@ -66,8 +66,8 @@ export function FlowRunSummary({
 	);
 	return (
 		<div className="flex flex-col gap-1">
-			<div className="flex min-h-7 items-center gap-2">
-				<h4 className="flex min-w-0 items-center text-sm font-medium text-fg">
+			<div className="flex min-h-7 min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+				<h4 className="flex min-w-24 flex-1 basis-40 items-center text-sm font-medium text-fg">
 					{onToggle ? (
 						<button
 							type="button"
@@ -90,7 +90,9 @@ export function FlowRunSummary({
 					{" · "}
 					{formatClock(durationMs)}
 				</span>
-				{actions !== undefined && <span className="ml-auto flex shrink-0 items-center gap-1">{actions}</span>}
+				{actions !== undefined && (
+					<span className="ml-auto flex min-w-24 shrink-0 items-center justify-end gap-1">{actions}</span>
+				)}
 			</div>
 			{notice !== null && <p className={cx("text-sm", noticeTones[status])}>{notice}</p>}
 		</div>

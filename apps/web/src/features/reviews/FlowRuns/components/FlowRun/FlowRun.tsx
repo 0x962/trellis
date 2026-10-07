@@ -97,6 +97,7 @@ export function FlowRun({
 				const attempt = row.attempt;
 				result.set(row.key, {
 					attempt,
+					stepTitle: row.occurrence?.title ?? row.title,
 					task: {
 						key: row.actionKey!,
 						runId: attempt.agentRunId,
@@ -109,7 +110,7 @@ export function FlowRun({
 			const tasks = new Map(execution.tasks.map((task) => [task.key, task]));
 			for (const row of rows) {
 				const task = row.actionKey === null ? undefined : tasks.get(row.actionKey);
-				if (task) result.set(row.key, { task });
+				if (task) result.set(row.key, { task, stepTitle: row.title });
 			}
 		}
 		return result;
@@ -223,6 +224,7 @@ export function FlowRun({
 					executionId={execution.id}
 					task={terminalTarget.task}
 					attempt={terminalTarget.attempt}
+					stepTitle={terminalTarget.stepTitle ?? terminalTarget.task.key}
 					reviewedHead={reviewedHead}
 					recoveryBlocked={fenced || immutableOnly}
 					onClose={() => setTerminal(null)}
@@ -255,7 +257,7 @@ export function FlowRun({
 					diffId={diffId}
 					headSha={headSha}
 					initialFlowId={execution.flowId}
-					repeatReason="The user selected Run again."
+					repeatReason={`Run ${flow.name} again for the current pull request.`}
 					recoveryBlocked={fenced || immutableOnly}
 					onClose={() => setConfirmRepeat(false)}
 				/>

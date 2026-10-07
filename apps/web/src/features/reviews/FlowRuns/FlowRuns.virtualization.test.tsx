@@ -34,6 +34,7 @@ mock.module("@tanstack/react-virtual", () => ({
 }));
 mock.module("@tanstack/react-router", () => ({ useLocation: () => "" }));
 mock.module("@trellis/ui", () => ({
+	Button: () => null,
 	EmptyState: () => null,
 	FailureState: () => null,
 	IconButton: () => null,

@@ -71,6 +71,25 @@ test("an unavailable recovery fence blocks V1 mutations", async () => {
 	await f.close();
 });
 
+test("server actions expose a busy state and keep their labels", async () => {
+	const never = new Promise<never>(() => {});
+	const cancelFixture = fixture({ flowExecutionsV1: { cancel: async () => never } });
+	await cancelFixture.render(<FlowCancelDialog execution={execution} onClose={() => {}} />);
+	await act(async () => cancelFixture.button("Cancel run").props.onClick());
+	await flush();
+	expect(cancelFixture.button("Cancel run").props["aria-busy"]).toBe(true);
+	expect(cancelFixture.button("Cancel run").children).toContain("Cancel run");
+	await cancelFixture.close();
+
+	const decisionFixture = fixture({ flowExecutionsV1: { decision: async () => never } });
+	await decisionFixture.render(<FlowDecisionDialog execution={execution} actionKey="review-37" onClose={() => {}} />);
+	await act(async () => decisionFixture.button("Approve step").props.onClick());
+	await flush();
+	expect(decisionFixture.button("Approve step").props["aria-busy"]).toBe(true);
+	expect(decisionFixture.button("Approve step").children).toContain("Approve step");
+	await decisionFixture.close();
+});
+
 test("cancellation retains an unconfirmed worker stop", async () => {
 	const f = fixture({ flowExecutionsV1: { cancel: async () => ({ ...stopPendingV1Example, revision: 9 }) } });
 	await f.render(<FlowCancelDialog execution={execution} recoveryBlocked={false} onClose={() => {}} />);
@@ -95,22 +114,35 @@ test("start refuses a changed head before the mutation", async () => {
 			},
 		},
 	});
-	await f.render(
+	f.queryClient.setQueryDefaults(["flows"], { staleTime: Infinity });
+	f.queryClient.setQueryDefaults(["document"], { staleTime: Infinity });
+	f.queryClient.setQueryDefaults(["pull-requests"], { staleTime: Infinity });
+	f.queryClient.setQueryData(["flows"], [publishedDocumentV1Example.flow]);
+	f.queryClient.setQueryData(["document"], publishedDocumentV1Example);
+	f.queryClient.setQueryData(["pull-requests"], [{ id: "diff", owner: "example", repo: "catalog", number: 12 }]);
+	const render = () => (
 		<StartFlowDialog
 			ticket="TRL-682"
 			diffId="diff"
 			headSha={"a".repeat(40)}
 			recoveryBlocked={false}
 			onClose={() => {}}
-		/>,
+		/>
 	);
+	await f.render(render());
 	await flush();
+	await f.render(render());
+	expect(f.text()).toContain("TRL-682");
+	expect(f.text()).toContain("example/catalog#12");
 	await act(async () => f.button("Review target").props.onClick());
+	await flush();
 	await act(async () => f.button("Start flow").props.onClick());
 	await flush();
 	expect(starts).toBe(0);
 	expect(f.text()).toContain("The diff head changed");
 	expect(f.button("Start flow").props.disabled).toBeTrue();
+	expect(f.button("Refresh preview")).toBeDefined();
+	expect(f.button("Try again")).toBeUndefined();
 	await f.close();
 });
 
@@ -143,6 +175,9 @@ test("a replacement attempt detaches the terminal and reads only the retained ta
 	expect(f.text()).not.toContain("replacement");
 	for (let tick = 0; tick < 50 && !f.text().includes("retained text"); tick += 1) await flush();
 	expect(f.text()).toContain("retained text");
+	expect(f.text()).toContain("Result ID");
+	expect(f.text()).toContain("result");
+	expect(f.text()).toContain("shown attempt and result");
 	expect(f.text()).toContain("Unknown");
 	expect(targets).toEqual([
 		{

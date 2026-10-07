@@ -10,6 +10,7 @@ export function FlowTaskTerminal({
 	executionId,
 	task,
 	attempt,
+	stepTitle = "Flow task",
 	reviewedHead,
 	recoveryBlocked,
 	onClose,
@@ -17,6 +18,7 @@ export function FlowTaskTerminal({
 	executionId: string;
 	task: FlowExecutionRecord["tasks"][number];
 	attempt?: FlowAttemptV1;
+	stepTitle?: string;
 	reviewedHead?: string | null;
 	recoveryBlocked?: boolean;
 	onClose: () => void;
@@ -47,21 +49,32 @@ export function FlowTaskTerminal({
 		enabled: binding !== null && !runs.isPending && !run,
 	});
 	return (
-		<FlowActionDialog title="Flow task terminal" onClose={onClose}>
-			<dl className="min-w-0 text-sm">
-				<PropertyRow label="Agent run">
-					<span className="min-w-0 break-all">{target.runId}</span>
-				</PropertyRow>
-				<PropertyRow label="Attempt">
-					<span className="min-w-0 break-all">{target.attemptId}</span>
-				</PropertyRow>
-				<PropertyRow label="Reviewed head">
-					<span className="min-w-0 break-all">{reviewedHead ?? "Unknown"}</span>
-				</PropertyRow>
-				<PropertyRow label="Workspace commit">
-					<span className="min-w-0 break-all">{attempt?.workspaceCommit ?? "Unknown"}</span>
-				</PropertyRow>
-			</dl>
+		<FlowActionDialog title={`${stepTitle} terminal`} onClose={onClose}>
+			<div className="flex min-w-0 flex-col gap-0.5">
+				<p className="text-sm font-medium text-fg">{stepTitle}</p>
+				<p className="text-sm text-fg-muted">
+					Result ID: <span className="break-all font-mono">{target.resultId ?? "Pending"}</span>
+				</p>
+			</div>
+			<details className="text-xs text-fg-muted">
+				<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+					Technical details
+				</summary>
+				<dl className="mt-2 min-w-0">
+					<PropertyRow label="Agent run">
+						<span className="min-w-0 break-all">{target.runId}</span>
+					</PropertyRow>
+					<PropertyRow label="Attempt">
+						<span className="min-w-0 break-all">{target.attemptId}</span>
+					</PropertyRow>
+					<PropertyRow label="Reviewed head">
+						<span className="min-w-0 break-all">{reviewedHead ?? "Unknown"}</span>
+					</PropertyRow>
+					<PropertyRow label="Workspace commit">
+						<span className="min-w-0 break-all">{attempt?.workspaceCommit ?? "Unknown"}</span>
+					</PropertyRow>
+				</dl>
+			</details>
 			{runs.isPending ? (
 				<p role="status">Load task terminal…</p>
 			) : runs.isError ? (
@@ -80,7 +93,10 @@ export function FlowTaskTerminal({
 					) : retained.data.output === null ? (
 						<p role="status">The host has no retained output for this exact result.</p>
 					) : (
-						<section aria-label="Retained attempt output">
+						<section aria-label="Retained attempt output" className="flex min-w-0 flex-col gap-2">
+							<p className="text-sm text-fg-muted">
+								This saved output came from the shown attempt and result for {stepTitle}.
+							</p>
 							<OutputBlock text={retained.data.output} />
 						</section>
 					)}

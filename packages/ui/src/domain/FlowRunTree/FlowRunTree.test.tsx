@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { FlowStepMark } from "./components/FlowStepMark";
 import { FlowRunTree } from "./FlowRunTree";
 import type { FlowRunRow } from "./types";
 
@@ -29,6 +30,20 @@ test("renders unknown kinds and metadata at narrow widths", () => {
 	expect(html).toContain("break-words text-xs text-fg-muted");
 	expect(html).toContain("Round 51");
 	expect(html).toContain("Complete retained output");
+});
+
+test("shows a useful state when an execution has no saved steps", () => {
+	const html = renderToStaticMarkup(
+		<FlowRunTree label="History" rows={[]} now={0} onDecide={() => {}} onOpenTerminal={() => {}} />,
+	);
+	expect(html).toContain("No execution steps");
+	expect(html).toContain("no saved step activity");
+});
+
+test("keeps the status mark out of the keyboard tab order", () => {
+	const html = renderToStaticMarkup(<FlowStepMark state="unknown" />);
+	expect(html).not.toContain("tabindex");
+	expect(html).toContain('aria-label="Needs attention"');
 });
 
 test("restores selected and expanded output state from its caller", () => {

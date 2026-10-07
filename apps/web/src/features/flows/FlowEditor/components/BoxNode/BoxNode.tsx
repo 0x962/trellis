@@ -1,5 +1,4 @@
-import { WarningCircle } from "@phosphor-icons/react";
-import { cx } from "@trellis/ui";
+import { cx, FailureState } from "@trellis/ui";
 import { Handle, type NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { flowKinds } from "../../../kinds";
 import { useFlowEditor } from "../../editorContext";
@@ -40,10 +39,9 @@ export function BoxNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				{limit !== "" && <span className="ml-auto shrink-0 tabular-nums">{limit}</span>}
 			</header>
 			{issue !== undefined && (
-				<p id={issueId} role="alert" className="flex items-start gap-1 px-3 text-xs text-danger">
-					<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-					<span>{issue}</span>
-				</p>
+				<div id={issueId} className="px-3">
+					<FailureState variant="inline" title={issue} />
+				</div>
 			)}
 			{!unconnected.has(id) &&
 				sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)}

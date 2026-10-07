@@ -53,10 +53,21 @@ export function FlowDecisionDialog({
 			onClose={onClose}
 			actions={
 				<>
-					<Button type="button" disabled={blocked} onClick={() => send(false)}>
+					<Button
+						type="button"
+						processing={decide.request?.phase === "pending" && decide.request.input.approved === false}
+						disabled={blocked}
+						onClick={() => send(false)}
+					>
 						Reject step
 					</Button>
-					<Button type="button" variant="primary" disabled={blocked} onClick={() => send(true)}>
+					<Button
+						type="button"
+						variant="primary"
+						processing={decide.request?.phase === "pending" && decide.request.input.approved}
+						disabled={blocked}
+						onClick={() => send(true)}
+					>
 						Approve step
 					</Button>
 				</>

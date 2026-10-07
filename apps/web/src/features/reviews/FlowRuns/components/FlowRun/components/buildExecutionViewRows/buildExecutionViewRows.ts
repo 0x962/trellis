@@ -43,6 +43,7 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 		const key = occurrenceKey(item.occurrenceKey);
 		const childOccurrences = children.get(item.occurrenceKey) ?? [];
 		const delivery = deliveries.get(item.occurrenceKey);
+		const outputSource = item.outputSource;
 		const detail = [
 			item.kind === null ? "Component kind unknown" : null,
 			item.iterationPath.map((part) => `${part.loopNodeId}: round ${part.round}`).join(" / "),
@@ -50,11 +51,7 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 			item.skipReason,
 			item.decision === null ? null : item.decision === "yes" ? "Yes" : "No",
 			delivery === undefined ? null : `Decision delivery: ${delivery.state}`,
-			item.output === null
-				? null
-				: item.outputSource === null
-					? "Output source unknown"
-					: `Output from attempt ${item.outputSource.attemptId} · Result ${item.outputSource.resultId}`,
+			item.output !== null && outputSource === null ? "Output source unknown" : null,
 		]
 			.filter(Boolean)
 			.join(" · ");
@@ -73,6 +70,16 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 			title: item.title,
 			state: item.state,
 			meta: detail || null,
+			detailsLabel: outputSource === null ? undefined : "Output provenance",
+			details:
+				outputSource === null
+					? undefined
+					: [
+							{ label: "Step", value: outputSource.stepId },
+							{ label: "Agent run", value: outputSource.agentRunId },
+							{ label: "Attempt", value: outputSource.attemptId },
+							{ label: "Result", value: outputSource.resultId },
+						],
 			startedAt: millis(item.startedAt),
 			endedAt: millis(item.endedAt),
 			deadlineAt,
@@ -88,15 +95,35 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 		};
 		rows.push(row);
 		for (const attempt of item.attempts) {
+			const suppliedOutput =
+				outputSource !== null &&
+				attempt.stepId === outputSource.stepId &&
+				attempt.agentRunId === outputSource.agentRunId &&
+				attempt.attemptId === outputSource.attemptId &&
+				attempt.resultId === outputSource.resultId;
 			rows.push({
 				...row,
 				key: JSON.stringify(["attempt", item.occurrenceKey, attempt.stepId, attempt.agentRunId, attempt.attemptId]),
 				parentKey: key,
 				depth: depth + 1,
 				kind: "agent",
-				title: `Attempt ${attempt.attemptId}`,
+				title: `${item.title} attempt`,
 				state: attemptStates[attempt.state],
-				meta: `${attempt.state} · Result ${attempt.resultId ?? "unknown"} · Workspace commit ${attempt.workspaceCommit ?? "unknown"}`,
+				meta: [
+					attempt.state,
+					attempt.resultId === null ? "Result pending" : "Result available",
+					suppliedOutput ? "Supplied this output" : null,
+				]
+					.filter(Boolean)
+					.join(" · "),
+				detailsLabel: "Attempt identifiers",
+				details: [
+					{ label: "Step", value: attempt.stepId },
+					{ label: "Agent run", value: attempt.agentRunId },
+					{ label: "Attempt", value: attempt.attemptId },
+					{ label: "Result", value: attempt.resultId ?? "Pending" },
+					{ label: "Workspace commit", value: attempt.workspaceCommit ?? "Unknown" },
+				],
 				startedAt: millis(attempt.launchedAt),
 				endedAt: null,
 				deadlineAt: null,
@@ -118,9 +145,15 @@ export function buildExecutionViewRows(execution: FlowExecutionViewV1, canDecide
 			parentKey: null,
 			depth: 0,
 			kind: "agent",
-			title: `Stop pending: ${stop.attemptId}`,
+			title: "Worker stop pending",
 			state: "unknown",
 			meta: stop.state === "ownership_unknown" ? "Worker ownership unknown" : "Wait for stop confirmation",
+			detailsLabel: "Attempt identifiers",
+			details: [
+				{ label: "Step", value: stop.stepId },
+				{ label: "Agent run", value: stop.agentRunId },
+				{ label: "Attempt", value: stop.attemptId },
+			],
 			startedAt: null,
 			endedAt: null,
 			deadlineAt: null,

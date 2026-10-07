@@ -1,5 +1,4 @@
-import { WarningCircle } from "@phosphor-icons/react";
-import { cx } from "@trellis/ui";
+import { cx, FailureState } from "@trellis/ui";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { flowKinds } from "../../../kinds";
 import { useFlowEditor } from "../../editorContext";
@@ -45,10 +44,9 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				</div>
 			</div>
 			{issue !== undefined && (
-				<p id={issueId} role="alert" className="flex items-start gap-1 text-xs text-danger">
-					<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-					<span>{issue}</span>
-				</p>
+				<div id={issueId}>
+					<FailureState variant="inline" title={issue} />
+				</div>
 			)}
 			{!unconnected.has(id) &&
 				(fields.kind === "gate" ? (

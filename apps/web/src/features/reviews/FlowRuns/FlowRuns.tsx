@@ -3,7 +3,7 @@ import { type UseQueryResult, useQueries, useQuery } from "@tanstack/react-query
 import { useLocation } from "@tanstack/react-router";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
-import { EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
+import { Button, EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
@@ -143,7 +143,22 @@ export function FlowRuns({ ticket, headSha, diffId, executionIds, readOnly = fal
 					) : undefined
 				}
 			/>
-			{error && <FailureState variant="section" title="Could not refresh flow runs" detail={error.message} />}
+			{error && (
+				<FailureState
+					variant="section"
+					title="Could not refresh flow runs"
+					detail={error.message}
+					action={
+						<Button
+							size="md"
+							processing={refreshing}
+							onClick={() => void queryClient.invalidateQueries({ queryKey: orpc.flowDocumentsV1.key() })}
+						>
+							Try again
+						</Button>
+					}
+				/>
+			)}
 			{executionIds === undefined && history.isPending && (
 				<div role="status" aria-label="Load flow runs">
 					<span className="sr-only">Load flow runs</span>
@@ -151,7 +166,17 @@ export function FlowRuns({ ticket, headSha, diffId, executionIds, readOnly = fal
 				</div>
 			)}
 			{!pending && !error && identities.length === 0 && (
-				<EmptyState title="No flow runs" description="This diff has no recorded flow run." />
+				<EmptyState
+					title="No flow runs"
+					description="This pull request has no recorded flow run."
+					action={
+						!readOnly && executionIds === undefined ? (
+							<Button size="md" onClick={() => setStart(true)} disabled={recovery}>
+								Start a flow
+							</Button>
+						) : undefined
+					}
+				/>
 			)}
 			<div
 				ref={viewport}

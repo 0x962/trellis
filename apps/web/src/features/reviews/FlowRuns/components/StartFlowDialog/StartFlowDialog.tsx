@@ -1,7 +1,8 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { FlowExecutionStartInput, FlowExecutionViewV1, FlowSubmissionV1 } from "@trellis/api";
-import { Button, FailureState, PropertyRow, Select } from "@trellis/ui";
+import { Button, EmptyState, FailureState, PropertyRow, Select } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useFlowActionRequest } from "../../useFlowActionRequest";
@@ -45,6 +46,11 @@ export function StartFlowDialog({
 	const { client, orpc } = useApp();
 	const [flowId, setFlowId] = useState(initialFlowId);
 	const [preview, setPreview] = useState<Preview | null>(null);
+	const pullRequests = useQuery(orpc.pullRequests.list.queryOptions({ input: { ticket } }));
+	const pullRequest = pullRequests.data?.find((item) => item.id === diffId);
+	const pullRequestLabel = pullRequest
+		? `${pullRequest.owner}/${pullRequest.repo}#${pullRequest.number}`
+		: "Pull request";
 	const flows = useQuery(orpc.flows.list.queryOptions({ input: { ticket } }));
 	const selectedFlowId = startFlowId(flows.data ?? [], flowId);
 	const flow = flows.data?.find((item) => item.id === selectedFlowId);
@@ -109,6 +115,14 @@ export function StartFlowDialog({
 		setPreview(null);
 		start.clearConflict();
 	};
+	const retryAvailable = async () => {
+		await Promise.all([
+			pullRequests.refetch(),
+			flows.refetch(),
+			selectedFlowId === "" ? Promise.resolve() : document.refetch(),
+		]);
+	};
+	const starting = start.request?.phase === "pending";
 	return (
 		<FlowActionDialog
 			title={repeatReason ? "Run the flow again" : "Start a local flow"}
@@ -122,6 +136,7 @@ export function StartFlowDialog({
 					<Button
 						type="button"
 						variant="primary"
+						processing={starting}
 						disabled={blocked}
 						onClick={() => {
 							if (blocked || changed) return;
@@ -141,6 +156,21 @@ export function StartFlowDialog({
 				)
 			}
 		>
+			<div className="flex min-w-0 flex-col gap-0.5">
+				<p className="text-sm font-medium text-fg">{ticket}</p>
+				<p className="break-words text-sm text-fg-muted">{pullRequestLabel}</p>
+			</div>
+			{flows.isSuccess && flows.data.length === 0 && (
+				<EmptyState
+					title="No flow is available"
+					description="Create a flow before you start a run."
+					action={
+						<Button size="md" render={<Link to="/ai/flows" />}>
+							Create a flow
+						</Button>
+					}
+				/>
+			)}
 			<Select
 				label="Flow"
 				value={selectedFlowId}
@@ -158,13 +188,19 @@ export function StartFlowDialog({
 					<PropertyRow label="Publication">
 						{preview.publication ? `Published revision ${preview.version}` : "Legacy saved flow"}
 					</PropertyRow>
-					<PropertyRow label="Ticket">{preview.ticket}</PropertyRow>
-					<PropertyRow label="Diff">{preview.diffId}</PropertyRow>
-					<PropertyRow label="Reviewed head">
-						<span className="min-w-0 break-all">{preview.headSha}</span>
-					</PropertyRow>
 				</dl>
 			)}
+			<details className="text-xs text-fg-muted">
+				<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+					Technical details
+				</summary>
+				<dl className="mt-2 min-w-0 break-all">
+					<PropertyRow label="Ticket ID">{ticket}</PropertyRow>
+					<PropertyRow label="Pull request ID">{diffId}</PropertyRow>
+					<PropertyRow label="Reviewed head">{headSha}</PropertyRow>
+					{preview && <PropertyRow label="Flow ID">{preview.flow}</PropertyRow>}
+				</dl>
+			</details>
 			{preview && changed && <p role="status">The target changed. Review the current target before you start.</p>}
 			{repeatReason && <p>{repeatReason}</p>}
 			{recovery && <p role="status">Recovery blocks new runs.</p>}
@@ -175,20 +211,35 @@ export function StartFlowDialog({
 			{start.request?.phase === "unknown" && (
 				<>
 					<p role="status">Start result unknown. Retry uses the same confirmed target and request.</p>
-					<dl className="min-w-0 break-all text-sm">
-						<PropertyRow label="Original flow">{start.request.input.flow}</PropertyRow>
-						<PropertyRow label="Original revision">{start.request.input.expectedVersion}</PropertyRow>
-						<PropertyRow label="Original ticket">{start.request.input.ticket}</PropertyRow>
-						<PropertyRow label="Original diff">{start.request.input.diffId}</PropertyRow>
-						<PropertyRow label="Original head">{start.request.input.headSha}</PropertyRow>
-					</dl>
-					<Button type="button" disabled={recovery} onClick={() => !recovery && start.replay()}>
+					<details className="text-xs text-fg-muted">
+						<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+							Original request details
+						</summary>
+						<dl className="mt-2 min-w-0 break-all">
+							<PropertyRow label="Flow ID">{start.request.input.flow}</PropertyRow>
+							<PropertyRow label="Revision">{start.request.input.expectedVersion}</PropertyRow>
+							<PropertyRow label="Ticket ID">{start.request.input.ticket}</PropertyRow>
+							<PropertyRow label="Pull request ID">{start.request.input.diffId}</PropertyRow>
+							<PropertyRow label="Reviewed head">{start.request.input.headSha}</PropertyRow>
+						</dl>
+					</details>
+					<Button type="button" processing={starting} disabled={recovery} onClick={() => !recovery && start.replay()}>
 						Retry original request
 					</Button>
 				</>
 			)}
 			{start.request?.result && (
-				<p role="status">Run available: {start.request.result.id}. The server can return an existing run.</p>
+				<>
+					<p role="status">The run is available. The server can return an existing run.</p>
+					<details className="text-xs text-fg-muted">
+						<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+							Run details
+						</summary>
+						<dl className="mt-2 min-w-0 break-all">
+							<PropertyRow label="Run ID">{start.request.result.id}</PropertyRow>
+						</dl>
+					</details>
+				</>
 			)}
 			{start.request?.phase === "preflight-failed" && <p role="status">Preview failed. No start request was sent.</p>}
 			{(start.request?.phase === "conflict" || start.request?.phase === "preflight-failed") && (
@@ -196,11 +247,21 @@ export function StartFlowDialog({
 					Refresh preview
 				</Button>
 			)}
-			{flows.isPending && <p role="status">Load flows…</p>}
-			{(flows.error || document.error || start.request?.error) && (
+			{(flows.isPending || pullRequests.isPending) && <p role="status">Load flow choices…</p>}
+			{start.request?.error && <FailureState title="The flow request did not complete" detail={start.request.error} />}
+			{(flows.error || pullRequests.error || document.error) && (
 				<FailureState
 					title="The flow request did not complete"
-					detail={flows.error?.message ?? document.error?.message ?? start.request?.error}
+					detail={flows.error?.message ?? pullRequests.error?.message ?? document.error?.message}
+					action={
+						<Button
+							size="md"
+							processing={flows.isFetching || pullRequests.isFetching || document.isFetching}
+							onClick={() => void retryAvailable()}
+						>
+							Try again
+						</Button>
+					}
 				/>
 			)}
 		</FlowActionDialog>

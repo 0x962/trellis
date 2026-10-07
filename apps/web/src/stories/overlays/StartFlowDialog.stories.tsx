@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { executionViewV1Example } from "@trellis/api";
 import { StartFlowDialog } from "../../features/reviews/FlowRuns/components/StartFlowDialog";
 import { discoveryDocuments, flowDoc, flowResponses } from "../pages/fixtures/flow";
+import { pullRequest } from "../pages/fixtures/review";
 import { failure, id, noop, pending } from "./fixtures";
 import { clickButton } from "./interactions";
 
@@ -14,6 +15,7 @@ const meta = {
 		trellis: {
 			responses: {
 				...flowResponses,
+				"pullRequests.list": [{ ...pullRequest, id: id(90), owner: "example", repo: "catalog", number: 12 }],
 				"flowExecutionsV1.recovery": { state: "open" },
 				"pullRequests.refresh": { url: "https://github.com/example/catalog/pull/12", fetchError: null },
 				"reviews.refresh": { headSha: "a".repeat(40) },

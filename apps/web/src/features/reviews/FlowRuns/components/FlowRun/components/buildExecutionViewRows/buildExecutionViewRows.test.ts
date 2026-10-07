@@ -38,7 +38,9 @@ test("keeps occurrence output separate from attempts and preserves unknown kind"
 	expect(rows[0]?.meta).toContain("Output source unknown");
 	expect(rows[0]?.output).toBe(occurrence.output);
 	expect(rows[1]?.output).toBeNull();
-	expect(rows[1]?.meta).toContain("Workspace commit unknown");
+	expect(rows[1]?.meta).toContain("Result pending");
+	expect(rows[1]?.title).toBe(`${occurrence.title} attempt`);
+	expect(rows[1]?.details).toContainEqual({ label: "Attempt", value: occurrence.attempts[0]!.attemptId });
 });
 
 test("uses the retained output binding even when another attempt follows it", () => {
@@ -56,8 +58,10 @@ test("uses the retained output binding even when another attempt follows it", ()
 		attempts: [first, { ...first, attemptId: "later-attempt", resultId: "later-result" }],
 	};
 	const rows = buildExecutionViewRows({ ...executionViewV1Example, occurrences: [occurrence] });
-	expect(rows[0]?.meta).toContain("Result first-result");
-	expect(rows[0]?.meta).not.toContain("later-result");
+	expect(rows[0]?.meta).not.toContain("first-result");
+	expect(rows[0]?.details).toContainEqual({ label: "Result", value: "first-result" });
+	expect(rows[1]?.meta).toContain("Supplied this output");
+	expect(rows[2]?.meta).not.toContain("Supplied this output");
 	expect(rows[2]?.attempt?.resultId).toBe("later-result");
 });
 
@@ -80,6 +84,8 @@ test("shows each outstanding stop even when its occurrence is unavailable", () =
 	const rows = buildExecutionViewRows(execution);
 	expect(rows).toHaveLength(2);
 	expect(rows.map((row) => row.stop?.attemptId)).toEqual([pending.attemptId, "unknown-attempt"]);
+	expect(rows[0]?.title).toBe("Worker stop pending");
+	expect(rows[0]?.details).toContainEqual({ label: "Attempt", value: pending.attemptId });
 });
 
 test("orders parents before children without parsing opaque occurrence keys", () => {

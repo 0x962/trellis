@@ -6,6 +6,7 @@ const attempt = { ...occurrenceV1Example.attempts[0]!, resultId: null };
 const target = {
 	task: { key: "selected", runId: attempt.agentRunId, attemptId: attempt.attemptId, resultId: null },
 	attempt,
+	stepTitle: "Keyboard and zoom review",
 };
 
 test("an open terminal receives the completed result for its exact attempt", () => {
@@ -17,6 +18,7 @@ test("an open terminal receives the completed result for its exact attempt", () 
 	const refreshed = currentTerminalTarget(view, target)!;
 	expect(refreshed.attempt).toBe(completed);
 	expect(refreshed.task).toEqual({ ...target.task, resultId: "completed-result" });
+	expect(refreshed.stepTitle).toBe("Keyboard and zoom review");
 });
 
 test("another step, run, or attempt cannot replace the open terminal target", () => {

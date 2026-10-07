@@ -1,6 +1,10 @@
 import type { FlowAttemptV1, FlowExecutionRecord, FlowExecutionViewV1 } from "@trellis/api";
 
-export type TerminalTarget = { task: FlowExecutionRecord["tasks"][number]; attempt?: FlowAttemptV1 };
+export type TerminalTarget = {
+	task: FlowExecutionRecord["tasks"][number];
+	attempt?: FlowAttemptV1;
+	stepTitle?: string;
+};
 
 export function currentTerminalTarget(
 	execution: FlowExecutionRecord | FlowExecutionViewV1,
@@ -15,7 +19,7 @@ export function currentTerminalTarget(
 				item.agentRunId === selected.agentRunId &&
 				item.attemptId === selected.attemptId,
 		);
-		if (attempt) return { task: { ...target.task, resultId: attempt.resultId }, attempt };
+		if (attempt) return { ...target, task: { ...target.task, resultId: attempt.resultId }, attempt };
 	}
 	return target;
 }

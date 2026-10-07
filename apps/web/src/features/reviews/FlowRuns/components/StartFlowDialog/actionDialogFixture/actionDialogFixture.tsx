@@ -10,7 +10,17 @@ import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../../../../lib/appContext";
 
+mock.module("@tanstack/react-router", () => ({
+	Link: ({ children }: { children?: ReactNode }) => <a href="/ai/flows">{children}</a>,
+}));
 mock.module("@trellis/ui", () => ({
+	EmptyState: ({ title, description, action }: { title?: ReactNode; description?: ReactNode; action?: ReactNode }) => (
+		<section>
+			{title}
+			{description}
+			{action}
+		</section>
+	),
 	PropertyRow: ({ label, children }: { label: string; children: ReactNode }) => (
 		<div>
 			<dt>{label}</dt>
@@ -25,7 +35,9 @@ mock.module("@trellis/ui", () => ({
 	),
 	OutputBlock: ({ text }: { text: string }) => <pre>{text}</pre>,
 	Dialog: ({ children }: { children: ReactNode }) => <section>{children}</section>,
-	Button: (props: ComponentProps<"button">) => <button {...props} />,
+	Button: ({ processing, ...props }: ComponentProps<"button"> & { processing?: boolean }) => (
+		<button {...props} disabled={Boolean(props.disabled || processing)} aria-busy={processing || undefined} />
+	),
 	IconButton: ({ label, onClick }: { label: string; onClick: () => void }) => (
 		<button type="button" onClick={onClick}>
 			{label}
@@ -70,6 +82,14 @@ export function fixture(client = {}) {
 			},
 			flows: {
 				list: { queryOptions: () => ({ queryKey: ["flows"], queryFn: async () => [publishedDocumentV1Example.flow] }) },
+			},
+			pullRequests: {
+				list: {
+					queryOptions: () => ({
+						queryKey: ["pull-requests"],
+						queryFn: async () => [{ id: "diff", owner: "example", repo: "catalog", number: 12 }],
+					}),
+				},
 			},
 			agentRuns: { list: { queryOptions: () => ({ queryKey: ["agents"], queryFn: async () => ({ items: [] }) }) } },
 		},
