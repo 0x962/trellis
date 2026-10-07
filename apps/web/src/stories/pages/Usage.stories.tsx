@@ -148,7 +148,14 @@ export const MergedWorkError: Story = {
 	},
 };
 export const Loading: Story = { parameters: { trellis: { responses: { "usage.report": pending } } } };
-export const RequestError: Story = { parameters: { trellis: { responses: { "usage.report": failure } } } };
+export const RequestError: Story = {
+	parameters: { trellis: { responses: { "usage.report": failure } } },
+	play: async ({ canvasElement }) => {
+		const accounts = within(await within(canvasElement).findByRole("region", { name: "Accounts" }));
+		await expect((await accounts.findAllByText("Not available", { exact: true })).length).toBeGreaterThan(0);
+		await expect(accounts.queryByText("$0", { exact: true })).not.toBeInTheDocument();
+	},
+};
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
 export const System: Story = {
 	parameters: { trellis: { path: "/usage?tab=system" } },
