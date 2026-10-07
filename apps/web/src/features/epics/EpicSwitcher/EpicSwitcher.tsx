@@ -7,6 +7,8 @@ import { epicSplat, projectHref } from "../../../lib/projectUrl";
 import { TitleMenuButton } from "../../shell/PageTitle/TitleMenuButton";
 import { allEpicsId, epicSwitcherItems, epicSwitchSearch } from "./epicSwitcherItems";
 
+export const epicSwitcherPopoverClassName = "w-80 max-w-(--available-width) p-0";
+
 export type EpicSwitcherProps = {
 	// The path of the project the epic page is under.
 	project: string;
@@ -49,7 +51,7 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 			open={open}
 			onOpenChange={setOpen}
 			initialFocus={input}
-			className="w-80 p-0"
+			className={epicSwitcherPopoverClassName}
 			triggerTooltip={
 				<span className="inline-flex items-center gap-1.5">
 					Switch epic
