@@ -24,7 +24,10 @@ export function VirtualSelect<Value extends string>({
 	disabled = false,
 	className,
 }: SelectProps<Value>) {
-	const largeTargets = useMediaQuery("(pointer: coarse), (width < 48rem)");
+	const largeTargets = useMediaQuery(() => {
+		const breakpoint = getComputedStyle(document.documentElement).getPropertyValue("--breakpoint-md").trim();
+		return `(pointer: coarse), (width < ${breakpoint})`;
+	});
 	const rowHeight = largeTargets ? 44 : 28;
 	const [list, setList] = useState<HTMLDivElement | null>(null);
 	const [open, setOpen] = useState(false);

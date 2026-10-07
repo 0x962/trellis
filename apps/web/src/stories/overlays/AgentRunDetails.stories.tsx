@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
 import { AgentRunDetails } from "../../features/agents/AgentRunDetails";
 import { failure, pending, responses, run, ticket } from "./fixtures";
 import { clickButton } from "./interactions";
@@ -53,40 +52,3 @@ export const RequestError: Story = {
 	play: submit,
 };
 export const Success: Story = { play: submit };
-
-export const RefreshError: Story = {
-	parameters: { trellis: { responses: { "agentRuns.list": failure } } },
-	play: async ({ canvasElement }) => {
-		const page = within(canvasElement.ownerDocument.body);
-		await waitFor(() => expect(page.getByText("The agent did not refresh")).toBeVisible());
-		await expect(page.getByRole("heading", { name: assigned.name })).toBeVisible();
-		await expect(page.getByRole("button", { name: "Remove assignment" })).toBeEnabled();
-	},
-};
-
-let refreshes = 0;
-export const RefreshRecovery: Story = {
-	beforeEach: () => {
-		refreshes = 0;
-	},
-	parameters: {
-		trellis: {
-			responses: {
-				"agentRuns.list": () => {
-					if (++refreshes === 2) return failure();
-					return { items: [{ ...assigned, name: "Retained agent" }], nextCursor: null };
-				},
-			},
-		},
-	},
-	play: async ({ canvasElement }) => {
-		const page = within(canvasElement.ownerDocument.body);
-		await waitFor(() => expect(page.getByRole("heading", { name: "Retained agent" })).toBeVisible());
-		await waitFor(() => expect(page.getByText("The agent did not refresh")).toBeVisible(), { timeout: 5000 });
-		await expect(page.getByRole("heading", { name: "Retained agent" })).toBeVisible();
-		await userEvent.click(page.getByRole("button", { name: "Retry" }));
-		await waitFor(() => expect(page.queryByText("The agent did not refresh")).not.toBeInTheDocument());
-		await expect(page.getByRole("heading", { name: "Retained agent" })).toBeVisible();
-		await expect(page.getByRole("button", { name: "Remove assignment" })).toBeEnabled();
-	},
-};

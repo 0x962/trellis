@@ -1,7 +1,7 @@
 import { Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, sessionStatusLabels } from "@trellis/api";
-import { Avatar, Badge, Button, ConfirmDialog, FailureState, IconButton, Tooltip, toast } from "@trellis/ui";
+import { Avatar, Badge, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
@@ -68,20 +68,6 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 						</div>
 					</div>
 				</header>
-			)}
-			{query.isError && (
-				<FailureState
-					title="The agent did not refresh"
-					description="The last loaded agent details stay available."
-					detail={query.error.message}
-					recovery="retrying"
-					variant="section"
-					action={
-						<Button size="md" disabled={query.isFetching} onClick={() => void query.refetch()}>
-							Retry
-						</Button>
-					}
-				/>
 			)}
 			<NativeTerminal key={run.terminalId} run={run} />
 			{(canStop || workspaceUrl) && (
