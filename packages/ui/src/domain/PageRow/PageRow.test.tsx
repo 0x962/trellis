@@ -38,8 +38,9 @@ test("shows the Page facts in stable row columns", () => {
 test("preserves a readable title at a phone width", () => {
 	const html = render();
 
-	expect(html).toContain("max-md:line-clamp-2");
-	expect(html).toContain("max-md:whitespace-normal");
+	expect(html).toContain("max-md:break-words");
+	expect(html).toContain("md:truncate");
+	expect(html).not.toContain("line-clamp");
 });
 
 test("gives keyboard focus to the title and the action menu", () => {

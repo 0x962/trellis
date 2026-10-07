@@ -87,7 +87,7 @@ export function PageRow({
 										<PushPinSimple aria-label="Pinned" weight="fill" className="size-3.5 shrink-0 text-accent" />
 									</Tooltip>
 								)}
-								<span className="truncate max-md:line-clamp-2 max-md:whitespace-normal">{title}</span>
+								<span className="min-w-0 max-md:break-words md:truncate">{title}</span>
 								{deleted && <span className="shrink-0 text-xs text-danger">Deleted</span>}
 							</span>
 							<span className="truncate text-xs text-fg-muted">{summary || "No summary"}</span>

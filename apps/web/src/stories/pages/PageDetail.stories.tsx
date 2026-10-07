@@ -6,6 +6,7 @@ import { expect, userEvent, within } from "storybook/test";
 import { PageDetail } from "../../features/pages/PageDetail";
 import { historicalPageThread, page, pageLease, pageResponses, pageThread } from "./fixtures/page";
 import { actor, archivedProject, failure, pending, project, timestamp } from "./fixtures/project";
+import { run } from "./fixtures/session";
 import { pageFrame } from "./pageFrame";
 
 const meta = {
@@ -22,6 +23,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 const historicalLease = () => ({ ...pageLease(), version: 1 });
+let pinned = page.pinned;
+let watcher = page.watcher;
+const selectedWatcher = {
+	pageId: page.id,
+	agent: { id: run.id, name: run.name },
+	createdAt: timestamp,
+	updatedAt: timestamp,
+};
 
 export const Populated: Story = {};
 export const EmptyComments: Story = {
@@ -143,5 +152,58 @@ export const CommentMutation: Story = {
 		await userEvent.type(await canvas.findByLabelText("Reply"), "Story reply");
 		await userEvent.click(await canvas.findByRole("button", { name: "Post reply" }));
 		await expect(await canvas.findByText("Reply added")).toBeInTheDocument();
+	},
+};
+
+export const PinJourney: Story = {
+	beforeEach: () => {
+		pinned = true;
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"pages.get": () => ({ ...page, pinned }),
+				"pages.pin": (input: unknown) => {
+					pinned = (input as { pinned: boolean }).pinned;
+					return {};
+				},
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("button", { name: "Unpin Page" }));
+		await expect(await canvas.findByText("Page unpinned")).toBeVisible();
+		await userEvent.click(await canvas.findByRole("button", { name: "Pin Page" }));
+		await expect(await canvas.findByText("Page pinned")).toBeVisible();
+		await expect(await canvas.findByRole("button", { name: "Unpin Page" })).toHaveAttribute("aria-pressed", "true");
+	},
+};
+
+export const WatcherJourney: Story = {
+	beforeEach: () => {
+		watcher = null;
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"pages.get": () => ({ ...page, watcher }),
+				"pages.watcherOptions": { items: [run], nextCursor: null },
+				"pages.watch": (input: unknown) => {
+					watcher = (input as { agentId: string | null }).agentId === null ? null : selectedWatcher;
+					return { ...page, watcher };
+				},
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body);
+		const control = await body.findByRole("combobox", { name: "Page watcher" });
+		await userEvent.click(control);
+		await userEvent.click(await body.findByRole("option", { name: run.name }));
+		await expect(control).toHaveTextContent(run.name);
+		await userEvent.click(control);
+		await userEvent.click(await body.findByRole("option", { name: "No watcher" }));
+		await expect(control).toHaveTextContent("No watcher");
 	},
 };
