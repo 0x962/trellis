@@ -17,7 +17,11 @@ const render = (props: Partial<React.ComponentProps<typeof SettingsListRow>> = {
 
 describe("SettingsListRow", () => {
 	test("uses the shared badge and wraps the complete description", () => {
-		const html = render({ badge: "Default", wrapDescription: true });
+		const html = render({
+			badge: "Default",
+			wrapDescription: true,
+			message: <span role="alert">The provider refused the key.</span>,
+		});
 		const badge = renderToStaticMarkup(
 			<Badge tone="accent" size="sm">
 				Default
@@ -26,6 +30,8 @@ describe("SettingsListRow", () => {
 		expect(html).toContain(badge);
 		expect(html).toContain('aria-label="Edit Work, Default"');
 		expect(html).toContain("whitespace-normal text-pretty");
+		expect(html).toContain('class="status-row-message"');
+		expect(html).toContain('role="alert">The provider refused the key.</span>');
 	});
 
 	test("keeps the existing row without a badge or wrapped description", () => {
