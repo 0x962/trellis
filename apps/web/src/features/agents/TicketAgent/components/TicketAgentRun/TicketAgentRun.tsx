@@ -33,7 +33,6 @@ export function TicketAgentRun({
 				agentProfile={profile}
 				state={agentMarkState(run)}
 				status={status !== "paused" && (run.assigned || status === "failed") ? status : undefined}
-				className="focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 			/>
 			<div className="min-w-0 flex-1">
 				<p className="break-words text-sm font-medium text-fg">{run.name}</p>

@@ -30,7 +30,6 @@ export function ActorAvatar({
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
 					state={agentMarkState(run)}
-					className="focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 				/>
 			) : assignment.isSuccess && canStart ? (
 				<UnassignedAgent identifier={ticket.identifier} projectKey={ticket.project.key} />

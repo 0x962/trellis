@@ -52,7 +52,6 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 							agentKind={agentKindOf(run.kind)}
 							agentProfile={profile}
 							status={status === "paused" ? undefined : status}
-							className="focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 							state={isAgentWorking(run) ? "working" : "static"}
 						/>
 						<div className="min-w-0">
