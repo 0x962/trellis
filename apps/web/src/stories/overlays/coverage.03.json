@@ -142,9 +142,11 @@
 			"Overlays/FlowEditorControls/NodeGroup",
 			"Overlays/FlowEditorControls/NodeLoop",
 			"Overlays/FlowEditorControls/NodePending",
-			"Overlays/FlowEditorControls/NodeError"
+			"Overlays/FlowEditorControls/NodeError",
+			"Overlays/FlowEditorControls/NodeDeleteConfirmation",
+			"Overlays/FlowEditorControls/NodeDeleteSuccess"
 		],
-		"states": ["default", "pending", "error"],
+		"states": ["default", "pending", "error", "delete confirmation", "delete success"],
 		"notes": "Stories mount the production component with synthetic props and API responses."
 	},
 	{
