@@ -26,7 +26,7 @@ export function SavedMark({ savedAt }: SavedMarkProps) {
 		<span
 			role="status"
 			className={cx(
-				"inline-flex items-center gap-1 text-xs text-success transition-opacity duration-popover ease-out",
+				"inline-flex items-center gap-1 text-xs text-success transition-opacity duration-popover ease-out motion-reduce:transition-none",
 				fresh ? "opacity-100" : "opacity-0",
 			)}
 		>

@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import { ProviderCheckSchema } from "@trellis/api";
-import type { IoCtx } from "../support.ts";
+import type { IoCtx } from "../../support.ts";
+import type { ProviderFetch } from "../remote.ts";
 import { prepareDraftCheck } from "./draftCheck.ts";
-import type { ProviderFetch } from "./remote.ts";
 
 const key = "synthetic-draft-key-1234";
 const checkedAt = "2026-10-06T12:00:00.000Z";

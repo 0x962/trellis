@@ -3,6 +3,7 @@ import { Command, Popover } from "@trellis/ui";
 import { type ReactElement, type RefObject, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
+import { PickerFailure } from "../components/PickerFailure";
 import { useLabels } from "../hooks/useLabels";
 import { pickerListClass } from "../pickerListClass";
 import { isCreateRow, labelRows } from "../utils/labelRows";
@@ -51,7 +52,7 @@ export function LabelPicker({
 	// new field, which is how a create empties the text it just used.
 	const [fieldKey, setFieldKey] = useState(0);
 	const input = useRef<HTMLInputElement>(null);
-	const { labels, groups } = useLabels(project);
+	const { labels, groups, query } = useLabels(project);
 	const isOpen = open ?? own;
 	const setOpen = (next: boolean) => {
 		setOwn(next);
@@ -79,7 +80,7 @@ export function LabelPicker({
 		const label = labels.find((candidate) => candidate.id === id)!;
 		onToggle(label, !checked.includes(label.id));
 	};
-	const rows = labelRows(labels, groups, { checked, mixed, search });
+	const rows = labelRows(labels, groups, { checked, mixed, search: query.isSuccess ? search : "" });
 	return (
 		<Popover
 			trigger={trigger}
@@ -89,7 +90,7 @@ export function LabelPicker({
 			initialFocus={input}
 			finalFocus={finalFocus}
 			side={side}
-			className="w-64 p-0"
+			className="w-64 max-w-(--available-width) max-h-(--available-height) overflow-y-auto p-0"
 		>
 			<Command
 				key={fieldKey}
@@ -98,10 +99,25 @@ export function LabelPicker({
 				placeholder="Set labels"
 				items={rows.items}
 				groups={rows.groups}
-				empty={labels.length === 0 ? "No labels. Type a name to create one." : "No results."}
-				listClassName={pickerListClass}
+				empty={
+					query.isError
+						? ""
+						: query.isPending
+							? "Load labels…"
+							: labels.length === 0
+								? "No labels. Type a name to create one."
+								: "No results."
+				}
+				listClassName={query.isError && labels.length === 0 ? "hidden" : pickerListClass}
 				onSearchChange={setSearch}
 				onSelect={select}
+			/>
+			<PickerFailure
+				title="Labels could not load."
+				error={query.error}
+				pending={query.isFetching}
+				onRetry={query.refetch}
+				input={input}
 			/>
 			{error !== null && (
 				<p role="alert" className="m-1 rounded-sm bg-danger-soft px-2 py-1.5 text-sm text-danger">

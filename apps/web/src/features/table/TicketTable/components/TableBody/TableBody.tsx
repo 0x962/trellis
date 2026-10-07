@@ -65,6 +65,10 @@ export type TableBodyProps = {
 // 20 px in from the right edge of the row, the same inset the row's `pr-5`
 // gives the bar.
 const ribbonHeight = 12;
+// A wave header is a grid row even when its wave is empty. Other group
+// headers keep the ticket row count supplied by the table query.
+export const gridRowCount = (ticketCount: number, items: readonly TableItem[], hasWaveSections: boolean): number =>
+	hasWaveSections ? items.reduce((count, item) => count + (item.kind === "header" ? 1 : 0), ticketCount) : ticketCount;
 
 export function TableBody({
 	items: allItems,
@@ -106,6 +110,7 @@ export function TableBody({
 		pendingFocus,
 		scrollPaddingStart: pinHeaders ? headerHeight : 0,
 	});
+	const ariaRowCount = gridRowCount(rowCount, items, waves !== undefined);
 
 	useLineMotion(body, items);
 	const confetti = useCheckConfetti(items);
@@ -139,7 +144,7 @@ export function TableBody({
 		<div
 			ref={viewport}
 			role="grid"
-			aria-rowcount={rowCount}
+			aria-rowcount={ariaRowCount}
 			aria-multiselectable="true"
 			aria-busy={loading || undefined}
 			data-table-viewport=""
@@ -170,6 +175,7 @@ export function TableBody({
 									filling={wash.waves.includes(item.group.key)}
 									waves={waves}
 									onToggleGroup={onToggleGroup}
+									waveSection={waves !== undefined}
 									onCreateInGroup={onCreateInGroup}
 									onStartGroup={onStartGroup}
 								/>

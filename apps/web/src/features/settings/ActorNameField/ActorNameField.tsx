@@ -1,5 +1,6 @@
+import { ActorHeaderSchema, type Settings } from "@trellis/api";
 import { Input } from "@trellis/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { setActorName } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { rememberStoredName } from "../../../lib/identity";
@@ -13,25 +14,42 @@ import { SettingsRow } from "../SettingsRow";
 export function ActorNameField() {
 	const app = useApp();
 	const { saved, draft, edit, save } = useSettingsDraft();
+	const saving = useRef(false);
+	const [busy, setBusy] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
 	const [savedAt, setSavedAt] = useState<number | null>(null);
 	if (saved === undefined) return null;
 	const value = draft.defaultActorName ?? saved.defaultActorName;
 
+	const applyStored = (stored: Settings) => {
+		setActorName(stored.defaultActorName);
+		rememberStoredName(app, stored.defaultActorName);
+		setSavedAt(Date.now());
+	};
+	const update = async (name: string) => {
+		if (saving.current) return;
+		saving.current = true;
+		setBusy(true);
+		await save({ defaultActorName: name }, { onStored: applyStored, retry: () => void update(name) });
+		saving.current = false;
+		setBusy(false);
+	};
+
 	const commit = () => {
+		if (saving.current) return;
 		const name = value.trim();
 		if (name === "") {
 			setMessage("Enter a name.");
 			return;
 		}
+		const actor = ActorHeaderSchema.safeParse(`human:${name}`);
+		if (!actor.success) {
+			setMessage(actor.error.issues[0]!.message);
+			return;
+		}
 		setMessage(null);
 		if (name === saved.defaultActorName) return;
-		setActorName(name);
-		void save({ defaultActorName: name }).then((stored) => {
-			if (stored === undefined) return;
-			rememberStoredName(app, stored.defaultActorName);
-			setSavedAt(Date.now());
-		});
+		void update(name);
 	};
 
 	return (
@@ -45,6 +63,7 @@ export function ActorNameField() {
 					autoComplete="off"
 					spellCheck={false}
 					className="max-w-64"
+					disabled={busy}
 					onChange={(event) => edit({ defaultActorName: event.target.value })}
 					onBlur={commit}
 				/>

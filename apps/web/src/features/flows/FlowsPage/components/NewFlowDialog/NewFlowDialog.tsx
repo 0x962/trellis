@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { type Flow, type FlowCreateInput, FlowCreateInputSchema } from "@trellis/api";
-import { Button, Dialog, Input } from "@trellis/ui";
+import { Button, Dialog, Input, Textarea } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { FlowProjectSelect, useFlowProjects } from "../../../FlowProjectSelect";
@@ -20,6 +20,7 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [project, setProject] = useState(everyProjectValue);
+	const [nameTouched, setNameTouched] = useState(false);
 	const projects = useFlowProjects();
 	const input = FlowCreateInputSchema.safeParse({
 		name,
@@ -33,6 +34,10 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 			onCreated(flow);
 		},
 	});
+	const nameError = nameTouched && name.trim() === "" ? "Enter a flow name." : undefined;
+	const projectHint = projects.isPending
+		? "Loading projects..."
+		: "Every project makes the flow available in all projects.";
 
 	return (
 		<Dialog open title="New flow" onOpenChange={(open) => !open && !create.isPending && onClose()}>
@@ -40,25 +45,44 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 				className="flex flex-col gap-4"
 				onSubmit={(event) => {
 					event.preventDefault();
+					setNameTouched(true);
 					if (input.success && !create.isPending) create.mutate(input.data);
 				}}
 			>
 				<Input
 					label="Name"
 					required
+					autoFocus
 					autoComplete="off"
 					disabled={create.isPending}
+					error={nameError}
 					value={name}
-					onChange={(event) => setName(event.target.value)}
+					onBlur={() => setNameTouched(true)}
+					onChange={(event) => {
+						setName(event.target.value);
+						if (create.isError) create.reset();
+					}}
 				/>
-				<Input
+				<Textarea
 					label="Description"
 					autoComplete="off"
 					disabled={create.isPending}
+					rows={3}
 					value={description}
-					onChange={(event) => setDescription(event.target.value)}
+					onChange={(event) => {
+						setDescription(event.target.value);
+						if (create.isError) create.reset();
+					}}
 				/>
-				<FlowProjectSelect value={project} disabled={create.isPending} onChange={setProject} />
+				<FlowProjectSelect
+					value={project}
+					disabled={create.isPending}
+					hint={projectHint}
+					onChange={(value) => {
+						setProject(value);
+						if (create.isError) create.reset();
+					}}
+				/>
 				{create.isError && (
 					<p role="alert" className="text-sm text-danger">
 						Could not create the flow. {create.error.message}
@@ -71,8 +95,8 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 					<Button
 						type="submit"
 						variant="primary"
-						disabled={!input.success || create.isPending || projects.data === undefined}
-						aria-busy={create.isPending}
+						disabled={!input.success || projects.data === undefined}
+						processing={create.isPending}
 					>
 						Create flow
 					</Button>

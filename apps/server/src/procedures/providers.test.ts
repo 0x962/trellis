@@ -8,7 +8,7 @@ import { openTestDb } from "../db/testDb.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import type { GhAccess } from "../ghState.ts";
 import { createDbTiming } from "../serverTiming.ts";
-import { prepareDraftCheck } from "../services/providers/draftCheck.ts";
+import { prepareDraftCheck } from "../services/providers/draftCheck/index.ts";
 import { create as createProvider, update as updateProvider } from "../services/providers/providers.ts";
 import type { ServiceName } from "../services/registry.ts";
 import type { IoCtx } from "../services/support.ts";

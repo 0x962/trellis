@@ -11,9 +11,16 @@ export type AttachmentActionsProps = {
 	// somewhere else on the screen, so the surface owns it.
 	onRename: () => void;
 	triggerClassName?: string;
+	readOnly?: boolean;
 };
 
-export function AttachmentActions({ attachment, onDelete, onRename, triggerClassName }: AttachmentActionsProps) {
+export function AttachmentActions({
+	attachment,
+	onDelete,
+	onRename,
+	triggerClassName,
+	readOnly = false,
+}: AttachmentActionsProps) {
 	const [confirming, setConfirming] = useState(false);
 
 	return (
@@ -28,8 +35,8 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 						label: "Copy markdown link",
 						onSelect: () => void writeClipboard(attachmentMarkdown(attachment)),
 					},
-					{ label: "Rename", onSelect: onRename },
-					{ label: "Delete", danger: true, onSelect: () => setConfirming(true) },
+					{ label: "Rename", disabled: readOnly, onSelect: onRename },
+					{ label: "Delete", disabled: readOnly, danger: true, onSelect: () => setConfirming(true) },
 				]}
 			/>
 			<ConfirmDialog

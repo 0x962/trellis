@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type PageTabGroupItem, PageTabs } from "@trellis/ui";
 import { useRef } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { useStoryState } from "../useStoryState";
 
 const emptyGroups: PageTabGroupItem[] = [];
@@ -92,7 +93,19 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const selected = canvas.getByRole("tab", { name: "Project view" });
+		selected.focus();
+		await userEvent.keyboard("{ArrowRight}");
+		await expect(canvas.getByRole("tab", { name: "Review findings" })).toHaveFocus();
+		await userEvent.keyboard("{Home}");
+		await expect(canvas.getByRole("tab", { name: "Pinned: Release notes" })).toHaveFocus();
+		await userEvent.keyboard("{End}");
+		await expect(canvas.getByRole("tab", { name: "Review findings" })).toHaveAttribute("aria-selected", "true");
+	},
+};
 export const Empty: Story = { args: { tabs: [], activeId: "" } };
 export const Groups: Story = {
 	args: {
@@ -115,5 +128,13 @@ export const Overflow: Story = {
 			pinned: index < 4,
 		})),
 		activeId: "page-20",
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		canvas.getByRole("tab", { selected: true }).focus();
+		await userEvent.keyboard("{End}");
+		await expect(canvas.getByRole("tab", { name: "Project page 40 with a long title" })).toHaveFocus();
+		await userEvent.keyboard("{ArrowRight}");
+		await expect(canvas.getByRole("tab", { name: "Pinned: Project page 1 with a long title" })).toHaveFocus();
 	},
 };

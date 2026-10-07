@@ -46,6 +46,10 @@ describe("dropGroup", () => {
 
 		expect(dropGroup([{ kind: "header", key: "header:loose", group: loose }], "loose", ["a"])).toBeNull();
 	});
+
+	test("takes no drop for an unknown target", () => {
+		expect(dropGroup(items, "missing", ["a"])).toBeNull();
+	});
 });
 
 describe("groupSpan", () => {
