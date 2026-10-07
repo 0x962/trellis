@@ -70,7 +70,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 							"text-fg hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 							collapsed
 								? "sidebar-rail-row"
-								: "flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out",
+								: "flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left transition-colors duration-hover ease-out pointer-coarse:min-h-11",
 						)}
 					>
 						<Avatar
