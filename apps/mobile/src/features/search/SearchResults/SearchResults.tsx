@@ -1,10 +1,10 @@
 import { FlashList } from "@shopify/flash-list";
 import { ProjectRow } from "../../../components/ProjectRow";
 import { TicketRow } from "../../../components/TicketRow";
+import type { SearchData } from "../searchView";
 import { PageRow } from "./components/PageRow";
 import { ResultHeader } from "./components/ResultHeader";
 import { ResultNote } from "./components/ResultNote";
-import type { SearchData } from "../searchView";
 import { type SearchRow, searchRowKey, searchRows } from "./searchRows";
 
 export type SearchResultsProps = {
@@ -22,9 +22,7 @@ export function SearchResults({ data, onSelectTicket, onSelectProject }: SearchR
 	const renderRow = (row: SearchRow) => {
 		if (row.kind === "header") return <ResultHeader label={row.label} count={row.count} note={row.note} />;
 		if (row.kind === "ticket") {
-			return (
-				<TicketRow testID={`ticket-row-${row.ticket.identifier}`} ticket={row.ticket} onPress={onSelectTicket} />
-			);
+			return <TicketRow testID={`ticket-row-${row.ticket.identifier}`} ticket={row.ticket} onPress={onSelectTicket} />;
 		}
 		if (row.kind === "project") return <ProjectRow project={row.project} onPress={onSelectProject} />;
 		if (row.kind === "page") return <PageRow page={row.page} />;

@@ -1,8 +1,8 @@
+export { SearchResults, type SearchResultsProps } from "./SearchResults";
 export {
 	moreMatchesNote,
 	pagesNote,
+	type SearchRow,
 	searchRowKey,
 	searchRows,
-	type SearchRow,
 } from "./searchRows";
-export { SearchResults, type SearchResultsProps } from "./SearchResults";

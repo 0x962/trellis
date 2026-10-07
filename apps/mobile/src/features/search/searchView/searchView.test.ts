@@ -14,7 +14,11 @@ const data = (over: Partial<SearchData> = {}): SearchData => ({
 	...over,
 });
 
-const failure: SearchFailure = { title: "The server sent an error", detail: "Enter the text to search for.", unreachable: false };
+const failure: SearchFailure = {
+	title: "The server sent an error",
+	detail: "Enter the text to search for.",
+	unreachable: false,
+};
 
 describe("searchView", () => {
 	test("offers the stored queries while the field is empty", () => {

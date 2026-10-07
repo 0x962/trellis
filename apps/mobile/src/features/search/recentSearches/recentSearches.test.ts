@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { clearRecents, maxRecentSearches, pushRecent, readRecents, type RecentStore } from "./recentSearches";
+import { clearRecents, maxRecentSearches, pushRecent, type RecentStore, readRecents } from "./recentSearches";
 
 const fakeStore = (): RecentStore => {
 	const values = new Map<string, string>();

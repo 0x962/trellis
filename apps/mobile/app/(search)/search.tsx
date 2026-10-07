@@ -15,10 +15,10 @@ import {
 	replaceRecent,
 } from "../../src/features/search/recentSearches";
 import { SearchBar } from "../../src/features/search/SearchBar";
-import { identifierOf, isSearchable, searchLimit } from "../../src/features/search/searchQuery";
 import { SearchResults } from "../../src/features/search/SearchResults";
-import { type SearchRequest, searchStatus, searchView } from "../../src/features/search/searchView";
 import { SearchWaiting } from "../../src/features/search/SearchWaiting";
+import { identifierOf, isSearchable, searchLimit } from "../../src/features/search/searchQuery";
+import { type SearchRequest, searchStatus, searchView } from "../../src/features/search/searchView";
 import { describeError, hostOf } from "../../src/lib/describeError";
 import { getQueries } from "../../src/lib/orpc";
 import { keys, store } from "../../src/lib/store";
