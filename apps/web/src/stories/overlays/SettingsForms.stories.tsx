@@ -46,7 +46,15 @@ export const LabelError: Story = {
 };
 export const LabelValidation: Story = { play: clickButton("Save") };
 export const StatusCreate: Story = {
-	render: () => <StatusCreateForm project="DEMO" onCreated={async () => {}} onCancel={noop} />,
+	render: () => (
+		<StatusCreateForm
+			project="DEMO"
+			busy={false}
+			onWrite={async (operation) => operation()}
+			onCreated={async () => {}}
+			onCancel={noop}
+		/>
+	),
 };
 export const StatusCategory: Story = {
 	...StatusCreate,
@@ -56,7 +64,16 @@ export const StatusCategory: Story = {
 };
 export const StatusValidation: Story = { ...StatusCreate, play: clickButton("Create status") };
 export const StatusEdit: Story = {
-	render: () => <StatusEditor project="DEMO" status={statuses[0]!} onChanged={async () => {}} onCancel={noop} />,
+	render: () => (
+		<StatusEditor
+			project="DEMO"
+			status={statuses[0]!}
+			busy={false}
+			onWrite={async (operation) => operation()}
+			onChanged={async () => {}}
+			onCancel={noop}
+		/>
+	),
 };
 export const StatusError: Story = {
 	...StatusEdit,

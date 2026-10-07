@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createRef } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { StatusChoice } from "../../features/board/components/StatusChoice";
 import { LabelGroupRow } from "../../features/project-settings/LabelGroupRow";
 import { LabelRow } from "../../features/project-settings/LabelRow";
@@ -95,6 +95,9 @@ export const StatusClosed: Story = {
 			count={1}
 			ticketCount={4}
 			expanded={false}
+			busy={false}
+			lastStatus={false}
+			onWrite={async (operation) => operation()}
 			onChanged={async () => {}}
 			onEdit={noop}
 			onCancel={noop}
@@ -104,6 +107,33 @@ export const StatusClosed: Story = {
 	),
 };
 export const StatusOpen: Story = { ...StatusClosed, play: clickButton("Actions for Todo") };
+export const LastStatusOpen: Story = {
+	render: () => (
+		<StatusRow
+			project="DEMO"
+			status={statuses[0]!}
+			index={0}
+			count={1}
+			ticketCount={4}
+			expanded={false}
+			busy={false}
+			lastStatus
+			onWrite={async (operation) => operation()}
+			onChanged={async () => {}}
+			onEdit={noop}
+			onCancel={noop}
+			onMove={noop}
+			onDelete={noop}
+		/>
+	),
+	play: async (context) => {
+		await clickButton("Actions for Todo")(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		const deleteItem = await body.findByRole("menuitem", { name: /Delete/ });
+		await expect(deleteItem).toHaveAttribute("aria-disabled", "true");
+		await expect(deleteItem).toHaveTextContent("A project keeps at least one status.");
+	},
+};
 export const BoardStatusOpen: Story = {
 	decorators: [],
 	render: () => <StatusChoice statuses={statuses} onChoose={noop} onCancel={noop} />,
