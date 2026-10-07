@@ -1,6 +1,7 @@
+import { X } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Attachment } from "@trellis/api";
-import { Dialog, EmptyState, InlineEdit, SectionHeader } from "@trellis/ui";
+import { Dialog, EmptyState, IconButton, InlineEdit, SectionHeader, Tooltip } from "@trellis/ui";
 import { useLayoutEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { failToast } from "../../../lib/failToast";
@@ -179,9 +180,17 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads, readOnly =
 					title={shown.filename}
 					onOpenChange={(open) => !open && setActive(null)}
 					finalFocus={() => document.querySelector<HTMLElement>(`[data-thumbnail="${shown.id}"]`)}
-					className="w-auto max-w-full"
+					header={
+						<div className="flex items-start justify-between gap-3">
+							<span className="min-w-0 wrap-anywhere text-md font-semibold">{shown.filename}</span>
+							<Tooltip content="Close">
+								<IconButton label="Close" icon={<X />} onClick={() => setActive(null)} />
+							</Tooltip>
+						</div>
+					}
+					className="w-auto max-w-full overflow-hidden"
 				>
-					<div>
+					<div className="min-h-0 overflow-y-auto">
 						<img src={shown.url} alt={shown.filename} className="max-h-screen max-w-full object-contain" />
 					</div>
 				</Dialog>
