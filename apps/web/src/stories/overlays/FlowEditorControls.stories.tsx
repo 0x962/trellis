@@ -241,3 +241,38 @@ export const NodeError: Story = {
 		/>
 	),
 };
+export const NodeDeleteConfirmation: Story = {
+	...NodeAgent,
+	play: async (context) => {
+		await clickButton("Delete step")(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		await expect(await body.findByRole("group", { name: "Confirm deletion" })).toBeVisible();
+		await expect(body.getByRole("button", { name: "Confirm delete" })).toBeVisible();
+		await expect(body.getByRole("button", { name: "Keep step" })).toBeVisible();
+	},
+};
+export const NodeDeleteSuccess: Story = {
+	render: function Render() {
+		const [deleted, setDeleted] = useState(false);
+		return deleted ? (
+			<p role="status">Step deleted.</p>
+		) : (
+			<NodeInspector
+				fields={fields}
+				issue={undefined}
+				validate={() => ({ canSave: true, issue: undefined })}
+				onDelete={() => setDeleted(true)}
+				onClose={noop}
+				onSave={noop}
+				saving={false}
+				canSave
+			/>
+		);
+	},
+	play: async (context) => {
+		await clickButton("Delete step")(context);
+		await clickButton("Confirm delete")(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		await expect(await body.findByText("Step deleted.", { exact: true })).toBeVisible();
+	},
+};

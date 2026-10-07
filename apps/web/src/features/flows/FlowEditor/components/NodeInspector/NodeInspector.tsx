@@ -37,6 +37,7 @@ export function NodeInspector({
 	canSave,
 }: NodeInspectorProps) {
 	const [fields, setFields] = useState(initialFields);
+	const [confirmDelete, setConfirmDelete] = useState(false);
 	const onChange = (patch: Partial<StepFields>) => setFields((current) => ({ ...current, ...patch }));
 	const validation = validate(fields);
 	const shownIssue = issue ?? validation.issue;
@@ -163,8 +164,34 @@ export function NodeInspector({
 					</fieldset>
 				</SheetBody>
 				<SheetFooter
+					confirmation={
+						confirmDelete && (
+							<fieldset
+								className="flex flex-wrap items-center gap-2 border border-danger p-3"
+								aria-label="Confirm deletion"
+							>
+								<p className="w-full break-words text-sm text-fg">
+									Delete {fields.title.trim() === "" ? "this step" : `"${fields.title}"`}?
+								</p>
+								<p className="w-full text-sm text-fg-muted">
+									This deletes the step and every connection attached to it.
+								</p>
+								<Button type="button" variant="danger" disabled={saving} onClick={onDelete}>
+									Confirm delete
+								</Button>
+								<Button type="button" variant="quiet" disabled={saving} onClick={() => setConfirmDelete(false)}>
+									Keep step
+								</Button>
+							</fieldset>
+						)
+					}
 					leading={
-						<Button type="button" variant="quiet" onClick={onDelete} disabled={saving}>
+						<Button
+							type="button"
+							variant="quiet"
+							onClick={() => setConfirmDelete(true)}
+							disabled={saving || confirmDelete}
+						>
 							Delete step
 						</Button>
 					}
@@ -172,7 +199,12 @@ export function NodeInspector({
 					<Button type="button" variant="quiet" onClick={onClose} disabled={saving}>
 						Cancel
 					</Button>
-					<Button type="submit" variant="primary" processing={saving} disabled={!canSave || !validation.canSave}>
+					<Button
+						type="submit"
+						variant="primary"
+						processing={saving}
+						disabled={!canSave || !validation.canSave || confirmDelete}
+					>
 						Save changes
 					</Button>
 				</SheetFooter>

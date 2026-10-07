@@ -49,7 +49,10 @@
 			"Pages/Flow editor/LegacyLoading",
 			"Pages/Flow editor/LegacyRequestError",
 			"Pages/Flow editor/LegacyMissing",
-			"Pages/Flow editor/EditorHostError"
+			"Pages/Flow editor/EditorHostError",
+			"Pages/Flow editor/InvalidNodes",
+			"Pages/Flow editor/DenseLongGraph",
+			"Pages/Flow editor/ConnectionLossUndo"
 		],
 		"states": [
 			"legacy canvas",
@@ -61,7 +64,10 @@
 			"legacy loading",
 			"legacy error",
 			"missing flow",
-			"host error"
+			"host error",
+			"invalid nodes",
+			"dense long graph",
+			"connection loss undo"
 		],
 		"notes": "Langflow host states use a synthetic unavailable host. The stories load no external editor."
 	},

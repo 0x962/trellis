@@ -35,6 +35,7 @@ import { CanvasControls } from "../CanvasControls";
 import { FlowEdge } from "../FlowEdge";
 import { NodePalette } from "../NodePalette";
 import { StepNode } from "../StepNode";
+import { nodeMoveUndo } from "./nodeMoveUndo";
 
 // React Flow draws every node and edge again when one of these objects
 // changes, so they live outside the component.
@@ -61,6 +62,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 	const { nodes, edges, graph, onNodesChange, onEdgesChange, setNodes, setEdges, onSelect } = props;
 	const rf = useReactFlow<CanvasNode, CanvasEdge>();
 	const wrapRef = useRef<HTMLElement>(null);
+	const dragStartRef = useRef<CanvasNode | null>(null);
 
 	const add = (kind: FlowNodeKind, place: { drop: XYPosition } | { center: XYPosition }) => {
 		const next = addNode(nodes, edges, kind, place);
@@ -90,7 +92,13 @@ export function FlowCanvas(props: FlowCanvasProps) {
 	// A node dropped with its center inside a box moves into that box. A node
 	// dropped outside its box moves onto the canvas. A drag of several nodes
 	// keeps every node in its box.
+	const onNodeDragStart = (_event: unknown, node: CanvasNode) => {
+		dragStartRef.current = node;
+	};
+
 	const onNodeDragStop = (_event: unknown, node: CanvasNode, dragged: CanvasNode[]) => {
+		const before = dragStartRef.current!;
+		dragStartRef.current = null;
 		if (dragged.length !== 1) return;
 		const current = nodes.map((item) => (item.id === node.id ? node : item));
 		const corner = absolutePosition(current, node.id);
@@ -98,12 +106,25 @@ export function FlowCanvas(props: FlowCanvasProps) {
 		const target = boxAt(current, { x: corner.x + width / 2, y: corner.y + height / 2 }, node.id);
 		if (target === (node.parentId ?? null)) return;
 		const next = moveIntoBox(current, edges, node.id, target);
+		const kept = new Set(next.edges.map((edge) => edge.id));
+		const removedEdges = edges.filter((edge) => !kept.has(edge.id));
 		setNodes(next.nodes);
 		setEdges(next.edges);
-		if (next.removed > 0)
+		if (next.removed > 0) {
+			const undo = nodeMoveUndo({ node: before, removedEdges });
 			toast(
 				`Removed ${next.removed} ${next.removed === 1 ? "connection" : "connections"} that crossed the edge of a box.`,
+				{
+					action: {
+						label: "Undo",
+						onClick: () => {
+							setNodes(undo.nodes);
+							setEdges(undo.edges);
+						},
+					},
+				},
 			);
+		}
 	};
 
 	// Undo puts back the positions and the box sizes from before the clean up,
@@ -169,6 +190,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				isValidConnection={(connection) => canConnect(graph, connection)}
 				connectionMode={ConnectionMode.Loose}
 				connectionLineType={ConnectionLineType.SmoothStep}
+				onNodeDragStart={onNodeDragStart}
 				onNodeDragStop={onNodeDragStop}
 				onSelectionChange={onSelectionChange}
 				snapToGrid
@@ -187,7 +209,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				<Panel position="bottom-left">
 					<CanvasControls onCleanUp={cleanUp} canCleanUp={nodes.length > 0} />
 				</Panel>
-				<MiniMap position="bottom-right" pannable zoomable />
+				<MiniMap className="hidden sm:block" position="bottom-right" pannable zoomable />
 			</ReactFlow>
 		</section>
 	);
