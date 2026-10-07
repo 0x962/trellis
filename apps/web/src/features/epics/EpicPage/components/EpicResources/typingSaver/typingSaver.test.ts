@@ -17,6 +17,29 @@ const manualTimers = () => {
 };
 
 describe("typingSaver", () => {
+	test("retries the same text after a refused save", () => {
+		const saves: string[] = [];
+		const saver = typingSaver((text) => saves.push(text), "Plan", 600);
+		saver.change("Draft");
+		saver.flush();
+		expect(saver.dirty()).toBe(true);
+		saver.retry();
+		expect(saves).toEqual(["Draft", "Draft"]);
+		saver.accept("Draft");
+		expect(saver.dirty()).toBe(false);
+	});
+
+	test("keeps a later edit pending after an earlier save succeeds", () => {
+		const saver = typingSaver(() => {}, "Plan", 600);
+		saver.change("First");
+		saver.flush();
+		saver.change("Second");
+		saver.accept("First");
+		expect(saver.dirty()).toBe(true);
+		saver.flush();
+		saver.accept("Second");
+		expect(saver.dirty()).toBe(false);
+	});
 	test("saves the newest text once after the pause", () => {
 		const saves: string[] = [];
 		const clock = manualTimers();
