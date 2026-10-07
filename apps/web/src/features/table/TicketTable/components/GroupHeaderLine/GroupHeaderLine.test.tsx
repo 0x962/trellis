@@ -8,7 +8,7 @@ const group = {
 	label: "Foundation",
 	rows: [],
 	count: 0,
-	countLabel: "Current \u00b7 0/0",
+	countLabel: "0/0",
 	completedCount: 0,
 	totalCount: 0,
 	done: false,
@@ -35,7 +35,7 @@ test("a wave section exposes a grid row and cell around a section header", () =>
 	expect(html).toContain('role="row"');
 	expect(html).toContain('role="gridcell"');
 	expect(html).not.toContain('role="rowgroup"');
-	expect(html).toContain("Current \u00b7 0/0");
+	expect(html).toContain("0/0");
 	expect(html).toContain("translateY(40px)");
 });
 

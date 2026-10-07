@@ -21,7 +21,7 @@ export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> 
 	return new Map(
 		waves.map((wave, index) => {
 			const { counts } = wave;
-			const stage = wave.state === "done" ? undefined : index === firstOpen ? "Current" : "Later";
+			const stage = wave.state === "open" && index !== firstOpen ? "Later" : undefined;
 			const progress = `${formatCount(counts.done)}/${formatCount(counts.total - counts.canceled)}`;
 			const mark: WaveMark = {
 				countLabel: stage === undefined ? progress : `${stage} \u00b7 ${progress}`,

@@ -14,12 +14,12 @@ const fix = wave("fix", "done", 1, 1);
 const waves = [foundation, surfaces, integrate, fix];
 
 describe("waveMarks", () => {
-	test("marks the first open wave as Current and each later open wave as Later", () => {
+	test("keeps the current wave count plain and marks each later open wave as Later", () => {
 		const marks = waveMarks(waves);
 
 		expect(marks.get(foundation.id)).toEqual({ countLabel: "4/4", completedCount: 5, totalCount: 5, done: true });
 		expect(marks.get(surfaces.id)).toEqual({
-			countLabel: "Current \u00b7 1/3",
+			countLabel: "1/3",
 			completedCount: 1,
 			totalCount: 3,
 			done: false,
@@ -37,7 +37,7 @@ describe("waveMarks", () => {
 		const dense = Array.from({ length: 12 }, (_, index) => wave(`wave-${index + 1}`, "open", index, 12));
 
 		expect([...waveMarks(dense).values()].map((mark) => mark.countLabel)).toEqual([
-			"Current \u00b7 0/12",
+			"0/12",
 			...Array.from({ length: 11 }, (_, index) => `Later \u00b7 ${index + 1}/12`),
 		]);
 	});

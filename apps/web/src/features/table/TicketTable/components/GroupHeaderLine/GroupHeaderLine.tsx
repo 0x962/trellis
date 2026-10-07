@@ -42,7 +42,18 @@ export function GroupHeaderLine({
 	onCreateInGroup,
 	onStartGroup,
 }: GroupHeaderLineProps) {
-	const parts = waves === undefined ? undefined : waveHeaderParts(group, waves);
+	const { mark, ...parts } = (waves === undefined ? undefined : waveHeaderParts(group, waves)) ?? {};
+	const count = [
+		group.countLabel ?? formatCount(group.count),
+		...(group.forYou !== undefined && group.forYou > 0 ? [`${formatCount(group.forYou)} for you`] : []),
+	].join(" \u00b7 ");
+	const countSlot =
+		mark === undefined ? count : (
+			<span className="inline-flex items-center gap-2">
+				{mark}
+				<span>{count}</span>
+			</span>
+		);
 	const onCreate = group.status === undefined ? undefined : () => onCreateInGroup(group);
 	const onStart =
 		onStartGroup === undefined || group.epicRef === undefined || group.wave === undefined || group.rows.length === 0
@@ -52,10 +63,7 @@ export function GroupHeaderLine({
 		<SharedGroupHeader
 			group={group.key}
 			label={group.label ?? ""}
-			count={[
-				group.countLabel ?? formatCount(group.count),
-				...(group.forYou !== undefined && group.forYou > 0 ? [`${formatCount(group.forYou)} for you`] : []),
-			].join(" \u00b7 ")}
+			count={countSlot}
 			showCount={formatCount(group.count)}
 			icon={
 				group.completedCount === undefined || group.totalCount === undefined

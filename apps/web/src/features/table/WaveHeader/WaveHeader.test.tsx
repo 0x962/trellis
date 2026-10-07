@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import type { WaveSummary } from "@trellis/api";
+import { Badge } from "@trellis/ui";
 import type { KeyboardEvent, ReactElement } from "react";
 import type { WaveEditing } from "../hooks/useWaveEditing";
 import type { TableGroup } from "../utils/flattenGroups";
@@ -104,6 +105,41 @@ test("rename replaces the resting label with the canonical name field", () => {
 	const field = parts.labelField as ReactElement;
 
 	expect(field.type).toBe(WaveName);
+});
+
+test("the first open wave gets the canonical Current badge", () => {
+	const { parts } = fixture();
+	const mark = parts.mark as ReactElement;
+
+	expect(mark.type).toBe(Badge);
+	expect(mark.props).toEqual({
+		tone: "accent",
+		size: "sm",
+		children: "Current",
+	});
+});
+
+test("a later open wave has no Current badge", () => {
+	const laterWave = {
+		...wave,
+		id: "wave-2",
+		ref: "TRL/epic/wave-2",
+		name: "Polish",
+	} as WaveSummary;
+	const laterGroup = {
+		...group,
+		key: laterWave.id,
+		label: laterWave.name,
+		wave: { id: laterWave.id, ref: laterWave.ref, name: laterWave.name },
+	} as TableGroup;
+	const parts = waveHeaderParts(laterGroup, {
+		editing: { waves: [wave, laterWave], canMove: () => true } as unknown as WaveEditing,
+		project: "TRL",
+		onAddTicket: () => {},
+		onNewTicket: () => {},
+	});
+
+	expect(parts?.mark).toBeUndefined();
 });
 
 test("No wave gets no rename, reorder, or delete controls", () => {
