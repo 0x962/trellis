@@ -7,7 +7,11 @@
 			"Pages/Epic/ResourceDocumentNarrow",
 			"Pages/Epic/ResourceDocumentContents",
 			"Pages/Epic/ResourceDocumentReadOnly",
-			"Pages/Epic/PlanContents"
+			"Pages/Epic/PlanContents",
+			"Pages/Document editor/ReadableTitle",
+			"Pages/Document editor/RetryAndReopen",
+			"Pages/Document editor/SaveOnSwitch",
+			"Pages/Document editor/ReorderedConcurrentSaves"
 		],
 		"states": [
 			"plan",
@@ -18,7 +22,12 @@
 			"contents navigation",
 			"heading edits before save",
 			"read-only document",
-			"narrow contents popover"
+			"narrow contents popover",
+			"wrapped document title",
+			"save status",
+			"failed save retry",
+			"save on switch",
+			"saved document reopen"
 		],
 		"notes": "Stories render EpicDocument through the complete EpicPage. PlanContents changes a heading and adds a section while its synthetic save remains pending. The body supplies contents entries; the separate resource title stays outside the list."
 	},

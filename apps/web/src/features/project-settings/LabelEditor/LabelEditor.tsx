@@ -1,7 +1,7 @@
 import type { Label } from "@trellis/api";
 import { LabelDescriptionSchema, LabelNameSchema } from "@trellis/api";
 import { Button, Input, type LabelColor, LabelDot, labelColors, Select, type SelectItem } from "@trellis/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
 
@@ -52,6 +52,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 	const [color, setColor] = useState<ColorChoice>(label?.color ?? "auto");
 	const [message, setMessage] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+	const saveInFlight = useRef(false);
 	const items = label === null ? [autoItem, ...hueItems] : hueItems;
 	const title = label === null ? "New label" : `Edit ${label.name}`;
 
@@ -62,6 +63,8 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 			setMessage(parsedName.error.issues[0]!.message);
 			return;
 		}
+		if (saveInFlight.current) return;
+		saveInFlight.current = true;
 		const fields = {
 			name: parsedName.data,
 			description: LabelDescriptionSchema.parse(description),
@@ -77,6 +80,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 			await onChanged();
 			onCancel();
 		} catch (error) {
+			saveInFlight.current = false;
 			setSaving(false);
 			setMessage(labelWriteMessage(error));
 		}
@@ -84,7 +88,7 @@ export function LabelEditor({ project, label, groupId, onChanged, onCancel }: La
 
 	return (
 		<form aria-label={title} className="status-row-editor" onSubmit={(event) => void save(event)}>
-			<div className="status-row-editor-grid">
+			<div className="status-row-editor-grid items-start">
 				<Input
 					label="Name"
 					value={name}

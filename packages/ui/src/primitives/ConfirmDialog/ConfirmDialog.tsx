@@ -7,6 +7,7 @@ export type ConfirmDialogProps = {
 	title: string;
 	description: string;
 	confirmLabel: string;
+	confirmDisabled?: boolean;
 	// True draws the confirm button in the danger colour. Set it when the
 	// action destroys something or stops work that is running.
 	danger?: boolean;
@@ -34,6 +35,7 @@ export function ConfirmDialog({
 	title,
 	description,
 	confirmLabel,
+	confirmDisabled = false,
 	danger = false,
 	processing = false,
 	modal = true,
@@ -56,7 +58,12 @@ export function ConfirmDialog({
 				<Button disabled={processing} onClick={onCancel}>
 					Cancel
 				</Button>
-				<Button variant={danger ? "danger" : "primary"} processing={processing} onClick={onConfirm}>
+				<Button
+					variant={danger ? "danger" : "primary"}
+					disabled={confirmDisabled}
+					processing={processing}
+					onClick={onConfirm}
+				>
 					{confirmLabel}
 				</Button>
 			</div>

@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessAccount, UsageAccount, UsageGroupRow } from "@trellis/api";
+import { formatDayTime } from "@trellis/ui";
 import { renderToStaticMarkup } from "react-dom/server";
-import { accountQuotaSummary, UsageAccountRow } from "./UsageAccountRow";
+import { accountQuotaSummary } from "../../accountQuotaSummary";
+import { UsageAccountRow } from "./UsageAccountRow";
 
 const account: UsageAccount = {
 	key: "account:Work",
@@ -76,12 +78,62 @@ const render = (patch: Partial<React.ComponentProps<typeof UsageAccountRow>> = {
 describe("UsageAccountRow", () => {
 	test("shows the compact identity, quota, report value, and two row actions", () => {
 		const html = render();
-		expect(html).toContain("Work · Default");
-		expect(html).toContain("Claude Code · 72% used");
+		expect(html).toContain('class="status-row-name">Work</span>');
+		expect(html).toContain("bg-accent-soft text-accent");
+		expect(html).toContain(">Default</span>");
+		expect(html).toContain('aria-label="Edit Work, Default"');
+		expect(html).toContain("whitespace-normal text-pretty");
+		expect(html).not.toContain("Work · Default");
+		expect(html).toContain(
+			`Claude Code · Weekly window · 72% used · Resets ${formatDayTime(account.quota.windows[1]!.resetsAt!)}`,
+		);
 		expect(html).toContain("$96.00");
-		expect(html).toContain('aria-label="Refresh quota for Work"');
+		expect(html).toContain('aria-label="Refresh all account quotas"');
 		expect(html).toContain('aria-label="Actions for Work"');
 		expect(html).not.toContain(account.profilePath);
+	});
+
+	test("distinguishes measured zero from an unavailable report", () => {
+		const measured = render({ row: { ...row, usd: 0 }, total: 0 });
+		expect(measured).toContain("$0");
+		expect(measured).not.toContain("Not available");
+
+		const unavailable = render({ reportAvailable: false });
+		expect(unavailable).toContain("Not available");
+		expect(unavailable).not.toContain("$96.00");
+	});
+
+	test("prepares the quota summary once for both row views", () => {
+		let resetReads = 0;
+		render({
+			account: {
+				...account,
+				quota: {
+					...account.quota,
+					windows: [
+						{
+							...account.quota.windows[1]!,
+							get resetsAt() {
+								resetReads++;
+								return "2026-10-05T08:00:00.000Z";
+							},
+						},
+					],
+				},
+			},
+		});
+		expect(resetReads).toBe(2);
+	});
+
+	test("names the limiting quota window when its reset time is unavailable", () => {
+		const summary = accountQuotaSummary({
+			...account,
+			quota: {
+				...account.quota,
+				windows: [{ id: "weekly", label: "Weekly window", usedPercent: 83, resetsAt: null }],
+			},
+		});
+		expect(summary).toBe("Weekly window · 83% used · Reset time unavailable");
 	});
 
 	test("keeps quota availability clear for accounts without quota data", () => {

@@ -1,25 +1,19 @@
-import { type MemoryPressureLevel, memoryIsRed, memoryPressureName } from "@trellis/api";
+import { type MemoryPressureLevel, memoryIsRed } from "@trellis/api";
 import type { UsageChartTone } from "@trellis/ui";
 
 export type MemoryPressureDisplay = {
 	label: "Normal" | "Warning" | "Critical" | "Unknown" | "Unavailable";
-	tone: Extract<UsageChartTone, "faint" | "danger">;
-	// The color of the word "Normal" or "Critical" on the detail line under
-	// the figure.
-	textClass: "text-fg-faint" | "text-danger";
-	// The color of the memory figure itself. It stays the plain text color
-	// until the kernel reports level 4, so the memory figure and the CPU
-	// figure beside it look the same.
-	valueClass: "text-fg" | "text-danger";
+	tone: Extract<UsageChartTone, "faint" | "warning" | "danger" | "accent">;
+	textClass: "text-fg-faint" | "text-warning" | "text-danger" | "text-accent";
+	valueClass: "text-fg" | "text-warning" | "text-danger" | "text-accent";
 };
 
 export const memoryPressureLevel = (level: MemoryPressureLevel | null): MemoryPressureDisplay => {
 	if (memoryIsRed(level))
 		return { label: "Critical", tone: "danger", textClass: "text-danger", valueClass: "text-danger" };
-	return {
-		label: memoryPressureName(level),
-		tone: "faint",
-		textClass: "text-fg-faint",
-		valueClass: "text-fg",
-	};
+	if (level === 2) return { label: "Warning", tone: "warning", textClass: "text-warning", valueClass: "text-warning" };
+	if (level === null)
+		return { label: "Unavailable", tone: "danger", textClass: "text-danger", valueClass: "text-danger" };
+	if (level === 1) return { label: "Normal", tone: "faint", textClass: "text-fg-faint", valueClass: "text-fg" };
+	return { label: "Unknown", tone: "accent", textClass: "text-accent", valueClass: "text-accent" };
 };

@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ProjectSummary } from "@trellis/api";
-import { Button, Dialog, Input } from "@trellis/ui";
-import { useState } from "react";
+import { Button, Dialog, FailureState, Input } from "@trellis/ui";
+import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { formatCount } from "../../../lib/format";
 import { useProjectActions } from "../hooks/useProjectActions";
+import { deleteProjectReadOptions, deleteProjectState } from "./deleteProjectState";
 
 export type DeleteProjectDialogProps = {
 	project: Pick<ProjectSummary, "key" | "name">;
@@ -12,63 +12,87 @@ export type DeleteProjectDialogProps = {
 	onOpenChange: (open: boolean) => void;
 };
 
-const ticketCount = (count: number) => `${formatCount(count)} ${count === 1 ? "ticket" : "tickets"}`;
-
-const flowCount = (count: number) => `${formatCount(count)} ${count === 1 ? "flow" : "flows"}`;
-
-// A delete of the project, every ticket in it and every flow of it. The
-// server refuses a delete of a project with tickets or flows unless the
-// request sends `force`, and a forced delete cannot be undone. So the dialog
-// counts the tickets first, and with tickets it waits for the typed project
-// key. The description names the flows: a flow holds a briefing and a graph
-// that nothing else keeps.
 export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProjectDialogProps) {
 	const { orpc } = useApp();
 	const { remove } = useProjectActions();
 	const [typed, setTyped] = useState("");
 	const [pending, setPending] = useState(false);
-	const counts = useQuery({ ...orpc.tickets.counts.queryOptions({ input: { project: project.key } }), enabled: open });
-	const flows = useQuery({ ...orpc.flows.list.queryOptions({ input: {} }), enabled: open }).data ?? [];
-	const tickets = counts.data?.total;
-	const ownFlows = flows.filter((flow) => flow.project === project.key).length;
-	const needsKey = tickets !== undefined && tickets > 0;
-	const ready = tickets !== undefined && (!needsKey || typed === project.key) && !pending;
+	const deleting = useRef(false);
+	const counts = useQuery({
+		...orpc.tickets.counts.queryOptions({ input: { project: project.key } }),
+		...deleteProjectReadOptions,
+		enabled: open,
+	});
+	const flowQuery = useQuery({
+		...orpc.flows.list.queryOptions({ input: { project: project.key } }),
+		...deleteProjectReadOptions,
+		enabled: open,
+	});
+	const loading = counts.isFetching || flowQuery.isFetching;
+	const failed = counts.error !== null || flowQuery.error !== null;
+	const state = deleteProjectState({
+		projectKey: project.key,
+		ticketCount: counts.data?.total,
+		flowCount: flowQuery.data?.filter((flow) => flow.project === project.key).length,
+		typedKey: typed,
+		loading,
+		failed,
+		pending,
+	});
 
 	const close = (next: boolean) => {
+		if (deleting.current || pending) return;
 		if (!next) setTyped("");
 		onOpenChange(next);
 	};
 
 	const confirm = async () => {
+		if (deleting.current || !state.loaded) return;
+		deleting.current = true;
 		setPending(true);
-		const deleted = await remove(project, needsKey || ownFlows > 0);
+		const deleted = await remove(project, state.needsKey);
+		deleting.current = false;
 		setPending(false);
-		if (deleted) close(false);
+		if (deleted) {
+			setTyped("");
+			onOpenChange(false);
+		}
 	};
 
-	const flowLine = ownFlows === 0 ? "" : ` It also deletes ${flowCount(ownFlows)} with every step.`;
-	const description =
-		tickets === undefined
-			? "Counting the tickets…"
-			: tickets === 0
-				? `${project.key} holds no tickets. You cannot undo a delete.${flowLine}`
-				: `This deletes ${project.key} and its ${ticketCount(tickets)}. You cannot undo a delete.${flowLine}`;
+	const retry = () => void Promise.all([counts.refetch(), flowQuery.refetch()]);
+	const failureDetail = counts.error?.message ?? flowQuery.error?.message;
 
 	return (
-		<Dialog open={open} onOpenChange={close} title={`Delete ${project.name}?`} description={description}>
-			{needsKey && (
+		<Dialog open={open} onOpenChange={close} title={`Delete ${project.name}?`} description={state.description}>
+			{failed && (
+				<FailureState
+					variant="section"
+					title="The project contents did not load."
+					description="Retry before you delete this project."
+					detail={failureDetail}
+					action={
+						<Button size="md" processing={loading} onClick={retry}>
+							Retry
+						</Button>
+					}
+				/>
+			)}
+			{state.needsKey && (
 				<Input
 					label={`Type ${project.key} to confirm`}
 					value={typed}
 					autoFocus
+					disabled={pending}
 					autoComplete="off"
 					spellCheck={false}
 					onChange={(event) => setTyped(event.target.value)}
 				/>
 			)}
 			<div className="flex justify-end gap-2">
-				<Button onClick={() => close(false)}>Cancel</Button>
-				<Button variant="danger" disabled={!ready} onClick={() => void confirm()}>
+				<Button disabled={pending} onClick={() => close(false)}>
+					Cancel
+				</Button>
+				<Button variant="danger" disabled={!state.ready} processing={pending} onClick={() => void confirm()}>
 					Delete project
 				</Button>
 			</div>
