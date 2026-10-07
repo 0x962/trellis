@@ -4,11 +4,13 @@ import { ComposerAgentPicker } from "../../../../agents/ComposerAgentPicker";
 export function AgentPicker({
 	value,
 	accounts,
+	assignAgent,
 	onChange,
 	disabled,
 }: {
 	value: AssignChoice | null;
 	accounts: AssignAccounts;
+	assignAgent: boolean;
 	onChange: (choice: AssignChoice | null) => void;
 	disabled: boolean;
 }) {
@@ -34,7 +36,11 @@ export function AgentPicker({
 			onEffort={(effort) => onChange({ ...value!, effort })}
 			onAccount={(accountId) => onChange({ ...value!, accountId })}
 			description={
-				value ? "The agent starts when you create the ticket." : "Create the ticket now. Assign an agent later."
+				value && assignAgent
+					? "The agent starts when you create the ticket."
+					: value
+						? "Assign agent is off. Create saves the ticket without an agent."
+						: "Create the ticket now. Assign an agent later."
 			}
 		/>
 	);

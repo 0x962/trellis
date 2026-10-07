@@ -6,6 +6,7 @@ export function useCreatePlacement(project?: string, epic?: string, wave?: strin
 	const list = useQuery({
 		...orpc.epics.list.queryOptions({ input: { project: project ?? "" } }),
 		enabled: project !== undefined,
+		retry: false,
 	});
 	const epics = list.data;
 	const selected = epics?.find((entry) => entry.ref === epic || entry.id === epic);
@@ -15,12 +16,13 @@ export function useCreatePlacement(project?: string, epic?: string, wave?: strin
 	const detail = useQuery({
 		...orpc.epics.get.queryOptions({ input: { epic: chosenEpic?.ref ?? "" } }),
 		enabled: chosenEpic !== undefined,
+		retry: false,
 	});
 	const waves = detail.data?.waves;
 	const chosenWave = waves?.find((entry) => entry.ref === wave || entry.id === wave);
 	const newWave = newEpic || waves?.length === 0;
 	const pending = project !== undefined && (list.isPending || (chosenEpic !== undefined && detail.isPending));
-	const error = list.isError || (chosenEpic !== undefined && detail.isError);
+	const error = list.error ?? (chosenEpic !== undefined ? detail.error : null);
 	const ready =
 		project !== undefined &&
 		!pending &&
@@ -34,6 +36,9 @@ export function useCreatePlacement(project?: string, epic?: string, wave?: strin
 		newEpic,
 		newWave,
 		ready,
+		error,
+		fetching: list.isFetching || detail.isFetching,
+		retry: () => Promise.all([list.refetch(), ...(chosenEpic ? [detail.refetch()] : [])]),
 		message: error
 			? "The epic or wave could not load."
 			: pending

@@ -48,7 +48,9 @@ export function GroupHeaderLine({
 		...(group.forYou !== undefined && group.forYou > 0 ? [`${formatCount(group.forYou)} for you`] : []),
 	].join(" \u00b7 ");
 	const countSlot =
-		mark === undefined ? count : (
+		mark === undefined ? (
+			count
+		) : (
 			<span className="inline-flex items-center gap-2">
 				{mark}
 				<span>{count}</span>

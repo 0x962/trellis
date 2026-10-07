@@ -3,6 +3,7 @@ import type { TicketDependency, TicketSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover, SelectedTickets, StatusIcon } from "@trellis/ui";
 import { type ReactElement, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { PickerFailure } from "../components/PickerFailure";
 
 // The search runs this long after the last keystroke.
 export const searchDebounceMs = 120;
@@ -84,11 +85,14 @@ export function TicketPicker({
 	const results = useQuery({
 		...orpc.search.query.queryOptions({ input: { q, project, limit: 10 } }),
 		enabled: q !== "",
+		retry: false,
 	});
 	const tickets = (q === "" ? [] : (results.data?.tickets ?? [])).filter(
 		(ticket) =>
 			!exclude.includes(ticket.identifier) && !selection?.items.some((item) => item.identifier === ticket.identifier),
 	);
+	const searching = search.trim() !== q || (q !== "" && results.isPending);
+	const searchError = q !== "" && !searching ? results.error : null;
 
 	const setOpen = (next: boolean) => {
 		setOwn(next);
@@ -100,7 +104,7 @@ export function TicketPicker({
 	// above None. The list then opens on the current parent, and Enter keeps it.
 	const empty = search.trim() === "";
 	const items: CommandItem[] = [
-		...tickets.map((ticket) => ({
+		...(searching ? [] : tickets).map((ticket) => ({
 			id: ticket.identifier,
 			label: ticket.identifier,
 			current: onAdd === undefined && ticket.identifier === value,
@@ -131,7 +135,8 @@ export function TicketPicker({
 				filter={false}
 				onSearchChange={setSearch}
 				items={items}
-				empty={q === "" ? "Type to search." : "No results."}
+				listClassName={searchError && items.length === 0 ? "hidden" : undefined}
+				empty={searching ? "Search tickets…" : searchError ? "" : q === "" ? "Type to search." : "No results."}
 				onSelect={(id) => {
 					if (selection?.pending || selection?.loading || selection?.error) return;
 					if (onAdd !== undefined) {
@@ -143,6 +148,13 @@ export function TicketPicker({
 					if (id === noneId) onPick!(null);
 					else if (id !== value) onPick!(tickets.find((ticket) => ticket.identifier === id)!);
 				}}
+			/>
+			<PickerFailure
+				title="Tickets could not load."
+				error={searchError}
+				pending={results.isFetching}
+				onRetry={results.refetch}
+				input={input}
 			/>
 		</Popover>
 	);
