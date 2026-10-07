@@ -1,14 +1,6 @@
 import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import type { Project, ProjectSetReposInput, ProjectUpdateInput } from "@trellis/api";
-import {
-	act,
-	type ComponentProps,
-	type ReactNode,
-	type RefObject,
-	useEffect,
-	useImperativeHandle,
-	useRef,
-} from "react";
+import { act, type ComponentProps, type ReactNode, useEffect, useImperativeHandle, useRef } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 
@@ -19,7 +11,7 @@ type ConfirmProps = {
 	confirmLabel: string;
 	processing?: boolean;
 	children?: ReactNode;
-	finalFocus?: RefObject<HTMLElement | null>;
+	finalFocus?: () => HTMLElement | true | null;
 	onConfirm: () => void;
 	onCancel: () => void;
 };
@@ -58,7 +50,10 @@ mock.module("@trellis/ui", () => ({
 		useEffect(() => {
 			const closed = previousOpen.current && !open;
 			previousOpen.current = open;
-			if (closed) finalFocus?.current?.focus();
+			if (!closed) return;
+			const target = finalFocus?.();
+			if (target === true) focusCalls.push("Remove opener");
+			else target?.focus();
 		}, [finalFocus, open]);
 		return open ? (
 			<section role="dialog" data-processing={processing || undefined}>
@@ -262,6 +257,16 @@ test("repository removal confirms, locks writes, and rejects a second request", 
 	expect(f.formStatus()).toBe("Repository removal refused");
 	expect(f.current).toEqual(saved);
 	expect(f.invalidations).toEqual([]);
+});
+
+test("cancelled repository removal returns focus to the Remove opener", async () => {
+	focusCalls.length = 0;
+	const f = await fixture(async () => f.current);
+	await act(async () => f.button("Remove 0x962/trellis").props.onClick());
+	expect(f.dialog()).toBeDefined();
+	await act(async () => f.button("Cancel").props.onClick());
+	expect(f.dialog()).toBeUndefined();
+	expect(focusCalls).toEqual(["Remove opener"]);
 });
 
 test("successful repository removal returns focus to Add repository", async () => {

@@ -17,6 +17,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 	const [write, setWrite] = useState<"add" | "remove" | null>(null);
 	const writing = useRef(false);
 	const addButton = useRef<HTMLButtonElement>(null);
+	const focusAddAfterRemove = useRef(false);
 
 	const save = async (repos: { owner: string; repo: string }[], action: "add" | "remove") => {
 		if (writing.current) return false;
@@ -58,12 +59,14 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 	const openRemove = (owner: string, repo: string) => {
 		if (writing.current) return;
 		setRemoveMessage(null);
+		focusAddAfterRemove.current = false;
 		setRemoveTarget({ owner, repo });
 	};
 
 	const closeRemove = () => {
 		if (writing.current) return;
 		setRemoveMessage(null);
+		focusAddAfterRemove.current = false;
 		setRemoveTarget(null);
 	};
 
@@ -76,7 +79,10 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 				.map(({ owner, repo }) => ({ owner, repo })),
 			"remove",
 		);
-		if (saved) setRemoveTarget(null);
+		if (saved) {
+			focusAddAfterRemove.current = true;
+			setRemoveTarget(null);
+		}
 	};
 
 	return (
@@ -136,7 +142,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 				confirmLabel="Remove repository"
 				danger
 				processing={write === "remove"}
-				finalFocus={addButton}
+				finalFocus={() => (focusAddAfterRemove.current ? addButton.current : true)}
 				onConfirm={() => void remove()}
 				onCancel={closeRemove}
 			>
