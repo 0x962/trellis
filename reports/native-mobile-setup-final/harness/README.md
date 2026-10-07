@@ -13,7 +13,7 @@ reports/native-mobile-setup-final/harness/run.sh \
 
 The first argument is a clean product worktree. The third argument must equal its `HEAD`.
 
-The harness uses Bun 1.3.13, React Native Web 0.21.2, Expo Metro Runtime 57.0.15, Playwright 1.63.0, and axe-core 4.13.0. It keeps product source and lock files unchanged. It uses temporary browser storage, camera, Metro, export, and server fixtures.
+The harness uses Bun 1.3.13, React Native Web 0.21.2, Expo Metro Runtime 57.0.15, Playwright 1.63.0, and axe-core 4.13.0. It keeps product source and lock files unchanged. It uses synthetic health, ticket count, actor, event stream, camera, and browser storage data. It reads no credential and contacts no live server. The camera shim supplies only the declared permission and barcode fixture. Each browser context owns its temporary storage.
 
 The runner writes screenshots, `results.json`, `index.html`, and `manifest.sha256` to the artifact directory. It stops its server and removes its temporary run directory before it exits.
 
@@ -42,4 +42,13 @@ TRL1420_CASE=saved-reload-retention \
   5ac852d194a9521797859c5103b7ea14eaccb409
 ```
 
-The runner caches the Expo Web export by the product source and shim hashes. An isolated retry reuses the exact export.
+The runner caches the Expo Web export by the product source and shim hashes. An isolated retry reuses the exact export. Cache cleanup keeps the current export and the two newest prior exports.
+
+Run the three harness negative controls before a complete matrix:
+
+```sh
+reports/native-mobile-setup-final/harness/negative-controls.sh \
+  /home/boxd/worktrees/trl-1497 \
+  /home/boxd/worktrees/trl-1420/reports/native-mobile-setup-final \
+  5ac852d194a9521797859c5103b7ea14eaccb409
+```

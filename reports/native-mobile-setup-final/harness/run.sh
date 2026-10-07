@@ -12,6 +12,18 @@ web_root="/tmp/trellis-trl1420-web-$expected_source-$export_key"
 bun_root=/home/boxd/.cache/trl1420-bun-1.3.13
 server_pid=
 
+prune_export_cache() {
+	local -a old_exports=()
+	mapfile -t old_exports < <(
+		find /tmp -maxdepth 1 -mindepth 1 -type d -name 'trellis-trl1420-web-*' ! -path "$web_root" -printf '%T@ %p\n' |
+			sort -rn |
+			cut -d ' ' -f 2-
+	)
+	for ((index = 2; index < ${#old_exports[@]}; index++)); do
+		rm -rf "${old_exports[$index]}"
+	done
+}
+
 cleanup() {
 	if test -n "$server_pid"; then
 		kill "$server_pid" 2>/dev/null || true
@@ -22,7 +34,10 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 actual_source=$(git -C "$product_root" rev-parse HEAD)
-test "$actual_source" = "$expected_source"
+if test "$actual_source" != "$expected_source"; then
+	printf 'source_mismatch actual=%s expected=%s\n' "$actual_source" "$expected_source" >&2
+	exit 1
+fi
 test -z "$(git -C "$product_root" status --porcelain)"
 mkdir -p "$staged_artifact" "$bun_root"
 
@@ -33,14 +48,16 @@ if ! test -x "$bun_bin"; then
 fi
 test "$("$bun_bin" --version)" = "1.3.13"
 
-if ! test -f "$web_root/index.html"; then
-	sha256sum "$product_root/apps/mobile/package.json" "$product_root/bun.lock" > "$run_root/deps-before.sha256"
-	cd "$product_root"
-	"$bun_bin" install --frozen-lockfile
-	"$bun_bin" add --no-save --cwd apps/mobile react-native-web@0.21.2 @expo/metro-runtime@57.0.15
-	sha256sum "$product_root/apps/mobile/package.json" "$product_root/bun.lock" > "$run_root/deps-after.sha256"
-	diff -u "$run_root/deps-before.sha256" "$run_root/deps-after.sha256"
+sha256sum "$product_root/apps/mobile/package.json" "$product_root/bun.lock" > "$run_root/deps-before.sha256"
+cd "$product_root"
+"$bun_bin" install --frozen-lockfile
+"$bun_bin" add --no-save --cwd apps/mobile react-native-web@0.21.2 @expo/metro-runtime@57.0.15
+sha256sum "$product_root/apps/mobile/package.json" "$product_root/bun.lock" > "$run_root/deps-after.sha256"
+diff -u "$run_root/deps-before.sha256" "$run_root/deps-after.sha256"
 
+prune_export_cache
+
+if ! test -f "$web_root/index.html"; then
 	cd "$product_root/apps/mobile"
 	TRL1420_PROJECT_METRO_CONFIG="$product_root/apps/mobile/metro.config.js" \
 	TRL1420_SQLITE_SHIM="$harness_root/sqlite-kv-shim.js" \
@@ -52,16 +69,28 @@ fi
 
 browser_root=/home/boxd/.cache/trl1420-playwright
 mkdir -p "$browser_root"
-PLAYWRIGHT_BROWSERS_PATH="$browser_root" "$bun_bin" x playwright install chromium
+PLAYWRIGHT_BROWSERS_PATH="$browser_root" "$bun_bin" "$product_root/node_modules/playwright/cli.js" install chromium
 
-TRL1420_WEB_ROOT="$web_root" TRL1420_PORT=4173 \
+served_source="$actual_source"
+if test "${TRL1420_NEGATIVE_CONTROL:-}" = "server-source-mismatch"; then
+	served_source="mismatched-source"
+fi
+
+TRL1420_WEB_ROOT="$web_root" TRL1420_PORT=0 TRL1420_SOURCE="$served_source" \
 	"$bun_bin" "$harness_root/serve.ts" > "$run_root/server.log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 40); do
-	if curl -fsSI http://127.0.0.1:4173/setup > "$run_root/headers.txt"; then break; fi
+	if jq -e 'select(.ready == true) | .port' "$run_root/server.log" > "$run_root/port.txt" 2>/dev/null; then break; fi
 	sleep 0.25
 done
-curl -fsSI http://127.0.0.1:4173/setup > "$run_root/headers.txt"
+port=$(tail -n 1 "$run_root/port.txt")
+base_url="http://127.0.0.1:$port"
+curl -fsS "$base_url/__trellis_fixture__" > "$run_root/fixture.json"
+if ! jq -e '.source == $source' --arg source "$actual_source" "$run_root/fixture.json" >/dev/null; then
+	printf 'served_source_mismatch expected=%s\n' "$actual_source" >&2
+	exit 1
+fi
+curl -fsSI "$base_url/setup" > "$run_root/headers.txt"
 rg -qi '^cross-origin-opener-policy: same-origin' "$run_root/headers.txt"
 rg -qi '^cross-origin-embedder-policy: require-corp' "$run_root/headers.txt"
 
@@ -69,7 +98,7 @@ PLAYWRIGHT_BROWSERS_PATH="$browser_root" \
 TRL1420_PRODUCT_ROOT="$product_root" \
 TRL1420_ARTIFACT_ROOT="$staged_artifact" \
 TRL1420_SOURCE="$actual_source" \
-TRL1420_BASE_URL="http://127.0.0.1:4173" \
+TRL1420_BASE_URL="$base_url" \
 	"$bun_bin" "$harness_root/capture.ts"
 
 if test -n "${TRL1420_CASE:-}"; then
