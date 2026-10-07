@@ -8,6 +8,8 @@ import { TitleMenuButton } from "../../shell/PageTitle/TitleMenuButton";
 import { allEpicsId, epicSwitcherItems, epicSwitchSearch } from "./epicSwitcherItems";
 
 export const epicSwitcherPopoverClassName = "w-80 max-w-(--available-width) p-0";
+export const epicSwitcherCommandClassName =
+	"max-sm:[&_[cmdk-input]]:min-w-0 max-sm:[&_[cmdk-item]]:h-auto max-sm:[&_[cmdk-item]]:min-h-8 max-sm:[&_[cmdk-item]]:py-1.5 max-sm:[&_[cmdk-item]>span[aria-hidden=true]]:hidden";
 
 export type EpicSwitcherProps = {
 	// The path of the project the epic page is under.
@@ -62,6 +64,7 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 			trigger={<TitleMenuButton data-epic-switcher="" label={name} />}
 		>
 			<Command
+				className={epicSwitcherCommandClassName}
 				inputRef={input}
 				label="Search epics"
 				placeholder="Switch epic"
