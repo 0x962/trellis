@@ -16,7 +16,41 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Open: Story = {};
+const longName = "Interface acceptance evidence with a long descriptive filename for the final review.png";
+
+const previewIsUsable: NonNullable<Story["play"]> = async ({ args, canvasElement }) => {
+	const body = within(canvasElement.ownerDocument.body);
+	const dialog = await body.findByRole("dialog", { name: args.name });
+	const image = within(dialog).getByRole("img", { name: args.name });
+	expect(image.parentElement).toHaveAttribute("data-image-stage");
+	await waitFor(() => expect(image).not.toHaveClass("invisible"));
+	expect(image.parentElement).not.toHaveAttribute("aria-busy");
+	expect(image).toHaveClass("rounded-lg", "border", "border-border", "bg-surface", "object-contain", "shadow-sm");
+	await waitFor(() => expect(body.getByRole("button", { name: "Close" })).toHaveFocus());
+};
+
+const previewFailsClearly: NonNullable<Story["play"]> = async ({ args, canvasElement }) => {
+	const body = within(canvasElement.ownerDocument.body);
+	const dialog = await body.findByRole("dialog", { name: args.name });
+	const alert = await within(dialog).findByRole("alert");
+	expect(alert).toHaveTextContent("The image did not load");
+	expect(within(dialog).getByAltText(args.name)).toHaveClass("invisible");
+	expect(dialog.querySelector("[aria-busy='true']")).not.toBeInTheDocument();
+	await waitFor(() => expect(body.getByRole("button", { name: "Close" })).toHaveFocus());
+};
+
+export const Open: Story = { globals: { theme: "dark" }, play: previewIsUsable };
+export const OpenLight: Story = { globals: { theme: "light" }, play: previewIsUsable };
+export const LoadError: Story = {
+	args: { url: "data:image/png;base64,broken" },
+	globals: { theme: "dark" },
+	play: previewFailsClearly,
+};
+export const LoadErrorLight: Story = {
+	args: { url: "data:image/png;base64,broken" },
+	globals: { theme: "light" },
+	play: previewFailsClearly,
+};
 export const Closed: Story = {
 	play: async ({ canvasElement }) => {
 		const body = within(canvasElement.ownerDocument.body);
@@ -24,4 +58,21 @@ export const Closed: Story = {
 		await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
 	},
 };
-export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+export const Narrow: Story = {
+	globals: { theme: "dark", viewport: { value: "narrow", isRotated: false } },
+	play: previewIsUsable,
+};
+export const NarrowLight: Story = {
+	globals: { theme: "light", viewport: { value: "narrow", isRotated: false } },
+	play: previewIsUsable,
+};
+export const LongName: Story = {
+	args: { name: longName },
+	globals: { theme: "dark", viewport: { value: "narrow", isRotated: false } },
+	play: previewIsUsable,
+};
+export const LongNameLight: Story = {
+	args: { name: longName },
+	globals: { theme: "light", viewport: { value: "narrow", isRotated: false } },
+	play: previewIsUsable,
+};
