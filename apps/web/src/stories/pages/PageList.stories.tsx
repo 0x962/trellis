@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
 import { expect, userEvent, within } from "storybook/test";
 import { PageList } from "../../features/pages/PageList";
-import { pageResponses } from "./fixtures/page";
-import { archivedProject, failure, pending, project } from "./fixtures/project";
+import { page, pageResponses } from "./fixtures/page";
+import { archivedProject, failure, id, pending, project } from "./fixtures/project";
 import { pageFrame } from "./pageFrame";
 
 const meta = {
@@ -19,8 +19,27 @@ const meta = {
 } satisfies Meta<typeof PageList>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+const densePages = Array.from({ length: 48 }, (_, index) => ({
+	...page,
+	id: id(700 + index),
+	ref: `DEMO/pages/interface-review-${index + 1}`,
+	slug: `interface-review-${index + 1}`,
+	title:
+		index % 3 === 0
+			? `Keyboard controls and focus order for Page journey ${index + 1}, with a complete identifying title`
+			: `Interface review ${index + 1}`,
+	pinned: index % 4 === 0,
+	openThreadCount: index % 5,
+}));
 
 export const Populated: Story = {};
+export const Dense: Story = {
+	parameters: { trellis: { responses: { "pages.list": { items: densePages, nextCursor: null } } } },
+};
+export const DenseNarrow: Story = {
+	...Dense,
+	globals: { viewport: { value: "narrow", isRotated: false } },
+};
 export const Empty: Story = {
 	parameters: { trellis: { responses: { "pages.list": { items: [], nextCursor: null } } } },
 };
@@ -38,4 +57,4 @@ export const SearchAndClear: Story = {
 export const Loading: Story = { parameters: { trellis: { responses: { "pages.list": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "pages.list": failure } } } };
 export const Archived: Story = { args: { project: archivedProject } };
-export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+export const Narrow: Story = { globals: { viewport: { value: "narrow", isRotated: false } } };
