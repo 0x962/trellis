@@ -1,5 +1,5 @@
 import { ActorHeaderSchema } from "@trellis/api";
-import { Button, Input } from "@trellis/ui";
+import { Button, FormStatus, Input } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { saveActorName } from "../../../lib/identity";
@@ -16,12 +16,18 @@ export function NameStep({ suggested, onDone }: NameStepProps) {
 	const app = useApp();
 	const [name, setName] = useState(suggested);
 	const [pending, setPending] = useState(false);
-	const valid = ActorHeaderSchema.safeParse(`human:${name.trim()}`).success;
+	const trimmed = name.trim();
+	const valid = ActorHeaderSchema.safeParse(`human:${trimmed}`).success;
+	const nameError = valid
+		? undefined
+		: trimmed === ""
+			? "Enter your name."
+			: "Use printable ASCII characters without a colon.";
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
 		setPending(true);
-		await saveActorName(app, name.trim());
+		await saveActorName(app, trimmed);
 		onDone();
 	};
 
@@ -36,12 +42,22 @@ export function NameStep({ suggested, onDone }: NameStepProps) {
 			<Input
 				label="Your name"
 				value={name}
+				error={nameError}
 				autoFocus
 				autoComplete="off"
 				spellCheck={false}
 				onChange={(event) => setName(event.target.value)}
 			/>
-			<Button type="submit" variant="primary" size="md" kbd="↵" disabled={!valid || pending} className="w-full">
+			<FormStatus status={pending ? "saving" : "idle"} />
+			<Button
+				type="submit"
+				variant="primary"
+				size="md"
+				kbd="↵"
+				disabled={!valid}
+				processing={pending}
+				className="w-full"
+			>
 				Continue
 			</Button>
 		</form>

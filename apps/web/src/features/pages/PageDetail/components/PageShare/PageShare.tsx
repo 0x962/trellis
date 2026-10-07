@@ -23,7 +23,10 @@ export function PageShare({
 			}}
 		>
 			<SheetBody>
-				<p className="text-sm text-fg-muted">This link follows the Page if its title, project, or address changes.</p>
+				<p className="text-sm text-fg-muted">
+					People can open this link only if they can access this project. The link follows the Page if its title,
+					project, or address changes.
+				</p>
 				<Input label="Trellis link" value={href} readOnly />
 			</SheetBody>
 			<SheetFooter>
