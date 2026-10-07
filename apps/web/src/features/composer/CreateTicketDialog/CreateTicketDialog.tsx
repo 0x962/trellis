@@ -157,6 +157,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								agent={
 									<AgentPicker
 										value={choice}
+										assignAgent={assignAgent}
 										accounts={accounts.data}
 										onChange={(assignment) => chooseClassification({ assignment })}
 										disabled={locked}
