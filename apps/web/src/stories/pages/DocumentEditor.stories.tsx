@@ -59,11 +59,15 @@ type Story = StoryObj<typeof meta>;
 
 export const ReadableTitle: Story = {
 	play: async ({ canvasElement }) => {
-		const title = await within(canvasElement).findByRole("textbox", { name: "Title" });
+		const canvas = within(canvasElement);
+		const title = await canvas.findByRole("textbox", { name: "Title" });
+		const body = await canvas.findByRole("textbox", { name: "Description" });
 		await expect(title).toHaveAttribute("data-variant", "document");
 		await expect(getComputedStyle(title).maxHeight).toBe("none");
 		await expect(title.scrollHeight).toBeLessThanOrEqual(title.clientHeight);
+		await waitFor(() => expect(body).toHaveFocus());
 		await userEvent.click(title);
+		await waitFor(() => expect(title).toHaveFocus());
 		await expect(getComputedStyle(title).outlineStyle).toBe("solid");
 		await expect(getComputedStyle(title).outlineWidth).toBe("2px");
 	},
