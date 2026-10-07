@@ -42,7 +42,7 @@ const createBrowser = (href: string) => {
 		},
 	};
 	return {
-		browser: { location: parsed, history },
+		browser: { location: parsed, history, performance: { getEntriesByType: () => [] } },
 		writes,
 	};
 };

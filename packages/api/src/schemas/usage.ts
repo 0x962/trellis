@@ -200,3 +200,23 @@ export const UsageRankingSchema = z.object({
 	selectedRank: z.number().int().nullable(),
 });
 export type UsageRanking = z.infer<typeof UsageRankingSchema>;
+
+export const UsageMergedWorkInputSchema = z.strictObject({
+	days: UsageDaysInputSchema,
+	computedAt: IsoDateTimeSchema,
+});
+export type UsageMergedWorkInput = z.infer<typeof UsageMergedWorkInputSchema>;
+
+const UsageMergedCountsSchema = z.object({
+	prs: z.number().int().nonnegative(),
+	additions: z.number().int().nonnegative(),
+	deletions: z.number().int().nonnegative(),
+	missingAdditions: z.number().int().nonnegative(),
+	missingDeletions: z.number().int().nonnegative(),
+});
+export const UsageMergedWorkSchema = z.object({
+	computedAt: IsoDateTimeSchema,
+	buckets: z.array(UsageMergedCountsSchema.extend({ day: z.string() })),
+	totals: UsageMergedCountsSchema,
+});
+export type UsageMergedWork = z.infer<typeof UsageMergedWorkSchema>;

@@ -29,7 +29,8 @@ Each page supplies its data and available actions. It does not choose new contro
 | Sort field and direction | `DisplayPopover` | `packages/ui/src/domain/DisplayPopover/DisplayPopover.tsx` |
 | Table display preferences | Web `DisplayPopover` with the shared popover | `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx` |
 | Collapsible data groups | `GroupHeader` | `packages/ui/src/domain/GroupHeader/GroupHeader.tsx` |
-| Ticket detail sections | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
+| Section headings | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
+| Static panels | `Panel` | `packages/ui/src/primitives/Panel/Panel.tsx` |
 | Property label and value | `PropertyRow` | `packages/ui/src/primitives/PropertyRow/PropertyRow.tsx` |
 | Ticket table rows | `Row`, with `columns` and `rowHeights` | `apps/web/src/features/table/Row/Row.tsx` |
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
@@ -164,6 +165,7 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 `Sheet` owns the appearance of every slideout, including forms and pages.
+Its `description` prop shows the introductory text and supplies the accessible description.
 It uses `rounded-xl` on the exposed corners and the `shadow-page-sheet` token.
 The corners face left for a right sheet and right for a left sheet.
 The sheet clips its content to these corners.
@@ -243,7 +245,9 @@ If the anchor ticket leaves the view, the next Shift click starts a new range.
 
 ## Group headers
 
-Use `GroupHeader` for groups of data rows. Use `SectionHeader` for sections in ticket details and settings.
+Use `GroupHeader` for groups of data rows and controlled disclosure regions. Use `SectionHeader` for section headings. Its `level` sets the heading depth. The `overview` and `prominent` appearances set the title size independently of that depth.
+
+Use `Panel` for a static frame around summary data or charts. The caller supplies the content and padding.
 The data header has a rounded inset band, a collapse chevron, a label, and a muted count.
 The band starts 12 px inside a desktop list and 8 px inside a phone list.
 Keep the label aligned with the rows by reducing the padding inside the band.
@@ -320,7 +324,9 @@ The words carry no blame, no apology and no exclamation mark. Red marks one thin
 
 The Agent Usage tab puts Providers directly under Accounts.
 `ProviderCard` is the second card shape on the page. It shows the key status, balance, and selected models.
-`ProviderForm` uses the account dialog shape for Add and Edit. Edit leaves the key blank and preserves it until a person enters a replacement.
+Account details, sign-in instructions, account forms, and `ProviderForm` use the shared `Sheet` and `SheetBody`.
+The slideout opens from the right and keeps Usage behind it.
+Edit leaves the key blank and preserves it until a person enters a replacement.
 The model control uses `Popover`, `PickerButton`, `Command.Virtual`, and `Chip`. It accepts an identifier outside the catalog. Selected models use the shared virtual row hook in a scrollable viewport. Arrow keys, Home, End, Page Up, and Page Down reach remove buttons throughout the selection.
 The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 

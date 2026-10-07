@@ -21,7 +21,7 @@ An interactive story contains the supported transitions of its component. Its de
 
 ## Data boundaries
 
-The preview uses an isolated query cache and a memory router. It resets application stores before each story. The synthetic actor is `Storybook`.
+The preview uses an isolated query cache and a memory router. The Storybook loader waits for the memory router before it renders a story. Controls and toolbar updates retain the current router and query cache. A new story or Reload story resets the application stores and creates a fresh environment. The synthetic actor is `Storybook`.
 
 Story parameters supply local procedure responses:
 
@@ -60,6 +60,8 @@ The browser check requires a running Storybook and a Playwright Chromium install
 The complete browser check also verifies Controls, the theme toolbar, the 320 pixel viewport, and the documentation page. It checks that a story change restores the synthetic actor. A filtered run checks only its selected stories.
 
 The Storybook GitHub workflow runs the coverage, type, lint, fixture, build, and browser checks for frontend changes. Its artifact retains the browser results and server log.
+
+A manual workflow run accepts an optional `filter` value for a story ID. An empty value checks the complete catalog and manager. Failed stories retain the input events, render phase, error stacks, and rendered HTML in the result artifact.
 
 Optional environment variables:
 

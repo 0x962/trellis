@@ -19,3 +19,5 @@ export const LongContent: Story = {
 		detail: "The report includes all local sessions.",
 	},
 };
+
+export const Large: Story = { args: { size: "large" } };

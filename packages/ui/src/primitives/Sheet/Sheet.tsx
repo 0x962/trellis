@@ -9,6 +9,7 @@ export type SheetProps = {
 	onOpenChange: NonNullable<ComponentProps<typeof BaseDialog.Root>["onOpenChange"]>;
 	// The accessible name, shown in the header.
 	title: string;
+	description?: string;
 	side?: "left" | "right";
 	// A modal sheet draws a scrim and traps focus. A non-modal sheet keeps the page reachable.
 	modal?: boolean;
@@ -60,6 +61,7 @@ export function Sheet({
 	open,
 	onOpenChange,
 	title,
+	description,
 	side = "right",
 	modal = true,
 	dismissOnOutside = false,
@@ -120,7 +122,14 @@ export function Sheet({
 							<BaseDialog.Close render={<IconButton label="Close" icon={<X />} />} />
 						</header>
 					)}
-					<div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+					<div className="min-h-0 flex-1 overflow-y-auto">
+						{description && (
+							<BaseDialog.Description className="px-6 pt-6 text-sm text-fg-muted max-md:px-4 max-md:pt-4">
+								{description}
+							</BaseDialog.Description>
+						)}
+						{children}
+					</div>
 					{resizeHandle && (
 						<div className={cx("absolute inset-y-0 z-10 flex", side === "right" ? "left-0" : "right-0")}>
 							{resizeHandle}

@@ -21,6 +21,9 @@ const tab = (id: string, page: PageTabPage): PageTab => ({
 	forwardHistory: [],
 });
 
+const rememberPinnedPage = (tab: PageTab): PageTab =>
+	tab.pinned && !tab.pinnedPage ? { ...tab, pinnedPage: { url: tab.url, title: tab.title } } : tab;
+
 const updateActiveTab = (state: PageTabsState, update: (current: PageTab) => PageTab) => ({
 	tabs: state.tabs.map((item) => (item.id === state.activeId ? update(item) : item)),
 });
@@ -120,15 +123,37 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 					})),
 				setPinned: (id, pinned) =>
 					set((state) => {
-						const { pinned: _pinned, groupId, ...current } = state.tabs.find((item) => item.id === id)!;
+						const {
+							pinned: _pinned,
+							pinnedPage: _page,
+							groupId,
+							...current
+						} = state.tabs.find((item) => item.id === id)!;
 						if ((_pinned === true) === pinned) return state;
 						// A pin leaves the group; an unpin lands at the start of the
 						// ungrouped tail.
-						const moving: PageTab = pinned ? { ...current, pinned: true } : current;
+						const moving: PageTab = pinned
+							? { ...current, pinned: true, pinnedPage: { url: current.url, title: current.title } }
+							: current;
 						const tabs = state.tabs.filter((item) => item.id !== id);
 						tabs.splice(pinned ? insertIndex(tabs, state.groups, moving, tabs.length) : tailStart(tabs), 0, moving);
 						return { tabs, groups: removeGroupIfEmpty(tabs, state.groups, groupId) };
 					}),
+				restorePinnedTabs: (keepActivePage) =>
+					set((state) => ({
+						tabs: state.tabs.map((current) => {
+							if (!current.pinned || (keepActivePage && current.id === state.activeId)) return current;
+							const page = current.pinnedPage!;
+							return {
+								...current,
+								...page,
+								backHistory:
+									current.url === page.url
+										? current.backHistory
+										: [...current.backHistory, { url: current.url, title: current.title }],
+							};
+						}),
+					})),
 				moveTab: (id, beforeId) =>
 					set((state) => {
 						if (id === beforeId) return state;
@@ -226,6 +251,14 @@ export const createPageTabsStore = (options: CreatePageTabsStoreOptions) => {
 			{
 				name: pageTabsStorageKey(options.origin),
 				storage: createJSONStorage(() => options.storage),
+				merge: (saved, current) => {
+					const state = { ...current, ...(saved as Partial<PageTabsState>) };
+					return {
+						...state,
+						tabs: state.tabs.map(rememberPinnedPage),
+						closedTabs: state.closedTabs.map((closed) => ({ ...closed, tab: rememberPinnedPage(closed.tab) })),
+					};
+				},
 				partialize: (state) => ({
 					tabs: state.tabs,
 					groups: state.groups,

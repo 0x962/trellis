@@ -3,22 +3,21 @@ import { RouterProvider } from "@tanstack/react-router";
 import { setTheme, Toaster } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
 import { AppProvider } from "../../../lib/appContext";
-import type { loadStoryApp } from "../loadStoryApp";
-import { StoryContentContext } from "../StoryContent";
+import { StoryContentContext } from "../components/StoryContent";
+import type { PreparedStory } from "../prepareStory";
 import type { StoryParameters } from "../types";
 
 export function AppStory({
 	children,
+	prepared: { app, router },
 	parameters = {},
 	theme,
-	loaded,
 }: {
 	children: ReactNode;
+	prepared: PreparedStory;
 	parameters?: StoryParameters;
 	theme: "light" | "dark";
-	loaded: Awaited<ReturnType<typeof loadStoryApp>>;
 }) {
-	const { app, router } = loaded;
 	useEffect(() => setTheme(theme), [theme]);
 	useEffect(() => () => app.queryClient.clear(), [app]);
 	return (

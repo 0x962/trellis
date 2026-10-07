@@ -13,13 +13,14 @@ import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@
 import {
 	Button,
 	CodeText,
-	Dialog,
 	IconButton,
 	Menu,
 	PropertyRow,
 	ProviderIcon,
 	QuotaWindows,
 	SettingsListRow,
+	Sheet,
+	SheetBody,
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
@@ -166,7 +167,7 @@ export function UsageAccountRow({
 					</div>
 				}
 			/>
-			<Dialog
+			<Sheet
 				open={details}
 				onOpenChange={(open) => {
 					setDetails(open);
@@ -174,48 +175,51 @@ export function UsageAccountRow({
 				}}
 				title={`Edit details for ${account.name}`}
 				description="Review the account profile. Rename the account to change its display name."
+				titleClassName="text-md font-medium"
 			>
-				<dl className="flex flex-col">
-					<PropertyRow label="Harness">{harnessLabel[account.harness]}</PropertyRow>
-					<PropertyRow label="Default">{account.isDefault ? "Yes" : "No"}</PropertyRow>
-					{account.quota.email && <PropertyRow label="Identity">{account.quota.email}</PropertyRow>}
-					{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
-					<PropertyRow label="Quota" align="start">
-						<span className="flex min-w-0 flex-1 flex-col gap-2">
-							<span>{accountQuotaSummary(account)}</span>
-							{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
-							{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
-						</span>
-					</PropertyRow>
-					{shared && sharedValue > 0 && (
-						<PropertyRow label="Shared usage" align="start">
-							<span className="text-sm text-fg-muted text-pretty">
-								{formatMetric(metric, sharedValue)} belongs to a transcript directory shared with{" "}
-								{account.sharedWith.join(", ")}.
+				<SheetBody>
+					<dl className="flex flex-col">
+						<PropertyRow label="Harness">{harnessLabel[account.harness]}</PropertyRow>
+						<PropertyRow label="Default">{account.isDefault ? "Yes" : "No"}</PropertyRow>
+						{account.quota.email && <PropertyRow label="Identity">{account.quota.email}</PropertyRow>}
+						{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
+						<PropertyRow label="Quota" align="start">
+							<span className="flex min-w-0 flex-1 flex-col gap-2">
+								<span>{accountQuotaSummary(account)}</span>
+								{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
+								{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
 							</span>
 						</PropertyRow>
-					)}
-					<PropertyRow label="Profile" align="start">
-						<CodeText className="break-all text-sm text-fg-muted">{account.profilePath}</CodeText>
-					</PropertyRow>
-				</dl>
-				<div className="flex justify-end gap-2">
-					{managed && (
-						<Button
-							onClick={() => {
-								setDetails(false);
-								onRename();
-							}}
-						>
-							Rename account
+						{shared && sharedValue > 0 && (
+							<PropertyRow label="Shared usage" align="start">
+								<span className="text-sm text-fg-muted text-pretty">
+									{formatMetric(metric, sharedValue)} belongs to a transcript directory shared with{" "}
+									{account.sharedWith.join(", ")}.
+								</span>
+							</PropertyRow>
+						)}
+						<PropertyRow label="Profile" align="start">
+							<CodeText className="break-all text-sm text-fg-muted">{account.profilePath}</CodeText>
+						</PropertyRow>
+					</dl>
+					<div className="flex justify-end gap-2">
+						{managed && (
+							<Button
+								onClick={() => {
+									setDetails(false);
+									onRename();
+								}}
+							>
+								Rename account
+							</Button>
+						)}
+						<Button variant="primary" onClick={() => setDetails(false)}>
+							Done
 						</Button>
-					)}
-					<Button variant="primary" onClick={() => setDetails(false)}>
-						Done
-					</Button>
-				</div>
-			</Dialog>
-			<Dialog
+					</div>
+				</SheetBody>
+			</Sheet>
+			<Sheet
 				open={login}
 				onOpenChange={(open) => {
 					setLogin(open);
@@ -223,28 +227,31 @@ export function UsageAccountRow({
 				}}
 				title={`Sign in to ${account.name}`}
 				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account."
+				titleClassName="text-md font-medium"
 			>
-				<div className="flex min-w-0 items-start gap-2">
-					<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
-					<Tooltip content="Copy command">
-						<IconButton
-							label="Copy login command"
-							onClick={() => void copyText(account.loginCommand!, "Login command copied")}
-							icon={<Copy />}
-						/>
-					</Tooltip>
-				</div>
-				<div className="flex justify-end">
-					<Button
-						onClick={() => {
-							setLogin(false);
-							onRefresh();
-						}}
-					>
-						Done
-					</Button>
-				</div>
-			</Dialog>
+				<SheetBody>
+					<div className="flex min-w-0 items-start gap-2">
+						<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
+						<Tooltip content="Copy command">
+							<IconButton
+								label="Copy login command"
+								onClick={() => void copyText(account.loginCommand!, "Login command copied")}
+								icon={<Copy />}
+							/>
+						</Tooltip>
+					</div>
+					<div className="flex justify-end">
+						<Button
+							onClick={() => {
+								setLogin(false);
+								onRefresh();
+							}}
+						>
+							Done
+						</Button>
+					</div>
+				</SheetBody>
+			</Sheet>
 		</>
 	);
 }

@@ -153,3 +153,25 @@ export const WithMargin: Story = {
 		),
 	},
 };
+export const LargeDocument: Story = {
+	args: {
+		activeId: "heading-0",
+		headings: Array.from({ length: 500 }, (_, index) => ({
+			id: `heading-${index}`,
+			level: 2,
+			text: `Section ${index + 1}`,
+		})),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const contents = within(await canvas.findByRole("navigation", { name: "Document contents" }));
+		await userEvent.click(await contents.findByRole("button", { name: "Section 1" }));
+		await userEvent.keyboard("{End}");
+		const last = await contents.findByRole("button", { name: "Section 500" });
+		await expect(last).toHaveFocus();
+		await userEvent.keyboard("{Enter}");
+		await expect(last).toHaveAttribute("aria-current", "location");
+		await expect(canvas.getByRole("article").parentElement!.scrollTop).toBeGreaterThan(0);
+		await expect(contents.getAllByRole("button").length).toBeLessThan(50);
+	},
+};
