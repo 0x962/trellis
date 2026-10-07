@@ -11,6 +11,24 @@ type SetupFeedbackInput = {
 	answer: ProbeResult | undefined;
 };
 
+type SetupNameErrorInput = {
+	name: string;
+	validationError: string | undefined;
+	revealEmpty: boolean;
+};
+
+export const setupNameNote = (replacingServer: boolean) =>
+	replacingServer
+		? "A new server clears this phone's cached tickets."
+		: "Trellis uses this name on tickets and messages.";
+
+export function setupNameError({ name, validationError, revealEmpty }: SetupNameErrorInput): string | undefined {
+	if (validationError === undefined) return undefined;
+	if (name.trim() !== "") return validationError;
+	if (!revealEmpty) return undefined;
+	return `Enter your name. ${validationError}`;
+}
+
 export function setupFeedback({ busy, invalidPairLink, answer }: SetupFeedbackInput): SetupFeedback | undefined {
 	if (invalidPairLink) {
 		return {
