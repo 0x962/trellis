@@ -205,7 +205,8 @@ export const AccountLoadRecovery: Story = {
 		const page = within(canvasElement.ownerDocument.body);
 		await waitFor(() => expect(page.getByText("Accounts did not load")).toBeVisible());
 		const dialog = page.getByRole("dialog", { name: "Switch account" });
-		await waitFor(() => expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true));
+		await waitFor(() => expect(dialog).toHaveFocus());
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 		const retry = page.getByRole("button", { name: "Retry" });
 		retry.focus();
 		await expect(retry).toHaveFocus();
