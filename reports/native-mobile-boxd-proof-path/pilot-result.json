@@ -1,0 +1,30 @@
+{
+  "kind": "baseline browser evidence",
+  "url": "http://127.0.0.1:4173/setup",
+  "httpStatus": 200,
+  "focused": {
+    "tag": "INPUT",
+    "name": "Server URL",
+    "placeholder": "http://192.168.1.20:4521"
+  },
+  "errors": [],
+  "crossOriginIsolated": true,
+  "hasSharedArrayBuffer": true,
+  "width": 320,
+  "height": 720,
+  "text": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nSave",
+  "buttons": [
+    {
+      "name": "Scan QR code",
+      "disabled": false
+    },
+    {
+      "name": "Test connection",
+      "disabled": false
+    },
+    {
+      "name": "Save",
+      "disabled": true
+    }
+  ]
+}

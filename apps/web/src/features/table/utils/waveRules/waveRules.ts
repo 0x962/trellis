@@ -32,7 +32,9 @@ export const deleteWords = (
 ): string => {
 	const held = members.filter((ticket) => ticket.wave?.id === wave.id);
 	const running = held.filter((ticket) => assigned.has(ticket.id)).length;
-	const words = [`The ${tickets(wave.counts.total)} of the wave stay in the epic and move to No wave.`];
+	const action =
+		wave.counts.total === 1 ? "stays in the epic and moves to No wave" : "stay in the epic and move to No wave";
+	const words = [`The ${tickets(wave.counts.total)} of the wave ${action}.`];
 	if (running > 0) {
 		words.push(
 			`${formatCount(running)} of them ${running === 1 ? "has" : "have"} an open agent run. A delete stops no agent.`,
