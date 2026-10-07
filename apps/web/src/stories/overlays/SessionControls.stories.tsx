@@ -114,7 +114,7 @@ export const AccountSwitchError: Story = {
 		await AccountSelected.play!(context);
 		await clickButton("Switch account")(context);
 		const page = within(context.canvasElement.ownerDocument.body);
-		await expect(await page.findByText("The account did not switch")).toBeVisible();
+		await waitFor(() => expect(page.getByText("The account did not switch")).toBeVisible());
 		await expect(page.getByRole("button", { name: "Retry switch" })).toBeEnabled();
 	},
 };
@@ -254,7 +254,7 @@ export const AccountRetry: Story = {
 		await AccountSelected.play!(context);
 		await clickButton("Switch account")(context);
 		const page = within(context.canvasElement.ownerDocument.body);
-		await expect(await page.findByText("The account did not switch")).toBeVisible();
+		await waitFor(() => expect(page.getByText("The account did not switch")).toBeVisible());
 		await expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible();
 		const retry = page.getByRole("button", { name: "Retry switch" });
 		retry.focus();
