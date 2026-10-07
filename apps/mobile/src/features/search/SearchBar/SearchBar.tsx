@@ -20,7 +20,10 @@ const styles = StyleSheet.create({
 	bar: { paddingHorizontal: tokens.space[4], paddingTop: tokens.space[4], paddingBottom: tokens.space[2] },
 	row: { flexDirection: "row", alignItems: "flex-end", gap: tokens.space[2] },
 	field: { flex: 1 },
-	clear: { width: layout.hit, height: layout.hit, alignItems: "center", justifyContent: "center" },
+	// The square at the right edge of the field keeps its size whether it
+	// holds the clear control or the search mark, so the field keeps one
+	// width and the text in it never reflows.
+	slot: { width: layout.hit, height: layout.hit, alignItems: "center", justifyContent: "center" },
 	// The hint holds its own line height whether or not it holds words, so
 	// the results under it stay where they are while a person types.
 	hint: {
@@ -51,13 +54,17 @@ export function SearchBar({ value, onChangeText, onSubmit, onClear, identifier }
 						onSubmitEditing={onSubmit}
 					/>
 				</View>
-				{value !== "" && (
+				{value === "" ? (
+					<View style={styles.slot} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+						<Ionicons name="search-outline" size={tokens.space[5]} color={palette.fgFaint} />
+					</View>
+				) : (
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel="Clear the search"
 						testID="search-clear"
 						onPress={onClear}
-						style={({ pressed }) => [styles.clear, pressed && { opacity: 0.6 }]}
+						style={({ pressed }) => [styles.slot, pressed && { opacity: 0.6 }]}
 					>
 						<Ionicons name="close-circle" size={tokens.space[5]} color={palette.fgMuted} />
 					</Pressable>
