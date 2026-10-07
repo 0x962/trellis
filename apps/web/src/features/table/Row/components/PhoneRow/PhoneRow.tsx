@@ -83,21 +83,14 @@ function EpicCells({
 			{disclosure !== null && (
 				<TicketDisclosure identifier={ticket.identifier} disclosure={disclosure} onToggle={onToggleDisclosure} />
 			)}
-			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-			<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
+			<div data-column="status" className="flex shrink-0 items-center">
 				<StatusIcon {...statusIconProps(ticket.status)} label={ticket.status.name} />
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div
-					role="gridcell"
-					data-column="id"
-					className="shrink-0 font-mono text-sm whitespace-nowrap text-fg-faint tabular"
-				>
+				<div data-column="id" className="shrink-0 font-mono text-sm whitespace-nowrap text-fg-faint tabular">
 					{ticket.identifier}
 				</div>
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div role="gridcell" data-column="title" className="line-clamp-2 min-w-0 wrap-anywhere text-sm text-fg">
+				<div data-column="title" className="line-clamp-2 min-w-0 wrap-anywhere text-sm text-fg">
 					{ticket.title}
 				</div>
 				{line !== null && (
@@ -106,8 +99,7 @@ function EpicCells({
 					</div>
 				)}
 			</div>
-			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-			<div role="gridcell" data-column="actor" className="flex shrink-0 items-center empty:hidden">
+			<div data-column="actor" className="flex shrink-0 items-center empty:hidden">
 				{actor}
 			</div>
 		</div>
@@ -119,34 +111,24 @@ function EpicCells({
 function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: ReactNode }) {
 	return (
 		<>
-			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-			<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
+			<div data-column="status" className="flex shrink-0 items-center">
 				<StatusIcon {...statusIconProps(ticket.status)} label={ticket.status.name} />
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				<div className="flex items-center gap-3">
-					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-					<div role="gridcell" data-column="id" className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">
+					<div data-column="id" className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">
 						{ticket.identifier}
 					</div>
 					<span className="flex-1" />
-					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-					<div role="gridcell" data-column="updated" className="text-xs text-fg-faint tabular">
+					<div data-column="updated" className="text-xs text-fg-faint tabular">
 						{compactRelativeTime(ticket.updatedAt)}
 					</div>
 				</div>
-				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-				<div
-					role="gridcell"
-					data-column="title"
-					data-line="title"
-					className="line-clamp-2 wrap-anywhere text-sm text-fg"
-				>
+				<div data-column="title" data-line="title" className="line-clamp-2 wrap-anywhere text-sm text-fg">
 					{ticket.title}
 				</div>
 			</div>
-			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-			<div role="gridcell" data-column="priority" className="flex shrink-0 items-center">
+			<div data-column="priority" className="flex shrink-0 items-center">
 				{priority}
 			</div>
 		</>
@@ -210,19 +192,26 @@ export function PhoneRow({
 			onClick={(event) => onClick?.(ticket.id, event)}
 			onKeyDown={onKeyDown}
 		>
-			{washing && <DoneWash />}
-			<a
-				href={href}
-				tabIndex={-1}
-				data-row-link=""
-				aria-label={`Open ${ticket.identifier}`}
-				className="absolute inset-0 z-0"
-				onClick={onLinkClick}
-				onAuxClick={stopLinkPropagation}
+			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns focus, and this cell keeps the native ticket link. */}
+			<div role="gridcell" className="absolute inset-0 z-0">
+				{washing && <DoneWash />}
+				<a
+					href={href}
+					tabIndex={-1}
+					data-row-link=""
+					aria-label={`Open ${ticket.identifier}`}
+					className="absolute inset-0 z-0"
+					onClick={onLinkClick}
+					onAuxClick={stopLinkPropagation}
+				>
+					<span className="sr-only">Open {ticket.identifier}</span>
+				</a>
+			</div>
+			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cell stays outside the tab order. */}
+			<div
+				role="gridcell"
+				className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-3 [&_button]:pointer-events-auto [&_[role=button]]:pointer-events-auto"
 			>
-				<span className="sr-only">Open {ticket.identifier}</span>
-			</a>
-			<div className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-3 [&_button]:pointer-events-auto [&_[role=button]]:pointer-events-auto">
 				{layout === "epic" ? (
 					<EpicCells
 						ticket={ticket}
