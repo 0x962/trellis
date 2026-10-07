@@ -1,7 +1,7 @@
 import { type ProviderCheck, ProviderCheckDraftInputSchema } from "@trellis/api";
-import type { IoCtx } from "../support.ts";
-import type { RemoteDeps } from "./remote.ts";
-import { readProviderCheck } from "./remoteCheck";
+import type { IoCtx } from "../../support.ts";
+import type { RemoteDeps } from "../remote.ts";
+import { readProviderCheck } from "../remoteCheck";
 
 export const prepareDraftCheck = (
 	ctx: IoCtx,

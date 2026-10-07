@@ -39,7 +39,7 @@ import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import { prepareCheck } from "./providers/check.ts";
-import { prepareDraftCheck } from "./providers/draftCheck.ts";
+import { prepareDraftCheck } from "./providers/draftCheck/index.ts";
 import { prepareModels } from "./providers/models.ts";
 import * as providers from "./providers/providers.ts";
 import { preparePublicModels } from "./providers/publicModels.ts";
