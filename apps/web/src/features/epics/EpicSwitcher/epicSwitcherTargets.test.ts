@@ -34,14 +34,12 @@ describe.skipIf(process.env.STORYBOOK_URL === undefined)("EpicSwitcher rendered 
 					await trigger.focus();
 					await trigger.press("Enter");
 					await page.getByRole("option", { name: "All epics", exact: true }).waitFor();
-					const geometry = await page
-						.getByRole("option")
-						.evaluateAll((options) =>
-							options.map((option) => ({
-								width: option.getBoundingClientRect().width,
-								height: option.getBoundingClientRect().height,
-							})),
-						);
+					const geometry = await page.getByRole("option").evaluateAll((options) =>
+						options.map((option) => ({
+							width: option.getBoundingClientRect().width,
+							height: option.getBoundingClientRect().height,
+						})),
+					);
 					expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(hasTouch);
 					expect(geometry.length).toBe(2);
 					for (const option of geometry) {
