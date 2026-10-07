@@ -77,7 +77,11 @@ const render = (patch: Partial<React.ComponentProps<typeof UsageAccountRow>> = {
 describe("UsageAccountRow", () => {
 	test("shows the compact identity, quota, report value, and two row actions", () => {
 		const html = render();
-		expect(html).toContain("Work · Default");
+		expect(html).toContain('class="status-row-name">Work</span>');
+		expect(html).toContain('class="status-row-default">Default</span>');
+		expect(html).toContain('aria-label="Edit Work, Default"');
+		expect(html).toContain("whitespace-normal text-pretty");
+		expect(html).not.toContain("Work · Default");
 		expect(html).toContain(
 			`Claude Code · Weekly window · 72% used · Resets ${formatDayTime(account.quota.windows[1]!.resetsAt!)}`,
 		);

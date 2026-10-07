@@ -100,8 +100,10 @@ export function UsageAccountRow({
 	return (
 		<>
 			<SettingsListRow
-				label={`${account.name}${account.isDefault ? " · Default" : ""}`}
+				label={account.name}
+				badge={account.isDefault ? "Default" : undefined}
 				description={description}
+				wrapDescription
 				icon={
 					provider ? (
 						<ProviderIcon provider={provider} decorative className="text-fg-muted" />

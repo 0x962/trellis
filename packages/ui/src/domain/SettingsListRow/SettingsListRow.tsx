@@ -1,8 +1,11 @@
 import { type ReactNode, useId } from "react";
+import { cx } from "../../utils/cx";
 
 export type SettingsListRowProps = {
 	label: string;
+	badge?: string;
 	description: string;
+	wrapDescription?: boolean;
 	icon: ReactNode;
 	actions: ReactNode;
 	disabled?: boolean;
@@ -12,7 +15,9 @@ export type SettingsListRowProps = {
 
 export function SettingsListRow({
 	label,
+	badge,
 	description,
+	wrapDescription,
 	icon,
 	actions,
 	disabled,
@@ -26,7 +31,7 @@ export function SettingsListRow({
 				<button
 					type="button"
 					className="status-row-summary-button"
-					aria-label={`Edit ${label}`}
+					aria-label={`Edit ${label}${badge ? `, ${badge}` : ""}`}
 					aria-expanded={Boolean(children)}
 					aria-controls={children ? editorId : undefined}
 					disabled={disabled}
@@ -36,8 +41,13 @@ export function SettingsListRow({
 						{icon}
 					</span>
 					<span className="status-row-copy">
-						<span className="status-row-name">{label}</span>
-						<span className="status-row-description">{description}</span>
+						<span className="status-row-name-line">
+							<span className="status-row-name">{label}</span>
+							{badge && <span className="status-row-default">{badge}</span>}
+						</span>
+						<span className={cx("status-row-description", wrapDescription && "whitespace-normal text-pretty")}>
+							{description}
+						</span>
 					</span>
 				</button>
 				{actions}

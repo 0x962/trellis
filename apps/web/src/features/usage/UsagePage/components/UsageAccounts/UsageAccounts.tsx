@@ -13,9 +13,11 @@ import {
 	ConfirmDialog,
 	EmptyState,
 	FailureState,
+	FilterBar,
 	HarnessAccountForm,
 	HarnessAccountNameForm,
 	IconButton,
+	Input,
 	SectionHeader,
 	Skeleton,
 	Tooltip,
@@ -25,6 +27,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "./accountError";
 import { UsageAccountRow } from "./components/UsageAccountRow";
 import { VirtualUsageAccountRows } from "./components/VirtualUsageAccountRows";
+import { usageAccountMatches } from "./usageAccountMatches";
 
 export type UsageAccountsProps = {
 	rows: readonly UsageGroupRow[];
@@ -71,6 +74,11 @@ export function UsageAccounts({ rows, metric, total, pending, reportAvailable = 
 		[configured.data],
 	);
 	const rowsByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
+	const [query, setQuery] = useState("");
+	const filteredUsageAccounts = useMemo(
+		() => usageAccounts.filter((account) => usageAccountMatches(account, query)),
+		[query, usageAccounts],
+	);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edit, setEdit] = useState<HarnessAccount | null>(null);
 	const [remove, setRemove] = useState<HarnessAccount | null>(null);
@@ -135,19 +143,32 @@ export function UsageAccounts({ rows, metric, total, pending, reportAvailable = 
 		<section aria-label="Accounts" className="flex flex-col gap-3">
 			<SectionHeader
 				title="Accounts"
-				count={accounts.isPending || configured.isPending ? undefined : usageAccounts.length}
+				count={accounts.isPending || configured.isPending ? undefined : filteredUsageAccounts.length}
 				actions={
-					<Tooltip content="Add account">
-						<IconButton
-							label="Add account"
-							disabled={busy}
-							onClick={() => {
-								create.reset();
-								setAddOpen(true);
-							}}
-							icon={<Plus />}
-						/>
-					</Tooltip>
+					<>
+						<FilterBar>
+							<Input
+								type="search"
+								label="Search accounts"
+								hideLabel
+								placeholder="Search accounts…"
+								value={query}
+								onChange={(event) => setQuery(event.target.value)}
+								className="w-48 max-md:w-32"
+							/>
+						</FilterBar>
+						<Tooltip content="Add account">
+							<IconButton
+								label="Add account"
+								disabled={busy}
+								onClick={() => {
+									create.reset();
+									setAddOpen(true);
+								}}
+								icon={<Plus />}
+							/>
+						</Tooltip>
+					</>
 				}
 			/>
 			<p className="-mt-1 max-w-prose text-xs text-fg-faint text-pretty">
@@ -183,9 +204,14 @@ export function UsageAccounts({ rows, metric, total, pending, reportAvailable = 
 					title="No accounts"
 					description="Add an account so an agent can sign in to a harness on this machine."
 				/>
+			) : filteredUsageAccounts.length === 0 ? (
+				<EmptyState
+					title="No accounts match"
+					description={`No accounts match “${query.trim()}”. Change the search text.`}
+				/>
 			) : (
 				<VirtualUsageAccountRows
-					accounts={usageAccounts}
+					accounts={filteredUsageAccounts}
 					renderRow={(account, onActiveChange) => {
 						const managed = account.id ? configuredById.get(account.id) : undefined;
 						const shared = account.sharedWith.length ? rowsByKey.get(`shared:${account.harness}`) : undefined;

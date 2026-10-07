@@ -149,10 +149,47 @@ export const DenseLongContent: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		await expect(
-			await canvas.findByText("Production catalog account with a deliberately long name · Default"),
-		).toBeVisible();
+		await expect(await canvas.findByText("Production catalog account with a deliberately long name")).toBeVisible();
+		await expect(canvas.getByText("Default", { exact: true })).toBeVisible();
 		await expect(canvas.getByRole("heading", { name: "Accounts (40)" })).toBeVisible();
+	},
+};
+export const SearchIdentity: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.type(canvas.getByRole("searchbox", { name: "Search accounts" }), "avery@example.test");
+		await expect(await canvas.findByText("Primary", { exact: true })).toBeVisible();
+		await expect(canvas.getByText("Default", { exact: true })).toBeVisible();
+		await expect(canvas.queryByText("Team")).not.toBeInTheDocument();
+		await expect(canvas.getByRole("heading", { name: "Accounts (1)" })).toBeVisible();
+	},
+};
+export const SearchNoResults: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.type(canvas.getByRole("searchbox", { name: "Search accounts" }), "not-a-real-account");
+		await expect(await canvas.findByRole("heading", { name: "No accounts match" })).toBeVisible();
+		await expect(canvas.getByText("No accounts match “not-a-real-account”. Change the search text.")).toBeVisible();
+		await expect(canvas.getByRole("heading", { name: "Accounts (0)" })).toBeVisible();
+	},
+};
+export const DenseSearch: Story = {
+	args: { rows: denseUsageRows, total: 820 },
+	parameters: {
+		trellis: {
+			responses: { "harnessAccounts.list": denseConfigured, "usage.accounts": denseUsageAccounts },
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const search = canvas.getByRole("searchbox", { name: "Search accounts" });
+		await userEvent.type(search, "Synthetic account 40");
+		await expect(await canvas.findByText("Synthetic account 40")).toBeVisible();
+		await expect(canvas.getByRole("heading", { name: "Accounts (1)" })).toBeVisible();
+		await userEvent.clear(search);
+		await expect(canvas.getByRole("heading", { name: "Accounts (40)" })).toBeVisible();
+		await expect(await canvas.findByText("Production catalog account with a deliberately long name")).toBeVisible();
+		await expect(canvas.getByText("Default", { exact: true })).toBeVisible();
 	},
 };
 export const MenuOpen: Story = { play: menu };
@@ -208,6 +245,7 @@ export const RequestError: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await expect(await canvas.findByRole("heading", { name: "Trellis cannot read the account quotas" })).toBeVisible();
-		await expect(canvas.getByText("Primary · Default")).toBeVisible();
+		await expect(canvas.getByText("Primary", { exact: true })).toBeVisible();
+		await expect(canvas.getByText("Default", { exact: true })).toBeVisible();
 	},
 };
