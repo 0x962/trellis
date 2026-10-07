@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef } from "react";
 import { Button } from "../../../../primitives/Button";
 import { Field } from "../../../../primitives/Field";
+import { FormStatus } from "../../../../primitives/FormStatus";
 import { Input } from "../../../../primitives/Input";
 import { Select } from "../../../../primitives/Select";
 import { Switch } from "../../../../primitives/Switch";
+import { FailureState } from "../../../FailureState";
 import type { ProviderFieldsProps } from "../../types";
 
 export function ProviderFields({
@@ -15,6 +17,7 @@ export function ProviderFields({
 	valid,
 	error,
 	errorField,
+	check,
 	models,
 	onClose,
 	onSubmit,
@@ -118,7 +121,37 @@ export function ProviderFields({
 					{error}
 				</p>
 			)}
-			<div className="flex justify-end gap-2">
+			{check &&
+				(check.pending ? (
+					<FormStatus status="saving" message="Check in progress. Your values stay in this form." />
+				) : check.error || check.result?.ok === false ? (
+					<FailureState
+						title={
+							check.result?.detail === "The provider refused the key."
+								? "The provider refused the key"
+								: "Trellis could not check the provider"
+						}
+						description="Check the key and address, then select Check provider."
+						detail={check.error ?? check.result?.detail}
+					/>
+				) : check.result?.ok ? (
+					<FormStatus
+						status="saved"
+						message={
+							editing
+								? "Provider checked. Save to apply these settings."
+								: "Provider checked. Select Add provider to save."
+						}
+					/>
+				) : (
+					<FormStatus status="idle" message={check.hint ?? "Select Check provider before you save."} />
+				))}
+			<div className="flex flex-wrap justify-end gap-2">
+				{check && (
+					<Button processing={check.pending} disabled={busy || !check.canCheck} onClick={check.onCheck}>
+						Check provider
+					</Button>
+				)}
 				<Button disabled={busy} onClick={onClose}>
 					Cancel
 				</Button>

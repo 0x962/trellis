@@ -18,6 +18,14 @@ export type ProviderFieldsProps = {
 	valid: boolean;
 	error?: string;
 	errorField?: string;
+	check?: {
+		pending: boolean;
+		canCheck: boolean;
+		result?: { ok: boolean; detail: string | null };
+		error?: string;
+		hint?: string;
+		onCheck: () => void;
+	};
 	models: (id: string) => ReactNode;
 	onClose: () => void;
 	onSubmit: () => void;
