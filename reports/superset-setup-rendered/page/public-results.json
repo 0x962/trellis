@@ -1,0 +1,86 @@
+[
+  {
+    "name": "app",
+    "url": "https://app.superset.sh/",
+    "finalUrl": "https://app.superset.sh/sign-in?redirect=%2F",
+    "status": 200,
+    "date": "2026-10-07T14:52:54.785Z",
+    "title": "Superset",
+    "text": "Welcome back\n\nSign in to continue to Superset\n\nSign in with GitHub\nSign in with Google\n\nBy clicking continue, you agree to our Terms of Service and Privacy Policy.\n\nDon't have an account? Sign up",
+    "images": [
+      {
+        "src": "https://app.superset.sh/title.svg",
+        "alt": "Superset"
+      }
+    ],
+    "videos": []
+  },
+  {
+    "name": "mobile",
+    "url": "https://superset.sh/mobile",
+    "finalUrl": "https://superset.sh/mobile",
+    "status": 200,
+    "date": "2026-10-07T14:52:57.981Z",
+    "title": "Superset for iPhone | Superset",
+    "text": "Product\nResources\nPricing\nEnterprise\nJoin us\n15k\nJOIN WAITLIST\n\nSUPERSET FOR IPHONE\n\nLeave your desk.\nKeep building.\n\nStart agents, follow them live, and review the diff from your phone. Your code stays on your machines.\n\nDownload on the\nApp Store\nComing soon to\nGoogle Play\n\nRequires iOS 26 or later. Included with Superset Pro.\n\n9:41\nFix input overflow handling\n\n› Cap long queries in the command bar and add tests.\n\n● Reading normalizeQuery.ts\n\n● Two changes. Cap the query at MAX_QUERY_LENGTH and return didOverflow so callers can show a hint.\n\n● Run npm test\n✔ 14 passed\n\n✻ Worked for 55s · done 4:57 AM\n\n› open a PR for this\n\nesc\n↵\ntab\n↑\n↓\n^C\nType a message…\n9:41\nOpen\n+26\n−2\n· 2 files\nFix input overflow handling in the command bar #1\nWaiting for review\nAll checks passed\nsrc/normalizeQuery.ts\n \nexport function normalizeQuery(q) {\n-\nreturn q.trim();\n+\nconst next = q.trim();\n+\nreturn next.slice(0, MAX);\n \n}\n2 files changed\n9:41\nA\nAcme\nacme-devbox\nLast updated\nacme\n4\nFix input overflow handling\nfix-input-overflow · +26 −2\nmain\nTidy up empty states\ntidy-empty-states · +10 −0\nUpdate icon size\nupdate-icon-size · +1 −0\nacme-ios\n2\nAdd transcription demo\nadd-transcription-demo · +14 −0\nAdd haptics to buttons\nadd-button-haptics · +19 −0\nPlan, ask, build…\nWHAT EARLY USERS SAY\nPrevious slide\nNext slide\nSuperset's mobile app lets me keep my agents moving and unblock them from anywhere, even when I'm nowhere near my computer.\nDrake Thomsen\n\nGTM & AI Automation Architect, Mistral AI\n\nWith the Superset mobile app, I can address production issues from anywhere.\nMason Pierce\n\nCo-founder & CTO, TrainLoop (YC W25)\n\nSuperset mobile gives me the power of my desktop anywhere I go.\nJames Tan\n\nPartner, Transpose Platform\n\nNow I open the workspace on my phone, type the one line it's waiting for, and it carries on.\nJaseem Thayal\n\nFounder & CEO, WowMakers\n\nI start my morning walks with an idea, and end with a pull request.\nClinton Blackburn\n\nStaff Software Engineer, Vori\n\nI also love being able to spin up a local worktree environment on my Mac directly from my phone.\nVladimir Babic\n\nDigital Product Designer\n\nA guilty habit I have is waking up with an idea in the middle of the night and opening the app. By morning it's ready for review.\nMichael Gallagher\n\nCreative Manager, Valid\n\nI can be in a café with my coffee while the work keeps moving forward.\nSerhii Kucherenko\n\nFounding Engineer\n\nANDROID\n\nAndroid is on the way. Be first to know when it ships.\n\nEmail address\nJoin waitlist\nSERVICE ORGANIZATION CONTROLS\nINDEPENDENTLY AUDITED\nSOC 2\nTYPE II\n\n© 2026 Superset Inc.\n\nEnglish\n\nProduct\n\nDownload\nMobile\nLeaderboard\nHow it works\nFeatures\nSecurity\nMCP\nMarketplace\nCompare\n\nCompany\n\nAbout\nContact\nCareers\nMedia kit\nStatus\n\nResources\n\nDocumentation\nPricing\nBlog\nParallel agents guide\nOrchestration guide\nCommunity\nEnterprise\nChangelog\nRoadmap\n\nLegal\n\nSecurity\nTerms\nPrivacy\n\nWe only collect analytics cookies so we can improve your experience.\n\nPrivacy policy\nOpt-out\nAccept",
+    "images": [
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Fgithub%2FThomsenDrake&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Ftwitter%2Fmlpierce22&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Fgithub%2Fjamesktan&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Ftwitter%2Fjaseemts&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Fgithub%2Fclintonb&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Fgithub%2FVladimirbabic&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=%2Fimages%2Fblog%2Fsuperset-mobile%2Fmichael-gallagher.jpg&w=64&q=75",
+        "alt": ""
+      },
+      {
+        "src": "https://superset.sh/_next/image?url=https%3A%2F%2Funavatar.io%2Ftwitter%2Fkucherenko_web&w=64&q=75",
+        "alt": ""
+      }
+    ],
+    "videos": []
+  },
+  {
+    "name": "remote-access",
+    "url": "https://docs.superset.sh/remote-access",
+    "finalUrl": "https://docs.superset.sh/remote-access",
+    "status": 200,
+    "date": "2026-10-07T14:53:04.034Z",
+    "title": "Remote Access | Superset Docs",
+    "text": "Changelog\nWebsite\nEnglish\n日本語\n简体中文\nFrançais\n한국어\n繁體中文\nEspañol\nDeutsch\nPortuguês (Brasil)\nItaliano\nРусский\nTürkçe\nPolski\nNederlands\nBahasa Indonesia\nČeština\nTiếng Việt\nDownload\nSearch docs...\n⌘K\n\nGET STARTED\n\nWhat is Superset?\nInstall\nYour First Parallel Session\nThe Superset Model\n\nRECIPES\n\nRace Agents on One Task\nRun Three Workstreams at Once\nClear PR Feedback in the Background\nFan Out a Big Refactor\nWake Up to a Finished Audit\nCommand Your Fleet from the CLI\nDrive Superset from Your Agent\nAgent Orchestration\n\nCORE FEATURES\n\nWorkspaces\nDiff Viewer\nEditor & Files\nTerminal\nPort Management\nIn-App Browser\nComputer Control\nPages\nAI Agents\nAgent Sessions & Forking\nAgent Status & Notifications\nTasks\nPull Requests\nRemote Access\nAutomations\nUsage\nSkills\nSuperset MCP Server\n\nCLI\n\nGetting Started\nSuperset CLI Reference\nHost Server\nEnvironment variables\n\nTYPESCRIPT SDK\n\nGetting Started\nSuperset SDK Reference\nAdvanced Usage\n\nINTEGRATIONS\n\nIDE Integration\nLinear Integration\nSlack Integration\nUse with OpenRouter, Bedrock, Vertex, or Vercel\n\nCONFIGURATION\n\nProject Lifecycle Scripts\nMonorepos\nTerminal Scripts\nKeyboard Shortcuts\nCustom Themes\nCustomization\n\nHELP\n\nTroubleshooting\nFAQ\nCommunity & Support\n\nCORE FEATURES\n\nRemote Access\nPRO\n\nReach workspaces hosted on another machine\n\nCopy Markdown\nOpen in\nOverview\n\nA workspace lives on the machine that hosts its files, terminal, and ports. Remote access lets you reach a workspace that's hosted on a different machine, like a Mac mini under your desk, a sandbox your team shares, or a spare laptop in the office.\n\nSuperset Relay is a service that provides a secure way to route traffic between your different devices. There are two ways to grant a device remote access through the relay:\n\nOption 1: Desktop\n\nExposing your primary workstation through the relay means anything reachable by your local host service (files, terminals, agent runs) becomes reachable by clients you grant access to. The recommended setup is a separate machine provisioned with only the repos and credentials you intend to share. That way a misclick or compromised client can't wipe an unrelated project or leak unrelated secrets.\n\nUse the desktop toggle when you genuinely need it on this machine. Otherwise prefer the CLI path on a dedicated host.\n\nOpen the desktop app and go to Settings → Remote Access. Flip on Allow remote access to this device via relay.\n\nEnabling the toggle restarts the host service, so any running terminals on this device will be interrupted. You'll be asked to type a confirmation phrase before the change applies.\n\nOption 2: CLI\n\nSee the CLI's Getting Started and Host Server docs to get set up.\n\nOn the machine you want to add to your shared relay network, sign in and start the host server.\n\nsuperset auth login\nsuperset start --daemon\n\nsuperset start --daemon runs a small HTTP server in the background and registers the machine with the relay so other clients in your organization can find it.\n\nVerify it's online:\n\nsuperset status\nHeadless (sandbox, CI, or server)\n\nOn a machine with no browser to complete an interactive login, authenticate with an API key instead. Create one in Settings → API Keys, then export it. The CLI reads SUPERSET_API_KEY automatically (no superset auth login needed):\n\nexport SUPERSET_API_KEY=sk_live_…\nsuperset start --daemon --org <id|slug|name>\n\nPass --org to choose which organization the host registers under. It's required when your key belongs to more than one organization (the CLI won't guess); with a single organization you can omit it. The host claims itself to the key's user on first registration. No desktop step required.\n\nObserve or manage it from the same headless environment. Every hosts/status command takes the same --org:\n\nsuperset hosts list --org <id|slug|name>\nsuperset status --org <id|slug|name>\nConnect from an iPhone\n\nInstall Superset for iPhone and check its requirements before connecting.\n\nOn your computer, enable Allow remote access to this device via relay in Settings → Remote Access. You can also use the inline toggle in Settings → Mobile when that tab is available. Both toggles control the same setting.\nOn your phone, sign in with the same Superset account and select the same organization. The QR code in desktop Mobile settings opens the App Store; it does not sign you in.\nSelect your computer and open a workspace to continue its terminal sessions, send prompts, review diffs, or merge PRs. Keep the computer awake, online, and running Superset.\n\nIf your computer does not appear online, see Remote Host Won’t Connect.\n\nGrant teammates access\n\nWhen a host first comes online, the user who started it is the only one with access. Other members of your organization won't see it in their workspaces list until you add them.\n\nOpen Settings → Hosts in the desktop app, pick the host, and use Add member to grant teammates access. Owners can promote members to owner or remove them from the host.\n\nReach a remote host from another device\n\nOn any other device signed into the same organization, open the desktop app's Workspaces list. Use the Device filter in the top right to pick a remote host:\n\nThis device: workspaces on the machine you're using now\nOther devices: each remote host that has opted in, listed by name with an online indicator\n\nPick a remote host to see the workspaces hosted there. Open one and you get the full Superset experience (terminals, agent runs, the diff viewer) proxied through the relay to the host machine.\n\nPorts on a remote host\n\nThe ports sidebar shows ports listening on the remote host. When you select a remote workspace, the desktop app forwards each of its ports to the same port number on your machine, so localhost:3000 reaches the dev server on the host. All traffic for a workspace shares one tunnel, established when you select the workspace; every connection reuses it. When you select another workspace, the app stops those forwards and starts the new workspace's forwards.\n\nOnly ports that the workspace started are forwarded. Other services on the host stay unreachable.\n\nIf a local process already uses the port, the row shows local port busy and offers two actions: stop the local process (only when a Superset workspace started it) or Use another port, which maps the remote port to a free local port and shows the mapping, for example 3000 → localhost:54321.\n\nThe remote server sees each forwarded connection as coming from its own loopback address; there is no real client IP. Only TCP is carried; anything UDP (WebRTC media, mDNS) does not ride the forward.\n\nForwarding needs a host on the current relay running host-service 1.26 or newer. For a host you reach some other way, forward a port yourself with SSH or Tailscale.\n\nForwarded traffic passes through the Superset relay, like terminal traffic does. A browser talking to a forwarded dev server sends whatever it normally would (cookies, auth headers, query strings), so treat a forwarded port like the remote service it reaches, not like localhost.\n\nTurning access off\nDesktop: flip the toggle in Settings → Remote Access back off. The host service restarts and stops accepting relay traffic.\nCLI: run superset stop on the host machine.\n\nIn both cases, in-flight terminals and host-backed work on that machine are interrupted.\n\nEdit on GitHub\n\nPrevious\n\nPull Requests\n\nNext\n\nAutomations\n\nOn this page\nOverview\nOption 1: Desktop\nOption 2: CLI\nHeadless (sandbox, CI, or server)\nConnect from an iPhone\nGrant teammates access\nReach a remote host from another device\nPorts on a remote host\nTurning access off",
+    "images": [
+      {
+        "src": "https://docs.superset.sh/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fremote-workspaces-security-toggle.3w9mt9rgo_aju.png&w=3840&q=75",
+        "alt": "Settings → Remote Access relay toggle"
+      },
+      {
+        "src": "https://docs.superset.sh/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fremote-workspaces-hosts-members.3vb471btukzoh.png&w=3840&q=75",
+        "alt": "Settings → Hosts members table"
+      },
+      {
+        "src": "https://docs.superset.sh/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fremote-workspaces-device-filter.19n-4ou1vetyr.png&w=3840&q=75",
+        "alt": "Device filter in the workspaces list"
+      }
+    ],
+    "videos": []
+  }
+]

@@ -1,0 +1,4 @@
+node_modules/
+.expo/
+uniwind-types.d.ts
+upstream/packages/i18n/locales/en/messages.js

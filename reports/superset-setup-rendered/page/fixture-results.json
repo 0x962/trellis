@@ -1,0 +1,334 @@
+{
+  "source": "9a50076c324b3d2575762e5bdcba6838061c8be5",
+  "scope": "Official no-host component body on React Native Web, not the native app",
+  "results": [
+    {
+      "id": "light-320",
+      "theme": "light",
+      "width": 320,
+      "date": "2026-10-07T15:02:19.823Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 530,
+            "width": 272,
+            "height": 44,
+            "top": 530,
+            "right": 296,
+            "bottom": 574,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 582,
+            "width": 272,
+            "height": 44,
+            "top": 582,
+            "right": 296,
+            "bottom": 626,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false,
+      "focus": {
+        "text": "Check again",
+        "outline": "rgb(16, 16, 16) none 1px",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.708995 0.0000324249 0.0000141263 / 0.5) 0px 0px 0px 3px, oklab(0 0 0 / 0.05) 0px 1px 3px 0px, oklab(0 0 0 / 0.05) 0px 1px 2px -1px"
+      },
+      "checkingDisabled": "true",
+      "refetchReturns": true,
+      "guideTarget": "https://docs.superset.sh/remote-access"
+    },
+    {
+      "id": "light-390",
+      "theme": "light",
+      "width": 390,
+      "date": "2026-10-07T15:02:21.104Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 508,
+            "width": 342,
+            "height": 44,
+            "top": 508,
+            "right": 366,
+            "bottom": 552,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 560,
+            "width": 342,
+            "height": 44,
+            "top": 560,
+            "right": 366,
+            "bottom": 604,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "id": "light-1280",
+      "theme": "light",
+      "width": 1280,
+      "date": "2026-10-07T15:02:21.792Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 480,
+            "width": 1232,
+            "height": 40,
+            "top": 480,
+            "right": 1256,
+            "bottom": 520,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 528,
+            "width": 1232,
+            "height": 40,
+            "top": 528,
+            "right": 1256,
+            "bottom": 568,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "id": "light-160",
+      "theme": "light",
+      "width": 160,
+      "date": "2026-10-07T15:02:22.469Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme engineering and infrastructure organization\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 1072,
+            "width": 112,
+            "height": 44,
+            "top": 1072,
+            "right": 136,
+            "bottom": 1116,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 1124,
+            "width": 112,
+            "height": 44,
+            "top": 1124,
+            "right": 136,
+            "bottom": 1168,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "id": "dark-320",
+      "theme": "dark",
+      "width": 320,
+      "date": "2026-10-07T15:02:23.324Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 530,
+            "width": 272,
+            "height": 44,
+            "top": 530,
+            "right": 296,
+            "bottom": 574,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 582,
+            "width": 272,
+            "height": 44,
+            "top": 582,
+            "right": 296,
+            "bottom": 626,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false,
+      "focus": {
+        "text": "Check again",
+        "outline": "rgb(16, 16, 16) none 1px",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.555523 0.0000253916 0.0000110865 / 0.5) 0px 0px 0px 3px, oklab(0 0 0 / 0.05) 0px 1px 3px 0px, oklab(0 0 0 / 0.05) 0px 1px 2px -1px"
+      },
+      "checkingDisabled": "true",
+      "refetchReturns": true,
+      "guideTarget": "https://docs.superset.sh/remote-access"
+    },
+    {
+      "id": "dark-390",
+      "theme": "dark",
+      "width": 390,
+      "date": "2026-10-07T15:02:24.565Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 508,
+            "width": 342,
+            "height": 44,
+            "top": 508,
+            "right": 366,
+            "bottom": 552,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 560,
+            "width": 342,
+            "height": 44,
+            "top": 560,
+            "right": 366,
+            "bottom": 604,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "id": "dark-1280",
+      "theme": "dark",
+      "width": 1280,
+      "date": "2026-10-07T15:02:25.229Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 480,
+            "width": 1232,
+            "height": 40,
+            "top": 480,
+            "right": 1256,
+            "bottom": 520,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 528,
+            "width": 1232,
+            "height": 40,
+            "top": 528,
+            "right": 1256,
+            "bottom": 568,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "id": "dark-160",
+      "theme": "dark",
+      "width": 160,
+      "date": "2026-10-07T15:02:25.952Z",
+      "text": "Connect a device\nSuperset Mobile runs agents on the computers you connect.\n1\nInstall the desktop app\nDownload Superset at superset.sh/download.\n2\nSign in to Acme engineering and infrastructure organization\n3\nAllow access through the relay\nSettings → Remote Access → “Allow remote access to this device via relay”.\nCheck again\nRead the setup guide",
+      "errors": [],
+      "controls": [
+        {
+          "text": "Check again",
+          "rect": {
+            "x": 24,
+            "y": 1072,
+            "width": 112,
+            "height": 44,
+            "top": 1072,
+            "right": 136,
+            "bottom": 1116,
+            "left": 24
+          },
+          "disabled": null
+        },
+        {
+          "text": "Read the setup guide",
+          "rect": {
+            "x": 24,
+            "y": 1124,
+            "width": 112,
+            "height": 44,
+            "top": 1124,
+            "right": 136,
+            "bottom": 1168,
+            "left": 24
+          },
+          "disabled": null
+        }
+      ],
+      "overflow": false
+    }
+  ]
+}

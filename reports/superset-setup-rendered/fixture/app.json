@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Superset official component fixture",
+    "slug": "superset-no-host-proof",
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}

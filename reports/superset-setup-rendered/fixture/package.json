@@ -1,0 +1,30 @@
+{
+  "name": "superset-no-host-proof",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.tsx",
+  "dependencies": {
+    "@expo/metro-runtime": "57.0.15",
+    "@lingui/core": "6.8.0",
+    "@lingui/react": "6.8.0",
+    "@lingui/babel-plugin-lingui-macro": "6.8.0",
+    "@rn-primitives/slot": "1.4.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "expo": "57.0.26",
+    "babel-preset-expo": "57.0.13",
+    "lucide-react-native": "0.562.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "0.21.2",
+    "tailwind-merge": "3.5.0",
+    "tailwindcss": "4.2.2",
+    "uniwind": "1.8.0"
+  },
+  "devDependencies": {
+    "@lingui/cli": "6.8.0",
+    "playwright": "1.63.0"
+  }
+}
