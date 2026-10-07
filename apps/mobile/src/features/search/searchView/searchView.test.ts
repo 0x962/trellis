@@ -54,6 +54,7 @@ describe("searchView", () => {
 
 		expect(searchView({ query: "plan", request: { state: "answered", data: answer }, recents: [] })).toEqual({
 			kind: "results",
+			query: "plan",
 			data: answer,
 		});
 	});
@@ -63,6 +64,7 @@ describe("searchView", () => {
 
 		expect(searchView({ query: "demo", request: { state: "answered", data: answer }, recents: [] })).toEqual({
 			kind: "results",
+			query: "demo",
 			data: answer,
 		});
 	});

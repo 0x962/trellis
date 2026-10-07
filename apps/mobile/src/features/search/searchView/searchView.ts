@@ -28,7 +28,7 @@ export type SearchView =
 	| { kind: "waiting"; query: string }
 	| { kind: "failed"; failure: SearchFailure }
 	| { kind: "empty"; query: string }
-	| { kind: "results"; data: SearchData };
+	| { kind: "results"; query: string; data: SearchData };
 
 export type SearchViewInput = {
 	// The text the screen sent to the server, without its outer spaces.
@@ -50,7 +50,7 @@ export const searchView = ({ query, request, recents }: SearchViewInput): Search
 	if (request.state === "failed") return { kind: "failed", failure: request.failure };
 	const { tickets, pages, projects } = request.data;
 	const matches = tickets.length + pages.length + projects.length;
-	return matches === 0 ? { kind: "empty", query } : { kind: "results", data: request.data };
+	return matches === 0 ? { kind: "empty", query } : { kind: "results", query, data: request.data };
 };
 
 // The counted kinds of one answer, in the order the list draws them.
