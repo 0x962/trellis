@@ -81,8 +81,9 @@ for (const [frontend, backend] of [
 		});
 		const saved = await h.run((tx) => readExecution(tx, f.execution.id));
 		expect(evaluations).toBe(1);
-		expect(f.logs).toHaveLength(3);
-		expect(JSON.stringify(f.logs)).toContain('"pathCount":230');
+		expect(f.logs).toHaveLength(4);
+		expect(JSON.stringify(f.logs)).toContain('"inputPathCount":230');
+		expect(JSON.stringify(f.logs)).toContain('"retainedPathCount":230');
 		expect(JSON.stringify(f.logs)).toContain(f.execution.id);
 		expect(JSON.stringify(f.logs)).not.toContain(paths[0]!);
 		for (const [review, selected] of [
@@ -94,6 +95,24 @@ for (const [frontend, backend] of [
 			(await h.db.execute(sql`SELECT * FROM flow_execution_tasks WHERE execution_id=${f.execution.id}`)).rows,
 		).toHaveLength(0);
 	});
+
+test("skips both review areas without Jev when all changed files are unrelated", async () => {
+	const f = await fixture();
+	let evaluations = 0;
+	await reconcileReviewGates(f.ctx, f.execution.id, {
+		pullRequestChangedFilePaths: async () => ["src/order.test.py", "docs/order.md", "uv.lock"],
+		evaluate: async () => {
+			evaluations++;
+			throw new Error("must not evaluate");
+		},
+	});
+	const saved = await h.run((tx) => readExecution(tx, f.execution.id));
+	expect(evaluations).toBe(0);
+	for (const review of [f.frontReview, f.backReview])
+		expect(saved.state.steps.find((step) => step.nodeId === review.id)?.state).toBe("skipped");
+	expect(JSON.stringify(f.logs)).toContain('"inputPathCount":3');
+	expect(JSON.stringify(f.logs)).toContain('"retainedPathCount":0');
+});
 
 test("a failed Jev request records a gate execution error", async () => {
 	const f = await fixture();

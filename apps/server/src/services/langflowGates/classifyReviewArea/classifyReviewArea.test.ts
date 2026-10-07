@@ -6,6 +6,7 @@ import type { GhRunner } from "../../../gh/run.ts";
 import { evaluate } from "../../providers/evaluate";
 import { remoteHarness } from "../../providers/testSupport/testSupport.ts";
 import { classifyReviewArea } from "./classifyReviewArea.ts";
+import { reviewFilePaths } from "./reviewFilePaths.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 beforeAll(async () => {
@@ -69,16 +70,133 @@ for (const [choice, frontend, backend] of [
 			evaluate: (ctx, body) =>
 				evaluate(ctx, body, async (_url, init) => {
 					requests++;
-					expect(JSON.parse(init.body as string).state.changedFilePaths).toEqual(paths);
+					const request = JSON.parse(init.body as string);
+					expect(request.state.changedFilePaths).toEqual(paths);
+					expect(request.questions.area.instructions).toContain("filtered production file list");
+					expect(request.questions.area.instructions).not.toContain("Include tests");
 					return Response.json({ answers: { area: { type: "choice", choice } } });
 				}),
 		});
 		expect(result).toEqual({ frontend, backend });
 		expect(pages).toBe(3);
 		expect(requests).toBe(1);
-		expect(JSON.stringify(h.logs)).toContain('"pathCount":251');
+		expect(JSON.stringify(h.logs)).toContain('"inputPathCount":251');
+		expect(JSON.stringify(h.logs)).toContain('"retainedPathCount":251');
 		expect(JSON.stringify(h.logs)).not.toContain(paths[0]!);
 	});
+
+test("keeps production files and removes unrelated review files", async () => {
+	const h = remoteHarness(db);
+	const paths = [
+		"apps/web/src/AccountPage.tsx",
+		"apps/server/src/account.ts",
+		"apps/server/drizzle/0151_account.sql",
+		"vite.config.ts",
+		"apps/web/src/AccountPage.test.tsx",
+		"apps/server/src/fixtures/account.fixture.ts",
+		"apps/web/src/__snapshots__/AccountPage.snap",
+		"apps/web/src/AccountPage.stories.tsx",
+		"docs/account.md",
+		"docs/account-flow.svg",
+		"docs/account-guide.mdx",
+		"bun.lock",
+		"apps/web/dist/assets/account.js",
+		"apps/web/src/AccountPage.tsx",
+		"tests/migrations/fixture.sql",
+	];
+	let evaluatedPaths: unknown;
+	const result = await classifyReviewArea(h.ctx, input, {
+		pullRequestChangedFilePaths: async () => paths,
+		evaluate: async (_ctx, body) => {
+			evaluatedPaths = body.state;
+			return { answers: { area: { type: "choice", choice: "both" } } };
+		},
+	});
+	expect(result).toEqual({ frontend: true, backend: true });
+	expect(evaluatedPaths).toEqual({
+		changedFilePaths: [
+			"apps/web/src/AccountPage.tsx",
+			"apps/server/src/account.ts",
+			"apps/server/drizzle/0151_account.sql",
+			"vite.config.ts",
+		],
+	});
+	expect(JSON.stringify(h.logs)).toContain('"inputPathCount":15');
+	expect(JSON.stringify(h.logs)).toContain('"retainedPathCount":4');
+	for (const path of paths) expect(JSON.stringify(h.logs)).not.toContain(path);
+});
+
+test("returns neither without a provider request for an unrelated file list", async () => {
+	const h = remoteHarness(db);
+	let evaluations = 0;
+	const result = await classifyReviewArea(h.ctx, input, {
+		pullRequestChangedFilePaths: async () => ["src/account.test.ts", "docs/account.md", "bun.lock"],
+		evaluate: async () => {
+			evaluations++;
+			throw new Error("must not evaluate");
+		},
+	});
+	expect(result).toEqual({ frontend: false, backend: false });
+	expect(evaluations).toBe(0);
+	expect(JSON.stringify(h.logs)).toContain('"inputPathCount":3');
+	expect(JSON.stringify(h.logs)).toContain('"retainedPathCount":0');
+});
+
+test("keeps production paths with words that resemble exclusion names", () => {
+	expect(
+		reviewFilePaths([
+			"src/testing/service.ts",
+			"src/contest/entry.ts",
+			"src/fixtureFactory.ts",
+			"src/snapshotService.ts",
+			"src/storybookConfig.ts",
+			"src/docsGenerator.ts",
+			"src/buildPipeline.ts",
+			"apps/web/src/pages/pricing.mdx",
+			"prompts/review.md",
+			"content/legal.rst",
+			"content/help.adoc",
+		]),
+	).toEqual([
+		"src/testing/service.ts",
+		"src/contest/entry.ts",
+		"src/fixtureFactory.ts",
+		"src/snapshotService.ts",
+		"src/storybookConfig.ts",
+		"src/docsGenerator.ts",
+		"src/buildPipeline.ts",
+		"apps/web/src/pages/pricing.mdx",
+		"prompts/review.md",
+		"content/legal.rst",
+		"content/help.adoc",
+	]);
+});
+
+test("removes unrelated files before it keeps real migrations", () => {
+	expect(
+		reviewFilePaths([
+			"apps/server/migrations/0151_account.sql",
+			"apps/server/migrations/account.test.sql",
+			"apps/server/migrations/fixtures/account.sql",
+			"apps/server/migrations/__snapshots__/account.snap",
+			"apps/server/migrations/account.stories.sql",
+			"apps/server/migrations/docs/account.md",
+		]),
+	).toEqual(["apps/server/migrations/0151_account.sql"]);
+});
+
+test("removes exact build output directories at any path depth", () => {
+	expect(
+		reviewFilePaths([
+			"tools/site/dist/app.js",
+			"tools/site/coverage/report.json",
+			"tools/site/out/app.js",
+			"tools/site/.next/app.js",
+			"tools/site/src/buildPipeline.ts",
+			"apps/desktop/build/icon.icns",
+		]),
+	).toEqual(["tools/site/src/buildPipeline.ts", "apps/desktop/build/icon.icns"]);
+});
 
 for (const [name, first, second] of [
 	["truncated", page(["a.ts"], 2, null), null],
