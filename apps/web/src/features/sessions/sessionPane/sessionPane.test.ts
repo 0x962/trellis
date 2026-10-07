@@ -92,6 +92,27 @@ describe("sessionPane", () => {
 		});
 	});
 
+	test("a completed ticket agent keeps its Done heading after process exit", () => {
+		for (const state of ["stopped", "exited"] as const) {
+			const completed = run({
+				kind: "agent",
+				assigned: true,
+				ticketId: "ticket",
+				ticketStatusCategory: "done",
+				state,
+				processStatus: "exited",
+				observation: null,
+			});
+			expect(sessionPane(completed, false)).toEqual({
+				kind: "paused",
+				title: "The agent is done",
+				description: "Trellis keeps the conversation, the workspace and every file in it.",
+			});
+			completed.state = "failed";
+			expect(sessionPane(completed, false).kind).toBe("failed");
+		}
+	});
+
 	test("keeps a failed process out of the paused words", () => {
 		const pane = sessionPane(run({ state: "failed", processStatus: "exited", error: exitLine }), false);
 
