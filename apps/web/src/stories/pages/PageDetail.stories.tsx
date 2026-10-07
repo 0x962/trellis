@@ -13,7 +13,11 @@ const meta = {
 	title: "Pages/Page detail",
 	component: PageDetail,
 	args: { project, slug: page.slug, search: {} },
-	parameters: { layout: "fullscreen", trellis: { path: "/p/DEMO/pages/interface-review", responses: pageResponses } },
+	parameters: {
+		layout: "fullscreen",
+		a11y: { options: { iframes: false } },
+		trellis: { path: "/p/DEMO/pages/interface-review", responses: pageResponses },
+	},
 } satisfies Meta<typeof PageDetail>;
 export default meta;
 type Story = StoryObj<typeof meta>;
