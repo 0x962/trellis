@@ -51,7 +51,7 @@ describe("sessionPane", () => {
 			kind: "failed",
 			title: "The agent stopped before it finished",
 			description:
-				"Trellis keeps the workspace and every file in it. A new start opens a new agent in the same workspace.",
+				"Trellis keeps the workspace and every file in it. Resume uses the saved conversation when one is available.",
 			detail: exitLine,
 		});
 	});
