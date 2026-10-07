@@ -37,8 +37,7 @@ import { useEpicAgentRuns } from "./hooks/useEpicAgentRuns";
 const noRuns: readonly AgentRun[] = [];
 const noWaves: readonly WaveSummary[] = [];
 const noTickets: readonly TicketSummary[] = [];
-const phoneTitleClass =
-	"max-md:h-auto max-md:min-h-11 max-md:w-full max-md:justify-start max-md:[&>span]:break-words max-md:[&>span]:overflow-visible max-md:[&>span]:text-clip max-md:[&>span]:whitespace-normal";
+const phoneTitleClass = "max-md:w-full";
 
 // On a phone and on a touch screen the link is 44 px tall, the least a
 // finger hits.
@@ -157,8 +156,15 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The switcher is the title in both states, so the title keeps its box,
 	// its caret and its height from the first paint. Until the epic answers
 	// it carries the slug from the URL, the only name the page knows.
-	const title = (epicRef: string, name: string, className?: string) => (
-		<EpicSwitcher project={project.key} epicRef={epicRef} name={name} tab={tab} className={className} />
+	const title = (epicRef: string, name: string, className?: string, wrap = false) => (
+		<EpicSwitcher
+			project={project.key}
+			epicRef={epicRef}
+			name={name}
+			tab={tab}
+			className={className}
+			wrap={wrap}
+		/>
 	);
 	const identifiers = epic.data?.tickets.map((ticket) => ticket.identifier) ?? [];
 	const topbar = (
@@ -185,7 +191,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		return (
 			<>
 				{topbar}
-				<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass) : undefined} pending />
+				<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass, true) : undefined} pending />
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
 					{readOnly && <ArchivedBanner project={project} />}
 					<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
@@ -205,7 +211,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				error={epic.error}
 				onRetry={() => void epic.refetch()}
 				phone={phone}
-				context={<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass) : undefined} />}
+				context={<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass, true) : undefined} />}
 			/>
 		);
 	}
@@ -225,7 +231,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			{topbar}
 			<EpicPageContext
 				name={record.name}
-				phoneTitle={phone ? title(record.ref, record.name, phoneTitleClass) : undefined}
+				phoneTitle={phone ? title(record.ref, record.name, phoneTitleClass, true) : undefined}
 				epic={record}
 			/>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
