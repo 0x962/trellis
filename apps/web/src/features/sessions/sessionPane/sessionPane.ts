@@ -1,4 +1,4 @@
-import { type AgentRun, hasAssignedProcess, type Session } from "@trellis/api";
+import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
 
 // The block that the conversation pane draws under its header.
 export type SessionPane =
@@ -55,6 +55,12 @@ export function sessionPane(run: AgentRun, archived: boolean, startPending = fal
 			description:
 				"Trellis keeps the workspace and every file in it. Resume uses the saved conversation when one is available.",
 			detail: run.error,
+		};
+	if (sessionStatus(run) === "done")
+		return {
+			kind: "paused",
+			title: "The agent is done",
+			description: "Trellis keeps the conversation, the workspace and every file in it.",
 		};
 	return {
 		kind: "paused",

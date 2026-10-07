@@ -111,9 +111,15 @@ function runState(run: AgentRun): RunState {
 	if (run.observation === null) return { kind: "idle", words: "idle", since: null, lastMessage, rawError: null };
 	const observation = run.observation;
 	const completion = observation.attention?.completion;
-	// sessionStatus returns `done` only when the completion is newer than `seenAttention` for this attempt.
-	if (status === "done") {
-		return { kind: "turn-done-new", words: "turn done · new", since: completion!.at, lastMessage, rawError: null };
+	const seen = run.seenAttention?.attemptId === run.terminalId ? run.seenAttention.sequence : 0;
+	if (
+		status === "done" &&
+		completion &&
+		run.state !== "stopped" &&
+		run.processStatus !== "exited" &&
+		completion.sequence > seen
+	) {
+		return { kind: "turn-done-new", words: "turn done · new", since: completion.at, lastMessage, rawError: null };
 	}
 	if (status === "working") {
 		const runningTool = observation.lastTool?.status === "running" ? observation.lastTool : null;
