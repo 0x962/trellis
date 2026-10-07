@@ -151,7 +151,6 @@ async function fixture(setRepos: (input: ProjectSetReposInput) => Promise<Projec
 		invalidations,
 		button,
 		input: () => query("input")[0]!,
-		field: () => query("label")[0]!,
 		form: () => query("form")[0]!,
 		dialog: () => query("section").find((node) => node.props.role === "dialog"),
 		dialogTitle: () => query("h2")[0]?.children.join(""),
