@@ -39,7 +39,7 @@ export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): 
 	};
 	return {
 		mark: current ? (
-			<Badge tone="accent" size="sm">
+			<Badge tone="accent" size="sm" className="text-fg-muted">
 				Current
 			</Badge>
 		) : undefined,
