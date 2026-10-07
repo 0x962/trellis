@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { TicketSummary } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prOf } from "../../../PrRow/prOf";
+import { phoneRowHeight } from "../../../rowHeights";
 import type { TicketAgentLine } from "../../../utils/agentLines";
 import type { TicketDisclosure } from "../../../utils/flattenGroups";
 import { PhoneRow } from "./PhoneRow";
@@ -65,7 +66,7 @@ const render = (
 	);
 
 describe("PhoneRow on the epic table", () => {
-	test("puts the ID, the title and the actor on line 1, and leaves the priority mark out", () => {
+	test("keeps the ID, the title and the actor, and leaves the priority mark out", () => {
 		const html = render(ticket(), "epic");
 
 		expect(visibleTextOf(html)).toBe("OP-35Service: A run whose webhook fails retries three timesactor");
@@ -141,6 +142,30 @@ describe("PhoneRow on the epic table", () => {
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("Hide details for OP-35");
+	});
+});
+
+describe("phone title space", () => {
+	for (const layout of ["epic", "list"] as const) {
+		test(`retains the full long title in the ${layout} row`, () => {
+			const title = "A".repeat(500);
+			const html = render(ticket({ title }), layout);
+			const titleCell = html.match(/<div[^>]*data-column="title"[^>]*>([^<]*)<\/div>/)!;
+
+			expect(titleCell[1]).toBe(title);
+			expect(titleCell[0]).toContain("line-clamp-2");
+			expect(titleCell[0]).toContain("wrap-anywhere");
+			expect(titleCell[0]).not.toContain("truncate");
+			expect(html).toContain(`height:${phoneRowHeight}px`);
+		});
+	}
+
+	test("keeps the agent fact after the complete title and before the actor", () => {
+		const title = "A".repeat(500);
+		const html = render(ticket({ title }), "epic", ticketAgentLine("The checks pass."));
+
+		expect(visibleTextOf(html)).toBe(`OP-35${title}The checks pass.actor`);
+		expect(html).toContain('data-line="agent"');
 	});
 });
 
