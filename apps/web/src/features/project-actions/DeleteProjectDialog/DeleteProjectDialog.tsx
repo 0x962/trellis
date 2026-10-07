@@ -4,7 +4,7 @@ import { Button, Dialog, FailureState, Input } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useProjectActions } from "../hooks/useProjectActions";
-import { deleteProjectState } from "./deleteProjectState";
+import { deleteProjectReadOptions, deleteProjectState } from "./deleteProjectState";
 
 export type DeleteProjectDialogProps = {
 	project: Pick<ProjectSummary, "key" | "name">;
@@ -18,9 +18,14 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
 	const [typed, setTyped] = useState("");
 	const [pending, setPending] = useState(false);
 	const deleting = useRef(false);
-	const counts = useQuery({ ...orpc.tickets.counts.queryOptions({ input: { project: project.key } }), enabled: open });
+	const counts = useQuery({
+		...orpc.tickets.counts.queryOptions({ input: { project: project.key } }),
+		...deleteProjectReadOptions,
+		enabled: open,
+	});
 	const flowQuery = useQuery({
 		...orpc.flows.list.queryOptions({ input: { project: project.key } }),
+		...deleteProjectReadOptions,
 		enabled: open,
 	});
 	const loading = counts.isFetching || flowQuery.isFetching;

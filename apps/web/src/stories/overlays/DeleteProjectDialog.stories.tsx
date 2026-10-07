@@ -105,6 +105,15 @@ export const FlowLoading: Story = {
 		await expect((await dialogOf(canvasElement)).getByRole("button", { name: "Delete project" })).toBeDisabled();
 	},
 };
+export const TicketReadError: Story = {
+	parameters: { trellis: { responses: { "tickets.counts": failure } } },
+	play: async ({ canvasElement }) => {
+		const body = bodyOf(canvasElement);
+		await expect(await body.findByRole("alert")).toHaveTextContent("The project contents did not load.");
+		await expect(body.getByRole("button", { name: "Retry" })).toBeEnabled();
+		await expect((await dialogOf(canvasElement)).getByRole("button", { name: "Delete project" })).toBeDisabled();
+	},
+};
 export const ReadError: Story = {
 	parameters: { trellis: { responses: { "flows.list": failure } } },
 	play: async ({ canvasElement }) => {

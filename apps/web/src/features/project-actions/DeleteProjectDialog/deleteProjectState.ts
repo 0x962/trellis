@@ -10,6 +10,8 @@ export type DeleteProjectStateInput = {
 	pending: boolean;
 };
 
+export const deleteProjectReadOptions = { retry: false } as const;
+
 const ticketsText = (count: number) => `${formatCount(count)} ${count === 1 ? "ticket" : "tickets"}`;
 
 const flowsText = (count: number) => `${formatCount(count)} ${count === 1 ? "flow" : "flows"}`;
