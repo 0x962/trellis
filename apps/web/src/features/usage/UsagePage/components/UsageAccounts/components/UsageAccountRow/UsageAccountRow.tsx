@@ -13,6 +13,7 @@ import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@
 import {
 	Button,
 	CodeText,
+	formatDayTime,
 	IconButton,
 	Menu,
 	PropertyRow,
@@ -43,8 +44,11 @@ const quotaStatusLabel: Record<QuotaStatus, string> = {
 export const accountQuotaSummary = (account: UsageAccount) => {
 	if (account.quota.status !== "ok") return quotaStatusLabel[account.quota.status];
 	if (account.quota.windows.length === 0) return quotaStatusLabel.ok;
-	const mostUsed = Math.max(...account.quota.windows.map((window) => window.usedPercent));
-	return `${Math.round(mostUsed)}% used`;
+	const limiting = account.quota.windows.reduce((current, window) =>
+		window.usedPercent > current.usedPercent ? window : current,
+	);
+	const reset = limiting.resetsAt ? `Resets ${formatDayTime(limiting.resetsAt)}` : "Reset time unavailable";
+	return [limiting.label, `${Math.round(limiting.usedPercent)}% used`, reset].join(" \u00b7 ");
 };
 
 export function UsageAccountRow({
@@ -55,6 +59,7 @@ export function UsageAccountRow({
 	metric,
 	total,
 	pending,
+	reportAvailable = true,
 	busy,
 	refreshing,
 	onDefault,
@@ -70,6 +75,7 @@ export function UsageAccountRow({
 	metric: UsageMetric;
 	total: number;
 	pending: boolean;
+	reportAvailable?: boolean;
 	busy: boolean;
 	refreshing: boolean;
 	onDefault: () => void;
@@ -82,6 +88,7 @@ export function UsageAccountRow({
 	const [details, setDetails] = useState(false);
 	const value = row?.[metric] ?? 0;
 	const sharedValue = shared?.[metric] ?? 0;
+	const share = reportAvailable ? formatShare(value, total) : "";
 	const provider = harnessProvider[account.harness];
 	const quotaDetail =
 		account.quota.creditsBalance !== null
@@ -113,15 +120,13 @@ export function UsageAccountRow({
 							<Skeleton width="w-14" height="h-4" className="col-span-2 justify-self-end sm:mr-1" />
 						) : (
 							<span className="col-span-2 justify-self-end text-sm font-medium text-fg tabular sm:mr-1">
-								{formatMetric(metric, value)}
-								<span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">
-									{formatShare(value, total)}
-								</span>
+								{reportAvailable ? formatMetric(metric, value) : "Not available"}
+								{share && <span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">{share}</span>}
 							</span>
 						)}
-						<Tooltip content="Refresh">
+						<Tooltip content="Refresh all account quotas">
 							<IconButton
-								label={`Refresh quota for ${account.name}`}
+								label="Refresh all account quotas"
 								processing={refreshing}
 								onClick={onRefresh}
 								icon={<ArrowClockwise />}
@@ -226,7 +231,7 @@ export function UsageAccountRow({
 					onActiveChange?.(open);
 				}}
 				title={`Sign in to ${account.name}`}
-				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account."
+				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh all account quotas."
 				titleClassName="text-md font-medium"
 			>
 				<SheetBody>
@@ -247,7 +252,7 @@ export function UsageAccountRow({
 								onRefresh();
 							}}
 						>
-							Done
+							Refresh all quotas
 						</Button>
 					</div>
 				</SheetBody>

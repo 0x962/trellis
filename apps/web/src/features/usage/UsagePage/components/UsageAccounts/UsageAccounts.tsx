@@ -31,6 +31,7 @@ export type UsageAccountsProps = {
 	metric: UsageMetric;
 	total: number;
 	pending: boolean;
+	reportAvailable?: boolean;
 };
 
 export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): UsageAccount[] =>
@@ -56,7 +57,7 @@ export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): U
 		},
 	}));
 
-export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
+export function UsageAccounts({ rows, metric, total, pending, reportAvailable = true }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
 	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
 	const accounts = useQuery({ ...accountOptions, refetchInterval: 30_000 });
@@ -198,6 +199,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								metric={metric}
 								total={total}
 								pending={pending}
+								reportAvailable={reportAvailable}
 								busy={busy}
 								refreshing={refresh.isPending}
 								onActiveChange={onActiveChange}

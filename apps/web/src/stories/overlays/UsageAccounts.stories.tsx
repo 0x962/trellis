@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
+import type { UsageAccount, UsageGroupRow } from "@trellis/api";
+import { expect, userEvent, within } from "storybook/test";
 import {
 	UsageAccounts,
 	unavailableUsageAccounts,
@@ -11,16 +12,83 @@ const configured = accounts.map((account) => ({
 	...account,
 	loginCommand: `claude --profile ${account.profilePath} login`,
 }));
+const usageAccounts: UsageAccount[] = unavailableUsageAccounts(configured).map((account, index) =>
+	index === 0
+		? {
+				...account,
+				quota: {
+					...account.quota,
+					status: "ok",
+					email: "avery@example.test",
+					plan: "Team",
+					windows: [
+						{
+							id: "five-hour",
+							label: "Five-hour window",
+							usedPercent: 28,
+							resetsAt: "2026-10-07T10:00:00.000Z",
+						},
+						{
+							id: "weekly",
+							label: "Weekly window",
+							usedPercent: 82,
+							resetsAt: "2026-10-12T10:00:00.000Z",
+						},
+					],
+				},
+			}
+		: account,
+);
+const usageRows: UsageGroupRow[] = usageAccounts.map((account, index) => ({
+	key: account.key,
+	label: account.name,
+	detail: null,
+	href: null,
+	harness: account.harness,
+	usd: index === 0 ? 18.5 : 0,
+	tokens: index === 0 ? 240_000 : 0,
+	sessions: index === 0 ? 3 : 0,
+	runs: index === 0 ? 3 : 0,
+	approximate: false,
+	days: [],
+}));
+
+const denseConfigured = Array.from({ length: 40 }, (_, index) => ({
+	...configured[index % configured.length]!,
+	id: `synthetic-account-${index + 1}`,
+	name:
+		index === 0
+			? "Production catalog account with a deliberately long name"
+			: `Synthetic account ${String(index + 1).padStart(2, "0")}`,
+	profilePath: `/tmp/trellis-synthetic/account-${index + 1}`,
+	isDefault: index === 0,
+	loginCommand: `synthetic-login --account ${index + 1}`,
+}));
+const denseUsageAccounts = unavailableUsageAccounts(denseConfigured);
+const denseUsageRows: UsageGroupRow[] = denseUsageAccounts.map((account, index) => ({
+	key: account.key,
+	label: account.name,
+	detail: null,
+	href: null,
+	harness: account.harness,
+	usd: index + 1,
+	tokens: (index + 1) * 12_000,
+	sessions: index + 1,
+	runs: index + 1,
+	approximate: false,
+	days: [],
+}));
+
 const meta = {
 	title: "Overlays/UsageAccounts",
 	component: UsageAccounts,
-	args: { rows: [], metric: "usd", total: 0, pending: false },
+	args: { rows: usageRows, metric: "usd", total: 18.5, pending: false },
 	parameters: {
 		trellis: {
 			responses: {
 				...responses,
 				"harnessAccounts.list": configured,
-				"usage.accounts": unavailableUsageAccounts(configured),
+				"usage.accounts": usageAccounts,
 				"harnessAccounts.create": configured[0],
 				"harnessAccounts.update": configured[0],
 				"harnessAccounts.remove": { removed: true },
@@ -51,6 +119,42 @@ const remove = async (context: { canvasElement: HTMLElement }) => {
 	await clickButton("Remove account")(context);
 };
 export const ClosedTrigger: Story = {};
+export const QuotaAndUsage: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByText(/Claude Code · Weekly window · 82% used · Resets/)).toBeVisible();
+		await expect(canvas.getByText("$18.50", { exact: true })).toBeVisible();
+	},
+};
+export const MeasuredZero: Story = {
+	args: { rows: [], total: 0 },
+	play: async ({ canvasElement }) => {
+		await expect((await within(canvasElement).findAllByText("$0", { exact: true })).length).toBeGreaterThan(0);
+	},
+};
+export const ReportUnavailable: Story = {
+	args: { reportAvailable: false },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect((await canvas.findAllByText("Not available", { exact: true })).length).toBeGreaterThan(0);
+		await expect(canvas.queryByText("$18.50", { exact: true })).not.toBeInTheDocument();
+	},
+};
+export const DenseLongContent: Story = {
+	args: { rows: denseUsageRows, total: 820 },
+	parameters: {
+		trellis: {
+			responses: { "harnessAccounts.list": denseConfigured, "usage.accounts": denseUsageAccounts },
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(
+			await canvas.findByText("Production catalog account with a deliberately long name · Default"),
+		).toBeVisible();
+		await expect(canvas.getByRole("heading", { name: "Accounts (40)" })).toBeVisible();
+	},
+};
 export const MenuOpen: Story = { play: menu };
 export const AddOpen: Story = { play: clickButton("Add account") };
 export const AddPending: Story = {
@@ -59,7 +163,12 @@ export const AddPending: Story = {
 };
 export const AddError: Story = {
 	parameters: { trellis: { responses: { "harnessAccounts.create": failure } } },
-	play: add,
+	play: async (context) => {
+		await add(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		await expect(await body.findByRole("alert")).toBeVisible();
+		await expect(body.getByRole("textbox", { name: "Account name" })).toHaveValue("Catalog account");
+	},
 };
 export const AddSuccess: Story = { play: add };
 export const RenameOpen: Story = { play: choose("Rename") };
@@ -69,7 +178,12 @@ export const RenamePending: Story = {
 };
 export const RenameError: Story = {
 	parameters: { trellis: { responses: { "harnessAccounts.update": failure } } },
-	play: rename,
+	play: async (context) => {
+		await rename(context);
+		const body = within(context.canvasElement.ownerDocument.body);
+		await expect(await body.findByRole("alert")).toBeVisible();
+		await expect(body.getByRole("textbox", { name: "Account name" })).toHaveValue("Catalog account");
+	},
 };
 export const RemoveOpen: Story = { play: choose("Remove") };
 export const RemovePending: Story = {
@@ -78,7 +192,10 @@ export const RemovePending: Story = {
 };
 export const RemoveError: Story = {
 	parameters: { trellis: { responses: { "harnessAccounts.remove": failure } } },
-	play: remove,
+	play: async (context) => {
+		await remove(context);
+		await expect(await within(context.canvasElement.ownerDocument.body).findByRole("alert")).toBeVisible();
+	},
 };
 export const DetailsOpen: Story = { play: choose("Edit details") };
 export const SignInOpen: Story = { play: choose("Sign in") };
@@ -86,4 +203,11 @@ export const Empty: Story = {
 	parameters: { trellis: { responses: { "harnessAccounts.list": [], "usage.accounts": [] } } },
 };
 export const Loading: Story = { parameters: { trellis: { responses: { "usage.accounts": pending } } } };
-export const RequestError: Story = { parameters: { trellis: { responses: { "usage.accounts": failure } } } };
+export const RequestError: Story = {
+	parameters: { trellis: { responses: { "usage.accounts": failure } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("heading", { name: "Trellis cannot read the account quotas" })).toBeVisible();
+		await expect(canvas.getByText("Primary · Default")).toBeVisible();
+	},
+};
