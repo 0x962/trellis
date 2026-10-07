@@ -1,1 +1,1 @@
-export { WaveStartForm } from "./WaveStartForm";
+export { type WaveStartAssignment, WaveStartForm } from "./WaveStartForm";

@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
+import { Button, FailureState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
@@ -39,11 +39,17 @@ export function TicketView({ identifier }: TicketViewProps) {
 			return <NotFoundState ref={identifier} searchFor={identifier} />;
 		}
 		return (
-			<EmptyState
+			<FailureState
 				className="page-card"
 				variant="page"
 				title={`${identifier} did not load.`}
-				description={query.error.message}
+				detail={query.error.message}
+				recovery={query.isFetching ? "retrying" : "none"}
+				action={
+					<Button size="md" disabled={query.isFetching} onClick={() => void query.refetch()}>
+						Retry
+					</Button>
+				}
 			/>
 		);
 	}
@@ -51,8 +57,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 	const ticket = query.data;
 	const readOnly = isArchived(ticket.project.key);
 
-	// The server refuses every write to a ticket under an archived project.
-	// The disabled fieldset and the edit keys enforce `readOnly`.
 	const column = (
 		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto page-card">
 			<div
@@ -61,15 +65,8 @@ export function TicketView({ identifier }: TicketViewProps) {
 			>
 				<div className="flex flex-col gap-1">
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
-					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
+					<Title key={ticket.identifier} ticket={ticket} readOnly={readOnly} onAttachFiles={uploads.addFiles} />
 				</div>
-				{/* A phone has no room for the rail beside the page, so the property
-				    list reads between the title and the ask. */}
-				{narrow && (
-					<div className="mt-3">
-						<PropertiesRail ticket={ticket} variant="inline" />
-					</div>
-				)}
 				<section aria-label="The ask" className={narrow ? "mt-4 flex min-w-0 flex-col" : "mt-3 flex min-w-0 flex-col"}>
 					<SectionHeader title="The ask" />
 					<div data-ticket-description="" className="min-h-24">
@@ -77,10 +74,20 @@ export function TicketView({ identifier }: TicketViewProps) {
 					</div>
 				</section>
 				<div className="mt-8 flex flex-col gap-8">
-					<SubTickets ticket={ticket} />
+					<SubTickets ticket={ticket} readOnly={readOnly} />
 					<PullRequestsSection ticket={ticket} />
-					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
+					<AttachmentGrid
+						ticket={ticket.identifier}
+						initialAttachments={ticket.attachments}
+						uploads={uploads}
+						readOnly={readOnly}
+					/>
 				</div>
+				{narrow && (
+					<div className="mt-8">
+						<PropertiesRail ticket={ticket} variant="inline" />
+					</div>
+				)}
 			</div>
 		</article>
 	);
@@ -96,17 +103,15 @@ export function TicketView({ identifier }: TicketViewProps) {
 	return (
 		<>
 			<Header ticket={ticket} readOnly={readOnly} />
-			<fieldset disabled={readOnly} className="contents">
-				<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
-					{readOnly && (
-						<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
-							{notice(ticket.project.key)}
-						</p>
-					)}
-					{page}
-					{drop.over && <DropOverlay identifier={ticket.identifier} />}
-				</div>
-			</fieldset>
+			<div {...(readOnly ? {} : drop.handlers)} className="relative flex h-full min-h-0 flex-1 flex-col">
+				{readOnly && (
+					<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
+						{notice(ticket.project.key)}
+					</p>
+				)}
+				{page}
+				{!readOnly && drop.over && <DropOverlay identifier={ticket.identifier} />}
+			</div>
 		</>
 	);
 }

@@ -1,6 +1,6 @@
-import { ArrowClockwise, Plus, X } from "@phosphor-icons/react";
+import { ArrowClockwise, Plus } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
-import { IconButton, Tooltip } from "@trellis/ui";
+import { Button, IconButton, Tooltip } from "@trellis/ui";
 import { useLayoutEffect, useRef, useState } from "react";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
@@ -30,13 +30,14 @@ export function FlowsPage() {
 		setFilters(next);
 		if (scroll.current) scroll.current.scrollTop = 0;
 	};
+	const openCreate = () => setCreating(true);
 
 	return (
 		<>
 			<Topbar
 				actions={
 					<Tooltip content="New flow">
-						<TopbarActionButton label="New flow" icon={<Plus />} onClick={() => setCreating(true)} />
+						<TopbarActionButton label="New flow" icon={<Plus />} onClick={openCreate} />
 					</Tooltip>
 				}
 			>
@@ -67,14 +68,15 @@ export function FlowsPage() {
 								/>
 							</Tooltip>
 						}
+						createAction={
+							<Button size="md" onClick={openCreate}>
+								New flow
+							</Button>
+						}
 						clearFiltersAction={
-							<Tooltip content="Clear filters">
-								<IconButton
-									label="Clear filters"
-									icon={<X />}
-									onClick={() => changeFilters({ query: "", project: null })}
-								/>
-							</Tooltip>
+							<Button size="md" onClick={() => changeFilters({ query: "", project: null })}>
+								Clear filters
+							</Button>
 						}
 					/>
 				</div>

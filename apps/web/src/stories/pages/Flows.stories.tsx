@@ -2,8 +2,26 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
 import { FlowsPage } from "../../features/flows/FlowsPage";
 import { discoveryDocuments, flowResponses } from "./fixtures/flow";
-import { failure, pending } from "./fixtures/project";
+import { failure, id, pending } from "./fixtures/project";
 import { pageFrame } from "./pageFrame";
+
+const flowSummaries = flowResponses["flows.list"];
+const longContent = flowSummaries.map((flow, index) =>
+	index === 0
+		? {
+				...flow,
+				name: "A review flow with a long name that still keeps the main choice readable",
+				description:
+					"Review the interface, keyboard controls, responsive layout, dense data, empty states, failures, saved choices, and the evidence for every required state.",
+			}
+		: flow,
+);
+const denseFlows = Array.from({ length: 12 }, (_, index) => ({
+	...flowSummaries[index % flowSummaries.length]!,
+	id: id(600 + index),
+	slug: `review-flow-${index + 1}`,
+	name: `Review flow ${index + 1}`,
+}));
 
 const meta = {
 	decorators: [pageFrame],
@@ -39,6 +57,32 @@ export const SearchAndClear: Story = {
 	},
 };
 export const Empty: Story = { parameters: { trellis: { responses: { "flows.list": [] } } } };
+export const EmptyCreateAction: Story = {
+	...Empty,
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("button", { name: "New flow" }));
+		await expect(
+			await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "New flow" }),
+		).toBeVisible();
+	},
+};
 export const Loading: Story = { parameters: { trellis: { responses: { "flows.list": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "flows.list": failure } } } };
-export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+export const LongContent: Story = { parameters: { trellis: { responses: { "flows.list": longContent } } } };
+export const DenseCards: Story = { parameters: { trellis: { responses: { "flows.list": denseFlows } } } };
+export const CardHover: Story = {
+	play: async ({ canvasElement }) => {
+		const link = await within(canvasElement).findByRole("link", { name: discoveryDocuments[0]!.flow.name });
+		await userEvent.hover(link);
+		await expect(link).toBeVisible();
+	},
+};
+export const CardFocus: Story = {
+	play: async ({ canvasElement }) => {
+		const link = await within(canvasElement).findByRole("link", { name: discoveryDocuments[0]!.flow.name });
+		link.focus();
+		await expect(link).toHaveFocus();
+	},
+};
+export const Narrow: Story = { globals: { viewport: { value: "narrow", isRotated: false } } };

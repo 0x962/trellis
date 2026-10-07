@@ -76,6 +76,21 @@ export const Loading: Story = { parameters: { trellis: { responses: { "epics.get
 export const RequestError: Story = { parameters: { trellis: { responses: { "epics.get": failure } } } };
 export const Archived: Story = { args: { project: archivedProject } };
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+const longEpicName = "A complete epic title that stays readable on a narrow phone";
+export const LongTitleNarrow: Story = {
+	globals: { viewport: { value: "phone", isRotated: false } },
+	parameters: { trellis: { responses: { "epics.get": { ...epic, name: longEpicName } } } },
+	play: async ({ canvasElement }) => {
+		const title = await within(canvasElement).findByRole("button", { name: longEpicName });
+		const label = title.querySelector("span")!;
+		await expect(getComputedStyle(label).whiteSpace).toBe("normal");
+		await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+		await expect(title.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+		await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(
+			canvasElement.ownerDocument.documentElement.clientWidth,
+		);
+	},
+};
 export const Resources: Story = { args: { search: { tab: "resources" } } };
 export const DenseResources: Story = {
 	args: { search: { tab: "resources" } },

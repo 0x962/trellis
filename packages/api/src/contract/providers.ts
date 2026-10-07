@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import {
+	ProviderCheckDraftInputSchema,
 	ProviderCheckSchema,
 	ProviderCreateInputSchema,
 	ProviderIdInputSchema,
@@ -26,6 +27,10 @@ export const providers = {
 	check: base
 		.route({ method: "GET", path: "/providers/{id}/check", summary: "Check the provider key" })
 		.input(ProviderRemoteInputSchema)
+		.output(ProviderCheckSchema),
+	checkDraft: base
+		.route({ method: "POST", path: "/providers/check-draft", summary: "Check an unsaved provider key" })
+		.input(ProviderCheckDraftInputSchema)
 		.output(ProviderCheckSchema),
 	list: base
 		.route({ method: "GET", path: "/providers", summary: "List external model providers by name" })
