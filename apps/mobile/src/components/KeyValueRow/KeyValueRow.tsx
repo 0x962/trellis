@@ -17,9 +17,10 @@ const styles = StyleSheet.create({
 		gap: tokens.space[3],
 		minHeight: layout.hit,
 		paddingHorizontal: tokens.space[4],
+		paddingVertical: tokens.space[2],
 		borderBottomWidth: layout.stroke,
 	},
-	label: { fontSize: tokens.text.md, lineHeight: tokens.leading.md },
+	label: { flex: 1, fontSize: tokens.text.md, lineHeight: tokens.leading.md },
 	value: { flex: 1, textAlign: "right", fontSize: tokens.text.md, lineHeight: tokens.leading.md },
 	chevron: { fontSize: tokens.text.lg, lineHeight: tokens.leading.lg },
 });
@@ -35,9 +36,7 @@ export function KeyValueRow({ label, value, onPress }: KeyValueRowProps) {
 			style={[styles.row, { borderBottomColor: palette.border }]}
 		>
 			<Text style={[styles.label, { color: palette.fg }]}>{label}</Text>
-			<Text numberOfLines={1} style={[styles.value, { color: palette.fgMuted }]}>
-				{value}
-			</Text>
+			<Text style={[styles.value, { color: palette.fgMuted }]}>{value}</Text>
 			{onPress !== undefined && <Text style={[styles.chevron, { color: palette.fgFaint }]}>›</Text>}
 		</Pressable>
 	);
