@@ -4,6 +4,7 @@ import { BroadcastComposer, Button, Checkbox, FailureState, FieldHint, Textarea 
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import type { BroadcastEpic } from "./broadcastStore";
 
 type DeliveryInput = AgentBroadcastInput & {
@@ -113,16 +114,28 @@ export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null
 							</p>
 						)}
 						{result.failures.length > 0 && (
-							<div className="flex flex-col gap-1 rounded-md border border-danger-soft bg-danger-soft p-2.5">
-								<p className="text-sm font-medium text-danger">These agents did not receive the message:</p>
-								<ul className="flex list-disc flex-col gap-1 pl-4 text-xs text-fg-muted">
-									{result.failures.map((failure) => (
-										<li key={failure.recipient.id}>
-											<span className="font-medium text-fg">{recipientLabel(failure)}</span>: {failure.reason}
-										</li>
-									))}
-								</ul>
-							</div>
+							<ul className="flex flex-col gap-3">
+								{result.failures.map((failure) => (
+									<li key={failure.recipient.id}>
+										<FailureState
+											title={`The message did not reach ${recipientLabel(failure)}`}
+											detail={failure.reason}
+											variant="section"
+											action={
+												<Button
+													size="md"
+													onClick={() => {
+														close();
+														pageSheetActions.openSession(failure.recipient.id);
+													}}
+												>
+													Open agent
+												</Button>
+											}
+										/>
+									</li>
+								))}
+							</ul>
 						)}
 					</>
 				)}
@@ -173,11 +186,21 @@ export function BroadcastDialog({ epic, onClose }: { epic?: BroadcastEpic | null
 								title="The recipient count did not load"
 								detail={errorMessage(counts.error)}
 								variant="section"
+								recovery="retrying"
 							/>
 						)}
 					</fieldset>
 					{delivery.isError && (
-						<FailureState title="The broadcast did not send" detail={errorMessage(delivery.error)} variant="section" />
+						<FailureState
+							title="The broadcast did not send"
+							detail={errorMessage(delivery.error)}
+							variant="section"
+							action={
+								<Button size="md" disabled={!canSend} onClick={submit}>
+									Try again
+								</Button>
+							}
+						/>
 					)}
 				</>
 			)}

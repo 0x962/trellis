@@ -123,7 +123,7 @@ export function AssignAgent({
 				return {
 					choice,
 					id: keyOf(choice),
-					label: `${harnessLabel(choice.preset)} · ${modelNameOf(choice)}`,
+					label: `Assign ${harnessLabel(choice.preset)} · ${modelNameOf(choice)}`,
 					detail: stale ?? detailOf(choice, accounts),
 					detailTone: (stale === null ? "muted" : "warning") as MenuItem["detailTone"],
 					icon: choiceIcon(choice),
@@ -166,12 +166,12 @@ export function AssignAgent({
 				<>
 					<div className="flex items-center justify-between gap-2 py-1">
 						<h3 className="text-xs font-medium text-fg-faint">Agent</h3>
-						<span className="inline-flex items-center">
+						<span className="inline-flex items-center gap-1">
 							<Tooltip content={staleCurrent ?? currentTitle}>
 								<Button
 									ref={assignButton}
 									variant="primary"
-									className="min-w-30 rounded-r-none focus-visible:z-1"
+									className="min-w-0"
 									disabled={disabled}
 									processing={start.isPending}
 									onClick={() => assignOrEdit(current, "assign")}
@@ -188,14 +188,14 @@ export function AssignAgent({
 										type: "group",
 										items: [
 											{
-												label: "Set something else…",
+												label: "Choose another agent…",
 												icon: <Gear />,
 												onSelect: () => setDialog({ choice: withoutLostValues(current, accounts), from: "menu" }),
 											},
 										],
 									},
 								]}
-								className="w-80"
+								className="w-80 max-w-(--available-width)"
 								trigger={
 									<IconButton
 										ref={menuButton}
@@ -203,7 +203,6 @@ export function AssignAgent({
 										icon={<CaretDown />}
 										variant="primary"
 										disabled={disabled || start.isPending}
-										className="-ml-px rounded-l-none focus-visible:z-1"
 									/>
 								}
 							/>
@@ -215,17 +214,20 @@ export function AssignAgent({
 						</p>
 					) : failure !== null ? (
 						<FailureState
-							variant="inline"
-							className="min-h-5.5"
-							title={failure.message}
+							variant="section"
+							title="The agent did not start"
+							detail={failure.message}
 							action={
-								<Button variant="quiet" className="-ml-2.5" disabled={disabled} onClick={() => assign(failure.choice)}>
+								<Button size="md" disabled={disabled} onClick={() => assign(failure.choice)}>
 									Try again
 								</Button>
 							}
 						/>
 					) : (
-						<p className="min-h-5.5 text-xs text-fg-muted">{recent.length > 0 ? "" : "No choice was stored yet."}</p>
+						<div className="flex min-w-0 flex-col gap-1 text-xs text-fg-muted">
+							<p className="break-words">{modelNameOf(current)}</p>
+							<p className="break-words">{staleCurrent ?? detailOf(current, accounts)}</p>
+						</div>
 					)}
 				</>
 			)}
@@ -233,6 +235,8 @@ export function AssignAgent({
 				<AssignAgentDialog
 					initial={dialog.choice}
 					accounts={accounts}
+					accountError={accountList.error?.message}
+					onReloadAccounts={() => void accountList.refetch()}
 					disabled={disabled}
 					finalFocus={dialog.from === "assign" ? assignButton : menuButton}
 					onAssign={(choice) => {

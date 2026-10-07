@@ -1,0 +1,2282 @@
+{
+  "kind": "baseline browser evidence",
+  "source": "e0f0450215d603def5728d343347908a5ade43b3",
+  "capturedAt": "2026-10-07T03:00:59.292Z",
+  "scope": "Unchanged setup and pairing routes",
+  "method": {
+    "renderer": "Expo Web with React Native Web",
+    "storage": "Temporary localStorage-backed SQLiteStorage fixture",
+    "browser": "Playwright Chromium 153.0.8010.12",
+    "viewports": [
+      "320 by 720",
+      "160 by 720 reflow proxy",
+      "1024 by 768 comparison"
+    ],
+    "colorSchemes": [
+      "light",
+      "dark"
+    ],
+    "reducedMotion": true,
+    "syntheticDataOnly": true
+  },
+  "counts": {
+    "cases": 32,
+    "screenshots": 32,
+    "themes": 2,
+    "width320": 28,
+    "width160": 2,
+    "width1024": 2,
+    "casesWithAxeViolations": 0,
+    "casesWithHorizontalOverflow": 0,
+    "casesWithConsoleErrors": 2,
+    "casesWithPageErrors": 0
+  },
+  "nativeGaps": [
+    "Android and iOS rendering",
+    "TalkBack and VoiceOver output",
+    "Camera permission sheets and QR capture",
+    "Soft keyboard and native text entry",
+    "Dynamic Type at 200 percent",
+    "Safe-area insets",
+    "Native deep links",
+    "Native touch and gesture behavior",
+    "SQLite retention after an app restart",
+    "Native reduced-motion settings"
+  ],
+  "results": [
+    {
+      "kind": "baseline browser evidence",
+      "id": "fresh-setup",
+      "title": "Fresh setup and disabled Save",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/fresh-setup-320px.png",
+      "expectedText": [
+        "Server URL",
+        "Scan QR code",
+        "Test connection",
+        "Name",
+        "Save"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [
+        {
+          "tag": "INPUT",
+          "name": "Server URL",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Scan QR code",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Test connection",
+          "visibleFocus": true
+        },
+        {
+          "tag": "INPUT",
+          "name": "Name",
+          "visibleFocus": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "invalid-url",
+      "title": "Invalid URL",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/invalid-url-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "invalid-name",
+      "title": "Invalid name",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/invalid-name-320px.png",
+      "expectedText": [
+        "Write a nonempty name with printable ASCII characters and no colon."
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nWrite a nonempty name with printable ASCII characters and no colon.\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "connection-progress",
+      "title": "Connection progress",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/connection-progress-320px.png",
+      "expectedText": [
+        "Testing"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTesting…\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Testing…",
+          "disabled": true
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "The screenshot records the in-flight state before the synthetic reply."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "connection-timeout",
+      "title": "Connection timeout",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/connection-timeout-320px.png",
+      "expectedText": [
+        "Timed out after 3 s"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nTimed out after 3 s\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4174/rpc/system/health net::ERR_ABORTED"
+      ],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.01065
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "unreachable-server",
+      "title": "Unreachable server",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/unreachable-server-320px.png",
+      "expectedText": [
+        "Unreachable:"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nUnreachable: Failed to fetch\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4174/rpc/system/health net::ERR_CONNECTION_REFUSED"
+      ],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "non-trellis-server",
+      "title": "Non-Trellis server",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/non-trellis-server-320px.png",
+      "expectedText": [
+        "Not a trellis server"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nNot a trellis server\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "successful-probe",
+      "title": "Successful probe and enabled Save",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/successful-probe-320px.png",
+      "expectedText": [
+        "1.2.3-baseline",
+        "42 tickets",
+        "Fixture Person"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [
+        {
+          "tag": "INPUT",
+          "name": "Name",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Save",
+          "visibleFocus": true
+        },
+        {
+          "tag": "INPUT",
+          "name": "Server URL",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Scan QR code",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Test connection",
+          "visibleFocus": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "layout": {
+        "before": {
+          "Server URL": {
+            "x": 16,
+            "y": 82,
+            "width": 288,
+            "height": 44
+          },
+          "Scan QR code": {
+            "x": 16,
+            "y": 196,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 256,
+            "width": 288,
+            "height": 44
+          },
+          "Name": {
+            "x": 16,
+            "y": 338,
+            "width": 288,
+            "height": 44
+          },
+          "Save": {
+            "x": 16,
+            "y": 398,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "after": {
+          "Server URL": {
+            "x": 16,
+            "y": 82,
+            "width": 288,
+            "height": 44
+          },
+          "Scan QR code": {
+            "x": 16,
+            "y": 196,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 256,
+            "width": 288,
+            "height": 44
+          },
+          "Name": {
+            "x": 16,
+            "y": 486,
+            "width": 288,
+            "height": 44
+          },
+          "Save": {
+            "x": 16,
+            "y": 546,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "maxDelta": 148
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "existing-server-replacement",
+      "title": "Existing server replacement",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/existing-server-replacement-320px.png",
+      "expectedText": [
+        "42 tickets"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "storageAfterSave": {
+        "url": "http://127.0.0.1:4174",
+        "name": "replacement-person"
+      },
+      "notes": [
+        "The screenshot shows the replacement before Save."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "invalid-pair-link",
+      "title": "Invalid pair link",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=not-a-server-url",
+      "screenshot": "assets/light/invalid-pair-link-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "‹\nServer\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nName\nSave",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "valid-pair-link",
+      "title": "Valid pair link",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=http%3A%2F%2F127.0.0.1%3A4174",
+      "screenshot": "assets/light/valid-pair-link-320px.png",
+      "expectedText": [
+        "42 tickets",
+        "Fixture Person"
+      ],
+      "visibleText": "‹\nServer\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.05871
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "camera-denied",
+      "title": "Camera access denied",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/camera-denied-320px.png",
+      "expectedText": [
+        "Allow camera access for trellis in the Settings app",
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nAllow camera access for trellis in the Settings app to scan the code.\nCancel scan\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "camera-granted",
+      "title": "Camera access granted",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/camera-granted-320px.png",
+      "expectedText": [
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nCancel scan\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "Chromium uses a pinned fake camera. This state does not prove QR capture."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "scan-cancel",
+      "title": "Scan cancel",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/scan-cancel-320px.png",
+      "expectedText": [
+        "Scan QR code"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "Cancel returns to the setup form."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "long-content-reflow",
+      "title": "Long content at the 200 percent reflow proxy",
+      "theme": "light",
+      "width": 160,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/long-content-reflow-160px.png",
+      "expectedText": [
+        "baseline-version-with-a-deliberately-long-build-identity-2026.10.07",
+        "987654 tickets"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\nbaseline-version-with-a-deliberately-long-build-identity-2026.10.07\nTickets\n987654 tickets\nServer says you are\nSynthetic Person With A Deliberately Long Browser Baseline Identity\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 160,
+        "scrollWidth": 160,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "The 160 CSS pixel width is a browser proxy. It is not Dynamic Type proof."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "desktop-success",
+      "title": "Desktop-width comparison",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "route": "/setup",
+      "screenshot": "assets/light/desktop-success-1024px.png",
+      "expectedText": [
+        "1.2.3-baseline",
+        "42 tickets",
+        "Fixture Person"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 1024,
+        "scrollWidth": 1024,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "fresh-setup",
+      "title": "Fresh setup and disabled Save",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/fresh-setup-320px.png",
+      "expectedText": [
+        "Server URL",
+        "Scan QR code",
+        "Test connection",
+        "Name",
+        "Save"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [
+        {
+          "tag": "INPUT",
+          "name": "Server URL",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Scan QR code",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Test connection",
+          "visibleFocus": true
+        },
+        {
+          "tag": "INPUT",
+          "name": "Name",
+          "visibleFocus": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "invalid-url",
+      "title": "Invalid URL",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/invalid-url-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "invalid-name",
+      "title": "Invalid name",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/invalid-name-320px.png",
+      "expectedText": [
+        "Write a nonempty name with printable ASCII characters and no colon."
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nWrite a nonempty name with printable ASCII characters and no colon.\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "connection-progress",
+      "title": "Connection progress",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/connection-progress-320px.png",
+      "expectedText": [
+        "Testing"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTesting…\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Testing…",
+          "disabled": true
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "The screenshot records the in-flight state before the synthetic reply."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "connection-timeout",
+      "title": "Connection timeout",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/connection-timeout-320px.png",
+      "expectedText": [
+        "Timed out after 3 s"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nTimed out after 3 s\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4174/rpc/system/health net::ERR_ABORTED"
+      ],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.01065
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "unreachable-server",
+      "title": "Unreachable server",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/unreachable-server-320px.png",
+      "expectedText": [
+        "Unreachable:"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nUnreachable: Failed to fetch\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4174/rpc/system/health net::ERR_CONNECTION_REFUSED"
+      ],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "non-trellis-server",
+      "title": "Non-Trellis server",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/non-trellis-server-320px.png",
+      "expectedText": [
+        "Not a trellis server"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nNot a trellis server\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "successful-probe",
+      "title": "Successful probe and enabled Save",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/successful-probe-320px.png",
+      "expectedText": [
+        "1.2.3-baseline",
+        "42 tickets",
+        "Fixture Person"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [
+        {
+          "tag": "INPUT",
+          "name": "Name",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Save",
+          "visibleFocus": true
+        },
+        {
+          "tag": "INPUT",
+          "name": "Server URL",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Scan QR code",
+          "visibleFocus": true
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Test connection",
+          "visibleFocus": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "layout": {
+        "before": {
+          "Server URL": {
+            "x": 16,
+            "y": 82,
+            "width": 288,
+            "height": 44
+          },
+          "Scan QR code": {
+            "x": 16,
+            "y": 196,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 256,
+            "width": 288,
+            "height": 44
+          },
+          "Name": {
+            "x": 16,
+            "y": 338,
+            "width": 288,
+            "height": 44
+          },
+          "Save": {
+            "x": 16,
+            "y": 398,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "after": {
+          "Server URL": {
+            "x": 16,
+            "y": 82,
+            "width": 288,
+            "height": 44
+          },
+          "Scan QR code": {
+            "x": 16,
+            "y": 196,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 256,
+            "width": 288,
+            "height": 44
+          },
+          "Name": {
+            "x": 16,
+            "y": 486,
+            "width": 288,
+            "height": 44
+          },
+          "Save": {
+            "x": 16,
+            "y": 546,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "maxDelta": 148
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "existing-server-replacement",
+      "title": "Existing server replacement",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/existing-server-replacement-320px.png",
+      "expectedText": [
+        "42 tickets"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "storageAfterSave": {
+        "url": "http://127.0.0.1:4174",
+        "name": "replacement-person"
+      },
+      "notes": [
+        "The screenshot shows the replacement before Save."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "invalid-pair-link",
+      "title": "Invalid pair link",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=not-a-server-url",
+      "screenshot": "assets/dark/invalid-pair-link-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "‹\nServer\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nName\nSave",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "valid-pair-link",
+      "title": "Valid pair link",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=http%3A%2F%2F127.0.0.1%3A4174",
+      "screenshot": "assets/dark/valid-pair-link-320px.png",
+      "expectedText": [
+        "42 tickets",
+        "Fixture Person"
+      ],
+      "visibleText": "‹\nServer\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "camera-denied",
+      "title": "Camera access denied",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/camera-denied-320px.png",
+      "expectedText": [
+        "Allow camera access for trellis in the Settings app",
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nAllow camera access for trellis in the Settings app to scan the code.\nCancel scan\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "camera-granted",
+      "title": "Camera access granted",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/camera-granted-320px.png",
+      "expectedText": [
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nCancel scan\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "Chromium uses a pinned fake camera. This state does not prove QR capture."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "scan-cancel",
+      "title": "Scan cancel",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/scan-cancel-320px.png",
+      "expectedText": [
+        "Scan QR code"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": true
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "Cancel returns to the setup form."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "long-content-reflow",
+      "title": "Long content at the 200 percent reflow proxy",
+      "theme": "dark",
+      "width": 160,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/long-content-reflow-160px.png",
+      "expectedText": [
+        "baseline-version-with-a-deliberately-long-build-identity-2026.10.07",
+        "987654 tickets"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\nbaseline-version-with-a-deliberately-long-build-identity-2026.10.07\nTickets\n987654 tickets\nServer says you are\nSynthetic Person With A Deliberately Long Browser Baseline Identity\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 160,
+        "scrollWidth": 160,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": [
+        "The 160 CSS pixel width is a browser proxy. It is not Dynamic Type proof."
+      ]
+    },
+    {
+      "kind": "baseline browser evidence",
+      "id": "desktop-success",
+      "title": "Desktop-width comparison",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "route": "/setup",
+      "screenshot": "assets/dark/desktop-success-1024px.png",
+      "expectedText": [
+        "1.2.3-baseline",
+        "42 tickets",
+        "Fixture Person"
+      ],
+      "visibleText": "Server\nServer URL\nScan a QR code that contains the server address, or type the address that the server prints at start.\nScan QR code\nTest connection\nVersion\n1.2.3-baseline\nTickets\n42 tickets\nServer says you are\nFixture Person\nName\nSave",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan QR code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save",
+          "disabled": false
+        }
+      ],
+      "focusOrder": [],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 1024,
+        "scrollWidth": 1024,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      },
+      "notes": []
+    }
+  ]
+}
