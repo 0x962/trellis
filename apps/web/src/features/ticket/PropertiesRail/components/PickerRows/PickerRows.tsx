@@ -137,7 +137,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			<PropertyRow compact label="Status">
 				<StatusPicker
 					trigger={
-						<Button variant="quiet" className={triggerClass}>
+						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							<span className="inline-flex items-center gap-1.5">
 								<StatusIcon category={ticket.status.category} />
 								{ticket.status.name}
@@ -154,7 +154,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			<PropertyRow compact label="Priority">
 				<PriorityPicker
 					trigger={
-						<Button variant="quiet" className={triggerClass}>
+						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							<span className="inline-flex items-center gap-1.5">
 								<PriorityIcon priority={ticket.priority} decorative />
 								{priorityLabels[ticket.priority]}
@@ -167,7 +167,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					onOpenChange={openChange("priority")}
 				/>
 			</PropertyRow>
-			<LabelsRow ticket={ticket} />
+			<LabelsRow ticket={ticket} readOnly={readOnly} />
 			<PropertyRow compact label="Project">
 				<span className="inline-flex h-7 items-center">
 					<ProjectKey projectKey={ticket.project.key} color={projectColor} />
@@ -176,7 +176,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			<PropertyRow compact label="Parent">
 				<TicketPicker
 					trigger={
-						<Button variant="quiet" className={triggerClass}>
+						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							{ticket.parent === null ? (
 								<span className="text-fg-muted">None</span>
 							) : (
@@ -194,7 +194,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					onOpenChange={openChange("parent")}
 				/>
 			</PropertyRow>
-			<DependenciesRow ticket={ticket} />
+			<DependenciesRow ticket={ticket} readOnly={readOnly} />
 			<PropertyRow compact label="Epic">
 				{ticket.epic === null ? (
 					<span className="text-fg-muted">None</span>

@@ -7,6 +7,22 @@ const tabs = [
 	{ id: "review", title: "Review the tab component", pinned: false },
 ];
 
+test("separate strips own distinct tab IDs and an empty strip keeps Add tab", () => {
+	const html = renderToStaticMarkup(
+		[0, 1].map((key) => (
+			<PageTabs key={key} tabs={tabs} activeId="tickets" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} />
+		)),
+	);
+	const owners = [...html.matchAll(/aria-owns="([^"]+)"/g)].map((match) => match[1]);
+	expect(owners).toHaveLength(2);
+	expect(owners[0]).not.toBe(owners[1]);
+	const empty = renderToStaticMarkup(
+		<PageTabs tabs={[]} activeId="" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} />,
+	);
+	expect(empty).not.toContain('role="tablist"');
+	expect(empty).toContain('aria-label="Add tab"');
+});
+
 test("renders the controlled tab state and actions", () => {
 	const html = renderToStaticMarkup(
 		<PageTabs tabs={tabs} activeId="review" onAdd={() => {}} onSelect={() => {}} onClose={() => {}} />,

@@ -45,8 +45,6 @@ export type BoardProps = {
 
 type PendingChoice = BoardMove & { statuses: Status[] };
 
-const noCollapsedColumns: string[] = [];
-
 // The closed categories start as rails at the end of the board, so the open
 // columns get the width.
 const closedCategories = ["done", "canceled"];
@@ -67,7 +65,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
 	const { ticketIds: workingTicketIds } = useWorkingAgents();
 	const workingTickets = useMemo(() => new Set(workingTicketIds), [workingTicketIds]);
-	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
+	const savedCollapsed = useUiStore((state) => state.collapsedGroups[storageKey]);
 	const well = useTheme().resolved === "light";
 	const phone = useMediaQuery("(max-width: 767px)");
 	// The card that last took the focus is the palette's This ticket.
@@ -80,6 +78,12 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		return projectColumns(boardQuery.data, projectQuery.data);
 	}, [boardQuery.data, projectQuery.data, projectRef]);
 	const columns = useMemo(() => workingFirst(sourceColumns, workingTickets), [sourceColumns, workingTickets]);
+	const collapsed = useMemo(
+		() =>
+			savedCollapsed ??
+			columns.filter((column) => closedCategories.includes(column.category)).map((column) => column.id),
+		[columns, savedCollapsed],
+	);
 	const startedTicketIds = useMemo(
 		() =>
 			columns
@@ -239,6 +243,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 							column={column}
 							collapsed={collapsed.includes(column.id)}
 							showAllDone={showAllDone}
+							hasMore={showMore.hasMore(column)}
+							loadingMore={showMore.isPending(column)}
 							categoryMode={projectRef === undefined}
 							width={width}
 							well={well}
@@ -247,7 +253,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 							isSelected={selection.isSelected}
 							onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 							onShowAllDone={() => setShowAllDone(true)}
-							onShowMore={() => showMore(column)}
+							onShowMore={() => showMore.showMore(column)}
 							onFocusTicket={setFocusedCard}
 							onCardClick={cardClick}
 							onCardKeyDown={keyDown}

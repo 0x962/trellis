@@ -12,6 +12,8 @@ type Props = {
 	tab: PageTabItem;
 	index: number;
 	count: number;
+	id: string;
+	tabStop: boolean;
 	style: CSSProperties;
 	active: boolean;
 	onClose: () => void;
@@ -28,6 +30,8 @@ export function PageTab({
 	tab,
 	index,
 	count,
+	id,
+	tabStop,
 	style,
 	active,
 	onClose,
@@ -51,6 +55,7 @@ export function PageTab({
 	return (
 		<ContextMenuTrigger
 			role="presentation"
+			tabIndex={-1}
 			data-page-tab-target={tab.id}
 			onClickCapture={(event) => {
 				if (menuOpen) {
@@ -80,6 +85,7 @@ export function PageTab({
 					open={truncated || tab.pinned ? undefined : false}
 				>
 					<TabsTab
+						id={id}
 						aria-haspopup="menu"
 						onAuxClick={(event) => {
 							if (event.button === 1 && !tab.pinned) {
@@ -91,7 +97,7 @@ export function PageTab({
 							if (event.button === 1) event.preventDefault();
 						}}
 						value={tab.id}
-						tabIndex={active ? 0 : -1}
+						tabIndex={tabStop ? 0 : -1}
 						data-page-tab-id={tab.id}
 						data-pinned={tab.pinned || undefined}
 						aria-label={tab.pinned ? `Pinned: ${tab.title}` : undefined}

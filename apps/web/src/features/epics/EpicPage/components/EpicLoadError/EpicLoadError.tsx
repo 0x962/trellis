@@ -15,17 +15,20 @@ export type EpicLoadErrorProps = {
 	parent: ReactNode;
 	error: Error;
 	onRetry: () => void;
+	context: ReactNode;
+	phone: boolean;
 };
 
 // The epic page when the epic query fails: the not-found state for an epic
 // that does not exist, and a retry for any other error.
-export function EpicLoadError({ epicRef, slug, parent, error, onRetry }: EpicLoadErrorProps) {
+export function EpicLoadError({ epicRef, slug, parent, error, onRetry, context, phone }: EpicLoadErrorProps) {
 	const notFound = error instanceof ORPCError && error.code === "NOT_FOUND";
 	return (
 		<>
 			<Topbar>
-				<PageTitle parent={parent} title={slug} />
+				<PageTitle parent={parent} title={phone ? null : slug} />
 			</Topbar>
+			{!notFound && context}
 			{notFound ? (
 				<NotFoundState ref={epicRef} />
 			) : isConnectionFailure(failureKind(error)) ? (

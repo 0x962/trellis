@@ -32,7 +32,11 @@ export function WaveTicketTree({
 				<li key={ticket.id}>
 					<div className="wave-ticket-row">
 						<Checkbox
-							label={`${ticket.waitsOn.length > 0 ? "Start anyway: " : "Start "}${ticket.identifier}: ${ticket.title}`}
+							label={
+								ticket.disabled
+									? `${ticket.identifier}: ${ticket.title}. ${ticket.note}`
+									: `Select ${ticket.identifier}: ${ticket.title}`
+							}
 							hideLabel
 							checked={ticket.checked}
 							disabled={ticket.disabled}
@@ -44,14 +48,7 @@ export function WaveTicketTree({
 								<TicketId id={ticket.identifier} />
 								<span>{ticket.title}</span>
 							</div>
-							{ticket.note && (
-								<p
-									role={ticket.tone === "danger" ? "alert" : undefined}
-									className={`mt-1 text-sm wrap-anywhere ${tones[ticket.tone]}`}
-								>
-									{ticket.note}
-								</p>
-							)}
+							{ticket.note && <p className={`mt-1 text-sm wrap-anywhere ${tones[ticket.tone]}`}>{ticket.note}</p>}
 						</div>
 					</div>
 					{ticket.children.length > 0 && (

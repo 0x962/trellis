@@ -1,6 +1,6 @@
 import { FolderOpen, FolderUser } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CodeText, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
+import { Button, CodeText, FailureState, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
 import { type ReactElement, useCallback, useEffect } from "react";
 import { type DesktopAction, type DesktopSettingsBridge, desktopErrorMessage } from "../../../lib/desktopBridge";
 import { SettingsRow } from "../SettingsRow";
@@ -30,9 +30,11 @@ export function DesktopSettings({ bridge }: { bridge: DesktopSettingsBridge }) {
 	});
 	if (status.isError)
 		return (
-			<p role="alert" className="py-4 text-sm text-danger">
-				{desktopErrorMessage(status.error)}
-			</p>
+			<FailureState
+				title="Desktop settings are unavailable."
+				detail={desktopErrorMessage(status.error)}
+				action={<Button onClick={() => void status.refetch()}>Retry</Button>}
+			/>
 		);
 	if (status.isPending)
 		return (
