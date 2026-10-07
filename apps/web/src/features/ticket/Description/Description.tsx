@@ -180,7 +180,7 @@ export function Description({ ticket, onAttachFiles }: DescriptionProps) {
 			{conflict !== null && (
 				<ConflictNotice current={conflict.current} onOverwrite={() => void overwrite()} onClose={closeConflict} />
 			)}
-			{editing ? (
+			{editing && !readOnly ? (
 				<LazyEditor
 					markdown={ticket.description}
 					contentKey={ticket.identifier}
@@ -195,7 +195,7 @@ export function Description({ ticket, onAttachFiles }: DescriptionProps) {
 				// biome-ignore lint/a11y/noStaticElementInteractions: the `e` key is the keyboard route to the editor
 				// biome-ignore lint/a11y/useKeyWithClickEvents: the `e` key is the keyboard route to the editor
 				<div
-					onClick={onClick}
+					onClick={readOnly ? undefined : onClick}
 					className={cx(
 						"cursor-text",
 						ticket.description.trim() === "" &&

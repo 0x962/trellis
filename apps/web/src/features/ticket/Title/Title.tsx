@@ -9,6 +9,7 @@ import { useTicketWrite } from "../hooks/useTicketWrite";
 export type TitleProps = {
 	ticket: Ticket;
 	className?: string;
+	readOnly?: boolean;
 	onAttachFiles: (files: File[]) => void;
 };
 
@@ -30,7 +31,7 @@ const fitHeight = (element: HTMLTextAreaElement) => {
 // stored title back; an empty field saves nothing. The field draws no
 // border and no ring in any state, so the caret is the focus signal. A 412
 // shows the conflict notice with the actor who won.
-export function Title({ ticket, className, onAttachFiles }: TitleProps) {
+export function Title({ ticket, className, readOnly = false, onAttachFiles }: TitleProps) {
 	const { write } = useTicketWrite(ticket.identifier);
 	const [text, setText] = useState(ticket.title);
 	const [conflict, setConflict] = useState<Conflict | null>(null);
@@ -133,11 +134,12 @@ export function Title({ ticket, className, onAttachFiles }: TitleProps) {
 				aria-label="Title"
 				rows={1}
 				value={text}
+				readOnly={readOnly}
 				onChange={(event) => setText(oneLine(event.target.value))}
-				onKeyDown={onKeyDown}
-				onPasteCapture={onPasteCapture}
-				onPaste={onPaste}
-				onBlur={commit}
+				onKeyDown={readOnly ? undefined : onKeyDown}
+				onPasteCapture={readOnly ? undefined : onPasteCapture}
+				onPaste={readOnly ? undefined : onPaste}
+				onBlur={readOnly ? undefined : commit}
 				// One line of 24 px text is 32 px tall, so a coarse pointer gets
 				// the 44 px minimum from a minimum height.
 				className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-fg outline-none [field-sizing:content] focus:outline-none focus-visible:outline-none pointer-coarse:min-h-11"

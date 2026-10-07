@@ -24,6 +24,8 @@ export const SessionRow = memo(function SessionRow({ session, status, active }: 
 			agentProfile={agentProfileOf(session.harness)}
 			state={status === "working" ? "working" : "static"}
 			status={status}
+			tooltip={false}
+			focusable={false}
 			className="size-5"
 		/>
 	);
